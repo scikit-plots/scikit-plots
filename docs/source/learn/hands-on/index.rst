@@ -8,7 +8,7 @@ Hands-On (Practice) Materials
 
 .. important::
 
-   **AI-assisted landing page.** This overview page was assembled with the
+   **✨ AI-assisted landing page.** This overview page was assembled with the
    help of an AI language model. The lab material it links to is **not**
    AI-generated: each collection is reproduced verbatim from a third-party
    source under that source's own open license (see the per-page

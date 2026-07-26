@@ -41,7 +41,7 @@ import da_content as _c  # noqa: E402
 AI_NOTICE = (
     ".. important::\n"
     "\n"
-    "   **AI-generated content.** This page was written with the assistance of an\n"
+    "   **✨ AI-generated content.** This page was written with the assistance of an\n"
     "   AI language model and is provided as a learning aid. Despite careful\n"
     "   review, it may still contain mistakes, omissions, or out-of-date\n"
     "   information. Whether you are new to the topic, a team lead, or a senior\n"

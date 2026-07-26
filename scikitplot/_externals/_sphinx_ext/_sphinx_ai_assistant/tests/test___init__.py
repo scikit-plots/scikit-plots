@@ -1875,7 +1875,7 @@ class TestSetup:
     def test_css_and_js_added(self, app):
         _mod.setup(app)
         app.add_css_file.assert_called_once_with("ai-assistant.css")
-        app.add_js_file.assert_called_once_with("ai-assistant.js")
+        app.add_js_file.assert_called_once_with("ai-assistant.js", loading_method='defer')
 
     def test_static_path_appended(self, app):
         _mod.setup(app)

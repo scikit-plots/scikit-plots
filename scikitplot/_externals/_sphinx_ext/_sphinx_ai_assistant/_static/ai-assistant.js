@@ -18,6 +18,13 @@
  * All behaviour driven by window.AI_ASSISTANT_CONFIG injected by the
  * Python extension's add_ai_assistant_context().
  *
+ * Browser baseline
+ * ────────────────
+ *   – Modern browsers (ES2017+): async/await, arrow functions and spread are
+ *     used, so this file does NOT run on IE11 (it would not even parse there).
+ *   – A few IE11-era fallbacks remain (XHR-for-AbortController, ResizeObserver
+ *     guard); they are legacy and no longer reachable — safe to simplify later.
+ *
  * Security
  * ────────
  *   – All user-facing HTML via textContent / setAttribute, never innerHTML.
@@ -29,9 +36,43 @@
  *   – Every public function is at module scope inside the IIFE.
  *   – The global 'click' listener for dropdown-close is registered once only
  *     (guarded by _listenersAttached).
- *   – Turndown 7.1.2 is vendored inline — no CDN request, works everywhere.
+ *   – Turndown 7.1.2 is vendored inline (minified) — no CDN request, works everywhere.
  *   – Speech recognition is lazy-started on first mic click (no permission
  *     prompts until the user explicitly clicks the mic icon).
+ */
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * MODULE MAP  (two top-level IIFEs; line numbers approximate, drift with edits)
+ * ─────────────────────────────────────────────────────────────────────────
+ * IIFE A — the widget                                       L37 → ~L20305
+ *   Bootstrap / shared utils (guard, config, getStaticPath,
+ *     _fetch, _isSafeUrl, ICONS, haptics, long-press)       L37
+ *   Markdown converter (Turndown vendored inline)            ~L1107
+ *   Toolbar + dropdown (createAIAssistantUI)                ~L1127
+ *     ├─ Copy page / View as Markdown
+ *     ├─ Ask-LLM deep links (ChatGPT / Claude / Gemini)
+ *     ├─ MCP tools
+ *     └─ PDF / Print (createPdfSection, handlePdfExport)    ~L1305
+ *   getStaticPath / convertToMarkdown                       ~L1462 / ~L1647
+ *   _EP endpoint & profile engine (+ compat shim)           ~L2000
+ *   Export records / share sheet / model selection          (mid-file)
+ *   AI panel (createAIPanel / toggleAIPanel)                ~L14361 / ~L15672
+ *   Streaming / SSE                                         (late)
+ *   window.AI_ASSISTANT shared surface + bootstrap          end of IIFE A
+ * IIFE B — model-group observer add-on                      ~L20308 → EOF
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * LOAD & INIT ORDER  (verified; see ARCHITECTURE-ai-assistant.md)
+ * ─────────────────────────────────────────────────────────────────────────
+ *   1. inline window.AI_ASSISTANT_CONFIG   (parse-time, injected by the page)
+ *   2. ai-assistant.js                     (this file; Turndown is inline)
+ *   3. IIFE A bootstrap: initAIAssistant → createAIAssistantUI (toolbar)
+ *   4. AI panel built lazily on first toggleAIPanel()
+ *   5. IIFE B observer attaches once the panel body exists
+ *   The script is deferred and runs after parse; the bootstrap is
+ *   readyState-gated, so ordering is guaranteed.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 (function () {
@@ -40,6 +81,63 @@
     // Guard against multiple injections
     if (window.SphinxAIAssistantInitialized) return;
     window.SphinxAIAssistantInitialized = true;
+
+    // ── Config accessor ──────────────────────────────────────────────────────
+    // Single source for the page-injected configuration; always returns an
+    // object, so callers can do _cfg().foo without guarding.
+    function _cfg() { return window.AI_ASSISTANT_CONFIG || {}; }
+
+    // ── Diagnostics: single gated, scrubbing logger ──────────────────────────
+    // All console output routes through _log(). Rationale:
+    //   * one place to control verbosity and formatting;
+    //   * error/warn always surface; log/info/debug surface only when debug is
+    //     on (config.debug===true, localStorage 'ai-assistant-debug'='1', or
+    //     ?ai-debug=1) - so production consoles stay quiet;
+    //   * object arguments are scrubbed of credential-like keys before printing,
+    //     so tokens/keys/cookies can never leak to the console (defense in depth;
+    //     feedback payloads are additionally redacted at call sites via
+    //     _redactPayloadForLog).
+    var _AI_DEBUG = (function () {
+        try {
+            if (_cfg().debug === true) return true;
+            if (window.localStorage && localStorage.getItem('ai-assistant-debug') === '1') return true;
+            if (location && /[?&]ai-debug=1(?:&|$)/.test(location.search)) return true;
+        } catch (_e) {}
+        return false;
+    }());
+
+    var _SENSITIVE_KEY = /(?:token|authorization|auth|api[_-]?key|secret|bearer|cookie|password|refresh)/i;
+
+    function _scrubArg(v, depth) {
+        if (v == null || typeof v !== 'object' || v instanceof Error) return v;
+        if (depth > 2) return '[...]';
+        var out, k;
+        if (Object.prototype.toString.call(v) === '[object Array]') {
+            out = [];
+            for (k = 0; k < v.length; k++) { out.push(_scrubArg(v[k], depth + 1)); }
+            return out;
+        }
+        out = {};
+        for (k in v) {
+            if (!Object.prototype.hasOwnProperty.call(v, k)) { continue; }
+            out[k] = _SENSITIVE_KEY.test(k) ? '[redacted]' : _scrubArg(v[k], depth + 1);
+        }
+        return out;
+    }
+
+    /**
+     * Gated, scrubbing logger; replaces direct console.* calls. Never throws.
+     * @param {string} level  'error' | 'warn' | 'log' | 'info' | 'debug'
+     */
+    function _log(level) {
+        if (!_AI_DEBUG && level !== 'error' && level !== 'warn') { return; }
+        if (typeof console === 'undefined') { return; }
+        var fn = (typeof console[level] === 'function') ? console[level] : console.log;
+        if (typeof fn !== 'function') { return; }
+        var args = [], i;
+        for (i = 1; i < arguments.length; i++) { args.push(_scrubArg(arguments[i], 0)); }
+        try { fn.apply(console, args); } catch (_e) {}
+    }
 
     // ── Module-level singletons ───────────────────────────────────────────────
 
@@ -126,23 +224,132 @@
     var _EXPORT_LINK_MODE_KEY = 'ai-assistant-export-link-mode';
 
     /**
+     * User-settable dataset repo override — the runtime, no-recompile
+     * counterpart to conf.py's ``panelDatasetRepo``.
+     *
+     * Set from the "Dataset Endpoint" section in Extended Settings (mirrors
+     * the endpoint-profile system: the built-in auto-discovery / conf.py
+     * behaviour keeps working unchanged, this just adds a live, user-owned
+     * override on top, same as a custom endpoint profile sits alongside the
+     * built-in DMR/CF/HF ones). Highest priority in _buildDatasetSection's
+     * resolution chain — see there for P0/P1/P2 order.
+     *
+     * Stored as a plain "owner/repo" string (validated via
+     * _isValidHfRepoId before ever being saved) — never a full URL, so
+     * there's no SSRF surface here the way there is for endpoint profiles.
+     *
+     * @type {string}
+     */
+    var _CUSTOM_DATASET_REPO_KEY = 'ai-assistant-custom-dataset-repo';
+
+    /** "owner/repo" — HF's own id format. Deliberately conservative (no
+     *  leading/trailing dots or hyphens, no consecutive slashes) since this
+     *  string gets embedded directly into a huggingface.co URL. */
+    var _HF_REPO_ID_RE = /^[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?\/[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?$/;
+
+    /**
+     * Single source of truth for "is this a well-formed HF repo id, and
+     * what's its canonical trimmed form" — every place that reads a repo
+     * id from *anywhere* (localStorage, conf.py, proxy discovery response)
+     * must pass through this before it's used, not just the save path.
+     *
+     * This exists because the original code only validated on save
+     * (_isValidHfRepoId at the form's Save button) — localStorage itself,
+     * ``cfg.panelDatasetRepo``, and the proxy-discovered ``info.repoId``
+     * were all trusted unconditionally at read time. A value could reach
+     * that point unvalidated via an older release's storage format, a
+     * same-origin script, devtools, a malformed conf.py, or unexpected
+     * proxy JSON — none of those are this component's own save path.
+     *
+     * Not an XSS fix (the render path already only ever used textContent
+     * and a scheme-checked href, see _buildDatasetLinkCard) — this closes
+     * the separate robustness gap: an invalid value reaching this point
+     * previously produced a broken/misleading huggingface.co link instead
+     * of being rejected at the boundary it actually entered from.
+     *
+     * @param {*} value
+     * @returns {string} Canonical trimmed repo id, or '' if invalid/absent.
+     */
+    function _normalizeHfRepoId(value) {
+        if (typeof value !== 'string') { return ''; }
+        var repoId = value.trim();
+        return _HF_REPO_ID_RE.test(repoId) ? repoId : '';
+    }
+
+    function _isValidHfRepoId(s) {
+        return _normalizeHfRepoId(s) !== '';
+    }
+
+    /**
+     * @returns {string} The saved custom repo id, or '' if unset,
+     *   unavailable, or the stored value fails validation.
+     */
+    function _getCustomDatasetRepo() {
+        try {
+            var stored = localStorage.getItem(_CUSTOM_DATASET_REPO_KEY);
+            var repoId = _normalizeHfRepoId(stored);
+            // Storage held something, but it's not a valid repo id (stale
+            // format from an older release, tampered same-origin, etc.) —
+            // clear it rather than silently keep re-serving a broken value
+            // on every future read.
+            if (stored && !repoId) {
+                try { localStorage.removeItem(_CUSTOM_DATASET_REPO_KEY); } catch (_) {}
+            }
+            return repoId;
+        } catch (_) {
+            return '';
+        }
+    }
+
+    /**
+     * @param {string} value  Re-validated here via _normalizeHfRepoId even
+     *   though the UI's Save button already calls _isValidHfRepoId first —
+     *   this function no longer just trusts its caller, so it stays safe
+     *   even if a future call site skips that check.
+     * @returns {boolean} Whether the write succeeded.
+     */
+    function _setCustomDatasetRepo(value) {
+        var repoId = _normalizeHfRepoId(value);
+        if (!repoId) { return false; }
+        try {
+            localStorage.setItem(_CUSTOM_DATASET_REPO_KEY, repoId);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function _clearCustomDatasetRepo() {
+        try {
+            localStorage.removeItem(_CUSTOM_DATASET_REPO_KEY);
+        } catch (_) {}
+    }
+
+    /**
      * Whether export share-link mode is active.
      *
-     * ``false`` (default) → clicking an export format downloads the file.
-     * ``true``            → clicking opens the "Share conversation" sheet,
-     *                       which generates a blob URL the user can copy/open.
+     * ``true`` (default) → clicking an export format opens the "Share
+     *                       conversation" sheet, which generates a blob URL
+     *                       the user can copy/open.
+     * ``false``           → clicking an export format downloads the file.
      *
      * Persisted in localStorage so the preference survives page reloads.
      * Falls back gracefully when storage is unavailable (private mode,
      * storage quota exceeded, cross-origin iframe, etc.).
      *
+     * Default resolution:
+     *   - No stored value yet (`null`)   → `true`  (link mode open by default)
+     *   - Stored value is `'true'`       → `true`
+     *   - Stored value is anything else  → `false` (explicit prior opt-out)
+     *
      * @type {boolean}
      */
     var _exportLinkMode = (function () {
         try {
-            return localStorage.getItem(_EXPORT_LINK_MODE_KEY) === 'true';
+            var _stored = localStorage.getItem(_EXPORT_LINK_MODE_KEY);
+            return _stored === null ? true : _stored === 'true';
         } catch (_) {
-            return false;
+            return true;
         }
     }());
 
@@ -423,7 +630,7 @@
 
     /**
      * Feature-flag defaults — last line of defence when the injected
-     * window.AI_ASSISTANT_CONFIG.features dict is missing/partial.
+     * _cfg().features dict is missing/partial.
      *
      * CRITICAL — SINGLE SOURCE OF TRUTH CONTRACT
      * ──────────────────────────────────────────
@@ -471,8 +678,17 @@
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
         // ── v0.3 additions — mirror _ICON_META in _static/__init__.py ──────────
         newChat:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
+        // Compose / spark variant of "new chat" — additive, inert, for future usage.
+        // Filled 16x16 glyph; inline SVG inherits currentColor (dark-mode safe).
+        // Mirror of new-chat-compose.svg / _SVG_NEW_CHAT_COMPOSE in _static/__init__.py.
+        newChatCompose: '<svg viewBox="0 0 16 16" fill="none"><path fill="currentColor" d="M13.75 10c0-2.389-.983-4.131-1.696-5.08-.19.437-.74 1.33-2.054 1.33-.765 0-1.3-.334-1.643-.712-.306-.338-.455-.706-.513-.902l-.01-.037c-.097-.36-.176-.738-.253-1.079-.079-.35-.159-.676-.262-.98-.108-.318-.24-.6-.412-.844-.865 1.82-2.002 3.05-2.899 4.151C2.98 7.111 2.25 8.22 2.25 10c0 1.545.923 2.955 2.374 3.831-.074-.277-.115-.565-.123-.855l-.001-.104c0-.957.522-1.784 1.107-2.472.58-.685 1.352-1.371 1.952-1.968l.024-.022c.245-.22.622-.213.858.022.613.61 1.372 1.31 1.956 2.012.575.691 1.103 1.52 1.103 2.428l-.001.104c-.008.29-.049.578-.123.855 1.45-.876 2.374-2.286 2.374-3.831M15 10c0 2.817-2.241 5.046-5.036 5.756l-.133.032c-.297.07-.601-.085-.72-.366-.118-.28-.016-.607.242-.77l.053-.035c.528-.362.824-.967.843-1.674l.001-.07c0-.443-.271-.977-.814-1.63-.416-.5-.92-.99-1.438-1.494-.52.5-1.019.965-1.438 1.46-.533.627-.81 1.164-.81 1.663l.001.071c.02.73.335 1.353.896 1.71.258.163.36.488.241.77-.114.272-.403.425-.691.371l-.028-.006C3.313 15.116 1 12.862 1 10c0-2.22.957-3.611 2.039-4.941C4.119 3.73 5.305 2.473 6.104.4l.014-.033c.073-.16.21-.284.38-.338.181-.057.378-.03.536.076l.074.05c.756.533 1.148 1.26 1.394 1.983.126.37.218.75.299 1.107.083.368.152.703.24 1.03l.008.026c.025.074.096.245.235.398.142.157.356.301.716.301.34 0 .537-.111.66-.222.137-.123.216-.277.26-.385l.012-.036c.03-.094.063-.263.101-.478.018-.1.04-.221.063-.312.009-.035.03-.123.075-.208.013-.026.082-.165.242-.263.097-.06.24-.109.408-.088.142.017.248.078.319.135l.028.023.049.046C12.6 3.575 15 5.996 15 10"/></svg>',
         exportTxt:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        // Pencil — Edit & resend a previous question.
+        editAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
         copyAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        // Checkmark — swapped in for copyAns for ~1.6s after a successful
+        // copy, same viewBox/stroke-width so the swap doesn't jump in size.
+        checkAns: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
         privacy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         // ── Listen / Text-to-Speech ───────────────────────────────────────────
         // Speaker-wave icon used for TTS "Listen" button in the action row.
@@ -523,7 +739,172 @@
         // ── Endpoint registry icon — server/network node ─────────────────────
         // Three-tier stack: represents layered proxy backends (DMR / CF / HF).
         endpoint:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+        // ── Octicon-derived additions (GitHub Octicons, MIT-licensed path data) ──
+        // Same trimming convention as `github` above: drop data-component /
+        // class / width / height / inline style — sizing and color come from
+        // the wrapping element + currentColor so these behave like every
+        // other icon in this registry.
+        // Copilot-style assistant/robot glyph — for future branding use
+        // wherever a "this is the AI" visual cue is useful (welcome message,
+        // empty states, etc.).
+        botAssistant: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.998 15.035c-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.201-.508-.254-1.084-.254-1.656 0-.87.128-1.769.693-2.484.579-.733 1.494-1.124 2.724-1.261 1.206-.134 2.262.034 2.944.765.05.053.096.108.139.165.044-.057.094-.112.143-.165.682-.731 1.738-.899 2.944-.765 1.23.137 2.145.528 2.724 1.261.566.715.693 1.614.693 2.484 0 .572-.053 1.148-.254 1.656.066.228.098.429.126.612.012.076.024.148.037.218.924.385 1.522 1.471 1.591 2.095v1.872c0 .766-3.351 3.795-8.002 3.795Zm0-1.485c2.28 0 4.584-1.11 5.002-1.433V7.862l-.023-.116c-.49.21-1.075.291-1.727.291-1.146 0-2.059-.327-2.71-.991A3.222 3.222 0 0 1 8 6.303a3.24 3.24 0 0 1-.544.743c-.65.664-1.563.991-2.71.991-.652 0-1.236-.081-1.727-.291l-.023.116v4.255c.419.323 2.722 1.433 5.002 1.433ZM6.762 2.83c-.193-.206-.637-.413-1.682-.297-1.019.113-1.479.404-1.713.7-.247.312-.369.789-.369 1.554 0 .793.129 1.171.308 1.371.162.181.519.379 1.442.379.853 0 1.339-.235 1.638-.54.315-.322.527-.827.617-1.553.117-.935-.037-1.395-.241-1.614Zm4.155-.297c-1.044-.116-1.488.091-1.681.297-.204.219-.359.679-.242 1.614.091.726.303 1.231.618 1.553.299.305.784.54 1.638.54.922 0 1.28-.198 1.442-.379.179-.2.308-.578.308-1.371 0-.765-.123-1.242-.37-1.554-.233-.296-.693-.587-1.713-.7Z"/><path d="M6.25 9.037a.75.75 0 0 1 .75.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 .75-.75Zm4.25.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 1.5 0Z"/></svg>',
+        // Filled thumbs-up / thumbs-down — used by the quick-rate pill so the
+        // idle/hover/pressed colours (currently only working on the score
+        // chip) also apply to the glyph itself, which a plain emoji glyph
+        // can never pick up (emoji ignore `color`).
+        thumbUp:   '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.347.631A.75.75 0 0 1 9.123.26l.238.04a3.25 3.25 0 0 1 2.591 4.098L11.494 6h.665a3.25 3.25 0 0 1 3.118 4.167l-1.135 3.859A2.751 2.751 0 0 1 11.503 16H6.586a3.75 3.75 0 0 1-2.184-.702A1.75 1.75 0 0 1 3 16H1.75A1.75 1.75 0 0 1 0 14.25v-6.5C0 6.784.784 6 1.75 6h3.417a.25.25 0 0 0 .217-.127ZM4.75 13.649l.396.33c.404.337.914.521 1.44.521h4.917a1.25 1.25 0 0 0 1.2-.897l1.135-3.859A1.75 1.75 0 0 0 12.159 7.5H10.5a.75.75 0 0 1-.721-.956l.731-2.558a1.75 1.75 0 0 0-1.127-2.14L6.69 6.611a1.75 1.75 0 0 1-1.523.889H4.75ZM3.25 7.5h-1.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25H3a.25.25 0 0 0 .25-.25Z"/></svg>',
+        thumbDown: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.653 15.369a.75.75 0 0 1-.776.371l-.238-.04a3.25 3.25 0 0 1-2.591-4.099L4.506 10h-.665A3.25 3.25 0 0 1 .723 5.833l1.135-3.859A2.75 2.75 0 0 1 4.482 0H9.43c.78.003 1.538.25 2.168.702A1.752 1.752 0 0 1 12.989 0h1.272A1.75 1.75 0 0 1 16 1.75v6.5A1.75 1.75 0 0 1 14.25 10h-3.417a.25.25 0 0 0-.217.127ZM11.25 2.351l-.396-.33a2.248 2.248 0 0 0-1.44-.521H4.496a1.25 1.25 0 0 0-1.199.897L2.162 6.256A1.75 1.75 0 0 0 3.841 8.5H5.5a.75.75 0 0 1 .721.956l-.731 2.558a1.75 1.75 0 0 0 1.127 2.14L9.31 9.389a1.75 1.75 0 0 1 1.523-.889h.417Zm1.5 6.149h1.5a.25.25 0 0 0 .25-.25v-6.5a.25.25 0 0 0-.25-.25H13a.25.25 0 0 0-.25.25Z"/></svg>',
+        // Two-arrow "sync" glyph — replaces the old single-arrow retry icon
+        // below with a cleaner, more recognizable Octicon (the old path
+        // visually reads a lot like the ⟲ glyph mentioned in review).
+        syncRetry: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></svg>',
+        // Mirrored variant (⟳ rather than ⟲) — same glyph flipped horizontally
+        // via a transform, so it stays a single source of truth instead of a
+        // second hand-drawn path. Not wired to any control yet; kept available
+        // for a future "redo" / alternate-direction action (e.g. a reversible
+        // retry, or distinguishing "regenerate" from "undo regenerate").
+        syncRetryReverse: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><g transform="translate(16,0) scale(-1,1)"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></g></svg>',
+        // ── Suggestion for future use ──────────────────────────────────────
+        // "AI sparkle" glyph — common convention for "this was AI-generated /
+        // AI-enhanced" badges. Not wired to any control; here as a ready-made
+        // option if a future feature (e.g. an "AI suggested" tag on quick
+        // questions, or a highlight on the send button) needs one.
+        // "Sparkle" — Octicon, four-pointed star with concave sides (the
+        // GitHub Copilot/AI-suggestion glyph family). Not wired to any
+        // control yet — see ICONS.sparkleAlt below for how it differs from
+        // the two-sparkle variant.
+        sparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.198.57c.275-.752 1.34-.752 1.615 0l.849 2.317a5.819 5.819 0 0 0 3.462 3.463l2.317.848c.753.275.753 1.34 0 1.615l-2.317.849a5.815 5.815 0 0 0-3.462 3.462l-.849 2.317c-.275.753-1.34.753-1.615 0l-.848-2.317a5.819 5.819 0 0 0-3.463-3.462L.57 8.813c-.752-.275-.752-1.34 0-1.615l2.317-.848A5.823 5.823 0 0 0 6.35 2.887L7.198.57Zm.562 2.833A7.323 7.323 0 0 1 3.403 7.76l-.673.246.673.246a7.324 7.324 0 0 1 4.357 4.356l.246.673.246-.673a7.322 7.322 0 0 1 4.356-4.356l.673-.246-.673-.246a7.324 7.324 0 0 1-4.356-4.357l-.246-.673-.246.673Z"/></svg>',
+        // Paintbrush + AI sparkle — not wired to any control yet; kept
+        // available for a future "customize/style" or "AI-assisted
+        // formatting" affordance.
+        brushSparkle: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M14.8777 7.28311L15.226 8.3539C15.3343 8.67945 15.5171 8.97527 15.7599 9.21784C16.0026 9.46042 16.2987 9.64308 16.6245 9.7513L17.6961 10.0993L17.7175 10.1047C17.8001 10.1338 17.8716 10.1878 17.9222 10.2592C17.9728 10.3307 18 10.416 18 10.5035C18 10.5911 17.9728 10.6764 17.9222 10.7479C17.8716 10.8193 17.8001 10.8733 17.7175 10.9024L16.6459 11.2504C16.3201 11.3586 16.024 11.5413 15.7813 11.7839C15.5385 12.0265 15.3557 12.3223 15.2474 12.6478L14.8991 13.7186C14.87 13.8011 14.816 13.8726 14.7445 13.9232C14.673 13.9737 14.5876 14.0009 14.5 14.0009C14.4124 14.0009 14.327 13.9737 14.2555 13.9232C14.2484 13.9182 14.2415 13.913 14.2348 13.9076C14.1736 13.8584 14.1271 13.793 14.1008 13.7186L13.7525 12.6478C13.7338 12.591 13.7128 12.5351 13.6896 12.4802C13.5796 12.2196 13.4202 11.982 13.2196 11.7808C13.1815 11.7426 13.142 11.7058 13.1014 11.6706C12.883 11.4815 12.6292 11.3367 12.3541 11.2451L11.2824 10.8971C11.1998 10.8679 11.1283 10.8139 11.0777 10.7425C11.0271 10.6711 11 10.5857 11 10.4982C11 10.4107 11.0271 10.3253 11.0777 10.2539C11.1283 10.1824 11.1998 10.1284 11.2824 10.0993L12.3541 9.7513C12.6759 9.64026 12.9676 9.45634 13.2065 9.21392C13.4454 8.97151 13.6249 8.67716 13.7311 8.3539L14.0794 7.28311C14.1085 7.20057 14.1625 7.12911 14.234 7.07855C14.3055 7.028 14.391 7.00085 14.4785 7.00085C14.5661 7.00085 14.6515 7.028 14.723 7.07855C14.7945 7.12911 14.8486 7.20057 14.8777 7.28311ZM19.7829 15.214L19.0175 14.9655C18.7847 14.8882 18.5733 14.7577 18.3999 14.5844C18.2265 14.4112 18.0959 14.1999 18.0186 13.9673L17.7698 13.2025C17.749 13.1435 17.7104 13.0925 17.6593 13.0564C17.6082 13.0203 17.5472 13.0009 17.4847 13.0009C17.4221 13.0009 17.3611 13.0203 17.31 13.0564C17.2589 13.0925 17.2203 13.1435 17.1995 13.2025L16.9508 13.9673C16.875 14.1982 16.7467 14.4085 16.5761 14.5816C16.4055 14.7548 16.1971 14.8862 15.9672 14.9655L15.2017 15.214C15.1427 15.2348 15.0916 15.2734 15.0555 15.3244C15.0194 15.3755 15 15.4364 15 15.499C15 15.5615 15.0194 15.6224 15.0555 15.6735C15.0916 15.7245 15.1427 15.7631 15.2017 15.7839L15.9672 16.0324C16.2003 16.1101 16.412 16.2412 16.5855 16.4151C16.7589 16.5891 16.8892 16.8012 16.9661 17.0344L17.2148 17.7993C17.2357 17.8582 17.2743 17.9093 17.3253 17.9454C17.3764 17.9815 17.4374 18.0009 17.5 18.0009C17.5625 18.0009 17.6235 17.9815 17.6746 17.9454C17.7257 17.9093 17.7643 17.8582 17.7851 17.7993L18.0339 17.0344C18.1112 16.8019 18.2418 16.5906 18.4152 16.4173C18.5886 16.244 18.8001 16.1136 19.0328 16.0363L19.7982 15.7877C19.8572 15.7669 19.9083 15.7283 19.9444 15.6773C19.9806 15.6263 20 15.5653 20 15.5028C20 15.4403 19.9806 15.3793 19.9444 15.3283C19.9083 15.2772 19.8572 15.2387 19.7982 15.2179L19.7829 15.214ZM4.99997 2.5C4.99997 2.22386 5.22383 2 5.49997 2H14.5C14.7761 2 15 2.22386 15 2.5V6.09979C14.8348 6.03477 14.658 6.00085 14.4785 6.00085C14.3145 6.00085 14.1527 6.02919 14 6.08371V3H13V5.50219C13 5.77834 12.7761 6.00219 12.5 6.00219C12.2238 6.00219 12 5.77834 12 5.50219V3H11V4.5C11 4.77614 10.7761 5 10.5 5C10.2238 5 9.99997 4.77614 9.99997 4.5V3H5.99997V9.00436H11.4165L10.9617 9.15205L10.95 9.15619C10.6724 9.25405 10.4318 9.4356 10.2616 9.67594C10.1894 9.77798 10.1313 9.88847 10.0884 10.0044H5.99999V11.0043C5.99999 11.5566 6.4477 12.0043 6.99999 12.0043H8.50408C8.78023 12.0043 9.00408 12.2282 9.00408 12.5043V16.0017C9.00408 16.554 9.4518 17.0017 10.0041 17.0017C10.5564 17.0017 11.0041 16.5539 11.0041 16.0017V12.5043C11.0041 12.2429 11.2047 12.0284 11.4603 12.0062L12.041 12.1948C12.1904 12.245 12.3282 12.3239 12.4468 12.4266C12.469 12.4458 12.4906 12.466 12.5115 12.4869C12.6211 12.5969 12.7082 12.7267 12.7684 12.8691C12.7808 12.8987 12.7921 12.9287 12.8022 12.9592L12.8027 12.9608L12.8169 13.0043H12.0041V16.0017C12.0041 17.1062 11.1087 18.0017 10.0041 18.0017C8.89951 18.0017 8.00408 17.1062 8.00408 16.0017V13.0043H6.99999C5.89542 13.0043 4.99999 12.1089 4.99999 11.0043L4.99997 2.5Z"/></svg>',
+        // Hamburger + AI sparkle — not wired to any control yet; kept
+        // available for a future "AI menu" trigger, distinct from the
+        // plain hamburger already used for the main panel menu.
+        menuSparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.218.372c-.122-.487-.814-.487-.936 0l-.285 1.14a4.102 4.102 0 0 1-2.985 2.985l-1.14.285c-.487.122-.487.814 0 .936l1.14.285a4.102 4.102 0 0 1 2.985 2.985l.285 1.14c.122.487.814.487.936 0l.285-1.14a4.102 4.102 0 0 1 2.985-2.985l1.14-.285c.487-.122.487-.814 0-.936l-1.14-.285a4.102 4.102 0 0 1-2.985-2.985l-.285-1.14ZM3.561 4.5c.282 0 .478.288.454.569-.01.12-.01.242 0 .362.024.28-.172.569-.454.569H.75a.75.75 0 0 1 0-1.5h2.811Zm4.778 4.317c-.1-.207-.32-.317-.55-.317H.75a.75.75 0 0 0 0 1.5h7.442c.26 0 .455-.246.388-.497a3.886 3.886 0 0 0-.241-.686ZM11 13.25a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h9.5a.75.75 0 0 1 .75.75Z"/></svg>',
+        // Two-tier "AI sparkle" — one large 4-point star, one small offset
+        // star top-right. Hand-drafted (sprite ID unresolved, see chat);
+        // not wired anywhere yet.
+        sparkleAlt: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 1.5c.18 0 .34.12.39.29l.82 2.72a4.7 4.7 0 0 0 3.15 3.15l2.72.82a.4.4 0 0 1 0 .77l-2.72.82a4.7 4.7 0 0 0-3.15 3.15l-.82 2.72a.4.4 0 0 1-.77 0l-.82-2.72a4.7 4.7 0 0 0-3.15-3.15l-2.72-.82a.4.4 0 0 1 0-.77l2.72-.82A4.7 4.7 0 0 0 7.6 4.51l.82-2.72A.4.4 0 0 1 9 1.5Z"/><path d="M15.5 1c.16 0 .3.1.34.26l.32.99c.15.47.52.84.99.99l.99.32a.36.36 0 0 1 0 .68l-.99.32a1.56 1.56 0 0 0-.99.99l-.32.99a.36.36 0 0 1-.68 0l-.32-.99a1.56 1.56 0 0 0-.99-.99l-.99-.32a.36.36 0 0 1 0-.68l.99-.32c.47-.15.84-.52.99-.99l.32-.99A.36.36 0 0 1 15.5 1Z"/></svg>',
+        // Reuses the exact same path as the Python-side _SVG_TERMS constant
+        // (__init__.py) — consolidated to one design instead of a second,
+        // slightly-different document glyph, so JS/Python/disk-file stay
+        // pixel-identical. See _ICON_META["terms-of-service"] for the
+        // Python-side mirror.
+        termsOfService: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>',
+        // Reuses the exact same shield path as the Python-side _SVG_PRIVACY
+        // constant (and the on-disk privacy.svg) — same consolidation
+        // rationale as termsOfService above. No added checkmark: keeping it
+        // pixel-identical to the existing "Privacy Policy" icon everywhere
+        // it's used was judged more valuable than a one-off variant: ask if
+        // you want a visually distinct mark for "& Responsibility" instead.
+        privacyResponsibility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     };
+
+    // Remembers whether the hosted dancer GIF has ever failed to load, so a
+    // dead/blocked external asset is only attempted once per page load — every
+    // later render skips straight to the emoji fallback instead of re-issuing
+    // (and re-failing) the same request.
+    var _dancerGifBroken = false;
+
+    /**
+     * Split n into a left-center-right symmetric grouping, capped at maxGroup
+     * per cluster, e.g. _symmetricGroups(11, 3) -> [3, 2, 1, 2, 3].
+     * @param {number} n - Total item count. Must be a positive integer.
+     * @param {number} [maxGroup=Infinity] - Max cluster size on each side.
+     * @returns {number[]} Cluster sizes, symmetric around the center.
+     */
+    function _symmetricGroups(n, maxGroup = Infinity) {
+        if (!Number.isInteger(n) || n <= 0) {
+            throw new TypeError("'n' must be a positive integer.");
+        }
+        if (maxGroup !== Infinity && (!Number.isInteger(maxGroup) || maxGroup <= 0)) {
+            throw new TypeError("'maxGroup' must be a positive integer or Infinity.");
+        }
+        const center = (n % 2) ? 1 : 2;  // (n & 1) ? 1 : 2;
+        let side = (n - center) / 2;
+        const left = [];
+        while (side > 0) {
+            const size = Math.min(side, maxGroup);
+            left.push(size);
+            side -= size;
+        }
+        // return [...left, center, ...left.slice().reverse()];
+        return left.concat(center, left.slice().reverse());
+    }
+
+    /**
+     * Create one decorative dancer node. Prefers the animated GIF; falls back
+     * to a plain 🕺 glyph (no network request) once that asset is known to be
+     * broken, and repairs any already-inserted broken-image icon on failure.
+     * @returns {HTMLImageElement|Text} An `<img>`, or a text node once the GIF is known-broken.
+     */
+    function _createDancer() {
+        if (_dancerGifBroken) {
+            return document.createTextNode('🕺');
+        }
+        const img = document.createElement('img');
+        // const version = window.location.pathname.split("/")[1]; // "dev" or "stable"
+        // const root = window.location.pathname.match(/^\/[^/]+/)[0];
+        // if the script itself is inside _static, even better because
+        // DOCUMENTATION_OPTIONS.URL_ROOT points back to the documentation root.:
+        // img.src = new URL("animated_gif/dancer_anim.gif", import.meta.url).href;
+        // img.src = new URL("_static/animated_gif/dancer_anim.gif", document.baseURI).href;
+        const urlRoot = window.DOCUMENTATION_OPTIONS?.URL_ROOT ?? "/dev/";
+        img.src = `${urlRoot}_static/animated_gif/dancer_anim.gif`;
+        img.className = 'ai-assistant-panel-dancer-gif';
+        img.height = 11;
+        img.alt = '';
+        img.setAttribute('aria-hidden', 'true');
+        img.onerror = function () {
+            _dancerGifBroken = true;
+            if (img.parentNode) {
+                img.parentNode.replaceChild(document.createTextNode('🕺'), img);
+            }
+        };
+        return img;
+    }
+
+    /**
+     * Append a symmetric row of dancers to `parent`
+     * (e.g. 🕺🕺🕺 🕺🕺 🕺 🕺🕺 🕺🕺🕺). Falls back to a flat run of `n` dancers
+     * if the grouping itself is misconfigured, so a bad n/maxGroup never
+     * leaves the welcome message half-rendered.
+     *
+     * Note: multi line syntax: '' + ''; or ``; or [''].join('\n');
+     * const _img =
+     *     '<img src="https://homepages.uc.edu/~hansonmm/FUN/dancer_anim.gif"' +
+     *     ' class="ai-assistant-panel-dancer-gif"' +
+     *     ' height="11"' +
+     *     ' alt="" aria-hidden="true">';
+     * var _html = Array(11).fill(_img).join('&ensp;');
+     *
+     * @param {HTMLElement} parent - Node to append dancers/spacers to.
+     * @param {number} n - Total dancer count.
+     * @param {{maxGroup?: number, intra?: string, inter?: string}} [opts]
+     */
+    function _appendPattern(parent, n, opts) {
+        opts = opts || {};
+        const maxGroup = opts.maxGroup ?? Infinity;
+        const intra = opts.intra ?? '\u2002'; // en space
+        const inter = opts.inter ?? '\u2003'; // em space
+
+        let groups;
+        try {
+            groups = _symmetricGroups(n, maxGroup);
+        } catch (err) {
+            console.error('_appendPattern(): invalid n/maxGroup, using a flat run —', err);
+            groups = [Number.isInteger(n) && n > 0 ? n : 1];
+        }
+
+        groups.forEach(function (group, gi) {
+            for (let i = 0; i < group; i++) {
+                parent.appendChild(_createDancer());
+                if (i < group - 1) parent.appendChild(document.createTextNode(intra));
+            }
+            if (gi < groups.length - 1) parent.appendChild(document.createTextNode(inter));
+        });
+    }
 
     // ── Provider accent colours (mirrors _PROVIDER_COLORS in __init__.py) ──────
     //
@@ -558,7 +939,7 @@
      */
     function _providerColor(provider) {
         if (!provider) return '';
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var merged = Object.assign({}, _PROVIDER_COLORS_JS, cfg.providerColors || {});
         return merged[provider] || '';
     }
@@ -959,13 +1340,47 @@
             return '\x00CB' + idx + '\x00';   // null-byte placeholder (safe)
         });
 
+        // ── 1.5 Extract LaTeX math → placeholders ──────────────────────────
+        // \(...\) inline math and \[...\] display math (MathJax's default
+        // delimiters — the same ones Sphinx's sphinx.ext.mathjax expects).
+        // Extracted immediately after fenced code for the same reason: math
+        // content often contains backslashes, underscores, and braces that
+        // the list/bold/italic regexes below could otherwise misinterpret.
+        // Actual rendering is delegated to the host page's own MathJax
+        // instance after the bubble is in the DOM — see _typesetMath().
+        // This step only protects the delimiters and gives a clean,
+        // monospace-styled fallback if MathJax isn't loaded on this page.
+        var mathSpans = [];
+        result = result.replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)/g, function (m) {
+            var idx = mathSpans.length;
+            mathSpans.push(m);
+            return '\x00MJ' + idx + '\x00';
+        });
+
         // ── 2. Escape all remaining text (prevents HTML injection) ────────
         result = _escapeHtml(result);
 
         // ── 3. Inline code (after escaping so & < > inside are safe) ─────
-        result = result.replace(/`([^`]+)`/g, '<code class="ai-md-inline-code">$1</code>');
+        // [^`\n]+ (not [^`]+) — deliberately excludes newlines from the
+        // match. A single stray/unmatched backtick anywhere in a long
+        // answer (the model does occasionally emit one) would otherwise
+        // pair with the *next* backtick that appears, however many
+        // paragraphs, headings, or list items later — silently swallowing
+        // all of that content into one giant <code> span. Real markdown
+        // parsers don't let inline code spans cross line boundaries for
+        // exactly this reason; this keeps the blast radius of a malformed
+        // backtick to the one line it's actually on.
+        result = result.replace(/`([^`\n]+)`/g, '<code class="ai-md-inline-code">$1</code>');
 
         // ── 4. Headers ────────────────────────────────────────────────────
+        // Tried longest-prefix-first (#### before ###, etc.) — not strictly
+        // required since e.g. /^### / can never match a line starting with
+        // 4+ hashes (the char right after the captured ### must be a space,
+        // but it's a 4th #), but ordering this way is the standard safe
+        // pattern for hash-count heading parsers regardless.
+        result = result.replace(/^###### (.+)$/gm, '<h6 class="ai-md-h">$1</h6>');
+        result = result.replace(/^##### (.+)$/gm,  '<h5 class="ai-md-h">$1</h5>');
+        result = result.replace(/^#### (.+)$/gm,   '<h4 class="ai-md-h">$1</h4>');
         result = result.replace(/^### (.+)$/gm, '<h3 class="ai-md-h">$1</h3>');
         result = result.replace(/^## (.+)$/gm,  '<h2 class="ai-md-h">$1</h2>');
         result = result.replace(/^# (.+)$/gm,   '<h1 class="ai-md-h">$1</h1>');
@@ -1039,8 +1454,12 @@
         result = paras.map(function (p) {
             p = p.trim();
             if (!p) return '';
-            // Already a block element — don't wrap in <p>
-            if (/^<(?:ul|ol|h[1-3]|hr|pre)/i.test(p)) return p;
+            // Already a block element — don't wrap in <p>. h[1-6] (not
+            // h[1-3]) — H4-H6 support was added to the header regexes
+            // above; without also widening this check, an <h4> would get
+            // wrongly nested inside a <p> (invalid HTML: block element
+            // inside an inline-content container).
+            if (/^<(?:ul|ol|h[1-6]|hr|pre)/i.test(p)) return p;
             // Placeholder line — restore below
             if (/^\x00CB/.test(p)) return p;
             return '<p class="ai-md-p">' + p.replace(/\n/g, '<br>') + '</p>';
@@ -1060,10 +1479,180 @@
                 '<code>' + _escapeHtml(cb.code) + '</code></pre>';
         });
 
+        // ── 11. Restore LaTeX math ──────────────────────────────────────────
+        // The delimiters (\(...\) / \[...\]) are kept literal inside the
+        // span — MathJax's tex2jax preprocessor scans DOM text content for
+        // exactly this syntax and replaces it in place. Escaped here (was
+        // extracted before step 2's escaping) for the same XSS-safety
+        // reason fenced code blocks are escaped on restore above.
+        result = result.replace(/\x00MJ(\d+)\x00/g, function (_, idx) {
+            var m = mathSpans[+idx];
+            var isDisplay = m.charAt(1) === '[';
+            return '<span class="ai-md-math ' +
+                (isDisplay ? 'ai-md-math--display' : 'ai-md-math--inline') +
+                '">' + _escapeHtml(m) + '</span>';
+        });
+
         return result;
     }
 
-    // ── Initialisation ────────────────────────────────────────────────────────
+    /**
+     * Delegate LaTeX math rendering to the host page's own MathJax
+     * instance, if present — this panel is embedded in Sphinx docs pages,
+     * which almost always already load MathJax via ``sphinx.ext.mathjax``
+     * whenever any page on the site uses math notation. Reusing that
+     * instance means zero extra network requests and it respects the
+     * site's own math macros/config, instead of bundling a second,
+     * separate math renderer that would fight the page's for consistency.
+     *
+     * No-ops gracefully if MathJax isn't loaded on this particular page
+     * (not every doc page necessarily triggers Sphinx to include it): the
+     * \(...\) / \[...\] text stays visible, styled as math via
+     * .ai-md-math (see CSS), rather than throwing or silently vanishing.
+     *
+     * Deliberately NOT called on every streaming chunk — only once, after
+     * a stream finishes (or immediately for the non-streamed render path).
+     * Re-typesetting partial/incomplete LaTeX mid-stream (e.g. a \[ with
+     * no matching \] yet) on every delta would be wasteful and could
+     * throw on the incomplete syntax; same reasoning as
+     * _makeSectionsCollapsible being post-completion-only.
+     *
+     * @param {HTMLElement} root  Bubble element to typeset (not the whole panel).
+     */
+    function _typesetMath(root) {
+        if (!root) { return; }
+        if (!/\\[[(]/.test(root.textContent || '')) { return; }   // no math present — skip the call entirely
+        try {
+            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                window.MathJax.typesetPromise([root]).catch(function (err) {
+                    _log('warn', 'AI Assistant: MathJax typeset failed:', err);
+                });
+            } else if (window.MathJax && window.MathJax.Hub &&
+                    typeof window.MathJax.Hub.Queue === 'function') {
+                // MathJax v2 API — some older Sphinx theme setups still ship it.
+                window.MathJax.Hub.Queue(['Typeset', window.MathJax.Hub, root]);
+            }
+        } catch (err) {
+            _log('warn', 'AI Assistant: MathJax typeset threw:', err);
+        }
+    }
+
+    /**
+     * Append Claude-artifact-style downloadable file cards after all of a
+     * bubble's content — one card per code block, not one per answer: an
+     * answer can mix unrelated languages (Python setup + a bash install
+     * command), so a single bundled download wouldn't make sense without
+     * adding a ZIP dependency this panel doesn't otherwise need.
+     *
+     * Deliberately reuses the exact same download mechanism as the inline
+     * per-block toolbar button (`_downloadBlob` + `_LANG_EXT`) rather than
+     * a second implementation — the card is a more prominent, end-of-
+     * answer *presentation* of the same action, not a different feature.
+     *
+     * Idempotent (guarded by `.ai-md-artifact-list` presence) and, like
+     * `_makeSectionsCollapsible`/`_typesetMath`, only ever called once
+     * after a stream finishes — not per chunk, so cards don't
+     * flicker/duplicate while an answer is still streaming in.
+     *
+     * When there's more than one code block, a "Download all" button is
+     * appended inside the same list, bundling every snippet into one
+     * .zip via _buildZipBlob (see its own doc comment for the format
+     * details and why it's vendored inline rather than a CDN library).
+     *
+     * @param {HTMLElement} root  Bubble element to scan (not the whole panel).
+     */
+    function _appendArtifactCards(root) {
+        if (!root) { return; }
+        if (root.querySelector('.ai-md-artifact-list')) { return; }   // already done
+        var wraps = root.querySelectorAll('.ai-md-pre-wrap');
+        if (!wraps.length) { return; }
+
+        var list = document.createElement('div');
+        list.className = 'ai-md-artifact-list';
+
+        // Collected alongside each card so "Download all" (below) can
+        // trigger the exact same per-file downloads in sequence, rather
+        // than a second, separate code path.
+        var files = [];
+
+        wraps.forEach(function (wrap, i) {
+            var pre = wrap.querySelector('pre.ai-md-pre');
+            var codeEl = pre && pre.querySelector('code');
+            if (!codeEl) { return; }
+
+            var lang = (pre.getAttribute('data-lang') || '').toLowerCase();
+            var ext = _LANG_EXT[lang] || 'txt';
+            var typeLabel = lang ? (lang.charAt(0).toUpperCase() + lang.slice(1)) : 'Text';
+            var filename = 'snippet-' + (i + 1) + '.' + ext;
+
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'ai-md-artifact-card';
+            card.setAttribute('aria-label', 'Download ' + filename);
+            card.title = 'Download ' + filename;
+
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'ai-md-artifact-icon';
+            iconWrap.setAttribute('aria-hidden', 'true');
+            iconWrap.innerHTML = ICONS.termsOfService;   // document glyph, reused — ICONS constant, safe.
+            card.appendChild(iconWrap);
+
+            var info = document.createElement('span');
+            info.className = 'ai-md-artifact-info';
+            var nameEl = document.createElement('span');
+            nameEl.className = 'ai-md-artifact-name';
+            nameEl.textContent = filename;
+            var typeEl = document.createElement('span');
+            typeEl.className = 'ai-md-artifact-type';
+            typeEl.textContent = typeLabel;
+            info.appendChild(nameEl);
+            info.appendChild(typeEl);
+            card.appendChild(info);
+
+            var dlLabel = document.createElement('span');
+            dlLabel.className = 'ai-md-artifact-download-label';
+            dlLabel.textContent = 'Download';
+            card.appendChild(dlLabel);
+
+            (function (codeElRef, fname) {
+                card.addEventListener('click', function () {
+                    _downloadBlob(codeElRef.textContent, 'text/plain', fname);
+                });
+            }(codeEl, filename));
+            files.push({ filename: filename, content: codeEl.textContent });
+
+            list.appendChild(card);
+        });
+
+        // "Download all" — only worth showing once there's more than one
+        // file; a single-artifact answer already has its one card above.
+        //
+        // Bundles into one real .zip via _buildZipBlob (vendored inline —
+        // see its own doc comment for why not a CDN library). One
+        // download, one file, matching what a user actually expects from
+        // "download all" — not N separate browser download prompts.
+        if (files.length > 1) {
+            var allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.className = 'ai-md-artifact-download-all-btn';
+            allBtn.setAttribute('aria-label', 'Download all ' + files.length + ' files as a zip');
+            allBtn.innerHTML = ICONS.exportTxt;   // ICONS constant — safe.
+            var allLbl = document.createElement('span');
+            allLbl.textContent = 'Download all';
+            allBtn.appendChild(allLbl);
+            allBtn.addEventListener('click', function () {
+                var zipBlob = _buildZipBlob(files.map(function (f) {
+                    return { name: f.filename, content: f.content };
+                }));
+                _downloadBlob(zipBlob, 'application/zip', 'snippets-' + _isoFileStamp() + '.zip');
+            });
+            list.appendChild(allBtn);
+        }
+
+        if (list.children.length) {
+            root.appendChild(list);
+        }
+    }
 
     // ── Turndown 7.1.2: vendored inline ──────────────────────────────────────
     //
@@ -1085,56 +1674,28 @@
     //   Vendoring eliminates every one of those failure modes at once because
     //   there is simply no network request to block.
     //
-    // SCOPE:  Declared as a local `var` inside this IIFE — does NOT write to
-    //   window.TurndownService in the page's global scope.  If the host page
-    //   also loads Turndown independently the two are fully isolated.
+    // SCOPE:  Declared as a local `var` inside this IIFE - does not write to
+    //   window.TurndownService, so it cannot collide with a host page that also
+    //   loads Turndown. Inline + same-origin means no network request at all:
+    //   Markdown export works offline and behind content blockers.
     //
-    // UPGRADING:  When bumping the Turndown version, replace the single
-    //   `var TurndownService = …` assignment below.  Generate the new content
-    //   with:
+    // UPGRADING:  Regenerate the minified body below with:
     //     npm install turndown@<new-version>
-    //     npx terser node_modules/turndown/dist/turndown.js \
-    //       --compress --mangle --output turndown.vendor.min.js
-    //   Then paste the file content here and update the version tag.
+    //     npx terser node_modules/turndown/dist/turndown.js --compress --mangle
+    //   and paste it after `var TurndownService=`, keeping the MIT attribution.
     //
-    // SOURCE:  turndown@7.1.2 dist/turndown.js
-    //          Minified with terser --compress --mangle
-    //
-    // LICENSE (MIT — Copyright © Dom Christie):
-    //   Permission is hereby granted, free of charge, to any person obtaining
-    //   a copy of this software and associated documentation files (the
-    //   "Software"), to deal in the Software without restriction, including
-    //   without limitation the rights to use, copy, modify, merge, publish,
-    //   distribute, sublicense, and/or sell copies of the Software, and to
-    //   permit persons to whom the Software is furnished to do so, subject to
-    //   the following conditions: The above copyright notice and this
-    //   permission notice shall be included in all copies or substantial
-    //   portions of the Software.
-    //   Full text: https://github.com/domchristie/turndown/blob/master/LICENSE
-    // ─────────────────────────────────────────────────────────────────────────
+    // CodeQL: the alerts on the minified line below (unreachable-statement, ASI,
+    //   use-before-declaration, useless-assignment) are inherent to minified
+    //   third-party output; they are suppressed, not "fixed" - the vendored
+    //   library must never be hand-edited. If your CodeQL pack ignores the inline
+    //   suppression, dismiss those 6 alerts in the UI as third-party.
+    // ---------------------------------------------------------------------------
     /* eslint-disable */
-    // turndown@7.1.2 — MIT — begin vendor
+    // turndown@7.1.2 - MIT (Dom Christie) - https://github.com/domchristie/turndown - begin vendor
+    // codeql[js/unreachable-statement, js/automatic-semicolon-insertion, js/variable-use-before-declaration, js/useless-assignment-to-local]
     var TurndownService=function(){"use strict";function e(e,n){return Array(n+1).join(e)}var n=["ADDRESS","ARTICLE","ASIDE","AUDIO","BLOCKQUOTE","BODY","CANVAS","CENTER","DD","DIR","DIV","DL","DT","FIELDSET","FIGCAPTION","FIGURE","FOOTER","FORM","FRAMESET","H1","H2","H3","H4","H5","H6","HEADER","HGROUP","HR","HTML","ISINDEX","LI","MAIN","MENU","NAV","NOFRAMES","NOSCRIPT","OL","OUTPUT","P","PRE","SECTION","TABLE","TBODY","TD","TFOOT","TH","THEAD","TR","UL"];function t(e){return a(e,n)}var r=["AREA","BASE","BR","COL","COMMAND","EMBED","HR","IMG","INPUT","KEYGEN","LINK","META","PARAM","SOURCE","TRACK","WBR"];function i(e){return a(e,r)}var o=["A","TABLE","THEAD","TBODY","TFOOT","TH","TD","IFRAME","SCRIPT","AUDIO","VIDEO"];function a(e,n){return n.indexOf(e.nodeName)>=0}function l(e,n){return e.getElementsByTagName&&n.some(function(n){return e.getElementsByTagName(n).length})}var u={};function c(e){return e?e.replace(/(\n+\s*)+/g,"\n"):""}function s(e){for(var n in this.options=e,this._keep=[],this._remove=[],this.blankRule={replacement:e.blankReplacement},this.keepReplacement=e.keepReplacement,this.defaultRule={replacement:e.defaultReplacement},this.array=[],e.rules)this.array.push(e.rules[n])}function f(e,n,t){for(var r=0;r<e.length;r++){var i=e[r];if(d(i,n,t))return i}}function d(e,n,t){var r=e.filter;if("string"==typeof r){if(r===n.nodeName.toLowerCase())return!0}else if(Array.isArray(r)){if(r.indexOf(n.nodeName.toLowerCase())>-1)return!0}else{if("function"!=typeof r)throw new TypeError("`filter` needs to be a string, array, or function");if(r.call(e,n,t))return!0}}function p(e){var n=e.nextSibling||e.parentNode;return e.parentNode.removeChild(e),n}function h(e,n,t){return e&&e.parentNode===n||t(n)?n.nextSibling||n.parentNode:n.firstChild||n.nextSibling||n.parentNode}u.paragraph={filter:"p",replacement:function(e){return"\n\n"+e+"\n\n"}},u.lineBreak={filter:"br",replacement:function(e,n,t){return t.br+"\n"}},u.heading={filter:["h1","h2","h3","h4","h5","h6"],replacement:function(n,t,r){var i=Number(t.nodeName.charAt(1));return"setext"===r.headingStyle&&i<3?"\n\n"+n+"\n"+e(1===i?"=":"-",n.length)+"\n\n":"\n\n"+e("#",i)+" "+n+"\n\n"}},u.blockquote={filter:"blockquote",replacement:function(e){return"\n\n"+(e=(e=e.replace(/^\n+|\n+$/g,"")).replace(/^/gm,"> "))+"\n\n"}},u.list={filter:["ul","ol"],replacement:function(e,n){var t=n.parentNode;return"LI"===t.nodeName&&t.lastElementChild===n?"\n"+e:"\n\n"+e+"\n\n"}},u.listItem={filter:"li",replacement:function(e,n,t){e=e.replace(/^\n+/,"").replace(/\n+$/,"\n").replace(/\n/gm,"\n    ");var r=t.bulletListMarker+"   ",i=n.parentNode;if("OL"===i.nodeName){var o=i.getAttribute("start"),a=Array.prototype.indexOf.call(i.children,n);r=(o?Number(o)+a:a+1)+".  "}return r+e+(n.nextSibling&&!/\n$/.test(e)?"\n":"")}},u.indentedCodeBlock={filter:function(e,n){return"indented"===n.codeBlockStyle&&"PRE"===e.nodeName&&e.firstChild&&"CODE"===e.firstChild.nodeName},replacement:function(e,n,t){return"\n\n    "+n.firstChild.textContent.replace(/\n/g,"\n    ")+"\n\n"}},u.fencedCodeBlock={filter:function(e,n){return"fenced"===n.codeBlockStyle&&"PRE"===e.nodeName&&e.firstChild&&"CODE"===e.firstChild.nodeName},replacement:function(n,t,r){for(var i,o=((t.firstChild.getAttribute("class")||"").match(/language-(\S+)/)||[null,""])[1],a=t.firstChild.textContent,l=r.fence.charAt(0),u=3,c=new RegExp("^"+l+"{3,}","gm");i=c.exec(a);)i[0].length>=u&&(u=i[0].length+1);var s=e(l,u);return"\n\n"+s+o+"\n"+a.replace(/\n$/,"")+"\n"+s+"\n\n"}},u.horizontalRule={filter:"hr",replacement:function(e,n,t){return"\n\n"+t.hr+"\n\n"}},u.inlineLink={filter:function(e,n){return"inlined"===n.linkStyle&&"A"===e.nodeName&&e.getAttribute("href")},replacement:function(e,n){var t=n.getAttribute("href"),r=c(n.getAttribute("title"));return r&&(r=' "'+r+'"'),"["+e+"]("+t+r+")"}},u.referenceLink={filter:function(e,n){return"referenced"===n.linkStyle&&"A"===e.nodeName&&e.getAttribute("href")},replacement:function(e,n,t){var r,i,o=n.getAttribute("href"),a=c(n.getAttribute("title"));switch(a&&(a=' "'+a+'"'),t.linkReferenceStyle){case"collapsed":r="["+e+"][]",i="["+e+"]: "+o+a;break;case"shortcut":r="["+e+"]",i="["+e+"]: "+o+a;break;default:var l=this.references.length+1;r="["+e+"]["+l+"]",i="["+l+"]: "+o+a}return this.references.push(i),r},references:[],append:function(e){var n="";return this.references.length&&(n="\n\n"+this.references.join("\n")+"\n\n",this.references=[]),n}},u.emphasis={filter:["em","i"],replacement:function(e,n,t){return e.trim()?t.emDelimiter+e+t.emDelimiter:""}},u.strong={filter:["strong","b"],replacement:function(e,n,t){return e.trim()?t.strongDelimiter+e+t.strongDelimiter:""}},u.code={filter:function(e){var n=e.previousSibling||e.nextSibling,t="PRE"===e.parentNode.nodeName&&!n;return"CODE"===e.nodeName&&!t},replacement:function(e){if(!e)return"";e=e.replace(/\r?\n|\r/g," ");for(var n=/^`|^ .*?[^ ].* $|`$/.test(e)?" ":"",t="`",r=e.match(/`+/gm)||[];-1!==r.indexOf(t);)t+="`";return t+n+e+n+t}},u.image={filter:"img",replacement:function(e,n){var t=c(n.getAttribute("alt")),r=n.getAttribute("src")||"",i=c(n.getAttribute("title"));return r?"!["+t+"]("+r+(i?' "'+i+'"':"")+")":""}},s.prototype={add:function(e,n){this.array.unshift(n)},keep:function(e){this._keep.unshift({filter:e,replacement:this.keepReplacement})},remove:function(e){this._remove.unshift({filter:e,replacement:function(){return""}})},forNode:function(e){return e.isBlank?this.blankRule:(n=f(this.array,e,this.options))||(n=f(this._keep,e,this.options))||(n=f(this._remove,e,this.options))?n:this.defaultRule;var n},forEach:function(e){for(var n=0;n<this.array.length;n++)e(this.array[n],n)}};var g="undefined"!=typeof window?window:{};var m,v,A=function(){var e=g.DOMParser,n=!1;try{(new e).parseFromString("","text/html")&&(n=!0)}catch(e){}return n}()?g.DOMParser:(m=function(){},function(){var e=!1;try{document.implementation.createHTMLDocument("").open()}catch(n){window.ActiveXObject&&(e=!0)}return e}()?m.prototype.parseFromString=function(e){var n=new window.ActiveXObject("htmlfile");return n.designMode="on",n.open(),n.write(e),n.close(),n}:m.prototype.parseFromString=function(e){var n=document.implementation.createHTMLDocument("");return n.open(),n.write(e),n.close(),n},m);function y(e,n){var r;"string"==typeof e?r=(v=v||new A).parseFromString('<x-turndown id="turndown-root">'+e+"</x-turndown>","text/html").getElementById("turndown-root"):r=e.cloneNode(!0);return function(e){var n=e.element,t=e.isBlock,r=e.isVoid,i=e.isPre||function(e){return"PRE"===e.nodeName};if(n.firstChild&&!i(n)){for(var o=null,a=!1,l=null,u=h(l,n,i);u!==n;){if(3===u.nodeType||4===u.nodeType){var c=u.data.replace(/[ \r\n\t]+/g," ");if(o&&!/ $/.test(o.data)||a||" "!==c[0]||(c=c.substr(1)),!c){u=p(u);continue}u.data=c,o=u}else{if(1!==u.nodeType){u=p(u);continue}t(u)||"BR"===u.nodeName?(o&&(o.data=o.data.replace(/ $/,"")),o=null,a=!1):r(u)||i(u)?(o=null,a=!0):o&&(a=!1)}var s=h(l,u,i);l=u,u=s}o&&(o.data=o.data.replace(/ $/,""),o.data||p(o))}}({element:r,isBlock:t,isVoid:i,isPre:n.preformattedCode?N:null}),r}function N(e){return"PRE"===e.nodeName||"CODE"===e.nodeName}function E(e,n){return e.isBlock=t(e),e.isCode="CODE"===e.nodeName||e.parentNode.isCode,e.isBlank=function(e){return!i(e)&&!function(e){return a(e,o)}(e)&&/^\s*$/i.test(e.textContent)&&!function(e){return l(e,r)}(e)&&!function(e){return l(e,o)}(e)}(e),e.flankingWhitespace=function(e,n){if(e.isBlock||n.preformattedCode&&e.isCode)return{leading:"",trailing:""};var t=(r=e.textContent,i=r.match(/^(([ \t\r\n]*)(\s*))(?:(?=\S)[\s\S]*\S)?((\s*?)([ \t\r\n]*))$/),{leading:i[1],leadingAscii:i[2],leadingNonAscii:i[3],trailing:i[4],trailingNonAscii:i[5],trailingAscii:i[6]});var r,i;t.leadingAscii&&T("left",e,n)&&(t.leading=t.leadingNonAscii);t.trailingAscii&&T("right",e,n)&&(t.trailing=t.trailingNonAscii);return{leading:t.leading,trailing:t.trailing}}(e,n),e}function T(e,n,r){var i,o,a;return"left"===e?(i=n.previousSibling,o=/ $/):(i=n.nextSibling,o=/^ /),i&&(3===i.nodeType?a=o.test(i.nodeValue):r.preformattedCode&&"CODE"===i.nodeName?a=!1:1!==i.nodeType||t(i)||(a=o.test(i.textContent))),a}var R=Array.prototype.reduce,C=[[/\\/g,"\\\\"],[/\*/g,"\\*"],[/^-/g,"\\-"],[/^\+ /g,"\\+ "],[/^(=+)/g,"\\$1"],[/^(#{1,6}) /g,"\\$1 "],[/`/g,"\\`"],[/^~~~/g,"\\~~~"],[/\[/g,"\\["],[/\]/g,"\\]"],[/^>/g,"\\>"],[/_/g,"\\_"],[/^(\d+)\. /g,"$1\\. "]];function k(e){if(!(this instanceof k))return new k(e);var n={rules:u,headingStyle:"setext",hr:"* * *",bulletListMarker:"*",codeBlockStyle:"indented",fence:"```",emDelimiter:"_",strongDelimiter:"**",linkStyle:"inlined",linkReferenceStyle:"full",br:"  ",preformattedCode:!1,blankReplacement:function(e,n){return n.isBlock?"\n\n":""},keepReplacement:function(e,n){return n.isBlock?"\n\n"+n.outerHTML+"\n\n":n.outerHTML},defaultReplacement:function(e,n){return n.isBlock?"\n\n"+e+"\n\n":e}};this.options=function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var r in t)t.hasOwnProperty(r)&&(e[r]=t[r])}return e}({},n,e),this.rules=new s(this.options)}function b(e){var n=this;return R.call(e.childNodes,function(e,t){var r="";return 3===(t=new E(t,n.options)).nodeType?r=t.isCode?t.nodeValue:n.escape(t.nodeValue):1===t.nodeType&&(r=D.call(n,t)),S(e,r)},"")}function O(e){var n=this;return this.rules.forEach(function(t){"function"==typeof t.append&&(e=S(e,t.append(n.options)))}),e.replace(/^[\t\r\n]+/,"").replace(/[\t\r\n\s]+$/,"")}function D(e){var n=this.rules.forNode(e),t=b.call(this,e),r=e.flankingWhitespace;return(r.leading||r.trailing)&&(t=t.trim()),r.leading+n.replacement(t,e,this.options)+r.trailing}function S(e,n){var t=function(e){for(var n=e.length;n>0&&"\n"===e[n-1];)n--;return e.substring(0,n)}(e),r=n.replace(/^\n*/,""),i=Math.max(e.length-t.length,n.length-r.length);return t+"\n\n".substring(0,i)+r}return k.prototype={turndown:function(e){if(!function(e){return null!=e&&("string"==typeof e||e.nodeType&&(1===e.nodeType||9===e.nodeType||11===e.nodeType))}(e))throw new TypeError(e+" is not a string, or an element/document/fragment node.");if(""===e)return"";var n=b.call(this,new y(e,this.options));return O.call(this,n)},use:function(e){if(Array.isArray(e))for(var n=0;n<e.length;n++)this.use(e[n]);else{if("function"!=typeof e)throw new TypeError("plugin must be a Function or an Array of Functions");e(this)}return this},addRule:function(e,n){return this.rules.add(e,n),this},keep:function(e){return this.rules.keep(e),this},remove:function(e){return this.rules.remove(e),this},escape:function(e){return C.reduce(function(e,n){return e.replace(n[0],n[1])},e)}},k}();
-    // turndown@7.1.2 — MIT — end vendor
+    // turndown@7.1.2 - end vendor
     /* eslint-enable */
-
-    /**
-     * Compatibility shim — previously performed async CDN loading of Turndown.
-     *
-     * TurndownService is now vendored inline (see block above) and is always
-     * synchronously available.  This function is retained so any call-site
-     * that passes a callback continues to work without modification; the
-     * callback is invoked synchronously on the same call stack.
-     *
-     * Developer note: do NOT restore CDN loading here.  The inline vendor is
-     * the correct long-term approach; it eliminates the entire class of
-     * iOS-Safari / ad-blocker / offline failures that motivated this change.
-     *
-     * @param {function(): void} callback  Called immediately.
-     */
-    function loadTurndown(callback) {
-        callback();
-    }
 
     /**
      * Bootstrap entry point — called by DOMContentLoaded (or immediately if
@@ -1160,13 +1721,13 @@
         container.appendChild(button);
         container.appendChild(dropdown);
 
-        var position = (window.AI_ASSISTANT_CONFIG && window.AI_ASSISTANT_CONFIG.position) || 'sidebar';
+        var position = (_cfg().position) || 'sidebar';
         insertContainer(container, position);
         setupEventListeners(button, dropdown);
 
         // v0.3: only wire panel-dependent extras when the AI panel feature
         // is actually enabled (respects the FEATURE_DEFAULTS contract).
-        var cfg      = window.AI_ASSISTANT_CONFIG || {};
+        var cfg      = _cfg();
         var features = Object.assign({}, FEATURE_DEFAULTS, cfg.features || {});
         if (features.ai_panel) {
             _bindShortcut();    // R7 — no-op if disabled/invalid in config
@@ -1258,7 +1819,7 @@
         dropdown.setAttribute('role', 'menu');
         // dropdown.style.display = 'none';
 
-        var cfg        = window.AI_ASSISTANT_CONFIG || {};
+        var cfg        = _cfg();
         var features   = Object.assign({}, FEATURE_DEFAULTS, cfg.features || {});
         var staticPath = getStaticPath();
         var hasItems   = false;
@@ -1426,14 +1987,14 @@
         var urlBtn   = document.getElementById('ai-assistant-pdf-mode-url');
         var printBtn = document.getElementById('ai-assistant-pdf-mode-print');
         var descEl   = document.getElementById('ai-assistant-pdf-desc');
-        var pdfUrl   = ((window.AI_ASSISTANT_CONFIG || {}).pdfExportUrl || '').trim();
+        var pdfUrl   = (_cfg().pdfExportUrl || '').trim();
         if (urlBtn)   urlBtn.classList.toggle('active',   mode === 'url');
         if (printBtn) printBtn.classList.toggle('active', mode === 'print');
         if (descEl)   descEl.textContent = _pdfModeDescription(mode, pdfUrl);
     }
 
     function _getPdfMode() {
-        var pdfUrl = ((window.AI_ASSISTANT_CONFIG || {}).pdfExportUrl || '').trim();
+        var pdfUrl = (_cfg().pdfExportUrl || '').trim();
         try {
             var saved = sessionStorage.getItem(_PDF_MODE_KEY);
             if (saved === 'url' || saved === 'print') return saved;
@@ -1487,7 +2048,14 @@
 
     // ── Static path detection ─────────────────────────────────────────────────
 
+    // C2: getStaticPath is deterministic after load (its inputs do not change),
+    // so memoize the first result to avoid repeated string scans on each call.
+    var _staticPathCache = null;
     function getStaticPath() {
+        if (_staticPathCache === null) { _staticPathCache = _computeStaticPath(); }
+        return _staticPathCache;
+    }
+    function _computeStaticPath() {
         if (_selfSrc && _selfSrc.indexOf('_static') !== -1) {
             return _selfSrc.substring(0, _selfSrc.indexOf('_static') + 7);
         }
@@ -1518,12 +2086,12 @@
             for (var k = 0; k < sidebarSelectors.length; k++) {
                 var sidebar = document.querySelector(sidebarSelectors[k]);
                 if (sidebar) {
-                    console.debug('AI Assistant: Inserting into sidebar:', sidebarSelectors[k]);
+                    _log('debug', 'AI Assistant: Inserting into sidebar:', sidebarSelectors[k]);
                     sidebar.insertBefore(container, sidebar.firstChild);
                     return;
                 }
             }
-            console.debug('AI Assistant: No sidebar found, falling back to title position');
+            _log('debug', 'AI Assistant: No sidebar found, falling back to title position');
             insertInTitlePosition(container);
             return;
         }
@@ -1673,7 +2241,7 @@
     // ── Markdown conversion ───────────────────────────────────────────────────
 
     function convertToMarkdown() {
-        var contentSelector = (window.AI_ASSISTANT_CONFIG && window.AI_ASSISTANT_CONFIG.content_selector) || 'article';
+        var contentSelector = (_cfg().content_selector) || 'article';
         var content = document.querySelector(contentSelector);
 
         if (!content) return Promise.reject(new Error('Could not find page content (selector: ' + contentSelector + ')'));
@@ -1720,7 +2288,7 @@
                 closeDropdown();
             })
             .catch(function (err) {
-                console.error('AI Assistant: Failed to convert to Markdown:', err);
+                _log('error', 'AI Assistant: Failed to convert to Markdown:', err);
                 showNotification('Failed to convert page to Markdown.', true);
             });
     }
@@ -1732,7 +2300,7 @@
 
     function handleAIChat(providerKey) {
         try {
-            var providers = ((window.AI_ASSISTANT_CONFIG || {}).providers) || {};
+            var providers = (_cfg().providers) || {};
             var provider  = providers[providerKey];
             if (!provider) { showNotification('AI provider "' + providerKey + '" not configured.', true); return; }
 
@@ -1748,7 +2316,7 @@
             // Only http:// and https:// are safe to window.open; anything else
             // (javascript:, data:, blob:, vbscript:, …) must be rejected.
             if (!/^https?:\/\//i.test(aiUrl)) {
-                console.error('AI Assistant: Blocked unsafe URL scheme in provider "' + providerKey + '":', aiUrl.slice(0, 50));
+                _log('error', 'AI Assistant: Blocked unsafe URL scheme in provider "' + providerKey + '":', aiUrl.slice(0, 50));
                 showNotification('AI provider URL is not a valid HTTP(S) address.', true);
                 return;
             }
@@ -1756,14 +2324,14 @@
             window.open(aiUrl, '_blank', 'noopener,noreferrer');
             closeDropdown();
         } catch (err) {
-            console.error('AI Assistant: Failed to open AI chat:', err);
+            _log('error', 'AI Assistant: Failed to open AI chat:', err);
             showNotification('Failed to open AI chat. Please try again.', true);
         }
     }
 
     function handleMCPInstall(toolKey) {
         try {
-            var mcpTools = ((window.AI_ASSISTANT_CONFIG || {}).mcp_tools) || {};
+            var mcpTools = (_cfg().mcp_tools) || {};
             var tool     = mcpTools[toolKey];
             if (!tool)   { showNotification('MCP tool configuration not found.', true); return; }
 
@@ -1777,7 +2345,7 @@
                     return;
                 }
                 if (!/^(?:mcpb|https):\/\//i.test(mcpbUrl)) {
-                    console.error('AI Assistant: Blocked unsafe mcpb_url scheme for tool "' + toolKey + '":', mcpbUrl.slice(0, 60));
+                    _log('error', 'AI Assistant: Blocked unsafe mcpb_url scheme for tool "' + toolKey + '":', mcpbUrl.slice(0, 60));
                     showNotification('MCP tool download URL must use mcpb:// or https://.', true);
                     return;
                 }
@@ -1819,37 +2387,86 @@
                 return;
             }
 
-            console.warn('AI Assistant: Unknown MCP tool type:', tool.type);
+            _log('warn', 'AI Assistant: Unknown MCP tool type:', tool.type);
             showNotification('Unknown MCP tool type: ' + tool.type, true);
         } catch (err) {
-            console.error('AI Assistant: Failed to install MCP tool:', err);
+            _log('error', 'AI Assistant: Failed to install MCP tool:', err);
             showNotification('Failed to install MCP tool. Please try again.', true);
         }
     }
 
     function handlePdfExport() {
-        var cfg    = window.AI_ASSISTANT_CONFIG || {};
+        var cfg    = _cfg();
         var pdfUrl = (cfg.pdfExportUrl || '').trim();
         var mode   = _getPdfMode();
         closeDropdown();
-        if (mode === 'url' && pdfUrl) window.open(pdfUrl, '_blank', 'noopener,noreferrer');
-        else window.print();
+        if (mode === 'url' && pdfUrl) {
+            window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        _printWithHeader();
+    }
+
+    /**
+     * Print via the browser's "Save as PDF" dialog after injecting a print-only
+     * header (page title, URL, date) that ai-assistant-print.css reveals. The
+     * header is removed after printing; screen rendering is untouched. All
+     * values are the page's own (document.title / location), written via
+     * textContent — no untrusted data, no innerHTML.
+     *
+     * Reliability: cleanup runs on the 'afterprint' event AND a timeout fallback
+     * (older Safari lacks 'afterprint'), and is idempotent. Requires
+     * ai-assistant-print.css for the pretty output; degrades to a plain print
+     * (no header) if that stylesheet is absent.
+     */
+    function _printWithHeader() {
+        var contentSel = (_cfg().content_selector) || 'article';
+        var mount = document.querySelector(contentSel) || document.body;
+        if (!mount) { try { window.print(); } catch (_e) {} return; }
+
+        var header = document.createElement('div');
+        header.className = 'ai-assistant-print-header';
+        header.style.display = 'none';   // shown only in print, via the stylesheet
+        var title = document.createElement('div');
+        title.className = 'ai-pph-title';
+        title.textContent = document.title || '';
+        var meta = document.createElement('div');
+        meta.className = 'ai-pph-meta';
+        var url = '';
+        try { url = location.href; } catch (_e) {}
+        meta.textContent = url + '  ·  ' + new Date().toISOString().slice(0, 10);
+        header.appendChild(title);
+        header.appendChild(meta);
+        mount.insertBefore(header, mount.firstChild);
+
+        var cleaned = false;
+        var cleanup = function () {
+            if (cleaned) { return; }
+            cleaned = true;
+            if (header && header.parentNode) { header.parentNode.removeChild(header); }
+            if (window.removeEventListener) { window.removeEventListener('afterprint', cleanup); }
+        };
+        if (window.addEventListener) { window.addEventListener('afterprint', cleanup); }
+        setTimeout(cleanup, 2000);
+
+        try { window.print(); } catch (_e) { cleanup(); }
     }
 
     // ── Clipboard ─────────────────────────────────────────────────────────────
 
-    function copyToClipboard(text, showInlineConfirmation) {
+    function copyToClipboard(text, showInlineConfirmation, onSuccess) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text)
                 .then(function () {
                     showInlineConfirmation ? showInlineSuccessState() : showNotification('Markdown copied to clipboard!');
+                    if (typeof onSuccess === 'function') { onSuccess(); }
                 })
                 .catch(function (err) {
-                    console.error('AI Assistant: Clipboard API failed:', err);
-                    fallbackCopy(text, showInlineConfirmation);
+                    _log('error', 'AI Assistant: Clipboard API failed:', err);
+                    fallbackCopy(text, showInlineConfirmation, onSuccess);
                 });
         } else {
-            fallbackCopy(text, showInlineConfirmation);
+            fallbackCopy(text, showInlineConfirmation, onSuccess);
         }
     }
 
@@ -1871,7 +2488,7 @@
         }, 2000);
     }
 
-    function fallbackCopy(text, showInlineConfirmation) {
+    function fallbackCopy(text, showInlineConfirmation, onSuccess) {
         var textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -1881,8 +2498,9 @@
         try {
             document.execCommand('copy');
             showInlineConfirmation ? showInlineSuccessState() : showNotification('Markdown copied to clipboard!');
+            if (typeof onSuccess === 'function') { onSuccess(); }
         } catch (err) {
-            console.error('AI Assistant: Fallback copy failed:', err);
+            _log('error', 'AI Assistant: Fallback copy failed:', err);
             showNotification('Failed to copy to clipboard.', true);
         }
         document.body.removeChild(textarea);
@@ -2581,34 +3199,16 @@
         };
     }());
 
-// PART A — _EP Compatibility Shim
-// INSERT after the closing }()); of the _EP IIFE
 // =============================================================================
-
-// =============================================================================
-// _EP Compatibility Shim  (bridges existing IIFE → patch_ep_v2_1 API surface)
+// _EP Compatibility Shim - bridges the _EP IIFE to the full profile API surface
 // =============================================================================
 //
-// HOW TO APPLY
-// ------------
-// File: _static/ai-assistant.js
+// Some callers use profile methods that older _EP IIFE variants did not define.
+// This shim provides them by delegating to the methods that ARE present
+// (addProfile, removeProfile, countCustom, etc.).
 //
-// Find the closing line of the _EP IIFE — it looks like:
-//     }());
-// immediately followed by a blank line and then:
-//     // ── Subbar helpers  (or similar section comment)
-//
-// Insert this entire block AFTER that }()); line.
-//
-// WHY THIS IS NEEDED
-// ------------------
-// patch_ep_v2_2_build_sheet_combined.js calls 15+ methods that were added in
-// patch_ep_v2_1_ep_iife_combined.js.  If you have an earlier _EP IIFE variant
-// that lacks those methods, this shim provides them by delegating to the
-// methods that ARE present (addProfile, removeProfile, countCustom, etc.).
-//
-// The shim is fully idempotent: it checks for each method before adding it,
-// so it is safe to apply even when patch_ep_v2_1 is later applied on top.
+// Idempotent by construction: each method is added only if absent, so the shim
+// is safe even when a newer _EP IIFE already defines these methods.
 //
 // PUBLIC API ADDED
 // ----------------
@@ -2630,9 +3230,8 @@
 //   _EP.MAX_CUSTOM                       → 20 (or MAX_CUSTOM_PROFILES)
 // =============================================================================
 
-    /* jshint esversion:5 */
-    if (typeof _EP !== 'undefined' && _EP &&
-            typeof _EP.resolve === 'function' &&
+    /* jshint esversion:8 */   /* async/await used below (ES2017); not ES5 */
+    if (typeof _EP.resolve === 'function' &&
             typeof _EP.addCustomProfile !== 'function') {
 
         (function (_ep) {
@@ -3256,7 +3855,7 @@
         try {
             payload = JSON.stringify(body);
         } catch (e) {
-            console.warn('[ai-assistant] _remotePost: serialisation failed', e);
+            _log('warn', '[ai-assistant] _remotePost: serialisation failed', e);
             return;
         }
         try {
@@ -3269,19 +3868,19 @@
                 if (r.ok && typeof opts.onSuccess === 'function') {
                     r.json().then(opts.onSuccess).catch(function () {});
                 } else if (!r.ok) {
-                    console.warn('[ai-assistant] _remotePost HTTP', r.status, url);
+                    _log('warn', '[ai-assistant] _remotePost HTTP', r.status, url);
                     if (typeof opts.onError === 'function') {
                         opts.onError({ status: r.status, message: r.statusText });
                     }
                 }
             }).catch(function (e) {
-                console.warn('[ai-assistant] _remotePost fetch error', url, e);
+                _log('warn', '[ai-assistant] _remotePost fetch error', url, e);
                 if (typeof opts.onError === 'function') {
                     opts.onError({ status: 0, message: String(e) });
                 }
             });
         } catch (e) {
-            console.warn('[ai-assistant] _remotePost sync error', e);
+            _log('warn', '[ai-assistant] _remotePost sync error', e);
         }
     }
 
@@ -3406,7 +4005,7 @@
      *   call ``container.innerHTML = ''`` immediately before this call.
      */
     function _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg) {
-        cfg = cfg || (window.AI_ASSISTANT_CONFIG || {});
+        cfg = cfg || _cfg();
         var thanks = (typeof cfg.panelFeedbackThanks === 'string' &&
             cfg.panelFeedbackThanks) || 'Thanks for your feedback!';
 
@@ -3476,7 +4075,7 @@
      *   the previous message text is pre-filled in the textarea.
      */
     function _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText) {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
 
         var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
             cfg.panelFeedbackQuestion) || 'Was this helpful?';
@@ -3664,7 +4263,7 @@
 
             if (cfg.panelFeedbackLog) {
                 // eslint-disable-next-line no-console
-                console.log('[ai-assistant] feedback (via _rebuildFeedbackFormIn)', _redactPayloadForLog(detail));
+                _log('log', '[ai-assistant] feedback (via _rebuildFeedbackFormIn)', _redactPayloadForLog(detail));
             }
 
             _feedbackGivenSet.add(answerIndex);
@@ -4009,7 +4608,7 @@
      * @returns {boolean}
      */
     function _persistEnabled() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         return cfg.panelPersist !== false;   // default true
     }
 
@@ -4079,7 +4678,7 @@
      *   (stub mode, error path) pass null or omit the argument.
      */
     function _recordMessage(role, text, modelInfo) {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var maxTurns = (typeof cfg.panelMaxTranscriptTurns === 'number' &&
                         cfg.panelMaxTranscriptTurns > 0)
             ? Math.floor(cfg.panelMaxTranscriptTurns)
@@ -4165,7 +4764,7 @@
             showNotification('Nothing to export yet', true);
             return;
         }
-        var cfg   = window.AI_ASSISTANT_CONFIG || {};
+        var cfg   = _cfg();
         var title = cfg.panelTitle || 'AI Assistant';
         var lines = [
             title + ' — conversation export',
@@ -4207,7 +4806,6 @@
      * @returns {Array<Object>}  Flat row objects, one per message.
      */
     function _buildExportRecords() {
-        var cfg     = window.AI_ASSISTANT_CONFIG || {};
         var pageUrl = (typeof location !== 'undefined') ? location.href : '';
         var sid     = _sessionId;
 
@@ -4281,7 +4879,7 @@
             showNotification('Nothing to export yet', true);
             return;
         }
-        var cfg       = window.AI_ASSISTANT_CONFIG || {};
+        var cfg       = _cfg();
         var aiName    = cfg.panelTitle || 'AI Assistant';
         var pageUrl   = (typeof location !== 'undefined') ? location.href : '';
         var pageTitle = (typeof document !== 'undefined') ? document.title : '';
@@ -4386,7 +4984,7 @@
     function _buildConvHtmlString() {
         if (_transcript.length === 0) return '';
 
-        var cfg         = window.AI_ASSISTANT_CONFIG || {};
+        var cfg         = _cfg();
         var aiName      = cfg.panelTitle || 'AI Assistant';
         var pageUrl     = (typeof location !== 'undefined') ? location.href : '';
         var pageTitle   = (typeof document !== 'undefined') ? document.title : '';
@@ -4523,7 +5121,7 @@
      */
     function _buildConvTxtString() {
         if (_transcript.length === 0) return '';
-        var cfg   = window.AI_ASSISTANT_CONFIG || {};
+        var cfg   = _cfg();
         var title = cfg.panelTitle || 'AI Assistant';
         var lines = [
             title + ' \u2014 conversation export',
@@ -4569,7 +5167,7 @@
      */
     function _buildConvJsonString() {
         if (_transcript.length === 0) return '';
-        var cfg       = window.AI_ASSISTANT_CONFIG || {};
+        var cfg       = _cfg();
         var aiName    = cfg.panelTitle || 'AI Assistant';
         var pageUrl   = (typeof location !== 'undefined') ? location.href : '';
         var pageTitle = (typeof document !== 'undefined') ? document.title : '';
@@ -4807,12 +5405,18 @@ opts.jsonPayload + '\n' +
 '.badge--positive{background:var(--rate-pos-bg);color:var(--rate-pos-tx)}\n' +
 '.badge--negative{background:var(--rate-neg-bg);color:var(--rate-neg-tx)}\n' +
 '.badge--rating{background:var(--rate-neu-bg);color:var(--rate-neu-tx)}\n' +
-'h1,h2,h3,h4{margin:.85rem 0 .4rem;font-weight:600;line-height:1.3}\n' +
-'h1{font-size:1.25rem}h2{font-size:1.1rem}h3{font-size:1rem}\n' +
+'h1,h2,h3,h4,h5,h6{margin:.85rem 0 .4rem;font-weight:600;line-height:1.3}\n' +
+'h1{font-size:1.25rem}h2{font-size:1.1rem}h3{font-size:1rem}h4{font-size:.92rem}h5,h6{font-size:.85rem;color:var(--tx2)}\n' +
 'p{margin:.4rem 0}\n' +
 'ul,ol{margin:.4rem 0 .4rem 1.4rem;padding:0}\n' +
 'li{margin:.15rem 0}\n' +
-'pre.ai-md-codeblock{background:var(--code-bg);color:var(--code-tx);border-radius:var(--rs);padding:.75rem 1rem;overflow-x:auto;margin:.6rem 0;font-size:.8125rem;font-family:ui-monospace,"SF Mono","Fira Code","Cascadia Code",Consolas,monospace;border:1px solid var(--border)}\n' +
+'pre.ai-md-pre{background:var(--code-bg);color:var(--code-tx);border-radius:var(--rs);padding:.75rem 1rem;overflow-x:auto;margin:.6rem 0;font-size:.8125rem;font-family:ui-monospace,"SF Mono","Fira Code","Cascadia Code",Consolas,monospace;border:1px solid var(--border)}\n' +
+// .ai-md-code-lang MUST be display:block — the source HTML (from _mdToHtml)
+// emits <span class="ai-md-code-lang">python</span><code>from ...</code>
+// with no separator between them, relying entirely on this rule to push
+// the language label onto its own line. Without it, the label visually
+// glues onto the first line of code (e.g. "pythonfrom scikitplot...").
+'.ai-md-code-lang{display:block;font-size:.7em;letter-spacing:.04em;text-transform:uppercase;color:var(--tx3);margin-bottom:.4rem;font-weight:600}\n' +
 'code{font-family:ui-monospace,"SF Mono","Fira Code",Consolas,monospace;font-size:.875em;background:var(--code-bg);padding:.1em .35em;border-radius:.25rem}\n' +
 'pre code{background:none;padding:0;font-size:inherit}\n' +
 'table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.875rem}\n' +
@@ -4907,13 +5511,135 @@ opts.jsonPayload + '\n' +
             document.body.appendChild(a);
             a.click();
         } catch (blobErr) {
-            console.warn('[ai-assistant] _downloadBlob failed', blobErr);
+            _log('warn', '[ai-assistant] _downloadBlob failed', blobErr);
         } finally {
             try { document.body.removeChild(a); } catch (_) {}
             setTimeout(function () {
                 try { URL.revokeObjectURL(url); } catch (_) {}
             }, 1500);
         }
+    }
+
+    /**
+     * Standard CRC-32 (IEEE 802.3 / zlib polynomial), table-based.
+     * Only real dependency of _buildZipBlob below.
+     */
+    function _crc32(bytes) {
+        if (!_crc32._table) {
+            var t = new Uint32Array(256);
+            for (var n = 0; n < 256; n++) {
+                var c = n;
+                for (var k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                t[n] = c >>> 0;
+            }
+            _crc32._table = t;
+        }
+        var crc = 0xFFFFFFFF;
+        for (var i = 0; i < bytes.length; i++) {
+            crc = _crc32._table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+        }
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    /**
+     * Build a minimal, valid ZIP archive (STORE method — no compression)
+     * from a list of ``{name, content}`` text files, returned as a Blob
+     * ready for ``_downloadBlob()``.
+     *
+     * Vendored inline rather than pulling in a zip library from a CDN —
+     * same reasoning as the vendored Turndown copy elsewhere in this file
+     * (see its own comment): an external CDN dependency can silently fail
+     * this one feature on any device/network where that CDN happens to be
+     * blocked (ad-blockers, corporate firewalls, iOS content blockers,
+     * offline docs), and there's no good way to detect that failure from
+     * inside a click handler.
+     *
+     * STORE-only (no DEFLATE) is a deliberate scope limit, not an
+     * oversight: these are small code snippets, not large assets, so the
+     * size cost of skipping compression is negligible, while a correct
+     * DEFLATE implementation is a meaningfully bigger and riskier thing to
+     * hand-roll than a CRC32 + fixed-format ZIP writer. The output is a
+     * fully valid .zip either way — every mainstream unzip tool (Windows
+     * Explorer, macOS Archive Utility, 7-Zip, unzip(1)) opens STORE
+     * entries the same as compressed ones.
+     *
+     * @param {Array<{name: string, content: string}>} files
+     * @returns {Blob}
+     */
+    function _buildZipBlob(files) {
+        var encoder = new TextEncoder();
+        var localParts = [];
+        var centralParts = [];
+        var offset = 0;
+        // Fixed DOS date/time (1980-01-01, 00:00) — these are freshly
+        // generated snippets, not files with a meaningful mtime to
+        // preserve, and every extractor accepts this as a valid value.
+        var DOS_TIME = 0, DOS_DATE = 0x21;
+
+        files.forEach(function (f) {
+            var nameBytes = encoder.encode(f.name);
+            var dataBytes = encoder.encode(f.content);
+            var crc = _crc32(dataBytes);
+            var size = dataBytes.length;
+
+            var lh = new Uint8Array(30 + nameBytes.length);
+            var ldv = new DataView(lh.buffer);
+            ldv.setUint32(0, 0x04034b50, true);   // local file header signature
+            ldv.setUint16(4, 20, true);           // version needed to extract
+            ldv.setUint16(6, 0, true);            // general purpose bit flag
+            ldv.setUint16(8, 0, true);            // compression method (0 = store)
+            ldv.setUint16(10, DOS_TIME, true);
+            ldv.setUint16(12, DOS_DATE, true);
+            ldv.setUint32(14, crc, true);
+            ldv.setUint32(18, size, true);        // compressed size
+            ldv.setUint32(22, size, true);        // uncompressed size
+            ldv.setUint16(26, nameBytes.length, true);
+            ldv.setUint16(28, 0, true);           // extra field length
+            lh.set(nameBytes, 30);
+            localParts.push(lh, dataBytes);
+
+            var ch = new Uint8Array(46 + nameBytes.length);
+            var cdv = new DataView(ch.buffer);
+            cdv.setUint32(0, 0x02014b50, true);   // central file header signature
+            cdv.setUint16(4, 20, true);           // version made by
+            cdv.setUint16(6, 20, true);           // version needed to extract
+            cdv.setUint16(8, 0, true);            // general purpose bit flag
+            cdv.setUint16(10, 0, true);           // compression method
+            cdv.setUint16(12, DOS_TIME, true);
+            cdv.setUint16(14, DOS_DATE, true);
+            cdv.setUint32(16, crc, true);
+            cdv.setUint32(20, size, true);
+            cdv.setUint32(24, size, true);
+            cdv.setUint16(28, nameBytes.length, true);
+            cdv.setUint16(30, 0, true);           // extra field length
+            cdv.setUint16(32, 0, true);           // file comment length
+            cdv.setUint16(34, 0, true);           // disk number start
+            cdv.setUint16(36, 0, true);           // internal file attributes
+            cdv.setUint32(38, 0, true);           // external file attributes
+            cdv.setUint32(42, offset, true);      // relative offset of local header
+            ch.set(nameBytes, 46);
+            centralParts.push(ch);
+
+            offset += lh.length + dataBytes.length;
+        });
+
+        var centralSize = centralParts.reduce(function (sum, p) { return sum + p.length; }, 0);
+        var centralOffset = offset;
+
+        var end = new Uint8Array(22);
+        var edv = new DataView(end.buffer);
+        edv.setUint32(0, 0x06054b50, true);       // end of central directory signature
+        edv.setUint16(4, 0, true);                // disk number
+        edv.setUint16(6, 0, true);                // disk with start of central directory
+        edv.setUint16(8, files.length, true);     // entries on this disk
+        edv.setUint16(10, files.length, true);    // total entries
+        edv.setUint32(12, centralSize, true);
+        edv.setUint32(16, centralOffset, true);
+        edv.setUint16(20, 0, true);                // comment length
+
+        return new Blob(localParts.concat(centralParts, [end]), { type: 'application/zip' });
     }
 
     /**
@@ -4943,7 +5669,7 @@ opts.jsonPayload + '\n' +
      * HTMLElement  A wrapper div containing trigger button + dropdown menu.
      */
     function _buildExportDropdownBtn(opts) {
-        var options    = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var options    = (opts && typeof opts === 'object') ? opts : {};
         var onLinkMode = typeof options.onLinkMode === 'function' ? options.onLinkMode : null;
 
         var wrapper = document.createElement('div');
@@ -5179,10 +5905,279 @@ opts.jsonPayload + '\n' +
      * text content so the copy is clean and reusable outside the panel.
      * @param {string} text  The exact bubble text (from `_transcript`).
      * @param {HTMLElement} [bubbleEl]  Optional bubble element for data-raw.
+     * @param {function} [onSuccess]  Called only after a confirmed copy
+     *   (Clipboard API resolved, or execCommand succeeded) — never on failure.
      */
-    function copyAnswer(text, bubbleEl) {
+    function copyAnswer(text, bubbleEl, onSuccess) {
         var raw = (bubbleEl && bubbleEl.getAttribute('data-raw')) || text;
-        copyToClipboard(raw, false);
+        copyToClipboard(raw, false, onSuccess);
+    }
+
+    /**
+     * Briefly swap a per-answer "Copy" button into a "Copied!" confirmation
+     * state — checkmark icon + updated aria-label/title/visible label — then
+     * auto-reverts to the original copy icon/text after ~1.6s.
+     *
+     * Shared by both per-answer copy buttons (streamed + non-streamed render
+     * paths) so their confirmation behaviour can never drift out of sync with
+     * each other — see the export-link-toggle sync fix for why that matters
+     * in this codebase.
+     *
+     * Notes
+     * -----
+     * Developer: Only called from copyAnswer's onSuccess callback, i.e. only
+     *   after a *confirmed* clipboard write — never optimistically on click.
+     * Developer: Guards against overlapping timers so rapid re-clicks don't
+     *   revert early or leave a stale "Copied!" label.
+     *
+     * @param {HTMLElement} btn  The button returned by the copy-button builders.
+     */
+    function _flashCopyBtnCopied(btn) {
+        if (!btn) { return; }
+        if (btn._copiedRevertTimer) {
+            clearTimeout(btn._copiedRevertTimer);
+            btn._copiedRevertTimer = null;
+        }
+        // Stash the original label/title once — a rapid re-click must not
+        // overwrite them with "Copied!" as the new "original" value.
+        if (!btn.hasAttribute('data-copy-orig-label')) {
+            btn.setAttribute('data-copy-orig-label', btn.getAttribute('aria-label') || 'Copy this answer');
+            btn.setAttribute('data-copy-orig-title', btn.title || 'Copy this answer');
+        }
+        var svgEl   = btn.querySelector('svg');
+        var lblSpan = btn.querySelector('span');
+        var origLblText = lblSpan ? (btn.getAttribute('data-copy-orig-lbl') || lblSpan.textContent) : null;
+        if (lblSpan && !btn.hasAttribute('data-copy-orig-lbl')) {
+            btn.setAttribute('data-copy-orig-lbl', lblSpan.textContent);
+        }
+
+        btn.classList.add('ai-assistant-panel-bubble-action--copied');
+        btn.setAttribute('aria-label', 'Copied!');
+        btn.title = 'Copied!';
+        if (svgEl) { svgEl.outerHTML = ICONS.checkAns; }
+        if (lblSpan) { lblSpan.textContent = 'Copied'; }
+
+        btn._copiedRevertTimer = setTimeout(function () {
+            btn.classList.remove('ai-assistant-panel-bubble-action--copied');
+            btn.setAttribute('aria-label', btn.getAttribute('data-copy-orig-label'));
+            btn.title = btn.getAttribute('data-copy-orig-title');
+            var svgEl2   = btn.querySelector('svg');
+            var lblSpan2 = btn.querySelector('span');
+            if (svgEl2) { svgEl2.outerHTML = ICONS.copyAns; }
+            if (lblSpan2) { lblSpan2.textContent = origLblText; }
+            btn._copiedRevertTimer = null;
+        }, 1600);
+    }
+
+    /**
+     * Add a small "Copy code" + "Download" button to every fenced code
+     * block (`<pre class="ai-md-pre">`) inside `root` that doesn't already
+     * have them — lets a single snippet be copied/saved on its own instead
+     * of only the whole answer via the bubble-level Copy button. When a
+     * bubble has more than one code block, each also gets a "Block X of Y"
+     * step marker so multi-file answers read as a numbered sequence.
+     *
+     * Idempotent by design: guarded by the `.ai-md-pre-wrap` wrapper's
+     * presence, so it's safe (and necessary) to call this again after every
+     * re-render — streaming answers reset `bubble.innerHTML` on every
+     * chunk, which would otherwise wipe out anything injected on the
+     * previous chunk (and re-wrapping an already-wrapped `<pre>` would nest
+     * wrappers indefinitely without this guard). The step-marker TEXT is
+     * the one thing re-computed on every call even for already-wrapped
+     * blocks — during streaming, block 2 may not exist yet when block 1
+     * first gets wrapped, so "Block 1 of 1" would go stale the moment
+     * block 2 appears; re-deriving the total each call keeps it correct.
+     *
+     * Developer: the buttons are appended to a *wrapper* div around `<pre>`,
+     * not to `<pre>` itself. `<pre>` has `overflow-x: auto` for long code
+     * lines — a button appended directly inside it would scroll away
+     * horizontally with the code instead of staying pinned to the visible
+     * corner. The wrapper sits outside that scroll area and carries the
+     * `margin`/`position: relative` that used to live on `<pre>` itself
+     * (see the matching CSS change), so visual spacing is unchanged.
+     *
+     * Reuses `_flashCopyBtnCopied` for the "Copied!" confirmation exactly
+     * like the bubble-level Copy buttons do — it already no-ops safely on
+     * buttons with no label `<span>` (icon-only, as these are), so no
+     * changes were needed there for this to work. Reuses `_downloadBlob`
+     * (the same helper the export-format buttons use) for the download
+     * button, so iOS/legacy-browser handling isn't duplicated.
+     *
+     * Developer: uses `codeEl.textContent`, not `pre.textContent` — this
+     * matters once a per-block header/toolbar exists (e.g. the language
+     * badge), since `pre.textContent` would copy/download that label text too.
+     *
+     * @param {HTMLElement} root  Bubble element to scan (not the whole panel).
+     */
+    // Language → file extension, for the per-block download button.
+    // Falls back to .txt for anything not listed rather than guessing.
+    var _LANG_EXT = {
+        python: 'py', py: 'py', javascript: 'js', js: 'js', typescript: 'ts',
+        ts: 'ts', jsx: 'jsx', tsx: 'tsx', json: 'json', yaml: 'yaml',
+        yml: 'yaml', html: 'html', css: 'css', scss: 'scss', bash: 'sh',
+        sh: 'sh', shell: 'sh', zsh: 'sh', sql: 'sql', c: 'c', cpp: 'cpp',
+        'c++': 'cpp', java: 'java', go: 'go', rust: 'rs', rs: 'rs',
+        ruby: 'rb', rb: 'rb', php: 'php', xml: 'xml', markdown: 'md',
+        md: 'md', toml: 'toml', ini: 'ini', dockerfile: 'Dockerfile',
+        r: 'r', kotlin: 'kt', swift: 'swift'
+    };
+
+    function _enhanceCodeBlocks(root) {
+        if (!root) { return; }
+        var blocks = root.querySelectorAll('pre.ai-md-pre');
+        var total = blocks.length;
+        for (var i = 0; i < blocks.length; i++) {
+            var pre = blocks[i];
+            var parent = pre.parentNode;
+            var alreadyWrapped = !!(parent && parent.classList &&
+                parent.classList.contains('ai-md-pre-wrap'));
+            var wrap;
+
+            if (alreadyWrapped) {
+                wrap = parent;
+            } else {
+                var codeEl = pre.querySelector('code');
+                if (!codeEl) { continue; }
+
+                wrap = document.createElement('div');
+                wrap.className = 'ai-md-pre-wrap';
+                parent.insertBefore(wrap, pre);
+                wrap.appendChild(pre);
+
+                var toolbar = document.createElement('div');
+                toolbar.className = 'ai-md-code-toolbar';
+
+                var copyBtnEl = document.createElement('button');
+                copyBtnEl.type = 'button';
+                copyBtnEl.className = 'ai-md-code-copy-btn';
+                copyBtnEl.setAttribute('aria-label', 'Copy code');
+                copyBtnEl.title = 'Copy code';
+                copyBtnEl.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
+                (function (codeElRef, btnRef) {
+                    copyBtnEl.addEventListener('click', function () {
+                        copyToClipboard(codeElRef.textContent, false, function () {
+                            _flashCopyBtnCopied(btnRef);
+                        });
+                    });
+                }(codeEl, copyBtnEl));
+                toolbar.appendChild(copyBtnEl);
+
+                var dlBtn = document.createElement('button');
+                dlBtn.type = 'button';
+                dlBtn.className = 'ai-md-code-download-btn';
+                dlBtn.setAttribute('aria-label', 'Download code');
+                dlBtn.title = 'Download code';
+                dlBtn.innerHTML = ICONS.exportTxt;   // ICONS constant — safe.
+                (function (codeElRef, preRef) {
+                    dlBtn.addEventListener('click', function () {
+                        var lang = (preRef.getAttribute('data-lang') || '').toLowerCase();
+                        var ext  = _LANG_EXT[lang] || 'txt';
+                        var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                        _downloadBlob(codeElRef.textContent, 'text/plain',
+                            'snippet-' + stamp + '.' + ext);
+                    });
+                }(codeEl, pre));
+                toolbar.appendChild(dlBtn);
+
+                wrap.appendChild(toolbar);
+            }
+
+            // Step marker — only shown once a bubble has more than one code
+            // block, and re-derived every call so the count self-corrects
+            // as more blocks stream in (see docstring).
+            //
+            // Inserted as a SIBLING immediately before `wrap`, not as a
+            // child inside it. .ai-md-code-toolbar is position:absolute
+            // relative to .ai-md-pre-wrap (its nearest positioned
+            // ancestor) — if the step marker lived inside wrap as a normal-
+            // flow block, it would push <pre> down without moving the
+            // toolbar's positioning context, leaving the copy/download
+            // icons floating above the code instead of aligned with it.
+            // Keeping wrap's only children as <pre> + the toolbar means
+            // wrap's top edge always equals <pre>'s top edge, regardless
+            // of whether a step marker exists above it.
+            var prevSib = wrap.previousElementSibling;
+            var stepEl = (prevSib && prevSib.classList &&
+                prevSib.classList.contains('ai-md-code-step')) ? prevSib : null;
+            if (total > 1) {
+                if (!stepEl) {
+                    stepEl = document.createElement('span');
+                    stepEl.className = 'ai-md-code-step';
+                    wrap.parentNode.insertBefore(stepEl, wrap);
+                }
+                stepEl.textContent = 'Block ' + (i + 1) + ' of ' + total;
+            } else if (stepEl) {
+                stepEl.remove();   // dropped from 2+ blocks back to 1 (edited/regenerated)
+            }
+        }
+    }
+
+    /**
+     * Turn a long answer's H1/H2/H3-delimited sections into native
+     * `<details>`/`<summary>` blocks so a long, multi-part answer can be
+     * collapsed section-by-section instead of only scrolled through.
+     *
+     * Deliberately NOT called during streaming chunks — only once, after a
+     * stream finishes (or immediately for the non-streamed render path).
+     * Restructuring the DOM around headings while content is still actively
+     * changing risks a `<details>` snapping shut mid-stream if a user had
+     * opened/closed one, or headings appearing mid-word before the rest of
+     * a streamed line arrives. Applying it once, after the answer is
+     * final, avoids that whole class of streaming-related bugs.
+     *
+     * Guarded two ways:
+     *   - Skips entirely if `root` already contains a `.ai-md-section`
+     *     (idempotent — safe to call more than once on the same bubble).
+     *   - Skips entirely if there are fewer than 2 top-level headings —
+     *     wrapping a single section in a collapse toggle adds a control
+     *     with no organizational benefit.
+     *
+     * Sections default to `open` (expanded) — a user who just asked a
+     * question should see the full answer immediately; collapsing is an
+     * option they reach for on a long answer, not a surprise default that
+     * hides content they haven't read yet.
+     *
+     * @param {HTMLElement} root  Bubble element to restructure (assistant only).
+     */
+    function _makeSectionsCollapsible(root) {
+        if (!root) { return; }
+        if (root.querySelector('details.ai-md-section')) { return; }   // already done
+        var headings = root.querySelectorAll(
+            ':scope > h1.ai-md-h, :scope > h2.ai-md-h, :scope > h3.ai-md-h'
+        );
+        if (headings.length < 2) { return; }   // nothing worth collapsing
+
+        headings.forEach(function (h) {
+            var details = document.createElement('details');
+            details.className = 'ai-md-section';
+            details.open = true;
+
+            var summary = document.createElement('summary');
+            summary.className = 'ai-md-section-summary';
+            var chevron = document.createElement('span');
+            chevron.className = 'ai-md-section-chevron';
+            chevron.setAttribute('aria-hidden', 'true');
+            chevron.innerHTML = ICONS.chevronDown;   // ICONS constant — safe.
+            summary.appendChild(chevron);
+            var titleSpan = document.createElement('span');
+            titleSpan.textContent = h.textContent;
+            summary.appendChild(titleSpan);
+            details.appendChild(summary);
+
+            // Move every sibling up to (not including) the next top-level
+            // heading into this <details> — the heading's own text now
+            // lives in <summary>, so the original heading node is dropped.
+            var next = h.nextSibling;
+            h.parentNode.insertBefore(details, h);
+            while (next && !(next.nodeType === 1 &&
+                    /^H[1-3]$/.test(next.tagName) &&
+                    next.classList && next.classList.contains('ai-md-h'))) {
+                var toMove = next;
+                next = next.nextSibling;
+                details.appendChild(toMove);
+            }
+            h.remove();
+        });
     }
 
     /**
@@ -5230,7 +6225,7 @@ opts.jsonPayload + '\n' +
      */
     function _shareAnswer(answerText, questionText, bubbleEl, btn, answerIndex) {
         var raw    = (bubbleEl && bubbleEl.getAttribute('data-raw')) || answerText;
-        var cfg    = window.AI_ASSISTANT_CONFIG || {};
+        var cfg    = _cfg();
         var aiName = cfg.panelTitle || 'AI Assistant';
         var pageUrl = (typeof location !== 'undefined') ? location.href : '';
 
@@ -5640,7 +6635,9 @@ opts.jsonPayload + '\n' +
                 retryMenuBtn.setAttribute('role', 'menuitem');
                 retryMenuBtn.setAttribute('aria-label', 'Retry this answer');
                 retryMenuBtn.title = 'Retry — re-send the same question';
-                retryMenuBtn.innerHTML = ICONS.retry;
+                // Swapped from ICONS.retry (single-arrow feather glyph) to the
+                // clearer two-arrow sync Octicon — see ICONS.syncRetry above.
+                retryMenuBtn.innerHTML = ICONS.syncRetry;
                 var retryMenuLbl = document.createElement('span');
                 retryMenuLbl.textContent = 'Retry';
                 retryMenuBtn.appendChild(retryMenuLbl);
@@ -5732,8 +6729,11 @@ opts.jsonPayload + '\n' +
      * @param {HTMLElement} body
      */
     function _renderWelcome(body) {
-        var cfg     = window.AI_ASSISTANT_CONFIG || {};
+        var cfg     = _cfg();
         var title   = cfg.panelTitle || 'AI Assistant';
+        // if (!title.startsWith('\u2728')) {
+        //     title = '\u2728 ' + title;  // ✨ \u2728
+        // }
         var quickQs = Array.isArray(cfg.panelQuickQuestions)
             ? cfg.panelQuickQuestions.slice(0, 5) : [];
 
@@ -5742,13 +6742,32 @@ opts.jsonPayload + '\n' +
         var p1 = document.createElement('p');
         var strong = document.createElement('strong');
         strong.textContent = title;
-        p1.appendChild(document.createTextNode('Hi! I\u2019m '));
+        // 👋︎ 👋 \u1F44B
+        // '\u{1F44B}'     // ES6+ \u only supports four hexadecimal digits.
+        // '\uD83D\uDC4B'  // UTF-16 surrogate pair
+        p1.appendChild(document.createTextNode('👋 Hi! I\u2019m '));
         p1.appendChild(strong);
         p1.appendChild(document.createTextNode('.'));
         var p2 = document.createElement('p');
-        p2.textContent = 'Ask me anything about this documentation page.';
+        // Default: SVG bot icon (inherits the muted welcome-text colour).
+        // Opt-out: cfg.panelEmojiIcons = true keeps the literal 🤖 emoji —
+        // same flag used by the quick-rate thumbs icons, so both surfaces
+        // switch together.
+        if (cfg.panelEmojiIcons === true) {
+            p2.textContent = '🤖 Ask me anything about this documentation page.';
+        } else {
+            var botIconSpan = document.createElement('span');
+            botIconSpan.className = 'ai-assistant-panel-welcome-bot-icon';
+            botIconSpan.setAttribute('aria-hidden', 'true');
+            botIconSpan.innerHTML = ICONS.botAssistant;
+            p2.appendChild(botIconSpan);
+            p2.appendChild(document.createTextNode(' Ask me anything about this documentation page.'));
+        }
+        var p3 = document.createElement('p');
+        _appendPattern(p3, 11, { maxGroup: 3 }); // add glyphs 🕺🕺🕺 🕺🕺 🕺 🕺🕺 🕺🕺🕺
         welcome.appendChild(p1);
         welcome.appendChild(p2);
+        welcome.appendChild(p3);
         body.appendChild(welcome);
 
         if (quickQs.length > 0) {
@@ -5827,7 +6846,7 @@ opts.jsonPayload + '\n' +
      */
     function _bindShortcut() {
         if (_shortcutBound) return;
-        var cfg  = window.AI_ASSISTANT_CONFIG || {};
+        var cfg  = _cfg();
         var spec = typeof cfg.panelShortcut === 'string'
             ? cfg.panelShortcut : 'Alt+Shift+A';
         var pred = _parseShortcut(spec);
@@ -5840,7 +6859,7 @@ opts.jsonPayload + '\n' +
 
     /** Human-readable shortcut label for the hint chip (or '' if disabled). */
     function _shortcutLabel() {
-        var cfg  = window.AI_ASSISTANT_CONFIG || {};
+        var cfg  = _cfg();
         var spec = typeof cfg.panelShortcut === 'string'
             ? cfg.panelShortcut : 'Alt+Shift+A';
         return _parseShortcut(spec) ? spec : '';
@@ -6207,7 +7226,7 @@ opts.jsonPayload + '\n' +
      *   ``.ai-assistant-panel-feedback--revealed`` on the existing block.
      */
     function _buildFbkFloat(answerIndex, answerText, questionText) {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         if (cfg.panelFeedback === false) return null;
         if (_feedbackGivenSet.has(answerIndex)) return null;
 
@@ -6222,8 +7241,8 @@ opts.jsonPayload + '\n' +
         quick.className = 'ai-assistant-fbk-quick';
 
         var _quickOpts = [
-            { emoji: '\uD83D\uDC4E', sentiment: 'negative', value: -1, title: 'Not helpful', slug: 'not_helpful' },
-            { emoji: '\uD83D\uDC4D', sentiment: 'positive', value: 1,  title: 'Helpful',     slug: 'helpful'     },
+            { emoji: '\uD83D\uDC4E', icon: 'thumbDown', sentiment: 'negative', value: -1, title: 'Not helpful', slug: 'not_helpful' },
+            { emoji: '\uD83D\uDC4D', icon: 'thumbUp',   sentiment: 'positive', value: 1,  title: 'Helpful',     slug: 'helpful'     },
         ];
 
         _quickOpts.forEach(function (opt) {
@@ -6237,11 +7256,23 @@ opts.jsonPayload + '\n' +
             btn.setAttribute('aria-label', _btnLabel);
             btn.title = _btnLabel;
 
-            // Emoji + score chip — same structure as .ai-assistant-panel-feedback-btn
+            // Icon + score chip — same structure as .ai-assistant-panel-feedback-btn
             // so .ai-fbk-score CSS rules apply without duplication.
+            // Default: SVG (fill="currentColor") instead of a plain emoji glyph,
+            // since emoji ignore the `color` CSS property and never picked up
+            // the idle/hover/pressed sentiment colours below.
+            // Opt-out: set cfg.panelEmojiIcons = true to keep the literal
+            // 👍/👎 emoji glyph instead (e.g. for sites that prefer native
+            // platform emoji rendering over inline SVG).
             var emojiSpan = document.createElement('span');
+            emojiSpan.className = 'ai-fbk-quick-icon';
             emojiSpan.setAttribute('aria-hidden', 'true');
-            emojiSpan.textContent = opt.emoji;
+            if (cfg.panelEmojiIcons === true) {
+                emojiSpan.classList.add('ai-fbk-quick-icon--emoji');
+                emojiSpan.textContent = opt.emoji;
+            } else {
+                emojiSpan.innerHTML = ICONS[opt.icon];
+            }
             btn.appendChild(emojiSpan);
 
             // Score label hidden until aria-pressed="true" (revealed via CSS).
@@ -6579,7 +7610,7 @@ opts.jsonPayload + '\n' +
     }
 
     function _buildFeedbackBlock(answerIndex, answerText, questionText) {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         if (cfg.panelFeedback === false) return null;     // opt-out
         if (_feedbackGivenSet.has(answerIndex)) return null;
 
@@ -6837,7 +7868,7 @@ opts.jsonPayload + '\n' +
             }
             if (cfg.panelFeedbackLog) {
                 // eslint-disable-next-line no-console
-                console.log('[ai-assistant] feedback', _redactPayloadForLog(detail));
+                _log('log', '[ai-assistant] feedback', _redactPayloadForLog(detail));
             }
             _feedbackGivenSet.add(answerIndex);
             // v3: persist the full detail schema so share export enrichment,
@@ -6935,7 +7966,7 @@ opts.jsonPayload + '\n' +
      *      was already open is still the active view (no navigation side-effect).
      */
     function _buildSheetHamburgerBtn(sheet, idSuffix, closeExtra) {  // closeExtra retained for call-site compat; not invoked
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         if (cfg.panelHamburger === false) return null;
         var btn = _createIconBtn('sheet-ham-' + idSuffix, 'Open menu', ICONS.menu);
         btn.title = 'Open menu';
@@ -7011,8 +8042,7 @@ opts.jsonPayload + '\n' +
         'use strict';
 
         // ── Safety guard ──────────────────────────────────────────────────────
-        var _epSafe = (typeof _EP !== 'undefined' && _EP &&
-                       typeof _EP.resolve === 'function') ? _EP : null;
+        var _epSafe = (typeof _EP.resolve === 'function') ? _EP : null;
 
         // ── Shared constants ──────────────────────────────────────────────────
         var _FEATURE_DEFS = [
@@ -8224,13 +9254,22 @@ opts.jsonPayload + '\n' +
             var row = document.createElement('div');
             row.className = 'ai-assistant-panel-ep-ext-future-row';
             row.setAttribute('aria-hidden', 'true');
+            // The SVG markup itself is a static literal (safe to set via
+            // innerHTML). `icon`/`text` are NOT concatenated into that HTML
+            // string — every call site today only ever passes hardcoded
+            // literals, but the sink must be safe by construction rather
+            // than by caller discipline, since nothing here or in the type
+            // system prevents a future caller from passing dynamic text.
+            // Using a text node sidesteps that entirely: browsers never
+            // interpret Text node content as markup, no matter what it
+            // contains.
             row.innerHTML =
                 '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"' +
                 ' stroke-linejoin="round" aria-hidden="true">' +
                 '<circle cx="12" cy="12" r="10"/>' +
                 '<line x1="12" y1="8" x2="12" y2="12"/>' +
-                '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-                icon + '\u2009' + text + ' \u2014 coming soon';
+                '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+            row.appendChild(document.createTextNode(icon + '\u2009' + text + ' \u2014 coming soon'));
             return row;
         }
 
@@ -8270,13 +9309,25 @@ opts.jsonPayload + '\n' +
             'server-side share link when a Share endpoint is configured) ' +
             'instead of downloading a file.',
             _exportLinkMode,
-            null
+            'ai-assistant-ext-share-link-toggle'
         );
         shareLinkToggle.pill.setAttribute('aria-label', 'Share-link mode');
+        // Single source of truth is `_exportLinkMode`; this pill only ever
+        // requests a change (_setExportLinkMode). It never mutates its own
+        // aria-checked directly — that would create a second write path and
+        // is exactly what let this pill drift out of sync with the export
+        // dropdown pill and the share-sheet accordion pill. Actual visual
+        // sync happens below via the shared _exportStateListeners channel,
+        // the same mechanism the accordion pill already uses (§12710).
         shareLinkToggle.pill.addEventListener('click', function () {
             _setExportLinkMode(!_exportLinkMode);
+        });
+        // Stay in sync with the export dropdown + share-sheet accordion:
+        // any call to _setExportLinkMode from either of those also updates
+        // this pill's aria-checked/title, closing the one-way sync gap.
+        _exportStateListeners.push(function (state) {
             shareLinkToggle.pill.setAttribute(
-                'aria-checked', _exportLinkMode ? 'true' : 'false');
+                'aria-checked', state.linkMode ? 'true' : 'false');
         });
         shareSub.appendChild(shareLinkToggle.row);
         shareSub.appendChild(_buildExtFutureRow('\u23F1\uFE0F', 'Share TTL (days)'));
@@ -8354,7 +9405,7 @@ opts.jsonPayload + '\n' +
         // ── E: Dataset Endpoint + Token status ────────────────────────────
         // NEW (vNEXT). Discovers the HuggingFace dataset repo and the server's
         // HF-token posture WITHOUT exposing any secret. Two-source priority:
-        //   P1  window.AI_ASSISTANT_CONFIG.panelDatasetRepo  (conf.py override)
+        //   P1  _cfg().panelDatasetRepo  (conf.py override)
         //   P2  GET {proxyBase}/  → .training.dataset_repo    (auto-discovery)
         // The same GET / response also carries tokens.{hf_token_type,
         // hf_write_token_type,least_privilege_mode} — surfaced as a read-only
@@ -8366,8 +9417,6 @@ opts.jsonPayload + '\n' +
         // All selectors live under the existing .ai-assistant-panel-ep-ext-*
         // namespace. No secret value is ever read or rendered — only booleans
         // and the public repo id, exactly as the proxy already publishes them.
-
-        var _HF_DATASET_BASE = 'https://huggingface.co/datasets/';
 
         /**
          * Strip the /v1/contribute suffix from a training endpoint URL to get
@@ -8389,15 +9438,11 @@ opts.jsonPayload + '\n' +
             return url.replace(/\/v1\/contribute\/?$/i, '').replace(/\/+$/, '');
         }
 
-        /** Build the three canonical HuggingFace dataset URLs from a repo id. */
-        function _buildHfDatasetUrls(repoId) {
-            var base = _HF_DATASET_BASE + repoId;
-            return {
-                base:          base,
-                feedback:      base + '/tree/main/feedback',
-                contributions: base + '/tree/main/contributions'
-            };
-        }
+        // href for every dataset link below only ever receives this trusted
+        // compile-time constant — repoId-derived data can only ever affect
+        // `pathname`, never origin/protocol. See _buildDatasetLinkCard.
+        var _HF_DATASET_ORIGIN = 'https://huggingface.co';
+        var _HF_DATASET_PATH_PREFIX = '/datasets/';
 
         /**
          * Fetch the proxy root endpoint and extract dataset + token metadata.
@@ -8471,10 +9516,50 @@ opts.jsonPayload + '\n' +
         }
 
         /** Render one dataset link card (anchor). Uses textContent only (XSS-safe). */
-        function _buildDatasetLinkCard(icon, label, url) {
+        /**
+         * Render one dataset link card (anchor).
+         *
+         * `href` is assigned in two steps rather than one pre-built string:
+         * first the trusted, compile-time-constant origin, then `pathname`
+         * built from `repoId`'s two segments — individually normalized
+         * (_normalizeHfRepoId) and percent-encoded (encodeURIComponent)
+         * before being placed in the path. repoId-derived data can
+         * therefore only ever influence `pathname`; it can never replace
+         * the scheme or host, so `href` can never become a
+         * `javascript:`/`data:` URL regardless of what repoId contains.
+         *
+         * This also happens to be a more CodeQL-legible pattern than the
+         * previous "pre-build a full URL string, then gate the assignment
+         * behind a custom _isSafeHref() boolean" — static analysis can
+         * verify the structural guarantee here directly (origin is a
+         * literal, tainted data only reaches `pathname`) rather than
+         * having to trust a project-specific helper it doesn't model.
+         *
+         * @param {string} icon    Decorative emoji, rendered via textContent.
+         * @param {string} label   Visible label, rendered via textContent.
+         * @param {string} repoId  "owner/repo" — re-validated here regardless
+         *   of whether the caller already validated it upstream.
+         * @param {string} suffix  Path suffix, e.g. '/tree/main/feedback'.
+         *   Must start with '/' or be empty — always a literal at call
+         *   sites here, never derived from repoId.
+         */
+        function _buildDatasetLinkCard(icon, label, repoId, suffix) {
             var a = document.createElement('a');
             a.className = 'ai-assistant-panel-ep-ext-dataset-card';
-            a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+
+            var normalized = _normalizeHfRepoId(repoId);
+            if (normalized) {
+                var parts = normalized.split('/');
+                var owner = encodeURIComponent(parts[0]);
+                var repo  = encodeURIComponent(parts[1]);
+                a.href = _HF_DATASET_ORIGIN;   // trusted constant only
+                a.pathname = _HF_DATASET_PATH_PREFIX + owner + '/' + repo + (suffix || '');
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+            }
+            // No href at all when repoId fails validation — same inert-
+            // text fallback the old _isSafeHref gate produced, just
+            // reached from a stronger structural guarantee now.
             a.setAttribute('aria-label', label + ' \u2014 opens in a new tab');
 
             var iconEl = document.createElement('span');
@@ -8489,7 +9574,7 @@ opts.jsonPayload + '\n' +
             lbl.textContent = label;
             var urlEl = document.createElement('span');
             urlEl.className = 'ai-assistant-panel-ep-ext-dataset-card-url';
-            urlEl.textContent = url;
+            urlEl.textContent = normalized ? a.href : '';
             textWrap.appendChild(lbl); textWrap.appendChild(urlEl);
 
             var extIcon = document.createElement('span');
@@ -8523,11 +9608,13 @@ opts.jsonPayload + '\n' +
 
             var badge = document.createElement('span');
             badge.className = 'ai-assistant-panel-ep-ext-info-badge ' +
-                (state === 'configured'
+                (state === 'configured' || state === 'custom'
                     ? 'ai-assistant-panel-ep-ext-info-badge--ok'
                     : 'ai-assistant-panel-ep-ext-dataset-badge--discovered');
-            badge.textContent = (state === 'configured')
-                ? 'Configured' : 'Auto-discovered';
+            badge.textContent =
+                state === 'custom'     ? 'Custom (yours)' :
+                state === 'configured' ? 'Configured'      :
+                                          'Auto-discovered';
             statusRow.appendChild(badge);
 
             var repoLabel = document.createElement('span');
@@ -8535,13 +9622,12 @@ opts.jsonPayload + '\n' +
             repoLabel.textContent = repoId;
             statusRow.appendChild(repoLabel);
 
-            var urls = _buildHfDatasetUrls(repoId);
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83D\uDDC3', 'Dataset root',     urls.base));
+                '\uD83D\uDDC3', 'Dataset root',     repoId, ''));
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83D\uDC4D', 'Feedback records', urls.feedback));
+                '\uD83D\uDC4D', 'Feedback records', repoId, '/tree/main/feedback'));
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83E\uDD1D', 'Contributions',    urls.contributions));
+                '\uD83E\uDD1D', 'Contributions',    repoId, '/tree/main/contributions'));
         }
 
         /** Render the read-only HF-token posture row (read/write/fine-grained). */
@@ -8568,23 +9654,35 @@ opts.jsonPayload + '\n' +
 
         /** Orchestrate discovery / config, then render links + token posture. */
         function _buildDatasetSection(statusRow, linksWrap, tokenRow) {
-            var _cfg = window.AI_ASSISTANT_CONFIG || {};
+            var cfg = _cfg();
 
-            // P1: explicit panel config wins — no network call.
-            var explicitRepo = (_cfg.panelDatasetRepo || '').trim();
+            // P0: user's own runtime override wins over everything — the
+            // no-recompile counterpart to conf.py's panelDatasetRepo. Set
+            // from the form below; see _CUSTOM_DATASET_REPO_KEY.
+            var customRepo = _getCustomDatasetRepo();
+            // P1: explicit panel config (conf.py) — no network call needed.
+            // Normalized (not just trimmed) — see _normalizeHfRepoId's
+            // docstring for why conf.py needs this same boundary check as
+            // the other two sources, even though it's the site owner's own
+            // config: a malformed value there previously reached the
+            // render path unvalidated.
+            var explicitRepo = _normalizeHfRepoId(cfg.panelDatasetRepo);
+
+            var effectiveRepo   = customRepo || explicitRepo;
+            var effectiveSource = customRepo ? 'custom' : (explicitRepo ? 'configured' : null);
 
             var trainingUrl = (_epSafe && typeof _epSafe.resolve === 'function')
                 ? (_epSafe.resolve('training') || '') : '';
             var proxyBase = _proxyBaseFromTrainingUrl(trainingUrl);
 
-            if (explicitRepo && !proxyBase) {
-                // Config only, nothing to discover.
-                _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
+            if (effectiveRepo && !proxyBase) {
+                // Config/override only, nothing to discover.
+                _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
                 if (tokenRow) { tokenRow.textContent = ''; }
                 return;
             }
 
-            if (!explicitRepo && !proxyBase) {
+            if (!effectiveRepo && !proxyBase) {
                 _renderDatasetLinks(statusRow, linksWrap, null, 'not-configured');
                 if (tokenRow) { tokenRow.textContent = ''; }
                 return;
@@ -8600,13 +9698,17 @@ opts.jsonPayload + '\n' +
             statusRow.appendChild(spinner); statusRow.appendChild(loadTxt);
 
             _fetchProxyDatasetInfo(proxyBase, function (info) {
-                // P1 still wins for the link target; discovery adds token posture.
-                if (explicitRepo) {
-                    _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
-                } else if (!info.repoId) {
+                // P0/P1 still win for the link target; discovery adds token posture.
+                // Same normalization as the other two sources — an
+                // unexpected/malformed proxy response shouldn't produce a
+                // broken huggingface.co link.
+                var discoveredRepo = _normalizeHfRepoId(info.repoId);
+                if (effectiveRepo) {
+                    _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
+                } else if (!discoveredRepo) {
                     _renderDatasetLinks(statusRow, linksWrap, null, 'discovery-failed');
                 } else {
-                    _renderDatasetLinks(statusRow, linksWrap, info.repoId, 'discovered');
+                    _renderDatasetLinks(statusRow, linksWrap, discoveredRepo, 'discovered');
                 }
                 if (tokenRow && !info.error) { _renderTokenRow(tokenRow, info); }
             });
@@ -8618,12 +9720,62 @@ opts.jsonPayload + '\n' +
         datasetIntro.className = 'ai-assistant-panel-ep-hint';
         datasetIntro.textContent =
             'HuggingFace dataset where feedback and training contributions are ' +
-            'stored. Discovered automatically from the proxy when a training URL ' +
-            'is configured, or set explicitly via panelDatasetRepo in conf.py. ' +
+            'stored. Set your own below to use it right away — no rebuild needed. ' +
+            'Otherwise it\u2019s discovered automatically from the proxy when a ' +
+            'training URL is configured, or set via panelDatasetRepo in conf.py. ' +
             'The HF token posture below is reported by the server (no secret is ' +
             'ever exposed); when nothing is reachable, the Space repository ' +
             'secret continues to drive persistence.';
         datasetSub.appendChild(datasetIntro);
+
+        // ── Custom override form (P0 — no recompile needed) ────────────────
+        // The runtime, user-owned counterpart to conf.py's panelDatasetRepo —
+        // same idea as a custom endpoint profile: the built-in behaviour
+        // above keeps working untouched, this just lets a user layer their
+        // own choice on top, persisted locally, editable any time.
+        var datasetCustomWrap = document.createElement('div');
+        datasetCustomWrap.className = 'ai-assistant-panel-ep-ext-dataset-custom';
+
+        var datasetCustomLbl = document.createElement('label');
+        datasetCustomLbl.className = 'ai-assistant-panel-ep-url-label';
+        datasetCustomLbl.textContent = 'Custom dataset repo (owner/repo)';
+        datasetCustomLbl.htmlFor = 'ai-assistant-ext-dataset-custom-input';
+        datasetCustomWrap.appendChild(datasetCustomLbl);
+
+        var datasetCustomRow = document.createElement('div');
+        datasetCustomRow.className = 'ai-assistant-panel-ep-ext-dataset-custom-row';
+
+        var datasetCustomInp = document.createElement('input');
+        datasetCustomInp.type  = 'text';
+        datasetCustomInp.id    = 'ai-assistant-ext-dataset-custom-input';
+        datasetCustomInp.className = 'ai-assistant-panel-ep-input';
+        datasetCustomInp.placeholder = 'e.g. your-username/your-dataset';
+        datasetCustomInp.autocomplete = 'off';
+        datasetCustomInp.spellcheck = false;
+        datasetCustomInp.value = _getCustomDatasetRepo();
+        datasetCustomRow.appendChild(datasetCustomInp);
+
+        var datasetCustomSaveBtn = document.createElement('button');
+        datasetCustomSaveBtn.type = 'button';
+        datasetCustomSaveBtn.className = 'ai-assistant-panel-ep-add-btn';
+        datasetCustomSaveBtn.textContent = 'Save';
+        datasetCustomRow.appendChild(datasetCustomSaveBtn);
+
+        var datasetCustomClearBtn = document.createElement('button');
+        datasetCustomClearBtn.type = 'button';
+        datasetCustomClearBtn.className = 'ai-assistant-panel-ep-ext-dataset-refresh-btn';
+        datasetCustomClearBtn.textContent = 'Reset to default';
+        datasetCustomRow.appendChild(datasetCustomClearBtn);
+
+        datasetCustomWrap.appendChild(datasetCustomRow);
+
+        var datasetCustomErr = document.createElement('p');
+        datasetCustomErr.className = 'ai-assistant-panel-ep-status ai-assistant-panel-ep-status--error';
+        datasetCustomErr.style.display = 'none';
+        datasetCustomWrap.appendChild(datasetCustomErr);
+
+        datasetSub.appendChild(datasetCustomWrap);
+
 
         var datasetStatusRow = document.createElement('div');
         datasetStatusRow.className = 'ai-assistant-panel-ep-ext-dataset-status';
@@ -8646,6 +9798,43 @@ opts.jsonPayload + '\n' +
             _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
         });
         datasetSub.appendChild(datasetRefreshBtn);
+
+        // ── Custom override form wiring ─────────────────────────────────────
+        function _showDatasetCustomErr(msg) {
+            datasetCustomErr.textContent = msg;
+            datasetCustomErr.style.display = '';
+        }
+        function _hideDatasetCustomErr() {
+            datasetCustomErr.style.display = 'none';
+        }
+        datasetCustomInp.addEventListener('input', _hideDatasetCustomErr);
+
+        datasetCustomSaveBtn.addEventListener('click', function () {
+            var val = datasetCustomInp.value.trim();
+            if (!val) {
+                _showDatasetCustomErr('Enter a repo id first, or use "Reset to default".');
+                return;
+            }
+            if (!_isValidHfRepoId(val)) {
+                _showDatasetCustomErr(
+                    'Not a valid HuggingFace repo id — expected the form "owner/repo".');
+                return;
+            }
+            if (!_setCustomDatasetRepo(val)) {
+                _showDatasetCustomErr(
+                    'Could not save — local storage is unavailable (private browsing?).');
+                return;
+            }
+            _hideDatasetCustomErr();
+            _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+        });
+
+        datasetCustomClearBtn.addEventListener('click', function () {
+            _clearCustomDatasetRepo();
+            datasetCustomInp.value = '';
+            _hideDatasetCustomErr();
+            _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+        });
 
         _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
 
@@ -8819,9 +10008,12 @@ opts.jsonPayload + '\n' +
                 var urlTxt;
                 if (fullUrl) {
                     urlTxt          = document.createElement('a');
-                    urlTxt.href     = fullUrl;
-                    urlTxt.target   = '_blank';
-                    urlTxt.rel      = 'noopener noreferrer';
+                    // Defense in depth: link only if the scheme is safe.
+                    if (_isSafeHref(fullUrl)) {
+                        urlTxt.href   = fullUrl;
+                        urlTxt.target = '_blank';
+                        urlTxt.rel    = 'noopener noreferrer';
+                    }
                     urlTxt.setAttribute('title', fullUrl);
                     urlTxt.textContent = fullUrl;
                     urlTxt.appendChild(_makeCopyBtn(function (u) {
@@ -9663,7 +10855,7 @@ opts.jsonPayload + '\n' +
     }
 
         function _buildPrivacySheet() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var title = (typeof cfg.panelPrivacyTitle === 'string' &&
             cfg.panelPrivacyTitle) || 'Privacy & Responsibility';
 
@@ -9852,7 +11044,7 @@ opts.jsonPayload + '\n' +
      *                          info_url, description, default} or null.
      */
     function _buildModelInfo(cfg) {
-        var activeModel = _getActiveModel ? _getActiveModel(cfg) : null;
+        var activeModel = _getActiveModel(cfg);
         if (activeModel) {
             return {
                 id:          activeModel.id,
@@ -10348,7 +11540,7 @@ opts.jsonPayload + '\n' +
      * @returns {HTMLElement}
      */
     function _buildModelSheet() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var sheet = document.createElement('div');
         sheet.className = 'ai-assistant-panel-privacy ai-assistant-panel-model-sheet';
         sheet.id = 'ai-assistant-panel-model-sheet';
@@ -10686,7 +11878,11 @@ opts.jsonPayload + '\n' +
             if (fillPct !== null) {
                 var szMod2 = effectiveSize ? _szVariant(effectiveSize) : '--m';
                 var barWrap = document.createElement('div');
-                barWrap.className = 'ai-assistant-panel-model-bar';
+                // Track gets the same tier modifier as the fill (--s/--m/--l) so
+                // its light-tint background and dark-tone edge stay in lockstep
+                // with the fill colour — see §G in ai-assistant.css.
+                barWrap.className = 'ai-assistant-panel-model-bar' +
+                    (szMod2 ? ' ai-assistant-panel-model-bar' + szMod2 : '');
                 barWrap.setAttribute('aria-hidden', 'true');
                 // Hover tooltip for quick dev inspection (e.g. '70B — 92 % of scale').
                 if (effectiveSize) {
@@ -10724,7 +11920,7 @@ opts.jsonPayload + '\n' +
                 var id = m.id;
                 _setActiveModelId(id);
                 try {
-                    var liveModels = (window.AI_ASSISTANT_CONFIG || {}).panelApiModels;
+                    var liveModels = _cfg().panelApiModels;
                     var liveM = _findModel(
                         Array.isArray(liveModels) ? liveModels : models, id
                     );
@@ -10895,7 +12091,7 @@ opts.jsonPayload + '\n' +
 
         // ── Threshold: only attach when there are enough models to warrant it ─
         // Configurable: set panelFilterThreshold in conf.py (default 2).
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var THRESHOLD = _safeInt(cfg.panelFilterThreshold, 1, 9999, 2);
         if (!models || models.length < THRESHOLD) return;
 
@@ -12097,7 +13293,7 @@ opts.jsonPayload + '\n' +
      * @returns {HTMLElement}
      */
     function _buildTermsSheet() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var title = (typeof cfg.panelTermsTitle === 'string' &&
             cfg.panelTermsTitle) || 'Terms of Service';
 
@@ -12224,7 +13420,7 @@ opts.jsonPayload + '\n' +
      *   so no deregistration is needed — see the registry docblock.
      */
     function _buildShareExportSection(opts) {
-        var options    = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var options    = (opts && typeof opts === 'object') ? opts : {};
         var onLinkMode = typeof options.onLinkMode === 'function' ? options.onLinkMode : null;
 
         // ── Format registry ───────────────────────────────────────────────────
@@ -12497,10 +13693,10 @@ opts.jsonPayload + '\n' +
     }
 
     function _buildShareSheet(opts) {
-        var sheetOpts  = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var sheetOpts  = (opts && typeof opts === 'object') ? opts : {};
         var onLinkMode = typeof sheetOpts.onLinkMode === 'function'
             ? sheetOpts.onLinkMode : null;
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var label = (typeof cfg.panelShareLabel === 'string' &&
             cfg.panelShareLabel) || 'Share';
 
@@ -12791,7 +13987,7 @@ opts.jsonPayload + '\n' +
         // conditional global-share and training tiers below — can access it
         // without a ReferenceError (BUG-FIX: cfg was only declared inside the
         // permSaveBtn click closure, making it invisible at function-body scope).
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
 
         // ── Per-format metadata ────────────────────────────────────────────────
         var _fmtMeta = {
@@ -13812,7 +15008,7 @@ opts.jsonPayload + '\n' +
      *     The assembled sheet element (data-open="false" initially).
      */
     function _buildLinksSheet() {
-        var cfg    = window.AI_ASSISTANT_CONFIG || {};
+        var cfg    = _cfg();
         var title  = (typeof cfg.panelLinksTitle === 'string' && cfg.panelLinksTitle)
                      || 'Project Links';
 
@@ -13839,6 +15035,7 @@ opts.jsonPayload + '\n' +
         bodyEl.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-links-body';
 
         if (typeof cfg.panelLinksHtml === 'string' && cfg.panelLinksHtml) {
+            // Trusted, author-supplied (from conf.py, not end-user input).
             bodyEl.innerHTML = cfg.panelLinksHtml;
         } else {
             function _buildLinkCard(iconHtml, heading, desc, url, accent) {
@@ -13940,8 +15137,7 @@ opts.jsonPayload + '\n' +
                 if (!_hfEndpointUrl) {
                     var _trainUrl = '';
                     try {
-                        if (typeof _EP !== 'undefined' && _EP
-                            && typeof _EP.resolve === 'function') {
+                        if (typeof _EP.resolve === 'function') {
                             _trainUrl = _EP.resolve('training') || '';
                         }
                     } catch (_e) { _trainUrl = ''; }
@@ -14181,7 +15377,7 @@ opts.jsonPayload + '\n' +
      *   opens the model sheet where the user selects a model via radio button.
      */
     function _buildInlineModelPicker() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         if (cfg.panelInlineModelPicker === false) return null;
         var models = Array.isArray(cfg.panelApiModels) ? cfg.panelApiModels : [];
         if (models.length === 0) return null;
@@ -14245,7 +15441,7 @@ opts.jsonPayload + '\n' +
         // re-querying the closure, and so the button always reflects the live
         // panelApiModels list even when hot-reloaded after DOMContentLoaded.
         btn._syncState = function (id) {
-            var freshModels = (window.AI_ASSISTANT_CONFIG || {}).panelApiModels;
+            var freshModels = _cfg().panelApiModels;
             var m = _findModel(
                 Array.isArray(freshModels) ? freshModels : models,
                 id
@@ -14282,7 +15478,7 @@ opts.jsonPayload + '\n' +
      * @returns {HTMLElement}
      */
     function _buildSearchBar(mini) {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         var ph  = (typeof cfg.panelSearchPlaceholder === 'string' &&
             cfg.panelSearchPlaceholder) || 'Ask AI about these docs\u2026';
 
@@ -14353,7 +15549,7 @@ opts.jsonPayload + '\n' +
      * Any value other than "top" falls back to "bottom" (pre-existing behaviour).
      */
     function _mountSearchBar() {
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         if (!cfg.searchBar) return;                       // default off
         var sel = (typeof cfg.searchBarSelector === 'string' &&
             cfg.searchBarSelector) || '';
@@ -14408,7 +15604,7 @@ opts.jsonPayload + '\n' +
      * @returns {HTMLElement}
      */
     function createAIPanel() {
-        var cfg         = window.AI_ASSISTANT_CONFIG || {};
+        var cfg         = _cfg();
         var title       = cfg.panelTitle       || 'AI Assistant';
         var placeholder = cfg.panelPlaceholder || 'Ask a question about this page\u2026';
         // Quick-suggestion chips are now built by _renderWelcome (shared with
@@ -14432,12 +15628,19 @@ opts.jsonPayload + '\n' +
         var headerTitle = document.createElement('div');
         headerTitle.className = 'ai-assistant-panel-header-title';
 
-        // Logo — try image file first; inline SVG as fallback attribute
-        var logo = document.createElement('img');
-        logo.src = getStaticPath() + '/ai-panel.svg';
+        // Logo — inline SVG (not <img src="...svg">) so it themes the same
+        // way every other icon-btn in this header does: fill="currentColor"
+        // inherits .ai-assistant-panel-header-title's `color`, which already
+        // resolves correctly per light/dark theme via --pst-color-text-base.
+        // An <img>-loaded SVG can't do this (it's a separate document, so
+        // currentColor inside it never sees the host page's color) — the
+        // old dark-mode `filter: brightness(1.6)` hack existed only to
+        // compensate for that; it's removed below since it's no longer
+        // needed and would double up on an already-correct color.
+        var logo = document.createElement('span');
+        logo.innerHTML = ICONS.sparkleAlt;
         logo.className = 'ai-assistant-panel-logo';
         logo.setAttribute('aria-hidden', 'true');
-        logo.alt = '';
 
         var titleSpan = document.createElement('span');
         titleSpan.textContent = title;
@@ -14465,7 +15668,7 @@ opts.jsonPayload + '\n' +
         var closeBtn    = _createIconBtn('close',    'Close ' + _escapeHtml(title), ICONS.close);
 
         // R3: clear conversation without page refresh ("Start a new chat").
-        var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChat);
+        var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChatCompose);
         newChatBtn.title = 'Start a new chat';
         newChatBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         newChatBtn.addEventListener('click', clearConversation);
@@ -14505,7 +15708,7 @@ opts.jsonPayload + '\n' +
         // The hamburger popover is still opened by the header button and wired
         // below.  The right overflow button (⋯) shares the same popover for
         // narrow viewports.
-        var cfgRef = window.AI_ASSISTANT_CONFIG || {};
+        var cfgRef = _cfg();
         var subbar = document.createElement('div');
         subbar.className = 'ai-assistant-panel-subbar';
 
@@ -14554,15 +15757,24 @@ opts.jsonPayload + '\n' +
             hIcon.setAttribute('aria-hidden', 'true');
             hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
             hint.appendChild(hIcon);
-            // Render each chord token as its own <kbd>.
+            // Chord tokens live in their own wrapper (not appended straight to
+            // `hint`) so CSS can collapse/expand them as a single unit — see
+            // .ai-assistant-panel-kbd-hint-keys. Icon-only by default on every
+            // device; hover-capable devices (mouse/trackpad) reveal this on
+            // :hover/:focus-visible. Touch devices never get a hover event, so
+            // they stay icon-only permanently — see the long-press fallback
+            // below for how they still learn the shortcut.
+            var keysWrap = document.createElement('span');
+            keysWrap.className = 'ai-assistant-panel-kbd-hint-keys';
             kbdLabel.split('+').forEach(function (tok, i, arr) {
                 var k = document.createElement('kbd');
                 k.textContent = tok.trim();
-                hint.appendChild(k);
+                keysWrap.appendChild(k);
                 if (i < arr.length - 1) {
-                    hint.appendChild(document.createTextNode('+'));
+                    keysWrap.appendChild(document.createTextNode('+'));
                 }
             });
+            hint.appendChild(keysWrap);
             // Left-click: minimize panel.
             hint.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
             // Right-click: fully close panel.
@@ -14580,6 +15792,20 @@ opts.jsonPayload + '\n' +
                     minimizeAIPanel();
                 }
             });
+            // Touch devices have no hover gesture to reveal the collapsed
+            // .ai-assistant-panel-kbd-hint-keys, and permanently showing the
+            // full "icon + Alt+Shift+A" row would eat into already-limited
+            // small-screen width. Long-press surfaces the same shortcut text
+            // via the existing toast/notification channel instead — mirrors
+            // the trigger-pill's tap-vs-long-press convention documented on
+            // _attachLongPress. onShortTap is null because the `click`
+            // listener above already owns the short-tap action (minimize);
+            // passing a second handler here would double-fire it.
+            if (_isTouchDevice()) {
+                _attachLongPress(hint, null, function () {
+                    showNotification('Shortcut: ' + kbdLabel.split('+').join(' + '));
+                }, { hapticTap: null });
+            }
             leftCluster.appendChild(hint);
         }
 
@@ -14598,10 +15824,19 @@ opts.jsonPayload + '\n' +
         var privacyLink = document.createElement('button');
         privacyLink.className = 'ai-assistant-panel-privacy-link';
         privacyLink.type = 'button';
-        privacyLink.textContent =
-            (window.AI_ASSISTANT_CONFIG &&
-             window.AI_ASSISTANT_CONFIG.panelPrivacyLinkText) ||
+        // Icon + label — same structure as shareLink/modelLink below, and
+        // the same ICONS.privacy glyph already used in the hamburger menu
+        // (addItem(ICONS.privacy, 'Privacy & Responsibility', …)) so the
+        // icon reads identically wherever this action appears.
+        var privacyIc = document.createElement('span');
+        privacyIc.setAttribute('aria-hidden', 'true');
+        privacyIc.innerHTML = ICONS.privacy;
+        privacyLink.appendChild(privacyIc);
+        var privacyLbl = document.createElement('span');
+        privacyLbl.textContent =
+            (_cfg().panelPrivacyLinkText) ||
             'Privacy & Responsibility';
+        privacyLink.appendChild(privacyLbl);
 
         // Terms-of-Service link — sibling of Privacy, same CSS class so the
         // theme styling cascades automatically.
@@ -14610,8 +15845,16 @@ opts.jsonPayload + '\n' +
             termsLink = document.createElement('button');
             termsLink.className = 'ai-assistant-panel-privacy-link ai-assistant-panel-terms-link';
             termsLink.type = 'button';
-            termsLink.textContent =
+            // Icon + label — same ICONS.terms glyph already used in the
+            // hamburger menu, kept consistent across both entry points.
+            var termsIc = document.createElement('span');
+            termsIc.setAttribute('aria-hidden', 'true');
+            termsIc.innerHTML = ICONS.terms;
+            termsLink.appendChild(termsIc);
+            var termsLbl = document.createElement('span');
+            termsLbl.textContent =
                 (cfgRef.panelTermsLinkText) || 'Terms of Service';
+            termsLink.appendChild(termsLbl);
             termsLink.setAttribute('aria-label', 'Open Terms of Service');
         }
 
@@ -14694,7 +15937,7 @@ opts.jsonPayload + '\n' +
         // Resolve the active profile label for the initial button text.
         (function () {
             var _epBtnLabel = 'Endpoint Configuration';
-            if (typeof _EP !== 'undefined' && _EP && _EP.hasProfiles && _EP.hasProfiles()) {
+            if (typeof _EP.hasProfiles === 'function' && _EP.hasProfiles()) {
                 var _activeProfiles = _EP.list();
                 var _activeKey      = _EP.getActive();
                 for (var _pi = 0; _pi < _activeProfiles.length; _pi++) {
@@ -15114,6 +16357,20 @@ opts.jsonPayload + '\n' +
         footerActions.appendChild(footerActionsRight);
         inputGroup.appendChild(footerActions);
         footer.appendChild(inputGroup);
+
+        // ── Footer note: AI disclaimer ───────────────────────────────────────
+        // Sits under the input group, at the very bottom of the footer/panel.
+        // Static, non-interactive text — plain textContent is enough and keeps
+        // us inside the file's HTML policy (textContent/setAttribute only,
+        // never innerHTML; see the Security note in the file header).
+        // role="note" flags it to assistive tech as ancillary/parenthetic
+        // content rather than part of the conversation itself.
+        var footerNote = document.createElement('div');
+        footerNote.className = 'ai-assistant-panel-footer-note';
+        footerNote.setAttribute('role', 'note');
+        footerNote.textContent =
+            '\u2728 The chatbot is an AI and can make mistakes. Please double-check cited sources.';
+        footer.appendChild(footerNote);
 
         // ── Assemble panel ────────────────────────────────────────────────────
         panel.appendChild(header);
@@ -15692,7 +16949,7 @@ opts.jsonPayload + '\n' +
         var label = document.createElement('span');
         // BUG-FIX: was hardcoded 'Ask AI' — now reads cfg.panelTriggerLabel
         // so ai_assistant_panel_trigger_label in conf.py is actually applied.
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         label.textContent = cfg.panelTriggerLabel || 'Ask AI';
 
         trigger.appendChild(iconWrap);
@@ -16199,7 +17456,7 @@ opts.jsonPayload + '\n' +
     function _notifyExportState() {
         var state = Object.freeze({ linkMode: _exportLinkMode });
         for (var _nei = 0; _nei < _exportStateListeners.length; _nei++) {
-            try { _exportStateListeners[_nei](state); } catch (_e) {}
+            try { _exportStateListeners[_nei](state); } catch (_e) { _log('debug', 'export-state subscriber threw', _e); }
         }
     }
 
@@ -16743,7 +18000,7 @@ opts.jsonPayload + '\n' +
                 if (callback) { callback(stream); }
             })
             .catch(function (err) {
-                console.warn('AI Assistant: Warm stream acquisition failed:', err);
+                _log('warn', 'AI Assistant: Warm stream acquisition failed:', err);
                 _micWarmStream = null;
                 if (callback) { callback(null); }
             });
@@ -17419,9 +18676,6 @@ opts.jsonPayload + '\n' +
 
         var protocol = window.location.protocol;
         var hostname = window.location.hostname;
-        var showLocalhostWarning =
-            window.location.protocol === 'file:';
-
         var insecureOrigin =
             protocol === 'file:' ||
             (
@@ -18190,7 +19444,7 @@ opts.jsonPayload + '\n' +
                 _speechRecognitionEnded = true;
                 _pendingSpeechStart = false;
 
-                console.error(
+                _log('error',
                     'AI Assistant: Speech recognition start error:',
                     err
                 );
@@ -18223,7 +19477,7 @@ opts.jsonPayload + '\n' +
             }).catch(function (err) {
                 // Device unavailable (disconnected, permission denied) — fall back
                 // to the browser default silently so recording still works.
-                console.warn('AI Assistant: Device pin failed, using browser default:', err);
+                _log('warn', 'AI Assistant: Device pin failed, using browser default:', err);
                 _micPinTrack = null;
                 _acquireMicWarmStream(function () { _doStart(); });
             });
@@ -18533,7 +19787,7 @@ opts.jsonPayload + '\n' +
                     // Permission denied or hardware unavailable — proceed without
                     // Web Audio.  The user will see normal recognition behaviour;
                     // silence detection degrades to result-gap timer only.
-                    console.warn(
+                    _log('warn',
                         'AI Assistant banner: getUserMedia failed, '
                         + 'using recognition-only fallback:',
                         err
@@ -18728,7 +19982,7 @@ opts.jsonPayload + '\n' +
             _bannerStarting     = false;
             _bannerEnded        = true;
             _bannerPendingStart = false;
-            console.error('AI Assistant banner: recognition start error:', err);
+            _log('error', 'AI Assistant banner: recognition start error:', err);
             showNotification(
                 'Could not start microphone. Check browser permissions.',
                 true
@@ -18874,7 +20128,7 @@ opts.jsonPayload + '\n' +
                 _bannerAudioCtx.resume().catch(function () {});
             }
         } catch (err) {
-            console.warn('AI Assistant banner: Web Audio stream connection failed:', err);
+            _log('warn', 'AI Assistant banner: Web Audio stream connection failed:', err);
             _bannerAnalyser = null;
             _bannerAudioSrc = null;
         }
@@ -19107,7 +20361,7 @@ opts.jsonPayload + '\n' +
                 _audioCtx.resume().catch(function () {});
             }
         } catch (err) {
-            console.warn('AI Assistant: Web Audio connect failed:', err);
+            _log('warn', 'AI Assistant: Web Audio connect failed:', err);
             _audioCtx = null; _analyserNode = null; _audioSrcNode = null;
         }
     }
@@ -19573,6 +20827,10 @@ opts.jsonPayload + '\n' +
             // emits known-safe tags.  bubble is NOT user-controlled.
             bubble.innerHTML = _mdToHtml(text);
             bubble.setAttribute('data-raw', text);  // preserve for copy/export
+            _enhanceCodeBlocks(bubble);
+            _makeSectionsCollapsible(bubble);
+            _typesetMath(bubble);
+            _appendArtifactCards(bubble);
         } else {
             // User / error bubbles: plain text only (XSS-safe by design).
             bubble.textContent = text;
@@ -19580,14 +20838,13 @@ opts.jsonPayload + '\n' +
 
         body.appendChild(bubble);
 
-        // User bubble: minimal action row — timestamp only.
+        // User bubble: action row — timestamp + Retry + Edit & resend + Copy.
         //
-        // Mirrors the assistant action row layout but contains only the <time>
-        // element; no Copy / Share / Retry affordances are needed for outgoing
-        // messages.  The `--user` modifier pins the row to the trailing (right)
-        // edge via `align-self: flex-end` so it stays visually attached to the
-        // user bubble above it, matching the messaging-app convention (iMessage,
-        // WhatsApp, Telegram) where send-time sits under the bubble on its side.
+        // Mirrors the assistant action row layout. The `--user` modifier pins
+        // the row to the trailing (right) edge via `align-self: flex-end` so
+        // it stays visually attached to the user bubble above it, matching
+        // the messaging-app convention (iMessage, WhatsApp, Telegram) where
+        // send-time sits under the bubble on its side.
         //
         // Guard: skip the row entirely when `ts` is absent or non-finite (old
         // persisted transcript entries that pre-date timestamp recording) so no
@@ -19596,6 +20853,86 @@ opts.jsonPayload + '\n' +
             var userActs = document.createElement('div');
             userActs.className = 'ai-assistant-panel-bubble-actions ai-assistant-panel-bubble-actions--user';
             userActs.appendChild(_buildBubbleTimeEl(ts));
+
+            // Retry — immediate resend of this exact question, no editing.
+            // Reuses the exact same 3-line resend mechanism as the
+            // assistant-bubble Retry menu item (_buildBubbleMore) so both
+            // "retry" actions in this panel behave identically.
+            var userRetryBtn = document.createElement('button');
+            userRetryBtn.type = 'button';
+            userRetryBtn.className = 'ai-assistant-panel-bubble-action ai-assistant-panel-bubble-action--retry';
+            userRetryBtn.setAttribute('aria-label', 'Retry — resend this question as-is');
+            userRetryBtn.title = 'Retry — resend this question as-is';
+            userRetryBtn.innerHTML = ICONS.syncRetry;   // ICONS constant — safe.
+            (function (questionText) {
+                userRetryBtn.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (!input) { return; }
+                    input.value = questionText;
+                    _updateSendBtnState();
+                    handleAIPanelSubmit();
+                });
+            }(text));
+            userActs.appendChild(userRetryBtn);
+
+            // Edit & resend — prefills the input with this exact question so
+            // the user can tweak it before sending, rather than an immediate
+            // silent resend (which would just be "resend", not "edit").
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'ai-assistant-panel-bubble-action ai-assistant-panel-bubble-action--edit';
+            editBtn.setAttribute('aria-label', 'Edit and resend this question');
+            editBtn.title = 'Edit and resend this question';
+            editBtn.innerHTML = ICONS.editAns;   // ICONS constant — safe.
+            (function (questionText) {
+                editBtn.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (!input) { return; }
+                    input.value = questionText;
+                    input.focus();
+                    // Cursor at end, not a full selection — matches native
+                    // <textarea> click-to-edit behaviour, doesn't require the
+                    // user to first deselect before typing.
+                    if (typeof input.setSelectionRange === 'function') {
+                        input.setSelectionRange(input.value.length, input.value.length);
+                    }
+                    _updateSendBtnState();
+                    if (typeof input.scrollIntoView === 'function') {
+                        input.scrollIntoView({ block: 'nearest' });
+                    }
+                });
+            }(text));
+            userActs.appendChild(editBtn);
+
+            // Copy — copies the question text. Same icon-only/hover-expand/
+            // "Copied!" flash/long-press-on-touch behaviour as the answer's
+            // Copy button (see .ai-assistant-panel-bubble-action--copy CSS
+            // and _flashCopyBtnCopied) — one consistent copy pattern
+            // everywhere it appears in the panel, not a second one-off.
+            var userCopyBtn = document.createElement('button');
+            userCopyBtn.type = 'button';
+            userCopyBtn.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
+            userCopyBtn.setAttribute('aria-label', 'Copy this question');
+            userCopyBtn.title = 'Copy this question';
+            userCopyBtn.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
+            var userCopyLbl = document.createElement('span');
+            userCopyLbl.textContent = 'Copy';
+            userCopyBtn.appendChild(userCopyLbl);
+            (function (questionText, btn) {
+                userCopyBtn.addEventListener('click', function () {
+                    copyToClipboard(questionText, false, function () {
+                        _flashCopyBtnCopied(btn);
+                    });
+                });
+                if (_isTouchDevice()) {
+                    _attachLongPress(btn, null, function () {
+                        showNotification('Copy');
+                    }, { hapticTap: null });
+                }
+            }(text, userCopyBtn));
+            userActs.appendChild(userCopyBtn);
+
             body.appendChild(userActs);
         }
 
@@ -19621,7 +20958,8 @@ opts.jsonPayload + '\n' +
 
             // Copy button
             var copyBtn = document.createElement('button');
-            copyBtn.className = 'ai-assistant-panel-bubble-action';
+            copyBtn.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
             copyBtn.type = 'button';
             copyBtn.setAttribute('aria-label', 'Copy this answer');
             copyBtn.title = 'Copy this answer';
@@ -19629,7 +20967,21 @@ opts.jsonPayload + '\n' +
             var copyLbl = document.createElement('span');
             copyLbl.textContent = 'Copy';
             copyBtn.appendChild(copyLbl);
-            copyBtn.addEventListener('click', function () { copyAnswer(text, bubble); });
+            copyBtn.addEventListener('click', function () {
+                copyAnswer(text, bubble, function () { _flashCopyBtnCopied(copyBtn); });
+            });
+            // Touch devices have no hover gesture to reveal the collapsed
+            // "Copy" label (see CSS), so a long-press surfaces it via the
+            // same toast/notification channel used elsewhere — mirrors the
+            // kbd-hint's tap-vs-long-press convention. onShortTap is null
+            // because the `click` listener above already owns the short-tap
+            // action (perform the copy); this only adds an informational
+            // long-press, it never performs the copy itself.
+            if (_isTouchDevice()) {
+                _attachLongPress(copyBtn, null, function () {
+                    showNotification('Copy');
+                }, { hapticTap: null });
+            }
             actions.appendChild(copyBtn);
 
             // Hoist answerIndex before the quick-rate block so its closure captures
@@ -19742,7 +21094,7 @@ opts.jsonPayload + '\n' +
         // Each transcript entry carries the model that generated it — enables
         // per-model analytics in JSON exports and DataFrame groupby operations.
         var modelInfo = (role === 'assistant')
-            ? _getActiveModel(window.AI_ASSISTANT_CONFIG || {})
+            ? _getActiveModel(_cfg())
             : null;
 
         _recordMessage(role, text, modelInfo);   // v2: includes modelInfo
@@ -19797,9 +21149,9 @@ opts.jsonPayload + '\n' +
 
         // ── Typing indicator ──────────────────────────────────────────────
         var body = document.getElementById('ai-assistant-panel-body');
-        var typingEl = body ? _showTypingIndicator(body) : null;
+        if (body) { _showTypingIndicator(body); }
 
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var cfg = _cfg();
         try {
             if (cfg.panelApiEnabled) {
                 await _panelApiCall(questionText, cfg);
@@ -19814,7 +21166,7 @@ opts.jsonPayload + '\n' +
             if (err && err.name === 'AbortError') {
                 // Intentional cancellation — swallow silently.
             } else {
-                console.error('AI Assistant panel error:', err);
+                _log('error', 'AI Assistant panel error:', err);
                 _appendPanelMessage('Sorry, something went wrong: ' + err.message, 'error');
             }
         } finally {
@@ -19930,7 +21282,7 @@ opts.jsonPayload + '\n' +
 
         // ── 3. Build page context (best-effort; never throws) ─────────────
         var pageMarkdown = '';
-        try { pageMarkdown = await convertToMarkdown(); } catch (_) {}
+        try { pageMarkdown = await convertToMarkdown(); } catch (_e) { _log('debug', 'page-context Markdown conversion failed', _e); }
 
         // FIX Issue 7: configurable token and context limits.
         // Global defaults come from cfg; per-model overrides take precedence.
@@ -19948,16 +21300,33 @@ opts.jsonPayload + '\n' +
 
         // FIX Issue 7: configurable system prompt via cfg.panelSystemPrompt.
         // Use {context} as the template variable for the page markdown block.
+        //
+        // The "panel capabilities" paragraph exists because the model was
+        // otherwise only ever told to answer from page content — asked
+        // "can I download a code snippet?", it correctly (from its POV)
+        // said the docs don't cover that, since nothing told it the panel
+        // itself has a download button. Kept short on purpose: this text
+        // is sent on every request, so it's a fixed feature list, not a
+        // running description of the whole UI.
+        var panelCapabilities =
+            'This chat panel (not the page itself) has some built-in tools: ' +
+            'every code block gets its own Copy and Download buttons, each ' +
+            'answer has a Copy button, long answers auto-collapse into ' +
+            'sections, and LaTeX (\\(...\\) / \\[...\\]) renders as math. If ' +
+            'asked about downloading, copying, or reading a long answer, ' +
+            'mention these rather than saying it isn\'t possible.';
         var defaultSystemPrompt = pageMarkdown
             ? 'You are a helpful documentation assistant. Answer questions ' +
-              'about the following documentation page.\n\n---\n' +
+              'about the following documentation page.\n\n' +
+              panelCapabilities + '\n\n---\n' +
               pageMarkdown.slice(0, contextLimit) + '\n---'
-            : 'You are a helpful documentation assistant.';
+            : 'You are a helpful documentation assistant.\n\n' + panelCapabilities;
         var systemPrompt = (typeof cfg.panelSystemPrompt === 'string' &&
                             cfg.panelSystemPrompt)
             ? cfg.panelSystemPrompt.replace('{context}',
                 pageMarkdown.slice(0, contextLimit))
             : defaultSystemPrompt;
+
 
         // ── 4. Build request body ─────────────────────────────────────────
         // Anthropic uses a distinct body shape (system at top level).
@@ -20139,7 +21508,7 @@ opts.jsonPayload + '\n' +
         } catch (readerErr) {
             // Some browsers (iOS Safari 14.0, partial ReadableStream) report a
             // non-null body but throw on getReader(). Fall back to JSON parsing.
-            console.warn('[ai-assistant] ReadableStream.getReader() failed; JSON fallback', readerErr);
+            _log('warn', '[ai-assistant] ReadableStream.getReader() failed; JSON fallback', readerErr);
             try {
                 var fbData = await response.clone().json().catch(function () { return {}; });
                 var fbReply = (fbData && (fbData.reply || fbData.answer || fbData.text)) || '';
@@ -20191,7 +21560,7 @@ opts.jsonPayload + '\n' +
                                 var ep = JSON.parse(errPayload);
                                 errMsg = (ep && (ep.error || ep.message || ep.detail)) || errPayload;
                             } catch (_) { errMsg = errPayload; }
-                            console.error('AI Assistant: SSE server error event:', errMsg);
+                            _log('error', 'AI Assistant: SSE server error event:', errMsg);
                             // Replace streaming bubble with error bubble so the
                             // user sees the failure, not an empty reply.
                             if (streamBubble && streamBubble.parentNode) {
@@ -20202,7 +21571,6 @@ opts.jsonPayload + '\n' +
                                 String(errMsg).slice(0, 200),
                                 'error'
                             );
-                            sseEventType = 'message';
                             return;  // abort further SSE processing
                         }
                         try {
@@ -20212,6 +21580,7 @@ opts.jsonPayload + '\n' +
                                 accumulated += delta.content;
                                 streamBubble.innerHTML = _mdToHtml(accumulated);
                                 streamBubble.setAttribute('data-raw', accumulated);
+                                _enhanceCodeBlocks(streamBubble);
                                 if (panelBody) panelBody.scrollTop = panelBody.scrollHeight;
                             }
                         } catch (_pe) {}
@@ -20224,9 +21593,20 @@ opts.jsonPayload + '\n' +
         }
 
         streamBubble.classList.remove('ai-assistant-panel-bubble--streaming');
+        // Collapsible sections applied ONCE here, post-completion — not on
+        // every chunk during the loop above. See _makeSectionsCollapsible's
+        // docstring for why restructuring around headings mid-stream is
+        // deliberately avoided (open/closed state churn, headings arriving
+        // mid-word, etc.). _enhanceCodeBlocks already runs per-chunk above;
+        // one more pass here is a no-op for it (idempotent) but the code
+        // step-marker counts get one final correctness pass regardless.
+        _enhanceCodeBlocks(streamBubble);
+        _makeSectionsCollapsible(streamBubble);
+        _typesetMath(streamBubble);
+        _appendArtifactCards(streamBubble);
         // v2: capture model info before _recordMessage so it is stored in
         // the transcript entry for export and share-payload attribution.
-        var _streamModelInfo = _getActiveModel(window.AI_ASSISTANT_CONFIG || {});
+        var _streamModelInfo = _getActiveModel(_cfg());
         _recordMessage('assistant', accumulated || '(no response)', _streamModelInfo);
         // Read the timestamp just stored — same single-threaded guarantee as
         // _appendPanelMessage: the last _transcript entry is this streamed reply.
@@ -20263,7 +21643,8 @@ opts.jsonPayload + '\n' +
 
             // Copy button
             var cb2 = document.createElement('button');
-            cb2.className = 'ai-assistant-panel-bubble-action';
+            cb2.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
             cb2.type = 'button';
             cb2.setAttribute('aria-label', 'Copy this answer');
             cb2.title = 'Copy this answer';
@@ -20271,8 +21652,17 @@ opts.jsonPayload + '\n' +
             var cl2 = document.createElement('span'); cl2.textContent = 'Copy';
             cb2.appendChild(cl2);
             (function (ft, bEl) {
-                cb2.addEventListener('click', function () { copyAnswer(ft, bEl); });
+                cb2.addEventListener('click', function () {
+                    copyAnswer(ft, bEl, function () { _flashCopyBtnCopied(cb2); });
+                });
             }(accumulated, streamBubble));
+            // Same long-press → "Copy" toast fallback as the non-streamed
+            // copy button above, so behaviour can't drift between the two.
+            if (_isTouchDevice()) {
+                _attachLongPress(cb2, null, function () {
+                    showNotification('Copy');
+                }, { hapticTap: null });
+            }
             acts.appendChild(cb2);
 
             // ── Quick-rate 👍 👎 (always visible — mobile-first, see CSS D4-c) ──
@@ -20323,6 +21713,30 @@ opts.jsonPayload + '\n' +
             'assistant'
         );
     }
+
+    // ── Shared surface: window.AI_ASSISTANT ──────────────────────────────────
+    // A small, stable namespace exposing the symbols shared between the
+    // lightweight toolbar buttons (copy / view-as-Markdown / ask-LLM / PDF) and
+    // the heavier AI chat panel. This is the seam along which the widget is
+    // being split into separate core / panel bundles: once split, panel code
+    // reads config, resolves asset URLs and reuses icons + utilities through
+    // this object instead of a shared closure.
+    //
+    // Purely additive today — no internal code depends on it yet, so behaviour
+    // is unchanged. Mirrors the optional-integration shape of window.AI_COMPAT.
+    // Accessors are lazy so they always reflect current config and resolve the
+    // static path at call time.
+    (function _exposeSharedSurface() {
+        var ns = window.AI_ASSISTANT = window.AI_ASSISTANT || {};
+        if (ns._wired) { return; }              // idempotent across re-injection
+        ns._wired          = true;
+        ns.config          = function () { return _cfg(); };
+        ns.getStaticPath   = getStaticPath;     // asset base URL resolver
+        ns.icons           = ICONS;             // inline SVG map
+        ns.fetch           = _fetch;            // AI_COMPAT-aware fetch
+        ns.hapticFeedback  = _hapticFeedback;   // no-op where unsupported
+        ns.attachLongPress = _attachLongPress;  // pointer long-press helper
+    }());
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────
 

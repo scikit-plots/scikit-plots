@@ -12,7 +12,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-A Sphinx extension that adds AI-assistant features to documentation pages,
+A Sphinx extension that adds ✨ AI-assistant features to documentation pages,
 including one-click Markdown export, AI chat deep-links, MCP tool
 integration, and automated ``llms.txt`` generation. [1]_ [2]_ [3]_
 
@@ -5445,8 +5445,16 @@ def setup(app: Sphinx) -> dict[str, Any]:
     if str(static_path) not in app.config.html_static_path:
         app.config.html_static_path.append(str(static_path))
 
+    # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_css_file
     app.add_css_file("ai-assistant.css")
-    app.add_js_file("ai-assistant.js")
+    # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_js_file
+    # Not required for correctness — but recommended, purely for performance.
+    # renders <script src="…/ai-assistant.js" defer>.
+    # defer tells the browser to (1) download the script in parallel while it keeps parsing the HTML,
+    # and (2) execute it after the document is parsed, in order.
+    app.add_js_file(
+        "ai-assistant.js", loading_method="defer"
+    )  # recommended **{"defer": "defer"}
 
     # ---- Event hooks -------------------------------------------------------
     app.connect("html-page-context", add_ai_assistant_context)

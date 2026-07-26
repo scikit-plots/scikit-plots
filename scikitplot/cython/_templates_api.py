@@ -1,5 +1,7 @@
 # scikitplot/cython/_templates_api.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,7 +25,7 @@ import json
 import os
 import shutil
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Iterable, Mapping
 
 from ._utils import sanitize
@@ -32,6 +34,42 @@ _TEMPLATE_ROOT = Path(__file__).resolve().parent / "_templates"
 _WORKFLOW_ROOT = _TEMPLATE_ROOT / "workflow"
 _PACKAGE_EXAMPLES_ROOT = _TEMPLATE_ROOT / "package_examples"
 
+
+def _resolve_within(root: Path, name: str | Path) -> Path:
+    """Resolve ``name`` under ``root`` and require the result to stay inside it.
+
+    Guards template / workflow / package-example resolvers against path
+    traversal and absolute-path escapes (CYTHON-TPL-001): ``root / name`` where
+    ``name`` is absolute or contains ``..`` could otherwise resolve outside the
+    packaged ``_templates`` tree and read or copy arbitrary files.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        The containment root (must be one of the packaged template roots).
+    name : str or pathlib.Path
+        The caller-supplied relative name.
+
+    Returns
+    -------
+    pathlib.Path
+        The resolved path, guaranteed to be ``root`` itself or a descendant.
+
+    Raises
+    ------
+    ValueError
+        If ``name`` is absolute, or resolves outside ``root``.
+    """
+    n = Path(name)
+    if n.is_absolute():
+        raise ValueError(f"path must be relative to the template root: {name!r}")
+    base = root.resolve()
+    candidate = (root / n).resolve()
+    if candidate != base and base not in candidate.parents:
+        raise ValueError(f"path escapes the template root (path traversal): {name!r}")
+    return candidate
+
+
 _TEMPLATE_EXT_BY_KIND = {
     "cython": ".pyx",
     "python": ".py",
@@ -39,7 +77,9 @@ _TEMPLATE_EXT_BY_KIND = {
 _ALLOWED_KINDS = tuple(_TEMPLATE_EXT_BY_KIND.keys())
 
 __all__ = [
+    "TEMPLATE_SCHEMA_VERSION",
     "TemplateInfo",
+    "TemplateValidationError",
     "build_package_example",
     "build_package_example_result",
     "compile_template",
@@ -57,8 +97,18 @@ __all__ = [
     "read_template",
     "read_template_info",
     "template_root",
+    "validate_template_info",
+    "verify_template_assets",
     "workflow_cli_template_path",
 ]
+
+#: Highest template-metadata schema version this library understands
+#: (CYTHON-TPL-002).  Strict validation rejects versions outside ``1..this``.
+TEMPLATE_SCHEMA_VERSION = 1
+
+
+class TemplateValidationError(ValueError):
+    """Raised when template metadata fails strict schema validation."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,7 +269,12 @@ def _find_meta_path(source_path: Path) -> Path | None:
     return None
 
 
-def read_template_info(template_id: str, *, encoding: str = "utf-8") -> TemplateInfo:
+def read_template_info(
+    template_id: str,
+    *,
+    encoding: str = "utf-8",
+    strict: bool = False,
+) -> TemplateInfo:
     """
     Read metadata for a template and return a :class:`~TemplateInfo`.
 
@@ -229,6 +284,8 @@ def read_template_info(template_id: str, *, encoding: str = "utf-8") -> Template
         Template identifier returned by :func:`list_templates`.
     encoding : str, default="utf-8"
         Reserved for future use (kept to preserve API stability).
+    strict : bool
+        False
 
     Returns
     -------
@@ -269,7 +326,7 @@ def read_template_info(template_id: str, *, encoding: str = "utf-8") -> Template
 
     meta = _load_json(meta_path)
 
-    return TemplateInfo(
+    info = TemplateInfo(
         template_id=template_id,
         path=source_path,
         meta_path=meta_path,
@@ -287,6 +344,93 @@ def read_template_info(template_id: str, *, encoding: str = "utf-8") -> Template
         schema_version=int(meta.get("schema_version", 1) or 1),
         meta=meta,
     )
+    if strict:
+        validate_template_info(info, raw=meta)
+    return info
+
+
+def _contained_relpath(value: str) -> bool:
+    """Return whether ``value`` is a safe, contained relative path.
+
+    Rejects absolute paths and any component that escapes the template root
+    (``..``), so a support/extra-source reference cannot point outside the
+    template tree (CYTHON-TPL-002).
+    """
+    if not value or not isinstance(value, str):
+        return False
+    p = PurePosixPath(value)
+    if p.is_absolute() or PureWindowsPath(value).is_absolute():
+        return False
+    return not any(part == ".." for part in p.parts)
+
+
+def validate_template_info(  # ruff:ignore[too-many-branches]
+    info: TemplateInfo, *, raw: Mapping[str, Any] | None = None
+) -> None:
+    """Strictly validate template metadata against the schema (CYTHON-TPL-002).
+
+    Unlike the permissive default read path (which silently coerces), this
+    rejects wrong-typed list entries, unknown schema versions, and support/
+    extra-source references that are absolute or escape the template root.
+
+    Parameters
+    ----------
+    info : TemplateInfo
+        The parsed template info to validate.
+    raw : Mapping[str, Any] or None, optional
+        The raw metadata dict, if available.  When given, list fields are
+        checked for *silently discarded* wrong-typed entries (which the lenient
+        parser would have dropped).
+
+    Raises
+    ------
+    TemplateValidationError
+        If the metadata violates the schema.
+    """
+    # 1) Schema version must be known.
+    if not (1 <= info.schema_version <= TEMPLATE_SCHEMA_VERSION):
+        raise TemplateValidationError(
+            f"unknown template schema_version {info.schema_version!r} "
+            f"(supported: 1..{TEMPLATE_SCHEMA_VERSION})"
+        )
+
+    # 2) List fields must not have had wrong-typed entries silently dropped.
+    if raw is not None:
+        for key in ("support_paths", "extra_sources", "tags"):
+            value = raw.get(key)
+            if value is None:
+                continue
+            if not isinstance(value, (list, tuple)):
+                raise TemplateValidationError(
+                    f"{key!r} must be a list of strings, got {type(value).__name__}"
+                )
+            for item in value:
+                if not isinstance(item, str):
+                    raise TemplateValidationError(
+                        f"{key!r} contains a non-string entry: {item!r}"
+                    )
+        demos = raw.get("demo_calls")
+        if demos is not None:
+            if not isinstance(demos, (list, tuple)):
+                raise TemplateValidationError(
+                    f"'demo_calls' must be a list of objects, got {type(demos).__name__}"
+                )
+            for item in demos:
+                if not isinstance(item, dict):
+                    raise TemplateValidationError(
+                        f"'demo_calls' contains a non-object entry: {item!r}"
+                    )
+
+    # 3) Support/extra-source references must be contained relative paths.
+    for key, values in (
+        ("support_paths", info.support_paths),
+        ("extra_sources", info.extra_sources),
+    ):
+        for ref in values:
+            if not _contained_relpath(ref):
+                raise TemplateValidationError(
+                    f"{key!r} reference is not a contained relative path: {ref!r}"
+                )
 
 
 def template_root() -> Path:
@@ -376,7 +520,7 @@ def get_template_path(  # noqa: PLR0912
     # If user provided an extension, resolve directly.
     p = Path(template_id)
     if p.suffix in (".pyx", ".py"):
-        cand = _TEMPLATE_ROOT / p
+        cand = _resolve_within(_TEMPLATE_ROOT, p)
         if cand.exists() and cand.is_file():
             return cand
         raise FileNotFoundError(str(cand))
@@ -389,13 +533,13 @@ def get_template_path(  # noqa: PLR0912
     # Category/name form
     if "/" in template_id or "\\" in template_id:
         ext = _TEMPLATE_EXT_BY_KIND[kind or "cython"]
-        cand = _TEMPLATE_ROOT / f"{template_id}{ext}"
+        cand = _resolve_within(_TEMPLATE_ROOT, f"{template_id}{ext}")
         if cand.exists() and cand.is_file():
             return cand
         # If kind is None, try the other kind as a strict fallback.
         if kind is None:
             other_ext = _TEMPLATE_EXT_BY_KIND["python" if ext == ".pyx" else "cython"]
-            cand2 = _TEMPLATE_ROOT / f"{template_id}{other_ext}"
+            cand2 = _resolve_within(_TEMPLATE_ROOT, f"{template_id}{other_ext}")
             if cand2.exists() and cand2.is_file():
                 return cand2
         raise FileNotFoundError(str(cand))
@@ -699,7 +843,7 @@ def get_workflow_path(name: str) -> Path:
     FileNotFoundError
         If the workflow does not exist.
     """
-    p = _WORKFLOW_ROOT / name
+    p = _resolve_within(_WORKFLOW_ROOT, name)
     if not p.exists() or not p.is_dir():
         raise FileNotFoundError(str(p))
     return p
@@ -799,7 +943,7 @@ def get_package_example_path(name: str) -> Path:
     FileNotFoundError
         If the package example does not exist.
     """
-    p = _PACKAGE_EXAMPLES_ROOT / name
+    p = _resolve_within(_PACKAGE_EXAMPLES_ROOT, name)
     if not p.exists() or not p.is_dir():
         raise FileNotFoundError(str(p))
     return p
@@ -1050,5 +1194,60 @@ def _iter_template_files(*, ext: str) -> Iterable[Path]:
             p.is_file()
             and (".pytest_cache" not in p.parts)
             and ("__pycache__" not in p.parts)
+            # ``probe/`` holds developer/AI diagnostic scripts (repro + probes),
+            # not shippable templates; never surface them via list_templates().
+            and ("probe" not in p.parts)
         ):
             yield p
+
+
+def verify_template_assets() -> list[str]:
+    """Verify every referenced template support asset is actually shipped.
+
+    Walks all ``*.meta.json`` template descriptors and confirms that each file
+    named in their ``support_paths`` (e.g. ``.pxi`` / ``.pxd`` includes) exists
+    on disk next to the template.  This is the in-package guard for
+    CYTHON-WASM-001: a packaging recipe that excludes ``**/*.pxi`` (or any other
+    support extension) would silently drop assets that shipped templates
+    ``include``; this check turns that into a detectable, testable failure
+    instead of an opaque build error in the browser/WASM runtime.
+
+    Returns
+    -------
+    list of str
+        Human-readable descriptions of missing assets — empty when every
+        referenced support file is present.
+
+    See Also
+    --------
+    scikitplot.cython.platform_capabilities :
+        Declares whether runtime compilation is available on this platform.
+
+    Examples
+    --------
+    >>> missing = verify_template_assets()
+    >>> assert missing == [], missing
+    """
+    missing: list[str] = []
+    for meta_path in _TEMPLATE_ROOT.rglob("*.meta.json"):
+        if ("__pycache__" in meta_path.parts) or ("probe" in meta_path.parts):
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            missing.append(f"{meta_path.name}: unreadable or invalid JSON")
+            continue
+        support = meta.get("support_paths") or []
+        if not isinstance(support, (list, tuple)):
+            continue
+        base = meta_path.parent
+        for rel in support:
+            if not isinstance(rel, str) or not rel:
+                continue
+            asset = base / rel
+            if not asset.is_file():
+                missing.append(
+                    f"{meta_path.relative_to(_TEMPLATE_ROOT)} references "
+                    f"missing support asset {rel!r}"
+                )
+    return missing

@@ -170,8 +170,12 @@ class SecurityPolicy:
     Parameters
     ----------
     strict : bool, default=True
-        Master switch.  When ``False``, all checks below default to the
-        most permissive setting.  Overriding individual flags still works.
+        Master switch.  When ``True`` (default), every ``allow_*`` flag left
+        unset defaults to its restrictive setting.  When ``False``, every
+        ``allow_*`` flag left unset defaults to permissive.  An ``allow_*`` flag
+        given an explicit ``True``/``False`` always overrides ``strict`` for
+        that check, so you can, e.g., relax everything except one guard with
+        ``SecurityPolicy(strict=False, allow_shell_metacharacters=False)``.
     allow_absolute_include_dirs : bool, default=False
         When ``False``, include directories must be relative paths or must
         be resolved to be inside the cache directory.  Setting ``True``
@@ -244,10 +248,10 @@ class SecurityPolicy:
     """
 
     strict: bool = True
-    allow_absolute_include_dirs: bool = False
-    allow_shell_metacharacters: bool = False
-    allow_reserved_macros: bool = False
-    allow_dangerous_compiler_args: bool = False
+    allow_absolute_include_dirs: bool | None = None
+    allow_shell_metacharacters: bool | None = None
+    allow_reserved_macros: bool | None = None
+    allow_dangerous_compiler_args: bool | None = None
     max_source_bytes: int | None = 10 * 1024 * 1024  # 10 MiB
     max_extra_compile_args: int = 64
     max_extra_link_args: int = 64
@@ -255,6 +259,24 @@ class SecurityPolicy:
     max_libraries: int = 32
 
     def __post_init__(self) -> None:
+        # Resolve the master ``strict`` switch into the individual guard flags
+        # (CYTHON-SEC-002).  An ``allow_*`` flag left as ``None`` follows
+        # ``strict`` — restrictive (``False``) under ``strict=True`` and
+        # permissive (``True``) under ``strict=False`` — while an explicit
+        # ``True``/``False`` always wins, so "overriding individual flags still
+        # works" as the docstring promises.  ``strict`` is now operative rather
+        # than merely descriptive.
+        default_allow = not self.strict
+        for _flag in (
+            "allow_absolute_include_dirs",
+            "allow_shell_metacharacters",
+            "allow_reserved_macros",
+            "allow_dangerous_compiler_args",
+        ):
+            if getattr(self, _flag) is None:
+                # Frozen dataclass: normalise via object.__setattr__.
+                object.__setattr__(self, _flag, default_allow)
+
         # Validate the policy's own parameters on construction.
         if self.max_extra_compile_args < 0:
             raise ValueError("max_extra_compile_args must be >= 0")

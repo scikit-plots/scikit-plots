@@ -43,7 +43,10 @@ class TestSanitizeBranches:
         assert sanitize("") == "_"
 
     def test_leading_digit_prepends_underscore(self) -> None:
-        assert sanitize("9lives") == "_9lives"
+        # Leading digit is an alteration → prefix + disambiguating suffix.
+        out = sanitize("9lives")
+        assert out.startswith("_9lives_")
+        assert out.isidentifier() and out.isascii()
 
     def test_non_str_raises_type_error(self) -> None:
         with pytest.raises(TypeError, match="sanitize()"):
@@ -55,15 +58,22 @@ class TestSanitizeBranches:
 
     def test_all_specials_become_underscores(self) -> None:
         result = sanitize("a!b@c#")
-        assert result == "a_b_c_"
+        # Base is a_b_c_ ; altered → disambiguating suffix appended.
+        assert result.startswith("a_b_c__")
+        assert result.isidentifier() and result.isascii()
 
     def test_four_hyphens_becomes_three_underscores(self) -> None:
-        # "----" → first char not digit, so no prefix; all become "_"
-        assert sanitize("----") == "____"
+        # "----" → all become "_"; altered → disambiguating suffix appended.
+        out = sanitize("----")
+        assert out.startswith("____")
+        assert out.isidentifier() and out.isascii()
 
     def test_unicode_alphanumeric_kept(self) -> None:
-        # Greek alpha is alphanumeric; kept as-is
-        assert sanitize("α") == "α"
+        # Non-ASCII letters are NOT kept (CYTHON-API-003): the documented
+        # contract is ASCII-only output, so Greek alpha is replaced.
+        out = sanitize("α")
+        assert out.isascii() and out.isidentifier()
+        assert "α" not in out
 
     def test_valid_python_identifier_unchanged(self) -> None:
         assert sanitize("valid_name_123") == "valid_name_123"
@@ -73,29 +83,46 @@ class TestSanitize:
     """Unit tests for :func:`scikitplot.cython._utils.sanitize`."""
 
     @pytest.mark.parametrize(
-        ("name", "expected"),
+        "name",
         [
-            ("hello", "hello"),
-            ("hello_world", "hello_world"),
-            ("hello-world", "hello_world"),
-            ("hello world", "hello_world"),
-            ("my.module", "my_module"),
-            ("123abc", "_123abc"),  # leading digit → prepend _
-            ("0", "_0"),
-            ("_private", "_private"),
-            ("", "_"),  # empty → sentinel
-            ("abc123", "abc123"),
-            ("a/b/c", "a_b_c"),
-            ("_", "_"),
-            ("__init__", "__init__"),
+            "hello",
+            "hello_world",
+            "_private",
+            "abc123",
+            "_",
+            "__init__",
         ],
     )
-    def test_basic_sanitization(self, name: str, expected: str) -> None:
-        assert sanitize(name) == expected
+    def test_already_valid_names_unchanged(self, name: str) -> None:
+        # Already-valid ASCII identifiers pass through untouched (no suffix).
+        assert sanitize(name) == name
+
+    @pytest.mark.parametrize(
+        ("name", "base"),
+        [
+            ("hello-world", "hello_world_"),
+            ("hello world", "hello_world_"),
+            ("my.module", "my_module_"),
+            ("123abc", "_123abc_"),  # leading digit → prepend _
+            ("0", "_0_"),
+            ("a/b/c", "a_b_c_"),
+        ],
+    )
+    def test_altered_names_get_disambiguating_suffix(
+        self, name: str, base: str
+    ) -> None:
+        out = sanitize(name)
+        assert out.startswith(base)
+        assert out.isidentifier() and out.isascii()
+
+    def test_empty_is_sentinel(self) -> None:
+        assert sanitize("") == "_"
 
     def test_all_special_chars_replaced(self) -> None:
         result = sanitize("!@#$%^&*()")
-        assert result.replace("_", "") == ""
+        # Base is all underscores; a disambiguating hex suffix follows.
+        assert result.isidentifier() and result.isascii()
+        assert set(result) <= set("_0123456789abcdef")
 
     def test_type_error_on_non_str(self) -> None:
         with pytest.raises(TypeError, match="str"):
@@ -132,16 +159,19 @@ class TestSanitizeAllAsciiChars:
 
     def test_all_digits(self) -> None:
         result = sanitize("0123456789")
-        assert result == "_0123456789"  # leading digit → prepend _
+        # Leading digit → prepend _; altered → disambiguating suffix.
+        assert result.startswith("_0123456789_")
+        assert result.isidentifier() and result.isascii()
 
     def test_mixed_with_leading_letter(self) -> None:
         result = sanitize("a0123456789")
         assert result == "a0123456789"
 
     def test_single_special(self) -> None:
-        assert sanitize("-") == "_"
-        assert sanitize(".") == "_"
-        assert sanitize(" ") == "_"
+        for s in ("-", ".", " "):
+            out = sanitize(s)
+            assert out.startswith("__")  # base "_" + suffix separator
+            assert out.isidentifier() and out.isascii()
 
 
 class TestIsValidKey:
@@ -424,34 +454,43 @@ class TestToPath:
 
 
 @pytest.mark.parametrize(
-    "name,expected",
+    "name,altered",
     [
-        ("hello", "hello"),
-        ("hello-world", "hello_world"),
-        ("123abc", "_123abc"),
-        ("a/b/c", "a_b_c"),
-        ("", "_"),
-        ("_private", "_private"),
-        ("__init__", "__init__"),
-        ("0", "_0"),
-        ("-", "_"),
+        ("hello", False),
+        ("hello-world", True),
+        ("123abc", True),
+        ("a/b/c", True),
+        ("", False),
+        ("_private", False),
+        ("__init__", False),
+        ("0", True),
+        ("-", True),
     ],
 )
-def test_sanitize_parametric_coverage(name: str, expected: str) -> None:
-    assert sanitize(name) == expected
+def test_sanitize_parametric_coverage(name: str, altered: bool) -> None:
+    out = sanitize(name)
+    assert out.isascii() and (out == "_" or out.isidentifier())
+    if not altered:
+        assert out == (name if name else "_")
+    else:
+        # Distinct dirty inputs must not collide with the bare base.
+        assert "_" in out
 
 
 @pytest.mark.parametrize(
-    ("name", "expected"),
+    ("name", "altered"),
     [
-        ("", "_"),
-        ("0abc", "_0abc"),
-        ("hello-world", "hello_world"),
-        ("valid_name_123", "valid_name_123"),
+        ("", False),
+        ("0abc", True),
+        ("hello-world", True),
+        ("valid_name_123", False),
     ],
 )
-def test_sanitize_parametric(name: str, expected: str) -> None:
-    assert sanitize(name) == expected
+def test_sanitize_parametric(name: str, altered: bool) -> None:
+    out = sanitize(name)
+    assert out.isascii() and (out == "_" or out.isidentifier())
+    if not altered:
+        assert out == (name if name else "_")
 
 
 @pytest.mark.parametrize(
@@ -514,23 +553,34 @@ def test_make_cache_key_parametric(payload: dict, expected_type: type) -> None:
 
 
 @pytest.mark.parametrize(
-    "inp, expected",
-    [
-        ("", "_"),
-        ("hello-world", "hello_world"),
-        ("123abc", "_123abc"),
-        ("a/b/c", "a_b_c"),
-        ("__dunder__", "__dunder__"),
-        # Unicode letters are alnum in Python — kept as-is
-        ("Ä", "Ä"),
-        ("α", "α"),
-        ("1", "_1"),
-        # Punctuation and symbols → underscore
-        ("a!b@c#", "a_b_c_"),
-        ("---", "___"),
-    ],
+    "inp",
+    ["", "__dunder__", "hello_world", "abc123"],
 )
-def test_sanitize_full_docstring_examples(inp: str, expected: str) -> None:
+def test_sanitize_unchanged_examples(inp: str) -> None:
+    # Empty → "_"; already-valid identifiers pass through unchanged.
     from .._utils import sanitize
 
+    expected = "_" if inp == "" else inp
     assert sanitize(inp) == expected
+
+
+@pytest.mark.parametrize(
+    "inp, base",
+    [
+        ("hello-world", "hello_world_"),
+        ("123abc", "_123abc_"),
+        ("a/b/c", "a_b_c_"),
+        ("Ä", "__"),  # non-ASCII replaced (CYTHON-API-003)
+        ("α", "__"),
+        ("1", "_1_"),
+        ("a!b@c#", "a_b_c__"),
+        ("---", "____"),
+    ],
+)
+def test_sanitize_altered_examples(inp: str, base: str) -> None:
+    # Altered inputs are ASCII, valid identifiers, and disambiguated by a suffix.
+    from .._utils import sanitize
+
+    out = sanitize(inp)
+    assert out.startswith(base)
+    assert out.isascii() and out.isidentifier()

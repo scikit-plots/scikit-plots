@@ -68,7 +68,8 @@ on:
     ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
     ##        │  │  │ │ │
     ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
-    - cron: '11 11 * * 1'
+    # - cron: '11 11 1 * *'  # At 11:11 AM, on day 1 of the month
+    - cron: '11 11 * * 1'  # At 11:11 AM, only on Monday
 
 ## simultaneity
 ## This ensures that only one deployment to "production" can happen at a time.
@@ -618,14 +619,20 @@ jobs:
           CIBW_ENABLE: cpython-freethreading cpython-prerelease
           # https://cibuildwheel.pypa.io/en/stable/options/#build-skip-examples
           # CIBW_SKIP: >-  # "cp313t-macosx_arm64 cp313t-win_amd64 cp313t-win_arm64"
-          #   ${{ matrix.buildplat[2] == 'ARM64' && 'cp313t-win_arm64'    || '' }}
-          #   ${{ matrix.buildplat[2] == 'AMD64' && 'cp313t-win_amd64'    || '' }}
-          #   ${{ matrix.buildplat[2] == 'arm64' && 'cp313t-macosx_arm64' || '' }}
+          #   ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-*linux_x86_64*'  || '' }}  # (many/musl) Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'aarch64' && 'cp313t-*linux_aarch64*' || '' }}  # (many/musl) Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-macosx_x86_64*'  || '' }}  # Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'arm64'   && 'cp313t-macosx_arm64*'   || '' }}  # Building wheel...
+          #   ${{ matrix.buildplat[2] == 'AMD64'   && 'cp313t-win_amd64*'      || '' }}  # Building wheel...
+          #   ${{ matrix.buildplat[2] == 'ARM64'   && '*-win_arm64*'           || '' }}  # Building wheel...
           # The value must be a skip pattern string (or empty string).
           CIBW_TEST_SKIP: >-  # "cp313t-win_arm64 cp313t-win_amd64 cp313t-macosx_arm64"
-            ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
-            ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*' || '' }}
-            ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
+            ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-*linux_x86_64*'  || '' }}
+            ${{ matrix.buildplat[2] == 'aarch64' && 'cp313t-*linux_aarch64*' || '' }}
+            ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-macosx_x86_64*'  || '' }}
+            ${{ matrix.buildplat[2] == 'arm64'   && 'cp313t-macosx_arm64*'   || '' }}
+            ${{ matrix.buildplat[2] == 'AMD64'   && 'cp313t-win_amd64*'      || '' }}
+            ${{ matrix.buildplat[2] == 'ARM64'   && '*-win_arm64*'           || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
@@ -645,11 +652,22 @@ jobs:
           ## cpython-prerelease enables cp314, cp314t selectors
           ## cpython-freethreading NOT needed here: v4.1.0 handles 314t natively
           CIBW_ENABLE: cpython-prerelease
+          # https://cibuildwheel.pypa.io/en/stable/options/#build-skip-examples
+          # CIBW_SKIP: >-  # "cp313t-macosx_arm64 cp313t-win_amd64 cp313t-win_arm64"
+          #   ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-*linux_x86_64*'  || '' }}  # (many/musl) Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'aarch64' && 'cp313t-*linux_aarch64*' || '' }}  # (many/musl) Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-macosx_x86_64*'  || '' }}  # Testing wheel...
+          #   ${{ matrix.buildplat[2] == 'arm64'   && 'cp313t-macosx_arm64*'   || '' }}  # Building wheel...
+          #   ${{ matrix.buildplat[2] == 'AMD64'   && 'cp313t-win_amd64*'      || '' }}  # Building wheel...
+          #   ${{ matrix.buildplat[2] == 'ARM64'   && '*-win_arm64*'           || '' }}  # Building wheel...
           # The value must be a skip pattern string (or empty string).
           CIBW_TEST_SKIP: >-  # "cp313t-win_arm64 cp313t-win_amd64 cp313t-macosx_arm64"
-            ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
-            ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*' || '' }}
-            ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
+            ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-*linux_x86_64*'  || '' }}
+            ${{ matrix.buildplat[2] == 'aarch64' && 'cp313t-*linux_aarch64*' || '' }}
+            ${{ matrix.buildplat[2] == 'x86_64'  && 'cp313t-macosx_x86_64*'  || '' }}
+            ${{ matrix.buildplat[2] == 'arm64'   && 'cp313t-macosx_arm64*'   || '' }}
+            ${{ matrix.buildplat[2] == 'AMD64'   && 'cp313t-win_amd64*'      || '' }}
+            ${{ matrix.buildplat[2] == 'ARM64'   && '*-win_arm64*'           || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH

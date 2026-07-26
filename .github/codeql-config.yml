@@ -1,5 +1,20 @@
-name: "CKAN CodeQL config"
+# CodeQL scan configuration for scikit-plots.
+# Reference this from the CodeQL workflow:
+#   - uses: github/codeql-action/init@v3
+#     with:
+#       config-file: ./.github/codeql/codeql-config.yml
+name: "scikit-plots CodeQL config"
 
 paths-ignore:
-  - '**/vendor/**'
   - '**/third_party/**'
+  - '**/vendor/**'
+  - '**/*yanked/**'
+  # Historical backup snapshots of the widget assets — not shipped, not maintained.
+  - '**/_sphinx_ai_assistant/_static/_backup/**'
+  - 'scikitplot/cexternals/_annoy/_backup/**'
+
+# NOTE: Turndown is vendored INLINE in ai-assistant.js and its 6 inherent alerts
+# (unreachable-statement, ASI, use-before-declaration, useless-assignment) are
+# suppressed at the source line with `// codeql[...]`. If your CodeQL pack does not
+# honor inline suppression, dismiss those 6 alerts in the UI as third-party — do NOT
+# path-ignore the whole file (that would hide real alerts in the widget code).

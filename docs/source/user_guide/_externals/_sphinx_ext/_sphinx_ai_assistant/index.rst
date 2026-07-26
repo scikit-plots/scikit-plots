@@ -3,7 +3,7 @@
 .. _externals_-sphinx_ext_-sphinx_ai_assistant_-index:
 
 ======================================================================
-Sphinx AI Extensions (experimental)
+✨ Sphinx AI Extensions (experimental)
 ======================================================================
 
 ..

@@ -1,5 +1,7 @@
 # scikitplot/cython/_result.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,6 +29,9 @@ from types import ModuleType as _ModuleType
 from typing import Any, Mapping, Sequence
 
 __all__ = [
+    "BatchBuildError",
+    "BatchBuildResult",
+    "BatchFailure",
     "BuildResult",
     "CacheGCResult",
     "CacheStats",
@@ -256,6 +261,9 @@ class CacheGCResult:
         Cache keys preserved because they are pinned.
     skipped_missing_keys : Sequence[str]
         Cache keys requested for deletion but missing on disk.
+    skipped_active_keys : Sequence[str]
+        Cache keys preserved because a build lock was held (an active build) or
+        the entry became pinned during the GC transaction.
     freed_bytes : int
         Estimated bytes freed (best effort, computed pre-delete).
     """
@@ -264,6 +272,7 @@ class CacheGCResult:
     deleted_keys: Sequence[str] = field(default_factory=tuple)
     skipped_pinned_keys: Sequence[str] = field(default_factory=tuple)
     skipped_missing_keys: Sequence[str] = field(default_factory=tuple)
+    skipped_active_keys: Sequence[str] = field(default_factory=tuple)
     freed_bytes: int = 0
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -271,12 +280,124 @@ class CacheGCResult:
         deleted_keys = tuple(self.deleted_keys)
         skipped_pinned_keys = tuple(self.skipped_pinned_keys)
         skipped_missing_keys = tuple(self.skipped_missing_keys)
+        skipped_active_keys = tuple(self.skipped_active_keys)
         return (
             "CacheGCResult("
             f"cache_root={self.cache_root!r}, "
             f"deleted_keys={deleted_keys!r}, "
             f"skipped_pinned_keys={skipped_pinned_keys!r}, "
             f"skipped_missing_keys={skipped_missing_keys!r}, "
+            f"skipped_active_keys={skipped_active_keys!r}, "
             f"freed_bytes={self.freed_bytes!r}"
             ")"
+        )
+
+
+@dataclass(frozen=True)
+class BatchFailure:
+    """A single failure within a batch build (CYTHON-BATCH-001).
+
+    Parameters
+    ----------
+    name : str
+        The batch key (e.g. file stem) that failed.
+    source : pathlib.Path
+        The source path that failed to build/import.
+    error_type : str
+        The exception class name.
+    error : str
+        The stringified exception message.
+    """
+
+    name: str
+    source: Path
+    error_type: str
+    error: str
+
+
+@dataclass(frozen=True)
+class BatchBuildResult:
+    """Structured result of a batch compile/import (CYTHON-BATCH-001).
+
+    ``cython_import_all`` was fail-fast: a mid-batch failure left earlier
+    compiled artifacts and imported modules committed but returned no report of
+    what had already succeeded.  This type makes the partial outcome explicit:
+    ordered successes, ordered failures, and the list of side effects that were
+    committed before the batch stopped (or completed).
+
+    Parameters
+    ----------
+    successes : Mapping[str, BuildResult]
+        Ordered mapping of batch key → :class:`BuildResult` for each item that
+        built and imported successfully.
+    failures : Sequence[BatchFailure]
+        Ordered failures (empty when every item succeeded).
+    committed : Sequence[str]
+        Ordered batch keys whose native side effects (compiled artifact +
+        imported module) were committed.  Equal to ``list(successes)``; provided
+        explicitly so callers can reason about what to roll back or resume.
+    policy : str
+        The batch policy that produced this result: ``"fail_fast"`` (stop at the
+        first failure) or ``"collect"`` (attempt every item).
+
+    Notes
+    -----
+    - ``ok`` is ``True`` only when there were no failures.
+    - ``resume_token`` is the sorted tuple of keys still to attempt after a
+      fail-fast stop; feed it back via the ``only`` argument to resume.
+    """
+
+    successes: Mapping[str, BuildResult]
+    failures: Sequence[BatchFailure]
+    committed: Sequence[str]
+    policy: str
+
+    @property
+    def ok(self) -> bool:
+        """Whether the batch completed with no failures."""
+        return len(self.failures) == 0
+
+    @property
+    def n_succeeded(self) -> int:
+        """Number of items that built and imported successfully."""
+        return len(self.successes)
+
+    @property
+    def n_failed(self) -> int:
+        """Number of items that failed."""
+        return len(self.failures)
+
+    def __repr__(self) -> str:  # pragma: no cover - trivial
+        return (
+            "BatchBuildResult("
+            f"policy={self.policy!r}, "
+            f"succeeded={self.n_succeeded}, "
+            f"failed={self.n_failed}, "
+            f"ok={self.ok}"
+            ")"
+        )
+
+
+class BatchBuildError(RuntimeError):
+    """Raised by fail-fast batch builds, carrying the partial result.
+
+    Attributes
+    ----------
+    result : BatchBuildResult
+        The partial result up to and including the failure, so callers can see
+        what was already committed and resume (CYTHON-BATCH-001).
+    """
+
+    def __init__(self, result: BatchBuildResult) -> None:
+        self.result = result
+        first = result.failures[0] if result.failures else None
+        detail = (
+            f"{first.name} ({first.error_type}: {first.error})"
+            if first is not None
+            else "unknown"
+        )
+        super().__init__(
+            f"batch build failed at {detail}; "
+            f"{result.n_succeeded} item(s) already committed: "
+            f"{list(result.committed)!r}"
         )

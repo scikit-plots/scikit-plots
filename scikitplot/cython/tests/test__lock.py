@@ -13,6 +13,7 @@ Covers
 """
 from __future__ import annotations
 
+import shutil
 import threading
 import time
 from pathlib import Path
@@ -117,19 +118,15 @@ class TestBuildLockBranches:
         """If lock dir is deleted mid-run, finally block must not raise."""
         lock_dir = tmp_path / "gone.lock"
 
-        class _Delete:
-            def __enter__(self):
-                lock_dir.mkdir(parents=True, exist_ok=True)
-                return self
-
-            def __exit__(self, *args):
-                # Remove before the context manager finally block runs
-                if lock_dir.exists():
-                    lock_dir.rmdir()
-
-        with _Delete():
-            with build_lock(lock_dir):
-                lock_dir.rmdir()  # simulate concurrent removal
+        # Let build_lock create/own the dir (do NOT pre-create it — that would
+        # collide with the exclusive acquisition and force a full timeout).
+        # Delete it mid-body to simulate concurrent external removal; the
+        # finally block must tolerate the missing directory.
+        with build_lock(lock_dir, timeout_s=5.0):
+            assert lock_dir.exists()
+            shutil.rmtree(lock_dir, ignore_errors=True)
+        # No exception from the finally block == pass.
+        assert not lock_dir.exists()
 
 
 class TestBuildLock:
@@ -211,19 +208,22 @@ class TestBuildLockStaleLock:
     """Stale lock directories (older than timeout_s) must be removed automatically."""
 
     def test_stale_lock_cleared_and_acquired(self, tmp_path: Path) -> None:
-        """A pre-existing lock dir older than timeout_s is treated as stale."""
+        """A pre-existing lock dir older than stale_after_s is treated as stale."""
         from .._lock import build_lock
 
         lock_dir = tmp_path / "build.lock"
         lock_dir.mkdir()
 
-        # Back-date the lock directory mtime by 3× timeout_s so it looks stale.
-        timeout = 1.0
-        stale_time = time.time() - timeout * 3
+        # Back-date the lock mtime well past stale_after_s so it looks stale.
+        # (Staleness is now decoupled from timeout_s — CYTHON-TEST-001.)
+        stale_after = 1.0
+        stale_time = time.time() - stale_after * 3
         os.utime(lock_dir, (stale_time, stale_time))
 
         acquired = False
-        with build_lock(lock_dir, timeout_s=timeout, poll_s=0.01):
+        with build_lock(
+            lock_dir, timeout_s=1.0, poll_s=0.01, stale_after_s=stale_after
+        ):
             acquired = True
             assert lock_dir.exists()
 
@@ -231,16 +231,18 @@ class TestBuildLockStaleLock:
         assert not lock_dir.exists(), "Lock should be released after context exit"
 
     def test_stale_lock_cleared_with_positive_timeout(self, tmp_path: Path) -> None:
-        """Stale lock older than timeout_s is removed even with short timeout."""
+        """Stale lock older than stale_after_s is removed even with short timeout."""
         from .._lock import build_lock
 
         lock_dir = tmp_path / "stale2.lock"
         lock_dir.mkdir()
-        timeout = 2.0
-        stale_time = time.time() - timeout * 4
+        stale_after = 2.0
+        stale_time = time.time() - stale_after * 4
         os.utime(lock_dir, (stale_time, stale_time))
 
-        with build_lock(lock_dir, timeout_s=timeout, poll_s=0.01):
+        with build_lock(
+            lock_dir, timeout_s=2.0, poll_s=0.01, stale_after_s=stale_after
+        ):
             assert lock_dir.exists()
 
         assert not lock_dir.exists()
@@ -257,7 +259,7 @@ class TestBuildLockStaleLock:
         lock_dir = tmp_path / "oserr.lock"
         lock_dir.mkdir()
 
-        # Make old enough to be treated as stale on the SECOND stat call
+        # Make old enough to be treated as stale on the SECOND stat call.
         stale_time = time.time() - 200
         os.utime(lock_dir, (stale_time, stale_time))
 
@@ -282,7 +284,9 @@ class TestBuildLockStaleLock:
         with patch.object(Path, "stat", patched_stat):
             # First iteration: OSError swallowed → sleep → second iteration:
             # stat succeeds, stale detected, lock cleared, acquisition succeeds.
-            with build_lock(lock_dir, timeout_s=5.0, poll_s=0.01):
+            with build_lock(
+                lock_dir, timeout_s=5.0, poll_s=0.01, stale_after_s=100.0
+            ):
                 acquired = True
 
         assert acquired
@@ -298,8 +302,9 @@ class TestBuildLockStaleLock:
         lock_dir = tmp_path / "gone.lock"
 
         with build_lock(lock_dir, timeout_s=5.0, poll_s=0.01):
-            # Simulate another process deleting the lock dir mid-hold.
-            lock_dir.rmdir()
+            # Simulate another process deleting the lock dir mid-hold.  Use
+            # rmtree because an acquired lock now contains owner metadata.
+            shutil.rmtree(lock_dir, ignore_errors=True)
 
         # No exception raised — success.
         assert not lock_dir.exists()
@@ -337,3 +342,83 @@ def test_build_lock_invalid_poll_variants(tmp_path: Path, poll_s: float) -> None
     with pytest.raises(ValueError, match="poll_s"):
         with build_lock(tmp_path / "x.lock", poll_s=poll_s):
             pass
+
+
+# ---------------------------------------------------------------------------
+# CYTHON-CON-001 regression: interprocess exclusivity.
+#
+# The original implementation used mkdir(parents=True, exist_ok=True), which
+# accepted an already-held lock as a successful acquisition.  Two processes
+# could therefore hold build_lock(same_path) simultaneously.  These tests make
+# the exclusivity invariant a permanent, spawned-process regression so the P0
+# cannot silently regress.
+# ---------------------------------------------------------------------------
+
+
+def _con001_worker(lock_path: str, barrier, q, hold_s: float) -> None:
+    """Enter build_lock, record monotonic entry/exit, report to the queue."""
+    import time as _t
+    from pathlib import Path as _P
+
+    from .._lock import build_lock as _bl  # noqa: PLC0415
+
+    barrier.wait()
+    try:
+        with _bl(_P(lock_path), timeout_s=10.0, poll_s=0.01):
+            enter = _t.monotonic()
+            _t.sleep(hold_s)
+            q.put(("ok", enter, _t.monotonic()))
+    except Exception as exc:  # noqa: BLE001
+        q.put(("err", type(exc).__name__, str(exc)))
+
+
+def test_two_processes_never_overlap(tmp_path: Path) -> None:
+    """Two spawned processes must not be inside build_lock() at the same time."""
+    import multiprocessing as mp
+
+    ctx = mp.get_context("spawn")
+    lock_dir = tmp_path / "excl.lock"
+    hold_s = 0.35
+    barrier = ctx.Barrier(2)
+    q: mp.Queue = ctx.Queue()
+
+    procs = [
+        ctx.Process(target=_con001_worker, args=(str(lock_dir), barrier, q, hold_s))
+        for _ in range(2)
+    ]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join(30)
+
+    rows = [q.get() for _ in range(2)]
+    oks = [(r[1], r[2]) for r in rows if r[0] == "ok"]
+
+    # Both should acquire successfully (serialized), or one acquires and the
+    # other times out — either way, never simultaneously.
+    if len(oks) == 2:
+        (a_enter, a_exit), (b_enter, b_exit) = sorted(oks)
+        assert b_enter >= a_exit, (
+            f"lock overlap: second entered {a_exit - b_enter:.3f}s "
+            f"before first exited (CYTHON-CON-001 regression)"
+        )
+    else:
+        # At most one concurrent holder is the invariant; a timeout on the
+        # loser is acceptable exclusive behaviour.
+        assert len(oks) >= 1
+
+
+def test_lock_writes_owner_metadata(tmp_path: Path) -> None:
+    """An acquired lock records owner metadata and cleans it up on release."""
+    import json
+
+    from .._lock import _OWNER_FILE  # noqa: PLC0415
+
+    lock_dir = tmp_path / "owner.lock"
+    with build_lock(lock_dir, timeout_s=5.0, poll_s=0.01):
+        owner = lock_dir / _OWNER_FILE
+        assert owner.exists(), "owner metadata not written"
+        data = json.loads(owner.read_text(encoding="utf-8"))
+        assert set(data) >= {"token", "pid", "host", "start_monotonic", "start_wall"}
+        assert data["pid"] == __import__("os").getpid()
+    assert not lock_dir.exists(), "lock dir should be removed on release"

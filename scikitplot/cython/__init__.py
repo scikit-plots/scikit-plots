@@ -64,3 +64,11 @@ __all__ += _result.__all__
 __all__ += _security.__all__
 __all__ += _templates_api.__all__
 __all__ += _utils.__all__
+
+# --- API stability tiers (CYTHON-API-002) ---------------------------------
+# Imported AFTER __all__ is assembled: the stability registry is computed
+# against the completed public surface.
+from . import _api  # noqa: E402
+from ._api import *  # noqa: F403
+
+__all__ += _api.__all__

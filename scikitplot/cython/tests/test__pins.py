@@ -228,14 +228,24 @@ class TestPinRegistry:
 class TestPinsCorruptedRegistry:
     """``list_pins`` when pins.json is corrupted."""
 
-    def test_corrupted_pins_returns_empty(self, tmp_cache: Path) -> None:
-        # Create a pins.json with invalid JSON
+    def test_corrupted_pins_raises(self, tmp_cache: Path) -> None:
+        # CYTHON-PIN-001: a corrupt registry must raise an explicit error, not
+        # silently return {} (which would let pins be lost or pinned entries GC'd).
+        from .._pins import PinRegistryError
+
         key = make_cache_key({"p": "1"})
         pin(key, alias="zz_test", cache_dir=tmp_cache)
-        # Corrupt it
         (tmp_cache / "pins.json").write_text("NOT JSON <<<", encoding="utf-8")
-        result = list_pins(tmp_cache)
-        assert result == {}
+        with pytest.raises(PinRegistryError):
+            list_pins(tmp_cache)
+
+    def test_pin_refuses_to_clobber_corrupt_registry(self, tmp_cache: Path) -> None:
+        from .._pins import PinRegistryError
+
+        pin(make_cache_key({"p": "1"}), alias="zz_test", cache_dir=tmp_cache)
+        (tmp_cache / "pins.json").write_text("<<<broken", encoding="utf-8")
+        with pytest.raises(PinRegistryError):
+            pin(make_cache_key({"p": "2"}), alias="other", cache_dir=tmp_cache)
 
     def test_pins_with_invalid_entries_filtered(self, tmp_cache: Path) -> None:
         # Write a pins.json with mixed valid/invalid entries

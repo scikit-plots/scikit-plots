@@ -245,3 +245,4 @@ Under Development
    ./cexternals/index.rst
    ./experimental/index.rst
    ./externals/index.rst
+   ./_externals/index.rst

@@ -102,7 +102,7 @@ updates:
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly  # "daily", weekly, monthly
       day: monday
       time: "11:11"
       timezone: "UTC"
@@ -232,7 +232,7 @@ updates:
       - dependency-name: "sphinx"
         # versions: [ "[1.1,)" ]
       - dependency-name: "h5py"
-      - dependency-name: "voyager:*"
+      - dependency-name: "*voyager*"
         # Ignore versions of voyager that are equal to or greater than 1.2.5 We have a separate process for updating them
         versions: [ ">=1.2.5" ]
     commit-message:

@@ -1,5 +1,7 @@
 # scikitplot/cython/_cache.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,6 +28,7 @@ import os
 import platform
 import re
 import sys
+import sysconfig
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -36,16 +39,19 @@ _ENV_CACHE_DIR_SHORT = "SKPLT_CYTHON_CACHE_DIR"  # Short alias; takes priority w
 _KEY_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 
 __all__ = [
+    "CACHE_SCHEMA_VERSION",
     "CacheEntry",
     "PackageCacheEntry",
     "find_entries_by_name",
     "find_entry_by_key",
     "find_package_entry_by_key",
+    "is_meta_schema_compatible",
     "is_valid_key",
     "iter_all_entry_dirs",
     "iter_cache_entries",
     "iter_package_entries",
     "make_cache_key",
+    "meta_schema_version",
     "peek_cache_dir",
     "read_meta",
     "register_artifact_path",
@@ -54,6 +60,37 @@ __all__ = [
     "source_digest",
     "write_meta",
 ]
+
+
+#: Version of the ``meta.json`` cache-entry schema (CYTHON-SCH-001).  Bump this
+#: whenever the set/meaning of persisted meta fields changes incompatibly.
+#: Entries written by an incompatible schema version are treated as cache misses
+#: and rebuilt rather than misread.  Version 0 denotes pre-versioning entries.
+CACHE_SCHEMA_VERSION = 1
+
+#: The meta key under which the schema version is stamped.
+_SCHEMA_KEY = "meta_schema_version"
+
+
+def meta_schema_version(meta: Mapping[str, Any] | None) -> int:
+    """Return the schema version recorded in ``meta`` (0 if absent/legacy)."""
+    if not meta:
+        return 0
+    v = meta.get(_SCHEMA_KEY, 0)
+    return v if isinstance(v, int) and v >= 0 else 0
+
+
+def is_meta_schema_compatible(meta: Mapping[str, Any] | None) -> bool:
+    """Return whether ``meta`` can be trusted by the current reader.
+
+    Compatible means the entry's schema version is a version this library knows
+    how to read: any version from 1 up to :data:`CACHE_SCHEMA_VERSION`.  Legacy
+    entries (version 0, pre-versioning) and entries from a *newer*, unknown
+    schema are treated as incompatible so they are rebuilt rather than misread
+    (CYTHON-SCH-001).
+    """
+    v = meta_schema_version(meta)
+    return 1 <= v <= CACHE_SCHEMA_VERSION
 
 
 def _env_cache_dir() -> str | None:
@@ -309,11 +346,58 @@ def _stable_repr(obj: Any) -> Any:
     return str(obj)
 
 
+def _toolchain_fingerprint() -> dict[str, Any]:
+    """Toolchain / ABI inputs that must invalidate the cache when they differ.
+
+    Two artifacts built on the same host and Python but with a different C/C++
+    compiler, a different CPython ABI (e.g. free-threaded), or a different
+    pointer width are **not** interchangeable; reusing one for the other yields
+    import failures or crashes.  These ``sysconfig`` values capture exactly that
+    (CYTHON-CACHE-003).  Values are read without executing any subprocess.
+    """
+    get = sysconfig.get_config_var
+    fp = {
+        # Compiler identity/driver (GCC vs Clang vs MSVC, cross prefixes, etc.).
+        "cc": get("CC") or "",
+        "cxx": get("CXX") or "",
+        # Extension ABI tag — the definitive CPython ABI the .so targets.
+        "ext_suffix": get("EXT_SUFFIX") or "",
+        "soabi": get("SOABI") or "",
+        # Pointer width (32/64-bit) and free-threaded (GIL-disabled) build.
+        "pointer_size": get("SIZEOF_VOID_P") or "",
+        "gil_disabled": bool(get("Py_GIL_DISABLED") or 0),
+        # Build platform tag (includes emscripten-wasm32 in browser builds).
+        "sysconfig_platform": sysconfig.get_platform() or "",
+    }
+    # Effective compiler the build backend ACTUALLY selects, not a PATH/sysconfig
+    # guess (CYTHON-PORT-001).  On Windows sysconfig's CC is often empty while
+    # setuptools picks MSVC; keying from the resolved plan prevents reusing an
+    # artifact built by a different toolchain.  Lazy import + never-raise.
+    try:
+        from ._profiles import resolved_toolchain  # noqa: PLC0415
+
+        rt = resolved_toolchain()
+        fp["resolved_compiler_type"] = rt.compiler_type
+        fp["resolved_cc"] = rt.cc
+        fp["resolved_cxx"] = rt.cxx
+    except Exception:  # noqa: BLE001 - detection must never break caching
+        fp["resolved_compiler_type"] = "unknown"
+        fp["resolved_cc"] = ""
+        fp["resolved_cxx"] = ""
+    return fp
+
+
 def runtime_fingerprint(
     *, cython_version: str, numpy_version: str | None
 ) -> Mapping[str, Any]:
     """
     Compute a runtime fingerprint for caching correctness.
+
+    The fingerprint includes the interpreter, platform, and library versions
+    **and** the toolchain / ABI inputs (compiler identity, extension ABI tag,
+    pointer width, free-threaded flag) so that an artifact built with one
+    compiler or ABI is never reused under an incompatible one
+    (CYTHON-CACHE-003).
 
     Parameters
     ----------
@@ -326,8 +410,14 @@ def runtime_fingerprint(
     -------
     Mapping[str, Any]
         Fingerprint mapping.
+
+    Notes
+    -----
+    Extending this mapping intentionally changes cache keys, so entries built by
+    an older library version are treated as misses and rebuilt once — this is
+    the correct behaviour, since those entries lacked toolchain/ABI safety.
     """
-    return {
+    fp: dict[str, Any] = {
         "python": platform.python_version(),
         "python_impl": platform.python_implementation(),
         "platform": platform.platform(),
@@ -337,6 +427,8 @@ def runtime_fingerprint(
         "numpy": numpy_version,
         "abi": getattr(sys, "abiflags", ""),
     }
+    fp.update(_toolchain_fingerprint())
+    return fp
 
 
 def source_digest(data: bytes) -> str:
@@ -379,8 +471,12 @@ def write_meta(build_dir: Path, meta: Mapping[str, Any]) -> None:
     else:
         path = build_dir / "meta.json"
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Stamp the schema version on every write so future format changes are
+    # detectable (CYTHON-SCH-001).  An explicit value in ``meta`` is preserved.
+    stamped = dict(meta)
+    stamped.setdefault(_SCHEMA_KEY, CACHE_SCHEMA_VERSION)
     tmp = path.with_suffix(path.suffix + ".tmp")  # meta.json.tmp
-    tmp.write_text(_json_dumps(meta) + "\n", encoding="utf-8")
+    tmp.write_text(_json_dumps(stamped) + "\n", encoding="utf-8")
     tmp.replace(path)
 
 
@@ -869,14 +965,51 @@ def _guess_module_name(artifact: Path) -> str:
 def _artifact_from_meta_or_guess(
     build_dir: Path, meta: Mapping[str, Any] | None
 ) -> Path | None:
+    """Select the cache artifact, constrained to live inside ``build_dir``.
+
+    The ``artifact`` name recorded in ``meta.json`` is treated as a **basename
+    only**.  Any value that is absolute, contains a path separator, or resolves
+    outside ``build_dir`` is rejected rather than imported (CYTHON-CACHE-002):
+    a tampered ``meta.json`` must not be able to redirect the loader to an
+    artifact outside the cache entry.  When ``meta`` records an
+    ``artifact_sha256``, the selected file's content hash must match it.
+    """
     artifact: Path | None = None
     if meta is not None:
         a = meta.get("artifact") or meta.get("artifact_filename")
         if isinstance(a, str) and a:
-            p = (build_dir / a) if not os.path.isabs(a) else Path(a)
-            if p.exists():
-                artifact = p
-    return artifact or _guess_artifact(build_dir)
+            # Reject absolute paths and any embedded directory component; only a
+            # bare filename inside build_dir is acceptable.
+            if os.path.isabs(a) or ("/" in a) or ("\\" in a) or (".." in Path(a).parts):
+                artifact = None
+            else:
+                # Resolve without requiring existence (strict=False), then
+                # confirm the artifact is a direct child of build_dir.
+                try:
+                    base = build_dir.resolve()
+                    p = (build_dir / a).resolve()
+                except OSError:
+                    base = None
+                    p = None
+                if (
+                    p is not None
+                    and base is not None
+                    and p.parent == base
+                    and p.exists()
+                    and p.is_file()
+                ):
+                    artifact = p
+    selected = artifact or _guess_artifact(build_dir)
+    if selected is not None and meta is not None:
+        expected = meta.get("artifact_sha256")
+        if isinstance(expected, str) and expected:
+            actual = sha256(selected.read_bytes()).hexdigest()
+            if actual != expected:
+                raise ValueError(
+                    f"cache artifact integrity check failed for {selected.name} "
+                    f"(recorded sha256 does not match on-disk content)"
+                )
+    return selected
 
 
 def _module_name_from_meta_or_guess(
