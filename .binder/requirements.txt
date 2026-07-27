@@ -10,7 +10,7 @@ pybind11
 pybind11-global
 blis
 
-# numpy
+# numpy <= 2.4.6
 # scipy-openblas32
 # scipy-openblas64
 scipy
