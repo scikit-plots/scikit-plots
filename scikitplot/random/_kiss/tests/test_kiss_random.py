@@ -91,32 +91,24 @@ class TestPickleSupport:
 
     def test_pickle_kiss32_round_trip(self, kiss32):
         """Test Kiss32Random pickle round-trip."""
-        # Generate sequence
-        seq1 = [kiss32.kiss() for _ in range(5)]
-
-        # Pickle and unpickle
+        # ANNOY-RNG-002 (guide 6.16): pickle captures live state; original and
+        # restored CONTINUE identically from it (not restart).
+        [kiss32.kiss() for _ in range(5)]  # advance
         pickled = pickle.dumps(kiss32)
+        seq1 = [kiss32.kiss() for _ in range(5)]  # original continuation
         restored = pickle.loads(pickled)
-
-        # Generate sequence from restored
-        seq2 = [restored.kiss() for _ in range(5)]
-
-        # Sequences should match
+        seq2 = [restored.kiss() for _ in range(5)]  # restored continuation
         assert seq1 == seq2
 
     def test_pickle_kiss64_round_trip(self, kiss64):
         """Test Kiss64Random pickle round-trip."""
-        # Generate sequence
-        seq1 = [kiss64.kiss() for _ in range(5)]
-
-        # Pickle and unpickle
+        # ANNOY-RNG-002 (guide 6.16): pickle captures live state; original and
+        # restored CONTINUE identically from it (not restart).
+        [kiss64.kiss() for _ in range(5)]  # advance
         pickled = pickle.dumps(kiss64)
+        seq1 = [kiss64.kiss() for _ in range(5)]  # original continuation
         restored = pickle.loads(pickled)
-
-        # Generate sequence from restored
-        seq2 = [restored.kiss() for _ in range(5)]
-
-        # Sequences should match
+        seq2 = [restored.kiss() for _ in range(5)]  # restored continuation
         assert seq1 == seq2
 
     def test_pickle_seed_sequence_round_trip(self, seed_sequence):
@@ -136,47 +128,33 @@ class TestPickleSupport:
 
     def test_pickle_bit_generator_round_trip(self, bit_generator):
         """Test KissBitGenerator pickle round-trip."""
-        # Generate sequence
-        seq1 = [bit_generator.random_raw() for _ in range(5)]
-
-        # Pickle and unpickle
+        # ANNOY-RNG-002 (guide 6.16): pickle captures the live state; both the
+        # original and the restored object must CONTINUE identically from it.
+        [bit_generator.random_raw() for _ in range(5)]  # advance
         pickled = pickle.dumps(bit_generator)
+        seq1 = [bit_generator.random_raw() for _ in range(5)]  # original continuation
         restored = pickle.loads(pickled)
-
-        # Generate sequence from restored
-        seq2 = [restored.random_raw() for _ in range(5)]
-
-        # Sequences should match
+        seq2 = [restored.random_raw() for _ in range(5)]  # restored continuation
         assert seq1 == seq2
 
     def test_pickle_generator_round_trip(self, generator):
         """Test KissGenerator pickle round-trip."""
-        # Generate sequence
-        seq1 = generator.random(10)
-
-        # Pickle and unpickle
+        # ANNOY-RNG-002 (guide 6.16): continuation, not restart.
+        generator.random(10)  # advance
         pickled = pickle.dumps(generator)
+        seq1 = generator.random(10)  # original continuation
         restored = pickle.loads(pickled)
-
-        # Generate sequence from restored
-        seq2 = restored.random(10)
-
-        # Sequences should match
+        seq2 = restored.random(10)  # restored continuation
         assert np.allclose(seq1, seq2)
 
     def test_pickle_random_state_round_trip(self, random_state):
         """Test KissRandomState pickle round-trip."""
-        # Generate sequence
-        seq1 = random_state.rand(10)
-
-        # Pickle and unpickle
+        # ANNOY-RNG-002 (guide 6.16): continuation, not restart.
+        random_state.rand(10)  # advance
         pickled = pickle.dumps(random_state)
+        seq1 = random_state.rand(10)  # original continuation
         restored = pickle.loads(pickled)
-
-        # Generate sequence from restored
-        seq2 = restored.rand(10)
-
-        # Sequences should match
+        seq2 = restored.rand(10)  # restored continuation
         assert np.allclose(seq1, seq2)
 
     def test_pickle_all_protocols(self):
@@ -202,40 +180,42 @@ class TestStateManagement:
 
     def test_kiss32_get_set_state(self):
         """Test Kiss32Random state management."""
+        # ANNOY-RNG-002 (guide 6.16): state restore must RESUME the stream, not
+        # restart it. Advance, capture state, then compare the original's
+        # continuation against the restored generator's continuation.
         rng1 = Kiss32Random(42)
-        seq1 = [rng1.kiss() for _ in range(5)]
+        [rng1.kiss() for _ in range(5)]  # advance the stream
 
-        # Get state
         state = rng1.get_state()
         assert isinstance(state, dict)
         assert "seed" in state
         assert "__version__" in state
 
-        # Create new RNG and set state
+        seq1 = [rng1.kiss() for _ in range(5)]  # original continues from state
+
         rng2 = Kiss32Random(0)
         rng2.set_state(state)
-
-        # Generate same sequence
-        seq2 = [rng2.kiss() for _ in range(5)]
+        seq2 = [rng2.kiss() for _ in range(5)]  # restored continues from state
         assert seq1 == seq2
 
     def test_kiss64_get_set_state(self):
         """Test Kiss64Random state management."""
+        # ANNOY-RNG-002 (guide 6.16): state restore must RESUME the stream, not
+        # restart it. Advance, capture state, then compare the original's
+        # continuation against the restored generator's continuation.
         rng1 = Kiss64Random(42)
-        seq1 = [rng1.kiss() for _ in range(5)]
+        [rng1.kiss() for _ in range(5)]  # advance the stream
 
-        # Get state
         state = rng1.get_state()
         assert isinstance(state, dict)
         assert "seed" in state
         assert "__version__" in state
 
-        # Create new RNG and set state
+        seq1 = [rng1.kiss() for _ in range(5)]  # original continues from state
+
         rng2 = Kiss64Random(0)
         rng2.set_state(state)
-
-        # Generate same sequence
-        seq2 = [rng2.kiss() for _ in range(5)]
+        seq2 = [rng2.kiss() for _ in range(5)]  # restored continues from state
         assert seq1 == seq2
 
     def test_seed_sequence_get_set_state(self):
@@ -258,57 +238,54 @@ class TestStateManagement:
 
     def test_bit_generator_get_set_state(self):
         """Test KissBitGenerator state management."""
+        # ANNOY-RNG-002 (guide 6.16): restore resumes, not restarts.
         bg1 = KissBitGenerator(42)
-        seq1 = [bg1.random_raw() for _ in range(5)]
+        [bg1.random_raw() for _ in range(5)]  # advance
 
-        # Get state
         state = bg1.get_state()
         assert isinstance(state, dict)
         assert "seed_sequence" in state
         assert "seed_sequence_state" in state
 
-        # Create new and set state
+        seq1 = [bg1.random_raw() for _ in range(5)]  # original continuation
+
         bg2 = KissBitGenerator(0)
         bg2.set_state(state)
-
-        # Generate same sequence
-        seq2 = [bg2.random_raw() for _ in range(5)]
+        seq2 = [bg2.random_raw() for _ in range(5)]  # restored continuation
         assert seq1 == seq2
 
     def test_generator_get_set_state(self):
         """Test KissGenerator state management."""
+        # ANNOY-RNG-002 (guide 6.16): restore resumes, not restarts.
         gen1 = KissGenerator(42)
-        seq1 = gen1.random(10)
+        gen1.random(10)  # advance
 
-        # Get state
         state = gen1.get_state()
         assert isinstance(state, dict)
         assert "bit_generator" in state
         assert "bit_generator_state" in state
 
-        # Create new and set state
+        seq1 = gen1.random(10)  # original continuation
+
         gen2 = KissGenerator(0)
         gen2.set_state(state)
-
-        # Generate same sequence
-        seq2 = gen2.random(10)
+        seq2 = gen2.random(10)  # restored continuation
         assert np.allclose(seq1, seq2)
 
     def test_random_state_get_set_state(self):
         """Test KissRandomState state management."""
+        # ANNOY-RNG-002 (guide 6.16): restore resumes, not restarts.
         rs1 = KissRandomState(42)
-        seq1 = rs1.rand(10)
+        rs1.rand(10)  # advance
 
-        # Get state
         state = rs1.get_state()
         assert isinstance(state, dict)
 
-        # Create new and set state
+        seq1 = rs1.rand(10)  # original continuation
+
         rs2 = KissRandomState(0)
         rs2.set_state(state)
-
-        # Generate same sequence
-        seq2 = rs2.rand(10)
+        seq2 = rs2.rand(10)  # restored continuation
         assert np.allclose(seq1, seq2)
 
 
@@ -799,20 +776,17 @@ class TestKissBitGenerator:
 
     def test_state_setter(self):
         """Test BitGenerator state setter."""
+        # ANNOY-RNG-002 (guide 6.16): state captured mid-stream; a restored
+        # generator resumes exactly from that point.
         bg1 = KissBitGenerator(42)
-        seq1 = [bg1.random_raw() for _ in range(5)]
+        [bg1.random_raw() for _ in range(5)]  # advance
 
         state = bg1.state
+        seq1 = [bg1.random_raw() for _ in range(5)]  # original continuation
 
-        # Continue generating
-        bg1.random_raw()
-        bg1.random_raw()
-
-        # Restore state
         bg2 = KissBitGenerator(0)
         bg2.state = state
-
-        seq2 = [bg2.random_raw() for _ in range(5)]
+        seq2 = [bg2.random_raw() for _ in range(5)]  # restored continuation
 
         assert seq1 == seq2
 
@@ -1043,15 +1017,16 @@ class TestKissRandomState:
 
     def test_set_state(self):
         """Test set_state method."""
+        # ANNOY-RNG-002 (guide 6.16): restore resumes the stream.
         rs1 = KissRandomState(42)
-        seq1 = [rs1.rand() for _ in range(5)]
+        [rs1.rand() for _ in range(5)]  # advance
 
         state = rs1.get_state()
+        seq1 = [rs1.rand() for _ in range(5)]  # original continuation
 
         rs2 = KissRandomState(0)
         rs2.set_state(state)
-
-        seq2 = [rs2.rand() for _ in range(5)]
+        seq2 = [rs2.rand() for _ in range(5)]  # restored continuation
 
         assert np.allclose(seq1, seq2)
 
@@ -1233,20 +1208,16 @@ class TestReproducibility:
 
     def test_state_serialization_reproducibility(self):
         """Test state serialization/deserialization."""
+        # ANNOY-RNG-002 (guide 6.16): restore resumes the stream exactly.
         rng1 = KissBitGenerator(42)
-        sequence1 = [rng1.random_raw() for _ in range(5)]
+        [rng1.random_raw() for _ in range(5)]  # advance
 
         state = rng1.state
+        sequence1 = [rng1.random_raw() for _ in range(5)]  # original continuation
 
-        # Continue generating
-        rng1.random_raw()
-        rng1.random_raw()
-
-        # Restore state
         rng2 = KissBitGenerator()
         rng2.state = state
-
-        sequence2 = [rng2.random_raw() for _ in range(5)]
+        sequence2 = [rng2.random_raw() for _ in range(5)]  # restored continuation
 
         assert sequence1 == sequence2
 

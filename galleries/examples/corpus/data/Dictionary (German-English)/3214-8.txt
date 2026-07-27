@@ -1,0 +1,5478 @@
+The Project Gutenberg EBook of Mr Honey's Insurance Dictionary
+(German-English), by Winfried Honig
+
+This eBook is for the use of anyone anywhere at no cost and with
+almost no restrictions whatsoever.  You may copy it, give it away or
+re-use it under the terms of the Project Gutenberg License included
+with this eBook or online at www.gutenberg.org
+
+
+Title: Mr Honey's Insurance Dictionary (German-English)
+
+Author: Winfried Honig
+
+Posting Date: March 24, 2011 [EBook #3214]
+Release Date: July, 2002
+
+Language: English
+
+Character set encoding: ISO-8859-1
+
+*** START OF THIS PROJECT GUTENBERG EBOOK MR HONEY'S INSURANCE ***
+
+
+
+
+Produced by Michael Pullen, globaltraveler5565@yahoo.com.
+
+
+
+
+
+
+
+
+
+Mr Honey's Insurance  Dictionary (German-English)
+(C)2001, 2002  by Winfried Honig
+
+
+
+
+
+This is a work in progress dictionary of phrases commonly used.
+
+This book contains English and equivalent German phrases.  We are
+releasing two versions of this book, sorted for the English reader and
+sorted for the German reader.
+
+Dieses Buch wurde uns freundlicherweise von dem Verfasser zur
+Verfügung gestellt.
+This book was generously donated to us by the author.
+
+------------------Acknowledgement:
+
+In the 1970s Winfried Honig, known as Mr Honey, started compiling and
+computerizing English/German dictionaries, partly to provide his
+colleagues and students with samples of the language of business,
+partly to collect convincing material for his State Department of
+Education to illustrate the need for special dictionaries covering
+the special language used in different branches of the industry.
+
+In 1997 Mr Honey began to feed his wordlists into the LEO Online
+Dictionary http://dict.leo.org of the Technische Universität München,
+and in 2000 into the DicData Online Dictionary http://www.dicdata.de
+
+While more than 500.000 daily visitors use the online versions,
+CD-ROM versions are available, see: http://www.leo.org/dict/cd_en.html
+http://www.dicdata.de http://mrhoney.purespace.de/latest.htm
+Mr. Honey would be pleased to answer questions sent to
+winfried.honig@online.de.
+
+Permission granted to use the word-lists, on condition that links to
+the sites of LEO, DICDATA and MR HONEY are maintained.
+
+Mr Honey's services are non-commercial to promote the language of
+business both in English and in German.-------------------
+
+
+
+
+History and Philosophy
+
+
+Die Anfänge dieses Wörterbuches gehen zurück in die Zeit als England
+der Europäischen Gemeinschaft beitreten wollte.
+
+In einer Gemeinschaftsarbeit von BBC, British Council, dem Dept. of
+Educ. und der OUP machte man sich Gedanken, wie man dem
+Führungsnachwuchs auf dem Kontinent die englische Wirtschaftssprache
+beibringen könnte.
+
+Als einer der wenigen Dozenten, die damals in London
+Wirtschaftsenglisch lehrten, kam ich in Kontakt mit dem Projekt.
+
+Da ich mich zu jener Zeit für eine Karriere in der Daten-verarbeitung
+oder als Hochschullehrer für Wirtschaftsenglisch entscheiden musste,
+wählte ich eine Kombination von beidem.
+
+Als Dozent der FH machte ich den Einsatz von Multimedia in der
+Vermittlung von brauchbarem Wirtschaftsenglisch zu meiner Aufgabe.
+
+Für die Anforderungen verschiedener Seminare, Schwerpunkte,
+Zielgruppen entstanden aus der praktischen Arbeit die Wortlisten und
+Wörterbücher.
+
+Aufgewachsen und geschult in der praktischen Denkweise von A.S.
+Hornby, einem Fellow des University College London, legte ich
+besonderen Wert auf die hohe Zahl möglichst dienlicher
+Anwendungsbeispiele.
+
+Die indizierten sequentiellen Wortlisten der Kompaktversionen,
+--anders und meines Erachtens noch viel besser--die großen
+sequentiellen Wortlisten der CD-ROM-Versionen mit der stufenweisen
+bis globalen Suche in den Wort- und Beispiellisten zunehmenden
+Umfangs, ermöglichen eine optimale sprachliche Orientierung in einem
+umfangreichen wirtschaftlichen Sprachsschatz.
+
+Dabei sehe ich neue Wege und Möglichkeiten des Erwerbs und des
+Umgangs mit der Fachsprache.
+
+Wahrscheinlich bietet sich hier weit mehr als sich im ersten Eindruck
+erahnen läßt.  Spielerisch sollte es möglich sein, leichter,
+schneller und intensiver zu lernen.
+
+Durch die Vielzahl der Assoziationen dürfte sich schneller als bisher
+eine gehobene fachsprachliche Kompetenz entwickeln.
+
+
+
+
+A
+
+
+Abandon                                      abandonment
+
+Abandon, Überlassen                          abandonment
+
+abandonnieren, überlassen, preisgeben        abandon
+
+Abenteuer, wagen                             adventure
+
+Abfindung                                    lump-sum settlement
+
+Abfindungserklärung                          acceptance of lump-sum settlement
+
+Abfindungswert                               amount payable on settlement
+
+abgelaufen                                   expired
+
+abhanden gekommenes Dokument                 lost document
+
+Abhilfe, Rechtsbehelf, Heilmittel            remedy
+
+Ablauf des Vertrages                         expiration of contract
+
+Ablauf, Ende                                 expiration
+
+ablaufen, enden                              expire
+
+ablehnen                                     decline
+
+abnehmendes Risiko                           decreasing risk
+
+Abnutzung, Verschleiß                        wear and tear
+
+abändern                                     amend
+
+Abänderung                                   amendment
+
+Abonnentenversicherung                       subscribers' insurance
+
+Abschlagszahlung                             payment on account
+
+Abschluss                                    acquisition
+
+Abschlusskosten                              acquisition costs
+
+Abschlussort                                 place of signature
+
+Abschlussprovision                           acquisition commission
+
+Abschlussvermittlung                         acquisition agent
+
+Abschätzung                                  estimation
+
+Abschätzung des Schadens                     appraisal of damage
+
+abschreiben                                  write off
+
+Abschreibepolice                             declaration policy
+
+Abschreibepolice                             floating policy
+
+Absicht                                      intent
+
+Absicht                                      intention
+
+absichtlich                                  intentional
+
+Absplittern                                  chipping
+
+abtreten, zedieren                           cede
+
+abweichen                                    deviate
+
+Abweichung                                   discrepancy
+
+Abweichung von der Reiseroute                deviation from the voyage
+
+abwesend                                     absent
+
+Abwesender                                   absentee
+
+Abwesenheit                                  absence
+
+Abzug                                        deduction
+
+abzugsfähiger Betrag                         deductible  amount
+
+ändern                                       modify
+
+ändern, Änderung                             change
+
+Änderung                                     modification
+
+Änderung des Reiseziels                      change of voyage
+
+Änderung des Risikos                         change in the risk
+
+ärztliche Ansicht                            medical opinion
+
+ärztliche Auslese                            medical selection
+
+ärztliche Behandlung                         medical treatment
+
+ärztliche Beobachtung                        medical observation
+
+ärztliche Betreuung                          medical care
+
+ärztliche Hilfe, ärztliche Behandlung        medical attendance
+
+ärztliche Untersuchung                       medical examination
+
+ärztliche Untersuchung                       medical inspection
+
+ärztliche Untersuchung                       physical examination
+
+ärztliches Attest                            medical certificate
+
+ärztliches Gutachten                         medical estimate
+
+ärztliches Honorar                           medical fee
+
+äußere Beschädigung                          external damage
+
+Agentur, Vertretung                          agency
+
+Aggregattafel                                aggregate table
+
+Aktien von Versicherungsgesellschaften       insurance shares
+
+Aktuar                                       actuary
+
+Alleininhaber                                sole owner
+
+allgemein verbindlich                        generally binding
+
+allgemeine Kosten                            general expenses
+
+allgemeine Versicherungsbedingungen          general conditions of insurance
+
+allgemeine Versicherungsbedingungen          general policy conditions
+
+Alterruhegeld, Altersrente, Pension          old-age pension
+
+Alterserhöhung                               addition to age
+
+Altersgrenze                                 age limit
+
+Altersrente                                  pension annuity
+
+Altersrente                                  retirement annuity
+
+Altersruhegeld                               old age pension
+
+Alterversicherung                            old-age insurance
+
+am Verlust beteiligt sein                    participate in a loss
+
+amtlich beglaubigt                           legally attested
+
+an die Stelle treten von                     take the place of
+
+an erster Stelle stehen                      rank first
+
+anbieten, Preisangabe machen                 quote
+
+Anfangsprämie                                initial premium
+
+anfechtbar                                   voidable
+
+Anfrage, Nachforschung                       inquiry
+
+anfragen, nachforschen                       inquire
+
+Angelegenheit von Bedeutung                  matter of consequences
+
+angemessene Entschädigung                    adequate compensation
+
+angemessene Entschädigung                    fair compensation
+
+angemessene Entschädigung                    fair damages
+
+angemessene Entschädigung                    reasonable compensation
+
+angemessene Kündigungsfrist                  reasonable period of notice
+
+angemessene Sorgfalt                         adequate care
+
+angemessene Sorgfalt                         reasonable diligence
+
+angenommen                                   accepted
+
+angenommener Schaden                         constructive loss
+
+angenommener Totalschaden                    constructive total loss
+
+angepasst                                    adapted
+
+angrenzend                                   adjoining
+
+Anhäufung                                    accumulation
+
+Anlauf der Versicherungspolice               expiry of the policy
+
+Anlieger                                     adjacent owner
+
+Anmeldung einer Forderung                    filing of a claim
+
+Anmerkung, Kommentar, Erläuterung            annotation
+
+Annahme                                      acceptance
+
+Annahme, Vermutung                           assumption
+
+Annahmepflicht                               obligation to accept
+
+Annahmeschein                                acceptance slip
+
+annehmen                                     accept
+
+annehmen, voraussetzen, vermuten             assume
+
+annehmen, übernehmen                         adopt
+
+annähernd                                    proximate
+
+Annuität                                     annuity
+
+anomal                                       abnormal
+
+anpassbare Versicherung, offene Versicherung adjustable insurance
+
+anpassen                                     adapt
+
+Anpassung, Schadensregulierung               adjustment
+
+Anschaffungswert                             acquisition value
+
+Anschaffungswert                             cost value
+
+Anschrift des Antragstellers                 address of applicant
+
+Ansichtssache                                matter of opinion
+
+ansonsten                                    otherwise
+
+Anspruch                                     claim
+
+Anspruch erheben                             raise a claim
+
+Anspruchsbegründung                          proof of claim
+
+Anspruchsteller                              claimant
+
+Anteil des Arbeitsgebers, Arbeitgeberanteil  employer's contribution
+
+Anteil des Arbeitsnehmers, Arbeitnehmeranteil employee's contribution
+
+Anteil, Aktie                                share
+
+Antragsformular                              proposal form
+
+Antragsfrist                                 term of application
+
+Antragsteller                                applicant for insurance
+
+anwachsend, ansammelnd, auflaufend           accruing
+
+Anzeigepflicht                               obligation to disclose
+
+Arbeitsfähigkeit, Erwerbsfähigkeit           capacity to work
+
+Arbeitslosenversicherung                     unemployment insurance
+
+Arbeitsunfall                                accident at work
+
+Arbeitsunfall                                industrial accident
+
+Arbeitsunfähigkeit                           disablement
+
+Arbeitsunfähigkeit,  Erwerbsunfähigkeit      invalidity
+
+Arbeitsunfähigkeitsversicherung              disability insurance
+
+Arbitrage                                    arbitration
+
+arglistige Täuschung                         moral fraud
+
+arglistige Täuschung                         willful deceit
+
+arglistige Täuschung                         willful deception
+
+Art der Lebensversicherung                   type of assurance
+
+Art der Vereinbarung                         type of agreement
+
+Art des Schadens                             type of loss
+
+Arzneikosten                                 cost of medicaments
+
+Arztgebühren                                 medical fees
+
+Atomrisiko, Kernenergierisiko                nuclear risk
+
+Atomrisikoversicherung                       nuclear risk insurance
+
+attestieren, Attest                          attest
+
+auf alle Fälle                               at all hazards
+
+auf den Inhaber ausstellen                   make out to bearer
+
+auf einen Rechtsanspruch verzichten          waive a claim
+
+auf neuesten Stand bringen                   update
+
+auf Schadensersatz verzichten                waive the compensation
+
+aufgeben und abtreten                        abandon and cede
+
+aufgeben, verzichten                         abandon
+
+aufgegebenes Schiffswrack                    abandoned shipwreck
+
+aufgelaufen, angewachsen                     accrued
+
+aufgelaufener Zins                           accrued interest
+
+aufgeschobene Rente                          deferred annuity
+
+aufgeschobene Rente, verzögerte Rente        deferred annuity
+
+aufheben                                     suspend
+
+Aufhebung                                    suspension
+
+Aufhebung des Versicherungsschutzes          suspension of cover
+
+Aufopferung                                  sacrifice
+
+Aufopferung von Gütern unter großer Havarie  general averages sacrifice
+
+Aufräumungskosten                            cost of clearance of debris
+
+Aufruhrklausel                               riots clause
+
+aufsetzen                                    draw up
+
+Aufwand                                      expenditure
+
+aus der Haftung entlassen                    discharge from liability
+
+aus Versehen, versehentlich                  by mistake
+
+Ausbildungshilfe                             educational endowment
+
+Ausbildungszeit                              period of training
+
+Ausfuhrkreditversicherung                    export credit insurance
+
+Ausgabetag                                   date of issue
+
+Ausgangsperiode                              base period
+
+ausgeben                                     hand out
+
+ausgeschlossenes Risiko                      hazard not covered
+
+ausgleichend                                 compensatory
+
+Ausgleichsverfahren                          method of compensation
+
+Aushändigung, Anlieferung                    delivery
+
+Auskunft                                     disclosure
+
+Auskunftspflicht, Anzeigepflicht             duty of disclosure
+
+Auslandsauftrag                              foreign order
+
+Auslandsgeschäft                             business transacted overseas
+
+Auslandsgeschäft                             foreign transaction
+
+Auslandsreise                                journey abroad
+
+auslegen                                     interpret
+
+Auslegung                                    interpretation
+
+Auslegungsfrage, Sache der Auslegung         question of construction
+
+Auslegungsfrage, Sache der Auslegung         question of interpretation
+
+Ausmaß der Entschädigung                     measure of indemnity
+
+Ausmaß des Schadens                          degree  of damage
+
+Ausmaß, Umfang                               extent
+
+ausrecht erhalten                            hold up
+
+ausreichend, hinreichend                     adequate
+
+Ausrüstung, maschinelle Ausstattung          equipment
+
+Ausschaltung von Risiken                     elimination of risks
+
+ausschließen                                 eliminate
+
+ausschließen                                 exclude
+
+Ausschließlichkeit                           exclusiveness
+
+Ausschluss, Ausschließung                    exclusion
+
+Aussichten, Chancen                          chances
+
+Ausstattungsversicherung                     child endowment insurance
+
+ausstellen                                   issue
+
+Aussteuerversicherung                        child's deferred assurance
+
+Aussteuerversicherung                        dowry insurance
+
+Auswahl                                      choice
+
+Auswahl von Risiken                          selection of risks
+
+Auszahlung des Schadensersatzes              loss payment
+
+Automatenversicherung                        coin machine insurance
+
+automatisch                                  automatic
+
+Außendienst                                  field service
+
+Außendienstarbeit                            field work
+
+Außendienstorganisation                      field organization
+
+Außenseiter                                  outsider
+
+außer Frage                                  out of question
+
+außer Kraft setzen                           overrule
+
+außerhalb der Arbeitszeit                    off the job
+
+außerordentliche Sorgfalt                    extraordinary diligence
+
+außerstande, unfähig                         unable
+
+
+B
+
+
+Bankeinlagenversicherung                     bank deposit insurance
+
+Baratterie (Form des Betrugs)                barratry
+
+Barwert                                      cash value
+
+Basis                                        base
+
+Bauhaftpflichtversicherung                   builder's risk insurance
+
+beachten, beobachten, einhalten              observe
+
+Beachtung, Einhaltung, Beobachtung           observance
+
+beanspruchbar                                claimable
+
+bedarf des förmlichen Vertragsabschlusses    subject to formal contract
+
+Bedingung                                    qualification
+
+Bedingungen                                  terms
+
+Bedingungen der Versicherungspolice          terms of the policy
+
+Bedingungen einhalten                        keep the conditions
+
+bedingungslos                                unconditional
+
+bedingungslos, absolut, unumschränkt         absolute
+
+Bedüftigkeitstest                            means test
+
+beeinträchtigen                              affect
+
+beeinträchtigen                              impair
+
+Beeinträchtigung                             impairment
+
+beenden                                      terminate
+
+beendigen                                    terminate
+
+beendigen                                    termination
+
+Beendigung des Vertrags                      termination of contract
+
+Beerdigungskosten                            funeral expenses
+
+Befrachter                                   shipper
+
+Befrachtungsvertrag                          contract of affreightment
+
+befristete Garantie                          limited guarantee
+
+Beginn                                       inception
+
+Beginn des Risikos                           commencement of risk
+
+beginnen                                     commence
+
+begrenzte Prämie., gekürzte Prämie           limited premium
+
+begründen, verursachen, veranlassen          cause
+
+begünstigt, gewünscht, beliebt               favoured
+
+Begünstigter                                 beneficiary
+
+Begünstigter, Bezugsberechtigter             beneficiary
+
+behindern                                    hinder
+
+Behinderung                                  hindrance
+
+beidseitig, zweiseitig                       bilateral
+
+beipflichten                                 assent
+
+beispiellos                                  unparalleled
+
+Beitrag zur Sozialversicherung               social security contribution
+
+Beitragsleistung, Beitragszahlung            payment of contribution
+
+Beitragszahler                               contributor
+
+bekräftigen, bestätigen                      affirm
+
+belasten, Belastung                          debit
+
+Beleihung einer Police                       policy loan
+
+beraten                                      advise
+
+Beratungsfunktion                            advisory function
+
+Beraubung                                    pilferage
+
+Berechnung                                   calculation
+
+Berechnung der Wahrscheinlichkeit            calculation of probability
+
+Berechnungsgrundlage                         calculation basis
+
+Berechnungsmethode                           method of calculation
+
+berechtigt                                   entitled
+
+berechtigtes Interesse                       legitimate interest
+
+bergen, retten, sparen, ersparen             save
+
+Bergung aus Seenot                           maritime salvage
+
+Bergung, Bergelohn                           salvage
+
+Bergung, Rettung, Einsparung, Ersparnis      saving
+
+Bergungskosten                               salvage charges
+
+Bergungskosten                               salvage costs
+
+Bergungsmannschaft, Rettungsmannschaft       rescue party
+
+Bergungsschaden                              salvage loss
+
+berichten, Bericht                           report
+
+berichten, Rechenschaft ablegen              account
+
+berichtigen                                  rectify
+
+berichtigte Wahrscheinlichkeit               corrected probability
+
+Berufshaftpflichtversicherung                professional liability insurance
+
+Berufskrankheit                              occupational disease
+
+Berufskrankheit                              occupational illness
+
+Berufsrisiko                                 occupational hazard
+
+Berufsunfall                                 occupational accident
+
+Berufsunfallversicherung                     workmen's compensation insurance
+
+Berufung einlegen                            lodge an appeal
+
+berücksichtigen                              consider
+
+berücksichtigen                              make allowance for
+
+berücksichtigen                              take into consideration
+
+Berücksichtigung                             consideration
+
+Bescheinigung                                certificate
+
+Beschlagnahme                                confiscation
+
+Beschlagnahmeklausel                         free of capture and seizure clause
+
+Beschlagnahmerisiko                          risk of seizure
+
+beschleunigen                                accelerate
+
+Beschäftigungsumfang                         volume of employment
+
+Beschreibung des Risikos                     description of risk
+
+beschränken                                  restrain
+
+Beschränkung                                 restraint
+
+besondere Gefahren                           extraneous perils
+
+besondere Havarie                            particular average
+
+besondere Risiken, besondere Gefahren        special risks
+
+besondere Sorgfalt                           special diligence
+
+besonders, ungewöhnlich, speziell            particular
+
+besprechen                                   talk over
+
+Bestand, Portefeuille                        portfolio
+
+bestimmt, sicherlich                         certain
+
+bestimmtes Ereignis                          definite event
+
+Bestimmung                                   destination
+
+bestätigen                                   certify
+
+Bestätigung                                  acknowledgment
+
+Beteiligung                                  participation
+
+Betrag, betragen                             amount
+
+Betrieb eines Kraftfahrzeugs                 operation of a vehicle
+
+Betriebsgefahr                               operational risk
+
+Betriebsgefahren                             operational hazards
+
+Betriebshaftpflichtversicherung              employer's liability insurance
+
+Betriebsleitung                              general management
+
+Betriebsunfall                               industrial accident
+
+Betriebsunterbrechungsversicherung           business interruption insurance
+
+Betriebsversicherung                         factory insurance
+
+beträchtliche Schadensersatzleistung         substantial damages
+
+Betrugsabsicht                               intention to defraud
+
+betrügerisch                                 fraudulent
+
+beurteilen, Richter                          judge
+
+Beweggrund, Motiv                            motive
+
+bewegliche Gerätschaften                     movable equipment
+
+bewegliche Sache                             chattel
+
+Beweis erbringen                             supply evidence
+
+Beweislast                                   burden of proof
+
+Beweismaterial                               means of evidence
+
+bewertet, veranlagen, bemessen               assessed
+
+Bewertung                                    valuation
+
+Bewertung, Veranlagung, Bemessung            assessment
+
+bewohnbar                                    habitable
+
+bezahlter Schaden                            claim paid
+
+Bezirksdirektion                             general agency
+
+Bezirksdirektion                             regional head office
+
+Bilanzwert                                   book value
+
+Billigung finden                             meet with approval
+
+binden, verpflichten                         bind
+
+Binnenschifffahrtstransportversicherung      inland marine insurance
+
+Binnentransportversicherung                  inland marine insurance
+
+Binnentransportversicherung                  inland transportation insurance
+
+Binnenwasserstraßentransportversicherung     inland waterways insurance
+
+Binnenwassertransportversicherung            inland marine insurance
+
+Bonus                                        bonus
+
+Bonusrücklage                                bonus reserve
+
+Branchenrisiko                               risk peculiar to the trade
+
+Brandgefahr                                  fire hazard
+
+Brandgefahren                                fire hazards
+
+Brandkasse                                   fire office
+
+Brandmauer                                   fire wall
+
+Brandrisiko, Feuerrisiko                     fire risk
+
+Brandschaden                                 fire damage
+
+Brandschaden                                 fire loss
+
+Brandschaden                                 loss by fire
+
+Brandschadenabteilung                        fire department
+
+Brandschadenersatzleistung                   fire indemnity
+
+Brandstiftung                                arson
+
+Brandursache                                 cause of conflagration
+
+Brandversicherungspolice                     fire policy
+
+Brauch                                       usage
+
+brechen, zerbrechen                          break
+
+Bruch, Verlust durch Bruch, Bruchschaden     breakage
+
+Bruchschaden                                 breakage
+
+Bruttoprämie                                 gross premium
+
+Bruttoverlust                                gross loss
+
+buchen, verbuchen                            book
+
+buchmäßiger Verlust                          book loss
+
+
+D
+
+
+damals                                       then
+
+damals berechtigt                            then entitled
+
+damals gültig                                then in force
+
+Dampfkesselversicherung                      steam boiler insurance
+
+darauf ankommen lassen, riskieren            take one's chance
+
+Darlehen                                     loan
+
+Darlehen  gewähren                           grant a loan
+
+das Ausland betreffend                       foreign
+
+datieren                                     date
+
+Dauer                                        duration
+
+Dauer der Invalidität                        period of invalidity
+
+Dauer der Verlängerung                       period of extension
+
+Dauer des Zahlungsverzugs                    period of delay in payment
+
+Dauer, Zeit, Zeitraum                        period
+
+Dauerinvalidität                             permanent invalidity
+
+dauernde Erwerbsunfähigkeit, Dauerinvalidität permanent disability
+
+decken                                       cover
+
+Deckung anbieten                             offer cover
+
+Deckung aufrechterhalten                     maintain cover
+
+Deckung gewähren                             grant cover
+
+Deckung, Schutz                              cover
+
+Deckungsbestätigung                          cover note
+
+Deckungszeitraum, Versicherungsdauer         term of insurance
+
+Deckungszusage (US)                          binder
+
+Defizit                                      deficit
+
+Delcredereversicherung                       credit insurance
+
+dementsprechend                              accordingly
+
+detaillieren, volle Angaben machen           give full particulars
+
+Diebstahl                                    larceny
+
+Diebstahl                                    theft
+
+Dienstunfähigkeit                            disability for service
+
+direkte Versicherung                         direct insurance
+
+direkter Schaden                             direct damage
+
+direktes Geschäft                            direct business
+
+Dispache                                     general-average statement
+
+Dispacheur                                   general average adjuster
+
+doppelter Schadensersatz                     double damages
+
+Doppelversicherung                           double insurance
+
+dringend, dringlich                          urgent
+
+Dringlichkeit                                urgency
+
+Dringlichkeitsstufe                          degree of urgency
+
+drohen, Bedrohung                            threat
+
+Durchschnittsdauer                           average duration
+
+Durchschnittserwartung                       average expectation
+
+Durchschnittssatz                            average rate
+
+
+E
+
+
+echte Gefahr                                 genuine risk
+
+echter Wert                                  real value
+
+effektiver Wert, realer Wert, Sachwert       real value
+
+Eid                                          oath
+
+eigenes Verschulden                          actual fault
+
+eigenhändig unterschreiben                   sign personally
+
+Eigenrisiko, eigenes Risiko                  own risk
+
+Eigentumsrechte                              proprietary rights
+
+Eigentumsübergang                            mutation
+
+Eigentumsübergang                            passage of title
+
+Eigentümer                                   owner
+
+Eigentümer eines Gegenstandes                owner of an article
+
+Eigenversicherung                            insurance for one's own account
+
+ein Darlehen aufnehmen                       take up a loan
+
+ein Limit vorgeben                           give a limit
+
+ein Recht aufgeben                           abandon a right
+
+ein Recht übertragen                         confer a right
+
+ein Risiko übernehmen                        underwrite a risk
+
+ein Schiff verlassen                         abandon a ship
+
+einbezahlt                                   paid up
+
+Einbrecher                                   housebreaker
+
+Einbruch                                     housebreaking
+
+Einbruch- und Diebstahlversicherung          burglary insurance
+
+eine Frage behandeln                         enter into a question
+
+eine Frist bestimmen                         fix a time limit
+
+eine Versicherungspolice ausstellen          issue a policy
+
+einem Hindernis begegnen                     meet with an obstacle
+
+einen Antrag einreichen                      present an application
+
+einen Bericht vorlegen                       submit a report
+
+einen Eid ablegen                            take an oath
+
+einen Unfall melden                          report an accident
+
+einer Sache nachgehen, tiefer eindringen     go further into a question
+
+einfache Havarie                             simple average
+
+eingeschränkte Garantie                      limited guarantee
+
+eingetragener Sitz der Firma                 registered office
+
+Einhaltung von Vorschriften                  compliance with formalities
+
+Einheitspolice                               standard policy
+
+einklagbar                                   actionable
+
+Einkommen                                    income
+
+Einkommen der Familie                        family income
+
+Einkommensverlust                            loss of income
+
+Einmalprämie                                 single premium
+
+einreichen                                   hand in
+
+einschließen                                 include
+
+Einschluss                                   inclusion
+
+Einschreibsendung                            registered mail
+
+einschränkende Bedingung                     restrictive condition
+
+einseitig                                    unilateral
+
+einseitiges Risiko                           unilateral risk
+
+Einspruch erheben, Einspruch                 object
+
+Einspruch, Widerspruch                       objection
+
+Einstufung                                   tariff classification
+
+einsturzgefährdetes Bauwerk                  dangerous structure
+
+Eintrittsalter                               age at entry
+
+einträglich                                  gainful
+
+Einvernehmen, Verständnis                    understanding
+
+Einwand erheben                              raise an objection
+
+Einzelheiten                                 full particulars
+
+Einzelheiten                                 particulars
+
+einzelne Sendung                             individual shipment
+
+Einzelperson                                 individual
+
+Einzelprämie                                 single premium
+
+Einzelprämienversicherung                    single-premium insurance
+
+Einzelversicherer                            individual insurer
+
+Einzelversicherer                            individual underwriter
+
+Einzelzahlung                                individual payment
+
+Element, Grundbestandteil                    element
+
+Elementarrisiken                             natural hazards
+
+Empfangstag                                  date of receipt
+
+empfindlicher Verlust                        considerable loss
+
+Endalter                                     age at expiry
+
+Ende der Versicherungsdauer                  expiration of period
+
+Ende der Versicherungsdauer                  expiry of the policy
+
+Ende des Risikos                             termination of risk
+
+Endwert                                      final value
+
+entbinden, entlassen, Entlassung             discharge
+
+Entbindungsheim                              maternity home
+
+entgangener Gewinn                           lost profit
+
+Entgegenkommen                               accommodation
+
+entgegenkommen, unterbringen                 accommodate
+
+enthüllen, aufdecken                         disclose
+
+Enthüllung, Aufdeckung                       disclosure
+
+entscheiden                                  decide
+
+Entscheidung                                 decision
+
+Entschluss fassen                            take a decision
+
+entschädigen                                 compensate
+
+entschädigen                                 indemnify
+
+Entschädigung                                indemnification
+
+Entschädigung                                indemnity for damages
+
+Entschädigung für Verlust oder Beschädigung  compensation for loss or damage
+
+Entschädigung für Verluste                   indemnity for losses
+
+Entschädigung in einer runden Summe          lump-sum settlement
+
+Entschädigungsanspruch, Entschädigungsklage  claim for compensation
+
+Entschädigungsbetrag                         indemnity sum
+
+Entschädigungsforderung                      claim for compensation
+
+entschädigungspflichtige Verletzung          compensable injury
+
+entstandener Schaden                         loss occurred
+
+entstehend                                   arising
+
+Erbschaftssteuerversicherung                 estate duty
+
+Erdbebenrisiko                               earthquake hazard
+
+Erdbebenversicherung                         earthquake insurance
+
+Erdbebenrisiko, Erdbebengefahr               earthquake risk
+
+erfahren                                     come to know
+
+Erfahrung                                    experience
+
+Erforschung des Sachverhalts                 fact finding
+
+Erfüllung                                    performance
+
+Erfüllung einer Verpflichtung                performance of an obligation
+
+ergänzen                                     amend
+
+ergänzend                                    supplementary
+
+erhöhen, Erhöhung                            increase
+
+erhöhen, Erhöhung                            raise
+
+erhöht                                       increased
+
+erhöhte Kosten                               increased costs
+
+erhöhte Lebenserwartung                      increased expectation of life
+
+erhöhte Lebenshaltungskosten                 increased cost of living
+
+Erhöhung des Risikos                         increase in the risk
+
+erklären                                     declare
+
+erklärter Wille                              declared intention
+
+Erklärung                                    declaration
+
+Erklärungsbasis                              declaration basis
+
+Erlebensfallversicherung                     endowment insurance
+
+erlittener Verlust                           sustained loss
+
+Ermessen                                     discretion
+
+Ermessenentscheidung                         arbitrary decision
+
+ermächtigen                                  authorize
+
+Ermüdung                                     fatigue
+
+erneuern                                     renew
+
+erneuern, verlängern                         renew
+
+Erneuerung der Versicherungspolice           renewal of the policy
+
+Erneuerung wird fällig                       renewal falls due
+
+Erneuerung, Verlängerung                     renewal
+
+Ernteverlust, Verlust der Ernte              crop loss
+
+Ernteversicherung                            crop insurance
+
+Ernteversicherung                            growing crops insurance
+
+errechnen                                    compute
+
+Errechnung                                   computation
+
+Ersatz für einen Schaden                     indemnity for a loss
+
+Ersatz für mittelbaren Schaden               consequential damages
+
+Ersatz, Ersatzteil                           replacement
+
+Ersatzwert, Neuwert, Wiederbeschaffungswert  replacement value
+
+Ersparnisse                                  savings
+
+erstattet erhalten, wiedererlangen           recover
+
+erstattungsfähig                             recoverable
+
+erste Prämie                                 first premium
+
+Erstprämie                                   first premium
+
+Erstversicherer                              direct insurer
+
+Erstzahlung                                  initial payment
+
+Ertrag                                       yield
+
+erwartete Gefahren                           expected perils
+
+erwarteter Gewinn                            anticipated profit
+
+Erwartung eines Verlustes                    expectation of loss
+
+Erwerb                                       acquisition
+
+erwerben                                     acquire
+
+Erwerbsquelle                                means of subsistence
+
+erwerbsunfähig, arbeitsunfähig               disabled
+
+Erwerbsunfähigkeit                           incapacity to work
+
+erzielbare Entschädigung                     recoverable sum
+
+Erzwingungsmöglichkeit                       means of enforcing
+
+erörtern, begründen, Grund, Vernunft         reason
+
+etwas wieder gut machen                      make up for something
+
+Exportkreditgarantie                         export credits guarantee
+
+Exportkreditversicherung                     export credit insurance
+
+
+F
+
+
+Facharzt                                     medical specialist
+
+Fachkenntnisse                               technical know-how
+
+Fachkenntnisse, Erfahrung                    know-how
+
+Fachmann, Sachverständiger, Experte          expert
+
+fahrlässige Handlung                         negligent act
+
+Fahrlässigkeit                               negligence
+
+Fahrraddiebstahlversicherung                 cycle theft insurance
+
+Fahrradversicherung                          cycle insurance
+
+Fahrzeug                                     vehicle
+
+Fahrzeughalter                               owner of a motor vehicle
+
+Faktor, Einfluss                             factor
+
+fakultativ, wahlfrei                         facultative
+
+Fall, Beispiel                               instance
+
+fallen unter                                 come under
+
+falsch beurteilen                            misjudge
+
+falsch darstellen                            misrepresent
+
+falsche Angaben                              false statement
+
+falsche Auslegung                            misinterpretation
+
+falsche Aussage                              false evidence
+
+falsche Beschreibung                         misdescription
+
+falsche Darstellung                          misstatement
+
+falscher Alarm                               false alarm
+
+Fehlberechnung, falsche Berechnung           miscalculation
+
+fehlend                                      missing
+
+Fehler                                       mistake
+
+Fehlerart                                    type of error
+
+fehlerhaft                                   defective
+
+fehlerhaft                                   faulty
+
+Fehlerhaftigkeit                             faultiness
+
+Fehlschluss                                  false conclusion
+
+Fertigungsumfang                             volume of production
+
+feste Bedingungen                            set terms
+
+feste Prämie                                 fixed premium
+
+feste Summe                                  fixed sum
+
+fester Betrag                                fixed sum
+
+festgesetzt, festgelegt                      fixed
+
+festgestellt                                 ascertained
+
+festsetzen                                   ascertain
+
+feststehende Tatsache                        established fact
+
+Feststellung der Brandursache                fire inquest
+
+Feststellung des Schadens                    ascertainment of damage
+
+Feststellung des Schadens                    ascertainment of loss
+
+Feststellung des Schadens                    assessment of damage
+
+Feststellung des Schadenswertes              assessment of damage
+
+Feuerbestattungskosten                       cremation expenses
+
+Feuerbestattungskostenversicherung           cremation expenses insurance
+
+Feuergefahr                                  fire hazards
+
+feuerhemmend                                 fire-resisting
+
+Feuerleiter                                  fire escape
+
+Feuerlöscher                                 fire extinguisher
+
+Feuerlöschkosten                             fire extinguishing costs
+
+Feuermeldesystem                             fire alarm system
+
+Feuermeldevorrichtung                        fire alarm device
+
+Feuersbrunst, Brand                          conflagration
+
+Feuerschutz                                  fire protection
+
+Feuerschutzabgabe                            fire brigade charge
+
+Feuersgefahr                                 fire peril
+
+Feuersgefahr, Feuerrisiko                    fire hazard
+
+Feuersicherheit                              fire safety
+
+Feuerverhütung                               fire prevention
+
+Feuerversicherung, Brandversicherung         fire insurance
+
+Feuerversicherungsgesellschaft               fire underwriter
+
+Feuerwehr                                    fire brigade
+
+Feuerwehrmann                                fireman
+
+Filmtheaterversicherung                      cinema insurance
+
+finanzielle Verluste                         pecuniary losses
+
+finanzieller Verlust                         financial loss
+
+Firmeninhaber                                owner of a firm
+
+Firmenname                                   firm name
+
+Fluggastversicherung                         air passenger insurance
+
+Fluggastversicherung                         aircraft passenger insurance
+
+Fluglinie, Fluggesellschaft                  airline
+
+Flugrisiko                                   aviation risk
+
+Flugzeugentführer                            hi-jacker
+
+Flugzeugentführung                           hi-jacking
+
+Flugzeugkaskoversicherung                    aircraft hull insurance
+
+Flut,   Überschwemmung                       flood
+
+Folge von Ereignissen                        chain of events
+
+Folgeprämie                                  renewal premium
+
+Folgeschaden                                 consequential damage
+
+Folgeschaden                                 consequential loss
+
+fällig                                       due
+
+fällig werden                                fall due
+
+fällig zur Zahlung                           due for payment
+
+fällige Entschädigung                        accrued compensation
+
+fällige Prämie                               premium due
+
+Fälligkeit der Prämie                        premium due rate
+
+fälschen                                     falsify
+
+fälschen                                     forge
+
+Fälschung                                    falsification
+
+Forderungsübergang                           subrogation
+
+formaler Fehler                              lack of form
+
+Formblatt ausfüllen                          fill in a form
+
+Formsache                                    matter of form
+
+Formvorschrift                               formality
+
+Forstversicherung                            insurance of growing timber
+
+Fortdauer, Fortsetzung                       continuation
+
+fortsetzen                                   continue
+
+Frachtaufkommen                              volume of cargo
+
+Frachtversicherer                            cargo underwriter
+
+Frachtversicherung                           cargo insurance
+
+Frachtversicherung                           cargo policy
+
+Frachtversicherung                           hull insurance
+
+Frachtversicherung                           insurance on freight
+
+Frage                                        question
+
+Frage von Bedeutung                          question of substance
+
+Franchise                                    franchise
+
+Franchiseklausel                             franchise clause
+
+frei von Beschädigung außer im Strandungsfall free of particular average
+
+frei von Leckage                             free from leakage
+
+freie Wahl                                   free choice
+
+freie Wahl des Arztes                        free choice of medical practitioner
+
+freiwillige Leistung, Kulanzleistung         ex-gratis payment
+
+freiwillige Versicherung                     voluntary insurance
+
+Frist einhalten                              comply with a term
+
+Frist einhalten                              keep a term
+
+Frist überschreiten                          exceed a term
+
+Frist, zeitliche Begrenzung                  time limit
+
+Frostversicherung                            frost insurance
+
+Fundbüro                                     lost property office
+
+Fundsache, verlorene Sache                   lost property
+
+für den Schaden aufkommen                    bear the damage
+
+für eine bestimmte Zeit                      for a time certain
+
+für einen Schaden haftbar                    liable for a loss
+
+für weniger als ein Jahr                     for less than a year
+
+
+G
+
+
+Garantie                                     guarantee
+
+Garantie, Gewährleistung, Zusicherung        warranty
+
+Garantiedauer                                duration of guarantee
+
+Garantievertrag                              contract of indemnity
+
+Garantiezeit                                 guarantee period
+
+Garantiezeit, Versicherungsdauer             duration of cover
+
+Gebäudeversicherung                          insurance of buildings
+
+gebunden, verpflichtet                       bound
+
+Geburtenziffer                               birth rate
+
+Gebühr                                       fee
+
+Gebühr, belasten                             charge
+
+Gebührentabelle                              table of fees
+
+gedeckt                                      covered
+
+geeignet                                     qualified
+
+Gefahr                                       danger
+
+Gefahr, Risiko, Zufall                       hazard
+
+Gefahren der See                             dangers of the sea
+
+Gefahren der See                             hazards of the sea
+
+Gefahren der See, Seegefahren, Seerisiken    perils of the sea
+
+Gefahren der Seefahrt                        dangers of navigation
+
+Gefahrenabnahme, Gefahrenminderung           decrease of risk
+
+Gefahrenart                                  type of risk
+
+Gefahrengut, gefährliche Ladung              dangerous goods
+
+Gefahrenklasse                               class of risk
+
+Gefahrenzone                                 danger zone
+
+gefährlich                                   dangerous
+
+gefährlich, riskant                          hazardous
+
+gefährliche Ladung                           dangerous cargo
+
+gefährliche Tiere                            dangerous animals
+
+gefährliche Vorführungen                     dangerous performances
+
+gegen alle Gefahren                          against all risks
+
+gegen eine Regel verstoßen                   infringe a rule
+
+gegen, zuwider                               contrary to
+
+Gegenseitigkeit                              mutuality
+
+Gegenstand                                   subject-matter
+
+Gegenstand der Versicherung                  object insured
+
+gegenwärtiger Wert, Barwert                  present value
+
+geistige Ermüdung                            mental fatigue
+
+geistige Störung                             mental defect
+
+gekündigt, storniert                         cancelled
+
+gekürzte Prämie                              limited premium
+
+Geld heraus bekommen                         get money back
+
+Geldtransport                                cash transport
+
+Geldverlust                                  loss of cash
+
+Gelegenheit, Grund, Ereignis                 occasion
+
+gelegentlich                                 occasional
+
+gemischt                                     mixed
+
+gemischte Police                             mixed policy
+
+gemäß                                        according to
+
+genehmigungspflichtig                        subject to approval
+
+Generalpolice                                open policy
+
+Generalvertreter                             general agent
+
+Genesungsheim, Kuranstalt                    convalescent home
+
+Genesungszeit, Erholungszeit                 convalescence
+
+Gepäckversicherung                           baggage insurance
+
+gerecht                                      just
+
+gerecht und zumutbar                         just and reasonable
+
+gerichtliche Maßnahmen ergreifen             take legal measures
+
+Gerichtskosten                               legal expenses
+
+gerichtsmedizinisch                          medico-legal
+
+gesamt                                       overall
+
+Gesamtbetrag                                 aggregate amount
+
+Gesamtprüfung                                general examination
+
+gesamtschuldnerisch haftend                  jointly and severally liable
+
+gesamtschuldnerische Haftung                 joint liability
+
+Gesamtversicherung                           all-risk insurance
+
+Geschädigter                                 aggrieved party
+
+Geschäfte durchführen                        transact business
+
+Geschäfte tätigen                            transact business
+
+geschäftliches Risiko                        business risk
+
+Geschäftsausfallversicherung                 loss of profit insurance
+
+Geschäftsbedingungen                         terms and conditions
+
+Geschäftshaftpflichtversicherung             business liability insurance
+
+Geschäftsräume                               business premises
+
+Geschäftsstelle                              branch office
+
+Geschäftsumfang                              volume of business
+
+geschätzter Wert                             estimated value
+
+Gesetz der großen Zahl                       law of large numbers
+
+Gesetzeslücke                                loophole in the law
+
+gesetzlich begründeter Schadensersatzanspruch lawful damages
+
+gesetzlich haftbar                           legally liable
+
+gesetzliche Haftpflicht                      legal liability
+
+gesetzliche Rücklage                         legal reserve
+
+gesetzliche Verpflichtung                    legal obligation
+
+gesiegelte Urkunde                           deed
+
+gestohlenes Fahrzeug                         stolen vehicle
+
+gestufter Tarif                              graduated tariff
+
+gesund                                       healthy
+
+Gesundheit                                   physical health
+
+Gesundheit wiederherstellen                  restore health
+
+Gesundheitsamt                               local health authority
+
+getrennt halten                              keep apart
+
+Gewahrsam                                    keeping
+
+Gewahrsamsklausel                            bailee clause
+
+gewerbliche Feuerversicherung                industrial fire risk insurance
+
+gewerbliches Fahrzeug                        commercial vehicle
+
+gewerbliches Risiko                          industrial risk
+
+Gewichtsverlust                              loss in weight
+
+Gewinn, Vorteil                              gain
+
+Gewinnanteil, Dividende                      dividend
+
+Gewinnplan, Dividendensystem                 bonus scheme
+
+Gewinnverteilung                             bonus allocation
+
+gewissermaßen                                in some measure
+
+Gewissheit, Sicherheit                       certainty
+
+gewähren, gestatten                          allow
+
+Gewässerverschmutzung                        water pollution
+
+gewöhnlich                                   ordinary
+
+Glasversicherung                             glass breakage insurance
+
+Glasversicherung                             plate glass insurance
+
+gleichbleibende Prämie                       level premium
+
+gleichbleibendes Risiko                      constant risk
+
+gleichsam                                    quasi
+
+gleichzeitig                                 concurrent
+
+Grad der Invalidität                         degree of disablement
+
+Grenze der Entschädigung                     limit of indemnity
+
+grobe Fahrlässigkeit                         gross fault
+
+große Havarie, Havarie-grosse                general average
+
+große Sorgfalt                               high diligence
+
+großenteils                                  in a great measure
+
+Großfeuer                                    conflagration
+
+Großlebensversicherung                       ordinary life insurance
+
+Grund der Kündigung                          cause of cancellation
+
+Grund, Ursache, Veranlassung                 cause
+
+Grundbesitz                                  real property holding
+
+Grundbesitz, Immobilien                      real estate
+
+Grundbesitzer                                land owner
+
+Grundbesitzer                                landholder
+
+Grundbesitzer                                owner of an estate
+
+Grundgebühr                                  base fee
+
+grundlos, ohne Basis                         baseless
+
+Grundprämie                                  basic premium
+
+Grundstückeigentümer, Hausherr               landlord
+
+Grundstückeigentümerhaftpflicht              landlord's liability
+
+Grundstücksverwaltungsabteilung              real estate department
+
+Grundstückswert                              value of the property
+
+Grundtarif                                   basic rate
+
+Gruppenlebensversicherung                    group life insurance
+
+Gruppenversicherung                          collective insurance
+
+Gruppenversicherung                          group insurance
+
+Gruppenversicherung, Kollektivversicherung   group insurance
+
+grüne Versicherungskarte                     green card
+
+gültig                                       in force
+
+gültig                                       valid
+
+gültiger Einwand                             valid objection
+
+gültiger Tarif                               tariff in force
+
+Gültigkeit                                   validity
+
+Gültigkeitsdauer                             validity period
+
+günstigste Bedingungen                       most favourable terms
+
+gütlich, außer Gericht, außergerichtlich     amicably
+
+gütlich, unter Freunden                      amicable
+
+gütliche Beilegung, Schlichtung              amicable adjustment
+
+gütlicher Vergleich, Vergleich               amicable settlement
+
+
+H
+
+
+Hafenrisiken                                 port risks
+
+haftbar werden                               become liable
+
+haftbar, verantwortlich                      accountable
+
+haftbar, verantwortlich                      liable
+
+Haftpflicht                                  liability
+
+Haftpflichthöchstgrenze                      maximum liability
+
+Haftpflichtversicherung                      third-party insurance
+
+Haftpflichtversicherung (US)                 liability insurance
+
+Haftpflichtversicherung des Arbeitsgebers    employer's liability insurance
+
+Haftung des Grundpächters                    landholder's liability
+
+Haftung gegen Dritten                        third-party liability
+
+Haftungsdauer                                indemnity period
+
+Haftungsumfang                               accountability
+
+Hagelschaden                                 damage by hail
+
+Hagelversicherung                            hail insurance
+
+halbamtlich                                  quasi official
+
+Halbjahresprämie                             semi-annual premium
+
+halten, festhalten, besitzen                 hold
+
+halten, Lebensunterhalt                      keep
+
+Handlung                                     act
+
+harte Bedingung, strenge Bedingung           stringent condition
+
+hauptberuflicher Vertreter                   full-time agent
+
+Hauptpolice                                  master policy
+
+Hauptursache                                 chief cause
+
+Haus- und Geschäftsräume                     domestic and business premises
+
+Hausbesitzer                                 house owner
+
+Hausbesitzer                                 owner of a house
+
+Hauseigentümer                               homeowner
+
+Hauseigentümerversicherung                   house owner's policy
+
+Hausrat- und Haftpflichtversicherung     householder's comprehensive insurance
+
+Hausrat                                      household and personal effects
+
+Hausrat                                      residence contents
+
+Hausratsversicherung                         household insurance
+
+Hausratversicherung                          insurance of contents
+
+Hausschwamm                                  dry rot
+
+Hausversicherung                             home insurance
+
+Hausversicherung                             residence insurance
+
+Hausvertreter                                home-service insurance man
+
+Havarie-grosse  Klausel                      general-average clause
+
+Havariebericht, Schadensbericht              survey report
+
+Havarieeinschuss                             general average deposit
+
+Havariehandlung                              general average act
+
+Havariekommissar                             average adjuster
+
+Havariekommissar                             surveyor
+
+Havariekommissar von Lloyd                   Lloyd's agent
+
+Havarieverteilung                            adjustment of average
+
+Hebegebühr                                   collection charge
+
+Heizkesselversicherung                       boiler insurance
+
+herabsetzen                                  reduce
+
+herrenlos                                    unowned
+
+herrenloses Gut                              abandoned property
+
+Herstellerhaftpflichtversicherung            producer's liability insurance
+
+Hilfe, Fürsorge                              aid
+
+Hilfeleistung                                assistance after accident
+
+Hindernis                                    obstacle
+
+Hinreise                                     outward journey
+
+Hinterbliebene                               surviving dependants
+
+Hinterbliebenenrente                         survivorship annuity
+
+Hintertür                                    loophole
+
+hinzufügen                                   add
+
+Honorar des Arztes, ärztliches Honorar       doctor's fee
+
+häufig                                       frequent
+
+Häufigkeit                                   frequency
+
+häuslicher Unfall                            domestic accident
+
+Hypothekenabteilung                          mortgage department
+
+Hypothekendarlehen                           mortgage loan
+
+hypothetische Frage                          hypothetical question
+
+Höchstalter                                  limiting age
+
+Höchstalter, Altersgrenze                    age limit
+
+Höchstbetrag                                 maximum amount
+
+Höchstgrenze                                 maximum limit
+
+Höchstsatz, Höchstprämie                     maximum rate
+
+Höchstschaden                                maximum loss
+
+Höchstwert                                   maximum value
+
+Höchstzahl                                   maximum number
+
+Höhe des Schadens                            quantum of damages
+
+höher im Rang sein                           rank before
+
+höhere Gewalt                                Act of God
+
+höhere Gewalt                                force majeure
+
+
+I
+
+
+Identität                                    identity
+
+im Auftrag des Kunden                        on behalf of the client
+
+im Ausland wohnhaft                          resident abroad
+
+im Außendienst tätig sein                    work in the field
+
+im Falle des Verlusts                        in the event of loss
+
+im Falle des Verlusts, im Schadensfalle      in case of loss
+
+im Falle von                                 in case of
+
+im Falle von                                 in the event of
+
+im Klagewege, durch eine Klage               by way of action
+
+im Obligo                                    on risk
+
+im Schadensfalle                             in the event of damage
+
+im Schadensfalle                             in the event of loss
+
+im Todesfalle                                in the event of death
+
+im voraus bezahlt                            prepaid
+
+im voraus bezahlte Prämie                    premium paid in advance
+
+imaginäre Schadensersatzforderung            imaginary damages
+
+imaginärer Gewinn                            anticipated profit
+
+imaginärer Gewinn                            imaginary profit
+
+in Anbetracht                                in view of
+
+in Arbeit befindliche Ware                   goods in process
+
+in Betracht kommen                           come into question
+
+in Betracht ziehen                           take into consideration
+
+in gewisser Hinsicht                         in a way
+
+in gutem Zustand halten                      keep in good repair
+
+in Pension gehen, in Rente gehen             go on pension
+
+in Ruhestand gehen                           retire
+
+in Zukunft, nachstehend                      hereafter
+
+in Übereinstimmung mit                       in accord with
+
+identifizieren                               identify
+
+Index                                        index
+
+Indexklausel                                 index clause
+
+Indexversicherung                            insurance with index clause
+
+indirekter Schaden                           indirect loss or damage
+
+indirekter Schaden, mittelbarer Schaden      indirect damage
+
+indossieren, ergänzen                        endorse
+
+Inflationsgefahr                             inflation peril
+
+Inhaber                                      holder
+
+Inhalt, Hausrat, Mobilien                    contents
+
+Inkasso vornehmen                            collect
+
+Inkassoabteilung                             collection department
+
+Inkassokosten                                collection costs
+
+Inkrafttreten                                coming into force
+
+Innendienstbelegschaft                       inside staff
+
+insbesondere                                 in particular
+
+Insolvenz                                    insolvency
+
+Instandsetzungsabteilung                     maintenance department
+
+Interesse, Zins                              interest
+
+Internationale Versicherungskarte            international insurance card
+
+internationales Versicherungsgeschäft        international insurance business
+
+Invalide                                     disabled person
+
+Invalidenrente                               disability benefits
+
+Invalidität                                  disability
+
+Invaliditätegrad                             disability percentage
+
+Invaliditätsrente, Invalidenrente            disability annuity
+
+Investition                                  investment
+
+irreführen                                   mislead
+
+irreführend                                  misleading
+
+irren                                        be mistaken
+
+irrige Auffassung                            mistaken idea
+
+irrtümlicherweise                            mistakenly
+
+
+J
+
+
+Jagdhaftpflichtversicherung                  hunting liability insurance
+
+Jagdunfall                                   hunting accident
+
+Jahr                                         year
+
+Jahresabrechnung                             annual account
+
+Jahresprämie                                 annual premium
+
+jedes Frachtstück separat versichert         each package separately insured
+
+jährlich                                     yearly
+
+jährliche Tilgungsrate                       annual amortization
+
+jährliche Zahlung                            annual payment
+
+
+K
+
+
+Kapitalanlagen                               capital investments
+
+Karenzzeit                                   qualifying period
+
+Kartell                                      cartel
+
+Kassenbote                                   cash messenger
+
+Kassenbotenversicherung                      cash messengerv insurance
+
+Katastrophe                                  catastrophe
+
+katastrophenartig, katastrophal              catastrophic
+
+Katastrophenreserve, außerordentliche Reserve catastrophe reserve
+
+Katastrophenrückversicherung                 catastrophe reinsurance
+
+Kausalzusammenhang                           causal connection
+
+Kautionsversicherung                         fidelity guarantee insurance
+
+Kautionsversicherung                         surety insurance
+
+Kenntnis                                     knowledge
+
+Kindersterblichkeit                          infant mortality
+
+Klage vor Gericht                            legal action
+
+Klage, Beschwerde                            complaint
+
+Klage, Handlung                              action
+
+klar, ohne Zweifel                           clear
+
+klassifizieren, einstufen                    classify
+
+Klausel betreffend bürgerliche Unruhen       civil commotions clause
+
+Klausel betreffend vorzeitige Fälligkeit     acceleration clause
+
+klein halten, minimieren                     minimize
+
+kleine Havarie                               petty average
+
+kleinerer Schaden, Bagatellschaden           minor loss
+
+Kleingeld                                    loose cash
+
+Kleinlebensversicherung                      home service office
+
+Kleinlebensversicherung                      industrial life insurance
+
+Knappschaftsversicherung                     miners' insurance
+
+Kollisionsklausel beidseitiges Verschulden   both-to-blame collision clause
+
+Kompensation, Entschädigung, Ausgleich       compensation
+
+Kompromiss, Kompromiss schließen             compromise
+
+Konnossementsklausel                         bill of lading clause
+
+Konstruktionsfehler                          fault in construction
+
+Kontinuität                                  continuity
+
+Konto auflösen, Konto abschließen            close an account
+
+Konto, Abrechnung                            account
+
+kontrollieren, Kontrolle                     control
+
+Konzession                                   concession
+
+Kraftfahrer                                  motorist
+
+Kraftfahrzeughaftpflichtversicherung         motor car liability insurance
+
+Kraftfahrzeughaftpflichtversicherung         motor third party insurance
+
+Kraftfahrzeuginsassenversicherung            motor vehicle passenger insurance
+
+Kraftfahrzeugmissbrauch                      misuse of motor cars
+
+Kraftfahrzeugsbesitzer, Fahrzeughalter       owner of a car
+
+Kraftfahrzeugskaskoversicherung              motor hull insurance
+
+Kraftfahrzeugversicherung                    automobile insurance
+
+Kraftfahrzeugversicherung                    motor car insurance
+
+Kraftfahrzeugversicherung                    motor vehicle insurance
+
+Krankengeld                                  sick pay
+
+Krankengeld                                  sickness benefits
+
+Krankenhauskosten                            hospitality expense
+
+Krankenhausunterbringung                     hospital accommodation
+
+Krankenkasse                                 sickness fund
+
+Krankenversicherung                          health insurance
+
+Krankheit                                    illness
+
+Krankheitsnachweis                           evidence of sickness
+
+Krankienhauskosten                           hospital expense
+
+Kreditgrenze                                 credit margin
+
+Kreditumfang                                 volume of credit
+
+Kreditversicherung                           bad debts insurance
+
+Kreditversicherung                           guarantee insurance
+
+Kriegsgebiet                                 operational zone
+
+Kriegsrente                                  war pension
+
+Kriegsrisikenvereinbarung                    war risk agreement
+
+Kriegsrisiko                                 war risk
+
+Kriegsrisikoversicherung                     war risk insurance
+
+kumulative                                   accumulative
+
+Kursverlust                                  loss by redemption
+
+kurzfristig                                  short term
+
+kurzfristige Deckung                         short period cover
+
+Körperschaden, Verletzung                    bodily harm
+
+Körperschaden, Verletzung                    bodily injury
+
+Körperschaden, Verletzung                    physical injury
+
+Körperschaft                                 corporation
+
+Körperverletzung                             battery
+
+Körperverletzung mit Todesfolge              bodily harm with fatal consequences
+
+kündbar, rückzahlbar                         terminable
+
+kündigen, stornieren                         cancel
+
+Kündigung                                    cancellation
+
+Kündigung der Versicherungspolice            cancellation of the policy
+
+Kündigungsfrist                              period of cancellation
+
+Kündigungsschreiben                          letter of cancellation
+
+
+L
+
+
+Lagerversicherung                            warehouse insurance
+
+landwirtschaftliche Versicherung             agricultural insurance
+
+langfristig                                  long term
+
+Last                                         burden
+
+laufende Risiken                             current risks
+
+laufende Versicherung, offene Police         open policy
+
+Laufzeit der Garantie, Garantiezeit          term of guarantee
+
+Laufzeit der Versicherungspolice             policy period
+
+Lebendgeburt                                 live birth
+
+Lebenserwartung                              expectation of life
+
+Lebenserwartung                              life expectancy
+
+Lebensgefahr                                 danger to life
+
+Lebenshaltungskosten                         cost of living
+
+Lebenshaltungskostenindex                    cost of living index
+
+lebenslänglich Begünstigter                  life beneficiary
+
+lebenslängliche Rente, Leibrente             life annuity
+
+Lebensversicherung                           assurance
+
+Lebensversicherung                           life assurance
+
+Lebensversicherung                           life insurance
+
+Lebensversicherung abschließen               take out a life policy
+
+Lebensversicherung auf Erleben und Todesfall mixed life assurance
+
+Lebensversicherungsgesellschaft              life insurance company
+
+Lebensversicherungsgesellschaft              life office
+
+Lebensversicherungspolice                    life insurance policy
+
+Lebensversicherungsverein auf Gegenseitigkeitmutual life office
+
+Lebensversicherungsvertrag                   life insurance contract
+
+lebenswichtig                                vital
+
+Lebenszeit                                   life time
+
+Leck                                         leak
+
+Leckage                                      leakage
+
+Leckage und Bruch                            leakage and breakage
+
+Leckageklausel                               leakage clause
+
+Leibrente                                    life annuity
+
+Leibrentner                                  life annuitant
+
+Leiche                                       dead body
+
+leichte Fahrlässigkeit                       slight fault
+
+leihen gegen Sicherheit, beleihen            lend against security
+
+leihen, beleihen, ausleihen                  lend
+
+Leistungen beantragen                        claim benefits
+
+Leistungen beziehen                          draw benefits
+
+leistungsberechtigt                          entitled to benefits
+
+Leistungsdauer                               period of indemnification
+
+Leitungswasserversicherung                   water damage insurance
+
+Leuchtstoffröhre                             fluorescent tube
+
+Liegezeit, Ruhezeit                          idle period
+
+Liegezeit, Stillstandszeit                   idle period
+
+Lizenz                                       license
+
+Lloyds Makler                                Lloyd's broker
+
+Lloyds Schiffsregister                       Lloyd's Register of Shipment
+
+Lloyds Versicherer                           Lloyd's underwriter
+
+Lohnausfall                                  loss of pay
+
+Londoner Versicherungsbörse                  Lloyd's
+
+Luftfahrtversicherung                        aircraft insurance
+
+Luftfahrtversicherung                        aviation insurance
+
+Luftreise                                    air journey
+
+Lufttransportversicherung                    air transport insurance
+
+Luftverschmutzung                            air pollution
+
+löschen                                      delete
+
+Löschfahrzeug                                fire engine
+
+Löschfahrzeug                                fire truck
+
+Löschung                                     extinction
+
+
+M
+
+
+Makler                                       broker
+
+Mangel                                       defect
+
+mangels                                      failing
+
+mangels                                      for want of
+
+mangels Beweis                               for want of evidence
+
+mangels Deckung                              for want of cover
+
+mangels Vertrauen                            for want of confidence
+
+mangels Zahlung                              for want of payment
+
+Manipulation, Handhabung                     manipulation
+
+manipulieren                                 manipulate
+
+Marktwert, Verkehrswert                      market value
+
+Maschinenversicherung                        machinery breakdown insurance
+
+Maschinenversicherung                        machinery insurance
+
+mathematischer Erwartungswert                actuarial expectation
+
+mathematischer Wert                          mathematical value
+
+medizinischer Beweis                         medical evidence
+
+mehrfache Risiken                            multiple perils
+
+Mehrzahl aller Fälle                         majority of cases
+
+meistbegünstigt                              most favoured
+
+meistbegünstigter Rückversicherer            most favoured reinsurer
+
+Meistbegünstigungsklausel                    most favoured reinsurer clause
+
+Menge                                        quantum
+
+messen, bemessen, Maß, Maßnahme              measure
+
+Mietverlustversicherung                      rent insurance
+
+Minderlieferung                              short delivery
+
+Minderung des Wertes                         depreciation
+
+Minderung des Wertes, Wertminderung          loss in value
+
+Mindestbetrag                                minimum amount
+
+Mindestgebühr                                minimum charge
+
+Mindestlohn                                  minimum wage
+
+Mindestprämie                                minimum premium
+
+Mindestversicherung                          minimum insurance
+
+Minenrisiko                                  mine risk
+
+Missachtung                                  contempt
+
+Missbrauch, missbrauchen                     misuse
+
+missbrauchen, Missbrauch                     abuse
+
+Missverhältnis, schlechte Regelung           maladjustment
+
+Missverständnis, Irrtum                      misapprehension
+
+mit Ausnahme von                             other than
+
+mit ausreichender Bestimmtheit               with reasonable certainty
+
+mit besonderer Havarie                       with particular average
+
+mit Maschine geschrieben                     typewritten
+
+mit Verlust                                  at a sacrifice
+
+mit vollem Namen unterzeichnen               sign in full
+
+Miteigentümer                                joint owner
+
+Mitglied                                     member
+
+Mitversicherer                               co-insurer
+
+Mitversicherung                              co-insurance
+
+mitwirken, zusammentreffen                   concur
+
+Missverhältnis, Unangemessenheit             inadequacy
+
+Monatsbeitrag                                monthly contribution
+
+Monatsprämie                                 monthly premium
+
+Mord, Totschlag, Ermordung                   homicide
+
+Motorradversicherung                         motor cycle insurance
+
+multiplizieren                               multiply
+
+Musikinstrumenteversicherung                 musical instruments insurance
+
+Muttergesellschaft                           parent company
+
+Mutterschaftsgeld                            maternity benefit
+
+Mutterschaftsversicherung                    maternity insurance
+
+Mutterschutzfrist                            maternity period
+
+müßig                                        idle
+
+
+N
+
+
+nach Möglichkeit, soweit wie möglich         as far as possible
+
+Nachbarschaftsrisiko                         neighbouring risk
+
+nachfolgend                                  subsequent
+
+Nachfrist                                    days of grace
+
+Nachname                                     family name
+
+Nachprämie, Anpassungsprämie                 adjustment premium
+
+Nachschuss                                   additional contribution
+
+nachschüssige Zahlung                        payment in arrear
+
+Nachteil                                     disadvantage
+
+nachteilig                                   disadvantageous
+
+Nachversicherungspolice                      subsequent policy
+
+Nachweis erbringen                           provide evidence
+
+Nachweis, Beweis, beweismaterial             evidence
+
+nackte Tatsachen                             hard facts
+
+Name, benennen                               name
+
+Namen feststellen, Namen festhalten          secure the name
+
+namens                                       in the name of
+
+Namenspolice                                 named policy
+
+Naturalersatz                                replacement in kind
+
+natürlicher Tod                              natural death
+
+nebenberuflicher Vertreter                   part-time agent
+
+Nebengewinn                                  extra gain
+
+Nebenkosten                                  related costs
+
+Nettoprämie                                  net premium
+
+Nettoverlust                                 clear loss
+
+neu für alt                                  new for old
+
+neue Art von Risiko                          new type of risk
+
+Neuwert                                      reinstatement value
+
+Neuwertversicherung                          reinstatement policy
+
+nicht beachten                               ignore
+
+nicht einklagbar                             non-actionable
+
+nicht erhältlich                             unavailable
+
+nicht formgerecht                            bad in form
+
+nicht klagbar                                unenforceable
+
+nicht mehr gut zu machender Verlust          irreparable loss
+
+nicht versicherbar                           uninsurable
+
+nicht wieder gut zu machender Schaden        irreparable damages
+
+Nichtauslieferung                            non-delivery
+
+Nichteinhaltung der Garantie                 breach of warrantee
+
+nichtgelandete Ware                          short-landed goods
+
+nichtgelieferte Ware                         short-shipped goods
+
+nichtig                                      void by law
+
+Nichtlieferung                               non-delivery
+
+Nichtmitglied                                nonmember
+
+Nichtzahlung                                 failure to pay
+
+noch nicht abgelaufen                        unexpired
+
+noch unerledigt                              still outstanding
+
+nähere Angaben                               statement of particulars
+
+Nominalwert                                  nominal value
+
+nomineller Schaden                           nominal damage
+
+nomineller Schadensersatz                    nominal damages
+
+Normalpolice                                 standard policy
+
+normieren                                    standardize
+
+Notausgang                                   emergency exit
+
+Notausgang                                   fire exit
+
+notfalls                                     in case of emergency
+
+Nothafen                                     harbour of refuge
+
+Notlage                                      distress
+
+Notlage                                      emergency
+
+Notmaßnahmen                                 emergency steps
+
+notwendige Sorgfalt                          necessary diligence
+
+Null                                         zero
+
+Nummer der Versicherungspolice               policy number
+
+nur dem Namen nach, nominell                 nominal
+
+nur für einen kurzen Zeitraum                for a short term only
+
+nur gegen Totalverlust                       total loss only
+
+Nutzen ziehen                                benefit from
+
+Nutzfeuer                                    friendly fire
+
+Nutzungsschaden, Entgang der Nutzung         loss of use
+
+
+O
+
+
+objektives Risiko                            physical hazard
+
+obligatorisch                                obligatory
+
+obligatorische Rückversicherung              obligatory  reinsurance
+
+obligatorische Versicherung                  obligatory insurance
+
+offene Deckung, Generalpolice                open cover
+
+offene Police, Abschreibepolice              floating policy
+
+offene Police, Generalpolice                 open policy
+
+ohne Datum, undatiert                        undated
+
+ohne Frage                                   without question
+
+ohne Garantie                                without guarantee
+
+ohne ärztliche Untersuchung                  without medical examination
+
+ohne Vollmacht, nicht bevollmächtigt         unauthorized
+
+Operationskosten                             surgery costs
+
+Operationskostenversicherung                 surgical fees insurance
+
+Optimum, optimal                             optimum
+
+Organisationsabteilung                       coordination department
+
+Ort                                          location
+
+Oxydation                                    oxidation
+
+
+P
+
+
+Paketpolice                                  package policy
+
+Paketversicherung                            parcel post insurance
+
+Paragraf, Abschnitt, Absatz                  paragraph
+
+Partei, Seite, Beteiligter                   party
+
+Passagierflugzeug                            airliner
+
+Passagiergut                                 registered luggage
+
+Pauschale                                    lump-sum
+
+Pauschale, Pauschalbetrag                    lump sum
+
+Pauschalentschädigung                        damages at large
+
+Pauschalversicherung                         global cover
+
+Pauschalversicherung, Gesamtversicherung     all-in insurance
+
+Pension                                      pension
+
+Pension                                      retirement pay
+
+Pension beantragen, Rente beantragen         apply for a pension
+
+Pensionsalter                                pension age
+
+Pensionsalter                                pensionable age
+
+pensionsberechtigt                           entitled to a pension
+
+pensionsberechtigt, rentenberechtigt         pensionable
+
+Personenversicherung                         insurance of persons
+
+Personenversicherung                         personal insurance
+
+persönlich haftend                           individually liable
+
+Pfand, verpfänden                            pledge
+
+Pflichtrückversicherung                      obligatory reinsurance
+
+Pflichtversicherung                          compulsory insurance
+
+Pflichtversicherung                          obligatory insurance
+
+Pfändung                                     distraint
+
+physisch tot                                 actually dead
+
+Pirat, auf See überfallen                    pirate
+
+Piraterie, Seeräuberei                       piracy
+
+Platzierung, Unterbringung                   placement
+
+Plünderung                                   looting
+
+Police abändern                              amend a policy
+
+Police ausfertigen                           issue a policy
+
+Police ausstellen                            effect a policy
+
+Police beleihen                              borrow on a policy
+
+Police erneuern                              renew a policy
+
+Police für eine einzige Fahrt                voyage policy
+
+Police kündigen                              cancel a policy
+
+Police ohne Wertangabe                       open policy
+
+Policenbüro                                  policy signing office
+
+Policendarlehen, Beleihung einer Police      loan on policy
+
+praktischer Arzt                             medical practioner
+
+Preisangebot                                 quotation
+
+Preisverlust                                 loss in price
+
+Prinzip der Entschädigung                    principle of indemnity
+
+private Unfallversicherung                   personal accident insurance
+
+Privathaftpflichtversicherung                personal liability insurance
+
+Privatversicherer                            private insurer
+
+pro Tag                                      per diem
+
+Produktionsausfall                           loss of production
+
+Prämie                                       premium
+
+Prämie berechnen                             charge a premium
+
+Prämie berichtigen                           adjust the premium
+
+Prämie festsetzen                            fix the premium
+
+Prämie für eigene Rechnung                   premium for own account
+
+Prämie ist fällig                            premium is due
+
+Prämie rückerstatten                         refund a premium
+
+Prämienabrechnung                            premium statement
+
+Prämienart                                   type of premium
+
+prämienfrei                                  free of premium
+
+prämienfreie Versicherung                    paid-up insurance
+
+Prämieninkasso                               collection of premiums
+
+Prämienquittung                              premium receipt
+
+Prämienrabatt                                premium discount
+
+Prämienrate                                  installment premium
+
+Prämienrate                                  premium installment
+
+Prämienrichtlinien, Einstufungsrichtlinien   rating principles
+
+Prämienrückgewähr, Prämienrückvergütung      return of premium
+
+Prämienrückzahlung                           refund of premium
+
+Prämiensatz                                  premium rate
+
+Prämientarif                                 insurance tariff
+
+Prämienvolumen                               volume of premiums
+
+proportionale Verteilung                     proportional allotment
+
+Proportionalregel                            average clause
+
+provisorisch, einstweilig                    provisional
+
+Prozent                                      percent
+
+Prozentsatz                                  percentage
+
+Prozesskostenversicherung                    legal expenses insurance
+
+prüfen, untersuchen                          examine
+
+Prüfung des Antrags                          examination of proposal
+
+psychische Verfassung                        mental health
+
+
+Q
+
+
+Qualität, Beschaffenheit                     quality
+
+quantitativ                                  quantitative
+
+Quote                                        quota
+
+Quotenrückversicherung                       quota share reinsurance
+
+
+R
+
+
+Rabatt                                       discount
+
+radioaktive Strahlung                        nuclear radiation
+
+Rahmenvereinbarung                           general agreement
+
+Rang einnehmen, rangieren                    rank
+
+Rat                                          advice
+
+Raub, Beraubung                              robbery
+
+rechenschaftspflichtig                       liable to account
+
+rechnen, berechnen, errechnen                calculate
+
+Rechnungsjahr                                financial year
+
+Recht der Fahrlässigkeitshaftung             law of negligence
+
+Recht erwerben                               become entitled
+
+Recht, Anrecht                               right
+
+rechtfertigen                                justify
+
+rechtliche Bedeutung                         legal meaning
+
+rechtmäßig                                   lawful
+
+rechtmäßig vertretbar                        justifiable
+
+rechtmäßiger Eigentümer                      lawful owner
+
+rechtmäßiger Erbe                            true heir
+
+Rechtsanwaltskosten                          lawyer's fees
+
+Rechtsgeschäft                               transaction
+
+rechtskräftig werden                         become final
+
+Rechtsmangel                                 lack of title
+
+rechtsverbindlich                            legally binding
+
+rechtswidrig                                 illegal
+
+rechtswidrig                                 unlawful
+
+rechtswidrige Handlung                       unlawful act
+
+rechtswirksam                                legally effective
+
+Reduktionsfaktor, Minderungsfaktor           reduction factor
+
+Reduktionswert                               reduction value
+
+Reeder                                       owner of a ship
+
+Reeder                                       ship owner
+
+regelmäßig wiederkehrende Zahlung            periodical payment
+
+regelmäßige Leistungen                       regular periodical payments
+
+regelmäßige Zahlungen                        regular payments
+
+Regenversicherung                            pluvious insurance
+
+Regenversicherung                            rain insurance
+
+Regenwasser                                  rainwater
+
+Regenwasserschaden                           rainwater damage
+
+Register, registrieren                       register
+
+Regress, Rückgriff                           recourse
+
+Regulierung                                  adjustment
+
+Regulierungskosten                           adjustment costs
+
+Rehabilitierung, Wiedereingliederung         rehabilitation
+
+Reise                                        journey
+
+Reiseausfallkostenversicherung               insurance of traveling expenses
+
+Reisegepäckversicherung                      luggage insurance
+
+Reisepolice                                  voyage policy
+
+Reiseunfallversicherung                      traveler's accident insurance
+
+Reiseunfallversicherung                      travelers' accident insurance
+
+Reiseversicherung                            travel insurance
+
+Rente                                        annuity
+
+Rente bewilligen, Pension bewilligen         grant a pension
+
+Rente beziehen, Pension beziehen             draw a pension
+
+Rente beziehen, Pension beziehen             receive a pension
+
+rentenberechtigt, pensionsberechtigt         eligible for pension
+
+Rentenempfänger                              annuitant
+
+Rentenempfänger                              holder of an annuity
+
+Rentenversicherung                           annuity insurance
+
+Rentenversicherungsvertrag                   annuity contract
+
+Rentenzahlung                                pension payment
+
+Rentner                                      pensioner
+
+Reparaturkosten                              cost of repair
+
+Reparaturkosten                              cost of repairs
+
+Reserve                                      reserve
+
+Reserve für Leibrenten                       life annuity fund
+
+Reserven des Versicherers                    underwriting reserves
+
+Restbetrag                                   balance
+
+Restwert                                     salvage value
+
+Richtlinie                                   guideline
+
+Risiken eingehen                             take hazards
+
+Risiko begrenzen                             limit a risk
+
+Risiko decken                                cover a risk
+
+Risiko der Aufbringung                       risk of capture
+
+Risiko der Kollision                         collision risk
+
+Risiko der Strandung                         stranding risk
+
+Risiko der Verfügungsbeschränkung            restraint risk
+
+Risiko des Auf-Grund-Laufens                 risk of running aground
+
+Risiko des Aufruhrs                          riot risk
+
+Risiko des Aufstands                         insurrection risk
+
+Risiko des Maschinenschadens                 breakdown of machinery risk
+
+Risiko des Sinkens, Risiko des Untergangs    sinking risk
+
+Risiko kriegerischer Handlungen              warlike operations risk
+
+Risiko verteilen                             spread a risk
+
+Risiko von Feindseligkeiten                  hostilities risk
+
+Risiko übernehmen                            take a risk
+
+Risiko, Gefahr                               hazard
+
+Risiko, Gefahr                               risk
+
+Risikobegrenzung bei Katastrophen            catastrophe limit
+
+Risikoeinstufung                             classification of risks
+
+Risikohäufung                                accumulation of risk
+
+Rost                                         rust
+
+Ruhestand                                    retirement
+
+rückdatieren                                 backdate
+
+Rückgang des Geschäfts                       decline of business
+
+Rückkaufswert                                surrender value
+
+Rücklagen für schwebende Schäden             reserve for pending claims
+
+Rücknahme einer Klage                        waiver of an action
+
+Rückreise                                    return journey
+
+Rücktrittsklausel                            cancellation clause
+
+rückvergütete Prämie                         returned premium
+
+Rückversicherer                              reinsurer
+
+rückversichern                               reinsure
+
+Rückversicherung                             reinsurance
+
+Rückversicherung annehmen                    accept reinsurance
+
+Rückversicherungsgesellschaft                reinsurance company
+
+Rückversicherungspolice                      reinsurance policy
+
+Rückversicherungsprovision                   reinsurance commission
+
+Rückversicherungsvertrag                     reinsurance contract
+
+Rückzahlung                                  refund
+
+
+S
+
+
+Sachlage                                     circumstances
+
+Sachschaden                                  damage to property
+
+Sachschaden                                  material damage
+
+Sachschaden                                  property damage
+
+Sachschaden, Sachverlust                     loss of property
+
+Sachverhalt                                  circumstances of the case
+
+Sachversicherung                             insurance of property
+
+Sachversicherung                             property insurance
+
+Sachverständigengutachten                    expertise
+
+Sachverständiger in Havarieangelegenheiten   despacheur
+
+Sammelversicherung                           group insurance
+
+Sammelversicherung, Gruppenversicherung      collective insurance
+
+Schaden                                      damage
+
+Schaden durch Rost und Oxydierung            loss by rust and oxidation
+
+Schaden durch Seewasser, Seewasserschaden    damage by sea water
+
+Schaden durch Seewasser, Seewasserschaden    sea-water damage
+
+Schaden durch Süßwasser, Süßwasserschaden    damage by fresh water
+
+Schaden durch Süßwasser, Süßwasserschaden    fresh-water damage
+
+Schaden erleiden                             meet with a loss
+
+Schaden erleiden                             suffer a loss
+
+Schaden erleiden                             sustain a loss
+
+Schaden ersetzen                             make good a loss
+
+Schaden mindern                              minimize loss
+
+Schaden regulieren                           adjust a claim
+
+Schaden regulieren                           settle a claim
+
+Schaden vergüten, Schaden ersetzen           make up for a loss
+
+Schaden verursachen                          occasion a loss
+
+Schaden zufügen, Verlust zufügen             inflict a loss
+
+Schaden, Nachteil                            harm
+
+Schadenbeteiligungsrückversicherung          quota share reinsurance
+
+Schadenersatz                                damages
+
+Schadenersatz in nautura                     compensation in kind
+
+Schadenersatzleistung                        payment of damages
+
+Schadenfestsetzung                           fixing of damages
+
+Schadenminderungsklausel                     sue and labour clause
+
+Schadensabteilung                            claims department
+
+Schadensabteilung                            claims office
+
+Schadensanzeige                              loss advice
+
+Schadensanzeige                              notice of claim
+
+Schadensanzeige                              notice of loss
+
+Schadensanzeige erstatten                    give notice of loss
+
+Schadensbearbeiter                           adjuster
+
+Schadensbearbeitungskosten                   claims expenses
+
+Schadensbenachrichtigung, Schadensmeldung    notification of claim
+
+Schadensbetrag                               amount of damage
+
+Schadensbüro                                 adjustment bureau
+
+Schadensbüro                                 adjustment office
+
+Schadensbüro                                 claims department
+
+Schadensereignis                             damaging event
+
+Schadensersatz                               indemnity
+
+Schadensersatz für Spätfolgen                remote damages
+
+Schadensersatz gewähren                      award damages
+
+Schadensersatzbemessung                      measure of damages
+
+Schadensersatzforderung, Ersatzanspruch      claim for indemnification
+
+Schadensersatzklage                          action for damages
+
+schadensersatzpflichtig                      answerable for damages
+
+schadensersatzpflichtig                      held for damages
+
+schadensersatzpflichtig                      liable for damages
+
+schadensersatzpflichtig                      liable to indemnify
+
+schadensersatzpflichtig                      liable to pay damages
+
+Schadenserwartung                            expectation of loss
+
+Schadensfall                                 case of loss
+
+Schadensfall                                 event of damage or loss
+
+Schadensfestsetzung, Schadenbegutachtung     loss assessment
+
+Schadensfeststellung, Schadensausmaß         measure of damages
+
+Schadensfeuer                                hostile fire
+
+Schadensfälle bearbeiten                     handle claims
+
+Schadensfreiheitsrabatt                      no-claims bonus
+
+Schadenshäufigkeit                           incidence of loss
+
+Schadenshäufigkeit                           loss frequency
+
+Schadensmeldung, Meldung des Schadens        notification of loss
+
+Schadensquote                                loss ratio
+
+Schadensreferent                             claims agent
+
+Schadensregulierung                          adjustment of a loss
+
+Schadensregulierung                          claim settlement
+
+Schadensregulierung                          loss settlement
+
+Schadensrisiko durch Aussperrung             lockout risk
+
+Schadensrisiko durch Streikhandlungen        strike risk
+
+Schadenssachverständiger                     insurance adjuster
+
+Schadensstatistik                            loss statistics
+
+Schadenssumme                                amount of loss
+
+Schadensumfang, Schadensausmaß               extent of loss
+
+Schadensverhütung                            loss prevention
+
+Schadensverteilung                           loss repartition
+
+Schadenswahrscheinlichkeit                   chance of loss
+
+Schadenswahrscheinlichkeit                   probability of loss
+
+Schadenswert, Schadensumfang, Schadenshöhe   amount of loss
+
+schadhaft                                    damaged
+
+Schiedsgericht                               court of arbitration
+
+Schiedsgerichtsbarkeit                       arbitration
+
+Schiedsspruch                                arbitration award
+
+Schiedsspruch annehmen                       abide by an award
+
+Schiedsverfahren                             arbitration proceedings
+
+Schiffsschweiß                               ship's sweat
+
+Schimmel, Verschimmeln                       mould
+
+schlecht regeln                              maladjust
+
+schlecht verwalten                           mismanage
+
+Schlichtung                                  conciliation
+
+Schmerzensgeld                               damages for pain and suffering
+
+Schmuck, Schmucksachen                       jewelry
+
+Schmuckversicherung, Juwelenversicherung     jeweler insurance
+
+schädlich, nachteilig                        harmful
+
+schädlich, schädigend, nachteilig            hurtful
+
+schätzen                                     estimate
+
+Schätzwert                                   appraised value
+
+Schätzwert                                   estimated value
+
+Schreibfehler                                clerical mistake
+
+schriftliche Anzeige                         written information
+
+schriftliche Zusicherung                     written agreement
+
+schriftliche Übereinkunft                    written agreement
+
+schriftlicher Beweis                         literal proof
+
+schriftlicher Vertrag                        written agreement
+
+Schuttaufräumung                             clearance of debris
+
+Schutz aufheben                              suspend cover
+
+Schutz gewähren                              extend cover
+
+Schutz gewähren                              give cover
+
+Schutz gewähren                              provide cover
+
+Schwachstromanlage                           low tension installation
+
+Schwankungsrückstellung                      equalisation fund
+
+schwebender Schaden, drohender Schaden       pending loss
+
+schwere Einbußen, schwerer Schaden           heavy losses
+
+schwere Körperverletzung                     grievous bodily harm
+
+schwere Verluste                             heavy losses
+
+Schwindel                                    humbug
+
+Seegefahren, Seerisiko                       marine adventure
+
+Seegefahren, Seerisiko                       marine peril
+
+Seehaftpflichtversicherung                   marine liability insurance
+
+Seekaskoversicherer                          hull underwriter
+
+Seekaskoversicherung                         marine hull insurance
+
+Seeprotest                                   ship's protest
+
+Seeraub, Piraterie                           piracy
+
+Seetransport                                 marine transport
+
+Seetransportversicherung                     ocean marine insurance
+
+Seeversicherer                               marine insurer
+
+Seeversicherer                               marine underwriter
+
+Seeversicherung                              marine insurance
+
+Seeversicherung                              maritime insurance
+
+Seeversicherung, Seetransportversicherung    marine insurance
+
+Seeversicherung, Überseetransportversicherung ocean marine insurance
+
+Seeversicherungspolice                       marine insurance policy
+
+Seeversicherungspolice                       marine policy
+
+Seewurf, Überbordwerfen, über Bord werfen    jettison
+
+Selbstentzündung                             spontaneous combustion
+
+Selbstversicherung                           self-insurance
+
+Selbstverstümmelung                          maiming oneself
+
+Sendung                                      consignment
+
+Sendung                                      shipment
+
+sich beteiligen                              participate
+
+sich enthalten, sich zurückhalten            abstain
+
+sicheres Ereignis                            certain event
+
+Sicherheit                                   safety
+
+Sicherheit stellen                           give security
+
+Sicherheitsabstand, Sicherheitsspanne        safety margin
+
+Sicherheitsbedingung                         safety condition
+
+Sicherheitseinrichtungen                     safety installations
+
+Sicherheitsfaktor                            safety factor
+
+Sicherheitsingenieur, Sicherheitsbeauftragter safety engineer
+
+Sicherheitsmaßnahmen                         safety precautions
+
+Sicherheitsmaßnehmen, Sicherkeitsvorkehrungen safety measures
+
+Sicherheitsreserve                           contingency fund
+
+Sicherheitsrücklage                          reserve for contingencies
+
+Sicherheitsvorrichtungen                     safety appliances
+
+Sicherheitsüberwachungsabteilung             safety engineering department
+
+sichern, schützen, Gewähr leisten            safeguard
+
+sichtbar                                     visible
+
+Sinnestäuschung                              mental delusion
+
+so bald wie möglich                          as soon as practicable
+
+sofort beginnende Rente                      immediate annuity
+
+sofort und auf der Stelle                    then and there
+
+sofortig                                     immediately
+
+sofortiger Tod                               instantaneous death
+
+Sonderrechtsklausel                          liberties clause
+
+sonstige strittige Punkte                    other matters in difference
+
+sorglos, unachtsam                           careless
+
+sorgsam, sorgfältig                          careful
+
+säumig                                       dafaulting
+
+Säumiger                                     defaulter
+
+Sozialversicherung                           social insurance
+
+Sozialversicherung (Br.)                     National Insurance
+
+Sozialversicherung (Br.)                     National Security
+
+Sozialversicherungsbeiträge                  national insurance contributions
+
+Sozialversicherungsgesetz (Br.)              National Insurance Act
+
+Sozialversicherungskarte (Br.)               National Insurance Card
+
+Sozialversicherungskarte (US)                Social Security Card
+
+Sozialversicherungsleistungen                social insurance benefits
+
+Sozialversicherungsträger                    social insurance carrier
+
+spekulatives Risiko                          speculative risk
+
+Sperrgebiet                                  prohibited zone
+
+spezialisieren                               specialize
+
+spezialisiert                                specialized
+
+Spezialisierung                              specialization
+
+spezielle Schadensversicherung               specific insurance
+
+Sportbootversicherung                        small craft insurance
+
+Sprinkleranlage                              sprinkler installation
+
+staatliche Aufsicht                          government supervision
+
+staatliche Aufsicht                          state supervision
+
+staatliche Versicherung                      state insurance
+
+staatlicher Gesundheitsdienst (Br.)          National Health Service
+
+statisticshe Tabelle                         statistical table
+
+Statistiker                                  statistician
+
+statistische Aufstellung                     statistical table
+
+statistische Aufzeichnungen                  statistical records
+
+steigendes Risiko                            increasing risk
+
+Sterbegeld                                   death benefit
+
+Sterbegeld                                   death grant
+
+Sterbegeld                                   funeral benefit
+
+Sterbegeldversicherung                       funeral costs insurance
+
+Sterbegeldversicherung                       funeral expense insurance
+
+Sterberegister                               register of deaths
+
+Sterberisiko                                 mortality risk
+
+Sterbeurkunde                                death certificate
+
+Sterblichkeit                                mortality
+
+Sterblichkeitsgewinn                         mortality gain
+
+Sterblichkeitsstruktur                       pattern of mortality
+
+Sterblichkeitstafel                          mortality table
+
+Sterblichkeitsverlust                        mortality loss
+
+Sterblichkeitsziffer                         mortality rate
+
+stichhaltiges Argument                       valid argument
+
+stillschweigend                              tacit
+
+stillschweigende Biligung                    tacit approval
+
+stillschweigende Vereinbarung                tacit agreement
+
+stillschweigende Zustimmung                  tacit consent
+
+strafrechtlich haftbar                       criminally liable
+
+Strahlenrisiken                              radiation hazards
+
+Strahlungsrisiko                             nuclear radiation risk
+
+Straßenräuberei                              highway robbery
+
+Streikklausel                                strikes clause
+
+Streit, streiten                             quarrel
+
+strikt                                       stringent
+
+strittige Angelegenheit                      matter in dispute
+
+strittige Frage                              question in dispute
+
+strittiger Punkt                             question at issue
+
+Sturmversicherung                            tornado insurance
+
+Sturmversicherung                            windstorm insurance
+
+subjektiver Schaden                          sentimental damage
+
+subjektives Risiko                           moral hazard
+
+subjektives Risiko des Versicherten          moral hazard
+
+Summenrabatt                                 discount for large sums
+
+
+T
+
+
+Tabelle                                      table
+
+Tagesgeld                                    daily allowance
+
+Tagesgeld                                    daily benefits
+
+Tarif festlegen                              make a tariff
+
+Tariffestsetzung                             tariff making
+
+Tarifprämie                                  tariff rate
+
+Tatsache                                     fact
+
+tatsächliche Lage, Stand der Dinge           actual state of affairs
+
+tatsächliche Todesfälle                      actual deaths
+
+tatsächlicher Betrag                         actual amount
+
+tatsächlicher Gesamtschaden                  actual total loss
+
+tatsächlicher Schaden                        actual loss
+
+tatsächlicher Totalschaden                   actual total loss
+
+tatsächlicher Verlust, tatsächlicher Schaden actual loss
+
+tatsächlicher Wert, wirklicher Wert          actual value
+
+Taxpolice                                    valued policy
+
+technische Überprüfung                       technical check
+
+technischer Verlust                          technical loss
+
+Teilabtretung                                partial assignment
+
+Teilbetrag                                   partial amount
+
+Teilhaberversicherung                        business partnership insurance
+
+Teilinvalidität                              partial disability
+
+Teilinvalidität                              partial disablement
+
+teilnehmen                                   participate
+
+teilnehmen an                                take an active part in
+
+Teilschaden                                  part damage
+
+Teilschaden                                  partial loss
+
+Teilschaden, Beschädigung                    partial damage
+
+Teilschaden, Teilverlust                     partial loss
+
+Teilsendung                                  partial shipment
+
+teilweise bezahlt, nur zum Teil bezahlt      partly paid
+
+teilweise, unvollständig, nur zum Teil       partial
+
+Teilzahlung                                  partial payment
+
+Tierversicherung, Viehversicherung           livestock insurance
+
+tilgen                                       amortize
+
+Tilgung                                      amortization
+
+Todesfallrisiko                              death risk
+
+Todesfallversicherung                        whole life insurance
+
+Todesnachweis                                proof of death
+
+Todestag                                     day of death
+
+Todesursache                                 cause of death
+
+Totalschaden, Totalverlust                   total loss
+
+Totalverlust                                 total loss
+
+Totalverlust, Totalschaden                   total loss
+
+Totenschein, Sterbeurkunde                   death certificate
+
+täuschen                                     deceive
+
+täuschend                                    deceptive
+
+Täuschung                                    deceit
+
+Transitverlust, Transportschaden             loss in transit
+
+Transportrisiko                              peril of transportation
+
+Transportrisiko                              risk of transport
+
+Transportrisiko                              transportation risk
+
+Transportversicherung                        goods in transit insurance
+
+Transportversicherung                        insurance of goods in transit
+
+Transportversicherung                        transit insurance
+
+Transportversicherung                        transport insurance
+
+Treibgut                                     flotsam
+
+Tresorfachversicherung                       safe deposit box insurance
+
+treten in Kraft                              come into force
+
+Treuhandvertrag                              deed of trust
+
+treulos                                      unfaithful
+
+Tropenkrankheit                              tropical disease
+
+tödlicher Unfall                             fatal accident
+
+
+U
+
+
+Überbrückungszeitraum                        transitory period
+
+Übereinstimmung                              accord
+
+Überentschädigung                            overcompensation
+
+Überfall, überfallen                         raid
+
+Überlassung                                  cession
+
+Überlebender                                 survivor
+
+Überprüfung der Gesundheit                   health examination
+
+Überschlagen eines Fahrzeugs                 overturning of a vehicle
+
+Überschuss                                   excess
+
+Überschwemmungsversicherung                  flood insurance
+
+Überversicherung                             double insurance
+
+Überversicherung                             excess insurance
+
+Überversicherung                             over-insurance
+
+Überversicherung                             over insurance
+
+Überwachungsstelle                           supervisory board
+
+Überzahlung                                  overpayment
+
+örtliche Bedingungen                         local terms
+
+über Bord geworfene Ladung, Strandgut        jetsam
+
+über Durchschnitt, überdurchschnittlich      above average
+
+überfluten, überschwemmen                    overflow
+
+überfällig                                   overdue
+
+überfällige Prämie                           premium overdue
+
+übergeben                                    hand over
+
+übergeben, überlassen, aufgeben              surrender
+
+überhöhter Schadensersatz                    excessive damages
+
+überleben                                    survive
+
+überprüfen                                   check
+
+übertragbar                                  transferable
+
+übertragen                                   confer
+
+überversichern                               over insure
+
+überweisen, zahlen                           remit
+
+übliche Abzüge                               customary deductions
+
+Umfang                                       extent
+
+Umfang der Versicherungen                    volume of insurances contracted
+
+umfassen, beinhalten, einschließen           comprise
+
+umfassend                                    comprehensive
+
+umfassende Police                            comprehensive policy
+
+umgehend                                     at your earliest convenience
+
+Umsatzvolumen                                volume of trade
+
+Umstand, Sachlage                            circumstance
+
+Umstände außer unserer Kontrolle             circumstances beyond control
+
+Umzugsversicherung                           furniture-in-transit insurance
+
+unabänderlich                                unalterable
+
+unabwendbar, unvermeidlich, unvermeidbar     inevitable
+
+Unachtsamkeit                                carelessness
+
+unanfechtbar                                 incontestable
+
+unangemessen, unzureichend                   inadequate
+
+unausgesprochen                              unexpressed
+
+unbeabsichtigt                               unintentional
+
+unbedacht                                    unmindful
+
+unbeglaubigt                                 unauthenticated
+
+unbegründet                                  unfounded
+
+unbegründeter Anspruch                       bad claim
+
+unbekannt                                    unknown
+
+unbenutzt                                    unused
+
+unberechtigte Forderung                      false claim
+
+unbeschädigt                                 undamaged
+
+unbeschränkt                                 unlimited
+
+unbeschränkt haftbar                         liable without limitation
+
+unbeschränkter Eigentümer                    absolute owner
+
+unbestimmt                                   indefinite
+
+unbestimmt                                   unascertained
+
+unbestritten                                 uncontradicted
+
+unbezahlt                                    unpaid
+
+unechter Ersatzanspruch                      fictitious claim
+
+unerledigt                                   outstanding
+
+unerledigt lassen, nicht tun                 fail
+
+unersetzlicher Verlust                       irrecoverable loss
+
+unerwartet                                   unexpected
+
+Unfall                                       accident
+
+Unfall durch Ermüdung                        fatigue accident
+
+Unfallentschädigung                          accident indemnity
+
+Unfallrente                                  accident benefit
+
+Unfallrisiko                                 accident hazard
+
+Unfallrisiko                                 accident risk
+
+Unfallsentschädigung                         compensation for an accident
+
+Unfallstatistik                              accident statistics
+
+Unfallverhütung                              accident prevention
+
+Unfallvermeidung                             accident avoidance
+
+Unfallversicherung                           accident insurance
+
+Unfallversicherung                           casualty insurance
+
+Unfallversicherung (US)                      casualty insurance
+
+Unfallversicherungsgesellschaft              casualty company
+
+Unfallzusatzversicherung (verdoppelt Wert)   double-indemnity clause
+
+ungedeckt                                    uncovered
+
+ungeeignet                                   unfit
+
+ungeeignet                                   unqualified
+
+ungerechtfertigt                             unjustified
+
+ungesichert                                  unsecured
+
+ungewiss, unberechenbar                      incalculable
+
+Ungültigkeit                                 nullity
+
+unkontrolliert                               uncontrolled
+
+unlauter                                     unfair
+
+unlautere Methoden                           unfair practices
+
+unmittelbar. sofort                          immediate
+
+unmittelbare Folge                           immediate consequence
+
+unmittelbarer Schaden                        direct loss
+
+unregelmäßige Zahlungen                      irregular payments
+
+unrichtige Angabe                            false pretence
+
+unschädlich, ohne Nachteil                   harmless
+
+unsicheres Ereignis                          uncertain event
+
+unsichtbar                                   invisible
+
+untauglich                                   unfit
+
+unter Ausschluss von Havarie                 free from average
+
+unter Eid                                    on oath
+
+unterbewerten                                underrate
+
+unterbewertet, unter Tarif                   underrated
+
+unterbrechen                                 discontinue
+
+unterbrechen                                 interrupt
+
+Unterbrechung                                discontinuance
+
+Unterbrechung                                interruption
+
+untergegangene Sachen, verlorene Sachen      goods destroyed
+
+Unterhalt, Lebensunterhalt, Versorgung       maintenance
+
+Unterhaltungskosten                          maintenance expenses
+
+unterlassen                                  leave something undone
+
+unternehmerisches Risiko                     business hazard
+
+unterschätzen                                underestimate
+
+Unterschrift                                 signature
+
+Unterstützung                                benefit
+
+unterverpachten, untervermieten              underlet
+
+unterversichern                              underinsure
+
+unterversichert                              underinsured
+
+Unterversicherung                            underinsurance
+
+ununterbrochen                               uninterrupted
+
+ununterrichtet                               uninformed
+
+unverbrauchte Prämie                         unearned premium
+
+Unverfallbarkeit                             non-forfeiture
+
+unverheiratet                                unmarried
+
+unvermeidbares Ereignis                      inevitable event
+
+unvermeidlich                                inevitable
+
+unvermeidlich                                unavoidable
+
+unvermeidlicher Unfall                       inevitable accident
+
+unverändert                                  unchanged
+
+unverpackt, lose                             loose
+
+unverschuldet                                unindebted
+
+unverschuldet                                without one's fault
+
+unversicherbar                               uninsurable
+
+unvorhergesehen                              unforeseen
+
+unvorteilhaft                                unprofitable
+
+unwesentlich                                 unessential
+
+unwichtig                                    unimportant
+
+Unwissenheit                                 ignorance
+
+unwissend                                    ignorant
+
+unzureichend versichert                      inadequately insured
+
+Ursache eines Schadens                       cause of a loss
+
+Ursache, Verursachung, verursachen           cause
+
+Urteil                                       judgment
+
+
+V
+
+
+Valorenversicherung                          insurance of specie in transit
+
+Vandalismus, mutwillige Beschädigung         vandalism
+
+variabel                                     variable
+
+verantwortlich machen, haftbar machen        hold responsible
+
+Verbesserung                                 betterment
+
+verbindlich                                  binding
+
+verborgener Fehler                           latent defect
+
+verbrauchte Prämie                           earned premium
+
+verbunden                                    joint
+
+verbundene Versicherung                      comprehensive insurance
+
+verdeckter Schaden                           hidden damage
+
+Verdienstausfall                             loss of earnings
+
+vereinbarter Wert                            agreed value
+
+Verfalldatum                                 expiry date
+
+verfallen, hinfällig werden, ablaufen        lapse
+
+verfallene Police                            lapsed policy
+
+Vergleich                                    compromise
+
+vergleichbar                                 comparable
+
+vergleichen                                  compare
+
+Verhaltensstruktur                           behaviour pattern
+
+verheimlichen, verschweigen                  conceal
+
+Verheimlichung, Verschweigen                 concealment
+
+Verjährung des Anspruchs                     limitation of claim
+
+Verjährungsfrist                             period of limitation
+
+Verkaufsumfang                               volume of sales
+
+Verkaufswert                                 selling value
+
+Verkehrsdelikt                               motoring offence
+
+Verkehrsrisiko                               road risk
+
+Verkehrsunfall                               automobile accident
+
+Verkehrsunfall                               motoring accident
+
+Verkehrsunfall                               traffic accident
+
+Verkehrsunfallprozess, Prozess wegen Unfalls accident action
+
+verlangen, benötigen, wünschen               want
+
+verlieren                                    lose
+
+verlängern                                   extend
+
+Verlängerung                                 extension
+
+Verlängerung                                 extension of a period
+
+Verlängerung der Frist                       extension of time
+
+verloren                                     lost
+
+verloren gehen                               get lost
+
+Verlust                                      loss
+
+Verlust ausgleichen                          set off a loss
+
+Verlust der Fracht                           loss of cargo
+
+Verlust des Arbeitsplatzes                   loss of employment
+
+Verlust des Schiffes                         loss of ship
+
+Verlust durch Auslaufen                      loss by leakage
+
+Verlust durch Auslaufen                      ullage, leakage
+
+Verlust erleiden                             experience a loss
+
+Verlust in Kauf nehmen                       take a loss
+
+Verlust tragen                               bear a loss
+
+Verlust von Dienstleistungen                 loss of services
+
+Verlust, Schaden                             loss
+
+Verlustausgleich, Entschädigung              loss compensation
+
+Verlustkonto                                 loss account
+
+Verlustrisiko durch Bruchschaden             breakage risk
+
+Verlustrisiko durch Kesselschaden            boilers risk
+
+Verlustrisiko durch Revolution               revolution risk
+
+Verlustvortrag                               loss carried forward
+
+vermeiden                                    avoid
+
+Vermeidung                                   avoidance
+
+Vermögen                                     fortune
+
+Vermögensschaden                             pecuniary loss
+
+Vermögensschaden                             property loss
+
+Vermögensschaden erleiden                    suffer pecuniary loss
+
+Vermögensschäden                             financial losses
+
+vernünftig, zumutbar                         reasonable
+
+veränderliches Risiko, wechselndes Risiko    variable risk
+
+verpflichten                                 oblige
+
+verpflichten                                 undertake
+
+Verpflichtung                                obligation
+
+Verpflichtung  nicht einhalten               default
+
+Verpflichtung zu zahlen                      obligation to pay
+
+Verpflichtungen nachkommen                   meet one's obligations
+
+Verrsicherung mit Optionen                   insurance with options
+
+verschiedene Risiken, gemischte Risiken      miscellaneous risks
+
+Verschwiegenheit                             secrecy
+
+Verschwiegenheitspflicht                     obligation of secrecy
+
+Versehen                                     accidental slip
+
+versicherbar                                 insurable
+
+versicherbar, versicherungsfähig             insurable
+
+versicherbare Sache,  versicherbares Eigentum insurable property
+
+versicherbarer Wert                          insurable value
+
+versicherbares Interesse                     insurable interest
+
+versicherbares Risiko                        insurable risk
+
+Versicherer                                  insurer
+
+Versicherer, Versicherungsgeber              insurer
+
+versichern                                   insure
+
+versichert                                   covered by insurance
+
+versichert gegen Feuer                       insured against fire
+
+versicherte Gefahr                           peril insured against
+
+versicherte Gefahren, gedeckte Risiken       perils insured against
+
+versicherte Person                           insured person
+
+versicherte Person                           person insured
+
+versicherte Sache                            insured object
+
+versicherte Sache                            property insured
+
+versicherte Sache, versicherter Gegenstand   subject-matter insured
+
+Versicherter, Versicherungsnehmer            insurant
+
+versichertes Objekt, versicherter Gegenstand object insured
+
+Versicherung                                 insurance
+
+Versicherung nehmen                          take out insurance
+
+Versicherung abschließen                     effect a policy
+
+Versicherung abschließen                     effect insurance
+
+Versicherung abschließen                     take out insurance
+
+Versicherung auf Gegenseitigkeit             mutual office
+
+Versicherung auf Gegenseitigkeit             reciprocal insurance
+
+Versicherung auf verbundene Leben            joint life assurance
+
+Versicherung beantragen                      apply for insurance
+
+Versicherung beantragen                      propose an insurance
+
+Versicherung decken                          cover insurance
+
+Versicherung der Seefrachtgüter              cargo insurance
+
+Versicherung der Ware                        insurance of goods
+
+Versicherung gegen alle Risiken              all-risk insurance
+
+Versicherung gegen alle üblichen Risiken     insurance against all risks
+
+Versicherung gegen Beschädigung              insurance against damage
+
+Versicherung gegen Bruchschaden              insurance against breakage
+
+Versicherung gegen Erdbeben                  earthquake insurance
+
+Versicherung gegen Explosion                 explosion insurance
+
+Versicherung gegen Frostschäden              frost damage insurance
+
+Versicherung kündigen                        cancel a policy
+
+Versicherung mit Prämienrückgewähr           insurance with bonus
+
+Versicherung mit Selbstbeteiligung           co-insurance
+
+Versicherung ohne Prämienrückgewähr          insurance without bonus
+
+Versicherung ohne ärztliche Untersuchung  insurance without medical examination
+
+Versicherung verkaufen                       sell insurance
+
+Versicherung von Lagerbeständen              insurance of stocks
+
+Versicherung von Schiff und Ladung           insurance of ship and cargo
+
+Versicherung zum Wiederbeschaffungswert      replacement value insurance
+
+Versicherung übernehmen                      accept insurance
+
+Versicherungs-Aktiengesellschaft             joint-stock insurance company
+
+Versicherungsabteilung                       insurance department
+
+Versicherungsanspruch                        insurance claim
+
+Versicherungsanstalt                         insurance institution
+
+Versicherungsantrag                          insurance proposal
+
+Versicherungsantrag                          proposal form
+
+Versicherungsantrag, Antragsformular         application form
+
+Versicherungsart                             type of insurance
+
+Versicherungsarten                           classes of insurance
+
+Versicherungsaufsicht                        insurance control
+
+Versicherungsbeamter                         insurance officer
+
+Versicherungsbesteuerung                     insurance taxation
+
+Versicherungsbestimmungen                    insurance regulations
+
+Versicherungsbestimmungen                    provisions of an insurance policy
+
+Versicherungsbetrag                          amount insured
+
+Versicherungsbetrug                          insurance fraud
+
+Versicherungsbrauch, Versicherungstechnik    actuarial practice
+
+Versicherungsdauer                           term of insurance
+
+Versicherungsdienst                          insurance service
+
+Versicherungsfall                            insured event
+
+Versicherungsfähigkeit                       insurability
+
+Versicherungsgebühr                          insurance fee
+
+Versicherungsgegenstand, Versicherungsobjekt object insured
+
+Versicherungsgenossenschaft                  co-operative insurance association
+
+Versicherungsgeschäft                        insurance business
+
+Versicherungsgeschäft nach Einheitstarifen   tariff business
+
+Versicherungsgeschäft nach Einheitstarifen   tariff insurance
+
+Versicherungsgeschäfte                       insurance transactions
+
+Versicherungsgeschäfte tätigen               transact insurance business
+
+Versicherungsgesellschaft                    insurance company
+
+Versicherungsgesellschaft auf Gegenseitigkeit mutual insurance society
+
+Versicherungsgesetzgebung                    insurance legislation
+
+Versicherungsgewerbe, Versicherungswesen     insurance industry
+
+Versicherungsinspektor                       insurance inspector
+
+Versicherungsjahr                            insurance year
+
+Versicherungskalkulation                     actuarial calculation
+
+Versicherungsklausel                         insurance clause
+
+Versicherungskombination                     insurance combination
+
+Versicherungskonsortium                      syndicate of underwriters
+
+Versicherungskosten                          insurance charges
+
+Versicherungskosten                          insurance expenses
+
+Versicherungsleistungen                      insurance payments
+
+Versicherungsmakler                          insurance broker
+
+Versicherungsmarkt                           insurance market
+
+Versicherungsmathematik                      insurance mathematics
+
+Versicherungsmathematiker                    actuary
+
+versicherungsmathematisch                    actuarial
+
+versicherungsmathematische Abteilung         actuarial department
+
+versicherungsmathematische Tabellen          actuarial tables
+
+Versicherungsmedizin                         medico-actuarial science
+
+Versicherungsnehmer                          insurance holder
+
+Versicherungsnehmer                          policy owner
+
+Versicherungsnehmer                          policyholder
+
+Versicherungsnummer                          insurance policy number
+
+Versicherungsort                             insurance location
+
+Versicherungsperiode                         period of insurance
+
+Versicherungspolice                          policy
+
+Versicherungsprämie                          insurance rate
+
+Versicherungsprämiensatz                     insurance rate
+
+Versicherungsprovision                       insurance commission
+
+Versicherungsrecht                           insurance law
+
+Versicherungsrisiken                         underwriting risks
+
+Versicherungssachverständiger                insurance adjuster
+
+Versicherungsschutz                          insurance cover
+
+Versicherungsschutz                          insurance coverage
+
+Versicherungsstatistik                       actuarial statistics
+
+Versicherungsstatistik                       insurance statistics
+
+Versicherungssteuer                          insurance tax
+
+Versicherungssumme                           sum insured
+
+Versicherungstätigkeiten                     insurance activities
+
+Versicherungsträger                          insurance carrier
+
+Versicherungsträger                          insurance company
+
+Versicherungsträger                          insurer
+
+Versicherungsverein auf Gegenseitigkeit      mutual insurance association
+
+Versicherungsverein auf Gegenseitigkeit (US) mutual insurance corporation
+
+Versicherungsverkäufer                       insurance salesman
+
+Versicherungsvertrag                         contract of insurance
+
+Versicherungsvertrag                         insurance agreement
+
+Versicherungsvertrag                         insurance contract
+
+Versicherungsvertreter                       insurance agent
+
+Versicherungsvertreter                       insurance canvasser
+
+Versicherungsvertreter                       insurance salesman
+
+Versicherungswerber                          insurance canvasser
+
+Versicherungswert                            actuarial value
+
+Versicherungswert                            insurable value
+
+Versicherungswert                            insurance value
+
+Versicherungswert,  versicherter Wert        insured value
+
+Versicherungswirtschaft                      insurance industry
+
+Versicherungszertifikat                      certificate of insurance
+
+Versicherungszertifikat                      insurance certificate
+
+Versicherungszweig                           class of insurance
+
+Versorgung, Reserve, Rücklage                provision
+
+Versorgungsklausel                           maintenance clause
+
+Versäumnis                                   failure
+
+Versäumnis                                   lapse
+
+versperren                                   obstruct
+
+versteckter Fehler                           hidden fault
+
+versteckter Mangel                           hidden defect
+
+verstehen                                    understand
+
+Versteuerung von Versicherungen              insurance taxation
+
+Verteilung der Rückvergütung                 allotment of bonus
+
+Verteilung des Risikos, Risikoverteilung     distribution of risks
+
+Verteilungsmethode                           method of allocation
+
+Vertrag auf Lebenszeit                       life contract
+
+Vertrag für nichtig erklären                 avoid a contract
+
+Vertrag unterzeichnen                        sign a contract
+
+vertraglich verpflichtet                     liable under a contract
+
+vertragliche Vereinbarung                    contractual agreement
+
+Vertragserfüllung                            performance of a contract
+
+Vertragserneuerung                           renewal of contract
+
+vertragsähnliche Vereinbarung                quasi agreement
+
+Vertragspartei                               party to the contract
+
+Vertragsschaden                              damage for breach of contract
+
+vertrauen, Vertrauen                         trust
+
+vertraulich                                  confidential
+
+Vertreter                                    agent
+
+Vertreter einer Versicherungsgesellschaft    insurance representative
+
+Vertreterstab, Vertreterorganisation         sales force
+
+verursachter Schaden                         damage caused
+
+verursachter Schaden                         damage done
+
+Verwaltung                                   administration
+
+Verwaltung                                   management
+
+Verwaltungsabteilung                         administration department
+
+Verwaltungskosten                            management costs
+
+Verwaltungskosten                            management expenses
+
+Verwaltungsrat                               administrative board
+
+verwechseln, Verwechslung                    mistake
+
+Verwechslung                                 mistake in name
+
+Verzicht                                     waiver
+
+verzichten                                   waive
+
+Verzichterklärung                            notice of abandonment
+
+Viehversicherung                             cattle insurance
+
+Vierteljahresprämie                          quarterly premium
+
+voll gedeckter Schaden                       loss fully covered by insurance
+
+voller Wert                                  full value
+
+Vollinvalidität                              total disability
+
+Vollkasko- und Insassenversicherung          fully comprehensive cover
+
+Vollkaskopolice                              comprehensive policy
+
+Vollkaskoversicherung                        comprehensive insurance
+
+Vollmacht                                    authority
+
+vollständiger Name                           full name
+
+von Fall zu Fall                             as the case arises
+
+von Haus zu Haus                             warehouse to warehouse
+
+von jetzt ab                                 as from now
+
+vor Verlust bewahren, vor Schaden bewahren   save from a loss
+
+voraussetzen, als gegeben annehmen           take for granted
+
+vorbereiten                                  prepare
+
+vordatieren                                  antedate
+
+vordatieren                                  date forward
+
+Vorfall, Ereignis                            incident
+
+Vorfall, Ereignis                            occurrence
+
+vorfallen, ereignen                          occur
+
+vorgehen, maßgeblich sein                    override
+
+vorherige Krankheit                          previous illness
+
+vorherige Versicherung, Vorversicherung      previous insurance
+
+vorlegen, einreichen, unterbreiten           submit
+
+vorlegen, vorbringen                         lay
+
+vorliegende Sache, vorliegender Fall         matter in hand
+
+vorläufiger Versicherungsschein              insurance note
+
+vorläufiger Versicherungsschutz              provisional cover
+
+Vorrang haben                                take priority
+
+Vorrang, Vorrecht, Priorität                 priority
+
+Vorrecht eines Anspruchs                     priority of a claim
+
+Vorschlag, Antrag                            proposal
+
+Vorschrift, Verordnung, Bestimmung, Klausel  provision
+
+Vorschriften einhalten                       comply with formalities
+
+Vorschuss                                    advance
+
+vorschüssige Zahlung                         payment in advance
+
+vorsehen, verordnen, bestimmen               provide
+
+Vorsicht, Warnung, warnen                    caution
+
+Vorsorgereserve                              provident fund
+
+vorsätzlich                                  willfully
+
+vorsätzliche Handlung                        willful act
+
+vorsätzliche Körperverletzung                malicious injury
+
+vorsätzliche Unterlassung                    willful default
+
+vorsätzliches Missverhalten                  willful misconduct
+
+Vorspiegelung falscher Tatsachen             false pretences
+
+Vorspiegelung falscher Tatsachen             willful misrepresentation
+
+Vorteil                                      advantage
+
+Vorteil ziehen aus                           take advantage of
+
+vorteilhaft                                  advantageous
+
+Vorvertrag                                   preliminary contract
+
+Vorwand                                      pretence
+
+vorzeitige Fälligkeit                        acceleration
+
+vorübergehend                                temporary
+
+vorübergehende Arbeitsunfähigkeit            temporary disability
+
+vorübergehende Invalidität                   temporary disability
+
+vorübergehender Zeitraum                     transitory period
+
+
+W
+
+
+Wagendiebstahl                               car theft
+
+wahrheitsgetreue Kopie                       true copy
+
+wahrscheinlich                               likely
+
+wahrscheinliche Lebensdauer                  probable duration of life
+
+Wahrscheinlichkeit                           likelihood
+
+Wahrscheinlichkeit                           probability
+
+Wahrscheinlichkeit eines Ereignisses         probability of an event
+
+Wahrscheinlichkeit eines Schadens            probability of a loss
+
+Wahrscheinlichkeitsrechnung                  calculus of probability
+
+Wahrscheinlichkeitstheorie                   theory of probability
+
+Waldversicherung                             forest insurance
+
+Warengattung                                 type of goods
+
+Warengattung                                 type of merchandise
+
+Warengattung, Art von Ware                   kind of goods
+
+Warenversicherung                            insurance of merchandise
+
+warten                                       wait
+
+Wartezeit                                    waiting period
+
+Wasserschaden                                water damage
+
+Wasserschadenversicherung                    water damage insurance
+
+Wasserschadenversicherung                    sprinkler leakage insurance
+
+Wegabweichungsklausel                        deviation clause
+
+wegen eines Formfehlers                      for want of form
+
+Weglassung                                   omission
+
+weitere Angaben, weitere Einzelheiten        further particulars
+
+weiteres Beweismaterial                      other evidence
+
+Weltpolice                                   world-wide policy
+
+Werbeabteilung                               advertising department
+
+Werbeabteilung                               public relations department
+
+Werbeabteilung                               publicity department
+
+Wert                                         value
+
+Wert der beschädigten Ware                   damaged value
+
+Wert der unbeschädigten Ware                 sound value
+
+Wert des Wagens                              value of car
+
+Wert einer Ware                              value of a good
+
+Wert eines Gebäudes                          value of a building
+
+Wert im beschädigten Zustand                 damaged value
+
+Wert im unbeschädigten Zustand               sound value
+
+Wertabnahme, Wertminderung                   decrease in value
+
+Wertbrief                                    insured letter
+
+Werterhöhungen, Verbesserungen               improvements
+
+Wertminderung                                depreciation in value
+
+Wertminderung, Verfall                       deterioration
+
+Wertpaket                                    insured parcel
+
+Wertsachen                                   valuables
+
+Wertsachenversicherung                       insurance of valuables
+
+wertvoll                                     valuable
+
+Wertzunahme                                  increase in value
+
+wesentlich falsche Darstellung               material misrepresentation
+
+wesentlicher Bestandteil                     essential element
+
+Wetterversicherung, Regenversicherung        weather insurance
+
+wie vereinbart                               as per agreement
+
+wie üblich                                   as customary
+
+wieder flott machen                          refloat
+
+Wiedereingliederung, Rehabilitation          rehabilitation
+
+Wiedererstattung, Rückerstattung             recovery
+
+wiederherstellen                             restore
+
+Wiederinkraftsetzung                         reinstatement
+
+Wiederinkraftsetzungsklausel                 reinstatement clause
+
+Wiederinkraftsetzungswert                    reinstatement value
+
+willkürlich                                  arbitrary
+
+wirklich berechtigt                          actually entitled
+
+wirkliche Sachverhalt                        real facts
+
+wirksam werden                               come into operation
+
+wirksam werden                               take effect
+
+wirtschaftliches Risiko                      economic risk
+
+wissentlich                                  knowing
+
+Witwenrente                                  widow's annuity
+
+Witwenrente                                  widow's pension
+
+Witwenversicherung                           widow's insurance
+
+Wochenbeitrag                                weekly contribution
+
+Wochengeld                                   maternity allowance
+
+Wochengeld, Wochenhilfe, Mutterschaftsgeld   maternity benefit
+
+wohlbehalten                                 safe and sound
+
+Wohltätigkeitsverein auf Gegenseitigkeit     mutual benefit association
+
+Wohngebiet                                   residential zone
+
+wohnhaft                                     resident
+
+Wohnungseinbruchsversicherung                residence burglary insurance
+
+während der Arbeitszeit                      on the job
+
+
+X
+
+
+Y
+
+
+Z
+
+
+zahlbar werden                               become payable
+
+Zahlung der Prämie, Prämienzahlung           premium pay
+
+Zahlung eines Pauschalbetrages               lump sum payment
+
+Zahlung in Raten                             payment by installments
+
+Zahlungserleichterungen                      facilities of payment
+
+Zahlungsfrist                                term of payment
+
+zahlungspflichtig                            liable to pay
+
+Zahlungsunfähigkeit                          insolvency
+
+Zahlungsweise                                mode of payment
+
+Zahnärztliche Behandlung                     dental treatment
+
+zeichnungsberechtigt                         authorized to sign
+
+Zeitdauer                                    term
+
+Zeitpolice                                   time policy
+
+Zeitrente, Rente auf Zeit                    temporary annuity
+
+Zeitverlust                                  loss of time
+
+Zeitwert                                     present value
+
+Zentrale                                     general office
+
+Zentrale, Hauptbüro                          head office
+
+Zentralverwaltung, Hauptverwaltung           head office
+
+Zession                                      cession
+
+Zettel                                       slip
+
+Zinseszins                                   compound interest
+
+Zinssatz, Zinsrate                           rate of interest
+
+Zinstabelle                                  interest table
+
+Zinstabelle                                  table of interest
+
+Zone                                         zone
+
+zu beanstanden                               objectionable
+
+zu den Akten nehmen                          take on file
+
+zu einem Vergleich kommen                    come to terms
+
+zu einer Pension berechtigend                pensionable
+
+zu erneuern                                  renewable
+
+zu gunsten von                               for the benefit of
+
+zu günstigen Bedingungen                     on easy terms
+
+zu hoch bezahlen                             overpay
+
+zu zahlender Betrag                          amount payable
+
+Zufall, Aissicht                             chance
+
+zufällig                                     accidentally
+
+zufällig                                     accidental
+
+zufällig                                     incidental
+
+zufälliger Verlust, zufälliger Schaden       loss by accident
+
+zufälliges Ereignis                          fortuitous event
+
+zum Schein                                   in pretence
+
+zur Rückversicherung angenommen              reinsurance accepted
+
+zur Selbsthilfe greifen                      take the law into one's hands
+
+zur Zeit, bis auf weiteres                   for the time being
+
+zurück  erhalten                             get back
+
+zurück datieren                              date back
+
+zurückgeben                                  return
+
+zurückziehen, widerrufen                     take back
+
+Zusage, Versprechen, zusagen, versprechen    promise
+
+Zusammenbruch                                breakdown
+
+Zusammenfassung, Kurzfassung, Auszug         abstract
+
+Zusammenstoß                                 collision
+
+zusammentreffen                              concurrence
+
+Zusatz, Abänderung                           amendment
+
+Zusatz, Ergänzung                            endorsement
+
+Zusatz, Zugang                               addition
+
+Zusatzbedingungen                            additional conditions
+
+Zusatzpolice                                 supplementary policy
+
+Zusatzprämie                                 additional premium
+
+Zusatzprämie                                 supplementary premium
+
+Zusatzversicherung, Ergänzungsversicherung   complementary insurance
+
+Zusatzversicherung, zusätzliche Versicherung additional insurance
+
+zusichern                                    assure
+
+Zusicherung                                  assurance
+
+zusätzlich                                   additional
+
+zusätzliche Kosten                           additional expenses
+
+zusätzliche Sicherheit                       additional security
+
+zusätzliche Zahlung                          additional payment
+
+zuviel Entschädigung zahlen                  overcompensate
+
+zuviel zahlen                                overpay
+
+Zuwachs                                      accrual
+
+zuwachsen, auflaufen                         accrue
+
+zuweisen                                     allocate
+
+zuweisen                                     allot
+
+Zuweisung                                    allocation
+
+Zuweisung                                    allotment
+
+Zuweisung an die Reserven                    allocation to reserves
+
+Zweck, Absicht, Ziel                         purpose
+
+Zweifel, Bedenken, zweifeln, bezweifeln      doubt
+
+zweifelhaft                                  doubtful
+
+zweiseitiges Risiko                          bilateral risk
+
+zweite Versicherung eingehen                 effect a second policy
+
+zwingend, obligatorisch, obligat             obligatory
+
+
+
+
+    zzzzz                                          zzzzz
+    zzzz  COPYRIGHT WINFRIED HONIG                zzzzz
+    zzzzz  NUERNBERG 2001                          zzzzz
+    zzzzz                                          zzzzz
+    zzzzz  WINFRIED HONIG                          zzzzz
+    zzzzz  FRANZ-REICHEL-RING 12                   zzzzz
+    zzzzz  90473 Nuernberg                         zzzzz
+    zzzzz  Germany                                 zzzzz
+    zzzzz                                          zzzzz
+    zzzzz  Tel. 0911 / 80 84 45                    zzzzz
+    zzzzz                                          zzzzz
+    zzzzz  winfried.honig@online.de                zzzzz
+    zzzzz                                          zzzzz
+    zzzzz  http://dict.leo.org                     zzzzz
+    zzzzz  http://www.dicdata.de                   zzzzz
+    zzzzz  http://mrhoney.purespace.de/latest.htm  zzzzz
+    zzzzz                                          zzzzz
+
+
+
+End of Mr Honey's Insurance  Dictionary (German-English)
+(C)2001, 2002  by Winfried Honig
+
+
+**This is a COPYRIGHTED Project Gutenberg Etext, Details Above**
+
+
+
+
+
+
+
+End of the Project Gutenberg EBook of Mr Honey's Insurance Dictionary
+(German-English), by Winfried Honig
+
+*** END OF THIS PROJECT GUTENBERG EBOOK MR HONEY'S INSURANCE ***
+
+***** This file should be named 3214-8.txt or 3214-8.zip *****
+This and all associated files of various formats will be found in:
+        http://www.gutenberg.org/3/2/1/3214/
+
+Produced by Michael Pullen, globaltraveler5565@yahoo.com.
+
+Updated editions will replace the previous one--the old editions
+will be renamed.
+
+Creating the works from public domain print editions means that no
+one owns a United States copyright in these works, so the Foundation
+(and you!) can copy and distribute it in the United States without
+permission and without paying copyright royalties.  Special rules,
+set forth in the General Terms of Use part of this license, apply to
+copying and distributing Project Gutenberg-tm electronic works to
+protect the PROJECT GUTENBERG-tm concept and trademark.  Project
+Gutenberg is a registered trademark, and may not be used if you
+charge for the eBooks, unless you receive specific permission.  If you
+do not charge anything for copies of this eBook, complying with the
+rules is very easy.  You may use this eBook for nearly any purpose
+such as creation of derivative works, reports, performances and
+research.  They may be modified and printed and given away--you may do
+practically ANYTHING with public domain eBooks.  Redistribution is
+subject to the trademark license, especially commercial
+redistribution.
+
+
+
+*** START: FULL LICENSE ***
+
+THE FULL PROJECT GUTENBERG LICENSE
+PLEASE READ THIS BEFORE YOU DISTRIBUTE OR USE THIS WORK
+
+To protect the Project Gutenberg-tm mission of promoting the free
+distribution of electronic works, by using or distributing this work
+(or any other work associated in any way with the phrase "Project
+Gutenberg"), you agree to comply with all the terms of the Full Project
+Gutenberg-tm License (available with this file or online at
+http://gutenberg.org/license).
+
+
+Section 1.  General Terms of Use and Redistributing Project Gutenberg-tm
+electronic works
+
+1.A.  By reading or using any part of this Project Gutenberg-tm
+electronic work, you indicate that you have read, understand, agree to
+and accept all the terms of this license and intellectual property
+(trademark/copyright) agreement.  If you do not agree to abide by all
+the terms of this agreement, you must cease using and return or destroy
+all copies of Project Gutenberg-tm electronic works in your possession.
+If you paid a fee for obtaining a copy of or access to a Project
+Gutenberg-tm electronic work and you do not agree to be bound by the
+terms of this agreement, you may obtain a refund from the person or
+entity to whom you paid the fee as set forth in paragraph 1.E.8.
+
+1.B.  "Project Gutenberg" is a registered trademark.  It may only be
+used on or associated in any way with an electronic work by people who
+agree to be bound by the terms of this agreement.  There are a few
+things that you can do with most Project Gutenberg-tm electronic works
+even without complying with the full terms of this agreement.  See
+paragraph 1.C below.  There are a lot of things you can do with Project
+Gutenberg-tm electronic works if you follow the terms of this agreement
+and help preserve free future access to Project Gutenberg-tm electronic
+works.  See paragraph 1.E below.
+
+1.C.  The Project Gutenberg Literary Archive Foundation ("the Foundation"
+or PGLAF), owns a compilation copyright in the collection of Project
+Gutenberg-tm electronic works.  Nearly all the individual works in the
+collection are in the public domain in the United States.  If an
+individual work is in the public domain in the United States and you are
+located in the United States, we do not claim a right to prevent you from
+copying, distributing, performing, displaying or creating derivative
+works based on the work as long as all references to Project Gutenberg
+are removed.  Of course, we hope that you will support the Project
+Gutenberg-tm mission of promoting free access to electronic works by
+freely sharing Project Gutenberg-tm works in compliance with the terms of
+this agreement for keeping the Project Gutenberg-tm name associated with
+the work.  You can easily comply with the terms of this agreement by
+keeping this work in the same format with its attached full Project
+Gutenberg-tm License when you share it without charge with others.
+
+1.D.  The copyright laws of the place where you are located also govern
+what you can do with this work.  Copyright laws in most countries are in
+a constant state of change.  If you are outside the United States, check
+the laws of your country in addition to the terms of this agreement
+before downloading, copying, displaying, performing, distributing or
+creating derivative works based on this work or any other Project
+Gutenberg-tm work.  The Foundation makes no representations concerning
+the copyright status of any work in any country outside the United
+States.
+
+1.E.  Unless you have removed all references to Project Gutenberg:
+
+1.E.1.  The following sentence, with active links to, or other immediate
+access to, the full Project Gutenberg-tm License must appear prominently
+whenever any copy of a Project Gutenberg-tm work (any work on which the
+phrase "Project Gutenberg" appears, or with which the phrase "Project
+Gutenberg" is associated) is accessed, displayed, performed, viewed,
+copied or distributed:
+
+This eBook is for the use of anyone anywhere at no cost and with
+almost no restrictions whatsoever.  You may copy it, give it away or
+re-use it under the terms of the Project Gutenberg License included
+with this eBook or online at www.gutenberg.org
+
+1.E.2.  If an individual Project Gutenberg-tm electronic work is derived
+from the public domain (does not contain a notice indicating that it is
+posted with permission of the copyright holder), the work can be copied
+and distributed to anyone in the United States without paying any fees
+or charges.  If you are redistributing or providing access to a work
+with the phrase "Project Gutenberg" associated with or appearing on the
+work, you must comply either with the requirements of paragraphs 1.E.1
+through 1.E.7 or obtain permission for the use of the work and the
+Project Gutenberg-tm trademark as set forth in paragraphs 1.E.8 or
+1.E.9.
+
+1.E.3.  If an individual Project Gutenberg-tm electronic work is posted
+with the permission of the copyright holder, your use and distribution
+must comply with both paragraphs 1.E.1 through 1.E.7 and any additional
+terms imposed by the copyright holder.  Additional terms will be linked
+to the Project Gutenberg-tm License for all works posted with the
+permission of the copyright holder found at the beginning of this work.
+
+1.E.4.  Do not unlink or detach or remove the full Project Gutenberg-tm
+License terms from this work, or any files containing a part of this
+work or any other work associated with Project Gutenberg-tm.
+
+1.E.5.  Do not copy, display, perform, distribute or redistribute this
+electronic work, or any part of this electronic work, without
+prominently displaying the sentence set forth in paragraph 1.E.1 with
+active links or immediate access to the full terms of the Project
+Gutenberg-tm License.
+
+1.E.6.  You may convert to and distribute this work in any binary,
+compressed, marked up, nonproprietary or proprietary form, including any
+word processing or hypertext form.  However, if you provide access to or
+distribute copies of a Project Gutenberg-tm work in a format other than
+"Plain Vanilla ASCII" or other format used in the official version
+posted on the official Project Gutenberg-tm web site (www.gutenberg.org),
+you must, at no additional cost, fee or expense to the user, provide a
+copy, a means of exporting a copy, or a means of obtaining a copy upon
+request, of the work in its original "Plain Vanilla ASCII" or other
+form.  Any alternate format must include the full Project Gutenberg-tm
+License as specified in paragraph 1.E.1.
+
+1.E.7.  Do not charge a fee for access to, viewing, displaying,
+performing, copying or distributing any Project Gutenberg-tm works
+unless you comply with paragraph 1.E.8 or 1.E.9.
+
+1.E.8.  You may charge a reasonable fee for copies of or providing
+access to or distributing Project Gutenberg-tm electronic works provided
+that
+
+- You pay a royalty fee of 20% of the gross profits you derive from
+     the use of Project Gutenberg-tm works calculated using the method
+     you already use to calculate your applicable taxes.  The fee is
+     owed to the owner of the Project Gutenberg-tm trademark, but he
+     has agreed to donate royalties under this paragraph to the
+     Project Gutenberg Literary Archive Foundation.  Royalty payments
+     must be paid within 60 days following each date on which you
+     prepare (or are legally required to prepare) your periodic tax
+     returns.  Royalty payments should be clearly marked as such and
+     sent to the Project Gutenberg Literary Archive Foundation at the
+     address specified in Section 4, "Information about donations to
+     the Project Gutenberg Literary Archive Foundation."
+
+- You provide a full refund of any money paid by a user who notifies
+     you in writing (or by e-mail) within 30 days of receipt that s/he
+     does not agree to the terms of the full Project Gutenberg-tm
+     License.  You must require such a user to return or
+     destroy all copies of the works possessed in a physical medium
+     and discontinue all use of and all access to other copies of
+     Project Gutenberg-tm works.
+
+- You provide, in accordance with paragraph 1.F.3, a full refund of any
+     money paid for a work or a replacement copy, if a defect in the
+     electronic work is discovered and reported to you within 90 days
+     of receipt of the work.
+
+- You comply with all other terms of this agreement for free
+     distribution of Project Gutenberg-tm works.
+
+1.E.9.  If you wish to charge a fee or distribute a Project Gutenberg-tm
+electronic work or group of works on different terms than are set
+forth in this agreement, you must obtain permission in writing from
+both the Project Gutenberg Literary Archive Foundation and Michael
+Hart, the owner of the Project Gutenberg-tm trademark.  Contact the
+Foundation as set forth in Section 3 below.
+
+1.F.
+
+1.F.1.  Project Gutenberg volunteers and employees expend considerable
+effort to identify, do copyright research on, transcribe and proofread
+public domain works in creating the Project Gutenberg-tm
+collection.  Despite these efforts, Project Gutenberg-tm electronic
+works, and the medium on which they may be stored, may contain
+"Defects," such as, but not limited to, incomplete, inaccurate or
+corrupt data, transcription errors, a copyright or other intellectual
+property infringement, a defective or damaged disk or other medium, a
+computer virus, or computer codes that damage or cannot be read by
+your equipment.
+
+1.F.2.  LIMITED WARRANTY, DISCLAIMER OF DAMAGES - Except for the "Right
+of Replacement or Refund" described in paragraph 1.F.3, the Project
+Gutenberg Literary Archive Foundation, the owner of the Project
+Gutenberg-tm trademark, and any other party distributing a Project
+Gutenberg-tm electronic work under this agreement, disclaim all
+liability to you for damages, costs and expenses, including legal
+fees.  YOU AGREE THAT YOU HAVE NO REMEDIES FOR NEGLIGENCE, STRICT
+LIABILITY, BREACH OF WARRANTY OR BREACH OF CONTRACT EXCEPT THOSE
+PROVIDED IN PARAGRAPH 1.F.3.  YOU AGREE THAT THE FOUNDATION, THE
+TRADEMARK OWNER, AND ANY DISTRIBUTOR UNDER THIS AGREEMENT WILL NOT BE
+LIABLE TO YOU FOR ACTUAL, DIRECT, INDIRECT, CONSEQUENTIAL, PUNITIVE OR
+INCIDENTAL DAMAGES EVEN IF YOU GIVE NOTICE OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+1.F.3.  LIMITED RIGHT OF REPLACEMENT OR REFUND - If you discover a
+defect in this electronic work within 90 days of receiving it, you can
+receive a refund of the money (if any) you paid for it by sending a
+written explanation to the person you received the work from.  If you
+received the work on a physical medium, you must return the medium with
+your written explanation.  The person or entity that provided you with
+the defective work may elect to provide a replacement copy in lieu of a
+refund.  If you received the work electronically, the person or entity
+providing it to you may choose to give you a second opportunity to
+receive the work electronically in lieu of a refund.  If the second copy
+is also defective, you may demand a refund in writing without further
+opportunities to fix the problem.
+
+1.F.4.  Except for the limited right of replacement or refund set forth
+in paragraph 1.F.3, this work is provided to you 'AS-IS' WITH NO OTHER
+WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+WARRANTIES OF MERCHANTIBILITY OR FITNESS FOR ANY PURPOSE.
+
+1.F.5.  Some states do not allow disclaimers of certain implied
+warranties or the exclusion or limitation of certain types of damages.
+If any disclaimer or limitation set forth in this agreement violates the
+law of the state applicable to this agreement, the agreement shall be
+interpreted to make the maximum disclaimer or limitation permitted by
+the applicable state law.  The invalidity or unenforceability of any
+provision of this agreement shall not void the remaining provisions.
+
+1.F.6.  INDEMNITY - You agree to indemnify and hold the Foundation, the
+trademark owner, any agent or employee of the Foundation, anyone
+providing copies of Project Gutenberg-tm electronic works in accordance
+with this agreement, and any volunteers associated with the production,
+promotion and distribution of Project Gutenberg-tm electronic works,
+harmless from all liability, costs and expenses, including legal fees,
+that arise directly or indirectly from any of the following which you do
+or cause to occur: (a) distribution of this or any Project Gutenberg-tm
+work, (b) alteration, modification, or additions or deletions to any
+Project Gutenberg-tm work, and (c) any Defect you cause.
+
+
+Section  2.  Information about the Mission of Project Gutenberg-tm
+
+Project Gutenberg-tm is synonymous with the free distribution of
+electronic works in formats readable by the widest variety of computers
+including obsolete, old, middle-aged and new computers.  It exists
+because of the efforts of hundreds of volunteers and donations from
+people in all walks of life.
+
+Volunteers and financial support to provide volunteers with the
+assistance they need, are critical to reaching Project Gutenberg-tm's
+goals and ensuring that the Project Gutenberg-tm collection will
+remain freely available for generations to come.  In 2001, the Project
+Gutenberg Literary Archive Foundation was created to provide a secure
+and permanent future for Project Gutenberg-tm and future generations.
+To learn more about the Project Gutenberg Literary Archive Foundation
+and how your efforts and donations can help, see Sections 3 and 4
+and the Foundation web page at http://www.pglaf.org.
+
+
+Section 3.  Information about the Project Gutenberg Literary Archive
+Foundation
+
+The Project Gutenberg Literary Archive Foundation is a non profit
+501(c)(3) educational corporation organized under the laws of the
+state of Mississippi and granted tax exempt status by the Internal
+Revenue Service.  The Foundation's EIN or federal tax identification
+number is 64-6221541.  Its 501(c)(3) letter is posted at
+http://pglaf.org/fundraising.  Contributions to the Project Gutenberg
+Literary Archive Foundation are tax deductible to the full extent
+permitted by U.S. federal laws and your state's laws.
+
+The Foundation's principal office is located at 4557 Melan Dr. S.
+Fairbanks, AK, 99712., but its volunteers and employees are scattered
+throughout numerous locations.  Its business office is located at
+809 North 1500 West, Salt Lake City, UT 84116, (801) 596-1887, email
+business@pglaf.org.  Email contact links and up to date contact
+information can be found at the Foundation's web site and official
+page at http://pglaf.org
+
+For additional contact information:
+     Dr. Gregory B. Newby
+     Chief Executive and Director
+     gbnewby@pglaf.org
+
+
+Section 4.  Information about Donations to the Project Gutenberg
+Literary Archive Foundation
+
+Project Gutenberg-tm depends upon and cannot survive without wide
+spread public support and donations to carry out its mission of
+increasing the number of public domain and licensed works that can be
+freely distributed in machine readable form accessible by the widest
+array of equipment including outdated equipment.  Many small donations
+($1 to $5,000) are particularly important to maintaining tax exempt
+status with the IRS.
+
+The Foundation is committed to complying with the laws regulating
+charities and charitable donations in all 50 states of the United
+States.  Compliance requirements are not uniform and it takes a
+considerable effort, much paperwork and many fees to meet and keep up
+with these requirements.  We do not solicit donations in locations
+where we have not received written confirmation of compliance.  To
+SEND DONATIONS or determine the status of compliance for any
+particular state visit http://pglaf.org
+
+While we cannot and do not solicit contributions from states where we
+have not met the solicitation requirements, we know of no prohibition
+against accepting unsolicited donations from donors in such states who
+approach us with offers to donate.
+
+International donations are gratefully accepted, but we cannot make
+any statements concerning tax treatment of donations received from
+outside the United States.  U.S. laws alone swamp our small staff.
+
+Please check the Project Gutenberg Web pages for current donation
+methods and addresses.  Donations are accepted in a number of other
+ways including checks, online payments and credit card donations.
+To donate, please visit: http://pglaf.org/donate
+
+
+Section 5.  General Information About Project Gutenberg-tm electronic
+works.
+
+Professor Michael S. Hart is the originator of the Project Gutenberg-tm
+concept of a library of electronic works that could be freely shared
+with anyone.  For thirty years, he produced and distributed Project
+Gutenberg-tm eBooks with only a loose network of volunteer support.
+
+
+Project Gutenberg-tm eBooks are often created from several printed
+editions, all of which are confirmed as Public Domain in the U.S.
+unless a copyright notice is included.  Thus, we do not necessarily
+keep eBooks in compliance with any particular paper edition.
+
+
+Most people start at our Web site which has the main PG search facility:
+
+     http://www.gutenberg.org
+
+This Web site includes information about Project Gutenberg-tm,
+including how to make donations to the Project Gutenberg Literary
+Archive Foundation, how to help produce our new eBooks, and how to
+subscribe to our email newsletter to hear about new eBooks.

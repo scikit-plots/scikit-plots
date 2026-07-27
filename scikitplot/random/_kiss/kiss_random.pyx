@@ -181,6 +181,13 @@ DEF KISS64_DEFAULT_SEED = 1234567890987654321
 DEF UINT64_MAX = 18446744073709551615  # 2^64 - 1
 DEF UINT32_MAX = 4294967295  # 2^32 - 1
 
+# ANNOY-RNG-001 (guide 6.15): canonical uint64 -> double in [0, 1).
+# Use the top 53 bits and an exact power-of-two scale (2**-53), matching the
+# IEEE-754 double mantissa. Dividing by UINT64_MAX/2**64 can round up to exactly
+# 1.0 (a maximal draw), violating the documented half-open interval.
+DEF KISS_F64_SHIFT = 11              # 64 - 53
+DEF KISS_F64_SCALE = 1.1102230246251565e-16   # 2**-53 (exact)
+
 # ===========================================================================
 # Utility Functions
 # ===========================================================================
@@ -1404,7 +1411,7 @@ cdef class Kiss32Random:
         return (
             self.__class__,
             (int(self._seed),),  # Constructor args
-            None,  # No additional state needed
+            self.get_state(),  # full state -> __setstate__ resumes (ANNOY-RNG-002, guide 6.16)
         )
 
     def __reduce_ex__(self, protocol):
@@ -1430,6 +1437,10 @@ cdef class Kiss32Random:
         return {
             "seed": int(self._seed),
             "bit_width": 32,
+            "x": int(self._rng.x),
+            "y": int(self._rng.y),
+            "z": int(self._rng.z),
+            "c": int(self._rng.c),
             "__version__": SERIALIZATION_VERSION,
         }
 
@@ -1451,6 +1462,13 @@ cdef class Kiss32Random:
         """
         _validate_state_dict(state, {"seed"})
         self.seed = int(state["seed"])
+        # ANNOY-RNG-002 (guide 6.16): restore full continuation state when the
+        # words are present; legacy seed-only states fall back to the re-seed.
+        if all(k in state for k in ("x", "y", "z", "c")):
+            self._rng.x = <uint32_t>(int(state["x"]) & 0xFFFFFFFF)
+            self._rng.y = <uint32_t>(int(state["y"]) & 0xFFFFFFFF)
+            self._rng.z = <uint32_t>(int(state["z"]) & 0xFFFFFFFF)
+            self._rng.c = <uint32_t>(int(state["c"]) & 0xFFFFFFFF)
 
     def get_params(self, deep=True):
         """
@@ -1766,7 +1784,7 @@ cdef class Kiss64Random:
         return (
             self.__class__,
             (int(self._seed),),  # Constructor args
-            None,  # No additional state needed
+            self.get_state(),  # full state -> __setstate__ resumes (ANNOY-RNG-002, guide 6.16)
         )
 
     def __reduce_ex__(self, protocol):
@@ -1792,6 +1810,10 @@ cdef class Kiss64Random:
         return {
             "seed": int(self._seed),
             "bit_width": 64,
+            "x": int(self._rng.x),
+            "y": int(self._rng.y),
+            "z": int(self._rng.z),
+            "c": int(self._rng.c),
             "__version__": SERIALIZATION_VERSION,
         }
 
@@ -1813,6 +1835,13 @@ cdef class Kiss64Random:
         """
         _validate_state_dict(state, {"seed"})
         self.seed = int(state["seed"])
+        # ANNOY-RNG-002 (guide 6.16): restore full continuation state when the
+        # words are present; legacy seed-only states fall back to the re-seed.
+        if all(k in state for k in ("x", "y", "z", "c")):
+            self._rng.x = <uint64_t>(int(state["x"]) & 0xFFFFFFFFFFFFFFFF)
+            self._rng.y = <uint64_t>(int(state["y"]) & 0xFFFFFFFFFFFFFFFF)
+            self._rng.z = <uint64_t>(int(state["z"]) & 0xFFFFFFFFFFFFFFFF)
+            self._rng.c = <uint64_t>(int(state["c"]) & 0xFFFFFFFFFFFFFFFF)
 
     def get_params(self, deep=True):
         """
@@ -1988,10 +2017,15 @@ cdef uint32_t kiss64_next_uint32(void *st) noexcept nogil:
     return <uint32_t>(val >> 32)
 
 cdef double kiss64_next_double(void *st) noexcept nogil:
-    """C callback for next_double - called by NumPy Generator."""
+    """C callback for next_double - called by NumPy Generator.
+
+    Returns a double in the half-open interval [0, 1) using the top 53 bits and
+    an exact power-of-two scale (ANNOY-RNG-001, guide 6.15). The old
+    ``val / UINT64_MAX`` could return exactly 1.0 for a maximal draw.
+    """
     cdef CKiss64Random *rng = <CKiss64Random *>st
     cdef uint64_t val = rng.kiss()
-    return (<double>val) / (<double>UINT64_MAX)
+    return <double>(val >> KISS_F64_SHIFT) * KISS_F64_SCALE
 
 cdef uint64_t kiss64_next_raw(void *st) noexcept nogil:
     """C callback for next_raw - called by NumPy Generator."""
@@ -2415,7 +2449,7 @@ cdef class KissBitGenerator:
         >>> print("seed_sequence" in state)
         True
         """
-        return {
+        state = {
             "seed_sequence": f"{self.seed_seq.__class__.__name__}",
             "seed_sequence_state": {
                 "seed": int(self._seed),
@@ -2423,6 +2457,21 @@ cdef class KissBitGenerator:
             },
             "__version__": SERIALIZATION_VERSION,
         }
+        # ANNOY-RNG-002 (guide 6.16): capture the live generator words so restore
+        # resumes the stream exactly, rather than restarting from the seed.
+        if self._bit_width == 32 and self._rng32 is not NULL:
+            state["rng_state"] = {
+                "bit_width": 32,
+                "x": int(self._rng32.x), "y": int(self._rng32.y),
+                "z": int(self._rng32.z), "c": int(self._rng32.c),
+            }
+        elif self._rng is not NULL:
+            state["rng_state"] = {
+                "bit_width": 64,
+                "x": int(self._rng.x), "y": int(self._rng.y),
+                "z": int(self._rng.z), "c": int(self._rng.c),
+            }
+        return state
 
     def set_state(self, state):
         """
@@ -2454,6 +2503,20 @@ cdef class KissBitGenerator:
         self._seed = CKiss64Random.normalize_seed(cseed)
         with self.lock:
             self._rng.reset(self._seed)
+            # ANNOY-RNG-002 (guide 6.16): restore full continuation words when
+            # present; legacy seed-only states keep the re-seed above.
+            rng_state = state.get("rng_state")
+            if rng_state and all(k in rng_state for k in ("x", "y", "z", "c")):
+                if self._bit_width == 32 and self._rng32 is not NULL:
+                    self._rng32.x = <uint32_t>(int(rng_state["x"]) & 0xFFFFFFFF)
+                    self._rng32.y = <uint32_t>(int(rng_state["y"]) & 0xFFFFFFFF)
+                    self._rng32.z = <uint32_t>(int(rng_state["z"]) & 0xFFFFFFFF)
+                    self._rng32.c = <uint32_t>(int(rng_state["c"]) & 0xFFFFFFFF)
+                elif self._rng is not NULL:
+                    self._rng.x = <uint64_t>(int(rng_state["x"]) & 0xFFFFFFFFFFFFFFFF)
+                    self._rng.y = <uint64_t>(int(rng_state["y"]) & 0xFFFFFFFFFFFFFFFF)
+                    self._rng.z = <uint64_t>(int(rng_state["z"]) & 0xFFFFFFFFFFFFFFFF)
+                    self._rng.c = <uint64_t>(int(rng_state["c"]) & 0xFFFFFFFFFFFFFFFF)
 
     def get_params(self, deep=True):
         """
@@ -3398,15 +3461,25 @@ cdef class KissGenerator:
         >>> gen.random(5)
         array([...])
         """
+        # ANNOY-RNG-001 (guide 6.15): canonical [0, 1) conversion via the top
+        # mantissa bits and an exact power-of-two scale (never returns 1.0).
         if size is None:
-            return self.bit_generator.random_raw() / (2**64 - 1)
+            return (self.bit_generator.random_raw() >> KISS_F64_SHIFT) * KISS_F64_SCALE
 
         raw = self.bit_generator.random_raw(size)
+        dt = np.dtype(dtype)
+        if dt == np.float32:
+            # top 24 bits (float32 mantissa) * 2**-24
+            unit = (raw >> np.uint64(40)).astype(np.float32) * np.float32(2.0 ** -24)
+        else:
+            unit = (raw >> np.uint64(KISS_F64_SHIFT)).astype(np.float64) * KISS_F64_SCALE
+            if dt != np.float64:
+                unit = unit.astype(dt)
 
         if out is None:
-            result = raw.astype(dtype) / (2**64 - 1)
+            result = unit
         else:
-            np.divide(raw, 2**64 - 1, out=out, casting="unsafe")
+            out[...] = unit
             result = out
 
         return result

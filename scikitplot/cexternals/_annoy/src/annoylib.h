@@ -226,6 +226,15 @@
 // For 201103L "This library requires at least C++11 (-std=c++11)."
 // For 201402L "This library requires at least C++14 (-std=c++14)."
 // For 201703L "This library requires at least C++17 (-std=c++17)."
+//
+// ANNOY-STD-001 (guide 6.9): the true minimum is C++17 — the code uses
+// `if constexpr` and the build sets cpp_std=c++17. Enforce it here, early
+// (before the C++17-only <shared_mutex> include below), so a lower-standard
+// build fails with this accurate message instead of an obscure later error.
+#if __cplusplus < 201703L
+  #error "scikit-plots vendored Annoy requires at least C++17 (-std=c++17)"
+#endif
+
 #if __cplusplus >= 201103L
   // provides compile-time type information and type transformations
   #include <type_traits>  // std::is_floating_point
@@ -238,17 +247,11 @@
   #include <thread>
   #include <functional>
   #include <mutex>
-  #if __cplusplus >= 201402L
-    /* std::shared_timed_mutex is standardised in C++14.
-     * std::shared_mutex (without "timed") requires C++17. */
-    #include <shared_mutex>
-  #else
-    /* C++11: <shared_mutex> is absent from the standard.
-     * AnnoyIndexMultiThreadedBuildPolicy falls back to std::mutex
-     * (exclusive lock only). lock_shared / unlock_shared map to
-     * lock / unlock in the C++11 build path. */
-    #include <mutex>
-  #endif
+  // C++17 is the enforced minimum (see the #error guard above), so
+  // <shared_mutex> — providing std::shared_mutex — is always available.
+  // The former C++11 std::mutex fallback path is dead and has been removed.
+  // (ANNOY-STD-001, guide 6.9.)
+  #include <shared_mutex>
 #endif
 
 // (C Header) C headers place symbols in global namespace
@@ -283,12 +286,12 @@
 #endif
 
 /* =========================
- * Compile-time ABI assertions (C++11)
+ * Compile-time ABI assertions
  *
  * Verify that the fundamental types have the exact widths the rest of the
  * code assumes.  These fire at compile time — zero runtime cost.
- * The C++11 guard is redundant (line 278 enforces C++11 via #error) but is
- * kept as documentation of the minimum requirement for each assertion.
+ * The version guard below is always true under the enforced C++17 minimum and
+ * is kept only as documentation of the minimum requirement.
  * ========================= */
 #if __cplusplus >= 201103L
   static_assert(sizeof(uint8_t)  == 1, "uint8_t must be exactly 8 bits");
@@ -301,9 +304,7 @@
   static_assert(sizeof(double)   == 8, "double must be 64-bit IEEE 754");
 #endif
 
-#if __cplusplus < 201103L
-  #error "Annoy requires at least C++11 or newer"
-#endif
+// (C++17 minimum is enforced by the early #error guard near the top of this file.)
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__MINGW32__)
   #ifndef NOMINMAX
@@ -1204,18 +1205,18 @@ inline uint32_t popcount(bool x) noexcept {
  * ========================================================================================= */
 #ifndef ANNOY_TYPE_CONVERSION_DEFINED
 #define ANNOY_TYPE_CONVERSION_DEFINED
+// ANNOY-CMP-001 (guide 6.13): range-safe integer comparisons/clamp so the
+// bounds check never casts T's bounds into the source type S.
+#include "annoy_int_cmp.h"
 // Safe conversion from any numeric type to target type T
 // This is a helper for type conversions with proper clamping
 template<typename T, typename S>
 inline T safe_numeric_cast(S value) {
-  // Integer to integer: direct cast with bounds checking (clamping)
-  if (std::numeric_limits<T>::is_integer && std::numeric_limits<S>::is_integer) {
-    if (value > static_cast<S>(std::numeric_limits<T>::max())) {
-      return std::numeric_limits<T>::max();
-    } else if (value < static_cast<S>(std::numeric_limits<T>::lowest())) {
-      return std::numeric_limits<T>::lowest();
-    }
-    return static_cast<T>(value);
+  // Integer to integer: range-correct clamp WITHOUT casting T's bounds into S
+  // (ANNOY-CMP-001, guide 6.13). `if constexpr` so it is not instantiated for
+  // floating S/T (which would fail the integral static_assert).
+  if constexpr (std::numeric_limits<T>::is_integer && std::numeric_limits<S>::is_integer) {
+    return annoy_clamp_cast_int<T, S>(value);
   }
 
   // Float to int: round to nearest with bounds checking (clamping)
@@ -2422,19 +2423,19 @@ public:
   // Accessors
   virtual uint64_t get_n_items_w()   const noexcept = 0;
   virtual uint64_t get_n_trees_w()   const noexcept = 0;
-  virtual void    get_item_w(uint64_t item, double* embedding) const noexcept = 0;
+  virtual void    get_item_w(uint64_t item, double* embedding, char** error = NULL) const noexcept = 0;
   virtual double  get_distance_w(uint64_t i, uint64_t j) const noexcept = 0;
 
   // Querying
   virtual void get_nns_by_item_w(
     uint64_t item, size_t n, int search_k,
     std::vector<uint64_t>* result,
-    std::vector<double>*  distances) const noexcept = 0;
+    std::vector<double>*  distances, char** error = NULL) const noexcept = 0;
 
   virtual void get_nns_by_vector_w(
     const double* vec, size_t n, int search_k,
     std::vector<uint64_t>* result,
-    std::vector<double>*  distances) const noexcept = 0;
+    std::vector<double>*  distances, char** error = NULL) const noexcept = 0;
 };
 /* =========================================================================================
  * MAIN ANNOY INDEX INTERFACE
@@ -2567,9 +2568,9 @@ class AnnoyIndexInterface
   // `final` prevents derived classes from overriding the bridges; they
   // override only the typed S/T/R methods.
   //
-  // All bridges are noexcept and catch std::bad_alloc (from temporary
-  // std::vector allocations) routing it through the char** error convention
-  // that the rest of the API uses.
+  // All bridges are noexcept and catch exceptions (incl. std::bad_alloc from
+  // temporary std::vector allocations), clearing outputs and routing failures
+  // through the char** error convention (never swallowing). ANNOY-OBS-001 (6.10).
   // ─────────────────────────────────────────────────────────────────────────
 
   void set_seed_w(uint64_t seed) noexcept override final {
@@ -2597,13 +2598,20 @@ class AnnoyIndexInterface
     return static_cast<uint64_t>(get_n_trees());
   }
 
-  void get_item_w(uint64_t item, double* embedding) const noexcept override final {
+  void get_item_w(uint64_t item, double* embedding, char** error = NULL) const noexcept override final {
+    const int f = get_f();
     try {
-      const int f = get_f();
       std::vector<T> tmp(static_cast<size_t>(f));
       get_item(static_cast<S>(item), tmp.data());
       for (int i = 0; i < f; ++i) embedding[i] = static_cast<double>(tmp[i]);
-    } catch (...) {}
+    } catch (const std::exception& e) {
+      // ANNOY-OBS-001 (guide 6.10): never swallow; clear output and report.
+      if (embedding) for (int i = 0; i < f; ++i) embedding[i] = 0.0;
+      if (error) *error = dup_cstr(e.what());
+    } catch (...) {
+      if (embedding) for (int i = 0; i < f; ++i) embedding[i] = 0.0;
+      if (error) *error = dup_cstr("unknown error in get_item_w");
+    }
   }
 
   double get_distance_w(uint64_t i, uint64_t j) const noexcept override final {
@@ -2613,7 +2621,7 @@ class AnnoyIndexInterface
   void get_nns_by_item_w(
       uint64_t item, size_t n, int search_k,
       std::vector<uint64_t>* result,
-      std::vector<double>*  distances) const noexcept override final {
+      std::vector<double>*  distances, char** error = NULL) const noexcept override final {
     try {
       std::vector<S> sr;
       if (distances) {
@@ -2628,15 +2636,24 @@ class AnnoyIndexInterface
         result->resize(sr.size());
         for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<uint64_t>(sr[k]);
       }
-    } catch (...) {}
+    } catch (const std::exception& e) {
+      // ANNOY-OBS-001 (guide 6.10): never swallow; clear outputs and report.
+      if (result) result->clear();
+      if (distances) distances->clear();
+      if (error) *error = dup_cstr(e.what());
+    } catch (...) {
+      if (result) result->clear();
+      if (distances) distances->clear();
+      if (error) *error = dup_cstr("unknown error in get_nns_by_item_w");
+    }
   }
 
   void get_nns_by_vector_w(
       const double* vec, size_t n, int search_k,
       std::vector<uint64_t>* result,
-      std::vector<double>*  distances) const noexcept override final {
+      std::vector<double>*  distances, char** error = NULL) const noexcept override final {
+    const int f = get_f();
     try {
-      const int f = get_f();
       std::vector<T> query(static_cast<size_t>(f));
       for (int i = 0; i < f; ++i) query[i] = static_cast<T>(vec[i]);
       std::vector<S> sr;
@@ -2652,7 +2669,16 @@ class AnnoyIndexInterface
         result->resize(sr.size());
         for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<uint64_t>(sr[k]);
       }
-    } catch (...) {}
+    } catch (const std::exception& e) {
+      // ANNOY-OBS-001 (guide 6.10): never swallow; clear outputs and report.
+      if (result) result->clear();
+      if (distances) distances->clear();
+      if (error) *error = dup_cstr(e.what());
+    } catch (...) {
+      if (result) result->clear();
+      if (distances) distances->clear();
+      if (error) *error = dup_cstr("unknown error in get_nns_by_vector_w");
+    }
   }
 };
 // Without this, noexcept will call std::terminate().
@@ -2819,8 +2845,11 @@ protected:
   Random _random;     // RNG instance (stateful; seeded in constructor).
   R      _seed;       // Seed value passed to _random.
   bool   _loaded;     // True after load(); prevents add_item / build.
-  int    _fd;         // File descriptor for on-disk build (0 = not open).
+  int    _fd;         // File descriptor for on-disk build (-1 = not open; fd 0 is valid). ANNOY-FD-001 (guide 6.8).
   bool   _on_disk;    // True when on_disk_build() has been called.
+  std::string _on_disk_path;  // Final on-disk path; used to remove a partially
+                              // finalized (header-less, corrupt) file if build()
+                              // fails. ANNOY-SAVE-002 (guide 6.7).
   bool   _built;      // True after build() completes successfully.
 
   std::atomic<bool> _build_failed; // Thread-safe build failure flag.
@@ -2884,7 +2913,7 @@ public:
     , _random()
     , _seed(Random::default_seed)
     , _loaded(false)
-    , _fd(0)
+    , _fd(-1)
     , _on_disk(false)
     , _built(false)
     , _build_failed(false)
@@ -2938,7 +2967,7 @@ public:
    * @brief Destructor - cleanup resources
    */
   // ~AnnoyIndex() { unload(); }
-  virtual ~AnnoyIndex() {
+  virtual ~AnnoyIndex() noexcept {
     unload();
     // for (size_t i = 0; i < _nodes.size(); ++i) {
     //   if (_nodes[i] != NULL) {
@@ -3187,9 +3216,10 @@ public:
 #endif
     if (_fd == -1) {
       set_error_from_errno(error, "Unable to open");
-      _fd = 0;
+      _fd = -1;
       return false;
     }
+    _on_disk_path = file;  // remembered so build() can remove a corrupt file on failure
     _nodes_size = 1;
     if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(_s) * ANNOYLIB_FTRUNCATE_SIZE(_nodes_size)) == -1) {
       set_error_from_errno(error, "Unable to truncate");
@@ -3198,7 +3228,7 @@ public:
  #else
       _close(_fd);
  #endif
-      _fd = 0;
+      _fd = -1;
       _on_disk = false;
       _nodes = NULL;
       _nodes_size = 0;
@@ -3217,7 +3247,7 @@ public:
  #else
       _close(_fd);
  #endif
-      _fd = 0;
+      _fd = -1;
       _on_disk = false;
       _nodes_size = 0;
       return false;
@@ -3278,8 +3308,18 @@ public:
       if (!remap_memory_and_truncate(&_nodes, _fd,
           static_cast<size_t>(_s) * static_cast<size_t>(_nodes_size),
           static_cast<size_t>(_s) * static_cast<size_t>(_n_nodes))) {
-        // TODO: this probably creates an index in a corrupt state... not sure what to do
+        // ANNOY-SAVE-002 (guide 6.7): a failed final truncate leaves the on-disk
+        // file partially finalized and header-less. Remove it so it can never be
+        // loaded as a (corrupt) valid index. Unlinking an open file is safe: the
+        // fd/mmap remain valid and are torn down normally by unload()/destructor.
         set_error_from_errno(error, "Unable to truncate");
+        if (!_on_disk_path.empty()) {
+#ifndef _MSC_VER
+          unlink(_on_disk_path.c_str());
+#else
+          _unlink(_on_disk_path.c_str());
+#endif
+        }
         return false;
       }
       _nodes_size = _n_nodes;
@@ -3316,17 +3356,22 @@ public:
       return true;
     }
 
-    // Delete existing file first (avoids partial-overwrite corruption on short
-    // writes and matches the original behaviour — see issue #335).
+    // ANNOY-SAVE-001 (guide 6.5): transactional save. Write to a same-directory
+    // temporary file, flush for durability, then ATOMICALLY rename it over the
+    // target. Consequences of the old "unlink target, write in place, then
+    // unload+reload" path — losing the previous file on a partial write, and
+    // losing the in-memory index if reload failed — are avoided: the existing
+    // file is untouched until the rename commits, and the in-memory index is
+    // only unloaded after a successful commit.
 #ifndef _MSC_VER
-    unlink(filename);
+    std::string tmp = std::string(filename) + ".tmp-" + std::to_string((long)getpid());
 #else
-    _unlink(filename);
+    std::string tmp = std::string(filename) + ".tmp-" + std::to_string((unsigned long)GetCurrentProcessId());
 #endif
 
-    FILE* f = fopen(filename, "wb");
+    FILE* f = fopen(tmp.c_str(), "wb");
     if (f == NULL) {
-      set_error_from_errno(error, "Unable to open");
+      set_error_from_errno(error, "Unable to open temporary file for save");
       return false;
     }
 
@@ -3346,33 +3391,61 @@ public:
 
     if (fwrite(&hdr, sizeof(hdr), 1, f) != 1) {
       set_error_from_errno(error, "Unable to write file header");
-      fclose(f);
+      fclose(f); std::remove(tmp.c_str());
       return false;
     }
 
     if (fwrite(_nodes, _s, _n_nodes, f) != static_cast<size_t>(_n_nodes)) {
       set_error_from_errno(error, "Unable to write");
-      fclose(f);
+      fclose(f); std::remove(tmp.c_str());
       return false;
     }
+
+    // Durability: flush userspace buffers and the kernel page cache before the
+    // rename, so a crash after commit cannot expose a truncated file.
+    fflush(f);
+#ifndef _MSC_VER
+    if (fsync(fileno(f)) != 0) {
+      set_error_from_errno(error, "Unable to flush temporary file");
+      fclose(f); std::remove(tmp.c_str());
+      return false;
+    }
+#else
+    _commit(_fileno(f));
+#endif
 
     if (fclose(f) == EOF) {
-      set_error_from_errno(error, "Unable to close");
+      set_error_from_errno(error, "Unable to close temporary file");
+      std::remove(tmp.c_str());
       return false;
     }
 
+    // Atomic replace: POSIX rename() replaces the target atomically on the same
+    // filesystem; Windows uses MoveFileEx with MOVEFILE_REPLACE_EXISTING.
+#ifndef _MSC_VER
+    if (rename(tmp.c_str(), filename) != 0) {
+#else
+    if (!MoveFileExA(tmp.c_str(), filename, MOVEFILE_REPLACE_EXISTING)) {
+#endif
+      set_error_from_errno(error, "Unable to atomically replace target file");
+      std::remove(tmp.c_str());
+      return false;
+    }
+
+    // The file is safely committed; only now switch the in-memory backing.
     unload();
     return load(filename, prefault, error);
   }
 
   void reinitialize() {
-    _fd = 0;
+    _fd = -1;
     _nodes = NULL;
     _loaded = false;
     _n_items = 0;
     _n_nodes = 0;
     _nodes_size = 0;
     _on_disk = false;
+    _on_disk_path.clear();
     _seed = Random::default_seed;
     _roots.clear();
     _mmap_base = NULL;  // cleared on every unload; set only by load() for headered files
@@ -3380,7 +3453,7 @@ public:
   }
 
   void unload() noexcept override {
-    if (_on_disk && _fd) {
+    if (_on_disk && _fd != -1) {
 #ifndef _MSC_VER
       close(_fd);
 #else
@@ -3388,7 +3461,7 @@ public:
 #endif
       munmap(_nodes, _s * _nodes_size);
     } else {
-      if (_fd) {
+      if (_fd != -1) {
         // we have mmapped data
 #ifndef _MSC_VER
         close(_fd);
@@ -3422,7 +3495,7 @@ public:
 #endif
     if (_fd == -1) {
       set_error_from_errno(error, "Unable to open");
-      _fd = 0;
+      _fd = -1;
       return false;
     }
     off_t size = lseek_getsize(_fd);
@@ -3433,7 +3506,7 @@ public:
 #else
       _close(_fd);
 #endif
-      _fd = 0;
+      _fd = -1;
       return false;
     } else if (size == 0) {
       set_error_from_string(error, "Size of file is zero");
@@ -3442,7 +3515,7 @@ public:
 #else
       _close(_fd);
 #endif
-      _fd = 0;
+      _fd = -1;
       return false;
     }
 
@@ -3489,7 +3562,7 @@ public:
 #else
           _close(_fd);
 #endif
-          _fd = 0;
+          _fd = -1;
           return false;
         }
 
@@ -3505,7 +3578,7 @@ public:
 #else
           _close(_fd);
 #endif
-          _fd = 0;
+          _fd = -1;
           return false;
         }
 
@@ -3524,7 +3597,7 @@ public:
 #else
           _close(_fd);
 #endif
-          _fd = 0;
+          _fd = -1;
           return false;
         }
 
@@ -3541,7 +3614,7 @@ public:
 #else
           _close(_fd);
 #endif
-          _fd = 0;
+          _fd = -1;
           return false;
         }
 
@@ -3557,7 +3630,7 @@ public:
 #else
           _close(_fd);
 #endif
-          _fd = 0;
+          _fd = -1;
           return false;
         }
 
@@ -3569,7 +3642,7 @@ public:
 #else
             _close(_fd);
 #endif
-            _fd = 0;
+            _fd = -1;
             return false;
           }
         }
@@ -3600,7 +3673,7 @@ public:
 #else
       _close(_fd);
 #endif
-      _fd = 0;
+      _fd = -1;
       return false;
     }
 
@@ -3614,7 +3687,7 @@ public:
 #else
       _close(_fd);
 #endif
-      _fd = 0;
+      _fd = -1;
       return false;
     }
 
@@ -3646,7 +3719,7 @@ public:
 #else
       _close(_fd);
 #endif
-      _fd = 0;
+      _fd = -1;
       return false;
     }
     if (node_data_offset > 0) {
@@ -3847,7 +3920,7 @@ public:
 
     // If this index currently owns data (heap or mmap), clear it first to avoid
     // realloc() on mmapped pointers / leaks.
-    if (_fd || _nodes) {
+    if (_fd != -1 || _nodes) {
       unload();
      }
 
@@ -4586,7 +4659,7 @@ public:
         _params.f, _params.n_trees, _params.n_neighbors, _params.n_jobs, _verbose);
     }
   }
-  virtual ~HammingWrapper() { unload(); }
+  virtual ~HammingWrapper() noexcept { unload(); }
 
   int get_f() const noexcept override {
     // Return the user-visible external dimension (number of bits/bools the user

@@ -274,33 +274,15 @@ inline int munlock(const void *addr, size_t len)
 }
 
 #if !defined(__MINGW32__)
+// ANNOY-MMAN-001 (guide 6.1): the file-resize logic is extracted into
+// mman_ftruncate_win.h so its control flow and error mapping are unit-testable
+// with mocked Win32 calls. The corrected adapter checks SetFilePointerEx's BOOL
+// result for ZERO (failure) instead of ~0, validates the resolved handle, and
+// propagates failures via errno without writing to stderr.
+#include "mman_ftruncate_win.h"
+
 inline int ftruncate(const int fd, const int64_t size) {
-    if (fd < 0) {
-        errno = EBADF;
-        return -1;
-    }
-
-    HANDLE h = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
-    LARGE_INTEGER li_start, li_size;
-    li_start.QuadPart = static_cast<int64_t>(0);
-    li_size.QuadPart = size;
-
-    if (SetFilePointerEx(h, li_start, NULL, FILE_CURRENT) == ~0 ||
-        SetFilePointerEx(h, li_size, NULL, FILE_BEGIN) == ~0 ||
-        !SetEndOfFile(h)) {
-        unsigned long error = GetLastError();
-        fprintf(stderr, "I/O error while truncating: %lu\n", error);
-        switch (error) {
-            case ERROR_INVALID_HANDLE:
-                errno = EBADF;
-                break;
-            default:
-                errno = EIO;
-                break;
-        }
-        return -1;
-    }
-    return 0;
+    return annoy_win_ftruncate(fd, size);
 }
 #endif
 

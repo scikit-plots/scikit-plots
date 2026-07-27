@@ -93,11 +93,13 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
         # const uint32_t default_y "Kiss32Random::default_y"
         # const uint32_t default_z "Kiss32Random::default_z"
         # const uint32_t default_c "Kiss32Random::default_c"
-        # Public member variables (C++ struct fields)
-        # uint32_t x
-        # uint32_t y
-        # uint32_t z
-        # uint32_t c
+        # Public member variables (C++ struct fields) — ANNOY-RNG-002 (guide 6.16):
+        # exposed so the full generator state (not just the seed) can be
+        # serialized for exact pickle/continuation.
+        uint32_t x
+        uint32_t y
+        uint32_t z
+        uint32_t c
 
         # Constructors
         # Note: Cython syntax for C++ constructors
@@ -133,11 +135,12 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
         # const uint64_t default_y "Kiss64Random::default_y"
         # const uint64_t default_z "Kiss64Random::default_z"
         # const uint64_t default_c "Kiss64Random::default_c"
-        # Public member variables
-        # uint64_t x
-        # uint64_t y
-        # uint64_t z
-        # uint64_t c
+        # Public member variables — ANNOY-RNG-002 (guide 6.16): exposed so the
+        # full generator state (not just the seed) can be serialized.
+        uint64_t x
+        uint64_t y
+        uint64_t z
+        uint64_t c
 
         # Constructors
         CKiss64Random() except +

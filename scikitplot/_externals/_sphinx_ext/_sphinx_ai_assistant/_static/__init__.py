@@ -76,6 +76,8 @@ __all__ = [
     "_SVG_OLLAMA",
     "_SVG_PRIVACY",
     "_SVG_SEARCH_AI",
+    "_SVG_SEARCH_SPARKLE",
+    "_SVG_SHIELD_ALERT",
     "_SVG_SPARKLE",
     "_SVG_SPARKLE_ALT",
     "_SVG_SYNC_RETRY",
@@ -612,6 +614,44 @@ _SVG_MENU_SPARKLE: str = (
     "PC9zdmc+"
 )
 
+# Security alert shield (Octicon shield) — future "security notice" or
+# "verified/protected" indicator, not wired to any control yet.
+# Mirrors ai-assistant.js ICONS.shieldAlert.
+_SVG_SHIELD_ALERT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTcuNDY3LjEzM2ExLjc0OCAx"
+    "Ljc0OCAwIDAgMSAxLjA2NiAwbDUuMjUgMS42OEExLjc1IDEuNzUgMCAwIDEgMTUgMy40"
+    "OFY3YzAgMS41NjYtLjMyIDMuMTgyLTEuMzAzIDQuNjgyLS45ODMgMS40OTgtMi41ODUg"
+    "Mi44MTMtNS4wMzIgMy44NTVhMS42OTcgMS42OTcgMCAwIDEtMS4zMyAwYy0yLjQ0Ny0x"
+    "LjA0Mi00LjA0OS0yLjM1Ny01LjAzMi0zLjg1NUMxLjMyIDEwLjE4MiAxIDguNTY2IDEg"
+    "N1YzLjQ4YTEuNzUgMS43NSAwIDAgMSAxLjIxNy0xLjY2N1ptLjYxIDEuNDI5YS4yNS4y"
+    "NSAwIDAgMC0uMTUzIDBsLTUuMjUgMS42OGEuMjUuMjUgMCAwIDAtLjE3NC4yMzhWN2Mw"
+    "IDEuMzU4LjI3NSAyLjY2NiAxLjA1NyAzLjg2Ljc4NCAxLjE5NCAyLjEyMSAyLjM0IDQu"
+    "MzY2IDMuMjk3YS4xOTYuMTk2IDAgMCAwIC4xNTQgMGMyLjI0NS0uOTU2IDMuNTgyLTIu"
+    "MTA0IDQuMzY2LTMuMjk4QzEzLjIyNSA5LjY2NiAxMy41IDguMzYgMTMuNSA3VjMuNDhh"
+    "LjI1MS4yNTEgMCAwIDAtLjE3NC0uMjM3bC01LjI1LTEuNjhaTTguNzUgNC43NXYzYS43"
+    "NS43NSAwIDAgMS0xLjUgMHYtM2EuNzUuNzUgMCAwIDEgMS41IDBaTTkgMTAuNWExIDEg"
+    "MCAxIDEtMiAwIDEgMSAwIDAgMSAyIDBaIi8+PC9zdmc+"
+)
+
+# Search + AI sparkle — primary icon for .ai-assistant-searchbar
+# (see ai-assistant.js _buildSearchBar). Mirrors ICONS.searchSparkle;
+# _SVG_SEARCH_AI above remains a defined fallback, not removed.
+_SVG_SEARCH_SPARKLE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Utd2lkdGg9"
+    "IjEuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5k"
+    "Ij48cGF0aCBkPSJNMTYuMjQgMTEuMzggQTYuMyA2LjMgMCAxIDEgMTMuMTUgNS4wNCIv"
+    "PjxwYXRoIGQ9Ik0xMy42NSAxNi42MCBMMTkuNDUgMjIuNDAiIHN0cm9rZS13aWR0aD0i"
+    "Mi4zNSIvPjxwYXRoIGQ9Ik0xNi41IDUuMDIgUTE2Ljc4IDYuMjIgMTcuMTggNi41MiBR"
+    "MTcuNTIgNi43OCAxOC43NSA3LjA1IFExNy41MiA3LjMyIDE3LjE4IDcuNTggUTE2Ljc4"
+    "IDcuODggMTYuNSA5LjA4IFExNi4yMiA3Ljg4IDE1LjgyIDcuNTggUTE1LjQ4IDcuMzIg"
+    "MTQuMjUgNy4wNSBRMTUuNDggNi43OCAxNS44MiA2LjUyIFExNi4yMiA2LjIyIDE2LjUg"
+    "NS4wMiBaIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4="
+)
+
 
 # ---------------------------------------------------------------------------
 # Provider icon + description registry
@@ -657,6 +697,10 @@ _ICON_META: dict[str, dict[str, str]] = {
     "copy-answer": {"icon": _SVG_COPY_ANSWER, "desc": "Copy this answer"},
     "privacy": {"icon": _SVG_PRIVACY, "desc": "Privacy Policy"},
     "search-ai": {"icon": _SVG_SEARCH_AI, "desc": "AI search"},
+    "search-sparkle": {
+        "icon": _SVG_SEARCH_SPARKLE,
+        "desc": "AI-powered search (primary searchbar icon)",
+    },
     "keyboard": {"icon": _SVG_KEYBOARD, "desc": "Keyboard shortcuts"},
     # ── Phase B additions ─────────────────────────────────────────────
     "model": {"icon": _SVG_MODEL, "desc": "Choose a model"},
@@ -679,6 +723,7 @@ _ICON_META: dict[str, dict[str, str]] = {
         "desc": "AI-assisted style/customize",
     },
     "menu-sparkle": {"icon": _SVG_MENU_SPARKLE, "desc": "AI menu"},
+    "shield-alert": {"icon": _SVG_SHIELD_ALERT, "desc": "Security notice"},
     # Deliberately reuse the existing "terms" / "privacy" constants above
     # instead of introducing new path data — see ai-assistant.js
     # ICONS.termsOfService / ICONS.privacyResponsibility for the rationale

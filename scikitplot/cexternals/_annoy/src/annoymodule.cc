@@ -260,6 +260,10 @@ typedef float     YDtype;
 // END SECTION: CENTRALIZED INDEX DTYPE DEFINITIONS
 // =============================================================================
 
+// ANNOY-CONV-001 (guide 6.11): checked count/size -> Python conversion that
+// preserves the full unsigned range (see AnnoyIdxToPy above for item indices).
+#include "annoy_pyconv.h"
+
 #if PY_MAJOR_VERSION >= 3
   #define IS_PY3K
 #endif
@@ -4048,7 +4052,19 @@ static bool annoy_build_portable_blob(
   annoy_append_u32_le(*out_blob, static_cast<uint32_t>(self->f));
   annoy_append_u64_le(*out_blob, static_cast<uint64_t>(native_payload.size()));
 
-  out_blob->insert(out_blob->end(), native_payload.begin(), native_payload.end());
+  // Append the native payload. GCC 13's -Wstringop-overflow spuriously flags
+  // vector::insert(end(), it, it) here (bogus "region of size 0" — its value
+  // analysis loses the reserve()/size() relation across the inlined header
+  // appends above). The reserve()+resize()+memcpy form is provably safe and
+  // byte-for-byte equivalent, and clears the diagnostic without suppressing it
+  // globally. (BUILD-WARN-001.)
+  const size_t payload_off = out_blob->size();
+  out_blob->resize(payload_off + native_payload.size());
+  if (!native_payload.empty()) {
+    std::memcpy(out_blob->data() + payload_off,
+                native_payload.data(),
+                native_payload.size());
+  }
   return true;
 }
 
@@ -5864,12 +5880,12 @@ static PyObject* annoy_build_summary_dict(
     }
 
     if (include_n_items) {
-      py_items = PyLong_FromLongLong(n_items64);
+      py_items = AnnoyCountToPy(n_items64);
       if (!py_items) goto fail;
       if (PyDict_SetItemString(d, "n_items", py_items) < 0) goto fail;
     }
     if (include_n_trees) {
-      py_trees = PyLong_FromLongLong(n_trees64);
+      py_trees = AnnoyCountToPy(n_trees64);
       if (!py_trees) goto fail;
       if (PyDict_SetItemString(d, "n_trees", py_trees) < 0) goto fail;
     }
