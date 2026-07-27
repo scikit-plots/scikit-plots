@@ -569,6 +569,7 @@ jobs:
           !startsWith(matrix.buildplat[0], 'ubuntu')
         shell: bash
         run: |
+          # pip install numpy<=2.5.0
           constraint='PIP_BUILD_CONSTRAINT="$(pwd)/tools/wheels/build-constraints-cp313t.txt"'
           if [[ -n "${CIBW_ENVIRONMENT:-}" ]]; then
             value="$CIBW_ENVIRONMENT $constraint"
@@ -576,7 +577,6 @@ jobs:
             value="$constraint"
           fi
           printf 'CIBW_ENVIRONMENT=%s\n' "$value" >> "$GITHUB_ENV"
-          pip install numpy<=2.5.0
 
       # --- matrix.python ---
 
