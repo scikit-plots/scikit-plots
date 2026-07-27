@@ -529,6 +529,7 @@ jobs:
           # DYLD="$DYLD_LIBRARY_PATH:/$PWD/.openblas/lib"
           # echo "CIBW_ENVIRONMENT_MACOS=$CIBW PKG_CONFIG_PATH=$PKG_CONFIG_PATH DYLD_LIBRARY_PATH=$DYLD" >> "$GITHUB_ENV"
           echo "CIBW_ENVIRONMENT=$CIBW" >> "$GITHUB_ENV"
+          echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
 
           echo "REPAIR_PATH=$LIB_PATH" >> "$GITHUB_ENV"
 
@@ -636,6 +637,12 @@ jobs:
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
+          # PKG_CONFIG_PATH="$(pwd)/.openblas"
+          CIBW_ENVIRONMENT: >-
+            ${{ startsWith(matrix.python[0], 'cp313t-') &&
+            ! startsWith(matrix.buildplat[0], 'ubuntu') &&
+            'PIP_BUILD_CONSTRAINT="$(pwd)/tools/wheels/build-constraints-cp313t.txt"'
+            || '' }}
 
       # ── cp39+ (excluding cp313t) → cibuildwheel v4.1.0 ─────────────────────
       # Covers: cp39, cp310, cp311, cp312, cp313, cp314, cp314t
@@ -1015,7 +1022,7 @@ jobs:
       # 3.12    pyodide_2024_0_wasm32                      0.26–0.28.x       ❌        pyodide-eol
       # 3.13    pyemscripten_2025_0_wasm32                 0.29.x            ✅        (default)
       # 3.14    pyemscripten_2026_0_wasm32                 314.x             ✅        (default)
-      - name: Build Wheels Packages
+      - name: Build Pyodide Wheels Packages
         # uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
         continue-on-error: true
