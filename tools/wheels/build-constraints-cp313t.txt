@@ -1,0 +1,2 @@
+# tools/wheels/build-constraints-cp313t.txt
+numpy<=2.5.0

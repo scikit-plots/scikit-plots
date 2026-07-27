@@ -81,6 +81,8 @@ requires = [
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
   ## py>=3.9 Numpy C-Api Headers by python module
+  # "numpy==2.3.2; python_version == '3.13'",
+  # "numpy>=2.0.0; python_version >= '3.9' and python_version != '3.13'",
   'numpy>=1.20,!=1.24.0;python_version<"3.9"',
   'numpy>=2.0.0;python_version>="3.9"',
 ]
