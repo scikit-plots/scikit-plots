@@ -563,6 +563,21 @@ jobs:
           fi
           echo "CIBW_REPAIR_WHEEL_COMMAND_MACOS=$CIBW" >> "$GITHUB_ENV"
 
+      - name: 🛠️ Add cp313t build constraint
+        if: >-
+          startsWith(matrix.python[0], 'cp313t') &&
+          !startsWith(matrix.buildplat[0], 'ubuntu')
+        shell: bash
+        run: |
+          constraint='PIP_BUILD_CONSTRAINT="$(pwd)/tools/wheels/build-constraints-cp313t.txt"'
+          if [[ -n "${CIBW_ENVIRONMENT:-}" ]]; then
+            value="$CIBW_ENVIRONMENT $constraint"
+          else
+            value="$constraint"
+          fi
+          printf 'CIBW_ENVIRONMENT=%s\n' "$value" >> "$GITHUB_ENV"
+          pip install numpy<=2.5.0
+
       # --- matrix.python ---
 
       # - name: "🛠️ Inject environment variable for python dev version"
@@ -638,11 +653,11 @@ jobs:
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
           # PKG_CONFIG_PATH="$(pwd)/.openblas"
-          CIBW_ENVIRONMENT: >-
-            ${{ startsWith(matrix.python[0], 'cp313t-') &&
-            ! startsWith(matrix.buildplat[0], 'ubuntu') &&
-            'PIP_BUILD_CONSTRAINT="$(pwd)/tools/wheels/build-constraints-cp313t.txt"'
-            || '' }}
+          # CIBW_ENVIRONMENT: >-
+          #   ${{ startsWith(matrix.python[0], 'cp313t-') &&
+          #   ! startsWith(matrix.buildplat[0], 'ubuntu') &&
+          #   'PIP_BUILD_CONSTRAINT="$(pwd)/tools/wheels/build-constraints-cp313t.txt"'
+          #   || '' }}
 
       # ── cp39+ (excluding cp313t) → cibuildwheel v4.1.0 ─────────────────────
       # Covers: cp39, cp310, cp311, cp312, cp313, cp314, cp314t
