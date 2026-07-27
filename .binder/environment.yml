@@ -29,6 +29,7 @@ dependencies:
   - ipywidgets
 
   # ── Core scientific stack (conda-forge: CPU-generic) ─────────────────
+  - numpy <= 2.4.6
   # - numpy>=1.24
   # - scipy>=1.11
   # - pandas>=2.0
