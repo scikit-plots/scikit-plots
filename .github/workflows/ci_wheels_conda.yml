@@ -565,7 +565,7 @@ jobs:
 
       - name: 🛠️ Add cp313t build constraint
         if: >-
-          startsWith(matrix.python[0], 'cp313t-') &&
+          startsWith(matrix.python[0], 'cp313t') &&
           !startsWith(matrix.buildplat[0], 'ubuntu')
         shell: bash
         run: |
@@ -576,6 +576,7 @@ jobs:
             value="$constraint"
           fi
           printf 'CIBW_ENVIRONMENT=%s\n' "$value" >> "$GITHUB_ENV"
+          pip install numpy<=2.5.0
 
       # --- matrix.python ---
 
