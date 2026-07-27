@@ -700,6 +700,19 @@
         // Vertical three-dot "more" icon for the expandable action-row submenu.
         moreVert: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5"  r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
         searchAI: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6M11 8v6" stroke-width="1.5"/></svg>',
+        // Search + AI sparkle — restructured from a submitted icon that
+        // embedded a background <rect>, a dark-mode <style> media query,
+        // and <title>/role attributes. None of that fits this registry's
+        // convention: dark-mode theming already happens at the CSS layer
+        // wherever an icon is used (currentColor + the page's own theme
+        // vars), not baked into the icon markup itself, and icons here are
+        // transparent/sized by their wrapper, not self-backgrounded. Kept
+        // only the actual visual content (circle + handle + sparkle),
+        // converted to the same stroke/currentColor pattern ICONS.privacy
+        // and ICONS.terms already use. Now the primary icon in
+        // .ai-assistant-searchbar — see _buildSearchBar. searchAI above
+        // is kept as a fallback/alternate, not removed.
+        searchSparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.24 11.38 A6.3 6.3 0 1 1 13.15 5.04" stroke-width="1.2"/><path d="M13.65 16.60 L19.45 22.40" stroke-width="2.35"/><path d="M16.5 5.02 Q16.78 6.22 17.18 6.52 Q17.52 6.78 18.75 7.05 Q17.52 7.32 17.18 7.58 Q16.78 7.88 16.5 9.08 Q16.22 7.88 15.82 7.58 Q15.48 7.32 14.25 7.05 Q15.48 6.78 15.82 6.52 Q16.22 6.22 16.5 5.02 Z" stroke-width="1"/></svg>',
         keyboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>',
         retry:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
         // Share-up icon: tray with arrow emerging upward — the universal
@@ -782,6 +795,10 @@
         // available for a future "AI menu" trigger, distinct from the
         // plain hamburger already used for the main panel menu.
         menuSparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.218.372c-.122-.487-.814-.487-.936 0l-.285 1.14a4.102 4.102 0 0 1-2.985 2.985l-1.14.285c-.487.122-.487.814 0 .936l1.14.285a4.102 4.102 0 0 1 2.985 2.985l.285 1.14c.122.487.814.487.936 0l.285-1.14a4.102 4.102 0 0 1 2.985-2.985l1.14-.285c.487-.122.487-.814 0-.936l-1.14-.285a4.102 4.102 0 0 1-2.985-2.985l-.285-1.14ZM3.561 4.5c.282 0 .478.288.454.569-.01.12-.01.242 0 .362.024.28-.172.569-.454.569H.75a.75.75 0 0 1 0-1.5h2.811Zm4.778 4.317c-.1-.207-.32-.317-.55-.317H.75a.75.75 0 0 0 0 1.5h7.442c.26 0 .455-.246.388-.497a3.886 3.886 0 0 0-.241-.686ZM11 13.25a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h9.5a.75.75 0 0 1 .75.75Z"/></svg>',
+        // Security alert shield (Octicon shield) — not wired to any
+        // control yet; kept available for a future "security notice" or
+        // "verified/protected" indicator.
+        shieldAlert: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.467.133a1.748 1.748 0 0 1 1.066 0l5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667Zm.61 1.429a.25.25 0 0 0-.153 0l-5.25 1.68a.25.25 0 0 0-.174.238V7c0 1.358.275 2.666 1.057 3.86.784 1.194 2.121 2.34 4.366 3.297a.196.196 0 0 0 .154 0c2.245-.956 3.582-2.104 4.366-3.298C13.225 9.666 13.5 8.36 13.5 7V3.48a.251.251 0 0 0-.174-.237l-5.25-1.68ZM8.75 4.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0ZM9 10.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>',
         // Two-tier "AI sparkle" — one large 4-point star, one small offset
         // star top-right. Hand-drafted (sprite ID unresolved, see chat);
         // not wired anywhere yet.
@@ -15488,7 +15505,10 @@ opts.jsonPayload + '\n' +
 
         var icon = document.createElement('span');
         icon.setAttribute('aria-hidden', 'true');
-        icon.innerHTML = ICONS.searchAI;     // ICONS constant — safe.
+        // Primary icon — searchSparkle (search + AI sparkle). searchAI
+        // (plain magnifying glass) stays defined above as a fallback for
+        // future use, not removed.
+        icon.innerHTML = ICONS.searchSparkle;   // ICONS constant — safe.
         bar.appendChild(icon);
 
         var inp = document.createElement('input');

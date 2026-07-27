@@ -1486,16 +1486,21 @@ cdef class Index(BaseIndex):
         schema_version : int
             Pickle schema marker (does not affect disk format).
         dtype : str, default="float32"
-            Data type for embeddings. Currently only "float32", "float64" supported.
-            Future: "bool", "int8", "uint8", "float16", "float128" etc.
-        index_dtype : str, default="int64"
-            Index identifier type. Currently only "int32", "int64" supported.
-            Future: "uint8", "uint32", "uint64" etc.
+            Embedding data type; all are accessed via the double-precision
+            widened bridge. Supported: "float16", "float32", "float64",
+            "float128" (with aliases half/single/double/quad and
+            fp16/fp32/fp64/fp128). See the class docstring for precision notes.
+        index_dtype : str, default="int32"
+            Index identifier (item ID) type; selects the concrete backing.
+            Supported: "int8", "uint8", "int16", "uint16", "int32", "uint32",
+            "int64", "uint64" (larger types allow more items). See the class
+            docstring for per-type item-count limits.
         wrapper_dtype : str, default="uint64"
-            Internal wrapper type (e.g., for Hamming packing).
-            Future: "bool", "uint8", "uint32" etc.
+            Advisory metadata only (not used for concrete dispatch); recorded on
+            the instance. Must be one of ``"uint32"``, ``"uint64"``.
         random_dtype : str, default="uint64"
-            Random seed type. Currently only "uint64" supported.
+            Advisory metadata only (not used for concrete dispatch); recorded on
+            the instance. Must be one of ``"uint32"``, ``"uint64"``.
         n_jobs : int or None, default=None
             Number of threads. If -1, uses all available cores.
         **kwargs : dict
@@ -1555,7 +1560,20 @@ cdef class Index(BaseIndex):
         except ValueError as e:
             raise ValueError(f"Invalid index_dtype parameter: {e}")
 
-        # Store remaining type parameters (informational, not used for dispatch)
+        # Store remaining type parameters. These are informational only (not
+        # used for concrete dispatch — the build fixes the wrapper/random types),
+        # but they are still validated so the reported metadata is meaningful
+        # rather than accepting arbitrary garbage (CY-013).
+        if wrapper_dtype not in ("uint32", "uint64"):
+            raise ValueError(
+                f"Invalid wrapper_dtype {wrapper_dtype!r}; "
+                f"expected 'uint32' or 'uint64'"
+            )
+        if random_dtype not in ("uint32", "uint64"):
+            raise ValueError(
+                f"Invalid random_dtype {random_dtype!r}; "
+                f"expected 'uint32' or 'uint64'"
+            )
         self.wrapper_dtype = wrapper_dtype
         self.random_dtype = random_dtype
         self.n_jobs = n_jobs or 1
@@ -1726,11 +1744,17 @@ cdef class Index(BaseIndex):
 
         Notes
         -----
-        * Safe to call multiple times (idempotent)
-        * Safe to call from __dealloc__ or __init__
-        * Must NOT be declared nogil: unload() is 'except +' so exception
-          conversion requires the GIL; self.on_disk_active/pending are Python
-          attributes that also require GIL access.
+        * Safe to call multiple times (idempotent).
+        * Safe to call from __dealloc__ or __init__ (partial-init safe: guarded
+          by ``self.ptr != NULL``).
+        * No-fail path (CY-004): ``unload()`` is declared ``noexcept`` and the
+          concrete C++ destructors (``~AnnoyIndex``/``~HammingWrapper``) are
+          ``noexcept``, so neither ``self.ptr.unload()`` nor ``del self.ptr`` can
+          establish a Python exception during deallocation.
+        * Must NOT be declared nogil: it accesses the Python attributes
+          ``self.ptr`` / ``self.on_disk_active`` / ``self.on_disk_pending``,
+          which require the GIL (the reason is GIL-guarded attribute access, not
+          exception conversion — the native calls here are no-throw).
         """
         if self.ptr != NULL:
             self.ptr.unload()
@@ -2056,6 +2080,12 @@ cdef class Index(BaseIndex):
         * Must be called before build()
         * Item IDs need not be contiguous
         * After build(), call unbuild() to add more items
+        * Precision: embeddings pass through a double-precision (float64) bridge,
+          so values are converted to ``double`` here regardless of ``dtype``.
+          ``float16`` inputs are narrowed and ``float128`` inputs gain no extra
+          input precision — ``float128`` only raises the precision of internal
+          distance arithmetic, not the stored/returned values. Do not rely on
+          more-than-double input precision being preserved.
         """
         if item < 0:
             raise IndexError("item id cannot be negative")
@@ -2252,16 +2282,19 @@ cdef class Index(BaseIndex):
             self._ensure_index()
 
         cdef bytes fn_bytes = fn.encode("utf-8")
-        cdef char* err = NULL
+        # CY-005 (guide 28): own the native error string via ScopedError so it is
+        # always freed (even when we raise), instead of a raw char* that the
+        # on-disk failure path forgot to free.
+        cdef ScopedError err = ScopedError()
         cdef cpp_bool success
 
         cdef char* fn_bytes1 = <char*>fn_bytes
         with nogil:
-            success = self.ptr.on_disk_build(fn_bytes1, &err)
+            success = self.ptr.on_disk_build(fn_bytes1, &err.err)
 
         if not success:
-            if err != NULL:
-                raise IOError(err.decode("utf-8", "replace"))
+            if err.err != NULL:
+                raise IOError(err.err.decode("utf-8", "replace"))
             else:
                 raise IOError("on_disk_build failed (unknown error)")
 
@@ -2350,9 +2383,7 @@ cdef class Index(BaseIndex):
         ...     ))
         >>> # True parallelism - all 8 threads run concurrently!
         """
-        if item < 0:
-            raise IndexError("item id cannot be negative")
-        _validate_item_id(self.index_type_id, item)
+        self._check_item_in_range(item)
         cdef uint64_t item64 = <uint64_t>item
 
         if n <= 0:
@@ -2519,6 +2550,22 @@ cdef class Index(BaseIndex):
         # else:
         #     raise RuntimeError(f"Unsupported index_type_id {self.index_type_id}")
 
+    cdef void _check_item_in_range(self, object item) except *:
+        # CY-008 (guide 31): one existence validator shared by every
+        # item-taking operation. Rejects negative, over-capacity (dtype),
+        # not-constructed, and out-of-range (>= n_items) ids BEFORE any native
+        # read, so no Python-visible invalid id reaches unchecked native access.
+        if item < 0:
+            raise IndexError("item id cannot be negative")
+        _validate_item_id(self.index_type_id, item)
+        if self.ptr == NULL:
+            raise RuntimeError("index not constructed")
+        cdef uint64_t _n = self.ptr.get_n_items_w()
+        if item >= _n:
+            raise IndexError(
+                f"item id {item} is out of range for an index with {_n} items"
+            )
+
     def get_item(self, item):
         """
         Retrieve a stored embedding vector.
@@ -2544,13 +2591,8 @@ cdef class Index(BaseIndex):
         RuntimeError
             If index not constructed
         """
-        if item < 0:
-            raise IndexError("item id cannot be negative")
-        _validate_item_id(self.index_type_id, item)
+        self._check_item_in_range(item)
         cdef uint64_t item64 = <uint64_t>item
-
-        if self.ptr == NULL:
-            raise RuntimeError("Cannot get_item: index not constructed")
 
         cdef int _gi
         cdef cpp_vector[double] _gi_vec
@@ -2617,10 +2659,8 @@ cdef class Index(BaseIndex):
         if self.ptr == NULL:
             raise RuntimeError("Cannot get_distance: index not constructed")
 
-        if i < 0 or j < 0:
-            raise IndexError("item ids cannot be negative")
-        _validate_item_id(self.index_type_id, i)
-        _validate_item_id(self.index_type_id, j)
+        self._check_item_in_range(i)
+        self._check_item_in_range(j)
         cdef uint64_t i64 = <uint64_t>i
         cdef uint64_t j64 = <uint64_t>j
         return self.ptr.get_distance_w(i64, j64)
@@ -2685,6 +2725,13 @@ cdef class Index(BaseIndex):
             If index not built
         IOError
             If file cannot be written
+
+        Notes
+        -----
+        * Persists the NATIVE index only: dimension ``f``, metric, item vectors,
+          and built trees. Wrapper query parameters (``n_neighbors``) and the
+          build ``seed`` are not written to the native ``.ann`` format. Use
+          ``pickle`` / ``get_state`` for a full wrapper-state round-trip.
         """
         if self.ptr == NULL:
             raise RuntimeError("Cannot save: index not constructed")
@@ -2714,14 +2761,19 @@ cdef class Index(BaseIndex):
 
         Raises
         ------
-        RuntimeError
-            If dimensions don't match
         IOError
-            If file cannot be read
+            If the file cannot be read, or if the saved dimension ``f`` or
+            metric does not match this instance (both are validated on load).
 
         Notes
         -----
-        * Dimension f and metric must match the saved index
+        * Dimension ``f`` and metric must match the saved index; both are
+          validated and a mismatch raises ``IOError`` (``OSError``).
+        * Only the NATIVE index is restored (item vectors + trees). Wrapper
+          query parameters (``n_neighbors``) and the build ``seed`` are NOT
+          stored in the ``.ann`` format and remain at THIS instance's
+          configuration — they do not mirror the saved index. Use ``pickle`` /
+          ``set_state`` to restore full wrapper state.
         * prefault=True may improve query latency at cost of load time
         """
         if self.ptr == NULL:
@@ -3031,20 +3083,60 @@ cdef class Index(BaseIndex):
             self.schema_version = params["schema_version"]
 
         # Extended parameters
+        # CY-006 (guide 29.3): structural type parameters fix the concrete native
+        # type and enum dispatch at construction. Changing them afterward would
+        # diverge the reported metadata from the actual backing, so treat them
+        # like f/metric — immutable once constructed (self.ptr != NULL). We never
+        # silently mutate metadata only.
         if "dtype" in params:
+            if self.ptr != NULL:
+                raise ValueError(
+                    "Cannot modify 'dtype' after index construction. "
+                    "Create a new index with the desired dtype."
+                )
             self.dtype = params["dtype"]
 
         if "index_dtype" in params:
+            if self.ptr != NULL:
+                raise ValueError(
+                    "Cannot modify 'index_dtype' after index construction. "
+                    "Create a new index with the desired index_dtype."
+                )
             self.index_dtype = params["index_dtype"]
 
         if "wrapper_dtype" in params:
+            if self.ptr != NULL:
+                raise ValueError(
+                    "Cannot modify 'wrapper_dtype' after index construction. "
+                    "Create a new index with the desired wrapper_dtype."
+                )
             self.wrapper_dtype = params["wrapper_dtype"]
 
         if "random_dtype" in params:
+            if self.ptr != NULL:
+                raise ValueError(
+                    "Cannot modify 'random_dtype' after index construction. "
+                    "Create a new index with the desired random_dtype."
+                )
             self.random_dtype = params["random_dtype"]
 
         if "n_jobs" in params:
             self.n_jobs = params["n_jobs"]
+
+        # CY-006 (guide 29.3): reject unknown parameters rather than silently
+        # ignoring them. get_params() keys are always accepted so
+        # set_params(**get_params()) round-trips.
+        _valid = set(self.get_params().keys()) | {
+            "f", "metric", "n_neighbors", "seed", "verbose", "prefault",
+            "schema_version", "dtype", "index_dtype", "wrapper_dtype",
+            "random_dtype", "n_jobs",
+        }
+        _unknown = set(params) - _valid
+        if _unknown:
+            raise ValueError(
+                f"Invalid parameter(s) for {type(self).__name__}: "
+                f"{sorted(_unknown)}. Valid parameters: {sorted(_valid)}."
+            )
 
         return self
 
@@ -3253,6 +3345,15 @@ cdef class Index(BaseIndex):
             self.wrapper_dtype = params.get("wrapper_dtype", "uint64")
             self.random_dtype = params.get("random_dtype", "uint64")
             self.n_jobs = params.get("n_jobs", 1)
+            # CY-010 (guide 34): the concrete native type is dispatched on the
+            # index_type_id/data_type_id ENUMS (see _ensure_index), which
+            # __init__ derives from the dtype strings. Restoring only the strings
+            # left the enums at their default (int32), so _ensure_index() rebuilt
+            # an int32 backing and then failed to deserialize a non-default (e.g.
+            # int64) blob ("n_nodes < n_items"). Derive the enums here too so the
+            # reconstructed concrete type matches the serialized data.
+            self.index_type_id = parse_index_dtype(self.index_dtype)
+            self.data_type_id = parse_data_dtype(self.dtype)
 
         # Restore index data if present
         cdef bytes data_bytes
@@ -3414,8 +3515,16 @@ cdef class Index(BaseIndex):
     # =========================================================================
 
     def __sklearn_tags__(self):
-        tags = super().__sklearn_tags__()
-        return tags
+        # CY-011 (guide 35): this extension class is estimator-like
+        # (get_params/set_params/clone) but is NOT a BaseEstimator subclass, so
+        # super() provides no __sklearn_tags__ and the original delegation raised
+        # AttributeError. Delegate to sklearn's ROOT tag builder instead: it
+        # constructs default Tags from scratch (no super()), so whatever sklearn
+        # version is installed produces its own correct defaults for ``self``.
+        # (sklearn < 1.6 predates __sklearn_tags__ and never calls it, so this is
+        # only reached on >= 1.6; the lazy import keeps sklearn optional.)
+        from sklearn.base import BaseEstimator
+        return BaseEstimator.__sklearn_tags__(self)
 
     def clone(self, **override_params) -> Self:
         """
@@ -3505,15 +3614,19 @@ cdef class Index(BaseIndex):
 
     def __len__(self) -> int:
         """
-        Return number of items in the index.
+        Return the item-ID extent of the index (highest item ID + 1).
 
-        Implements sequence protocol for Pythonic access.
-        Matches py_an_len from annoymodule.cc.
+        annoy uses a sparse ID domain: ``add_item`` may leave gaps, so this is
+        the extent of the ID space, NOT the count of explicitly-added items.
+        The two coincide only when IDs are contiguous from 0. This value is the
+        valid range for ``__getitem__`` / ``__contains__`` / iteration, which
+        are all extent-based. Matches py_an_len from annoymodule.cc.
 
         Returns
         -------
         length : int
-            Number of items (0 if not constructed)
+            Item-ID extent (0 if not constructed). Equals the number of
+            present items only for dense, contiguous IDs.
 
         Examples
         --------
@@ -3610,22 +3723,29 @@ cdef class Index(BaseIndex):
 
     def __contains__(self, item) -> bool:
         """
-        Check if item ID exists in index.
+        Check whether ``item`` is a valid item ID in the index's ID extent.
+
+        Returns True iff ``0 <= item < len(self)`` — i.e. iff ``self[item]`` is
+        accessible. Because annoy IDs are sparse, a gap ID within the extent is
+        "in" the index (``self[gap]`` returns the native zero/placeholder
+        vector); this tests ID-range validity, NOT whether the ID was
+        explicitly added. The sparse core does not retain occupancy, so
+        added-vs-gap cannot be distinguished here.
 
         Parameters
         ----------
         item : int
-            Item ID to check
+            Item ID to check.
 
         Returns
         -------
-        exists : bool
-            True if item exists
+        in_range : bool
+            True iff ``item`` is a valid ID in ``[0, len(self))``.
 
         Examples
         --------
         >>> if 42 in index:
-        ...     print("Item 42 exists")
+        ...     print("index[42] is accessible")
         """
         if self.ptr == NULL:
             return False
@@ -3637,12 +3757,18 @@ cdef class Index(BaseIndex):
 
     def __iter__(self):
         """
-        Iterate over all vectors in the index.
+        Iterate the full item-ID extent, yielding ``self[i]`` for each ``i``
+        in ``range(len(self))``.
+
+        This walks the extent (``0 .. len-1``), consistent with
+        ``__getitem__``. Because IDs are sparse, gap IDs yield the native
+        zero/placeholder vector rather than being skipped; iteration is
+        extent-based, not occupancy-based.
 
         Yields
         ------
         vector : list[float]
-            Each stored vector in order
+            ``self[i]`` for each ID in the extent, in ascending ID order.
 
         Examples
         --------

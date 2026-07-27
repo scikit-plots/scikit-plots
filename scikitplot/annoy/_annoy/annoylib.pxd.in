@@ -132,17 +132,22 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
         @staticmethod
         uint64_t default_seed
 
-        # Constructors
+        # Constructors allocate via ``new`` and may throw std::bad_alloc, so
+        # they keep ``except +`` (Cython translates it to MemoryError).
         Kiss64Random() except +
         Kiss64Random(uint64_t seed) except +
 
-        # Core methods
-        void reset(uint64_t seed) except +
-        void reset_default() except +
-        void set_seed(uint64_t seed) except +
-        uint64_t kiss() except +
-        int flip() except +
-        size_t index(size_t n) except +
+        # CY-017 (guide 27.2): strict no-throw core. These operational methods
+        # are non-allocating pure arithmetic in kissrandom.h (shifts, kiss()%n
+        # with an n==0 guard) and cannot throw, so their declarations mirror the
+        # no-throw core with ``noexcept`` — NOT ``except +`` (which would imply a
+        # C++-exception boundary that does not exist and add dead translation).
+        void reset(uint64_t seed) noexcept
+        void reset_default() noexcept
+        void set_seed(uint64_t seed) noexcept
+        uint64_t kiss() noexcept
+        int flip() noexcept
+        size_t index(size_t n) noexcept
 
         # Static helpers
         @staticmethod
@@ -204,62 +209,62 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 
         # ── Dimension (type-independent) ──────────────────────────────────
         int      get_f()                                   nogil
-        cpp_bool set_f(int f, char** error)                except +
+        cpp_bool set_f(int f, char** error)                noexcept
 
         # ── Configuration (type-independent) ──────────────────────────────
-        void set_verbose(cpp_bool v)                       except +
+        void set_verbose(cpp_bool v)                       noexcept
 
         # ── Core operations (type-independent) ────────────────────────────
-        cpp_bool build(int n_trees, int n_threads, char** error) except +
-        cpp_bool unbuild(char** error)                     except +
+        cpp_bool build(int n_trees, int n_threads, char** error) noexcept
+        cpp_bool unbuild(char** error)                     noexcept
 
         # ── Persistence Disk I/O (type-independent) ───────────────────────
         cpp_bool save(const char* filename, cpp_bool prefault,
-                      char** error)                        except +
+                      char** error)                        noexcept
         cpp_bool load(const char* filename, cpp_bool prefault,
-                      char** error)                        except +
+                      char** error)                        noexcept
         cpp_bool on_disk_build(const char* filename,
-                               char** error)               except +
-        void     unload()                                  except +
+                               char** error)               noexcept
+        void     unload()                                  noexcept
 
         # ── Serialisation Persistence (Memory) (type-independent) ─────────
-        cpp_vector[uint8_t] serialize(char** error)        except +
+        cpp_vector[uint8_t] serialize(char** error)        noexcept
         cpp_bool deserialize(cpp_vector[uint8_t]* bytes,
-                             cpp_bool prefault, char** error) except +
+                             cpp_bool prefault, char** error) noexcept
 
         # ── Sklearn compatibility (type-independent) ──────────────────────
         cpp_bool get_params(
             cpp_vector[cpp_pair[cpp_string, cpp_string]]& params
-        ) except +
+        ) noexcept
         cpp_bool set_params(
             const cpp_vector[cpp_pair[cpp_string, cpp_string]]& params,
             char** error
-        ) except +
+        ) noexcept
 
         # ── Configuration ─────────────────────────────────────────────────
 
-        # void set_seed(Random seed) except +
-        void set_seed_w(uint64_t seed)                     except +
+        # void set_seed(Random seed) noexcept
+        void set_seed_w(uint64_t seed)                     noexcept
 
         # ==================== Core Building ====================
-        # cpp_bool add_item(S item, const T* embedding, char** error) except +
+        # cpp_bool add_item(S item, const T* embedding, char** error) noexcept
 
         # ── Widened mutators (_w) ─────────────────────────────────────────
         cpp_bool add_item_w(uint64_t item, const double* emb,
-                            char** error)                  except +
+                            char** error)                  noexcept
 
         # ==================== Metadata ====================
 
         # S get_n_items() nogil
         # S get_n_trees() nogil
-        # T get_distance(S i, S j) except +
-        # void get_item(S item, T* embedding) except +
+        # T get_distance(S i, S j) noexcept
+        # void get_item(S item, T* embedding) noexcept
 
         # ── Widened accessors (_w) ────────────────────────────────────────
         uint64_t get_n_items_w()                            nogil
         uint64_t get_n_trees_w()                            nogil
-        double  get_distance_w(uint64_t i, uint64_t j)      except +
-        void    get_item_w(uint64_t item, double* emb)      except +
+        double  get_distance_w(uint64_t i, uint64_t j)      noexcept
+        void    get_item_w(uint64_t item, double* emb)      noexcept
 
         # ==================== Querying ====================
 
@@ -269,27 +274,27 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
         #     int search_k,
         #     cpp_vector[S]* result,
         #     cpp_vector[T]* distances
-        # ) except +
+        # ) noexcept
         # void get_nns_by_vector(
         #     const T* embedding,
         #     size_t n,
         #     int search_k,
         #     cpp_vector[S]* result,
         #     cpp_vector[T]* distances
-        # ) except +
+        # ) noexcept
 
         # ── Widened queries (_w) ──────────────────────────────────────────
         void get_nns_by_item_w(
             uint64_t item, size_t n, int search_k,
             cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
-        ) except +
+        ) noexcept
 
         void get_nns_by_vector_w(
             const double* vec, size_t n, int search_k,
             cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
-        ) except +
+        ) noexcept
 
     # Base interface for all Annoy index types
     cdef cppclass AnnoyIndexInterface[S, T, Random](AnnoyIndexInterfaceBase) nogil:
@@ -315,11 +320,11 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 
         # ==================== Core Building ====================
 
-        cpp_bool add_item(S item, const T* embedding, char** error) except +
+        cpp_bool add_item(S item, const T* embedding, char** error) noexcept
 
-        cpp_bool build(int n_trees, int n_threads, char** error) except +
+        cpp_bool build(int n_trees, int n_threads, char** error) noexcept
 
-        cpp_bool unbuild(char** error) except +
+        cpp_bool unbuild(char** error) noexcept
 
         # ==================== Querying ====================
 
@@ -329,7 +334,7 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
             int search_k,
             cpp_vector[S]* result,
             cpp_vector[T]* distances
-        ) except +
+        ) noexcept
 
         void get_nns_by_vector(
             const T* embedding,
@@ -337,11 +342,11 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
             int search_k,
             cpp_vector[S]* result,
             cpp_vector[T]* distances
-        ) except +
+        ) noexcept
 
-        T get_distance(S i, S j) except +
+        T get_distance(S i, S j) noexcept
 
-        void get_item(S item, T* embedding) except +
+        void get_item(S item, T* embedding) noexcept
 
         # ==================== Metadata ====================
 
@@ -353,25 +358,25 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 
         # ==================== Persistence (Disk) ====================
 
-        cpp_bool save(const char* filename, cpp_bool prefault, char** error) except +
+        cpp_bool save(const char* filename, cpp_bool prefault, char** error) noexcept
 
-        cpp_bool load(const char* filename, cpp_bool prefault, char** error) except +
+        cpp_bool load(const char* filename, cpp_bool prefault, char** error) noexcept
 
-        cpp_bool on_disk_build(const char* filename, char** error) except +
+        cpp_bool on_disk_build(const char* filename, char** error) noexcept
 
-        void unload() except +
+        void unload() noexcept
 
         # ==================== Persistence (Memory) ====================
 
-        cpp_vector[uint8_t] serialize(char** error) except +
+        cpp_vector[uint8_t] serialize(char** error) noexcept
 
-        cpp_bool deserialize(cpp_vector[uint8_t]* bytes, cpp_bool prefault, char** error) except +
+        cpp_bool deserialize(cpp_vector[uint8_t]* bytes, cpp_bool prefault, char** error) noexcept
 
         # ==================== Configuration ====================
 
-        void set_seed(Random seed) except +
+        void set_seed(Random seed) noexcept
 
-        void set_verbose(cpp_bool v) except +
+        void set_verbose(cpp_bool v) noexcept
 
 # ==============================================================================
 # Concrete Annoy Index Types (Metric-Specific) - TEMPLATE GENERATED
