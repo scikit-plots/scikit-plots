@@ -83,8 +83,9 @@ requires = [
   ## py>=3.9 Numpy C-Api Headers by python module
   # "numpy==2.3.2; python_version == '3.13'",
   # "numpy>=2.0.0; python_version >= '3.9' and python_version != '3.13'",
-  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0;python_version>="3.9"',
+  'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+  "numpy <= 2.4.6; python_version == '3.13'",
+  'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
 ]
 
 ######################################################################
@@ -250,8 +251,9 @@ requires-python = ">=3.8"
 ## installed automatically via pip (pip install)
 dependencies = [
   # --- Core Numerical Libraries ---
-  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0;python_version>="3.9"',
+  'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+  "numpy <= 2.4.6; python_version == '3.13'",
+  'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
   "scipy>=1.7.0",                           # >=1.11.1,<2.0.0
 
   # --- Data Visualization ---
@@ -381,8 +383,9 @@ build = [
   ## redistributors can do this by installing the numpy version they like and
   ## disabling build isolation.
   ## py>=3.9 Numpy C-Api Headers by python module
-  'numpy>=1.20,!=1.24.0;python_version<"3.9"',
-  'numpy>=2.0.0;python_version>="3.9"',
+  'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+  "numpy <= 2.4.6; python_version == '3.13'",
+  'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
 ]
 
 dev = [
