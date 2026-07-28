@@ -281,8 +281,14 @@ To silence in future builds: add `--no-cache-dir` to pip flags in
 ### `environment.yml` pip block ordering
 ```yaml
 - pip:
-  - -r ../requirements/build.txt   # path relative to REPO ROOT, not .binder/
-  - -r requirements.txt            # relative to .binder/ (CWD during mamba run)
+  # PEP 517 / Meson build tools.
+  - -r ../requirements/build.txt  # path relative to REPO ROOT, not .binder/
+  # Runtime dependencies needed by your notebooks
+  - -r requirements.txt           # relative to .binder/ (CWD during mamba run)
+
+  # ⚠️ Need pre-installed NumPy used directly by Meson. Deferred into postBuild step.
+  # git+https://github.com/scikit-plots/scikit-plots.git@main
+  # - scikit-plots @ git+https://github.com/scikit-plots/scikit-plots.git@main
 ```
 The `../requirements/build.txt` path works because mamba's CWD during
 `env update` is `/home/jovyan` (WORKDIR), so `../requirements/` resolves

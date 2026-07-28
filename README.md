@@ -666,12 +666,12 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
  </p>
 
 ```bash
-## pip install [<name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>
+## pip install [<distribution_metadata_name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>
 #  pip install mlflow  @ git+https://github.com/mlflow/mlflow.git@master#subdirectory=libs/skinny
 #  pip install voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python
 
 #🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
-# pip install scikitplot-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+# pip install scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
 ```
 
  <h5>
