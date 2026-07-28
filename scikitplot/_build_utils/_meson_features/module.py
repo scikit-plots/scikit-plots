@@ -540,9 +540,9 @@ class Module(NewExtensionModule):
                 test_result[k].append(extra_name)  # type: ignore
         return test_result
 
-    @permittedKwargs(build.known_stlib_kwargs | {
-        'dispatch', 'baseline', 'prefix', 'cached', 'keep_sort'
-    })
+    # @permittedKwargs(build.known_stlib_kwargs | {
+    #     'dispatch', 'baseline', 'prefix', 'cached', 'keep_sort'
+    # })
     @typed_pos_args('features.multi_targets', str, min_varargs=1, varargs=(
         str, File, build.CustomTarget, build.CustomTargetIndex,
         build.GeneratedList, build.StructuredSources, build.ExtractedObjects,
