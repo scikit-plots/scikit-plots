@@ -97,11 +97,18 @@ from ...mesonlib import File, MesonException # type: ignore[]
 from ...interpreter.type_checking import NoneType # type: ignore[]
 from ...interpreterbase.decorators import ( # type: ignore[]
     noKwargs, KwargInfo, typed_kwargs, typed_pos_args,
-    ContainerTypeInfo, permittedKwargs
+    ContainerTypeInfo
 )
 from .. import ModuleInfo, NewExtensionModule, ModuleObject
 from .feature import FeatureObject, ConflictAttr
 from .utils import test_code, get_compiler, generate_hash
+
+try:
+    # Legacy Deprecated: mesonbuild/meson 1.11.2 to 1.12.0rc1
+    from ...interpreterbase.decorators import permittedKwargs # type: ignore[]
+except:
+    # Compat new from 1.12.0rc1
+    from .decorators import permittedKwargs
 
 if TYPE_CHECKING:
     from typing import TypedDict
