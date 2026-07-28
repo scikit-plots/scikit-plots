@@ -10,7 +10,7 @@ pybind11
 pybind11-global
 blis
 
-# numpy <= 2.4.6
+# numpy
 # scipy-openblas32
 # scipy-openblas64
 scipy
@@ -48,4 +48,7 @@ shapely
 #   --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple \
 #   --extra-index-url https://pypi.org/simple \
 #   scikit-plots
-git+https://github.com/scikit-plots/scikit-plots.git@main
+
+# ⚠️ Need pre-installed NumPy used directly by Meson. Deferred into postBuild step.
+# git+https://github.com/scikit-plots/scikit-plots.git@main
+# scikit-plots @ git+https://github.com/scikit-plots/scikit-plots.git@main

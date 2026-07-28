@@ -42,10 +42,14 @@
 # -----------------------------------------------------------------------------
 # Step 1/22 — Base image
 # -----------------------------------------------------------------------------
+# https://repo2docker.readthedocs.io/
+#
 # repo2docker always uses buildpack-deps as its upstream.  The Ubuntu 24.04
 # variant ships with: git, curl, wget, gcc, g++, make, ca-certificates.
 # This is the same sha256 pinned in the build log:
 #   sha256:48a08de20b86d99a39f413b3b8521f3ca741487d2d9d7394b6d4ab8a7498cc15
+# docker.io/library/buildpack-deps:24.04
+# https://hub.docker.com/_/buildpack-deps
 FROM buildpack-deps:24.04
 
 # -----------------------------------------------------------------------------

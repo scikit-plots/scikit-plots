@@ -11,8 +11,8 @@ channels:
 
 dependencies:
   # ── Python runtime ──────────────────────────────────────────────────
-  # TODO: python=3.13 voyager>=1.2.5   ❌ remove/replace voyager or comment
   - python=3.12
+  # - python=3.13  # ❌ voyager>=1.2.5 fixed.
   # - r-base=4.3.2
   # - r-tidyverse
 
@@ -29,7 +29,8 @@ dependencies:
   - ipywidgets
 
   # ── Core scientific stack (conda-forge: CPU-generic) ─────────────────
-  - numpy <= 2.4.6
+  # Build-time NumPy used directly by Meson.
+  # - numpy <= 2.4.6
   # - numpy>=1.24
   # - scipy>=1.11
   # - pandas>=2.0
@@ -44,5 +45,10 @@ dependencies:
   # apply uniformly to every package and avoids duplicate index config.
   - pip
   - pip:
+    # PEP 517 / Meson build tools.
     - -r ../requirements/build.txt
+    # Runtime dependencies needed by your notebooks
     - -r requirements.txt
+    # ⚠️ Need pre-installed NumPy used directly by Meson. Deferred into postBuild step.
+    # git+https://github.com/scikit-plots/scikit-plots.git@main
+    # - scikit-plots @ git+https://github.com/scikit-plots/scikit-plots.git@main

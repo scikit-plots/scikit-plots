@@ -368,6 +368,13 @@ main() {
     require_command python
     require_command sphinx_gallery_py2jupyter
 
+    # ⚠️ Need pre-installed NumPy used directly by Meson. Deferred into postBuild step.
+    # --no-deps \
+    python -m pip install \
+        --no-cache-dir \
+        --no-build-isolation \
+        "scikit-plots @ git+https://github.com/scikit-plots/scikit-plots.git@main"
+
     # ── Main pipeline ─────────────────────────────────────────────────────────
     prepare_workspace
     backup_required_content    # backs up content; then clears WORKDIR
