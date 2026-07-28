@@ -1689,6 +1689,7 @@ run_command(
     check: true,
 )
 # ── 2. Now import resolves to mesonbuild.modules.features ───────────────────
+# https://mesonbuild.com/Reference-manual_functions_import.html
 mod_features = import('features')
 
 ######################################################################
