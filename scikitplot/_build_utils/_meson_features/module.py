@@ -104,11 +104,67 @@ from .feature import FeatureObject, ConflictAttr
 from .utils import test_code, get_compiler, generate_hash
 
 try:
-    # Legacy Deprecated: mesonbuild/meson 1.11.2 to 1.12.0rc1
+    # TODO: Deprecated mesonbuild/meson 1.11.2 to 1.12.0rc1
     from ...interpreterbase.decorators import permittedKwargs # type: ignore[]
 except:
-    # Compat new from 1.12.0rc1
+    # permittedKwargs compat new from 1.12.0rc1 patch
     from .decorators import permittedKwargs
+
+    from ...compilers import (
+        all_languages,
+    )
+    buildtarget_kwargs = {
+        'build_by_default',
+        'build_rpath',
+        'build_subdir',
+        'dependencies',
+        'extra_files',
+        'gui_app',
+        'link_with',
+        'link_whole',
+        'link_args',
+        'link_early_args',
+        'link_depends',
+        'implicit_include_directories',
+        'include_directories',
+        'install',
+        'install_rpath',
+        'install_dir',
+        'install_mode',
+        'install_tag',
+        'name_prefix',
+        'name_suffix',
+        'native',
+        'objects',
+        'override_options',
+        'sources',
+        'gnu_symbol_visibility',
+        'link_language',
+        'win_subsystem',
+    }
+    lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
+    lang_arg_kwargs |= {
+        'd_import_dirs',
+        'd_unittest',
+        'd_module_versions',
+        'd_debug',
+    }
+    pch_kwargs = {'c_pch', 'cpp_pch'}
+    vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi', 'install_vala_header', 'install_vala_gir', 'install_vala_vapi'}
+    rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
+    cs_kwargs = {'resources', 'cs_args'}
+    swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}
+    known_build_target_kwargs = (
+        buildtarget_kwargs |
+        lang_arg_kwargs |
+        pch_kwargs |
+        vala_kwargs |
+        rust_kwargs |
+        cs_kwargs |
+        swift_kwargs)
+    # TODO: build.known_stlib_kwargs compat new from 1.12.0rc1 patch
+    known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
+    setattr(build, 'known_stlib_kwargs', known_stlib_kwargs)
 
 if TYPE_CHECKING:
     from typing import TypedDict
