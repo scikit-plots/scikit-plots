@@ -78,6 +78,8 @@ print("Package examples:", examples)
 # ----------------------------------------
 
 # Pick a template deterministically and safely.
+# TODO: SecurityError: [include_dirs] unsafe include_dir (path traversal or absolute path not allowed):
+# '/work/scikitplot/cython/_templates/package_examples/graph_algo'
 if not examples:
     print("No package examples were bundled in this build.")
 else:
@@ -94,63 +96,63 @@ else:
         name = sorted(examples)[0]
         print("\nBuilding package example:", name)
 
-        # Demonstrate profiles:
-        # fast-debug is great for iteration; release for performance.
-        r_debug = cython.build_package_example_result(name, profile="fast-debug", verbose=0)
-        print("\nBuild (fast-debug) result:")
-        print(r_debug)
+        ## Demonstrate profiles:
+        ## fast-debug is great for iteration; release for performance.
+        # r_debug = cython.build_package_example_result(name, profile="fast-debug", verbose=0)
+        # print("\nBuild (fast-debug) result:")
+        # print(r_debug)
 
-        # Optional: build release too to show key changes deterministically.
-        r_release = cython.build_package_example_result(name, profile="release", verbose=0)
-        print("\nBuild (release) result:")
-        print(r_release)
-        print("\nKeys differ by profile:")
-        print("  fast-debug:", r_debug.key)
-        print("  release   :", r_release.key)
+        ## Optional: build release too to show key changes deterministically.
+        # r_release = cython.build_package_example_result(name, profile="release", verbose=0)
+        # print("\nBuild (release) result:")
+        # print(r_release)
+        # print("\nKeys differ by profile:")
+        # print("  fast-debug:", r_debug.key)
+        # print("  release   :", r_release.key)
 
-        # Show deterministic metadata
-        print("\nPackage metadata:")
-        print("  package_name:", r_debug.package_name)
-        print("  build_dir   :", r_debug.build_dir)
-        print("  used_cache  :", r_debug.used_cache)
-        print("  created_utc :", r_debug.created_utc)
+        ## Show deterministic metadata
+        # print("\nPackage metadata:")
+        # print("  package_name:", r_debug.package_name)
+        # print("  build_dir   :", r_debug.build_dir)
+        # print("  used_cache  :", r_debug.used_cache)
+        # print("  created_utc :", r_debug.created_utc)
 
-        # Show per-module summary and artifact paths
-        print("\nModules and artifacts:")
-        for br in r_debug.results:
-            print(" ", br.module.__name__)
-            print("    artifact:", br.artifact_path)
+        ## Show per-module summary and artifact paths
+        # print("\nModules and artifacts:")
+        # for br in r_debug.results:
+        #     print(" ", br.module.__name__)
+        #     print("    artifact:", br.artifact_path)
 
-        # Import one built module by dotted name and call a known function (strict)
-        first_module = r_debug.modules[0]
-        mod_name = first_module.__name__
-        mod = importlib.import_module(mod_name)
-        print("\nImported module:", mod.__name__)
+        ## Import one built module by dotted name and call a known function (strict)
+        # first_module = r_debug.modules[0]
+        # mod_name = first_module.__name__
+        # mod = importlib.import_module(mod_name)
+        # print("\nImported module:", mod.__name__)
 
-        # Try calling a known function name (declared by convention)
-        # Keep candidates short and standard.
-        _safe_call_known_function(mod, candidates=("run", "demo", "test", "inc", "dec", "dot", "hash_text"))
+        ## Try calling a known function name (declared by convention)
+        ## Keep candidates short and standard.
+        # _safe_call_known_function(mod, candidates=("run", "demo", "test", "inc", "dec", "dot", "hash_text"))
 
-        # Pin/alias (per-cache-dir) and import again
-        alias = f"pkg_{name}_debug"
-        print("\nPinning build:")
-        cython.pin(r_debug.key, alias=alias, overwrite=True)
-        r_pinned = cython.import_pinned_result(alias)
-        print("Pinned import result:")
-        print(r_pinned)
-        print("Pinned package name:", r_pinned.package_name)
+        ## Pin/alias (per-cache-dir) and import again
+        # alias = f"pkg_{name}_debug"
+        # print("\nPinning build:")
+        # cython.pin(r_debug.key, alias=alias, overwrite=True)
+        # r_pinned = cython.import_pinned_result(alias)
+        # print("Pinned import result:")
+        # print(r_pinned)
+        # print("Pinned package name:", r_pinned.package_name)
 
-        # Restart-safe import by key (no recompilation)
-        r_cached = cython.import_cached_package_result(r_debug.key)
-        print("\nImported from cache key:")
-        print(r_cached)
-        print("  used_cache:", r_cached.used_cache)
+        ## Restart-safe import by key (no recompilation)
+        # r_cached = cython.import_cached_package_result(r_debug.key)
+        # print("\nImported from cache key:")
+        # print(r_cached)
+        # print("  used_cache:", r_cached.used_cache)
 
-        # Optional: cache stats (if available)
-        if hasattr(cython, "cache_stats"):
-            stats = cython.cache_stats()
-            print("\nCache stats snapshot:")
-            print(stats)
+        ## Optional: cache stats (if available)
+        # if hasattr(cython, "cache_stats"):
+        #     stats = cython.cache_stats()
+        #     print("\nCache stats snapshot:")
+        #     print(stats)
 
 # %%
 #
