@@ -480,8 +480,9 @@ doc = [
   "sphinxcontrib-inlinesyntaxhighlight",    # Inline syntax highlighting
   "sphinxcontrib-sass",                     # SASS support
   "sphinxcontrib-svg2pdfconverter",         # SVG to PDF conversion
-  "pydata-sphinx-theme",                    # PyData theme
+  "sphinxcontrib-mermaid",                  # Mermaid graphs
 
+  "pydata-sphinx-theme",                    # PyData theme
   "colorspacious",                          # Color management
   "jinja2",                                 # Templating engine
   "jupyter-sphinx",                         # Jupyter integration

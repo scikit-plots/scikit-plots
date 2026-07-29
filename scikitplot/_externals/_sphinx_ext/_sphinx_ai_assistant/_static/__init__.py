@@ -80,6 +80,7 @@ __all__ = [
     "_SVG_SHIELD_ALERT",
     "_SVG_SPARKLE",
     "_SVG_SPARKLE_ALT",
+    "_SVG_SPARKLE_NOVA",
     "_SVG_SYNC_RETRY",
     "_SVG_SYNC_RETRY_REVERSE",
     "_SVG_THUMB_DOWN",
@@ -652,6 +653,56 @@ _SVG_SEARCH_SPARKLE: str = (
     "NS4wMiBaIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4="
 )
 
+# Firefox "Nova" sparkle, restructured (dropped the browser-chrome-only
+# @media -moz-pref() toggle and fill="context-fill" — see the long
+# comment on ICONS.sparkleNova in ai-assistant.js for why). Primary
+# icon for .ai-assistant-panel-logo; sparkle/sparkle-alt remain as
+# defined alternates, not removed.
+_SVG_SPARKLE_NOVA: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTIuNjIyIDExLjI1MmEuNDA5"
+    "LjQwOSAwIDAgMSAuNzU2IDBxLjA0LjA5Ni4wNzguMTk3LjEyMi4zMjYuMTk1LjYxNGMu"
+    "MDM4LjE0My4xNTQuMjUuMjk3LjI4NmE2IDYgMCAwIDEgLjc5OC4yNy40MS40MSAwIDAg"
+    "MSAuMDAyLjc2IDYgNiAwIDAgMS0uOC4yNy40LjQgMCAwIDAtLjI5Ni4yODQgNiA2IDAg"
+    "MCAxLS4yMTMuNjZsLS4wNjIuMTU2YS40MDkuNDA5IDAgMCAxLS43NTQgMGwtLjA2My0u"
+    "MTU2YTYgNiAwIDAgMS0uMjEzLS42Ni40LjQgMCAwIDAtLjI5NC0uMjg0IDYgNiAwIDAg"
+    "MS0uODAxLS4yNy40MS40MSAwIDAgMSAuMDAyLS43NiA2IDYgMCAwIDEgLjc5OC0uMjcu"
+    "NC40IDAgMCAwIC4yOTYtLjI4NiA2IDYgMCAwIDEgLjI3NC0uODExIi8+PHBhdGggZmls"
+    "bC1ydWxlPSJldmVub2RkIiBkPSJNOC4zMTQgMy4xM2MuNjI3LTEuNDk4IDIuNzM5LTEu"
+    "NDk4IDMuMzY2IDBxLjExLjI2NC4yMTMuNTRoLjAwMmMuMjI0LjU5Ni40IDEuMTYyLjUz"
+    "OCAxLjY4OC4wMjIuMDg1LjA5OC4xNzYuMjM4LjIxM2wuMzQ2LjA5NGExNiAxNiAwIDAg"
+    "MSAxLjg0Ni42NDVjMS40OTkuNjI3IDEuNTI0IDIuNzM2LjAxIDMuMzcxcS0uMzMuMTQt"
+    "LjY4My4yNjlhMTcgMTcgMCAwIDEtMS41Mi40NzljLS4xMzcuMDM1LS4yMTMuMTI0LS4y"
+    "MzUuMjA4YTE3IDE3IDAgMCAxLS41ODQgMS44MDhsLS4wMDEuMDAxYTE2IDE2IDAgMCAx"
+    "LS4xNzIuNDI1Yy0uNjEgMS40NjEtMi42NDUgMS40OTItMy4zMTYuMDk0YTEgMSAwIDAg"
+    "MS0uMDQ2LS4wOTEgMTcgMTcgMCAwIDEtLjc1Ni0yLjIzNnYtLjAwMmMtLjAyMi0uMDgt"
+    "LjA5NS0uMTcxLS4yMzUtLjIwOGExNi40IDE2LjQgMCAwIDEtMi4yLS43NDRoLS4wMDFj"
+    "LTEuNTE2LS42MzUtMS40OTMtMi43NDYuMDA2LTMuMzc0cS4zNjMtLjE1Ljc1LS4yOTJh"
+    "MTYgMTYgMCAwIDEgMS40NDMtLjQ0N2guMDAyYy4xMzgtLjAzNy4yMTQtLjEyNi4yMzct"
+    "LjIxM0ExNyAxNyAwIDAgMSA4LjEgMy42NzFWMy42N3EuMTA0LS4yNzYuMjE0LS41NG0x"
+    "Ljk4Mi41NzlhLjMyMi4zMjIgMCAwIDAtLjU5OCAwbC0uMTk1LjQ5MmExNiAxNiAwIDAg"
+    "MC0uNDkgMS41MzV2LjAwMUExLjgxIDEuODEgMCAwIDEgNy43IDcuMDIxbC4wMDEuMDAx"
+    "YTE1IDE1IDAgMCAwLTEuOTkzLjY3M2gtLjAwMWEuMzI0LjMyNCAwIDAgMC0uMDA0LjYw"
+    "NXEuMzAzLjEyNS42MTcuMjQzbC4zNi4xMjdxLjUzNS4xOCAxLjAyMy4zMDZsLjAwMi4w"
+    "MDFjLjYwNi4xNiAxLjEzNC42MiAxLjMwNyAxLjI4Mi4xMzMuNTA5LjMwNiAxLjA2Mi41"
+    "MzEgMS42NDRsLjE0NC4zNi4wMTYuMDNhLjMyLjMyIDAgMCAwIC41OTIgMHYtLjAwMXEu"
+    "MDc3LS4xODYuMTU2LS4zODljLjIyNi0uNTg0LjM5OS0xLjEzNy41MzItMS42NDZhMS44"
+    "MSAxLjgxIDAgMCAxIDEuMzA2LTEuMjhsLjMzMi0uMDlhMTUgMTUgMCAwIDAgMS42Njct"
+    "LjU4NmwuMDAzLS4wMDFhLjMyMy4zMjMgMCAwIDAtLjAwNS0uNjA2cS0uMzMtLjEzOC0u"
+    "NjgxLS4yNjRsLS4wMDMtLjAwMWExNSAxNSAwIDAgMC0xLjMwOS0uNDA3IDEuODIgMS44"
+    "MiAwIDAgMS0xLjMxMi0xLjI4NCAxNSAxNSAwIDAgMC0uMzQ0LTEuMTM2bC0uMTQ2LS40"
+    "MDFhMTUgMTUgMCAwIDAtLjE5NS0uNDkyIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0"
+    "aCBkPSJNMi42MjIgMS4yNTJhLjQwOS40MDkgMCAwIDEgLjc1NiAwcS4wNC4wOTYuMDc4"
+    "LjE5Ny4xMjIuMzI3LjE5NS42MTRjLjAzOC4xNDMuMTU0LjI1LjI5Ny4yODZhNiA2IDAg"
+    "MCAxIC43OTguMjcuNDEuNDEgMCAwIDEgLjAwMi43NiA2IDYgMCAwIDEtLjguMjcuNC40"
+    "IDAgMCAwLS4yOTYuMjg0IDYgNiAwIDAgMS0uMjEzLjY2bC0uMDYyLjE1NmEuNDA5LjQw"
+    "OSAwIDAgMS0uNzU0IDBsLS4wNjMtLjE1NmE2IDYgMCAwIDEtLjIxMy0uNjYuNC40IDAg"
+    "MCAwLS4yOTQtLjI4NCA2IDYgMCAwIDEtLjgwMS0uMjcuNDEuNDEgMCAwIDEgLjAwMi0u"
+    "NzZxLjEzLS4wNTUuMjcyLS4xMDYuMjc2LS4wOTkuNTI2LS4xNjRhLjQuNCAwIDAgMCAu"
+    "Mjk2LS4yODYgNiA2IDAgMCAxIC4yNzQtLjgxMSIvPjwvc3ZnPg=="
+)
+
 
 # ---------------------------------------------------------------------------
 # Provider icon + description registry
@@ -718,6 +769,10 @@ _ICON_META: dict[str, dict[str, str]] = {
     "retry-reverse": {"icon": _SVG_SYNC_RETRY_REVERSE, "desc": "Redo (reverse retry)"},
     "sparkle": {"icon": _SVG_SPARKLE, "desc": "AI sparkle"},
     "sparkle-alt": {"icon": _SVG_SPARKLE_ALT, "desc": "AI sparkle (alternate)"},
+    "sparkle-nova": {
+        "icon": _SVG_SPARKLE_NOVA,
+        "desc": "AI sparkle, Nova style (primary panel logo)",
+    },
     "brush-sparkle": {
         "icon": _SVG_BRUSH_SPARKLE,
         "desc": "AI-assisted style/customize",

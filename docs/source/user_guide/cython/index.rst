@@ -20,15 +20,25 @@
 
 .. _cython-index:
 
-Instant PKG/MOD Generation
+Cython User Guide
 ======================================================================
+
+Instant PKG/MOD Generation
+----------------------------------------------------------------------
+
+The :mod:`~scikitplot.cython` submodule provides runtime Cython compilation,
+artifact caching, template-based examples, controlled loading, and cache
+maintenance utilities.
+
+This guide separates the main concepts into reusable diagrams so that each
+workflow can be reviewed and maintained independently.
 
 Examples relevant to the :py:mod:`~.cython` module.
 
 A lightweight runtime Cython development kit with caching, pinning,
 garbage collection, and templating support. ``"Simple Foundation. Truly Sovereign."``
 
-:mod:`scikitplot.cython` enables real-time, in-place (in-situ) live, on demand
+:mod:`~scikitplot.cython` enables real-time, in-place (in-situ) live, on demand
 generation of low-level Cython packages and modules for immediate use and testing, at runtime.
 
 * :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
@@ -52,17 +62,97 @@ generation of low-level Cython packages and modules for immediate use and testin
   m = compile_and_load("def f(int n):\n    return n*n")
   m.f(10)
 
+..
+  # https://mermaid.js.org/community/contributing.html
+  # https://www.mermaideditor.io/
+  # https://pypi.org/project/sphinxcontrib-mermaid
+
+Architecture
+------------
+
+.. include:: _includes/diagrams/architecture_overview.rst
+
+Public API flow
+---------------
+
+.. include:: _includes/diagrams/public_api_flow.rst
+
+Build workflows
+---------------
+
+Single-module build
+~~~~~~~~~~~~~~~~~~~
+
+.. include:: _includes/diagrams/single_module_build_flow.rst
+
+Package build
+~~~~~~~~~~~~~
+
+.. include:: _includes/diagrams/package_build_flow.rst
+
+Lifecycle and state
+-------------------
+
+Cache lifecycle
+~~~~~~~~~~~~~~~
+
+.. include:: _includes/diagrams/cache_lifecycle_state.rst
+
+Lock lifecycle
+~~~~~~~~~~~~~~
+
+.. include:: _includes/diagrams/lock_lifecycle_state.rst
+
+Security validation
+-------------------
+
+.. include:: _includes/diagrams/security_validation_flow.rst
+
+Templates
+---------
+
+.. include:: _includes/diagrams/templates_flow.rst
+
+Garbage collection and pins
+---------------------------
+
+.. include:: _includes/diagrams/gc_and_pins_flow.rst
+
+Failure and recovery
+--------------------
+
+.. include:: _includes/diagrams/failure_recovery_state.rst
+
+Further reading
+---------------
+
 .. grid:: 1 1 1 1
 
-   .. grid-item-card::
-      :padding: 3
-      :shadow: none
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
 
-      .. python -c 'from scikitplot import cython;cython.generate_sphinx_template_docs("./")'
+    **further reading**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
 
-      **cython templates**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
+      architecture
+      workflows
+      lifecycle
 
-        _templates/templates_index.rst
+
+.. grid:: 1 1 1 1
+
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
+
+    .. python -c 'from scikitplot import cython;cython.generate_sphinx_template_docs("./")'
+
+    **cython templates**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
+
+      _templates/templates_index.rst

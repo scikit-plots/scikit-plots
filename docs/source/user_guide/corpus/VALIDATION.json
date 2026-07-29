@@ -1,0 +1,186 @@
+{
+  "errors": [],
+  "diagram_count": 32,
+  "files": {
+    "README.md": {
+      "bytes": 583,
+      "lines": 12,
+      "sha256": "8da9fdb8a3ff8fa21dbbcb4e2ae8da8a8162de15a7e94308efd092235515b054"
+    },
+    "SCIKITPLOT_CORPUS_USER_GUIDE_MERMAID_DIAGRAM_GUIDELINE.md": {
+      "bytes": 10244,
+      "lines": 335,
+      "sha256": "f8f1032ab2aaf458c507a3323dce144ee7c178d0faa401098fb00e06306c6d1f"
+    },
+    "corpus_user_guide_schema.rst": {
+      "bytes": 2890,
+      "lines": 123,
+      "sha256": "8301fab1506b9384ece75316242417e16c1632da2a77cf34c78930d5b962fb4f"
+    },
+    "diagram_include_catalog.rst": {
+      "bytes": 3560,
+      "lines": 165,
+      "sha256": "959461ff7cbf26b4748423d93c856fabdf9c3e8c7626464fb2740fde239f5af2"
+    },
+    "diagrams/00_corpus_at_a_glance_logical.rst": {
+      "bytes": 417,
+      "lines": 26,
+      "sha256": "925c28a5fa7a322461cda58df160f7019c7236c01f68e40fdb8e2b57452c3b26"
+    },
+    "diagrams/01_corpus_physical_module_map.rst": {
+      "bytes": 1032,
+      "lines": 63,
+      "sha256": "20f801dd7a6f6d61034849108fddc4b67fbdc547f06f481292808d55743087a0"
+    },
+    "diagrams/02_public_api_facade_flow.rst": {
+      "bytes": 432,
+      "lines": 25,
+      "sha256": "2a1155b5a954a94ae3afb6ea2de136aa40d21868bf46255aad4f4f14bf6959a3"
+    },
+    "diagrams/03_pipeline_execution_flow.rst": {
+      "bytes": 480,
+      "lines": 29,
+      "sha256": "e4fbaa109a8487fd60cedd0cfc9966ac0ee676f1253a5e3811d67252e18e58f5"
+    },
+    "diagrams/04_pipeline_lifecycle_state.rst": {
+      "bytes": 714,
+      "lines": 25,
+      "sha256": "4b90d3f263e9a452e3fe1c052b662164b5389dd04cdcd078eeaf9780f5931d6d"
+    },
+    "diagrams/05_corpus_builder_flow.rst": {
+      "bytes": 479,
+      "lines": 28,
+      "sha256": "927dfa9986d9ae08480a239569f5564a615d1fd93d0540b9da450dab037a129f"
+    },
+    "diagrams/06_corpus_builder_lifecycle_state.rst": {
+      "bytes": 680,
+      "lines": 27,
+      "sha256": "ced05e76cf48aedbb969eabe7cf314ce75e8b40b9ce9e2dd3c1f57e38b5b5e92"
+    },
+    "diagrams/07_source_resolution_flow.rst": {
+      "bytes": 450,
+      "lines": 31,
+      "sha256": "98125609a07cc48510dcba5713c5f1c7686daea7f9c19a32b24beef3b126bf7d"
+    },
+    "diagrams/08_url_handler_flow.rst": {
+      "bytes": 544,
+      "lines": 31,
+      "sha256": "ecf350a622ab6ae8a489846e8b79861036aafc58b84969aceac8e4317ac0f2c2"
+    },
+    "diagrams/09_downloader_dispatch_flow.rst": {
+      "bytes": 495,
+      "lines": 33,
+      "sha256": "99eeca84b8c9c313b30b59d3d4ea7b292e39457a2c8f1e0ae415a5cfe9a9ce20"
+    },
+    "diagrams/10_document_reader_factory_flow.rst": {
+      "bytes": 498,
+      "lines": 31,
+      "sha256": "ea548959b2590dc0d9b46ce00b6a570d3a80b145eb1eac8d535bfd39da948db8"
+    },
+    "diagrams/11_reader_family_flow.rst": {
+      "bytes": 503,
+      "lines": 25,
+      "sha256": "e774c707f0b123be3df0a4364339967ee4ca313df8065308a334eda45660ffb3"
+    },
+    "diagrams/12_archive_processing_flow.rst": {
+      "bytes": 479,
+      "lines": 28,
+      "sha256": "3d17e85af655f215ad28257108d9043c03622907ef964a113feee64e2abad26f"
+    },
+    "diagrams/13_chunker_family_flow.rst": {
+      "bytes": 500,
+      "lines": 34,
+      "sha256": "55f8337e73c908771d45e41e3c2bc07b96f21187fe767e7721d1c44c12df2b6f"
+    },
+    "diagrams/14_multilingual_semantic_chunking_flow.rst": {
+      "bytes": 506,
+      "lines": 27,
+      "sha256": "ac4aef636478fd453bbda00bdae627acb459be82b4edcc62d111fc69f53be6d1"
+    },
+    "diagrams/15_normalization_flow.rst": {
+      "bytes": 464,
+      "lines": 28,
+      "sha256": "3f789144368f4c1efe583035c0df123da4c785af3bb2e973e946205a55fa1b88"
+    },
+    "diagrams/16_nlp_enrichment_flow.rst": {
+      "bytes": 424,
+      "lines": 26,
+      "sha256": "9762c7bc334d68924db03187d5f13ee5448819625df7bbbab03911e0e491ae07"
+    },
+    "diagrams/17_embedding_flow.rst": {
+      "bytes": 594,
+      "lines": 35,
+      "sha256": "61caaa1d2278d53979ffd34a2f0392f07ba6cdd116feea9de94cfb135cb5c533"
+    },
+    "diagrams/18_similarity_search_flow.rst": {
+      "bytes": 490,
+      "lines": 33,
+      "sha256": "eb4688f225c836d0381b684cdf37d61b54718406272260c38dd295191802162f"
+    },
+    "diagrams/19_storage_backend_flow.rst": {
+      "bytes": 496,
+      "lines": 35,
+      "sha256": "dcd13f0ac31c17e7a5effc21648630c9b2aec7621a7beda7e90bd23fbf0d5979"
+    },
+    "diagrams/20_sqlite_storage_lifecycle_state.rst": {
+      "bytes": 541,
+      "lines": 22,
+      "sha256": "3bc3b8fdc1af2b3bcf71eaf043616b8f9b43a26403ebe46c57cadfc5ef4650ec"
+    },
+    "diagrams/21_export_flow.rst": {
+      "bytes": 526,
+      "lines": 28,
+      "sha256": "98b46b06bb6fd10eaa063cc913a826d5fded3958e0433ef39c98dcde49d80a15"
+    },
+    "diagrams/22_adapter_flow.rst": {
+      "bytes": 453,
+      "lines": 28,
+      "sha256": "21ee302d64469e8e36e63e0fe783f60b6b2140f2844891c2bd90054ed385159f"
+    },
+    "diagrams/23_metadata_flow.rst": {
+      "bytes": 340,
+      "lines": 23,
+      "sha256": "adcc8505a1dac5f4b588d37c105a2c28672487788ffd0c8a791161b7c8f6131a"
+    },
+    "diagrams/24_component_registry_flow.rst": {
+      "bytes": 484,
+      "lines": 31,
+      "sha256": "79852a3ecae52314156e02c76c82384587bc9767323a7bccc1872954e91044ec"
+    },
+    "diagrams/25_custom_hooks_flow.rst": {
+      "bytes": 490,
+      "lines": 29,
+      "sha256": "8bae1b4683c24ba760266d5a67fea136dd9555950eedc07b877104fab73b2ad3"
+    },
+    "diagrams/26_pipeline_guard_state.rst": {
+      "bytes": 872,
+      "lines": 32,
+      "sha256": "79872ed28274c68dc78eaa9c470ade188af6ded722529142fec1dcb6e7aaef24"
+    },
+    "diagrams/27_schema_and_types_flow.rst": {
+      "bytes": 476,
+      "lines": 24,
+      "sha256": "38b80e83a444049f29f2ab68fd37808e9328e8c2b8f27f1f1fbb895ca0d9c160"
+    },
+    "diagrams/28_error_propagation_flow.rst": {
+      "bytes": 626,
+      "lines": 36,
+      "sha256": "0d506c88bb8fe79b7f341c9781d646798a147d9503c16e8fac64347bf16bf554"
+    },
+    "diagrams/29_security_and_resource_policy_target.rst": {
+      "bytes": 640,
+      "lines": 37,
+      "sha256": "465529fac312459ce907fe2fd0e2fe9726ab7b37a910e538bb0e425b8663c044"
+    },
+    "diagrams/30_platform_capability_flow.rst": {
+      "bytes": 579,
+      "lines": 33,
+      "sha256": "835e3519e405fee58df81ac1ba11661a5094a834a2af738e9e3049a1e59dd62f"
+    },
+    "diagrams/31_compatibility_layer_flow.rst": {
+      "bytes": 396,
+      "lines": 23,
+      "sha256": "85aed00c4953f196ba8b6c2aecf9a4b253cf0aa97a6e13b3540e806a6fd28dc4"
+    }
+  }
+}
