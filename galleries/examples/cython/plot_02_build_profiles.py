@@ -138,6 +138,7 @@ else:
 import json
 import shutil
 import textwrap
+from pathlib import Path
 from pprint import pprint
 
 if report.get('cython', {}).get('ok'):
@@ -166,6 +167,7 @@ def read_html_file(file_path):
     return html_content
 
 if report.get('cython', {}).get('ok'):
+    ann_path = r_ann.build_dir / (r_ann.module_name + ".html")
     if ann_path:
         # print(HTML(read_html_file(ann_path)).data[-8000:])
 

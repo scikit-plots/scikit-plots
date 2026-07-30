@@ -285,6 +285,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
+    "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
     #
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
     # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
@@ -321,6 +322,10 @@ extensions = [
     # https://isolveit.github.io/sphinx-pdf-generate
     # "sphinx_pdf_generate",
 ]
+
+# Optional Mermaid configuration.
+# https://sphinxcontrib-mermaid-demo.readthedocs.io/
+mermaid_output_format = "svg"
 
 # %%
 #

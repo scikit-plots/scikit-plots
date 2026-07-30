@@ -537,7 +537,7 @@ def main() -> int:
     w("   * scikit-learn mixtures: https://scikit-learn.org/stable/modules/mixture.html")
     w("   * Gelman, Carlin, Stern, Dunson, Vehtari & Rubin, *Bayesian Data Analysis* (3rd ed.):")
     w("     http://www.stat.columbia.edu/~gelman/book/")
-    w("   * Terminology reference: :ref:`terminology-index`")
+    w("   * :ref:`Terminology reference <terminology-index>`")
     w("")
 
     w(".. toctree::"); w("   :hidden:"); w("   :maxdepth: 1"); w("")

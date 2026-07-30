@@ -795,6 +795,21 @@
         // available for a future "AI menu" trigger, distinct from the
         // plain hamburger already used for the main panel menu.
         menuSparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.218.372c-.122-.487-.814-.487-.936 0l-.285 1.14a4.102 4.102 0 0 1-2.985 2.985l-1.14.285c-.487.122-.487.814 0 .936l1.14.285a4.102 4.102 0 0 1 2.985 2.985l.285 1.14c.122.487.814.487.936 0l.285-1.14a4.102 4.102 0 0 1 2.985-2.985l1.14-.285c.487-.122.487-.814 0-.936l-1.14-.285a4.102 4.102 0 0 1-2.985-2.985l-.285-1.14ZM3.561 4.5c.282 0 .478.288.454.569-.01.12-.01.242 0 .362.024.28-.172.569-.454.569H.75a.75.75 0 0 1 0-1.5h2.811Zm4.778 4.317c-.1-.207-.32-.317-.55-.317H.75a.75.75 0 0 0 0 1.5h7.442c.26 0 .455-.246.388-.497a3.886 3.886 0 0 0-.241-.686ZM11 13.25a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h9.5a.75.75 0 0 1 .75.75Z"/></svg>',
+        // Firefox "Nova" sparkle — restructured from a submitted icon
+        // that used @media -moz-pref(...) (a Firefox-internal browser-
+        // chrome media feature) to toggle between a .proton and .nova
+        // variant, and fill="context-fill" (also browser-chrome-only,
+        // not a valid CSS value on a normal web page). Neither works in
+        // page content: the media query never matches outside privileged
+        // Firefox UI, so .nova would stay permanently display:none and
+        // .proton would always render — the toggle is simply dead code
+        // here. Picked the .nova variant (the newer of the two designs)
+        // as our one, kept via currentColor like every other icon in
+        // this registry, and dropped the dead .proton alternative and
+        // the non-functional media toggle entirely. Now the primary
+        // .ai-assistant-panel-logo icon — see createAIAssistantUI.
+        // sparkle/sparkleAlt above are kept as-is, not removed.
+        sparkleNova: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.622 11.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.326.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76 6 6 0 0 1 .798-.27.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/><path fill-rule="evenodd" d="M8.314 3.13c.627-1.498 2.739-1.498 3.366 0q.11.264.213.54h.002c.224.596.4 1.162.538 1.688.022.085.098.176.238.213l.346.094a16 16 0 0 1 1.846.645c1.499.627 1.524 2.736.01 3.371q-.33.14-.683.269a17 17 0 0 1-1.52.479c-.137.035-.213.124-.235.208a17 17 0 0 1-.584 1.808l-.001.001a16 16 0 0 1-.172.425c-.61 1.461-2.645 1.492-3.316.094a1 1 0 0 1-.046-.091 17 17 0 0 1-.756-2.236v-.002c-.022-.08-.095-.171-.235-.208a16.4 16.4 0 0 1-2.2-.744h-.001c-1.516-.635-1.493-2.746.006-3.374q.363-.15.75-.292a16 16 0 0 1 1.443-.447h.002c.138-.037.214-.126.237-.213A17 17 0 0 1 8.1 3.671V3.67q.104-.276.214-.54m1.982.579a.322.322 0 0 0-.598 0l-.195.492a16 16 0 0 0-.49 1.535v.001A1.81 1.81 0 0 1 7.7 7.021l.001.001a15 15 0 0 0-1.993.673h-.001a.324.324 0 0 0-.004.605q.303.125.617.243l.36.127q.535.18 1.023.306l.002.001c.606.16 1.134.62 1.307 1.282.133.509.306 1.062.531 1.644l.144.36.016.03a.32.32 0 0 0 .592 0v-.001q.077-.186.156-.389c.226-.584.399-1.137.532-1.646a1.81 1.81 0 0 1 1.306-1.28l.332-.09a15 15 0 0 0 1.667-.586l.003-.001a.323.323 0 0 0-.005-.606q-.33-.138-.681-.264l-.003-.001a15 15 0 0 0-1.309-.407 1.82 1.82 0 0 1-1.312-1.284 15 15 0 0 0-.344-1.136l-.146-.401a15 15 0 0 0-.195-.492" clip-rule="evenodd"/><path d="M2.622 1.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.327.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76q.13-.055.272-.106.276-.099.526-.164a.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/></svg>',
         // Security alert shield (Octicon shield) — not wired to any
         // control yet; kept available for a future "security notice" or
         // "verified/protected" indicator.
@@ -15658,7 +15673,9 @@ opts.jsonPayload + '\n' +
         // compensate for that; it's removed below since it's no longer
         // needed and would double up on an already-correct color.
         var logo = document.createElement('span');
-        logo.innerHTML = ICONS.sparkleAlt;
+        // Primary icon — sparkleNova. sparkle/sparkleAlt stay defined
+        // above as alternates for future use, not removed.
+        logo.innerHTML = ICONS.sparkleNova;
         logo.className = 'ai-assistant-panel-logo';
         logo.setAttribute('aria-hidden', 'true');
 
