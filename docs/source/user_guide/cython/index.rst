@@ -70,12 +70,12 @@ generation of low-level Cython packages and modules for immediate use and testin
 Architecture
 ------------
 
-.. include:: _includes/diagrams/architecture_overview.rst
+.. include:: _diagrams/architecture_overview.rst
 
 Public API flow
 ---------------
 
-.. include:: _includes/diagrams/public_api_flow.rst
+.. include:: _diagrams/public_api_flow.rst
 
 Build workflows
 ---------------
@@ -83,12 +83,12 @@ Build workflows
 Single-module build
 ~~~~~~~~~~~~~~~~~~~
 
-.. include:: _includes/diagrams/single_module_build_flow.rst
+.. include:: _diagrams/single_module_build_flow.rst
 
 Package build
 ~~~~~~~~~~~~~
 
-.. include:: _includes/diagrams/package_build_flow.rst
+.. include:: _diagrams/package_build_flow.rst
 
 Lifecycle and state
 -------------------
@@ -96,32 +96,32 @@ Lifecycle and state
 Cache lifecycle
 ~~~~~~~~~~~~~~~
 
-.. include:: _includes/diagrams/cache_lifecycle_state.rst
+.. include:: _diagrams/cache_lifecycle_state.rst
 
 Lock lifecycle
 ~~~~~~~~~~~~~~
 
-.. include:: _includes/diagrams/lock_lifecycle_state.rst
+.. include:: _diagrams/lock_lifecycle_state.rst
 
 Security validation
 -------------------
 
-.. include:: _includes/diagrams/security_validation_flow.rst
+.. include:: _diagrams/security_validation_flow.rst
 
 Templates
 ---------
 
-.. include:: _includes/diagrams/templates_flow.rst
+.. include:: _diagrams/templates_flow.rst
 
 Garbage collection and pins
 ---------------------------
 
-.. include:: _includes/diagrams/gc_and_pins_flow.rst
+.. include:: _diagrams/gc_and_pins_flow.rst
 
 Failure and recovery
 --------------------
 
-.. include:: _includes/diagrams/failure_recovery_state.rst
+.. include:: _diagrams/failure_recovery_state.rst
 
 Further reading
 ---------------
@@ -132,13 +132,33 @@ Further reading
     :padding: 2
     :shadow: none
 
-    **further reading**
+    **architecture**
     ^^^
     .. toctree::
       :maxdepth: 2
 
       architecture
+
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
+
+    **workflows**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
+
       workflows
+
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
+
+    **lifecycle**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
+
       lifecycle
 
 

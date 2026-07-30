@@ -9,7 +9,7 @@ This package contains reusable reStructuredText Mermaid diagrams for the
 - `architecture.rst`: architecture-focused page
 - `workflows.rst`: build and recovery workflows
 - `lifecycle.rst`: cache, lock, GC, and pin lifecycle
-- `_includes/diagrams/*.rst`: one reusable diagram per file
+- `_diagrams/*.rst`: one reusable diagram per file
 - `conf_snippet.py`: Sphinx extension configuration example
 
 ## Installation
@@ -22,7 +22,7 @@ This package contains reusable reStructuredText Mermaid diagrams for the
 ## Include pattern
 
 ```rst
-.. include:: _includes/diagrams/architecture_overview.rst
+.. include:: _diagrams/architecture_overview.rst
 ```
 
 The include fragments intentionally contain no title and no `:orphan:` marker.
