@@ -24,8 +24,36 @@
 .. _corpus-index:
 
 ======================================================================
-Corpus (Remarks Citation) Generation
+Corpus User Guide
 ======================================================================
+
+.. grid:: 1 1 1 1
+
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
+
+    **diagram**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
+
+      corpus_user_guide_schema
+
+  .. grid-item-card::
+    :padding: 2
+    :shadow: none
+
+    **diagram**
+    ^^^
+    .. toctree::
+      :maxdepth: 2
+
+      diagram_include_catalog
+
+
+Corpus (Remarks Citation) Generation
+------------------------------------
 
 .. image:: /_static/user_guide/scikitplot_corpus_architecture.svg
     :align: center

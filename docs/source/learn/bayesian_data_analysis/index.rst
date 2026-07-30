@@ -553,7 +553,7 @@ Nonlinear & Nonparametric
    * scikit-learn mixtures: https://scikit-learn.org/stable/modules/mixture.html
    * Gelman, Carlin, Stern, Dunson, Vehtari & Rubin, *Bayesian Data Analysis* (3rd ed.):
      http://www.stat.columbia.edu/~gelman/book/
-   * Terminology reference: :ref:`terminology-index`
+   * :ref:`Terminology reference <terminology-index>`
 
 .. toctree::
    :hidden:
