@@ -423,7 +423,7 @@ class ModelPlotPy:
     True
     """
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
         feature_data: Sequence[Any] | None = None,
         label_data: Sequence[Any] | None = None,
