@@ -205,7 +205,7 @@ def display_colors(
     logger.debug("display_colors: done")
 
 
-def closest_color_name(
+def closest_color_name(  # ruff: ignore[too-many-positional-arguments]
     hex_color="#000000",
     top_n=1,
     use_lab=False,

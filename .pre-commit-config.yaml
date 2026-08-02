@@ -100,6 +100,7 @@ repos:
             third_party/.*|\
             scikitplot/cexternals/annoy/ann.png|\
             scikitplot/cexternals/_annoy/src/annoymodule.cc|\
+            scikitplot/random/_kiss/_backup/kiss_random.cpp\
           )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.

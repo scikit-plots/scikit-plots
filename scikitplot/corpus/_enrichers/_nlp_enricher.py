@@ -754,15 +754,16 @@ class NLPEnricher:
                 # Try NLTK first (richer lists)
                 if lang in NLTK_STOPWORD_LANGUAGES:
                     try:
-                        import nltk  # type: ignore[import]  # noqa: PLC0415
+                        import nltk  # type: ignore[import]  # noqa: PLC0415  # ruff: ignore[unused-import]
                         from nltk.corpus import (  # type: ignore[import]  # noqa: PLC0415
                             stopwords as sw_corpus,
                         )
 
-                        try:
-                            nltk.data.find("corpora/stopwords")
-                        except LookupError:
-                            nltk.download("stopwords", quiet=True)
+                        from .._resources import (  # noqa: PLC0415
+                            ensure_nltk_resource,
+                        )
+
+                        ensure_nltk_resource("corpora/stopwords", "stopwords")
                         result |= set(sw_corpus.words(lang))
                         continue
                     except (ImportError, OSError, LookupError):
@@ -1242,7 +1243,7 @@ class NLPEnricher:
             return self._nltk_lemmatizer
 
         try:
-            import nltk  # type: ignore[import]  # noqa: PLC0415
+            import nltk  # type: ignore[import]  # noqa: PLC0415  # ruff: ignore[unused-import]
             from nltk.stem import (  # type: ignore[import]  # noqa: PLC0415
                 WordNetLemmatizer,
             )
@@ -1251,11 +1252,10 @@ class NLPEnricher:
                 "NLTK is required for lemmatizer='nltk'.  Install: pip install nltk"
             ) from exc
 
-        try:
-            nltk.data.find("corpora/wordnet")
-        except LookupError:
-            nltk.download("wordnet", quiet=True)
-            nltk.download("omw-1.4", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("corpora/wordnet", "wordnet")
+        ensure_nltk_resource("corpora/omw-1.4", "omw-1.4")
 
         self._nltk_lemmatizer = WordNetLemmatizer()
         return self._nltk_lemmatizer

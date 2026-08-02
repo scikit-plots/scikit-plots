@@ -13,7 +13,8 @@ Multi-backend text and multimodal embedding engine with file-based caching.
 Produces dense vector representations of text chunks. The embedding step
 is optional in the pipeline (``embed=False`` skips it entirely) and is
 triggered per-document or in batches. Results are cached to ``.npy``
-files keyed by a SHA-256 hash of ``(model_name, input_path, mtime, n_texts)``
+files keyed by a content-addressed SHA-256 hash of the model identity,
+backend/dtype/normalisation, and the full input text (see ``_make_cache_key``)
 so that re-running the pipeline on an unchanged corpus is O(1).
 
 Original issues fixed (from remarx ``embeddings.py``):
@@ -30,8 +31,9 @@ Original issues fixed (from remarx ``embeddings.py``):
 5. **Only sentence-transformers** — supports ``sentence_transformers``,
    ``openai`` (text-embedding-3-small/large), and any ``Callable``
    accepting ``list[str] → np.ndarray``.
-6. **Cache key ignores model name change** — cache key now includes the
-   model name so swapping models invalidates stale caches.
+6. **Content-addressed cache key** — the key hashes the full input text
+   plus model/backend/dtype/normalisation, so any change to text, model,
+   revision, or output config invalidates stale caches (CORPUS-CACHE-001).
 7. **No shape/dtype validation on cache load** — loaded arrays are
    validated for shape, dtype, and row count before use.
 
@@ -63,6 +65,8 @@ from typing import (  # noqa: F401
 
 import numpy as np
 import numpy.typing as npt
+
+from .._atomic import atomic_write_path
 
 logger = logging.getLogger(__name__)
 
@@ -96,43 +100,83 @@ _FLOAT_DTYPES = (np.float16, np.float32, np.float64)
 # ---------------------------------------------------------------------------
 
 
+_CACHE_KEY_SCHEMA = "v2"  # bump to invalidate all caches when key semantics change
+
+
 def _make_cache_key(
     model_name: str,
-    input_path: str,
-    source_mtime: float,
-    n_texts: int,
+    texts: list[str],
+    *,
+    normalize: bool,
+    dtype: str,
+    backend: str = "",
+    model_revision: str = "",
 ) -> str:
     """
-    Compute a deterministic 24-character hex cache key.
+    Compute a content-addressed cache key.
 
-    The key encodes ``(model_name, input_path, source_mtime, n_texts)``
-    so that any change to the model, source file path, modification time,
-    or document count invalidates the cached embeddings.
+    A cache hit under this key is semantically equivalent to recomputation:
+    the key is a SHA-256 digest over everything that affects the output
+    embeddings — the embedding model (``model_name`` + ``model_revision``),
+    the ``backend``, the output ``dtype`` and ``normalize`` flag, and the
+    **full text content** of every input (length-prefixed so that, e.g.,
+    ``["ab", "c"]`` and ``["a", "bc"]`` never collide).
+
+    Source path and modification time are deliberately *not* part of the key.
+    They are a proxy for content that fails when the text changes without
+    changing path/mtime/count — the CORPUS-CACHE-001 stale-hit defect. Because
+    the key is content-addressed, identical texts embedded from different paths
+    correctly share one cache entry.
 
     Parameters
     ----------
     model_name : str
         Name or identifier of the embedding model.
-    input_path : str
-        Absolute path to the source file that produced the texts.
-    source_mtime : float
-        Modification time of the source file (``pathlib.Path.stat().st_mtime``).
-    n_texts : int
-        Number of texts that were embedded.
+    texts : list of str
+        The exact texts that will be embedded.
+    normalize : bool
+        Whether embeddings are L2-normalised (affects output values).
+    dtype : str
+        Canonical output dtype name (e.g. ``"float32"``).
+    backend : str, optional
+        Embedding backend identifier (e.g. ``"sentence_transformers"``).
+    model_revision : str, optional
+        Model revision/version pin, when known. Empty when unpinned.
 
     Returns
     -------
     str
-        24-character lowercase hex string.
+        32-character lowercase hex digest (128 bits).
 
     Examples
     --------
-    >>> k = _make_cache_key("model-v1", "/data/file.txt", 1700000000.0, 512)
-    >>> len(k)
-    24
+    >>> a = _make_cache_key("m", ["hello"], normalize=True, dtype="float32")
+    >>> b = _make_cache_key("m", ["world"], normalize=True, dtype="float32")
+    >>> a != b  # different content -> different key
+    True
+    >>> len(a)
+    32
     """
-    raw = f"{model_name}|{input_path}|{source_mtime:.6f}|{n_texts}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+    h = hashlib.sha256()
+
+    def _field(value: str) -> None:
+        b = value.encode("utf-8")
+        # length-prefix each field so field boundaries are unambiguous
+        h.update(str(len(b)).encode("ascii"))
+        h.update(b"\x1f")
+        h.update(b)
+        h.update(b"\x1e")
+
+    _field(_CACHE_KEY_SCHEMA)
+    _field(model_name)
+    _field(model_revision)
+    _field(backend)
+    _field("1" if normalize else "0")
+    _field(dtype)
+    _field(str(len(texts)))
+    for t in texts:
+        _field(t)
+    return h.hexdigest()[:32]
 
 
 def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
@@ -143,7 +187,7 @@ def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
     cache_dir : pathlib.Path
         Directory holding cached embedding arrays.
     key : str
-        24-character hex cache key from :func:`_make_cache_key`.
+        32-character hex cache key from :func:`_make_cache_key`.
 
     Returns
     -------
@@ -167,16 +211,14 @@ def _save_to_cache(
     path : pathlib.Path
         Target file path. Parent directories are created if absent.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # Write to a temp file first, then rename atomically to avoid
-    # leaving a corrupt partial file if the process is interrupted.
-    tmp_path = path.with_suffix(".tmp.npy")
-    try:
-        np.save(str(tmp_path), embeddings, allow_pickle=False)
-        tmp_path.replace(path)
-    except Exception:
-        tmp_path.unlink(missing_ok=True)
-        raise
+    # Publish via the shared atomic primitive: unique staging temp + fsync +
+    # atomic replace, so concurrent writers of the same content-addressed key
+    # never clobber each other (CORPUS-TMP-001).
+    atomic_write_path(
+        path,
+        lambda p: np.save(str(p), embeddings, allow_pickle=False),
+        suffix=".npy",
+    )
     logger.debug("EmbeddingEngine: cached %d embeddings to %s.", len(embeddings), path)
 
 
@@ -366,7 +408,7 @@ class EmbeddingEngine:
 
     Produces a 2-D ``float32`` numpy array of shape ``(n_texts, dim)``
     for a list of input strings. Embeddings are cached to ``.npy`` files
-    keyed by ``(model_name, input_path, mtime, n_texts)`` so that
+    keyed by a content-addressed hash of the texts and model params so that
     unchanged corpora are served from disk in O(1).
 
     Parameters
@@ -492,6 +534,7 @@ class EmbeddingEngine:
     dtype: Any = field(default=np.float32)
     show_progress_bar: bool = field(default=False)
     device: str | None = field(default=None)
+    model_revision: str = field(default="")
 
     # Internal: lazily-initialised embed function + lock
     _embed_fn: EmbedFn | None = field(default=None, init=False, repr=False)
@@ -615,8 +658,9 @@ class EmbeddingEngine:
         texts : list of str
             Text strings to embed.
         input_path : pathlib.Path
-            Path to the source file that generated ``texts``. Used to
-            build the cache key (path + mtime + len(texts)).
+            Path to the source file that generated ``texts``. Advisory only
+            (diagnostics / provenance): the cache key is content-addressed
+            over ``texts`` and model parameters, not the path or its mtime.
 
         Returns
         -------
@@ -646,23 +690,25 @@ class EmbeddingEngine:
         if not self.enable_cache:
             return self.embed(texts), False
 
-        # Build cache key
-        try:
-            mtime = input_path.stat().st_mtime
-        except OSError:
-            logger.warning(
-                "EmbeddingEngine: cannot stat %s; caching disabled for this call.",
-                input_path,
-            )
-            return self.embed(texts), False
-
+        # Content-addressed key: identity is the texts + model/backend/params,
+        # NOT the source path or mtime. ``input_path`` is advisory (diagnostics
+        # / provenance) and no longer affects cache identity, so a missing or
+        # unstattable path no longer disables caching.
         key = _make_cache_key(
-            model_name=self.model_name,
-            input_path=str(input_path.resolve()),
-            source_mtime=mtime,
-            n_texts=len(texts),
+            self.model_name,
+            texts,
+            normalize=self.normalize,
+            dtype=np.dtype(self.dtype).name,
+            backend=self.backend,
+            model_revision=self.model_revision,
         )
         path = _cache_path(self.cache_dir, key)
+        logger.debug(
+            "EmbeddingEngine: content-addressed cache key for %s (%d texts) -> %s",
+            input_path,
+            len(texts),
+            path.name,
+        )
 
         # Try cache load
         cached = _load_from_cache(path, expected_n=len(texts))

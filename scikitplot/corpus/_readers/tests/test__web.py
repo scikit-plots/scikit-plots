@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/tests/test__web.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Tests for scikitplot.corpus._readers._web
 =========================================
@@ -57,6 +64,7 @@ from scikitplot.corpus._readers._web import (   # noqa: E402
     YouTubeReader,
     _extract_youtube_id,
     _section_type_for_tag,
+    validate_url_safety,
 )
 from scikitplot.corpus._schema import (        # noqa: E402
     SectionType,
@@ -595,3 +603,51 @@ class TestSectionTypeForTag:
 
     def test_li_is_text(self) -> None:
         assert _section_type_for_tag("li") == SectionType.TEXT.value
+
+
+class TestWebReaderSsrfConsolidation:
+    """CORPUS-NET-003: validate_url_safety delegates to the single shared gate.
+
+    Verifies WebReader inherits the fail-closed DNS behaviour and full IP-range
+    coverage of ``_url_handler._validate_url_security`` (its old private copy was
+    fail-open on DNS error and missed reserved/multicast/scheme).
+    """
+
+    @staticmethod
+    def _set_dns(monkeypatch, mapping):
+        import socket
+
+        from scikitplot.corpus import _url_handler as U
+
+        def fake(host, *a, **k):
+            val = mapping.get(host)
+            if val in (None, "FAIL"):
+                raise socket.gaierror(-2, "unresolved")
+            return [(2, 1, 6, "", (ip, 0)) for ip in val]
+
+        monkeypatch.setattr(U.socket, "getaddrinfo", fake)
+
+    def test_dns_error_now_denies(self, monkeypatch) -> None:
+        # The old duplicate skipped the check on gaierror (fail-open).
+        self._set_dns(monkeypatch, {"broken.example": "FAIL"})
+        with pytest.raises(ValueError):
+            validate_url_safety("http://broken.example/x")
+
+    @pytest.mark.parametrize("ip", ["240.0.0.1", "224.0.0.1", "127.0.0.1",
+                                    "10.0.0.1", "169.254.169.254"])
+    def test_blocked_ranges(self, monkeypatch, ip) -> None:
+        self._set_dns(monkeypatch, {"h.example": [ip]})
+        with pytest.raises(ValueError):
+            validate_url_safety("http://h.example/x")
+
+    def test_non_http_scheme_rejected(self) -> None:
+        with pytest.raises(ValueError):
+            validate_url_safety("ftp://example.com/x")
+
+    def test_public_allowed(self, monkeypatch) -> None:
+        self._set_dns(monkeypatch, {"pub.example": ["93.184.216.34"]})
+        validate_url_safety("http://pub.example/x")  # must not raise
+
+    def test_allow_private_opt_out_preserved(self, monkeypatch) -> None:
+        self._set_dns(monkeypatch, {"internal.example": ["10.0.0.5"]})
+        validate_url_safety("http://internal.example/x", allow_private_networks=True)

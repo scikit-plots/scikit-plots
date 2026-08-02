@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path  # noqa: F401
 from typing import Optional  # noqa: F401
 
+from .._atomic import atomic_write_path
 from ._base import BaseDownloader, DownloadResult
 
 logger = logging.getLogger(__name__)
@@ -279,6 +280,10 @@ class GitHubDownloader(BaseDownloader):
         """
         import requests  # noqa: PLC0415
 
+        from .._url_handler import (  # noqa: PLC0415
+            _get_with_validated_redirects,
+        )
+
         raw_url = self.resolve_raw_url()
 
         if self.block_private_ips:
@@ -302,11 +307,13 @@ class GitHubDownloader(BaseDownloader):
             session.headers.update(req_headers)
             session.verify = self.verify_ssl
 
-            response = session.get(
+            response = _get_with_validated_redirects(
+                session,
                 raw_url,
                 stream=True,
                 timeout=self.timeout,
-                allow_redirects=True,
+                max_redirects=self.max_redirects,
+                validate=self.block_private_ips,
             )
             response.raise_for_status()
 
@@ -320,19 +327,25 @@ class GitHubDownloader(BaseDownloader):
             dest_path = dest / filename
 
             downloaded = 0
-            with open(dest_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        downloaded += len(chunk)
-                        if downloaded > self.max_bytes:
-                            f.close()
-                            dest_path.unlink(missing_ok=True)
-                            raise ValueError(
-                                f"GitHubDownloader: download exceeded "
-                                f"max_bytes={self.max_bytes} "
-                                f"({downloaded} bytes so far) for {raw_url!r}."
-                            )
-                        f.write(chunk)
+
+            def _stream_to(tmp):
+                # Unique staging temp + atomic publish to the deterministic
+                # dest_path: concurrent same-URL downloads cannot corrupt one
+                # file (CORPUS-TMP-001).
+                nonlocal downloaded
+                with open(tmp, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            downloaded += len(chunk)
+                            if downloaded > self.max_bytes:
+                                raise ValueError(
+                                    f"GitHubDownloader: download exceeded "
+                                    f"max_bytes={self.max_bytes} "
+                                    f"({downloaded} bytes so far) for {raw_url!r}."
+                                )
+                            f.write(chunk)
+
+            atomic_write_path(dest_path, _stream_to, suffix=".part")
 
         logger.info(
             "GitHubDownloader: %s → %s (%d bytes, ext=%s)",

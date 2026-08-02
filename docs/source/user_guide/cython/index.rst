@@ -71,11 +71,13 @@ Architecture
 ------------
 
 .. include:: _diagrams/architecture_overview.rst
+  :start-after: :orphan:
 
 Public API flow
 ---------------
 
 .. include:: _diagrams/public_api_flow.rst
+  :start-after: :orphan:
 
 Build workflows
 ---------------
@@ -84,11 +86,13 @@ Single-module build
 ~~~~~~~~~~~~~~~~~~~
 
 .. include:: _diagrams/single_module_build_flow.rst
+  :start-after: :orphan:
 
 Package build
 ~~~~~~~~~~~~~
 
 .. include:: _diagrams/package_build_flow.rst
+  :start-after: :orphan:
 
 Lifecycle and state
 -------------------
@@ -97,31 +101,37 @@ Cache lifecycle
 ~~~~~~~~~~~~~~~
 
 .. include:: _diagrams/cache_lifecycle_state.rst
+  :start-after: :orphan:
 
 Lock lifecycle
 ~~~~~~~~~~~~~~
 
 .. include:: _diagrams/lock_lifecycle_state.rst
+  :start-after: :orphan:
 
 Security validation
 -------------------
 
 .. include:: _diagrams/security_validation_flow.rst
+  :start-after: :orphan:
 
 Templates
 ---------
 
 .. include:: _diagrams/templates_flow.rst
+  :start-after: :orphan:
 
 Garbage collection and pins
 ---------------------------
 
 .. include:: _diagrams/gc_and_pins_flow.rst
+  :start-after: :orphan:
 
 Failure and recovery
 --------------------
 
 .. include:: _diagrams/failure_recovery_state.rst
+  :start-after: :orphan:
 
 Further reading
 ---------------

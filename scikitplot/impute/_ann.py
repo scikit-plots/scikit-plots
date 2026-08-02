@@ -1257,7 +1257,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
         return weights
 
-    def _impute_from_neighbors(
+    def _impute_from_neighbors(  # ruff: ignore[too-many-positional-arguments]
         self,
         row_idx: int,
         row: np.ndarray,
@@ -1319,7 +1319,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     # ------------------------------------------------------------------ #
     # Per-row backends (Annoy / Voyager)
     # ------------------------------------------------------------------ #
-    def _process_single_row_annoy(  # noqa: PLR0912, PLR0913
+    def _process_single_row_annoy(  # noqa: PLR0912, PLR0913  # ruff: ignore[too-many-positional-arguments]
         self,
         i: int,
         row: np.ndarray,
@@ -1428,7 +1428,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         )
         return i, new_row
 
-    def _process_single_row_voyager(  # noqa: PLR0912
+    def _process_single_row_voyager(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         i: int,
         row: np.ndarray,

@@ -143,9 +143,12 @@ from ._pipeline import *  # noqa: F403
 from ._readers import *  # noqa: F403
 from ._registry import *  # noqa: F403  # Registry
 
-# CRITICAL-01: _schema imported before _types so that if both export a name,
-# the _schema (canonical) version wins.  _types exports only the types-layer
-# symbols, many of which are deprecated and carry DeprecationWarning.
+# CORPUS-API-001: with ``from X import *`` the LAST import wins, so import
+# order alone does NOT guarantee that a canonical symbol survives when two
+# submodules export the same name. Canonical identities are therefore pinned
+# explicitly at the end of this module (see the "canonical identities" block),
+# independent of the order below. ``_types`` exports types-layer symbols, some
+# of which are deprecated and carry a DeprecationWarning.
 from ._schema import *  # noqa: F403  # Schema -- always first, zero optional dependencies
 from ._similarity import *  # noqa: F403  # --- Similarity index ---
 from ._sources import *  # noqa: F403  # Sources
@@ -175,3 +178,33 @@ __all__ += _sources.__all__
 __all__ += _storage.__all__
 __all__ += _types.__all__  # CRITICAL-01: Chunk, ChunkResult, ChunkerProtocol, …
 __all__ += _url_handler.__all__
+
+# ===========================================================================
+# CORPUS-API-001 — canonical identities and unique export manifest
+# ===========================================================================
+# The wildcard imports above are order-dependent (last import wins), which let
+# the deprecated ``_types`` aliases shadow canonical symbols at the top level.
+# Pin canonical identities explicitly here so they are independent of import
+# order, then make ``__all__`` unique (order-preserving).
+
+# ``_pipeline.PipelineResult`` is the canonical, documented result for
+# ``CorpusPipeline``. ``_types.PipelineResult`` is a deprecated alias of
+# ``LegacyPipelineResult`` (removal in 0.6.0) and must not shadow it. The legacy
+# type remains reachable as ``scikitplot.corpus.LegacyPipelineResult``.
+from ._pipeline import (  # noqa: E402,F811  # ruff: ignore[unsorted-imports, unused-import]
+    PipelineResult,
+)
+
+# OPEN DECISION (CORPUS-API-001): ``NormalizerConfig`` names two *distinct*
+# classes — the abstract base in ``_types`` and the concrete ``TextNormalizer``
+# config in ``_normalizers._text_normalizer``. The top-level name currently
+# resolves to the ``_types`` base by import order. Choosing the canonical
+# top-level binding is a maintainer policy decision and is intentionally left
+# unchanged here to avoid a silent behavioural change; both classes remain
+# reachable via their defining modules. Resolve by adding an explicit
+# ``from ._normalizers import NormalizerConfig`` (or the ``_types`` one) here
+# once the decision is made.
+
+# Order-preserving de-duplication of the aggregated manifest. Binding identity
+# is set by the imports above; this only makes the advertised manifest unique.
+__all__ = list(dict.fromkeys(__all__))

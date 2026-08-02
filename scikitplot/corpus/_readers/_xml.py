@@ -186,7 +186,9 @@ def _parse_xml_lxml(content: bytes) -> Any:
             "lxml is required for XMLReader (primary parser)."
             " Install it with:\n  pip install lxml"
         ) from exc
-    return etree.fromstring(content)
+    from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
+
+    return etree.fromstring(content, parser=hardened_lxml_parser())
 
 
 def _parse_xml_stdlib(content: bytes) -> Any:
@@ -203,9 +205,9 @@ def _parse_xml_stdlib(content: bytes) -> Any:
     xml.etree.ElementTree.Element
         Document root element.
     """
-    import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
+    from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
 
-    return ET.fromstring(content)  # noqa: S314
+    return parse_stdlib_secure(content)
 
 
 def _parse_xml(content: bytes) -> Any:

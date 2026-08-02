@@ -644,7 +644,9 @@ def _probe_with_requests(url: str, *, timeout: int) -> str:
 
         # Try HEAD first — no body, minimal bandwidth
         try:
-            resp = session.head(url, allow_redirects=True, timeout=timeout)
+            resp = _get_with_validated_redirects(
+                session, url, method="head", timeout=timeout
+            )
             if resp.status_code not in (405, 501):
                 ct = resp.headers.get("Content-Type", "")
                 return ct.split(";")[0].strip().lower()
@@ -660,7 +662,9 @@ def _probe_with_requests(url: str, *, timeout: int) -> str:
 
         # Fallback: GET with stream — read headers only, close immediately
         try:
-            resp = session.get(url, stream=True, allow_redirects=True, timeout=timeout)
+            resp = _get_with_validated_redirects(
+                session, url, stream=True, timeout=timeout
+            )
             resp.close()
             ct = resp.headers.get("Content-Type", "")
             return ct.split(";")[0].strip().lower()
@@ -876,6 +880,22 @@ def _resolve_github_blob(url: str) -> str:
 # ===========================================================================
 
 
+def _is_blocked_ip(ip_str: str) -> bool:
+    """Whether an IP-literal string is in a blocked (non-public) range."""
+    try:
+        addr = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+    return (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_reserved
+        or addr.is_multicast
+        or addr.is_unspecified
+    )
+
+
 def _is_private_ip(hostname: str) -> bool:
     """
     Check if a hostname resolves to a private/loopback/link-local IP.
@@ -893,49 +913,103 @@ def _is_private_ip(hostname: str) -> bool:
 
     Notes
     -----
-    This is the SSRF prevention gate. It is called before every HTTP
-    request to block attempts to reach internal services via redirects.
+    This is a *boolean* helper and cannot express "could not verify".
+    The secure gate is :func:`_validate_url_security`, which resolves once and
+    **fails closed** on resolution errors (CORPUS-NET-002); prefer it over this
+    predicate for security decisions.
     """
     try:
         # getaddrinfo returns [(family, type, proto, canonname, sockaddr), ...]
         results = socket.getaddrinfo(hostname, None)
     except (socket.gaierror, OSError):
-        # DNS resolution failed — allow the caller to handle the error
+        # DNS resolution failed — boolean cannot fail closed; callers must use
+        # _validate_url_security for a fail-closed security decision.
         return False
 
-    for _family, _type, _proto, _canonname, sockaddr in results:
-        ip_str = sockaddr[0]
+    return any(_is_blocked_ip(sockaddr[0]) for *_ignore, sockaddr in results)
+
+
+def _resolve_and_validate(
+    hostname: str,
+    *,
+    allow_private: bool = False,
+) -> tuple[str, ...]:
+    """Resolve *hostname* once and validate **every** resolved address.
+
+    This is the fail-closed SSRF resolution primitive (CORPUS-NET-002): the
+    policy decision covers all A/AAAA records, and resolution failures are
+    **denied** rather than allowed. Returns the resolved IP-literal strings so a
+    transport can pin the connection to a validated address.
+
+    Parameters
+    ----------
+    hostname : str
+        Hostname or IP-literal to resolve and check.
+    allow_private : bool, optional
+        When ``True``, skip the private/reserved-range check (the caller has
+        explicitly opted into internal networks). Resolution failure is still
+        an error. Default ``False``.
+
+    Returns
+    -------
+    tuple of str
+        The resolved (and, unless *allow_private*, policy-approved) addresses.
+
+    Raises
+    ------
+    ValueError
+        If the host cannot be resolved (fail-closed), resolves to no address,
+        or resolves to any blocked address when ``allow_private`` is ``False``.
+    """
+    # IP literals need no DNS.
+    try:
+        ipaddress.ip_address(hostname)
+        addrs: list[str] = [hostname]
+    except ValueError:
         try:
-            addr = ipaddress.ip_address(ip_str)
-        except ValueError:
-            continue
-        if (
-            addr.is_private
-            or addr.is_loopback
-            or addr.is_link_local
-            or addr.is_reserved
-            or addr.is_multicast
-        ):
-            return True
+            results = socket.getaddrinfo(hostname, None)
+        except (socket.gaierror, OSError) as exc:
+            raise ValueError(
+                f"cannot resolve host {hostname!r}; refusing to connect "
+                f"(SSRF fail-closed)."
+            ) from exc
+        addrs = [sockaddr[0] for *_ignore, sockaddr in results]
+        if not addrs:
+            raise ValueError(
+                f"host {hostname!r} resolved to no addresses (SSRF fail-closed)."
+            ) from None
 
-    return False
+    if not allow_private:
+        for ip_str in addrs:
+            if _is_blocked_ip(ip_str):
+                raise ValueError(
+                    f"host {hostname!r} resolves to blocked address {ip_str} "
+                    f"(private/loopback/link-local/reserved). Refusing to "
+                    f"connect (SSRF prevention)."
+                )
+    return tuple(addrs)
 
 
-def _validate_url_security(url: str) -> None:
+def _validate_url_security(url: str, *, allow_private: bool = False) -> None:
     """
     Validate that a URL does not target a private/internal network.
+
+    Resolves the host **once** and validates every resolved address, failing
+    **closed** if the host cannot be resolved (CORPUS-NET-002).
 
     Parameters
     ----------
     url : str
         URL to validate.
+    allow_private : bool, optional
+        Permit private/reserved destinations (still fails closed on resolution
+        error). Default ``False``.
 
     Raises
     ------
     ValueError
-        If the URL targets a private, loopback, or link-local address.
-    ValueError
-        If the URL scheme is not ``http`` or ``https``.
+        If the scheme is not ``http``/``https``, the URL has no hostname, the
+        host cannot be resolved, or any resolved address is private/internal.
     """
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in ("http", "https"):
@@ -946,11 +1020,118 @@ def _validate_url_security(url: str) -> None:
     hostname = parsed.hostname
     if hostname is None:
         raise ValueError(f"_validate_url_security: no hostname in URL {url!r}.")
-    if _is_private_ip(hostname):
+    try:
+        _resolve_and_validate(hostname, allow_private=allow_private)
+    except ValueError as exc:
         raise ValueError(
-            f"_validate_url_security: URL {url!r} resolves to a private "
-            f"or internal IP address. Refusing to connect (SSRF prevention)."
+            f"_validate_url_security: URL {url!r} rejected — {exc}"
+        ) from exc
+
+
+# ===========================================================================
+# Secure redirect-following transport (CORPUS-NET-001)
+# ===========================================================================
+
+#: Default cap on HTTP redirects followed by :func:`_get_with_validated_redirects`.
+_DEFAULT_MAX_REDIRECTS = 5
+#: HTTP status codes that carry a ``Location`` redirect.
+_REDIRECT_STATUS = frozenset({301, 302, 303, 307, 308})
+
+
+def _get_with_validated_redirects(
+    session: Any,
+    url: str,
+    *,
+    timeout: float,
+    max_redirects: int = _DEFAULT_MAX_REDIRECTS,
+    stream: bool = False,
+    headers: dict | None = None,
+    method: str = "get",
+    validate: Any = True,
+) -> Any:
+    """Issue an HTTP GET/HEAD that follows redirects with per-hop SSRF checks.
+
+    Automatic redirect following is **disabled** (``allow_redirects=False``).
+    The initial URL and every redirect ``Location`` are validated *before* the
+    connection to that hop is opened, so a public URL can never be transparently
+    redirected to a private, loopback, link-local, or cloud-metadata address
+    (CORPUS-NET-001). Without this, ``requests`` connects to each redirect
+    target before any final-URL check runs.
+
+    Parameters
+    ----------
+    session : requests.Session or the ``requests`` module
+        Any object exposing ``.get`` / ``.head``.
+    url : str
+        Initial URL to fetch.
+    timeout : float
+        Per-request timeout in seconds.
+    max_redirects : int, optional
+        Maximum number of redirects to follow before raising. Default 5.
+    stream : bool, optional
+        Passed through for ``method="get"``.
+    headers : dict or None, optional
+        Extra request headers.
+    method : {"get", "head"}, optional
+        HTTP method. Default ``"get"``.
+    validate : bool or callable, optional
+        ``True`` (default) validates each hop with
+        :func:`_validate_url_security`. A callable is invoked as
+        ``validate(hop_url)`` (e.g. a policy allowing private networks).
+        ``False`` skips validation (only when the caller has explicitly
+        disabled SSRF protection).
+
+    Returns
+    -------
+    requests.Response
+        The final, non-redirect response.
+
+    Raises
+    ------
+    ValueError
+        On an SSRF violation at any hop, or when *max_redirects* is exceeded.
+    """
+    current = url
+    hops = 0
+    while True:
+        if validate is True:
+            _validate_url_security(current)
+        elif callable(validate):
+            validate(current)
+        # validate is False -> caller explicitly opted out
+
+        fn = session.head if method == "head" else session.get
+        kwargs: dict[str, Any] = {"timeout": timeout, "allow_redirects": False}
+        if method != "head":
+            kwargs["stream"] = stream
+        if headers is not None:
+            kwargs["headers"] = headers
+        resp = fn(current, **kwargs)
+
+        location = (
+            resp.headers.get("Location")
+            if resp.status_code in _REDIRECT_STATUS
+            else None
         )
+        if not location:
+            return resp
+
+        hops += 1
+        if hops > max_redirects:
+            try:  # ruff: ignore[suppressible-exception]
+                resp.close()
+            except Exception:  # noqa: BLE001 - best-effort cleanup
+                pass
+            raise ValueError(
+                f"_get_with_validated_redirects: exceeded max_redirects="
+                f"{max_redirects} while following {url!r}."
+            )
+        next_url = urllib.parse.urljoin(current, location)
+        try:  # ruff: ignore[suppressible-exception]
+            resp.close()
+        except Exception:  # noqa: BLE001 - best-effort cleanup
+            pass
+        current = next_url
 
 
 # ===========================================================================
@@ -1516,17 +1697,18 @@ def _download_with_requests(
         session.max_redirects = max_redirects
         session.headers["User-Agent"] = _USER_AGENT
 
-        response = session.get(
+        # Redirects are followed manually with per-hop SSRF validation, so a
+        # public URL cannot be redirected to an internal address before the
+        # check runs (CORPUS-NET-001).
+        response = _get_with_validated_redirects(
+            session,
             url,
             stream=True,
             timeout=timeout,
-            allow_redirects=True,
+            max_redirects=max_redirects,
+            validate=not skip_ssrf_check,
         )
         response.raise_for_status()
-
-        # SSRF check on final URL after redirects
-        if not skip_ssrf_check and response.url != url:
-            _validate_url_security(response.url)
 
         # Check Content-Length if available
         content_length = response.headers.get("Content-Length")

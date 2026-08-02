@@ -453,7 +453,7 @@ def _split_nltk(
         If the punkt model is absent and automatic download fails.
     """
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.tokenize import (  # type: ignore[import-untyped]  # noqa: PLC0415
             sent_tokenize,
         )
@@ -476,8 +476,9 @@ def _split_nltk(
     try:
         return sent_tokenize(text, language=resolved_lang)
     except LookupError:
-        logger.info("NLTK punkt model missing — downloading 'punkt_tab'.")
-        nltk.download("punkt_tab", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab")
         return sent_tokenize(text, language=resolved_lang)
 
 

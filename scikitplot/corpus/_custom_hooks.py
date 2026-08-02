@@ -1039,7 +1039,7 @@ class HookableCorpusPipeline:
         result = pipeline.run(Path("corpus.pdf"))
     """  # noqa: D205
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
         hooks: PipelineHooks | None = None,
         chunker: Any | None = None,

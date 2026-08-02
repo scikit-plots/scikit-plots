@@ -17,7 +17,7 @@ import os
 import sys
 import pytest
 
-import h5py
+h5py = pytest.importorskip("h5py")
 try:
     from urllib import urlretrieve
 except ImportError:

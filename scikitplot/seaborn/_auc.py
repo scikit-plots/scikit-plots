@@ -203,7 +203,7 @@ class _AucPlotter(VectorPlotter):
         # TODO see above points about where this should go
         return bool({"x", "y"} & set(self.variables))
 
-    def _add_legend(
+    def _add_legend(  # ruff: ignore[too-many-positional-arguments]
         self,
         ax_obj,
         artist,
@@ -243,7 +243,7 @@ class _AucPlotter(VectorPlotter):
                 **legend_kws,
             )
 
-    def _artist_kws(
+    def _artist_kws(  # ruff: ignore[too-many-positional-arguments]
         self,
         kws: dict,
         # *,
@@ -827,7 +827,7 @@ class _AucPlotter(VectorPlotter):
             )
             return None, None, None
 
-    def _plot_pr(
+    def _plot_pr(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_score,
@@ -936,7 +936,7 @@ class _AucPlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_roc(
+    def _plot_roc(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_score,
@@ -1004,7 +1004,7 @@ class _AucPlotter(VectorPlotter):
     # -------------------------
     # AUC plotting
     # -------------------------
-    def plot_aucplot(  # noqa: PLR0912
+    def plot_aucplot(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         kind: Literal["pr", "roc"] | None = None,
         fill=None,

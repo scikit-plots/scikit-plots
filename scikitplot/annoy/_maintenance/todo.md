@@ -166,3 +166,7 @@ Options:
 
 ## Completed Tasks Archive
 (none yet)
+
+## Deferred (see _maintenance/DEFERRED_FUTURE_WORK.md)
+- [ ] (A) Multiprecision backend (boost/MPFR) -> float256/512 usable dtypes.
+- [ ] (B) Widened public I/O bridge (>float64 through add_item/get_item; ABI+format change, ties §6.6).

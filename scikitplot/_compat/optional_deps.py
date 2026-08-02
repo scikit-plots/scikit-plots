@@ -38,7 +38,7 @@ from ..exceptions import ScikitplotException
 
 # --- nested module or attribute Import ---
 @lru_cache(maxsize=128)
-def nested_import(  # noqa: PLR0912
+def nested_import(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
     name: str,
     package: str | None = "scikitplot",
     default: any | None = None,
@@ -402,7 +402,7 @@ class LazyImport(ModuleType):
         # "__dict__",  # ← optional
     )
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
         name: str,
         package: str | None = "scikitplot",

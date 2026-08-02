@@ -127,48 +127,65 @@ class TestConstants:
 
 
 class TestMakeCacheKey:
-    def test_returns_24_chars(self) -> None:
-        key = _make_cache_key("model", "/path/file.txt", 1700000000.0, 100)
-        assert len(key) == 24  # noqa: PLR2004
+    def _k(self, **kw):
+        return _make_cache_key(
+            kw.get("model", "model"),
+            kw.get("texts", ["hello world"]),
+            normalize=kw.get("normalize", True),
+            dtype=kw.get("dtype", "float32"),
+            backend=kw.get("backend", ""),
+            model_revision=kw.get("rev", ""),
+        )
 
-    def test_returns_hex_string(self) -> None:
-        key = _make_cache_key("model", "/path/file.txt", 1700000000.0, 100)
+    def test_returns_32_hex_chars(self) -> None:
+        key = self._k()
+        assert len(key) == 32  # noqa: PLR2004
         assert all(c in "0123456789abcdef" for c in key)
 
     def test_deterministic_same_inputs(self) -> None:
-        k1 = _make_cache_key("model-v1", "/data/f.txt", 1700000000.0, 512)
-        k2 = _make_cache_key("model-v1", "/data/f.txt", 1700000000.0, 512)
-        assert k1 == k2
+        assert self._k() == self._k()
+
+    def test_different_text_different_key(self) -> None:
+        # CORPUS-CACHE-001: the actual content must drive the key, not a
+        # path/mtime/count proxy.
+        assert self._k(texts=["alpha"]) != self._k(texts=["beta"])
 
     def test_different_model_different_key(self) -> None:
-        k1 = _make_cache_key("model-a", "/path/f.txt", 0.0, 10)
-        k2 = _make_cache_key("model-b", "/path/f.txt", 0.0, 10)
-        assert k1 != k2
+        assert self._k(model="model-a") != self._k(model="model-b")
 
-    def test_different_path_different_key(self) -> None:
-        k1 = _make_cache_key("model", "/path/a.txt", 0.0, 10)
-        k2 = _make_cache_key("model", "/path/b.txt", 0.0, 10)
-        assert k1 != k2
+    def test_different_revision_different_key(self) -> None:
+        assert self._k(rev="r1") != self._k(rev="r2")
 
-    def test_different_mtime_different_key(self) -> None:
-        k1 = _make_cache_key("model", "/path/f.txt", 1.0, 10)
-        k2 = _make_cache_key("model", "/path/f.txt", 2.0, 10)
-        assert k1 != k2
+    def test_different_backend_different_key(self) -> None:
+        assert self._k(backend="sentence_transformers") != self._k(backend="openai")
 
-    def test_different_n_texts_different_key(self) -> None:
-        k1 = _make_cache_key("model", "/path/f.txt", 0.0, 10)
-        k2 = _make_cache_key("model", "/path/f.txt", 0.0, 20)
-        assert k1 != k2
+    def test_normalize_flag_changes_key(self) -> None:
+        assert self._k(normalize=True) != self._k(normalize=False)
 
-    def test_all_string_inputs(self) -> None:
-        # Should not raise with any string model/path combination
-        key = _make_cache_key("multilingual/model:v2", "/tmp/corpus file.txt", 1.23, 1)
-        assert isinstance(key, str)
-        assert len(key) == 24  # noqa: PLR2004
+    def test_dtype_changes_key(self) -> None:
+        assert self._k(dtype="float32") != self._k(dtype="float64")
 
-    def test_zero_mtime(self) -> None:
-        key = _make_cache_key("model", "/path", 0.0, 0)
-        assert len(key) == 24  # noqa: PLR2004
+    def test_count_changes_key(self) -> None:
+        assert self._k(texts=["a"]) != self._k(texts=["a", "b"])
+
+    def test_order_changes_key(self) -> None:
+        assert self._k(texts=["a", "b"]) != self._k(texts=["b", "a"])
+
+    def test_no_field_boundary_collision(self) -> None:
+        # Length-prefixing prevents ["ab","c"] colliding with ["a","bc"].
+        assert self._k(texts=["ab", "c"]) != self._k(texts=["a", "bc"])
+
+    def test_content_addressed_is_path_independent(self) -> None:
+        # No path input at all; identical texts -> identical key.
+        assert self._k(texts=["x", "y"]) == self._k(texts=["x", "y"])
+
+    def test_empty_texts_ok(self) -> None:
+        key = self._k(texts=[])
+        assert isinstance(key, str) and len(key) == 32  # noqa: PLR2004
+
+    def test_unicode_texts_ok(self) -> None:
+        key = self._k(texts=["café ☕", "naïve"])
+        assert isinstance(key, str) and len(key) == 32  # noqa: PLR2004
 
 
 # ===========================================================================
@@ -225,7 +242,9 @@ class TestSaveToCache:
         arr = np.zeros((2, 4), dtype=np.float32)
         path = tmp_path / "test.npy"
         _save_to_cache(arr, path)
-        assert not path.with_suffix(".tmp.npy").exists()
+        # Unique temp names (mkstemp) -> assert none of the staging files remain.
+        assert list(tmp_path.glob("*.tmp.npy")) == []
+        assert path.exists()
 
     def test_overwrites_existing_file(self, tmp_path: pathlib.Path) -> None:
         path = tmp_path / "test.npy"
@@ -671,12 +690,30 @@ class TestEmbeddingEngineEmbedWithCache:
         r2, _ = e.embed_with_cache(["one", "two"], src)
         np.testing.assert_array_equal(r1, r2)
 
-    def test_stat_failure_bypasses_cache(self, tmp_path: pathlib.Path) -> None:
+    def test_missing_path_does_not_bypass_cache(self, tmp_path: pathlib.Path) -> None:
+        # CORPUS-CACHE-001: content-addressed key -> a missing/unstattable path
+        # must NOT disable caching (it used to bypass on stat failure).
         e = _make_custom_engine(cache_dir=tmp_path)
         non_existent = tmp_path / "no_such_file.txt"
-        result, flag = e.embed_with_cache(["text"], non_existent)
-        assert flag is False
-        assert result.shape[0] == 1
+        _, miss = e.embed_with_cache(["text"], non_existent)
+        _, hit = e.embed_with_cache(["text"], non_existent)
+        assert miss is False
+        assert hit is True
+
+    def test_changed_text_is_not_a_stale_hit(self, tmp_path: pathlib.Path) -> None:
+        # The finding's reproduction: same source path + same count, changed
+        # text must MISS (never reuse stale vectors) and get its own entry.
+        e = _make_custom_engine(cache_dir=tmp_path)
+        src = tmp_path / "src.txt"
+        src.write_text("x")
+        _, cached1 = e.embed_with_cache(["original"], src)
+        _, cached2 = e.embed_with_cache(["changed!"], src)  # same path, same count
+        _, cached3 = e.embed_with_cache(["changed!"], src)  # now cached
+        assert cached1 is False  # first content -> miss
+        assert cached2 is False  # changed content -> MISS (no stale hit)
+        assert cached3 is True   # changed content got its own cache entry
+        # two distinct contents -> two distinct content-addressed cache files
+        assert len(list(tmp_path.glob("*.npy"))) == 2  # noqa: PLR2004
 
     def test_cache_write_failure_logs_warning(
         self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture

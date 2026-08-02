@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_save_load_contract.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-018 (guide 39).
+"""Regression tests for CY-018 (guide 39).
 
 Native ``save``/``load`` persist the NATIVE index only (dimension ``f``, metric,
 item vectors, built trees) and validate the structural metadata on load. Wrapper

@@ -13,15 +13,20 @@ Supports four match modes defined in
 
 - **STRICT** — exact substring / n-gram matching in ``text``
 - **KEYWORD** — stemmed/lemmatised keyword overlap (Jaccard or BM25)
-- **SEMANTIC** — dense vector cosine similarity via FAISS or Voyager
+- **SEMANTIC** — dense vector cosine similarity via a pluggable ANN backend
+  (Annoy by default; FAISS or Voyager when installed; exact brute-force floor)
 - **HYBRID** — reciprocal rank fusion of BM25 sparse + dense vector
 
 .. admonition:: Backend requirements
 
    - ``STRICT``/``KEYWORD`` — zero external deps (pure Python)
-   - ``SEMANTIC`` — requires ``numpy``; optionally ``faiss-cpu`` or
-     ``voyager`` for ANN indexing (falls back to brute-force cosine)
+   - ``SEMANTIC`` — requires ``numpy``; uses ``scikitplot.annoy`` by default
+     and optionally ``faiss-cpu`` or ``voyager`` for ANN indexing. Selection is
+     centralised in :mod:`scikitplot.corpus._similarity._backends`; the exact
+     pure-``numpy`` brute-force backend is the always-available floor.
    - ``HYBRID`` — requires both ``numpy`` and a keyword index
+
+   All backends return scores on one scale: cosine similarity in ``[-1, 1]``.
 
 Supports Python 3.8 through 3.15.
 """
@@ -32,7 +37,7 @@ import logging
 import math
 import re
 from collections import Counter  # noqa: F401
-from dataclasses import dataclass, field  # noqa: F401
+from dataclasses import dataclass, field
 from typing import Any, Sequence
 
 logger = logging.getLogger(__name__)
@@ -67,11 +72,30 @@ class SearchResult:
         - HYBRID: reciprocal rank fusion score
     match_mode : str
         The mode that produced this result.
+    backend : str or None
+        Name of the dense ANN backend that produced this result
+        (SEMANTIC/HYBRID), or ``None`` for STRICT/KEYWORD.  Provenance only:
+        excluded from equality and hashing.
+    index_generation : int or None
+        The :class:`SimilarityIndex` build generation that produced this
+        result.  Increments on every :meth:`SimilarityIndex.build`, so a caller
+        can detect results computed against a since-rebuilt index.  Provenance
+        only: excluded from equality and hashing.
+
+    Notes
+    -----
+    **Developer note:** ``backend`` and ``index_generation`` describe *how* the
+    result was produced, not *what* it is, so they use ``compare=False`` — two
+    results for the same document/score/mode remain equal regardless of
+    provenance.  Embedding-model identity is out of scope here (it travels with
+    the document embeddings; see the embedding-cache identity contract).
     """
 
     doc: Any
     score: float
     match_mode: str
+    backend: str | None = field(default=None, compare=False)
+    index_generation: int | None = field(default=None, compare=False)
 
 
 @dataclass(frozen=True)
@@ -98,12 +122,38 @@ class SearchConfig:
         Use ``normalized_text`` for matching when available.
     case_sensitive : bool
         Case-sensitive matching in STRICT mode.
+    backend : str
+        Dense ANN backend selector for SEMANTIC/HYBRID modes. One of
+        ``"auto"`` (default; resolves to Annoy when available, else FAISS,
+        Voyager, or exact brute-force), ``"annoy"``, ``"faiss"``,
+        ``"voyager"``, ``"bruteforce"``. An explicitly named backend that is
+        not installed raises at build time rather than silently degrading.
+    annoy_n_trees : int
+        Annoy tree count (accuracy/size trade-off) when the Annoy backend is
+        used.  Higher is more accurate and larger.  Default 10.
+    annoy_metric : str
+        Annoy distance metric.  Default ``"angular"`` (cosine-like); scores are
+        always reported as cosine similarity regardless of metric.
+    annoy_search_k : int
+        Annoy query-time node budget.  ``-1`` (default) lets Annoy choose.
+    annoy_impl : str
+        Which Annoy index class to use: ``"auto"`` (default; high-level
+        ``scikitplot.annoy.Index`` first, else the Cython
+        ``scikitplot.annoy._annoy.Index``), ``"highlevel"``, or ``"cython"``.
+    annoy_dtype : str or None
+        Embedding precision for the Cython Annoy class (e.g. ``"float32"``,
+        ``"float64"``).  Ignored by the high-level class.  Default ``None``.
+    annoy_index_dtype : str or None
+        Item-id integer width for the Cython Annoy class (e.g. ``"int32"``,
+        ``"uint64"``) for very large corpora.  Ignored otherwise.  Default
+        ``None``.
 
     Notes
     -----
     **User note:** For RAG pipelines, ``match_mode="hybrid"`` with
     default settings provides a good balance.  For exact citation
-    matching, use ``match_mode="strict"``.
+    matching, use ``match_mode="strict"``.  To force a specific ANN
+    library, set e.g. ``backend="annoy"`` and tune ``annoy_n_trees``.
     """
 
     top_k: int = 10
@@ -114,6 +164,13 @@ class SearchConfig:
     rrf_k: int = 60
     use_normalized_text: bool = True
     case_sensitive: bool = False
+    backend: str = "auto"
+    annoy_n_trees: int = 10
+    annoy_metric: str = "angular"
+    annoy_search_k: int = -1
+    annoy_impl: str = "auto"
+    annoy_dtype: str | None = None
+    annoy_index_dtype: str | None = None
 
     def __post_init__(self) -> None:
         valid = ("strict", "keyword", "semantic", "hybrid")
@@ -125,6 +182,18 @@ class SearchConfig:
             raise ValueError(f"top_k must be >= 1, got {self.top_k}")
         if not 0.0 <= self.hybrid_alpha <= 1.0:
             raise ValueError(f"hybrid_alpha must be in [0, 1], got {self.hybrid_alpha}")
+        valid_backends = ("auto", "annoy", "faiss", "voyager", "bruteforce", "brute")
+        if self.backend not in valid_backends:
+            raise ValueError(
+                f"backend must be one of {valid_backends}, got {self.backend!r}"
+            )
+        if self.annoy_n_trees < 1:
+            raise ValueError(f"annoy_n_trees must be >= 1, got {self.annoy_n_trees}")
+        valid_impls = ("auto", "highlevel", "cython")
+        if self.annoy_impl not in valid_impls:
+            raise ValueError(
+                f"annoy_impl must be one of {valid_impls}, got {self.annoy_impl!r}"
+            )
 
 
 # =====================================================================
@@ -268,7 +337,8 @@ class SimilarityIndex:
         self._bm25: _BM25Index | None = None
         self._token_lists: list[list[str]] = []
         self._embeddings: Any = None  # np.ndarray or None
-        self._faiss_index: Any = None
+        self._backend: Any = None  # ANNBackend or None (dense index)
+        self._generation: int = 0  # bumped on every successful build()
 
     # ------------------------------------------------------------------
     # Build
@@ -309,7 +379,7 @@ class SimilarityIndex:
 
         # Build dense index if embeddings are available
         self._embeddings = None
-        self._faiss_index = None
+        self._backend = None
 
         embs = []
         for doc in self._documents:
@@ -317,52 +387,74 @@ class SimilarityIndex:
             if e is not None:
                 embs.append(e)
 
+        # ``embs`` is a Python list here (not an ndarray); ``if embs`` is a
+        # correct emptiness check.
         if embs and len(embs) == len(self._documents):
             try:
                 import numpy as np  # noqa: PLC0415
-
-                self._embeddings = np.vstack(embs).astype(np.float32)
-                self._build_faiss_index(self._embeddings)
             except ImportError:
                 logger.warning("NumPy not available; SEMANTIC mode disabled.")
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Failed to build dense index: %s", exc)
+            else:
+                try:
+                    stacked = np.vstack(embs).astype(np.float32)
+                except Exception as exc:  # noqa: BLE001 - tolerate malformed data
+                    logger.warning(
+                        "Failed to stack embeddings; SEMANTIC disabled: %s", exc
+                    )
+                else:
+                    self._embeddings = stacked
+                    # Config errors (unknown/unavailable *explicit* backend)
+                    # propagate here by design — fail fast, do not silently
+                    # degrade a deliberately requested backend.
+                    self._build_ann_backend(self._embeddings)
 
+        self._generation += 1
         logger.info(
-            "SimilarityIndex: built with %d documents (dense=%s, sparse=True)",
+            "SimilarityIndex: built with %d documents "
+            "(dense=%s, backend=%s, sparse=True, generation=%d)",
             len(self._documents),
             self._embeddings is not None,
+            self.backend_name,
+            self._generation,
         )
 
-    def _build_faiss_index(self, embeddings: Any) -> None:
-        """Build a FAISS index, falling back to brute-force."""
-        dim = embeddings.shape[1]
+    def _build_ann_backend(self, embeddings: Any) -> None:
+        """Build the dense ANN index via the centralized backend selector.
+
+        The backend is chosen from :class:`SearchConfig.backend`
+        (default ``"auto"`` → Annoy when available, else FAISS, Voyager, or
+        exact brute-force).  Selecting an explicitly named backend that is not
+        installed raises :class:`RuntimeError` here — a deliberately requested
+        backend must not be silently downgraded.
+        """
+        from ._backends import select_backend  # noqa: PLC0415
+
+        cfg = self.config
+        # Config errors (unknown/unavailable explicit backend) propagate.
+        backend = select_backend(
+            cfg.backend,
+            annoy_metric=cfg.annoy_metric,
+            annoy_n_trees=cfg.annoy_n_trees,
+            annoy_search_k=cfg.annoy_search_k,
+            annoy_impl=cfg.annoy_impl,
+            annoy_dtype=cfg.annoy_dtype,
+            annoy_index_dtype=cfg.annoy_index_dtype,
+        )
         try:
-            import faiss  # type: ignore[import]  # noqa: PLC0415
-
-            self._faiss_index = faiss.IndexFlatIP(dim)
-            # Normalise for cosine similarity via inner product
-            import numpy as np  # noqa: PLC0415
-
-            norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
-            norms = np.where(norms == 0, 1, norms)
-            normed = embeddings / norms
-            self._faiss_index.add(normed)
-            logger.debug("Built FAISS IndexFlatIP (dim=%d)", dim)
-        except ImportError:
-            try:
-                import voyager  # type: ignore[import]  # noqa: PLC0415
-
-                self._faiss_index = voyager.Index(
-                    voyager.Space.Cosine,
-                    num_dimensions=dim,
-                )
-                self._faiss_index.add_items(embeddings)
-                logger.debug("Built Voyager index (dim=%d)", dim)
-            except ImportError:
-                # Brute-force fallback — no external deps needed
-                self._faiss_index = None
-                logger.debug("No ANN library; using brute-force cosine.")
+            backend.build(embeddings)
+        except ValueError as exc:
+            # Data-level problem (e.g. non-finite embeddings): disable the dense
+            # index and degrade to sparse rather than failing the whole build.
+            logger.warning("Dense index disabled (invalid embeddings): %s", exc)
+            self._backend = None
+            self._embeddings = None
+            return
+        self._backend = backend
+        logger.debug(
+            "SimilarityIndex: dense backend=%r (dim=%d)",
+            backend.name,
+            int(embeddings.shape[1]),
+        )
 
     # ------------------------------------------------------------------
     # Search
@@ -428,6 +520,8 @@ class SimilarityIndex:
                         doc=doc,
                         score=1.0,
                         match_mode="strict",
+                        backend=None,
+                        index_generation=self._generation,
                     )
                 )
                 if len(results) >= cfg.top_k:
@@ -462,6 +556,8 @@ class SimilarityIndex:
                     doc=self._documents[idx],
                     score=score,
                     match_mode="keyword",
+                    backend=None,
+                    index_generation=self._generation,
                 )
             )
 
@@ -471,17 +567,24 @@ class SimilarityIndex:
     # SEMANTIC search
     # ------------------------------------------------------------------
 
-    def _search_semantic(  # noqa: PLR0912
+    def _search_semantic(
         self,
         query: str,
         query_embedding: Any | None,
         cfg: SearchConfig,
     ) -> list[SearchResult]:
-        """Dense vector cosine similarity search."""
-        if self._embeddings is None:
+        """Dense vector cosine similarity search via the unified backend.
+
+        All numeric handling — normalisation, dimension and finiteness
+        validation, cosine conversion, and deterministic tie ordering — is
+        owned by the selected :class:`~._backends.ANNBackend`, so this method
+        only applies the semantic threshold and wraps hits in
+        :class:`SearchResult`.  Scores are cosine similarity in ``[-1, 1]``.
+        """
+        if self._embeddings is None or self._backend is None:
             logger.warning(
-                "No embeddings available for SEMANTIC search. "
-                "Build index with embedded documents."
+                "No dense index available for SEMANTIC search. "
+                "Build the index with embedded documents."
             )
             return []
 
@@ -492,73 +595,17 @@ class SimilarityIndex:
                 "which auto-embeds the query."
             )
 
-        import numpy as np  # noqa: PLC0415
-
-        qe = np.asarray(query_embedding, dtype=np.float32).flatten()
-        norm_q = np.linalg.norm(qe)
-        if norm_q == 0:
-            return []
-
-        if self._faiss_index is not None:
-            # FAISS or Voyager
-            try:
-                import faiss  # type: ignore[import]  # noqa: F401, PLC0415
-
-                qe_norm = qe / norm_q
-                D, I = self._faiss_index.search(  # noqa: N806
-                    qe_norm.reshape(1, -1), cfg.top_k
-                )
-                results = []
-                for score, idx in zip(D[0], I[0]):
-                    if idx == -1:
-                        continue
-                    if score < cfg.semantic_threshold:
-                        continue
-                    results.append(
-                        SearchResult(
-                            doc=self._documents[idx],
-                            score=float(score),
-                            match_mode="semantic",
-                        )
-                    )
-                return results
-            except (ImportError, AttributeError):
-                pass
-
-            # Try Voyager
-            try:
-                ids, distances = self._faiss_index.query(qe, k=cfg.top_k)
-                results = []
-                for idx, dist in zip(ids, distances):
-                    score = 1.0 - dist  # Voyager cosine = distance
-                    if score < cfg.semantic_threshold:
-                        continue
-                    results.append(
-                        SearchResult(
-                            doc=self._documents[idx],
-                            score=score,
-                            match_mode="semantic",
-                        )
-                    )
-                return results
-            except Exception:  # noqa: BLE001
-                pass
-
-        # Brute-force cosine
-        embs = self._embeddings
-        norms_e = np.linalg.norm(embs, axis=1)
-        scores = embs @ qe / (norms_e * norm_q + 1e-10)
-        top_indices = np.argsort(scores)[::-1][: cfg.top_k]
-        results = []
-        for idx in top_indices:
-            s = float(scores[idx])
-            if s < cfg.semantic_threshold:
-                break
+        results: list[SearchResult] = []
+        for idx, score in self._backend.query(query_embedding, cfg.top_k):
+            if score < cfg.semantic_threshold:
+                continue
             results.append(
                 SearchResult(
                     doc=self._documents[idx],
-                    score=s,
+                    score=float(score),
                     match_mode="semantic",
+                    backend=self.backend_name,
+                    index_generation=self._generation,
                 )
             )
         return results
@@ -622,6 +669,8 @@ class SimilarityIndex:
                     doc=doc_map[doc_id],
                     score=rrf_scores[doc_id],
                     match_mode="hybrid",
+                    backend=self.backend_name,
+                    index_generation=self._generation,
                 )
             )
 
@@ -641,10 +690,67 @@ class SimilarityIndex:
         """Whether dense embeddings are indexed."""
         return self._embeddings is not None
 
+    @property
+    def backend_name(self) -> str | None:
+        """Name of the active dense ANN backend, or ``None`` if unbuilt."""
+        return self._backend.name if self._backend is not None else None
+
+    @property
+    def index_generation(self) -> int:
+        """Build generation, incremented on every :meth:`build`.
+
+        Zero before the first build.  Every :class:`SearchResult` produced by
+        :meth:`search` carries the generation active at query time, so a caller
+        can detect results computed against a since-rebuilt index.
+        """
+        return self._generation
+
+    def query(
+        self,
+        vector: Any,
+        k: int | None = None,
+    ) -> list[tuple[str, float]]:
+        """Vector-level ANN query returning ``(doc_id, score)`` pairs.
+
+        This is the vector-index seam consumed by
+        :mod:`scikitplot.mcp` (the ``VectorIndex`` protocol): it takes a query
+        **vector** (already embedded) rather than a query string, and returns
+        stable document identities instead of :class:`SearchResult` objects.
+
+        Parameters
+        ----------
+        vector : array-like
+            Query embedding of the same dimension as the indexed vectors.
+        k : int or None, optional
+            Number of neighbours to return.  Defaults to ``config.top_k``.
+
+        Returns
+        -------
+        list of (str, float)
+            ``(doc_id, cosine_score)`` pairs, best first.  ``doc_id`` is the
+            document's ``doc_id`` attribute when present, else its stringified
+            index.  Empty if no dense index was built or the query is zero-norm.
+
+        Raises
+        ------
+        ValueError
+            If *vector* dimension mismatches the index or is non-finite.
+        """
+        if self._backend is None or self._embeddings is None:
+            return []
+        top = int(k) if k is not None else self.config.top_k
+        out: list[tuple[str, float]] = []
+        for idx, score in self._backend.query(vector, top):
+            doc = self._documents[idx]
+            doc_id = getattr(doc, "doc_id", None)
+            out.append((doc_id if doc_id is not None else str(idx), float(score)))
+        return out
+
     def __repr__(self) -> str:
         return (
             f"SimilarityIndex("
             f"n_docs={self.n_documents}, "
             f"dense={self.has_embeddings}, "
+            f"backend={self.backend_name!r}, "
             f"mode={self.config.match_mode!r})"
         )

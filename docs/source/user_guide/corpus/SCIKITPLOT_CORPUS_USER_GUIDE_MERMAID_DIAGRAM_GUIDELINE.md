@@ -73,6 +73,7 @@ Pipeline execution
 Explain the contract and important options in prose before the diagram.
 
 .. include:: _diagrams/03_pipeline_execution_flow.rst
+  :start-after: :orphan:
 
 Explain edge cases, failure behavior, and platform limits after the diagram.
 ```
@@ -84,7 +85,8 @@ builder-specific policy:
 ```rst
 .. only:: html
 
-   .. include:: _diagrams/03_pipeline_execution_flow.rst
+  .. include:: _diagrams/03_pipeline_execution_flow.rst
+    :start-after: :orphan:
 ```
 
 ## Orientation rules

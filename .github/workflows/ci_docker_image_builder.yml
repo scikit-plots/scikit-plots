@@ -1,6 +1,6 @@
 # Tag grammar (DockerHub + GHCR + Quay.io, one build matrix row -> 1-2 tags per registry):
 #   TAG := channel [ "-" variant [ "-" interpreter_segment ] ]
-#   channel              := "latest" (branch main) | "<X.Y.Z>" (release/maintenance) | "nightly" (schedule)
+#   channel              := "latest" (branch main) | "<X.Y.Z>" (release/maintenance) | "latest" or "nightly" (schedule)
 #   variant              := "devel" | "runtime" (implicit default — short alias omits the word;
 #                         a second, explicit "-runtime-" alias is ALSO published for runtime rows)
 #   interpreter_segment  := "" (python @ default version) | "python<X.Y>" | "jupyter" (@ default
@@ -14,7 +14,7 @@
 #                         versions, e.g. :latest-runtime-python3.9.)
 # Push to maintenance    :0.3.x  :0.3.x-python3.11  :0.3.x-devel-jupyter-python3.11
 # Push tag vX.Y.Z        :0.4.0  :0.4.0-python3.11  :0.4.0-devel-jupyter-python3.12
-# Scheduled (cron)       :nightly  :nightly-devel-jupyter-python3.12
+# Scheduled (cron)       :(latest or nightly)  :latest-devel-jupyter-python3.12 nightly-devel-jupyter-python3.12
 # PR / feature branch    build-only, no push           ci-<12-char-sha> (local label)
 #
 # Pushing images
@@ -98,7 +98,7 @@ on:
   #     - '*'     # Matches all Git tags (e.g., v1.0.0)
   #     - 'v*.*.*'
   schedule:
-    ## Automatically built and released every night (or at a regular interval, often nightly)
+    ## Automatically built and released every night (or at a regular interval, often latest or nightly)
     ## Cron schedule for automated runs
     ## https://crontab.cronhub.io
     ## https://freeformatter.com/cron-expression-generator-quartz.html#cronexpressionexamples
@@ -136,9 +136,9 @@ concurrency:
   ## disambiguate triggers that share a ref: a `schedule` (cron) run and a manual
   ## `workflow_dispatch` run against the same default branch both resolve to the
   ## same github.ref (refs/heads/main). Without event_name in the group key, a
-  ## manually-triggered run would cancel an in-progress nightly build (or vice
-  ## versa) via cancel-in-progress below — silently, with no error, just a
-  ## vanished run. Multiple pushes to the same branch still collapse into one
+  ## manually-triggered run would cancel an in-progress latest or nightly build
+  ## (or vice versa) via cancel-in-progress below — silently, with no error, just
+  ## a vanished run. Multiple pushes to the same branch still collapse into one
   ## group as intended, since github.event_name is identical ("push") across them.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref || github.run_id }}
   ## If you push multiple times quickly, older runs would continue even though newer ones have started.
@@ -397,14 +397,15 @@ jobs:
           # ── Channel (resolved ONCE per run from the git ref / trigger — NOT a matrix
           #    axis; every one of the 16 rows shares the same channel on a given run) ──
           # Rules, checked in order:
-          #   schedule trigger (cron)                   → "nightly"
+          #   schedule trigger (cron)                   → "latest" or "nightly" (prefer latest)
           #   Git tag  (refs/tags/vX.Y.Z)               → "<X.Y.Z>"  (release channel)
           #   Branch "main"                             → "latest"
           #   Branch "maintenance-X.Y.x"                → "<X.Y.x>"  (maintenance channel)
           #   Everything else (feature branches, PRs)   → "" (build-only, no push)
           CHANNEL=""
           if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
-            CHANNEL="nightly"
+            # CHANNEL="nightly"
+            CHANNEL="latest"
           elif [[ "${REF_TYPE}" == "tag" ]]; then
             [[ -n "${VERSION}" ]] || { echo "VERSION is empty for a tag ref" >&2; exit 2; }
             CHANNEL="${VERSION}"

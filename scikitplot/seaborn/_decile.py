@@ -433,7 +433,7 @@ class _DecilePlotter(VectorPlotter):
         # TODO see above points about where this should go
         return bool({"x", "y"} & set(self.variables))
 
-    def _add_legend(
+    def _add_legend(  # ruff: ignore[too-many-positional-arguments]
         self,
         ax_obj,
         artist,
@@ -473,7 +473,15 @@ class _DecilePlotter(VectorPlotter):
                 **legend_kws,
             )
 
-    def _artist_kws(self, kws, fill, element, multiple, color, alpha):
+    def _artist_kws(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        kws,
+        fill,
+        element,
+        multiple,
+        color,
+        alpha,
+    ):
         """Handle differences between artists in filled/unfilled plots."""
         kws = kws.copy()
         if fill:
@@ -780,7 +788,7 @@ class _DecilePlotter(VectorPlotter):
     # ---------------------------
     # Plot helpers
     # ---------------------------
-    def _plot_decile_wise_lift(
+    def _plot_decile_wise_lift(  # ruff: ignore[too-many-positional-arguments]
         self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
     ):
         n_deciles = dt["decile"].max()
@@ -871,8 +879,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_cumulative_lift(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_cumulative_lift(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         n_deciles = dt["decile"].max()
         artists, labels = [], []
@@ -976,8 +992,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_decile_wise_gain(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_decile_wise_gain(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         n_deciles = dt["decile"].max()
         artists, labels = [], []
@@ -1072,8 +1096,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_cumulative_gain(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_cumulative_gain(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         n_deciles = dt["decile"].max()
         artists, labels = [], []
@@ -1164,8 +1196,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_cumulative_response(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_cumulative_response(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         n_deciles = dt["decile"].max()
         artists, labels = [], []
@@ -1243,8 +1283,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_ks_statistic(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_ks_statistic(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         n_deciles = dt["decile"].max()
         # Save artist and label (include KS if legend requested)
@@ -1324,8 +1372,16 @@ class _DecilePlotter(VectorPlotter):
             handles, labels = self._make_legend_proxies(artists, labels)
             ax.legend(handles, labels, title=self.variables.get("hue", None))
 
-    def _plot_report(
-        self, dt: pd.DataFrame, digits, legend, ax, annot, fmt, annot_kws, **kws
+    def _plot_report(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        dt: pd.DataFrame,
+        digits,
+        legend,
+        ax,
+        annot,
+        fmt,
+        annot_kws,
+        **kws,
     ):
         """2x2 dashboard with all metrics."""
         # fig, axes = plt.subplots(2, 2, figsize=(10, 8))
@@ -1492,7 +1548,7 @@ class _DecilePlotter(VectorPlotter):
     # ------------------------
     # User-facing Core computation Decile assignment & table
     # ------------------------
-    def plot_decileplot(  # noqa: PLR0912
+    def plot_decileplot(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         kind: (
             Literal[

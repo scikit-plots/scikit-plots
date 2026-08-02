@@ -230,12 +230,72 @@
  <h4>Single line functions for detailed visualizations. </h4>
  <!-- RON: (Republic of Nomos) -->
  <!-- "Nomos is the governing concept for machine learning systems, providing the simple deterministic foundation that empowers autonomous, customizable, and user-sovereign execution across any environment." -->
- <p>The quickest and easiest way to go from analysis...
-  Explore the full features of Scikit-plots:
+ <p>The quickest and easiest way to go from analysis... Explore the full features of
+  <br>Scikit-plots doc:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
    https://scikit-plots.github.io/dev/devel/index.html
   </a>
  </p>
+</div>
+
+
+<!-- Scikit-plots Docker -->
+<div>
+
+ <h3>
+  <a href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md" target="_blank" rel="noopener noreferrer">
+    🐳 Scikit-plots Docker Images Guide
+  </a>:
+ </h3>
+
+ <p>
+  <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry
+  </a>:
+ </p>
+
+```bash
+docker pull ghcr.io/scikit-plots/scikit-plots:latest-devel-python3.11
+```
+
+ <p>
+  <a href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Red Hat Quay Container Registry
+  </a>:
+ </p>
+
+```bash
+# podman pull quay.io/scikit-plots/scikit-plots
+docker pull quay.io/scikit-plots/scikit-plots:latest-devel-python3.11
+```
+
+ <p>
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Docker Container Registry
+  </a>:
+ </p>
+
+```bash
+docker pull scikitplot/scikit-plots:latest-devel-python3.11
+```
+
+```bash
+# docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime|:latest-devel] -i -c "scikitplot -V"
+# docker run -it --rm -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-python3.11
+```
+
+ <h4>
+  ✅
+  Run with/without pull Onto Vscode or Browser as Jupyter Notebook (*-jupyter):
+ </h4>
+
+```bash
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-devel-python3.11
+```
+```bash
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-devel-jupyter-python3.11
+```
 </div>
 
 
@@ -392,33 +452,6 @@ pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log.txt
   # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
   # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
 -->
-</div>
-
-
-<!-- Scikit-plots Docker -->
-<div>
- <h3>
-  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-   🐋 Scikit-plots Runtime|Devel Docker Images
-  </a>:
- </h3>
-
- <p>
-  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-   🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
-  </a>
- </p>
-
- 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
-
-```bash
-# docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime|:latest-devel] -i -c "scikitplot -V"
-docker run -it --rm scikitplot/scikit-plots
-```
-```bash
-# docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
-docker run -it --rm scikitplot/scikit-plots:latest-devel
-```
 </div>
 
 

@@ -325,7 +325,14 @@ def _add_confusion_icon(ax, clip, center=(0.02, 0.65), size=0.22, color="#002030
             ax.add_patch(r)
 
 
-def _add_spark(ax, clip, center, arms, color, hole_face="white"):
+def _add_spark(  # ruff: ignore[too-many-positional-arguments]
+    ax,
+    clip,
+    center,
+    arms,
+    color,
+    hole_face="white",
+):
     for k in range(arms):
         ang = k * np.pi / arms
         dx = 0.12 * np.cos(ang)

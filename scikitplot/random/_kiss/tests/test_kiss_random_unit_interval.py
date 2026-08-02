@@ -1,10 +1,11 @@
+# scikitplot/random/_kiss/tests/test_kiss_random_unit_interval.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for ANNOY-RNG-001 (guide 6.15).
+"""Regression tests for ANNOY-RNG-001 (guide 6.15).
 
 The KISS float conversion must produce values in the half-open interval [0, 1)
 using the top mantissa bits and an exact power-of-two scale. The old

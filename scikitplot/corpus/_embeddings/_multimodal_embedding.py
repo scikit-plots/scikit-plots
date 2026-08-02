@@ -70,6 +70,7 @@ from typing import Any, Callable, ClassVar, Generator, Optional  # noqa: F401
 import numpy as np
 import numpy.typing as npt
 
+from .._atomic import atomic_write_bytes, atomic_write_path
 from .._schema import CorpusDocument
 from ._embedding import EmbeddingEngine
 
@@ -1164,7 +1165,11 @@ class MultimodalEmbeddingEngine:
         # Save
         try:
             cache_dir.mkdir(parents=True, exist_ok=True)
-            np.save(str(cache_path), embeddings)
+            atomic_write_path(
+                cache_path,
+                lambda p: np.save(str(p), embeddings),
+                suffix=".npy",
+            )
         except OSError as exc:
             logger.warning("MultimodalEmbeddingEngine: cache write failed: %s", exc)
 
@@ -1927,17 +1932,28 @@ class LLMTrainingExporter:
         if output_path is not None:
             base = pathlib.Path(output_path)
             base.parent.mkdir(parents=True, exist_ok=True)
-            np.save(str(base.with_suffix(".npy")), matrix)
+            atomic_write_path(
+                base.with_suffix(".npy"),
+                lambda p: np.save(str(p), matrix),
+                suffix=".npy",
+            )
             try:
                 import pandas as pd  # noqa: PLC0415
 
                 if isinstance(meta_out, pd.DataFrame):
-                    meta_out.to_csv(str(base.with_suffix(".csv")), index=False)
+                    atomic_write_path(
+                        base.with_suffix(".csv"),
+                        lambda p: meta_out.to_csv(str(p), index=False),
+                        suffix=".csv",
+                    )
             except ImportError:
                 import json as _json  # noqa: PLC0415
 
-                with open(str(base.with_suffix(".json")), "w") as fh:
-                    _json.dump(meta, fh)
+                atomic_write_bytes(
+                    base.with_suffix(".json"),
+                    _json.dumps(meta).encode("utf-8"),
+                    suffix=".json",
+                )
 
             logger.info(
                 "LLMTrainingExporter.to_embedding_matrix: saved %s.npy (%d x %d).",

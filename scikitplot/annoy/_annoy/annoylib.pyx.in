@@ -178,6 +178,13 @@ data_types = [
      'enum': 'DATA_DOUBLE',
      'aliases': ('double', 'float64', 'fp64', 'f64'),
      'description': 'Double precision (64-bit)'},
+    # float80_t: x87 80-bit extended precision (long double). Distinct usable dtype
+    # on GCC/Clang (float128_t native __float128); redundant with float128 where
+    # float128_t already IS long double, but the generated typedef stays valid.
+    {'name': 'Float80',  'ctype': 'float80_t',   'numpy_dtype': 'longdouble', 'bits': 80,
+     'enum': 'DATA_FLOAT80',
+     'aliases': ('float80_t', 'float80', 'longdouble', 'long_double', 'extended', 'fp80', 'f80'),
+     'description': 'Extended precision (80-bit x87 long double)'},
     # float128_t: quad/extended precision — defined in global C++ namespace.
     # Platform: __float128 (true 128-bit) on GCC/Clang; long double (80-bit) on MSVC.
     # Input precision is limited to double via the _w bridge; internal arithmetic
@@ -241,6 +248,7 @@ from .annoylib cimport (
     AnnoyIndexInterface,
     # Extended floating-point types (global C++ namespace, used as template args only)
     float16_t,   # half precision — ARM native __fp16 or x86 struct
+    float80_t,   # x87 80-bit extended (long double); distinct dtype where float128 is native quad
     float128_t,  # quad/extended precision — __float128 or long double fallback
     # Metric types
     Angular,
@@ -266,11 +274,17 @@ from .annoylib cimport (
     {{endfor}}
 )
 
+# CY-016 float-type support registry (annoy_type_support.h): a runtime-queryable
+# report of each element type's tier/size/precision. See supported_dtypes().
+cdef extern from "../../cexternals/_annoy/src/annoy_type_support.h" namespace "annoy_support":
+    cpp_string report_json() except +
+
 __all__ = [
     "_HTMLDocumentationLinkMixin",
     "BaseIndex",
     "Index",
     "ReprHTMLMixin",
+    "supported_dtypes",
 ]
 
 # ==============================================================================
@@ -306,6 +320,38 @@ cpdef enum FloatType:
     FLOAT32 = 1
     FLOAT64 = 2
     FLOAT128 = 3
+
+
+def supported_dtypes():
+    """Report the runtime float-type support tiers for this build.
+
+    Promotes the C++ ``annoy_support`` registry (``annoy_type_support.h``) to
+    Python so callers and CI can see, for each type on the ladder
+    ``float16 -> float32 -> float64 -> float80 -> float128 -> float256 ->
+    float512``, the actual support tier and precision **as compiled**.
+
+    Returns
+    -------
+    dict of str -> dict
+        Keyed by dtype name; each value has ``size_bytes``, ``mantissa_bits``,
+        ``tier`` ("native"/"runtime-dispatched"/"emulated"/"unavailable"),
+        ``available``, ``usable_as_dtype``, ``io_precision_capped``, ``note``.
+
+    Notes
+    -----
+    * ``float80`` (x87 long double) is ``available`` but not yet ``usable_as_dtype``.
+    * ``float256``/``float512`` report ``"unavailable"`` unless a multiprecision
+      backend (boost/MPFR) was compiled in (``ANNOY_ENABLE_MULTIPRECISION``);
+      they are never silently aliased to ``long double``.
+
+    Examples
+    --------
+    >>> from scikitplot.annoy._annoy.annoylib import supported_dtypes
+    >>> supported_dtypes()["float64"]["tier"]
+    'native'
+    """
+    import json
+    return {e["name"]: e for e in json.loads(report_json().decode("utf-8"))}
 
 
 cdef FloatType parse_dtype(str dtype_str):
@@ -1062,6 +1108,22 @@ cdef class BaseIndex(_HTMLDocumentationLinkMixin):
     This class should not be instantiated directly.
     Use Index or specialized subclasses.
 
+    Concurrency (CY-009)
+    ~~~~~~~~~~~~~~~~~~~~~~
+    An index instance is **not thread-safe for mutation**. The native operations
+    release the GIL (``with nogil``) so *other* Python threads can run, but that
+    does NOT synchronize access to the *same* index.
+
+    * **Safe:** independent index instances used concurrently; and multiple
+      threads issuing *read-only queries* against a single index that is FULLY
+      BUILT and that no thread is mutating.
+    * **Unsafe (undefined behavior):** any overlap of a mutator
+      (``add_item``/``build``/``unbuild``/``load``/``unload``) with any other
+      operation on the same instance.
+
+    The wrapper adds no locking around native calls; callers who mutate a shared
+    index from multiple threads must serialize access themselves.
+
     Examples
     --------
     >>> # Don't do this:
@@ -1612,9 +1674,11 @@ cdef class Index(BaseIndex):
 
             if parsed_id == METRIC_UNKNOWN:
                 raise ValueError(
-                    f"Invalid metric '{metric}'. "
-                    f"Expected one of: angular, euclidean, manhattan, dot, hamming "
-                    f"(or aliases: cosine, l2, l1, cityblock, dotproduct, etc.)"
+                    f"Invalid metric '{metric}'. Expected one of the canonical "
+                    f"names: angular, euclidean, manhattan, dot, hamming; "
+                    f"documented aliases are also accepted (e.g. cosine, l2, l1, "
+                    f"cityblock, taxicab, dotproduct, inner) \u2014 see the class "
+                    f"docstring for the full list."
                 )
 
             self.metric = metric
@@ -1909,7 +1973,8 @@ cdef class Index(BaseIndex):
             self.ptr.set_verbose(self.pending_verbose >= 1)
 
         # Apply on_disk_build (if path is configured and pending)
-        cdef char* error = NULL
+        # R14/R19 follow-up: RAII error ownership (freed even if _destroy_index throws).
+        cdef ScopedError err = ScopedError()
         cdef cpp_bool success
         if self.on_disk_pending and not self.on_disk_active:
             if self.on_disk_path.empty():
@@ -1922,16 +1987,14 @@ cdef class Index(BaseIndex):
             # Activate on-disk build mode
             success = self.ptr.on_disk_build(
                 self.on_disk_path.c_str(),
-                &error
+                &err.err
             )
 
             if not success:
                 # Roll back to safe state
                 self._destroy_index()
-                if error != NULL:
-                    err_msg = error.decode("utf-8", "replace")
-                    free(error)  # must free before raise to avoid C-string leak
-                    raise IOError(err_msg)
+                if err.err != NULL:
+                    raise IOError(err.err.decode("utf-8", "replace"))
                 else:
                     raise IOError("on_disk_build failed (unknown error)")
 
@@ -2026,8 +2089,11 @@ cdef class Index(BaseIndex):
 
         if parsed_id == METRIC_UNKNOWN:
             raise ValueError(
-                f"Invalid metric '{value}'. "
-                f"Expected one of: angular, euclidean, manhattan, dot, hamming"
+                f"Invalid metric '{value}'. Expected one of the canonical "
+                f"names: angular, euclidean, manhattan, dot, hamming; "
+                f"documented aliases are also accepted (e.g. cosine, l2, l1, "
+                f"cityblock, taxicab, dotproduct, inner) \u2014 see the class "
+                f"docstring for the full list."
             )
 
         self.metric_id = parsed_id
@@ -2115,6 +2181,8 @@ cdef class Index(BaseIndex):
         for i in range(self.f):
             _vec[i] = <double>vector[i]
 
+        # Raw C error pointer is intentional (passed into `with nogil`); freed on
+        # the failure path below. See L-NATIVE-ERR-OWNER.
         cdef char* error = NULL
         cdef cpp_bool success
         with nogil:
@@ -2162,7 +2230,7 @@ cdef class Index(BaseIndex):
 
     def build(self, int n_trees=-1, n_jobs=None) -> None:
         """
-        Build the search forest (thread-safe, releases GIL).
+        Build the search forest (releases the GIL; see Concurrency).
 
         Parameters
         ----------
@@ -2184,6 +2252,11 @@ cdef class Index(BaseIndex):
         * Call unbuild() to add more items
         * Releases GIL during C++ build operation
         * Allows concurrent Python threads to run
+        * Concurrency (CY-009): ``build`` MUTATES the index and is NOT safe to
+          call concurrently with any other operation on the SAME instance
+          (query/add/save/load/unload). Releasing the GIL lets *other* Python
+          threads run; it does NOT synchronize same-instance access. Use
+          independent instances for parallelism, or serialize mutation yourself.
         * The C++ build itself is multi-threaded (n_jobs)
 
         Examples
@@ -2318,20 +2391,18 @@ cdef class Index(BaseIndex):
         if self.ptr == NULL:
             raise RuntimeError("Cannot unbuild: index not constructed")
 
-        cdef char* error = NULL
-        cdef cpp_bool success = self.ptr.unbuild(&error)
+        cdef ScopedError err = ScopedError()
+        cdef cpp_bool success = self.ptr.unbuild(&err.err)
 
         if not success:
-            if error != NULL:
-                err_msg = error.decode("utf-8", "replace")
-                free(error)
-                raise RuntimeError(f"unbuild failed: {err_msg}")
+            if err.err != NULL:
+                raise RuntimeError(f"unbuild failed: {err.err.decode('utf-8', 'replace')}")
             else:
                 raise RuntimeError("unbuild failed (unknown error)")
 
     def get_nns_by_item(self, item, int n, int search_k=-1, bint include_distances=False):
         """
-        Find nearest neighbors (thread-safe, releases GIL).
+        Find nearest neighbors (releases the GIL; safe for concurrent reads).
 
         Parameters
         ----------
@@ -2367,6 +2438,10 @@ cdef class Index(BaseIndex):
         Notes
         -----
         * Releases GIL during query (true parallelism)
+        * Concurrency (CY-009): safe to call from multiple threads on a
+          FULLY-BUILT index that no thread is mutating (the query path is
+          read-only). NOT safe concurrent with build/add/save/load/unload on the
+          same instance.
         * Multiple threads can query simultaneously
         * Linear speedup with thread count
 
@@ -2449,7 +2524,7 @@ cdef class Index(BaseIndex):
 
     def get_nns_by_vector(self, vector, int n, int search_k=-1, bint include_distances=False):
         """
-        Query by vector (thread-safe, releases GIL).
+        Query by vector (releases the GIL; safe for concurrent reads).
 
         Parameters
         ----------
@@ -2737,14 +2812,13 @@ cdef class Index(BaseIndex):
             raise RuntimeError("Cannot save: index not constructed")
 
         cdef bytes filename_bytes = filename.encode("utf-8")
-        cdef char* error = NULL
-        cdef cpp_bool success = self.ptr.save(filename_bytes, prefault, &error)
+        # CY-005/R14 follow-up: RAII ownership of the native error string.
+        cdef ScopedError err = ScopedError()
+        cdef cpp_bool success = self.ptr.save(filename_bytes, prefault, &err.err)
 
         if not success:
-            if error != NULL:
-                err_msg = error.decode("utf-8", "replace")
-                free(error)
-                raise IOError(f"save failed: {err_msg}")
+            if err.err != NULL:
+                raise IOError(f"save failed: {err.err.decode('utf-8', 'replace')}")
             else:
                 raise IOError("save failed (unknown error)")
 
@@ -2780,14 +2854,13 @@ cdef class Index(BaseIndex):
             self._ensure_index()
 
         cdef bytes filename_bytes = filename.encode("utf-8")
-        cdef char* error = NULL
-        cdef cpp_bool success = self.ptr.load(filename_bytes, prefault, &error)
+        # CY-005/R14 follow-up: RAII ownership of the native error string.
+        cdef ScopedError err = ScopedError()
+        cdef cpp_bool success = self.ptr.load(filename_bytes, prefault, &err.err)
 
         if not success:
-            if error != NULL:
-                err_msg = error.decode("utf-8", "replace")
-                free(error)
-                raise IOError(f"load failed: {err_msg}")
+            if err.err != NULL:
+                raise IOError(f"load failed: {err.err.decode('utf-8', 'replace')}")
             else:
                 raise IOError("load failed (unknown error)")
 
@@ -2878,7 +2951,12 @@ cdef class Index(BaseIndex):
         """
         Context manager entry.
 
-        Acquires lock for thread-safe operations.
+        Acquires the instance's cooperative ``RLock`` for the duration of the
+        ``with`` block. This is a *cooperative* mutual-exclusion aid: it serializes
+        only threads that ALSO enter ``with index:`` — the individual methods do
+        NOT take this lock, so bare calls from another thread are not excluded. It
+        does not make the index thread-safe on its own; see the class-level
+        Concurrency (CY-009) policy.
 
         Returns
         -------
@@ -3252,16 +3330,14 @@ cdef class Index(BaseIndex):
         }
 
         # Serialize index data if built
-        cdef char* error = NULL
+        cdef ScopedError err = ScopedError()
         cdef cpp_vector[uint8_t] serialized_data
         if self.ptr != NULL and self.ptr.get_n_trees_w() > 0:
-            serialized_data = self.ptr.serialize(&error)
+            serialized_data = self.ptr.serialize(&err.err)
 
-            if error != NULL:
-                err_msg = error.decode("utf-8", "replace")
-                free(error)
+            if err.err != NULL:
                 warnings.warn(
-                    f"Failed to serialize index data: {err_msg}",
+                    f"Failed to serialize index data: {err.err.decode('utf-8', 'replace')}",
                     RuntimeWarning
                 )
                 state["index_data"] = None
@@ -3359,7 +3435,7 @@ cdef class Index(BaseIndex):
         cdef bytes data_bytes
         cdef cpp_vector[uint8_t] data_vec
         cdef const unsigned char[:] view
-        cdef char* error = NULL
+        cdef ScopedError err = ScopedError()
         cdef cpp_bool success
         if "index_data" in state and state["index_data"] is not None:
 
@@ -3393,12 +3469,10 @@ cdef class Index(BaseIndex):
             # data_vec.assign(&view[0], &view[0] + view.shape[0])
             data_vec.insert(data_vec.end(), &view[0], &view[0] + view.shape[0])
 
-            success = self.ptr.deserialize(&data_vec, False, &error)
+            success = self.ptr.deserialize(&data_vec, False, &err.err)
             if not success:
-                if error != NULL:
-                    err_msg = error.decode("utf-8", "replace")
-                    free(error)
-                    raise RuntimeError(f"Failed to deserialize index: {err_msg}")
+                if err.err != NULL:
+                    raise RuntimeError(f"Failed to deserialize index: {err.err.decode('utf-8', 'replace')}")
                 else:
                     raise RuntimeError("Failed to deserialize index (unknown error)")
         return self
@@ -3723,10 +3797,11 @@ cdef class Index(BaseIndex):
 
     def __contains__(self, item) -> bool:
         """
-        Check whether ``item`` is a valid item ID in the index's ID extent.
+        Check whether ``item`` is an accessible item ID in the index's ID extent.
 
-        Returns True iff ``0 <= item < len(self)`` — i.e. iff ``self[item]`` is
-        accessible. Because annoy IDs are sparse, a gap ID within the extent is
+        Returns True iff ``self[item]`` is accessible, i.e. iff
+        ``-len(self) <= item < len(self)`` — matching :meth:`__getitem__`, which
+        supports Python negative indexing (``self[-1]`` is the last item). Because annoy IDs are sparse, a gap ID within the extent is
         "in" the index (``self[gap]`` returns the native zero/placeholder
         vector); this tests ID-range validity, NOT whether the ID was
         explicitly added. The sparse core does not retain occupancy, so
@@ -3740,7 +3815,7 @@ cdef class Index(BaseIndex):
         Returns
         -------
         in_range : bool
-            True iff ``item`` is a valid ID in ``[0, len(self))``.
+            True iff ``item`` is an accessible ID in ``[-len(self), len(self))``.
 
         Examples
         --------
@@ -3750,10 +3825,12 @@ cdef class Index(BaseIndex):
         if self.ptr == NULL:
             return False
 
-        if item < 0:
-            return False
-
-        return item < self.ptr.get_n_items_w()
+        # Consistent with __getitem__ (and this method's documented contract):
+        # `item in self` iff `self[item]` is accessible, which includes Python
+        # negative indexing (self[-1] is the last item). So the valid ID extent
+        # for membership is [-len(self), len(self)).
+        n_items = self.ptr.get_n_items_w()
+        return -n_items <= item < n_items
 
     def __iter__(self):
         """

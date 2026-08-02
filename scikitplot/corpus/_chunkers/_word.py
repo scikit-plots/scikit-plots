@@ -472,7 +472,7 @@ def _tokenize_nltk(text: str) -> list[str]:
         If NLTK is not installed.
     """
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.tokenize import (  # type: ignore[import-untyped]  # noqa: PLC0415
             word_tokenize,
         )
@@ -484,8 +484,9 @@ def _tokenize_nltk(text: str) -> list[str]:
     try:
         return word_tokenize(text)
     except LookupError:
-        logger.info("Downloading NLTK 'punkt_tab' model.")
-        nltk.download("punkt_tab", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab")
         return word_tokenize(text)
 
 
@@ -625,7 +626,7 @@ def _get_nltk_lemmatizer() -> Any:
         return _LEMMATIZER_CACHE[LemmatizationBackend.NLTK_WORDNET]
 
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.stem import (  # type: ignore[import-untyped]  # noqa: PLC0415
             WordNetLemmatizer,
         )
@@ -639,9 +640,10 @@ def _get_nltk_lemmatizer() -> Any:
         lemmatizer = WordNetLemmatizer()
         lemmatizer.lemmatize("test")  # trigger corpus load to catch LookupError
     except LookupError:
-        logger.info("Downloading NLTK 'wordnet' corpus.")
-        nltk.download("wordnet", quiet=True)
-        nltk.download("omw-1.4", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("corpora/wordnet", "wordnet")
+        ensure_nltk_resource("corpora/omw-1.4", "omw-1.4")
         lemmatizer = WordNetLemmatizer()
 
     _LEMMATIZER_CACHE[LemmatizationBackend.NLTK_WORDNET] = lemmatizer
@@ -684,7 +686,7 @@ def _load_stopwords(  # noqa: PLR0912
         return _BUILTIN_STOPWORDS
     if source == StopwordSource.NLTK:
         try:
-            import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+            import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
             from nltk.corpus import (  # type: ignore[import-untyped]  # noqa: PLC0415
                 stopwords,
             )
@@ -706,8 +708,9 @@ def _load_stopwords(  # noqa: PLR0912
             try:
                 result |= set(stopwords.words(lang))
             except LookupError:
-                logger.info("Downloading NLTK 'stopwords' corpus.")
-                nltk.download("stopwords", quiet=True)
+                from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+                ensure_nltk_resource("corpora/stopwords", "stopwords")
                 try:
                     result |= set(stopwords.words(lang))
                 except OSError:
@@ -1253,7 +1256,7 @@ class WordChunker(MultilangMixin):
             f"Unsupported tokenizer: {self._cfg.tokenizer!r}."
         )  # pragma: no cover
 
-    def _process_segment(  # noqa: PLR0912
+    def _process_segment(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         text: str,
         doc_id: str | None,

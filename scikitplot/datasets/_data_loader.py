@@ -540,7 +540,7 @@ async def async_load_sqlalchemy(
 # ---------------------- Handle an uploaded ----------------------
 
 
-def upload_handler(
+def upload_handler(  # ruff: ignore[too-many-positional-arguments]
     file_obj,
     return_file: bool = True,
     clean_tmp: bool = False,

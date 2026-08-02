@@ -25,9 +25,10 @@ Design invariants:
   instance via :meth:`CorpusDocument.replace`.
 * ``CorpusDocument.validate()`` must succeed before a document leaves any
   pipeline stage. Fail fast with actionable ``ValueError`` messages.
-* ``doc_id`` is a deterministic 16-character SHA-1 prefix derived from
-  ``(source_type, input_path, chunk_index, text[:64])``. Identical inputs
-  always yield the same id, making deduplication and caching reliable.
+* ``doc_id`` is a deterministic 16-character SHA-256 prefix derived from
+  ``(schema, source_type, input_path, chunk_index, full_content_hash)``
+  (id schema v2). Identical inputs always yield the same id, and any text
+  difference yields a different id, making deduplication and caching reliable.
 * The ``embedding`` field is typed ``Optional[Any]`` at runtime so that numpy
   is **not** imported here. The companion ``_schema.pyi`` stub provides full
   ``numpy.typing.NDArray`` typing for static type checkers.
@@ -86,6 +87,12 @@ if TYPE_CHECKING:
     import polars as pl
 
 logger = logging.getLogger(__name__)
+
+#: Version tag baked into the ``make_doc_id`` hash preimage. Bump this whenever
+#: the doc-id derivation changes so that ids from different schema versions are
+#: distinguishable and old ids are not silently reused. ``v2`` (CORPUS-ID-001)
+#: hashes the *full* text content instead of a 64-character prefix.
+_DOC_ID_SCHEMA = "v2"
 
 __all__ = [  # noqa: RUF022
     # Enumerations
@@ -930,8 +937,8 @@ class CorpusDocument:
     ----------
     doc_id : str
         Stable 16-character hex identifier. Generated deterministically from
-        ``(source_type, input_path, chunk_index, text[:64])`` via
-        :meth:`make_doc_id` if not supplied. Must be non-empty.
+        ``(source_type, input_path, chunk_index, full_content_hash)`` via
+        :meth:`make_doc_id` (id schema v2) if not supplied. Must be non-empty.
     input_path : str
         Name or relative path of the original source file. Must be non-empty.
         Set from ``input_path.name`` by readers; do **not** include absolute
@@ -1754,11 +1761,14 @@ class CorpusDocument:
         source_type: SourceType = SourceType.UNKNOWN,
     ) -> str:
         """
-        Compute a deterministic 16-character hex document identifier.
+        Compute a deterministic 16-character hex document identifier (v2).
 
-        The id is a SHA-1 prefix of
-        ``"{source_type}:{input_path}:{chunk_index}:{text[:64]}"``.
-        Identical inputs always produce the same id.
+        The id is a SHA-256 prefix of
+        ``"{schema}:{source_type}:{input_path}:{chunk_index}:{content_hash}"``,
+        where ``content_hash`` is the **full-content** digest from
+        :meth:`make_content_hash`. Identical inputs always produce the same id;
+        any difference in the text (anywhere, not just the first 64 characters)
+        produces a different id.
 
         Parameters
         ----------
@@ -1767,12 +1777,14 @@ class CorpusDocument:
         chunk_index : int
             Zero-based chunk position within the document.
         text : str
-            Raw text content of the chunk (only the first 64 characters
-            are used to keep hashing fast).
+            Text content of the chunk. The **entire** text is hashed via
+            :meth:`make_content_hash`; ``None`` (raw-media chunks) maps to the
+            fixed sentinel content hash, so such chunks stay unique per
+            ``(source_type, input_path, chunk_index)``.
         source_type : SourceType, optional
             Source kind. Including this in the hash preimage prevents
             collisions when a BOOK chapter and a MOVIE subtitle share the
-            same filename, chunk index, and opening text (Issue S-7).
+            same filename, chunk index, and text (Issue S-7).
             Default: ``SourceType.UNKNOWN``.
 
         Returns
@@ -1782,14 +1794,20 @@ class CorpusDocument:
 
         Notes
         -----
-        Adding ``source_type`` to the hash preimage is a one-time breaking
-        change for corpora built before this version. Existing corpora must
-        be re-indexed when upgrading.
+        **CORPUS-ID-001:** earlier versions hashed only ``text[:64]``, so two
+        distinct texts sharing a 64-character opening received the same id and
+        could overwrite / deduplicate / cache each other. v2 hashes full
+        content. This is a one-time breaking change: corpora built before v2
+        must be re-indexed (their ids differ).
 
         Examples
         --------
         >>> CorpusDocument.make_doc_id("file.txt", 0, "Hello world.")
         '...'  # deterministic 16-char hex
+        >>> a = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "X")
+        >>> b = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "Y")
+        >>> a != b  # full-content identity: no 64-char-prefix collision
+        True
         >>> (
         ...     CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.BOOK)
         ...     != CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.MOVIE)
@@ -1801,12 +1819,13 @@ class CorpusDocument:
             if isinstance(source_type, SourceType)
             else str(source_type)
         )
-        # Guard against text=None: raw-media documents (IMAGE, VIDEO, AUDIO
-        # modalities) legitimately have no text.  Use an empty string prefix
-        # so the hash is still deterministic and unique per (source, chunk).
-        text_prefix = text[:64] if text is not None else ""
-        raw = f"{st_val}:{input_path}:{chunk_index}:{text_prefix}"
-        return hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
+        # v2 identity (CORPUS-ID-001): cover the FULL text, not a 64-char
+        # prefix. ``make_content_hash`` digests the entire text and returns a
+        # fixed sentinel for text=None, preserving raw-media uniqueness by
+        # (source_type, input_path, chunk_index).
+        content = cls.make_content_hash(text=text)
+        raw = f"{_DOC_ID_SCHEMA}:{st_val}:{input_path}:{chunk_index}:{content}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     @staticmethod
     def make_content_hash(
@@ -1843,7 +1862,7 @@ class CorpusDocument:
         return "0" * 32
 
     @classmethod
-    def create(  # noqa: D417
+    def create(  # noqa: D417  # ruff: ignore[too-many-positional-arguments]
         cls,
         input_path: str,
         chunk_index: int,

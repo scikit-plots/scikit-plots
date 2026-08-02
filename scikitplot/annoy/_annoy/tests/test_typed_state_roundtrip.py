@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_typed_state_roundtrip.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-010 (guide 34).
+"""Regression tests for CY-010 (guide 34).
 
 State restore must reconstruct the exact concrete dispatch type. ``set_state``
 restored the type STRINGS (``index_dtype``/``dtype``) but not the dispatch ENUMS

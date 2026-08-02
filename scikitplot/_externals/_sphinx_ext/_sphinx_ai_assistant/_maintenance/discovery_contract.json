@@ -1,0 +1,67 @@
+{
+  "$schema_note": "Canonical, single-source-of-truth contract for the server -> client config sync. The HF Space proxy (`_hf_spaces_proxy/app.py`, `GET /`) EMITS these keys; the browser widget (`_static/ai-assistant.js`, `_fetchProxyDatasetInfo`) CONSUMES them. `tests/test_discovery_contract.py` fails if either side drifts from this file. This is the mechanism that keeps app.py and the JS in sync: change a key here, and both sides must be updated or CI goes red.",
+  "version": 1,
+  "discovery_endpoint": "GET /",
+  "token_policy": "The manifest NEVER carries secret values. Token slots are exposed only as presence booleans (`*_set`) and a classified type (`*_type`). Real secrets live exclusively in server env / HF repo secrets (HF_TOKEN, HF_WRITE_TOKEN, HF_DATASET_TOKEN). The client MUST NOT be a source of secrets.",
+  "consumed_fields": [
+    {
+      "server_path": "training.dataset_repo",
+      "server_key_literal": "\"dataset_repo\"",
+      "client_access_expr": "tr.dataset_repo",
+      "client_field": "repoId",
+      "purpose": "Auto-discovered Hugging Face dataset repo id for the training-contribution links."
+    },
+    {
+      "server_path": "training.contribute_ready",
+      "server_key_literal": "\"contribute_ready\"",
+      "client_access_expr": "tr.contribute_ready",
+      "client_field": "contributeReady",
+      "purpose": "Whether the server has both a dataset repo and a write token configured."
+    },
+    {
+      "server_path": "training.feedback_persist_enabled",
+      "server_key_literal": "\"feedback_persist_enabled\"",
+      "client_access_expr": "tr.feedback_persist_enabled",
+      "client_field": "feedbackPersistEnabled",
+      "purpose": "Server default for durable rating persistence (client may override per session)."
+    },
+    {
+      "server_path": "tokens.hf_token_type",
+      "server_key_literal": "\"hf_token_type\"",
+      "client_access_expr": "tk.hf_token_type",
+      "client_field": "tokenType",
+      "purpose": "Classified read/inference token class (fine-grained | read | write | unknown) for the token-posture row."
+    },
+    {
+      "server_path": "tokens.hf_write_token_type",
+      "server_key_literal": "\"hf_write_token_type\"",
+      "client_access_expr": "tk.hf_write_token_type",
+      "client_field": "writeTokenType",
+      "purpose": "Classified write token class for the least-privilege posture indicator."
+    },
+    {
+      "server_path": "tokens.least_privilege_mode",
+      "server_key_literal": "\"least_privilege_mode\"",
+      "client_access_expr": "tk.least_privilege_mode",
+      "client_field": "leastPrivilege",
+      "purpose": "True when a distinct write token exists (writes do not reuse the read token)."
+    }
+  ],
+  "server_emitted_but_not_yet_consumed": {
+    "note": "The manifest also exposes these for operators/future use. They are NOT part of the enforced contract yet; promote an entry into `consumed_fields` when the client starts reading it.",
+    "keys": [
+      "routing.path_1_backend_url",
+      "routing.path_2_model_space_url",
+      "routing.path_2_namespaces",
+      "routing.path_3_hf_api_base",
+      "routing.path_3_hf_token_set",
+      "tokens.hf_token_set",
+      "tokens.hf_write_token_set",
+      "timeouts.path1_s",
+      "timeouts.path2_s",
+      "timeouts.path3_s",
+      "cors_origins",
+      "endpoints"
+    ]
+  }
+}

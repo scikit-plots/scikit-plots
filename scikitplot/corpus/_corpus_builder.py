@@ -899,7 +899,7 @@ class CorpusBuilder:
             engine = self._get_embedding_engine()
             if engine is not None:
                 embs = engine.embed([query])
-                if embs and len(embs) > 0:
+                if embs is not None and len(embs) > 0:
                     qe = embs[0]
 
         return self._index.search(
@@ -1838,7 +1838,7 @@ class CorpusBuilder:
         def fn(text: str) -> Any:
             """Embed a single query string using the configured engine."""
             embs = engine.embed([text])
-            return embs[0] if embs else None
+            return embs[0] if embs is not None and len(embs) > 0 else None
 
         return fn
 
