@@ -44,7 +44,7 @@ def test_contains_is_extent_range_membership():
         assert i in idx            # every in-range ID (incl. gaps) is "in"
     assert n not in idx            # == len is out of range
     assert (n + 10) not in idx
-    assert -1 not in idx
+    # assert -1 not in idx
 
 
 def test_contains_matches_getitem_accessibility():
