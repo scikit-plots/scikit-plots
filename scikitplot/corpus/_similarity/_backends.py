@@ -58,7 +58,7 @@ __all__ = [
 # Backends tried, in order, when ``backend="auto"``. Annoy first: it is an
 # internal scikit-plots dependency and provides a persistent, memory-mapped
 # vector index; ``bruteforce`` is the always-available numpy floor.
-DEFAULT_BACKEND_ORDER = ("annoy", "faiss", "voyager", "bruteforce")
+DEFAULT_BACKEND_ORDER = ("annoy", "bruteforce", "faiss", "voyager")
 
 
 # =====================================================================
@@ -521,10 +521,10 @@ class VoyagerBackend(ANNBackend):
 
 _BACKENDS: dict[str, type[ANNBackend]] = {
     "annoy": AnnoyBackend,
+    "brute": BruteForceBackend,  # convenience alias
+    "bruteforce": BruteForceBackend,
     "faiss": FaissBackend,
     "voyager": VoyagerBackend,
-    "bruteforce": BruteForceBackend,
-    "brute": BruteForceBackend,  # convenience alias
 }
 
 
@@ -546,6 +546,7 @@ def select_backend(
     annoy_impl: str = "auto",
     annoy_dtype: str | None = None,
     annoy_index_dtype: str | None = None,
+    **kwargs: any,
 ) -> ANNBackend:
     """Construct an ANN backend by name.
 
@@ -554,12 +555,14 @@ def select_backend(
     name : str, optional
         ``"auto"`` (default) resolves the first available backend in
         :data:`DEFAULT_BACKEND_ORDER`. An explicit name
-        (``"annoy"``, ``"faiss"``, ``"voyager"``, ``"bruteforce"``/``"brute"``)
+        (``"annoy"``, ``"bruteforce"``/``"brute"``, ``"faiss"``, ``"voyager"``)
         is honoured or raises if that backend is unavailable.
     annoy_metric, annoy_n_trees, annoy_search_k, annoy_impl, annoy_dtype, annoy_index_dtype
         Forwarded to :class:`AnnoyBackend` (ignored by other backends).
         ``annoy_impl`` selects the high-level or Cython index class; the
         ``dtype`` options apply only to the Cython class.
+    **kwargs : any
+        Backend keyword arguments forwarded to backend constructor.
 
     Returns
     -------
@@ -585,8 +588,9 @@ def select_backend(
                 impl=annoy_impl,
                 dtype=annoy_dtype,
                 index_dtype=annoy_index_dtype,
+                **kwargs,
             )
-        return cls()
+        return cls(**kwargs)
 
     if key == "auto":
         for candidate in DEFAULT_BACKEND_ORDER:

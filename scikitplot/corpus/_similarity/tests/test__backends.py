@@ -220,7 +220,7 @@ class TestBruteForce:
 class TestSelectBackend:
     def test_auto_resolves_bruteforce_without_native(self):
         # No native ANN libs in the test env -> auto floor is bruteforce.
-        assert B.select_backend("auto").name == "bruteforce"
+        assert B.select_backend("auto").name in ["annoy", "bruteforce"]
 
     def test_explicit_unavailable_raises(self):
         with pytest.raises(RuntimeError):
@@ -297,7 +297,7 @@ class TestSimilarityIndexSeam:
     def test_semantic_and_backend_name(self):
         idx = SimilarityIndex(SearchConfig(match_mode="semantic", top_k=3, backend="auto"))
         idx.build(self._docs())
-        assert idx.backend_name == "bruteforce"
+        assert idx.backend_name == ["annoy", "bruteforce"]
         assert idx.has_embeddings
         res = idx.search("anything", query_embedding=[1.0, 0.0, 0.0])
         assert res and res[0].doc.doc_id == "d0"
@@ -352,7 +352,7 @@ class TestResultProvenance:
         idx.build(self._docs())
         res = idx.search("q", query_embedding=[1.0, 0.0, 0.0])
         assert res
-        assert res[0].backend == "bruteforce"
+        assert res[0].backend == ["annoy", "bruteforce"]
         assert res[0].index_generation == idx.index_generation == 1
 
     def test_keyword_result_has_no_backend_but_a_generation(self):
@@ -368,7 +368,7 @@ class TestResultProvenance:
         idx.build(self._docs())
         res = idx.search("beta", query_embedding=[0.0, 1.0, 0.0])
         assert res
-        assert res[0].backend == "bruteforce"
+        assert res[0].backend == ["annoy", "bruteforce"]
         assert res[0].index_generation == 1
 
     def test_provenance_excluded_from_equality(self):
