@@ -22,10 +22,6 @@ Covers:
 
 from __future__ import annotations
 
-import os
-# TODO: Implement and use as kwargs configuration for NLTK accept downloads.
-os.environ['ENV_ALLOW_DOWNLOADS'] = '1'  # Environ Variable must be string not Int
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -206,8 +202,8 @@ class TestLoadStopwords:
     def test_nltk_list_language_union(self) -> None:
         """NLTK source with list language must union stopwords."""
         try:
-            sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"])
-            sw_single = _load_stopwords(StopwordSource.NLTK, "english")
+            sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"], allow_download=True)
+            sw_single = _load_stopwords(StopwordSource.NLTK, "english", allow_download=True)
             # Deduped union of same language must equal single
             assert len(sw_multi) == len(sw_single)
         except ImportError:
@@ -216,14 +212,14 @@ class TestLoadStopwords:
     def test_nltk_unknown_language_uses_builtin_fallback(self) -> None:
         """NLTK source with unsupported language falls through to BUILTIN."""
         try:
-            sw = _load_stopwords(StopwordSource.NLTK, "klingon")
+            sw = _load_stopwords(StopwordSource.NLTK, "klingon", allow_download=True)
             assert isinstance(sw, frozenset)
         except ImportError:
             pytest.skip("NLTK not installed")
 
     def test_nltk_none_language_defaults_to_english(self) -> None:
         try:
-            sw = _load_stopwords(StopwordSource.NLTK, None)
+            sw = _load_stopwords(StopwordSource.NLTK, None, allow_download=True)
             assert isinstance(sw, frozenset)
             assert len(sw) > 0
         except ImportError:
