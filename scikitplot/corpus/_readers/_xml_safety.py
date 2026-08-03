@@ -28,6 +28,23 @@ parse site, so the policy is defined once and cannot drift:
   external-entity references are rejected (mirrors ``defusedxml``'s
   ``forbid_entities`` / ``forbid_external`` defaults) without adding a
   dependency. A benign ``DOCTYPE`` carrying no entities is still accepted.
+
+Namespace representation::
+
+    XML bytes
+        |
+        v
+    Expat reports URI}local
+        |
+        v
+    Normalize to {URI}local
+        |
+        v
+    ElementTree stores Clark names
+
+Clark notation is the canonical internal identity of an expanded XML element
+or attribute name. It is not a replacement for XPath. Full lxml XPath queries
+still use prefixes plus a prefix-to-URI namespace mapping.
 """
 
 from __future__ import annotations
@@ -47,8 +64,8 @@ def hardened_lxml_parser() -> Any:
     Returns
     -------
     lxml.etree.XMLParser
-        A parser with entity resolution, network access, and DTD loading
-        disabled, and size limits enabled.
+        Parser with entity expansion, network access, DTD loading, DTD-default
+        attributes, recovery, and oversized-tree mode disabled.
 
     Raises
     ------
@@ -62,13 +79,14 @@ def hardened_lxml_parser() -> Any:
         no_network=True,  # no external fetch (XXE / SSRF)
         load_dtd=False,  # do not load external DTDs
         dtd_validation=False,
+        attribute_defaults=False,
         huge_tree=False,  # keep libxml2's built-in size limits
         recover=False,
     )
 
 
 def parse_stdlib_secure(content: bytes) -> Any:
-    """Parse XML bytes with a hardened stdlib (expat) parser.
+    """Parse XML bytes with a hardened, namespace-aware stdlib (expat) parser.
 
     Uses ``xml.parsers.expat`` directly with a :class:`~xml.etree.ElementTree.
     TreeBuilder`, because the C-accelerated ``ElementTree.XMLParser`` does not
@@ -77,15 +95,25 @@ def parse_stdlib_secure(content: bytes) -> Any:
     both billion-laughs expansion and XXE. A benign ``DOCTYPE`` without entities
     is still accepted.
 
+    Namespace-expanded Expat names are converted to ElementTree's Clark
+    notation, for example::
+
+        http://www.tei-c.org/ns/1.0}p  # Expat reports expanded names like
+
+    becomes::
+
+        {http://www.tei-c.org/ns/1.0}p  # TreeBuilder and ElementTree expect
+
     Parameters
     ----------
     content : bytes or str
-        Raw XML.
+        Raw XML content. String input is encoded as UTF-8.
 
     Returns
     -------
     xml.etree.ElementTree.Element
-        The parsed document root.
+        Parsed document root with namespace-qualified element and attribute
+        names preserved in Clark notation.
 
     Raises
     ------
@@ -100,6 +128,18 @@ def parse_stdlib_secure(content: bytes) -> Any:
     if isinstance(content, str):
         content = content.encode("utf-8")
 
+    def _to_clark_name(name: str) -> str:
+        """Convert an Expat expanded name to ElementTree Clark notation."""
+        if "}" not in name:
+            return name
+
+        # With namespace_separator="}", Expat emits:
+        #     namespace-uri}local-name  # URI}local
+        #
+        # ElementTree expects:
+        #     {namespace-uri}local-name  # {URI}local
+        return f"{{{name}"
+
     def _forbid_entities(*_args: Any, **_kwargs: Any) -> None:
         raise XmlSecurityError(
             "XML entity declarations are disabled for security "
@@ -113,13 +153,35 @@ def parse_stdlib_secure(content: bytes) -> Any:
         )
 
     builder = ET.TreeBuilder()
-    parser = expat.ParserCreate()
+
+    def _start_element(name: str, attrs: dict[str, str]) -> None:
+        builder.start(
+            _to_clark_name(name),
+            {_to_clark_name(attr_name): value for attr_name, value in attrs.items()},
+        )
+
+    def _end_element(name: str) -> None:
+        builder.end(_to_clark_name(name))
+
+    # A separator enables namespace processing. Expat reports expanded names
+    # as ``URI}local``; the handlers convert them to ``{URI}local``.
+    parser = expat.ParserCreate(namespace_separator="}")
     parser.buffer_text = True
+
+    # Report only attributes explicitly present in the XML source. Without
+    # this, Expat can inject default attributes declared in an internal DTD.
+    parser.specified_attributes = True
+
     parser.EntityDeclHandler = _forbid_entities
     parser.UnparsedEntityDeclHandler = _forbid_entities
     parser.ExternalEntityRefHandler = _forbid_external
-    parser.StartElementHandler = builder.start
-    parser.EndElementHandler = builder.end
+
+    # Never parse external parameter entities or external DTD subsets.
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+
+    parser.StartElementHandler = _start_element  # builder.start
+    parser.EndElementHandler = _end_element  # builder.end
     parser.CharacterDataHandler = builder.data
+
     parser.Parse(content, True)
     return builder.close()
