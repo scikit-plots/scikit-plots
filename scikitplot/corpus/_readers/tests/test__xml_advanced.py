@@ -125,6 +125,7 @@ class TestXpathElementsStdlib:
         assert results == []
 
     def test_bad_xpath_logs_warning_and_returns_empty(
+        self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
@@ -139,11 +140,17 @@ class TestXpathElementsStdlib:
                 {},
             )
 
+        # caplog.messages	    A list of all captured log messages, formatted for easy access.
+        # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
+        # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
+        # caplog.record_tuples	A list of tuples, each containing the logger name, log level, and message, allowing for structured assertions.
         assert results == []
         assert "stdlib XPath error" in caplog.text
+        # Just ensure it didn't raise
 
 
     def test_valid_xpath_with_no_match_does_not_log_warning(
+        self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")

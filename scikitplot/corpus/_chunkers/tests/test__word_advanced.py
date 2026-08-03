@@ -422,6 +422,11 @@ class TestWordChunkerConfigValidation:
         import logging
         with caplog.at_level(logging.WARNING, logger="scikitplot.corpus._chunkers._word"):
             WordChunker(WordChunkerConfig(build_gensim_corpus=True))
+
+        # caplog.messages	    A list of all captured log messages, formatted for easy access.
+        # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
+        # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
+        # caplog.record_tuples	A list of tuples, each containing the logger name, log level, and message, allowing for structured assertions.
         assert any("gensim" in r.message.lower() or "dictionary" in r.message.lower()
                    for r in caplog.records) or True
         # Just ensure it didn't raise
