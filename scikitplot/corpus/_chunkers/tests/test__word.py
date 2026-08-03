@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+# TODO: Implement and use as kwargs configuration for NLTK accept downloads.
+os.environ['ENV_ALLOW_DOWNLOADS'] = '1'  # Environ Variable must be string not Int
+
 from unittest.mock import MagicMock, patch
 
 import pytest

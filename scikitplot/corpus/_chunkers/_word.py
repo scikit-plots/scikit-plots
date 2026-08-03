@@ -453,13 +453,18 @@ def _tokenize_simple(text: str) -> list[str]:
     return cleaned
 
 
-def _tokenize_nltk(text: str) -> list[str]:
+def _tokenize_nltk(
+    text: str,
+    **kwargs: any,
+) -> list[str]:
     """Tokenize using ``nltk.word_tokenize``.
 
     Parameters
     ----------
     text : str
         Input text.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Returns
     -------
@@ -486,7 +491,7 @@ def _tokenize_nltk(text: str) -> list[str]:
     except LookupError:
         from .._resources import ensure_nltk_resource  # noqa: PLC0415
 
-        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab")
+        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab", **kwargs)
         return word_tokenize(text)
 
 
@@ -607,13 +612,15 @@ def _get_stemmer(
 _LEMMATIZER_CACHE: dict[LemmatizationBackend, Any] = {}
 
 
-def _get_nltk_lemmatizer() -> Any:
+def _get_nltk_lemmatizer(**kwargs: any) -> Any:
     """Return a cached NLTK WordNetLemmatizer.
 
     Returns
     -------
     WordNetLemmatizer
         NLTK lemmatizer instance.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Raises
     ------
@@ -642,8 +649,8 @@ def _get_nltk_lemmatizer() -> Any:
     except LookupError:
         from .._resources import ensure_nltk_resource  # noqa: PLC0415
 
-        ensure_nltk_resource("corpora/wordnet", "wordnet")
-        ensure_nltk_resource("corpora/omw-1.4", "omw-1.4")
+        ensure_nltk_resource("corpora/wordnet", "wordnet", **kwargs)
+        ensure_nltk_resource("corpora/omw-1.4", "omw-1.4", **kwargs)
         lemmatizer = WordNetLemmatizer()
 
     _LEMMATIZER_CACHE[LemmatizationBackend.NLTK_WORDNET] = lemmatizer
@@ -658,6 +665,7 @@ def _get_nltk_lemmatizer() -> Any:
 def _load_stopwords(  # noqa: PLR0912
     source: StopwordSource,
     language: str | list[str] | None,
+    **kwargs: any,
 ) -> frozenset:
     """Load stopwords from the specified source.
 
@@ -669,6 +677,8 @@ def _load_stopwords(  # noqa: PLR0912
         Language identifier(s) for NLTK/spaCy sources.  Accepts ISO codes,
         NLTK names, lists thereof, or ``None`` (falls back to English).
         When a list is provided the stopword sets are unioned.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Returns
     -------
@@ -710,7 +720,7 @@ def _load_stopwords(  # noqa: PLR0912
             except LookupError:
                 from .._resources import ensure_nltk_resource  # noqa: PLC0415
 
-                ensure_nltk_resource("corpora/stopwords", "stopwords")
+                ensure_nltk_resource("corpora/stopwords", "stopwords", **kwargs)
                 try:
                     result |= set(stopwords.words(lang))
                 except OSError:

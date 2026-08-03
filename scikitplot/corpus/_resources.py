@@ -105,6 +105,7 @@ def ensure_nltk_resource(
     *,
     allow_download: bool | None = None,
     extra_hint: str = "",
+    **kwargs: any,
 ) -> None:
     """Ensure an NLTK data resource is available WITHOUT implicit downloads.
 
@@ -124,6 +125,8 @@ def ensure_nltk_resource(
         :func:`downloads_allowed`.
     extra_hint : str, optional
         Additional text appended to the error message.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Raises
     ------
@@ -131,6 +134,7 @@ def ensure_nltk_resource(
         If NLTK is not installed, or the resource is missing and downloads are
         not authorized.
     """
+    allow_download = allow_download or kwargs.pop("allow_download", allow_download)
     try:
         import nltk  # type: ignore[import]  # noqa: PLC0415
     except ImportError as exc:
