@@ -555,7 +555,7 @@ def select_backend(
     name : str, optional
         ``"auto"`` (default) resolves the first available backend in
         :data:`DEFAULT_BACKEND_ORDER`. An explicit name
-        (``"annoy"``, ``"bruteforce"``/``"brute"``, ``"faiss"``, ``"voyager"``)
+        (``"annoy"``, ``"brute"``/``"bruteforce"``, ``"faiss"``, ``"voyager"``)
         is honoured or raises if that backend is unavailable.
     annoy_metric, annoy_n_trees, annoy_search_k, annoy_impl, annoy_dtype, annoy_index_dtype
         Forwarded to :class:`AnnoyBackend` (ignored by other backends).
