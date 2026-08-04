@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_float128_precision_contract.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-012 (guide 39).
+"""Regression tests for CY-012 (guide 39).
 
 All embeddings pass through a double-precision (float64) ``_w`` bridge, so
 ``float128`` provides no more input/output precision than ``float64`` — its only

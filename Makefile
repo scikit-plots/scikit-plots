@@ -1333,3 +1333,8 @@ empty:
 ######################################################################
 ##
 ######################################################################
+
+pytest1:
+	@pytest \
+		scikitplot/corpus/_similarity/tests/test__backends.py::TestAnnoyBackend::test_auto_falls_back_to_cython \
+		-vv

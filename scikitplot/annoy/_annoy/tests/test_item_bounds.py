@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_item_bounds.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-008 (guide 31).
+"""Regression tests for CY-008 (guide 31).
 
 Every item-taking operation must reject a Python-visible invalid id (negative,
 over dtype-capacity, or >= n_items) with the documented exception BEFORE any

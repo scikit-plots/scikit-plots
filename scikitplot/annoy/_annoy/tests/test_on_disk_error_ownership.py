@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_on_disk_error_ownership.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-005 (guide 28).
+"""Regression tests for CY-005 (guide 28).
 
 The public ``on_disk_build`` failure path decoded a native error string and
 raised without freeing it, leaking one heap allocation per failure (the alternate

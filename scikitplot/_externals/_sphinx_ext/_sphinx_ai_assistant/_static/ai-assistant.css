@@ -303,9 +303,19 @@
      * automatically zooms the viewport on focus — causing jarring layout shifts
      * every time the user taps the chat input.
      * Setting font-size to 1rem (16px) on mobile ONLY prevents the zoom while
-     * preserving the 0.875rem desktop size.                                     */
+     * preserving the 0.875rem desktop size.
+     *
+     * !important is required here: this rule and the later, unconditional
+     * `.ai-assistant-panel-input { font-size: 0.875rem; ... }` rule (further
+     * down in this file, outside any media query) have IDENTICAL specificity
+     * (one class each). CSS breaks specificity ties by source order, not by
+     * which @media condition is active — so without !important, that later
+     * rule silently won on mobile too, this fix never actually applied, and
+     * the input stayed at 14px. That's the actual root cause of the reported
+     * "width increase on tapping the input": Safari's auto-zoom kicking in
+     * on every focus because the font-size never really reached 16px.      */
     .ai-assistant-panel-input {
-        font-size: 1rem;
+        font-size: 1rem !important;
     }
 }
 
@@ -370,6 +380,14 @@
      * the panel header.  The panel-body child manages its own scroll via
      * overflow-y:auto and is unaffected by this declaration.              */
     overflow: visible;
+    /* Mobile width-overflow fix: this rule has a 1px solid border but no
+     * box-sizing, so it defaulted to content-box — width was CONTENT width,
+     * with the border added on top. Invisible on desktop, where max-width:
+     * calc(100% - 1rem) has ~1rem of slack to absorb the extra 2px, but at
+     * the ≤480px breakpoint below (width:100%; max-width:100%; zero slack)
+     * the panel actually rendered at 100% + 2px, overflowing the viewport
+     * horizontally. border-box makes width/max-width include the border. */
+    box-sizing: border-box;
     position: fixed;
     bottom: 0.3rem;
     right: 0.3rem;
@@ -384,7 +402,20 @@
      * excluding browser chrome.  100vh stays as the universal fallback.      */
     max-height: calc(100vh - 1rem);
     max-height: calc(100dvh - 1rem);
-    max-width: calc(100vw - 1rem);
+    /* Width overflow fix (Chrome/Firefox/Edge/Android — not Safari): 100vw
+     * is specified against the full window width INCLUDING the vertical
+     * scrollbar's gutter. macOS/iOS Safari's overlay scrollbars have no
+     * gutter, so this was invisible there, but Chromium/Firefox/Android
+     * reserve real space for the scrollbar — so whenever the underlying
+     * page had one, calc(100vw - 1rem) could still exceed the visible
+     * viewport once the scrollbar ate into that 1rem of slack (a scrollbar
+     * can run ~15-17px depending on OS/browser, right at the edge of the
+     * 16px budget). calc(100% - 1rem) resolves against the visible
+     * viewport for this fixed-position box instead, sidestepping the
+     * gutter on every engine. This rule is active any time the panel is
+     * open (not just maximized), so it's the more consequential fix for
+     * the reported cross-browser/Android overflow.                        */
+    max-width: calc(100% - 1rem);
 
     display: none;          /* JS sets display:flex when open */
     flex-direction: column;
@@ -407,9 +438,11 @@
     transition: opacity 0.28s ease,
                 transform 0.28s ease,
                 max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                 width 0.3s ease,
                 bottom 0.3s ease,
-                right 0.3s ease;
+                right 0.3s ease,
+                border-radius 0.3s ease;
     pointer-events: none;
 }
 
@@ -426,26 +459,40 @@
 
 /* ─── MAXIMIZED state ───────────────────────────────────────────────────── */
 /*
- * Fills the full viewport height minus a small margin.
- * Width grows to configured panelMaxWidth (default 520px).
+ * True edge-to-edge fullscreen: fills the entire viewport, flush with all
+ * four edges, no rounded corners. (Previously capped at 960px wide with a
+ * 0.3rem margin on all sides and 12px corners — a "large window" rather than
+ * an actual fullscreen state.)
  * The JS adds/removes data-maximized attribute on the panel element.
  */
 
 .ai-assistant-panel[data-maximized="true"] {
-    /* Actual height (not just max-height) so the panel fills the viewport
-       vertically regardless of message count — the body flex-child absorbs
-       the remaining space. */
-    /* iOS Safari dvh fix: same 100vh bug applies to explicit height. */
-    height: calc(100vh - 1rem);
-    height: calc(100dvh - 1rem);
-    max-height: calc(100vh - 1rem);   /* keep as guard for safe measure */
-    max-height: calc(100dvh - 1rem);  /* dvh wins on iOS 15.4+ */
-    /* Expand width significantly on maximize — was 520px, now uses most of
-       the viewport so both X and Y grow on maximize. */
-    width: min(960px, calc(100vw - 1rem));
-    bottom: 0.3rem;
-    right: 0.3rem;
-    border-radius: 12px;
+    /* Anchored bottom-right already; pinning bottom/right to 0 and growing
+       width/height to the full viewport reaches the top-left edge too, so
+       no explicit top/left is needed (and the base rule never declares
+       them, so animating from 'auto' wouldn't be reliable anyway). */
+    bottom: 0;
+    right: 0;
+    /* Width overflow fix (Chrome/Firefox/Edge/Android — not Safari): 100vw
+     * is specified against the full window width, INCLUDING the vertical
+     * scrollbar's gutter. macOS/iOS Safari's overlay scrollbars have no
+     * gutter, so 100vw happened to match the visible viewport there and
+     * the bug was invisible — but every Chromium and Firefox browser (and
+     * Android WebViews generally) reserves real space for the scrollbar,
+     * so 100vw rendered the panel ~15-17px wider than what's actually
+     * visible, pushing the page into horizontal overflow by that amount.
+     * A position:fixed box's percentage width resolves against the
+     * visible viewport instead, so 100% avoids the gutter entirely on
+     * every engine. */
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    /* Sit above everything else on the page while fullscreen. */
+    z-index: 2147483647;
 }
 
 /* ─── Panel header ──────────────────────────────────────────────────────── */
@@ -505,6 +552,15 @@
     flex-shrink: 0;
     /* overflow:visible ensures no ancestor clip reaches the absolute menu.  */
     overflow: visible;
+}
+
+/* Sheet-embedded copy of the header action cluster (new chat / export /
+ * minimize / maximize) — see _buildSheetToolbar() in the JS. Sits inside
+ * .ai-assistant-panel-privacy-head alongside the hamburger, title, and the
+ * sheet's own close button, so it needs a tighter gap than the main
+ * header's copy, which has the whole header row to itself. */
+.ai-assistant-panel-sheet-toolbar {
+    gap: 0.05rem;
 }
 
 .ai-assistant-panel-icon-btn {
@@ -902,6 +958,39 @@
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
 }
 
+/* ─── Footer credit: "Powered by …" white-label branding line ───────────── */
+/*
+ * Deliberately understated — same size/color/centering as the disclaimer
+ * note directly above it, so it reads as a quiet footer line rather than an
+ * ad. Content (text/name/url) comes from _resolvePoweredBy() in the JS,
+ * which defaults to the scikit-plots repo and can be overridden per-page
+ * via window.AI_ASSISTANT_CONFIG.poweredBy, or hidden entirely — see that
+ * function's docblock for the future cavehub.ai stub and other options.
+ */
+.ai-assistant-panel-footer-credit {
+    width: 100%;
+    margin: 0.15rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-footer-credit {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
+}
+
+.ai-assistant-panel-footer-credit-link {
+    color: inherit;
+    text-decoration: underline;
+    touch-action: manipulation;  /* eliminate 300ms tap delay on touch devices */
+}
+
+.ai-assistant-panel-footer-credit-link:hover,
+.ai-assistant-panel-footer-credit-link:focus-visible {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
 /* ─── "Speak with assistant" banner (optional, above input) ─────────────── */
 /*
  * Shown when panelSpeakBanner is true in config and browser supports
@@ -1092,10 +1181,14 @@
     }
 
     .ai-assistant-panel[data-maximized="true"] {
-        /* BUG-6 fix continued: maximized mobile also needs dvh.        */
-        max-height: 95vh;
-        max-height: 95dvh;
-        border-radius: 12px 12px 0 0;
+        /* BUG-6 fix continued: maximized mobile also needs dvh. Now true
+           edge-to-edge fullscreen, matching the desktop maximized rule
+           above, instead of a 95dvh sheet with rounded top corners. */
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0;
     }
 
     .ai-assistant-panel-trigger {
@@ -2068,11 +2161,19 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.25rem;       /* breathing room between hamburger · title · close */
+    gap: 0.25rem;
     padding: 0.75rem 1rem;
     border-bottom: 1px solid
         var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
     flex-shrink: 0;
+    /* Defensive fallback for very narrow viewports now that the sheet
+       toolbar (new chat / export / minimize / maximize) can add ~150px of
+       fixed-width chrome alongside the hamburger + close buttons — see
+       .ai-assistant-panel-sheet-toolbar below. Wraps to a second line
+       instead of overflowing if min-width:0 on the title (below) still
+       isn't enough room. */
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
 }
 .ai-assistant-panel-privacy-head strong {
     font-size: 0.95rem;
@@ -2081,6 +2182,11 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
        28 px side icons centres the strong automatically.  flex: 1 prevents the
        title from collapsing on very narrow panels. */
     flex: 1 1 auto;
+    /* Required for text-overflow:ellipsis to actually engage inside a flex
+       row: flex items default to min-width:auto, which floors their shrink
+       at the *unwrapped* text's natural width — overflowing the row instead
+       of truncating. min-width:0 lets it shrink below that. */
+    min-width: 0;
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2356,8 +2462,12 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 }
 
 /* ─── Progressive right-cluster overflow — per-item smooth collapse ──────────
-   JS assigns [data-overflow-hidden] to each button individually, keyed to
-   panel-width thresholds (Model 575 → Privacy 475 → Terms 350 → Share 300 px).
+   JS assigns [data-overflow-hidden] to each button individually. As of the
+   ratio/slot-based rewrite, exact px thresholds are computed from two
+   constants (_SUBBAR_BASE_PX, _SUBBAR_ITEM_SLOT_PX) rather than six
+   hand-tuned numbers — see _updateSubbarOverflow() in the JS for the
+   priority order (Model → Endpoints → Privacy → Terms → Share → Project
+   Links, lowest priority/hides first to highest/hides last) and formula.
    max-width transitions from its natural content width down to 0 so the item
    squeezes closed in place.  opacity fades in parallel so the text/icon fades
    as the element collapses — no sudden pop-in or pop-out.
@@ -2408,13 +2518,18 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 
 /* Stagger: in the fast-resize fallback (all hidden simultaneously), carriages depart
    one at a time right → left, 70 ms apart, so each departure is individually visible.
-   In normal use JS crosses one threshold at a time, so only one carriage animates
-   per resize step — the stagger acts as a graceful safety net here.
-   DOM positions: 1=Model  2=Privacy  3=Terms  4=Share  5=⋯btn */
-.ai-assistant-panel-subbar-right > button:nth-child(1)[data-overflow-hidden] { transition-delay: 210ms; } /* Model — exits last    */
-.ai-assistant-panel-subbar-right > button:nth-child(2)[data-overflow-hidden] { transition-delay: 140ms;}  /* Privacy               */
-.ai-assistant-panel-subbar-right > button:nth-child(3)[data-overflow-hidden] { transition-delay: 70ms;}   /* Terms                 */
-.ai-assistant-panel-subbar-right > button:nth-child(4)[data-overflow-hidden] { transition-delay: 0ms;  }  /* Share — exits first   */
+   In normal use JS crosses one visibleCount step at a time, so only one carriage
+   animates per resize step — the stagger acts as a graceful safety net here.
+   DOM positions (left→right): 1=Model 2=Endpoints 3=Privacy 4=Terms 5=Share
+   6=Project Links 7=⋯btn. (The previous version of this comment mislabeled
+   nth-child(2) as "Privacy" — it's actually Endpoints, which meant Endpoints
+   silently never got a stagger delay before this fix.) */
+.ai-assistant-panel-subbar-right > button:nth-child(1)[data-overflow-hidden] { transition-delay: 350ms; } /* Model         — furthest from the tunnel, departs last  */
+.ai-assistant-panel-subbar-right > button:nth-child(2)[data-overflow-hidden] { transition-delay: 280ms; } /* Endpoints                                                */
+.ai-assistant-panel-subbar-right > button:nth-child(3)[data-overflow-hidden] { transition-delay: 210ms; } /* Privacy                                                  */
+.ai-assistant-panel-subbar-right > button:nth-child(4)[data-overflow-hidden] { transition-delay: 140ms; } /* Terms                                                    */
+.ai-assistant-panel-subbar-right > button:nth-child(5)[data-overflow-hidden] { transition-delay: 70ms;  } /* Share                                                    */
+.ai-assistant-panel-subbar-right > button:nth-child(6)[data-overflow-hidden] { transition-delay: 0ms;   } /* Project Links — right at the tunnel mouth, departs first */
 
 /* Model-selection sheet — list of radio rows. */
 .ai-assistant-panel-model-list {
@@ -6630,16 +6745,18 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PROJECT LINKS — subbar buttons & Links slide-over sheet
+   PROJECT LINKS — subbar button & Links slide-over sheet
    ═══════════════════════════════════════════════════════════════════════════
-   Added by the panelLinks / panelSource / panelSite feature.
+   Added by the panelLinks / panelSite feature. (The panelSource left-cluster
+   sourceBtn that used to sit alongside this was removed as redundant — siteBtn
+   and the hamburger's "Project Links" item already cover the same entry point,
+   and now share the same GitHub icon for visual consistency between them.)
 
    Architecture:
-     • Two compact icon-label buttons live in the subbar:
-         sourceBtn  — left cluster, after the hamburger hint (GitHub icon)
-         siteBtn    — right cluster, after the Share button (Globe icon)
-       Both share `.ai-assistant-panel-subbar-link-btn` as a base class and
-       carry an additional specific class for per-role overrides.
+     • One compact icon-label button lives in the subbar's right cluster,
+       after the Share button: siteBtn.  Carries the shared
+       `.ai-assistant-panel-subbar-link-btn` base class plus
+       `.ai-assistant-panel-site-btn` for role-specific overrides.
      • The Links slide-over sheet contains rich card elements
        (`.ai-assistant-panel-link-card`) for each configured link.
    ─────────────────────────────────────────────────────────────────────── */
@@ -6671,24 +6788,14 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     stroke: none;
 }
 
-/* ── GitHub source button — left cluster ────────────────────────────────── */
-.ai-assistant-panel-source-btn:hover {
-    color: #24292f;
-    background: rgba(36, 41, 47, 0.08);
-}
-[data-bs-theme="dark"] .ai-assistant-panel-source-btn:hover,
-.dark .ai-assistant-panel-source-btn:hover {
-    color: #e6edf3;
-    background: rgba(230, 237, 243, 0.1);
-}
-
-/* ── Globe / website button — right cluster ─────────────────────────────── */
-/* Globe uses stroke paths, not fill paths */
-.ai-assistant-panel-site-btn svg {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-}
+/* ── Site / project-links button — right cluster ────────────────────────── */
+/* Uses the shared fill-based icon styling from
+   .ai-assistant-panel-subbar-link-btn svg above (fill: currentColor;
+   stroke: none) — no per-role override needed, since this now renders the
+   same GitHub mark as the hamburger's "Project Links" item, not the old
+   stroke-based globe glyph. Hover color rule lives further down (brand
+   color via color-mix), unchanged — see .ai-assistant-panel-site-btn:hover
+   below "Narrow-panel". */
 .ai-assistant-panel-site-btn:hover {
     color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
     background: rgba(37, 99, 235, 0.10);
@@ -9010,7 +9117,7 @@ a.ai-assistant-panel-ep-resolved-url:focus-visible {
 
 /* Active profile name label — same truncation behaviour as model-link-label. */
 .ai-assistant-panel-ep-btn-label {
-    max-width: 10ch;
+    max-width: 11ch;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -47,10 +47,8 @@ in ``scikitplot.corpus._base``.
 
 from __future__ import annotations
 
-import ipaddress
 import logging
 import re
-import socket
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
@@ -185,59 +183,26 @@ def validate_url_safety(
 
     Notes
     -----
-    **Developer note:** This function resolves the hostname to an IP
-    address and checks it against RFC 1918 (private), RFC 3927
-    (link-local), and loopback ranges. Cloud metadata endpoints
-    (169.254.169.254) are explicitly blocked.
+    **Developer note:** SSRF validation is delegated to the single shared gate
+    :func:`scikitplot.corpus._url_handler._validate_url_security`, so WebReader
+    and YouTubeReader enforce exactly the same policy as the URL handler and the
+    downloaders (CORPUS-NET-003): fail-closed DNS resolution, full IPv4/IPv6
+    private/loopback/link-local/reserved/multicast coverage, and http/https
+    scheme enforcement. ``max_content_bytes`` is accepted for backward
+    compatibility and is enforced separately by the caller at fetch time.
 
     Call this BEFORE making any HTTP request in WebReader and
     YouTubeReader.
     """
     if allow_private_networks:
+        # Explicit opt-out of SSRF protection (e.g. scraping an internal host
+        # by choice). Unchanged behaviour: no network policy is applied.
         return
 
-    from urllib.parse import urlparse  # noqa: PLC0415
+    from .._url_handler import _validate_url_security  # noqa: PLC0415
 
-    parsed = urlparse(url)
-    hostname = parsed.hostname
-    if not hostname:
-        raise ValueError(f"Cannot extract hostname from URL: {url!r}")
-
-    try:
-        # Resolve hostname to IP
-        addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC)
-        for _family, _type, _proto, _canonname, sockaddr in addr_info:
-            ip_str = sockaddr[0]
-            ip = ipaddress.ip_address(ip_str)
-
-            if ip.is_loopback:
-                raise ValueError(
-                    f"URL {url!r} resolves to loopback address {ip}. "
-                    f"Set allow_private_networks=True to allow."
-                )
-
-            if ip.is_private:
-                raise ValueError(
-                    f"URL {url!r} resolves to private address {ip}. "
-                    f"Set allow_private_networks=True to allow."
-                )
-
-            if ip.is_link_local:
-                raise ValueError(
-                    f"URL {url!r} resolves to link-local address {ip}. "
-                    f"Set allow_private_networks=True to allow."
-                )
-
-            # Cloud metadata endpoint
-            if ip_str == "169.254.169.254":
-                raise ValueError(
-                    f"URL {url!r} resolves to cloud metadata endpoint. "
-                    f"This is blocked for security."
-                )
-
-    except socket.gaierror:
-        # Cannot resolve — let the HTTP library handle it
-        logger.debug("Cannot resolve hostname %r; skipping SSRF check.", hostname)
+    # One shared, fail-closed implementation — no duplicate SSRF logic here.
+    _validate_url_security(url)
 
 
 # ===========================================================================
@@ -534,11 +499,21 @@ class WebReader(DocumentReader):
             self.source_uri or str(self.input_path),
             allow_private_networks=self.allow_private_networks,
         )
-        response = requests.get(
+        from .._url_handler import (  # noqa: PLC0415
+            _get_with_validated_redirects,
+        )
+
+        # Follow redirects manually, re-running the reader's SSRF policy on
+        # every hop before connecting (CORPUS-NET-001).
+        response = _get_with_validated_redirects(
+            requests,
             url,
-            headers=self._build_headers(),
-            timeout=self.timeout,
             stream=True,
+            timeout=self.timeout,
+            headers=self._build_headers(),
+            validate=lambda hop: validate_url_safety(
+                hop, allow_private_networks=self.allow_private_networks
+            ),
         )
         content_length = int(response.headers.get("Content-Length", 0))
         if content_length > self.max_content_bytes:

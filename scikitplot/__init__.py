@@ -107,6 +107,7 @@ _submodules = sorted(
     | {
         ## A package is a directory with an __init__.py
         "_api",
+        "_brand",
         "_build_utils",
         "_compat",
         "_decorates",
@@ -129,6 +130,7 @@ _submodules = sorted(
         "experimental",
         "externals",
         "impute",
+        "mcp",
         "memmap",
         "misc",
         "mlflow",
@@ -142,7 +144,6 @@ _submodules = sorted(
         "visualkeras",
         ## A module is a .py file that is itself a module object when imported.
         "_globals",
-        "_brand",
         "_min_dependencies",
         "_preprocess",
         "_reset",

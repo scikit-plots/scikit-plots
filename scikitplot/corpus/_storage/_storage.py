@@ -1,3 +1,10 @@
+# scikitplot/corpus/_storage/_storage.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._storage._storage
 =====================================
@@ -30,14 +37,17 @@ Python 3.8-3.15. Only stdlib used: ``json``, ``sqlite3``, ``threading``,
 from __future__ import annotations
 
 import abc
+import contextlib
 import json
 import logging
+import os
 import pathlib
 import sqlite3
 import threading
 from dataclasses import dataclass, field  # noqa: F401
 from typing import Any, Dict, Iterator, List, Optional, Sequence  # noqa: F401
 
+from .._atomic import atomic_write_path
 from .._schema import (  # noqa: F401
     ChunkingStrategy,
     CorpusDocument,
@@ -428,24 +438,22 @@ class JSONLStorage(StorageBase):
             errors,
         )
 
-    def _rewrite(self) -> None:
-        """Atomically rewrite the JSONL file from the current index."""
-        tmp = self._path.with_suffix(".tmp.jsonl")
-        try:
+    def _rewrite(self, index: dict[str, Any] | None = None) -> None:
+        """Atomically rewrite the JSONL file from ``index`` (default: current).
+
+        Passing an explicit ``index`` enables copy-on-write saves: the caller
+        writes the *next* generation to disk and only commits it to
+        ``self._index`` after the atomic replace succeeds (CORPUS-STO-002).
+        """
+        source = self._index if index is None else index
+
+        def _write(tmp: pathlib.Path) -> None:
             with tmp.open("w", encoding="utf-8") as fh:
-                for data in self._index.values():
+                for data in source.values():
                     fh.write(json.dumps(data, ensure_ascii=False))
                     fh.write("\n")
-            tmp.replace(self._path)
-        except Exception:  # noqa: BLE001
-            # Broad catch is correct here: this is a cleanup-and-reraise
-            # handler.  Any exception from the write (OSError, json.JSONEncodeError,
-            # MemoryError, etc.) must trigger tmp-file removal before propagating
-            # to the caller.  We never suppress — the bare ``raise`` below
-            # ensures the original exception propagates unchanged.
-            if tmp.exists():
-                tmp.unlink()
-            raise
+
+        atomic_write_path(self._path, _write, suffix=".jsonl")
 
     # ------------------------------------------------------------------
     # StorageBase contract
@@ -464,16 +472,27 @@ class JSONLStorage(StorageBase):
         """
         data = _doc_to_dict(doc)
         with self._lock:
-            is_update = doc.doc_id in self._index
-            self._index[doc.doc_id] = data
-            if is_update:
-                self._rewrite()
+            if doc.doc_id in self._index:
+                # Update rewrites the whole file. Copy-on-write: build the next
+                # generation, publish it atomically, and only then swap it in.
+                # A failed write leaves both memory and disk at the previous
+                # generation (CORPUS-STO-002) — no memory-ahead-of-disk.
+                new_index = dict(self._index)
+                new_index[doc.doc_id] = data
+                self._rewrite(new_index)
+                self._index = new_index
             else:
-                # Fast path: append single line.
+                # Append fast-path (O(1)): write + fsync to disk FIRST, update
+                # memory only after. On failure the doc never enters memory, so
+                # a query can never return a document that is not durable. A
+                # partial trailing line is tolerated by ``_load`` on reload.
                 self._path.parent.mkdir(parents=True, exist_ok=True)
+                line = json.dumps(data, ensure_ascii=False) + "\n"
                 with self._path.open("a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(data, ensure_ascii=False))
-                    fh.write("\n")
+                    fh.write(line)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+                self._index[doc.doc_id] = data
 
     def save_batch(self, docs: Sequence[CorpusDocument]) -> None:  # noqa: D417
         """
@@ -487,9 +506,15 @@ class JSONLStorage(StorageBase):
             return
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
+            # Copy-on-write: serialize into the next generation, publish it
+            # atomically, and commit to memory only on success. A failed write
+            # (or an unserializable doc) leaves memory and disk unchanged
+            # (CORPUS-STO-002).
+            new_index = dict(self._index)
             for doc in docs:
-                self._index[doc.doc_id] = _doc_to_dict(doc)
-            self._rewrite()
+                new_index[doc.doc_id] = _doc_to_dict(doc)
+            self._rewrite(new_index)
+            self._index = new_index
 
     def get(self, doc_id: str) -> CorpusDocument | None:  # noqa: D417
         """
@@ -576,6 +601,33 @@ _CREATE_INDEXES_SQL = [
 ]
 
 
+_UPSERT_DOC_SQL = """
+INSERT OR REPLACE INTO corpus_documents
+    (doc_id, input_path, source_type, section_type,
+     language, collection_id, chunk_index, char_start,
+     char_end, json_data)
+VALUES
+    (:doc_id, :input_path, :source_type, :section_type,
+     :language, :collection_id, :chunk_index, :char_start,
+     :char_end, :json_data)
+"""
+
+_DELETE_FTS_SQL = "DELETE FROM corpus_fts WHERE doc_id = ?;"
+_INSERT_FTS_SQL = "INSERT INTO corpus_fts(doc_id, text) VALUES (?, ?);"
+
+# FTS5 virtual tables do not enforce uniqueness for ``UNINDEXED`` columns, so
+# legacy ``INSERT OR REPLACE`` writes may have left several rows for one doc_id.
+# Keep only the newest row when opening an existing store.
+_DEDUP_FTS_SQL = """
+DELETE FROM corpus_fts
+WHERE rowid NOT IN (
+    SELECT MAX(rowid)
+    FROM corpus_fts
+    GROUP BY doc_id
+);
+"""
+
+
 class SQLiteStorage(StorageBase):
     r"""
     SQLite-backed corpus store with FTS5 full-text search.
@@ -632,6 +684,7 @@ class SQLiteStorage(StorageBase):
         with self._lock, self._conn:
             self._conn.execute(_CREATE_TABLE_SQL)
             self._conn.execute(_CREATE_FTS_SQL)
+            self._conn.execute(_DEDUP_FTS_SQL)
             for idx_sql in _CREATE_INDEXES_SQL:
                 self._conn.execute(idx_sql)
 
@@ -655,26 +708,31 @@ class SQLiteStorage(StorageBase):
         return _dict_to_doc(json.loads(row["json_data"]))
 
     def _upsert(self, doc: CorpusDocument, cursor: sqlite3.Cursor) -> None:
-        """INSERT OR REPLACE a single document row."""
-        row = self._doc_to_row(doc)
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO corpus_documents
-                (doc_id, input_path, source_type, section_type,
-                 language, collection_id, chunk_index, char_start,
-                 char_end, json_data)
-            VALUES
-                (:doc_id, :input_path, :source_type, :section_type,
-                 :language, :collection_id, :chunk_index, :char_start,
-                 :char_end, :json_data)
-            """,
-            row,
-        )
-        # Keep FTS in sync
-        cursor.execute(
-            "INSERT OR REPLACE INTO corpus_fts(doc_id, text) VALUES (?, ?);",
-            (doc.doc_id, doc.text),
-        )
+        """INSERT OR REPLACE a single document row (documents + FTS)."""
+        cursor.execute(_UPSERT_DOC_SQL, self._doc_to_row(doc))
+        cursor.execute(_DELETE_FTS_SQL, (doc.doc_id,))
+        cursor.execute(_INSERT_FTS_SQL, (doc.doc_id, doc.text))
+
+    @contextlib.contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        """Explicit all-or-nothing transaction over the autocommit connection.
+
+        The connection uses ``isolation_level=None`` (autocommit), so a plain
+        ``with self._conn:`` block does NOT open a transaction — each statement
+        commits immediately. This issues ``BEGIN IMMEDIATE`` up front (reserving
+        the write lock so the batch cannot be interleaved), commits on success,
+        and rolls back on any exception. A batch is therefore truly atomic and
+        the ``corpus_documents`` / ``corpus_fts`` tables never diverge
+        (CORPUS-STO-001).
+        """
+        conn = self._conn
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield conn
+        except BaseException:
+            conn.execute("ROLLBACK")
+            raise
+        conn.execute("COMMIT")
 
     # ------------------------------------------------------------------
     # StorageBase contract
@@ -688,13 +746,22 @@ class SQLiteStorage(StorageBase):
         ----------
         doc : CorpusDocument
         """
-        with self._lock, self._conn:
-            cur = self._conn.cursor()
-            self._upsert(doc, cur)
+        # Serialize BEFORE mutating so a bad doc raises before any write.
+        row = self._doc_to_row(doc)
+        with self._lock, self._transaction() as conn:
+            conn.execute(_UPSERT_DOC_SQL, row)
+            conn.execute(_DELETE_FTS_SQL, (doc.doc_id,))
+            conn.execute(_INSERT_FTS_SQL, (doc.doc_id, doc.text))
 
     def save_batch(self, docs: Sequence[CorpusDocument]) -> None:  # noqa: D417
         """
-        Persist a batch of documents in a single transaction.
+        Persist a batch of documents atomically (all-or-nothing).
+
+        All rows are serialized and validated before any write; the documents
+        and FTS rows are then committed inside one explicit transaction, so a
+        failure at any point leaves the database exactly as before the batch
+        (CORPUS-STO-001). If a ``doc_id`` occurs more than once, the final
+        occurrence wins consistently in both tables.
 
         Parameters
         ----------
@@ -702,11 +769,28 @@ class SQLiteStorage(StorageBase):
         """
         if not docs:
             return
-        with self._lock, self._conn:
-            cur = self._conn.cursor()
-            for doc in docs:
-                self._upsert(doc, cur)
-        logger.info("SQLiteStorage: saved %d documents.", len(docs))
+
+        # Match the primary-table upsert contract when a batch contains the same
+        # doc_id more than once: the last document wins in both the documents and
+        # FTS tables. Without this normalization, all duplicate FTS rows would be
+        # inserted even though ``corpus_documents`` retains only the final row.
+        latest_by_id: dict[str, CorpusDocument] = {}
+        for doc in docs:
+            latest_by_id[doc.doc_id] = doc
+        unique_docs = list(latest_by_id.values())
+
+        # 1. Serialize/validate every final row up front. An unserializable doc
+        #    raises here, before the transaction opens, so nothing is persisted.
+        doc_rows = [self._doc_to_row(doc) for doc in unique_docs]
+        fts_rows = [(doc.doc_id, doc.text) for doc in unique_docs]
+        fts_ids = [(doc.doc_id,) for doc in unique_docs]
+
+        # 2. One real transaction covering documents + FTS together.
+        with self._lock, self._transaction() as conn:
+            conn.executemany(_UPSERT_DOC_SQL, doc_rows)
+            conn.executemany(_DELETE_FTS_SQL, fts_ids)
+            conn.executemany(_INSERT_FTS_SQL, fts_rows)
+        logger.info("SQLiteStorage: saved %d documents.", len(unique_docs))
 
     def get(self, doc_id: str) -> CorpusDocument | None:  # noqa: D417
         """
@@ -736,35 +820,38 @@ class SQLiteStorage(StorageBase):
         """
         conditions: list[str] = []
         params: list[Any] = []
+        from_sql = "corpus_documents AS docs"
+        order_sql = "docs.rowid"
 
         if q.full_text:
-            # FTS5 subquery
-            conditions.append(
-                "doc_id IN (SELECT doc_id FROM corpus_fts WHERE text MATCH ?)"
-            )
+            # Join the FTS table so the result can be ordered by its native
+            # BM25 rank. SQLite FTS5 returns lower values for stronger matches.
+            from_sql += " JOIN corpus_fts ON corpus_fts.doc_id = docs.doc_id"
+            conditions.append("corpus_fts MATCH ?")
             params.append(q.full_text)
+            order_sql = "bm25(corpus_fts), docs.rowid"
         if q.input_path:
-            conditions.append("input_path = ?")
+            conditions.append("docs.input_path = ?")
             params.append(q.input_path)
         if q.source_type:
-            conditions.append("source_type = ?")
+            conditions.append("docs.source_type = ?")
             params.append(q.source_type)
         if q.language:
-            conditions.append("language = ?")
+            conditions.append("docs.language = ?")
             params.append(q.language)
         if q.section_type:
-            conditions.append("section_type = ?")
+            conditions.append("docs.section_type = ?")
             params.append(q.section_type)
         if q.collection_id:
-            conditions.append("collection_id = ?")
+            conditions.append("docs.collection_id = ?")
             params.append(q.collection_id)
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-        count_sql = f"SELECT COUNT(*) FROM corpus_documents {where};"  # noqa: S608
+        count_sql = f"SELECT COUNT(*) FROM {from_sql} {where};"  # noqa: S608
         select_sql = (
-            f"SELECT json_data FROM corpus_documents {where} "  # noqa: S608
-            f"ORDER BY rowid LIMIT ? OFFSET ?;"
+            f"SELECT docs.json_data FROM {from_sql} {where} "  # noqa: S608
+            f"ORDER BY {order_sql} LIMIT ? OFFSET ?;"
         )
 
         with self._lock:

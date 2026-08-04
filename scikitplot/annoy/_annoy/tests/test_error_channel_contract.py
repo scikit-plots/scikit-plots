@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_error_channel_contract.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-017 (guide 27.2).
+"""Regression tests for CY-017 (guide 27.2).
 
 The C++ interface is a strict no-throw core: every virtual method is ``noexcept``
 and reports failure via ``bool`` + ``char** error``. The Cython ``.pxd`` now

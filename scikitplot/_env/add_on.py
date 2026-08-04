@@ -308,7 +308,7 @@ class XeusAddon(FederatedExtensionAddon):
 
         return all_kernels
 
-    def copy_kernel(
+    def copy_kernel(  # ruff: ignore[too-many-positional-arguments]
         self, env_name, prefix, kernel_dir, kernel_wasm, kernel_js, kernel_data
     ):
         kernel_spec = json.loads((kernel_dir / "kernel.json").read_text(**UTF8))

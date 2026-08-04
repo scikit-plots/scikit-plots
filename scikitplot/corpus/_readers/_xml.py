@@ -186,7 +186,9 @@ def _parse_xml_lxml(content: bytes) -> Any:
             "lxml is required for XMLReader (primary parser)."
             " Install it with:\n  pip install lxml"
         ) from exc
-    return etree.fromstring(content)
+    from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
+
+    return etree.fromstring(content, parser=hardened_lxml_parser())
 
 
 def _parse_xml_stdlib(content: bytes) -> Any:
@@ -203,9 +205,9 @@ def _parse_xml_stdlib(content: bytes) -> Any:
     xml.etree.ElementTree.Element
         Document root element.
     """
-    import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
+    from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
 
-    return ET.fromstring(content)  # noqa: S314
+    return parse_stdlib_secure(content)
 
 
 def _parse_xml(content: bytes) -> Any:
@@ -314,7 +316,11 @@ def _clark_to_prefix(
     return rewritten, ns_map
 
 
-def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[Any]:
+def _xpath_elements(
+    root: Any,
+    xpath: str,
+    namespaces: dict[str, str],
+) -> list[Any]:
     """Run an XPath query against a root element.
 
     Supports both lxml elements (``root.xpath()``) and stdlib elements
@@ -324,6 +330,10 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
     ``prefix:tag`` form for lxml compatibility (lxml does not accept Clark
     notation in XPath expressions).  The rewrite is transparent to callers
     — the stdlib path accepts both forms natively.
+
+    Invalid or unsupported XPath expressions are logged and return an empty
+    list. This fail-soft policy prevents one bad XPath from aborting a larger
+    corpus-ingestion pipeline.
 
     Parameters
     ----------
@@ -348,13 +358,20 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
     resolve bare ``{uri}`` references.  :func:`_clark_to_prefix` handles
     this conversion so callers can use whichever notation they prefer.
     """
+    # XPath succeeds
+    #     → results assigned
+    #     → element results filtered
+    #     → return elements
+    # XPath fails
+    #     → warning logged
+    #     → return []
+
     # lxml: has .xpath() with full XPath 1.0 support
     if hasattr(root, "xpath"):
         # Always rewrite Clark notation → prefix:tag for lxml.
         lxml_xpath, lxml_ns = _clark_to_prefix(xpath, namespaces or {})
         try:
             results = root.xpath(lxml_xpath, namespaces=lxml_ns or None)
-            return [r for r in results if not isinstance(r, str)]
         except Exception as exc:  # noqa: BLE001
             # Broad catch: lxml raises lxml.etree.XPathEvalError,
             # lxml.etree.XPathSyntaxError, and lxml.etree.LxmlError
@@ -362,7 +379,18 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
             # names at module level would create a hard lxml dependency;
             # catching Exception and logging is the correct pattern here.
             logger.warning("XMLReader: lxml XPath error for %r: %s", xpath, exc)
+            logger.debug(
+                "Rewritten lxml XPath: %r; namespaces=%r",
+                lxml_xpath,
+                lxml_ns,
+                exc_info=True,
+            )
             return []
+
+        # XMLReader expects elements, not XPath scalar results such as
+        # strings, numbers, booleans, or attribute values.
+        # return [r for r in results if not isinstance(r, str)]
+        return [result for result in results if hasattr(result, "tag")]
 
     # stdlib ElementTree: limited XPath subset via iterfind.
     # iterfind accepts Clark notation natively; also works with prefix:tag
@@ -375,6 +403,10 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
         # and has changed across Python versions.  Log and return empty list
         # so a single bad XPath does not abort the entire document read.
         logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)
+        logger.debug(
+            "stdlib XPath failure details",
+            exc_info=True,
+        )
         return []
 
 

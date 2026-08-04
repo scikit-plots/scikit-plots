@@ -427,6 +427,7 @@ def _split_regex(text: str, multi_script: bool = False) -> list[str]:
 def _split_nltk(
     text: str,
     language: str | list[str] | None,
+    **kwargs: any,
 ) -> list[str]:
     """Split *text* using the NLTK Punkt sentence tokenizer.
 
@@ -439,6 +440,8 @@ def _split_nltk(
         or ``None`` (falls back to ``"english"``).  When a list is provided
         the **first** NLTK-compatible language entry is used — Punkt handles
         one language per call.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Returns
     -------
@@ -453,7 +456,7 @@ def _split_nltk(
         If the punkt model is absent and automatic download fails.
     """
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.tokenize import (  # type: ignore[import-untyped]  # noqa: PLC0415
             sent_tokenize,
         )
@@ -476,8 +479,9 @@ def _split_nltk(
     try:
         return sent_tokenize(text, language=resolved_lang)
     except LookupError:
-        logger.info("NLTK punkt model missing — downloading 'punkt_tab'.")
-        nltk.download("punkt_tab", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab", **kwargs)
         return sent_tokenize(text, language=resolved_lang)
 
 

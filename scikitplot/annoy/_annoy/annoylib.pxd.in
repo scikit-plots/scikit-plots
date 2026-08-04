@@ -45,6 +45,17 @@ Cython Declaration File for Annoy C++ Library - Template Generated.
 
 THIS FILE IS A TEMPLATE (.pxd.in) - The actual .pxd file is generated via Tempita.
 
+.. warning::
+
+    **INTERNAL / PRIVATE cimport surface — NO ABI stability guarantee (CY-003).**
+
+    This ``.pxd`` is a private implementation detail: the generated
+    ``AnnoyIndex[...]`` typedefs and C++ class layout are auto-generated from the
+    internal type matrix and CHANGE WITHOUT NOTICE. Do NOT ``cimport`` from
+    ``scikitplot.annoy._annoy.annoylib`` and rely on stability. It ships under the
+    ``devel`` install tag for in-tree extension builds, not as a public API. The
+    supported, stable API is the Python ``scikitplot.annoy.Index`` class.
+
 Design Principles:
 
 1. **Explicit Type Declarations**: All C++ types explicitly declared
@@ -184,6 +195,13 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" nogil:
     # Platform: __float128 on GCC/Clang; long double (80-bit) on MSVC/fallback
     # Used only as AnnoyIndex<S, float128_t, ...> template argument.
     cdef cppclass float128_t nogil:
+        pass
+
+    # Extended-precision float (x87 80-bit long double) — global namespace
+    # Distinct usable dtype where float128_t is native __float128; redundant with
+    # float128 where float128_t is already long double.
+    # Used only as AnnoyIndex<S, float80_t, ...> template argument.
+    cdef cppclass float80_t nogil:
         pass
 
 # ==============================================================================
@@ -507,6 +525,8 @@ data_types = [
      'description': 'Single precision (32-bit)'},
     {'name': 'Double',   'ctype': 'double',      'numpy_dtype': 'float64',  'bits': 64,
      'description': 'Double precision (64-bit)'},
+    {'name': 'Float80',  'ctype': 'float80_t',   'numpy_dtype': 'longdouble', 'bits': 80,
+     'description': 'Extended precision (80-bit x87 long double)'},
     {'name': 'Float128', 'ctype': 'float128_t',  'numpy_dtype': 'float128', 'bits': 128,
      'description': 'Quad/extended precision (128-bit GCC/Clang or long double fallback)'},
 ]

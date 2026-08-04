@@ -343,7 +343,7 @@ class CorpusPipeline:
     >>> result = pipeline.run(Path("WHO-EURO-2025.zip"))
     """
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,

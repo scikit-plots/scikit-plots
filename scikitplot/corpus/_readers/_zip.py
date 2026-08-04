@@ -57,6 +57,7 @@ Python 3.8-3.15.  Zero optional dependencies — ``zipfile`` is stdlib.
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import tempfile
 import zipfile
@@ -69,7 +70,28 @@ from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["ZipReader"]
+__all__ = ["ArchiveNestingError", "ZipReader"]
+
+#: Maximum archive nesting depth (zip-in-zip-in-…) processed before refusing,
+#: to bound recursion from a nested-archive bomb / zip quine (CORPUS-ARC-002).
+DEFAULT_MAX_ARCHIVE_DEPTH = 8
+
+#: Shared archive-nesting context ``(depth, max_depth)`` propagated through the
+#: synchronous re-dispatch of nested archives. ``None`` marks the top level,
+#: where the cap is taken from the top reader's ``max_depth`` and then shared
+#: with every nested level (a *global* cap, not per-reader). Deliberately not
+#: annotated with a subscripted generic — that is Python 3.9+ only.
+_archive_ctx = contextvars.ContextVar("_scikitplot_corpus_archive_ctx", default=None)
+
+
+class ArchiveNestingError(ValueError):
+    """Raised when archive nesting exceeds ``max_depth`` (nested-archive bomb).
+
+    A subclass of :class:`ValueError` (so existing handlers still catch it), but
+    distinct so per-member error handling re-raises it and aborts the whole
+    archive rather than skipping a single member (CORPUS-ARC-002).
+    """
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -239,6 +261,7 @@ class ZipReader(DocumentReader):
     """Maximum file count inside the archive. Default: 10,000."""
 
     max_total_bytes: int = field(default=_DEFAULT_MAX_TOTAL_BYTES)
+    max_depth: int = field(default=DEFAULT_MAX_ARCHIVE_DEPTH)
     """
     Maximum **cumulative uncompressed** bytes across all extracted ZIP members.
 
@@ -331,7 +354,48 @@ class ZipReader(DocumentReader):
             normalised[key] = dict(v)
         object.__setattr__(self, "reader_kwargs", normalised)
 
-    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
+    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+        """
+        Yield raw chunks, enforcing an archive-nesting depth cap.
+
+        Nested archives are re-dispatched synchronously
+        (``yield from sub_reader.get_raw_chunks()``), so a shared
+        :data:`_archive_ctx` counter bounds recursion and refuses a
+        zip-quine / deeply nested-archive bomb (CORPUS-ARC-002). The actual
+        extraction and per-member dispatch is delegated to
+        :meth:`_iter_raw_chunks`.
+
+        Yields
+        ------
+        dict[str, Any]
+
+        Raises
+        ------
+        ValueError
+            If the archive nesting depth would exceed ``max_depth``.
+        """
+        ctx = _archive_ctx.get()
+        if ctx is None:
+            # Top of the chain: this reader's max_depth sets the shared cap.
+            depth, max_depth = 0, self.max_depth
+        else:
+            depth, max_depth = ctx
+        if depth >= max_depth:
+            raise ArchiveNestingError(
+                f"ZipReader: archive nesting depth would exceed "
+                f"max_depth={max_depth} (current depth {depth}) while "
+                f"processing {str(self.input_path)!r}. Refusing to recurse "
+                f"further — possible nested-archive bomb (zip quine)."
+            )
+        token = _archive_ctx.set((depth + 1, max_depth))
+        try:
+            yield from self._iter_raw_chunks()
+        finally:
+            _archive_ctx.reset(token)
+
+    def _iter_raw_chunks(  # noqa: PLR0912
+        self,
+    ) -> Generator[dict[str, Any], None, None]:
         """
         Extract ZIP and yield raw chunks from all supported members.
 
@@ -426,20 +490,29 @@ class ZipReader(DocumentReader):
                             f"Set skip_unsupported=True to ignore."
                         )
 
-                    # ── Bomb guard (pre-extraction) ───────────────────
-                    total_bytes += info.file_size
-                    if total_bytes > self.max_total_bytes:
+                    # ── Bomb guard: declared pre-check + actual-byte budget ──
+                    if info.file_size > self.max_total_bytes:
                         raise ValueError(
-                            f"ZipReader: cumulative extracted size "
-                            f"({total_bytes:,} bytes) exceeds "
+                            f"ZipReader: member {member_path!r} declares "
+                            f"{info.file_size:,} bytes, exceeding "
                             f"max_total_bytes={self.max_total_bytes:,}. "
                             f"Possible zip-bomb in {archive_path.name!r}."
                         )
 
-                    # ── Extract single member ─────────────────────────
+                    # ── Extract single member (streamed, memory-bounded) ──
+                    from .._archive_handler import (  # noqa: PLC0415
+                        stream_copy_bounded,
+                    )
+
                     target.parent.mkdir(parents=True, exist_ok=True)
                     with zf.open(info) as src, open(target, "wb") as dst:
-                        dst.write(src.read())
+                        total_bytes += stream_copy_bounded(
+                            src,
+                            dst,
+                            max_bytes=self.max_total_bytes - total_bytes,
+                            member_name=member_path,
+                            archive_name=archive_path.name,
+                        )
 
                     # ── Dispatch to correct reader ────────────────────
                     provenance = dict(self.source_provenance)
@@ -487,6 +560,9 @@ class ZipReader(DocumentReader):
                             archive_name,
                             member_st,
                         )
+                    except ArchiveNestingError:
+                        # Security limit: abort the whole archive, never swallow.
+                        raise
                     except Exception as exc:  # noqa: BLE001
                         logger.warning(
                             "ZipReader: failed to read member %s from %s: %s",

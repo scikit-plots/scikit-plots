@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_advisory_dtype_validation.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-013 (guide 39).
+"""Regression tests for CY-013 (guide 39).
 
 ``wrapper_dtype`` and ``random_dtype`` are advisory metadata (not used for
 concrete dispatch), but they previously accepted arbitrary strings silently while

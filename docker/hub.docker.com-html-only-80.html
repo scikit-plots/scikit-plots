@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scikit-plots Docker Images Guide</title>
+  </head>
+  <body>
+    <h2>
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md"
+        target="_blank"
+        rel="noopener noreferrer">🐳 Scikit-plots Docker Images Guide</a>:
+    </h2>
+    <p>
+      These containers are a quick way to run or try scikit-plots. The source is
+      available on
+      <a
+        href="https://github.com/scikit-plots/scikit-plots"
+        target="_blank"
+        rel="noopener noreferrer">GitHub</a>⁠ and this file
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md"
+        target="_blank"
+        rel="noopener noreferrer">hub.docker.com.md</a>.
+    </p>
+    <p>
+      For building scikit-plots or extensions for scikit-plots, please see:
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/tree/main/docker"
+        target="_blank"
+        rel="noopener noreferrer">the scikit-plots Build Dockerfiles</a>. Check
+      If Needed:
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_docker_image_builder.yml"
+        target="_blank"
+        rel="noopener noreferrer">CI Build Docker Images</a>
+    </p>
+    <blockquote>
+      <p>
+        🚦 Docker Images Update Schedule: 1st of month 00:11 UTC — starts 10 min
+        after cleaner routine (00:01 UTC); purge completed last-day 23:00 UTC. 🚨
+      </p>
+    </blockquote>
+    <ul>
+      <li>
+        <a
+          href="https://hub.docker.com/r/scikitplot/scikit-plots/tags"
+          target="_blank"
+          rel="noopener noreferrer">scikitplot/scikit-plots:latest (runtime
+        minimal)</a>
+      </li>
+      <li>
+        <a
+          href="https://hub.docker.com/r/scikitplot/scikit-plots/tags"
+          target="_blank"
+          rel="noopener noreferrer">scikitplot/scikit-plots:latest-runtime
+        (alias <code>latest</code> == <code>latest-runtime</code>)</a>
+      </li>
+      <li>
+        <a
+          href="https://hub.docker.com/r/scikitplot/scikit-plots/tags"
+          target="_blank"
+          rel="noopener noreferrer">scikitplot/scikit-plots:latest-devel
+        (runtime pre-installed)</a>
+      </li>
+    </ul>
+    <blockquote>
+      <p>
+        📘 See Also:
+        <a
+          href="https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html"
+          target="_blank"
+          rel="noopener noreferrer"><code>the scikit-plots Env Manager</code></a>.
+      </p>
+    </blockquote>
+    <h2>
+      🐋 Quickstart
+    </h2>
+    <p>
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots"
+        target="_blank"
+        rel="noopener noreferrer">🐋 Scikit-plots <code>runtime</code>|<code>devel</code>
+      GitHub Container Registry</a>:
+    </p>
+    <pre><code class="language-bash">docker pull ghcr.io/scikit-plots/scikit-plots:latest-devel-python3.11
+</code></pre>
+    <p>
+      <a
+        href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md"
+        target="_blank"
+        rel="noopener noreferrer">🐋 Scikit-plots <code>runtime</code>|<code>devel</code>
+      Red Hat Quay Container Registry</a>:
+    </p>
+    <pre><code class="language-bash"># podman pull quay.io/scikit-plots/scikit-plots
+docker pull quay.io/scikit-plots/scikit-plots:latest-devel-python3.11
+</code></pre>
+    <p>
+      <a
+        href="https://hub.docker.com/r/scikitplot/scikit-plots"
+        target="_blank"
+        rel="noopener noreferrer">🐋 Scikit-plots <code>runtime</code>|<code>devel</code>
+      Docker Container Registry</a>:
+    </p>
+    <pre><code class="language-bash">docker pull scikitplot/scikit-plots:latest-devel-python3.11
+</code></pre>
+    <pre><code class="language-bash"># docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime|:latest-devel] -i -c "scikitplot -V"
+# docker run -it --rm -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
+docker run -it -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-python3.11
+</code></pre>
+    <h4>
+      ✅ Run with/without pull Onto Vscode or Browser as Jupyter Notebook
+      (*-jupyter):
+    </h4>
+    <pre><code class="language-bash">docker run -it -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-devel-python3.11
+</code></pre>
+    <pre><code class="language-bash">docker run -it -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-devel-jupyter-python3.11
+</code></pre>
+    <hr>
+    <h3>
+      🔧 Start a container, using the Python interpreter.
+    </h3>
+    <p>
+      💡 How to Connect Running Container:
+    </p>
+    <ul>
+      <li>
+        (Recommended) Open Vscode and Attach to Running Container (Dev
+        Containers)
+      </li>
+      <li>
+        (Optionally) Open jupter notebook in browser, If configured <code>ip:host</code>
+      </li>
+    </ul>
+    <h4>
+      Onto VS Code's Extension:
+    </h4>
+    <ul>
+      <li>
+        <a
+          href="https://github.com/microsoft/vscode-docs/blob/main/docs/devcontainers/tutorial.md"
+          target="_blank"
+          rel="noopener noreferrer"><code>ms-vscode-remote.remote-containers</code></a>
+      </li>
+      <li>
+        <a
+          href="https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack"
+          target="_blank"
+          rel="noopener noreferrer"><code>ms-vscode-remote.vscode-remote-extensionpack</code></a>
+      </li>
+    </ul>
+    <h3>
+      Run a Container with a Mounted Volume (Permanent External Folder Link)
+    </h3>
+    <p>
+      <a
+        href="https://code.visualstudio.com/docs/devcontainers/containers"
+        target="_blank"
+        rel="noopener noreferrer"><img
+        src="https://code.visualstudio.com/assets/docs/devcontainers/containers/architecture-containers.png"
+        alt="Scikit-plots"
+        loading="lazy"
+        height="230"></a>
+    </p>
+    <h4>
+      Other Examples
+    </h4>
+    <pre><code class="language-sh">docker run -it -v "$(pwd):/work"  python:3.11-slim -c bash
+</code></pre>
+    <pre><code class="language-sh">docker run -it -v "$(pwd):/work"  mambaorg/micromamba:2.4.0 -c bash
+</code></pre>
+    <pre><code class="language-sh">docker run -it -v "$(pwd):/work" -p 8888:8888  jupyter/scipy-notebook:latest
+</code></pre>
+    <h2>
+      🐳 Getting Started
+    </h2>
+    <h3>
+      🏷️ Base Image Tags
+    </h3>
+    <p>
+      Images built are based on
+      <a
+        href="https://hub.docker.com/r/jupyter/tensorflow-notebook"
+        target="_blank"
+        rel="noopener noreferrer">python:latest</a>,
+      <a
+        href="https://hub.docker.com/r/jupyter/tensorflow-notebook"
+        target="_blank"
+        rel="noopener noreferrer">jupyter/tensorflow-notebook:latest</a>, etc.
+    </p>
+    <ul>
+      <li>
+        <code>1.xx-</code>, <code>latest-</code>, and <code>nightly-</code> tags
+        come with scikit-plots pre-installed. Versioned tags contain their
+        version, the <code>latest-</code> tags contain the latest release
+        (excluding pre-releases like release candidates, alphas, and betas), and
+        the nightly images come with the latest scikit-plots nightly Python
+        package.
+      </li>
+    </ul>
+    <hr>
+    <h3>
+      🏷️ Optional Features
+    </h3>
+    <ul>
+      <li>
+        <code>-jupyter</code> tags include Jupyter and some scikit-plots
+        tutorial notebooks.. They start a Jupyter notebook server on boot. Mount
+        a volume to <code>/work/notebooks</code> to work on your own notebooks.
+      </li>
+    </ul>
+    <hr>
+    <h3>
+      🐳 Running Containers
+    </h3>
+    <h4>
+      👉 <strong>latest</strong> (partial pre-installed (e.g., gcc, g++,
+      micromamba))
+    </h4>
+    <h4>
+      run interactive shell (default entrypoint bash)
+    </h4>
+    <h5>
+      🚨 By using <code>[bash] -ic "bash -i"</code>, you are explicitly forcing
+      Bash's hand. The -i flag tells Bash: "I don't care how you were started,
+      force yourself into interactive mode."
+    </h5>
+    <pre><code class="language-sh"># docker run -it --rm scikitplot/scikit-plots:latest
+docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -i"
+</code></pre>
+    <h4>
+      🛠️ (with/without interactive shell) See default os python env package list
+    </h4>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -ic 'which python &amp;&amp; pip list'"
+</code></pre>
+    <h4>
+      🛠️ (with/without interactive shell) See also pre-installed micromamba
+      python env package list
+    </h4>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -ic 'micromamba info -e'"
+</code></pre>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -ic 'which python &amp;&amp; pip list'"
+</code></pre>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -ic 'scikitplot -V'"
+</code></pre>
+    <hr>
+    <h3>
+      👉 <strong>latest-python3.11</strong> alias (<strong>latest-runtime-python3.11</strong>)
+      (partial pre-installed (e.g., gcc, g++, micromamba))
+    </h3>
+    <h4>
+      🏷️ fast-minimal (default entrypoint bash)
+    </h4>
+    <pre><code class="language-sh"># docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -c scikitplot -V"
+docker run -it --rm scikitplot/scikit-plots:latest-python3.11 -ic "bash -i"
+</code></pre>
+    <h3>
+      👉 <strong>latest-jupyter</strong> (full pre-installed (e.g., conda,
+      mamba))
+    </h3>
+    <h4>
+      🏷️ pre-installed os/python packages (default entrypoint tini)
+    </h4>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -ic "bash -i"
+</code></pre>
+    <h3>
+      🛠️ See also pre-installed conda/mamba env:
+    </h3>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -ic "bash -ic 'conda info -e'"
+</code></pre>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -ic "bash -ic 'which python &amp;&amp; pip list'"
+</code></pre>
+    <pre><code class="language-sh">docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -ic "bash -ic 'scikitplot -V'"
+</code></pre>
+    <h3>
+      🛠️ Update system packages (without interactive shell)
+    </h3>
+    <pre><code class="language-sh">docker run -it --rm --user root scikitplot/scikit-plots:latest-jupyter bash -c "apt update"
+</code></pre>
+    <hr>
+    <h2>
+      Scikit-plots Drop-in volume-mount
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>
+            Shell
+          </th>
+          <th>
+            Path Handling Tips
+          </th>
+          <th>
+            CWD Syntax
+          </th>
+          <th>
+            Escape <code>\$()</code>, <code>\</code>
+          </th>
+          <th>
+            Escape Newline (<code>\n</code>)
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            Linux/macOS
+          </td>
+          <td>
+            Native POSIX paths work as-is
+          </td>
+          <td>
+            <code>./</code>, <code>"$(pwd)"</code>, <code>"$PWD"</code>, <code>$(realpath
+            ./)</code>, <code>$(realpath ~/notebooks)</code>
+          </td>
+          <td>
+            Standard POSIX
+          </td>
+          <td>
+            Use <code>\</code> at end of line
+          </td>
+        </tr>
+        <tr>
+          <td>
+            WSL
+          </td>
+          <td>
+            Use Linux-style paths like <code>/mnt/c/Users/...</code>
+          </td>
+          <td>
+            <code>./</code>, <code>"$(pwd)"</code>, <code>"$PWD"</code>, <code>$(realpath
+            ./)</code>, <code>$(realpath ~/notebooks)</code>
+          </td>
+          <td>
+            Standard POSIX
+          </td>
+          <td>
+            Use <code>\</code> at end of line
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Git-Bash
+          </td>
+          <td>
+            Defaults to <code>/c/Users/...</code>; use <code>$(pwd -W)</code>
+            for Windows paths
+          </td>
+          <td>
+            <code>$(pwd -W)</code>, <code>$(pwd -P)</code>, <code>"$(cd
+            ~/notebooks &amp;&amp; pwd -W)"</code>
+          </td>
+          <td>
+            Standard POSIX (<code>\</code>, <code>\$()</code>)
+          </td>
+          <td>
+            Use <code>\</code> at end of line
+          </td>
+        </tr>
+        <tr>
+          <td>
+            PowerShell
+          </td>
+          <td>
+            Wrap paths in <code>"</code>, use env vars like <code>$Env:VAR</code>
+          </td>
+          <td>
+            <code>./</code>, <code>"$(pwd)"</code>, <code>"${PWD}"</code>,
+            <code>"$PWD"</code>, <code>"$PWD.Path"</code>
+          </td>
+          <td>
+            Use backtick <code>`</code>
+          </td>
+          <td>
+            Use backtick <code>`</code> at end
+          </td>
+        </tr>
+        <tr>
+          <td>
+            CMD
+          </td>
+          <td>
+            Use full Windows paths like <code>C:\Users\Me\...</code> and quote
+            them
+          </td>
+          <td>
+            <code>./</code>, <code>%cd%</code>
+          </td>
+          <td>
+            Use <code>^</code> to escape special chars
+          </td>
+          <td>
+            Use <code>^</code> at end of line
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>Notes:</strong>
+    </p>
+    <ul>
+      <li>
+        In Git Bash, the shell tries to behave like Linux (POSIX-style).
+        <ul>
+          <li>
+            <code>pwd </code> # → /c/Users/you/project/notebooks (POSIX-style)
+          </li>
+          <li>
+            <code>pwd -W</code> # → C:/Users/you/project/notebooks
+            (Windows-style)
+          </li>
+        </ul>
+      </li>
+      <li>
+        In POSIX shells (Git Bash, WSL, Linux/macOS): <code>$(pwd)</code> ==
+        <code>$PWD</code> == <code>$(realpath ./)</code>
+        <ul>
+          <li>
+            <code>echo $( bash -c 'uname -sr' )</code>
+          </li>
+          <li>
+            <code>echo $( bash -c '(uname -o 2&gt;/dev/null | grep -qi msys
+            &amp;&amp; pwd -W) || pwd' )</code>
+          </li>
+          <li>
+            <code>echo $( (uname -o 2&gt;/dev/null | grep -qi msys &amp;&amp;
+            pwd -W) || pwd )</code>
+          </li>
+          <li>
+            <code>echo $( bash -c '(pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp;
+            pwd -W) || (wslpath &gt;/dev/null 2&gt;&amp;1 &amp;&amp; wslpath -w
+            pwd) || pwd' )</code>
+          </li>
+          <li>
+            <code>echo $( bash -c '(pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp;
+            pwd -W) || pwd' )</code>
+          </li>
+          <li>
+            <code>echo $( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W)
+            || pwd )</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        In powershell <code>$(pwd)</code> == <code>$PWD</code> == <code>(Resolve-Path
+        ./).Path -replace '\\','/'</code>
+        <ul>
+          <li>
+            In powershell <code>Resolve-Path .</code> (or simply <code>$PWD</code>)
+            gives the absolute path; the <code>-replace</code> swaps backslashes
+            for forward slashes
+          </li>
+        </ul>
+      </li>
+      <li>
+        Windows bash environment options:
+        <ul>
+          <li>
+            <strong>Git Bash (easy + already common)</strong>: Comes
+            automatically with Git for Windows; good for basic git + shell
+            commands, but it’s not as full-featured as MSYS2/WSL for package
+            installs.
+          </li>
+          <li>
+            <strong>WSL (best “Linux bash” experience)</strong>: Use real Linux
+            userland (Ubuntu/Debian). Best if you want the most compatible bash
+            tools, services, and installs.
+          </li>
+          <li>
+            <strong>MSYS2 (best MSYS-style bash)</strong>: Comes with bash and
+            lets you install lots of Unix tools via pacman (great for dev
+            tooling).
+          </li>
+          <li>
+            <strong>Cygwin (heavier Unix compatibility)</strong>: Very
+            Unix-like, lots of packages, but slower and more complex than MSYS2.
+          </li>
+          <li>
+            <strong>MinGW-w64 (not really a bash env)</strong>: Mostly a
+            compiler/toolchain; use it with another shell
+            (PowerShell/CMD/MSYS2).
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <hr>
+    <pre><code class="language-sh"># (os-agnostic) Bash scikitplot/scikit-plots:latest
+docker run -it -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest
+</code></pre>
+    <pre><code class="language-sh"># POSIX Shells (Linux / macOS / Git Bash / WSL)
+docker run -it -v "$((pwd -W&gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W)||pwd):/work" scikitplot/scikit-plots
+</code></pre>
+    <pre><code class="language-sh"># PowerShell (man Resolve-Path `-v "$((Resolve-Path .).Path -replace '\\','/'):/work"`)
+docker run -it -v "$(pwd):/work" scikitplot/scikit-plots:latest
+</code></pre>
+    <pre><code class="language-sh"># CMD (help cd)
+docker run -it -v "%cd%:/work" scikitplot/scikit-plots:latest
+</code></pre>
+    <hr>
+    <h4>
+      ✅ Cross-Compatible Docker Command path <code>$(pwd)</code>
+    </h4>
+    <h4>
+      ⚠️ One-Line Command path for POSIX shells (Git Bash <code>$(pwd -W)</code>,
+      WSL/Linux/macOS <code>$(pwd)</code>) and PowerShell <code>$(pwd)</code>:
+    </h4>
+    <pre><code class="language-sh"># POSIX shells (Git Bash `$(pwd -W)`, WSL/Linux/macOS `$(pwd)`)
+docker run -it --rm -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest
+</code></pre>
+    <pre><code class="language-sh"># PowerShell `$(pwd)`
+docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest
+</code></pre>
+    <p>
+      Mount the volume with :cached or :delegated (sometimes helps with sync
+      lag)
+    </p>
+    <ul>
+      <li>
+        :cached Prioritizes container view of files, :delegated Prioritizes host
+        view of files.
+      </li>
+      <li>
+        Try :cached first if your container mostly reads code and rarely writes.
+      </li>
+      <li>
+        If you actively build and write files inside container and want host to
+        see changes fast, try :delegated.
+      </li>
+    </ul>
+    <pre><code class="language-sh"># PowerShell `$(pwd)`
+docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
+</code></pre>
+    <pre><code class="language-sh"># Optionally start jupyter notebook
+docker run -it --rm -v "$(pwd):/work/notebooks" -p 8891:8891 scikitplot/scikit-plots:latest -ic "bash -ic 'jupyter notebook --notebook-dir=/work --ip=0.0.0.0 --no-browser --allow-root --port=8891'"
+</code></pre>
+    <h4>
+      ⚠️ ("\") Multi-Line Command path for POSIX shells (Git Bash <code>$(pwd
+      -W)</code>, WSL/Linux/macOS <code>$(pwd)</code>):
+    </h4>
+    <pre><code class="language-bash"># Detect if using Git Bash (check if pwd -W works) - "$( (...) || ... )"
+# Uses $(...) for command substitution, not $(()) which is arithmetic.
+# Inner parentheses (...) group the logic in a subshell (a separate environment) run and capture output.
+docker run -it --rm \
+  -v "$( (pwd -W &gt;/dev/null 2&gt;&amp;1 &amp;&amp; pwd -W) || pwd ):/work/notebooks" \
+  -p 8888:8888 \
+  scikitplot/scikit-plots:latest-jupyter
+</code></pre>
+    <p>
+      Run a Jupyter notebook server with your own notebook directory (assumed
+      here to be <code>~/notebooks</code>). To use it, navigate to
+      localhost:8888 in your browser.
+    </p>
+    <h2>
+      ⚠️ For Development scikit-plots (Cloned and Mounted project folder)
+    </h2>
+    <p>
+      See:
+      <a
+        href="https://scikit-plots.github.io/dev/devel/index.html"
+        target="_blank"
+        rel="noopener noreferrer">Contributing Guidelines to scikit-plots</a>
+    </p>
+    <pre><code class="language-sh"># bash docker/scripts/git_add_safe_dirs.sh  # add safe directories for git
+git config --global --add safe.directory '*'
+</code></pre>
+    <pre><code class="language-sh">## Git hooks manager Initialize, Ensures code meets quality standards before it
+## Triggered when running `git commit ...;` if all checks pass, the commit proceeds, allowing you to push the changes.
+pre-commit install
+</code></pre>
+    <hr>
+    <h3>
+      ✍️ Ready for Development...
+    </h3>
+    <p>
+      <a
+        href="https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html#install-the-development-version-of-scikit-plots"
+        target="_blank"
+        rel="noopener noreferrer">install-the-development-version-of-scikit-plots</a>
+    </p>
+    <h2>
+      See Also:
+    </h2>
+    <ul>
+      <li>
+        🤗
+        <a
+          href="https://huggingface.co/scikit-plots"
+          target="_blank"
+          rel="noopener noreferrer">https://huggingface.co/scikit-plots</a>
+      </li>
+    </ul>
+  </body>
+</html>

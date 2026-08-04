@@ -453,13 +453,18 @@ def _tokenize_simple(text: str) -> list[str]:
     return cleaned
 
 
-def _tokenize_nltk(text: str) -> list[str]:
+def _tokenize_nltk(
+    text: str,
+    **kwargs: any,
+) -> list[str]:
     """Tokenize using ``nltk.word_tokenize``.
 
     Parameters
     ----------
     text : str
         Input text.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Returns
     -------
@@ -472,7 +477,7 @@ def _tokenize_nltk(text: str) -> list[str]:
         If NLTK is not installed.
     """
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.tokenize import (  # type: ignore[import-untyped]  # noqa: PLC0415
             word_tokenize,
         )
@@ -484,8 +489,9 @@ def _tokenize_nltk(text: str) -> list[str]:
     try:
         return word_tokenize(text)
     except LookupError:
-        logger.info("Downloading NLTK 'punkt_tab' model.")
-        nltk.download("punkt_tab", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("tokenizers/punkt_tab", "punkt_tab", **kwargs)
         return word_tokenize(text)
 
 
@@ -606,13 +612,15 @@ def _get_stemmer(
 _LEMMATIZER_CACHE: dict[LemmatizationBackend, Any] = {}
 
 
-def _get_nltk_lemmatizer() -> Any:
+def _get_nltk_lemmatizer(**kwargs: any) -> Any:
     """Return a cached NLTK WordNetLemmatizer.
 
     Returns
     -------
     WordNetLemmatizer
         NLTK lemmatizer instance.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Raises
     ------
@@ -625,7 +633,7 @@ def _get_nltk_lemmatizer() -> Any:
         return _LEMMATIZER_CACHE[LemmatizationBackend.NLTK_WORDNET]
 
     try:
-        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+        import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
         from nltk.stem import (  # type: ignore[import-untyped]  # noqa: PLC0415
             WordNetLemmatizer,
         )
@@ -639,9 +647,10 @@ def _get_nltk_lemmatizer() -> Any:
         lemmatizer = WordNetLemmatizer()
         lemmatizer.lemmatize("test")  # trigger corpus load to catch LookupError
     except LookupError:
-        logger.info("Downloading NLTK 'wordnet' corpus.")
-        nltk.download("wordnet", quiet=True)
-        nltk.download("omw-1.4", quiet=True)
+        from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+        ensure_nltk_resource("corpora/wordnet", "wordnet", **kwargs)
+        ensure_nltk_resource("corpora/omw-1.4", "omw-1.4", **kwargs)
         lemmatizer = WordNetLemmatizer()
 
     _LEMMATIZER_CACHE[LemmatizationBackend.NLTK_WORDNET] = lemmatizer
@@ -656,6 +665,7 @@ def _get_nltk_lemmatizer() -> Any:
 def _load_stopwords(  # noqa: PLR0912
     source: StopwordSource,
     language: str | list[str] | None,
+    **kwargs: any,
 ) -> frozenset:
     """Load stopwords from the specified source.
 
@@ -667,6 +677,8 @@ def _load_stopwords(  # noqa: PLR0912
         Language identifier(s) for NLTK/spaCy sources.  Accepts ISO codes,
         NLTK names, lists thereof, or ``None`` (falls back to English).
         When a list is provided the stopword sets are unioned.
+    **kwargs : any
+        Allows arbitrary additional keyword args to be passed to `nltk`.
 
     Returns
     -------
@@ -684,7 +696,7 @@ def _load_stopwords(  # noqa: PLR0912
         return _BUILTIN_STOPWORDS
     if source == StopwordSource.NLTK:
         try:
-            import nltk  # type: ignore[import-untyped]  # noqa: PLC0415
+            import nltk  # type: ignore[import-untyped]  # noqa: PLC0415  # ruff: ignore[unused-import]
             from nltk.corpus import (  # type: ignore[import-untyped]  # noqa: PLC0415
                 stopwords,
             )
@@ -706,8 +718,9 @@ def _load_stopwords(  # noqa: PLR0912
             try:
                 result |= set(stopwords.words(lang))
             except LookupError:
-                logger.info("Downloading NLTK 'stopwords' corpus.")
-                nltk.download("stopwords", quiet=True)
+                from .._resources import ensure_nltk_resource  # noqa: PLC0415
+
+                ensure_nltk_resource("corpora/stopwords", "stopwords", **kwargs)
                 try:
                     result |= set(stopwords.words(lang))
                 except OSError:
@@ -1253,7 +1266,7 @@ class WordChunker(MultilangMixin):
             f"Unsupported tokenizer: {self._cfg.tokenizer!r}."
         )  # pragma: no cover
 
-    def _process_segment(  # noqa: PLR0912
+    def _process_segment(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         text: str,
         doc_id: str | None,

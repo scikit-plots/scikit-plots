@@ -23,6 +23,7 @@ This package contains reusable reStructuredText Mermaid diagrams for the
 
 ```rst
 .. include:: _diagrams/architecture_overview.rst
+  :start-after: :orphan:
 ```
 
 The include fragments intentionally contain no title and no `:orphan:` marker.

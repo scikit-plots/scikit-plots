@@ -1871,7 +1871,8 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
             first_annotate_html: str | None = None
             if annotation_html_map:
                 first_annotate_html = annotation_html_map[
-                    sorted(annotation_html_map.keys())[0]
+                    # sorted(annotation_html_map.keys())[0]
+                    min(annotation_html_map.keys())
                 ]
             # Write meta.json at build_dir root
             fingerprint = runtime_fingerprint(

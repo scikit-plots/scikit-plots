@@ -326,6 +326,8 @@ extensions = [
 # Optional Mermaid configuration.
 # https://sphinxcontrib-mermaid-demo.readthedocs.io/
 mermaid_output_format = "svg"
+# mermaid_version = "9.4.0"  # Specific Mermaid.js version
+# mermaid_init_js = "mermaid.initialize({startOnLoad:true});"
 
 # %%
 #

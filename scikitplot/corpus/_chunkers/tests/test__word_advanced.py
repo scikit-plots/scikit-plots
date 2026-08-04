@@ -202,8 +202,8 @@ class TestLoadStopwords:
     def test_nltk_list_language_union(self) -> None:
         """NLTK source with list language must union stopwords."""
         try:
-            sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"])
-            sw_single = _load_stopwords(StopwordSource.NLTK, "english")
+            sw_multi = _load_stopwords(StopwordSource.NLTK, ["english", "english"], allow_download=True)
+            sw_single = _load_stopwords(StopwordSource.NLTK, "english", allow_download=True)
             # Deduped union of same language must equal single
             assert len(sw_multi) == len(sw_single)
         except ImportError:
@@ -212,14 +212,14 @@ class TestLoadStopwords:
     def test_nltk_unknown_language_uses_builtin_fallback(self) -> None:
         """NLTK source with unsupported language falls through to BUILTIN."""
         try:
-            sw = _load_stopwords(StopwordSource.NLTK, "klingon")
+            sw = _load_stopwords(StopwordSource.NLTK, "klingon", allow_download=True)
             assert isinstance(sw, frozenset)
         except ImportError:
             pytest.skip("NLTK not installed")
 
     def test_nltk_none_language_defaults_to_english(self) -> None:
         try:
-            sw = _load_stopwords(StopwordSource.NLTK, None)
+            sw = _load_stopwords(StopwordSource.NLTK, None, allow_download=True)
             assert isinstance(sw, frozenset)
             assert len(sw) > 0
         except ImportError:
@@ -422,6 +422,11 @@ class TestWordChunkerConfigValidation:
         import logging
         with caplog.at_level(logging.WARNING, logger="scikitplot.corpus._chunkers._word"):
             WordChunker(WordChunkerConfig(build_gensim_corpus=True))
+
+        # caplog.messages	    A list of all captured log messages, formatted for easy access.
+        # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
+        # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
+        # caplog.record_tuples	A list of tuples, each containing the logger name, log level, and message, allowing for structured assertions.
         assert any("gensim" in r.message.lower() or "dictionary" in r.message.lower()
                    for r in caplog.records) or True
         # Just ensure it didn't raise

@@ -12,9 +12,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-A Sphinx extension that adds ✨ AI-assistant features to documentation pages,
-including one-click Markdown export, AI chat deep-links, MCP tool
-integration, and automated ``llms.txt`` generation. [1]_ [2]_ [3]_
+✨ A Sphinx extension that adds AI-Assistant (AI-Powered) features
+to documentation pages, including one-click Markdown export,
+AI chat deep-links, MCP tool integration, and automated ``llms.txt``
+generation. [1]_ [2]_ [3]_
 
 The module has **two distinct layers**:
 

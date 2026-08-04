@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_rng_noexcept_decls.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-017 (guide 27.2).
+"""Regression tests for CY-017 (guide 27.2).
 
 The Cython declarations must mirror the strict no-throw core. The
 ``Kiss64Random`` operational methods (``reset``/``set_seed``/``kiss``/``flip``/

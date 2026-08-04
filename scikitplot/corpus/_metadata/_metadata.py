@@ -328,10 +328,12 @@ class CorpusStats:
         lines = [
             "CorpusStats",
             f"  Documents  : {self.n_documents:,}",
-            f"  Tokens     : {self.n_tokens:,} total "
-            f"(mean {self.mean_tokens:.1f}, "
-            f"median {self.median_tokens:.0f}, "
-            f"min {self.min_tokens}, max {self.max_tokens})",
+            (
+                f"  Tokens     : {self.n_tokens:,} total "
+                f"(mean {self.mean_tokens:.1f}, "
+                f"median {self.median_tokens:.0f}, "
+                f"min {self.min_tokens}, max {self.max_tokens})"
+            ),
             f"  Characters : {self.n_chars:,}",
             f"  Embedded   : {self.has_embeddings:,}",
         ]

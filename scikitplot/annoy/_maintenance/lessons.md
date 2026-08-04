@@ -303,3 +303,121 @@ Read before touching the named area; these are verified, not aspirational.
   exception conversion) — a stale "except +" claim hides the real fault model.
 - **Verified by:** the static_assert compiles; runtime del under partial init,
   double-release, and mmap-backed state never crashes.
+
+### Rule L-ERROR-LISTS-ACCEPTED — invalid-value errors must reflect ALL accepted values
+- **When:** raising an error for an invalid enum-like argument that accepts
+  aliases/synonyms.
+- **Then:** the message must list the canonical values AND make clear that
+  documented aliases are accepted (with examples or a pointer to the full list),
+  and all error sites for the same argument must agree. Don't imply a narrower
+  accepted set than the code actually allows.
+- **Verified by:** every accepted value/alias works; the error lists the
+  canonical set and references aliases; all error sites share identical text.
+
+### Rule L-NO-COMPILE-TIME-ISA-LANDMINE — CPU-feature fast paths must be runtime-chosen
+- **When:** a header selects a hardware-accelerated implementation (F16C, AVX,
+  AVX512) behind a compile-time macro (`#if defined(__F16C__)`), AND the build
+  uses numpy-style `cpu-dispatch` that compiles high-ISA variants.
+- **Then:** the accelerated code can be baked into dispatch variants and SIGILL on
+  hosts (incl. virtualized) that report but don't honor the sub-ISA. Compile BOTH
+  the portable and accelerated forms and choose at RUNTIME via a CPU probe
+  (`__builtin_cpu_supports`), keeping the portable path proven-equivalent; and
+  constrain `cpu-dispatch` for the extension until that lands.
+- **Verified by:** the portable path matches the accelerated path bit-for-bit; a
+  capability probe reports the active tier + real precision width.
+
+### Rule L-RUNTIME-CPU-DISPATCH (implements L-NO-COMPILE-TIME-ISA-LANDMINE)
+- **When:** a header offers a CPU-feature fast path (F16C/AVX/…) and the build
+  uses cpu-dispatch that compiles high-ISA variants.
+- **Then:** compile the accelerated function with `__attribute__((target("...")))`
+  ALONGSIDE a portable fallback, and select at runtime via a cached
+  `__builtin_cpu_supports(...)`. Never gate the fast path on a bare
+  `#if defined(__FEATURE__)`, which bakes it into dispatch variants and SIGILLs on
+  hosts that don't honor the sub-ISA.
+- **Verified by:** header compiles with AND without the `-mFEATURE` flag; the
+  fallback matches the accelerated path bit-for-bit; the previously-crashing suite
+  passes.
+
+### Rule L-HONEST-CAPABILITY-REPORT — never over-report a type's support
+- **When:** exposing which numeric types/dtypes a build supports.
+- **Then:** report the ACTUAL compiled tier + real precision width; an emulated
+  type must self-identify (float128-as-long-double), an unavailable one must say so
+  with zero width (never a silent alias), and `usable_as_dtype` must match what the
+  constructor actually accepts (cross-check in tests).
+- **Verified by:** report's usable set == set the Index accepts; unavailable tiers
+  have size 0; the gate compiles with the optional-backend flag both present/absent.
+
+### Rule L-DUAL-CONFIG-DATA-TYPES — pxd.in and pyx.in data_types must match
+- **When:** adding/removing an element type in the generated dtype dispatch.
+- **Then:** update BOTH `annoylib.pyx.in` AND `annoylib.pxd.in` `data_types`
+  lists (the pyx generates typedef cimports the pxd must declare), AND every hard
+  static_assert whitelist that lists T (`is_valid_data_type`, the HammingWrapper
+  interface assert). A mismatch fails as "<Typedef>.pxd not found" or a
+  static_assert on the new type.
+- **Verified by:** the new dtype constructs across all metrics; supported_dtypes()
+  usable set matches Index acceptance; ring green.
+
+### Rule L-CAPABILITY-MATCHES-DISPATCH — report usability from the dispatch, not a proxy
+- **When:** a capability report says whether a dtype is usable.
+- **Then:** base `usable_as_dtype` on what the dispatch actually accepts (here the
+  data_types matrix always includes float80, so it is always usable). Do not gate
+  it on an unrelated proxy macro (e.g. distinctness from another type), which
+  desyncs the report from reality on some platforms.
+- **Verified by:** reported-usable set == set the constructor accepts, on every
+  target platform.
+
+### Rule L-NO-ORPHAN-INCLUDE — every .pxi must be consumed or removed
+- **When:** a `.pxi` (or similar static include) is present and/or `fs.copyfile`'d
+  in meson.
+- **Then:** confirm a Cython `include "<file>.pxi"` directive actually pulls it in.
+  An un-included `.pxi` is dead: its constants drift from the real code and mislead
+  maintainers. Remove it from the source AND the build surface, or add + test a
+  real inclusion path.
+- **Verified by:** `tests/test_no_orphan_pxi.py` (no `.pxi` without a matching
+  `include`); the module builds after removal.
+
+### Rule L-NATIVE-ERR-OWNER — native char* errors go through ScopedError
+- **When:** calling a native `bool fn(..., char** error)` bridge from Cython.
+- **Then:** pass `&err.err` from a `ScopedError` (RAII) rather than a raw
+  `char* error` freed by hand. Manual `free()` is bypassed by any early-return or
+  exception on the path, leaking the strdup'd string. Applies to save/load/build/
+  unbuild/serialize/add_item — migrate raw sites when touched.
+- **Verified by:** no `free(error)` in the migrated region; repeated-failure test
+  stays crash-free; error messages unchanged.
+
+### Rule L-STRICT-COMPILE-OWN-CODE — check hand-written C++ under strict warnings separately
+- **When:** a hand-written header is compiled inside a generated TU that carries
+  blanket `-Wno-*` suppressions (e.g. Cython-generated `.pyx.cpp`).
+- **Then:** also compile the hand-written headers ALONE (instantiating templates)
+  under strict warnings with `-Werror` on the actionable categories (unused-result,
+  return-type, uninitialized). Blanket suppression on the shared TU otherwise hides
+  real defects like ignored syscall results. Note: `(void)fn()` does NOT silence
+  GCC `warn_unused_result` — consume the value (`if (fn()!=0){}`).
+- **Verified by:** `tests/test_warning_budget.cpp` compiles -Werror-clean on the
+  actionable categories; documented benign budget for the rest.
+
+### Rule L-PRIVATE-CIMPORT-SURFACE — auto-generated .pxd is not a stable API
+- **When:** a generated `.pxd` exposing template-dispatch typedefs is installed.
+- **Then:** state explicitly in the template header that the cimport surface is a
+  PRIVATE implementation detail with no ABI-stability guarantee, point downstream
+  users at the Python API, and scope its install (devel tag). Auto-generated
+  dispatch names change whenever the type matrix changes, so they must not be
+  presented as a stable public cimport API.
+- **Verified by:** the generated/installed `.pxd` carries the policy statement
+  (`test_pxd_abi_policy.py`).
+
+### Rule L-SINGLE-CANONICAL-TEMPLATE — one built template, guarded
+- **When:** a generated source has a `.in` template that the build selects.
+- **Then:** ensure NO near-duplicate sibling template exists in the built package
+  dir. A non-built twin lets a fix land where it never ships (and drifts stale).
+  Delete duplicates; keep only quarantined copies clearly outside the build dir.
+- **Verified by:** `test_single_canonical_template.py`.
+
+### Rule L-GIL-RELEASE-NOT-THREAD-SAFE — "releases GIL" != "thread-safe"
+- **When:** documenting a method that runs native work under `with nogil`.
+- **Then:** do NOT call it "thread-safe" on that basis. Releasing the GIL lets
+  OTHER threads run; it does not synchronize access to the same object. State the
+  concurrency policy explicitly (which same-instance overlaps are safe vs UB) and
+  only test the supported cases (independent instances; concurrent reads on a
+  built, non-mutated index).
+- **Verified by:** `test_concurrency_policy.py`; docstrings state the policy.

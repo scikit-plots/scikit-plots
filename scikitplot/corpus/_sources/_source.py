@@ -261,7 +261,7 @@ class CorpusSource:
         )
 
     @classmethod
-    def from_directory(
+    def from_directory(  # ruff: ignore[too-many-positional-arguments]
         cls,
         directory: pathlib.Path | str,
         pattern: str = "**/*",

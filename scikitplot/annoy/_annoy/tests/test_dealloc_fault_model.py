@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_dealloc_fault_model.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-004 (guide 28).
+"""Regression tests for CY-004 (guide 28).
 
 The deallocation path must be no-fail: `_destroy_index` (called from
 `__dealloc__`) only invokes `unload()` and `del self.ptr`, both of which are

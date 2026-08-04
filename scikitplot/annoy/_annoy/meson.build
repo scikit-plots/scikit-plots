@@ -56,7 +56,7 @@ _annoylib_cython_tree = [
   fs.copyfile('__init__.py'),      # Ensure __init__.py is copied early
 
   # fs.copyfile('annoylib.pyi'),     # Cython definition file for C/C++ code
-  fs.copyfile('annoylib.pxi'),     # Cython include file (static)
+  # annoylib.pxi removed (CY-002): unconsumed + stale; see tests/test_no_orphan_pxi.py
 
   # fs.copyfile('annoylib.pxd'),
   _annoylib_pxd,                # Generated .pxd from template

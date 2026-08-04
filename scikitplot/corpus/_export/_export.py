@@ -78,6 +78,7 @@ and ``numpy`` are hard requirements. All other backends are optional.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -87,6 +88,7 @@ from typing import Any, Dict, List, Optional  # noqa: F401
 
 import numpy as np
 
+from .._atomic import atomic_write_bytes, atomic_write_path
 from .._schema import CorpusDocument, ExportFormat
 
 logger = logging.getLogger(__name__)
@@ -292,14 +294,7 @@ def _atomic_write_bytes(path: pathlib.Path, data: bytes) -> None:
     data : bytes
         Raw bytes to write.
     """
-    tmp = path.with_name(path.name + ".tmp")
-    try:
-        tmp.write_bytes(data)
-        tmp.replace(path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_bytes(path, data)
 
 
 def _atomic_write_text(
@@ -537,14 +532,7 @@ def _export_joblib(  # noqa: D417
     if not include_embedding:
         objs = [doc.replace(embedding=None) for doc in documents]
 
-    tmp = output_path.with_name(output_path.name + ".tmp")
-    try:
-        joblib.dump(objs, tmp)
-        tmp.replace(output_path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_path(output_path, lambda p: joblib.dump(objs, p))
 
 
 def _export_numpy(  # noqa: D417
@@ -593,15 +581,11 @@ def _export_numpy(  # noqa: D417
 
     # np.save() appends ".npy" automatically when the path does not already
     # end with it.  Use a temp path that already ends with ".npy" so that
-    # np.save writes exactly the file we expect, then rename atomically.
-    tmp = output_path.with_name(output_path.stem + ".tmp.npy")
-    try:
-        np.save(str(tmp), matrix, allow_pickle=False)
-        tmp.replace(output_path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_path(
+        output_path,
+        lambda p: np.save(str(p), matrix, allow_pickle=False),
+        suffix=".npy",
+    )
 
     logger.debug(
         "export_documents (NUMPY): saved matrix shape %s dtype %s.",
@@ -668,14 +652,10 @@ def _export_pandas(  # noqa: D417
         rows = [doc.to_pandas_row(include_embedding=False) for doc in documents]
         df = pd.DataFrame(rows)
 
-    tmp = output_path.with_name(output_path.name + ".tmp")
-    try:
-        df.to_csv(tmp, index=False, encoding=_CSV_ENCODING)
-        tmp.replace(output_path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_path(
+        output_path,
+        lambda p: df.to_csv(p, index=False, encoding=_CSV_ENCODING),
+    )
 
 
 def _export_parquet(  # noqa: D417
@@ -717,14 +697,10 @@ def _export_parquet(  # noqa: D417
     rows = [doc.to_pandas_row(include_embedding=False) for doc in documents]
     df = pd.DataFrame(rows)
 
-    tmp = output_path.with_name(output_path.name + ".tmp")
-    try:
-        df.to_parquet(tmp, index=False, compression=parquet_compression)
-        tmp.replace(output_path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_path(
+        output_path,
+        lambda p: df.to_parquet(p, index=False, compression=parquet_compression),
+    )
 
 
 def _export_polars(  # noqa: D417
@@ -764,14 +740,10 @@ def _export_polars(  # noqa: D417
     rows = [doc.to_polars_row(include_embedding=False) for doc in documents]
     df = pl.DataFrame(rows)
 
-    tmp = output_path.with_name(output_path.name + ".tmp")
-    try:
-        df.write_parquet(tmp, compression=parquet_compression)
-        tmp.replace(output_path)
-    except Exception:
-        if tmp.exists():
-            tmp.unlink()
-        raise
+    atomic_write_path(
+        output_path,
+        lambda p: df.write_parquet(p, compression=parquet_compression),
+    )
 
 
 def _export_huggingface(  # noqa: D417
@@ -937,11 +909,88 @@ def _pickle_safety_guard(format_value, trusted):
         )
 
 
+_INTEGRITY_CHUNK = 1024 * 1024  # 1 MiB
+
+
+def _verify_artifact_integrity(path, expected_sha256):
+    """Verify a file's SHA-256 BEFORE deserialization (CORPUS-SEC-001).
+
+    When ``expected_sha256`` is provided, the artifact bytes are hashed and
+    compared *before* any ``pickle.load`` runs, so a tampered or wrong artifact
+    is rejected before it can execute code.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Artifact to verify.
+    expected_sha256 : str or None
+        Expected lowercase hex SHA-256. ``None`` skips the check.
+
+    Raises
+    ------
+    ValueError
+        If the actual digest does not match ``expected_sha256``.
+    """
+    if expected_sha256 is None:
+        return
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(_INTEGRITY_CHUNK), b""):
+            digest.update(block)
+    actual = digest.hexdigest()
+    if actual != expected_sha256.strip().lower():
+        raise ValueError(
+            f"load_documents: {str(path)!r} SHA-256 {actual} does not match "
+            f"the expected {expected_sha256!r}. Refusing to load a tampered or "
+            f"wrong artifact."
+        )
+
+
+def _validate_loaded_documents(obj, path):
+    """Validate a deserialized object matches the documented return contract.
+
+    A trusted-but-wrong artifact must fail loudly rather than return an
+    arbitrary object shape (CORPUS-SEC-001). Code execution during ``pickle``
+    is inherent, but the *result* is still held to the ``list[CorpusDocument]``
+    contract.
+
+    Parameters
+    ----------
+    obj : Any
+        The deserialized object.
+    path : pathlib.Path
+        Source path, for error messages.
+
+    Returns
+    -------
+    list of CorpusDocument
+
+    Raises
+    ------
+    TypeError
+        If ``obj`` is not a list of :class:`CorpusDocument`.
+    """
+    if not isinstance(obj, list):
+        raise TypeError(
+            f"load_documents: {str(path)!r} deserialized to "
+            f"{type(obj).__name__}, expected list[CorpusDocument]. Refusing to "
+            f"return an unexpected object shape."
+        )
+    for index, item in enumerate(obj):
+        if not isinstance(item, CorpusDocument):
+            raise TypeError(
+                f"load_documents: {str(path)!r} element {index} is "
+                f"{type(item).__name__}, expected CorpusDocument."
+            )
+    return obj
+
+
 def load_documents(
     path: pathlib.Path | str,
     format: ExportFormat | None = None,
     *,
     trusted: bool = False,
+    expected_sha256: str | None = None,
 ) -> list[CorpusDocument]:
     """
     Load :class:`~scikitplot.corpus._schema.CorpusDocument` instances
@@ -961,6 +1010,10 @@ def load_documents(
         file extension (``.pkl`` → PICKLE, ``.joblib`` → JOBLIB).
     trusted : bool
         Whether the user has explicitly opted in to unsafe loading.
+    expected_sha256 : str or None, optional
+        When provided, the artifact's SHA-256 is verified **before**
+        deserialization; a mismatch raises :class:`ValueError` before any
+        pickle code runs (tamper/wrong-artifact detection). Default ``None``.
 
     Returns
     -------
@@ -972,12 +1025,37 @@ def load_documents(
         If ``joblib`` is not installed and the file is a joblib dump.
     OSError
         If the file cannot be read.
+    ValueError
+        If loading is not ``trusted`` for a pickle/joblib file, or if
+        ``expected_sha256`` does not match the artifact.
+    TypeError
+        If the deserialized object is not a list of
+        :class:`~scikitplot.corpus._schema.CorpusDocument` (a trusted-but-wrong
+        artifact is rejected rather than returned).
 
     Examples
     --------
-    >>> docs = load_documents(Path("corpus.pkl"))
-    >>> len(docs)
+    Loading a pickle/joblib export requires an explicit trust decision, because
+    deserialization can execute arbitrary code. By default it is refused:
+
+    >>> load_documents(Path("corpus.pkl"))  # doctest: +SKIP
+    Traceback (most recent call last):
+        ...
+    ValueError: Loading pickle files is disabled by default ...
+
+    Opt in only for a source you trust — and, when you have a known-good digest,
+    pin it so a tampered artifact is rejected before it is deserialized:
+
+    >>> docs = load_documents(  # doctest: +SKIP
+    ...     Path("corpus.pkl"),
+    ...     trusted=True,
+    ...     expected_sha256="e3b0c44298fc1c149afbf4c8996fb924...",
+    ... )
+    >>> len(docs)  # doctest: +SKIP
     312
+
+    Prefer a safe, code-execution-free format (Parquet or JSON) whenever you
+    control the export.
     """  # noqa: D205
     path = pathlib.Path(path)
 
@@ -988,10 +1066,14 @@ def load_documents(
             ".joblib": ExportFormat.JOBLIB,
         }.get(ext)
     _pickle_safety_guard(format.value if format else "", trusted)
+    # Integrity gate runs BEFORE deserialization: a tampered/wrong artifact is
+    # rejected before pickle can execute code (CORPUS-SEC-001).
+    _verify_artifact_integrity(path, expected_sha256)
 
     if format == ExportFormat.PICKLE:
         with path.open("rb") as fh:
-            return pickle.load(fh)  # noqa: S301
+            obj = pickle.load(fh)  # noqa: S301
+        return _validate_loaded_documents(obj, path)
 
     if format == ExportFormat.JOBLIB:
         try:
@@ -1002,7 +1084,7 @@ def load_documents(
                 " Install it with:\n"
                 "  pip install joblib"
             ) from exc
-        return joblib.load(path)
+        return _validate_loaded_documents(joblib.load(path), path)
 
     logger.warning(
         "load_documents: format %r does not support CorpusDocument"

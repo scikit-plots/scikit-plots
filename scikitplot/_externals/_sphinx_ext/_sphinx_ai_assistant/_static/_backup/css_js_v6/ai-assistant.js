@@ -87,6 +87,54 @@
     // object, so callers can do _cfg().foo without guarding.
     function _cfg() { return window.AI_ASSISTANT_CONFIG || {}; }
 
+    // ── Footer branding: "Powered by …" credit line ──────────────────────────
+    // White-label point for downstream/custom deployments. Override per-page
+    // via window.AI_ASSISTANT_CONFIG.poweredBy — no code changes required:
+    //
+    //   window.AI_ASSISTANT_CONFIG = {
+    //     poweredBy: { text: 'Powered by', name: 'Acme Docs', url: 'https://acme.example' }
+    //   };
+    //
+    //   window.AI_ASSISTANT_CONFIG = { poweredBy: false };   // hide the line entirely
+    //
+    // `url` is optional — omit it to render plain, non-linked text.
+    //
+    // Ships with the scikit-plots repo as the default. FUTURE STUB (inactive):
+    // once cavehub.ai is ready to be a supported custom-stakeholder target,
+    // flip _DEFAULT_POWERED_BY below to _CAVEHUB_POWERED_BY — every deployment
+    // that hasn't set its own `poweredBy` override picks it up automatically.
+    var _DEFAULT_POWERED_BY = {
+        text: 'Powered by',
+        name: 'scikit-plots',
+        url:  'https://github.com/scikit-plots/scikit-plots'
+    };
+    // var _CAVEHUB_POWERED_BY = {   // eslint-disable-line no-unused-vars
+    //     text: 'Powered by',
+    //     name: 'cavehub.ai',
+    //     url:  'https://cavehub.ai'
+    // };
+
+    /**
+     * Resolve the effective "Powered by" branding for this page.
+     *
+     * @returns {{text: string, name: string, url: (string|null)}|null}
+     *   Null means "render nothing" (explicit `poweredBy: false`/`null`).
+     */
+    function _resolvePoweredBy() {
+        var override = _cfg().poweredBy;
+        if (override === false || override === null) return null;
+        if (override && typeof override === 'object') {
+            var name = typeof override.name === 'string' && override.name.trim()
+                ? override.name.trim() : _DEFAULT_POWERED_BY.name;
+            var text = typeof override.text === 'string' && override.text.trim()
+                ? override.text.trim() : _DEFAULT_POWERED_BY.text;
+            var url  = typeof override.url === 'string' && override.url.trim()
+                ? override.url.trim() : null;
+            return { text: text, name: name, url: url };
+        }
+        return _DEFAULT_POWERED_BY;
+    }
+
     // ── Diagnostics: single gated, scrubbing logger ──────────────────────────
     // All console output routes through _log(). Rationale:
     //   * one place to control verbosity and formatting;
@@ -672,6 +720,17 @@
         minimize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
         maximize: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>',
         restore:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 3 3 3 3 8"/><polyline points="21 8 21 3 16 3"/><polyline points="3 16 3 21 8 21"/><polyline points="16 21 21 21 21 16"/></svg>',
+        // Lucide "minimize-2" — inward-pointing diagonal arrows, the visual
+        // inverse of `maximize` above. Used for the dedicated "collapse full
+        // screen" header button (see maximizeBtn / collapseBtn wiring below).
+        // Distinct from `minimize` (collapses panel to the floating trigger
+        // pill) and from `restore` (kept unchanged for back-compat).
+        minimizeCollapse: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>',
+        // MUI "ErrorIcon" outline, re-authored with stroke="currentColor" so
+        // it themes the same way every other icon here does. Not wired to
+        // any control yet — reserved for a future error/alert affordance.
+        // Mirrors _SVG_ERROR_ALERT in _static/__init__.py.
+        errorAlert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4M12 16h.01M3 7.94v8.12c0 .34 0 .51.05.66.05.14.12.26.22.37.1.11.25.2.55.36l7.4 4.11c.28.16.43.24.58.27.13.03.27.03.4 0 .15-.03.3-.11.58-.27l7.4-4.11c.3-.16.45-.25.55-.36.1-.11.17-.23.22-.37.05-.15.05-.32.05-.66V7.94c0-.34 0-.51-.05-.66-.05-.14-.12-.27-.22-.37-.1-.12-.25-.2-.55-.37l-7.4-4.11c-.28-.16-.43-.24-.58-.27a1 1 0 0 0-.4 0c-.15.03-.3.11-.58.27l-7.4 4.11c-.3.17-.45.25-.55.37-.1.1-.17.23-.22.37-.05.15-.05.32-.05.66Z"/></svg>',
         close:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
         mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
         send:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
@@ -15702,6 +15761,13 @@ opts.jsonPayload + '\n' +
 
         var minimizeBtn = _createIconBtn('minimize', 'Minimize panel', ICONS.minimize);
         var maximizeBtn = _createIconBtn('maximize', 'Maximize panel', ICONS.maximize);
+        // Dedicated "collapse full screen" button — the inverse of `maximize`.
+        // Kept as a separate control (rather than only relying on maximizeBtn
+        // re-labeling itself) so the maximized state always has an explicit,
+        // discoverable exit affordance. Hidden until the panel is maximized;
+        // see _setMaximized() below for the show/hide + icon wiring.
+        var collapseBtn = _createIconBtn('collapse', 'Collapse full screen', ICONS.minimizeCollapse);
+        collapseBtn.style.display = 'none';
         var closeBtn    = _createIconBtn('close',    'Close ' + _escapeHtml(title), ICONS.close);
 
         // R3: clear conversation without page refresh ("Start a new chat").
@@ -15730,6 +15796,7 @@ opts.jsonPayload + '\n' +
         headerActions.appendChild(exportDropdown);
         headerActions.appendChild(minimizeBtn);
         headerActions.appendChild(maximizeBtn);
+        headerActions.appendChild(collapseBtn);
         headerActions.appendChild(closeBtn);
 
         header.appendChild(headerTitle);
@@ -15740,7 +15807,7 @@ opts.jsonPayload + '\n' +
         // Layout (left → right):
         //
         //    [☰ hamburger ← now in header-title]
-        //    [Source ▸] [⌨ kbd-hint]  . . .  [Model ▾] [Endpoints ▾] [Privacy] [Terms] [↗ Share]
+        //    [⌨ kbd-hint]  . . .  [Model ▾] [Endpoints ▾] [Privacy] [Terms] [↗ Share] [Website]
         //
         // The hamburger popover is still opened by the header button and wired
         // below.  The right overflow button (⋯) shares the same popover for
@@ -15751,36 +15818,16 @@ opts.jsonPayload + '\n' +
 
         // ── Left cluster ──────────────────────────────────────────────────────
         // Note: hamburger button is in div.ai-assistant-panel-header-title now.
-        // The subbar left cluster holds only the Source button and the kbd hint.
+        // The subbar left cluster holds only the kbd hint (the Source button
+        // that used to live here was removed — see note below).
         var leftCluster = document.createElement('div');
         leftCluster.className = 'ai-assistant-panel-subbar-left';
 
-        // ── Left cluster: Source (GitHub) button ──────────────────────────────
-        // Shown when panelSource !== false AND panelSourceUrl is a valid URL.
-        // Clicking opens the Links sheet (same _openSheet contract as all other
-        // sheets).  Built here so the element is available to wire() below.
-        // Order: [☰ hamburger] [Source] [kbd-hint]
-        var sourceBtn = null;
-        if (cfgRef.panelSource !== false) {
-            sourceBtn = document.createElement('button');
-            sourceBtn.type = 'button';
-            sourceBtn.className =
-                'ai-assistant-panel-subbar-link-btn ai-assistant-panel-source-btn';
-            var sourceIc = document.createElement('span');
-            sourceIc.setAttribute('aria-hidden', 'true');
-            sourceIc.innerHTML = ICONS.github;   // ICONS constant — safe.
-            sourceBtn.appendChild(sourceIc);
-            var sourceLbl = document.createElement('span');
-            sourceLbl.textContent =
-                (cfgRef.panelSourceBtnLabel) || 'Source';
-            sourceBtn.appendChild(sourceLbl);
-            sourceBtn.setAttribute(
-                'aria-label',
-                (cfgRef.panelSourceBtnLabel || 'Source') + ' \u2014 open project links'
-            );
-            sourceBtn.title = 'View project source & links';
-            leftCluster.appendChild(sourceBtn);
-        }
+        // ── Left cluster: kbd hint only ──────────────────────────────────────
+        // The Source button that used to live here was removed — siteBtn
+        // (right cluster) and the hamburger "Project Links" item both already
+        // open the same Project Links sheet, so it was a redundant third
+        // entry point. See _buildLinksSheet() for the sheet itself.
 
         var kbdLabel = _shortcutLabel();
         if (kbdLabel) {
@@ -16007,8 +16054,11 @@ opts.jsonPayload + '\n' +
         if (shareLink)  rightCluster.appendChild(shareLink);
 
         // ── Right cluster: Site (website) button — after Share ────────────────
-        // Counterpart to sourceBtn.  Opens the same Links sheet from the right
-        // side so the user can reach project links from either subbar edge.
+        // The other entry point to the Project Links sheet (alongside the
+        // hamburger's "Project Links" item) — kept in sync with it visually,
+        // using the same icon (ICONS.github, see _buildHamburgerMenu's
+        // addItem(ICONS.github, 'Project Links', ...) call) since both refer
+        // to the exact same destination.
         var siteBtn = null;
         if (cfgRef.panelSite !== false) {
             siteBtn = document.createElement('button');
@@ -16017,7 +16067,7 @@ opts.jsonPayload + '\n' +
                 'ai-assistant-panel-subbar-link-btn ai-assistant-panel-site-btn';
             var siteIc = document.createElement('span');
             siteIc.setAttribute('aria-hidden', 'true');
-            siteIc.innerHTML = ICONS.globe;   // ICONS constant — safe.
+            siteIc.innerHTML = ICONS.github;   // ICONS constant — safe.
             siteBtn.appendChild(siteIc);
             var siteLbl = document.createElement('span');
             siteLbl.textContent = (cfgRef.panelSiteBtnLabel) || 'Website';
@@ -16409,6 +16459,34 @@ opts.jsonPayload + '\n' +
             '\u2728 The chatbot is an AI and can make mistakes. Please double-check cited sources.';
         footer.appendChild(footerNote);
 
+        // ── Footer credit: "Powered by …" branding line ─────────────────────
+        // White-label point — see _resolvePoweredBy() / window.AI_ASSISTANT_CONFIG.poweredBy
+        // near the top of this file. Built with createElement/textContent/
+        // setAttribute only (never innerHTML), matching this file's HTML
+        // policy, since `name`/`url` may ultimately come from page-injected
+        // config rather than a hardcoded literal.
+        var poweredBy = _resolvePoweredBy();
+        if (poweredBy) {
+            var footerCredit = document.createElement('div');
+            footerCredit.className = 'ai-assistant-panel-footer-credit';
+            footerCredit.appendChild(document.createTextNode(poweredBy.text + ' '));
+            if (poweredBy.url) {
+                var creditLink = document.createElement('a');
+                creditLink.className = 'ai-assistant-panel-footer-credit-link';
+                creditLink.textContent = poweredBy.name;
+                creditLink.href = poweredBy.url;
+                creditLink.target = '_blank';
+                // noopener/noreferrer: same "external links never get a
+                // reference back to this window" policy as window.open()
+                // elsewhere in this file (see file header, Security).
+                creditLink.rel = 'noopener noreferrer';
+                footerCredit.appendChild(creditLink);
+            } else {
+                footerCredit.appendChild(document.createTextNode(poweredBy.name));
+            }
+            footer.appendChild(footerCredit);
+        }
+
         // ── Assemble panel ────────────────────────────────────────────────────
         panel.appendChild(header);
         panel.appendChild(subbar);            // R7 kbd hint + R2 privacy link
@@ -16453,8 +16531,9 @@ opts.jsonPayload + '\n' +
         if (shareSheet) panel.appendChild(shareSheet);
 
         // Links sheet — source repository + project website cards.
-        // Built when panelLinks !== false (default true).  Both sourceBtn and
-        // siteBtn in the sub-bar open this same sheet via _openSheet.
+        // Built when panelLinks !== false (default true).  siteBtn in the
+        // sub-bar and the "Project Links" hamburger item both open this same
+        // sheet via _openSheet.
         var linksSheet = (cfgRef.panelLinks !== false) ? _buildLinksSheet() : null;
         if (linksSheet) panel.appendChild(linksSheet);
 
@@ -16637,11 +16716,6 @@ opts.jsonPayload + '\n' +
                 } catch (_) {}
             }
         }
-        if (sourceBtn) {
-            sourceBtn.addEventListener('click', function () {
-                _openLinksOrUrl(cfgRef.panelSourceUrl || '');
-            });
-        }
         if (siteBtn) {
             siteBtn.addEventListener('click', function () {
                 _openLinksOrUrl(cfgRef.panelSiteUrl || '');
@@ -16744,50 +16818,66 @@ opts.jsonPayload + '\n' +
         // browsers that don't support ResizeObserver (IE11, very old Safari).
         if (typeof ResizeObserver !== 'undefined') {
             /**
-             * Progressive right-cluster overflow.
+             * Progressive right-cluster overflow — ratio/slot-based.
              *
-             * Hides subbar-right items one-by-one as the panel narrows instead
-             * of collapsing the entire cluster at once.  Priority order (first
-             * to last to hide):
+             * Priority order below is LOWEST priority first (hides soonest,
+             * i.e. at the widest remaining panel width) to HIGHEST priority
+             * last (hides only once the panel is nearly as narrow as it can
+             * get): Model → Endpoints → Privacy → Terms → Share → Project
+             * Links. A new future item is simply appended to this array —
+             * it automatically becomes the new lowest-priority item with no
+             * per-item pixel tuning required, which is the whole point of
+             * computing thresholds from a formula instead of hand-picking
+             * five (now six) magic numbers.
              *
-             *   modelLink        575 px
-             *   epRightBtn       525 px
-             *   privacyLink      475 px
-             *   termsLink        350 px
-             *   shareLink        300 px
+             * The number of VISIBLE items is computed directly from the
+             * panel width using two constants instead of one hand-tuned
+             * px value per item:
              *
-             * Sets [data-overflow-hidden] on each item so CSS max-width + opacity
-             * transitions can animate the collapse.  Sets [data-overflow-visible]
-             * on the overflow button once any item is hidden so it fades in with a
-             * 60 ms delay (items start squeezing before the ⋯ button appears).
+             *   _SUBBAR_BASE_PX       — width needed for zero items (just
+             *                           the kbd-hint, ⋯ button, and padding)
+             *   _SUBBAR_ITEM_SLOT_PX  — width "spent" per additional
+             *                           visible item, applied uniformly
              *
-             * Items configured as null (feature-flagged off) are silently skipped.
+             *   visibleCount = floor((w - BASE) / SLOT), clamped to
+             *                  [0, total item count]
+             *
+             * This is an intentional approximation — real button widths
+             * vary a little with label length — traded for something that
+             * scales automatically to any number of items and is easy to
+             * reason about/adjust (two constants instead of a five-to-six
+             * entry lookup table that needs re-tuning by hand every time an
+             * item is added or removed).
+             *
+             * Sets [data-overflow-hidden] on each item so CSS max-width +
+             * opacity transitions can animate the collapse (see the
+             * "Train-carriage collapse" rules in ai-assistant.css). Sets
+             * [data-overflow-visible] on the overflow button once any item
+             * is hidden so it fades in with a 60 ms delay (items start
+             * squeezing before the ⋯ button appears).
+             *
+             * Items configured as null (feature-flagged off) are silently
+             * skipped via the Boolean filter below.
              *
              * @param {number} w - Panel content rect width in pixels.
              */
+            var _SUBBAR_ITEM_SLOT_PX = 60;   // px "spent" per visible right-cluster item
+            var _SUBBAR_BASE_PX      = 270;  // px needed for zero right-cluster items
             function _updateSubbarOverflow(w) {
-                var slots = [
-                    // Hide order: rightmost carriage departs first.
-                    // Visual order left→right: Model | Endpoints | Privacy | Terms | Share
-                    { el: modelLink,   px: 575 },   /* leftmost  — exits last   */
-                    { el: epRightBtn,  px: 525 },
-                    { el: privacyLink, px: 475 },
-                    { el: termsLink,   px: 350 },
-                    { el: shareLink,   px: 300 },   /* rightmost — exits first  */
-                ];
-                var anyHidden = false;
+                var slots = [modelLink, epRightBtn, privacyLink, termsLink, shareLink, siteBtn]
+                    .filter(Boolean);
+                var visibleCount = Math.max(0, Math.min(slots.length,
+                    Math.floor((w - _SUBBAR_BASE_PX) / _SUBBAR_ITEM_SLOT_PX)));
+                var hideCount = slots.length - visibleCount;
                 for (var si = 0; si < slots.length; si++) {
-                    var slot = slots[si];
-                    if (!slot.el) continue;
-                    if (w < slot.px) {
-                        slot.el.setAttribute('data-overflow-hidden', '');
-                        anyHidden = true;
+                    if (si < hideCount) {
+                        slots[si].setAttribute('data-overflow-hidden', '');
                     } else {
-                        slot.el.removeAttribute('data-overflow-hidden');
+                        slots[si].removeAttribute('data-overflow-hidden');
                     }
                 }
                 // Overflow button: fade in as soon as any item is hidden.
-                if (anyHidden) {
+                if (hideCount > 0) {
                     rightOverflowBtn.setAttribute('data-overflow-visible', '');
                 } else {
                     rightOverflowBtn.removeAttribute('data-overflow-visible');
@@ -16820,14 +16910,51 @@ opts.jsonPayload + '\n' +
             closeAIPanel();
         });
 
-        maximizeBtn.addEventListener('click', function () {
-            _hapticFeedback([8]);
-            var isMax = panel.getAttribute('data-maximized') === 'true';
-            if (isMax) {
-                // ── Restore ────────────────────────────────────────────────────
+        /**
+         * Registry of maximize/collapse button pairs beyond the main header's
+         * (maximizeBtn/collapseBtn). Populated by _buildSheetToolbar() below —
+         * each slide-over sheet gets its own independent button pair (a DOM
+         * node can't exist in two places at once), and this keeps all of them
+         * showing/hiding in sync with the single source of truth: the panel's
+         * data-maximized attribute.
+         */
+        var _extraMaxPairs = [];
+
+        /**
+         * Enter or leave the maximized state.
+         *
+         * Sizing itself is entirely CSS-driven via the pre-existing
+         * `.ai-assistant-panel[data-maximized="true"]` rule in
+         * ai-assistant.css (updated separately to fill the full viewport
+         * edge-to-edge). This function only owns: the attribute that rule
+         * keys off of, clearing any inline width/height left over from a
+         * manual resize-grip drag (inline styles otherwise outrank the
+         * stylesheet and would keep the panel pinned to its pre-maximize
+         * size), and swapping which of maximizeBtn / collapseBtn is shown
+         * — for the main header AND every sheet-toolbar copy in
+         * _extraMaxPairs.
+         *
+         * @param {boolean} maximize  True to maximize, false to restore.
+         */
+        function _setMaximized(maximize) {
+            if (maximize) {
+                // ── Maximize ───────────────────────────────────────────────
+                // Clear any inline width/height set by the resize grips so
+                // the CSS [data-maximized="true"] rule can take full control
+                // of both dimensions — otherwise the inline values win in
+                // the cascade.
+                panel.style.width  = '';
+                panel.style.height = '';
+                panel.setAttribute('data-maximized', 'true');
+                maximizeBtn.style.display = 'none';
+                collapseBtn.style.display = '';
+                _extraMaxPairs.forEach(function (p) {
+                    p.max.style.display = 'none';
+                    p.col.style.display = '';
+                });
+            } else {
+                // ── Restore ────────────────────────────────────────────────
                 panel.removeAttribute('data-maximized');
-                maximizeBtn.setAttribute('aria-label', 'Maximize panel');
-                maximizeBtn.innerHTML = ICONS.maximize;
                 // Re-apply any manually-saved size so the panel returns to
                 // exactly where the user left it before maximizing.
                 var saved = _ssGet(_PANEL_SIZE_KEY);
@@ -16844,17 +16971,142 @@ opts.jsonPayload + '\n' +
                     panel.style.width  = '';
                     panel.style.height = '';
                 }
-            } else {
-                // ── Maximize ───────────────────────────────────────────────────
-                // Clear any inline width/height set by the resize grips so the
-                // CSS [data-maximized="true"] rules can take full control of
-                // both dimensions — otherwise the inline values win in cascade.
-                panel.style.width  = '';
-                panel.style.height = '';
-                panel.setAttribute('data-maximized', 'true');
-                maximizeBtn.setAttribute('aria-label', 'Restore panel size');
-                maximizeBtn.innerHTML = ICONS.restore;
+                collapseBtn.style.display = 'none';
+                maximizeBtn.style.display = '';
+                _extraMaxPairs.forEach(function (p) {
+                    p.col.style.display = 'none';
+                    p.max.style.display = '';
+                });
             }
+        }
+
+        maximizeBtn.addEventListener('click', function () {
+            _hapticFeedback([8]);
+            var isMax = panel.getAttribute('data-maximized') === 'true';
+            _setMaximized(!isMax);
+        });
+
+        // Dedicated inverse-of-maximize control — only visible while
+        // maximized (see _setMaximized above), always restores.
+        collapseBtn.addEventListener('click', function () {
+            _hapticFeedback([8]);
+            _setMaximized(false);
+        });
+
+        /**
+         * Build a fresh copy of the header action cluster (new chat / export
+         * / minimize / maximize-collapse) for use inside a slide-over sheet's
+         * head.
+         *
+         * Why a fresh instance per sheet instead of moving the main header's
+         * copy: a DOM node can only exist in one place at a time, and the
+         * main header sits BEHIND every open sheet — sheets are
+         * `position: absolute; inset: 0` over the whole panel (see
+         * .ai-assistant-panel-privacy in the stylesheet) — so its buttons
+         * become visually covered and unreachable while any sheet is open.
+         * Each instance here is fully independent DOM but routes to the
+         * exact same shared functions (clearConversation, minimizeAIPanel,
+         * _setMaximized) as the main header, so behavior and state stay in
+         * sync regardless of which copy was clicked. Mirrors the same
+         * "shared logic, per-context trigger" pattern _buildSheetHamburgerBtn
+         * already uses for the hamburger menu.
+         *
+         * @param {string} idSuffix  Unique suffix so element ids stay unique
+         *   per sheet (e.g. 'links', 'privacy').
+         * @returns {HTMLElement}  A `.ai-assistant-panel-header-actions`
+         *   container, ready to insert into a sheet's
+         *   `.ai-assistant-panel-privacy-head`.
+         */
+        function _buildSheetToolbar(idSuffix) {
+            var wrap = document.createElement('div');
+            wrap.className =
+                'ai-assistant-panel-header-actions ai-assistant-panel-sheet-toolbar';
+
+            var newChatBtn2 = _createIconBtn(
+                'sheet-new-chat-' + idSuffix, 'Start a new chat', ICONS.newChatCompose);
+            newChatBtn2.title = 'Start a new chat';
+            newChatBtn2.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
+            newChatBtn2.addEventListener('click', clearConversation);
+            wrap.appendChild(newChatBtn2);
+
+            var exportDropdown2 = _buildExportDropdownBtn({
+                onLinkMode: function (fmt) {
+                    if (fmt === 'json')       { _openSheet(convShareSheetJson); }
+                    else if (fmt === 'html')  { _openSheet(convShareSheetHtml); }
+                    else                      { _openSheet(convShareSheetTxt);  }
+                },
+            });
+            wrap.appendChild(exportDropdown2);
+
+            var minimizeBtn2 = _createIconBtn(
+                'sheet-minimize-' + idSuffix, 'Minimize panel', ICONS.minimize);
+            minimizeBtn2.addEventListener('click', function () {
+                _hapticFeedback([8]);
+                minimizeAIPanel();
+            });
+            minimizeBtn2.setAttribute('aria-label',
+                'Minimize panel \u00b7 Right-click: close \u00b7 Shift+Right-click: browser menu');
+            minimizeBtn2.title =
+                'Left-click: minimize  \u00b7  Right-click: close  \u00b7  Shift+Right-click: browser menu';
+            minimizeBtn2.addEventListener('contextmenu', function (e) {
+                if (e.shiftKey) { return; }   // Shift held — let browser menu appear.
+                e.preventDefault();
+                closeAIPanel();
+            });
+            wrap.appendChild(minimizeBtn2);
+
+            var maximizeBtn2 = _createIconBtn(
+                'sheet-maximize-' + idSuffix, 'Maximize panel', ICONS.maximize);
+            var collapseBtn2 = _createIconBtn(
+                'sheet-collapse-' + idSuffix, 'Collapse full screen', ICONS.minimizeCollapse);
+            // Match current state immediately — a sheet can be opened while
+            // the panel is already maximized, and this pair shouldn't wait
+            // for the next toggle to reflect that.
+            var alreadyMax = panel.getAttribute('data-maximized') === 'true';
+            maximizeBtn2.style.display = alreadyMax ? 'none' : '';
+            collapseBtn2.style.display = alreadyMax ? '' : 'none';
+            maximizeBtn2.addEventListener('click', function () {
+                _hapticFeedback([8]);
+                var isMax = panel.getAttribute('data-maximized') === 'true';
+                _setMaximized(!isMax);
+            });
+            collapseBtn2.addEventListener('click', function () {
+                _hapticFeedback([8]);
+                _setMaximized(false);
+            });
+            _extraMaxPairs.push({ max: maximizeBtn2, col: collapseBtn2 });
+            wrap.appendChild(maximizeBtn2);
+            wrap.appendChild(collapseBtn2);
+
+            return wrap;
+        }
+
+        // Inject a copy of the header action cluster (new chat / export /
+        // minimize / maximize) into every slide-over sheet's head, so those
+        // controls stay reachable while browsing any sheet. Previously they
+        // were only usable on the main page: every sheet is
+        // position:absolute;inset:0 over the whole panel (see
+        // .ai-assistant-panel-privacy in the stylesheet) and visually covers
+        // the main header underneath it while open.
+        // epSheet is intentionally excluded — it has its own DOM-removal
+        // MutationObserver teardown lifecycle (see _buildSheetHamburgerBtn's
+        // closeExtra docs above) and is safer left as-is rather than risk
+        // interfering with that path.
+        [
+            { sheet: linksSheet,          id: 'links'      },
+            { sheet: privacySheet,        id: 'privacy'    },
+            { sheet: termsSheet,          id: 'terms'      },
+            { sheet: modelSheet,          id: 'model'      },
+            { sheet: shareSheet,          id: 'share'      },
+            { sheet: convShareSheetJson,  id: 'share-json' },
+            { sheet: convShareSheetHtml,  id: 'share-html' },
+            { sheet: convShareSheetTxt,   id: 'share-txt'  }
+        ].forEach(function (entry) {
+            if (!entry.sheet) return;
+            var head = entry.sheet.querySelector('.ai-assistant-panel-privacy-head');
+            var closeBtnEl = entry.sheet.querySelector('button[id$="-close"]');
+            if (!head || !closeBtnEl) return;
+            head.insertBefore(_buildSheetToolbar(entry.id), closeBtnEl);
         });
 
         // Issue 4: Re-wire all sheet close (×) buttons to go through _closeSheet

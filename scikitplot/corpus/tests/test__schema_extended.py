@@ -484,12 +484,22 @@ class TestMakeDocIdExtended:
         b = CorpusDocument.make_doc_id("img.jpg", 0, None)
         assert a == b
 
-    def test_long_text_truncated_at_64(self) -> None:
-        """Texts that share the first 64 chars must produce the same id."""
+    def test_full_content_distinguishes_shared_prefix(self) -> None:
+        """CORPUS-ID-001: texts sharing the first 64 chars but differing later
+        must produce DIFFERENT ids (v2 hashes full content, not text[:64])."""
         base = "x" * 64
         id1 = CorpusDocument.make_doc_id("f.txt", 0, base)
         id2 = CorpusDocument.make_doc_id("f.txt", 0, base + "different suffix")
-        assert id1 == id2
+        assert id1 != id2
+
+    def test_adversarial_64char_prefix_collision(self) -> None:
+        """The finding's reproduction: A*64+X and A*64+Y must not collide."""
+        a = CorpusDocument.make_doc_id("f.txt", 3, "A" * 64 + "X", SourceType.BOOK)
+        b = CorpusDocument.make_doc_id("f.txt", 3, "A" * 64 + "Y", SourceType.BOOK)
+        assert a != b
+        # ...but identical full content is still deterministic
+        c = CorpusDocument.make_doc_id("f.txt", 3, "A" * 64 + "X", SourceType.BOOK)
+        assert a == c
 
     def test_different_chunk_index_gives_different_id(self) -> None:
         a = CorpusDocument.make_doc_id("f.txt", 0, "Hello")

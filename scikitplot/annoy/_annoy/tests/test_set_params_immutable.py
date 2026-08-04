@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_set_params_immutable.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-006 (guide 29.3).
+"""Regression tests for CY-006 (guide 29.3).
 
 `set_params` must not let structural type parameters diverge from the concrete
 backing: `index_dtype`, `dtype`, `wrapper_dtype`, and `random_dtype` fix the

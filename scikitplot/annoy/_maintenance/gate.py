@@ -1,3 +1,10 @@
+# scikitplot/annoy/_maintenance/gate.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Scoped-gate runner (documented harness, rule L-GATE-SCOPE — not a source change).
 
@@ -25,7 +32,7 @@ try:
         setattr(scikitplot, _n, _v)
 except (
     Exception  # ruff: ignore[blind-except]
-) as e:  # keep gate honest: surface, don't mask
+) as e:  # keep gate honest: surface, don't mask  # ruff: ignore[blind-except]
     sys.stderr.write(f"[gate] config bind failed: {e!r}\n")
 import pytest
 

@@ -4,10 +4,9 @@
 # ==============================================================================
 # Constants Configuration
 # ==============================================================================
-
-DEF ANNOY_VERSION_MAJOR = 1
-DEF ANNOY_VERSION_MINOR = 17
-DEF ANNOY_VERSION_PATCH = 3
+# DEF ANNOY_VERSION_MAJOR = 1
+# DEF ANNOY_VERSION_MINOR = 17
+# DEF ANNOY_VERSION_PATCH = 3
 
 # Default parameters (from annoymodule.cc)
 DEF DEFAULT_N_TREES = 10
@@ -15,7 +14,7 @@ DEF DEFAULT_SEARCH_K = -1
 DEF DEFAULT_N_THREADS = -1
 DEF DEFAULT_N_NEIGHBORS = 5
 DEF DEFAULT_PREFAULT = False
-DEF DEFAULT_SCHEMA_VERSION = 1
+DEF DEFAULT_SCHEMA_VERSION = 0
 
 # Memory and size limits
 DEF MAX_DIMENSION = 1000000

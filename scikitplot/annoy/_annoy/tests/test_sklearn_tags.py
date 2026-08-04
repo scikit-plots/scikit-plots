@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_sklearn_tags.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-011 (guide 35).
+"""Regression tests for CY-011 (guide 35).
 
 ``Index.__sklearn_tags__`` delegated to ``super().__sklearn_tags__()``, but the
 class is estimator-like without being a ``BaseEstimator`` subclass, so the parent

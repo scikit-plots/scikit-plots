@@ -333,92 +333,108 @@
 #ifndef ANNOY_FLOAT16_DEFINED
 #define ANNOY_FLOAT16_DEFINED
 // Float16 support (IEEE 754 half precision - 16 bits)
-#if defined(__F16C__) || defined(__ARM_FP16_FORMAT_IEEE)
-  #if defined(__ARM_FP16_FORMAT_IEEE)
-    // TODO: Native ARM float16, Cython does not properly support __fp16.
-    // C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\ARM64\lib\clang\19\include\arm_vector_types.h
-    // arm_vector_types.h(18,16): error: typedef redefinition with different types ('__fp16' vs 'float16_t')
-    typedef __fp16 float16_t;
-    // struct float16_t {
-    //     __fp16 data;
-
-    //     float16_t() : data(0) {}
-    //     explicit float16_t(float f) : data(static_cast<__fp16>(f)) {}
-
-    //     operator float() const {
-    //         return static_cast<float>(data);
-    //     }
-
-    //     float16_t& operator=(float f) {
-    //         data = static_cast<__fp16>(f);
-    //         return *this;
-    //     }
-    // };
-    #define ANNOY_HAS_NATIVE_FLOAT16 1
-  #elif defined(__F16C__)
-    // x86 F16C hardware acceleration
-    #include <immintrin.h>
-    // Hardware-accelerated float16 using F16C instructions
-    struct float16_t {
-      uint16_t data;
-      float16_t() : data(0) {}
-      // Implicit constructor: allows float→float16_t in arithmetic expressions,
-      // ternary results, and function return values.  This mirrors how native
-      // floating-point promotions work and is the standard approach used by
-      // PyTorch (c10::Half) and Eigen (Eigen::half).
-      float16_t(float f) {  // NOLINT(google-explicit-constructor)
-        __m128 v = _mm_set_ss(f);
-        __m128i h = _mm_cvtps_ph(v, _MM_FROUND_TO_NEAREST_INT);
-        data = static_cast<uint16_t>(_mm_extract_epi16(h, 0));
-      }
-      operator float() const {
-        __m128i h = _mm_cvtsi32_si128(data);
-        __m128 v = _mm_cvtph_ps(h);
-        return _mm_cvtss_f32(v);
-      }
-      float16_t& operator=(float f) {
-        *this = float16_t(f);
-        return *this;
-      }
-      // Compound assignment operators — compute in float, store back as half.
-      float16_t& operator+=(float16_t rhs) { *this = float16_t(float(*this) + float(rhs)); return *this; }
-      float16_t& operator-=(float16_t rhs) { *this = float16_t(float(*this) - float(rhs)); return *this; }
-      float16_t& operator*=(float16_t rhs) { *this = float16_t(float(*this) * float(rhs)); return *this; }
-      float16_t& operator/=(float16_t rhs) { *this = float16_t(float(*this) / float(rhs)); return *this; }
-      // Unary negation.
-      float16_t operator-() const { return float16_t(-float(*this)); }
-    };
-    #define ANNOY_HAS_F16C_FLOAT16 1
-  #endif
-#else
-  // Portable software implementation
+// Runtime-dispatched float16 (CY-016 / float128-SIGILL fix).
+//
+// PORTABILITY: the F16C fast path is NOT selected at compile time. On x86
+// GCC/Clang we compile BOTH the portable scalar converters and the F16C
+// converters (the latter via __attribute__((target("f16c"))), so they build even
+// without a global -mf16c), then choose per conversion using a cached
+// __builtin_cpu_supports("f16c") probe. This removes the compile-time landmine:
+// the binary runs on any x86 CPU and only executes F16C when the RUNNING CPU
+// supports it. The scalar path is proven bit-for-bit equal to F16C
+// (tests/test_float16_portable_fallback.cpp), so dispatch changes speed only.
+#if defined(__ARM_FP16_FORMAT_IEEE)
+  // Native ARM half precision.
+  typedef __fp16 float16_t;
+  #define ANNOY_HAS_NATIVE_FLOAT16 1
+#elif (defined(__x86_64__) || defined(__i386__)) && defined(__GNUC__)
+  #include <immintrin.h>
   struct float16_t {
     uint16_t data;
     float16_t() : data(0) {}
-    // Implicit constructor: allows float→float16_t in arithmetic expressions,
-    // ternary results, and function return values.  This mirrors how native
-    // floating-point promotions work and is the standard approach used by
-    // PyTorch (c10::Half) and Eigen (Eigen::half).
+
+    // ---- portable scalar converters (always valid; the safe path) ----
+    static inline uint16_t f32_to_f16_scalar(float f) {
+      uint32_t x; std::memcpy(&x, &f, sizeof(float));
+      uint32_t sign = (x >> 31) << 15;
+      uint32_t exp  = ((x >> 23) & 0xFF);
+      uint32_t frac = (x >> 13) & 0x3FF;
+      uint16_t out;
+      if (exp == 0) {
+        out = static_cast<uint16_t>(sign);
+      } else if (exp == 0xFF) {
+        out = static_cast<uint16_t>(sign | 0x7C00 | (frac ? 0x200 : 0));
+      } else {
+        int32_t newexp = static_cast<int32_t>(exp) - 127 + 15;
+        if (newexp <= 0)        out = static_cast<uint16_t>(sign);
+        else if (newexp >= 31)  out = static_cast<uint16_t>(sign | 0x7C00);
+        else out = static_cast<uint16_t>(sign | (static_cast<uint32_t>(newexp) << 10) | frac);
+      }
+      return out;
+    }
+    static inline float f16_to_f32_scalar(uint16_t d) {
+      uint32_t sign = static_cast<uint32_t>(d >> 15) << 31;
+      uint32_t exp  = (d >> 10) & 0x1F;
+      uint32_t frac = (d & 0x3FF) << 13;
+      uint32_t result;
+      if (exp == 0)       result = sign;
+      else if (exp == 31) result = sign | 0x7F800000 | frac;
+      else                result = sign | ((exp - 15 + 127) << 23) | frac;
+      float fr; std::memcpy(&fr, &result, sizeof(float)); return fr;
+    }
+
+    // ---- F16C hardware converters (compiled with F16C enabled locally) ----
+    __attribute__((target("f16c"))) static uint16_t f32_to_f16_hw(float f) {
+      __m128 v = _mm_set_ss(f);
+      __m128i h = _mm_cvtps_ph(v, _MM_FROUND_TO_NEAREST_INT);
+      return static_cast<uint16_t>(_mm_extract_epi16(h, 0));
+    }
+    __attribute__((target("f16c"))) static float f16_to_f32_hw(uint16_t d) {
+      __m128i h = _mm_cvtsi32_si128(d);
+      __m128 v = _mm_cvtph_ps(h);
+      return _mm_cvtss_f32(v);
+    }
+
+    // ---- cached runtime CPU-feature probe ----
+    static inline bool has_f16c() {
+      static const bool ok = (__builtin_cpu_supports("f16c") != 0);
+      return ok;
+    }
+
     float16_t(float f) {  // NOLINT(google-explicit-constructor)
-      // IEEE 754 half-precision conversion
-      uint32_t x;
-      std::memcpy(&x, &f, sizeof(float));
+      data = has_f16c() ? f32_to_f16_hw(f) : f32_to_f16_scalar(f);
+    }
+    operator float() const {
+      return has_f16c() ? f16_to_f32_hw(data) : f16_to_f32_scalar(data);
+    }
+    float16_t& operator=(float f) { *this = float16_t(f); return *this; }
+    float16_t& operator+=(float16_t rhs) { *this = float16_t(float(*this) + float(rhs)); return *this; }
+    float16_t& operator-=(float16_t rhs) { *this = float16_t(float(*this) - float(rhs)); return *this; }
+    float16_t& operator*=(float16_t rhs) { *this = float16_t(float(*this) * float(rhs)); return *this; }
+    float16_t& operator/=(float16_t rhs) { *this = float16_t(float(*this) / float(rhs)); return *this; }
+    float16_t operator-() const { return float16_t(-float(*this)); }
+  };
+  #define ANNOY_HAS_F16C_FLOAT16 1
+  #define ANNOY_HAS_RUNTIME_DISPATCH_FLOAT16 1
+#else
+  // Portable software implementation (MSVC, non-GNUC, or non-x86).
+  struct float16_t {
+    uint16_t data;
+    float16_t() : data(0) {}
+    float16_t(float f) {  // NOLINT(google-explicit-constructor)
+      uint32_t x; std::memcpy(&x, &f, sizeof(float));
       uint32_t sign = (x >> 31) << 15;
       uint32_t exp = ((x >> 23) & 0xFF);
       uint32_t frac = (x >> 13) & 0x3FF;
       if (exp == 0) {
-        data = static_cast<uint16_t>(sign);  // Zero or denormal
+        data = static_cast<uint16_t>(sign);
       } else if (exp == 0xFF) {
-        data = static_cast<uint16_t>(sign | 0x7C00 | (frac ? 0x200 : 0));  // Inf or NaN
+        data = static_cast<uint16_t>(sign | 0x7C00 | (frac ? 0x200 : 0));
       } else {
         int32_t newexp = static_cast<int32_t>(exp) - 127 + 15;
-        if (newexp <= 0) {
-          data = static_cast<uint16_t>(sign);  // Underflow to zero
-        } else if (newexp >= 31) {
-          data = static_cast<uint16_t>(sign | 0x7C00);  // Overflow to infinity
-        } else {
-          data = static_cast<uint16_t>(sign | (static_cast<uint32_t>(newexp) << 10) | frac);
-        }
+        if (newexp <= 0)       data = static_cast<uint16_t>(sign);
+        else if (newexp >= 31) data = static_cast<uint16_t>(sign | 0x7C00);
+        else data = static_cast<uint16_t>(sign | (static_cast<uint32_t>(newexp) << 10) | frac);
       }
     }
     operator float() const {
@@ -426,28 +442,16 @@
       uint32_t exp = (data >> 10) & 0x1F;
       uint32_t frac = (data & 0x3FF) << 13;
       uint32_t result;
-      if (exp == 0) {
-        result = sign;  // Zero or denormal
-      } else if (exp == 31) {
-        result = sign | 0x7F800000 | frac;  // Inf or NaN
-      } else {
-        result = sign | ((exp - 15 + 127) << 23) | frac;
-      }
-      float fresult;
-      // <cstring>   // must be before usage
-      std::memcpy(&fresult, &result, sizeof(float));
-      return fresult;
+      if (exp == 0)       result = sign;
+      else if (exp == 31) result = sign | 0x7F800000 | frac;
+      else                result = sign | ((exp - 15 + 127) << 23) | frac;
+      float fresult; std::memcpy(&fresult, &result, sizeof(float)); return fresult;
     }
-    float16_t& operator=(float f) {
-      *this = float16_t(f);
-      return *this;
-    }
-    // Compound assignment operators — compute in float, store back as half.
+    float16_t& operator=(float f) { *this = float16_t(f); return *this; }
     float16_t& operator+=(float16_t rhs) { *this = float16_t(float(*this) + float(rhs)); return *this; }
     float16_t& operator-=(float16_t rhs) { *this = float16_t(float(*this) - float(rhs)); return *this; }
     float16_t& operator*=(float16_t rhs) { *this = float16_t(float(*this) * float(rhs)); return *this; }
     float16_t& operator/=(float16_t rhs) { *this = float16_t(float(*this) / float(rhs)); return *this; }
-    // Unary negation.
     float16_t operator-() const { return float16_t(-float(*this)); }
   };
   #define ANNOY_HAS_SOFTWARE_FLOAT16 1
@@ -471,6 +475,16 @@
   // Generic fallback to long double
   typedef long double float128_t;
   #define ANNOY_HAS_FLOAT128_FALLBACK 1
+#endif
+
+// Float80 (x87 80-bit extended precision). Always a valid element type
+// (long double is a real type everywhere). It is a *distinct, useful* dtype only
+// where float128_t is native __float128 (so long double is separate); where
+// float128_t already IS long double it is redundant with float128 but harmless.
+#ifndef ANNOY_FLOAT80_DEFINED
+#define ANNOY_FLOAT80_DEFINED
+typedef long double float80_t;
+#define ANNOY_HAS_FLOAT80 1
 #endif
 #endif // ANNOY_FLOAT128_DEFINED
 
@@ -1042,6 +1056,7 @@ struct is_valid_data_type {
     std::is_same<T, float16_t>::value ||
     std::is_same<T, float>::value ||
     std::is_same<T, double>::value ||
+    std::is_same<T, long double>::value ||   // float80_t (x87 extended)
     std::is_same<T, float128_t>::value;
 };
 /**
@@ -1138,6 +1153,9 @@ template<> struct TypeName<float16_t>   { static const char* value() noexcept { 
 template<> struct TypeName<float>       { static const char* value() noexcept { return "float32";  } };
 template<> struct TypeName<double>      { static const char* value() noexcept { return "float64";  } };
 template<> struct TypeName<float128_t>  { static const char* value() noexcept { return "float128"; } };
+#if defined(ANNOY_HAS_FLOAT128)  // long double distinct from float128_t here
+template<> struct TypeName<float80_t>   { static const char* value() noexcept { return "float80";  } };
+#endif
 template<> struct TypeName<bool>        { static const char* value() noexcept { return "bool";     } };
 template<> struct TypeName<uint8_t>     { static const char* value() noexcept { return "uint8";    } };
 template<> struct TypeName<uint16_t>    { static const char* value() noexcept { return "uint16";   } };
@@ -1362,7 +1380,10 @@ inline bool remap_memory_and_truncate(void** _ptr, int _fd,
 #endif
       if (new_ptr == MAP_FAILED) {
         // Best-effort rollback of file size; mapping remains old.
-        (void)ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size));
+// Best-effort rollback; consume the result to satisfy warn_unused_result
+        // ((void) does not silence it on GCC). We are already in an error path, so
+        // a failed rollback truncate is non-actionable but no longer silently dropped.
+        if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size)) != 0) { /* non-fatal */ }
         if (trunc_ok) *trunc_ok = false;
         return false;
       }
@@ -1394,7 +1415,7 @@ inline bool remap_memory_and_truncate(void** _ptr, int _fd,
     void* new_ptr = mmap(0, new_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
 #endif
     if (new_ptr == MAP_FAILED) {
-      (void)ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size));
+if (ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(old_size)) != 0) { /* non-fatal */ }
       if (trunc_ok) *trunc_ok = false;
       return false;
     }
@@ -2774,7 +2795,7 @@ static_assert(sizeof(AnnoyFileHeader) == 64,
 
 /**
  * @tparam S Index type (int8_t | int16_t | int32_t | int64_t | uint8_t | uint16_t | uint32_t | uint64_t)
- * @tparam T Data type (float, double, float16_t, float128_t, bool, uint8_t, uint32_t, uint64_t)
+ * @tparam T Data type (float, double, float16_t, float80_t, float128_t, bool, uint8_t, uint32_t, uint64_t)
  * @tparam Distance Distance metric (Angular, Euclidean, Manhattan, DotProduct, Hamming)
  * @tparam Random Random number generator (Kiss32Random, Kiss64Random)
  * @tparam ThreadPolicy Build policy (SingleThreaded or MultiThreaded)
@@ -2793,7 +2814,7 @@ class AnnoyIndex
                 "S must be one of: int8_t, int16_t, int32_t, int64_t, "
                 "uint8_t, uint16_t, uint32_t, uint64_t");
   static_assert(is_valid_data_type<T>::value,
-                "T must be float, double, float16_t, float128_t, bool, or uint8_t");
+                "T must be float, double, float16_t, float80_t, float128_t, bool, or uint8_t");
 #endif
 /**
  * We use random projection to build a forest of binary trees of all items.
@@ -4421,8 +4442,9 @@ class HammingWrapper final
                 "S must be one of: int8_t, int16_t, int32_t, int64_t, "
                 "uint8_t, uint16_t, uint32_t, uint64_t");
   static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value ||
-                std::is_same<T, float16_t>::value || std::is_same<T, float128_t>::value,
-                "T must be float, double, float16_t, or float128_t for HammingWrapper external interface");
+                std::is_same<T, float16_t>::value || std::is_same<T, long double>::value ||
+                std::is_same<T, float128_t>::value,
+                "T must be float, double, float16_t, float80_t, or float128_t for HammingWrapper external interface");
   static_assert(std::is_same<InternalT, bool>::value ||
                 std::is_same<InternalT, uint8_t>::value ||
                 std::is_same<InternalT, uint32_t>::value ||

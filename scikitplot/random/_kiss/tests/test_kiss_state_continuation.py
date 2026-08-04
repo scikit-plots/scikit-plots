@@ -1,10 +1,11 @@
+# scikitplot/random/_kiss/tests/test_kiss_state_continuation.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for ANNOY-RNG-002 (guide 6.16).
+"""Regression tests for ANNOY-RNG-002 (guide 6.16).
 
 `get_state`/`set_state` (and pickle) must capture the FULL generator state
 (`x, y, z, c`), not just the seed. A seed-only restore restarts the stream; the

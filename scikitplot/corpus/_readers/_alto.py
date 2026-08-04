@@ -243,13 +243,15 @@ def _parse_xml_bytes(content: bytes) -> Any:
     try:
         from lxml import etree  # type: ignore[] # noqa: PLC0415
 
-        return etree.fromstring(content)
+        from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
+
+        return etree.fromstring(content, parser=hardened_lxml_parser())
     except ImportError:
         pass
-    import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
+    from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
 
     try:
-        return ET.fromstring(content)  # noqa: S314
+        return parse_stdlib_secure(content)
     except Exception as exc:  # noqa: BLE001
         raise ValueError(f"ALTOReader: could not parse XML: {exc}") from exc
 

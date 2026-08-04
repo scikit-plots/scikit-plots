@@ -189,7 +189,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     # -----------------------------------------------------------------
     # Seaborn helpers (kept for consistency with VectorPlotter)
     # -----------------------------------------------------------------
-    def _add_legend(
+    def _add_legend(  # ruff: ignore[too-many-positional-arguments]
         self,
         ax_obj,
         artist,
@@ -229,7 +229,15 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 **legend_kws,
             )
 
-    def _artist_kws(self, kws, fill, element, multiple, color, alpha):
+    def _artist_kws(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        kws,
+        fill,
+        element,
+        multiple,
+        color,
+        alpha,
+    ):
         """Normalize artist kwargs for filled/unfilled plotting."""
         kws = kws.copy()
         if fill:
@@ -398,7 +406,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     # -----------------------------------------------------------------
     # Metric computation
     # -----------------------------------------------------------------
-    def _compute_classification_report(
+    def _compute_classification_report(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -428,7 +436,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
             )
             return None, None, None
 
-    def _compute_confusion_matrix(
+    def _compute_confusion_matrix(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -463,7 +471,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     # -----------------------------------------------------------------
     # Plotting primitives
     # -----------------------------------------------------------------
-    def _plot_classification_report(
+    def _plot_classification_report(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -531,7 +539,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         # ax.set_ylabel("")
         ax.set_title("Classification Report", loc="center")  # x=-1e-1 pad=1
 
-    def _plot_confusion_matrix(
+    def _plot_confusion_matrix(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -682,7 +690,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 **text_kws,
             )
 
-    def _plot_all(
+    def _plot_all(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -911,7 +919,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     # -------------------------
     # Evaluation plotting
     # -------------------------
-    def plot_evalplot(  # noqa: PLR0912
+    def plot_evalplot(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         kind: Literal["all", "classification_report", "confusion_matrix"] | None,
         labels,

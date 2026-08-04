@@ -711,7 +711,7 @@ class GoogleLogFormatter(_logging.Formatter):
     #: time.localtime
     converter = time.localtime
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
         datefmt: str = "%Y-%m-%d %H:%M:%S",
         default_time_format: str = "%Y-%m-%d %H:%M:%S",

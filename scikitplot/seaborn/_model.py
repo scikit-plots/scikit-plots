@@ -237,7 +237,7 @@ class _ModelPlotter(VectorPlotter):
         # TODO see above points about where this should go
         return bool({"x", "y"} & set(self.variables))
 
-    def _add_legend(
+    def _add_legend(  # ruff: ignore[too-many-positional-arguments]
         self,
         ax_obj,
         artist,
@@ -277,7 +277,15 @@ class _ModelPlotter(VectorPlotter):
                 **legend_kws,
             )
 
-    def _artist_kws(self, kws, fill, element, multiple, color, alpha):
+    def _artist_kws(  # ruff: ignore[too-many-positional-arguments]
+        self,
+        kws,
+        fill,
+        element,
+        multiple,
+        color,
+        alpha,
+    ):
         """Handle differences between artists in filled/unfilled plots."""
         kws = kws.copy()
         if fill:
@@ -387,7 +395,7 @@ class _ModelPlotter(VectorPlotter):
 
         return y_true, y_score, weights
 
-    def _compute_confusion_matrix(
+    def _compute_confusion_matrix(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -417,7 +425,7 @@ class _ModelPlotter(VectorPlotter):
             )
             return None, None, None
 
-    def _plot_confusion_matrix(
+    def _plot_confusion_matrix(  # ruff: ignore[too-many-positional-arguments]
         self,
         y_true,
         y_pred,
@@ -579,7 +587,7 @@ class _ModelPlotter(VectorPlotter):
         # the appropriate rendering method.
         return y_true, y_pred, None
 
-    def _plot_modelplot(
+    def _plot_modelplot(  # ruff: ignore[too-many-positional-arguments]
         self,
         x: np.ndarray,
         y: np.ndarray,
@@ -650,7 +658,7 @@ class _ModelPlotter(VectorPlotter):
     # -------------------------
     # AUC plotting
     # -------------------------
-    def plot_modelplot(  # noqa: PLR0912
+    def plot_modelplot(  # noqa: PLR0912  # ruff: ignore[too-many-positional-arguments]
         self,
         kind: Literal["feature_importances"] | None,
         color,

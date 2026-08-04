@@ -1,10 +1,11 @@
+# scikitplot/annoy/_annoy/tests/test_doc_parity.py
+#
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Regression tests for CY-019 (guide 39).
+"""Regression tests for CY-019 (guide 39).
 
 Documentation parity: the ``Index.__init__`` docstring had drifted from the code
 — it claimed ``index_dtype`` default ``"int64"`` (actual ``"int32"``) and that

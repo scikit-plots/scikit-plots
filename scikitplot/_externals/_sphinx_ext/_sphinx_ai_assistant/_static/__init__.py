@@ -66,11 +66,13 @@ __all__ = [
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
     "_SVG_DEFAULT",
+    "_SVG_ERROR_ALERT",
     "_SVG_EXPORT_TXT",
     "_SVG_GEMINI",
     "_SVG_KEYBOARD",
     "_SVG_MARKDOWN",
     "_SVG_MENU_SPARKLE",
+    "_SVG_MINIMIZE_COLLAPSE",
     "_SVG_NEW_CHAT",
     "_SVG_NEW_CHAT_COMPOSE",
     "_SVG_OLLAMA",
@@ -702,6 +704,56 @@ _SVG_SPARKLE_NOVA: str = (
     "NzZxLjEzLS4wNTUuMjcyLS4xMDYuMjc2LS4wOTkuNTI2LS4xNjRhLjQuNCAwIDAgMCAu"
     "Mjk2LS4yODYgNiA2IDAgMCAxIC4yNzQtLjgxMSIvPjwvc3ZnPg=="
 )
+# Lucide "minimize-2" (inward-pointing diagonal arrows) — the visual inverse
+# of ICONS.maximize's outward-pointing arrows in ai-assistant.js. Used as the
+# icon for the dedicated "collapse full screen" panel-header button, distinct
+# from _SVG_MINIMIZE above (which collapses the panel to the floating trigger
+# pill) and from the pre-existing corner-bracket "restore" glyph (kept
+# unchanged for backward compatibility — see ICONS.restore in ai-assistant.js).
+_SVG_MINIMIZE_COLLAPSE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIg"
+    "aGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9"
+    "ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91"
+    "bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLW1p"
+    "bmltaXplLTIiPjxwb2x5bGluZSBwb2ludHM9IjQgMTQgMTAgMTQgMTAgMjAiPjwvcG9s"
+    "eWxpbmU+PHBvbHlsaW5lIHBvaW50cz0iMjAgMTAgMTQgMTAgMTQgNCI+PC9wb2x5bGlu"
+    "ZT48bGluZSB4MT0iMTQiIHgyPSIyMSIgeTE9IjEwIiB5Mj0iMyI+PC9saW5lPjxsaW5l"
+    "IHgxPSIzIiB4Mj0iMTAiIHkxPSIyMSIgeTI9IjE0Ij48L2xpbmU+PC9zdmc+Cg=="
+)
+
+# MUI "ErrorIcon" outline, re-authored with stroke="currentColor" (dropped the
+# original fill/MuiSvgIcon-color* class attributes so it themes the same way
+# every other icon in this module does). Not wired to any control yet —
+# reserved for a future error/alert affordance (e.g. a failed-request state
+# in the panel body). Mirrors the "reserved for future use" pattern already
+# established by _SVG_SPARKLE / _SVG_SPARKLE_ALT above.
+_SVG_ERROR_ALERT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8v"
+    "d3d3LnczLm9yZy8yMDAwL3N2ZyIgZm9jdXNhYmxlPSJmYWxzZSIgYXJpYS1oaWRkZW49"
+    "InRydWUiPjxwYXRoIGQ9Ik0xMiA4LjAwMDA4VjEyLjAwMDFNMTIgMTYuMDAwMUgxMi4w"
+    "MU0zIDcuOTQxNTNWMTYuMDU4NkMzIDE2LjQwMTMgMyAxNi41NzI2IDMuMDUwNDggMTYu"
+    "NzI1NEMzLjA5NTE1IDE2Ljg2MDYgMy4xNjgxNiAxNi45ODQ3IDMuMjY0NjMgMTcuMDg5"
+    "M0MzLjM3MzY5IDE3LjIwNzcgMy41MjM0NSAxNy4yOTA5IDMuODIyOTcgMTcuNDU3M0wx"
+    "MS4yMjMgMjEuNTY4NEMxMS41MDY2IDIxLjcyNiAxMS42NDg0IDIxLjgwNDcgMTEuNzk4"
+    "NSAyMS44MzU2QzExLjkzMTUgMjEuODYzIDEyLjA2ODUgMjEuODYzIDEyLjIwMTUgMjEu"
+    "ODM1NkMxMi4zNTE2IDIxLjgwNDcgMTIuNDkzNCAyMS43MjYgMTIuNzc3IDIxLjU2ODRM"
+    "MjAuMTc3IDE3LjQ1NzNDMjAuNDc2NiAxNy4yOTA5IDIwLjYyNjMgMTcuMjA3NyAyMC43"
+    "MzU0IDE3LjA4OTNDMjAuODMxOCAxNi45ODQ3IDIwLjkwNDkgMTYuODYwNiAyMC45NDk1"
+    "IDE2LjcyNTRDMjEgMTYuNTcyNiAyMSAxNi40MDEzIDIxIDE2LjA1ODZWNy45NDE1M0My"
+    "MSA3LjU5ODg5IDIxIDcuNDI3NTYgMjAuOTQ5NSA3LjI3NDc3QzIwLjkwNDkgNy4xMzk1"
+    "OSAyMC44MzE4IDcuMDE1NTEgMjAuNzM1NCA2LjkxMDgyQzIwLjYyNjMgNi43OTI0OCAy"
+    "MC40NzY2IDYuNzA5MjggMjAuMTc3IDYuNTQyODhMMTIuNzc3IDIuNDMxNzdDMTIuNDkz"
+    "NCAyLjI3NDIxIDEyLjM1MTYgMi4xOTU0MyAxMi4yMDE1IDIuMTY0NTRDMTIuMDY4NSAy"
+    "LjEzNzIxIDExLjkzMTUgMi4xMzcyMSAxMS43OTg1IDIuMTY0NTRDMTEuNjQ4NCAyLjE5"
+    "NTQzIDExLjUwNjYgMi4yNzQyMSAxMS4yMjMgMi40MzE3N0wzLjgyMjk3IDYuNTQyODhD"
+    "My41MjM0NSA2LjcwOTI4IDMuMzczNjkgNi43OTI0OCAzLjI2NDYzIDYuOTEwODJDMy4x"
+    "NjgxNiA3LjAxNTUxIDMuMDk1MTUgNy4xMzk1OSAzLjA1MDQ4IDcuMjc0NzdDMyA3LjQy"
+    "NzU2IDMgNy41OTg4OSAzIDcuOTQxNTNaIiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJl"
+    "bnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0"
+    "cm9rZS1saW5lam9pbj0icm91bmQiPjwvcGF0aD48L3N2Zz4K"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -788,4 +840,15 @@ _ICON_META: dict[str, dict[str, str]] = {
         "icon": _SVG_PRIVACY,
         "desc": "Privacy & Responsibility",
     },
+    # ── Phase D additions ─────────────────────────────────────────────
+    # Mirrors ICONS.minimizeCollapse in ai-assistant.js — the dedicated
+    # "collapse full screen" button that is the visual inverse of the
+    # existing "maximize" action.
+    "minimize-collapse": {
+        "icon": _SVG_MINIMIZE_COLLAPSE,
+        "desc": "Collapse full screen (exit maximized view)",
+    },
+    # Reserved for a future error/alert affordance — not wired to any
+    # control yet. Mirrors ICONS.errorAlert in ai-assistant.js.
+    "error-alert": {"icon": _SVG_ERROR_ALERT, "desc": "Error / alert notice"},
 }
