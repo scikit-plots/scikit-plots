@@ -226,7 +226,7 @@ class Bm25Retriever(DocsRetriever):
         """
         try:
             from scikitplot.corpus import SQLiteStorage, StorageQuery  # noqa: PLC0415
-        except Exception as exc:  # pragma: no cover - integration path
+        except ImportError as exc:  # pragma: no cover - optional integration path
             raise RuntimeError(
                 "scikitplot.corpus is required for the BM25/FTS5 leg."
             ) from exc
@@ -234,37 +234,38 @@ class Bm25Retriever(DocsRetriever):
         store = SQLiteStorage(storage_path)
 
         def _fts(query: str, k: int) -> list[tuple[str, float]]:
-            result = store.query(StorageQuery(text=query, limit=k))
-            rows = getattr(result, "rows", result) or []
-            out = []
-            for row in rows:
+            # SQLiteStorage.query() returns a QueryResult whose ``documents``
+            # are already ordered by BM25 when ``full_text`` is supplied.
+            result = store.query(StorageQuery(full_text=query, limit=k))
+            rows = getattr(result, "documents", result) or []
+            out: list[tuple[str, float]] = []
+            for rank, row in enumerate(rows, start=1):
                 did = str(
                     getattr(row, "doc_id", "")
                     or (row.get("doc_id", "") if isinstance(row, dict) else "")
                 )
-                sc = getattr(row, "score", None)
-                if sc is None and isinstance(row, dict):
-                    sc = row.get("score", 0.0)
-                out.append((did, float(sc or 0.0)))
+                if not did:
+                    continue
+                # RRF consumes ordering rather than raw BM25 magnitudes. Use a
+                # stable higher-is-better rank surrogate for RetrievedChunk.score.
+                out.append((did, 1.0 / rank))
             return out
 
         def _lookup(doc_id: str) -> dict[str, Any]:
-            res = store.query(StorageQuery(doc_id=doc_id, limit=1))
-            rows = getattr(res, "rows", res) or []
-            if not rows:
+            row = store.get(doc_id)
+            if row is None:
                 return {}
-            row = rows[0]
 
-            def g(n):
-                return getattr(row, n, None) or (
-                    row.get(n) if isinstance(row, dict) else None
-                )
+            def g(name: str) -> Any:
+                if isinstance(row, dict):
+                    return row.get(name)
+                return getattr(row, name, None)
 
             return {
                 "text": g("normalized_text") or g("text") or "",
-                "source_uri": g("source_uri") or g("source") or "",
-                "title": g("title") or g("section") or "",
-                "anchor": g("anchor") or g("section_id") or "",
+                "source_uri": g("source_uri") or g("source") or g("input_path") or "",
+                "title": g("title") or g("section_title") or g("section") or "",
+                "anchor": g("anchor") or g("section_id") or g("heading_id") or "",
             }
 
         return cls(_fts, _lookup)

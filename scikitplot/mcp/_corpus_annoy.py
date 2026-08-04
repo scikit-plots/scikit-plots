@@ -165,6 +165,9 @@ class CorpusAnnoyRetriever(DocsRetriever):
         RuntimeError
             If :mod:`scikitplot.corpus` is unavailable, or the build produced
             no queryable semantic index (e.g. embeddings were unavailable).
+        ValueError
+            Propagated from :class:`~scikitplot.corpus.CorpusBuilder` when
+            *docs_path* contains no valid input sources.
         """
         try:
             from scikitplot.corpus import (  # noqa: PLC0415

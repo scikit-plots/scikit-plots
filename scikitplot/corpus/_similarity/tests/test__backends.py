@@ -1,5 +1,7 @@
 # corpus/_similarity/tests/test__backends.py
 #
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,35 +100,43 @@ class _FakeCythonIndex(_FakeAnnoyBase):
 
 
 @pytest.fixture
-def fake_annoy(request):
-    """Install fake scikitplot.annoy modules; param = (highlevel, cython)."""
+def fake_annoy(request, monkeypatch):
+    """Install isolated fake Annoy modules.
+
+    Param is ``(highlevel_available, cython_available)``.
+    """
     highlevel, cython = getattr(request, "param", (True, True))
-    saved = {k: sys.modules.get(k) for k in ("scikitplot", "scikitplot.annoy", "scikitplot.annoy._annoy")}
-    sp = sys.modules.get("scikitplot") or types.ModuleType("scikitplot")
-    sys.modules["scikitplot"] = sp
+
+    sp = sys.modules.get("scikitplot")
+    assert sp is not None, "scikitplot must already be imported"
+
+    # Always install the parent as a package. When highlevel=False it
+    # intentionally has no Index export, so the resolver must fall back.
+    an = types.ModuleType("scikitplot.annoy")
+    an.__package__ = "scikitplot.annoy"
+    an.__path__ = []  # Mark synthetic module as a package.
+
     if highlevel:
-        an = types.ModuleType("scikitplot.annoy")
         an.Index = _FakeHighLevelIndex
-        sp.annoy = an
-        sys.modules["scikitplot.annoy"] = an
-    else:
-        sys.modules.pop("scikitplot.annoy", None)
+
+    monkeypatch.setitem(sys.modules, "scikitplot.annoy", an)
+    monkeypatch.setattr(sp, "annoy", an, raising=False)
+
     if cython:
         cy = types.ModuleType("scikitplot.annoy._annoy")
+        cy.__package__ = "scikitplot.annoy"
         cy.Index = _FakeCythonIndex
-        sys.modules["scikitplot.annoy._annoy"] = cy
-        if highlevel:
-            sys.modules["scikitplot.annoy"]._annoy = cy
+
+        monkeypatch.setitem(sys.modules, "scikitplot.annoy._annoy", cy)
+        monkeypatch.setattr(an, "_annoy", cy, raising=False)
     else:
-        sys.modules.pop("scikitplot.annoy._annoy", None)
-    try:
-        yield
-    finally:
-        for k, v in saved.items():
-            if v is None:
-                sys.modules.pop(k, None)
-            else:
-                sys.modules[k] = v
+        monkeypatch.delitem(
+            sys.modules,
+            "scikitplot.annoy._annoy",
+            raising=False,
+        )
+
+    yield
 
 
 # Small document double.

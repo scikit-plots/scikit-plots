@@ -612,7 +612,20 @@ VALUES
      :char_end, :json_data)
 """
 
-_UPSERT_FTS_SQL = "INSERT OR REPLACE INTO corpus_fts(doc_id, text) VALUES (?, ?);"
+_DELETE_FTS_SQL = "DELETE FROM corpus_fts WHERE doc_id = ?;"
+_INSERT_FTS_SQL = "INSERT INTO corpus_fts(doc_id, text) VALUES (?, ?);"
+
+# FTS5 virtual tables do not enforce uniqueness for ``UNINDEXED`` columns, so
+# legacy ``INSERT OR REPLACE`` writes may have left several rows for one doc_id.
+# Keep only the newest row when opening an existing store.
+_DEDUP_FTS_SQL = """
+DELETE FROM corpus_fts
+WHERE rowid NOT IN (
+    SELECT MAX(rowid)
+    FROM corpus_fts
+    GROUP BY doc_id
+);
+"""
 
 
 class SQLiteStorage(StorageBase):
@@ -671,6 +684,7 @@ class SQLiteStorage(StorageBase):
         with self._lock, self._conn:
             self._conn.execute(_CREATE_TABLE_SQL)
             self._conn.execute(_CREATE_FTS_SQL)
+            self._conn.execute(_DEDUP_FTS_SQL)
             for idx_sql in _CREATE_INDEXES_SQL:
                 self._conn.execute(idx_sql)
 
@@ -696,7 +710,8 @@ class SQLiteStorage(StorageBase):
     def _upsert(self, doc: CorpusDocument, cursor: sqlite3.Cursor) -> None:
         """INSERT OR REPLACE a single document row (documents + FTS)."""
         cursor.execute(_UPSERT_DOC_SQL, self._doc_to_row(doc))
-        cursor.execute(_UPSERT_FTS_SQL, (doc.doc_id, doc.text))
+        cursor.execute(_DELETE_FTS_SQL, (doc.doc_id,))
+        cursor.execute(_INSERT_FTS_SQL, (doc.doc_id, doc.text))
 
     @contextlib.contextmanager
     def _transaction(self) -> Iterator[sqlite3.Connection]:
@@ -735,7 +750,8 @@ class SQLiteStorage(StorageBase):
         row = self._doc_to_row(doc)
         with self._lock, self._transaction() as conn:
             conn.execute(_UPSERT_DOC_SQL, row)
-            conn.execute(_UPSERT_FTS_SQL, (doc.doc_id, doc.text))
+            conn.execute(_DELETE_FTS_SQL, (doc.doc_id,))
+            conn.execute(_INSERT_FTS_SQL, (doc.doc_id, doc.text))
 
     def save_batch(self, docs: Sequence[CorpusDocument]) -> None:  # noqa: D417
         """
@@ -744,7 +760,8 @@ class SQLiteStorage(StorageBase):
         All rows are serialized and validated before any write; the documents
         and FTS rows are then committed inside one explicit transaction, so a
         failure at any point leaves the database exactly as before the batch
-        (CORPUS-STO-001).
+        (CORPUS-STO-001). If a ``doc_id`` occurs more than once, the final
+        occurrence wins consistently in both tables.
 
         Parameters
         ----------
@@ -752,15 +769,28 @@ class SQLiteStorage(StorageBase):
         """
         if not docs:
             return
-        # 1. Serialize/validate every row up front. An unserializable doc raises
-        #    here, before the transaction opens, so nothing is persisted.
-        doc_rows = [self._doc_to_row(doc) for doc in docs]
-        fts_rows = [(doc.doc_id, doc.text) for doc in docs]
+
+        # Match the primary-table upsert contract when a batch contains the same
+        # doc_id more than once: the last document wins in both the documents and
+        # FTS tables. Without this normalization, all duplicate FTS rows would be
+        # inserted even though ``corpus_documents`` retains only the final row.
+        latest_by_id: dict[str, CorpusDocument] = {}
+        for doc in docs:
+            latest_by_id[doc.doc_id] = doc
+        unique_docs = list(latest_by_id.values())
+
+        # 1. Serialize/validate every final row up front. An unserializable doc
+        #    raises here, before the transaction opens, so nothing is persisted.
+        doc_rows = [self._doc_to_row(doc) for doc in unique_docs]
+        fts_rows = [(doc.doc_id, doc.text) for doc in unique_docs]
+        fts_ids = [(doc.doc_id,) for doc in unique_docs]
+
         # 2. One real transaction covering documents + FTS together.
         with self._lock, self._transaction() as conn:
             conn.executemany(_UPSERT_DOC_SQL, doc_rows)
-            conn.executemany(_UPSERT_FTS_SQL, fts_rows)
-        logger.info("SQLiteStorage: saved %d documents.", len(docs))
+            conn.executemany(_DELETE_FTS_SQL, fts_ids)
+            conn.executemany(_INSERT_FTS_SQL, fts_rows)
+        logger.info("SQLiteStorage: saved %d documents.", len(unique_docs))
 
     def get(self, doc_id: str) -> CorpusDocument | None:  # noqa: D417
         """
@@ -790,35 +820,38 @@ class SQLiteStorage(StorageBase):
         """
         conditions: list[str] = []
         params: list[Any] = []
+        from_sql = "corpus_documents AS docs"
+        order_sql = "docs.rowid"
 
         if q.full_text:
-            # FTS5 subquery
-            conditions.append(
-                "doc_id IN (SELECT doc_id FROM corpus_fts WHERE text MATCH ?)"
-            )
+            # Join the FTS table so the result can be ordered by its native
+            # BM25 rank. SQLite FTS5 returns lower values for stronger matches.
+            from_sql += " JOIN corpus_fts ON corpus_fts.doc_id = docs.doc_id"
+            conditions.append("corpus_fts MATCH ?")
             params.append(q.full_text)
+            order_sql = "bm25(corpus_fts), docs.rowid"
         if q.input_path:
-            conditions.append("input_path = ?")
+            conditions.append("docs.input_path = ?")
             params.append(q.input_path)
         if q.source_type:
-            conditions.append("source_type = ?")
+            conditions.append("docs.source_type = ?")
             params.append(q.source_type)
         if q.language:
-            conditions.append("language = ?")
+            conditions.append("docs.language = ?")
             params.append(q.language)
         if q.section_type:
-            conditions.append("section_type = ?")
+            conditions.append("docs.section_type = ?")
             params.append(q.section_type)
         if q.collection_id:
-            conditions.append("collection_id = ?")
+            conditions.append("docs.collection_id = ?")
             params.append(q.collection_id)
 
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
-        count_sql = f"SELECT COUNT(*) FROM corpus_documents {where};"  # noqa: S608
+        count_sql = f"SELECT COUNT(*) FROM {from_sql} {where};"  # noqa: S608
         select_sql = (
-            f"SELECT json_data FROM corpus_documents {where} "  # noqa: S608
-            f"ORDER BY rowid LIMIT ? OFFSET ?;"
+            f"SELECT docs.json_data FROM {from_sql} {where} "  # noqa: S608
+            f"ORDER BY {order_sql} LIMIT ? OFFSET ?;"
         )
 
         with self._lock:

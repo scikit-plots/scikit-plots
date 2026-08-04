@@ -12,7 +12,6 @@ import tempfile
 import pytest
 
 from .._storage import (  # noqa: F401
-    _UPSERT_FTS_SQL,
     InMemoryStorage,
     JSONLStorage,
     QueryResult,
@@ -55,6 +54,7 @@ class TestStorageQuery:
         assert q.limit == 100
         assert q.offset == 0
         assert q.input_path is None
+        assert q.full_text is None
 
     def test_frozen(self) -> None:
         q = StorageQuery()
@@ -227,6 +227,97 @@ class TestSQLiteStorage(BackendContract):
         assert result.total == 1
         assert "Python" in result.documents[0].text
 
+    def test_full_text_search_orders_by_bm25(self) -> None:
+        weak = CorpusDocument.create(
+            "weak.txt", 0, "python appears once beside unrelated filler words."
+        )
+        strong = CorpusDocument.create(
+            "strong.txt", 0, "python python python python focused python guide."
+        )
+        self.store.save_batch([weak, strong])
+
+        result = self.store.query(StorageQuery(full_text="python", limit=10))
+
+        assert result.total == 2
+        assert [doc.doc_id for doc in result.documents] == [strong.doc_id, weak.doc_id]
+
+    def test_full_text_update_replaces_old_terms(self) -> None:
+        doc_id = "fixed-sqlite-document"
+        original = CorpusDocument.create(
+            "f.txt", 0, "obsoletealpha token", doc_id=doc_id
+        )
+        replacement = CorpusDocument.create(
+            "f.txt", 0, "replacementbeta token", doc_id=doc_id
+        )
+
+        self.store.save(original)
+        self.store.save(replacement)
+
+        assert self.store.count() == 1
+        assert self.store.query(StorageQuery(full_text="obsoletealpha")).total == 0
+        result = self.store.query(StorageQuery(full_text="replacementbeta"))
+        assert result.total == 1
+        assert result.documents[0].text == replacement.text
+        assert self.store._conn.execute(
+            "SELECT COUNT(*) FROM corpus_fts WHERE doc_id = ?", (doc_id,)
+        ).fetchone()[0] == 1
+
+    def test_batch_duplicate_doc_id_uses_last_version(self) -> None:
+        doc_id = "duplicate-batch-document"
+        first = CorpusDocument.create(
+            "f.txt", 0, "firstversiontoken", doc_id=doc_id
+        )
+        final = CorpusDocument.create(
+            "f.txt", 0, "finalversiontoken", doc_id=doc_id
+        )
+
+        self.store.save_batch([first, final])
+
+        assert self.store.count() == 1
+        stored = self.store.get(doc_id)
+        assert stored is not None
+        assert stored.text == final.text
+        assert self.store.query(StorageQuery(full_text="firstversiontoken")).total == 0
+        assert self.store.query(StorageQuery(full_text="finalversiontoken")).total == 1
+        assert self.store._conn.execute(
+            "SELECT COUNT(*) FROM corpus_fts WHERE doc_id = ?", (doc_id,)
+        ).fetchone()[0] == 1
+
+    def test_legacy_duplicate_fts_rows_deduplicated_on_reopen(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        path = tmp_path / "legacy-duplicates.db"
+        doc_id = "legacy-duplicate-document"
+        store = SQLiteStorage(path)
+        store.save(
+            CorpusDocument.create(
+                "legacy.txt", 0, "canonical document text", doc_id=doc_id
+            )
+        )
+
+        # Reproduce the legacy INSERT OR REPLACE behavior. FTS5 does not enforce
+        # uniqueness for an UNINDEXED doc_id, so this creates a second row.
+        store._conn.execute(
+            "INSERT OR REPLACE INTO corpus_fts(doc_id, text) VALUES (?, ?)",
+            (doc_id, "newestlegacytoken"),
+        )
+        assert store._conn.execute(
+            "SELECT COUNT(*) FROM corpus_fts WHERE doc_id = ?", (doc_id,)
+        ).fetchone()[0] == 2
+        store.close()
+
+        reopened = SQLiteStorage(path)
+        try:
+            assert reopened._conn.execute(
+                "SELECT COUNT(*) FROM corpus_fts WHERE doc_id = ?", (doc_id,)
+            ).fetchone()[0] == 1
+            assert reopened.query(StorageQuery(full_text="canonical")).total == 0
+            result = reopened.query(StorageQuery(full_text="newestlegacytoken"))
+            assert result.total == 1
+            assert result.documents[0].doc_id == doc_id
+        finally:
+            reopened.close()
+
     def test_file_persistence(self, tmp_path: pathlib.Path) -> None:
         path = tmp_path / "test.db"
         store1 = SQLiteStorage(path)
@@ -288,11 +379,11 @@ class TestSQLiteAtomicity:
         store = self._store()
         from .. import _storage as _stg  # the module defining save_batch
 
-        # Break the FTS statement so the docs executemany succeeds first and the
-        # FTS executemany then fails inside the transaction.
+        # Break the FTS insert so document upserts and FTS deletions execute
+        # first, then fail inside the same transaction. Everything must roll back.
         monkeypatch.setattr(
             _stg,
-            "_UPSERT_FTS_SQL",
+            "_INSERT_FTS_SQL",
             "INSERT INTO __no_such_table__(doc_id, text) VALUES (?, ?);",
         )
         with pytest.raises(Exception):  # noqa: B017 - injected sqlite error

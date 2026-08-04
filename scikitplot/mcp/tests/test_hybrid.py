@@ -6,7 +6,9 @@
 """Tests for scikitplot.mcp hybrid retrieval (RRF fusion, BM25 leg)."""
 from __future__ import annotations
 
+import builtins
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -126,9 +128,69 @@ def test_bm25_retriever_di():
     assert hits[0].title == "One" and hits[0].source_uri == "https://d.io/1"
 
 
-def test_bm25_from_corpus_raises_without_deps():
+def test_bm25_from_corpus_raises_without_deps(monkeypatch):
+    real_import = builtins.__import__
+
+    def blocked_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "scikitplot.corpus":
+            raise ImportError("simulated missing corpus integration")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", blocked_import)
+
     with pytest.raises(RuntimeError, match="scikitplot.corpus"):
         Bm25Retriever.from_corpus_sqlite("/tmp/store.db")
+
+
+def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
+    calls = []
+
+    class FakeStorageQuery:
+        def __init__(self, *, full_text=None, limit=100, **kwargs):
+            assert not kwargs, f"unexpected StorageQuery fields: {kwargs}"
+            self.full_text = full_text
+            self.limit = limit
+
+    class FakeDoc:
+        def __init__(self, doc_id, text, source_uri, title=""):
+            self.doc_id = doc_id
+            self.text = text
+            self.normalized_text = text
+            self.source_uri = source_uri
+            self.title = title
+
+    docs = [
+        FakeDoc("d1", "exact term match", "https://d.io/1", "One"),
+        FakeDoc("d2", "other", "https://d.io/2"),
+    ]
+
+    class FakeSQLiteStorage:
+        def __init__(self, path):
+            calls.append(("init", path))
+
+        def query(self, query):
+            calls.append(("query", query.full_text, query.limit))
+            return types.SimpleNamespace(documents=docs[: query.limit])
+
+        def get(self, doc_id):
+            calls.append(("get", doc_id))
+            return next((doc for doc in docs if doc.doc_id == doc_id), None)
+
+    fake_corpus = types.ModuleType("scikitplot.corpus")
+    fake_corpus.SQLiteStorage = FakeSQLiteStorage
+    fake_corpus.StorageQuery = FakeStorageQuery
+    monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
+
+    retriever = Bm25Retriever.from_corpus_sqlite("store.db")
+    hits = retriever.search("configure_rate_limit", k=2)
+
+    assert [hit.doc_id for hit in hits] == ["d1", "d2"]
+    assert hits[0].score > hits[1].score
+    assert hits[0].title == "One"
+    assert calls[:2] == [
+        ("init", "store.db"),
+        ("query", "configure_rate_limit", 2),
+    ]
 
 
 def test_bm25_empty_query():

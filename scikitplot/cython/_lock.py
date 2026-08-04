@@ -19,12 +19,13 @@ whose token matches, so a stale-lock takeover cannot delete a live owner's lock.
 Stale lock recovery
 -------------------
 If the owning process is killed hard (SIGKILL, OOM, power loss), the lock
-directory is never removed by the ``finally`` block.  To prevent permanent
-deadlock, this implementation treats a lock directory whose *mtime* is older
-than ``timeout_s`` seconds as stale and removes it before retrying.  This is
-safe in practice because a lock that has been held longer than the timeout
-deadline would have already caused a ``TimeoutError`` in all other waiters;
-the owning process is assumed to be dead.
+directory is never removed by the ``finally`` block. To prevent permanent
+deadlock, a lock directory whose *mtime* exceeds the effective stale threshold
+is reclaimed before retrying. The threshold is ``stale_after_s`` when supplied;
+otherwise it is the greater of ``timeout_s`` and
+``_DEFAULT_STALE_AFTER_S``. This keeps crash recovery independent from a
+caller's willingness to wait and prevents a non-blocking probe from deleting a
+fresh, live lock.
 """
 
 from __future__ import annotations
@@ -111,7 +112,9 @@ def build_lock(  # ruff:ignore[too-many-branches]
     poll_s : float, default=0.05
         Sleep interval in seconds between acquisition retries.
     stale_after_s : float | None, default=None
-        None
+        Age in seconds after which an existing lock may be reclaimed as stale.
+        When ``None``, the effective threshold is
+        ``max(timeout_s, _DEFAULT_STALE_AFTER_S)``.
 
     Returns
     -------
@@ -123,14 +126,16 @@ def build_lock(  # ruff:ignore[too-many-branches]
     TimeoutError
         If the lock cannot be acquired within ``timeout_s`` seconds.
     ValueError
-        If ``timeout_s < 0`` or ``poll_s <= 0``.
+        If ``timeout_s < 0``, ``poll_s <= 0``, or an explicit
+        ``stale_after_s <= 0``.
 
     Notes
     -----
     **Stale lock recovery**: if a lock directory exists but its ``mtime`` is
-    older than ``timeout_s`` seconds, it is treated as stale (left by a killed
-    process) and removed before the next acquisition attempt.  This prevents
-    permanent deadlock after hard crashes.
+    older than the effective stale threshold, it is treated as stale (left by
+    a killed process) and removed before the next acquisition attempt. The
+    threshold is ``stale_after_s`` when supplied; otherwise it is
+    ``max(timeout_s, _DEFAULT_STALE_AFTER_S)``.
 
     **Clean release**: the lock directory is always removed in the ``finally``
     block, so normal exceptions inside the ``with`` body release the lock

@@ -5,7 +5,9 @@
 """Tests for scikitplot.mcp core (retriever contract, result builder, safety)."""
 from __future__ import annotations
 
+import builtins
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -105,7 +107,10 @@ def test_text_truncated():
 
 
 def test_max_results_capped():
-    many = [RetrievedChunk(text=str(i), source_uri="https://d.io/%d" % i) for i in range(MAX_RESULTS + 10)]
+    many = [
+        RetrievedChunk(text=str(i), source_uri="https://d.io/%d" % i)
+        for i in range(MAX_RESULTS + 10)
+    ]
     res = build_search_docs_result("q", many, max_results=1000)
     assert len(res["content"]) == MAX_RESULTS
 
@@ -150,7 +155,121 @@ def test_corpus_annoy_empty_query():
     assert r.search("   ", k=3) == []
 
 
-def test_from_corpus_annoy_raises_without_deps():
-    # corpus/annoy are not installed in this test env → actionable error.
+def test_from_corpus_annoy_raises_without_deps(monkeypatch):
+    """The optional-dependency failure is simulated, not environment-dependent."""
+    real_import = builtins.__import__
+
+    def blocked_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "scikitplot.corpus" or name.startswith("scikitplot.corpus."):
+            raise ImportError("injected missing scikitplot.corpus")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", blocked_import)
+
     with pytest.raises(RuntimeError, match="scikitplot.corpus"):
         CorpusAnnoyRetriever.from_corpus_annoy("/tmp/docs")
+
+
+def test_from_corpus_annoy_uses_current_corpus_api(monkeypatch, tmp_path):
+    """Wire BuilderConfig, CorpusBuilder, and EmbeddingEngine as documented."""
+    calls = {}
+
+    class FakeBuilderConfig:
+        def __init__(self, **kwargs):
+            calls["config"] = kwargs
+
+    class FakeIndex:
+        def query(self, vector, k):
+            calls["index_query"] = (vector, k)
+            return [("doc-1", 0.95)]
+
+    class FakeCorpusBuilder:
+        def __init__(self, config):
+            calls["builder_config"] = config
+
+        def build(self, docs_path):
+            calls["docs_path"] = docs_path
+            doc = types.SimpleNamespace(
+                doc_id="doc-1",
+                normalized_text="normalized passage",
+                source_uri="https://docs.example/api.html",
+                title="API reference",
+                anchor="section-1",
+            )
+            return types.SimpleNamespace(documents=[doc], index=FakeIndex())
+
+    class FakeEmbeddingEngine:
+        def __init__(self, *, model_name):
+            calls["embedding_model"] = model_name
+
+        def embed(self, texts):
+            calls["embed_texts"] = texts
+            return [[1.0, 2.0, 3.0]]
+
+    fake_corpus = types.ModuleType("scikitplot.corpus")
+    fake_corpus.BuilderConfig = FakeBuilderConfig
+    fake_corpus.CorpusBuilder = FakeCorpusBuilder
+    fake_corpus.EmbeddingEngine = FakeEmbeddingEngine
+    monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
+
+    retriever = CorpusAnnoyRetriever.from_corpus_annoy(
+        str(tmp_path),
+        metric="angular",
+        n_trees=7,
+        embedding_model="fake-model",
+        backend="auto",
+    )
+    hits = retriever.search("where is the API?", k=1)
+
+    assert calls["docs_path"] == str(tmp_path)
+    assert calls["config"] == {
+        "chunker": "paragraph",
+        "normalize": True,
+        "enrich": True,
+        "embed": True,
+        "embedding_model": "fake-model",
+        "build_index": True,
+        "index_kwargs": {
+            "match_mode": "semantic",
+            "backend": "auto",
+            "annoy_metric": "angular",
+            "annoy_n_trees": 7,
+        },
+    }
+    assert calls["embedding_model"] == "fake-model"
+    assert calls["embed_texts"] == ["where is the API?"]
+    assert calls["index_query"] == ([1.0, 2.0, 3.0], 1)
+    assert len(hits) == 1
+    assert hits[0].doc_id == "doc-1"
+    assert hits[0].text == "normalized passage"
+    assert hits[0].source_uri == "https://docs.example/api.html"
+    assert hits[0].title == "API reference"
+    assert hits[0].anchor == "section-1"
+
+
+def test_from_corpus_annoy_raises_when_build_has_no_index(monkeypatch, tmp_path):
+    """A successful corpus import without a dense index remains actionable."""
+
+    class FakeBuilderConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class FakeCorpusBuilder:
+        def __init__(self, config):
+            self.config = config
+
+        def build(self, docs_path):
+            return types.SimpleNamespace(documents=[], index=None)
+
+    class FakeEmbeddingEngine:
+        def __init__(self, *, model_name):
+            self.model_name = model_name
+
+    fake_corpus = types.ModuleType("scikitplot.corpus")
+    fake_corpus.BuilderConfig = FakeBuilderConfig
+    fake_corpus.CorpusBuilder = FakeCorpusBuilder
+    fake_corpus.EmbeddingEngine = FakeEmbeddingEngine
+    monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
+
+    with pytest.raises(RuntimeError, match="no queryable semantic index"):
+        CorpusAnnoyRetriever.from_corpus_annoy(str(tmp_path))

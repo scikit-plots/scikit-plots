@@ -372,6 +372,7 @@ def _con001_worker(lock_path: str, barrier, q, hold_s: float) -> None:
         q.put(("err", type(exc).__name__, str(exc)))
 
 
+# TODO: Reduce test time if possible.
 def test_two_processes_never_overlap(tmp_path: Path) -> None:
     """Two spawned processes must not be inside build_lock() at the same time."""
     import multiprocessing as mp
