@@ -32,11 +32,13 @@ for hybrid search. A document found by several legs is naturally boosted.
 
 from __future__ import annotations
 
+import logging
+import math
 from collections import defaultdict
 from dataclasses import replace
 from typing import Any, Callable, Sequence
 
-from ._core import DocsRetriever, RetrievedChunk
+from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
 
 __all__ = [
     "DEFAULT_RRF_K",
@@ -48,12 +50,29 @@ __all__ = [
 #: Standard RRF constant; dampens the contribution of lower ranks.
 DEFAULT_RRF_K: int = 60
 
+_MAX_RETRIEVAL_K: int = 50
+_LOG = logging.getLogger(__name__)
 
-def _chunk_key(c: RetrievedChunk) -> str:
+
+def _chunk_key(chunk: RetrievedChunk) -> str:
     """Stable identity for dedup/fusion: doc_id, else (uri + text prefix)."""
-    if c.doc_id:
-        return c.doc_id
-    return (c.source_uri or "") + "::" + (c.text or "")[:64]
+    if chunk.doc_id:
+        return chunk.doc_id
+    return (chunk.source_uri or "") + "::" + (chunk.text or "")[:128]
+
+
+def _deduplicate(items: Sequence[RetrievedChunk]) -> list[RetrievedChunk]:
+    seen: set[str] = set()
+    output: list[RetrievedChunk] = []
+    for item in items:
+        if not isinstance(item, RetrievedChunk):
+            continue
+        key = _chunk_key(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(item)
+    return output
 
 
 def reciprocal_rank_fusion(
@@ -79,11 +98,34 @@ def reciprocal_rank_fusion(
     dict
         ``identity -> fused score`` (higher is better).
     """
+    k = int(k)
+    if k < 1:
+        raise ValueError("rrf k must be >= 1")
+
     fused: dict[str, float] = defaultdict(float)
-    for weight, items in ranked_lists:
-        for rank, item in enumerate(items or [], start=1):
-            fused[key(item)] += float(weight) / (k + rank)
+    for raw_weight, items in ranked_lists:
+        weight = _coerce_finite_score(raw_weight)
+        if weight < 0:
+            raise ValueError("RRF weights must be non-negative")
+        if weight == 0:
+            continue
+        seen_in_leg: set[str] = set()
+        for rank, item in enumerate(items or (), start=1):
+            identity = key(item)
+            if identity in seen_in_leg:
+                continue
+            seen_in_leg.add(identity)
+            fused[identity] += weight / (k + rank)
     return dict(fused)
+
+
+def _metadata_richness(chunk: RetrievedChunk) -> tuple[int, int, int, int]:
+    return (
+        int(bool(chunk.source_uri)),
+        len(chunk.title or "") + len(chunk.anchor or ""),
+        len(chunk.text or ""),
+        len(chunk.extra or {}),
+    )
 
 
 class HybridRetriever(DocsRetriever):
@@ -101,6 +143,8 @@ class HybridRetriever(DocsRetriever):
     fanout : int, optional
         Over-fetch factor: each leg is asked for ``fanout * k`` candidates so
         fusion has depth to work with (default ``4``).
+    strict : bool, optional
+        False.
 
     Notes
     -----
@@ -116,52 +160,100 @@ class HybridRetriever(DocsRetriever):
         weights: Sequence[float] | None = None,
         rrf_k: int = DEFAULT_RRF_K,
         fanout: int = 4,
+        strict: bool = False,
     ) -> None:
         self._retrievers = list(retrievers)
+        if not self._retrievers:
+            raise ValueError("at least one retriever is required")
+
         if weights is None:
             weights = [1.0] * len(self._retrievers)
         if len(weights) != len(self._retrievers):
             raise ValueError("weights length must match retrievers length")
-        self._weights = [float(w) for w in weights]
+
+        self._weights = [
+            _coerce_finite_score(weight, float("nan")) for weight in weights
+        ]
+        if any(not math.isfinite(weight) or weight < 0 for weight in self._weights):
+            raise ValueError("weights must be finite and non-negative")
+        if not any(weight > 0 for weight in self._weights):
+            raise ValueError("at least one weight must be positive")
+
         self._rrf_k = int(rrf_k)
-        self._fanout = max(1, int(fanout))
+        if self._rrf_k < 1:
+            raise ValueError("rrf_k must be >= 1")
+        self._fanout = max(1, min(int(fanout), 20))
+        self._strict = bool(strict)
 
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Query every leg, fuse by RRF, and return the top-``k`` fused chunks."""
         if not isinstance(query, str) or not query.strip():
             return []
-        k = max(1, int(k))
-        per = max(k, self._fanout * k)
+
+        k = max(1, min(int(k), _MAX_RETRIEVAL_K))
+        per_leg = min(_MAX_RETRIEVAL_K, max(k, self._fanout * k))
 
         ranked_lists: list[tuple[float, list[RetrievedChunk]]] = []
         best_chunk: dict[str, RetrievedChunk] = {}
-        for retr, w in zip(self._retrievers, self._weights):
+        first_seen: dict[str, int] = {}
+        sequence = 0
+
+        for index, (retriever, weight) in enumerate(
+            zip(self._retrievers, self._weights)
+        ):
+            if weight == 0:
+                continue
             try:
-                hits = retr.search(query, per) or []
-            except Exception:  # ruff: ignore[blind-except, try-except-continue]
-                continue  # resilient: skip a failing leg
-            ranked_lists.append((w, hits))
-            for h in hits:
-                key = _chunk_key(h)
-                # keep the representative with the richest metadata
-                cur = best_chunk.get(key)
-                if cur is None or (len(h.title) + len(h.anchor)) > (
-                    len(cur.title) + len(cur.anchor)
+                raw_hits = retriever.search(query, per_leg) or []
+                if not isinstance(raw_hits, list):
+                    raw_hits = list(raw_hits)
+                invalid = [
+                    hit for hit in raw_hits if not isinstance(hit, RetrievedChunk)
+                ]
+                if invalid:
+                    raise TypeError(
+                        f"retriever leg {index} returned {len(invalid)} non-RetrievedChunk item(s)"
+                    )
+                hits = _deduplicate(raw_hits)
+            except Exception as exc:  # resilience boundary
+                _LOG.warning(
+                    "MCP retrieval leg %s (%s) failed and was skipped: %s",
+                    index,
+                    type(retriever).__name__,
+                    exc,
+                    exc_info=self._strict,
+                )
+                if self._strict:
+                    raise
+                continue
+
+            ranked_lists.append((weight, hits))
+            for hit in hits:
+                identity = _chunk_key(hit)
+                if identity not in first_seen:
+                    first_seen[identity] = sequence
+                    sequence += 1
+                current = best_chunk.get(identity)
+                if current is None or _metadata_richness(hit) > _metadata_richness(
+                    current
                 ):
-                    best_chunk[key] = h
+                    best_chunk[identity] = hit
 
         fused = reciprocal_rank_fusion(ranked_lists, k=self._rrf_k)
-        top = sorted(fused.items(), key=lambda kv: kv[1], reverse=True)[:k]
+        ordered = sorted(
+            fused.items(),
+            key=lambda item: (-item[1], first_seen.get(item[0], 10**12), item[0]),
+        )[:k]
         return [
-            replace(best_chunk[key], score=score)
-            for key, score in top
-            if key in best_chunk
+            replace(best_chunk[identity], score=score)
+            for identity, score in ordered
+            if identity in best_chunk
         ]
 
 
 class Bm25Retriever(DocsRetriever):
     """
-    Lexical (BM25) leg backed by a full-text search seam.
+    Lexical retriever (FTS/BM25) leg backed by a full-text search seam.
 
     Parameters
     ----------
@@ -182,40 +274,67 @@ class Bm25Retriever(DocsRetriever):
         self,
         fts_search: Callable[[str, int], list[tuple[str, float]]],
         doc_lookup: Callable[[str], dict[str, Any]],
+        *,
+        strict: bool = False,
     ) -> None:
         self._fts = fts_search
         self._lookup = doc_lookup
+        self._strict = bool(strict)
 
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Run FTS5/BM25 and map hits to :class:`RetrievedChunk`."""
         if not isinstance(query, str) or not query.strip():
             return []
-        k = max(1, min(int(k), 50))
+        k = max(1, min(int(k), _MAX_RETRIEVAL_K))
+
         try:
             hits = self._fts(query, k) or []
-        except Exception:  # ruff: ignore[blind-except]
+        except Exception as exc:
+            _LOG.warning("BM25 search failed: %s", exc, exc_info=self._strict)
+            if self._strict:
+                raise
             return []
-        out: list[RetrievedChunk] = []
-        for doc_id, score in hits:
-            rec = {}
+
+        output: list[RetrievedChunk] = []
+        seen: set[str] = set()
+        for item in hits:
             try:
-                rec = self._lookup(doc_id) or {}
-            except Exception:  # ruff: ignore[blind-except, try-except-continue]
+                doc_id, score = item
+                doc_id = str(doc_id)
+                if not doc_id or doc_id in seen:
+                    continue
+                record = self._lookup(doc_id) or {}
+                if not isinstance(record, dict):
+                    raise TypeError("doc_lookup must return a mapping")
+                text = str(record.get("text", ""))
+                if not text:
+                    continue
+            except Exception as exc:
+                _LOG.warning("BM25 hit mapping failed: %s", exc, exc_info=self._strict)
+                if self._strict:
+                    raise
                 continue
-            out.append(
+
+            seen.add(doc_id)
+            output.append(
                 RetrievedChunk(
-                    text=str(rec.get("text", "")),
-                    source_uri=str(rec.get("source_uri", "")),
-                    score=float(score) if isinstance(score, (int, float)) else 0.0,
-                    doc_id=str(doc_id),
-                    title=str(rec.get("title", "")),
-                    anchor=str(rec.get("anchor", "")),
+                    text=text,
+                    source_uri=str(record.get("source_uri", "")),
+                    score=_coerce_finite_score(score),
+                    doc_id=doc_id,
+                    title=str(record.get("title", "")),
+                    anchor=str(record.get("anchor", "")),
                 )
             )
-        return out
+        return output
 
     @classmethod
-    def from_corpus_sqlite(cls, storage_path: str) -> Bm25Retriever:
+    def from_corpus_sqlite(
+        cls,
+        storage_path: str,
+        *,
+        strict: bool = False,
+    ) -> Bm25Retriever:
         """
         Build from a corpus SQLite/FTS5 store (import-guarded).
 
@@ -232,40 +351,42 @@ class Bm25Retriever(DocsRetriever):
             ) from exc
 
         store = SQLiteStorage(storage_path)
+        recent: dict[str, dict[str, Any]] = {}
 
-        def _fts(query: str, k: int) -> list[tuple[str, float]]:
-            # SQLiteStorage.query() returns a QueryResult whose ``documents``
-            # are already ordered by BM25 when ``full_text`` is supplied.
-            result = store.query(StorageQuery(full_text=query, limit=k))
-            rows = getattr(result, "documents", result) or []
-            out: list[tuple[str, float]] = []
-            for rank, row in enumerate(rows, start=1):
-                did = str(
-                    getattr(row, "doc_id", "")
-                    or (row.get("doc_id", "") if isinstance(row, dict) else "")
+        def _row_value(row: Any, *names: str) -> Any:
+            for name in names:
+                value = (
+                    row.get(name) if isinstance(row, dict) else getattr(row, name, None)
                 )
-                if not did:
-                    continue
-                # RRF consumes ordering rather than raw BM25 magnitudes. Use a
-                # stable higher-is-better rank surrogate for RetrievedChunk.score.
-                out.append((did, 1.0 / rank))
-            return out
+                if value not in (None, ""):
+                    return value
+            return ""
 
-        def _lookup(doc_id: str) -> dict[str, Any]:
-            row = store.get(doc_id)
-            if row is None:
-                return {}
-
-            def g(name: str) -> Any:
-                if isinstance(row, dict):
-                    return row.get(name)
-                return getattr(row, name, None)
-
+        def _record(row: Any) -> dict[str, Any]:
             return {
-                "text": g("normalized_text") or g("text") or "",
-                "source_uri": g("source_uri") or g("source") or g("input_path") or "",
-                "title": g("title") or g("section_title") or g("section") or "",
-                "anchor": g("anchor") or g("section_id") or g("heading_id") or "",
+                "text": _row_value(row, "normalized_text", "text"),
+                "source_uri": _row_value(row, "source_uri", "source", "input_path"),
+                "title": _row_value(row, "title", "section_title", "section"),
+                "anchor": _row_value(row, "anchor", "section_id", "heading_id"),
             }
 
-        return cls(_fts, _lookup)
+        def _fts(query: str, k: int) -> list[tuple[str, float]]:
+            result = store.query(StorageQuery(full_text=query, limit=k))
+            rows = getattr(result, "documents", result) or []
+            recent.clear()
+            output: list[tuple[str, float]] = []
+            for rank, row in enumerate(rows, start=1):
+                doc_id = str(_row_value(row, "doc_id"))
+                if not doc_id:
+                    continue
+                recent[doc_id] = _record(row)
+                output.append((doc_id, 1.0 / rank))
+            return output
+
+        def _lookup(doc_id: str) -> dict[str, Any]:
+            if doc_id in recent:
+                return recent[doc_id]
+            row = store.get(doc_id)
+            return {} if row is None else _record(row)
+
+        return cls(_fts, _lookup, strict=strict)

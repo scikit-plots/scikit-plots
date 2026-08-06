@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1.7
+# Build from the scikit-plots repository root:
+#   docker build -f scikitplot/mcp/_maintenance/docker/Dockerfile.mcp -t scikitplot-mcp .
+
+ARG PYTHON_VERSION=3.11
+
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Adapt native build packages to the complete scikit-plots build configuration.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       git \
+       ninja-build \
+       pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY . /src
+
+RUN python -m pip install --upgrade pip build wheel \
+    && mkdir -p /wheelhouse \
+    && python -m pip wheel --wheel-dir /wheelhouse "mcp>=2,<3" /src
+
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    SCIKITPLOT_MCP_DOCKER=1 \
+    SCIKITPLOT_MCP_PORT=8000 \
+    SCIKITPLOT_MCP_PATH=/mcp \
+    SCIKITPLOT_MCP_HEALTH_PATH=/healthz
+
+RUN groupadd --system --gid 10001 mcp \
+    && useradd --system --uid 10001 --gid mcp --create-home mcp
+
+COPY --from=builder /wheelhouse /wheelhouse
+RUN python -m pip install --no-index --find-links=/wheelhouse "mcp>=2,<3" scikit-plots \
+    && python -m scikitplot.mcp \
+       --self-test \
+       --self-test-query transport \
+       --self-test-require-match \
+       --self-test-expected-doc-id transport > /tmp/mcp-selftest-1.json \
+    && python -m scikitplot.mcp \
+       --self-test \
+       --self-test-query transport \
+       --self-test-require-match \
+       --self-test-expected-doc-id transport > /tmp/mcp-selftest-2.json \
+    && cmp /tmp/mcp-selftest-1.json /tmp/mcp-selftest-2.json \
+    && rm -rf /wheelhouse /tmp/mcp-selftest-1.json /tmp/mcp-selftest-2.json
+
+USER 10001:10001
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=4s --start-period=15s --retries=3 \
+  CMD ["python", "-m", "scikitplot.mcp", "--docker", "--probe", "--probe-timeout", "3"]
+
+CMD ["python", "-m", "scikitplot.mcp", "--docker"]

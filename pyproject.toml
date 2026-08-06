@@ -421,13 +421,14 @@ test_nogil = [
 
   "hypothesis",                             # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
+  "pytest-asyncio",
   "pytest-cov",                             # Coverage reports codecov.io
   "pytest-fail-slow",
   "pytest-mpl",                             # Matplotlib testing
+  "pytest-regressions",
   "pytest-run-parallel",
   "pytest-timeout",
   "pytest-xdist",                           # Use Multiple CPUs to speed up
-  "pytest-regressions",
 
   "asv",                                    # Benchmarking
   "mpmath",                                 # Arbitrary precision math

@@ -2,55 +2,60 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
-:mod:`scikitplot.mcp` — an MCP server exposing scikit-plots capabilities.
+Composable documentation retrieval for Model Context Protocol servers.
 
-Flagship toolset: **documentation retrieval** ("search_docs"), which composes
-:mod:`scikitplot.corpus` (ingest / chunk / embed / store) with
-:mod:`scikitplot.annoy` (vector index) to answer queries with **source-cited**
-passages — served to MCP clients (Claude, Cursor, Copilot) and to the
-scikit-plots AI documentation panel's proxy from one retrieval core.
-
-This ``__init__`` re-exports only the SDK-agnostic core so importing the package
-never requires an MCP SDK, corpus, or annoy to be installed. The transport /
-server layer (stdio + HTTP-SSE) is wired separately — see
-``_maintenance/MCP_MODULE_DESIGN.md`` (gated).
-
-Notes
------
-This module intentionally avoids side effects at import time (no implicit
-network, model, or vector-index construction), consistent with
-:mod:`scikitplot.annoy`.
+The default import surface remains independent of the MCP SDK and optional
+corpus/vector dependencies. Call :func:`create_server` only when the stable ``mcp>=2,<3``
+server dependency is installed. No models, indexes, files, or network connections are
+opened at import time.
 """
 
 from __future__ import annotations
 
 from ._core import (
     MAX_CHUNK_CHARS,
+    MAX_QUERY_CHARS,
     MAX_RESULTS,
     DocsRetriever,
     RetrievedChunk,
     build_search_docs_result,
 )
 from ._corpus_annoy import CorpusAnnoyRetriever
+from ._demo import DemoDocument, InMemoryBm25Retriever, builtin_demo_retriever
 from ._hybrid import (
     DEFAULT_RRF_K,
     Bm25Retriever,
     HybridRetriever,
     reciprocal_rank_fusion,
 )
+from ._version import __version__  # ruff: ignore[unused-import]
 
 __all__ = [
     "DEFAULT_RRF_K",
     "MAX_CHUNK_CHARS",
+    "MAX_QUERY_CHARS",
     "MAX_RESULTS",
     "Bm25Retriever",
     "CorpusAnnoyRetriever",
+    "DemoDocument",
     "DocsRetriever",
     "HybridRetriever",
+    "InMemoryBm25Retriever",
     "RetrievedChunk",
     "build_search_docs_result",
+    "builtin_demo_retriever",
+    "create_server",
     "reciprocal_rank_fusion",
 ]
 
-__version__ = "0.1.0.dev0"
+
+# https://github.com/modelcontextprotocol/modelcontextprotocol
+def create_server(*args, **kwargs):
+    """Lazily import and create the MCP SDK v2 server."""
+    from ._server import (  # ruff: ignore[import-outside-top-level]
+        create_server as _create_server,
+    )
+
+    return _create_server(*args, **kwargs)

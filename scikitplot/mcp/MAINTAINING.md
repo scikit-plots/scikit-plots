@@ -15,6 +15,8 @@ This is the human entry point. Companions in `_maintenance/`:
   campaign, seeded with grounded candidate findings. Fill it the way the corpus
   guide was filled.
 - `_maintenance/SESSION_LOG.md` — chronological log of what each session did.
+- `_maintenance/DOCKER.md` — Docker execution, health probes, editable-install/Ninja troubleshooting, and production wheel deployment.
+- `_maintenance/IDEMPOTENT_TESTING.md` — output invariants, self-contained protocol tests, live acceptance, bounded load, and immutable-index rollout.
 
 **Rule:** findings are marked resolved with evidence, never deleted; code +
 `MCP_REVIEW_GUIDE.md` + this file change together.
@@ -34,7 +36,7 @@ This is the human entry point. Companions in `_maintenance/`:
    items) that is in-sandbox verifiable. Skip the ones needing a design decision
    (D1–D4) or a live MCP client unless given direction.
 4. Follow the per-finding workflow in `METHODOLOGY.md`.
-5. Keep every change **Python 3.8 → 3.15+ safe** and **never `==`-pin**.
+5. Keep every change **Python 3.10 → 3.15+ safe** and **never `==`-pin**.
 6. Append to `SESSION_LOG.md`.
 
 ---
@@ -50,18 +52,19 @@ and `scikitplot.annoy` owns the vector index. mcp *composes* them.
 ```
 corpus (ingest+embed+provenance) ─┐
                                   ├─► DocsRetriever ─► build_search_docs_result() ─► MCP server
-annoy  (ANN vector index) ────────┘   (CorpusAnnoyRetriever)  (cited, injection-safe)   (stdio | HTTP-SSE, GATED)
+annoy  (ANN vector index) ────────┘   (CorpusAnnoyRetriever)  (cited, bounded, untrusted)   (stdio | Streamable HTTP)
 ```
 
 Three layers, decreasing stability top→bottom:
 
-1. **Retrieval core — delivered, tested (24 tests).** `_core.py`
+1. **Retrieval core — delivered and tested.** `_core.py`
    (`DocsRetriever` protocol, `RetrievedChunk`, `build_search_docs_result`),
    `_hybrid.py` (`HybridRetriever` RRF fusion + `Bm25Retriever`), `_corpus_annoy.py`
    (`CorpusAnnoyRetriever`, the flagship corpus+annoy composition).
-2. **Server / transport layer — GATED (D1).** stdio + HTTP-SSE on the official
-   `mcp` SDK (FastMCP recommended). Not implemented; the core is SDK-agnostic so
-   this stays a thin, swappable shell.
+2. **Server / transport layer — delivered.** `_server.py` registers the read-only
+   tool/resource on the official MCP Python SDK v2. `__main__.py` runs stdio or
+   Streamable HTTP, supports an explicit Docker profile, and exposes an optional
+   unauthenticated health route. The retrieval core remains SDK-agnostic.
 3. **Consumers** — external MCP clients + the AI-panel proxy.
 
 ---
@@ -90,7 +93,7 @@ The **single** place that enforces citation shape + text safety. Invariants:
   `javascript:` / `data:`. (See candidate finding MCP-SEC-001 about
   protocol-relative `//host` URIs.)
 - **Output shape** is the MCP `tools/call` response:
-  `{"content": [...], "structuredContent": {"query", "citations"}, "isError": False}`.
+  `{"content": [...], "structuredContent": {"query", "citations", "security"}, "isError": False}`.
 
 Any new sanitisation or citation logic goes **here**, not in individual
 retrievers.
@@ -120,34 +123,39 @@ actionable errors.
 
 ```bash
 # SDK-agnostic core + hybrid — green with NO mcp SDK / corpus / annoy present.
-pytest scikitplot/mcp/tests/test_mcp_core.py -q      # 13 tests (citation + injection safety)
-pytest scikitplot/mcp/tests/test_hybrid.py    -q      # 11 tests (RRF fusion + BM25 leg)
+pytest scikitplot/mcp/tests/test_mcp_core.py -q
+pytest scikitplot/mcp/tests/test_hybrid.py -q
+pytest scikitplot/mcp/tests/test_cli.py -q
+pytest scikitplot/mcp/tests/test_server.py -q
 ```
 
-These 24 tests are the **invariant that must stay green** through any change.
-When the server layer (D1) or the real corpus wiring (D2) lands, add integration
-tests behind import guards — never at the cost of the SDK-agnostic core's
-independence from those deps.
+The complete local suite currently contains **69 tests**. The server-shell tests
+use an SDK double so the package remains testable without optional MCP/corpus/annoy
+dependencies. Keep a real MCP v2 client round-trip in CI where the SDK extra is
+installed, without weakening the SDK-independent core tests.
 
 ---
 
-## Python 3.8 → 3.15+ compatibility rule
+## Python 3.10 → 3.15+ compatibility rule
 
-Same rule as corpus (see `corpus/MAINTAINING.md`). The mcp source currently
-passes: all modules carry `from __future__ import annotations`, and there are no
-evaluated-position subscripted generics, `|`-unions, or version-gated APIs. Keep
-it that way; **never `==`-pin** — extras use ranges.
+Same rule as corpus (see `corpus/MAINTAINING.md`). MCP Python SDK v2 requires Python 3.10+. Keep the submodule compatible with
+Python 3.10 through current development versions, avoid unnecessary
+version-gated APIs, and **never `==`-pin** routine dependencies—use supported
+ranges such as `mcp>=2,<3`.
 
 ---
 
 ## Change checklist
 
 - [ ] Retrieval logic changed? `DocsRetriever` shape unchanged; `RetrievedChunk`
-      fields stable; the 24 core/hybrid tests still green.
+      fields stable; the complete core/hybrid regression suite still green.
 - [ ] Sanitisation/citation change lives in `build_search_docs_result` only.
 - [ ] No import-time side effects introduced; core still stdlib-only.
 - [ ] Corpus/annoy consumed via their public seams (no forking, no second index,
       no re-embed with a different model).
-- [ ] 3.8→3.15+ clean; no `==` pins.
+- [ ] 3.10→current clean; no routine `==` pins.
 - [ ] `MCP_REVIEW_GUIDE.md` finding register + this file updated together;
       `SESSION_LOG.md` appended.
+- [ ] `count == len(passages) == len(citations)` holds; zero results use `message`, never a synthetic passage.
+- [ ] Same immutable backend generation + same query returns deterministic structured output.
+- [ ] External HTTP tests remain opt-in; default tests do not depend on a running server or fixed port.

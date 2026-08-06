@@ -15,7 +15,7 @@ the reusable "logic"; `MCP_REVIEW_GUIDE.md` holds the finding state,
 - **Always-green gate** — the 24 SDK-agnostic core/hybrid tests must stay green;
   add a permanent test per fix; rewrite tests to corrected contracts, never
   delete.
-- **Evidence per claim**; **no `==` pins**; **Python 3.8 → 3.15+** (see
+- **Evidence per claim**; **no `==` pins**; **Python 3.10 → 3.15+** (see
   `MAINTAINING.md`).
 - **DRY guardrail** — never fork a corpus/annoy capability into mcp; consume the
   public seam.
@@ -29,7 +29,7 @@ the reusable "logic"; `MCP_REVIEW_GUIDE.md` holds the finding state,
    empty scheme so `_safe_uri` admits it).
 2. **Design the minimal fix** and the invariant it holds. Prefer fixing at the
    safety chokepoint (`build_search_docs_result`) over per-retriever patches.
-3. **Fix at root cause**, 3.8→3.15+ safe, dead imports removed.
+3. **Fix at root cause**, 3.10→3.15+ safe, dead imports removed.
 4. **Test twice** — a fast standalone check (the core is stdlib-only, so import
    `_core`/`_hybrid` directly; use injected seams / test doubles for
    retrievers) **and** a permanent `pytest` in `tests/`, ideally with a baseline
@@ -57,6 +57,6 @@ Honesty about the boundary is part of the standard.
 - [ ] Root cause fixed at source; unrelated code untouched.
 - [ ] Standalone check + permanent `pytest` both green; 24-test core still green.
 - [ ] Baseline/regression assertion where feasible.
-- [ ] 3.8→3.15+ clean; no `==` pins; no import-time side effects added.
+- [ ] 3.10→3.15+ clean; no `==` pins; no import-time side effects added.
 - [ ] `MCP_REVIEW_GUIDE.md` summary row + `Status` + positive control updated.
 - [ ] `SESSION_LOG.md` appended.
