@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # scikitplot/mcp/_maintenance/update_artifact_manifest.py
 #
 # flake8: noqa: D213
