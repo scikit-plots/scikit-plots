@@ -436,6 +436,8 @@ test_nogil = [
   "pyinstrument",                           # Performance profiler time helper
   "beautifulsoup4",                         # sphinx
 
+  "mcp",                                    # https://github.com/modelcontextprotocol/modelcontextprotocol
+
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
 
