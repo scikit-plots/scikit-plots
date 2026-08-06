@@ -6,7 +6,7 @@
  *   • Markdown export (clipboard copy + view as .md)
  *   • AI chat deep-links (Claude, ChatGPT, Gemini, …)
  *   • MCP tool integration (VS Code, Claude Desktop, …)
- *   • PDF export with URL-mode / Print-mode toggle
+ *   • PDF export with a capability-aware URL / Print method picker
  *   • Floating AI panel with:
  *       – Minimize (hide to floating "Ask AI" trigger pill)
  *       – Maximize (expand to full viewport height)
@@ -735,6 +735,15 @@
         mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
         send:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
+        // GitHub Octicon "comment-discussion" — additive and not wired to a control yet.
+        // Mirrors comment-discussion.svg / _SVG_COMMENT_DISCUSSION in _static/__init__.py.
+        commentDiscussion: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"/></svg>',
+        // GitHub Octicon "upload" — additive and not wired to a control yet.
+        // Mirrors upload.svg / _SVG_UPLOAD in _static/__init__.py.
+        upload: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z"/></svg>',
+        // Octicon-style printer — used by the inline PDF method switch and
+        // mirrored by _SVG_PRINTER / printer.svg.
+        printer: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.75C4 1.784 4.784 1 5.75 1h4.5C11.216 1 12 1.784 12 2.75V5h.25A2.75 2.75 0 0 1 15 7.75v3.5A1.75 1.75 0 0 1 13.25 13H12v.25A1.75 1.75 0 0 1 10.25 15h-4.5A1.75 1.75 0 0 1 4 13.25V13H2.75A1.75 1.75 0 0 1 1 11.25v-3.5A2.75 2.75 0 0 1 3.75 5H4V2.75Zm1.5 0V5h5V2.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM3.75 6.5A1.25 1.25 0 0 0 2.5 7.75v3.5c0 .138.112.25.25.25H4v-.75C4 9.784 4.784 9 5.75 9h4.5c.966 0 1.75.784 1.75 1.75v.75h1.25a.25.25 0 0 0 .25-.25v-3.5a1.25 1.25 0 0 0-1.25-1.25h-8.5Zm1.75 4.25v2.5c0 .138.112.25.25.25h4.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM12 8a.75.75 0 1 1 1.5 0A.75.75 0 0 1 12 8Z"/></svg>',
         // ── v0.3 additions — mirror _ICON_META in _static/__init__.py ──────────
         newChat:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
         // Compose / spark variant of "new chat" — additive, inert, for future usage.
@@ -1981,116 +1990,224 @@
     }
 
     // ── PDF section ───────────────────────────────────────────────────────────
+    //
+    // Architecture:
+    //   * A small capability registry describes each export method.
+    //   * The export action and method switch are sibling buttons inside one
+    //     visual row. This avoids invalid nested interactive controls while
+    //     preserving the appearance of a single menu item.
+    //   * The left action reuses createMenuItem(), so its content structure
+    //     remains aligned with Copy page, Markdown, provider, and MCP entries.
+    //   * The compact right switch reuses the established mic toggle track/thumb
+    //     vocabulary and is rendered only when both methods are available.
+    //   * Selection, icon, description, ARIA state, and persistence are updated
+    //     through the single _syncPdfModeUI() path.
+
+    var _PDF_MODE_ORDER = ['url', 'print'];
+
+    var _PDF_MODE_DEFS = {
+        url: {
+            label: 'Prepared PDF',
+            description: 'Open the prepared PDF instantly in a new tab.',
+            iconFile: 'file-pdf.svg',
+            requiresUrl: true
+        },
+        print: {
+            label: 'Print & save',
+            description: 'Customize paper, margins, and pages before saving.',
+            iconFile: 'printer.svg',
+            requiresUrl: false
+        }
+    };
+
+    function _isPdfModeAvailable(mode, pdfUrl) {
+        var def = _PDF_MODE_DEFS[mode];
+        return !!def && (!def.requiresUrl || !!pdfUrl);
+    }
+
+    function _normalizePdfMode(mode, pdfUrl) {
+        if (_isPdfModeAvailable(mode, pdfUrl)) return mode;
+        return pdfUrl ? 'url' : 'print';
+    }
+
+    function _getAvailablePdfModes(pdfUrl) {
+        return _PDF_MODE_ORDER.filter(function (mode) {
+            return _isPdfModeAvailable(mode, pdfUrl);
+        });
+    }
+
+    function _pdfIconSource(staticPath, mode) {
+        var def = _PDF_MODE_DEFS[mode] || _PDF_MODE_DEFS.print;
+        return staticPath.replace(/\/$/, '') + '/' + def.iconFile;
+    }
+
+    function _pdfSwitchAccessibleLabel(mode) {
+        return mode === 'url'
+            ? 'PDF export method: prepared PDF. Switch to print and save.'
+            : 'PDF export method: print and save. Switch to prepared PDF.';
+    }
 
     function createPdfSection(staticPath, cfg) {
         cfg = cfg || {};
         var pdfUrl     = (cfg.pdfExportUrl || '').trim();
         var showToggle = cfg.pdfUrlModeToggle !== false;
+        var available  = _getAvailablePdfModes(pdfUrl);
 
         var savedMode = null;
         try { savedMode = sessionStorage.getItem(_PDF_MODE_KEY); } catch (_e) {}
-
-        var initialMode = (savedMode === 'url' || savedMode === 'print')
-            ? savedMode
-            : (pdfUrl ? 'url' : 'print');
+        var initialMode = _normalizePdfMode(savedMode, pdfUrl);
+        var initialDef  = _PDF_MODE_DEFS[initialMode];
+        var hasSwitch   = showToggle && available.length > 1;
 
         var section = document.createElement('div');
         section.className = 'ai-assistant-pdf-section';
+        section.dataset.pdfMode = initialMode;
+        section.dataset.pdfMethodCount = String(available.length);
+        section.dataset.pdfHasToggle = hasSwitch ? 'true' : 'false';
+        // Internal component state. Keeping icon sources on the section avoids
+        // re-running static-path discovery during every toggle operation.
+        section._pdfStaticPath = staticPath;
 
-        var btn = document.createElement('button');
-        btn.className = 'ai-assistant-menu-item ai-assistant-pdf-btn';
-        btn.id = 'ai-assistant-pdf-export';
-        btn.type = 'button';
-        btn.setAttribute('role', 'menuitem');
+        var row = document.createElement('div');
+        row.className = 'ai-assistant-pdf-row';
+        row.setAttribute('role', 'group');
+        row.setAttribute('aria-label', 'Export as PDF');
 
-        var btnContent = document.createElement('div');
-        btnContent.className = 'ai-assistant-menu-item-content ai-assistant-pdf-content';
+        var btn = createMenuItem(
+            'pdf-export',
+            'Export as PDF',
+            initialDef.description,
+            _pdfIconSource(staticPath, initialMode)
+        );
+        btn.classList.add('ai-assistant-pdf-action');
+        btn.dataset.pdfMode = initialMode;
+        btn.setAttribute('aria-describedby', 'ai-assistant-pdf-desc');
 
-        var btnTitle = document.createElement('div');
-        btnTitle.className = 'ai-assistant-menu-item-title';
-
-        var pdfIcon = document.createElement('img');
-        pdfIcon.src = staticPath + '/file-pdf.svg';
-        pdfIcon.className = 'ai-assistant-menu-icon';
-        pdfIcon.setAttribute('aria-hidden', 'true');
-        pdfIcon.alt = '';
-
-        var pdfLabel = document.createElement('span');
-        pdfLabel.textContent = 'Export as PDF';
-
-        btnTitle.appendChild(pdfIcon);
-        btnTitle.appendChild(pdfLabel);
-
-        var btnDesc = document.createElement('div');
-        btnDesc.className = 'ai-assistant-menu-item-description ai-assistant-pdf-desc';
-        btnDesc.id = 'ai-assistant-pdf-desc';
-        btnDesc.textContent = _pdfModeDescription(initialMode, pdfUrl);
-
-        btnContent.appendChild(btnTitle);
-        btnContent.appendChild(btnDesc);
-        btn.appendChild(btnContent);
-        section.appendChild(btn);
-
-        if (showToggle) {
-            var toggleRow = document.createElement('div');
-            toggleRow.className = 'ai-assistant-pdf-toggle';
-            toggleRow.id = 'ai-assistant-pdf-toggle';
-            toggleRow.setAttribute('role', 'group');
-            toggleRow.setAttribute('aria-label', 'PDF export mode');
-
-            var toggleLabel = document.createElement('span');
-            toggleLabel.className = 'ai-assistant-pdf-toggle-label';
-            toggleLabel.textContent = 'Mode:';
-
-            var urlBtn = document.createElement('button');
-            urlBtn.className = 'ai-assistant-pdf-mode-btn' + (initialMode === 'url' ? ' active' : '');
-            urlBtn.id = 'ai-assistant-pdf-mode-url';
-            urlBtn.type = 'button';
-            urlBtn.textContent = 'URL';
-            urlBtn.title = 'Open PDF URL in new tab';
-            if (!pdfUrl) urlBtn.disabled = true;
-
-            var printBtn = document.createElement('button');
-            printBtn.className = 'ai-assistant-pdf-mode-btn' + (initialMode === 'print' ? ' active' : '');
-            printBtn.id = 'ai-assistant-pdf-mode-print';
-            printBtn.type = 'button';
-            printBtn.textContent = 'Print';
-            printBtn.title = 'Use browser print dialog (Save as PDF)';
-
-            urlBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!urlBtn.disabled) _setPdfMode('url'); });
-            printBtn.addEventListener('click', function (e) { e.stopPropagation(); _setPdfMode('print'); });
-
-            toggleRow.appendChild(toggleLabel);
-            toggleRow.appendChild(urlBtn);
-            toggleRow.appendChild(printBtn);
-            section.appendChild(toggleRow);
+        var btnDesc = btn.querySelector('.ai-assistant-menu-item-description');
+        if (btnDesc) {
+            btnDesc.id = 'ai-assistant-pdf-desc';
+            btnDesc.classList.add('ai-assistant-pdf-desc');
         }
 
+        row.appendChild(btn);
+
+        // The switch is a sibling—not a child—of the export button. Nested
+        // buttons are invalid HTML and create unreliable keyboard/AT behavior.
+        // menuitemcheckbox keeps the control valid inside the surrounding menu.
+        if (hasSwitch) {
+            var modeSwitch = document.createElement('button');
+            modeSwitch.className = 'ai-assistant-pdf-mode-switch ai-assistant-mic-popup-toggle';
+            modeSwitch.id = 'ai-assistant-pdf-toggle';
+            modeSwitch.type = 'button';
+            modeSwitch.setAttribute('role', 'menuitemcheckbox');
+            modeSwitch.setAttribute('aria-checked', initialMode === 'print' ? 'true' : 'false');
+            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(initialMode));
+            modeSwitch.title = _pdfSwitchAccessibleLabel(initialMode);
+
+            var modeTrack = document.createElement('span');
+            modeTrack.className = 'ai-assistant-mic-toggle-track ai-assistant-pdf-toggle-track';
+            modeTrack.setAttribute('aria-hidden', 'true');
+
+            var modeThumb = document.createElement('span');
+            modeThumb.className = 'ai-assistant-mic-toggle-thumb ai-assistant-pdf-toggle-thumb';
+            modeTrack.appendChild(modeThumb);
+
+            var modeText = document.createElement('span');
+            modeText.className = 'ai-assistant-pdf-toggle-text';
+            modeText.textContent = initialDef.label;
+
+            modeSwitch.appendChild(modeTrack);
+            modeSwitch.appendChild(modeText);
+
+            // Keep focus on the compact switch while preventing the surrounding
+            // dropdown from treating pointer-down as an outside interaction.
+            modeSwitch.addEventListener('mousedown', function (event) {
+                event.stopPropagation();
+            });
+            modeSwitch.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                var current = _getPdfMode();
+                _setPdfMode(current === 'url' ? 'print' : 'url');
+            });
+
+            row.appendChild(modeSwitch);
+        }
+
+        section.appendChild(row);
+        _syncPdfModeUI(initialMode, pdfUrl, section);
         return section;
     }
 
     function _pdfModeDescription(mode, pdfUrl) {
-        return (mode === 'url' && pdfUrl) ? 'Opens PDF in a new tab.' : 'Save as PDF via browser print dialog.';
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        return _PDF_MODE_DEFS[normalized].description;
+    }
+
+    function _syncPdfModeUI(mode, pdfUrl, root) {
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        var def = _PDF_MODE_DEFS[normalized];
+
+        // `root` is used during construction, before the section is attached to
+        // document. Runtime updates omit it and resolve the live section.
+        var section = root || document.querySelector('.ai-assistant-pdf-section');
+        var exportBtn = section
+            ? section.querySelector('#ai-assistant-pdf-export')
+            : document.getElementById('ai-assistant-pdf-export');
+        var descEl = section
+            ? section.querySelector('#ai-assistant-pdf-desc')
+            : document.getElementById('ai-assistant-pdf-desc');
+        var iconEl = exportBtn
+            ? exportBtn.querySelector('.ai-assistant-menu-icon')
+            : null;
+        var modeSwitch = section
+            ? section.querySelector('#ai-assistant-pdf-toggle')
+            : document.getElementById('ai-assistant-pdf-toggle');
+        var modeText = modeSwitch
+            ? modeSwitch.querySelector('.ai-assistant-pdf-toggle-text')
+            : null;
+        var staticPath = section && section._pdfStaticPath
+            ? section._pdfStaticPath
+            : getStaticPath();
+
+        if (section) section.dataset.pdfMode = normalized;
+        if (exportBtn) {
+            exportBtn.dataset.pdfMode = normalized;
+            exportBtn.setAttribute(
+                'aria-label',
+                normalized === 'url'
+                    ? 'Open the prepared PDF in a new tab'
+                    : 'Open the browser print dialog to save as PDF'
+            );
+        }
+        if (descEl) descEl.textContent = def.description;
+        if (iconEl) iconEl.src = _pdfIconSource(staticPath, normalized);
+
+        if (modeSwitch) {
+            modeSwitch.dataset.pdfMode = normalized;
+            modeSwitch.setAttribute('aria-checked', normalized === 'print' ? 'true' : 'false');
+            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(normalized));
+            modeSwitch.title = _pdfSwitchAccessibleLabel(normalized);
+        }
+        if (modeText) modeText.textContent = def.label;
+
+        return normalized;
     }
 
     function _setPdfMode(mode) {
-        try { sessionStorage.setItem(_PDF_MODE_KEY, mode); } catch (_e) {}
-        var urlBtn   = document.getElementById('ai-assistant-pdf-mode-url');
-        var printBtn = document.getElementById('ai-assistant-pdf-mode-print');
-        var descEl   = document.getElementById('ai-assistant-pdf-desc');
-        var pdfUrl   = (_cfg().pdfExportUrl || '').trim();
-        if (urlBtn)   urlBtn.classList.toggle('active',   mode === 'url');
-        if (printBtn) printBtn.classList.toggle('active', mode === 'print');
-        if (descEl)   descEl.textContent = _pdfModeDescription(mode, pdfUrl);
+        var pdfUrl = (_cfg().pdfExportUrl || '').trim();
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        try { sessionStorage.setItem(_PDF_MODE_KEY, normalized); } catch (_e) {}
+        _syncPdfModeUI(normalized, pdfUrl);
     }
 
     function _getPdfMode() {
         var pdfUrl = (_cfg().pdfExportUrl || '').trim();
         try {
-            var saved = sessionStorage.getItem(_PDF_MODE_KEY);
-            if (saved === 'url' || saved === 'print') return saved;
-        } catch (_e) {}
-        return pdfUrl ? 'url' : 'print';
+            return _normalizePdfMode(sessionStorage.getItem(_PDF_MODE_KEY), pdfUrl);
+        } catch (_e) {
+            return _normalizePdfMode(null, pdfUrl);
+        }
     }
 
     // ── Menu helpers ──────────────────────────────────────────────────────────

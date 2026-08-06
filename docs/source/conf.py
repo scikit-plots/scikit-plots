@@ -285,7 +285,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
-    "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
+    # "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
     #
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
     # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
@@ -1334,15 +1334,24 @@ htmlhelp_basename = 'scikit-plotsdoc'
 # }
 
 # Grouping the document tree into LaTeX files. List of tuples.
-# latex_documents = [
-#     (
-#         master_doc,  # source start file
-#         "scikitplot.tex",  # target name
-#         "{} Documentation".format(project),  # title
-#         author,  # author
-#         "manual",  # documentclass [howto,manual, or own class]
-#     )
-# ]
+latex_documents = [
+    (
+        master_doc,                          # source start file
+        "scikit-plots.tex",                  # Generated LaTeX filename target name
+        "{} Documentation".format(project),  # title "scikit-plots Documentation"
+        author,                              # author "scikit-plots developers"
+        "manual",                            # documentclass [howto,manual, or own class]
+        False,
+    ),
+    (
+        "user_guide/index",
+        "scikit-plots-user-guide.tex",
+        "scikit-plots User Guide",
+        author,                              # author "scikit-plots developers"
+        "manual",
+        False,
+    ),
+]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.

@@ -50,6 +50,11 @@ Examples
 >>> assert _PROVIDER_META["claude"]["icon"].startswith("data:image/svg+xml;base64,")
 """
 
+# https://www.svgviewer.dev/svg-to-data-uri
+# https://www.svgrepo.com/
+# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
+# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
+
 from __future__ import annotations
 
 import base64
@@ -63,6 +68,7 @@ __all__ = [
     "_SVG_CHATGPT",
     "_SVG_CHECK_ANSWER",
     "_SVG_CLAUDE",
+    "_SVG_COMMENT_DISCUSSION",
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
     "_SVG_DEFAULT",
@@ -76,6 +82,7 @@ __all__ = [
     "_SVG_NEW_CHAT",
     "_SVG_NEW_CHAT_COMPOSE",
     "_SVG_OLLAMA",
+    "_SVG_PRINTER",
     "_SVG_PRIVACY",
     "_SVG_SEARCH_AI",
     "_SVG_SEARCH_SPARKLE",
@@ -87,6 +94,7 @@ __all__ = [
     "_SVG_SYNC_RETRY_REVERSE",
     "_SVG_THUMB_DOWN",
     "_SVG_THUMB_UP",
+    "_SVG_UPLOAD",
     "export_svg2base64",
 ]
 
@@ -320,6 +328,68 @@ _SVG_TERMS: str = (
     "IjE0IDIgMTQgOCAyMCA4Ii8+PGxpbmUgeDE9IjkiIHkxPSIxMyIgeDI9IjE1IiB5"
     "Mj0iMTMiLz48bGluZSB4MT0iOSIgeTE9IjE3IiB4Mj0iMTUiIHkyPSIxNyIvPjwv"
     "c3ZnPg=="
+)
+
+# GitHub Octicon "comment-discussion" (filled, 16x16 viewBox).
+# Additive fallback for a future discussion/conversation action.
+_SVG_COMMENT_DISCUSSION: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGRhdGEtY29tcG9uZW50"
+    "PSJPY3RpY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSIgZm9jdXNhYmxlPSJmYWxzZSIgY2xhc3M9"
+    "Im9jdGljb24gb2N0aWNvbi1jb21tZW50LWRpc2N1c3Npb24iIHZpZXdCb3g9IjAgMCAxNiAx"
+    "NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGRpc3BsYXk9"
+    "ImlubGluZS1ibG9jayIgb3ZlcmZsb3c9InZpc2libGUiIHN0eWxlPSJ2ZXJ0aWNhbC1hbGln"
+    "bjp0ZXh0LWJvdHRvbSI+PHBhdGggZD0iTTEuNzUgMWg4LjVjLjk2NiAwIDEuNzUuNzg0IDEu"
+    "NzUgMS43NXY1LjVBMS43NSAxLjc1IDAgMCAxIDEwLjI1IDEwSDcuMDYxbC0yLjU3NCAyLjU3"
+    "M0ExLjQ1OCAxLjQ1OCAwIDAgMSAyIDExLjU0M1YxMGgtLjI1QTEuNzUgMS43NSAwIDAgMSAw"
+    "IDguMjV2LTUuNUMwIDEuNzg0Ljc4NCAxIDEuNzUgMVpNMS41IDIuNzV2NS41YzAgLjEzOC4x"
+    "MTIuMjUuMjUuMjVoMWEuNzUuNzUgMCAwIDEgLjc1Ljc1djIuMTlsMi43Mi0yLjcyYS43NDku"
+    "NzQ5IDAgMCAxIC41My0uMjJoMy41YS4yNS4yNSAwIDAgMCAuMjUtLjI1di01LjVhLjI1LjI1"
+    "IDAgMCAwLS4yNS0uMjVoLTguNWEuMjUuMjUgMCAwIDAtLjI1LjI1Wm0xMyAyYS4yNS4yNSAw"
+    "IDAgMC0uMjUtLjI1aC0uNWEuNzUuNzUgMCAwIDEgMC0xLjVoLjVjLjk2NiAwIDEuNzUuNzg0"
+    "IDEuNzUgMS43NXY1LjVBMS43NSAxLjc1IDAgMCAxIDE0LjI1IDEySDE0djEuNTQzYTEuNDU4"
+    "IDEuNDU4IDAgMCAxLTIuNDg3IDEuMDNMOS4yMiAxMi4yOGEuNzQ5Ljc0OSAwIDAgMSAuMzI2"
+    "LTEuMjc1Ljc0OS43NDkgMCAwIDEgLjczNC4yMTVsMi4yMiAyLjIydi0yLjE5YS43NS43NSAw"
+    "IDAgMSAuNzUtLjc1aDFhLjI1LjI1IDAgMCAwIC4yNS0uMjVaIi8+PC9zdmc+Cg=="
+)
+
+# GitHub Octicon "upload" (filled, 16x16 viewBox).
+# Additive fallback for a future file-upload action; no behaviour is wired here.
+_SVG_UPLOAD: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGRhdGEtY29tcG9uZW50PSJP"
+    "Y3RpY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSIgZm9jdXNhYmxlPSJmYWxzZSIgY2xhc3M9Im9jdGlj"
+    "b24gb2N0aWNvbi11cGxvYWQiIHZpZXdCb3g9IjAgMCAxNiAxNiIgd2lkdGg9IjE2IiBoZWlnaHQ9"
+    "IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGRpc3BsYXk9ImlubGluZS1ibG9jayIgb3ZlcmZsb3c9"
+    "InZpc2libGUiIHN0eWxlPSJ2ZXJ0aWNhbC1hbGlnbjp0ZXh0LWJvdHRvbSI+PHBhdGggZD0iTTIu"
+    "NzUgMTRBMS43NSAxLjc1IDAgMCAxIDEgMTIuMjV2LTIuNWEuNzUuNzUgMCAwIDEgMS41IDB2Mi41"
+    "YzAgLjEzOC4xMTIuMjUuMjUuMjVoMTAuNWEuMjUuMjUgMCAwIDAgLjI1LS4yNXYtMi41YS43NS43"
+    "NSAwIDAgMSAxLjUgMHYyLjVBMS43NSAxLjc1IDAgMCAxIDEzLjI1IDE0WiIvPjxwYXRoIGQ9Ik0x"
+    "MS43OCA0LjcyYS43NDkuNzQ5IDAgMSAxLTEuMDYgMS4wNkw4Ljc1IDMuODExVjkuNWEuNzUuNzUg"
+    "MCAwIDEtMS41IDBWMy44MTFMNS4yOCA1Ljc4YS43NDkuNzQ5IDAgMSAxLTEuMDYtMS4wNmwzLjI1"
+    "LTMuMjVhLjc0OS43NDkgMCAwIDEgMS4wNiAwbDMuMjUgMy4yNVoiLz48L3N2Zz4K"
+)
+
+
+# Printer: PDF browser-print mode
+_SVG_PRINTER: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAx"
+    "NiAxNiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGFyaWEt"
+    "aGlkZGVuPSJ0cnVlIiBmb2N1c2FibGU9ImZhbHNlIj4KICA8cGF0aCBkPSJNNCAyLjc1QzQg"
+    "MS43ODQgNC43ODQgMSA1Ljc1IDFoNC41QzExLjIxNiAxIDEyIDEuNzg0IDEyIDIuNzVWNWgu"
+    "MjVBMi43NSAyLjc1IDAgMCAxIDE1IDcuNzV2My41QTEuNzUgMS43NSAwIDAgMSAxMy4yNSAx"
+    "M0gxMnYuMjVBMS43NSAxLjc1IDAgMCAxIDEwLjI1IDE1aC00LjVBMS43NSAxLjc1IDAgMCAx"
+    "IDQgMTMuMjVWMTNIMi43NUExLjc1IDEuNzUgMCAwIDEgMSAxMS4yNXYtMy41QTIuNzUgMi43"
+    "NSAwIDAgMSAzLjc1IDVINFYyLjc1Wm0xLjUgMFY1aDVWMi43NWEuMjUuMjUgMCAwIDAtLjI1"
+    "LS4yNWgtNC41YS4yNS4yNSAwIDAgMC0uMjUuMjVaTTMuNzUgNi41QTEuMjUgMS4yNSAwIDAg"
+    "MCAyLjUgNy43NXYzLjVjMCAuMTM4LjExMi4yNS4yNS4yNUg0di0uNzVDNCA5Ljc4NCA0Ljc4"
+    "NCA5IDUuNzUgOWg0LjVjLjk2NiAwIDEuNzUuNzg0IDEuNzUgMS43NXYuNzVoMS4yNWEuMjUu"
+    "MjUgMCAwIDAgLjI1LS4yNXYtMy41YTEuMjUgMS4yNSAwIDAgMC0xLjI1LTEuMjVoLTguNVpt"
+    "MS43NSA0LjI1djIuNWMwIC4xMzguMTEyLjI1LjI1LjI1aDQuNWEuMjUuMjUgMCAwIDAgLjI1"
+    "LS4yNXYtMi41YS4yNS4yNSAwIDAgMC0uMjUtLjI1aC00LjVhLjI1LjI1IDAgMCAwLS4yNS4y"
+    "NVpNMTIgOGEuNzUuNzUgMCAxIDEgMS41IDBBLjc1Ljc1IDAgMCAxIDEyIDhaIi8+Cjwvc3Zn"
+    "Pgo="
 )
 
 # Share this page
@@ -809,6 +879,9 @@ _ICON_META: dict[str, dict[str, str]] = {
     "model": {"icon": _SVG_MODEL, "desc": "Choose a model"},
     "terms": {"icon": _SVG_TERMS, "desc": "Terms of Service"},
     "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
+    "comment-discussion": {"icon": _SVG_COMMENT_DISCUSSION, "desc": "Discussion"},
+    "upload": {"icon": _SVG_UPLOAD, "desc": "Upload a file"},
+    "printer": {"icon": _SVG_PRINTER, "desc": "Print or save as PDF"},
     "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
     "info": {"icon": _SVG_INFO, "desc": "Model information"},
     # ── Phase C additions — mirrors ai-assistant.js ICONS.{key} ────────

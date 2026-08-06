@@ -144,6 +144,8 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)\
 # https://github.com/scikit-learn/scikit-learn/pull/25836 or
 # https://github.com/scikit-learn/scikit-learn/pull/25809
 html: SPHINX_NUMJOBS ?= 1
+# With -b, the final argument is the exact output directory:
+# With -M, the final directory is the common build root:
 html: clean
 	@# These two lines make the build a bit more lengthy, and the \
 	# the embedding of images more robust \
@@ -192,6 +194,8 @@ json:
 	@echo
 	@echo "Build finished; now you can process the JSON files."
 
+# 	@echo "Run '$(MAKE)' in that directory to compile the LaTeX files to PDF,"
+# 	@echo "or run '$(MAKE) latexpdf' here to do it automatically."
 latex:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo
@@ -199,11 +203,26 @@ latex:
 	@echo "Run \`make' in that directory to run these through (pdf)latex" \
 	      "(use \`make latexpdf' here to do that automatically)."
 
+# -b latex
+#     ↓
+# generate .tex files
+#     ↓
+# make all-pdf
+#     ↓
+# generate PDF
+#
+# -M latexpdf
+#     ↓
+# generate .tex files
+#     ↓
+# run configured LaTeX engine
+#     ↓
+# generate PDF
 latexpdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
+	@echo "PDF build finished; the PDF files are in $(BUILDDIR)/latex."
 
 changes:
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inline PDF mode toggle preview</title>
+<style>
+:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#f5f7fa;color:#1f2328}
+*{box-sizing:border-box} body{margin:0;padding:40px;display:grid;place-items:start center;min-height:100vh}
+.demo{width:min(420px,100%);background:#fff;border:1px solid #d8dee4;border-radius:12px;box-shadow:0 18px 55px rgba(31,35,40,.12);padding:12px}
+h1{font-size:16px;margin:0 0 10px;padding:6px 8px}.menu-item{display:block;width:100%;min-height:55px;text-align:left;background:none;border:0;border-radius:4px;color:#1f2328;font:inherit;cursor:pointer;padding:8px}.content{display:flex;flex-direction:column;gap:6px}.title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}.title img{width:16px;height:16px}.desc{font-size:11px;color:#636c76;line-height:1.3}
+.pdf-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;border-radius:4px;transition:background .15s}.pdf-row:hover{background:rgba(31,35,40,.06)}.pdf-row .menu-item:hover{background:transparent}.switch{position:relative;display:inline-flex;align-items:center;justify-content:center;width:48px;min-height:55px;border:0;border-radius:0 4px 4px 0;background:none;cursor:pointer}.switch:before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:1px;background:#d8dee4}.track{display:inline-block;position:relative;width:34px;height:18px;border:1px solid rgba(0,0,0,.08);border-radius:999px;background:rgba(31,35,40,.22);transition:background .18s}.thumb{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.28);transition:transform .18s}.switch[aria-checked="true"] .track{background:#0969da}.switch[aria-checked="true"] .thumb{transform:translateX(16px)}.switch:focus-visible{outline:2px solid #0969da;outline-offset:-2px}.state{margin:12px 8px 4px;font-size:12px;color:#636c76}
+@media(prefers-color-scheme:dark){:root{background:#0d1117;color:#e6edf3}.demo{background:#161b22;border-color:#30363d;box-shadow:0 18px 55px rgba(0,0,0,.45)}.menu-item{color:#e6edf3}.desc,.state{color:#8b949e}.pdf-row:hover{background:rgba(255,255,255,.07)}.switch:before{background:#30363d}.track{background:rgba(255,255,255,.24)}}
+</style>
+</head>
+<body>
+<section class="demo">
+  <h1>Export menu</h1>
+  <div class="pdf-row" role="group" aria-label="Export as PDF">
+    <button class="menu-item" id="export" type="button">
+      <span class="content">
+        <span class="title"><img id="icon" alt="" aria-hidden="true"><span>Export as PDF</span></span>
+        <span class="desc" id="desc"></span>
+      </span>
+    </button>
+    <button class="switch" id="mode" type="button" role="menuitemcheckbox" aria-checked="false">
+      <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+    </button>
+  </div>
+  <p class="state" id="state"></p>
+</section>
+<script>
+const pdfSvg='data:image/svg+xml;base64,'+btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M3.75 1h5.69c.464 0 .91.184 1.238.513l2.81 2.81c.329.328.513.774.513 1.238v7.689A1.75 1.75 0 0 1 12.25 15h-8.5A1.75 1.75 0 0 1 2 13.25V2.75C2 1.784 2.784 1 3.75 1Zm5.5 1.5h-5.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V6H10a.75.75 0 0 1-.75-.75V2.5Zm1.5.56V4.5h1.44l-1.44-1.44Z"/></svg>');
+const printerSvg='data:image/svg+xml;base64,'+btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.75C4 1.784 4.784 1 5.75 1h4.5C11.216 1 12 1.784 12 2.75V5h.25A2.75 2.75 0 0 1 15 7.75v3.5A1.75 1.75 0 0 1 13.25 13H12v.25A1.75 1.75 0 0 1 10.25 15h-4.5A1.75 1.75 0 0 1 4 13.25V13H2.75A1.75 1.75 0 0 1 1 11.25v-3.5A2.75 2.75 0 0 1 3.75 5H4V2.75Zm1.5 0V5h5V2.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM3.75 6.5A1.25 1.25 0 0 0 2.5 7.75v3.5c0 .138.112.25.25.25H4v-.75C4 9.784 4.784 9 5.75 9h4.5c.966 0 1.75.784 1.75 1.75v.75h1.25a.25.25 0 0 0 .25-.25v-3.5a1.25 1.25 0 0 0-1.25-1.25h-8.5Zm1.75 4.25v2.5c0 .138.112.25.25.25h4.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM12 8a.75.75 0 1 1 1.5 0A.75.75 0 0 1 12 8Z"/></svg>');
+let mode='url';
+const toggle=document.getElementById('mode'), icon=document.getElementById('icon'), desc=document.getElementById('desc'), state=document.getElementById('state');
+function sync(){const print=mode==='print';toggle.setAttribute('aria-checked',String(print));toggle.setAttribute('aria-label',print?'Print and save selected. Switch to prepared PDF.':'Prepared PDF selected. Switch to print and save.');icon.src=print?printerSvg:pdfSvg;desc.textContent=print?'Customize paper, margins, and pages before saving.':'Open the prepared PDF instantly in a new tab.';state.textContent='Selected method: '+(print?'Print & save':'Prepared PDF');}
+toggle.addEventListener('click',e=>{e.stopPropagation();mode=mode==='url'?'print':'url';sync()});document.getElementById('export').addEventListener('click',()=>alert(mode==='url'?'Open prepared PDF':'Open browser print dialog'));sync();
+</script>
+</body>
+</html>

@@ -151,10 +151,10 @@ if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runti
 # NOTE: ``bs4``, ``markdownify``, and ``IPython`` are intentionally NOT
 # imported at module scope.  All callers import them locally when needed.
 
-# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
-# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
 # https://www.svgviewer.dev/svg-to-data-uri
 # https://www.svgrepo.com/
+# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
+# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
 
 
 __all__ = [

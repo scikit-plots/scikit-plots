@@ -27,29 +27,30 @@
 Corpus User Guide
 ======================================================================
 
-.. grid:: 1 1 1 1
+..
+  # Mermain diagrams for future imp
+  .. grid:: 1 1 1 1
+    .. grid-item-card::
+      :padding: 2
+      :shadow: none
 
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
+      **diagram**
+      ^^^
+      .. toctree::
+        :maxdepth: 2
 
-    **diagram**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
+        corpus_user_guide_schema
 
-      corpus_user_guide_schema
+    .. grid-item-card::
+      :padding: 2
+      :shadow: none
 
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
+      **diagram**
+      ^^^
+      .. toctree::
+        :maxdepth: 2
 
-    **diagram**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
-
-      diagram_include_catalog
+        diagram_include_catalog
 
 
 Corpus (Remarks Citation) Generation

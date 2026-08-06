@@ -67,109 +67,97 @@ generation of low-level Cython packages and modules for immediate use and testin
   # https://www.mermaideditor.io/
   # https://pypi.org/project/sphinxcontrib-mermaid
 
-Architecture
-------------
+..
+  # Mermain diagrams for future imp
+  Architecture
+  ------------
+  .. include:: _diagrams/architecture_overview.rst
+    :start-after: :orphan:
 
-.. include:: _diagrams/architecture_overview.rst
-  :start-after: :orphan:
+  Public API flow
+  ---------------
+  .. include:: _diagrams/public_api_flow.rst
+    :start-after: :orphan:
 
-Public API flow
----------------
+  Build workflows
+  ---------------
+  Single-module build
+  ~~~~~~~~~~~~~~~~~~~
+  .. include:: _diagrams/single_module_build_flow.rst
+    :start-after: :orphan:
 
-.. include:: _diagrams/public_api_flow.rst
-  :start-after: :orphan:
+  Package build
+  ~~~~~~~~~~~~~
+  .. include:: _diagrams/package_build_flow.rst
+    :start-after: :orphan:
 
-Build workflows
----------------
+  Lifecycle and state
+  -------------------
+  Cache lifecycle
+  ~~~~~~~~~~~~~~~
+  .. include:: _diagrams/cache_lifecycle_state.rst
+    :start-after: :orphan:
 
-Single-module build
-~~~~~~~~~~~~~~~~~~~
+  Lock lifecycle
+  ~~~~~~~~~~~~~~
+  .. include:: _diagrams/lock_lifecycle_state.rst
+    :start-after: :orphan:
 
-.. include:: _diagrams/single_module_build_flow.rst
-  :start-after: :orphan:
+  Security validation
+  -------------------
+  .. include:: _diagrams/security_validation_flow.rst
+    :start-after: :orphan:
 
-Package build
-~~~~~~~~~~~~~
+  Templates
+  ---------
+  .. include:: _diagrams/templates_flow.rst
+    :start-after: :orphan:
 
-.. include:: _diagrams/package_build_flow.rst
-  :start-after: :orphan:
+  Garbage collection and pins
+  ---------------------------
+  .. include:: _diagrams/gc_and_pins_flow.rst
+    :start-after: :orphan:
 
-Lifecycle and state
--------------------
+  Failure and recovery
+  --------------------
+  .. include:: _diagrams/failure_recovery_state.rst
+    :start-after: :orphan:
 
-Cache lifecycle
-~~~~~~~~~~~~~~~
+  Further reading
+  ---------------
+  .. grid:: 1 1 1 1
+    .. grid-item-card::
+      :padding: 2
+      :shadow: none
 
-.. include:: _diagrams/cache_lifecycle_state.rst
-  :start-after: :orphan:
+      **architecture**
+      ^^^
+      .. toctree::
+        :maxdepth: 2
 
-Lock lifecycle
-~~~~~~~~~~~~~~
+        architecture
 
-.. include:: _diagrams/lock_lifecycle_state.rst
-  :start-after: :orphan:
+    .. grid-item-card::
+      :padding: 2
+      :shadow: none
 
-Security validation
--------------------
+      **workflows**
+      ^^^
+      .. toctree::
+        :maxdepth: 2
 
-.. include:: _diagrams/security_validation_flow.rst
-  :start-after: :orphan:
+        workflows
 
-Templates
----------
+    .. grid-item-card::
+      :padding: 2
+      :shadow: none
 
-.. include:: _diagrams/templates_flow.rst
-  :start-after: :orphan:
+      **lifecycle**
+      ^^^
+      .. toctree::
+        :maxdepth: 2
 
-Garbage collection and pins
----------------------------
-
-.. include:: _diagrams/gc_and_pins_flow.rst
-  :start-after: :orphan:
-
-Failure and recovery
---------------------
-
-.. include:: _diagrams/failure_recovery_state.rst
-  :start-after: :orphan:
-
-Further reading
----------------
-
-.. grid:: 1 1 1 1
-
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
-
-    **architecture**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
-
-      architecture
-
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
-
-    **workflows**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
-
-      workflows
-
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
-
-    **lifecycle**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
-
-      lifecycle
+        lifecycle
 
 
 .. grid:: 1 1 1 1

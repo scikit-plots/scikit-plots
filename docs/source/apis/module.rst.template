@@ -92,13 +92,37 @@
 {#- least one entry survives, which also prevents empty-autosummary warnings.   -#}
 {%- set cms = re.findall("(?m)^\\s*\\.\\.\\s+currentmodule::\\s+(\\S+)\\s*$", section.get("description") or "") -%}
 {%- set cur = cms[-1] if cms else module -%}
-{%- set vis = namespace(items=[]) -%}
+{%- set vis = namespace(items=[], classes=[]) -%}
+
 {%- for obj in section.get("autosummary", []) -%}
+{%- if obj == cur or obj.startswith(cur ~ ".") or obj.startswith(sk ~ ".") -%}
+{%- set fqn = obj -%}
+{%- else -%}
 {%- set fqn = cur ~ "." ~ obj -%}
+{%- endif -%}
+
 {%- if fqn not in doc.automoduled and obj not in doc.automoduled -%}
 {%- set _ = vis.items.append(obj) -%}
 {%- endif -%}
 {%- endfor -%}
+
+{%- for cls in section.get("classes", []) -%}
+{%- if cls not in doc.automoduled -%}
+{%- set _ = vis.classes.append(cls) -%}
+{%- endif -%}
+{%- endfor -%}
+
+{%- if vis.classes %}
+
+.. rubric:: Class inheritance
+
+{# :include-subclasses: requires Sphinx 8.2 or newer. Remove it when supporting older Sphinx releases. -#}
+.. inheritance-diagram:: {{ vis.classes | join(" ") }}
+   :parts: 1
+   :private-bases:
+   :include-subclasses:
+
+{%- endif -%}
 {%- if vis.items %}
 
 .. autosummary::
