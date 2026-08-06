@@ -66,6 +66,12 @@ else
 endif
 SPHINX_NUMJOBS ?= $(or $(SPHINX_NUMJOBS_NOPLOT_DEFAULT),1)
 
+# LATEXDIR       = $(BUILDDIR)/latex
+# HTMLDIR        = $(BUILDDIR)/html/stable
+# PDF_NAME       = scikit-plots.pdf
+# PDF_SOURCE     = $(LATEXDIR)/$(PDF_NAME)
+# PDF_DEST       = $(HTMLDIR)/_downloads/$(PDF_NAME)
+
 # Put it first so that "make" without argument is like "make help".
 # help:
 # 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -223,6 +229,37 @@ latexpdf:
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	@echo "PDF build finished; the PDF files are in $(BUILDDIR)/latex."
+
+# pdf-to-html: latexpdf
+# 	@install -d "$(DOWNLOADDIR)"
+# 	@for pdf in $(PDF_DOCUMENTS); do \
+# 		test -s "$$pdf" || { \
+# 			echo "ERROR: Missing or empty PDF: $$pdf" >&2; \
+# 			exit 1; \
+# 		}; \
+# 		install -m 0644 "$$pdf" "$(DOWNLOADDIR)/"; \
+# 	done
+# 	@echo
+# 	@echo "PDF downloads copied to $(DOWNLOADDIR):"
+# 	@ls -lh "$(DOWNLOADDIR)"/*.pdf
+
+# docs-dist:
+# 	$(MAKE) html
+# 	$(MAKE) pdf-to-html
+
+# docs-bundle:
+# 	$(MAKE) html
+# 	$(MAKE) latexpdf
+# 	@test -f "$(PDF_SOURCE)" || { \
+# 		echo "ERROR: PDF not found: $(PDF_SOURCE)" >&2; \
+# 		exit 1; \
+# 	}
+# 	@mkdir -p "$(dir $(PDF_DEST))"
+# 	@install -m 0644 "$(PDF_SOURCE)" "$(PDF_DEST)"
+# 	@echo
+# 	@echo "Documentation deployment bundle created:"
+# 	@echo "  HTML: $(HTMLDIR)"
+# 	@echo "  PDF:  $(PDF_DEST)"
 
 changes:
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
