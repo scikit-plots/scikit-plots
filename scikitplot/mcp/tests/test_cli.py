@@ -6,7 +6,6 @@ from __future__ import annotations
 import io
 import json
 import sys
-from contextlib import redirect_stdout
 from pathlib import Path
 
 import pytest
@@ -125,18 +124,26 @@ def test_probe_rejects_invalid_payload(monkeypatch, capsys):
     assert "UNHEALTHY" in capsys.readouterr().err
 
 
-def test_print_effective_config_avoids_server_creation(monkeypatch):
+def test_print_effective_config_avoids_server_creation(monkeypatch, caplog):
     monkeypatch.setattr(
         cli,
         "create_server",
         lambda *_args, **_kwargs: pytest.fail("server must not be created"),
     )
     output = io.StringIO()
-    with redirect_stdout(output):
-        assert cli.main(["--docker", "--print-effective-config"]) == 0
+    assert (
+        cli.main(
+            ["--docker", "--print-effective-config"],
+            stdout=output,
+        )
+        == 0
+    )
     data = json.loads(output.getvalue())
     assert data["transport"] == "streamable-http"
     assert data["host"] == "0.0.0.0"
+    assert not any(
+        '"transport"' in record.getMessage() for record in caplog.records
+    )
 
 
 def test_docker_main_passes_http_and_health_settings(monkeypatch):
@@ -173,8 +180,13 @@ def test_backend_self_test_is_repeatable_and_avoids_server_creation(monkeypatch)
 
     def run_once():
         output = io.StringIO()
-        with redirect_stdout(output):
-            assert cli.main(["--self-test", "--self-test-query", "transport"]) == 0
+        assert (
+            cli.main(
+                ["--self-test", "--self-test-query", "transport"],
+                stdout=output,
+            )
+            == 0
+        )
         return json.loads(output.getvalue())
 
     first = run_once()
@@ -201,8 +213,8 @@ def test_backend_self_test_can_require_exact_canary(monkeypatch):
         lambda *_args, **_kwargs: pytest.fail("server must not be created"),
     )
     output = io.StringIO()
-    with redirect_stdout(output):
-        assert cli.main(
+    assert (
+        cli.main(
             [
                 "--self-test",
                 "--self-test-query",
@@ -210,8 +222,11 @@ def test_backend_self_test_can_require_exact_canary(monkeypatch):
                 "--self-test-require-match",
                 "--self-test-expected-doc-id",
                 "scikitplot-canary-001",
-            ]
-        ) == 0
+            ],
+            stdout=output,
+        )
+        == 0
+    )
     payload = json.loads(output.getvalue())
     assert payload["count"] >= 1
     assert any(

@@ -56,6 +56,15 @@ shell syntax: PASS
 exact-canary self-test repeated byte-identically: PASS
 ```
 
+
+## 0.2.4 — CI-stable machine-readable CLI output
+
+- Added explicit `main(..., stdout=stream)` output injection.
+- Routed `--print-effective-config` and `--self-test` JSON through one deterministic writer.
+- Removed duplicate JSON warning logs; diagnostics remain on stderr.
+- Updated CLI tests to avoid dependence on process-global stdout redirection.
+- Added a regression assertion that machine JSON is not duplicated through logging.
+
 ## 0.2.3 — closed tool schemas and stable source manifests
 
 - Reject unknown `search_docs` arguments instead of silently dropping them.

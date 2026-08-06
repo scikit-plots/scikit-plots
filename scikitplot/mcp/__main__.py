@@ -27,7 +27,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, TextIO
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, build_opener
 
@@ -453,12 +453,22 @@ def _editable_install_hint() -> str | None:
     return None
 
 
+def _write_json(payload: object, *, stream: TextIO) -> None:
+    """Write one deterministic JSON document to the selected output stream."""
+    json.dump(payload, stream, indent=2, sort_keys=True)
+    stream.write("\n")
+    stream.flush()
+
+
 def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
     argv: list[str] | None = None,
+    *,
+    stdout: TextIO | None = None,
 ) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     config = _resolve_config(args)
+    output_stream = sys.stdout if stdout is None else stdout
 
     logging.basicConfig(
         level=getattr(logging, config.log_level),
@@ -471,10 +481,7 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
         _LOG.warning(editable_hint)
 
     if args.print_effective_config:
-        print(  # ruff: ignore[print]
-            json.dumps(asdict(config), indent=2, sort_keys=True)
-        )
-        _LOG.warning(json.dumps(asdict(config), indent=2, sort_keys=True))
+        _write_json(asdict(config), stream=output_stream)
         return 0
 
     if config.probe:
@@ -514,8 +521,7 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
                     "self-test failed: expected doc_id "
                     f"{config.self_test_expected_doc_id!r} was not returned"
                 )
-        print(json.dumps(payload, indent=2, sort_keys=True))  # ruff: ignore[print]
-        _LOG.warning(json.dumps(payload, indent=2, sort_keys=True))
+        _write_json(payload, stream=output_stream)
         return 0
 
     server = create_server(
