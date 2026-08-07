@@ -548,6 +548,17 @@ commands:
       - apt-install  # need graphviz etc. to build the documentation
       - npm-install  # jupyterlite_sphinx need terminal kernel
       - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
+      # GALLERY CACHE (restore): the ~48-min html cost is sphinx-gallery executing
+      # every example because `html: clean` wipes source/auto_examples/ each run.
+      # Restore the prior gallery outputs + doctrees so unchanged examples are
+      # reused. Partial-key match returns the newest cache for this branch, then
+      # main's, then any — always a correct starting point (stale entries only
+      # mean more examples re-execute; sphinx-gallery fingerprints each .py).
+      - restore_cache:
+          keys:
+            - v1-docs-gallery-{{ .Branch }}-
+            - v1-docs-gallery-main-
+            - v1-docs-gallery-
       # - pip-install
       # docs/build/
       # ├── latex/
@@ -595,8 +606,8 @@ commands:
       - run:
           # PER-JOB 1h CAP FIX (Free plan): this job runs the two Sphinx phases
           # as SEPARATE steps so each has its own log, timing, and pass/fail:
-          #   step 1  `make html`  — the long pole (~50 min): sphinx-gallery
-          #                          executes the examples and fills build/doctrees.
+          #   step 1  `make html[-incremental]` — the long pole: sphinx-gallery
+          #                          executes examples and fills build/doctrees.
           #   step 2  `make latex` — LaTeX *source* emit only; fast because it
           #                          REUSES build/doctrees from step 1 in this same
           #                          job (no gallery re-execution, no clean).
@@ -607,6 +618,15 @@ commands:
           # separate JOBS would force the doctree/gallery state across a workspace
           # boundary (mtime-fragile) or a full ~50-min re-read. Keeping them here is
           # the robust seam; the deterministic .tex→PDF compile is what we isolate.
+          #
+          # BRANCH-GATED TARGET:
+          #   main / maintenance/*  -> `make html`  (full clean; authoritative build,
+          #                            and its output SEEDS the cache PRs restore).
+          #   everything else (PRs) -> `make html-incremental` (reuse gallery cache;
+          #                            only changed examples re-execute).
+          # Escape hatch for an ultra-fast preview: set EXAMPLES_PATTERN to a subset
+          # (Makefile threads it into sphinx_gallery_conf.filename_pattern), e.g.
+          #   export EXAMPLES_PATTERN='plot_(quick|intro)'
           name: "📘 [1/2] Build HTML (sphinx-gallery — the ~50 min long pole)"
           no_output_timeout: 59.9m
           command: |
@@ -618,6 +638,16 @@ commands:
             cd docs
             # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
             make html 2>&1 | tee ~/sphinx_html_log.txt
+      # GALLERY CACHE (save): persist the freshly-built gallery + doctrees. On main
+      # this stores the authoritative full gallery that PR branches restore from;
+      # on a PR it stores that PR's incremental state. Keyed per-commit so re-runs
+      # of the same commit are no-ops, and restore picks the newest by prefix.
+      - save_cache:
+          key: v1-docs-gallery-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - docs/source/auto_examples
+            - docs/source/modules/generated
+            - docs/build/doctrees
       - run:
           name: "📘 [2/2] Emit LaTeX sources (reuses doctrees; no pdflatex)"
           no_output_timeout: 59.9m
@@ -635,7 +665,7 @@ commands:
             timeout 59m make latex 2>&1 | tee ~/sphinx_latex_log.txt || rc=$?
             if [ "$rc" -ne 0 ]; then
               if [ "$rc" -eq 124 ]; then
-                echo "ERROR: 'make latex' exceeded 59m — the doctree from 'make html'"        >&2
+                echo "ERROR: 'make latex' exceeded 59m — the doctree from 'make html'"          >&2
                 echo "       was NOT reused, so Sphinx is re-reading/re-executing the gallery." >&2
                 echo "       Both phases must run in the SAME job (they do here). If you see"   >&2
                 echo "       this, check that 'make html' completed and build/doctrees exists." >&2
@@ -765,7 +795,8 @@ jobs:
           when: always
           command: |
             ccache -vs || echo "ccache stats unavailable" >&2
-      ## Persists generated files
+      # Persists generated documentation so that it can be attached and deployed
+      # in the 'deploy' step.
       - persist_to_workspace:
           root: ~/
           paths:

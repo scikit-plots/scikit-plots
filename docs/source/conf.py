@@ -2777,8 +2777,11 @@ gallery_dirs = ["auto_examples"]
 # Sphinx Gallery Configuration
 # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/gen_gallery.py#L81
 sphinx_gallery_conf = {
+    # https://sphinx-gallery.github.io/stable/configuration.html#build-examples-in-parallel
+    # Sphinx-Gallery can be configured to run examples simultaneously using joblib. This can be enabled by setting:
+    # If an int, then that number of jobs will be passed to joblib.Parallel. If True, then the same number of jobs will be used as the -j flag for Sphinx.
     # Use Sphinx's parallel value (from -j flag);
-    "parallel": False,  # bool | int, default to False (no parallelization)
+    "parallel": True,  # bool | int, default to False (no parallelization)
     # Directories for input example scripts and generated output galleries
     # Directory where your examples are stored
     "examples_dirs": examples_dirs,  # List of folders with example scripts
