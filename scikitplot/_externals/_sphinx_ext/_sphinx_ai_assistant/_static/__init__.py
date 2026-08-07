@@ -79,6 +79,7 @@ __all__ = [
     "_SVG_KEYBOARD",
     "_SVG_MARKDOWN",
     "_SVG_MENU_SPARKLE",
+    "_SVG_MENU_SPARKLE_RIGHT",
     "_SVG_MINIMIZE_COLLAPSE",
     "_SVG_NEW_CHAT",
     "_SVG_NEW_CHAT_COMPOSE",
@@ -688,6 +689,25 @@ _SVG_MENU_SPARKLE: str = (
     "PC9zdmc+"
 )
 
+# AI "sparkles" cluster (Lucide sparkles) — one large 4-point star + two small
+# twinkles. A DISTINCT glyph from _SVG_SPARKLE_ALT (the filled two-tier star),
+# in the same stroke convention as _SVG_CELEBRATION so the "I'm Feeling Lucky"
+# trigger + shuffle read as a matching pair. Mirrors ai-assistant.js
+# ICONS.menuSparkleRight byte-for-byte (base64 of the exact inline SVG).
+_SVG_MENU_SPARKLE_RIGHT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3Vycm"
+    "VudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIg"
+    "c3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIG"
+    "Q9Ik05LjkzNyAxNS41QTIgMiAwIDAgMCA4LjUgMTQuMDYzbC02LjEzNS0xLjU4MmEu"
+    "NS41IDAgMCAxIDAtLjk2Mkw4LjUgOS45MzZBMiAyIDAgMCAwIDkuOTM3IDguNWwxLj"
+    "U4Mi02LjEzNWEuNS41IDAgMCAxIC45NjMgMEwxNC4wNjMgOC41QTIgMiAwIDAgMCAx"
+    "NS41IDkuOTM3bDYuMTM1IDEuNTgxYS41LjUgMCAwIDEgMCAuOTY0TDE1LjUgMTQuMD"
+    "YzYTIgMiAwIDAgMC0xLjQzNyAxLjQzN2wtMS41ODIgNi4xMzVhLjUuNSAwIDAgMS0u"
+    "OTYzIDB6Ii8+PHBhdGggZD0iTTIwIDN2NCIvPjxwYXRoIGQ9Ik0yMiA1aC00Ii8+PH"
+    "BhdGggZD0iTTQgMTd2MiIvPjxwYXRoIGQ9Ik01IDE4SDMiLz48L3N2Zz4="
+)
+
 # Security alert shield (Octicon shield) — future "security notice" or
 # "verified/protected" indicator, not wired to any control yet.
 # Mirrors ai-assistant.js ICONS.shieldAlert.
@@ -922,6 +942,10 @@ _ICON_META: dict[str, dict[str, str]] = {
         "desc": "AI-assisted style/customize",
     },
     "menu-sparkle": {"icon": _SVG_MENU_SPARKLE, "desc": "AI menu"},
+    "menu-sparkle-right": {
+        "icon": _SVG_MENU_SPARKLE_RIGHT,
+        "desc": "AI suggestion sparkle",
+    },
     "shield-alert": {"icon": _SVG_SHIELD_ALERT, "desc": "Security notice"},
     # Mirrors ICONS.celebration in ai-assistant.js — the "Surprise me"
     # source icon in the "I'm Feeling Lucky" picker.

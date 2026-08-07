@@ -901,18 +901,21 @@
         privacyResponsibility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         // Party popper + confetti — hand-authored (not traced from any icon
         // font) in this file's own stroke convention so it themes the same
-        // way as every other 24x24 glyph here. Reserved for the "I'm Feeling
-        // Lucky" entry point (see _renderWelcome). Confetti dots are filled
-        // dots on the same stroke path, matching the mixed fill+stroke style
-        // already used by e.g. `chat`'s dot eyes above.
+        // way as every other 24x24 glyph here. Currently unwired: it was the
+        // "I'm Feeling Lucky" trigger glyph, which has been retired in favour
+        // of the deterministic "Explain this page" button (see
+        // _buildPageHelpButton). Kept as a ready-made "celebration/success"
+        // glyph and still mirrored Python-side (_ICON_META["celebration"]).
         celebration: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5 9 8l7 4.5-12.5 8Z"/><path d="M9 8l1.3-3.5"/><path d="M14 3.5 15 5.5"/><path d="M19 6.5l2 1"/><circle cx="20" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="21.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>',
-        // Right-aligned "AI-suggested" sparkle badge — reuses sparkleAlt's
-        // exact path (see the consolidation rationale on termsOfService /
-        // privacyResponsibility above) rather than a near-duplicate glyph.
-        // sparkleAlt was already this two-tier star, just unwired; this alias
-        // just gives it a name matching where it's used (small badge to the
-        // right of a menu item title, e.g. "I'm Feeling Lucky").
-        get menuSparkleRight() { return ICONS.sparkleAlt; },
+        // Right-aligned "AI-suggested" sparkle badge — a DISTINCT glyph, not a
+        // reuse of sparkleAlt. sparkleAlt (above) is the filled two-tier star and
+        // is kept unchanged; this is the Lucide "sparkles" cluster (one large
+        // 4-point star + two small twinkles). Used as the leading icon on the
+        // deterministic "Explain this page" prompt button (see
+        // _buildPageHelpButton). Mirrored on the Python side by
+        // _SVG_MENU_SPARKLE_RIGHT / _ICON_META["menu-sparkle-right"]
+        // (byte-for-byte, same parity convention as celebration/terms/privacy).
+        menuSparkleRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
     };
 
     // Remembers whether the hosted dancer GIF has ever failed to load, so a
@@ -7241,382 +7244,91 @@ opts.jsonPayload + '\n' +
         return wrapper;
     }
 
-    // ── Lucky picker ("I'm Feeling Lucky") ──────────────────────────────────
+    // ── Page-help prompt (deterministic, grounded — not random) ─────────
     //
-    // A self-contained popover — same shape as _buildExportDropdownBtn: one
-    // trigger button + one floating panel, each with their own open/close,
-    // outside-click, and focus handling. Deliberately NOT wired into
-    // createAIPanel's sheet system (_openSheet/_closeSheet/the Escape-key
-    // sheet array): _renderWelcome also runs from clearConversation(), which
-    // has no access to that closure, and every input this feature needs
-    // (cfg, page DOM, sessionStorage) is already reachable from module scope.
-    // Being self-contained also means it survives clearConversation()'s
-    // `body.innerHTML = ''` + rebuild for free, same as the suggestion chips.
-    //
-    // Extensibility: add a new question source by appending one entry to
-    // _LUCKY_SOURCES below — nothing else needs to change. Each source is an
-    // independent checkbox the user can combine with any other; `generate()`
-    // returns zero or more candidate question strings for the current page.
-
-    /** sessionStorage keys — mirrors the _PDF_MODE_KEY persistence pattern. */
-    var _LUCKY_SOURCES_KEY = 'ai-assistant-lucky-sources';
-    var _LUCKY_TOPIC_KEY   = 'ai-assistant-lucky-topic';
+    // A single opinionated button that pre-fills the chat input with the most
+    // useful question for THIS page, then lets the user review/edit and send.
+    // Deterministic: the same page always yields the same question, chosen in
+    // priority order (no shuffle, no random templates, no dice):
+    //   1. the author's top curated question (cfg.panelQuickQuestions) — their
+    //      explicit judgement of what matters most here, zero model cost;
+    //   2. else a grounded question built from the page's real subject
+    //      (primary heading / title) with one fixed phrasing.
+    // Replaces the former "I'm Feeling Lucky" random picker: the checkbox
+    // sources, shuffle, static templates, custom-topic input, and the
+    // document-level outside-click listener (and its rebuild leak) are all gone.
+    // Inserted between the welcome message and the suggestion chips by
+    // _renderWelcome. Pre-fill only — the user reviews and hits send.
 
     /**
-     * Prompt templates shared by the 'surprise' and 'custom' sources.
-     * '%s' is replaced with either the page title or the user's own topic.
-     * Client-side templates, not a live model call — kept honest in the UI
-     * copy below ("Prompt templates…", not "AI-generated…").
+     * The single best question to pre-fill for the current page.
+     * Pure and deterministic: same page → same string, never random.
+     * @returns {string}
      */
-    var _LUCKY_TEMPLATES = [
-        'What are common mistakes people make with %s?',
-        'What edge cases should I watch out for with %s?',
-        'Explain %s like I\u2019m completely new to it.',
-        'What\u2019s a lesser-known detail about %s that\u2019s easy to miss?',
-        'How would you debug an unexpected problem involving %s?'
-    ];
-
-    function _luckyFillTemplates(subject) {
-        subject = String(subject || '').trim();
-        if (!subject) return [];
-        return _LUCKY_TEMPLATES.map(function (t) { return t.replace('%s', subject); });
-    }
-
-    /**
-     * Extract heading strings from the current page's content region, for
-     * the 'topics' source. Same content-scope convention already used by
-     * copy/print/markdown: `_cfg().content_selector || 'article'`.
-     * @returns {string[]}
-     */
-    function _luckyPageHeadings() {
-        var root = document.querySelector(_cfg().content_selector || 'article') || document.body;
-        var out = [];
-        root.querySelectorAll('h2, h3').forEach(function (h) {
-            var text = String(h.textContent || '')
-                .replace(/\s*[\u00b6#]\s*$/, '')  // strip trailing pilcrow/permalink glyph
-                .replace(/\s+/g, ' ')
-                .trim();
-            if (text) out.push(text);
-        });
-        return out;
-    }
-
-    /**
-     * Checkbox-driven question sources. Order here is display order.
-     * `generate(ctx)` must be a pure function of `ctx` and must never throw
-     * uncaught — the caller wraps each call so one bad source can't blank
-     * out the others.
-     */
-    var _LUCKY_SOURCES = [
-        {
-            id: 'quick',
-            label: 'Quick questions',
-            desc: 'Pull from this page\u2019s curated question list',
-            icon: 'chat',
-            generate: function () {
-                var cfg = _cfg();
-                return Array.isArray(cfg.panelQuickQuestions) ? cfg.panelQuickQuestions.slice() : [];
-            }
-        },
-        {
-            id: 'topics',
-            label: 'Page topics',
-            desc: 'Ask about a heading on this page',
-            icon: 'terms',
-            generate: function () {
-                return _luckyPageHeadings().map(function (h) {
-                    return 'Can you explain \u201c' + h + '\u201d?';
-                });
-            }
-        },
-        {
-            id: 'surprise',
-            label: 'Surprise me',
-            desc: 'Prompt templates built from this page\u2019s title',
-            icon: 'celebration',
-            generate: function () {
-                return _luckyFillTemplates(_getCurrentPageHeading() || document.title);
-            }
-        },
-        {
-            id: 'custom',
-            label: 'My own topic',
-            desc: 'Type a topic and build a question from it',
-            icon: 'plus',
-            requiresInput: true,
-            generate: function (ctx) {
-                return _luckyFillTemplates(ctx && ctx.customTopic);
-            }
-        }
-    ];
-
-    /**
-     * Sources to pre-check on first use — only ones that can actually
-     * produce something right now, so the first open is never empty.
-     * @returns {string[]}
-     */
-    function _luckyDefaultSources() {
+    function _bestQuestionForPage() {
         var cfg = _cfg();
-        var out = [];
-        if (Array.isArray(cfg.panelQuickQuestions) && cfg.panelQuickQuestions.length) out.push('quick');
-        if (_luckyPageHeadings().length) out.push('topics');
-        if (out.length === 0) out.push('surprise'); // always available: falls back to document.title
-        return out;
-    }
-
-    /** @returns {string[]} persisted source ids, or the computed defaults. */
-    function _luckySelectedSources() {
-        var raw = _ssGet(_LUCKY_SOURCES_KEY);
-        if (raw) {
-            try {
-                var parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length) return parsed;
-            } catch (_e) { /* fall through to defaults */ }
+        // 1. Author's top curated question wins.
+        if (Array.isArray(cfg.panelQuickQuestions)) {
+            for (var i = 0; i < cfg.panelQuickQuestions.length; i++) {
+                var q = String(cfg.panelQuickQuestions[i] || '').trim();
+                if (q) return q;
+            }
         }
-        return _luckyDefaultSources();
-    }
-
-    /** @param {HTMLElement} sourcesListEl */
-    function _luckySaveSelectedSources(sourcesListEl) {
-        var ids = Array.prototype.slice
-            .call(sourcesListEl.querySelectorAll('.ai-assistant-lucky-source-checkbox:checked'))
-            .map(function (el) { return el.dataset.sourceId; });
-        _ssSet(_LUCKY_SOURCES_KEY, JSON.stringify(ids));
+        // 2. A grounded question keyed to the page's real subject. Strip a
+        //    trailing site suffix (" — Project", " · scikit-plots", " | Docs")
+        //    so the subject is the page's own topic, not the site name.
+        var subject = String(_getCurrentPageHeading() || document.title || '').trim();
+        subject = subject.split(/\s[\u2013\u2014|\u00b7]\s/)[0].trim();
+        if (subject) {
+            return 'How do I use ' + subject +
+                ', and what are the key things to know about it?';
+        }
+        // 3. Last resort when the page exposes no subject at all.
+        return 'What is this page about, and how do I use it?';
     }
 
     /**
-     * Build the "I'm Feeling Lucky" trigger + popover.
-     * @returns {HTMLElement} wrapper containing trigger button + panel.
+     * Build the "Explain this page" button. On click it pre-fills the chat
+     * input with _bestQuestionForPage() and focuses it; the user reviews and
+     * sends. No auto-send, no popover, no document-level listeners.
+     * @returns {HTMLElement} wrapper containing the button.
      */
-    function _buildLuckyPicker() {
+    function _buildPageHelpButton() {
         var wrapper = document.createElement('div');
-        wrapper.className = 'ai-assistant-lucky-picker';
+        wrapper.className = 'ai-assistant-pagehelp';
 
-        // ── Trigger button ──────────────────────────────────────────────────
-        var trigger = document.createElement('button');
-        trigger.className = 'ai-assistant-lucky-trigger';
-        trigger.id = 'ai-assistant-lucky-trigger';
-        trigger.type = 'button';
-        trigger.setAttribute('aria-haspopup', 'true');
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.setAttribute('aria-label', 'I\u2019m Feeling Lucky \u2014 get a suggested question');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ai-assistant-pagehelp-btn';
+        btn.id = 'ai-assistant-pagehelp-btn';
+        // The button prepares a question rather than sending one — say so.
+        btn.setAttribute('aria-label',
+            'Explain this page \u2014 fills the box with a suggested question ' +
+            'you can edit, then send');
 
-        var triggerIcon = document.createElement('span');
-        triggerIcon.className = 'ai-assistant-lucky-trigger-icon';
-        triggerIcon.setAttribute('aria-hidden', 'true');
-        triggerIcon.innerHTML = ICONS.celebration;
-        trigger.appendChild(triggerIcon);
+        var icon = document.createElement('span');
+        icon.className = 'ai-assistant-pagehelp-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = ICONS.menuSparkleRight;
+        btn.appendChild(icon);
 
-        var triggerLbl = document.createElement('span');
-        triggerLbl.className = 'ai-assistant-lucky-trigger-label';
-        triggerLbl.textContent = 'I\u2019m Feeling Lucky';
-        trigger.appendChild(triggerLbl);
+        var lbl = document.createElement('span');
+        lbl.className = 'ai-assistant-pagehelp-label';
+        lbl.textContent = 'Explain this page';
+        btn.appendChild(lbl);
 
-        var triggerSpark = document.createElement('span');
-        triggerSpark.className = 'ai-assistant-lucky-trigger-spark';
-        triggerSpark.setAttribute('aria-hidden', 'true');
-        triggerSpark.innerHTML = ICONS.menuSparkleRight;
-        trigger.appendChild(triggerSpark);
-
-        // ── Popover panel ────────────────────────────────────────────────────
-        var panel = document.createElement('div');
-        panel.className = 'ai-assistant-lucky-panel';
-        panel.setAttribute('role', 'dialog');
-        panel.setAttribute('aria-label', 'I\u2019m Feeling Lucky');
-        panel.setAttribute('data-open', 'false');
-
-        var sourcesList = document.createElement('div');
-        sourcesList.className = 'ai-assistant-lucky-sources';
-
-        var selected      = _luckySelectedSources();
-        var customInputRow = null;
-        var customInputEl  = null;
-
-        _LUCKY_SOURCES.forEach(function (src) {
-            var row = document.createElement('label');
-            row.className = 'ai-assistant-lucky-source-row';
-
-            var cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.className = 'ai-assistant-lucky-source-checkbox';
-            cb.checked = selected.indexOf(src.id) !== -1;
-            cb.dataset.sourceId = src.id;
-
-            var icon = document.createElement('span');
-            icon.className = 'ai-assistant-lucky-source-icon';
-            icon.setAttribute('aria-hidden', 'true');
-            icon.innerHTML = ICONS[src.icon] || ICONS.celebration;
-
-            var text = document.createElement('span');
-            text.className = 'ai-assistant-lucky-source-text';
-            var strong = document.createElement('strong');
-            strong.textContent = src.label;
-            var small = document.createElement('span');
-            small.className = 'ai-assistant-lucky-source-desc';
-            small.textContent = src.desc;
-            text.appendChild(strong);
-            text.appendChild(small);
-
-            row.appendChild(cb);
-            row.appendChild(icon);
-            row.appendChild(text);
-            sourcesList.appendChild(row);
-
-            if (src.requiresInput) {
-                customInputRow = document.createElement('div');
-                customInputRow.className = 'ai-assistant-lucky-custom-row';
-                customInputRow.hidden = !cb.checked;
-
-                customInputEl = document.createElement('input');
-                customInputEl.type = 'text';
-                customInputEl.className = 'ai-assistant-lucky-custom-input';
-                customInputEl.placeholder = 'e.g. authentication, retries, plotting\u2026';
-                customInputEl.value = _ssGet(_LUCKY_TOPIC_KEY) || '';
-                customInputEl.maxLength = 120;
-                customInputEl.setAttribute('aria-label', src.label + ' \u2014 topic');
-                customInputEl.addEventListener('input', function () {
-                    _ssSet(_LUCKY_TOPIC_KEY, customInputEl.value);
-                    _luckyRefresh();
-                });
-
-                customInputRow.appendChild(customInputEl);
-                sourcesList.appendChild(customInputRow);
-            }
-
-            cb.addEventListener('change', function () {
-                _luckySaveSelectedSources(sourcesList);
-                if (src.requiresInput && customInputRow) {
-                    customInputRow.hidden = !cb.checked;
-                    if (cb.checked && customInputEl) customInputEl.focus();
-                }
-                _luckyRefresh();
-            });
+        btn.addEventListener('click', function () {
+            var input = document.getElementById('ai-assistant-panel-input');
+            if (!input) return;
+            input.value = _bestQuestionForPage();
+            if (typeof _updateSendBtnState === 'function') _updateSendBtnState();
+            input.focus();
+            // Caret at end so editing continues naturally.
+            try { input.setSelectionRange(input.value.length, input.value.length); }
+            catch (_e) { /* not all input types support selection range */ }
         });
 
-        panel.appendChild(sourcesList);
-
-        var shuffleBtn = document.createElement('button');
-        shuffleBtn.type = 'button';
-        shuffleBtn.className = 'ai-assistant-lucky-shuffle';
-        var shuffleIcon = document.createElement('span');
-        shuffleIcon.setAttribute('aria-hidden', 'true');
-        shuffleIcon.innerHTML = ICONS.menuSparkleRight;
-        shuffleBtn.appendChild(shuffleIcon);
-        var shuffleLbl = document.createElement('span');
-        shuffleLbl.textContent = 'Shuffle';
-        shuffleBtn.appendChild(shuffleLbl);
-        shuffleBtn.addEventListener('click', function () { _luckyRefresh(); });
-        panel.appendChild(shuffleBtn);
-
-        var candidatesEl = document.createElement('div');
-        candidatesEl.className = 'ai-assistant-lucky-candidates';
-        candidatesEl.setAttribute('aria-live', 'polite');
-        panel.appendChild(candidatesEl);
-
-        /** Recompute the candidate pool from checked sources and re-render. */
-        function _luckyRefresh() {
-            var checkedIds = Array.prototype.slice
-                .call(sourcesList.querySelectorAll('.ai-assistant-lucky-source-checkbox:checked'))
-                .map(function (el) { return el.dataset.sourceId; });
-
-            var ctx  = { customTopic: customInputEl ? customInputEl.value : '' };
-            var pool = [];
-            _LUCKY_SOURCES.forEach(function (src) {
-                if (checkedIds.indexOf(src.id) === -1) return;
-                try {
-                    (src.generate(ctx) || []).forEach(function (q) {
-                        q = String(q || '').trim();
-                        if (q && pool.indexOf(q) === -1) pool.push(q);
-                    });
-                } catch (_e) { /* one bad source must not blank out the others */ }
-            });
-
-            candidatesEl.innerHTML = '';
-            if (pool.length === 0) {
-                var empty = document.createElement('p');
-                empty.className = 'ai-assistant-lucky-empty';
-                empty.textContent = checkedIds.length === 0
-                    ? 'Pick at least one source above.'
-                    : 'Nothing to suggest yet \u2014 try a different source or type a topic.';
-                candidatesEl.appendChild(empty);
-                return;
-            }
-
-            // Fisher-Yates, capped at 3 — enough variety without a wall of chips.
-            for (var i = pool.length - 1; i > 0; i--) {
-                var j = Math.floor(Math.random() * (i + 1));
-                var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-            }
-            pool.slice(0, 3).forEach(function (q) {
-                var chip = document.createElement('button');
-                chip.type = 'button';
-                chip.className = 'ai-assistant-panel-chip ai-assistant-lucky-chip';
-                chip.textContent = q;
-                chip.addEventListener('click', function () {
-                    var input = document.getElementById('ai-assistant-panel-input');
-                    if (input) { input.value = q; _updateSendBtnState(); input.focus(); }
-                    _closeLucky();
-                });
-                candidatesEl.appendChild(chip);
-            });
-        }
-
-        function _closeLucky() {
-            panel.setAttribute('data-open', 'false');
-            trigger.setAttribute('aria-expanded', 'false');
-        }
-
-        // ── Toggle open/close (mirrors _buildExportDropdownBtn) ──────────────
-        trigger.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var isOpen = panel.getAttribute('data-open') === 'true';
-            _closeLucky();
-            if (!isOpen) {
-                panel.setAttribute('data-open', 'true');
-                trigger.setAttribute('aria-expanded', 'true');
-                _luckyRefresh();
-            }
-        });
-
-        wrapper.addEventListener('focusout', function (e) {
-            if (!wrapper.contains(e.relatedTarget)) _closeLucky();
-        });
-
-        // Capture-phase outside-click close — see _buildExportDropdownBtn for
-        // why focusout alone is insufficient (non-focusable-element clicks).
-        //
-        // Self-removing, unlike that precedent: _buildExportDropdownBtn is
-        // built at most twice, at fixed panel-setup call sites, so one
-        // document-level listener per build is a bounded, one-time cost.
-        // This picker is rebuilt on every clearConversation() ->
-        // _renderWelcome() cycle. body.innerHTML = '' detaches `wrapper`
-        // from the document, but it does NOT remove a listener registered
-        // on `document` itself — without this guard, every "Clear
-        // conversation" click would leave one more permanent listener (and
-        // its now-detached-DOM closure) behind for the life of the page.
-        // Checking document.contains(wrapper) lets a stale listener remove
-        // itself the first time it fires after its own wrapper is gone.
-        function _luckyOutsideMousedown(e) {
-            if (!document.contains(wrapper)) {
-                document.removeEventListener('mousedown', _luckyOutsideMousedown, true);
-                return;
-            }
-            if (panel.getAttribute('data-open') !== 'true') return;
-            if (wrapper.contains(e.target)) return;
-            _closeLucky();
-        }
-        document.addEventListener('mousedown', _luckyOutsideMousedown, true /* capture */);
-
-        wrapper.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && panel.getAttribute('data-open') === 'true') {
-                e.stopPropagation();
-                _closeLucky();
-                trigger.focus();
-            }
-        });
-
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(panel);
+        wrapper.appendChild(btn);
         return wrapper;
     }
 
@@ -7667,8 +7379,12 @@ opts.jsonPayload + '\n' +
         welcome.appendChild(p3);
         body.appendChild(welcome);
 
-        if (cfg.panelLucky !== false) {
-            body.appendChild(_buildLuckyPicker());
+        // Enabled by default; disable from conf.py via
+        // ai_assistant_panel_page_help = False once registered in the extension
+        // __init__.py (serialised to panelPageHelp). `panelLucky` is honoured as
+        // a fallback so any existing explicit opt-out keeps working.
+        if (cfg.panelPageHelp !== false && cfg.panelLucky !== false) {
+            body.appendChild(_buildPageHelpButton());
         }
 
         if (quickQs.length > 0) {

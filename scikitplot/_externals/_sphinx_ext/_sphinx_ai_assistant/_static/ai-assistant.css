@@ -729,23 +729,20 @@
     outline-offset: 1px;
 }
 
-/* ─── "I'm Feeling Lucky" picker ─────────────────────────────────────────── *
- * Self-contained trigger + popover, positioned between the welcome message
- * and the quick-suggestion chips (see _buildLuckyPicker / _renderWelcome).
- * Visibility contract mirrors .ai-assistant-export-menu:
- *   [data-open="false"]  →  display:none   (JS default)
- *   [data-open="true"]   →  display:flex   (JS sets after click)
- */
+/* ─── "Explain this page" prompt button ───────────────────────── *
+ * A single deterministic action between the welcome message and the quick-
+ * suggestion chips (see _buildPageHelpButton / _renderWelcome). One tap
+ * pre-fills the input with the best question for the current page; the user
+ * reviews and sends. Replaces the former random "I'm Feeling Lucky" picker. */
 
-.ai-assistant-lucky-picker {
-    position: relative;
+.ai-assistant-pagehelp {
     display: flex;
     justify-content: center;
     margin: 0.35rem 0;
 }
 
-.ai-assistant-lucky-trigger {
-    --ai-lucky-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+.ai-assistant-pagehelp-btn {
+    --ai-pagehelp-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -761,33 +758,30 @@
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.ai-assistant-lucky-trigger:hover,
-.ai-assistant-lucky-trigger[aria-expanded="true"] {
-    background: var(--ai-lucky-accent);
+.ai-assistant-pagehelp-btn:hover {
+    background: var(--ai-pagehelp-accent);
     color: #fff;
     border-color: transparent;
 }
 
-.ai-assistant-lucky-trigger:focus         { outline: none; }
-.ai-assistant-lucky-trigger:focus-visible {
-    outline: 2px solid var(--ai-lucky-accent);
+.ai-assistant-pagehelp-btn:focus         { outline: none; }
+.ai-assistant-pagehelp-btn:focus-visible {
+    outline: 2px solid var(--ai-pagehelp-accent);
     outline-offset: 1px;
 }
 
-[data-bs-theme="dark"] .ai-assistant-lucky-trigger {
+[data-bs-theme="dark"] .ai-assistant-pagehelp-btn {
     background: rgba(255, 255, 255, 0.07);
     border-color: rgba(255, 255, 255, 0.15);
 }
 
-[data-bs-theme="dark"] .ai-assistant-lucky-trigger:hover,
-[data-bs-theme="dark"] .ai-assistant-lucky-trigger[aria-expanded="true"] {
-    background: var(--ai-lucky-accent);
+[data-bs-theme="dark"] .ai-assistant-pagehelp-btn:hover {
+    background: var(--ai-pagehelp-accent);
     color: #fff;
     border-color: transparent;
 }
 
-.ai-assistant-lucky-trigger-icon,
-.ai-assistant-lucky-trigger-spark {
+.ai-assistant-pagehelp-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -798,174 +792,13 @@
     line-height: 0;
 }
 
-.ai-assistant-lucky-trigger-icon svg,
-.ai-assistant-lucky-trigger-spark svg {
-    display: block;
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-}
-
-/* The spark badge reads as a small "AI-suggested" accent, not the primary
-   glyph — slightly smaller and quieter than the leading celebration icon. */
-.ai-assistant-lucky-trigger-spark {
-    width: 11px;
-    height: 11px;
-    opacity: 0.8;
-}
-.ai-assistant-lucky-trigger-spark svg { width: 11px; height: 11px; }
-
-/* ─── Popover panel ───────────────────────────────────────────────────────── */
-
-.ai-assistant-lucky-panel {
-    z-index: 1021;
-    display: none;
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(92vw, 280px);
-    flex-direction: column;
-    gap: 0.55rem;
-    padding: 0.65rem;
-    background: var(--pst-color-surface, var(--color-background-primary, #fff));
-    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
-    border-radius: 10px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.13), 0 2px 6px rgba(0, 0, 0, 0.07);
-    text-align: left;
-}
-
-.ai-assistant-lucky-panel[data-open="true"] {
-    display: flex;
-}
-
-.ai-assistant-lucky-sources {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.ai-assistant-lucky-source-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.35rem 0.4rem;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.ai-assistant-lucky-source-row:hover {
-    background: rgba(0, 0, 0, 0.045);
-}
-
-[data-bs-theme="dark"] .ai-assistant-lucky-source-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.ai-assistant-lucky-source-checkbox {
-    margin: 0.2rem 0 0;
-    flex-shrink: 0;
-    accent-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
-}
-
-.ai-assistant-lucky-source-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    width: 15px;
-    height: 15px;
-    margin-top: 0.1rem;
-    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
-}
-
-.ai-assistant-lucky-source-icon svg { display: block; width: 15px; height: 15px; }
-
-.ai-assistant-lucky-source-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.05rem;
-    min-width: 0;
-}
-
-.ai-assistant-lucky-source-text strong {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
-}
-
-.ai-assistant-lucky-source-desc {
-    font-size: 0.72rem;
-    line-height: 1.3;
-    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
-}
-
-.ai-assistant-lucky-custom-row {
-    padding: 0.1rem 0.4rem 0.4rem 2.3rem; /* aligns under the row's text column */
-}
-
-.ai-assistant-lucky-custom-input {
+.ai-assistant-pagehelp-icon svg {
     width: 100%;
-    box-sizing: border-box;
-    padding: 0.32rem 0.5rem;
-    font-size: 0.78rem;
-    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
-    background: var(--pst-color-surface, var(--color-background-primary, #fff));
-    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d0d0));
-    border-radius: 6px;
-}
-
-.ai-assistant-lucky-custom-input:focus {
-    outline: none;
-    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
-}
-
-.ai-assistant-lucky-shuffle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    align-self: center;
-    padding: 0.3rem 0.75rem;
-    font-size: 0.76rem;
-    font-weight: 500;
-    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
-    background: var(--pst-color-on-background, var(--color-background-secondary, #f0f0f0));
-    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d0d0));
-    border-radius: 999px;
-    cursor: pointer;
-}
-
-.ai-assistant-lucky-shuffle:hover {
-    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
-    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
-}
-
-.ai-assistant-lucky-shuffle svg { display: block; width: 13px; height: 13px; }
-
-.ai-assistant-lucky-candidates {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-/* Candidates reuse .ai-assistant-panel-chip's colors/border but read as a
-   left-aligned, full-width list here rather than centered pill row. */
-.ai-assistant-lucky-chip {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: left;
-    border-radius: 8px;
-}
-
-.ai-assistant-lucky-empty {
-    margin: 0;
-    padding: 0.2rem 0.4rem;
-    font-size: 0.76rem;
-    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
-    text-align: center;
+    height: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ai-assistant-lucky-trigger {
+    .ai-assistant-pagehelp-btn {
         transition: none;
     }
 }

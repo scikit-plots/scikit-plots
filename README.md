@@ -437,14 +437,15 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
 # Pin to a tagged release:
 # pip install "git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0" -vv
 # Latest development build (main branch):
-pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
+pip install --no-cache-dir "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
 
 # ─────────────────────────────────────────────────────────────────────────
 # Option B — Clone locally, then install (useful for development or patching)
 # ─────────────────────────────────────────────────────────────────────────
 git clone https://github.com/scikit-plots/scikit-plots.git
 cd scikit-plots
-python -m python -m pip install --no-build-isolation --no-cache-dir . -v
+
+python -m pip install --no-build-isolation --no-cache-dir . -v
 # Editable:
 pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log.txt
 
