@@ -280,6 +280,45 @@ commands:
             echo "LaTeX:"
             xelatex --version
 
+  # Focused LaTeX/PDF toolchain for the `build_docs_pdf` job ONLY.
+  # This lets the PDF-compile job run in a fresh, lightweight container
+  # (no micromamba / node / pip / checkout) so it stays far under the 1h cap.
+  # Every package here already appears in `apt-install`'s PDF block — nothing new.
+  apt-install-latex:
+    description: Install LaTeX/PDF toolchain only (for the PDF-compile job)
+    steps:
+      - run:
+          name: "🛠️ Ensure CA certificates + HTTP apt sources (fresh container)"
+          command: |
+            set -Eeuo pipefail
+            sudo apt-get update || true
+            sudo apt-get install -y --fix-missing ca-certificates
+            sudo update-ca-certificates
+            sudo sed -i 's|https://ftp.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo apt-get clean
+            sudo apt-get update --fix-missing -y
+      - run:
+          name: "📦 Install LaTeX toolchain (texlive + latexmk + fonts)"
+          command: |
+            set -Eeuo pipefail
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              cm-super \
+              latexmk \
+              texlive-xetex \
+              texlive-latex-base \
+              texlive-latex-recommended \
+              texlive-latex-extra \
+              texlive-fonts-recommended \
+              imagemagick \
+              graphviz \
+              fonts-dejavu-core \
+              fonts-noto-core \
+              fonts-noto-cjk \
+              fonts-noto-extra || true
+            echo "LaTeX:"
+            xelatex --version
+
   npm-install:
       description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
       steps:
@@ -541,7 +580,7 @@ commands:
       # build_scikitplot
       #       │
       #       ▼
-      # build_docs (parallelism: 2)
+      # build_docs (parallelism: 2), If any
       #       │
       #       ├───────────────┐
       #       ▼               ▼
@@ -554,50 +593,58 @@ commands:
       #               ▼
       #             deploy
       - run:
-          name: "📘 Build HTML and PDF documentation"
-          ## https://support.circleci.com/en/articles/15091229-updates-to-maximum-duration-of-jobs
-          # no_output_timeout: 25m
+          # PER-JOB 1h CAP FIX (Free plan): this job runs the two Sphinx phases
+          # as SEPARATE steps so each has its own log, timing, and pass/fail:
+          #   step 1  `make html`  — the long pole (~50 min): sphinx-gallery
+          #                          executes the examples and fills build/doctrees.
+          #   step 2  `make latex` — LaTeX *source* emit only; fast because it
+          #                          REUSES build/doctrees from step 1 in this same
+          #                          job (no gallery re-execution, no clean).
+          # The pdflatex/latexmk compile is a separate job (build_docs_pdf).
+          #
+          # WHY html+latex stay in ONE job: `make latex` is cheap only when it can
+          # reuse the in-process doctree written by `make html`. Splitting them into
+          # separate JOBS would force the doctree/gallery state across a workspace
+          # boundary (mtime-fragile) or a full ~50-min re-read. Keeping them here is
+          # the robust seam; the deterministic .tex→PDF compile is what we isolate.
+          name: "📘 [1/2] Build HTML (sphinx-gallery — the ~50 min long pole)"
+          no_output_timeout: 59.9m
           command: |
             set -Eeuo pipefail
-
             export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
             # python -m nltk.downloader stopwords
             # python -m nltk.downloader punkt_tab
-
             cd docs
+            # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
             make html 2>&1 | tee ~/sphinx_html_log.txt
-            make latexpdf 2>&1 | tee ~/sphinx_latexpdf_log.txt
-
-            # Copy PDFs into the deployable HTML tree.
-            install -d build/html/stable/_downloads
-
-            install -m 0644 \
-              build/latex/scikit-plots.pdf \
-              build/html/stable/_downloads/scikit-plots.pdf
-
-            install -m 0644 \
-              build/latex/scikit-plots-user-guide.pdf \
-              build/html/stable/_downloads/scikit-plots-user-guide.pdf
-
-            # Fail explicitly if either PDF is missing or empty.
-            test -s build/html/stable/_downloads/scikit-plots.pdf
-            test -s build/html/stable/_downloads/scikit-plots-user-guide.pdf
-
+      - run:
+          name: "📘 [2/2] Emit LaTeX sources (reuses doctrees; no pdflatex)"
+          no_output_timeout: 59.9m
+          command: |
+            set -Eeuo pipefail
+            export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
+            export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
+            cd docs
+            # `make latex` = `sphinx-build -b latex -d build/doctrees ...`. It reuses
+            # the doctrees from step 1, so this is just .tex writing (a few minutes).
+            # GUARD: if reuse fails, sphinx re-executes the gallery (~50 min). We box
+            # this step so a silent re-run fails fast with an actionable message
+            # instead of eating the hour. Bump the ceiling only if the doc set grows.
+            rc=0
+            timeout 59m make latex 2>&1 | tee ~/sphinx_latex_log.txt || rc=$?
+            if [ "$rc" -ne 0 ]; then
+              if [ "$rc" -eq 124 ]; then
+                echo "ERROR: 'make latex' exceeded 59m — the doctree from 'make html'"        >&2
+                echo "       was NOT reused, so Sphinx is re-reading/re-executing the gallery." >&2
+                echo "       Both phases must run in the SAME job (they do here). If you see"   >&2
+                echo "       this, check that 'make html' completed and build/doctrees exists." >&2
+              fi
+              exit "$rc"
+            fi
             echo
-            echo "Generated PDF files:"
-            ls -lh build/latex/*.pdf
-
-            echo
-            echo "Deployment downloads:"
-            ls -lh build/html/stable/_downloads/
-
-            printf '\nPublished documentation files:\n'
-            find build/html/stable/_downloads \
-              -maxdepth 1 \
-              -type f \
-              -name '*.pdf' \
-              -exec ls -lh {} \;
+            echo "Emitted LaTeX documents (compiled to PDF in build_docs_pdf):"
+            ls -lh build/latex/*.tex
       - run:
           name: Check Sphinx logs for warnings to show (which are treated as errors)
           when: always
@@ -621,7 +668,7 @@ commands:
             #     echo "Warnings found:"
             #     grep "^.* WARNING: .*$" ~/sphinx_html_log.txt || true
             # fi
-            for log in ~/sphinx_html_log.txt ~/sphinx_latexpdf_log.txt; do
+            for log in ~/sphinx_html_log.txt ~/sphinx_latex_log.txt; do
               if [ -f "$log" ] && grep -q "WARNING:" "$log"; then
                 echo "Warnings found in $log:"
                 grep "WARNING:" "$log" || true
@@ -637,29 +684,26 @@ commands:
           path: ~/sphinx_html_log.txt
           destination: sphinx_html_log.txt
       - store_artifacts:
-          path: ~/sphinx_latexpdf_log.txt
-          destination: sphinx_latexpdf_log.txt
+          path: ~/sphinx_latex_log.txt
+          destination: sphinx_latex_log.txt
       - store_artifacts:
           path: ~/sphinx-traceback.log
           destination: sphinx-traceback.log
-      - store_artifacts:
-          # path: docs/build/html/stable/_downloads/scikit-plots.pdf  # scikit-plots.pdf
-          path: docs/build/html/stable/_downloads
-          destination: documentation-pdf
+      # NOTE: the `documentation-pdf` artifact is now produced by `build_docs_pdf`
+      # (this job no longer compiles PDFs).
       - store_artifacts:
           # path: docs/build/html/stable/index.html  # index.html
           path: docs/build/html/stable
           destination: docs/build/html/stable  # CircleCI to preserve the full directory structure
           # destination: docs  # (docs/index.html because of destination: docs).
-        # Persists generated documentation so that it can be attached and deployed
-        # in the 'deploy' step.
+        # Persist BOTH the HTML tree and the emitted LaTeX sources so that
+        # `build_docs_pdf` can compile the .tex, and `deploy` can publish the HTML.
       - persist_to_workspace:
           # root: ~/repo
-          root: docs/build/html
+          root: docs/build
           paths:
-            # - docs/build/html/stable
-            # - docs/build/html/stable/index.html
-            - .
+            - html    # deployable site (build/html/stable) — consumed by deploy
+            - latex   # emitted .tex sources — consumed by build_docs_pdf
       - run:
           name: "🔗 Docs available at:"
           # https://app.circleci.com/pipelines/<org>/<repo>/<pipeline_number>/workflows/<workflow_id>/jobs/<job_id>/artifacts
@@ -734,6 +778,68 @@ jobs:
       - run: echo "🤖 Hi I'm on a Container Runner!"
       - build-docs
 
+  ## Compile the Sphinx-emitted LaTeX sources into PDF(s).
+  ## Deliberately lightweight: no checkout / micromamba / node / pip. It only
+  ## attaches the `latex/` tree emitted by `build_docs` and runs the LaTeX
+  ## toolchain, so it stays far under the per-job 1h cap even as documents grow.
+  ##
+  ## SEAMLESS MULTI-PDF CONTRACT (no CI change needed to add/remove PDFs):
+  ##   The set of PDFs is defined ONLY by `latex_documents` in docs/source/conf.py.
+  ##   `make all-pdf` compiles every emitted .tex; the glob below copies whatever
+  ##   was produced. Today that is a single APIs reference (scikit-plots-apis.pdf).
+  ##   To ship more later (user_guide/index, introduction/index, learn/index,
+  ##   auto_examples/index, or the whole root index), just uncomment the matching
+  ##   tuple(s) in conf.py — this job and `deploy` pick them up automatically.
+  build_docs_pdf:
+    <<: *defaults
+    description: "📄 Compile Sphinx LaTeX → PDF"
+    steps:
+      - run: echo "🤖 PDF compile node (LaTeX only)"
+      - attach_workspace:
+          at: docs/build            # brings in html/ and latex/ from build_docs
+      - apt-install-latex
+      - run:
+          name: "📄 Compile PDF(s) from emitted LaTeX"
+          no_output_timeout: 30m
+          command: |
+            set -Eeuo pipefail
+            if [ ! -d docs/build/latex ]; then
+              echo "No docs/build/latex present (build_docs skipped/halted); nothing to compile."
+              circleci-agent step halt
+            fi
+            # The Sphinx latex builder writes its own Makefile with an `all-pdf`
+            # target that drives latexmk over every emitted document.
+            make -C docs/build/latex all-pdf 2>&1 | tee ~/latex_compile_log.txt
+
+            # Collect whatever PDFs were produced (names come from conf.py).
+            install -d docs/build/pdf
+            shopt -s nullglob
+            pdfs=(docs/build/latex/*.pdf)
+            test "${#pdfs[@]}" -gt 0 || { echo "ERROR: all-pdf produced no PDFs" >&2; exit 1; }
+            for f in "${pdfs[@]}"; do
+              test -s "$f" || { echo "ERROR: empty PDF $f" >&2; exit 1; }
+              install -m 0644 "$f" docs/build/pdf/
+            done
+            echo
+            echo "Compiled PDF(s):"
+            ls -lh docs/build/pdf/
+      - run:
+          name: Save LaTeX traceback
+          when: always
+          command: |
+            cp /tmp/sphinx-err-*.log ~/latex-traceback.log 2>/dev/null || true
+      - store_artifacts:
+          path: ~/latex_compile_log.txt
+          destination: latex_compile_log.txt
+      - store_artifacts:
+          path: docs/build/pdf
+          destination: documentation-pdf
+      # Persist just the compiled PDFs for `deploy` to fold into the HTML tree.
+      - persist_to_workspace:
+          root: docs/build
+          paths:
+            - pdf
+
   # Upload build output to scipy/devdocs repository, using SSH deploy keys.
   # The keys are only available for builds on main branch.
   # https://developer.github.com/guides/managing-deploy-keys/
@@ -745,10 +851,27 @@ jobs:
       - run: echo "🤖 Hi I'm on Runners!"
       - checkout
       - run: ./tools/circle/checkout_merge_commit.sh
-      # Attach documentation generated in the 'docs' step so that it can be
-      # deployed.
+      # Attach documentation generated upstream: the HTML tree from `build_docs`
+      # (docs/build/html) and the compiled PDF(s) from `build_docs_pdf`
+      # (docs/build/pdf).
       - attach_workspace:
-          at: docs/build/html
+          at: docs/build
+      # Fold the compiled PDF(s) into the deployable HTML tree's _downloads/.
+      # Glob-based, so it publishes whatever conf.py's latex_documents produced
+      # (currently scikit-plots-apis.pdf) with no per-file coupling.
+      - run:
+          name: "📎 Assemble PDF(s) into HTML _downloads"
+          command: |
+            set -Eeuo pipefail
+            install -d docs/build/html/stable/_downloads
+            shopt -s nullglob
+            pdfs=(docs/build/pdf/*.pdf)
+            test "${#pdfs[@]}" -gt 0 || { echo "ERROR: no PDFs to publish" >&2; exit 1; }
+            for f in "${pdfs[@]}"; do
+              install -m 0644 "$f" docs/build/html/stable/_downloads/
+            done
+            echo "Published downloads:"
+            ls -lh docs/build/html/stable/_downloads/
       - run: ls -ltrh docs/build/html/stable
       ## Add the SSH key to the environment (this step tells CircleCI to use the private key from the SSH Key settings)
       - add_ssh_keys:
@@ -871,9 +994,18 @@ workflows:
       - build_docs:
           requires:
             - build_scikitplot
-      - deploy:
+      # PDF compile is a separate job so neither Sphinx nor LaTeX work alone
+      # approaches the Free-plan 1h per-job cap.
+      - build_docs_pdf:
           requires:
             - build_docs
+      - deploy:
+          requires:
+            # deploy needs BOTH the HTML tree (build_docs) and the PDF(s)
+            # (build_docs_pdf). Listing both is explicit; the workspace attached
+            # in deploy is cumulative over all ancestors regardless.
+            - build_docs
+            - build_docs_pdf
           filters:
             branches:
               # ignore: gh-pages
