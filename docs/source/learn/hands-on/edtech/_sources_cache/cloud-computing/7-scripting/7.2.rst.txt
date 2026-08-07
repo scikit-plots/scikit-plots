@@ -1,0 +1,33 @@
+Step 2: Explore Shell Scripting Commands
+========================================
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Learn about the syntax and basics of shell scripts.
+
+**Resources**
+
+  * |Linux Tutorial|
+  * |Linux file permissions|
+  * |Shell Scripting Tutorial|
+  * |Ryan's Bash Scripting Tutorial|
+
+Variables and Wildcards
+-----------------------
+Work through the following steps in |Shell Scripting Tutorial|
+to learn about variables and wildcards.
+
+* \#3. A First Script
+* \#4. Variables - Part I
+* \#5. Wildcards
+
+Decision Making
+---------------
+Work through the following steps in |Ryan's Bash Scripting Tutorial|.
+
+* #3. User Input
+* #5. If statements
+* #6. Loops
+* #7. Function

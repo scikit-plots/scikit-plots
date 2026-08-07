@@ -1,0 +1,137 @@
+*****************************
+Step 3: Edit the Config Files
+*****************************
+
+.. include:: ../../includes/prolog.inc
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Modify the configuration files so they will work correctly.
+
+Let's make a minor config change to the OpenVPN config file. Then, we'll
+correct the ``comp-lzo`` error in the client configuration file.
+
+6.3.1. Edit openvpn.conf
+==========================
+To start, edit ``openvpn.conf``.
+
+.. code-block:: bash
+
+  nano ~/vpn-data/openvpn.conf
+
+.. code-block:: Kconfig
+    :caption: openvpn.conf
+    :linenos:
+    :emphasize-lines: 17,28-29
+
+    server 192.168.255.0 255.255.255.0
+    verb 3
+    key /etc/openvpn/pki/private/10.10.235.128.key
+    ca /etc/openvpn/pki/ca.crt
+    cert /etc/openvpn/pki/issued/10.10.235.128.crt
+    dh /etc/openvpn/pki/dh.pem
+    tls-auth /etc/openvpn/pki/ta.key
+    key-direction 0
+    keepalive 10 60
+    persist-key
+    persist-tun
+
+    proto udp
+    # Rely on Docker to do port mapping, internally always 1194
+    port 1194
+    dev tun0
+    status /tmp/openvpn-status.log
+
+    user nobody
+    group nogroup
+    comp-lzo no
+
+    ### Route Configurations Below
+    route 192.168.254.0 255.255.255.0
+
+    ### Push Configurations Below
+    push "block-outside-dns"
+    push "dhcp-option DNS 8.8.8.8"
+    push "dhcp-option DNS 8.8.4.4"
+    push "comp-lzo no"
+
+1. Change ``openvpn-status.log`` to the OpenVPN configuration directory
+   on line 17.
+
+  * Changing the directory let's us view the status-log in ``vpn-data``
+    instead of having to enter the container.
+  * Recall that OpenVPN stores the configuration data in ``/etc/openvpn``,
+    which is a defined volume in our Docker container.
+
+  .. code-block:: bash
+
+    # status /tmp/openvpn-status.log
+    status /etc/openvpn/status.log
+
+  We can now view the status of the VPN connection using this command:
+
+  .. code-block:: bash
+
+      tail -n 20 ~/vpn-data/status.log
+
+#. Now is a good time to change the DNS server to other public DNS providers
+   if you don't want to use 8.8.8.8 or if you want a country-specific DNS
+   provider.
+
+  We recommend that you chose an |Anycast DNS| server so that your VPN
+  connection uses one closest to the server. Here is a
+  |list of public DNS servers|. If security is important to you,
+  then you should choose a DNS server that supports DNSSEC.
+
+  Here are our favorite ones:
+
+  .. csv-table::
+     :header: "Address", "Operator"
+     :widths: 1, 4
+
+     1.1.1.1 |br| 1.0.0.1,Cloudflare
+     9.9.9.9,Quad9
+     8.8.8.8 |br| 8.8.4.4,Google Public Free DNS
+     84.200.69.80 |br| 84.200.70.40,DNS.Watch
+
+#. Restart the OpenVPN docker container and check the logs for errors.
+
+  .. code-block:: bash
+
+     docker restart openvpn
+     docker logs openvpn
+
+6.3.2. Edit user.ovpn
+=======================
+Now, we will correct the ``comp-lzo`` configuration error.
+
+#. Edit file ``user1.ovpn``.
+#. Add ``comp-lzo no`` anywhere in the configuration file, such as under the
+   ``remote-cert-tls`` directive
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 5
+
+       client
+       nobind
+       dev tun
+       remote-cert-tls server
+       comp-lzo no
+
+       remote x.x.x.x 12345 udp
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/6-open-vpn/6.3.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

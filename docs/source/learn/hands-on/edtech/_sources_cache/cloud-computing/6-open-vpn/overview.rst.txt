@@ -1,0 +1,78 @@
+Lab 6: Overview
+===============
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+The previous labs have shown us how to deploy software packages using Docker.
+SaaS, or software as a service, is providing applications that others can use.
+We have been configuring the software and hosting it using Docker and Nginx.
+We have been providing both the software and the platform.
+
+**SaaS is for users to interact with the software**
+
+Platform Services
+-----------------
+A platform is an environment that executes and hosts software.
+Docker is a platform for running a virtualized instance of an OS that executes
+code. |PaaS or platform as a service| is a service that automates the process
+of hosting applications. Like most services, PaaS vendors charge a fee.
+
+Unfortunately, we won't install any PaaS tools because they require using ports
+80 and 443. Changing the configs is complicated. These tools install on the VPS
+directly and then use Docker and other virtualized services. Platforms work
+best if the tool is the gateway and reverse proxy, which means that you need
+a VPS dedicated to the platform service.
+You can :ref:`explore PaaS tools <paas-tools>` on your own.
+
+
+**PaaS is for developers to host the software**
+
+Infrastructure Services
+-----------------------
+Now, we'll shift our focus from software to **infrastructure services**.
+|IaaS| or infrastructure as a service provides hardware and virtualized
+infrastructure.
+
+We will work with OpenVPN, which is a virtualized network. A quick internet
+search will reveal numerous companies that provide the service of using
+the internet through their infrastructure. Most of these companies use
+OpenVPN. You will learn how to install OpenVPN on your VPS.
+
+|OpenVPN| is a company that provides the open-source version of OpenVPN
+software. Like many other organizations that produce open-source software,
+they provide paid services and they release the |community edition| of that
+software. We will use the community edition.
+
+We will learn how to install and configure OpenVPN using Docker. The Docker
+image does most of the work for us. We will *not* learn how to network remote
+LANs using OpenVPN. You can figure out the configurations once you have the
+service set up using a basic configuration.
+
+Running OpenVPN in a container has benefits because it is easy to set up and
+using a Docker container isolates the connection from your VPS. Using this
+method makes your public internet connection become the IP address of your VPS.
+There are two primary results:
+
+#. The websites that you visit assume that you are at the location.
+#. Your data is encrypted from your OpenVPN client to that endpoint.
+
+   + All data funnels through a single port to VPS.
+
+     - The default for OpenVPN is ``1194``, but you can use any port.
+
+   + The VPS then uses the port required for the service (HTTPS, DNS, RTP)
+     as if the request originated from the VPS.
+
+Goals for Lab 6
+---------------
+The goal for this lab is to configure an OpenVPN instance using Docker and then
+connect to it using an OpenVPN client.
+
+During this lab, you will learn how to:
+
+ #. **configure** OpenVPN in a Docker container.
+ #. **modify** the server and client configurations.
+ #. **connect** to the OpenVPN server using the client config to access the
+    internet.

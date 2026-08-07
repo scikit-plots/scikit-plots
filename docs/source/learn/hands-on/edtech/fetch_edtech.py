@@ -232,7 +232,11 @@ def main() -> int:
     seen_frag: set[str] = set()
     failures: list[str] = []
 
-    queue = [ROOT_DOC]
+    queue = [
+        ROOT_DOC,
+        "cloud-computing/6-open-vpn/index",
+        "cloud-computing/7-scripting/index",
+    ]
     print(f"[fetch] crawling from {SITE_BASE} (root: {ROOT_DOC!r})")
 
     while queue:

@@ -33,7 +33,7 @@ Blockquotes are intended paragraphs or other text blocks
         Here is the second paragraph of the block quote.
 
 .. note:: You will learn quickly that spaces and line breaks are very
-    important in restructuredtext.
+    important in reStucturedText.
 
 
 

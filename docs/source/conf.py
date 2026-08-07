@@ -238,6 +238,7 @@ extensions = [
     "sphinx.ext.linkcode",  # Add external links to source code 'sphinx.ext.linkcode', 'numpydoc.linkcode'
     # 'sphinx.ext.viewcode',          # Add links to highlighted source code
     # "sphinx.ext.graphviz",          # Add Graphviz graphs
+    # Sphinx documents that sphinx.ext.imgconverter requires ImageMagick by default and uses: image_converter = "convert"
     "sphinx.ext.imgconverter",  # A reference image converter using Imagemagick
     "sphinx.ext.inheritance_diagram",  # Include inheritance diagrams
     # "sphinx.ext.todo",              # Support for todo items
@@ -1335,22 +1336,30 @@ htmlhelp_basename = 'scikit-plotsdoc'
 
 # Grouping the document tree into LaTeX files. List of tuples.
 latex_documents = [
+    # (
+    #     master_doc,                          # source start file like https://scikit-plots.github.io/dev/index.html
+    #     "scikit-plots.tex",                  # Generated LaTeX filename target name
+    #     "{} Documentation".format(project),  # title "scikit-plots Documentation"
+    #     author,                              # author "scikit-plots developers"
+    #     "manual",                            # documentclass [howto,manual, or own class]
+    #     False,
+    # ),
     (
-        master_doc,                          # source start file
-        "scikit-plots.tex",                  # Generated LaTeX filename target name
-        "{} Documentation".format(project),  # title "scikit-plots Documentation"
-        author,                              # author "scikit-plots developers"
-        "manual",                            # documentclass [howto,manual, or own class]
-        False,
-    ),
-    (
-        "user_guide/index",
-        "scikit-plots-user-guide.tex",
-        "scikit-plots User Guide",
+        "apis/index",                        # https://scikit-plots.github.io/dev/apis/index.html
+        "scikit-plots-apis.tex",
+        "scikit-plots APIs Reference",
         author,                              # author "scikit-plots developers"
         "manual",
         False,
     ),
+    # (
+    #     "user_guide/index",                  # https://scikit-plots.github.io/dev/user_guide/index.html
+    #     "scikit-plots-user-guide.tex",
+    #     "scikit-plots User Guide",
+    #     author,                              # author "scikit-plots developers"
+    #     "manual",
+    #     False,
+    # ),
 ]
 
 # latex_engine = "xelatex"

@@ -852,7 +852,7 @@
         // questions, or a highlight on the send button) needs one.
         // "Sparkle" — Octicon, four-pointed star with concave sides (the
         // GitHub Copilot/AI-suggestion glyph family). Not wired to any
-        // control yet — see ICONS.sparkleAlt below for how it differs from
+        // control yet — see ICONS.sparkleRight1NovaUp below for how it differs from
         // the two-sparkle variant.
         sparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.198.57c.275-.752 1.34-.752 1.615 0l.849 2.317a5.819 5.819 0 0 0 3.462 3.463l2.317.848c.753.275.753 1.34 0 1.615l-2.317.849a5.815 5.815 0 0 0-3.462 3.462l-.849 2.317c-.275.753-1.34.753-1.615 0l-.848-2.317a5.819 5.819 0 0 0-3.463-3.462L.57 8.813c-.752-.275-.752-1.34 0-1.615l2.317-.848A5.823 5.823 0 0 0 6.35 2.887L7.198.57Zm.562 2.833A7.323 7.323 0 0 1 3.403 7.76l-.673.246.673.246a7.324 7.324 0 0 1 4.357 4.356l.246.673.246-.673a7.322 7.322 0 0 1 4.356-4.356l.673-.246-.673-.246a7.324 7.324 0 0 1-4.356-4.357l-.246-.673-.246.673Z"/></svg>',
         // Paintbrush + AI sparkle — not wired to any control yet; kept
@@ -876,8 +876,8 @@
         // this registry, and dropped the dead .proton alternative and
         // the non-functional media toggle entirely. Now the primary
         // .ai-assistant-panel-logo icon — see createAIAssistantUI.
-        // sparkle/sparkleAlt above are kept as-is, not removed.
-        sparkleNova: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.622 11.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.326.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76 6 6 0 0 1 .798-.27.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/><path fill-rule="evenodd" d="M8.314 3.13c.627-1.498 2.739-1.498 3.366 0q.11.264.213.54h.002c.224.596.4 1.162.538 1.688.022.085.098.176.238.213l.346.094a16 16 0 0 1 1.846.645c1.499.627 1.524 2.736.01 3.371q-.33.14-.683.269a17 17 0 0 1-1.52.479c-.137.035-.213.124-.235.208a17 17 0 0 1-.584 1.808l-.001.001a16 16 0 0 1-.172.425c-.61 1.461-2.645 1.492-3.316.094a1 1 0 0 1-.046-.091 17 17 0 0 1-.756-2.236v-.002c-.022-.08-.095-.171-.235-.208a16.4 16.4 0 0 1-2.2-.744h-.001c-1.516-.635-1.493-2.746.006-3.374q.363-.15.75-.292a16 16 0 0 1 1.443-.447h.002c.138-.037.214-.126.237-.213A17 17 0 0 1 8.1 3.671V3.67q.104-.276.214-.54m1.982.579a.322.322 0 0 0-.598 0l-.195.492a16 16 0 0 0-.49 1.535v.001A1.81 1.81 0 0 1 7.7 7.021l.001.001a15 15 0 0 0-1.993.673h-.001a.324.324 0 0 0-.004.605q.303.125.617.243l.36.127q.535.18 1.023.306l.002.001c.606.16 1.134.62 1.307 1.282.133.509.306 1.062.531 1.644l.144.36.016.03a.32.32 0 0 0 .592 0v-.001q.077-.186.156-.389c.226-.584.399-1.137.532-1.646a1.81 1.81 0 0 1 1.306-1.28l.332-.09a15 15 0 0 0 1.667-.586l.003-.001a.323.323 0 0 0-.005-.606q-.33-.138-.681-.264l-.003-.001a15 15 0 0 0-1.309-.407 1.82 1.82 0 0 1-1.312-1.284 15 15 0 0 0-.344-1.136l-.146-.401a15 15 0 0 0-.195-.492" clip-rule="evenodd"/><path d="M2.622 1.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.327.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76q.13-.055.272-.106.276-.099.526-.164a.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/></svg>',
+        // sparkle/sparkleRight1NovaUp above are kept as-is, not removed.
+        sparkleLeft2NovaUpDown: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2.622 11.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.326.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76 6 6 0 0 1 .798-.27.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/><path fill-rule="evenodd" d="M8.314 3.13c.627-1.498 2.739-1.498 3.366 0q.11.264.213.54h.002c.224.596.4 1.162.538 1.688.022.085.098.176.238.213l.346.094a16 16 0 0 1 1.846.645c1.499.627 1.524 2.736.01 3.371q-.33.14-.683.269a17 17 0 0 1-1.52.479c-.137.035-.213.124-.235.208a17 17 0 0 1-.584 1.808l-.001.001a16 16 0 0 1-.172.425c-.61 1.461-2.645 1.492-3.316.094a1 1 0 0 1-.046-.091 17 17 0 0 1-.756-2.236v-.002c-.022-.08-.095-.171-.235-.208a16.4 16.4 0 0 1-2.2-.744h-.001c-1.516-.635-1.493-2.746.006-3.374q.363-.15.75-.292a16 16 0 0 1 1.443-.447h.002c.138-.037.214-.126.237-.213A17 17 0 0 1 8.1 3.671V3.67q.104-.276.214-.54m1.982.579a.322.322 0 0 0-.598 0l-.195.492a16 16 0 0 0-.49 1.535v.001A1.81 1.81 0 0 1 7.7 7.021l.001.001a15 15 0 0 0-1.993.673h-.001a.324.324 0 0 0-.004.605q.303.125.617.243l.36.127q.535.18 1.023.306l.002.001c.606.16 1.134.62 1.307 1.282.133.509.306 1.062.531 1.644l.144.36.016.03a.32.32 0 0 0 .592 0v-.001q.077-.186.156-.389c.226-.584.399-1.137.532-1.646a1.81 1.81 0 0 1 1.306-1.28l.332-.09a15 15 0 0 0 1.667-.586l.003-.001a.323.323 0 0 0-.005-.606q-.33-.138-.681-.264l-.003-.001a15 15 0 0 0-1.309-.407 1.82 1.82 0 0 1-1.312-1.284 15 15 0 0 0-.344-1.136l-.146-.401a15 15 0 0 0-.195-.492" clip-rule="evenodd"/><path d="M2.622 1.252a.409.409 0 0 1 .756 0q.04.096.078.197.122.327.195.614c.038.143.154.25.297.286a6 6 0 0 1 .798.27.41.41 0 0 1 .002.76 6 6 0 0 1-.8.27.4.4 0 0 0-.296.284 6 6 0 0 1-.213.66l-.062.156a.409.409 0 0 1-.754 0l-.063-.156a6 6 0 0 1-.213-.66.4.4 0 0 0-.294-.284 6 6 0 0 1-.801-.27.41.41 0 0 1 .002-.76q.13-.055.272-.106.276-.099.526-.164a.4.4 0 0 0 .296-.286 6 6 0 0 1 .274-.811"/></svg>',
         // Security alert shield (Octicon shield) — not wired to any
         // control yet; kept available for a future "security notice" or
         // "verified/protected" indicator.
@@ -885,7 +885,7 @@
         // Two-tier "AI sparkle" — one large 4-point star, one small offset
         // star top-right. Hand-drafted (sprite ID unresolved, see chat);
         // not wired anywhere yet.
-        sparkleAlt: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 1.5c.18 0 .34.12.39.29l.82 2.72a4.7 4.7 0 0 0 3.15 3.15l2.72.82a.4.4 0 0 1 0 .77l-2.72.82a4.7 4.7 0 0 0-3.15 3.15l-.82 2.72a.4.4 0 0 1-.77 0l-.82-2.72a4.7 4.7 0 0 0-3.15-3.15l-2.72-.82a.4.4 0 0 1 0-.77l2.72-.82A4.7 4.7 0 0 0 7.6 4.51l.82-2.72A.4.4 0 0 1 9 1.5Z"/><path d="M15.5 1c.16 0 .3.1.34.26l.32.99c.15.47.52.84.99.99l.99.32a.36.36 0 0 1 0 .68l-.99.32a1.56 1.56 0 0 0-.99.99l-.32.99a.36.36 0 0 1-.68 0l-.32-.99a1.56 1.56 0 0 0-.99-.99l-.99-.32a.36.36 0 0 1 0-.68l.99-.32c.47-.15.84-.52.99-.99l.32-.99A.36.36 0 0 1 15.5 1Z"/></svg>',
+        sparkleRight1NovaUp: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 1.5c.18 0 .34.12.39.29l.82 2.72a4.7 4.7 0 0 0 3.15 3.15l2.72.82a.4.4 0 0 1 0 .77l-2.72.82a4.7 4.7 0 0 0-3.15 3.15l-.82 2.72a.4.4 0 0 1-.77 0l-.82-2.72a4.7 4.7 0 0 0-3.15-3.15l-2.72-.82a.4.4 0 0 1 0-.77l2.72-.82A4.7 4.7 0 0 0 7.6 4.51l.82-2.72A.4.4 0 0 1 9 1.5Z"/><path d="M15.5 1c.16 0 .3.1.34.26l.32.99c.15.47.52.84.99.99l.99.32a.36.36 0 0 1 0 .68l-.99.32a1.56 1.56 0 0 0-.99.99l-.32.99a.36.36 0 0 1-.68 0l-.32-.99a1.56 1.56 0 0 0-.99-.99l-.99-.32a.36.36 0 0 1 0-.68l.99-.32c.47-.15.84-.52.99-.99l.32-.99A.36.36 0 0 1 15.5 1Z"/></svg>',
         // Reuses the exact same path as the Python-side _SVG_TERMS constant
         // (__init__.py) — consolidated to one design instead of a second,
         // slightly-different document glyph, so JS/Python/disk-file stay
@@ -908,14 +908,14 @@
         // glyph and still mirrored Python-side (_ICON_META["celebration"]).
         celebration: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5 9 8l7 4.5-12.5 8Z"/><path d="M9 8l1.3-3.5"/><path d="M14 3.5 15 5.5"/><path d="M19 6.5l2 1"/><circle cx="20" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="21.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>',
         // Right-aligned "AI-suggested" sparkle badge — a DISTINCT glyph, not a
-        // reuse of sparkleAlt. sparkleAlt (above) is the filled two-tier star and
+        // reuse of sparkleRight1NovaUp. sparkleRight1NovaUp (above) is the filled two-tier star and
         // is kept unchanged; this is the Lucide "sparkles" cluster (one large
         // 4-point star + two small twinkles). Used as the leading icon on the
         // deterministic "Explain this page" prompt button (see
         // _buildPageHelpButton). Mirrored on the Python side by
-        // _SVG_MENU_SPARKLE_RIGHT / _ICON_META["menu-sparkle-right"]
+        // _SVG_SPARKLE_RIGHT_2_NOVA_UP_DOWN / _ICON_META["sparkle-right-2-nova-up-down"]
         // (byte-for-byte, same parity convention as celebration/terms/privacy).
-        menuSparkleRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
+        sparkleRight2NovaUpDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
     };
 
     // Remembers whether the hosted dancer GIF has ever failed to load, so a
@@ -2016,8 +2016,11 @@
     //     directory. This lets a static ai-assistant.js update expose the toggle
     //     without requiring every already-rendered HTML page to receive a new
     //     window.AI_ASSISTANT_CONFIG value.
-    //   * Pages under user_guide/ select scikit-plots-user-guide.pdf; every
-    //     other page selects scikit-plots.pdf. The current /dev/, /stable/, or
+    //   * Pages under apis/ select scikit-plots-apis.pdf and user_guide/ pages
+    //     select scikit-plots-user-guide.pdf; every other page also defaults to
+    //     scikit-plots-apis.pdf — the PDF reliably built on CI (the all-in-one
+    //     scikit-plots.pdf is frequently not built; see _PDF_AUTO_DOCUMENTS).
+    //     The current /dev/, /stable/, or
     //     versioned root is preserved automatically.
     //   * The export action and method switch are sibling buttons inside one
     //     visual row. This avoids invalid nested interactive controls while
@@ -2049,6 +2052,14 @@
     // small entry instead of another branch inside createPdfSection().
     var _PDF_AUTO_DOCUMENTS = [
         {
+            key: 'apis',
+            file: 'scikit-plots-apis.pdf',
+            label: 'APIs Reference PDF',
+            matches: function (context) {
+                return /(^|\/)apis(?:\/|$)/.test(context.pageName);
+            }
+        },
+        {
             key: 'user-guide',
             file: 'scikit-plots-user-guide.pdf',
             label: 'User Guide PDF',
@@ -2057,9 +2068,18 @@
             }
         },
         {
+            // Catch-all default. The all-in-one scikit-plots.pdf is the "primary"
+            // PDF conceptually, but it is NOT reliably built: CircleCI time /
+            // resource limits mean most runs build only scikit-plots-apis.tex
+            // (-> scikit-plots-apis.pdf), with scikit-plots-user-guide.pdf rarely
+            // and the full scikit-plots.pdf only occasionally. Pointing the
+            // catch-all at the frequently-absent all-in-one produced 404s, so the
+            // reliable auto-discovery default is the APIs PDF. A deployment that
+            // DOES build the full PDF can target it via an explicit
+            // ai_assistant_pdf_export_url (P0), which always wins over this.
             key: 'documentation',
-            file: 'scikit-plots.pdf',
-            label: 'documentation PDF',
+            file: 'scikit-plots-apis.pdf',
+            label: 'APIs Reference PDF',
             matches: function () { return true; }
         }
     ];
@@ -7309,7 +7329,7 @@ opts.jsonPayload + '\n' +
         var icon = document.createElement('span');
         icon.className = 'ai-assistant-pagehelp-icon';
         icon.setAttribute('aria-hidden', 'true');
-        icon.innerHTML = ICONS.menuSparkleRight;
+        icon.innerHTML = ICONS.sparkleRight2NovaUpDown;
         btn.appendChild(icon);
 
         var lbl = document.createElement('span');
@@ -16258,9 +16278,9 @@ opts.jsonPayload + '\n' +
         // compensate for that; it's removed below since it's no longer
         // needed and would double up on an already-correct color.
         var logo = document.createElement('span');
-        // Primary icon — sparkleNova. sparkle/sparkleAlt stay defined
+        // Primary icon — sparkleLeft2NovaUpDown. sparkle/sparkleRight1NovaUp stay defined
         // above as alternates for future use, not removed.
-        logo.innerHTML = ICONS.sparkleNova;
+        logo.innerHTML = ICONS.sparkleLeft2NovaUpDown;
         logo.className = 'ai-assistant-panel-logo';
         logo.setAttribute('aria-hidden', 'true');
 

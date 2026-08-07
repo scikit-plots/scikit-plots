@@ -1,0 +1,95 @@
+Step 4: Create a Simple Backup Script
+=====================================
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Create a ``.sh`` script to backup directories in ``~/``.
+
+**Resources**
+
+  * |Linux Tutorial|
+  * |Linux file permissions|
+  * |Shell Scripting Tutorial|
+  * |Ryan's Bash Scripting Tutorial|
+
+Backing up Data
+---------------
+.. .. caution:: Data in Docker is fragile.
+
+**It is easy** to delete a Docker container and the volume data accidentally.
+The difference is using ``-v`` flag when you call ``docker-compose down``.
+
+  * ``docker-compose down`` means that **your volume data is saved**
+  * ``docker-compose down -v`` means that **your volume data is deleted**
+
+**It is easy** to remove the wrong folder.
+
+  For example, you have two folders:
+
+  * ``my-docker-project``
+  * ``my-docker-project-temp``
+
+  What happens if you want to remove a directory using ``rm -r`` and you
+  select the wrong folder?
+
+  * You want to do this: ``rm -r my-docker-project-temp``
+  * But, you accidentally push Enter before using autocomplete to list
+    the full path, which is ``rm -r my-docker-project-temp``.
+
+What happens if your project database becomes corrupt? Or, you are doing
+database maintenance, and you realized that you just removed the wrong
+table.
+
+Create a Backup Script
+----------------------
+**Your task** is to write a script that copies specific folders from
+``~/`` to ``/var/user-backups``.
+
+#. First, make a list of which folders you want to backup
+
+   * Use ``ls -lh`` to view the folders in your home directory
+#. Next, create the ``user-backups`` directory
+#. Copy the files manually to verify that the command work
+
+   * Use the ``cp`` command to copy the folders.
+
+   .. code-block:: bash
+
+       cp -rfv source destination
+
+   * ``cp`` copies files or folders from the source to the destination.
+   * ``-r`` flag copy recursively (directories).
+   * ``-f`` flag does not prompt the user when overwriting existing data.
+   * ``-v`` flag enables verbosity and displays the results.
+   * ``source`` is the source directory or file.
+   * ``destination`` is the destination directory or file.
+
+   .. hint:: Use the full path in the script: use ``/root/my-project`` instead of ``~/my-project``
+
+   For example, you might want to use this command to backup your VPN data:
+
+   .. code-block:: bash
+
+       cp -rfv /root/docker-openvpn /var/user-backups/docker-openvpn
+
+#. Verify that the data copied
+#. Copy them again manually to verify that the commands work without
+   user interaction.
+#. Then, add the commands to the script.
+#. Execute that script to verify that the files were copied to the
+   specified directory.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/7-scripting/7.4.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.
