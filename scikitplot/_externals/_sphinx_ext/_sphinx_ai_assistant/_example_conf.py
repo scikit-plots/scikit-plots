@@ -834,6 +834,31 @@ ai_assistant_panel_quick_questions = [
 # Type:    bool
 # Default: True
 #
+# When True (default), an "Explain this page" button is shown between the
+# welcome message and the quick-suggestion chips. One click pre-fills the input
+# with the single best question for the current page, then the user reviews and
+# hits send. The pre-filled question is chosen deterministically (never random):
+#   1. the first non-empty ``ai_assistant_panel_quick_questions`` entry, if any
+#      (the author's own top question for the page);
+#   2. otherwise a question built from the page's subject (its main heading or
+#      title), e.g. "How do I use <subject>, and what are the key things to
+#      know about it?";
+#   3. otherwise a generic "What is this page about, and how do I use it?".
+#
+# Set to False to hide the button.
+#
+# User note:
+#   • This replaces the earlier random "I'm Feeling Lucky" picker. It pre-fills
+#     only — it does not send the question for you.
+#
+# Developer note:
+#   Forwarded as ``panelPageHelp`` in the JS config. The JS also honours a
+#   legacy ``panelLucky`` key as a fallback opt-out.
+ai_assistant_panel_page_help = True
+
+# Type:    bool
+# Default: True
+#
 # When True (default), the panel shows a "Speak with your assistant" pill
 # banner above the input area (only in browsers that support Web Speech API).
 # Clicking the banner or the microphone icon inside the input starts voice

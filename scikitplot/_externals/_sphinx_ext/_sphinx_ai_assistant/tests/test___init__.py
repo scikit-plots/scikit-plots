@@ -2193,6 +2193,20 @@ class TestSetupExtended:
         missing = new_required - names
         assert not missing, f"Missing config values: {missing}"
 
+    def test_panel_page_help_registered_default_true(self, app):
+        """The "Explain this page" button flag is registered and defaults True."""
+        _mod.setup(app)
+        args_map = {
+            c[0][0]: c[0][1] for c in app.add_config_value.call_args_list
+        }
+        assert "ai_assistant_panel_page_help" in args_map, (
+            "ai_assistant_panel_page_help must be registered via add_config_value "
+            "so the 'Explain this page' button is toggleable from conf.py"
+        )
+        assert args_map["ai_assistant_panel_page_help"] is True, (
+            "default must be True (button shown unless explicitly disabled)"
+        )
+
     def test_providers_includes_deepseek(self, app):
         _mod.setup(app)
         args_map = {c[0][0]: c[0][1] for c in app.add_config_value.call_args_list}

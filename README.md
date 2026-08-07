@@ -248,10 +248,12 @@
   </a>:
  </h3>
 
-<!-- 3000 or 8000 (Standard fallback development ports) -->
-🐋🦜 🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨
+ <h4>
+  🐋🦜
+  🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨:
+ </h4>
 
-> 🐬🦜 **Tame Your AI — Feed It Verified Public Data ✨**
+> 🐬🦜 **Tame Your Free Spirit AI — Feed It Verified Public Data ✨**
 
 > 📖🔊 Easily connect your curated public corpus to *any* AI model using the Model Context Protocol (MCP). Give the AI the right facts so it talks like a well-trained parrot—delivering better, verified answers without hallucinations.
 
@@ -263,17 +265,20 @@ Just like teaching a parrot to speak using a trusted vocabulary, this server fee
 
 Spin up the local **MCP** server using Docker. By default, it runs on standard development port `8000`, ready to be connected to your AI of choice.
 
+<!-- 3000 or 8000 (Standard fallback development ports) -->
 🔜 Start the interactive container:
 
 ```bash
 # (experimental) Force activate environment
 docker run -it --rm scikitplot/scikit-plots -p 8000:8000 -ic "bash -ic 'python -m scikitplot.mcp --docker'"
 ```
+
 **Note**: If port `8000` is currently in use, you can fallback to port `3000` using `-p 3000:8000`.
 
 🩺 Health Check (ready to use Claude Desktop, Cursor, or local LLMs)
 
 Verify that your local corpus server is up, running, and ready to feed data to your AI model by pinging the health endpoint:
+
 ```bash
 curl --fail --silent --show-error http://127.0.0.1:8000/healthz; echo
 ```
