@@ -899,6 +899,20 @@
         // it's used was judged more valuable than a one-off variant: ask if
         // you want a visually distinct mark for "& Responsibility" instead.
         privacyResponsibility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        // Party popper + confetti — hand-authored (not traced from any icon
+        // font) in this file's own stroke convention so it themes the same
+        // way as every other 24x24 glyph here. Reserved for the "I'm Feeling
+        // Lucky" entry point (see _renderWelcome). Confetti dots are filled
+        // dots on the same stroke path, matching the mixed fill+stroke style
+        // already used by e.g. `chat`'s dot eyes above.
+        celebration: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5 9 8l7 4.5-12.5 8Z"/><path d="M9 8l1.3-3.5"/><path d="M14 3.5 15 5.5"/><path d="M19 6.5l2 1"/><circle cx="20" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="21.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>',
+        // Right-aligned "AI-suggested" sparkle badge — reuses sparkleAlt's
+        // exact path (see the consolidation rationale on termsOfService /
+        // privacyResponsibility above) rather than a near-duplicate glyph.
+        // sparkleAlt was already this two-tier star, just unwired; this alias
+        // just gives it a name matching where it's used (small badge to the
+        // right of a menu item title, e.g. "I'm Feeling Lucky").
+        get menuSparkleRight() { return ICONS.sparkleAlt; },
     };
 
     // Remembers whether the hosted dancer GIF has ever failed to load, so a
@@ -1993,13 +2007,20 @@
     //
     // Architecture:
     //   * A small capability registry describes each export method.
+    //   * The direct-PDF target is resolved at runtime. An explicit
+    //     cfg.pdfExportUrl always wins; otherwise Sphinx's URL_ROOT is used to
+    //     discover the generated PDF under the current version's _downloads/
+    //     directory. This lets a static ai-assistant.js update expose the toggle
+    //     without requiring every already-rendered HTML page to receive a new
+    //     window.AI_ASSISTANT_CONFIG value.
+    //   * Pages under user_guide/ select scikit-plots-user-guide.pdf; every
+    //     other page selects scikit-plots.pdf. The current /dev/, /stable/, or
+    //     versioned root is preserved automatically.
     //   * The export action and method switch are sibling buttons inside one
     //     visual row. This avoids invalid nested interactive controls while
     //     preserving the appearance of a single menu item.
     //   * The left action reuses createMenuItem(), so its content structure
     //     remains aligned with Copy page, Markdown, provider, and MCP entries.
-    //   * The compact right switch reuses the established mic toggle track/thumb
-    //     vocabulary and is rendered only when both methods are available.
     //   * Selection, icon, description, ARIA state, and persistence are updated
     //     through the single _syncPdfModeUI() path.
 
@@ -2019,6 +2040,223 @@
             requiresUrl: false
         }
     };
+
+    // Ordered first-match registry. Keep the document-selection policy separate
+    // from DOM construction so another generated PDF can be added later with one
+    // small entry instead of another branch inside createPdfSection().
+    var _PDF_AUTO_DOCUMENTS = [
+        {
+            key: 'user-guide',
+            file: 'scikit-plots-user-guide.pdf',
+            label: 'User Guide PDF',
+            matches: function (context) {
+                return /(^|\/)user_guide(?:\/|$)/.test(context.pageName);
+            }
+        },
+        {
+            key: 'documentation',
+            file: 'scikit-plots.pdf',
+            label: 'documentation PDF',
+            matches: function () { return true; }
+        }
+    ];
+
+    function _getSphinxDocsRootUrl() {
+        var options = window.DOCUMENTATION_OPTIONS || {};
+        var urlRoot = typeof options.URL_ROOT === 'string' ? options.URL_ROOT.trim() : '';
+
+        try {
+            if (urlRoot) return new URL(urlRoot, document.baseURI).href;
+
+            // Fallback for pages where documentation_options.js is unavailable:
+            // ai-assistant.js itself lives in <docs-root>/_static/.
+            var staticPath = String(getStaticPath() || '').replace(/\/?$/, '/');
+            var staticUrl = new URL(staticPath, document.baseURI);
+            return new URL('../', staticUrl).href;
+        } catch (_e) {
+            return '';
+        }
+    }
+
+    function _getCurrentSphinxPageName(docsRootUrl) {
+        var options = window.DOCUMENTATION_OPTIONS || {};
+        var configured = typeof options.pagename === 'string'
+            ? options.pagename.trim().replace(/^\/+|\/+$/g, '')
+            : '';
+        if (configured) return configured;
+
+        try {
+            var current = new URL(window.location.href);
+            var root = new URL(docsRootUrl || current.origin + '/');
+            var currentPath = decodeURIComponent(current.pathname || '');
+            var rootPath = decodeURIComponent(root.pathname || '/');
+
+            if (currentPath.indexOf(rootPath) === 0) {
+                currentPath = currentPath.slice(rootPath.length);
+            }
+
+            currentPath = currentPath
+                .replace(/^\/+/, '')
+                .replace(/\/index\.html?$/i, '')
+                .replace(/\.html?$/i, '')
+                .replace(/\/+$/, '');
+
+            return currentPath || 'index';
+        } catch (_e) {
+            return 'index';
+        }
+    }
+
+    function _getCurrentPageHeading() {
+        var heading = document.querySelector('main h1, article h1, h1');
+        var value = heading && heading.textContent
+            ? heading.textContent
+            : String(document.title || '').split(/\s+[—-]\s+/)[0];
+        return String(value || '')
+            .replace(/\s*[¶#]\s*$/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function _selectAutoPdfDocument(context) {
+        for (var i = 0; i < _PDF_AUTO_DOCUMENTS.length; i++) {
+            var candidate = _PDF_AUTO_DOCUMENTS[i];
+            try {
+                if (candidate.matches(context)) return candidate;
+            } catch (_e) {}
+        }
+        return null;
+    }
+
+    /**
+     * Optional exact-page hook for future build tooling.
+     *
+     * A separate generated script may define:
+     *
+     *   window.AI_ASSISTANT_PDF_PAGE_MAP = {
+     *     'user_guide/logging': 42
+     *   };
+     *
+     * Numeric values become standard #page=N PDF fragments. No map is required
+     * for the normal runtime-discovery path, and arbitrary fragments/URLs are
+     * deliberately rejected.
+     */
+    function _applyPdfPageMap(url, pageName) {
+        var map = window.AI_ASSISTANT_PDF_PAGE_MAP;
+        if (!map || typeof map !== 'object' || !Object.prototype.hasOwnProperty.call(map, pageName)) {
+            return { url: url, exactPage: false };
+        }
+
+        var page = Number(map[pageName]);
+        if (!Number.isInteger(page) || page < 1 || page > 100000) {
+            return { url: url, exactPage: false };
+        }
+
+        try {
+            var target = new URL(url, document.baseURI);
+            target.hash = 'page=' + page;
+            return { url: target.href, exactPage: true };
+        } catch (_e) {
+            return { url: url, exactPage: false };
+        }
+    }
+
+    function _expandConfiguredPdfUrl(rawUrl, context) {
+        // Backward-compatible support for the placeholders documented in
+        // _example_conf.py. Values come from the current Sphinx page, not user
+        // input, and are URI-encoded only where they represent one component.
+        return String(rawUrl || '')
+            .replace(/\{(?:pagename|docname)\}/g, context.pageName)
+            .replace(/\{title\}/g, encodeURIComponent(context.pageTitle));
+    }
+
+    /**
+     * Resolve the effective prepared-PDF target.
+     *
+     * Priority:
+     *   P0 explicit cfg.pdfExportUrl
+     *   P1 runtime Sphinx discovery under <URL_ROOT>/_downloads/
+     *   P2 no URL capability (print-only)
+     *
+     * cfg.pdfAutoDiscover=false is an optional JS-only escape hatch. Also, when
+     * pdfUrlModeToggle is explicitly false and no URL is configured, preserve
+     * the historical print-only contract instead of silently changing it.
+     */
+    function _resolvePdfTarget(cfg) {
+        cfg = cfg || _cfg();
+        var docsRootUrl = _getSphinxDocsRootUrl();
+        var context = {
+            docsRootUrl: docsRootUrl,
+            pageName: _getCurrentSphinxPageName(docsRootUrl),
+            pageTitle: _getCurrentPageHeading()
+        };
+        var explicit = typeof cfg.pdfExportUrl === 'string'
+            ? cfg.pdfExportUrl.trim()
+            : '';
+
+        if (explicit) {
+            var configuredUrl = _expandConfiguredPdfUrl(explicit, context);
+            var configuredLocation = _applyPdfPageMap(configuredUrl, context.pageName);
+            return {
+                url: configuredLocation.url,
+                source: 'config',
+                documentKey: 'configured',
+                documentLabel: 'prepared PDF',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: configuredLocation.exactPage
+            };
+        }
+
+        if (cfg.pdfAutoDiscover === false || cfg.pdfUrlModeToggle === false || !docsRootUrl) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+
+        var documentDef = _selectAutoPdfDocument(context);
+        if (!documentDef) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+
+        try {
+            var autoUrl = new URL('_downloads/' + documentDef.file, docsRootUrl).href;
+            var autoLocation = _applyPdfPageMap(autoUrl, context.pageName);
+            return {
+                url: autoLocation.url,
+                source: 'auto',
+                documentKey: documentDef.key,
+                documentLabel: documentDef.label,
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: autoLocation.exactPage
+            };
+        } catch (_e) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+    }
 
     function _isPdfModeAvailable(mode, pdfUrl) {
         var def = _PDF_MODE_DEFS[mode];
@@ -2041,15 +2279,46 @@
         return staticPath.replace(/\/$/, '') + '/' + def.iconFile;
     }
 
-    function _pdfSwitchAccessibleLabel(mode) {
+    function _pdfSwitchAccessibleLabel(mode, target) {
+        var directLabel = target && target.documentLabel
+            ? target.documentLabel
+            : 'prepared PDF';
         return mode === 'url'
-            ? 'PDF export method: prepared PDF. Switch to print and save.'
-            : 'PDF export method: print and save. Switch to prepared PDF.';
+            ? 'PDF export method: ' + directLabel + '. Switch to print and save.'
+            : 'PDF export method: print and save. Switch to ' + directLabel + '.';
+    }
+
+    /**
+     * Visible title text for the left-hand action button, kept in step with
+     * the toggle so the row always reads correctly on its own:
+     *   toggle OFF (print mode) → "Print as PDF"
+     *   toggle ON  (url mode)   → "Export as PDF"
+     */
+    function _pdfActionLabel(mode) {
+        return mode === 'url' ? 'Export as PDF' : 'Print as PDF';
+    }
+
+    function _pdfModeDescription(mode, pdfUrl, target) {
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        if (normalized !== 'url') return _PDF_MODE_DEFS.print.description;
+
+        target = target || _resolvePdfTarget(_cfg());
+        if (target.exactPage && target.pageTitle) {
+            return 'Open the ' + target.documentLabel + ' at “' + target.pageTitle + '”.';
+        }
+        if (target.documentKey === 'user-guide') {
+            return 'Open the User Guide PDF for this section in a new tab.';
+        }
+        if (target.documentKey === 'documentation') {
+            return 'Open the complete documentation PDF in a new tab.';
+        }
+        return _PDF_MODE_DEFS.url.description;
     }
 
     function createPdfSection(staticPath, cfg) {
         cfg = cfg || {};
-        var pdfUrl     = (cfg.pdfExportUrl || '').trim();
+        var target     = _resolvePdfTarget(cfg);
+        var pdfUrl     = target.url;
         var showToggle = cfg.pdfUrlModeToggle !== false;
         var available  = _getAvailablePdfModes(pdfUrl);
 
@@ -2057,26 +2326,41 @@
         try { savedMode = sessionStorage.getItem(_PDF_MODE_KEY); } catch (_e) {}
         var initialMode = _normalizePdfMode(savedMode, pdfUrl);
         var initialDef  = _PDF_MODE_DEFS[initialMode];
-        var hasSwitch   = showToggle && available.length > 1;
+        // Toggle visibility vs. interactivity are two separate questions:
+        //   • hasSwitch     — is the toggle rendered at all? Whenever the site
+        //                     has not explicitly set pdfUrlModeToggle=false, the
+        //                     toggle is ALWAYS shown so the control is
+        //                     discoverable and the row layout is stable across
+        //                     pages, not appearing only where a PDF exists.
+        //   • switchEnabled — is it interactive? Only when a second mode (a
+        //                     prepared-PDF URL) actually exists for this page.
+        //                     In print-only mode the toggle is shown DISABLED:
+        //                     visible, pinned to Print, and not clickable.
+        var hasSwitch     = showToggle;
+        var switchEnabled = showToggle && available.length > 1;
 
         var section = document.createElement('div');
         section.className = 'ai-assistant-pdf-section';
         section.dataset.pdfMode = initialMode;
         section.dataset.pdfMethodCount = String(available.length);
         section.dataset.pdfHasToggle = hasSwitch ? 'true' : 'false';
-        // Internal component state. Keeping icon sources on the section avoids
-        // re-running static-path discovery during every toggle operation.
+        section.dataset.pdfToggleEnabled = switchEnabled ? 'true' : 'false';
+        section.dataset.pdfUrlSource = target.source;
+        section.dataset.pdfDocument = target.documentKey;
+        // Internal component state. Keeping resolved target/static sources on
+        // the section avoids repeating URL-root discovery during every toggle.
         section._pdfStaticPath = staticPath;
+        section._pdfTarget = target;
 
         var row = document.createElement('div');
         row.className = 'ai-assistant-pdf-row';
         row.setAttribute('role', 'group');
-        row.setAttribute('aria-label', 'Export as PDF');
+        row.setAttribute('aria-label', 'PDF export');
 
         var btn = createMenuItem(
             'pdf-export',
-            'Export as PDF',
-            initialDef.description,
+            _pdfActionLabel(initialMode),
+            _pdfModeDescription(initialMode, pdfUrl, target),
             _pdfIconSource(staticPath, initialMode)
         );
         btn.classList.add('ai-assistant-pdf-action');
@@ -2100,9 +2384,25 @@
             modeSwitch.id = 'ai-assistant-pdf-toggle';
             modeSwitch.type = 'button';
             modeSwitch.setAttribute('role', 'menuitemcheckbox');
-            modeSwitch.setAttribute('aria-checked', initialMode === 'print' ? 'true' : 'false');
-            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(initialMode));
-            modeSwitch.title = _pdfSwitchAccessibleLabel(initialMode);
+            modeSwitch.setAttribute('aria-checked', initialMode === 'url' ? 'true' : 'false');
+
+            if (!switchEnabled) {
+                // Print-only: visible but inert. Pinned to Print, marked disabled
+                // for pointer + assistive tech, and labelled so the disabled
+                // state is understandable rather than mysterious.
+                var _pdfDisabledLabel =
+                    'No prepared PDF is available for this page \u2014 Print & save only.';
+                modeSwitch.disabled = true;
+                modeSwitch.setAttribute('aria-disabled', 'true');
+                modeSwitch.setAttribute('tabindex', '-1');
+                modeSwitch.dataset.pdfDisabled = 'true';
+                modeSwitch.classList.add('ai-assistant-pdf-mode-switch--disabled');
+                modeSwitch.setAttribute('aria-label', _pdfDisabledLabel);
+                modeSwitch.title = _pdfDisabledLabel;
+            } else {
+                modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(initialMode, target));
+                modeSwitch.title = _pdfSwitchAccessibleLabel(initialMode, target);
+            }
 
             var modeTrack = document.createElement('span');
             modeTrack.className = 'ai-assistant-mic-toggle-track ai-assistant-pdf-toggle-track';
@@ -2119,38 +2419,40 @@
             modeSwitch.appendChild(modeTrack);
             modeSwitch.appendChild(modeText);
 
-            // Keep focus on the compact switch while preventing the surrounding
-            // dropdown from treating pointer-down as an outside interaction.
-            modeSwitch.addEventListener('mousedown', function (event) {
-                event.stopPropagation();
-            });
-            modeSwitch.addEventListener('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                var current = _getPdfMode();
-                _setPdfMode(current === 'url' ? 'print' : 'url');
-            });
+            // Interaction is wired only when a real second mode exists. In
+            // print-only mode the switch is inert (see the disabled branch
+            // above), so no handlers are attached and clicks cannot change mode.
+            if (switchEnabled) {
+                // Keep focus on the compact switch while preventing the
+                // surrounding dropdown from treating pointer-down as an outside
+                // interaction.
+                modeSwitch.addEventListener('mousedown', function (event) {
+                    event.stopPropagation();
+                });
+                modeSwitch.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var current = _getPdfMode();
+                    _setPdfMode(current === 'url' ? 'print' : 'url');
+                });
+            }
 
             row.appendChild(modeSwitch);
         }
 
         section.appendChild(row);
-        _syncPdfModeUI(initialMode, pdfUrl, section);
+        _syncPdfModeUI(initialMode, pdfUrl, section, target);
         return section;
     }
 
-    function _pdfModeDescription(mode, pdfUrl) {
-        var normalized = _normalizePdfMode(mode, pdfUrl);
-        return _PDF_MODE_DEFS[normalized].description;
-    }
-
-    function _syncPdfModeUI(mode, pdfUrl, root) {
+    function _syncPdfModeUI(mode, pdfUrl, root, target) {
         var normalized = _normalizePdfMode(mode, pdfUrl);
         var def = _PDF_MODE_DEFS[normalized];
 
         // `root` is used during construction, before the section is attached to
         // document. Runtime updates omit it and resolve the live section.
         var section = root || document.querySelector('.ai-assistant-pdf-section');
+        target = target || (section && section._pdfTarget) || _resolvePdfTarget(_cfg());
         var exportBtn = section
             ? section.querySelector('#ai-assistant-pdf-export')
             : document.getElementById('ai-assistant-pdf-export');
@@ -2159,6 +2461,9 @@
             : document.getElementById('ai-assistant-pdf-desc');
         var iconEl = exportBtn
             ? exportBtn.querySelector('.ai-assistant-menu-icon')
+            : null;
+        var titleEl = exportBtn
+            ? exportBtn.querySelector('.ai-assistant-menu-item-title-text')
             : null;
         var modeSwitch = section
             ? section.querySelector('#ai-assistant-pdf-toggle')
@@ -2176,18 +2481,19 @@
             exportBtn.setAttribute(
                 'aria-label',
                 normalized === 'url'
-                    ? 'Open the prepared PDF in a new tab'
+                    ? 'Open the ' + (target.documentLabel || 'prepared PDF') + ' in a new tab'
                     : 'Open the browser print dialog to save as PDF'
             );
         }
-        if (descEl) descEl.textContent = def.description;
+        if (descEl) descEl.textContent = _pdfModeDescription(normalized, pdfUrl, target);
         if (iconEl) iconEl.src = _pdfIconSource(staticPath, normalized);
+        if (titleEl) titleEl.textContent = _pdfActionLabel(normalized);
 
-        if (modeSwitch) {
+        if (modeSwitch && modeSwitch.dataset.pdfDisabled !== 'true') {
             modeSwitch.dataset.pdfMode = normalized;
-            modeSwitch.setAttribute('aria-checked', normalized === 'print' ? 'true' : 'false');
-            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(normalized));
-            modeSwitch.title = _pdfSwitchAccessibleLabel(normalized);
+            modeSwitch.setAttribute('aria-checked', normalized === 'url' ? 'true' : 'false');
+            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(normalized, target));
+            modeSwitch.title = _pdfSwitchAccessibleLabel(normalized, target);
         }
         if (modeText) modeText.textContent = def.label;
 
@@ -2195,18 +2501,18 @@
     }
 
     function _setPdfMode(mode) {
-        var pdfUrl = (_cfg().pdfExportUrl || '').trim();
-        var normalized = _normalizePdfMode(mode, pdfUrl);
+        var target = _resolvePdfTarget(_cfg());
+        var normalized = _normalizePdfMode(mode, target.url);
         try { sessionStorage.setItem(_PDF_MODE_KEY, normalized); } catch (_e) {}
-        _syncPdfModeUI(normalized, pdfUrl);
+        _syncPdfModeUI(normalized, target.url, null, target);
     }
 
     function _getPdfMode() {
-        var pdfUrl = (_cfg().pdfExportUrl || '').trim();
+        var target = _resolvePdfTarget(_cfg());
         try {
-            return _normalizePdfMode(sessionStorage.getItem(_PDF_MODE_KEY), pdfUrl);
+            return _normalizePdfMode(sessionStorage.getItem(_PDF_MODE_KEY), target.url);
         } catch (_e) {
-            return _normalizePdfMode(null, pdfUrl);
+            return _normalizePdfMode(null, target.url);
         }
     }
 
@@ -2232,6 +2538,7 @@
         icon.alt = '';
 
         var label = document.createElement('span');
+        label.className = 'ai-assistant-menu-item-title-text';
         label.textContent = text;
 
         titleRow.appendChild(icon);
@@ -2604,12 +2911,15 @@
     }
 
     function handlePdfExport() {
-        var cfg    = _cfg();
-        var pdfUrl = (cfg.pdfExportUrl || '').trim();
+        var target = _resolvePdfTarget(_cfg());
         var mode   = _getPdfMode();
         closeDropdown();
-        if (mode === 'url' && pdfUrl) {
-            window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+        // Defence-in-depth: only ever open http(s)/root-relative targets in a
+        // new tab. The URL is config-sourced, but validating the scheme here
+        // ensures a misconfigured or poisoned value can never become a
+        // javascript:/data: window.open. On an unsafe value, fall back to print.
+        if (mode === 'url' && target.url && _isSafeHref(target.url)) {
+            window.open(target.url, '_blank', 'noopener,noreferrer');
             return;
         }
         _printWithHeader();
@@ -6931,6 +7241,385 @@ opts.jsonPayload + '\n' +
         return wrapper;
     }
 
+    // ── Lucky picker ("I'm Feeling Lucky") ──────────────────────────────────
+    //
+    // A self-contained popover — same shape as _buildExportDropdownBtn: one
+    // trigger button + one floating panel, each with their own open/close,
+    // outside-click, and focus handling. Deliberately NOT wired into
+    // createAIPanel's sheet system (_openSheet/_closeSheet/the Escape-key
+    // sheet array): _renderWelcome also runs from clearConversation(), which
+    // has no access to that closure, and every input this feature needs
+    // (cfg, page DOM, sessionStorage) is already reachable from module scope.
+    // Being self-contained also means it survives clearConversation()'s
+    // `body.innerHTML = ''` + rebuild for free, same as the suggestion chips.
+    //
+    // Extensibility: add a new question source by appending one entry to
+    // _LUCKY_SOURCES below — nothing else needs to change. Each source is an
+    // independent checkbox the user can combine with any other; `generate()`
+    // returns zero or more candidate question strings for the current page.
+
+    /** sessionStorage keys — mirrors the _PDF_MODE_KEY persistence pattern. */
+    var _LUCKY_SOURCES_KEY = 'ai-assistant-lucky-sources';
+    var _LUCKY_TOPIC_KEY   = 'ai-assistant-lucky-topic';
+
+    /**
+     * Prompt templates shared by the 'surprise' and 'custom' sources.
+     * '%s' is replaced with either the page title or the user's own topic.
+     * Client-side templates, not a live model call — kept honest in the UI
+     * copy below ("Prompt templates…", not "AI-generated…").
+     */
+    var _LUCKY_TEMPLATES = [
+        'What are common mistakes people make with %s?',
+        'What edge cases should I watch out for with %s?',
+        'Explain %s like I\u2019m completely new to it.',
+        'What\u2019s a lesser-known detail about %s that\u2019s easy to miss?',
+        'How would you debug an unexpected problem involving %s?'
+    ];
+
+    function _luckyFillTemplates(subject) {
+        subject = String(subject || '').trim();
+        if (!subject) return [];
+        return _LUCKY_TEMPLATES.map(function (t) { return t.replace('%s', subject); });
+    }
+
+    /**
+     * Extract heading strings from the current page's content region, for
+     * the 'topics' source. Same content-scope convention already used by
+     * copy/print/markdown: `_cfg().content_selector || 'article'`.
+     * @returns {string[]}
+     */
+    function _luckyPageHeadings() {
+        var root = document.querySelector(_cfg().content_selector || 'article') || document.body;
+        var out = [];
+        root.querySelectorAll('h2, h3').forEach(function (h) {
+            var text = String(h.textContent || '')
+                .replace(/\s*[\u00b6#]\s*$/, '')  // strip trailing pilcrow/permalink glyph
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (text) out.push(text);
+        });
+        return out;
+    }
+
+    /**
+     * Checkbox-driven question sources. Order here is display order.
+     * `generate(ctx)` must be a pure function of `ctx` and must never throw
+     * uncaught — the caller wraps each call so one bad source can't blank
+     * out the others.
+     */
+    var _LUCKY_SOURCES = [
+        {
+            id: 'quick',
+            label: 'Quick questions',
+            desc: 'Pull from this page\u2019s curated question list',
+            icon: 'chat',
+            generate: function () {
+                var cfg = _cfg();
+                return Array.isArray(cfg.panelQuickQuestions) ? cfg.panelQuickQuestions.slice() : [];
+            }
+        },
+        {
+            id: 'topics',
+            label: 'Page topics',
+            desc: 'Ask about a heading on this page',
+            icon: 'terms',
+            generate: function () {
+                return _luckyPageHeadings().map(function (h) {
+                    return 'Can you explain \u201c' + h + '\u201d?';
+                });
+            }
+        },
+        {
+            id: 'surprise',
+            label: 'Surprise me',
+            desc: 'Prompt templates built from this page\u2019s title',
+            icon: 'celebration',
+            generate: function () {
+                return _luckyFillTemplates(_getCurrentPageHeading() || document.title);
+            }
+        },
+        {
+            id: 'custom',
+            label: 'My own topic',
+            desc: 'Type a topic and build a question from it',
+            icon: 'plus',
+            requiresInput: true,
+            generate: function (ctx) {
+                return _luckyFillTemplates(ctx && ctx.customTopic);
+            }
+        }
+    ];
+
+    /**
+     * Sources to pre-check on first use — only ones that can actually
+     * produce something right now, so the first open is never empty.
+     * @returns {string[]}
+     */
+    function _luckyDefaultSources() {
+        var cfg = _cfg();
+        var out = [];
+        if (Array.isArray(cfg.panelQuickQuestions) && cfg.panelQuickQuestions.length) out.push('quick');
+        if (_luckyPageHeadings().length) out.push('topics');
+        if (out.length === 0) out.push('surprise'); // always available: falls back to document.title
+        return out;
+    }
+
+    /** @returns {string[]} persisted source ids, or the computed defaults. */
+    function _luckySelectedSources() {
+        var raw = _ssGet(_LUCKY_SOURCES_KEY);
+        if (raw) {
+            try {
+                var parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            } catch (_e) { /* fall through to defaults */ }
+        }
+        return _luckyDefaultSources();
+    }
+
+    /** @param {HTMLElement} sourcesListEl */
+    function _luckySaveSelectedSources(sourcesListEl) {
+        var ids = Array.prototype.slice
+            .call(sourcesListEl.querySelectorAll('.ai-assistant-lucky-source-checkbox:checked'))
+            .map(function (el) { return el.dataset.sourceId; });
+        _ssSet(_LUCKY_SOURCES_KEY, JSON.stringify(ids));
+    }
+
+    /**
+     * Build the "I'm Feeling Lucky" trigger + popover.
+     * @returns {HTMLElement} wrapper containing trigger button + panel.
+     */
+    function _buildLuckyPicker() {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'ai-assistant-lucky-picker';
+
+        // ── Trigger button ──────────────────────────────────────────────────
+        var trigger = document.createElement('button');
+        trigger.className = 'ai-assistant-lucky-trigger';
+        trigger.id = 'ai-assistant-lucky-trigger';
+        trigger.type = 'button';
+        trigger.setAttribute('aria-haspopup', 'true');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-label', 'I\u2019m Feeling Lucky \u2014 get a suggested question');
+
+        var triggerIcon = document.createElement('span');
+        triggerIcon.className = 'ai-assistant-lucky-trigger-icon';
+        triggerIcon.setAttribute('aria-hidden', 'true');
+        triggerIcon.innerHTML = ICONS.celebration;
+        trigger.appendChild(triggerIcon);
+
+        var triggerLbl = document.createElement('span');
+        triggerLbl.className = 'ai-assistant-lucky-trigger-label';
+        triggerLbl.textContent = 'I\u2019m Feeling Lucky';
+        trigger.appendChild(triggerLbl);
+
+        var triggerSpark = document.createElement('span');
+        triggerSpark.className = 'ai-assistant-lucky-trigger-spark';
+        triggerSpark.setAttribute('aria-hidden', 'true');
+        triggerSpark.innerHTML = ICONS.menuSparkleRight;
+        trigger.appendChild(triggerSpark);
+
+        // ── Popover panel ────────────────────────────────────────────────────
+        var panel = document.createElement('div');
+        panel.className = 'ai-assistant-lucky-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'I\u2019m Feeling Lucky');
+        panel.setAttribute('data-open', 'false');
+
+        var sourcesList = document.createElement('div');
+        sourcesList.className = 'ai-assistant-lucky-sources';
+
+        var selected      = _luckySelectedSources();
+        var customInputRow = null;
+        var customInputEl  = null;
+
+        _LUCKY_SOURCES.forEach(function (src) {
+            var row = document.createElement('label');
+            row.className = 'ai-assistant-lucky-source-row';
+
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'ai-assistant-lucky-source-checkbox';
+            cb.checked = selected.indexOf(src.id) !== -1;
+            cb.dataset.sourceId = src.id;
+
+            var icon = document.createElement('span');
+            icon.className = 'ai-assistant-lucky-source-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.innerHTML = ICONS[src.icon] || ICONS.celebration;
+
+            var text = document.createElement('span');
+            text.className = 'ai-assistant-lucky-source-text';
+            var strong = document.createElement('strong');
+            strong.textContent = src.label;
+            var small = document.createElement('span');
+            small.className = 'ai-assistant-lucky-source-desc';
+            small.textContent = src.desc;
+            text.appendChild(strong);
+            text.appendChild(small);
+
+            row.appendChild(cb);
+            row.appendChild(icon);
+            row.appendChild(text);
+            sourcesList.appendChild(row);
+
+            if (src.requiresInput) {
+                customInputRow = document.createElement('div');
+                customInputRow.className = 'ai-assistant-lucky-custom-row';
+                customInputRow.hidden = !cb.checked;
+
+                customInputEl = document.createElement('input');
+                customInputEl.type = 'text';
+                customInputEl.className = 'ai-assistant-lucky-custom-input';
+                customInputEl.placeholder = 'e.g. authentication, retries, plotting\u2026';
+                customInputEl.value = _ssGet(_LUCKY_TOPIC_KEY) || '';
+                customInputEl.maxLength = 120;
+                customInputEl.setAttribute('aria-label', src.label + ' \u2014 topic');
+                customInputEl.addEventListener('input', function () {
+                    _ssSet(_LUCKY_TOPIC_KEY, customInputEl.value);
+                    _luckyRefresh();
+                });
+
+                customInputRow.appendChild(customInputEl);
+                sourcesList.appendChild(customInputRow);
+            }
+
+            cb.addEventListener('change', function () {
+                _luckySaveSelectedSources(sourcesList);
+                if (src.requiresInput && customInputRow) {
+                    customInputRow.hidden = !cb.checked;
+                    if (cb.checked && customInputEl) customInputEl.focus();
+                }
+                _luckyRefresh();
+            });
+        });
+
+        panel.appendChild(sourcesList);
+
+        var shuffleBtn = document.createElement('button');
+        shuffleBtn.type = 'button';
+        shuffleBtn.className = 'ai-assistant-lucky-shuffle';
+        var shuffleIcon = document.createElement('span');
+        shuffleIcon.setAttribute('aria-hidden', 'true');
+        shuffleIcon.innerHTML = ICONS.menuSparkleRight;
+        shuffleBtn.appendChild(shuffleIcon);
+        var shuffleLbl = document.createElement('span');
+        shuffleLbl.textContent = 'Shuffle';
+        shuffleBtn.appendChild(shuffleLbl);
+        shuffleBtn.addEventListener('click', function () { _luckyRefresh(); });
+        panel.appendChild(shuffleBtn);
+
+        var candidatesEl = document.createElement('div');
+        candidatesEl.className = 'ai-assistant-lucky-candidates';
+        candidatesEl.setAttribute('aria-live', 'polite');
+        panel.appendChild(candidatesEl);
+
+        /** Recompute the candidate pool from checked sources and re-render. */
+        function _luckyRefresh() {
+            var checkedIds = Array.prototype.slice
+                .call(sourcesList.querySelectorAll('.ai-assistant-lucky-source-checkbox:checked'))
+                .map(function (el) { return el.dataset.sourceId; });
+
+            var ctx  = { customTopic: customInputEl ? customInputEl.value : '' };
+            var pool = [];
+            _LUCKY_SOURCES.forEach(function (src) {
+                if (checkedIds.indexOf(src.id) === -1) return;
+                try {
+                    (src.generate(ctx) || []).forEach(function (q) {
+                        q = String(q || '').trim();
+                        if (q && pool.indexOf(q) === -1) pool.push(q);
+                    });
+                } catch (_e) { /* one bad source must not blank out the others */ }
+            });
+
+            candidatesEl.innerHTML = '';
+            if (pool.length === 0) {
+                var empty = document.createElement('p');
+                empty.className = 'ai-assistant-lucky-empty';
+                empty.textContent = checkedIds.length === 0
+                    ? 'Pick at least one source above.'
+                    : 'Nothing to suggest yet \u2014 try a different source or type a topic.';
+                candidatesEl.appendChild(empty);
+                return;
+            }
+
+            // Fisher-Yates, capped at 3 — enough variety without a wall of chips.
+            for (var i = pool.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+            }
+            pool.slice(0, 3).forEach(function (q) {
+                var chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'ai-assistant-panel-chip ai-assistant-lucky-chip';
+                chip.textContent = q;
+                chip.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (input) { input.value = q; _updateSendBtnState(); input.focus(); }
+                    _closeLucky();
+                });
+                candidatesEl.appendChild(chip);
+            });
+        }
+
+        function _closeLucky() {
+            panel.setAttribute('data-open', 'false');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        // ── Toggle open/close (mirrors _buildExportDropdownBtn) ──────────────
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isOpen = panel.getAttribute('data-open') === 'true';
+            _closeLucky();
+            if (!isOpen) {
+                panel.setAttribute('data-open', 'true');
+                trigger.setAttribute('aria-expanded', 'true');
+                _luckyRefresh();
+            }
+        });
+
+        wrapper.addEventListener('focusout', function (e) {
+            if (!wrapper.contains(e.relatedTarget)) _closeLucky();
+        });
+
+        // Capture-phase outside-click close — see _buildExportDropdownBtn for
+        // why focusout alone is insufficient (non-focusable-element clicks).
+        //
+        // Self-removing, unlike that precedent: _buildExportDropdownBtn is
+        // built at most twice, at fixed panel-setup call sites, so one
+        // document-level listener per build is a bounded, one-time cost.
+        // This picker is rebuilt on every clearConversation() ->
+        // _renderWelcome() cycle. body.innerHTML = '' detaches `wrapper`
+        // from the document, but it does NOT remove a listener registered
+        // on `document` itself — without this guard, every "Clear
+        // conversation" click would leave one more permanent listener (and
+        // its now-detached-DOM closure) behind for the life of the page.
+        // Checking document.contains(wrapper) lets a stale listener remove
+        // itself the first time it fires after its own wrapper is gone.
+        function _luckyOutsideMousedown(e) {
+            if (!document.contains(wrapper)) {
+                document.removeEventListener('mousedown', _luckyOutsideMousedown, true);
+                return;
+            }
+            if (panel.getAttribute('data-open') !== 'true') return;
+            if (wrapper.contains(e.target)) return;
+            _closeLucky();
+        }
+        document.addEventListener('mousedown', _luckyOutsideMousedown, true /* capture */);
+
+        wrapper.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && panel.getAttribute('data-open') === 'true') {
+                e.stopPropagation();
+                _closeLucky();
+                trigger.focus();
+            }
+        });
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(panel);
+        return wrapper;
+    }
+
     /**
      * Render the initial welcome + quick-suggestion chips into the body.
      * Extracted so clearConversation() can rebuild without duplicating logic.
@@ -6977,6 +7666,10 @@ opts.jsonPayload + '\n' +
         welcome.appendChild(p2);
         welcome.appendChild(p3);
         body.appendChild(welcome);
+
+        if (cfg.panelLucky !== false) {
+            body.appendChild(_buildLuckyPicker());
+        }
 
         if (quickQs.length > 0) {
             var suggestionsEl = document.createElement('div');

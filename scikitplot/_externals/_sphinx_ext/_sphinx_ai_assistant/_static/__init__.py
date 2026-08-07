@@ -65,6 +65,7 @@ __all__ = [
     "_PROVIDER_META",
     "_SVG_BOT_ASSISTANT",
     "_SVG_BRUSH_SPARKLE",
+    "_SVG_CELEBRATION",
     "_SVG_CHATGPT",
     "_SVG_CHECK_ANSWER",
     "_SVG_CLAUDE",
@@ -792,6 +793,24 @@ _SVG_MINIMIZE_COLLAPSE: str = (
     "IHgxPSIzIiB4Mj0iMTAiIHkxPSIyMSIgeTI9IjE0Ij48L2xpbmU+PC9zdmc+Cg=="
 )
 
+# Party popper + confetti — mirrors ICONS.celebration in ai-assistant.js
+# byte-for-byte (same hand-authored path/circle data, re-encoded here rather
+# than redrawn, per the JS/Python icon-parity convention this module
+# otherwise follows for every other _ICON_META entry). Used by the "Surprise
+# me" Lucky-picker source — see _LUCKY_SOURCES in ai-assistant.js.
+_SVG_CELEBRATION: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENv"
+    "bG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxp"
+    "bmVqb2luPSJyb3VuZCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIGQ9Ik0zLjUgMjAuNSA5"
+    "IDhsNyA0LjUtMTIuNSA4WiIvPjxwYXRoIGQ9Ik05IDhsMS4zLTMuNSIvPjxwYXRoIGQ9Ik0x"
+    "NCAzLjUgMTUgNS41Ii8+PHBhdGggZD0iTTE5IDYuNWwyIDEiLz48Y2lyY2xlIGN4PSIyMCIg"
+    "Y3k9IjExLjUiIHI9IjEiIGZpbGw9ImN1cnJlbnRDb2xvciIgc3Ryb2tlPSJub25lIi8+PGNp"
+    "cmNsZSBjeD0iMTYiIGN5PSI0IiByPSIxIiBmaWxsPSJjdXJyZW50Q29sb3IiIHN0cm9rZT0i"
+    "bm9uZSIvPjxjaXJjbGUgY3g9IjIxLjUiIGN5PSIxNiIgcj0iMSIgZmlsbD0iY3VycmVudENv"
+    "bG9yIiBzdHJva2U9Im5vbmUiLz48L3N2Zz4="
+)
+
 # MUI "ErrorIcon" outline, re-authored with stroke="currentColor" (dropped the
 # original fill/MuiSvgIcon-color* class attributes so it themes the same way
 # every other icon in this module does). Not wired to any control yet —
@@ -904,6 +923,12 @@ _ICON_META: dict[str, dict[str, str]] = {
     },
     "menu-sparkle": {"icon": _SVG_MENU_SPARKLE, "desc": "AI menu"},
     "shield-alert": {"icon": _SVG_SHIELD_ALERT, "desc": "Security notice"},
+    # Mirrors ICONS.celebration in ai-assistant.js — the "Surprise me"
+    # source icon in the "I'm Feeling Lucky" picker.
+    "celebration": {
+        "icon": _SVG_CELEBRATION,
+        "desc": "Surprise me (I\u2019m Feeling Lucky)",
+    },
     # Deliberately reuse the existing "terms" / "privacy" constants above
     # instead of introducing new path data — see ai-assistant.js
     # ICONS.termsOfService / ICONS.privacyResponsibility for the rationale

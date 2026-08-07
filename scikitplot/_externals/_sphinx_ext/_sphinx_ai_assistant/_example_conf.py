@@ -722,7 +722,16 @@ ai_assistant_include_raw_image = False
 # by ``_cfg_str``.  The JS ``handlePdfExport`` reads the mode from
 # ``sessionStorage`` (persisted by the toggle) and either opens this URL or
 # calls ``window.print()``.
-ai_assistant_pdf_export_url = None  # None / "" → window.print()
+
+# → https://scikit-plots.github.io/dev/apis/scikitplot.html
+# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
+# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+#
+# Page and/or can be use hash value correspond title
+# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
+# ai_assistant_pdf_export_url = None  # None / "" → Only print mode window.print()
+ai_assistant_pdf_export_url = f"{html_baseurl}"
 
 # Type:    bool
 # Default: True

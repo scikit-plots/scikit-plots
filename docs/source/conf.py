@@ -2292,6 +2292,16 @@ ai_assistant_enabled = True
 ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
 ai_assistant_panel_site_url = "https://scikit-plots.github.io/dev"
 
+# → https://scikit-plots.github.io/dev/apis/scikitplot.html
+# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
+# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+#
+# Page and/or can be use hash value correspond title
+# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
+ai_assistant_pdf_url_mode_toggle = True
+ai_assistant_pdf_export_url = f"{html_baseurl}"
+
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
 # "title"    → next to the page heading

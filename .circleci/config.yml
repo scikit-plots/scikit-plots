@@ -246,6 +246,20 @@ commands:
             # Then in reader_kwargs:
             #   "backend": "easyocr",
             #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
+
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              latexmk \
+              texlive-xetex \
+              texlive-latex-base \
+              texlive-latex-recommended \
+              texlive-latex-extra \
+              texlive-fonts-recommended \
+              fonts-dejavu-core || true
+
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              fonts-noto-core \
+              fonts-noto-cjk \
+              fonts-noto-extra || true
   npm-install:
       description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
       steps:
@@ -476,12 +490,65 @@ commands:
       - npm-install  # jupyterlite_sphinx need terminal kernel
       - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
       # - pip-install
+      # docs/build/
+      # ├── latex/
+      # │   ├── scikit-plots.tex
+      # │   ├── scikit-plots.pdf
+      # │   ├── scikit-plots-user-guide.tex
+      # │   └── scikit-plots-user-guide.pdf
+      # └── html/
+      #     └── stable/
+      #         ├── index.html
+      #         ├── _static/
+      #         ├── user_guide/
+      #         └── _downloads/
+      #             ├── scikit-plots.pdf
+      #             └── scikit-plots-user-guide.pdf
+      # https://scikit-plots.github.io/stable/_downloads/scikit-plots.pdf
+      # https://scikit-plots.github.io/stable/_downloads/scikit-plots-user-guide.pdf
+      # https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+      # https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
       - run:
-          name: "📘 build docs"
+          name: "📘 Build HTML and PDF documentation"
           # no_output_timeout: 25m
           command: |
-            export PYTHONPATH=$PWD/build-install/lib/python3.12/site-packages
-            cd docs && make html 2>&1 | tee ~/sphinx_log.txt
+            set -Eeuo pipefail
+
+            export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
+
+            cd docs
+            make html 2>&1 | tee ~/sphinx_html_log.txt
+            make latexpdf 2>&1 | tee ~/sphinx_latexpdf_log.txt
+
+            # Copy PDFs into the deployable HTML tree.
+            install -d build/html/stable/_downloads
+
+            install -m 0644 \
+              build/latex/scikit-plots.pdf \
+              build/html/stable/_downloads/scikit-plots.pdf
+
+            install -m 0644 \
+              build/latex/scikit-plots-user-guide.pdf \
+              build/html/stable/_downloads/scikit-plots-user-guide.pdf
+
+            # Fail explicitly if either PDF is missing or empty.
+            test -s build/html/stable/_downloads/scikit-plots.pdf
+            test -s build/html/stable/_downloads/scikit-plots-user-guide.pdf
+
+            echo
+            echo "Generated PDF files:"
+            ls -lh build/latex/*.pdf
+
+            echo
+            echo "Deployment downloads:"
+            ls -lh build/html/stable/_downloads/
+
+            printf '\nPublished documentation files:\n'
+            find build/html/stable/_downloads \
+              -maxdepth 1 \
+              -type f \
+              -name '*.pdf' \
+              -exec ls -lh {} \;
       - run:
           name: Check to show sphinx log for warnings (which are treated as errors)
           when: always
@@ -517,6 +584,10 @@ commands:
       - store_artifacts:
           path: ~/sphinx-traceback.log
           destination: sphinx-traceback.log
+      - store_artifacts:
+          # path: docs/build/html/stable/_downloads/scikit-plots.pdf  # scikit-plots.pdf
+          path: docs/build/html/stable/_downloads
+          destination: documentation-pdf
       - store_artifacts:
           # path: docs/build/html/stable/index.html  # index.html
           path: docs/build/html/stable
