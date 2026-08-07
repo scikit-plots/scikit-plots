@@ -54,6 +54,25 @@ SOURCEDIR     = source
 BUILDDIR      = build
 PAPER         =
 
+# 					sphinx-build -j N
+# 						 │
+# 		┌────────────────┴────────────────┐
+# 		│                                 │
+# 		▼                                 ▼
+# READ / PARSE docs                 WRITE documents
+# can be parallel                    can be parallel
+# 		│                                 │
+# 		└────────────────┬────────────────┘
+# 					     ▼
+# 					Finish phase
+# 						 │
+#         ┌──────────────┼──────────────┐
+#         ▼              ▼              ▼
+#   copy images     copy static     downloads
+#         │              │              │
+#         ▼              ▼              ▼
+#   mostly serial   mostly serial   mostly serial
+
 ifeq ($(CI), true)
 	# On CircleCI using -j2 does not seem to speed up the html-noplot build
 	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
