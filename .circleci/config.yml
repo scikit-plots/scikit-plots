@@ -254,32 +254,42 @@ commands:
             #   "backend": "easyocr",
             #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
 
-            sudo apt-get install --fix-missing -y --no-install-recommends \
-              fonts-dejavu-core \
-              fonts-noto-core \
-              fonts-noto-cjk \
-              fonts-noto-extra || true
-
             # Install PDF documentation dependencies
             sudo apt-get install --fix-missing -y --no-install-recommends \
+              cm-super \
               graphviz \
               imagemagick \
               latexmk \
+              tex-gyre \
               texlive-xetex \
               texlive-latex-base \
-              texlive-latex-recommended \
               texlive-latex-extra \
-              texlive-fonts-recommended
+              texlive-latex-recommended \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              fonts-dejavu-core \
+              fonts-noto-core \
+              fonts-noto-cjk \
+              fonts-noto-extra
 
-            echo "Graphviz:"
+            echo "LaTeX tools:"
+            latexmk -v | head -1
+            pdflatex --version | head -1
+            xelatex --version | head -1
+            echo "TeX Gyre dependencies:"
+            kpsewhich tgtermes.sty
+            kpsewhich tgheros.sty
+            test -n "$(kpsewhich tgtermes.sty)" || {
+              echo "ERROR: tgtermes.sty not found" >&2
+              # exit 1
+            }
+            test -n "$(kpsewhich tgheros.sty)" || {
+              echo "ERROR: tgheros.sty not found" >&2
+              # exit 1
+            }
+            echo "Image/diagram tools:"
+            convert -version | head -1
             dot -V
-
-            echo "ImageMagick:"
-            convert -version
-
-            echo "LaTeX:"
-            xelatex --version
-
   # Focused LaTeX/PDF toolchain for the `build_docs_pdf` job ONLY.
   # This lets the PDF-compile job run in a fresh, lightweight container
   # (no micromamba / node / pip / checkout) so it stays far under the 1h cap.
@@ -298,27 +308,129 @@ commands:
             sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
             sudo apt-get clean
             sudo apt-get update --fix-missing -y
+      # RST / Markdown / API docs
+      #                  TOOLCHAIN
+      #                     │
+      #     ┌───────────────┼────────────────┐
+      #     │               │                │
+      # PREPROCESS       ORCHESTRATE       COMPILE
+      #     │               │                │
+      #     ▼               ▼                ▼
+      #   dot             latexmk      pdflatex / xelatex
+      # convert                              │
+      #                                      ▼
+      #                                     PDF
+      # Sphinx documentation sources
+      # (.rst / .md / Python API docs)
+      #             │
+      #             ▼
+      #       sphinx-build -b latex
+      #             │
+      #             ├──────────────────────────────┐
+      #             │                              │
+      #             │                              │
+      #     Graphviz diagrams                Source images
+      # inheritance-diagram                       │
+      #             │                              │
+      #             ▼                              ▼
+      #         graphviz                       ImageMagick
+      #           dot                           convert
+      #             │                              │
+      #             ▼                              ▼
+      #       PDF/SVG/PNG                    PDF/PNG/etc.
+      #             │                              │
+      #             └──────────────┬───────────────┘
+      #                            │
+      #                            ▼
+      #                   Generated LaTeX tree *.tex + assets
+      #                   docs/build/latex/
+      #                            │
+      #                            ├── scikit-plots.tex
+      #                            ├── scikit-plots-user-guide.tex
+      #                            └── Makefile + latexmkrc
+      #                            │
+      #                            ▼
+      #                         latexmk
+      #               build orchestration / reruns
+      #                            │
+      #                 ┌──────────┴──────────┐
+      #                 │                     │
+      #                 ▼                     ▼
+      #             pdfLaTeX              XeLaTeX
+      #           latex_engine           latex_engine
+      #           = pdflatex             = xelatex
+      #                 │                     │
+      #                 └──────────┬──────────┘
+      #                            │
+      #                            ▼
+      #                   TeX package/font tree
+      #                            │
+      #         ┌──────────────────┼───────────────────┐
+      #         │                  │                   │
+      #         ▼                  ▼                   ▼
+      # texlive-latex-*       tex-gyre            cm-super
+      # packages
+      #                       tex-gyre fonts
+      #                          │
+      #               ┌──────────┴──────────┐
+      #               ▼                     ▼
+      #         tgtermes.sty           tgheros.sty
+      #               │                     │
+      #               ▼                     ▼
+      #       TeX Gyre Termes        TeX Gyre Heroes
+      #         serif font            sans-serif font
+      #               │                     │
+      #               └──────────┬──────────┘
+      #                          │
+      #                          ▼
+      #                     TeX engine
+      #                          │
+      #                          ▼
+      #                   Final PDF files
+      #                          │
+      #             ┌────────────┴─────────────┐
+      #             ▼                          ▼
+      #   scikit-plots.pdf        scikit-plots-user-guide.pdf
       - run:
           name: "📦 Install LaTeX toolchain (texlive + latexmk + fonts)"
           command: |
             set -Eeuo pipefail
+            # Install PDF documentation dependencies
             sudo apt-get install --fix-missing -y --no-install-recommends \
               cm-super \
+              graphviz \
+              imagemagick \
               latexmk \
+              tex-gyre \
               texlive-xetex \
               texlive-latex-base \
-              texlive-latex-recommended \
               texlive-latex-extra \
+              texlive-latex-recommended \
               texlive-fonts-recommended \
-              imagemagick \
-              graphviz \
+              texlive-fonts-extra \
               fonts-dejavu-core \
               fonts-noto-core \
               fonts-noto-cjk \
-              fonts-noto-extra || true
-            echo "LaTeX:"
-            xelatex --version
+              fonts-noto-extra
 
+            echo "LaTeX tools:"
+            latexmk -v | head -1
+            pdflatex --version | head -1
+            xelatex --version | head -1
+            echo "TeX Gyre dependencies:"
+            kpsewhich tgtermes.sty
+            kpsewhich tgheros.sty
+            test -n "$(kpsewhich tgtermes.sty)" || {
+              echo "ERROR: tgtermes.sty not found" >&2
+              # exit 1
+            }
+            test -n "$(kpsewhich tgheros.sty)" || {
+              echo "ERROR: tgheros.sty not found" >&2
+              # exit 1
+            }
+            echo "Image/diagram tools:"
+            convert -version | head -1
+            dot -V
   npm-install:
       description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
       steps:
@@ -643,7 +755,7 @@ commands:
       # on a PR it stores that PR's incremental state. Keyed per-commit so re-runs
       # of the same commit are no-ops, and restore picks the newest by prefix.
       - save_cache:
-          key: v1-docs-gallery-{{ .Branch }}-{{ .Revision }}
+          key: v1-docs-gallery-{{ .Branch }}-{{ .Revision }}  # {{ checksum "docs/source/conf.py" }}
           paths:
             - docs/source/auto_examples
             - docs/source/modules/generated
