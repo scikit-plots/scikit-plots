@@ -19,7 +19,7 @@
 #include "../../../scikitplot/cexternals/_annoy/src/annoylib.h"
 
 using namespace Annoy;
-int precision(int f=40, int n=1000000, int seed=0){
+int precision(int f=40, int n=1000, int seed=0){
 	// Declare once at the top of precision()
 	// std::default_random_engine generator;
 	// Seed C++ RNG
@@ -97,7 +97,7 @@ int precision(int f=40, int n=1000000, int seed=0){
 
 	int K=10;
 	int prec_n = 1000;
-	std::vector<int> limits = {10, 100, 1000, 10000};
+	std::vector<int> limits = {10, 100, 1000};
 	std::map<int, double> prec_sum;
 	std::map<int, double> time_sum;
 	//init precision and timers map
@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
 	int f, n, seed;
 	f = 40;
 	// n = 1'000'000;  // valid in C++14 and later
-	n = 100000;
+	n = 100;
 	seed = 0;
 
     if (argc == 1) {

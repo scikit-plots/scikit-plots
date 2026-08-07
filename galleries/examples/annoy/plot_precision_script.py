@@ -27,7 +27,7 @@ except ImportError:
 
 # %%
 # n, f = 1_000_000, 100  # 100~2.5GB
-n, f = 100_000, 100  # 100~0.25GB 256~0.6GB
+n, f = 1_000, 100  # 100~0.25GB 256~0.6GB
 
 
 idx = AnnoyIndex(
@@ -82,7 +82,7 @@ plot(idx)
 
 # %%
 def precision(q):
-  limits = [10, 100, 1_000, 10_000]
+  limits = [10, 100, 1_000]
   k = 10
   prec_n = 10
   prec_sum = {}

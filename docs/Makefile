@@ -61,10 +61,11 @@ else ifeq ($(shell uname), Darwin)
 	# Avoid stalling issues on MacOS
 	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
 else
-	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
-	# SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
+	# SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
 endif
-SPHINX_NUMJOBS ?= $(or $(SPHINX_NUMJOBS_NOPLOT_DEFAULT),1)
+
+SPHINX_NUMJOBS ?= $(or $(SPHINX_NUMJOBS_NOPLOT_DEFAULT), 1)
 
 # LATEXDIR       = $(BUILDDIR)/latex
 # HTMLDIR        = $(BUILDDIR)/html/stable
@@ -138,6 +139,7 @@ clean: clean_basic
 ifneq ($(EXAMPLES_PATTERN),)
 	EXAMPLES_PATTERN_OPTS := -D sphinx_gallery_conf.filename_pattern="$(EXAMPLES_PATTERN)"
 endif
+
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
@@ -152,7 +154,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)\
 html: SPHINX_NUMJOBS ?= 1
 # With -b, the final argument is the exact output directory:
 # With -M, the final directory is the common build root:
-html: clean
+html:
 	@# These two lines make the build a bit more lengthy, and the \
 	# the embedding of images more robust \
 	# rm -rf "$(BUILDDIR)/doctrees/" \
@@ -166,7 +168,7 @@ html: clean
 # Default to SPHINX_NUMJOBS=auto (except on MacOS and CI) since this makes
 # html-noplot build faster
 html-noplot: SPHINX_NUMJOBS ?= $(SPHINX_NUMJOBS_NOPLOT_DEFAULT)
-html-noplot: clean
+html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) -j$(SPHINX_NUMJOBS) \
     $(BUILDDIR)/html/stable
 	@echo
@@ -185,7 +187,7 @@ ziphtml:
 	optipng $(BUILDDIR)/html/stable/_images/*.png
 	# Exclude the output directory to avoid infinity recursion
 	cd $(BUILDDIR)/html/stable; \
-	zip -q -x _downloads \
+	zip -q -x _downloads \
 	       -r _downloads/scikit-learn-docs.zip .
 	@echo
 	@echo "Build finished. The ZIP of the HTML is in $(BUILDDIR)/html/stable/_downloads."

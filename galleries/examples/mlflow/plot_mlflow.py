@@ -48,7 +48,7 @@ sp.mlflow.find_project_root()
 
 sp.mlflow.workflow(
     profile="local",
-    open_ui_seconds=5,
+    open_ui_seconds=1,
     experiment_name="my-first-project",  # "scikitplot-project"
     fmt="toml",
     overwrite=True,  # Config already exists: ./configs/mlflow.toml (use overwrite=True).
@@ -77,7 +77,7 @@ with sp.mlflow.session_from_file(ROOT / "configs/mlflow.toml", profile="local") 
 with sp.mlflow.session_from_file(ROOT / "configs/mlflow.yaml", profile="local") as mlflow:
     print("Open MLflow UI:", mlflow.ui_url)
     # do something
-    time.sleep(5)
+    time.sleep(1)
 
 
 with sp.mlflow.session_from_file(ROOT / "configs/mlflow.yaml", profile="local") as mlflow:
