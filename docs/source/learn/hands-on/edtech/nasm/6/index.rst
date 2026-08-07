@@ -51,7 +51,7 @@ the prototype of ``int maxofthree(int, int, int);``
        int result = maxofthree(1, 2, 3);
        Push arg3: |  3  | ... |
        Push arg2: |  2  |  3  | ... |
-       Push arg1: |  1  |  2  |  3  | ... |
+       Hash arg1: |  1  |  2  |  3  | ... |
 
 #. The RET address is also pushed to the top when using CALL
 

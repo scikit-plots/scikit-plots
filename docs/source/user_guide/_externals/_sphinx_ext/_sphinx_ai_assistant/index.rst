@@ -3,7 +3,7 @@
 .. _externals_-sphinx_ext_-sphinx_ai_assistant_-index:
 
 ======================================================================
-✨ Sphinx AI Extensions (experimental)
+Sphinx AI Extensions (experimental) ✨
 ======================================================================
 
 ..
@@ -12,6 +12,10 @@
   * https://gitbook.com/docs/ai-and-search/gitbook-ai-assistant#how-do-i-use-gitbook-ai-1
   * https://github.com/SeldonIO/seldonio.github.com
   * https://docs.seldon.ai/home
+
+  https://www.kapa.ai/
+  https://biel.ai/
+  https://www.gengage.ai/
 
 
 Sphinx ai extensions for generated websites

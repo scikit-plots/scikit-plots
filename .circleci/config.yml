@@ -95,8 +95,15 @@ _defaults: &defaults
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#arm
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#x86
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#gen1
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#gen2  # paid plans only
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#using-docker-gen2
-  # resource_class: xlarge  # xlarge.gen2
+  ## small, medium, medium+, large, xlarge, 2xlarge, and 2xlarge+
+  # resource_class: large  # gives the Docker executor 4 vCPUs / 8 GB RAM.
+  ## https://circleci.com/docs/guides/optimize/parallelism-faster-jobs/
+  ## https://circleci.com/docs/reference/configuration-reference/#parallelism
+  ## https://support.circleci.com/en/articles/15090429-troubleshooting-job-failed-due-to-excessive-parallelism
+  ## For container runner, the default max is 20 concurrent tasks, configurable via agent.maxConcurrentTasks.
+  # parallelism: 4
 
 # https://github.com/codecov/example-javascript/blob/main/.circleci/config.yml
 # orbs:
@@ -248,18 +255,31 @@ commands:
             #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
 
             sudo apt-get install --fix-missing -y --no-install-recommends \
+              fonts-dejavu-core \
+              fonts-noto-core \
+              fonts-noto-cjk \
+              fonts-noto-extra || true
+
+            # Install PDF documentation dependencies
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              graphviz \
+              imagemagick \
               latexmk \
               texlive-xetex \
               texlive-latex-base \
               texlive-latex-recommended \
               texlive-latex-extra \
-              texlive-fonts-recommended \
-              fonts-dejavu-core || true
+              texlive-fonts-recommended
 
-            sudo apt-get install --fix-missing -y --no-install-recommends \
-              fonts-noto-core \
-              fonts-noto-cjk \
-              fonts-noto-extra || true
+            echo "Graphviz:"
+            dot -V
+
+            echo "ImageMagick:"
+            convert -version
+
+            echo "LaTeX:"
+            xelatex --version
+
   npm-install:
       description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
       steps:
@@ -508,8 +528,34 @@ commands:
       # https://scikit-plots.github.io/stable/_downloads/scikit-plots-user-guide.pdf
       # https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
       # https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+      #
+      ## apply if needed via echo "CircleCI node: ${CIRCLE_NODE_INDEX}/${CIRCLE_NODE_TOTAL}"
+      # parallelism: 2
+      #
+      # node 0:
+      #   apt + npm + micromamba + HTML
+      #
+      # node 1:
+      #   apt + npm + micromamba + PDF
+      #
+      # build_scikitplot
+      #       │
+      #       ▼
+      # build_docs (parallelism: 2)
+      #       │
+      #       ├───────────────┐
+      #       ▼               ▼
+      # node 0              node 1
+      # make html           make latexpdf
+      #       │               │
+      #       ▼               ▼
+      # HTML tree           2 PDFs
+      #       └───────┬───────┘
+      #               ▼
+      #             deploy
       - run:
           name: "📘 Build HTML and PDF documentation"
+          ## https://support.circleci.com/en/articles/15091229-updates-to-maximum-duration-of-jobs
           # no_output_timeout: 25m
           command: |
             set -Eeuo pipefail
@@ -553,7 +599,7 @@ commands:
               -name '*.pdf' \
               -exec ls -lh {} \;
       - run:
-          name: Check to show sphinx log for warnings (which are treated as errors)
+          name: Check Sphinx logs for warnings to show (which are treated as errors)
           when: always
           command: |
             # Condition	    grep exit code
@@ -567,14 +613,20 @@ commands:
             # grep error	  0 (because non-zero is inverted)
             # The ! in shell means invert the exit code.
             # Exited with code exit status 1
-            # ! grep "^.* ERROR: .*$" ~/sphinx_log.txt
-            # ! grep "^.* WARNING: .*$" ~/sphinx_log.txt
+            # ! grep "^.* ERROR: .*$" ~/sphinx_html_log.txt
+            # ! grep "^.* WARNING: .*$" ~/sphinx_html_log.txt
             # echo $?
-            # grep "^.* WARNING: .*$" ~/sphinx_log.txt || true
-            if grep -q "^.* WARNING: .*$" ~/sphinx_log.txt; then
-                echo "Warnings found:"
-                grep "^.* WARNING: .*$" ~/sphinx_log.txt || true
-            fi
+            # grep "^.* WARNING: .*$" ~/sphinx_html_log.txt || true
+            # if grep -q "^.* WARNING: .*$" ~/sphinx_html_log.txt; then
+            #     echo "Warnings found:"
+            #     grep "^.* WARNING: .*$" ~/sphinx_html_log.txt || true
+            # fi
+            for log in ~/sphinx_html_log.txt ~/sphinx_latexpdf_log.txt; do
+              if [ -f "$log" ] && grep -q "WARNING:" "$log"; then
+                echo "Warnings found in $log:"
+                grep "WARNING:" "$log" || true
+              fi
+            done
       - run:
           name: Save sphinx traceback
           when: always
@@ -582,8 +634,11 @@ commands:
             cp /tmp/sphinx-err-*.log ~/sphinx-traceback.log || true
       # you must store the artifact explicitly:
       - store_artifacts:
-          path: ~/sphinx_log.txt
-          destination: sphinx_log.txt
+          path: ~/sphinx_html_log.txt
+          destination: sphinx_html_log.txt
+      - store_artifacts:
+          path: ~/sphinx_latexpdf_log.txt
+          destination: sphinx_latexpdf_log.txt
       - store_artifacts:
           path: ~/sphinx-traceback.log
           destination: sphinx-traceback.log

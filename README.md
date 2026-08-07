@@ -250,7 +250,7 @@
 
  <h4>
   🐋🦜
-  🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨:
+  🔜 <code>EXPERIMENTAL</code> RAG-CI Domesticate 🇦🇮 via <code>scikitplot.mcp</code> Local (Self-Hosting) by Docker ✨:
  </h4>
 
 > 🐬🦜 **Tame Your Free Spirit AI — Feed It Verified Public Data ✨**
@@ -1281,14 +1281,14 @@ https://emojidb.org/
  ✖︎ ✗ ✘ ✕ ✖ ✚ ✛ ✜ ✢ ✣ ✦ ✧ ✩ ✪ ✫ ✬ ✭ ✮ ✯
 ☑︎ ✓ ✔︎ ✖︎ ✗ ✘ ☒ ⛌ ✖︎ ✗ ✘ ☒
 🔜 ❌ ❎ 🟩 ⛌ ⛔ 🚫 📤 🆗 📦 🧊
-▲ △ ▴ ▵ ⟁ ⧋ ⧌ ⧍ ⧎ ⧏ ⩣ ⩤ ⩥ ↓
+▲ △ ▴ ▵ ⟁ ⧋ ⧌ ⧍ ⧎ ⧏ ⩣ ⩤ ⩥ ↓ —
 ⚔︎ ⚒︎ ⚖ ⚙ ⚛ ⚡ ☄ ☈ ⛏ ⛓ ⛨ ⚒ ⚚ ⚖ ⚙ ⚔ ⚰ ☠
 ☢︎ ☣︎ ☠︎ ☤ ⚕ ⚕︎ ⚚ ☥ ☬ ☯
 ❓❗ ‼ ⁉ ⁈ ⁉︎ ⁈︎ ⁇ ❔ ⍰ ℹ ? ⓠ ⓘ 🛈 ⍰
 □ ▢ ▣ ▤ ▥ ▦ ▧ ▨ ▩ ▫ ▪ ◧ ◨ ◩ ◪
 ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⛔ ✖︎ ❗ ‼︎ ⚡
 ☡ ⚠︎ ⚔︎ ☠︎ ✖︎ ❗
-▲ ⚠︎ ☠︎ ☢︎ ☣︎ ✖︎ ▼
+▲ ⚠︎ ☠︎ ☢︎ ☣︎ ✖︎ ▼ ▼
 🚗︎ 🚗 🚙 🚕 🏎️ 🚓 🚐 🚜 🛻 🚘 🚔 🚍 🚌 🚖
 🚗︎ 🚗 🚙 🚕 🏎️ 🚓 🚐 🚜 🛻 🚘 🚔 🚍 🚌 🚖 ⛟ 🚚 🚛 🦽 🦼 🛴 🛵 🏍️ 🛞
 ✈︎ 🛫 🛬 🛩️ 🚁

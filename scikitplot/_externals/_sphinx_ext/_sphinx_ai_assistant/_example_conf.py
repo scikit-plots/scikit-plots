@@ -723,13 +723,22 @@ ai_assistant_include_raw_image = False
 # ``sessionStorage`` (persisted by the toggle) and either opens this URL or
 # calls ``window.print()``.
 
-# → https://scikit-plots.github.io/dev/apis/scikitplot.html
-# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
-# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
-# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+# Auto-discovery target reference (when ai_assistant_pdf_export_url is empty):
+# → apis/ pages       → https://scikit-plots.github.io/dev/_downloads/scikit-plots-apis.pdf
+# → user_guide/ pages → https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+# → every other page  → scikit-plots-apis.pdf  (the reliable default)
 #
-# Page and/or can be use hash value correspond title
-# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
+# Build reality (drives the defaults above): CircleCI time / resource limits
+# mean the LaTeX build usually emits ONLY scikit-plots-apis.tex →
+# scikit-plots-apis.pdf. The full all-in-one scikit-plots.pdf ("primary") is
+# not always built, and scikit-plots-user-guide.pdf only rarely. So the JS
+# auto-discovery defaults to scikit-plots-apis.pdf rather than the frequently-
+# absent all-in-one. If your deployment DOES build the full PDF, point at it
+# explicitly below (an explicit URL always wins over auto-discovery):
+#   ai_assistant_pdf_export_url = f"{html_baseurl}_downloads/scikit-plots.pdf"
+#
+# Page anchoring: a title→page map can deep-link into the PDF, e.g.
+# AI_ASSISTANT_PDF_PAGE_MAP → .../_downloads/scikit-plots-apis.pdf#page=42
 # ai_assistant_pdf_export_url = None  # None / "" → Only print mode window.print()
 ai_assistant_pdf_export_url = f"{html_baseurl}"
 

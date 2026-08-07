@@ -83,7 +83,7 @@ Let's see how this works in practice.
 
    Docker requires an active process to keep the container alive.
    Usually, the process is tied to a web process, such as Apache or
-   Nginx. We can use a simple script that never exits to keep the
+   Ngnix. We can use a simple script that never exits to keep the
    container running. Our script will use a while loop that pauses for a
    few seconds and then restarts.
 

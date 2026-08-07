@@ -1,0 +1,211 @@
+**********************************
+Step 2: Examining the Config Files
+**********************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: View the OpenVPN configuration files on the client and server.
+
+You have already configured the OpenVPN server and generated a client config.
+We are almost ready! However, we have to make a configuration change before
+we connect to the server. There is a documented |configuration error| that
+we must correct.
+
+.. Note:: ``push "comp-lzo no"`` causes an error occurs on some OpenVPN
+    clients. We should fix our configurations to work reliably using any client.
+
+The error is trying to set ``comp-lzo`` through a ``push`` command if the
+setting does not exist in the client. The server can set ``comp-lzo`` in
+the client only if the directive already exists. We should **add**
+``comp-lzo no`` to the client config to correct this issue.
+
+``push`` is used to send or push settings to the client. Using ``push`` makes
+it easier to maintain client configs because the settings are changed once
+on the server, instead of modifying each client.
+
+.. code-block:: bash
+
+    root@vps298933:~# docker run -v /root/vpn-data:/etc/openvpn --rm myownvpn ovpn_genconfig -u udp://IP_ADDRESS:PORT
+    Processing PUSH Config: 'block-outside-dns'
+    Processing Route Config: '192.168.254.0/24'
+    Processing PUSH Config: 'dhcp-option DNS 8.8.8.8'
+    Processing PUSH Config: 'dhcp-option DNS 8.8.4.4'
+    Processing PUSH Config: 'comp-lzo no'
+    Successfully generated config
+    Cleaning up before Exit ...
+
+6.2.1. OpenVPN Conf Files
+============================
+The configuration files for OpenVPN are in directory ``/etc/openvpn``.
+You can view the files by opening a shell connection to the Docker container.
+
+  .. code-block:: bash
+
+      docker exec -it openvpn /bin/bash
+
+Recall, that we mounted this directory to ``/root/vpn-data`` so that we can
+modify the conf files without having to enter the container. As you can see,
+the files are identical.
+
+  .. code-block:: bash
+
+      root@vps298933:~# docker exec -it openvpn /bin/bash
+      bash-4.4# ls -lh /etc/openvpn
+      total 20
+      drwxr-xr-x    2 root     root        4.0K Apr 18 15:04 ccd
+      -rw-r--r--    1 root     root         650 Apr 18 15:06 crl.pem
+      -rw-r--r--    1 root     root         642 Apr 18 15:04 openvpn.conf
+      -rw-r--r--    1 root     root         813 Apr 18 15:04 ovpn_env.sh
+      drwx------    6 root     root        4.0K Apr 18 15:09 pki
+      bash-4.4# exit
+      exit
+      root@vps298933:~# ls -lh ~/vpn-data/
+      total 20K
+      drwxr-xr-x 2 root root 4.0K Apr 18 21:04 ccd
+      -rw-r--r-- 1 root root  650 Apr 18 21:06 crl.pem
+      -rw-r--r-- 1 root root  642 Apr 18 21:04 openvpn.conf
+      -rw-r--r-- 1 root root  813 Apr 18 21:04 ovpn_env.sh
+      drwx------ 6 root root 4.0K Apr 18 21:09 pki
+      root@vps298933:~#
+
+.. tip:: View these two resources for additional configuration insights:
+
+    #. |OpenVPN configuration| from stosb.com.
+    #. |Server Guide for OpenVPN| from Ubuntu.
+
+openvpn.conf
+------------------
+The default file name for the server configuration files is |server.conf|.
+For this Docker project, the developer decided to call it ``openvpn.conf``.
+Let's look at some of these directives.
+
+**Open** the ``openvpn.conf`` file and view the configuration.
+
+server 192.168.255.0 255.255.255.0
+  ``server`` specifies the IP address and subnet mask of the network.
+
+verb 3
+  ``verb`` is the verbose setting, which controls how much data the program
+  logs or displays. 1 is the default, but 3 is a recommended value.
+
+key, ca, cert, dh, tls--auth
+  These directives specify the paths to the keys and certificates.
+
+key-direction 0
+  The key direction should be to 0 on the server, and 1 on the client.
+
+keepalive 10 60
+  * ``keepalive`` persists the connection on the server.
+    It has two arguments, which are *ping* and *timeout*.
+  * ``10`` is the ping value. The server pings the client every 10 seconds.
+  * ``60`` is the timeout value. The server will assume the remote peer is
+    down if the client does respond in the specified time.
+
+persist-key, persist-tun
+  Does not re-read the key or drop the tunnel if the connection is dropped.
+
+proto udp
+  * ``proto`` defines with protocol to use, UDP or TCP.
+  * UDP is preferred because TCP/IP ensures data delivery after the data
+    passes through the VPN connection.
+  * TCP adds overhead and can slow down the connection.
+
+    * TCP is used to bypass VPN detection by using port 443 to masquerade the
+      data as HTTPS data.
+
+port 1194
+  * ``port`` specifies which port the VPN server accepts connections.
+  * A Docker-based configuration relies on the port forwarding to change
+    the port.
+
+dev tun0
+  * ``dev`` sets the name of the virtual network device to use. It makes
+    configuring the firewall easier if the value is specified in the config.
+
+status /tmp/openvpn-status.log
+  ``status`` defines the location of the log file.
+
+user nobody, group nogroup
+  * A security feature that sets the user and group of the OpenVPN daemon
+    to nobody after it starts.
+  * It protects the system is an intruder gains control of the process.
+
+comp-lzo no
+  * ``comp-lzo`` specifies the compression link.
+  * ``no`` disables compression
+  * ``yes`` forces the use of compression
+  * ``adaptive`` determines compression from the client config
+
+route 192.168.254.0 255.255.255.0
+  ``route`` defines the routing table in the OpenVPN server's routing table.
+
+push
+  * ``push`` sends a configuration to the client.
+
+    * Prevents from having to define these values statically in the client.
+  * ``push "block-outside-dns"`` forces the network to use the DNS servers
+    specified in the OpenVPN config.
+
+    * Using ``block-outside-dns`` prevents |DNS leak|.
+  * ``push "dhcp-option DNS 8.8.8.8"`` specifies which DNS server that a
+    client should use.
+  * ``push "comp-lzo no"`` disables compression on the client
+
+    .. caution:: The ``push "comp-lzo"`` directive does not work reliably
+      across all clients. Some clients will ignore the request if ``comp-lzo``
+      is not explicitly defined in the client config.
+
+client.ovpn
+---------------
+The default file name for the server configuration files is |client.conf|.
+The configuration guide for this project called it ``user1.ovpn``. You can
+create many client configs. The name is not important.
+Let's look at some of these directives.
+
+**Open** the ``user1.ovpn`` file and view the configuration.
+
+client
+  Adding ``client`` enables client mode. It identifies this file as
+  a client config.
+
+nobind
+  * ``nobind`` uses a random port on the client side to connect to the server.
+    Otherwise, the OpenVPN client uses the same port as the server.
+  * This directive is needed for running multiple VPN clients on the same host.
+
+dev tun
+  * ``dev`` specifies the VPN tunnel. The two options are ``TUN`` and ``TAP``.
+  * TUN only passes TCP/IP traffic and does not provide any broadcast
+    traffic across the VPN tunnel.
+  * TAP is used for more advanced setups when it is necessary to pass
+    broadcast data to the client or server, such as for network discovery.
+
+remote-cert-tls server
+  This directive requires that the certificate on the other end is a
+  server certificate.
+
+remote 10.10.235.128 11111 udp
+  * ``remote`` contains the information necessary to connect to the server.
+
+    * ``remote IP port protocol``
+  * ``10.10.235.128`` is the IP address of the server
+  * ``11111`` informs the client which port to connect to on the server
+  * ``udp`` specifies using the UDP protocol. The other option is TCP.
+
+redirect-gateway def1
+  This directive redirects all traffic through the VPN.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/6-open-vpn/6.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

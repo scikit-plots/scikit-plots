@@ -1,0 +1,55 @@
+*******************
+Step 6: On Your Own
+*******************
+
+.. include:: urls.rst
+
+This lab gave you an introduction to VPN services using OpenVPN in a
+particular context. We explored how to use OpenVPN to connect
+to a remote service that then acted like our ISP.
+
+Here is a list of options for you to explore on your own:
+
+1. Create an ``.ovpn`` config for your other devices
+
+   * The current set up does not support simultaneous connections
+     using the same client config.
+   * Trying to use the same client config at the time will result in
+     dropping the other connection.
+
+#. Configure OpenVPN to use multiple ports so you can connect on networks
+   that have restrictions.
+#. Configure OpenVPN on your router using DD-WRT so all devices on your
+   network will connect through the VPN.
+
+   * There are numerous guides online that explain the process.
+   * https://appuals.com/how-to-install-dd-wrt-firmware-on-your-router/
+   * https://thevpn.guru/vpn-client-dd-wrt-router-configure-guide/
+   * https://my.ibvpn.com/knowledgebase/305/Configure-the-OpenVPN-client-on-DD-WRT-routers-NEW.html
+
+#. Network remote LANs using OpenVPN.
+#. Install OpenVPN on your VPS directly to understand the configurations and
+   firewall settings.
+
+   * |Ubuntu Server Guide - OpenVPN|
+   * |How To Set Up an OpenVPN Server on Ubuntu 18.04 (DigitalOcean)|
+
+#. Use the |OpenVPN install script| to install OpenVPN on a VPS that uses
+   OpenVZ virtualization.
+#. Explore other ciphers and security measures.
+#. Install OpenVPN on your Raspberry Pi to access your work network remotely
+
+   * https://medium.freecodecamp.org/running-your-own-openvpn-server-on-a-raspberry-pi-8b78043ccdea?gi=11b90d9105c3
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/6-open-vpn/6.6.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

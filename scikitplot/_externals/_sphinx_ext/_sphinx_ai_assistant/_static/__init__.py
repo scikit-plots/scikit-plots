@@ -79,19 +79,20 @@ __all__ = [
     "_SVG_KEYBOARD",
     "_SVG_MARKDOWN",
     "_SVG_MENU_SPARKLE",
-    "_SVG_MENU_SPARKLE_RIGHT",
     "_SVG_MINIMIZE_COLLAPSE",
     "_SVG_NEW_CHAT",
     "_SVG_NEW_CHAT_COMPOSE",
     "_SVG_OLLAMA",
     "_SVG_PRINTER",
     "_SVG_PRIVACY",
+    "_SVG_RETRY",
     "_SVG_SEARCH_AI",
     "_SVG_SEARCH_SPARKLE",
     "_SVG_SHIELD_ALERT",
     "_SVG_SPARKLE",
-    "_SVG_SPARKLE_ALT",
-    "_SVG_SPARKLE_NOVA",
+    "_SVG_SPARKLE_LEFT_2_NOVA_UP_DOWN",
+    "_SVG_SPARKLE_RIGHT_1_NOVA_TOP",
+    "_SVG_SPARKLE_RIGHT_2_NOVA_UP_DOWN",
     "_SVG_SYNC_RETRY",
     "_SVG_SYNC_RETRY_REVERSE",
     "_SVG_THUMB_DOWN",
@@ -549,6 +550,20 @@ _SVG_SYNC_RETRY_REVERSE: str = (
     "IDAgMS0xLjQ5LjE3OEE1LjUgNS41IDAgMCAwIDggMi41WiIvPjwvZz48L3N2Zz4="
 )
 
+# Single counter-clockwise arrow (Lucide rotate-ccw) — the "retry" action.
+# Byte-for-byte mirror of ai-assistant.js ICONS.retry so the same-named
+# icon renders identically in JS-driven and server-rendered contexts.
+# (_SVG_SYNC_RETRY above is the older Octicon two-arrow "sync" glyph,
+# kept as a reserved variant; the retry meta now points here.)
+_SVG_RETRY: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3Vycm"
+    "VudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIg"
+    "c3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlsaW5lIHBvaW50cz0iMSA0IDEgMT"
+    "AgNyAxMCIvPjxwYXRoIGQ9Ik0zLjUxIDE1YTkgOSAwIDEgMCAuNDktNC41Ii8+PC9z"
+    "dmc+"
+)
+
 # Octicon sparkle — four-pointed star with concave sides
 _SVG_SPARKLE: str = (
     "data:image/svg+xml;base64,"
@@ -567,7 +582,7 @@ _SVG_SPARKLE: str = (
     "NjczWiIvPjwvc3ZnPg=="
 )
 # Two-tier "AI sparkle" — one large 4-point star, one small offset star
-_SVG_SPARKLE_ALT: str = (
+_SVG_SPARKLE_RIGHT_1_NOVA_TOP: str = (
     "data:image/svg+xml;base64,"
     "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
     "MCAyMCAyMCIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTkgMS41Yy4xOCAwIC4zNC4x"
@@ -690,11 +705,11 @@ _SVG_MENU_SPARKLE: str = (
 )
 
 # AI "sparkles" cluster (Lucide sparkles) — one large 4-point star + two small
-# twinkles. A DISTINCT glyph from _SVG_SPARKLE_ALT (the filled two-tier star),
+# twinkles. A DISTINCT glyph from _SVG_SPARKLE_RIGHT_1_NOVA_TOP (the filled two-tier star),
 # in the same stroke convention as _SVG_CELEBRATION so the "I'm Feeling Lucky"
 # trigger + shuffle read as a matching pair. Mirrors ai-assistant.js
 # ICONS.menuSparkleRight byte-for-byte (base64 of the exact inline SVG).
-_SVG_MENU_SPARKLE_RIGHT: str = (
+_SVG_SPARKLE_RIGHT_2_NOVA_UP_DOWN: str = (
     "data:image/svg+xml;base64,"
     "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3Vycm"
     "VudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIg"
@@ -751,7 +766,7 @@ _SVG_SEARCH_SPARKLE: str = (
 # comment on ICONS.sparkleNova in ai-assistant.js for why). Primary
 # icon for .ai-assistant-panel-logo; sparkle/sparkle-alt remain as
 # defined alternates, not removed.
-_SVG_SPARKLE_NOVA: str = (
+_SVG_SPARKLE_LEFT_2_NOVA_UP_DOWN: str = (
     "data:image/svg+xml;base64,"
     "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
     "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTIuNjIyIDExLjI1MmEuNDA5"
@@ -836,32 +851,21 @@ _SVG_CELEBRATION: str = (
 # every other icon in this module does). Not wired to any control yet —
 # reserved for a future error/alert affordance (e.g. a failed-request state
 # in the panel body). Mirrors the "reserved for future use" pattern already
-# established by _SVG_SPARKLE / _SVG_SPARKLE_ALT above.
+# established by _SVG_SPARKLE / _SVG_SPARKLE_RIGHT_1_NOVA_TOP above.
 _SVG_ERROR_ALERT: str = (
     "data:image/svg+xml;base64,"
-    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8v"
-    "d3d3LnczLm9yZy8yMDAwL3N2ZyIgZm9jdXNhYmxlPSJmYWxzZSIgYXJpYS1oaWRkZW49"
-    "InRydWUiPjxwYXRoIGQ9Ik0xMiA4LjAwMDA4VjEyLjAwMDFNMTIgMTYuMDAwMUgxMi4w"
-    "MU0zIDcuOTQxNTNWMTYuMDU4NkMzIDE2LjQwMTMgMyAxNi41NzI2IDMuMDUwNDggMTYu"
-    "NzI1NEMzLjA5NTE1IDE2Ljg2MDYgMy4xNjgxNiAxNi45ODQ3IDMuMjY0NjMgMTcuMDg5"
-    "M0MzLjM3MzY5IDE3LjIwNzcgMy41MjM0NSAxNy4yOTA5IDMuODIyOTcgMTcuNDU3M0wx"
-    "MS4yMjMgMjEuNTY4NEMxMS41MDY2IDIxLjcyNiAxMS42NDg0IDIxLjgwNDcgMTEuNzk4"
-    "NSAyMS44MzU2QzExLjkzMTUgMjEuODYzIDEyLjA2ODUgMjEuODYzIDEyLjIwMTUgMjEu"
-    "ODM1NkMxMi4zNTE2IDIxLjgwNDcgMTIuNDkzNCAyMS43MjYgMTIuNzc3IDIxLjU2ODRM"
-    "MjAuMTc3IDE3LjQ1NzNDMjAuNDc2NiAxNy4yOTA5IDIwLjYyNjMgMTcuMjA3NyAyMC43"
-    "MzU0IDE3LjA4OTNDMjAuODMxOCAxNi45ODQ3IDIwLjkwNDkgMTYuODYwNiAyMC45NDk1"
-    "IDE2LjcyNTRDMjEgMTYuNTcyNiAyMSAxNi40MDEzIDIxIDE2LjA1ODZWNy45NDE1M0My"
-    "MSA3LjU5ODg5IDIxIDcuNDI3NTYgMjAuOTQ5NSA3LjI3NDc3QzIwLjkwNDkgNy4xMzk1"
-    "OSAyMC44MzE4IDcuMDE1NTEgMjAuNzM1NCA2LjkxMDgyQzIwLjYyNjMgNi43OTI0OCAy"
-    "MC40NzY2IDYuNzA5MjggMjAuMTc3IDYuNTQyODhMMTIuNzc3IDIuNDMxNzdDMTIuNDkz"
-    "NCAyLjI3NDIxIDEyLjM1MTYgMi4xOTU0MyAxMi4yMDE1IDIuMTY0NTRDMTIuMDY4NSAy"
-    "LjEzNzIxIDExLjkzMTUgMi4xMzcyMSAxMS43OTg1IDIuMTY0NTRDMTEuNjQ4NCAyLjE5"
-    "NTQzIDExLjUwNjYgMi4yNzQyMSAxMS4yMjMgMi40MzE3N0wzLjgyMjk3IDYuNTQyODhD"
-    "My41MjM0NSA2LjcwOTI4IDMuMzczNjkgNi43OTI0OCAzLjI2NDYzIDYuOTEwODJDMy4x"
-    "NjgxNiA3LjAxNTUxIDMuMDk1MTUgNy4xMzk1OSAzLjA1MDQ4IDcuMjc0NzdDMyA3LjQy"
-    "NzU2IDMgNy41OTg4OSAzIDcuOTQxNTNaIiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJl"
-    "bnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0"
-    "cm9rZS1saW5lam9pbj0icm91bmQiPjwvcGF0aD48L3N2Zz4K"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3Vycm"
+    "VudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIg"
+    "c3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDh2NE0xMiAxNmguMD"
+    "FNMyA3Ljk0djguMTJjMCAuMzQgMCAuNTEuMDUuNjYuMDUuMTQuMTIuMjYuMjIuMzcu"
+    "MS4xMS4yNS4yLjU1LjM2bDcuNCA0LjExYy4yOC4xNi40My4yNC41OC4yNy4xMy4wMy"
+    "4yNy4wMy40IDAgLjE1LS4wMy4zLS4xMS41OC0uMjdsNy40LTQuMTFjLjMtLjE2LjQ1"
+    "LS4yNS41NS0uMzYuMS0uMTEuMTctLjIzLjIyLS4zNy4wNS0uMTUuMDUtLjMyLjA1LS"
+    "42NlY3Ljk0YzAtLjM0IDAtLjUxLS4wNS0uNjYtLjA1LS4xNC0uMTItLjI3LS4yMi0u"
+    "MzctLjEtLjEyLS4yNS0uMi0uNTUtLjM3bC03LjQtNC4xMWMtLjI4LS4xNi0uNDMtLj"
+    "I0LS41OC0uMjdhMSAxIDAgMCAwLS40IDBjLS4xNS4wMy0uMy4xMS0uNTguMjdsLTcu"
+    "NCA0LjExYy0uMy4xNy0uNDUuMjUtLjU1LjM3LS4xLjEtLjE3LjIzLS4yMi4zNy0uMD"
+    "UuMTUtLjA1LjMyLS4wNS42NloiLz48L3N2Zz4="
 )
 
 
@@ -928,13 +932,16 @@ _ICON_META: dict[str, dict[str, str]] = {
     "thumb-up": {"icon": _SVG_THUMB_UP, "desc": "Helpful"},
     "thumb-down": {"icon": _SVG_THUMB_DOWN, "desc": "Not helpful"},
     "check-answer": {"icon": _SVG_CHECK_ANSWER, "desc": "Copied!"},
-    "retry": {"icon": _SVG_SYNC_RETRY, "desc": "Retry — re-send the same question"},
+    "retry": {"icon": _SVG_RETRY, "desc": "Retry — re-send the same question"},
     # Not wired to any control yet — see ICONS.syncRetryReverse in JS.
     "retry-reverse": {"icon": _SVG_SYNC_RETRY_REVERSE, "desc": "Redo (reverse retry)"},
     "sparkle": {"icon": _SVG_SPARKLE, "desc": "AI sparkle"},
-    "sparkle-alt": {"icon": _SVG_SPARKLE_ALT, "desc": "AI sparkle (alternate)"},
+    "sparkle-alt": {
+        "icon": _SVG_SPARKLE_RIGHT_1_NOVA_TOP,
+        "desc": "AI sparkle (alternate)",
+    },
     "sparkle-nova": {
-        "icon": _SVG_SPARKLE_NOVA,
+        "icon": _SVG_SPARKLE_LEFT_2_NOVA_UP_DOWN,
         "desc": "AI sparkle, Nova style (primary panel logo)",
     },
     "brush-sparkle": {
@@ -942,8 +949,8 @@ _ICON_META: dict[str, dict[str, str]] = {
         "desc": "AI-assisted style/customize",
     },
     "menu-sparkle": {"icon": _SVG_MENU_SPARKLE, "desc": "AI menu"},
-    "menu-sparkle-right": {
-        "icon": _SVG_MENU_SPARKLE_RIGHT,
+    "sparkle-right-2-nova-up-down": {
+        "icon": _SVG_SPARKLE_RIGHT_2_NOVA_UP_DOWN,
         "desc": "AI suggestion sparkle",
     },
     "shield-alert": {"icon": _SVG_SHIELD_ALERT, "desc": "Security notice"},
