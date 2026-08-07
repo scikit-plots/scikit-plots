@@ -151,10 +151,10 @@ if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runti
 # NOTE: ``bs4``, ``markdownify``, and ``IPython`` are intentionally NOT
 # imported at module scope.  All callers import them locally when needed.
 
-# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
-# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
 # https://www.svgviewer.dev/svg-to-data-uri
 # https://www.svgrepo.com/
+# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
+# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
 
 
 __all__ = [
@@ -4458,6 +4458,14 @@ def add_ai_assistant_context(
         "panelQuickQuestions": _cfg_str_list(
             app.config, "ai_assistant_panel_quick_questions"
         ),
+        # "Explain this page" prompt button (deterministic pre-fill).
+        # When True (default) a single button is shown between the welcome
+        # message and the quick-suggestion chips; one click pre-fills the input
+        # with the best question for the current page (the author's top
+        # ``panelQuickQuestions`` entry, else a question built from the page
+        # subject). The user reviews and sends. Set False to hide it. The JS
+        # also honours a legacy ``panelLucky`` key as a fallback opt-out.
+        "panelPageHelp": _cfg_bool(app.config, "ai_assistant_panel_page_help", True),
         # "Speak with your assistant" microphone banner / button.
         # When True (default) and the browser supports Web Speech API the
         # panel shows a dismissable "Speak with your assistant" pill above
@@ -4977,6 +4985,14 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #             "What are the main parameters?",
     #         ]
     #
+    # ``ai_assistant_panel_page_help``
+    #     When True (default) show the "Explain this page" button between the
+    #     welcome message and the quick-suggestion chips.  One click pre-fills
+    #     the input with the best question for the current page (the author's
+    #     top ``ai_assistant_panel_quick_questions`` entry, else a question
+    #     built from the page's subject); the user reviews and sends.  Set
+    #     False to hide the button.
+    #
     # ``ai_assistant_panel_speak_banner``
     #     When True (default) and the browser supports Web Speech API, show
     #     a "Speak with your assistant" pill above the input plus a mic icon
@@ -5001,6 +5017,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
     app.add_config_value("ai_assistant_panel_api_enabled", False, "html")
     app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
+    app.add_config_value("ai_assistant_panel_page_help", True, "html")
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_label", "Ask AI", "html")
     app.add_config_value("ai_assistant_panel_start_minimized", True, "html")

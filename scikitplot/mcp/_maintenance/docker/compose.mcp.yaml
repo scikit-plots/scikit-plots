@@ -1,0 +1,37 @@
+services:
+  mcp:
+    build:
+      context: ../../../..
+      dockerfile: scikitplot/mcp/_maintenance/docker/Dockerfile.mcp
+    image: scikitplot-mcp:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      SCIKITPLOT_MCP_DOCKER: "1"
+      SCIKITPLOT_MCP_PORT: "8000"
+      SCIKITPLOT_MCP_PATH: /mcp
+      SCIKITPLOT_MCP_HEALTH_PATH: /healthz
+      SCIKITPLOT_MCP_LOG_LEVEL: INFO
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -m
+        - scikitplot.mcp
+        - --docker
+        - --probe
+        - --probe-timeout
+        - "3"
+      interval: 30s
+      timeout: 4s
+      start_period: 15s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777

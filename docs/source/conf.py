@@ -285,7 +285,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
-    "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
+    # "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
     #
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
     # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
@@ -1334,15 +1334,26 @@ htmlhelp_basename = 'scikit-plotsdoc'
 # }
 
 # Grouping the document tree into LaTeX files. List of tuples.
-# latex_documents = [
-#     (
-#         master_doc,  # source start file
-#         "scikitplot.tex",  # target name
-#         "{} Documentation".format(project),  # title
-#         author,  # author
-#         "manual",  # documentclass [howto,manual, or own class]
-#     )
-# ]
+latex_documents = [
+    (
+        master_doc,                          # source start file
+        "scikit-plots.tex",                  # Generated LaTeX filename target name
+        "{} Documentation".format(project),  # title "scikit-plots Documentation"
+        author,                              # author "scikit-plots developers"
+        "manual",                            # documentclass [howto,manual, or own class]
+        False,
+    ),
+    (
+        "user_guide/index",
+        "scikit-plots-user-guide.tex",
+        "scikit-plots User Guide",
+        author,                              # author "scikit-plots developers"
+        "manual",
+        False,
+    ),
+]
+
+# latex_engine = "xelatex"
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
@@ -2280,6 +2291,16 @@ ai_assistant_enabled = True
 # scikit-plots default:
 ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
 ai_assistant_panel_site_url = "https://scikit-plots.github.io/dev"
+
+# → https://scikit-plots.github.io/dev/apis/scikitplot.html
+# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
+# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+#
+# Page and/or can be use hash value correspond title
+# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
+ai_assistant_pdf_url_mode_toggle = True
+ai_assistant_pdf_export_url = f"{html_baseurl}"
 
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)

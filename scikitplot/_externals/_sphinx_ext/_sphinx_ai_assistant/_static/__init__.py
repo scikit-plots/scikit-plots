@@ -50,6 +50,11 @@ Examples
 >>> assert _PROVIDER_META["claude"]["icon"].startswith("data:image/svg+xml;base64,")
 """
 
+# https://www.svgviewer.dev/svg-to-data-uri
+# https://www.svgrepo.com/
+# https://github.com/FirefoxUX/acorn-icons/tree/main/icons
+# https://github.com/mozilla-firefox/firefox/tree/main/toolkit/themes/shared/icons
+
 from __future__ import annotations
 
 import base64
@@ -60,9 +65,11 @@ __all__ = [
     "_PROVIDER_META",
     "_SVG_BOT_ASSISTANT",
     "_SVG_BRUSH_SPARKLE",
+    "_SVG_CELEBRATION",
     "_SVG_CHATGPT",
     "_SVG_CHECK_ANSWER",
     "_SVG_CLAUDE",
+    "_SVG_COMMENT_DISCUSSION",
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
     "_SVG_DEFAULT",
@@ -72,10 +79,12 @@ __all__ = [
     "_SVG_KEYBOARD",
     "_SVG_MARKDOWN",
     "_SVG_MENU_SPARKLE",
+    "_SVG_MENU_SPARKLE_RIGHT",
     "_SVG_MINIMIZE_COLLAPSE",
     "_SVG_NEW_CHAT",
     "_SVG_NEW_CHAT_COMPOSE",
     "_SVG_OLLAMA",
+    "_SVG_PRINTER",
     "_SVG_PRIVACY",
     "_SVG_SEARCH_AI",
     "_SVG_SEARCH_SPARKLE",
@@ -87,6 +96,7 @@ __all__ = [
     "_SVG_SYNC_RETRY_REVERSE",
     "_SVG_THUMB_DOWN",
     "_SVG_THUMB_UP",
+    "_SVG_UPLOAD",
     "export_svg2base64",
 ]
 
@@ -320,6 +330,68 @@ _SVG_TERMS: str = (
     "IjE0IDIgMTQgOCAyMCA4Ii8+PGxpbmUgeDE9IjkiIHkxPSIxMyIgeDI9IjE1IiB5"
     "Mj0iMTMiLz48bGluZSB4MT0iOSIgeTE9IjE3IiB4Mj0iMTUiIHkyPSIxNyIvPjwv"
     "c3ZnPg=="
+)
+
+# GitHub Octicon "comment-discussion" (filled, 16x16 viewBox).
+# Additive fallback for a future discussion/conversation action.
+_SVG_COMMENT_DISCUSSION: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGRhdGEtY29tcG9uZW50"
+    "PSJPY3RpY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSIgZm9jdXNhYmxlPSJmYWxzZSIgY2xhc3M9"
+    "Im9jdGljb24gb2N0aWNvbi1jb21tZW50LWRpc2N1c3Npb24iIHZpZXdCb3g9IjAgMCAxNiAx"
+    "NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGRpc3BsYXk9"
+    "ImlubGluZS1ibG9jayIgb3ZlcmZsb3c9InZpc2libGUiIHN0eWxlPSJ2ZXJ0aWNhbC1hbGln"
+    "bjp0ZXh0LWJvdHRvbSI+PHBhdGggZD0iTTEuNzUgMWg4LjVjLjk2NiAwIDEuNzUuNzg0IDEu"
+    "NzUgMS43NXY1LjVBMS43NSAxLjc1IDAgMCAxIDEwLjI1IDEwSDcuMDYxbC0yLjU3NCAyLjU3"
+    "M0ExLjQ1OCAxLjQ1OCAwIDAgMSAyIDExLjU0M1YxMGgtLjI1QTEuNzUgMS43NSAwIDAgMSAw"
+    "IDguMjV2LTUuNUMwIDEuNzg0Ljc4NCAxIDEuNzUgMVpNMS41IDIuNzV2NS41YzAgLjEzOC4x"
+    "MTIuMjUuMjUuMjVoMWEuNzUuNzUgMCAwIDEgLjc1Ljc1djIuMTlsMi43Mi0yLjcyYS43NDku"
+    "NzQ5IDAgMCAxIC41My0uMjJoMy41YS4yNS4yNSAwIDAgMCAuMjUtLjI1di01LjVhLjI1LjI1"
+    "IDAgMCAwLS4yNS0uMjVoLTguNWEuMjUuMjUgMCAwIDAtLjI1LjI1Wm0xMyAyYS4yNS4yNSAw"
+    "IDAgMC0uMjUtLjI1aC0uNWEuNzUuNzUgMCAwIDEgMC0xLjVoLjVjLjk2NiAwIDEuNzUuNzg0"
+    "IDEuNzUgMS43NXY1LjVBMS43NSAxLjc1IDAgMCAxIDE0LjI1IDEySDE0djEuNTQzYTEuNDU4"
+    "IDEuNDU4IDAgMCAxLTIuNDg3IDEuMDNMOS4yMiAxMi4yOGEuNzQ5Ljc0OSAwIDAgMSAuMzI2"
+    "LTEuMjc1Ljc0OS43NDkgMCAwIDEgLjczNC4yMTVsMi4yMiAyLjIydi0yLjE5YS43NS43NSAw"
+    "IDAgMSAuNzUtLjc1aDFhLjI1LjI1IDAgMCAwIC4yNS0uMjVaIi8+PC9zdmc+Cg=="
+)
+
+# GitHub Octicon "upload" (filled, 16x16 viewBox).
+# Additive fallback for a future file-upload action; no behaviour is wired here.
+_SVG_UPLOAD: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGRhdGEtY29tcG9uZW50PSJP"
+    "Y3RpY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSIgZm9jdXNhYmxlPSJmYWxzZSIgY2xhc3M9Im9jdGlj"
+    "b24gb2N0aWNvbi11cGxvYWQiIHZpZXdCb3g9IjAgMCAxNiAxNiIgd2lkdGg9IjE2IiBoZWlnaHQ9"
+    "IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGRpc3BsYXk9ImlubGluZS1ibG9jayIgb3ZlcmZsb3c9"
+    "InZpc2libGUiIHN0eWxlPSJ2ZXJ0aWNhbC1hbGlnbjp0ZXh0LWJvdHRvbSI+PHBhdGggZD0iTTIu"
+    "NzUgMTRBMS43NSAxLjc1IDAgMCAxIDEgMTIuMjV2LTIuNWEuNzUuNzUgMCAwIDEgMS41IDB2Mi41"
+    "YzAgLjEzOC4xMTIuMjUuMjUuMjVoMTAuNWEuMjUuMjUgMCAwIDAgLjI1LS4yNXYtMi41YS43NS43"
+    "NSAwIDAgMSAxLjUgMHYyLjVBMS43NSAxLjc1IDAgMCAxIDEzLjI1IDE0WiIvPjxwYXRoIGQ9Ik0x"
+    "MS43OCA0LjcyYS43NDkuNzQ5IDAgMSAxLTEuMDYgMS4wNkw4Ljc1IDMuODExVjkuNWEuNzUuNzUg"
+    "MCAwIDEtMS41IDBWMy44MTFMNS4yOCA1Ljc4YS43NDkuNzQ5IDAgMSAxLTEuMDYtMS4wNmwzLjI1"
+    "LTMuMjVhLjc0OS43NDkgMCAwIDEgMS4wNiAwbDMuMjUgMy4yNVoiLz48L3N2Zz4K"
+)
+
+
+# Printer: PDF browser-print mode
+_SVG_PRINTER: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAx"
+    "NiAxNiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSJjdXJyZW50Q29sb3IiIGFyaWEt"
+    "aGlkZGVuPSJ0cnVlIiBmb2N1c2FibGU9ImZhbHNlIj4KICA8cGF0aCBkPSJNNCAyLjc1QzQg"
+    "MS43ODQgNC43ODQgMSA1Ljc1IDFoNC41QzExLjIxNiAxIDEyIDEuNzg0IDEyIDIuNzVWNWgu"
+    "MjVBMi43NSAyLjc1IDAgMCAxIDE1IDcuNzV2My41QTEuNzUgMS43NSAwIDAgMSAxMy4yNSAx"
+    "M0gxMnYuMjVBMS43NSAxLjc1IDAgMCAxIDEwLjI1IDE1aC00LjVBMS43NSAxLjc1IDAgMCAx"
+    "IDQgMTMuMjVWMTNIMi43NUExLjc1IDEuNzUgMCAwIDEgMSAxMS4yNXYtMy41QTIuNzUgMi43"
+    "NSAwIDAgMSAzLjc1IDVINFYyLjc1Wm0xLjUgMFY1aDVWMi43NWEuMjUuMjUgMCAwIDAtLjI1"
+    "LS4yNWgtNC41YS4yNS4yNSAwIDAgMC0uMjUuMjVaTTMuNzUgNi41QTEuMjUgMS4yNSAwIDAg"
+    "MCAyLjUgNy43NXYzLjVjMCAuMTM4LjExMi4yNS4yNS4yNUg0di0uNzVDNCA5Ljc4NCA0Ljc4"
+    "NCA5IDUuNzUgOWg0LjVjLjk2NiAwIDEuNzUuNzg0IDEuNzUgMS43NXYuNzVoMS4yNWEuMjUu"
+    "MjUgMCAwIDAgLjI1LS4yNXYtMy41YTEuMjUgMS4yNSAwIDAgMC0xLjI1LTEuMjVoLTguNVpt"
+    "MS43NSA0LjI1djIuNWMwIC4xMzguMTEyLjI1LjI1LjI1aDQuNWEuMjUuMjUgMCAwIDAgLjI1"
+    "LS4yNXYtMi41YS4yNS4yNSAwIDAgMC0uMjUtLjI1aC00LjVhLjI1LjI1IDAgMCAwLS4yNS4y"
+    "NVpNMTIgOGEuNzUuNzUgMCAxIDEgMS41IDBBLjc1Ljc1IDAgMCAxIDEyIDhaIi8+Cjwvc3Zn"
+    "Pgo="
 )
 
 # Share this page
@@ -617,6 +689,25 @@ _SVG_MENU_SPARKLE: str = (
     "PC9zdmc+"
 )
 
+# AI "sparkles" cluster (Lucide sparkles) — one large 4-point star + two small
+# twinkles. A DISTINCT glyph from _SVG_SPARKLE_ALT (the filled two-tier star),
+# in the same stroke convention as _SVG_CELEBRATION so the "I'm Feeling Lucky"
+# trigger + shuffle read as a matching pair. Mirrors ai-assistant.js
+# ICONS.menuSparkleRight byte-for-byte (base64 of the exact inline SVG).
+_SVG_MENU_SPARKLE_RIGHT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3Vycm"
+    "VudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIg"
+    "c3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIG"
+    "Q9Ik05LjkzNyAxNS41QTIgMiAwIDAgMCA4LjUgMTQuMDYzbC02LjEzNS0xLjU4MmEu"
+    "NS41IDAgMCAxIDAtLjk2Mkw4LjUgOS45MzZBMiAyIDAgMCAwIDkuOTM3IDguNWwxLj"
+    "U4Mi02LjEzNWEuNS41IDAgMCAxIC45NjMgMEwxNC4wNjMgOC41QTIgMiAwIDAgMCAx"
+    "NS41IDkuOTM3bDYuMTM1IDEuNTgxYS41LjUgMCAwIDEgMCAuOTY0TDE1LjUgMTQuMD"
+    "YzYTIgMiAwIDAgMC0xLjQzNyAxLjQzN2wtMS41ODIgNi4xMzVhLjUuNSAwIDAgMS0u"
+    "OTYzIDB6Ii8+PHBhdGggZD0iTTIwIDN2NCIvPjxwYXRoIGQ9Ik0yMiA1aC00Ii8+PH"
+    "BhdGggZD0iTTQgMTd2MiIvPjxwYXRoIGQ9Ik01IDE4SDMiLz48L3N2Zz4="
+)
+
 # Security alert shield (Octicon shield) — future "security notice" or
 # "verified/protected" indicator, not wired to any control yet.
 # Mirrors ai-assistant.js ICONS.shieldAlert.
@@ -722,6 +813,24 @@ _SVG_MINIMIZE_COLLAPSE: str = (
     "IHgxPSIzIiB4Mj0iMTAiIHkxPSIyMSIgeTI9IjE0Ij48L2xpbmU+PC9zdmc+Cg=="
 )
 
+# Party popper + confetti — mirrors ICONS.celebration in ai-assistant.js
+# byte-for-byte (same hand-authored path/circle data, re-encoded here rather
+# than redrawn, per the JS/Python icon-parity convention this module
+# otherwise follows for every other _ICON_META entry). Used by the "Surprise
+# me" Lucky-picker source — see _LUCKY_SOURCES in ai-assistant.js.
+_SVG_CELEBRATION: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENv"
+    "bG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxp"
+    "bmVqb2luPSJyb3VuZCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIGQ9Ik0zLjUgMjAuNSA5"
+    "IDhsNyA0LjUtMTIuNSA4WiIvPjxwYXRoIGQ9Ik05IDhsMS4zLTMuNSIvPjxwYXRoIGQ9Ik0x"
+    "NCAzLjUgMTUgNS41Ii8+PHBhdGggZD0iTTE5IDYuNWwyIDEiLz48Y2lyY2xlIGN4PSIyMCIg"
+    "Y3k9IjExLjUiIHI9IjEiIGZpbGw9ImN1cnJlbnRDb2xvciIgc3Ryb2tlPSJub25lIi8+PGNp"
+    "cmNsZSBjeD0iMTYiIGN5PSI0IiByPSIxIiBmaWxsPSJjdXJyZW50Q29sb3IiIHN0cm9rZT0i"
+    "bm9uZSIvPjxjaXJjbGUgY3g9IjIxLjUiIGN5PSIxNiIgcj0iMSIgZmlsbD0iY3VycmVudENv"
+    "bG9yIiBzdHJva2U9Im5vbmUiLz48L3N2Zz4="
+)
+
 # MUI "ErrorIcon" outline, re-authored with stroke="currentColor" (dropped the
 # original fill/MuiSvgIcon-color* class attributes so it themes the same way
 # every other icon in this module does). Not wired to any control yet —
@@ -809,6 +918,9 @@ _ICON_META: dict[str, dict[str, str]] = {
     "model": {"icon": _SVG_MODEL, "desc": "Choose a model"},
     "terms": {"icon": _SVG_TERMS, "desc": "Terms of Service"},
     "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
+    "comment-discussion": {"icon": _SVG_COMMENT_DISCUSSION, "desc": "Discussion"},
+    "upload": {"icon": _SVG_UPLOAD, "desc": "Upload a file"},
+    "printer": {"icon": _SVG_PRINTER, "desc": "Print or save as PDF"},
     "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
     "info": {"icon": _SVG_INFO, "desc": "Model information"},
     # ── Phase C additions — mirrors ai-assistant.js ICONS.{key} ────────
@@ -830,7 +942,17 @@ _ICON_META: dict[str, dict[str, str]] = {
         "desc": "AI-assisted style/customize",
     },
     "menu-sparkle": {"icon": _SVG_MENU_SPARKLE, "desc": "AI menu"},
+    "menu-sparkle-right": {
+        "icon": _SVG_MENU_SPARKLE_RIGHT,
+        "desc": "AI suggestion sparkle",
+    },
     "shield-alert": {"icon": _SVG_SHIELD_ALERT, "desc": "Security notice"},
+    # Mirrors ICONS.celebration in ai-assistant.js — the "Surprise me"
+    # source icon in the "I'm Feeling Lucky" picker.
+    "celebration": {
+        "icon": _SVG_CELEBRATION,
+        "desc": "Surprise me (I\u2019m Feeling Lucky)",
+    },
     # Deliberately reuse the existing "terms" / "privacy" constants above
     # instead of introducing new path data — see ai-assistant.js
     # ICONS.termsOfService / ICONS.privacyResponsibility for the rationale

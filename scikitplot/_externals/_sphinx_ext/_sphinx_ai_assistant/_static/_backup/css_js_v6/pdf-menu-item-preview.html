@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF menu-item alignment preview</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f2328;background:#f6f8fa}
+body{margin:0;padding:40px;display:grid;place-items:start center}.demo{width:280px;background:#fff;border:1px solid #d0d7de;border-radius:8px;padding:.25rem;box-shadow:0 12px 30px rgba(31,35,40,.12)}
+.ai-assistant-menu-item{display:block;width:100%;min-height:55px;text-align:left;background:none;border:none;border-radius:4px;color:#1a1a1a;font-size:.875rem;cursor:pointer;transition:background-color .15s ease}.ai-assistant-menu-item:hover{background:rgba(0,0,0,.06)}
+.ai-assistant-menu-item-content{display:flex;flex-direction:column;gap:.375rem}.ai-assistant-menu-item-title{display:flex;align-items:center;gap:.5rem;font-weight:500}.ai-assistant-menu-icon{width:16px;height:16px;display:inline-block;flex-shrink:0}.ai-assistant-menu-item-description{font-size:11px;color:#656d76;line-height:1.3;padding-left:0;margin-top:-5px}.ai-assistant-menu-separator{height:1px;margin:.25rem 0;background:#d8dee4}.ai-assistant-pdf-section{width:100%;min-width:0;box-sizing:border-box}
+svg{display:block}
+</style>
+</head>
+<body>
+<div>
+<h2 style="font-size:16px;margin:0 0 12px">Same shared menu-item structure</h2>
+<div class="demo" role="menu">
+<button class="ai-assistant-menu-item" type="button" role="menuitem">
+  <div class="ai-assistant-menu-item-content">
+    <div class="ai-assistant-menu-item-title">
+      <svg class="ai-assistant-menu-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 4.75C0 3.784.784 3 1.75 3h8.5C11.216 3 12 3.784 12 4.75v6.5A1.75 1.75 0 0 1 10.25 13h-8.5A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-6.5a.25.25 0 0 0-.25-.25Z"/><path d="M5.75 6.5a.75.75 0 0 1 .75-.75h7.75c.966 0 1.75.784 1.75 1.75v6.75A1.75 1.75 0 0 1 14.25 16H7.5a1.75 1.75 0 0 1-1.75-1.75V6.5Z" opacity=".28"/></svg>
+      <span>Copy page</span>
+    </div>
+    <div class="ai-assistant-menu-item-description">Copy this page as Markdown for LLMs.</div>
+  </div>
+</button>
+<div class="ai-assistant-menu-separator"></div>
+<div class="ai-assistant-pdf-section" data-pdf-mode="print" data-pdf-method-count="1">
+<button class="ai-assistant-menu-item" id="ai-assistant-pdf-export" type="button" data-pdf-mode="print" role="menuitem" aria-describedby="ai-assistant-pdf-desc" aria-label="Open the browser print dialog to save as PDF">
+  <div class="ai-assistant-menu-item-content">
+    <div class="ai-assistant-menu-item-title">
+      <svg class="ai-assistant-menu-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.75 0A1.75 1.75 0 0 0 3 1.75v12.5C3 15.216 3.784 16 4.75 16h6.5A1.75 1.75 0 0 0 13 14.25V4.664a1.75 1.75 0 0 0-.513-1.237L9.573.513A1.75 1.75 0 0 0 8.336 0Zm3.5 1.5v2.75c0 .414.336.75.75.75h2.5v9.25a.25.25 0 0 1-.25.25h-6.5a.25.25 0 0 1-.25-.25V1.75a.25.25 0 0 1 .25-.25Z"/></svg>
+      <span>Export as PDF</span>
+    </div>
+    <div class="ai-assistant-menu-item-description ai-assistant-pdf-desc" id="ai-assistant-pdf-desc">Customize paper, margins, and pages before saving.</div>
+  </div>
+</button>
+</div>
+</div>
+</div>
+</body>
+</html>

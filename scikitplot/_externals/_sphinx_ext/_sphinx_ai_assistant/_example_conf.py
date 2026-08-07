@@ -722,7 +722,16 @@ ai_assistant_include_raw_image = False
 # by ``_cfg_str``.  The JS ``handlePdfExport`` reads the mode from
 # ``sessionStorage`` (persisted by the toggle) and either opens this URL or
 # calls ``window.print()``.
-ai_assistant_pdf_export_url = None  # None / "" → window.print()
+
+# → https://scikit-plots.github.io/dev/apis/scikitplot.html
+# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
+# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+#
+# Page and/or can be use hash value correspond title
+# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
+# ai_assistant_pdf_export_url = None  # None / "" → Only print mode window.print()
+ai_assistant_pdf_export_url = f"{html_baseurl}"
 
 # Type:    bool
 # Default: True
@@ -821,6 +830,31 @@ ai_assistant_panel_quick_questions = [
     "Show me a quick usage example.",
     "What are the key parameters?",
 ]
+
+# Type:    bool
+# Default: True
+#
+# When True (default), an "Explain this page" button is shown between the
+# welcome message and the quick-suggestion chips. One click pre-fills the input
+# with the single best question for the current page, then the user reviews and
+# hits send. The pre-filled question is chosen deterministically (never random):
+#   1. the first non-empty ``ai_assistant_panel_quick_questions`` entry, if any
+#      (the author's own top question for the page);
+#   2. otherwise a question built from the page's subject (its main heading or
+#      title), e.g. "How do I use <subject>, and what are the key things to
+#      know about it?";
+#   3. otherwise a generic "What is this page about, and how do I use it?".
+#
+# Set to False to hide the button.
+#
+# User note:
+#   • This replaces the earlier random "I'm Feeling Lucky" picker. It pre-fills
+#     only — it does not send the question for you.
+#
+# Developer note:
+#   Forwarded as ``panelPageHelp`` in the JS config. The JS also honours a
+#   legacy ``panelLucky`` key as a fallback opt-out.
+ai_assistant_panel_page_help = True
 
 # Type:    bool
 # Default: True

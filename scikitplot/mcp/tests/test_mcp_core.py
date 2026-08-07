@@ -24,6 +24,7 @@ from scikitplot.mcp import (  # noqa: E402
     DocsRetriever,
     RetrievedChunk,
     build_search_docs_result,
+    builtin_demo_retriever,
 )
 
 
@@ -68,12 +69,29 @@ def test_result_shape_and_citations():
     assert res["structuredContent"]["query"] == "roc"
     # every content block carries its citation marker
     assert "[1]" in res["content"][0]["text"] and "d.io/roc.html" in res["content"][0]["text"]
+    structured = res["structuredContent"]
+    assert structured["count"] == 2
+    assert len(structured["passages"]) == len(structured["citations"]) == 2
+    assert structured["message"] is None
 
 
-def test_empty_results_graceful():
+def test_result_builder_is_deterministic_and_side_effect_free():
+    first = build_search_docs_result("roc", _CHUNKS)
+    second = build_search_docs_result("roc", _CHUNKS)
+    assert first == second
+    assert _CHUNKS[0].text == "ROC curves plot TPR vs FPR."
+
+
+def test_empty_results_graceful_and_contract_consistent():
     res = build_search_docs_result("nothing", [])
+    structured = res["structuredContent"]
     assert res["isError"] is False
-    assert res["structuredContent"]["citations"] == []
+    assert structured["count"] == 0
+    assert structured["passages"] == []
+    assert structured["citations"] == []
+    assert "No matching" in structured["message"]
+    # Backward-compatible human-readable content remains available without
+    # pretending that the status message is a retrieved passage.
     assert "No matching" in res["content"][0]["text"]
 
 
@@ -273,3 +291,43 @@ def test_from_corpus_annoy_raises_when_build_has_no_index(monkeypatch, tmp_path)
 
     with pytest.raises(RuntimeError, match="no queryable semantic index"):
         CorpusAnnoyRetriever.from_corpus_annoy(str(tmp_path))
+
+# ── Hardened URI, fragment, and numeric invariants ───────────────────────────
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "//evil.example/path",
+        r"\\evil.example\share",
+        r"C:\\Windows\\system32",
+        "https://user:secret@example.com/private",
+        "http:///missing-host",
+    ],
+)
+def test_ambiguous_or_credentialed_uri_dropped(uri):
+    res = build_search_docs_result("q", [RetrievedChunk(text="x", source_uri=uri)])
+    assert res["structuredContent"]["citations"][0]["source_uri"] == ""
+
+
+def test_anchor_is_percent_encoded_and_replaces_existing_fragment():
+    chunk = RetrievedChunk(
+        text="x",
+        source_uri="https://d.io/page?lang=en#old",
+        anchor="API flags / examples#one",
+    )
+    res = build_search_docs_result("q", [chunk])
+    assert (
+        res["structuredContent"]["citations"][0]["source_uri"]
+        == "https://d.io/page?lang=en#API%20flags%20%2F%20examples%23one"
+    )
+
+
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf"), "not-a-number"])
+def test_non_finite_or_invalid_score_coerced_to_zero(score):
+    chunk = RetrievedChunk(text="x", source_uri="https://d.io/x", score=score)
+    res = build_search_docs_result("q", [chunk])
+    assert res["structuredContent"]["citations"][0]["score"] == 0.0
+
+
+def test_demo_canary_token_matches_despite_sentence_punctuation():
+    results = builtin_demo_retriever().search("MCP_CANARY_7F3A91C2", 5)
+    assert [result.doc_id for result in results] == ["scikitplot-canary-001"]

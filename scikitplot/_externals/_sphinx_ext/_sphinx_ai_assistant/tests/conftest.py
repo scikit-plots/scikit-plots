@@ -189,6 +189,7 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_title = "AI Assistant"
     cfg.ai_assistant_panel_placeholder = "Ask a question about this page\u2026"
     cfg.ai_assistant_panel_api_enabled = False
+    cfg.ai_assistant_panel_page_help = True
     # Standard Sphinx values
     cfg.html_baseurl = ""
     cfg.html_static_path = []

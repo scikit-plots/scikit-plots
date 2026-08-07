@@ -248,6 +248,43 @@
   </a>:
  </h3>
 
+ <h4>
+  🐋🦜
+  🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨:
+ </h4>
+
+> 🐬🦜 **Tame Your Free Spirit AI — Feed It Verified Public Data ✨**
+
+> 📖🔊 Easily connect your curated public corpus to *any* AI model using the Model Context Protocol (MCP). Give the AI the right facts so it talks like a well-trained parrot—delivering better, verified answers without hallucinations.
+
+Just like teaching a parrot to speak using a trusted vocabulary, this server feeds your verified public corpus directly into any AI model. Instead of letting the model guess in the wild, you "domesticate" its answers with accurate context:
+
+* **RAG (Retrieval-Augmented Generation):** Grounds the AI's responses in your specific, verified public corpus to dramatically improve answer quality.
+* **CI (Context Injection):** The mechanism that seamlessly injects this verified data directly into the prompt context of whatever AI model you choose to use.
+* **MCP (Model Context Protocol):** The universal bridge. It allows you to easily connect this localized data feed to *any* supported AI model or client.
+
+Spin up the local **MCP** server using Docker. By default, it runs on standard development port `8000`, ready to be connected to your AI of choice.
+
+<!-- 3000 or 8000 (Standard fallback development ports) -->
+🔜 Start the interactive container:
+
+```bash
+# (experimental) Force activate environment
+docker run -it --rm scikitplot/scikit-plots -p 8000:8000 -ic "bash -ic 'python -m scikitplot.mcp --docker'"
+```
+
+**Note**: If port `8000` is currently in use, you can fallback to port `3000` using `-p 3000:8000`.
+
+🩺 Health Check (ready to use Claude Desktop, Cursor, or local LLMs)
+
+Verify that your local corpus server is up, running, and ready to feed data to your AI model by pinging the health endpoint:
+
+```bash
+curl --fail --silent --show-error http://127.0.0.1:8000/healthz; echo
+```
+
+If successful, the terminal will return an OK status, meaning the "parrot" (`MCP`) is ready to talk.
+
  <p>
   <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
     🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry
@@ -405,14 +442,15 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
 # Pin to a tagged release:
 # pip install "git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0" -vv
 # Latest development build (main branch):
-pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
+pip install --no-cache-dir "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
 
 # ─────────────────────────────────────────────────────────────────────────
 # Option B — Clone locally, then install (useful for development or patching)
 # ─────────────────────────────────────────────────────────────────────────
 git clone https://github.com/scikit-plots/scikit-plots.git
 cd scikit-plots
-python -m python -m pip install --no-build-isolation --no-cache-dir . -v
+
+python -m pip install --no-build-isolation --no-cache-dir . -v
 # Editable:
 pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log.txt
 
@@ -1233,11 +1271,11 @@ https://emojidb.org/
 🔻 To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
 ←→ ✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
 
-֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥
+֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥 📣  🔊
 
 🗐 ⧉ 🗌 🗍 🗐 🗐 🗎 🗏 🗑 🗒 🗓 🗔 🗕 🗖 🗗 🗘 🗙 🗚 🗛 🗜 ⧉⇄⧉ ⧉⟷⧉ □▢ ⊞ ⊟ ⊠ ⊡ ⧈ 📋 📄 📃 📑 ▢▢ □□
 § ≈  →
-📄 📝︎ 📝 🗒︎ 🗓︎ 📒 ✎ ✏︎  ✏️ 🖉︎ 🖊️ 🖋︎ 🖊︎ §
+📄 📝︎ 📝 🗒︎ 🗓︎ 📒 ✎ ✏︎  ✏️ 🖉︎ 🖊️ 🖋︎ 🖊︎ §  ↔ ↔ ⇔
  🗸 ✓ 🗹 ✔️ ✅  🏁 ◀ ▶ ▲ ▼ ▪ ▫ →
  ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⚰︎ ⚱︎ ☍ ⚰ ⚱ ⚕ ⚚ ⚖ ⚔ ⚒ ⚗ ⚙ ⚜
  ✖︎ ✗ ✘ ✕ ✖ ✚ ✛ ✜ ✢ ✣ ✦ ✧ ✩ ✪ ✫ ✬ ✭ ✮ ✯
@@ -1273,7 +1311,7 @@ https://emojidb.org/
 
 🔗 🤖 👾 ⚙️ 🇦🇮 🌐 ⚡ 🌻 🌄 🌅 🌞 ☀️ 🌤️ ⛅ ⭐ ✨ 🌟 💫 🪐 🧭 📍 🌍 ˙✧ 📷 ⋆｡˚
 
-🏷️ 🔖 🧮 💥 💣 ✷ ☄️ 🚀 🔎 🔍 💿 💽 📤 📥 ➜] ⬇️ ⬆️ 🗃️ ➡️ ⓘ
+🏷️ 🔖 🧮 💥 💣 ✷ ☄️ 🚀 🔎 🔍 💿 💽 📤 📥 ➜] ⬇️ ⬆️ 🗃️ ➡️ ⓘ 🇦🇮 ✨🦜
 
 Core labels (most useful)
 

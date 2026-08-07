@@ -6,7 +6,7 @@
  *   • Markdown export (clipboard copy + view as .md)
  *   • AI chat deep-links (Claude, ChatGPT, Gemini, …)
  *   • MCP tool integration (VS Code, Claude Desktop, …)
- *   • PDF export with URL-mode / Print-mode toggle
+ *   • PDF export with a capability-aware URL / Print method picker
  *   • Floating AI panel with:
  *       – Minimize (hide to floating "Ask AI" trigger pill)
  *       – Maximize (expand to full viewport height)
@@ -735,6 +735,15 @@
         mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
         send:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
+        // GitHub Octicon "comment-discussion" — additive and not wired to a control yet.
+        // Mirrors comment-discussion.svg / _SVG_COMMENT_DISCUSSION in _static/__init__.py.
+        commentDiscussion: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"/></svg>',
+        // GitHub Octicon "upload" — additive and not wired to a control yet.
+        // Mirrors upload.svg / _SVG_UPLOAD in _static/__init__.py.
+        upload: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z"/></svg>',
+        // Octicon-style printer — used by the inline PDF method switch and
+        // mirrored by _SVG_PRINTER / printer.svg.
+        printer: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.75C4 1.784 4.784 1 5.75 1h4.5C11.216 1 12 1.784 12 2.75V5h.25A2.75 2.75 0 0 1 15 7.75v3.5A1.75 1.75 0 0 1 13.25 13H12v.25A1.75 1.75 0 0 1 10.25 15h-4.5A1.75 1.75 0 0 1 4 13.25V13H2.75A1.75 1.75 0 0 1 1 11.25v-3.5A2.75 2.75 0 0 1 3.75 5H4V2.75Zm1.5 0V5h5V2.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM3.75 6.5A1.25 1.25 0 0 0 2.5 7.75v3.5c0 .138.112.25.25.25H4v-.75C4 9.784 4.784 9 5.75 9h4.5c.966 0 1.75.784 1.75 1.75v.75h1.25a.25.25 0 0 0 .25-.25v-3.5a1.25 1.25 0 0 0-1.25-1.25h-8.5Zm1.75 4.25v2.5c0 .138.112.25.25.25h4.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM12 8a.75.75 0 1 1 1.5 0A.75.75 0 0 1 12 8Z"/></svg>',
         // ── v0.3 additions — mirror _ICON_META in _static/__init__.py ──────────
         newChat:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
         // Compose / spark variant of "new chat" — additive, inert, for future usage.
@@ -890,6 +899,23 @@
         // it's used was judged more valuable than a one-off variant: ask if
         // you want a visually distinct mark for "& Responsibility" instead.
         privacyResponsibility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        // Party popper + confetti — hand-authored (not traced from any icon
+        // font) in this file's own stroke convention so it themes the same
+        // way as every other 24x24 glyph here. Currently unwired: it was the
+        // "I'm Feeling Lucky" trigger glyph, which has been retired in favour
+        // of the deterministic "Explain this page" button (see
+        // _buildPageHelpButton). Kept as a ready-made "celebration/success"
+        // glyph and still mirrored Python-side (_ICON_META["celebration"]).
+        celebration: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5 9 8l7 4.5-12.5 8Z"/><path d="M9 8l1.3-3.5"/><path d="M14 3.5 15 5.5"/><path d="M19 6.5l2 1"/><circle cx="20" cy="11.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="21.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>',
+        // Right-aligned "AI-suggested" sparkle badge — a DISTINCT glyph, not a
+        // reuse of sparkleAlt. sparkleAlt (above) is the filled two-tier star and
+        // is kept unchanged; this is the Lucide "sparkles" cluster (one large
+        // 4-point star + two small twinkles). Used as the leading icon on the
+        // deterministic "Explain this page" prompt button (see
+        // _buildPageHelpButton). Mirrored on the Python side by
+        // _SVG_MENU_SPARKLE_RIGHT / _ICON_META["menu-sparkle-right"]
+        // (byte-for-byte, same parity convention as celebration/terms/privacy).
+        menuSparkleRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
     };
 
     // Remembers whether the hosted dancer GIF has ever failed to load, so a
@@ -1981,116 +2007,516 @@
     }
 
     // ── PDF section ───────────────────────────────────────────────────────────
+    //
+    // Architecture:
+    //   * A small capability registry describes each export method.
+    //   * The direct-PDF target is resolved at runtime. An explicit
+    //     cfg.pdfExportUrl always wins; otherwise Sphinx's URL_ROOT is used to
+    //     discover the generated PDF under the current version's _downloads/
+    //     directory. This lets a static ai-assistant.js update expose the toggle
+    //     without requiring every already-rendered HTML page to receive a new
+    //     window.AI_ASSISTANT_CONFIG value.
+    //   * Pages under user_guide/ select scikit-plots-user-guide.pdf; every
+    //     other page selects scikit-plots.pdf. The current /dev/, /stable/, or
+    //     versioned root is preserved automatically.
+    //   * The export action and method switch are sibling buttons inside one
+    //     visual row. This avoids invalid nested interactive controls while
+    //     preserving the appearance of a single menu item.
+    //   * The left action reuses createMenuItem(), so its content structure
+    //     remains aligned with Copy page, Markdown, provider, and MCP entries.
+    //   * Selection, icon, description, ARIA state, and persistence are updated
+    //     through the single _syncPdfModeUI() path.
+
+    var _PDF_MODE_ORDER = ['url', 'print'];
+
+    var _PDF_MODE_DEFS = {
+        url: {
+            label: 'Prepared PDF',
+            description: 'Open the prepared PDF instantly in a new tab.',
+            iconFile: 'file-pdf.svg',
+            requiresUrl: true
+        },
+        print: {
+            label: 'Print & save',
+            description: 'Customize paper, margins, and pages before saving.',
+            iconFile: 'printer.svg',
+            requiresUrl: false
+        }
+    };
+
+    // Ordered first-match registry. Keep the document-selection policy separate
+    // from DOM construction so another generated PDF can be added later with one
+    // small entry instead of another branch inside createPdfSection().
+    var _PDF_AUTO_DOCUMENTS = [
+        {
+            key: 'user-guide',
+            file: 'scikit-plots-user-guide.pdf',
+            label: 'User Guide PDF',
+            matches: function (context) {
+                return /(^|\/)user_guide(?:\/|$)/.test(context.pageName);
+            }
+        },
+        {
+            key: 'documentation',
+            file: 'scikit-plots.pdf',
+            label: 'documentation PDF',
+            matches: function () { return true; }
+        }
+    ];
+
+    function _getSphinxDocsRootUrl() {
+        var options = window.DOCUMENTATION_OPTIONS || {};
+        var urlRoot = typeof options.URL_ROOT === 'string' ? options.URL_ROOT.trim() : '';
+
+        try {
+            if (urlRoot) return new URL(urlRoot, document.baseURI).href;
+
+            // Fallback for pages where documentation_options.js is unavailable:
+            // ai-assistant.js itself lives in <docs-root>/_static/.
+            var staticPath = String(getStaticPath() || '').replace(/\/?$/, '/');
+            var staticUrl = new URL(staticPath, document.baseURI);
+            return new URL('../', staticUrl).href;
+        } catch (_e) {
+            return '';
+        }
+    }
+
+    function _getCurrentSphinxPageName(docsRootUrl) {
+        var options = window.DOCUMENTATION_OPTIONS || {};
+        var configured = typeof options.pagename === 'string'
+            ? options.pagename.trim().replace(/^\/+|\/+$/g, '')
+            : '';
+        if (configured) return configured;
+
+        try {
+            var current = new URL(window.location.href);
+            var root = new URL(docsRootUrl || current.origin + '/');
+            var currentPath = decodeURIComponent(current.pathname || '');
+            var rootPath = decodeURIComponent(root.pathname || '/');
+
+            if (currentPath.indexOf(rootPath) === 0) {
+                currentPath = currentPath.slice(rootPath.length);
+            }
+
+            currentPath = currentPath
+                .replace(/^\/+/, '')
+                .replace(/\/index\.html?$/i, '')
+                .replace(/\.html?$/i, '')
+                .replace(/\/+$/, '');
+
+            return currentPath || 'index';
+        } catch (_e) {
+            return 'index';
+        }
+    }
+
+    function _getCurrentPageHeading() {
+        var heading = document.querySelector('main h1, article h1, h1');
+        var value = heading && heading.textContent
+            ? heading.textContent
+            : String(document.title || '').split(/\s+[—-]\s+/)[0];
+        return String(value || '')
+            .replace(/\s*[¶#]\s*$/, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function _selectAutoPdfDocument(context) {
+        for (var i = 0; i < _PDF_AUTO_DOCUMENTS.length; i++) {
+            var candidate = _PDF_AUTO_DOCUMENTS[i];
+            try {
+                if (candidate.matches(context)) return candidate;
+            } catch (_e) {}
+        }
+        return null;
+    }
+
+    /**
+     * Optional exact-page hook for future build tooling.
+     *
+     * A separate generated script may define:
+     *
+     *   window.AI_ASSISTANT_PDF_PAGE_MAP = {
+     *     'user_guide/logging': 42
+     *   };
+     *
+     * Numeric values become standard #page=N PDF fragments. No map is required
+     * for the normal runtime-discovery path, and arbitrary fragments/URLs are
+     * deliberately rejected.
+     */
+    function _applyPdfPageMap(url, pageName) {
+        var map = window.AI_ASSISTANT_PDF_PAGE_MAP;
+        if (!map || typeof map !== 'object' || !Object.prototype.hasOwnProperty.call(map, pageName)) {
+            return { url: url, exactPage: false };
+        }
+
+        var page = Number(map[pageName]);
+        if (!Number.isInteger(page) || page < 1 || page > 100000) {
+            return { url: url, exactPage: false };
+        }
+
+        try {
+            var target = new URL(url, document.baseURI);
+            target.hash = 'page=' + page;
+            return { url: target.href, exactPage: true };
+        } catch (_e) {
+            return { url: url, exactPage: false };
+        }
+    }
+
+    function _expandConfiguredPdfUrl(rawUrl, context) {
+        // Backward-compatible support for the placeholders documented in
+        // _example_conf.py. Values come from the current Sphinx page, not user
+        // input, and are URI-encoded only where they represent one component.
+        return String(rawUrl || '')
+            .replace(/\{(?:pagename|docname)\}/g, context.pageName)
+            .replace(/\{title\}/g, encodeURIComponent(context.pageTitle));
+    }
+
+    /**
+     * Resolve the effective prepared-PDF target.
+     *
+     * Priority:
+     *   P0 explicit cfg.pdfExportUrl
+     *   P1 runtime Sphinx discovery under <URL_ROOT>/_downloads/
+     *   P2 no URL capability (print-only)
+     *
+     * cfg.pdfAutoDiscover=false is an optional JS-only escape hatch. Also, when
+     * pdfUrlModeToggle is explicitly false and no URL is configured, preserve
+     * the historical print-only contract instead of silently changing it.
+     */
+    function _resolvePdfTarget(cfg) {
+        cfg = cfg || _cfg();
+        var docsRootUrl = _getSphinxDocsRootUrl();
+        var context = {
+            docsRootUrl: docsRootUrl,
+            pageName: _getCurrentSphinxPageName(docsRootUrl),
+            pageTitle: _getCurrentPageHeading()
+        };
+        var explicit = typeof cfg.pdfExportUrl === 'string'
+            ? cfg.pdfExportUrl.trim()
+            : '';
+
+        if (explicit) {
+            var configuredUrl = _expandConfiguredPdfUrl(explicit, context);
+            var configuredLocation = _applyPdfPageMap(configuredUrl, context.pageName);
+            return {
+                url: configuredLocation.url,
+                source: 'config',
+                documentKey: 'configured',
+                documentLabel: 'prepared PDF',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: configuredLocation.exactPage
+            };
+        }
+
+        if (cfg.pdfAutoDiscover === false || cfg.pdfUrlModeToggle === false || !docsRootUrl) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+
+        var documentDef = _selectAutoPdfDocument(context);
+        if (!documentDef) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+
+        try {
+            var autoUrl = new URL('_downloads/' + documentDef.file, docsRootUrl).href;
+            var autoLocation = _applyPdfPageMap(autoUrl, context.pageName);
+            return {
+                url: autoLocation.url,
+                source: 'auto',
+                documentKey: documentDef.key,
+                documentLabel: documentDef.label,
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: autoLocation.exactPage
+            };
+        } catch (_e) {
+            return {
+                url: '',
+                source: 'none',
+                documentKey: '',
+                documentLabel: '',
+                pageName: context.pageName,
+                pageTitle: context.pageTitle,
+                exactPage: false
+            };
+        }
+    }
+
+    function _isPdfModeAvailable(mode, pdfUrl) {
+        var def = _PDF_MODE_DEFS[mode];
+        return !!def && (!def.requiresUrl || !!pdfUrl);
+    }
+
+    function _normalizePdfMode(mode, pdfUrl) {
+        if (_isPdfModeAvailable(mode, pdfUrl)) return mode;
+        return pdfUrl ? 'url' : 'print';
+    }
+
+    function _getAvailablePdfModes(pdfUrl) {
+        return _PDF_MODE_ORDER.filter(function (mode) {
+            return _isPdfModeAvailable(mode, pdfUrl);
+        });
+    }
+
+    function _pdfIconSource(staticPath, mode) {
+        var def = _PDF_MODE_DEFS[mode] || _PDF_MODE_DEFS.print;
+        return staticPath.replace(/\/$/, '') + '/' + def.iconFile;
+    }
+
+    function _pdfSwitchAccessibleLabel(mode, target) {
+        var directLabel = target && target.documentLabel
+            ? target.documentLabel
+            : 'prepared PDF';
+        return mode === 'url'
+            ? 'PDF export method: ' + directLabel + '. Switch to print and save.'
+            : 'PDF export method: print and save. Switch to ' + directLabel + '.';
+    }
+
+    /**
+     * Visible title text for the left-hand action button, kept in step with
+     * the toggle so the row always reads correctly on its own:
+     *   toggle OFF (print mode) → "Print as PDF"
+     *   toggle ON  (url mode)   → "Export as PDF"
+     */
+    function _pdfActionLabel(mode) {
+        return mode === 'url' ? 'Export as PDF' : 'Print as PDF';
+    }
+
+    function _pdfModeDescription(mode, pdfUrl, target) {
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        if (normalized !== 'url') return _PDF_MODE_DEFS.print.description;
+
+        target = target || _resolvePdfTarget(_cfg());
+        if (target.exactPage && target.pageTitle) {
+            return 'Open the ' + target.documentLabel + ' at “' + target.pageTitle + '”.';
+        }
+        if (target.documentKey === 'user-guide') {
+            return 'Open the User Guide PDF for this section in a new tab.';
+        }
+        if (target.documentKey === 'documentation') {
+            return 'Open the complete documentation PDF in a new tab.';
+        }
+        return _PDF_MODE_DEFS.url.description;
+    }
 
     function createPdfSection(staticPath, cfg) {
         cfg = cfg || {};
-        var pdfUrl     = (cfg.pdfExportUrl || '').trim();
+        var target     = _resolvePdfTarget(cfg);
+        var pdfUrl     = target.url;
         var showToggle = cfg.pdfUrlModeToggle !== false;
+        var available  = _getAvailablePdfModes(pdfUrl);
 
         var savedMode = null;
         try { savedMode = sessionStorage.getItem(_PDF_MODE_KEY); } catch (_e) {}
-
-        var initialMode = (savedMode === 'url' || savedMode === 'print')
-            ? savedMode
-            : (pdfUrl ? 'url' : 'print');
+        var initialMode = _normalizePdfMode(savedMode, pdfUrl);
+        var initialDef  = _PDF_MODE_DEFS[initialMode];
+        // Toggle visibility vs. interactivity are two separate questions:
+        //   • hasSwitch     — is the toggle rendered at all? Whenever the site
+        //                     has not explicitly set pdfUrlModeToggle=false, the
+        //                     toggle is ALWAYS shown so the control is
+        //                     discoverable and the row layout is stable across
+        //                     pages, not appearing only where a PDF exists.
+        //   • switchEnabled — is it interactive? Only when a second mode (a
+        //                     prepared-PDF URL) actually exists for this page.
+        //                     In print-only mode the toggle is shown DISABLED:
+        //                     visible, pinned to Print, and not clickable.
+        var hasSwitch     = showToggle;
+        var switchEnabled = showToggle && available.length > 1;
 
         var section = document.createElement('div');
         section.className = 'ai-assistant-pdf-section';
+        section.dataset.pdfMode = initialMode;
+        section.dataset.pdfMethodCount = String(available.length);
+        section.dataset.pdfHasToggle = hasSwitch ? 'true' : 'false';
+        section.dataset.pdfToggleEnabled = switchEnabled ? 'true' : 'false';
+        section.dataset.pdfUrlSource = target.source;
+        section.dataset.pdfDocument = target.documentKey;
+        // Internal component state. Keeping resolved target/static sources on
+        // the section avoids repeating URL-root discovery during every toggle.
+        section._pdfStaticPath = staticPath;
+        section._pdfTarget = target;
 
-        var btn = document.createElement('button');
-        btn.className = 'ai-assistant-menu-item ai-assistant-pdf-btn';
-        btn.id = 'ai-assistant-pdf-export';
-        btn.type = 'button';
-        btn.setAttribute('role', 'menuitem');
+        var row = document.createElement('div');
+        row.className = 'ai-assistant-pdf-row';
+        row.setAttribute('role', 'group');
+        row.setAttribute('aria-label', 'PDF export');
 
-        var btnContent = document.createElement('div');
-        btnContent.className = 'ai-assistant-menu-item-content ai-assistant-pdf-content';
+        var btn = createMenuItem(
+            'pdf-export',
+            _pdfActionLabel(initialMode),
+            _pdfModeDescription(initialMode, pdfUrl, target),
+            _pdfIconSource(staticPath, initialMode)
+        );
+        btn.classList.add('ai-assistant-pdf-action');
+        btn.dataset.pdfMode = initialMode;
+        btn.setAttribute('aria-describedby', 'ai-assistant-pdf-desc');
 
-        var btnTitle = document.createElement('div');
-        btnTitle.className = 'ai-assistant-menu-item-title';
-
-        var pdfIcon = document.createElement('img');
-        pdfIcon.src = staticPath + '/file-pdf.svg';
-        pdfIcon.className = 'ai-assistant-menu-icon';
-        pdfIcon.setAttribute('aria-hidden', 'true');
-        pdfIcon.alt = '';
-
-        var pdfLabel = document.createElement('span');
-        pdfLabel.textContent = 'Export as PDF';
-
-        btnTitle.appendChild(pdfIcon);
-        btnTitle.appendChild(pdfLabel);
-
-        var btnDesc = document.createElement('div');
-        btnDesc.className = 'ai-assistant-menu-item-description ai-assistant-pdf-desc';
-        btnDesc.id = 'ai-assistant-pdf-desc';
-        btnDesc.textContent = _pdfModeDescription(initialMode, pdfUrl);
-
-        btnContent.appendChild(btnTitle);
-        btnContent.appendChild(btnDesc);
-        btn.appendChild(btnContent);
-        section.appendChild(btn);
-
-        if (showToggle) {
-            var toggleRow = document.createElement('div');
-            toggleRow.className = 'ai-assistant-pdf-toggle';
-            toggleRow.id = 'ai-assistant-pdf-toggle';
-            toggleRow.setAttribute('role', 'group');
-            toggleRow.setAttribute('aria-label', 'PDF export mode');
-
-            var toggleLabel = document.createElement('span');
-            toggleLabel.className = 'ai-assistant-pdf-toggle-label';
-            toggleLabel.textContent = 'Mode:';
-
-            var urlBtn = document.createElement('button');
-            urlBtn.className = 'ai-assistant-pdf-mode-btn' + (initialMode === 'url' ? ' active' : '');
-            urlBtn.id = 'ai-assistant-pdf-mode-url';
-            urlBtn.type = 'button';
-            urlBtn.textContent = 'URL';
-            urlBtn.title = 'Open PDF URL in new tab';
-            if (!pdfUrl) urlBtn.disabled = true;
-
-            var printBtn = document.createElement('button');
-            printBtn.className = 'ai-assistant-pdf-mode-btn' + (initialMode === 'print' ? ' active' : '');
-            printBtn.id = 'ai-assistant-pdf-mode-print';
-            printBtn.type = 'button';
-            printBtn.textContent = 'Print';
-            printBtn.title = 'Use browser print dialog (Save as PDF)';
-
-            urlBtn.addEventListener('click', function (e) { e.stopPropagation(); if (!urlBtn.disabled) _setPdfMode('url'); });
-            printBtn.addEventListener('click', function (e) { e.stopPropagation(); _setPdfMode('print'); });
-
-            toggleRow.appendChild(toggleLabel);
-            toggleRow.appendChild(urlBtn);
-            toggleRow.appendChild(printBtn);
-            section.appendChild(toggleRow);
+        var btnDesc = btn.querySelector('.ai-assistant-menu-item-description');
+        if (btnDesc) {
+            btnDesc.id = 'ai-assistant-pdf-desc';
+            btnDesc.classList.add('ai-assistant-pdf-desc');
         }
 
+        row.appendChild(btn);
+
+        // The switch is a sibling—not a child—of the export button. Nested
+        // buttons are invalid HTML and create unreliable keyboard/AT behavior.
+        // menuitemcheckbox keeps the control valid inside the surrounding menu.
+        if (hasSwitch) {
+            var modeSwitch = document.createElement('button');
+            modeSwitch.className = 'ai-assistant-pdf-mode-switch ai-assistant-mic-popup-toggle';
+            modeSwitch.id = 'ai-assistant-pdf-toggle';
+            modeSwitch.type = 'button';
+            modeSwitch.setAttribute('role', 'menuitemcheckbox');
+            modeSwitch.setAttribute('aria-checked', initialMode === 'url' ? 'true' : 'false');
+
+            if (!switchEnabled) {
+                // Print-only: visible but inert. Pinned to Print, marked disabled
+                // for pointer + assistive tech, and labelled so the disabled
+                // state is understandable rather than mysterious.
+                var _pdfDisabledLabel =
+                    'No prepared PDF is available for this page \u2014 Print & save only.';
+                modeSwitch.disabled = true;
+                modeSwitch.setAttribute('aria-disabled', 'true');
+                modeSwitch.setAttribute('tabindex', '-1');
+                modeSwitch.dataset.pdfDisabled = 'true';
+                modeSwitch.classList.add('ai-assistant-pdf-mode-switch--disabled');
+                modeSwitch.setAttribute('aria-label', _pdfDisabledLabel);
+                modeSwitch.title = _pdfDisabledLabel;
+            } else {
+                modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(initialMode, target));
+                modeSwitch.title = _pdfSwitchAccessibleLabel(initialMode, target);
+            }
+
+            var modeTrack = document.createElement('span');
+            modeTrack.className = 'ai-assistant-mic-toggle-track ai-assistant-pdf-toggle-track';
+            modeTrack.setAttribute('aria-hidden', 'true');
+
+            var modeThumb = document.createElement('span');
+            modeThumb.className = 'ai-assistant-mic-toggle-thumb ai-assistant-pdf-toggle-thumb';
+            modeTrack.appendChild(modeThumb);
+
+            var modeText = document.createElement('span');
+            modeText.className = 'ai-assistant-pdf-toggle-text';
+            modeText.textContent = initialDef.label;
+
+            modeSwitch.appendChild(modeTrack);
+            modeSwitch.appendChild(modeText);
+
+            // Interaction is wired only when a real second mode exists. In
+            // print-only mode the switch is inert (see the disabled branch
+            // above), so no handlers are attached and clicks cannot change mode.
+            if (switchEnabled) {
+                // Keep focus on the compact switch while preventing the
+                // surrounding dropdown from treating pointer-down as an outside
+                // interaction.
+                modeSwitch.addEventListener('mousedown', function (event) {
+                    event.stopPropagation();
+                });
+                modeSwitch.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var current = _getPdfMode();
+                    _setPdfMode(current === 'url' ? 'print' : 'url');
+                });
+            }
+
+            row.appendChild(modeSwitch);
+        }
+
+        section.appendChild(row);
+        _syncPdfModeUI(initialMode, pdfUrl, section, target);
         return section;
     }
 
-    function _pdfModeDescription(mode, pdfUrl) {
-        return (mode === 'url' && pdfUrl) ? 'Opens PDF in a new tab.' : 'Save as PDF via browser print dialog.';
+    function _syncPdfModeUI(mode, pdfUrl, root, target) {
+        var normalized = _normalizePdfMode(mode, pdfUrl);
+        var def = _PDF_MODE_DEFS[normalized];
+
+        // `root` is used during construction, before the section is attached to
+        // document. Runtime updates omit it and resolve the live section.
+        var section = root || document.querySelector('.ai-assistant-pdf-section');
+        target = target || (section && section._pdfTarget) || _resolvePdfTarget(_cfg());
+        var exportBtn = section
+            ? section.querySelector('#ai-assistant-pdf-export')
+            : document.getElementById('ai-assistant-pdf-export');
+        var descEl = section
+            ? section.querySelector('#ai-assistant-pdf-desc')
+            : document.getElementById('ai-assistant-pdf-desc');
+        var iconEl = exportBtn
+            ? exportBtn.querySelector('.ai-assistant-menu-icon')
+            : null;
+        var titleEl = exportBtn
+            ? exportBtn.querySelector('.ai-assistant-menu-item-title-text')
+            : null;
+        var modeSwitch = section
+            ? section.querySelector('#ai-assistant-pdf-toggle')
+            : document.getElementById('ai-assistant-pdf-toggle');
+        var modeText = modeSwitch
+            ? modeSwitch.querySelector('.ai-assistant-pdf-toggle-text')
+            : null;
+        var staticPath = section && section._pdfStaticPath
+            ? section._pdfStaticPath
+            : getStaticPath();
+
+        if (section) section.dataset.pdfMode = normalized;
+        if (exportBtn) {
+            exportBtn.dataset.pdfMode = normalized;
+            exportBtn.setAttribute(
+                'aria-label',
+                normalized === 'url'
+                    ? 'Open the ' + (target.documentLabel || 'prepared PDF') + ' in a new tab'
+                    : 'Open the browser print dialog to save as PDF'
+            );
+        }
+        if (descEl) descEl.textContent = _pdfModeDescription(normalized, pdfUrl, target);
+        if (iconEl) iconEl.src = _pdfIconSource(staticPath, normalized);
+        if (titleEl) titleEl.textContent = _pdfActionLabel(normalized);
+
+        if (modeSwitch && modeSwitch.dataset.pdfDisabled !== 'true') {
+            modeSwitch.dataset.pdfMode = normalized;
+            modeSwitch.setAttribute('aria-checked', normalized === 'url' ? 'true' : 'false');
+            modeSwitch.setAttribute('aria-label', _pdfSwitchAccessibleLabel(normalized, target));
+            modeSwitch.title = _pdfSwitchAccessibleLabel(normalized, target);
+        }
+        if (modeText) modeText.textContent = def.label;
+
+        return normalized;
     }
 
     function _setPdfMode(mode) {
-        try { sessionStorage.setItem(_PDF_MODE_KEY, mode); } catch (_e) {}
-        var urlBtn   = document.getElementById('ai-assistant-pdf-mode-url');
-        var printBtn = document.getElementById('ai-assistant-pdf-mode-print');
-        var descEl   = document.getElementById('ai-assistant-pdf-desc');
-        var pdfUrl   = (_cfg().pdfExportUrl || '').trim();
-        if (urlBtn)   urlBtn.classList.toggle('active',   mode === 'url');
-        if (printBtn) printBtn.classList.toggle('active', mode === 'print');
-        if (descEl)   descEl.textContent = _pdfModeDescription(mode, pdfUrl);
+        var target = _resolvePdfTarget(_cfg());
+        var normalized = _normalizePdfMode(mode, target.url);
+        try { sessionStorage.setItem(_PDF_MODE_KEY, normalized); } catch (_e) {}
+        _syncPdfModeUI(normalized, target.url, null, target);
     }
 
     function _getPdfMode() {
-        var pdfUrl = (_cfg().pdfExportUrl || '').trim();
+        var target = _resolvePdfTarget(_cfg());
         try {
-            var saved = sessionStorage.getItem(_PDF_MODE_KEY);
-            if (saved === 'url' || saved === 'print') return saved;
-        } catch (_e) {}
-        return pdfUrl ? 'url' : 'print';
+            return _normalizePdfMode(sessionStorage.getItem(_PDF_MODE_KEY), target.url);
+        } catch (_e) {
+            return _normalizePdfMode(null, target.url);
+        }
     }
 
     // ── Menu helpers ──────────────────────────────────────────────────────────
@@ -2115,6 +2541,7 @@
         icon.alt = '';
 
         var label = document.createElement('span');
+        label.className = 'ai-assistant-menu-item-title-text';
         label.textContent = text;
 
         titleRow.appendChild(icon);
@@ -2487,12 +2914,15 @@
     }
 
     function handlePdfExport() {
-        var cfg    = _cfg();
-        var pdfUrl = (cfg.pdfExportUrl || '').trim();
+        var target = _resolvePdfTarget(_cfg());
         var mode   = _getPdfMode();
         closeDropdown();
-        if (mode === 'url' && pdfUrl) {
-            window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+        // Defence-in-depth: only ever open http(s)/root-relative targets in a
+        // new tab. The URL is config-sourced, but validating the scheme here
+        // ensures a misconfigured or poisoned value can never become a
+        // javascript:/data: window.open. On an unsafe value, fall back to print.
+        if (mode === 'url' && target.url && _isSafeHref(target.url)) {
+            window.open(target.url, '_blank', 'noopener,noreferrer');
             return;
         }
         _printWithHeader();
@@ -6814,6 +7244,94 @@ opts.jsonPayload + '\n' +
         return wrapper;
     }
 
+    // ── Page-help prompt (deterministic, grounded — not random) ─────────
+    //
+    // A single opinionated button that pre-fills the chat input with the most
+    // useful question for THIS page, then lets the user review/edit and send.
+    // Deterministic: the same page always yields the same question, chosen in
+    // priority order (no shuffle, no random templates, no dice):
+    //   1. the author's top curated question (cfg.panelQuickQuestions) — their
+    //      explicit judgement of what matters most here, zero model cost;
+    //   2. else a grounded question built from the page's real subject
+    //      (primary heading / title) with one fixed phrasing.
+    // Replaces the former "I'm Feeling Lucky" random picker: the checkbox
+    // sources, shuffle, static templates, custom-topic input, and the
+    // document-level outside-click listener (and its rebuild leak) are all gone.
+    // Inserted between the welcome message and the suggestion chips by
+    // _renderWelcome. Pre-fill only — the user reviews and hits send.
+
+    /**
+     * The single best question to pre-fill for the current page.
+     * Pure and deterministic: same page → same string, never random.
+     * @returns {string}
+     */
+    function _bestQuestionForPage() {
+        var cfg = _cfg();
+        // 1. Author's top curated question wins.
+        if (Array.isArray(cfg.panelQuickQuestions)) {
+            for (var i = 0; i < cfg.panelQuickQuestions.length; i++) {
+                var q = String(cfg.panelQuickQuestions[i] || '').trim();
+                if (q) return q;
+            }
+        }
+        // 2. A grounded question keyed to the page's real subject. Strip a
+        //    trailing site suffix (" — Project", " · scikit-plots", " | Docs")
+        //    so the subject is the page's own topic, not the site name.
+        var subject = String(_getCurrentPageHeading() || document.title || '').trim();
+        subject = subject.split(/\s[\u2013\u2014|\u00b7]\s/)[0].trim();
+        if (subject) {
+            return 'How do I use ' + subject +
+                ', and what are the key things to know about it?';
+        }
+        // 3. Last resort when the page exposes no subject at all.
+        return 'What is this page about, and how do I use it?';
+    }
+
+    /**
+     * Build the "Explain this page" button. On click it pre-fills the chat
+     * input with _bestQuestionForPage() and focuses it; the user reviews and
+     * sends. No auto-send, no popover, no document-level listeners.
+     * @returns {HTMLElement} wrapper containing the button.
+     */
+    function _buildPageHelpButton() {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'ai-assistant-pagehelp';
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ai-assistant-pagehelp-btn';
+        btn.id = 'ai-assistant-pagehelp-btn';
+        // The button prepares a question rather than sending one — say so.
+        btn.setAttribute('aria-label',
+            'Explain this page \u2014 fills the box with a suggested question ' +
+            'you can edit, then send');
+
+        var icon = document.createElement('span');
+        icon.className = 'ai-assistant-pagehelp-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = ICONS.menuSparkleRight;
+        btn.appendChild(icon);
+
+        var lbl = document.createElement('span');
+        lbl.className = 'ai-assistant-pagehelp-label';
+        lbl.textContent = 'Explain this page';
+        btn.appendChild(lbl);
+
+        btn.addEventListener('click', function () {
+            var input = document.getElementById('ai-assistant-panel-input');
+            if (!input) return;
+            input.value = _bestQuestionForPage();
+            if (typeof _updateSendBtnState === 'function') _updateSendBtnState();
+            input.focus();
+            // Caret at end so editing continues naturally.
+            try { input.setSelectionRange(input.value.length, input.value.length); }
+            catch (_e) { /* not all input types support selection range */ }
+        });
+
+        wrapper.appendChild(btn);
+        return wrapper;
+    }
+
     /**
      * Render the initial welcome + quick-suggestion chips into the body.
      * Extracted so clearConversation() can rebuild without duplicating logic.
@@ -6860,6 +7378,14 @@ opts.jsonPayload + '\n' +
         welcome.appendChild(p2);
         welcome.appendChild(p3);
         body.appendChild(welcome);
+
+        // Enabled by default; disable from conf.py via
+        // ai_assistant_panel_page_help = False once registered in the extension
+        // __init__.py (serialised to panelPageHelp). `panelLucky` is honoured as
+        // a fallback so any existing explicit opt-out keeps working.
+        if (cfg.panelPageHelp !== false && cfg.panelLucky !== false) {
+            body.appendChild(_buildPageHelpButton());
+        }
 
         if (quickQs.length > 0) {
             var suggestionsEl = document.createElement('div');

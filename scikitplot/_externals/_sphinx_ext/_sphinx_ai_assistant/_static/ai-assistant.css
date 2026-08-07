@@ -729,6 +729,80 @@
     outline-offset: 1px;
 }
 
+/* ─── "Explain this page" prompt button ───────────────────────── *
+ * A single deterministic action between the welcome message and the quick-
+ * suggestion chips (see _buildPageHelpButton / _renderWelcome). One tap
+ * pre-fills the input with the best question for the current page; the user
+ * reviews and sends. Replaces the former random "I'm Feeling Lucky" picker. */
+
+.ai-assistant-pagehelp {
+    display: flex;
+    justify-content: center;
+    margin: 0.35rem 0;
+}
+
+.ai-assistant-pagehelp-btn {
+    --ai-pagehelp-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f0f0f0));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d0d0));
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.3;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-pagehelp-btn:hover {
+    background: var(--ai-pagehelp-accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+.ai-assistant-pagehelp-btn:focus         { outline: none; }
+.ai-assistant-pagehelp-btn:focus-visible {
+    outline: 2px solid var(--ai-pagehelp-accent);
+    outline-offset: 1px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-pagehelp-btn {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .ai-assistant-pagehelp-btn:hover {
+    background: var(--ai-pagehelp-accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+.ai-assistant-pagehelp-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.ai-assistant-pagehelp-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-pagehelp-btn {
+        transition: none;
+    }
+}
+
 /* ─── Message bubbles ────────────────────────────────────────────────────── */
 
 .ai-assistant-panel-bubble {
@@ -1161,9 +1235,200 @@
     display: flex;
 }
 
-/* ─── PDF export section (unchanged, preserved) ─────────────────────────── */
+/* ─── PDF export experience ────────────────────────────────────────────────
+ *
+ * One visual menu row, two valid sibling controls:
+ *   left  → execute the selected PDF action;
+ *   right → switch between prepared-PDF and browser-print modes.
+ *
+ * The switch intentionally reuses .ai-assistant-mic-toggle-track / -thumb,
+ * while dedicated modifier classes adjust its size and aria-checked state.
+ */
 
-/* (These classes are built entirely by JS; the CSS lives in the existing file.) */
+.ai-assistant-pdf-section {
+    --ai-pdf-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.ai-assistant-pdf-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+}
+
+/* Make the two sibling controls read as one normal ActionList/menu item. */
+.ai-assistant-pdf-row:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-bs-theme="dark"] .ai-assistant-pdf-row:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ai-assistant-pdf-action {
+    width: 100%;
+    min-width: 0;
+    border-radius: 4px 0 0 4px;
+}
+
+/* Parent owns the unified hover surface; avoid a second left-only patch. */
+.ai-assistant-pdf-row .ai-assistant-pdf-action:hover {
+    background: transparent;
+}
+
+.ai-assistant-pdf-section[data-pdf-has-toggle="false"] .ai-assistant-pdf-row {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ai-assistant-pdf-section[data-pdf-has-toggle="false"] .ai-assistant-pdf-action {
+    border-radius: 4px;
+}
+
+.ai-assistant-pdf-mode-switch {
+    position: relative;
+    align-self: stretch;
+    justify-content: center;
+    width: 48px;
+    min-width: 48px;
+    min-height: 55px;
+    margin: 0;
+    padding: 0 0.55rem;
+    border: 0;
+    border-radius: 0 4px 4px 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+    touch-action: manipulation;
+}
+
+/* Quiet divider keeps the integrated row readable without making a card. */
+.ai-assistant-pdf-mode-switch::before {
+    position: absolute;
+    top: 13px;
+    bottom: 13px;
+    left: 0;
+    width: 1px;
+    background: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.16))
+    );
+    content: "";
+    opacity: 0.72;
+}
+
+.ai-assistant-pdf-mode-switch:hover {
+    background: rgba(0, 0, 0, 0.045);
+}
+
+[data-bs-theme="dark"] .ai-assistant-pdf-mode-switch:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-assistant-pdf-mode-switch:focus {
+    outline: none;
+}
+
+.ai-assistant-pdf-mode-switch:focus-visible {
+    outline: 2px solid var(--ai-pdf-accent);
+    outline-offset: -2px;
+}
+
+/* Reuse the mic switch vocabulary, enlarged slightly for a menu-row affordance. */
+.ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-track {
+    width: 34px;
+    height: 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+[data-bs-theme="dark"] .ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-track {
+    border-color: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-thumb {
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+}
+
+/* aria-checked=false → Print as PDF   (default/off, thumb left)
+ * aria-checked=true  → Export as PDF  (prepared-PDF URL, on, thumb right,
+ *                       accent-highlighted). Print-only pages render
+ *                       disabled with aria-checked="false" since there is
+ *                       no second mode to switch to. */
+.ai-assistant-pdf-mode-switch[aria-checked="true"] .ai-assistant-pdf-toggle-track {
+    background: var(--ai-pdf-accent);
+}
+
+.ai-assistant-pdf-mode-switch[aria-checked="true"] .ai-assistant-pdf-toggle-thumb {
+    transform: translateX(16px);
+}
+
+/* Print-only mode: the toggle stays visible for a stable, discoverable layout
+ * but is inert — dimmed and non-interactive, pinned to Print. Matches the
+ * disabled treatment used elsewhere (inputs, footer buttons). */
+.ai-assistant-pdf-mode-switch:disabled,
+.ai-assistant-pdf-mode-switch--disabled,
+.ai-assistant-pdf-mode-switch[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ai-assistant-pdf-mode-switch:disabled:hover,
+.ai-assistant-pdf-mode-switch--disabled:hover,
+.ai-assistant-pdf-mode-switch[aria-disabled="true"]:hover {
+    /* Suppress the interactive hover affordance while disabled. */
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+}
+
+/* Accessible current-mode text; visual feedback comes from the moving thumb,
+ * changing leading icon, description, and native tooltip. */
+.ai-assistant-pdf-toggle-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-pdf-row,
+    .ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-track,
+    .ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-thumb {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .ai-assistant-pdf-mode-switch::before {
+        background: ButtonText;
+    }
+
+    .ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-track {
+        border: 1px solid ButtonText;
+        background: Canvas;
+    }
+
+    .ai-assistant-pdf-mode-switch[aria-checked="true"] .ai-assistant-pdf-toggle-track {
+        background: Highlight;
+    }
+
+    .ai-assistant-pdf-mode-switch .ai-assistant-pdf-toggle-thumb {
+        background: ButtonText;
+    }
+}
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 
@@ -2435,8 +2700,10 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     height: 0.9rem;
 }
 .ai-assistant-panel-model-link-label {
-    max-width: 7.5rem;  /* by model name 12ch */
-    min-width: 7rem;  /* by model name */
+    /* by model name 12ch */
+    /* max-width: 7.5rem; */
+    /* by model name */
+    /* min-width: 7rem; */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -9117,8 +9384,8 @@ a.ai-assistant-panel-ep-resolved-url:focus-visible {
 
 /* Active profile name label — same truncation behaviour as model-link-label. */
 .ai-assistant-panel-ep-btn-label {
-    max-width: 11ch;
-    min-width: 0;
+    /* max-width: 13ch; */
+    /* min-width: 0; */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

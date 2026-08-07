@@ -512,6 +512,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "__version_iso_8601__",
                     "online_help",
                 ],
+                # for inheritance-diagram
+                "classes": [],
             },
             {
                 "title": (
@@ -548,6 +550,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "_annoy.Index",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "_annoy.Index",
+                ],
             },
             {
                 "title": "ANNoy (cpp based ``scikitplot/cexternals/_annoy``)",
@@ -556,6 +562,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # "get_include",
                     "Annoy",
                     "AnnoyIndex",
+                    "Index",
+                ],
+                # for inheritance-diagram
+                "classes": [
                     "Index",
                 ],
             },
@@ -712,6 +722,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_annoy.Annoy",
                     "_annoy.AnnoyIndex",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "Annoy",
+                ],
             },
             {
                 "title": "astropy stats as submodule.",
@@ -790,6 +804,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "LangChainCorpusRetriever",
                     "MCPCorpusServer",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "LangChainCorpusRetriever",
+                    "MCPCorpusServer",
+                ],
             },
             {
                 "title": "Archive-within-archive",
@@ -817,6 +836,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "FilterBase",
                     # Pipeline resilience
                     "PipelineGuard",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "DocumentReader",
+                    "DummyReader",
                 ],
             },
             {
@@ -904,6 +928,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "BuilderConfig",
                     "CorpusBuilder",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "CorpusBuilder",
+                ],
             },
             {
                 "title": "Custom Hooks",
@@ -937,6 +965,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "GoogleDriveDownloader",
                     "WebDownloader",
                     "YouTubeDownloader",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "BaseDownloader",
+                    "AnyDownloader",
                 ],
             },
             {
@@ -1021,6 +1054,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "PipelineResult",
                     "create_corpus",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "CorpusPipeline",
+                    "PipelineResult",
+                ],
             },
             {
                 "title": "Readers",
@@ -1053,6 +1091,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "XMLReader",
                     # zip
                     "ZipReader",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "MarkdownReader",
+                    "CustomReader",
                 ],
             },
             {
@@ -1123,6 +1166,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SQLiteStorage",
                     "StorageBase",
                     "StorageQuery",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "InMemoryStorage",
+                    "SQLiteStorage",
                 ],
             },
             {
@@ -1655,6 +1703,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "_ann.ANNImputer",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "_ann.ANNImputer",
+                ],
             },
         ],
     },
@@ -1726,6 +1778,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     'MemoryMap',
                     'mmap_region',
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "MemoryMap",
                 ],
             },
         ],
@@ -1955,6 +2011,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "DummyCodeEncoder",
                     "GetDummies",
                 ],
+                # for inheritance-diagram
+                "classes": [
+                    "DummyCodeEncoder",
+                    "GetDummies",
+                ],
             },
         ],
     },
@@ -1979,6 +2040,15 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     'KissRandomState',
                     'default_rng',
                     'kiss_context',
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "Kiss32Random",
+                    "Kiss64Random",
+                    "KissSeedSequence",
+                    "KissBitGenerator",
+                    "KissGenerator",
+                    "KissRandomState",
                 ],
             },
             {

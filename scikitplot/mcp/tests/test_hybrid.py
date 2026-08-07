@@ -196,3 +196,47 @@ def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
 def test_bm25_empty_query():
     r = Bm25Retriever(lambda q, k: [("x", 1.0)], lambda d: {"text": "t", "source_uri": "https://d.io/x"})
     assert r.search("", k=3) == []
+
+# ── Hardened fusion and failure-mode invariants ──────────────────────────────
+def test_rrf_duplicate_in_one_leg_does_not_amplify_score():
+    a = _chunk("A")
+    b = _chunk("B")
+    fused = reciprocal_rank_fusion([(1.0, [a, a, b])], k=60)
+    assert fused["A"] == pytest.approx(1.0 / 61.0)
+    assert fused["B"] == pytest.approx(1.0 / 63.0)
+
+
+@pytest.mark.parametrize("weights", [[-1.0], [float("nan")], [float("inf")], [0.0]])
+def test_hybrid_rejects_invalid_or_all_zero_weights(weights):
+    with pytest.raises(ValueError):
+        HybridRetriever([_Fixed([])], weights=weights)
+
+
+@pytest.mark.parametrize("rrf_k", [0, -1])
+def test_hybrid_rejects_invalid_rrf_k(rrf_k):
+    with pytest.raises(ValueError, match="rrf_k"):
+        HybridRetriever([_Fixed([])], rrf_k=rrf_k)
+
+
+def test_hybrid_tie_order_is_deterministic_by_first_seen_then_id():
+    first = _Fixed([_chunk("B"), _chunk("A")])
+    second = _Fixed([_chunk("A"), _chunk("B")])
+    retriever = HybridRetriever([first, second])
+    expected = ["B", "A"]
+    for _ in range(5):
+        assert [chunk.doc_id for chunk in retriever.search("q", k=2)] == expected
+
+
+def test_hybrid_strict_mode_reraises_backend_failure():
+    retriever = HybridRetriever([_Boom()], strict=True)
+    with pytest.raises(RuntimeError, match="backend down"):
+        retriever.search("q", k=1)
+
+
+def test_bm25_strict_mode_reraises_backend_failure():
+    def fail(_query, _k):
+        raise OSError("database unavailable")
+
+    retriever = Bm25Retriever(fail, lambda _doc_id: {}, strict=True)
+    with pytest.raises(OSError, match="database unavailable"):
+        retriever.search("q", k=1)
