@@ -515,6 +515,9 @@ commands:
             set -Eeuo pipefail
 
             export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
+            export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
+            # python -m nltk.downloader stopwords
+            # python -m nltk.downloader punkt_tab
 
             cd docs
             make html 2>&1 | tee ~/sphinx_html_log.txt
