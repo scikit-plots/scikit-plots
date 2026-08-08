@@ -143,6 +143,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **mcp**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            MCP <./mcp/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **workflow automation**
         ^^^
         .. toctree::

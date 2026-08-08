@@ -71,7 +71,7 @@ If successful, the terminal will return an OK status, meaning the "parrot" (`MCP
 
  <p>
   <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry (`ghcr.io`)
   </a>:
  </p>
 
@@ -80,8 +80,8 @@ docker pull ghcr.io/scikit-plots/scikit-plots:latest-devel-python3.11
 ```
 
  <p>
-  <a href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Red Hat Quay Container Registry
+  <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Red Hat Quay Container Registry (`quay.io`)
   </a>:
  </p>
 
@@ -92,7 +92,7 @@ docker pull quay.io/scikit-plots/scikit-plots:latest-devel-python3.11
 
  <p>
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Docker Container Registry
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Docker Container Registry (`docker.io`)
   </a>:
  </p>
 
@@ -117,6 +117,38 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
 ```bash
 docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest-devel-jupyter-python3.11
 ```
+
+ <h4>
+ 🛠️ How Docker resolves image names
+ </h4>
+
+Full Docker image references follow this structure:
+```bash
+[registry]/[namespace]/[repository]:[tag]
+```
+
+Command: scikitplot/scikit-plots
+* Omits the registry, so Docker expands it to `docker.io/scikitplot/scikit-plots:latest`.
+
+Command: docker.io/scikitplot/scikit-plots
+* Explicitly includes the registry, resolving to `docker.io/scikitplot/scikit-plots:latest`.
+
+**Custom Registries**: Disambiguating [`Docker Hub (`docker.io`)`](https://hub.docker.com/r/scikitplot/scikit-plots) from alternative registries like:
+* [`GitHub` Packages (`ghcr.io`)](https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots)
+* [`Google` Artifact Registry (`gcr.io`)](https://docs.cloud.google.com/artifact-registry/docs/transition/gcr-repositories)
+* [`RedHat` Quay on OpenShift Container Platform (`quay.io`)](https://quay.io/repository/scikit-plots/scikit-plots)
+* [`Amazon` ECR (`public.ecr.aws`)](https://gallery.ecr.aws/)
+
+<!--
+ https://www.docker.com/products/docker-hub/
+ https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+ https://docs.cloud.google.com/artifact-registry/docs/transition/gcr-repositories
+ https://docs.redhat.com/en/documentation/red_hat_quay
+ https://docs.aws.amazon.com/AmazonECR/latest/public/what-is-ecr.html
+ https://docs.aws.amazon.com/AmazonECR/latest/public/public-registry-auth.html
+ https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html
+ https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.md
+-->
 </div>
 
 ---
