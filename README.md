@@ -219,26 +219,6 @@
 </div>
 
 
-<!-- Scikit-plots Docs -->
-<div>
- <h3>
-  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-   📘 Docs, Examples Try/Install Scikit-plots
-  </a>:
- </h3>
-
- <h4>Single line functions for detailed visualizations. </h4>
- <!-- RON: (Republic of Nomos) -->
- <!-- "Nomos is the governing concept for machine learning systems, providing the simple deterministic foundation that empowers autonomous, customizable, and user-sovereign execution across any environment." -->
- <p>The quickest and easiest way to go from analysis... Explore the full features of
-  <br>Scikit-plots doc:
-  <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
-   https://scikit-plots.github.io/dev/devel/index.html
-  </a>
- </p>
-</div>
-
-
 <!-- Scikit-plots Docker -->
 <div>
 
@@ -250,7 +230,7 @@
 
  <h4>
   🐋🦜
-  🔜 <code>EXPERIMENTAL</code> RAG-CI Domesticate 🇦🇮 via <code>scikitplot.mcp</code> Local (Self-Hosting) by Docker ✨:
+  🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨:
  </h4>
 
 > 🐬🦜 **Tame Your Free Spirit AI — Feed It Verified Public Data ✨**
@@ -287,7 +267,7 @@ If successful, the terminal will return an OK status, meaning the "parrot" (`MCP
 
  <p>
   <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> GitHub Container Registry (`ghcr.io`)
   </a>:
  </p>
 
@@ -296,8 +276,8 @@ docker pull ghcr.io/scikit-plots/scikit-plots:latest-devel-python3.11
 ```
 
  <p>
-  <a href="https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Red Hat Quay Container Registry
+  <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Red Hat Quay Container Registry (`quay.io`)
   </a>:
  </p>
 
@@ -308,7 +288,7 @@ docker pull quay.io/scikit-plots/scikit-plots:latest-devel-python3.11
 
  <p>
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Docker Container Registry
+    🐋 Scikit-plots <code>runtime</code>|<code>devel</code> Docker Container Registry (`docker.io`)
   </a>:
  </p>
 

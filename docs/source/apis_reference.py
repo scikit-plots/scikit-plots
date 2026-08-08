@@ -1786,6 +1786,37 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.mcp": {
+        "short_summary": "MCP utilities for documentation retrieval and programmatic integrations.",
+        "description": _get_guide("mcp-index"),
+        "sections": [
+            {
+                "title": "MCP: Model Context Protocol",
+                "description": _get_guide("mcp-index"),
+                "autosummary": [
+                    "DocsRetriever",
+                    "RetrievedChunk",
+                    "InMemoryBm25Retriever",
+                    "Bm25Retriever",
+                    "CorpusAnnoyRetriever",
+                    "HybridRetriever",
+                    "build_search_docs_result",
+                    "builtin_demo_retriever",
+                    "create_server",
+                    "reciprocal_rank_fusion",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "DocsRetriever",
+                    "RetrievedChunk",
+                    "InMemoryBm25Retriever",
+                    "Bm25Retriever",
+                    "CorpusAnnoyRetriever",
+                    "HybridRetriever",
+                ],
+            },
+        ],
+    },
     "scikitplot.mlflow": {
         "short_summary": "Missing value imputation.",
         "description": _get_guide("mlflow-index"),
