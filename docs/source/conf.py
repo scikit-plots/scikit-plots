@@ -1362,7 +1362,131 @@ latex_documents = [
     # ),
 ]
 
+# https://www.sphinx-doc.org/en/master/usage/configuration.html?utm_source=chatgpt.com#confval-latex_engine
+# 'pdflatex'‘s support for Unicode characters is limited. If your project uses Unicode characters, setting the engine
+# to 'xelatex' or 'lualatex' and making sure to use an OpenType font with wide-enough glyph coverage is
+# often easier than trying to make 'pdflatex' work with the extra Unicode characters. Since Sphinx 2.0, the default
+# typeface is GNU FreeFont, which has good coverage of Latin, Cyrillic, and Greek glyphs.
 # latex_engine = "xelatex"
+#
+# Because Sphinx's LuaLaTeX defaults use fontspec, override fontpkg so all three normal font families can fall back to Noto Emoji:
+# normal paragraph/title
+#         │
+#         └── \setmainfont
+# heading / UI-ish text
+#         │
+#         └── \setsansfont
+# code / literal / signature
+#         │
+#         └── \setmonofont
+# latex_engine = "lualatex"
+
+latex_engine = "lualatex"
+
+latex_elements = {
+    "fontpkg": r"""
+\directlua{
+  luaotfload.add_fallback(
+    "scikitplotemojifallback",
+    {
+      "Noto Color Emoji:mode=harf;"
+    }
+  )
+}
+
+\setmainfont{FreeSerif}[
+  RawFeature={fallback=scikitplotemojifallback}
+]
+
+\setsansfont{FreeSans}[
+  RawFeature={fallback=scikitplotemojifallback}
+]
+
+\setmonofont{FreeMono}[
+  Scale=0.9,
+  RawFeature={fallback=scikitplotemojifallback}
+]
+""",
+}
+
+#                     HTML
+#                      │
+#              browser-native emoji
+#                      │
+#                      ▼
+#                  🌱 ✅ 🚀
+#
+#                     PDF
+#                      │
+#                  Sphinx
+#                      │
+#                  LuaLaTeX
+#                      │
+#        ┌─────────────┴──────────────┐
+#        │                            │
+#  normal Unicode                emoji Unicode
+#        │                            │
+#  FreeSerif / Sans / Mono      Noto Color Emoji
+#        │                      HarfBuzz fallback
+#        └─────────────┬──────────────┘
+#                      │
+#                      ▼
+#                     PDF
+
+# Sphinx sources
+#  .rst / .md / generated API
+#           │
+#           │ Unicode remains Unicode
+#           │ 🌱 ✅ ⚠️ 🚀 α 中文 ...
+#           ▼
+#  sphinx-build -b latex
+#           │
+#       ┌───┴───────────────┐
+#       │                   │
+#       ▼                   ▼
+#  Graphviz              ImageMagick
+#     dot                  convert
+#       │                   │
+#       └────────┬──────────┘
+#                ▼
+#        docs/build/latex/
+#                │
+#        *.tex + assets
+#                │
+#                ▼
+#             latexmk
+#       compilation manager
+#                │
+#                ▼
+#            LuaLaTeX
+#          / LuaHBTeX
+#                │
+#                ▼
+#           fontspec +
+#           luaotfload
+#                │
+#        ┌───────┼───────────┐
+#        │       │           │
+#        ▼       ▼           ▼
+#  FreeSerif  FreeSans    FreeMono
+#        │       │           │
+#        └───────┴─────┬─────┘
+#                      │
+#                 missing glyph?
+#                      │
+#               yes ───┘
+#                      ▼
+#           luaotfload fallback
+#                      │
+#                      ▼
+#             Noto Color Emoji
+#              mode=harf
+#                      │
+#                      ▼
+#                  🌱 ✅ 🚀
+#                      │
+#                      ▼
+#               Final PDF(s)
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
