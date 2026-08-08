@@ -23,21 +23,94 @@
 Model Context Protocol (MCP)
 ============================
 
-Use ``scikitplot.mcp`` to make documentation searchable from an
-MCP-compatible assistant, developer tool, local process, container, or service.
+Use ``scikitplot.mcp`` to make documentation or a custom corpus searchable
+from an MCP-compatible assistant, developer tool, local process, container, or
+service.
 
 The normal user workflow is intentionally small:
 
-#. choose how the MCP server should run;
-#. verify it before connecting a client;
-#. optionally point it at your own documentation; and
-#. let the client call the read-only ``search_docs`` tool.
+#. choose the sources that should count as reference evidence;
+#. use simple lexical retrieval, or add corpus-backed semantic/hybrid retrieval;
+#. verify the selected corpus and retriever with known queries;
+#. choose how the MCP server should run; and
+#. let the client call the read-only ``search_docs`` tool and inspect citations.
 
-You do not need to understand the retrieval internals to get started.
+You do not need to understand the retrieval internals to get started. Retrieval
+finds and ranks evidence; it does not make the underlying data true.
 
 .. contents:: On this page
    :local:
    :depth: 2
+
+Scientific grounding: evidence, not absolute truth
+--------------------------------------------------
+
+``scikitplot.mcp`` is designed for **source-grounded** answers: retrieve relevant
+passages, preserve where they came from, and let the client reason from visible
+evidence instead of unsupported recall.
+
+A grounded answer is **traceable**, not automatically correct. Source documents
+can be incomplete, stale, biased, contradictory, or simply wrong. Retrieval can
+also miss relevant material.
+
+.. important::
+
+   Treat retrieved data as **evidence for or against a hypothesis**, not as
+   absolute truth. A retrieval score measures relevance for ranking; it is not a
+   probability that a statement is correct.
+
+A useful scientific response should therefore prefer language such as:
+
+* "the retrieved sources support ...";
+* "the available evidence is consistent with ...";
+* "the sources disagree ...";
+* "this remains uncertain ..."; or
+* "no supporting passage was retrieved."
+
+Prefer evidence that is current, attributable, reproducible, and independently
+checkable. When sources conflict, preserve the disagreement instead of forcing a
+single confident answer.
+
+How the pieces fit
+------------------
+
+The three modules have different jobs. You can use ``scikitplot.mcp`` by itself
+for a small corpus, then add the other layers only when your retrieval needs grow.
+
+.. list-table:: Corpus, retrieval, and MCP roles
+   :header-rows: 1
+   :widths: 24 38 38
+
+   * - Component
+     - Main job
+     - What it does **not** mean
+   * - :mod:`scikitplot.corpus`
+     - Read, chunk, normalize, enrich, embed, index, and preserve source metadata for custom corpora.
+     - Corpus content is not automatically verified or true.
+   * - :mod:`scikitplot.annoy`
+     - Provide fast local approximate-nearest-neighbor search over vectors for semantic retrieval.
+     - Vector similarity is not factual correctness or scientific confidence.
+   * - :mod:`scikitplot.mcp`
+     - Expose a bounded, read-only retrieval contract with citations to MCP-compatible clients.
+     - MCP does not retrain the model or validate every claim in the corpus.
+
+Common paths are intentionally composable:
+
+.. code-block:: text
+
+   Small / simple
+   source JSONL -> lexical retrieval -> scikitplot.mcp -> MCP client
+
+   Semantic
+   sources -> scikitplot.corpus -> embeddings -> scikitplot.annoy
+           -> CorpusAnnoyRetriever -> scikitplot.mcp -> MCP client
+
+   Hybrid
+   sources -> scikitplot.corpus -> lexical + semantic retrieval
+           -> rank fusion -> scikitplot.mcp -> MCP client
+
+In every path, the final responsibility is the same: retrieve useful evidence,
+keep provenance attached, and communicate uncertainty honestly.
 
 At a glance
 -----------
@@ -47,8 +120,12 @@ At a glance
 * **HTTP transport:** Streamable HTTP
 * **Default HTTP endpoint:** ``http://127.0.0.1:8000/mcp``
 * **Default health endpoint:** ``http://127.0.0.1:8000/healthz``
-* **Your docs:** optional UTF-8 JSONL corpus via ``--docs-jsonl``
+* **Small custom corpus:** optional UTF-8 JSONL via ``--docs-jsonl``
+* **Corpus pipeline:** :mod:`scikitplot.corpus` for richer ingestion, chunking, embeddings, storage, and provenance
+* **Semantic retrieval:** ``CorpusAnnoyRetriever`` can compose :mod:`scikitplot.corpus` with :mod:`scikitplot.annoy`
+* **Hybrid retrieval:** ``HybridRetriever`` can combine lexical and semantic ranked results
 * **Default HTTP behavior:** stateless
+* **Evidence model:** retrieval scores rank relevance; they do not certify truth
 * **Safety model:** returned document text is explicitly untrusted reference data
 
 Choose your scenario
@@ -82,6 +159,15 @@ Choose your scenario
    * - Serve a team or remote client
      - HTTP behind production controls
      - Authentication, TLS, network policy, and quotas are required.
+   * - Build a curated multi-format corpus
+     - :mod:`scikitplot.corpus`
+     - Ingest, chunk, normalize, embed, index, and retain provenance before serving.
+   * - Search concepts and paraphrases
+     - ``CorpusAnnoyRetriever``
+     - Semantic retrieval using corpus embeddings and :mod:`scikitplot.annoy`.
+   * - Balance exact terms and semantic meaning
+     - ``HybridRetriever``
+     - Fuse lexical and dense rankings while keeping one MCP tool contract.
    * - Search a larger or richer corpus
      - :mod:`scikitplot.mcp` retrieval API
      - BM25, vector, or hybrid retrieval without changing the MCP tool contract.
@@ -197,7 +283,109 @@ Good document IDs are stable and simple, for example:
    retrieval backend through :mod:`scikitplot.mcp` rather than continually
    growing one in-memory file.
 
-Scenario 4: make CI detect the wrong corpus
+Scenario 4: build a curated corpus
+----------------------------------
+
+Use :mod:`scikitplot.corpus` when your evidence comes from more than a small
+hand-written JSONL file or when you need a repeatable ingestion pipeline.
+
+A corpus can read and transform source material, preserve provenance, create
+embeddings, and build a similarity index before MCP is involved:
+
+.. code-block:: python
+
+   from scikitplot.corpus import BuilderConfig, CorpusBuilder
+
+   builder = CorpusBuilder(
+       BuilderConfig(
+           chunker="paragraph",
+           normalize=True,
+           enrich=True,
+           embed=True,
+           build_index=True,
+       )
+   )
+
+   result = builder.build("./data/")
+   hits = builder.search("what evidence supports this claim?")
+   mcp_result = builder.to_mcp_tool_result(
+       "what evidence supports this claim?"
+   )
+
+This is useful because corpus quality can be tested independently from transport
+or the AI client. Inspect representative chunks, source metadata, and search
+results before serving them.
+
+.. note::
+
+   Curating a corpus improves control and traceability; it does not convert the
+   corpus into ground truth. Keep source dates, authorship, versions, and other
+   provenance needed to judge the evidence later.
+
+Scenario 5: add semantic retrieval with Annoy
+---------------------------------------------
+
+Use semantic retrieval when users may ask for the same concept with different
+words. ``CorpusAnnoyRetriever`` composes :mod:`scikitplot.corpus` embeddings with
+an approximate vector index provided by :mod:`scikitplot.annoy`.
+
+.. code-block:: python
+
+   from scikitplot.mcp import CorpusAnnoyRetriever
+
+   retriever = CorpusAnnoyRetriever.from_corpus_annoy(
+       "./docs/",
+       metric="angular",
+       n_trees=10,
+   )
+
+   hits = retriever.search(
+       "connect a local assistant without opening a network port",
+       k=5,
+   )
+
+The same embedding model is used for corpus and query vectors so they share one
+vector space. Annoy then finds nearby vectors efficiently.
+
+.. important::
+
+   Annoy performs **approximate** nearest-neighbor search. Its parameters trade
+   retrieval recall, index size, build cost, and query speed. A closer vector is
+   a stronger semantic match, not stronger evidence that the passage is true.
+
+For scientific or safety-sensitive use, evaluate retrieval on a held-out set of
+known questions and relevant passages instead of choosing tuning parameters by
+feel alone.
+
+Scenario 6: combine lexical and semantic evidence
+-------------------------------------------------
+
+Exact terms and semantic meaning fail in different ways. API names, flags,
+identifiers, and error strings often favor lexical/BM25 search, while paraphrases
+and synonyms often favor dense semantic search.
+
+``HybridRetriever`` can fuse already-configured retrieval legs with Reciprocal
+Rank Fusion (RRF):
+
+.. code-block:: python
+
+   from scikitplot.mcp import HybridRetriever
+
+   retriever = HybridRetriever(
+       [lexical_retriever, semantic_retriever],
+       weights=[1.0, 1.0],
+   )
+
+   hits = retriever.search("why is the HTTP service reachable but search stale?")
+
+RRF combines **rank positions** rather than pretending BM25 and cosine scores are
+the same quantity. A result supported by more than one retrieval leg may rank
+higher, but fusion still measures retrieval usefulness, not factual certainty.
+
+Use hybrid retrieval when your corpus contains both precise technical language
+and natural-language explanations.
+
+Scenario 7: make CI detect the wrong corpus
 -------------------------------------------
 
 A health endpoint can tell you that a process is alive. It cannot prove that
@@ -226,7 +414,7 @@ This helps detect:
 For an immutable corpus and deterministic backend, repeated self-tests with the
 same input should also produce stable results.
 
-Scenario 5: run a local HTTP endpoint
+Scenario 8: run a local HTTP endpoint
 -------------------------------------
 
 Use Streamable HTTP when a local service or client connects over HTTP:
@@ -252,7 +440,7 @@ The health check confirms that the HTTP service is reachable and returns the
 expected minimal health response. Use ``--self-test`` when you also need to
 check corpus loading and search behavior.
 
-Scenario 6: run in Docker
+Scenario 9: run in Docker
 -------------------------
 
 Use the explicit Docker profile:
@@ -289,8 +477,8 @@ For production containers, install a built wheel in a clean runtime image
 instead of using an editable ``-e`` installation. This avoids build-system work
 on import and gives more deterministic startup and rollback behavior.
 
-Scenario 7: serve remote or team clients safely
------------------------------------------------
+Scenario 10: serve remote or team clients safely
+------------------------------------------------
 
 Treat remote MCP deployment like any other network service.
 
@@ -349,6 +537,51 @@ returning an uncited block of generated prose.
 
 When nothing matches, the result is a normal empty search result with a clear
 message rather than a fabricated documentation passage.
+
+Read retrieval results scientifically
+-------------------------------------
+
+Do not collapse retrieval quality, source quality, and factual correctness into
+one number. They answer different questions.
+
+.. list-table:: What each signal actually tells you
+   :header-rows: 1
+   :widths: 26 34 40
+
+   * - Signal
+     - Useful interpretation
+     - Do not interpret it as
+   * - Retrieval score / rank
+     - "This passage appears relevant to the query."
+     - Probability that the passage or final answer is true.
+   * - Citation / ``source_uri``
+     - "This is where the retrieved claim came from."
+     - Proof that the source is authoritative or current.
+   * - Agreement across sources
+     - Corroborating evidence worth investigating.
+     - Automatic independence or consensus.
+   * - Missing result
+     - The retriever did not find supporting material in the searched corpus.
+     - Proof that the claim is false.
+   * - Conflicting passages
+     - Evidence that uncertainty, version drift, or genuine disagreement exists.
+     - A reason to silently choose the highest-ranked passage.
+
+A practical evidence loop is:
+
+.. code-block:: text
+
+   question
+      -> retrieve candidate evidence
+      -> inspect provenance and dates
+      -> compare independent sources
+      -> note contradictions / missing evidence
+      -> state the best-supported hypothesis
+      -> cite what supports it
+      -> keep uncertainty visible
+
+This makes the system **data-driven without becoming data-obedient**: data gets a
+voice, but evidence is still tested, compared, and interpreted.
 
 Security by design
 ------------------
@@ -508,6 +741,16 @@ An empty result is not automatically a server failure. Try a shorter or more
 specific term, verify the intended corpus with ``--self-test``, and confirm the
 expected document is actually present.
 
+The top result is relevant but the claim is still wrong
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is possible and should be expected in real corpora. Retrieval ranking asks
+"what best matches the query?" rather than "what is certainly true?"
+
+Check the citation, source date, document version, and surrounding context. Search
+for independent supporting or contradicting passages, try a lexical/semantic
+hybrid query, and update or quarantine stale corpus material when necessary.
+
 A non-local HTTP bind is refused
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -557,6 +800,11 @@ This separation is useful for future changes: transport, indexing strategy,
 embedding model, storage engine, or ranking can evolve without requiring every
 MCP client to learn a new documentation tool.
 
+Measure each retrieval backend on representative queries before promoting it.
+For semantic or hybrid search, track retrieval metrics such as recall at ``k``
+or manually reviewed relevance alongside latency and memory. Do not optimize a
+single score as if it measured truth.
+
 Keep the user guide simple
 --------------------------
 
@@ -564,11 +812,12 @@ For normal use, remember this sequence:
 
 .. code-block:: text
 
-   1. Self-test
-   2. Choose stdio or HTTP
-   3. Connect the client
-   4. Search documentation
-   5. Check citations
+   1. Choose and curate the evidence sources
+   2. Self-test the corpus and retrieval behavior
+   3. Choose stdio or HTTP
+   4. Connect the client
+   5. Search and inspect citations
+   6. State conclusions in proportion to the evidence
 
 Everything after that is an optimization or deployment concern.
 
@@ -576,6 +825,10 @@ Where to go next
 ----------------
 
 Most users can stop here.
+
+For corpus construction and provenance-aware processing, see
+:mod:`scikitplot.corpus`. For local approximate vector search and its
+speed/recall trade-offs, see :mod:`scikitplot.annoy`.
 
 For custom retrieval or programmatic integrations, see :mod:`scikitplot.mcp`.
 The public API includes ``DocsRetriever``, ``RetrievedChunk``,

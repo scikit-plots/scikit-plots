@@ -233,23 +233,31 @@
   🔜 <code>EXPERIMENTAL</code> RAG-CI — Source-Grounded 🇦🇮 via <code>scikitplot.mcp</code>, Locally or with Docker ✨:
  </h4>
 
-> 🐬🦜 **Give AI Better Context — Ground Responses in Curated Sources**
+> 🐬🦜 **Give AI Better Context — Ground Responses in Curated Evidence**
 
-> 📖🔊 In simple terms, you first choose a collection of trusted documents (your “corpus”), then `scikitplot.mcp` organizes and indexes them so they can be searched quickly. When you ask a question in an AI app that supports MCP, the system automatically finds the most relevant passages from your corpus and sends them along with your question, so the AI can answer using real source material instead of guessing.
+> 📖🔊 In simple terms, you first build a corpus from selected documents and data. scikitplot.corpus can prepare, structure, and index that material, while optional retrieval backends such as scikitplot.annoy can help find semantically related passages. `scikitplot.mcp` then makes the relevant retrieved context available to MCP-compatible AI applications when a question is asked.
 
-`scikitplot.mcp` acts as a local context layer between your data and the AI application:
+Instead of relying only on what the model already knows, the application can answer with relevant source material available in its context.
 
-* **RAG (Retrieval-Augmented Generation)**: Retrieves relevant information from your corpus to ground model responses.
-* **CI (Context Injection)**: Adds selected reference context to the model request at inference time.
+`scikitplot.mcp` acts as the bridge between your evidence layer and the AI application:
+
+* **RAG (Retrieval-Augmented Generation)**: Retrieves relevant evidence from your corpus to support model responses.
+* **CI (Context Injection)**: Adds selected reference material to the model request at inference time.
 * **MCP (Model Context Protocol)**: Provides a standard way for compatible AI applications to access external context, resources, and tools.
 
-The goal is simple:
+The data path is simple:
 
-`curated sources → relevant context → better-grounded responses`
+`curated sources → corpus → retrieval → relevant evidence → MCP → AI response`
 
-This can improve accuracy and reduce unsupported answers, but it does not guarantee correctness.
+The scientific principle is equally important:
 
-Run `scikitplot.mcp` directly on your system or inside Docker for a more isolated and reproducible deployment.
+`relevant ≠ correct → evidence ≠ absolute truth → grounded ≠ guaranteed`
+
+Retrieved data should therefore be treated as evidence for a best-supported answer or hypothesis, not as unquestionable truth. Good grounding keeps sources, provenance, uncertainty, conflicting evidence, and missing information visible whenever possible.
+
+This can improve accuracy, traceability, and reproducibility while reducing unsupported answers, but final conclusions should remain open to verification as the underlying data changes.
+
+Run `scikitplot.mcp` directly on your system or inside Docker; Docker changes how the service is deployed, not how the grounding logic works.
 
 <!-- 3000 or 8000 (Standard fallback development ports) -->
 🔜 Start the interactive container:
