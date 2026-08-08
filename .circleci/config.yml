@@ -62,6 +62,9 @@ parameters:
   run_docs_build:
     type: boolean
     default: false
+  run_latex_pdf:
+    type: boolean
+    default: false
 
 # YAML anchor & alias, Aliases to reuse `<<: *alias`
 _defaults: &defaults
@@ -802,9 +805,30 @@ commands:
           no_output_timeout: 59.9m
           command: |
             set -Eeuo pipefail
+
+            # raw ANSI ESC character in generated docs
+            # NO_COLOR + LaTeX doctree sanitizer
+            # LuaLaTeX supports Unicode, but ANSI terminal control bytes are not text/Unicode characters intended for a document.
+            export NO_COLOR=1
+            export TERM=dumb
+            export CLICOLOR=0
+            export CLICOLOR_FORCE=0
+            export FORCE_COLOR=0
+            export PY_COLORS=0
+            export RICH_NO_COLOR=1
+
             export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
             cd docs
+            # run_latex_pdf gate: skip the LaTeX .tex emit entirely unless the
+            # pipeline flag is set. Normal doc builds stay HTML-only (faster); we
+            # only pay for LaTeX when a PDF is actually wanted.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → skipping 'make latex' (HTML-only build)."
+              mkdir -p build/latex   # keep the persisted workspace path valid (empty)
+              exit 0
+            fi
             # `make latex` = `sphinx-build -b latex -d build/doctrees ...`. It reuses
             # the doctrees from step 1, so this is just .tex writing (a few minutes).
             # GUARD: if reuse fails, sphinx re-executes the gallery (~50 min). We box
@@ -977,15 +1001,28 @@ jobs:
       - run: echo "🤖 PDF compile node (LaTeX only)"
       - attach_workspace:
           at: docs/build            # brings in html/ and latex/ from build_docs
-      - apt-install-latex
+      # Only install the (heavy) LaTeX toolchain when we're actually compiling PDFs.
+      - when:
+          condition: << pipeline.parameters.run_latex_pdf >>
+          steps:
+            - apt-install-latex
       - run:
           name: "📄 Compile PDF(s) from emitted LaTeX"
           no_output_timeout: 30m
           command: |
             set -Eeuo pipefail
-            if [ ! -d docs/build/latex ]; then
-              echo "No docs/build/latex present (build_docs skipped/halted); nothing to compile."
-              circleci-agent step halt
+            # run_latex_pdf gate. Always create the pdf dir so the persist below
+            # stays valid; skip all compile work when the flag is off.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            install -d docs/build/pdf
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → skipping PDF compile (no-op)."
+              exit 0
+            fi
+            if [ ! -d docs/build/latex ] || ! ls docs/build/latex/*.tex >/dev/null 2>&1; then
+              echo "run_latex_pdf=true but no emitted .tex in docs/build/latex." >&2
+              echo "build_docs must run with the SAME run_latex_pdf=true flag."  >&2
+              exit 1
             fi
             # The Sphinx latex builder writes its own Makefile with an `all-pdf`
             # target that drives latexmk over every emitted document.
@@ -1043,6 +1080,12 @@ jobs:
           name: "📎 Assemble PDF(s) into HTML _downloads"
           command: |
             set -Eeuo pipefail
+            # run_latex_pdf gate: when off, there are no PDFs — publish HTML only.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → no PDFs to assemble; publishing HTML only."
+              exit 0
+            fi
             install -d docs/build/html/stable/_downloads
             shopt -s nullglob
             pdfs=(docs/build/pdf/*.pdf)

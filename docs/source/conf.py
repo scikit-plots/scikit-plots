@@ -1409,6 +1409,19 @@ latex_elements = {
 """,
 }
 
+# 1. tgtermes.sty missing
+#         │
+#         └── tex-gyre
+#               ✅ fixed
+# 2. emoji 🌱 unsupported by pdfLaTeX
+#         │
+#         └── LuaLaTeX + emoji fallback
+#               ✅ fixed
+# 3. raw ANSI ESC character in generated docs
+#         │
+#         └── NO_COLOR + LaTeX doctree sanitizer
+#               ← current fix
+
 #                     HTML
 #                      │
 #              browser-native emoji
@@ -1487,6 +1500,36 @@ latex_elements = {
 #                      │
 #                      ▼
 #               Final PDF(s)
+
+# Python/example/notebook/logging
+#              │
+#              │ NO_COLOR / TERM=dumb
+#              ▼
+#        captured output
+#              │
+#              ▼
+#           Sphinx
+#              │
+#              ▼
+#          doctree
+#              │
+#         defensive scan
+#              │
+#         ANSI present?
+#         /          \
+#       no            yes
+#       │              │
+#       │        remove ESC sequences
+#       │              │
+#       └───────┬──────┘
+#               ▼
+#            LaTeX
+#               │
+#               ▼
+#          LuaLaTeX
+#               │
+#               ▼
+#              PDF
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
