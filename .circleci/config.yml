@@ -259,23 +259,50 @@ commands:
               cm-super \
               graphviz \
               imagemagick \
-              latexmk \
               tex-gyre \
+              latexmk \
+              texlive-luatex \
               texlive-xetex \
               texlive-latex-base \
               texlive-latex-extra \
               texlive-latex-recommended \
               texlive-fonts-recommended \
               texlive-fonts-extra \
+              fonts-freefont-otf \
               fonts-dejavu-core \
               fonts-noto-core \
+              fonts-noto-color-emoji \
               fonts-noto-cjk \
               fonts-noto-extra
 
-            echo "LaTeX tools:"
+            echo "=== LaTeX tools ==="
             latexmk -v | head -1
+            echo "=== PDF toolchain ==="
+            # 'pdflatex' | 'xelatex' | 'lualatex' | 'platex' | 'uplatex'
             pdflatex --version | head -1
             xelatex --version | head -1
+            lualatex --version | head -1
+
+            echo "=== LuaLaTeX font database ==="
+            luaotfload-tool --update --force
+            echo "FreeSerif:"
+            luaotfload-tool --find="FreeSerif"
+            echo "FreeSans:"
+            luaotfload-tool --find="FreeSans"
+            echo "FreeMono:"
+            luaotfload-tool --find="FreeMono"
+            echo "Noto Color Emoji:"
+            # luaotfload-tool --find="Noto Color Emoji"
+            luaotfload-tool --find="Noto Color Emoji" >/dev/null || {
+              echo "ERROR: LuaLaTeX cannot find Noto Color Emoji" >&2
+              # exit 1
+            }
+            echo "=== Fontconfig ==="
+            fc-match "FreeSerif"
+            fc-match "FreeSans"
+            fc-match "FreeMono"
+            fc-match "Noto Color Emoji"
+
             echo "TeX Gyre dependencies:"
             kpsewhich tgtermes.sty
             kpsewhich tgheros.sty
@@ -287,7 +314,8 @@ commands:
               echo "ERROR: tgheros.sty not found" >&2
               # exit 1
             }
-            echo "Image/diagram tools:"
+
+            echo "=== Image / diagram tools ==="
             convert -version | head -1
             dot -V
   # Focused LaTeX/PDF toolchain for the `build_docs_pdf` job ONLY.
@@ -400,23 +428,32 @@ commands:
               cm-super \
               graphviz \
               imagemagick \
-              latexmk \
               tex-gyre \
+              latexmk \
+              texlive-luatex \
               texlive-xetex \
               texlive-latex-base \
               texlive-latex-extra \
               texlive-latex-recommended \
               texlive-fonts-recommended \
               texlive-fonts-extra \
+              fonts-freefont-otf \
               fonts-dejavu-core \
               fonts-noto-core \
+              fonts-noto-color-emoji \
               fonts-noto-cjk \
               fonts-noto-extra
 
+            # 'pdflatex' | 'xelatex' | 'lualatex' | 'platex' | 'uplatex'
             echo "LaTeX tools:"
             latexmk -v | head -1
             pdflatex --version | head -1
             xelatex --version | head -1
+            lualatex --version | head -1
+            echo "Emoji font:"
+            fc-match "Noto Color Emoji"
+            echo "luaotfload:"
+            luaotfload-tool --find="Noto Color Emoji" || true
             echo "TeX Gyre dependencies:"
             kpsewhich tgtermes.sty
             kpsewhich tgheros.sty
