@@ -230,20 +230,26 @@
 
  <h4>
   🐋🦜
-  🔜 `EXPERIMENTAL` RAG-CI Domesticate 🇦🇮 via `scikitplot.mcp` Local (Self-Hosting) by Docker ✨:
+  🔜 <code>EXPERIMENTAL</code> RAG-CI — Source-Grounded 🇦🇮 via <code>scikitplot.mcp</code>, Locally or with Docker ✨:
  </h4>
 
-> 🐬🦜 **Tame Your Free Spirit AI — Feed It Verified Public Data ✨**
+> 🐬🦜 **Give AI Better Context — Ground Responses in Curated Sources**
 
-> 📖🔊 Easily connect your curated public corpus to *any* AI model using the Model Context Protocol (MCP). Give the AI the right facts so it talks like a well-trained parrot—delivering better, verified answers without hallucinations.
+> 📖🔊 In simple terms, you first choose a collection of trusted documents (your “corpus”), then `scikitplot.mcp` organizes and indexes them so they can be searched quickly. When you ask a question in an AI app that supports MCP, the system automatically finds the most relevant passages from your corpus and sends them along with your question, so the AI can answer using real source material instead of guessing.
 
-Just like teaching a parrot to speak using a trusted vocabulary, this server feeds your verified public corpus directly into any AI model. Instead of letting the model guess in the wild, you "domesticate" its answers with accurate context:
+`scikitplot.mcp` acts as a local context layer between your data and the AI application:
 
-* **RAG (Retrieval-Augmented Generation):** Grounds the AI's responses in your specific, verified public corpus to dramatically improve answer quality.
-* **CI (Context Injection):** The mechanism that seamlessly injects this verified data directly into the prompt context of whatever AI model you choose to use.
-* **MCP (Model Context Protocol):** The universal bridge. It allows you to easily connect this localized data feed to *any* supported AI model or client.
+* **RAG (Retrieval-Augmented Generation)**: Retrieves relevant information from your corpus to ground model responses.
+* **CI (Context Injection)**: Adds selected reference context to the model request at inference time.
+* **MCP (Model Context Protocol)**: Provides a standard way for compatible AI applications to access external context, resources, and tools.
 
-Spin up the local **MCP** server using Docker. By default, it runs on standard development port `8000`, ready to be connected to your AI of choice.
+The goal is simple:
+
+`curated sources → relevant context → better-grounded responses`
+
+This can improve accuracy and reduce unsupported answers, but it does not guarantee correctness.
+
+Run `scikitplot.mcp` directly on your system or inside Docker for a more isolated and reproducible deployment.
 
 <!-- 3000 or 8000 (Standard fallback development ports) -->
 🔜 Start the interactive container:
