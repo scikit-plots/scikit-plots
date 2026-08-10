@@ -917,16 +917,20 @@ if host_machine.system() == 'darwin'
   macOS13_3_or_later = sdkVersion.version_compare('>=13.3')
 endif
 
+# Remove ld_classic usage on macOS- scipy gh-21994 numpy gh-28713
+# Remove use of -Wl,-ld_classic on macOS. This hack is no longer needed by Spack,
+# and results in libraries that cannot link to other libraries built with ld (new).
 if host_machine.system() == 'darwin'
   # Check if the compiler supports the '-Wl,-ld_classic' argument (new linker in macOS 14)
-  if cc.has_link_argument('-Wl,-ld_classic')
-    # New linker introduced in macOS 14 not working yet with at least OpenBLAS in Spack,
-    # see gh-24964 (and linked scipy issue from there).
-    if have_fortran
-      add_project_link_arguments('-Wl,-ld_classic', language : ['fortran'])
-    endif
-    add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp'])
-  endif
+  # if cc.has_link_argument('-Wl,-ld_classic')
+  #   # New linker introduced in macOS 14 not working yet with at least OpenBLAS in Spack,
+  #   # see gh-24964 (and linked scipy issue from there).
+  #   # Scipy: New linker introduced in macOS 14 not working yet, see gh-19357 and gh-19387
+  #   if have_fortran
+  #     add_project_link_arguments('-Wl,-ld_classic', language : ['fortran'])
+  #   endif
+  #   add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp'])
+  # endif
   # Check if the compiler supports the '-Wl,-dead_strip' argument (linker option to strip unused symbols)
   if cc.has_link_argument('-Wl,-dead_strip')
     # Allow linker to strip unused symbols

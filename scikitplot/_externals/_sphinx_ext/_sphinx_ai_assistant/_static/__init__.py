@@ -72,6 +72,7 @@ __all__ = [
     "_SVG_COMMENT_DISCUSSION",
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
+    "_SVG_DATABASE",
     "_SVG_DEFAULT",
     "_SVG_ERROR_ALERT",
     "_SVG_EXPORT_TXT",
@@ -354,6 +355,36 @@ _SVG_COMMENT_DISCUSSION: str = (
     "IDEuNDU4IDAgMCAxLTIuNDg3IDEuMDNMOS4yMiAxMi4yOGEuNzQ5Ljc0OSAwIDAgMSAuMzI2"
     "LTEuMjc1Ljc0OS43NDkgMCAwIDEgLjczNC4yMTVsMi4yMiAyLjIydi0yLjE5YS43NS43NSAw"
     "IDAgMSAuNzUtLjc1aDFhLjI1LjI1IDAgMCAwIC4yNS0uMjVaIi8+PC9zdmc+Cg=="
+)
+
+# GitHub Octicon "database" (filled, 16x16 viewBox).
+# Additive fallback for database/storage actions; no behaviour is wired here.
+_SVG_DATABASE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGFyaWEtaGlkZGVuPSJ0cnVlIiBm"
+    "b2N1c2FibGU9ImZhbHNlIiB2aWV3Qm94PSIwIDAgMTYgMTYiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIg"
+    "ZmlsbD0iY3VycmVudENvbG9yIj4KICA8cGF0aCBkPSJNMSAzLjVjMC0uNjI2LjI5Mi0xLjE2NS43LTEu"
+    "NTkuNDA2LS40MjIuOTU2LS43NjcgMS41NzktMS4wNDFDNC41MjUuMzIgNi4xOTUgMCA4IDBjMS44MDUg"
+    "MCAzLjQ3NS4zMiA0LjcyMi44NjkuNjIyLjI3NCAxLjE3Mi42MiAxLjU3OCAxLjA0LjQwOC40MjYuNy45"
+    "NjUuNyAxLjU5MXY5YzAgLjYyNi0uMjkyIDEuMTY1LS43IDEuNTktLjQwNi40MjItLjk1Ni43NjctMS41"
+    "NzkgMS4wNDFDMTEuNDc2IDE1LjY4IDkuODA2IDE2IDggMTZjLTEuODA1IDAtMy40NzUtLjMyLTQuNzIx"
+    "LS44NjktLjYyMy0uMjc0LTEuMTczLS42Mi0xLjU3OS0xLjA0LS40MDgtLjQyNi0uNy0uOTY1LS43LTEu"
+    "NTkxWm0xLjUgMGMwIC4xMzMuMDU4LjMxOC4yODIuNTUxLjIyNy4yMzcuNTkxLjQ4MyAxLjEwMS43MDdD"
+    "NC44OTggNS4yMDUgNi4zNTMgNS41IDggNS41YzEuNjQ2IDAgMy4xMDEtLjI5NSA0LjExOC0uNzQyLjUw"
+    "OC0uMjI0Ljg3My0uNDcxIDEuMS0uNzA4LjIyNC0uMjMyLjI4Mi0uNDE3LjI4Mi0uNTUgMC0uMTMzLS4w"
+    "NTgtLjMxOC0uMjgyLS41NTEtLjIyNy0uMjM3LS41OTEtLjQ4My0xLjEwMS0uNzA3QzExLjEwMiAxLjc5"
+    "NSA5LjY0NyAxLjUgOCAxLjVjLTEuNjQ2IDAtMy4xMDEuMjk1LTQuMTE4Ljc0Mi0uNTA4LjIyNC0uODcz"
+    "LjQ3MS0xLjEuNzA4LS4yMjQuMjMyLS4yODIuNDE3LS4yODIuNTVabTAgNC41YzAgLjEzMy4wNTguMzE4"
+    "LjI4Mi41NTEuMjI3LjIzNy41OTEuNDgzIDEuMTAxLjcwN0M0Ljg5OCA5LjcwNSA2LjM1MyAxMCA4IDEw"
+    "YzEuNjQ2IDAgMy4xMDEtLjI5NSA0LjExOC0uNzQyLjUwOC0uMjI0Ljg3My0uNDcxIDEuMS0uNzA4LjIy"
+    "NC0uMjMyLjI4Mi0uNDE3LjI4Mi0uNTVWNS43MjRjLS4yNDEuMTUtLjUwMy4yODYtLjc3OC40MDdDMTEu"
+    "NDc1IDYuNjggOS44MDUgNyA4IDdjLTEuODA1IDAtMy40NzUtLjMyLTQuNzIxLS44NjlhNi4xNSA2LjE1"
+    "IDAgMCAxLS43NzktLjQwN1ptMCAyLjIyNVYxMi41YzAgLjEzMy4wNTguMzE4LjI4Mi41NS4yMjcuMjM3"
+    "LjU5Mi40ODQgMS4xLjcwOCAxLjAxNi40NDcgMi40NzEuNzQyIDQuMTE4Ljc0MiAxLjY0NyAwIDMuMTAy"
+    "LS4yOTUgNC4xMTctLjc0Mi41MS0uMjI0Ljg3NC0uNDcgMS4xMDEtLjcwNy4yMjQtLjIzMy4yODItLjQx"
+    "OC4yODItLjU1MXYtMi4yNzVjLS4yNDEuMTUtLjUwMy4yODUtLjc3OC40MDYtMS4yNDcuNTQ5LTIuOTE3"
+    "Ljg2OS00LjcyMi44NjktMS44MDUgMC0zLjQ3NS0uMzItNC43MjEtLjg2OWE2LjMyNyA2LjMyNyAwIDAg"
+    "MS0uNzc5LS40MDZaIi8+Cjwvc3ZnPgo="
 )
 
 # GitHub Octicon "upload" (filled, 16x16 viewBox).
@@ -924,6 +955,7 @@ _ICON_META: dict[str, dict[str, str]] = {
     "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
     "comment-discussion": {"icon": _SVG_COMMENT_DISCUSSION, "desc": "Discussion"},
     "upload": {"icon": _SVG_UPLOAD, "desc": "Upload a file"},
+    "database": {"icon": _SVG_DATABASE, "desc": "Database"},
     "printer": {"icon": _SVG_PRINTER, "desc": "Print or save as PDF"},
     "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
     "info": {"icon": _SVG_INFO, "desc": "Model information"},
