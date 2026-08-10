@@ -1,11 +1,14 @@
 import json
 
+# TODO: Use Lazy import for click dep fully optional
 import click
+
+# TODO: Use Lazy import for rich dep fully optional
 from rich.console import Console
 from rich.syntax import Syntax
 
 from ... import show_config
-from .. import _cmdoptions_click
+from .. import _cmd_options
 
 # os.path.splitext(os.path.basename(__file__))[0]
 module_name = __name__.split(".")[-1]
@@ -13,11 +16,9 @@ console = Console()
 
 
 @click.command(name=module_name)
-# ←→ optional if not using _cmdoptions_click.apply_groups for help
+# ←→ optional if not using _cmd_options.apply_groups for help
 @click.help_option("-h", "--help")
-@_cmdoptions_click.apply_groups(
-    "logging:level"
-)  # ←→ Logging applied last (proper order)
+@_cmd_options.apply_groups("logging:level")  # ←→ Logging applied last (proper order)
 @click.option(
     "--json/--no-json",
     "-j/-nj",

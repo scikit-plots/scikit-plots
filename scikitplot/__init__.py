@@ -61,7 +61,7 @@ __version__ = "0.5.dev0"  # dev
 # import logging as _logging
 # logger.setLevel(logger.DEBUG)  # for debugging
 from . import logging as logger  # alias not a module or namespace just global attr
-from .logging import get_logger
+from .logging import get_logger  # ←→ unified logging, logger, get_logger
 
 try:
     # Trt to import meson built files, modules (etc. *.in)

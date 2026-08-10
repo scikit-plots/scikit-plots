@@ -37,7 +37,12 @@ from ._server import SearchService, create_server
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _REMOTE_BIND_HOSTS = {"0.0.0.0", "::"}  # ruff: ignore[hardcoded-bind-all-interfaces]
 _DOC_ID_RE = re.compile(r"\A[A-Za-z0-9._:-]{1,200}\Z")
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "RuntimeConfig",
+    "main",
+]
 
 
 @dataclass(frozen=True)
@@ -408,7 +413,7 @@ def _probe_health(config: RuntimeConfig) -> int:
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         message = f"UNHEALTHY {url}: {exc}"
         # print(message, file=sys.stderr)
-        _LOG.exception(message, exc_info=exc)
+        logger.exception(message, exc_info=exc)
         return 1
 
     try:
@@ -416,7 +421,7 @@ def _probe_health(config: RuntimeConfig) -> int:
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         message = f"UNHEALTHY {url}: invalid JSON response ({exc})"
         # print(message, file=sys.stderr)
-        _LOG.exception(message, exc_info=exc)
+        logger.exception(message, exc_info=exc)
         return 1
 
     if (
@@ -426,12 +431,12 @@ def _probe_health(config: RuntimeConfig) -> int:
     ):
         message = f"UNHEALTHY {url}: HTTP {status} payload={body!r}"
         print(message, file=sys.stderr)  # ruff: ignore[print]
-        _LOG.warning(message)
+        logger.warning(message)
         return 1
 
     message = f"HEALTHY {url}"
     print(message)  # ruff: ignore[print]
-    _LOG.info(message)
+    logger.info(message)
     return 0
 
 
@@ -478,7 +483,7 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
 
     editable_hint = _editable_install_hint()
     if editable_hint:
-        _LOG.warning(editable_hint)
+        logger.warning(editable_hint)
 
     if args.print_effective_config:
         _write_json(asdict(config), stream=output_stream)
@@ -535,17 +540,17 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
     )
 
     if config.transport == "stdio":
-        _LOG.info("starting MCP stdio transport")
+        logger.info("starting MCP stdio transport")
         server.run()
         return 0
 
     if config.host not in _LOCAL_HOSTS:
-        _LOG.warning(
+        logger.warning(
             "binding unauthenticated MCP HTTP to %s; restrict Docker port publication or add an authenticated proxy",
             config.host,
         )
 
-    _LOG.info(
+    logger.info(
         "starting MCP Streamable HTTP bind=%s:%d endpoint=%s health=%s stateful=%s",
         config.host,
         config.port,

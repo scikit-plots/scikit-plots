@@ -44,9 +44,13 @@ from typing import Any, Callable, Protocol
 
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
 
-__all__ = ["CorpusAnnoyRetriever", "Embedder", "VectorIndex"]
+__all__ = [
+    "CorpusAnnoyRetriever",
+    "Embedder",
+    "VectorIndex",
+]
 
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 _MAX_RETRIEVAL_K = 50
 
 
@@ -182,7 +186,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
                 raise ValueError("embedder returned no query vector")
             hits = self._index.query(vector, k) or []
         except Exception as exc:
-            _LOG.warning("Dense retrieval failed: %s", exc, exc_info=self._strict)
+            logger.warning("Dense retrieval failed: %s", exc, exc_info=self._strict)
             if self._strict:
                 raise
             return []
@@ -202,7 +206,9 @@ class CorpusAnnoyRetriever(DocsRetriever):
                 if not text:
                     continue
             except Exception as exc:
-                _LOG.warning("Dense hit mapping failed: %s", exc, exc_info=self._strict)
+                logger.warning(
+                    "Dense hit mapping failed: %s", exc, exc_info=self._strict
+                )
                 if self._strict:
                     raise
                 continue

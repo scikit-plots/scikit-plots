@@ -51,7 +51,7 @@ __all__ = [
 DEFAULT_RRF_K: int = 60
 
 _MAX_RETRIEVAL_K: int = 50
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _chunk_key(chunk: RetrievedChunk) -> str:
@@ -216,7 +216,7 @@ class HybridRetriever(DocsRetriever):
                     )
                 hits = _deduplicate(raw_hits)
             except Exception as exc:  # resilience boundary
-                _LOG.warning(
+                logger.warning(
                     "MCP retrieval leg %s (%s) failed and was skipped: %s",
                     index,
                     type(retriever).__name__,
@@ -290,7 +290,7 @@ class Bm25Retriever(DocsRetriever):
         try:
             hits = self._fts(query, k) or []
         except Exception as exc:
-            _LOG.warning("BM25 search failed: %s", exc, exc_info=self._strict)
+            logger.warning("BM25 search failed: %s", exc, exc_info=self._strict)
             if self._strict:
                 raise
             return []
@@ -310,7 +310,9 @@ class Bm25Retriever(DocsRetriever):
                 if not text:
                     continue
             except Exception as exc:
-                _LOG.warning("BM25 hit mapping failed: %s", exc, exc_info=self._strict)
+                logger.warning(
+                    "BM25 hit mapping failed: %s", exc, exc_info=self._strict
+                )
                 if self._strict:
                     raise
                 continue

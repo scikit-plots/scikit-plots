@@ -54,6 +54,7 @@ import errno
 import importlib
 import itertools
 import json
+import logging
 import os
 import pathlib
 import pkgutil
@@ -66,18 +67,19 @@ import warnings
 from datetime import timedelta
 from functools import partial
 
+# TODO: Use Lazy import for click dep fully optional
 import click
 
-# import logging
 from .. import __version__
-from .. import logger as _logger
 from .._utils import cli_args
 from .._utils.logging_utils import eprint
 from .._utils.os import is_windows
 from .._utils.process import ShellCommandException
 from ..environment_variables import SKPLT_EXPERIMENT_ID, SKPLT_EXPERIMENT_NAME
 from ..exceptions import InvalidUrlException, ScikitplotException
-from . import _cmdoptions_click
+from . import _cmd_options
+
+logger = logging.getLogger(__name__)
 
 INVALID_PARAMETER_VALUE = 0
 
@@ -145,7 +147,7 @@ class AliasedGroup(click.Group):
 # ⚠️ Redefining is a name conflict — click.version_option() reserves (--version, -V),
 # so you cannot reuse --version or -V for another purpose.
 # @click.help_option("-h", "--help")  # optional if not using apply_groups for help
-@_cmdoptions_click.apply_groups(  # <-- must come after all options
+@_cmd_options.apply_groups(  # <-- must come after all options
     # "help",
     "logging:level"
 )
@@ -159,7 +161,7 @@ def cli(ctx: click.Context | None = None, **kwargs: dict) -> any:
     # ctx.obj["DEBUG"] = debug
 
     # Optionally handle logging or version stuff here
-    _cmdoptions_click.set_log_level(ctx)
+    _cmd_options.set_log_level(ctx)
 
     # if kwargs.pop('version'):
     #     click.echo("scikitplot version 1.0.0")  # Replace with dynamic version lookup
@@ -195,7 +197,7 @@ def _load_commands():
         # Wrap each command with apply_groups
         sub_cli = module.cli
         # Wrap all commands and subcommands with logging options before registering
-        # sub_cli = _cmdoptions_click._wrap_command(
+        # sub_cli = _cmd_options._wrap_command(
         #     sub_cli, groups=("logging:level",), list_order=list, override=False
         # )
         # Add the sub_cli (command or group) to the main CLI
@@ -216,9 +218,7 @@ _load_commands()
     with Scikit-plots."""),
 )
 # @click.help_option("-h", "--help")  # optional if not using apply_groups for help
-@_cmdoptions_click.apply_groups(
-    "help", "logging:level"
-)  # <-- must come after all options
+@_cmd_options.apply_groups("help", "logging:level")  # <-- must come after all options
 @click.option(
     "--mask-envs",
     is_flag=True,
@@ -233,7 +233,7 @@ def doctor(ctx, **kwargs):
     """
     Doctor.
     """
-    _cmdoptions_click.set_log_level(ctx)
+    _cmd_options.set_log_level(ctx)
     mask_envs = kwargs.pop("mask_envs")
     # raise NotImplementedError
     click.echo("Currently Not Implemented. Just test log level...")
@@ -243,11 +243,11 @@ def doctor(ctx, **kwargs):
     # scikitplot.doctor(mask_envs)
 
     # Example log messages
-    _logger.debug("This is a DEBUG log.")
-    _logger.info("This is an INFO log.")
-    _logger.warning("This is a WARNING log.")
-    _logger.error("This is an ERROR log.")
-    _logger.critical("This is a CRITICAL log.")
+    logger.debug("This is a DEBUG log.")
+    logger.info("This is an INFO log.")
+    logger.warning("This is a WARNING log.")
+    logger.error("This is an ERROR log.")
+    logger.critical("This is a CRITICAL log.")
 
 
 ######################################################################

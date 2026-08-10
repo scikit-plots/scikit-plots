@@ -4,7 +4,12 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-"""Thin MCP SDK v2 server shell over the SDK-independent retrieval core."""
+"""
+Thin MCP SDK v2 server shell over the SDK-independent retrieval core.
+
+.. seealso::
+  * https://github.com/modelcontextprotocol/modelcontextprotocol
+"""
 
 from __future__ import annotations
 
@@ -32,7 +37,7 @@ __all__ = [
     "create_server",
 ]
 
-_LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 _DOC_ID_RE = re.compile(r"\A[A-Za-z0-9._:-]{1,200}\Z")
 _MAX_RESOURCE_CHARS = 20_000
 
@@ -144,7 +149,7 @@ class SearchService:
             try:
                 chunks = self._retriever.search(clean_query, limit)
             except Exception as exc:
-                _LOG.exception("documentation retriever failed")
+                logger.exception("documentation retriever failed")
                 raise RuntimeError(
                     "documentation search is temporarily unavailable"
                 ) from exc

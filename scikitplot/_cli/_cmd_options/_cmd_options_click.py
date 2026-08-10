@@ -15,15 +15,17 @@ pass on state. To be consistent, all options will follow this design.
 
 from __future__ import annotations
 
-# import logging
+import logging
+import sys  # ruff: ignore[unused-import]
 from functools import partial
 
+# TODO: Use Lazy import for click dep fully optional
 import click
 
-from .. import __version__
-from .. import logger as _logger  # ←→ unified logging, logger
-from ..externals import _appdirs
+from ... import __version__
+from ...externals import _appdirs
 
+_logger = logging.getLogger(__name__)
 # VERSION = lambda: getattr(__import__("scikitplot.version", fromlist=[""]), "__version__", None)
 
 # Application Directories
@@ -395,5 +397,5 @@ def _wrap_command(
 
 
 if __name__ == "__main__":
-    # cli()
+    # raise SystemExit(cli())
     pass
