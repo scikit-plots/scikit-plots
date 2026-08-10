@@ -15,15 +15,17 @@ pass on state. To be consistent, all options will follow this design.
 
 from __future__ import annotations
 
-# import logging
+import logging
+import sys  # ruff: ignore[unused-import]
 from functools import partial
 
+# TODO: Use Lazy import for click dep fully optional
 import click
 
-from .. import __version__
-from .. import logger as _logger  # ←→ unified logging, logger
-from ..externals import _appdirs
+from ... import __version__
+from ...externals import _appdirs
 
+_logger = logging.getLogger(__name__)
 # VERSION = lambda: getattr(__import__("scikitplot.version", fromlist=[""]), "__version__", None)
 
 # Application Directories
@@ -32,14 +34,14 @@ USER_CACHE_DIR = _appdirs.user_cache_dir("scikitplot")
 # Base level is WARNING.
 # Each -v increases verbosity ←→ (toward DEBUG).
 LOG_LEVELS = {
-    0: _logger.WARNING,  # default
-    1: _logger.INFO,  # -v
-    2: _logger.DEBUG,  # -vv
+    0: logging.WARNING,  # default
+    1: logging.INFO,  # -v
+    2: logging.DEBUG,  # -vv
 }
 # Each -q decreases verbosity ←→ (toward CRITICAL).
 QUIET_LEVELS = {
-    1: _logger.ERROR,  # -q
-    2: _logger.CRITICAL,  # -qq
+    1: logging.ERROR,  # -q
+    2: logging.CRITICAL,  # -qq
 }
 
 
@@ -63,17 +65,17 @@ def set_log_level(ctx, param=None, value=None):
     verbose = ctx.params.get("verbose", 0)
 
     # Base level WARNING
-    level = _logger.WARNING
+    level = logging.WARNING
 
     # Adjust level based on flags
     if debug:
-        level = _logger.DEBUG
+        level = logging.DEBUG
     elif verbose or quiet:
         # Adjust by verbosity/quiet
         level += quiet * 10  # more quiet → higher number (ERROR > WARNING)
         level -= verbose * 10  # more verbose → lower number (DEBUG < INFO < WARNING)
         # Clamp to valid logging levels
-        level = max(_logger.DEBUG, min(_logger.CRITICAL, level))
+        level = max(logging.DEBUG, min(logging.CRITICAL, level))
     else:
         pass
 
@@ -395,5 +397,5 @@ def _wrap_command(
 
 
 if __name__ == "__main__":
-    # cli()
+    # raise SystemExit(cli())
     pass

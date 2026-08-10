@@ -23,16 +23,16 @@ import os
 import pathlib
 import textwrap
 from functools import partial
+from textwrap import dedent
+from typing import Any, Callable
 
 # https://docs.python.org/3/library/optparse.html
 # getopt -> optparse -> argparse
 from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
-from textwrap import dedent
-from typing import Any, Callable
 
-from ..exceptions import CommandError
-from ..externals import _appdirs
-from ._misc import strtobool
+from ...exceptions import CommandError
+from ...externals import _appdirs
+from .._misc import strtobool
 
 # Application Directories
 USER_CACHE_DIR = _appdirs.user_cache_dir("scikitplot")

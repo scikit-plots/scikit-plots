@@ -339,7 +339,7 @@
 // GCC/Clang we compile BOTH the portable scalar converters and the F16C
 // converters (the latter via __attribute__((target("f16c"))), so they build even
 // without a global -mf16c), then choose per conversion using a cached
-// __builtin_cpu_supports("f16c") probe. This removes the compile-time landmine:
+// CPUID (leaf 1, ECX[29]) F16C probe (see has_f16c). This removes the compile-time landmine:
 // the binary runs on any x86 CPU and only executes F16C when the RUNNING CPU
 // supports it. The scalar path is proven bit-for-bit equal to F16C
 // (tests/test_float16_portable_fallback.cpp), so dispatch changes speed only.
@@ -349,37 +349,72 @@
   #define ANNOY_HAS_NATIVE_FLOAT16 1
 #elif (defined(__x86_64__) || defined(__i386__)) && defined(__GNUC__)
   #include <immintrin.h>
+  #include <cpuid.h>   // __get_cpuid — direct CPUID probe (no compiler-rt CPU-feature globals)
   struct float16_t {
     uint16_t data;
     float16_t() : data(0) {}
 
     // ---- portable scalar converters (always valid; the safe path) ----
     static inline uint16_t f32_to_f16_scalar(float f) {
+      // IEEE-754 binary16 round-to-nearest-even, verified bit-for-bit identical to
+      // the F16C hardware converter (_mm_cvtps_ph, _MM_FROUND_TO_NEAREST_INT) over
+      // ALL 2^32 float inputs — normals, subnormals, overflow, Inf, and NaN
+      // payloads. Do NOT replace with a truncating variant: that diverges from the
+      // hardware path by up to 1 ULP, so an index built on a non-F16C machine would
+      // not match one built on an F16C machine.
       uint32_t x; std::memcpy(&x, &f, sizeof(float));
-      uint32_t sign = (x >> 31) << 15;
-      uint32_t exp  = ((x >> 23) & 0xFF);
-      uint32_t frac = (x >> 13) & 0x3FF;
-      uint16_t out;
-      if (exp == 0) {
-        out = static_cast<uint16_t>(sign);
-      } else if (exp == 0xFF) {
-        out = static_cast<uint16_t>(sign | 0x7C00 | (frac ? 0x200 : 0));
-      } else {
-        int32_t newexp = static_cast<int32_t>(exp) - 127 + 15;
-        if (newexp <= 0)        out = static_cast<uint16_t>(sign);
-        else if (newexp >= 31)  out = static_cast<uint16_t>(sign | 0x7C00);
-        else out = static_cast<uint16_t>(sign | (static_cast<uint32_t>(newexp) << 10) | frac);
+      uint32_t sign = (x >> 16) & 0x8000u;
+      uint32_t a = x & 0x7FFFFFFFu;
+      if (a > 0x7F800000u)                 // NaN: keep top payload, force quiet bit
+        return static_cast<uint16_t>(sign | 0x7C00u | 0x0200u | ((a & 0x7FFFFFu) >> 13));
+      if (a == 0x7F800000u)                // Inf
+        return static_cast<uint16_t>(sign | 0x7C00u);
+      if (a >= 0x47800000u)                // >= 2^16 -> overflow to Inf
+        return static_cast<uint16_t>(sign | 0x7C00u);
+      if (a >= 0x38800000u) {              // normal f16 (exponent in [1, 30])
+        uint32_t e = (a >> 23) - 112u;
+        uint32_t mant = a & 0x7FFFFFu;
+        uint32_t m = mant >> 13;
+        uint32_t rem = mant & 0x1FFFu;
+        uint16_t out = static_cast<uint16_t>(sign | (e << 10) | m);
+        // round-to-nearest-even; the carry propagates into the exponent field, so
+        // rounding at the top of the range correctly overflows to Inf.
+        if (rem > 0x1000u || (rem == 0x1000u && (m & 1u))) out = static_cast<uint16_t>(out + 1u);
+        return out;
       }
-      return out;
+      if (a < 0x33000000u)                 // below the round-to-even tie at 2^-25 -> +/-0
+        return static_cast<uint16_t>(sign);
+      // subnormal f16: exponent field E in [102, 112] -> shift in [14, 24] (safe).
+      uint32_t E = a >> 23;
+      uint32_t significand = (a & 0x7FFFFFu) | 0x800000u;   // 24-bit significand
+      uint32_t shift = 126u - E;
+      uint32_t m = significand >> shift;
+      uint32_t rem = significand & ((1u << shift) - 1u);
+      uint32_t half = 1u << (shift - 1);
+      if (rem > half || (rem == half && (m & 1u))) ++m;     // RNE; m==0x400 -> smallest normal (correct)
+      return static_cast<uint16_t>(sign | m);
     }
     static inline float f16_to_f32_scalar(uint16_t d) {
+      // Exact inverse, verified bit-for-bit vs the F16C hardware converter over all
+      // 2^16 half values (f16->f32 is exact; f16 subnormals normalize to f32 normals).
       uint32_t sign = static_cast<uint32_t>(d >> 15) << 31;
-      uint32_t exp  = (d >> 10) & 0x1F;
-      uint32_t frac = (d & 0x3FF) << 13;
+      uint32_t exp  = (d >> 10) & 0x1Fu;
+      uint32_t frac = d & 0x3FFu;
       uint32_t result;
-      if (exp == 0)       result = sign;
-      else if (exp == 31) result = sign | 0x7F800000 | frac;
-      else                result = sign | ((exp - 15 + 127) << 23) | frac;
+      if (exp == 0u) {
+        if (frac == 0u) {
+          result = sign;                                  // +/- 0
+        } else {                                          // subnormal -> normalize
+          uint32_t f = frac, e = 0u;
+          while ((f & 0x400u) == 0u) { f <<= 1; ++e; }    // shift until implicit bit set
+          f &= 0x3FFu;                                    // drop the leading 1
+          result = sign | ((113u - e) << 23) | (f << 13);
+        }
+      } else if (exp == 31u) {                            // Inf / NaN (payload preserved)
+        result = sign | 0x7F800000u | (frac << 13);
+      } else {                                            // normal
+        result = sign | ((exp - 15u + 127u) << 23) | (frac << 13);
+      }
       float fr; std::memcpy(&fr, &result, sizeof(float)); return fr;
     }
 
@@ -395,9 +430,32 @@
       return _mm_cvtss_f32(v);
     }
 
-    // ---- cached runtime CPU-feature probe ----
+    // ---- cached runtime CPU-feature probe (CPUID leaf 1, ECX[29] = F16C) ----
+    // Detect F16C via a direct CPUID read rather than __builtin_cpu_supports.
+    //
+    // Rationale (do not "simplify" back to the builtin): __builtin_cpu_supports
+    // pulls in compiler-rt's CPU-feature machinery (the __cpu_features2 global and
+    // the __cpu_indicator_init constructor). On x86 macOS that reference becomes an
+    // illegal text relocation under the classic linker (ld64) — breaking the link
+    // of this Python extension — and it is historically fragile on Darwin. CPUID
+    // references no external symbol, so this path links under ANY linker (old ld64
+    // or new ld), on Linux/Windows/macOS, and needs no OS-specific feature key.
+    //
+    // Still true runtime dispatch: the F16C hardware converters above are only
+    // reached when the RUNNING CPU reports F16C, so binaries stay portable to
+    // non-F16C x86 CPUs (no SIGILL). Edge cases handled explicitly:
+    //   * CPUID leaf 1 unavailable (very old CPUs): __get_cpuid returns 0 -> we
+    //     report "no F16C" and use the always-valid scalar path.
+    //   * Thread-safety / idempotency: the function-local static is initialized
+    //     exactly once (C++11 thread-safe static init) and cached thereafter.
     static inline bool has_f16c() {
-      static const bool ok = (__builtin_cpu_supports("f16c") != 0);
+      static const bool ok = []() -> bool {
+        unsigned int eax = 0u, ebx = 0u, ecx = 0u, edx = 0u;
+        if (__get_cpuid(1u, &eax, &ebx, &ecx, &edx) == 0) {
+          return false;  // CPUID/leaf 1 unavailable -> conservatively no F16C
+        }
+        return (ecx & (1u << 29)) != 0u;  // ECX bit 29 == F16C
+      }();
       return ok;
     }
 

@@ -44,6 +44,8 @@ from .. import __version__
 from .._utils.os import is_windows as WINDOWS
 from ..exceptions import CommandError
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
     # "ConfiguredBuildBackendHookCaller",
     "ask",
@@ -60,8 +62,6 @@ __all__ = [
     "rmtree",
     "splitext",
 ]
-
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]

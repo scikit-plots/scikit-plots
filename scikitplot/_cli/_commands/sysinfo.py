@@ -1,15 +1,20 @@
 import json
+import logging
 import os
 import platform
 import sys
 
+# TODO: Use Lazy import for click dep fully optional
 import click
+
+# TODO: Use Lazy import for rich dep fully optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from ... import logger as _logger
-from .. import _cmdoptions_click
+from .. import _cmd_options
+
+logger = logging.getLogger(__name__)
 
 # os.path.splitext(os.path.basename(__file__))[0]
 module_name = __name__.split(".")[-1]
@@ -17,11 +22,9 @@ console = Console()
 
 
 @click.command(name=module_name)
-# ←→ optional if not using _cmdoptions_click.apply_groups for help
+# ←→ optional if not using _cmd_options.apply_groups for help
 @click.help_option("-h", "--help")
-@_cmdoptions_click.apply_groups(
-    "logging:level"
-)  # ←→ Logging applied last (proper order)
+@_cmd_options.apply_groups("logging:level")  # ←→ Logging applied last (proper order)
 @click.option(
     "--json/--no-json",
     "-j/-nj",
@@ -73,10 +76,10 @@ def cli(**kwargs):
         )
 
     # Example logs at various levels
-    _logger.debug("Debug message for diagnostics.")
-    _logger.info("System info displayed successfully.")
+    logger.debug("Debug message for diagnostics.")
+    logger.info("System info displayed successfully.")
 
-    # click.echo(f"Changed logging level: {_logger.getLevelName(level)}")
+    # click.echo(f"Changed logging level: {logger.getLevelName(level)}")
     # click.secho("Success!", fg="green", bold=True)
     # click.secho("Warning!", fg="yellow", underline=True)
     # click.secho("Error!", fg="red", bold=True)

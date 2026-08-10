@@ -1,9 +1,12 @@
 # import os
 
+# TODO: Use Lazy import for click dep fully optional
 import click
+
+# TODO: Use Lazy import for rich dep fully optional
 from rich.console import Console
 
-# from .. import _cmdoptions_click
+# from .. import _cmd_options
 
 # os.path.splitext(os.path.basename(__file__))[0]
 module_name = __name__.split(".")[-1]
@@ -11,7 +14,7 @@ console = Console()
 
 
 @click.command(name=module_name)
-# ←→ optional if not using _cmdoptions_click.apply_groups for help
+# ←→ optional if not using _cmd_options.apply_groups for help
 @click.help_option("-h", "--help")
 # https://click.palletsprojects.com/en/stable/api/#click.argument
 # https://click.palletsprojects.com/en/stable/testing/#file-system-isolation
@@ -26,7 +29,7 @@ console = Console()
     required=False,
     help="Add an emoji to the greeting.",
 )
-# @_cmdoptions_click.apply_groups("logging:level")  # ←→ must come after all options
+# @_cmd_options.apply_groups("logging:level")  # ←→ must come after all options
 def cli(name, emoji, **kwargs):
     """
     Greet someone by name `greet World -e`.
