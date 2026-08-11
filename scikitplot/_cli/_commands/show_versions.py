@@ -1,66 +1,33 @@
+# scikitplot/_cli/_commands/show_versions.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""`scikitplot show-versions` - wraps the library ``show_versions`` function.
+
+Adapter pattern: for ``text`` output, delegate to the library's own renderer;
+for ANY structured format (json/yaml/toml/...), fetch the data once as a dict and
+let :func:`output.emit` render it. The handler never enumerates output formats,
+so adding a new format to ``output.py`` requires no change here
+(root-cause fix for the historical ``KeyError: 'toml'``; see FINDINGS CLI-FE-011).
+"""
+
 from __future__ import annotations
 
-import json
-
-# TODO: Use Lazy import for click dep fully optional
-import click
-
-# TODO: Use Lazy import for rich dep fully optional
-from rich.console import Console
-from rich.syntax import Syntax
-
-from ... import show_versions
-from .. import _cmd_options
-
-module_name = __name__.split(".")[-1]  # Command name derived from filename
-console = Console()
+from ..context import Context
+from ..output import emit
 
 
-@click.command(name=module_name)
-@click.help_option("-h", "--help")
-@_cmd_options.apply_groups("logging:level")
-@click.option(
-    "--json/--no-json",
-    "-j/-nj",
-    "as_json",
-    is_flag=True,
-    help="Output version info as JSON instead of plaintext.",
-)
-@click.option(
-    "--yaml/--no-yaml",
-    "-y/-ny",
-    "as_yaml",
-    is_flag=True,
-    help="Output version info as YAML (requires PyYAML).",
-)
-@click.option(
-    "--rich/--no-rich",
-    "-r/-nr",
-    "as_rich",
-    is_flag=True,
-    help="Output version info using rich formatting (requires rich).",
-)
-def cli(**kwargs: dict[str, any]) -> None:
-    """
-    Display scikit-plot version and environment info for debugging.
+def run(ctx: Context, *, fmt: str = "text") -> int:
+    """Render version/dependency info via the library ``show_versions``."""
+    # lazy: real library function
+    from ... import show_versions  # ruff: ignore[import-outside-top-level]
 
-    Outputs can be formatted as JSON, YAML, or rich console output.
-    Otherwise, plain text is shown.
-    """
-    as_json = kwargs.pop("as_json", False)
-    as_yaml = kwargs.pop("as_yaml", False)
-    as_rich = kwargs.pop("as_rich", False)
-
-    # Get the raw version info (printed to console or dict depending on mode)
-    if as_json:
-        version_info = show_versions(mode="dict")
-        console.print(Syntax(json.dumps(version_info, indent=2), "json"))
-    elif as_yaml:
-        version_info = show_versions(mode="yaml")
-        if version_info:
-            console.print(Syntax(version_info, "yaml"))
-    elif as_rich:
-        show_versions(mode="rich")
-    else:
-        console.print("[bold cyan]Scikit-plot Version Information:[/bold cyan]\n")
-        show_versions()  # Default behavior prints to stdout
+    if fmt == "text":
+        show_versions(mode="stdout")  # native human-readable rendering
+        return 0
+    data = show_versions(mode="dict")  # side-effect free structured data
+    emit(ctx, data)
+    return 0

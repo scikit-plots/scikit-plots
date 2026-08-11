@@ -84,6 +84,7 @@ if TYPE_CHECKING:
     from typing import (  # noqa: F401
         IO,
         Callable,
+        Final,
         Optional,
         TypeVar,
     )
@@ -156,6 +157,15 @@ _level_names = {
     INFO: "INFO",
     DEBUG: "DEBUG",
     NOTSET: "NOTSET",
+}
+
+# Net verbosity -> level. 0 is the WARNING baseline; +v lowers, -q raises.
+_LEVELS: Final = {
+    -2: CRITICAL,
+    -1: ERROR,
+    0: WARNING,
+    1: INFO,
+    2: DEBUG,
 }
 
 # Environment variables (kept intentionally small and explicit).

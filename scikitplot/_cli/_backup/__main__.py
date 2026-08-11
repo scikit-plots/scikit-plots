@@ -1,0 +1,11 @@
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""CLI Interface."""
+
+from __future__ import annotations
+
+from ._cli.cli import cli
+
+if __name__ == "__main__":
+    raise SystemExit(cli.main())
