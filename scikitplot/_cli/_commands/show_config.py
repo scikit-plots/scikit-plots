@@ -1,61 +1,40 @@
-import json
+# scikitplot/_cli/_commands/show_config.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
-# TODO: Use Lazy import for click dep fully optional
-import click
+"""`scikitplot show-config` - build and runtime configuration.
 
-# TODO: Use Lazy import for rich dep fully optional
-from rich.console import Console
-from rich.syntax import Syntax
+For human ``text`` output this delegates to the library ``show_config``. For
+structured output (``json``/``yaml``/``toml``) it reads the authoritative
+``CONFIG`` mapping directly, which is side-effect free and works regardless of
+whether the library ``show_config(mode="dicts")`` fix is applied. See
+``_maintenance/FINDINGS.md`` (CLI-FE-010) and ``show_config_fix.diff``.
+"""
 
-from ... import show_config
-from .. import _cmd_options
+from __future__ import annotations
 
-# os.path.splitext(os.path.basename(__file__))[0]
-module_name = __name__.split(".")[-1]
-console = Console()
+import copy
+
+from ..context import Context
+from ..output import emit
 
 
-@click.command(name=module_name)
-# ←→ optional if not using _cmd_options.apply_groups for help
-@click.help_option("-h", "--help")
-@_cmd_options.apply_groups("logging:level")  # ←→ Logging applied last (proper order)
-@click.option(
-    "--json/--no-json",
-    "-j/-nj",
-    "as_json",  # ←→ parameter name → what you use inside the function.
-    is_flag=True,
-    help="Output config as JSON instead of text.",
-)
-@click.option(
-    "--yaml/--no-yaml",
-    "-y/-ny",
-    "as_yaml",  # ←→ parameter name → what you use inside the function.
-    is_flag=True,
-    help="Output config as YAML (requires PyYAML).",
-)
-def cli(**kwargs):
-    """
-    Display Scikit-plot build & runtime configuration information.
-    """
-    # import sys
-    # sys.stdout.write("Direct stdout\n")
-    # sys.stderr.write("Error output\n")
-    as_json = kwargs.pop("as_json", False)
-    as_yaml = kwargs.pop("as_yaml", False)
+def run(ctx: Context, *, fmt: str = "text") -> int:
+    """Render build/runtime configuration in the requested format."""
+    if fmt == "text":
+        # lazy: library's human-readable printer
+        from ... import show_config  # ruff: ignore[import-outside-top-level]
 
-    if as_json:
-        config = show_config(mode="dicts")
-        console.print(Syntax(json.dumps(config, indent=2), "json"))
-    elif as_yaml:
-        try:
-            import yaml  # noqa: PLC0415
-
-            config = show_config(mode="dicts")
-            yaml_dump = yaml.safe_dump(config, sort_keys=False)
-            console.print(Syntax(yaml_dump, "yaml"))
-        except ImportError:
-            console.print("[bold red]PyYAML is not installed![/bold red]")
-    else:
-        # Default mode 'stdout' prints the nice rich-format config
-        console.print("[bold cyan]Scikit-plot Build Information:[/bold cyan]\n")
         show_config(mode="stdout")
+        return 0
+    # Structured output: read the authoritative configuration mapping directly.
+    # This avoids the historical ``show_config(mode="dicts")`` behavior that
+    # pretty-printed to stdout and returned None, which corrupted machine output.
+    # single data source of truth
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+
+    emit(ctx, copy.deepcopy(CONFIG))
+    return 0

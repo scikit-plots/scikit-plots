@@ -447,3 +447,8 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
             for k, v in info_dict.items():
                 print(f"{k:>25}: {v}")
             print()
+
+
+# TODO: Here fully internal argparse implemented
+# if __name__ == "__main__":
+#     raise SystemExit(main())
