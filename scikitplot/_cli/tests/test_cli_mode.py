@@ -33,14 +33,20 @@ def test_mode_default_is_stdout_human(monkeypatch):
 def test_mode_dict_text(monkeypatch):
     code, out = _run(["show-versions", "--mode", "dict"], monkeypatch)
     assert code == 0
-    # assert "scikitplot:" in out                                # text emit of dict
+    # `scikitplot` is nested (data["dependencies"]["scikitplot"]), so it appears
+    # in the rendered text but never as a top-level "scikitplot:" line.
+    assert "scikitplot" in out
 
 
 def test_explicit_format_overrides_default_mode(monkeypatch):
     # mode defaults to stdout, but an explicit structured --format still wins
     code, out = _run(["show-versions", "--format", "json"], monkeypatch)
     assert code == 0
-    # assert "scikitplot" in json.loads(out)
+    data = json.loads(out)
+    assert isinstance(data, dict) and data
+    # scikitplot's own version is reported under the "dependencies" section,
+    # not as a top-level key (so `"scikitplot" in data` would be wrong).
+    assert "scikitplot" in out
 
 
 def test_mode_and_format_combine(monkeypatch):

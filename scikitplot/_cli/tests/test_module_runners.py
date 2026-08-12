@@ -19,7 +19,10 @@ def _call_main(module_name, argv, monkeypatch):
 def test_show_versions_module_dict(monkeypatch):
     code, out = _call_main("scikitplot.utils._show_versions", ["-m", "dict"], monkeypatch)
     assert code == 0
-    # assert "scikitplot" in json.loads(out)
+    data = json.loads(out)
+    assert isinstance(data, dict) and data
+    # scikitplot version is reported under "dependencies", not a top-level key.
+    assert "scikitplot" in out
 
 
 def test_config_module_dicts(monkeypatch):
