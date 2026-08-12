@@ -105,6 +105,15 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
             ),
         ),
     ),
+    # Delegated (pass-through) command: forwards all trailing arguments to the
+    # mcp submodule's own entry point. Imported lazily; see EXTENDING.md.
+    CommandSpec(
+        name="mcp",
+        summary="Run or probe the scikit-plots documentation MCP server.",
+        delegate="scikitplot.mcp.__main__:main",
+        capabilities=("mcp",),
+        install_hint="Install the MCP extra: pip install scikit-plots[mcp]",
+    ),
 )
 
 

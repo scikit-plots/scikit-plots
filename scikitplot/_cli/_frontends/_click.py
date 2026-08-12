@@ -91,6 +91,30 @@ def _add_verbosity_options(fn):
     return fn  # ruff: ignore[unnecessary-assign]
 
 
+def _make_delegated_command(spec: CommandSpec) -> click.Command:
+    """Run a click pass-through command that forwards all args to the submodule.
+
+    ``add_help_option=False`` + ``ignore_unknown_options`` let ``--help`` and all
+    options flow untouched into the submodule's own parser.
+    """
+
+    @click.command(
+        name=spec.name,
+        help=spec.summary,
+        add_help_option=False,
+        context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
+    )
+    @click.argument("argv", nargs=-1, type=click.UNPROCESSED)
+    def cmd(argv: tuple[str, ...]) -> None:
+        from ..loader import run_delegate  # ruff: ignore[import-outside-top-level]
+
+        code = run_delegate(spec.delegate, list(argv), install_hint=spec.install_hint)
+        if code:
+            raise SystemExit(code)
+
+    return cmd
+
+
 def _make_command(spec: CommandSpec) -> click.Command:
     def callback(**params: Any) -> None:
         from ..logging import (  # ruff: ignore[import-outside-top-level]
@@ -156,7 +180,11 @@ def build_group(specs: Sequence[CommandSpec] = BUILTIN_COMMANDS) -> click.Group:
         configure(cctx.obj["verbosity"])
 
     for spec in specs:
-        command = _make_command(spec)
+        command = (
+            _make_delegated_command(spec)
+            if spec.delegate is not None
+            else _make_command(spec)
+        )
         root.add_command(command)
         for alias in spec.aliases:
             root.add_command(command, name=alias)

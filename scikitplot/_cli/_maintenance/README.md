@@ -41,3 +41,6 @@ DEFERRED    intentionally postponed with rationale
   do not add click-only logic (invariant §3.2 in `MAINTAINING.md`).
 - Any invariant break requires a new ADR here before the code change.
 - Findings move to `CLOSED` only with pasted test evidence.
+
+
+> Start from [`../RULESET.md`](../RULESET.md) — the CLI continuation contract.

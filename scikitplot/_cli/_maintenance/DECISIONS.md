@@ -206,3 +206,39 @@ These guide decisions are carried forward unchanged and apply to both frontends:
 | §11 responsibilities (Click-centric) | Extended | `MAINTAINING.md` §4 + `_frontends/` |
 | §7 big picture (single Click app) | Extended | `MAINTAINING.md` §2 (frontend select) |
 | §95 loader returns `click.Command` | Amended | CONTRACT §3 (loader returns handler; frontends wrap) |
+
+---
+
+## ADR-CLI-106 — Submodule integration via delegated (pass-through) commands
+
+**Context.** Submodules (e.g. `mcp`) are frequently developed independently and
+ship their own complete CLI (`argparse`, subcommands, `--help`, validation).
+Re-describing every such option as native `CommandSpec` params would duplicate the
+submodule's parser, couple the CLI to the submodule's internals, and drift.
+
+**Decision.** Introduce a second command kind — **delegated** — alongside native
+commands. A `CommandSpec` sets `delegate="module:attr"` (and no `handler`/`params`).
+The frontends forward all trailing arguments (including `--help`) verbatim to the
+submodule's `main(argv) -> int`, imported lazily by `loader.run_delegate`. A bare
+`"module"` target is also supported and executed like `python -m module`.
+
+**Consequences.**
+
+- Adding a self-contained submodule to the CLI is a single registry line
+  (see `EXTENDING.md`).
+- The submodule owns its parsing; the CLI never mangles its options.
+- Lazy import preserves the stdlib-only bootstrap invariant; a missing submodule
+  or dependency surfaces as `CapabilityMissingError` (exit 69) with an
+  `install_hint`, not a traceback.
+- Global options (`-v/-q/-V/-h`) before the command are honored; everything after
+  the command name is forwarded.
+- Both frontends forward byte-identical argv (parity test).
+
+**Implementation note.** argparse intercepts delegated commands *before* parsing
+(`_split_delegated`) rather than using `argparse.REMAINDER`, which drops a leading
+`--help`. click uses `add_help_option=False` + `ignore_unknown_options` with a
+`nargs=-1, UNPROCESSED` argument.
+
+**Rejected alternative.** *Re-implement each submodule's options as native params.*
+Rejected: duplication, coupling, and drift; loses the submodule's own validation
+and help.

@@ -1,5 +1,7 @@
 # Maintaining `scikitplot._cli`
 
+> **New here / no chat history?** Read [`_maintenance/RULESET.md`](./_maintenance/RULESET.md) first — it is the continuation contract (rules + how to proceed).
+
 > **Status:** Foundation / pre-implementation contract
 > **Audience:** Maintainers of the scikit-plots CLI runtime
 > **Primary design rule (unchanged):** *Discover early, import late, initialize only when required.*
@@ -10,7 +12,7 @@ picture, the invariants that every change must preserve, the module contract,
 the dependency policy, and the acceptance gate. The detailed rationale, technical
 contract, and tracked work live in [`_maintenance/`](./_maintenance/).
 
-It **amends** the uploaded `CLI_SUBMODULE_DESIGN_GUIDE.md`. Where the two differ,
+It **amends** the uploaded `_maintenance/CLI_SUBMODULE_DESIGN_GUIDE.md`. Where the two differ,
 this file and the records under `_maintenance/` win, and the superseded guide
 sections are named explicitly in [`_maintenance/DECISIONS.md`](./_maintenance/DECISIONS.md).
 
@@ -385,6 +387,8 @@ following are demonstrably true (with evidence, not assertion):
 
 ## 9. Cross-references
 
+- [`_maintenance/EXTENDING.md`](./_maintenance/EXTENDING.md) — how to add any submodule to the CLI (delegated pass-through, e.g. `mcp`, or native commands).
+
 - [`_maintenance/README.md`](./_maintenance/README.md) — index and workflow.
 - [`_maintenance/DECISIONS.md`](./_maintenance/DECISIONS.md) — ADRs, including the
   argparse-first inversion and the guide sections it supersedes.
@@ -392,5 +396,5 @@ following are demonstrably true (with evidence, not assertion):
   frontend builders, the parity rules, and a runnable reference kernel.
 - [`_maintenance/FINDINGS.md`](./_maintenance/FINDINGS.md) — tracked defects and
   their root causes.
-- `CLI_SUBMODULE_DESIGN_GUIDE.md` — the prior, click-centric guide this document
+- `_maintenance/CLI_SUBMODULE_DESIGN_GUIDE.md` — the prior, click-centric guide this document
   amends.
