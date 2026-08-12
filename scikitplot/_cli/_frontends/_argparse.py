@@ -165,7 +165,6 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     configure(verbosity)  # route diagnostics to stderr at the resolved level
     if getattr(ns, "_version", False):
-        # lazy
         from ..app import _version_string  # ruff: ignore[import-outside-top-level]
 
         sys.stdout.write(_version_string() + "\n")

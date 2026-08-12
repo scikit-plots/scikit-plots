@@ -27,6 +27,26 @@ FORMAT = Param(
     help="Output format (text, json, yaml, toml).",
 )
 
+# Native library "mode" passthrough, per command. `--mode` drives the library
+# call; an explicit structured `--format` takes precedence and emits the data.
+# Defaults (mode="stdout", format="text") preserve human output.
+MODE_VERSIONS = Param(
+    dest="mode",
+    flags=("--mode",),
+    kind="option",
+    choices=("stdout", "dict", "yaml", "rich"),
+    default="stdout",
+    help="Library render mode: stdout, dict, yaml, rich (default: stdout).",
+)
+MODE_CONFIG = Param(
+    dest="mode",
+    flags=("--mode",),
+    kind="option",
+    choices=("stdout", "dicts"),
+    default="stdout",
+    help="Library render mode: stdout, dicts (default: stdout).",
+)
+
 BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(
         name="info",
@@ -54,14 +74,14 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
         summary="Show scikit-plots version and dependency information.",
         handler="scikitplot._cli._commands.show_versions:run",
         aliases=("show_versions",),  # back-compat with the old underscore name
-        params=(FORMAT,),
+        params=(MODE_VERSIONS, FORMAT),
     ),
     CommandSpec(
         name="show-config",
         summary="Show scikit-plots build and runtime configuration.",
         handler="scikitplot._cli._commands.show_config:run",
         aliases=("show_config",),
-        params=(FORMAT,),
+        params=(MODE_CONFIG, FORMAT),
     ),
     CommandSpec(
         name="sysinfo",

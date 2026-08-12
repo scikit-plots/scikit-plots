@@ -449,6 +449,64 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
             print()
 
 
-# TODO: Here fully internal argparse implemented
-# if __name__ == "__main__":
-#     raise SystemExit(main())
+# ---------------------------------------------------------------------------
+# Standalone module entry point: ``python -m scikitplot.utils._show_versions``
+# Self-contained argparse logic (no scikitplot._cli dependency).
+# ---------------------------------------------------------------------------
+def _build_arg_parser():
+    """Build the argparse parser for the standalone runner."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m scikitplot.utils._show_versions",
+        description="Show scikit-plots version, dependency and hardware info.",
+        epilog="Equivalent CLI command: `scikitplot show-versions`.",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        default="stdout",
+        choices=("stdout", "dict", "yaml", "rich"),
+        help="Output mode (default: %(default)s).",
+    )
+    return parser
+
+
+def main(argv=None):
+    """Standalone entry point for ``python -m scikitplot.utils._show_versions``.
+
+    Parameters
+    ----------
+    argv : list of str, optional
+        Argument vector; defaults to ``sys.argv[1:]``.
+
+    Returns
+    -------
+    int
+        Process exit code.
+
+    See Also
+    --------
+    argparse : Batteries-included CLI parsing (used here); auto-help & validation.
+    click : Richer CLI via decorators; an optional third-party dependency.
+    optparse : Deprecated predecessor to :mod:`argparse` (kept for legacy only).
+    getopt : Low-level, C-``getopt``-style parsing.
+    sys.argv : Raw arguments; minimal, no help or validation.
+    """
+    import sys
+
+    args = _build_arg_parser().parse_args(sys.argv[1:] if argv is None else argv)
+    result = show_versions(mode=args.mode)
+    if isinstance(result, dict):
+        import json
+
+        json.dump(result, sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+    elif isinstance(result, str):
+        sys.stdout.write(result if result.endswith("\n") else result + "\n")
+    # mode == "stdout"/"rich": the library already printed; nothing to emit.
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

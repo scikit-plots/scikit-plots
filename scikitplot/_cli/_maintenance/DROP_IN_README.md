@@ -61,10 +61,46 @@ writers produce an actionable error (exit 69), never a traceback. TOML drops
 Append the guard from `scikitplot/_cli/_maintenance/INTEGRATION.md` §3 to the
 existing `scikitplot/utils/_show_versions.py`.
 
+## Standalone module runners (apply the two diffs)
+
+Two library modules gain a self-contained argparse `main()` so they run directly:
+
+```bash
+git apply add_show_versions_runner.diff   # scikitplot/utils/_show_versions.py
+git apply add_config_runner.diff          # scikitplot/config/__config__.py
+```
+
+Then:
+
+```bash
+python -m scikitplot.utils._show_versions -m dict     # or: stdout | yaml | rich
+python -m scikitplot.config.__config__ --mode dicts   # or: stdout
+```
+
+Both expose `-m/--mode` (default `stdout`), matching the CLI `--mode`. Note: a
+benign `RuntimeWarning` from `runpy` may appear on **stderr** because each parent
+package eagerly imports the submodule; stdout stays clean. For warning-free use,
+prefer `scikitplot show-versions` / `scikitplot show-config`.
+
+## `--mode` on show-config / show-versions
+
+Both commands now accept `--mode` (default `stdout`) exposing the library's native
+render modes, alongside `--format`:
+
+```bash
+scikitplot show-versions --mode rich          # library's rich rendering
+scikitplot show-versions --mode dict --format json
+scikitplot show-config   --mode dicts --format toml
+```
+
+Precedence: an explicit structured `--format` (json/yaml/toml) wins and emits the
+data; otherwise `--mode` drives. Defaults (`mode=stdout`, `format=text`) preserve
+today's human output.
+
 ## Verify
 
 ```bash
-pytest scikitplot/_cli/tests -q                       # 24 passed
+pytest scikitplot/_cli/tests -q                       # 79 passed
 python -m scikitplot show-config --format json | jq .
 python -m scikitplot info --format toml
 SCIKITPLOT_CLI_FRONTEND=click python -m scikitplot info --format json

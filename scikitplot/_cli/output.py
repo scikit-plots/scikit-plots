@@ -9,7 +9,7 @@
 
 ``text`` and ``json`` render with the standard library only. ``yaml`` and
 ``toml`` require an optional writer (Tier 2) and fail with an actionable
-:class:`CapabilityMissingError` error when absent, rather than an import traceback.
+:class:`CapabilityMissing` error when absent, rather than an import traceback.
 
 Notes
 -----
@@ -41,7 +41,7 @@ def emit(ctx: Context, data: Any) -> None:
 
     Raises
     ------
-    CapabilityMissingError
+    CapabilityMissing
         If ``fmt`` is ``yaml`` or ``toml`` but no writer is installed.
     ValueError
         If ``fmt="toml"`` and ``data`` is not a mapping (TOML top-level must be

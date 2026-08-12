@@ -8,8 +8,7 @@
 """
 Verbosity (-v/-q) is accepted at root and on subcommands, in any position,
 combines additively, and resolves identically across both frontends.
-"""  # noqa: D205, D400
-
+"""
 import io
 import logging as _logging
 import sys
@@ -81,7 +80,6 @@ def test_vv_sets_debug_level_and_stays_on_stderr(monkeypatch, capsys):
     import logging as pylogging
     from scikitplot._cli._frontends import _argparse
     _argparse.run(["doctor", "-vv"])
-    # It is set to the absolute name of the module as imported.
     assert pylogging.getLogger("scikitplot").level == pylogging.DEBUG
     captured = capsys.readouterr()
     assert "DEBUG" in captured.err       # diagnostics -> stderr
@@ -95,7 +93,6 @@ def test_default_level_is_warning(monkeypatch):
     buf = io.StringIO()
     monkeypatch.setattr(sys, "stdout", buf)
     _argparse.run(["doctor"])
-    # It is set to the absolute name of the module as imported.
     assert pylogging.getLogger("scikitplot").level == pylogging.WARNING
 
 

@@ -64,8 +64,7 @@ def configure(verbosity: int = 0) -> None:
     stacking duplicate handlers. Diagnostics never touch stdout.
     """
     global _HANDLER  # ruff: ignore[global-statement]
-    # It is set to the absolute name of the module as imported.
-    logger = logging.getLogger("scikitplot")  # __name__ "scikitplot._cli.logging"
+    logger = logging.getLogger("scikitplot")
     logger.setLevel(level_for(verbosity))
     if _HANDLER is None:
         _HANDLER = logging.StreamHandler(sys.stderr)
