@@ -9,7 +9,7 @@
 Adapter layer: ``CorpusDocument`` → downstream consumer formats.
 
 Converts :class:`~scikitplot.corpus._schema.CorpusDocument` and
-:class:`~scikitplot.corpus._similarity.SearchResult` objects into
+:class:`~scikitplot.corpus._similarity.RetrievalHit` objects into
 standardised formats consumed by:
 
 - **LangChain** — ``langchain_core.documents.Document``
@@ -517,15 +517,15 @@ def to_jsonl(
 
 
 class LangChainCorpusRetriever:
-    """LangChain-compatible retriever backed by ``SimilarityIndex``.
+    """LangChain-compatible retriever backed by ``RetrievalIndex``.
 
     Parameters
     ----------
-    index : SimilarityIndex
+    index : RetrievalIndex
         A built similarity index.
     embedding_fn : Callable[[str], list[float]] or None, optional
         Function to embed query text.  Required for SEMANTIC mode.
-    config : SearchConfig or None, optional
+    config : RetrievalConfig or None, optional
         Default search configuration.
 
     Notes
@@ -544,7 +544,7 @@ class LangChainCorpusRetriever:
 
     See Also
     --------
-    scikitplot.corpus._similarity.SimilarityIndex : The underlying
+    scikitplot.corpus._similarity.RetrievalIndex : The underlying
         search engine.
     """
 
@@ -558,15 +558,15 @@ class LangChainCorpusRetriever:
 
         Parameters
         ----------
-        index : SimilarityIndex
+        index : RetrievalIndex
             Pre-built corpus index.  Must have a ``search(query, config)``
-            method returning a list of :class:`~scikitplot.corpus._similarity.SearchResult`.
+            method returning a list of :class:`~scikitplot.corpus._similarity.RetrievalHit`.
         embedding_fn : callable or None, optional
             Function ``str → ndarray`` for semantic search.  When ``None``,
             keyword search is used.  Default: ``None``.
-        config : SearchConfig or None, optional
+        config : RetrievalConfig or None, optional
             Default search configuration.  When ``None``, uses
-            ``SearchConfig(match_mode="hybrid", top_k=4)``.
+            ``RetrievalConfig(match_mode="hybrid", top_k=4)``.
             Default: ``None``.
         """
         self.index = index
@@ -625,7 +625,7 @@ class MCPCorpusServer:
 
     Parameters
     ----------
-    index : SimilarityIndex
+    index : RetrievalIndex
         A built similarity index.
     embedding_fn : Callable[[str], list[float]] or None, optional
         Function to embed query text.
@@ -668,7 +668,7 @@ class MCPCorpusServer:
 
         Parameters
         ----------
-        index : SimilarityIndex
+        index : RetrievalIndex
             Pre-built corpus index used to handle ``corpus_search`` tool calls.
         embedding_fn : callable or None, optional
             Function ``str → ndarray`` for semantic query embedding.
@@ -695,13 +695,13 @@ class MCPCorpusServer:
         dict[str, Any]
             MCP tool result.
         """
-        from ._similarity import SearchConfig  # noqa: PLC0415
+        from ._similarity import RetrievalConfig  # noqa: PLC0415
 
         qe = None
         if self.embedding_fn is not None:
             qe = self.embedding_fn(query)
 
-        cfg = SearchConfig(top_k=top_k, match_mode=match_mode)
+        cfg = RetrievalConfig(top_k=top_k, match_mode=match_mode)
         results = self.index.search(
             query,
             config=cfg,

@@ -94,6 +94,19 @@ logger = logging.getLogger(__name__)
 #: hashes the *full* text content instead of a 64-character prefix.
 _DOC_ID_SCHEMA = "v2"
 
+#: Serialisation format generation emitted by :meth:`CorpusDocument.to_dict`.
+#:
+#: Finding F-R01-04: ``_DOC_ID_SCHEMA`` already governed *identity*, but the
+#: serialised payload recorded no format version -- ``to_dict`` emitted 51 keys
+#: and not one said which generation wrote them.  An older payload therefore
+#: loaded silently, missing fields filled by defaults, producing a document
+#: whose ``doc_id`` no longer matched what ``make_doc_id`` would now compute.
+#:
+#: Bump MAJOR when a change would make an older payload mis-read; bump MINOR for
+#: purely additive fields, which stay loadable.
+_SCHEMA_VERSION = "2.0"
+_SCHEMA_VERSION_KEY = "schema_version"
+
 __all__ = [  # noqa: RUF022
     # Enumerations
     "SectionType",
@@ -194,33 +207,71 @@ class Modality(_StrEnumBase):
 
 class ErrorPolicy(_StrEnumBase):
     """
-    Per-document error handling strategy for :class:`PipelineGuard`.
+    Per-document error handling *behaviour* for :class:`PipelineGuard`.
 
     Notes
     -----
-    **RAISE** (default) — exceptions propagate immediately; caller handles.
-    **SKIP** — broken documents are silently discarded; pipeline continues.
-    **LOG** — exception is logged at WARNING level; document is discarded.
-    **RETRY** — the document is retried up to ``max_retries`` times
-    (for transient I/O errors); falls back to LOG on exhaustion.
+    **User-focused.**  Choose what should happen to a document that fails:
+
+    ==========  ====================================================
+    value       behaviour
+    ==========  ====================================================
+    ``raise``   propagate immediately (default, strictest)
+    ``skip``    discard and continue, no record kept
+    ``retry``   retry up to ``max_retries``, then ``collect``
+    ``collect`` discard and continue, keeping an ``ErrorRecord``
+    ``fallback`` degrade to a declared alternative, keeping a record
+    ==========  ====================================================
+
+    **Developer-focused.**  This enum controls *behaviour only*.  Logging is
+    orthogonal and is configured through the standard :mod:`logging` module.
+
+    A former ``LOG`` member was deleted (ADR-R02-001, ADR-C22).  It took the
+    *same* dispatch branch as ``SKIP`` and differed only in whether a
+    ``logger.warning`` fired, so it encoded a logging decision as a behaviour
+    value -- the conflation finding F-R02-01 recorded.  Callers who want "skip,
+    and tell me" should use ``COLLECT``, which keeps a structured record rather
+    than only a log line.
+
+    ``RETRY``'s terminal state is ``COLLECT``, not the former ``LOG``: exhausted
+    retries used to vanish from the caller's view except as a log line.
 
     Examples
     --------
     >>> ErrorPolicy.SKIP == "skip"
     True
+    >>> ErrorPolicy.COLLECT == "collect"
+    True
+
+    See Also
+    --------
+    scikitplot.corpus._diagnostics.ErrorRecord : what ``COLLECT`` and ``FALLBACK`` produce.
     """
 
     RAISE = "raise"
     """Propagate exceptions immediately (default, strictest)."""
 
     SKIP = "skip"
-    """Discard failing documents silently."""
-
-    LOG = "log"
-    """Log failures at WARNING level and discard."""
+    """Discard failing documents and continue, keeping no record."""
 
     RETRY = "retry"
-    """Retry transient failures up to ``max_retries`` times, then LOG."""
+    """Retry transient failures up to ``max_retries`` times, then ``COLLECT``."""
+
+    COLLECT = "collect"
+    """Discard and continue, recording a structured :class:`ErrorRecord`.
+
+    This is the policy to choose when a caller wants to know *what* failed
+    without stopping the run -- the case ``SKIP`` cannot express and the former
+    ``LOG`` expressed only as unstructured text.
+    """
+
+    FALLBACK = "fallback"
+    """Degrade to a declared alternative and record that the degradation happened.
+
+    A ``FALLBACK`` that produces no :class:`ErrorRecord` is invalid: an
+    unobservable fallback is the "plausible success after altered execution"
+    shape this codebase has repeatedly been bitten by.
+    """
 
 
 class SectionType(_StrEnumBase):
@@ -352,6 +403,21 @@ class ChunkingStrategy(_StrEnumBase):
 
     SEMANTIC = "semantic"
     """Boundary detected by semantic similarity shift (topic segmentation)."""
+
+    WORD = "word"
+    """Fixed number of words per chunk, produced by :class:`WordChunker`.
+
+    Added in ADR-C22 when the deprecated ``ChunkStrategy`` shim was deleted: the
+    shim's removal notice directed callers here, but this enum could not express
+    ``WORD``, so the documented migration was impossible for any caller using
+    :class:`WordChunker` -- which is public.
+    """
+
+    RECURSIVE = "recursive"
+    """Hierarchical split that falls back through progressively finer separators.
+
+    Added in ADR-C22 for the same reason as :attr:`WORD`.
+    """
 
     PAGE = "page"
     """One page per chunk, as determined by the source format (PDF, ALTO)."""
@@ -997,6 +1063,9 @@ class CorpusDocument:
     parent_doc_id : str or None, optional
         doc_id of the parent chunk when this is a sub-division. Default:
         ``None``.
+    embedding_manifest_id : str or None, optional
+        Fingerprint of the embedding generation that produced ``embedding``.
+        Default: ``None``.
     act : int or None, optional
         Act number (one-based) in a dramatic source. Default: ``None``.
     scene_number : int or None, optional
@@ -1211,6 +1280,15 @@ class CorpusDocument:
     """Zero-based line number within the document."""
 
     parent_doc_id: str | None = field(default=None)
+    embedding_manifest_id: str | None = field(default=None)
+    """Fingerprint of the :class:`EmbeddingManifest` that produced ``embedding``.
+
+    ``None`` when the document has no embedding, or when it was embedded by code
+    predating manifests.  Finding F-R05-01: a bare vector carries no provenance,
+    so vectors from different models could be merged into one index and searched
+    as though they shared a space.  The reference is stored rather than the whole
+    manifest, because one manifest describes a whole generation.
+    """
     """doc_id of the parent chunk when this is a sub-division."""
 
     # ------------------------------------------------------------------
@@ -1813,7 +1891,26 @@ class CorpusDocument:
         ...     != CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.MOVIE)
         ... )
         True
+
+        Notes
+        -----
+        **Collision bound (P-I0-11 / finding O-12).**  The digest is truncated to
+        16 hex characters, i.e. **64 bits**.  By the birthday bound the collision
+        probability is approximately ``n**2 / 2**65``:
+
+        =================  =========================
+        documents (``n``)  approx. collision chance
+        =================  =========================
+        1e6                2.7e-8
+        1e8                2.7e-4
+        4.3e9 (2**32)      ~50%
+        =================  =========================
+
+        This is ample for the corpus scales this package targets, but it is a
+        *bound*, not a guarantee.  A deployment approaching 1e9 documents in one
+        collection should widen the truncation rather than assume uniqueness.
         """
+
         st_val = (
             source_type.value
             if isinstance(source_type, SourceType)
@@ -1894,6 +1991,7 @@ class CorpusDocument:
         paragraph_index: int | None = None,
         line_number: int | None = None,
         parent_doc_id: str | None = None,
+        embedding_manifest_id: str | None = None,
         # Dramatic position (Issue S-4)
         act: int | None = None,
         scene_number: int | None = None,
@@ -1987,6 +2085,8 @@ class CorpusDocument:
             Zero-based line number. Default: ``None``.
         parent_doc_id : str or None, optional
             doc_id of parent chunk. Default: ``None``.
+        embedding_manifest_id : str or None, optional
+            Fingerprint of the embedding generation. Default: ``None``.
         act : int or None, optional
             Act number (one-based). Default: ``None``.
         scene_number : int or None, optional
@@ -2062,6 +2162,7 @@ class CorpusDocument:
             paragraph_index=paragraph_index,
             line_number=line_number,
             parent_doc_id=parent_doc_id,
+            embedding_manifest_id=embedding_manifest_id,
             act=act,
             scene_number=scene_number,
             timecode_start=timecode_start,
@@ -2216,6 +2317,7 @@ class CorpusDocument:
         'unknown'
         """
         d: dict[str, Any] = {
+            _SCHEMA_VERSION_KEY: _SCHEMA_VERSION,
             # Core
             "doc_id": self.doc_id,
             "input_path": self.input_path,
@@ -2241,6 +2343,7 @@ class CorpusDocument:
             "paragraph_index": self.paragraph_index,
             "line_number": self.line_number,
             "parent_doc_id": self.parent_doc_id,
+            "embedding_manifest_id": self.embedding_manifest_id,
             # Dramatic position
             "act": self.act,
             "scene_number": self.scene_number,
@@ -2405,6 +2508,63 @@ class CorpusDocument:
     # Classmethods for bulk construction
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _check_schema_version(data: dict[str, Any]) -> None:
+        """Validate the payload's serialisation generation.
+
+        Parameters
+        ----------
+        data : dict
+            Payload as produced by :meth:`to_dict`.
+
+        Raises
+        ------
+        ValueError
+            If the payload declares no version, or declares a MAJOR generation
+            this build cannot read.
+
+        Notes
+        -----
+        **User-focused.**  A payload written before schema versioning existed is
+        **refused**, not guessed at.  Re-export it with a current build.
+
+        **Developer-focused.**  Refusing a version-less payload is deliberate
+        (decision DEC-119).  Assuming such a payload is the current generation is
+        exactly how silent corruption happens: fields absent in the old format
+        would be filled with defaults, and the resulting document's ``doc_id``
+        would disagree with what :meth:`make_doc_id` computes for its own
+        content.  Refusal is recoverable -- the caller can re-ingest -- whereas
+        a mis-read is not, because nothing downstream can tell it happened.
+
+        A newer MINOR generation is accepted: MINOR is reserved for purely
+        additive fields, which an older reader can ignore safely.
+        """
+        raw = data.get(_SCHEMA_VERSION_KEY)
+        if raw is None:
+            raise ValueError(
+                "CorpusDocument.from_dict: payload declares no "
+                f"{_SCHEMA_VERSION_KEY!r}. Payloads written before schema "
+                "versioning cannot be safely assumed to match the current "
+                f"format ({_SCHEMA_VERSION}); re-export them with a current "
+                "build rather than loading them blind."
+            )
+        try:
+            major = int(str(raw).split(".", 1)[0])
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"CorpusDocument.from_dict: malformed {_SCHEMA_VERSION_KEY!r} "
+                f"{raw!r}; expected a 'MAJOR.MINOR' string."
+            ) from None
+
+        expected_major = int(_SCHEMA_VERSION.split(".", 1)[0])
+        if major != expected_major:
+            raise ValueError(
+                f"CorpusDocument.from_dict: payload schema version {raw!r} is "
+                f"incompatible with this build ({_SCHEMA_VERSION}). Major "
+                "generations differ, so field meanings may have changed; "
+                "migrate or re-export the corpus."
+            )
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
         """
@@ -2435,6 +2595,8 @@ class CorpusDocument:
         >>> restored.doc_id == doc.doc_id
         True
         """
+        cls._check_schema_version(data)
+
         # text is optional for raw-media documents (modality != TEXT).
         # The required-keys check only enforces the fields that must always
         # be present regardless of modality.
@@ -2498,6 +2660,7 @@ class CorpusDocument:
             paragraph_index=data.get("paragraph_index"),
             line_number=data.get("line_number"),
             parent_doc_id=data.get("parent_doc_id"),
+            embedding_manifest_id=data.get("embedding_manifest_id"),
             # Dramatic position
             act=data.get("act"),
             scene_number=data.get("scene_number"),

@@ -36,7 +36,7 @@ enricher, embedding, similarity, and adapter layers into one object.
    EmbeddingEngine                          ← optional
        │
        ▼  ⑦ Build similarity index
-   SimilarityIndex                          ← optional
+   RetrievalIndex                          ← optional
        │
        ▼  ⑧ Export / adapt for downstream consumers
    Export / Adapters
@@ -125,7 +125,9 @@ if TYPE_CHECKING:
     from typing_extensions import Self  # noqa: F401
 
     from ._base import ChunkerBase
-    from ._schema import SourceType
+    from ._similarity import RetrievalConfig
+from ._diagnostics import ErrorCategory, ErrorRecord
+from ._schema import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +165,7 @@ class BuilderConfig:
         Default: ``["unicode", "whitespace"]``.
     normalizer_kwargs : dict[str, Any]
         Run ``TextNormalizer`` after filtering.
-        Kwargs for ``NormalizerConfig``.
+        Kwargs for ``TextNormalizerConfig``.
     enrich : bool
         Run ``NLPEnricher`` after normalisation.
     enricher_kwargs : dict[str, Any]
@@ -175,9 +177,14 @@ class BuilderConfig:
     embedding_kwargs : dict[str, Any]
         Kwargs for ``EmbeddingEngine`` constructor.
     build_index : bool
-        Build a ``SimilarityIndex`` after embedding.
+        Build a ``RetrievalIndex`` after embedding.
+    retrieval_config : RetrievalConfig or None
+        Canonical retrieval/index configuration. New code should prefer this
+        field so backend constructor options can use
+        ``RetrievalConfig(index_kwargs={...})`` directly.
     index_kwargs : dict[str, Any]
-        Kwargs for ``SearchConfig``.
+        Backward-compatible kwargs used to construct ``RetrievalConfig`` when
+        ``retrieval_config`` is not supplied. Do not provide both forms.
     source_title : str or None
         Default ``source_title`` for all documents.
     source_author : str or None
@@ -229,8 +236,9 @@ class BuilderConfig:
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_kwargs: dict[str, Any] = field(default_factory=dict)
 
-    # Similarity index
+    # Similarity index / retrieval
     build_index: bool = False
+    retrieval_config: RetrievalConfig | None = None
     index_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Provenance defaults
@@ -309,9 +317,9 @@ class BuildResult:
         Chunks that were NLP-enriched.
     n_embedded : int
         Chunks that were embedded.
-    index : SimilarityIndex or None
+    index : RetrievalIndex or None
         Built similarity index (if ``build_index=True``).
-    errors : list[tuple[str, Exception]]
+    errors : list[ErrorRecord]
         ``(input_path, exception)`` pairs for failed sources.
 
     Notes
@@ -331,7 +339,14 @@ class BuildResult:
     n_enriched: int = 0
     n_embedded: int = 0
     index: Any = None
-    errors: list[tuple[str, Exception]] = field(default_factory=list)
+    errors: list = field(default_factory=list)
+    """Structured diagnostics, one per failed source.
+
+    Holds :class:`~scikitplot.corpus._diagnostics.ErrorRecord`, not live
+    exceptions.  A live exception is not JSON-serialisable (F-R02-03) and
+    retains its traceback's frame locals -- measured at 139x the necessary
+    memory for 2000 failures (F-R11-02).
+    """
 
     @property
     def n_documents(self) -> int:
@@ -437,7 +452,7 @@ class CorpusBuilder:
         pipeline (used internally by the builder).
     scikitplot.corpus._adapters : Conversion functions for
         downstream consumers.
-    scikitplot.corpus._similarity.SimilarityIndex : Search engine.
+    scikitplot.corpus._similarity.RetrievalIndex : Search engine.
 
     Examples
     --------
@@ -638,7 +653,15 @@ class CorpusBuilder:
                     src, docs, exc = future.result()
                     if exc is not None:
                         logger.error("Failed to ingest %s: %s", src, exc)
-                        result.errors.append((str(src), exc))
+                        result.errors.append(
+                            ErrorRecord.from_exception(
+                                exc,
+                                code="SOURCE_INGEST_FAILED",
+                                category=ErrorCategory.SOURCE,
+                                stage="ingest",
+                                source_id=str(src),
+                            )
+                        )
                     else:
                         all_docs.extend(docs)
         else:
@@ -654,7 +677,15 @@ class CorpusBuilder:
                     all_docs.extend(docs)
                 except Exception as exc:  # noqa: BLE001
                     logger.error("Failed to ingest %s: %s", src, exc)
-                    result.errors.append((str(src), exc))
+                    result.errors.append(
+                        ErrorRecord.from_exception(
+                            exc,
+                            code="SOURCE_INGEST_FAILED",
+                            category=ErrorCategory.SOURCE,
+                            stage="ingest",
+                            source_id=str(src),
+                        )
+                    )
 
         result.n_raw = len(all_docs)
 
@@ -694,12 +725,11 @@ class CorpusBuilder:
         # ⑦ Build index
         if cfg.build_index and documents:
             from ._similarity import (  # noqa: PLC0415
-                SearchConfig,
-                SimilarityIndex,
+                RetrievalIndex,
             )
 
-            idx_cfg = SearchConfig(**cfg.index_kwargs)
-            self._index = SimilarityIndex(config=idx_cfg)
+            idx_cfg = self._get_index_config()
+            self._index = RetrievalIndex(config=idx_cfg)
             self._index.build(documents)
             result.index = self._index
 
@@ -817,12 +847,11 @@ class CorpusBuilder:
         # Rebuild index over all documents if configured
         if rebuild_index and self.config.build_index and merged_docs:
             from ._similarity import (  # noqa: PLC0415
-                SearchConfig,
-                SimilarityIndex,
+                RetrievalIndex,
             )
 
-            idx_cfg = SearchConfig(**self.config.index_kwargs)
-            self._index = SimilarityIndex(config=idx_cfg)
+            idx_cfg = self._get_index_config()
+            self._index = RetrievalIndex(config=idx_cfg)
             self._index.build(merged_docs)
             new_result.index = self._index
 
@@ -859,11 +888,11 @@ class CorpusBuilder:
             ``"strict"``, ``"keyword"``, ``"semantic"``, or
             ``"hybrid"``.
         **kwargs
-            Additional ``SearchConfig`` parameters.
+            Additional ``RetrievalConfig`` parameters.
 
         Returns
         -------
-        list[SearchResult]
+        list[RetrievalHit]
             Ranked results.
 
         Raises
@@ -885,9 +914,9 @@ class CorpusBuilder:
                 f"Set embed=True in BuilderConfig and rebuild."
             )
 
-        from ._similarity import SearchConfig  # noqa: PLC0415
+        from ._similarity import RetrievalConfig  # noqa: PLC0415
 
-        cfg = SearchConfig(
+        cfg = RetrievalConfig(
             top_k=top_k,
             match_mode=match_mode,
             **kwargs,
@@ -1637,6 +1666,32 @@ class CorpusBuilder:
     # ==================================================================
     # Internal: lazy component creation
     # ==================================================================
+
+    def _get_index_config(self) -> Any:
+        """Return the canonical ``RetrievalConfig`` for index construction.
+
+        ``BuilderConfig.index_kwargs`` is retained as the legacy constructor
+        path.  Supplying both representations is ambiguous and therefore
+        rejected instead of silently choosing one.
+        """
+        from ._similarity import RetrievalConfig  # noqa: PLC0415
+
+        explicit = self.config.retrieval_config
+        legacy = self.config.index_kwargs
+        if explicit is not None and legacy:
+            raise ValueError(
+                "BuilderConfig.retrieval_config and legacy index_kwargs cannot "
+                "both be supplied; use retrieval_config with "
+                "RetrievalConfig(index_kwargs={...}) for new code."
+            )
+        if explicit is not None:
+            if not isinstance(explicit, RetrievalConfig):
+                raise TypeError(
+                    "BuilderConfig.retrieval_config must be RetrievalConfig or None, "
+                    f"got {type(explicit).__name__!r}."
+                )
+            return explicit
+        return RetrievalConfig(**legacy)
 
     def _get_chunker(self) -> Any:
         """Get or create the chunker, auto-bridging if needed."""

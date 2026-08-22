@@ -9,14 +9,14 @@ Tests for corpus._similarity._similarity
 
 Coverage targets
 ----------------
-* :class:`SearchResult` — fields, frozen, equality.
-* :class:`SearchConfig` — defaults, validation (match_mode, top_k,
+* :class:`RetrievalHit` — fields, frozen, equality.
+* :class:`RetrievalConfig` — defaults, validation (match_mode, top_k,
   hybrid_alpha), ``__post_init__`` error paths.
 * :func:`_tokenize_simple` — unicode, empty, punctuation.
 * :func:`_get_text` — normalised-text preference, fallback.
 * :class:`_BM25Index` — build + query: empty query, single-term,
   multi-term IDF, top-k clipping, zero-score filtering.
-* :class:`SimilarityIndex` — build (empty raises), strict search
+* :class:`RetrievalIndex` — build (empty raises), strict search
   (case-sensitive/insensitive, top_k), keyword/BM25 search, semantic
   brute-force (no ANN libs), hybrid RRF fusion, ``n_documents`` /
   ``has_embeddings`` properties, ``__repr__``.
@@ -39,9 +39,9 @@ import numpy as np
 import pytest
 
 from .._similarity import (
-    SearchConfig,
-    SearchResult,
-    SimilarityIndex,
+    RetrievalConfig,
+    RetrievalHit,
+    RetrievalIndex,
     _BM25Index,
     _get_text,
     _tokenize_simple,
@@ -95,39 +95,39 @@ def _docs_with_embeddings() -> list[CorpusDocument]:
 
 
 # ===========================================================================
-# SearchResult
+# RetrievalHit
 # ===========================================================================
 
 
 class TestSearchResult:
     def test_fields_accessible(self) -> None:
         doc = _doc("hello")
-        r = SearchResult(doc=doc, score=0.9, match_mode="strict")
+        r = RetrievalHit(doc=doc, score=0.9, match_mode="strict")
         assert r.doc is doc
         assert r.score == pytest.approx(0.9)
         assert r.match_mode == "strict"
 
     def test_frozen(self) -> None:
         doc = _doc("hello")
-        r = SearchResult(doc=doc, score=0.5, match_mode="keyword")
+        r = RetrievalHit(doc=doc, score=0.5, match_mode="keyword")
         with pytest.raises((FrozenInstanceError, AttributeError)):
             r.score = 1.0  # type: ignore[misc]
 
     def test_equality(self) -> None:
         doc = _doc("hello")
-        r1 = SearchResult(doc=doc, score=0.7, match_mode="hybrid")
-        r2 = SearchResult(doc=doc, score=0.7, match_mode="hybrid")
+        r1 = RetrievalHit(doc=doc, score=0.7, match_mode="hybrid")
+        r2 = RetrievalHit(doc=doc, score=0.7, match_mode="hybrid")
         assert r1 == r2
 
 
 # ===========================================================================
-# SearchConfig
+# RetrievalConfig
 # ===========================================================================
 
 
 class TestSearchConfig:
     def test_defaults(self) -> None:
-        cfg = SearchConfig()
+        cfg = RetrievalConfig()
         assert cfg.top_k == 10
         assert cfg.match_mode == "semantic"
         assert cfg.semantic_threshold == pytest.approx(0.0)
@@ -138,7 +138,7 @@ class TestSearchConfig:
         assert cfg.case_sensitive is False
 
     def test_custom_values(self) -> None:
-        cfg = SearchConfig(
+        cfg = RetrievalConfig(
             top_k=5,
             match_mode="keyword",
             keyword_threshold=0.1,
@@ -151,33 +151,66 @@ class TestSearchConfig:
 
     def test_invalid_match_mode(self) -> None:
         with pytest.raises(ValueError, match="match_mode"):
-            SearchConfig(match_mode="fuzz")
+            RetrievalConfig(match_mode="fuzz")
 
     def test_invalid_top_k_zero(self) -> None:
         with pytest.raises(ValueError, match="top_k"):
-            SearchConfig(top_k=0)
+            RetrievalConfig(top_k=0)
 
     def test_invalid_top_k_negative(self) -> None:
         with pytest.raises(ValueError, match="top_k"):
-            SearchConfig(top_k=-1)
+            RetrievalConfig(top_k=-1)
 
     def test_invalid_hybrid_alpha_above_one(self) -> None:
         with pytest.raises(ValueError, match="hybrid_alpha"):
-            SearchConfig(hybrid_alpha=1.5)
+            RetrievalConfig(hybrid_alpha=1.5)
 
     def test_invalid_hybrid_alpha_negative(self) -> None:
         with pytest.raises(ValueError, match="hybrid_alpha"):
-            SearchConfig(hybrid_alpha=-0.1)
+            RetrievalConfig(hybrid_alpha=-0.1)
 
     def test_all_valid_match_modes(self) -> None:
         for mode in ("strict", "keyword", "semantic", "hybrid"):
-            cfg = SearchConfig(match_mode=mode)
+            cfg = RetrievalConfig(match_mode=mode)
             assert cfg.match_mode == mode
 
     def test_frozen(self) -> None:
-        cfg = SearchConfig()
+        cfg = RetrievalConfig()
         with pytest.raises((FrozenInstanceError, AttributeError)):
             cfg.top_k = 99  # type: ignore[misc]
+
+    def test_generic_index_kwargs_are_copied(self) -> None:
+        options = {"n_trees": 20}
+        cfg = RetrievalConfig(backend="annoy", index_kwargs=options)
+        options["n_trees"] = 99
+        assert cfg.index_kwargs == {"n_trees": 20}
+
+    def test_generic_index_kwargs_require_string_keys_and_are_canonicalized(self) -> None:
+        cfg = RetrievalConfig(index_kwargs={"z": 1, "a": 2})
+        assert list(cfg.index_kwargs) == ["a", "z"]
+        with pytest.raises(TypeError, match="keys must be strings"):
+            RetrievalConfig(index_kwargs={1: "bad"})
+
+    def test_generic_index_kwargs_may_override_legacy_defaults(self) -> None:
+        cfg = RetrievalConfig(
+            backend="annoy",
+            index_kwargs={"n_trees": 20, "metric": "angular"},
+        )
+        assert cfg.index_kwargs["n_trees"] == 20
+
+    def test_conflicting_explicit_legacy_and_generic_annoy_options_raise(self) -> None:
+        with pytest.raises(ValueError, match="conflicting Annoy configuration"):
+            RetrievalConfig(
+                backend="annoy",
+                annoy_n_trees=30,
+                index_kwargs={"n_trees": 20},
+            )
+
+    def test_backend_may_be_vector_backend_subclass(self) -> None:
+        from scikitplot.corpus._similarity._backends import BruteForceBackend
+
+        cfg = RetrievalConfig(backend=BruteForceBackend)
+        assert cfg.backend is BruteForceBackend
 
 
 # ===========================================================================
@@ -306,33 +339,33 @@ class TestBM25Index:
 
 
 # ===========================================================================
-# SimilarityIndex — build
+# RetrievalIndex — build
 # ===========================================================================
 
 
 class TestSimilarityIndexBuild:
     def test_build_empty_raises(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         with pytest.raises(ValueError, match="empty"):
             idx.build([])
 
     def test_build_sets_n_documents(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
         assert idx.n_documents == 5
 
     def test_build_without_embeddings(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
         assert idx.has_embeddings is False
 
     def test_build_with_embeddings(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_with_embeddings())
         assert idx.has_embeddings is True
 
     def test_rebuild_replaces_state(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
         assert idx.n_documents == 5
         idx.build(_docs_for_search()[:2])
@@ -345,63 +378,63 @@ class TestSimilarityIndexBuild:
             _doc("doc a", idx=0, embedding=vec),
             _doc("doc b", idx=1),  # no embedding
         ]
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(docs)
         assert idx.has_embeddings is False
 
 
 # ===========================================================================
-# SimilarityIndex — STRICT search
+# RetrievalIndex — STRICT search
 # ===========================================================================
 
 
 class TestStrictSearch:
     @pytest.fixture()
-    def idx(self) -> SimilarityIndex:
-        index = SimilarityIndex(config=SearchConfig(match_mode="strict", top_k=10))
+    def idx(self) -> RetrievalIndex:
+        index = RetrievalIndex(config=RetrievalConfig(match_mode="strict", top_k=10))
         index.build(_docs_for_search())
         return index
 
-    def test_match_returns_score_1(self, idx: SimilarityIndex) -> None:
+    def test_match_returns_score_1(self, idx: RetrievalIndex) -> None:
         results = idx.search("Hamlet")
         assert len(results) == 1
         assert results[0].score == pytest.approx(1.0)
         assert results[0].match_mode == "strict"
 
-    def test_case_insensitive_default(self, idx: SimilarityIndex) -> None:
+    def test_case_insensitive_default(self, idx: RetrievalIndex) -> None:
         results = idx.search("hamlet")
         assert len(results) == 1
 
-    def test_case_sensitive_no_match(self, idx: SimilarityIndex) -> None:
-        cfg = SearchConfig(match_mode="strict", case_sensitive=True)
+    def test_case_sensitive_no_match(self, idx: RetrievalIndex) -> None:
+        cfg = RetrievalConfig(match_mode="strict", case_sensitive=True)
         results = idx.search("hamlet", config=cfg)
         assert len(results) == 0
 
-    def test_case_sensitive_match(self, idx: SimilarityIndex) -> None:
-        cfg = SearchConfig(match_mode="strict", case_sensitive=True)
+    def test_case_sensitive_match(self, idx: RetrievalIndex) -> None:
+        cfg = RetrievalConfig(match_mode="strict", case_sensitive=True)
         results = idx.search("Hamlet", config=cfg)
         assert len(results) == 1
 
-    def test_no_match_returns_empty(self, idx: SimilarityIndex) -> None:
+    def test_no_match_returns_empty(self, idx: RetrievalIndex) -> None:
         results = idx.search("xyzzy")
-        assert results == []
+        assert list(results) == []
 
     def test_top_k_limits_results(self) -> None:
         # Build index where "the" appears in multiple docs
         docs = [_doc("the cat sat", idx=i) for i in range(5)]
-        idx = SimilarityIndex(config=SearchConfig(match_mode="strict", top_k=2))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="strict", top_k=2))
         idx.build(docs)
         results = idx.search("the")
         assert len(results) <= 2
 
-    def test_multi_word_substring(self, idx: SimilarityIndex) -> None:
+    def test_multi_word_substring(self, idx: RetrievalIndex) -> None:
         results = idx.search("quick brown fox")
         assert len(results) == 1
 
     def test_uses_normalized_text_when_available(self) -> None:
         docs = [_doc("raw", idx=0, normalized_text="target phrase here")]
-        idx = SimilarityIndex(
-            config=SearchConfig(match_mode="strict", use_normalized_text=True)
+        idx = RetrievalIndex(
+            config=RetrievalConfig(match_mode="strict", use_normalized_text=True)
         )
         idx.build(docs)
         assert len(idx.search("target phrase")) == 1
@@ -409,8 +442,8 @@ class TestStrictSearch:
 
     def test_skips_normalized_when_flag_false(self) -> None:
         docs = [_doc("raw", idx=0, normalized_text="target phrase here")]
-        idx = SimilarityIndex(
-            config=SearchConfig(match_mode="strict", use_normalized_text=False)
+        idx = RetrievalIndex(
+            config=RetrievalConfig(match_mode="strict", use_normalized_text=False)
         )
         idx.build(docs)
         assert len(idx.search("raw")) == 1
@@ -418,136 +451,136 @@ class TestStrictSearch:
 
 
 # ===========================================================================
-# SimilarityIndex — KEYWORD search (BM25)
+# RetrievalIndex — KEYWORD search (BM25)
 # ===========================================================================
 
 
 class TestKeywordSearch:
     @pytest.fixture()
-    def idx(self) -> SimilarityIndex:
-        index = SimilarityIndex(config=SearchConfig(match_mode="keyword", top_k=10))
+    def idx(self) -> RetrievalIndex:
+        index = RetrievalIndex(config=RetrievalConfig(match_mode="keyword", top_k=10))
         index.build(_docs_for_search())
         return index
 
-    def test_relevant_doc_ranked_first(self, idx: SimilarityIndex) -> None:
+    def test_relevant_doc_ranked_first(self, idx: RetrievalIndex) -> None:
         results = idx.search("programming language")
         assert len(results) > 0
         texts = [r.doc.text for r in results]
         assert any("programming" in t for t in texts)
 
-    def test_match_mode_label(self, idx: SimilarityIndex) -> None:
+    def test_match_mode_label(self, idx: RetrievalIndex) -> None:
         results = idx.search("machine learning")
         for r in results:
             assert r.match_mode == "keyword"
 
-    def test_unseen_query_returns_empty(self, idx: SimilarityIndex) -> None:
+    def test_unseen_query_returns_empty(self, idx: RetrievalIndex) -> None:
         results = idx.search("xyzzy_nonexistent_term")
-        assert results == []
+        assert list(results) == []
 
-    def test_threshold_filters_low_scores(self, idx: SimilarityIndex) -> None:
-        cfg = SearchConfig(match_mode="keyword", keyword_threshold=1e9)
+    def test_threshold_filters_low_scores(self, idx: RetrievalIndex) -> None:
+        cfg = RetrievalConfig(match_mode="keyword", keyword_threshold=1e9)
         results = idx.search("python", config=cfg)
-        assert results == []
+        assert list(results) == []
 
-    def test_top_k_respected(self, idx: SimilarityIndex) -> None:
-        cfg = SearchConfig(match_mode="keyword", top_k=2)
+    def test_top_k_respected(self, idx: RetrievalIndex) -> None:
+        cfg = RetrievalConfig(match_mode="keyword", top_k=2)
         results = idx.search("the", config=cfg)
         assert len(results) <= 2
 
-    def test_empty_query_returns_empty(self, idx: SimilarityIndex) -> None:
+    def test_empty_query_returns_empty(self, idx: RetrievalIndex) -> None:
         results = idx.search("")
-        assert results == []
+        assert list(results) == []
 
     def test_precomputed_tokens_used(self) -> None:
         """Pre-tokenised docs should be indexed without re-tokenising."""
         doc = _doc("apple banana cherry", idx=0)
         doc = doc.replace(tokens=["apple", "banana", "cherry"])
-        idx = SimilarityIndex(config=SearchConfig(match_mode="keyword"))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="keyword"))
         idx.build([doc])
         results = idx.search("apple")
         assert len(results) == 1
 
 
 # ===========================================================================
-# SimilarityIndex — SEMANTIC search (brute-force, no ANN)
+# RetrievalIndex — SEMANTIC search (brute-force, no ANN)
 # ===========================================================================
 
 
 class TestSemanticSearch:
     @pytest.fixture()
-    def idx(self) -> SimilarityIndex:
-        index = SimilarityIndex(config=SearchConfig(match_mode="semantic", top_k=3))
+    def idx(self) -> RetrievalIndex:
+        index = RetrievalIndex(config=RetrievalConfig(match_mode="semantic", top_k=3))
         index.build(_docs_with_embeddings())
         return index
 
-    def test_exact_match_gets_highest_score(self, idx: SimilarityIndex) -> None:
+    def test_exact_match_gets_highest_score(self, idx: RetrievalIndex) -> None:
         query_emb = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("doc 0", query_embedding=query_emb)
         assert len(results) > 0
         assert results[0].doc.chunk_index == 0
         assert results[0].score == pytest.approx(1.0, abs=1e-5)
 
-    def test_match_mode_label(self, idx: SimilarityIndex) -> None:
+    def test_match_mode_label(self, idx: RetrievalIndex) -> None:
         qe = np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("doc 1", query_embedding=qe)
         for r in results:
             assert r.match_mode == "semantic"
 
     def test_no_embeddings_returns_empty_with_warning(self) -> None:
-        idx = SimilarityIndex(config=SearchConfig(match_mode="semantic"))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="semantic"))
         idx.build(_docs_for_search())  # no embeddings
         qe = np.array([1.0, 0.0], dtype=np.float32)
         results = idx.search("query", query_embedding=qe)
-        assert results == []
+        assert list(results) == []
 
-    def test_missing_query_embedding_raises(self, idx: SimilarityIndex) -> None:
+    def test_missing_query_embedding_raises(self, idx: RetrievalIndex) -> None:
         with pytest.raises(ValueError, match="query_embedding"):
             idx.search("query", query_embedding=None)
 
-    def test_threshold_filters_orthogonal(self, idx: SimilarityIndex) -> None:
+    def test_threshold_filters_orthogonal(self, idx: RetrievalIndex) -> None:
         # doc 0 is e1=[1,0,0,0]; query e2=[0,1,0,0] → cosine=0
         qe = np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float32)
-        cfg = SearchConfig(match_mode="semantic", semantic_threshold=0.5, top_k=10)
+        cfg = RetrievalConfig(match_mode="semantic", semantic_threshold=0.5, top_k=10)
         results = idx.search("q", query_embedding=qe, config=cfg)
         # doc 1 has cosine=1.0, docs 0 and 2 are 0 → filtered by threshold
         assert all(r.score >= 0.5 for r in results)
 
-    def test_zero_query_vector_returns_empty(self, idx: SimilarityIndex) -> None:
+    def test_zero_query_vector_returns_empty(self, idx: RetrievalIndex) -> None:
         qe = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("q", query_embedding=qe)
-        assert results == []
+        assert list(results) == []
 
-    def test_top_k_limits_results(self, idx: SimilarityIndex) -> None:
+    def test_top_k_limits_results(self, idx: RetrievalIndex) -> None:
         qe = np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32)
-        cfg = SearchConfig(match_mode="semantic", top_k=2)
+        cfg = RetrievalConfig(match_mode="semantic", top_k=2)
         results = idx.search("q", query_embedding=qe, config=cfg)
         assert len(results) <= 2
 
-    def test_per_query_config_override(self, idx: SimilarityIndex) -> None:
+    def test_per_query_config_override(self, idx: RetrievalIndex) -> None:
         qe = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
-        cfg = SearchConfig(match_mode="semantic", top_k=1)
+        cfg = RetrievalConfig(match_mode="semantic", top_k=1)
         results = idx.search("q", query_embedding=qe, config=cfg)
         assert len(results) == 1
 
 
 # ===========================================================================
-# SimilarityIndex — HYBRID search (RRF)
+# RetrievalIndex — HYBRID search (RRF)
 # ===========================================================================
 
 
 class TestHybridSearch:
     @pytest.fixture()
-    def idx(self) -> SimilarityIndex:
-        index = SimilarityIndex(config=SearchConfig(match_mode="hybrid", top_k=5))
+    def idx(self) -> RetrievalIndex:
+        index = RetrievalIndex(config=RetrievalConfig(match_mode="hybrid", top_k=5))
         index.build(_docs_with_embeddings())
         return index
 
-    def test_returns_results_with_query_embedding(self, idx: SimilarityIndex) -> None:
+    def test_returns_results_with_query_embedding(self, idx: RetrievalIndex) -> None:
         qe = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("doc", query_embedding=qe)
         assert len(results) > 0
 
-    def test_match_mode_label(self, idx: SimilarityIndex) -> None:
+    def test_match_mode_label(self, idx: RetrievalIndex) -> None:
         qe = np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("doc", query_embedding=qe)
         for r in results:
@@ -555,29 +588,29 @@ class TestHybridSearch:
 
     def test_returns_results_without_embeddings(self) -> None:
         """Hybrid degrades gracefully to keyword-only when no embeddings."""
-        idx = SimilarityIndex(config=SearchConfig(match_mode="hybrid"))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="hybrid"))
         idx.build(_docs_for_search())
         results = idx.search("python language")
         # keyword-only results still returned
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
 
-    def test_top_k_respected(self, idx: SimilarityIndex) -> None:
+    def test_top_k_respected(self, idx: RetrievalIndex) -> None:
         qe = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
-        cfg = SearchConfig(match_mode="hybrid", top_k=2)
+        cfg = RetrievalConfig(match_mode="hybrid", top_k=2)
         results = idx.search("doc", query_embedding=qe, config=cfg)
         assert len(results) <= 2
 
     def test_alpha_zero_pure_keyword(self) -> None:
         """hybrid_alpha=0 → pure keyword (no semantic contribution)."""
-        idx = SimilarityIndex(
-            config=SearchConfig(match_mode="hybrid", hybrid_alpha=0.0)
+        idx = RetrievalIndex(
+            config=RetrievalConfig(match_mode="hybrid", hybrid_alpha=0.0)
         )
         idx.build(_docs_with_embeddings())
         results = idx.search("doc")
         # With alpha=0 semantic rank doesn't contribute — still returns list
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
 
-    def test_rrf_scores_positive(self, idx: SimilarityIndex) -> None:
+    def test_rrf_scores_positive(self, idx: RetrievalIndex) -> None:
         qe = np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
         results = idx.search("doc", query_embedding=qe)
         for r in results:
@@ -585,43 +618,43 @@ class TestHybridSearch:
 
 
 # ===========================================================================
-# SimilarityIndex — utility / properties / repr
+# RetrievalIndex — utility / properties / repr
 # ===========================================================================
 
 
 class TestSimilarityIndexUtility:
     def test_n_documents_zero_before_build(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         assert idx.n_documents == 0
 
     def test_has_embeddings_false_before_build(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         assert idx.has_embeddings is False
 
     def test_repr_contains_key_info(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
         r = repr(idx)
         assert "5" in r
         assert "dense=False" in r
 
     def test_repr_dense_true_with_embeddings(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_with_embeddings())
         assert "dense=True" in repr(idx)
 
     def test_default_config_used_when_none_passed(self) -> None:
         """Default mode=semantic with no embeddings returns empty (warns)."""
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
         # No embeddings built → semantic search returns [] with a warning
         results = idx.search("test", query_embedding=None)
-        assert results == []
+        assert list(results) == []
 
     def test_unknown_match_mode_raises(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
-        bad_cfg = object.__new__(SearchConfig)
+        bad_cfg = object.__new__(RetrievalConfig)
         object.__setattr__(bad_cfg, "match_mode", "invalid")
         object.__setattr__(bad_cfg, "top_k", 5)
         object.__setattr__(bad_cfg, "use_normalized_text", True)
@@ -634,9 +667,9 @@ class TestSimilarityIndexUtility:
             idx.search("test", config=bad_cfg)
 
     def test_custom_search_config_top_k_one(self) -> None:
-        idx = SimilarityIndex()
+        idx = RetrievalIndex()
         idx.build(_docs_for_search())
-        cfg = SearchConfig(match_mode="strict", top_k=1)
+        cfg = RetrievalConfig(match_mode="strict", top_k=1)
         results = idx.search("the", config=cfg)
         assert len(results) <= 1
 
@@ -644,7 +677,7 @@ class TestSimilarityIndexUtility:
         """tokens on doc skips re-tokenisation inside build()."""
         doc = _doc("unrelated text here", idx=0)
         doc = doc.replace(tokens=["custom", "token", "list"])
-        idx = SimilarityIndex(config=SearchConfig(match_mode="keyword"))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="keyword"))
         idx.build([doc])
         results = idx.search("custom")
         assert len(results) == 1

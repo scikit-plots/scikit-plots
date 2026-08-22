@@ -741,6 +741,9 @@
         // GitHub Octicon "upload" — additive and not wired to a control yet.
         // Mirrors upload.svg / _SVG_UPLOAD in _static/__init__.py.
         upload: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z"/></svg>',
+        // GitHub Octicon "database" — additive and not wired to a control yet.
+        // Mirrors database.svg / _SVG_DATABASE in _static/__init__.py.
+        database: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3.5c0-.626.292-1.165.7-1.59.406-.422.956-.767 1.579-1.041C4.525.32 6.195 0 8 0c1.805 0 3.475.32 4.722.869.622.274 1.172.62 1.578 1.04.408.426.7.965.7 1.591v9c0 .626-.292 1.165-.7 1.59-.406.422-.956.767-1.579 1.041C11.476 15.68 9.806 16 8 16c-1.805 0-3.475-.32-4.721-.869-.623-.274-1.173-.62-1.579-1.04-.408-.426-.7-.965-.7-1.591Zm1.5 0c0 .133.058.318.282.551.227.237.591.483 1.101.707C4.898 5.205 6.353 5.5 8 5.5c1.646 0 3.101-.295 4.118-.742.508-.224.873-.471 1.1-.708.224-.232.282-.417.282-.55 0-.133-.058-.318-.282-.551-.227-.237-.591-.483-1.101-.707C11.102 1.795 9.647 1.5 8 1.5c-1.646 0-3.101.295-4.118.742-.508.224-.873.471-1.1.708-.224.232-.282.417-.282.55Zm0 4.5c0 .133.058.318.282.551.227.237.591.483 1.101.707C4.898 9.705 6.353 10 8 10c1.646 0 3.101-.295 4.118-.742.508-.224.873-.471 1.1-.708.224-.232.282-.417.282-.55V5.724c-.241.15-.503.286-.778.407C11.475 6.68 9.805 7 8 7c-1.805 0-3.475-.32-4.721-.869a6.15 6.15 0 0 1-.779-.407Zm0 2.225V12.5c0 .133.058.318.282.55.227.237.592.484 1.1.708 1.016.447 2.471.742 4.118.742 1.647 0 3.102-.295 4.117-.742.51-.224.874-.47 1.101-.707.224-.233.282-.418.282-.551v-2.275c-.241.15-.503.285-.778.406-1.247.549-2.917.869-4.722.869-1.805 0-3.475-.32-4.721-.869a6.327 6.327 0 0 1-.779-.406Z"/></svg>',
         // Octicon-style printer — used by the inline PDF method switch and
         // mirrored by _SVG_PRINTER / printer.svg.
         printer: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.75C4 1.784 4.784 1 5.75 1h4.5C11.216 1 12 1.784 12 2.75V5h.25A2.75 2.75 0 0 1 15 7.75v3.5A1.75 1.75 0 0 1 13.25 13H12v.25A1.75 1.75 0 0 1 10.25 15h-4.5A1.75 1.75 0 0 1 4 13.25V13H2.75A1.75 1.75 0 0 1 1 11.25v-3.5A2.75 2.75 0 0 1 3.75 5H4V2.75Zm1.5 0V5h5V2.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM3.75 6.5A1.25 1.25 0 0 0 2.5 7.75v3.5c0 .138.112.25.25.25H4v-.75C4 9.784 4.784 9 5.75 9h4.5c.966 0 1.75.784 1.75 1.75v.75h1.25a.25.25 0 0 0 .25-.25v-3.5a1.25 1.25 0 0 0-1.25-1.25h-8.5Zm1.75 4.25v2.5c0 .138.112.25.25.25h4.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM12 8a.75.75 0 1 1 1.5 0A.75.75 0 0 1 12 8Z"/></svg>',
@@ -916,6 +919,19 @@
         // _SVG_SPARKLE_RIGHT_2_NOVA_UP_DOWN / _ICON_META["sparkle-right-2-nova-up-down"]
         // (byte-for-byte, same parity convention as celebration/terms/privacy).
         sparkleRight2NovaUpDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>',
+        // "Nova" sparkle cluster — three 4-point stars: one large star on
+        // the left, two smaller matching stars stacked upper-right and
+        // lower-right. Submitted as sparkleRight2Nova; distinct from
+        // sparkleRight2NovaUpDown just above despite the similar name —
+        // filled+stroked paths rather than stroke-only, and themed via
+        // the --bronze-200 custom property instead of currentColor (the
+        // convention every other icon in this registry follows, per the
+        // note above on sparkleLeft2NovaUpDown), so this one won't track
+        // surrounding text color the way its neighbors do. Also carries
+        // its own width/height/xmlns rather than relying on viewBox +
+        // external sizing like the rest of ICONS. Kept as submitted;
+        // not wired to any control yet.
+        sparkleRight2Nova: '<svg width="1.5rem" height="1.5rem" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.11111 6.33334L6.075 10.4083L2 12.4445L6.075 14.4806L8.11111 18.5556L10.1472 14.4806L14.2222 12.4445L10.1472 10.4083L8.11111 6.33334Z" fill="var(--bronze-200)" stroke="var(--bronze-200)" stroke-linecap="round" stroke-linejoin="round"></path><path d="M18.1115 3L16.8143 5.59167L14.2227 6.88889L16.8143 8.18611L18.1115 10.7778L19.4088 8.18611L22.0004 6.88889L19.4088 5.59167L18.1115 3Z" fill="var(--bronze-200)" stroke="var(--bronze-200)" stroke-linecap="round" stroke-linejoin="round"></path><path d="M18.1115 14.1111L16.8143 16.7028L14.2227 18L16.8143 19.2972L18.1115 21.8889L19.4088 19.2972L22.0004 18L19.4088 16.7028L18.1115 14.1111Z" fill="var(--bronze-200)" stroke="var(--bronze-200)" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
     };
 
     // Remembers whether the hosted dancer GIF has ever failed to load, so a
@@ -961,14 +977,12 @@
             return document.createTextNode('🕺');
         }
         const img = document.createElement('img');
-        // const version = window.location.pathname.split("/")[1]; // "dev" or "stable"
-        // const root = window.location.pathname.match(/^\/[^/]+/)[0];
-        // if the script itself is inside _static, even better because
-        // DOCUMENTATION_OPTIONS.URL_ROOT points back to the documentation root.:
-        // img.src = new URL("animated_gif/dancer_anim.gif", import.meta.url).href;
-        // img.src = new URL("_static/animated_gif/dancer_anim.gif", document.baseURI).href;
-        const urlRoot = window.DOCUMENTATION_OPTIONS?.URL_ROOT ?? "/dev/";
-        img.src = `${urlRoot}_static/animated_gif/dancer_anim.gif`;
+        // getStaticAssetUrl() derives _static/ from the loaded <script>/<link>
+        // tag itself (see "Static path detection" below), so this resolves
+        // correctly under /dev/, /stable/, a version tag, or a ReadTheDocs
+        // /en/latest/-style prefix — unlike a URL_ROOT fallback hardcoded to
+        // one deployment.
+        img.src = getStaticAssetUrl('animated_gif/dancer_anim.gif');
         img.className = 'ai-assistant-panel-dancer-gif';
         img.height = 11;
         img.alt = '';
@@ -1891,7 +1905,7 @@
         mainBtn.title = 'Copy this page as Markdown for AI / LLMs';
 
         var mainIcon = document.createElement('img');
-        mainIcon.src = staticPath + '/copy-to-clipboard.svg';
+        mainIcon.src = getStaticAssetUrl('copy-to-clipboard.svg', staticPath);
         mainIcon.className = 'ai-assistant-icon';
         mainIcon.setAttribute('aria-hidden', 'true');
         mainIcon.alt = '';
@@ -1915,7 +1929,7 @@
         dropBtn.setAttribute('aria-haspopup', 'true');
 
         var dropIcon = document.createElement('img');
-        dropIcon.src = staticPath + '/arrow-down.svg';
+        dropIcon.src = getStaticAssetUrl('arrow-down.svg', staticPath);
         dropIcon.className = 'ai-assistant-dropdown-icon';
         dropIcon.setAttribute('aria-hidden', 'true');
         dropIcon.alt = '';
@@ -1943,12 +1957,12 @@
 
         // 1. Markdown export
         if (features.markdown_export) {
-            dropdown.appendChild(createMenuItem('copy-markdown', 'Copy page', 'Copy this page as Markdown for LLMs.', staticPath + '/copy-to-clipboard.svg'));
+            dropdown.appendChild(createMenuItem('copy-markdown', 'Copy page', 'Copy this page as Markdown for LLMs.', getStaticAssetUrl('copy-to-clipboard.svg', staticPath)));
             hasItems = true;
         }
 
         if (features.view_markdown) {
-            dropdown.appendChild(createMenuItem('view-markdown', 'View as Markdown', 'View this page as Markdown.', staticPath + '/markdown.svg'));
+            dropdown.appendChild(createMenuItem('view-markdown', 'View as Markdown', 'View this page as Markdown.', getStaticAssetUrl('markdown.svg', staticPath)));
             hasItems = true;
         }
 
@@ -1961,7 +1975,7 @@
                 enabledProviders.forEach(function (kv) {
                     var key  = kv[0], provider = kv[1];
                     var icon = provider.icon || 'comment-discussion.svg';
-                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
+                    var iconPath = getStaticAssetUrl(icon, staticPath);
                     var item = createMenuItem('ai-chat-' + key, provider.label, provider.description || 'Open AI chat with this page context.', iconPath);
                     item.dataset.provider = key;
                     dropdown.appendChild(item);
@@ -1979,7 +1993,7 @@
                 enabledTools.forEach(function (kv) {
                     var key = kv[0], tool = kv[1];
                     var icon = tool.icon || 'ai-tools.svg';
-                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
+                    var iconPath = getStaticAssetUrl(icon, staticPath);
                     var item = createMenuItem('mcp-' + key, tool.label, tool.description || 'Install MCP server.', iconPath);
                     item.dataset.mcpTool = key;
                     dropdown.appendChild(item);
@@ -1999,7 +2013,7 @@
         if (features.ai_panel) {
             var panelTitle = cfg.panelTitle || 'AI Assistant';
             if (hasItems) dropdown.appendChild(createSeparator());
-            var panelItem = createMenuItem('ai-panel-open', panelTitle, 'Ask ' + panelTitle + ' about this page', staticPath + '/ai-panel.svg');
+            var panelItem = createMenuItem('ai-panel-open', panelTitle, 'Ask ' + panelTitle + ' about this page', getStaticAssetUrl('ai-panel.svg', staticPath));
             dropdown.appendChild(panelItem);
         }
 
@@ -2299,7 +2313,7 @@
 
     function _pdfIconSource(staticPath, mode) {
         var def = _PDF_MODE_DEFS[mode] || _PDF_MODE_DEFS.print;
-        return staticPath.replace(/\/$/, '') + '/' + def.iconFile;
+        return getStaticAssetUrl(def.iconFile, staticPath);
     }
 
     function _pdfSwitchAccessibleLabel(mode, target) {
@@ -2608,6 +2622,44 @@
             if (href.indexOf('_static') !== -1) return href.substring(0, href.indexOf('_static') + 7);
         }
         return '_static';
+    }
+
+    /**
+     * Resolve `asset` to a URL safe to assign to `img.src` regardless of page
+     * depth or deployment prefix (`/dev/`, `/stable/`, a version tag,
+     * ReadTheDocs `/en/latest/`, a custom `html_baseurl`, ...).
+     *
+     * Values already matched by `_ABSOLUTE_ICON_RE` (an `https:`/`data:`/
+     * `blob:` URL, or a root-relative `/path`) are returned unchanged — this
+     * is what lets a Python-supplied `data:image/svg+xml;base64,...` icon
+     * (see `_static/__init__.py`, `_ICON_META` / `_PROVIDER_META`) skip
+     * `_static/` and avoid a network request entirely.
+     *
+     * Otherwise `asset` is treated as a bare filename under the resolved
+     * static directory and joined with `new URL()`, the same normalization
+     * `_getSphinxDocsRootUrl()` already uses — one canonical way to build a
+     * `_static/`-relative URL instead of each call site re-deriving it.
+     *
+     * @param {string} asset - Bare filename ('checked.svg') or an
+     *     already-absolute src.
+     * @param {string} [base] - Static-dir base to resolve against. Defaults
+     *     to `getStaticPath()`; pass an already-computed local `staticPath`
+     *     to skip recomputing it (cheap either way — `getStaticPath()` is
+     *     memoized).
+     * @returns {string} An absolute (or already-absolute) URL, or `''` if
+     *     `asset` is empty.
+     */
+    function getStaticAssetUrl(asset, base) {
+        asset = String(asset || '');
+        if (!asset) { return ''; }
+        if (_ABSOLUTE_ICON_RE.test(asset)) { return asset; }
+
+        var staticBase = String(base || getStaticPath() || '_static').replace(/\/?$/, '/');
+        try {
+            return new URL(asset.replace(/^\/+/, ''), new URL(staticBase, document.baseURI)).href;
+        } catch (_e) {
+            return staticBase + asset.replace(/^\/+/, '');
+        }
     }
 
     // ── Widget placement ──────────────────────────────────────────────────────
@@ -3019,7 +3071,7 @@
         if (!iconEl || !textSpan) return;
         var origSrc  = iconEl.src;
         var origText = textSpan.textContent;
-        iconEl.src           = getStaticPath() + '/checked.svg';
+        iconEl.src           = getStaticAssetUrl('checked.svg');
         textSpan.textContent = 'Copied';
         mainButton.classList.add('ai-assistant-button-success');
         setTimeout(function () {
@@ -22565,12 +22617,13 @@ opts.jsonPayload + '\n' +
         var ns = window.AI_ASSISTANT = window.AI_ASSISTANT || {};
         if (ns._wired) { return; }              // idempotent across re-injection
         ns._wired          = true;
-        ns.config          = function () { return _cfg(); };
-        ns.getStaticPath   = getStaticPath;     // asset base URL resolver
-        ns.icons           = ICONS;             // inline SVG map
-        ns.fetch           = _fetch;            // AI_COMPAT-aware fetch
-        ns.hapticFeedback  = _hapticFeedback;   // no-op where unsupported
-        ns.attachLongPress = _attachLongPress;  // pointer long-press helper
+        ns.config             = function () { return _cfg(); };
+        ns.getStaticPath      = getStaticPath;      // _static/ base path (no trailing slash)
+        ns.getStaticAssetUrl  = getStaticAssetUrl;  // filename or absolute src -> resolved URL
+        ns.icons              = ICONS;              // inline SVG map
+        ns.fetch              = _fetch;             // AI_COMPAT-aware fetch
+        ns.hapticFeedback     = _hapticFeedback;     // no-op where unsupported
+        ns.attachLongPress    = _attachLongPress;    // pointer long-press helper
     }());
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────

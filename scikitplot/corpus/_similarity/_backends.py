@@ -9,13 +9,13 @@ r"""
 Pluggable approximate-nearest-neighbour (ANN) backends for dense semantic search.
 
 This module centralises every vector-index implementation behind a single,
-uniform contract so that :class:`~scikitplot.corpus._similarity.SimilarityIndex`
+uniform contract so that :class:`~scikitplot.corpus._similarity.RetrievalIndex`
 (and any consumer such as :mod:`scikitplot.mcp`) never has to branch on the
 concrete backend, and so that *scores mean the same thing regardless of backend*.
 
 Unified score contract
 -----------------------
-Every backend's :meth:`ANNBackend.query` returns ``(row_index, score)`` pairs
+Every backend's :meth:`VectorIndexBackend.query` returns ``(row_index, score)`` pairs
 where ``score`` is **cosine similarity in the closed interval ``[-1.0, 1.0]``**
 (higher is better), sorted in descending score order with deterministic,
 index-ascending tie breaking. This makes ``semantic_threshold`` comparisons and
@@ -35,21 +35,29 @@ Notes
 **Developer note:** All semantic backends require ``numpy``. Native ANN
 libraries (Annoy, FAISS, Voyager) are optional; their absence never removes
 semantic capability because ``bruteforce`` is the guaranteed floor.
+
+So for this patch:
+
+BruteForce → generic dependency probe
+FAISS      → generic dependency probe
+Voyager    → generic dependency probe
+Annoy      → special capability probe for now
 """
 
 from __future__ import annotations
 
+import importlib.util
 import logging
-from typing import Any, Sequence
+from typing import Any, ClassVar, Mapping, Sequence
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "DEFAULT_BACKEND_ORDER",
-    "ANNBackend",
     "AnnoyBackend",
     "BruteForceBackend",
     "FaissBackend",
+    "VectorIndexBackend",
     "VoyagerBackend",
     "list_available_backends",
     "select_backend",
@@ -170,7 +178,7 @@ def _resolve_annoy_index_cls(impl: str) -> tuple[Any, str]:
 # =====================================================================
 
 
-class ANNBackend:
+class VectorIndexBackend:
     """Uniform contract for a dense vector index.
 
     Subclasses build an index from a 2-D embedding matrix and answer
@@ -183,12 +191,94 @@ class ANNBackend:
         Stable backend identifier (e.g. ``"annoy"``).
     """
 
-    name: str = "base"
+    name: ClassVar[str] = "base"
+    dependency_modules: ClassVar[str | tuple[str, ...] | None] = None
 
+    # @classmethod
+    # def is_available(cls) -> bool:
+    #     """Whether this backend's runtime dependencies are importable."""
+    #     raise NotImplementedError
     @classmethod
     def is_available(cls) -> bool:
-        """Whether this backend's runtime dependencies are importable."""
-        raise NotImplementedError
+        """Return whether this backend's optional dependencies are discoverable."""
+        dependency = cls.dependency_modules
+        if dependency is None:
+            return True
+        modules = (dependency,) if isinstance(dependency, str) else dependency
+        if not modules:
+            return False
+        try:
+            return all(
+                importlib.util.find_spec(module) is not None for module in modules
+            )
+        except (ImportError, ValueError):
+            return False
+
+    # -- declarative capability members (P-I1-15 / finding F-R06-01) ---------
+    #
+    # The contract previously exposed three of the eleven properties §18
+    # requires: availability, build and query.  The other eight existed only as
+    # private attributes, implicit conventions, or not at all -- which is why a
+    # caller could not ask what score scale a backend returns, whether it can
+    # persist, or what it costs.  Each has a base default describing today's
+    # behaviour, so every existing subclass keeps working unchanged.
+
+    metric: str = "cosine"
+    """Distance/similarity metric this backend computes."""
+
+    score_semantics: str = "cosine_similarity"
+    """Meaning of the ``score`` in :meth:`query` results.
+
+    ``"cosine_similarity"`` -- range ``[-1, 1]``, higher is better.
+    ``"bounded_inverse_distance"`` -- range ``(0, 1]``, higher is better, but
+    **not** a similarity: it is ``1 / (1 + d)`` and is not comparable with a
+    cosine score.  Declaring this is what lets a threshold be validated against
+    the scale it will actually be applied to (finding F-R06-02).
+    """
+
+    dtype: str = "float32"
+    """Element type of the indexed vectors."""
+
+    supports_persistence: bool = True
+    """Whether this backend's index can be persisted and reloaded.
+
+    ``True`` since :class:`~scikitplot.corpus.ANNIndexArtifact` landed: an
+    artifact writes the native payload alongside a versioned ordinal->doc_id
+    sidecar and the embedding manifest, so a reloaded index can prove its rows
+    still name the documents they named at write time.  Before that, R06 found
+    zero persistence surface in this module and the declaration was ``False``
+    -- accurately.
+    """
+
+    thread_safety: str = "concurrent_read"
+    """``"single_thread"``, ``"concurrent_read"`` or ``"full"``."""
+
+    memory_profile: str = "in_memory"
+    """``"in_memory"``, ``"mmap"`` or ``"hybrid"``."""
+
+    @property
+    def dimension(self) -> int | None:
+        """Vector length this index was built with, ``None`` before build."""
+        return getattr(self, "_dim", None)
+
+    def capabilities(self) -> dict[str, Any]:
+        """Return every declared capability as a mapping.
+
+        Returns
+        -------
+        dict
+            Suitable for a capability report or a build manifest.
+        """
+        return {
+            "name": self.name,
+            "metric": self.metric,
+            "score_semantics": self.score_semantics,
+            "dimension": self.dimension,
+            "dtype": self.dtype,
+            "supports_persistence": self.supports_persistence,
+            "thread_safety": self.thread_safety,
+            "memory_profile": self.memory_profile,
+        }
 
     def build(self, embeddings: Any) -> None:
         """Build the index from an ``(n_docs, dim)`` embedding matrix.
@@ -220,7 +310,7 @@ class ANNBackend:
 # =====================================================================
 
 
-class BruteForceBackend(ANNBackend):
+class BruteForceBackend(VectorIndexBackend):
     """Exact cosine similarity via a normalised dot product.
 
     Deterministic and dependency-free beyond ``numpy``. Suited to small and
@@ -228,19 +318,11 @@ class BruteForceBackend(ANNBackend):
     """
 
     name = "bruteforce"
+    dependency_modules = "numpy"
 
     def __init__(self) -> None:
         self._normed: Any = None
         self._dim: int = 0
-
-    @classmethod
-    def is_available(cls) -> bool:
-        try:
-            import numpy  # noqa: F401, PLC0415  # ruff: ignore[unconventional-import-alias]
-
-            return True
-        except ImportError:  # pragma: no cover - environment dependent
-            return False
 
     def build(self, embeddings: Any) -> None:
         np = _require_numpy()
@@ -272,7 +354,7 @@ class BruteForceBackend(ANNBackend):
 # =====================================================================
 
 
-class AnnoyBackend(ANNBackend):
+class AnnoyBackend(VectorIndexBackend):
     """ANN backend over a scikit-plots Annoy ``Index`` (default backend).
 
     Works with **both** shipped Annoy index classes, which expose the same
@@ -313,6 +395,10 @@ class AnnoyBackend(ANNBackend):
     """
 
     name = "annoy"
+    dependency_modules = (
+        "scikitplot.annoy",
+        "scikitplot.annoy._annoy",
+    )
 
     def __init__(
         self,
@@ -327,6 +413,16 @@ class AnnoyBackend(ANNBackend):
         if n_trees < 1:
             raise ValueError(f"n_trees must be >= 1, got {n_trees}")
         self._metric = metric
+        # The instance declares what it ACTUALLY computes, which may differ from
+        # the class default.  Annoy's non-cosine metrics return a bounded
+        # inverse distance, not a similarity -- and a threshold tuned on one
+        # scale silently mis-filters on the other (finding F-R06-02).
+        self.metric = metric
+        self.score_semantics = (
+            "cosine_similarity"
+            if metric in ("angular", "cosine")
+            else "bounded_inverse_distance"
+        )
         self._n_trees = int(n_trees)
         self._search_k = int(search_k)
         self._impl = impl
@@ -413,7 +509,7 @@ class AnnoyBackend(ANNBackend):
 # =====================================================================
 
 
-class FaissBackend(ANNBackend):
+class FaissBackend(VectorIndexBackend):
     """ANN backend over a FAISS ``IndexFlatIP`` on normalised vectors.
 
     Inner product on unit-normalised vectors equals cosine similarity, so the
@@ -421,21 +517,15 @@ class FaissBackend(ANNBackend):
     """
 
     name = "faiss"
+    dependency_modules = "faiss"
 
     def __init__(self) -> None:
         self._index: Any = None
         self._dim: int = 0
 
-    @classmethod
-    def is_available(cls) -> bool:
-        try:
-            import faiss  # type: ignore[import]  # noqa: F401, PLC0415
-
-            return True
-        except ImportError:
-            return False
-
     def build(self, embeddings: Any) -> None:
+        import faiss  # type: ignore[import]  # noqa: F401, PLC0415
+
         np = _require_numpy()
         import faiss  # type: ignore[import]  # noqa: PLC0415
 
@@ -470,7 +560,7 @@ class FaissBackend(ANNBackend):
 # =====================================================================
 
 
-class VoyagerBackend(ANNBackend):
+class VoyagerBackend(VectorIndexBackend):
     """ANN backend over a Voyager cosine-space index.
 
     Voyager's cosine *distance* is ``1 - cosine``; cosine similarity is
@@ -478,19 +568,11 @@ class VoyagerBackend(ANNBackend):
     """
 
     name = "voyager"
+    dependency_modules = "voyager"
 
     def __init__(self) -> None:
         self._index: Any = None
         self._dim: int = 0
-
-    @classmethod
-    def is_available(cls) -> bool:
-        try:
-            import voyager  # type: ignore[import]  # noqa: F401, PLC0415
-
-            return True
-        except ImportError:
-            return False
 
     def build(self, embeddings: Any) -> None:
         np = _require_numpy()
@@ -519,54 +601,102 @@ class VoyagerBackend(ANNBackend):
 # Selection
 # =====================================================================
 
-_BACKENDS: dict[str, type[ANNBackend]] = {
+#: Canonical backend identities.  Exactly one entry per implementation, so
+#: anything that iterates this mapping counts each backend once.
+#:
+#: Finding F-R02-06 / F-R06-05: ``"brute"`` used to live here as a second entry
+#: for :class:`BruteForceBackend`, which made ``capability_snapshot()`` report
+#: five backends for four classes -- with contradictory versions, because the
+#: distribution map had no entry for the alias.  Aliases now resolve through
+#: :data:`_BACKEND_ALIASES` instead.
+_BACKENDS: dict[str, type[VectorIndexBackend]] = {
     "annoy": AnnoyBackend,
-    "brute": BruteForceBackend,  # convenience alias
     "bruteforce": BruteForceBackend,
     "faiss": FaissBackend,
     "voyager": VoyagerBackend,
 }
+
+#: Accepted alternative spellings, mapped to canonical identities.  Callers may
+#: pass either; anything that *enumerates* backends sees only the canonical set.
+_BACKEND_ALIASES: dict[str, str] = {
+    "brute": "bruteforce",
+}
+
+
+def canonical_backend_name(name: str) -> str:
+    """Resolve ``name`` to its canonical backend identity.
+
+    Parameters
+    ----------
+    name : str
+        A canonical name or a known alias.
+
+    Returns
+    -------
+    str
+        The canonical identity.  Unknown names are returned unchanged so the
+        caller's own error handling reports them.
+
+    Examples
+    --------
+    >>> canonical_backend_name("brute")
+    'bruteforce'
+    >>> canonical_backend_name("annoy")
+    'annoy'
+    """
+    return _BACKEND_ALIASES.get(name, name)
+
+
+def backend_aliases(name: str) -> list[str]:
+    """Return the aliases pointing at canonical backend ``name``."""
+    return sorted(a for a, c in _BACKEND_ALIASES.items() if c == name)
 
 
 def list_available_backends() -> list[str]:
     """Return the canonical names of currently importable backends."""
     seen: dict[str, None] = {}
     for name in DEFAULT_BACKEND_ORDER:
-        if _BACKENDS[name].is_available():
+        if _BACKENDS[canonical_backend_name(name)].is_available():
             seen[name] = None
     return list(seen)
 
 
 def select_backend(
-    name: str = "auto",
+    name: Any = "auto",
     *,
+    index_kwargs: Mapping[str, Any] | None = None,
     annoy_metric: str = "angular",
     annoy_n_trees: int = 10,
     annoy_search_k: int = -1,
     annoy_impl: str = "auto",
     annoy_dtype: str | None = None,
     annoy_index_dtype: str | None = None,
-    **kwargs: any,
-) -> ANNBackend:
+    **kwargs: Any,
+) -> VectorIndexBackend:
     """Construct an ANN backend by name.
 
     Parameters
     ----------
-    name : str, optional
+    name : str or VectorIndexBackend subclass, optional
         ``"auto"`` (default) resolves the first available backend in
-        :data:`DEFAULT_BACKEND_ORDER`. An explicit name
-        (``"annoy"``, ``"faiss"``, ``"voyager"``, ``"brute"``/``"bruteforce"``)
-        is honoured or raises if that backend is unavailable.
+        :data:`DEFAULT_BACKEND_ORDER`. An explicit built-in name is honoured
+        or raises if unavailable. A custom :class:`VectorIndexBackend` subclass
+        may be supplied directly.
+    index_kwargs : mapping, optional
+        Generic constructor keyword arguments for the selected backend. New
+        code should prefer this mapping instead of adding backend-specific
+        parameters to :class:`RetrievalConfig`.
     annoy_metric, annoy_n_trees, annoy_search_k, annoy_impl, annoy_dtype, annoy_index_dtype
-        Forwarded to :class:`AnnoyBackend` (ignored by other backends).
-        ``annoy_impl`` selects the high-level or Cython index class; the
-        ``dtype`` options apply only to the Cython class.
-    **kwargs : any
-        Backend keyword arguments forwarded to backend constructor.
+        Backward-compatible Annoy constructor settings. They are merged only
+        when the resolved backend is :class:`AnnoyBackend`; generic
+        ``index_kwargs`` win over default legacy values.
+    **kwargs : Any
+        Compatibility form for generic backend constructor keyword arguments.
+        Conflicting keys between ``index_kwargs`` and ``kwargs`` raise.
 
     Returns
     -------
-    ANNBackend
+    VectorIndexBackend
         An unbuilt backend instance.
 
     Raises
@@ -577,34 +707,81 @@ def select_backend(
         If an explicitly named backend is unavailable, or if ``"auto"`` finds
         no available backend (numpy missing).
     """
-    key = (name or "auto").strip().lower()
-
-    def _make(cls: type[ANNBackend]) -> ANNBackend:
-        if cls is AnnoyBackend:
-            return AnnoyBackend(
-                metric=annoy_metric,
-                n_trees=annoy_n_trees,
-                search_k=annoy_search_k,
-                impl=annoy_impl,
-                dtype=annoy_dtype,
-                index_dtype=annoy_index_dtype,
-                **kwargs,
+    constructor_kwargs = dict(index_kwargs or {})
+    if any(not isinstance(key, str) for key in constructor_kwargs):
+        raise TypeError(
+            "index_kwargs keys must be strings because they are constructor kwargs"
+        )
+    for key_name, value in kwargs.items():
+        if key_name in constructor_kwargs and constructor_kwargs[key_name] != value:
+            raise ValueError(
+                f"conflicting backend constructor option {key_name!r}: "
+                f"index_kwargs has {constructor_kwargs[key_name]!r}, "
+                f"keyword argument has {value!r}"
             )
-        return cls(**kwargs)
+        constructor_kwargs[key_name] = value
+
+    def _make(cls: type[VectorIndexBackend], resolved_name: str) -> VectorIndexBackend:
+        options = dict(constructor_kwargs)
+        if cls is AnnoyBackend:
+            legacy = {
+                "metric": (annoy_metric, "angular", "annoy_metric"),
+                "n_trees": (annoy_n_trees, 10, "annoy_n_trees"),
+                "search_k": (annoy_search_k, -1, "annoy_search_k"),
+                "impl": (annoy_impl, "auto", "annoy_impl"),
+                "dtype": (annoy_dtype, None, "annoy_dtype"),
+                "index_dtype": (annoy_index_dtype, None, "annoy_index_dtype"),
+            }
+            for option, (legacy_value, legacy_default, legacy_name) in legacy.items():
+                if option in options:
+                    if (
+                        legacy_value != legacy_default
+                        and options[option] != legacy_value
+                    ):
+                        raise ValueError(
+                            f"conflicting Annoy configuration: {legacy_name}="
+                            f"{legacy_value!r} but index_kwargs[{option!r}]="
+                            f"{options[option]!r}"
+                        )
+                else:
+                    options[option] = legacy_value
+        try:
+            return cls(**options)
+        except TypeError as exc:
+            raise TypeError(
+                f"invalid index_kwargs for backend {resolved_name!r}: {exc}"
+            ) from exc
+
+    if isinstance(name, type):
+        if not issubclass(name, VectorIndexBackend):
+            raise TypeError(
+                f"backend classes must subclass VectorIndexBackend; got {name!r}"
+            )
+        if not name.is_available():
+            raise RuntimeError(
+                f"backend class {name.__module__}.{name.__qualname__} is not "
+                "available in this environment."
+            )
+        return _make(name, getattr(name, "name", name.__name__))
+
+    if not isinstance(name, str):
+        raise TypeError("backend must be a backend name or VectorIndexBackend subclass")
+    key = (name or "auto").strip().lower()
 
     if key == "auto":
         for candidate in DEFAULT_BACKEND_ORDER:
             cls = _BACKENDS[candidate]
             if cls.is_available():
                 logger.debug("select_backend: auto-selected %r", candidate)
-                return _make(cls)
+                return _make(cls, candidate)
         raise RuntimeError(
             "No vector backend is available. Semantic search requires numpy; "
             "install it with `pip install scikit-plots[corpus]`."
         )
 
+    key = canonical_backend_name(key)
     if key not in _BACKENDS:
-        valid = sorted(set(_BACKENDS) | {"auto"})
+        valid = sorted(set(_BACKENDS) | set(_BACKEND_ALIASES) | {"auto"})
         raise ValueError(f"unknown backend {name!r}; choose from {valid}")
 
     cls = _BACKENDS[key]
@@ -613,4 +790,4 @@ def select_backend(
             f"backend {key!r} is not available in this environment. "
             f"Install the corresponding package or use backend='auto'."
         )
-    return _make(cls)
+    return _make(cls, key)

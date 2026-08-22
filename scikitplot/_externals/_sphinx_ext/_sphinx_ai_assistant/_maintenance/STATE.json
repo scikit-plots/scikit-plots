@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+  "generated_date": "2026-08-20",
+  "source_anchor": {
+    "archive": "scikit-plots(20260820-114035).zip",
+    "sha256": "15d914046eaa3059c16bde66eadcc41ebb3a6d824de36acb876e170925aa74cc"
+  },
+  "governing_rule": "The browser is presentation, documentation is untrusted evidence, and the server owns authority; canonical representation is consumed from _sphinx_llm.",
+  "phase": "MAINTENANCE_NORMALIZATION",
+  "active_checkpoint": "B00",
+  "production_code_modified": false,
+  "checkpoints": {
+    "B00": {
+      "title": "MAINTENANCE_BOOTSTRAP",
+      "status": "IN_PROGRESS",
+      "production_code_modified": false
+    },
+    "B01": {
+      "title": "SPHINX_LLM_DEPENDENCY_BOUNDARY",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B02": {
+      "title": "SECURITY_P0_REVALIDATION",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B03": {
+      "title": "CLIENT_SERVER_CONFIG_AUTHORITY",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B04": {
+      "title": "PROMPT_AUTHORITY",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B05": {
+      "title": "PROXY_ROUTING_CORS",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B06": {
+      "title": "AUTH_IDENTITY_LIMITS",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B07": {
+      "title": "FEEDBACK_PROVENANCE",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B08": {
+      "title": "STATIC_REPRESENTATION_CONSUMER",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B09": {
+      "title": "RUNTIME_HTML_FALLBACK_DEMOTION",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B10": {
+      "title": "SETTINGS_SCHEMA_CONSOLIDATION",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B11": {
+      "title": "STRUCTURAL_DECOMPOSITION",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B12": {
+      "title": "CORPUS_MCP_INTEGRATION",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    },
+    "B13": {
+      "title": "CLOSURE",
+      "status": "NOT_STARTED",
+      "production_code_modified": false
+    }
+  },
+  "verification_snapshot": {
+    "node_ai_assistant_js": "GREEN",
+    "node_cf_worker_js": "GREEN",
+    "node_ext_settings_js": "GREEN",
+    "ext_settings_node_suite": "GREEN_79_PASSED_0_FAILED",
+    "python_compileall": "GREEN",
+    "discovery_contract_pytest": "GREEN_4_PASSED",
+    "full_pytest": "ENVIRONMENT_BLOCKED_PARTIAL_453_PASSED_5_FAILED_59_ERRORS_SPHINX_MISSING"
+  },
+  "blockers": [
+    "Canonical `_sphinx_llm` producer is not yet implemented; B08 remains blocked until producer facade is ready."
+  ],
+  "next_actions": [
+    "Overlay/reconcile maintenance docs",
+    "Run checker in real checkout",
+    "Revalidate current security findings in B02 before claiming desired invariants hold"
+  ],
+  "reconciliation_ref": "../../_sphinx_llm/_maintenance/RECONCILIATION.md",
+  "proposed_checkpoints": {
+    "B14_BACKEND_EXPORT": {
+      "status": "PROPOSED",
+      "blocks": "nothing",
+      "why": "9 896 LOC of internet-facing service code with ZERO tests, invisible inside an extension whose suite covers the extension",
+      "how": "a MOVE not a rewrite: one commit with no content change, then a second adding tests"
+    }
+  },
+  "unverified_claims": [
+    "the assistant reaches MCP for VERIFIED sources",
+    "returned sources are verified rather than merely displayed",
+    "the MCP path honours RetrievalResponse.DEGRADED (also MCP run M04)",
+    "docs build without a live backend",
+    "no secrets are committed in service source"
+  ]
+}

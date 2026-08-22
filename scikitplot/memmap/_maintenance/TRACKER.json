@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.memmap",
+  "role": "memory-mapping over the shared `mman.h` shim",
+  "family": "annoy (cexternals/_annoy + annoy + memmap + random)",
+  "shared_source": "scikitplot/cexternals/_annoy/src/",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 4,
+      "source_loc": 2140,
+      "test_files": 2,
+      "test_loc": 710,
+      "markdown_files": 2
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 1,
+        "src_loc": 40,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_memmap": {
+        "src": 3,
+        "src_loc": 2100,
+        "test": 2,
+        "test_loc": 710
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 1622,
+        "path": "_memmap/mem_map.pyx"
+      },
+      {
+        "loc": 258,
+        "path": "_memmap/mem_map.pxd"
+      },
+      {
+        "loc": 220,
+        "path": "_memmap/__init__.py"
+      },
+      {
+        "loc": 40,
+        "path": "__init__.py"
+      }
+    ]
+  },
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+  }
+}

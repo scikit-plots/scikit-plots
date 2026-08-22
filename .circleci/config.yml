@@ -785,6 +785,8 @@ commands:
             set -Eeuo pipefail
             export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
+            export SCIKITPLOT_GALLERY_RUN_ASR=1
+            export SCIKITPLOT_GALLERY_RUN_NETWORK=1
             # python -m nltk.downloader stopwords
             # python -m nltk.downloader punkt_tab
             cd docs

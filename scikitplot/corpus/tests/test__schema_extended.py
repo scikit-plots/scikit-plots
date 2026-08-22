@@ -637,15 +637,25 @@ class TestFromDictExtended:
 
     def test_missing_doc_id_raises(self) -> None:
         with pytest.raises(ValueError, match="doc_id"):
-            CorpusDocument.from_dict({"input_path": "f.txt", "chunk_index": 0})
+            CorpusDocument.from_dict(
+                {"schema_version": "2.0", "input_path": "f.txt", "chunk_index": 0}
+            )
 
     def test_missing_input_path_raises(self) -> None:
         with pytest.raises(ValueError, match="input_path"):
-            CorpusDocument.from_dict({"doc_id": "abc1234567890abc", "chunk_index": 0})
+            CorpusDocument.from_dict(
+                {"schema_version": "2.0", "doc_id": "abc1234567890abc", "chunk_index": 0}
+            )
 
     def test_missing_chunk_index_raises(self) -> None:
         with pytest.raises(ValueError, match="chunk_index"):
-            CorpusDocument.from_dict({"doc_id": "abc1234567890abc", "input_path": "f.txt"})
+            CorpusDocument.from_dict(
+                {
+                    "schema_version": "2.0",
+                    "doc_id": "abc1234567890abc",
+                    "input_path": "f.txt",
+                }
+            )
 
     def test_bbox_list_restored_to_tuple(self) -> None:
         doc = CorpusDocument.create("f.txt", 0, "Hi.", bbox=(0.0, 0.0, 1.0, 1.0))

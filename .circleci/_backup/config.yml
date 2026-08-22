@@ -1,0 +1,1389 @@
+# .circleci/config.yml or project settings
+# Python CircleCI 2.1 configuration file
+#
+# https://circleci.com/docs/
+# Check https://circleci.com/docs/2.1/language-python/ for more details
+#
+# https://github.com/Cadair/giles
+# giles only need "Job Completed" events.
+# https://giles.cadair.dev/circleci/v2
+#
+# “run-ci” label added to PR
+#
+# 🔍 You can test this by visiting a raw artifact link directly in your browser:
+# https://app.circleci.com/pipelines/github/<org>/<repo>
+# <org>  = the provider ("github", "gh", "bitbucket", "bb", "circleci", etc.)
+# <repo> = unique ID (org/repo hash, base64-like unique ID)
+# https://app.circleci.com/pipelines/<org>/<repo>/<pipeline_number>/workflows/<workflow_id>/jobs/<job_id>/artifacts
+# https://app.circleci.com/pipelines/github/scikit-plots/scikit-plots
+# https://app.circleci.com/organization/github/scikit-plots
+# → click on a pipeline → job → Artifacts tab
+# If you're not logged in and still can view the artifact, it's public ✅
+#
+# Redirected Artifact URL
+# Internal: "https://*-*********-gh.circle-artifacts.com/0/docs/build/html/stable/index.html"
+# Redirected: "https://output.circle-artifacts.com/output/job/[JOB-ID]/artifacts/0/docs/build/html/stable/index.html"
+# Redirected: "https://output.circle-artifacts.com/output/job/********-****-****-****-************/artifacts/0/docs/build/html/stable/index.html"
+#   curl -H "Circle-Token: $CIRCLE_TOKEN" \
+#   https://circleci.com/api/v2/project/gh/scikit-plots/scikit-plots/job/<job_number>/artifacts
+#   https://circleci.com/api/v2/me
+#   {
+#   "items": [
+#     {
+#       "path": "docs/build/html/stable/index.html",
+#       "url": "https://circle-production.s3.amazonaws.com/...."
+#     }
+#   ]
+# }
+#
+# https://circleci.com/docs/set-environment-variable/#set-an-environment-variable-in-a-project
+# https://app.codecov.io/gh/scikit-plots/scikit-plots/new/circle-ci
+---
+version: 2.1
+
+##########################################
+# Here is where the real jobs are defined.
+##########################################
+
+# https://support.circleci.com/hc/en-us/articles/360043638052-Conditional-steps-in-jobs-and-conditional-workflows
+# Add a Pipeline Parameter and Trigger
+# Project Settings → Triggers → Add Trigger
+# Fill out:
+# Trigger Source: GitHub App
+# Event: "Label added to PR"
+# Label: run-ci (your label name)
+# Parameters:
+# {
+#   "run_docs_build": true
+# }
+# This tells CircleCI:
+# When a PR gets the label run-ci, start a pipeline with run_docs_build: true.
+parameters:
+  run_docs_build:
+    type: boolean
+    default: false
+  run_latex_pdf:
+    type: boolean
+    default: false
+  # One-shot maintenance gate for the _sphinx_llm A02 compatibility matrix.
+  # Keep separate from run_docs_build so normal documentation builds do not
+  # spend eleven extra CircleCI jobs after A02 is closed.
+  run_sphinx_llm_a02:
+    type: boolean
+    default: false
+
+# YAML anchor & alias, Aliases to reuse `<<: *alias`
+_defaults: &defaults
+  ## https://circleci.com/docs/install-machine-runner-3-on-linux/
+  # machine: true
+  ## https://circleci.com/docs/container-runner-installation/
+  ## https://circleci.com/docs/guides/execution-managed/using-docker
+  docker:
+    # CircleCI maintains a library of pre-built images
+    # - image: cimg/base:current-22.04
+    # documented at https://circleci.com/developer/images/image/cimg/python
+    ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
+    - image: cimg/python:3.12  # cimg/python:3.11 cimg/base:2026.06
+  environment:
+    # NPX_INSTALL_DIR: /home/circleci/.local/npx     # "~/.local/npx"
+    # NPM_INSTALL_DIR: /home/circleci/.local/npm     # "~/.local/npm"
+    NODE_INSTALL_DIR: /home/circleci/.local/node   # "~/.local/node"
+    MICROMAMBA_BIN_DIR: /home/circleci/.local/bin  # "~/.local/bin"
+    MAMBA_ROOT_PREFIX: /home/circleci/micromamba   # "~/micromamba"
+    # ENV_NAME: myenv
+  # environment:
+  #   - MKL_NUM_THREADS: 2
+  #   - OPENBLAS_NUM_THREADS: 2
+  #   - CONDA_ENV_NAME: testenv
+  #   - LOCK_FILE: build_tools/circle/doc_linux-64_conda.lock
+  #   # Make sure that we fail if the documentation build generates warnings with
+  #   # recent versions of the dependencies.
+  #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
+  working_directory: ~/repo  # "/home/circleci/repo"
+  ## https://circleci.com/docs/configuration-reference/#resourceclass
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#arm
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#x86
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#gen1
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#gen2  # paid plans only
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#using-docker-gen2
+  ## small, medium, medium+, large, xlarge, 2xlarge, and 2xlarge+
+  # resource_class: large  # gives the Docker executor 4 vCPUs / 8 GB RAM.
+  ## https://circleci.com/docs/guides/optimize/parallelism-faster-jobs/
+  ## https://circleci.com/docs/reference/configuration-reference/#parallelism
+  ## https://support.circleci.com/en/articles/15090429-troubleshooting-job-failed-due-to-excessive-parallelism
+  ## For container runner, the default max is 20 concurrent tasks, configurable via agent.maxConcurrentTasks.
+  # parallelism: 4
+
+# https://github.com/codecov/example-javascript/blob/main/.circleci/config.yml
+# orbs:
+#   codecov: codecov/codecov-action@v5
+
+commands:
+  # check-label-run-ci:
+  #   description: Check if labels contain "run-ci" keyword; skip if not present or on error
+  #   steps:
+  #     - run:
+  #         name: Check for 'run-ci' label
+  #         command: |
+  #           set -euo pipefail  # safer bash: fail on error, undefined var, and fail pipe if any step fails
+  #           # Extract PR number from CIRCLE_PULL_REQUEST URL, if empty skip gracefully
+  #           if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
+  #             echo "No pull request context detected; skipping label check."
+  #             exit 0
+  #           fi
+  #           PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F/ '{print $NF}')
+  #           # Use GitHub API to fetch labels; handle errors gracefully without failing job
+  #           LABELS=$(curl -sSf -H "Authorization: token $GITHUB_TOKEN" \
+  #             "https://api.github.com/repos/your-org/your-repo/issues/$PR_NUMBER/labels" || echo "")
+  #           if [ -z "$LABELS" ]; then
+  #             echo "Warning: Unable to fetch labels or no labels found; proceeding with job."
+  #             exit 0
+  #           fi
+  #           # Parse labels safely with jq; handle jq errors without failing
+  #           RUN_CI=$(echo "$LABELS" | jq -r '.[].name' 2>/dev/null || echo "" | grep -q "run-ci" && echo "true" || echo "false")
+  #           if [ "$RUN_CI" != "true" ]; then
+  #             echo "Label 'run-ci' not found. Skipping job."
+  #             circleci-agent step halt
+  #           fi
+  check-skip:
+    description: Check if commit message contains skip keyword
+    steps:
+      - run:
+          name: "🔍 Check skip"
+          command: |
+            set -Eeuo pipefail
+            if [ ! -d "scikitplot" ]; then
+              echo "Build was not run due to skip, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+              # Exit early without error — skip the rest of the job if condition is met.
+              circleci-agent step halt;
+              # exit 1
+            fi
+            export GIT_LOG=$(git log --max-count=1 --pretty=format:"%B" | tr "\n" " ")
+            echo "Got commit message:"
+            echo "${GIT_LOG}"
+            if [[ -v CIRCLE_PULL_REQUEST ]] && \
+               ([[ "$GIT_LOG" == *"[skip circle]"* ]] || \
+                [[ "$GIT_LOG" == *"[circle skip]"* ]] || \
+                [[ "$GIT_LOG" == *"[lint only]"* ]] \
+               ); then
+              echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+              # Exit early without error — skip the rest of the job if condition is met.
+              circleci-agent step halt;
+            fi
+  merge:
+    description: Merge with upstream
+    steps:
+      - run:
+          name: "🔎 Merge with upstream"
+          command: |
+            echo $(git log -1 --pretty=%B)    | tee gitlog.txt
+
+            echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+            if [[ $(cat merge.txt) != "" ]]; then
+              echo "Merging $(cat merge.txt)";
+              if ! git remote -v | grep upstream; then
+                git remote add upstream https://github.com/scikit-plots/scikit-plots.git;
+              fi
+              git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+              git fetch upstream main;
+            fi
+  submodules:
+    description: update submodules
+    steps:
+      - run:
+          name: update submodules
+          command: |
+            ## download submodules
+            # git submodule init
+            # git submodule update
+            git submodule update --init --recursive || true
+            # if ! git submodule update --init --recursive; then
+            #   echo "WARNING: submodule update failed — build may be missing vendored content" >&2
+            # fi
+  apt-install:
+    description: Install system dependencies
+    steps:
+      - run:
+          name: "🛠️ Ensure CA certificates are installed and update apt sources to HTTP"
+          command: |
+            set -Eeuo pipefail
+            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
+            # default: uid=1001(circleci) gid=1002(circleci) groups=1002(circleci)
+            id; ls -ld /usr/local/bin; df -h /usr/local/bin
+            # Install CA certs to avoid SSL errors
+            sudo apt-get update || true
+            sudo apt-get install -y --fix-missing ca-certificates
+            sudo update-ca-certificates
+            # Replace HTTPS mirrors with HTTP to avoid cert errors in CI
+            sudo sed -i 's|https://ftp.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            # Clean apt cache and update package lists
+            sudo apt-get clean
+            sudo apt-get update --fix-missing -y
+      - run:
+          name: "📦 Install system dependencies"
+          command: |
+            set -Eeuo pipefail
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              build-essential \
+              pkg-config \
+              ninja-build \
+              ccache \
+              cm-super \
+              graphviz \
+              ffmpeg \
+              inkscape \
+              cmake \
+              make \
+              gfortran \
+              libopenblas-dev \
+              liblapack-dev \
+              libgmp-dev \
+              libmpfr-dev \
+              tesseract-ocr
+            # List installed packs:
+            tesseract --list-langs  || true
+            # Expected output should include:
+            #   ara   (Arabic + Ottoman)
+            #   deu   (German)
+            #   ell   (Greek)
+            #   eng   (English)
+            #   heb   (Hebrew)
+            #   tur   (Turkish)
+            # Install missing packs (Debian/Ubuntu):
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              tesseract-ocr-deu \
+              tesseract-ocr-ara \
+              tesseract-ocr-heb \
+              tesseract-ocr-tur \
+              tesseract-ocr-ell
+            # Alternatively use EasyOCR which handles multilingual without pack installs:
+            # pip install easyocr
+            # Then in reader_kwargs:
+            #   "backend": "easyocr",
+            #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
+
+            # Install PDF documentation dependencies
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              cm-super \
+              graphviz \
+              imagemagick \
+              tex-gyre \
+              latexmk \
+              texlive-luatex \
+              texlive-xetex \
+              texlive-latex-base \
+              texlive-latex-extra \
+              texlive-latex-recommended \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              fonts-freefont-otf \
+              fonts-dejavu-core \
+              fonts-noto-core \
+              fonts-noto-color-emoji \
+              fonts-noto-cjk \
+              fonts-noto-extra
+
+            echo "=== LaTeX tools ==="
+            latexmk -v | head -1
+            echo "=== PDF toolchain ==="
+            # 'pdflatex' | 'xelatex' | 'lualatex' | 'platex' | 'uplatex'
+            pdflatex --version | head -1
+            xelatex --version | head -1
+            lualatex --version | head -1
+
+            echo "=== LuaLaTeX font database ==="
+            luaotfload-tool --update --force
+            echo "FreeSerif:"
+            luaotfload-tool --find="FreeSerif"
+            echo "FreeSans:"
+            luaotfload-tool --find="FreeSans"
+            echo "FreeMono:"
+            luaotfload-tool --find="FreeMono"
+            echo "Noto Color Emoji:"
+            # luaotfload-tool --find="Noto Color Emoji"
+            luaotfload-tool --find="Noto Color Emoji" >/dev/null || {
+              echo "ERROR: LuaLaTeX cannot find Noto Color Emoji" >&2
+              # exit 1
+            }
+            echo "=== Fontconfig ==="
+            fc-match "FreeSerif"
+            fc-match "FreeSans"
+            fc-match "FreeMono"
+            fc-match "Noto Color Emoji"
+
+            echo "TeX Gyre dependencies:"
+            kpsewhich tgtermes.sty
+            kpsewhich tgheros.sty
+            test -n "$(kpsewhich tgtermes.sty)" || {
+              echo "ERROR: tgtermes.sty not found" >&2
+              # exit 1
+            }
+            test -n "$(kpsewhich tgheros.sty)" || {
+              echo "ERROR: tgheros.sty not found" >&2
+              # exit 1
+            }
+
+            echo "=== Image / diagram tools ==="
+            convert -version | head -1
+            dot -V
+  # Focused LaTeX/PDF toolchain for the `build_docs_pdf` job ONLY.
+  # This lets the PDF-compile job run in a fresh, lightweight container
+  # (no micromamba / node / pip / checkout) so it stays far under the 1h cap.
+  # Every package here already appears in `apt-install`'s PDF block — nothing new.
+  apt-install-latex:
+    description: Install LaTeX/PDF toolchain only (for the PDF-compile job)
+    steps:
+      - run:
+          name: "🛠️ Ensure CA certificates + HTTP apt sources (fresh container)"
+          command: |
+            set -Eeuo pipefail
+            sudo apt-get update || true
+            sudo apt-get install -y --fix-missing ca-certificates
+            sudo update-ca-certificates
+            sudo sed -i 's|https://ftp.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+            sudo apt-get clean
+            sudo apt-get update --fix-missing -y
+      # RST / Markdown / API docs
+      #                  TOOLCHAIN
+      #                     │
+      #     ┌───────────────┼────────────────┐
+      #     │               │                │
+      # PREPROCESS       ORCHESTRATE       COMPILE
+      #     │               │                │
+      #     ▼               ▼                ▼
+      #   dot             latexmk      pdflatex / xelatex
+      # convert                              │
+      #                                      ▼
+      #                                     PDF
+      # Sphinx documentation sources
+      # (.rst / .md / Python API docs)
+      #             │
+      #             ▼
+      #       sphinx-build -b latex
+      #             │
+      #             ├──────────────────────────────┐
+      #             │                              │
+      #             │                              │
+      #     Graphviz diagrams                Source images
+      # inheritance-diagram                       │
+      #             │                              │
+      #             ▼                              ▼
+      #         graphviz                       ImageMagick
+      #           dot                           convert
+      #             │                              │
+      #             ▼                              ▼
+      #       PDF/SVG/PNG                    PDF/PNG/etc.
+      #             │                              │
+      #             └──────────────┬───────────────┘
+      #                            │
+      #                            ▼
+      #                   Generated LaTeX tree *.tex + assets
+      #                   docs/build/latex/
+      #                            │
+      #                            ├── scikit-plots.tex
+      #                            ├── scikit-plots-user-guide.tex
+      #                            └── Makefile + latexmkrc
+      #                            │
+      #                            ▼
+      #                         latexmk
+      #               build orchestration / reruns
+      #                            │
+      #                 ┌──────────┴──────────┐
+      #                 │                     │
+      #                 ▼                     ▼
+      #             pdfLaTeX              XeLaTeX
+      #           latex_engine           latex_engine
+      #           = pdflatex             = xelatex
+      #                 │                     │
+      #                 └──────────┬──────────┘
+      #                            │
+      #                            ▼
+      #                   TeX package/font tree
+      #                            │
+      #         ┌──────────────────┼───────────────────┐
+      #         │                  │                   │
+      #         ▼                  ▼                   ▼
+      # texlive-latex-*       tex-gyre            cm-super
+      # packages
+      #                       tex-gyre fonts
+      #                          │
+      #               ┌──────────┴──────────┐
+      #               ▼                     ▼
+      #         tgtermes.sty           tgheros.sty
+      #               │                     │
+      #               ▼                     ▼
+      #       TeX Gyre Termes        TeX Gyre Heroes
+      #         serif font            sans-serif font
+      #               │                     │
+      #               └──────────┬──────────┘
+      #                          │
+      #                          ▼
+      #                     TeX engine
+      #                          │
+      #                          ▼
+      #                   Final PDF files
+      #                          │
+      #             ┌────────────┴─────────────┐
+      #             ▼                          ▼
+      #   scikit-plots.pdf        scikit-plots-user-guide.pdf
+      - run:
+          name: "📦 Install LaTeX toolchain (texlive + latexmk + fonts)"
+          command: |
+            set -Eeuo pipefail
+            # Install PDF documentation dependencies
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              cm-super \
+              graphviz \
+              imagemagick \
+              tex-gyre \
+              latexmk \
+              texlive-luatex \
+              texlive-xetex \
+              texlive-latex-base \
+              texlive-latex-extra \
+              texlive-latex-recommended \
+              texlive-fonts-recommended \
+              texlive-fonts-extra \
+              fonts-freefont-otf \
+              fonts-dejavu-core \
+              fonts-noto-core \
+              fonts-noto-color-emoji \
+              fonts-noto-cjk \
+              fonts-noto-extra
+
+            # 'pdflatex' | 'xelatex' | 'lualatex' | 'platex' | 'uplatex'
+            echo "LaTeX tools:"
+            latexmk -v | head -1
+            pdflatex --version | head -1
+            xelatex --version | head -1
+            lualatex --version | head -1
+            echo "Emoji font:"
+            fc-match "Noto Color Emoji"
+            echo "luaotfload:"
+            luaotfload-tool --find="Noto Color Emoji" || true
+            echo "TeX Gyre dependencies:"
+            kpsewhich tgtermes.sty
+            kpsewhich tgheros.sty
+            test -n "$(kpsewhich tgtermes.sty)" || {
+              echo "ERROR: tgtermes.sty not found" >&2
+              # exit 1
+            }
+            test -n "$(kpsewhich tgheros.sty)" || {
+              echo "ERROR: tgheros.sty not found" >&2
+              # exit 1
+            }
+            echo "Image/diagram tools:"
+            convert -version | head -1
+            dot -V
+  npm-install:
+      description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
+      steps:
+        # Cache keyed on a checksum of the pinned version file:
+        #   same pin   -> cache hit, no download
+        #   pin bumped -> checksum changes -> cache miss -> fresh install
+        - restore_cache:
+            keys:
+              - node-bin-v1-{{ checksum ".circleci/node-version.txt" }}
+        - run:
+            name: "🟩 Install Node.js + npm (skipped if cache hit)"
+          # YAML multi-line scripts | block scalar instead of a > flow scalar
+            command: |
+              set -Eeuo pipefail
+              export NODE_INSTALL_DIR="/home/circleci/.local/node"
+              if [ -x "${NODE_INSTALL_DIR}/bin/node" ] && [ -x "${NODE_INSTALL_DIR}/bin/npm" ]; then
+                # ls -la /home/circleci/.local/node/bin/npm
+                # du -sh /home/circleci/.local/node/lib/node_modules/npm
+                echo "node/npm restored from cache, skipping download."
+              else
+                NODE_VERSION="$(tail -1 .circleci/node-version.txt)"
+                echo "Installing node v${NODE_VERSION}..."
+                mkdir -p "${NODE_INSTALL_DIR}"
+                # curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+                # sudo apt-get install -y nodejs npm # Debian's npm is often a stale/patched fork — nodejs That worked because NodeSource's nodejs package bundles npm in.
+                # The official nodejs.org tarball bundles npm inside it — under lib/node_modules/npm, with bin/npm and bin/npx already present alongside bin/node in the same archive.
+                # https://nodejs.org/dist/
+                curl -fsSL --retry 3 --retry-delay 2 \
+                  "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+                  | tar -xJf - \
+                    --strip-components=1 \
+                    -C "${NODE_INSTALL_DIR}"
+              fi
+              export PATH="${NODE_INSTALL_DIR}/bin:$PATH"
+              echo "export PATH=\"${NODE_INSTALL_DIR}/bin:\$PATH\"" >> "$BASH_ENV"
+              which node
+              which npm
+              # prints the full path of the npm that WILL run
+              command -v npm
+              node --version
+              npm --version
+              test -x "${NODE_INSTALL_DIR}/bin/node"
+              test -x "${NODE_INSTALL_DIR}/bin/npm"
+        - save_cache:
+            key: node-bin-v1-{{ checksum ".circleci/node-version.txt" }}
+            paths:
+              - /home/circleci/.local/node
+  micromamba-install:
+    description: Install micromamba
+    steps:
+      # Cache keyed on a checksum of the pinned version file:
+      #   same pin    -> cache hit, no download
+      #   pin bumped  -> checksum changes -> cache miss -> fresh install,
+      #                  saved under the new key
+      - restore_cache:
+          keys:
+            - micromamba-bin-v1-{{ checksum ".circleci/micromamba-version.txt" }}
+      - run:
+          name: "🐍 Install micromamba (skipped if cache hit)"
+          # YAML multi-line scripts | block scalar instead of a > flow scalar
+          command: |
+            set -Eeuo pipefail
+            # export MICROMAMBA_BIN_DIR=/home/circleci/.local/bin
+            # export MAMBA_ROOT_PREFIX=/home/circleci/micromamba
+            if [ -x "${MICROMAMBA_BIN_DIR}/micromamba" ]; then
+              echo "micromamba binary restored from cache, skipping download."
+            else
+              # MM_VERSION="$(cat .circleci/micromamba-version.txt)"
+              MM_VERSION="$(tail -1 .circleci/micromamba-version.txt)"
+              echo "Installing micromamba ${MM_VERSION}..."
+              mkdir -p "${MICROMAMBA_BIN_DIR}"
+              curl -fsSL --retry 3 --retry-delay 2 \
+                "https://micro.mamba.pm/api/micromamba/linux-64/${MM_VERSION}" \
+                | tar -xvjf - \
+                  --strip-components=1 \
+                  -C "${MICROMAMBA_BIN_DIR}" \
+                  bin/micromamba
+              chmod 0755 "${MICROMAMBA_BIN_DIR}/micromamba"
+            fi
+            export PATH="${MICROMAMBA_BIN_DIR}:$PATH"
+            echo "export PATH=\"${MICROMAMBA_BIN_DIR}:\$PATH\"" >> "$BASH_ENV"
+            which micromamba
+            command -v micromamba
+            "${MICROMAMBA_BIN_DIR}/micromamba" --version
+            test -x "${MICROMAMBA_BIN_DIR}/micromamba"
+            ls -l "${MICROMAMBA_BIN_DIR}/micromamba"
+
+            # If you want to quickly use micromamba in an ad-hoc usecase, you can run Linux/bash:
+            # export MAMBA_ROOT_PREFIX="$HOME/micromamba"  # optional, defaults to ~/micromamba
+            # eval "$("${MICROMAMBA_BIN_DIR}" shell hook -s bash)"  # posix
+            # /usr/local/bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
+            # sourcing the bashrc file incorporates the changes into the running session.
+            # better yet, restart your terminal!
+            # source ~/.bashrc
+            # If you want to persist these changes, This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where the packages and repodata cache will live.
+            # Now you can activate the base environment and install new packages, or create other environments.
+            # micromamba activate  # this activates the base environment
+            # micromamba install python=3.6 jupyter -c conda-forge
+            # or
+            # micromamba create -n env_name xtensor -c conda-forge
+            # micromamba activate env_name
+            # or
+            # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
+            # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
+            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI). https://github.com/jupyterlite/xeus/tree/main#installation
+            # https://github.com/mamba-org/micromamba-releases/releases https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
+            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
+            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
+            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+            # curl -fsSL -o "~/.local/bin/micromamba" "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
+            # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
+            # -S — show error anyway, even with -s on. This is the one I should have included before.
+            # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
+            # sudo curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvjf bin/micromamba && sudo mv bin/micromamba /usr/local/bin/
+            # sudo curl -fsSL -o /usr/local/bin/micromamba "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            # sudo chmod +x /usr/local/bin/micromamba
+      - save_cache:
+          key: micromamba-bin-v1-{{ checksum ".circleci/micromamba-version.txt" }}
+          paths:
+            - /home/circleci/.local/bin/micromamba
+      - run:
+          name: "Check emscripten channels in micromamba"
+          command: |
+            curl -I https://repo.mamba.pm/emscripten-forge/noarch/repodata.json || true
+            curl -I https://repo.prefix.dev/emscripten-forge-dev/noarch/repodata.json || true
+      # -----------------------------------------------------------------
+      # Cache 2: the resolved environment (actual installed packages).
+      # Key depends on a checksum of environment.yml, so any dependency
+      # change correctly invalidates it, while unrelated commits reuse it.
+      # -----------------------------------------------------------------
+      # - restore_cache:
+      #     keys:
+      #       - micromamba-env-v1-{{ checksum "environment.yml" }}-{{ arch }}
+      # - run:
+      #     name: Create environment (skipped if cache hit)
+      #     command: |
+      #       set -euo pipefail
+      #       if [ -d "${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}" ]; then
+      #         echo "Environment '${ENV_NAME}' restored from cache, skipping create."
+      #       else
+      #         echo "Resolving and installing environment '${ENV_NAME}'..."
+      #         micromamba create -y -n "${ENV_NAME}" -f environment.yml
+      #       fi
+      # - save_cache:
+      #     key: micromamba-env-v1-{{ checksum "environment.yml" }}-{{ arch }}
+      #     paths:
+      #       - /home/circleci/micromamba
+      # - run:
+      #     name: Run tests
+      #     command: |
+      #       set -euo pipefail
+      #       micromamba run -n "${ENV_NAME}" pytest -q
+  pip-install:
+    description: Upgrade pip and setuptools and wheel to get as clean an install as possible
+    steps:
+      - run:
+          name: "🐍 Setup Python venv upgrade pip, setuptools, wheel"
+          command: |
+            set -Eeuo pipefail
+            # python -m pip install --upgrade --user --progress-bar=off --pre pip
+            # pip install -r ./requirements/build.txt
+            pip install -r ./requirements/all.txt
+
+            # tf need for documentation examples
+            # pip install -r ./requirements/gpu.txt
+            pip install -r ./requirements/cpu.txt
+            pip install -r ./requirements/mlflow.txt
+            pip install -r ./requirements/corpus.txt
+
+            # pip install voyager==2.1.0
+            pip install nltk
+            pip install beautifulsoup4 markdownify
+
+            # ✅ It’s a distutils override conflict
+            # pip install "setuptools>=69"
+            # export SETUPTOOLS_USE_DISTUTILS=local
+            pip install -U setuptools
+
+            # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)
+            # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
+            # python -m pip check
+            pip install -U "protobuf<7"
+
+            # JupyterLab: dark theme (optional)
+            pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
+            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson
+
+            # Additional jupyterlite (optional)
+            # Or with pip (you must install micromamba 2.0.5):
+            # https://github.com/jupyterlite/xeus#installation
+            # pip install jupyterlite-javascript-kernel
+            pip install -U \
+              jupyterlite-core \
+              jupyterlite-sphinx \
+              jupyterlite-pyodide-kernel \
+              jupyterlite-xeus \
+              jupyterlite-terminal
+  build-scikit-plots:
+    description: build scikit-plots
+    steps:
+      - run:
+          name: "📦 build scikit-plots"
+          command: |
+            # cpu: tensorflow
+            # pip install --no-cache-dir .[build,dev,test,doc]
+            python -m pip install --no-build-isolation --no-cache-dir . -v
+  # upload-codecov:
+  #   description: Upload coverage results to codecov
+  #   steps:
+  #     - run:
+  #         name: "☂️ Upload coverage results to codecov"
+  #         # https://uploader.codecov.io/linux/latest
+  #         command: |
+  #           curl -Os https://uploader.codecov.io/latest/linux/codecov
+  #           chmod +x codecov
+  #           ./codecov -t ${CODECOV_TOKEN} -f coverage.xml
+  build-docs:
+    description: build documentation scikit-plots
+    steps:
+      - attach_workspace:
+          at: ~/
+      # This calls your custom command
+      - check-skip  # check skip CI
+      ## deps
+      # This calls your custom command
+      - apt-install  # need graphviz etc. to build the documentation
+      - npm-install  # jupyterlite_sphinx need terminal kernel
+      - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
+      # GALLERY CACHE (restore): the ~48-min html cost is sphinx-gallery executing
+      # every example because `html: clean` wipes source/auto_examples/ each run.
+      # Restore the prior gallery outputs + doctrees so unchanged examples are
+      # reused. Partial-key match returns the newest cache for this branch, then
+      # main's, then any — always a correct starting point (stale entries only
+      # mean more examples re-execute; sphinx-gallery fingerprints each .py).
+      - restore_cache:
+          keys:
+            - v1-docs-gallery-{{ .Branch }}-
+            - v1-docs-gallery-main-
+            - v1-docs-gallery-
+      # - pip-install
+      # docs/build/
+      # ├── latex/
+      # │   ├── scikit-plots.tex
+      # │   ├── scikit-plots.pdf
+      # │   ├── scikit-plots-user-guide.tex
+      # │   └── scikit-plots-user-guide.pdf
+      # └── html/
+      #     └── stable/
+      #         ├── index.html
+      #         ├── _static/
+      #         ├── user_guide/
+      #         └── _downloads/
+      #             ├── scikit-plots.pdf
+      #             └── scikit-plots-user-guide.pdf
+      # https://scikit-plots.github.io/stable/_downloads/scikit-plots.pdf
+      # https://scikit-plots.github.io/stable/_downloads/scikit-plots-user-guide.pdf
+      # https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
+      # https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
+      #
+      ## apply if needed via echo "CircleCI node: ${CIRCLE_NODE_INDEX}/${CIRCLE_NODE_TOTAL}"
+      # parallelism: 2
+      #
+      # node 0:
+      #   apt + npm + micromamba + HTML
+      #
+      # node 1:
+      #   apt + npm + micromamba + PDF
+      #
+      # build_scikitplot
+      #       │
+      #       ▼
+      # build_docs (parallelism: 2), If any
+      #       │
+      #       ├───────────────┐
+      #       ▼               ▼
+      # node 0              node 1
+      # make html           make latexpdf
+      #       │               │
+      #       ▼               ▼
+      # HTML tree           2 PDFs
+      #       └───────┬───────┘
+      #               ▼
+      #             deploy
+      - run:
+          # PER-JOB 1h CAP FIX (Free plan): this job runs the two Sphinx phases
+          # as SEPARATE steps so each has its own log, timing, and pass/fail:
+          #   step 1  `make html[-incremental]` — the long pole: sphinx-gallery
+          #                          executes examples and fills build/doctrees.
+          #   step 2  `make latex` — LaTeX *source* emit only; fast because it
+          #                          REUSES build/doctrees from step 1 in this same
+          #                          job (no gallery re-execution, no clean).
+          # The pdflatex/latexmk compile is a separate job (build_docs_pdf).
+          #
+          # WHY html+latex stay in ONE job: `make latex` is cheap only when it can
+          # reuse the in-process doctree written by `make html`. Splitting them into
+          # separate JOBS would force the doctree/gallery state across a workspace
+          # boundary (mtime-fragile) or a full ~50-min re-read. Keeping them here is
+          # the robust seam; the deterministic .tex→PDF compile is what we isolate.
+          #
+          # BRANCH-GATED TARGET:
+          #   main / maintenance/*  -> `make html`  (full clean; authoritative build,
+          #                            and its output SEEDS the cache PRs restore).
+          #   everything else (PRs) -> `make html-incremental` (reuse gallery cache;
+          #                            only changed examples re-execute).
+          # Escape hatch for an ultra-fast preview: set EXAMPLES_PATTERN to a subset
+          # (Makefile threads it into sphinx_gallery_conf.filename_pattern), e.g.
+          #   export EXAMPLES_PATTERN='plot_(quick|intro)'
+          name: "📘 [1/2] Build HTML (sphinx-gallery — the ~50 min long pole)"
+          no_output_timeout: 59.9m
+          command: |
+            set -Eeuo pipefail
+            export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
+            export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
+            # python -m nltk.downloader stopwords
+            # python -m nltk.downloader punkt_tab
+            cd docs
+            # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
+            make html 2>&1 | tee ~/sphinx_html_log.txt
+      # GALLERY CACHE (save): persist the freshly-built gallery + doctrees. On main
+      # this stores the authoritative full gallery that PR branches restore from;
+      # on a PR it stores that PR's incremental state. Keyed per-commit so re-runs
+      # of the same commit are no-ops, and restore picks the newest by prefix.
+      - save_cache:
+          key: v1-docs-gallery-{{ .Branch }}-{{ .Revision }}  # {{ checksum "docs/source/conf.py" }}
+          paths:
+            - docs/source/auto_examples
+            - docs/source/modules/generated
+            - docs/build/doctrees
+      - run:
+          name: "📘 [2/2] Emit LaTeX sources (reuses doctrees; no pdflatex)"
+          no_output_timeout: 59.9m
+          command: |
+            set -Eeuo pipefail
+
+            # raw ANSI ESC character in generated docs
+            # NO_COLOR + LaTeX doctree sanitizer
+            # LuaLaTeX supports Unicode, but ANSI terminal control bytes are not text/Unicode characters intended for a document.
+            export NO_COLOR=1
+            export TERM=dumb
+            export CLICOLOR=0
+            export CLICOLOR_FORCE=0
+            export FORCE_COLOR=0
+            export PY_COLORS=0
+            export RICH_NO_COLOR=1
+
+            export PYTHONPATH="$PWD/build-install/lib/python3.12/site-packages"
+            export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
+            cd docs
+            # run_latex_pdf gate: skip the LaTeX .tex emit entirely unless the
+            # pipeline flag is set. Normal doc builds stay HTML-only (faster); we
+            # only pay for LaTeX when a PDF is actually wanted.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → skipping 'make latex' (HTML-only build)."
+              mkdir -p build/latex   # keep the persisted workspace path valid (empty)
+              exit 0
+            fi
+            # `make latex` = `sphinx-build -b latex -d build/doctrees ...`. It reuses
+            # the doctrees from step 1, so this is just .tex writing (a few minutes).
+            # GUARD: if reuse fails, sphinx re-executes the gallery (~50 min). We box
+            # this step so a silent re-run fails fast with an actionable message
+            # instead of eating the hour. Bump the ceiling only if the doc set grows.
+            rc=0
+            timeout 59m make latex 2>&1 | tee ~/sphinx_latex_log.txt || rc=$?
+            if [ "$rc" -ne 0 ]; then
+              if [ "$rc" -eq 124 ]; then
+                echo "ERROR: 'make latex' exceeded 59m — the doctree from 'make html'"          >&2
+                echo "       was NOT reused, so Sphinx is re-reading/re-executing the gallery." >&2
+                echo "       Both phases must run in the SAME job (they do here). If you see"   >&2
+                echo "       this, check that 'make html' completed and build/doctrees exists." >&2
+              fi
+              exit "$rc"
+            fi
+            echo
+            echo "Emitted LaTeX documents (compiled to PDF in build_docs_pdf):"
+            ls -lh build/latex/*.tex
+      - run:
+          name: Check Sphinx logs for warnings to show (which are treated as errors)
+          when: always
+          command: |
+            # Condition	    grep exit code
+            # Found match	  0
+            # No match	    1
+            # Error	        2
+            # After !:
+            # Condition	    Result
+            # Found warning	1
+            # No warning	  0
+            # grep error	  0 (because non-zero is inverted)
+            # The ! in shell means invert the exit code.
+            # Exited with code exit status 1
+            # ! grep "^.* ERROR: .*$" ~/sphinx_html_log.txt
+            # ! grep "^.* WARNING: .*$" ~/sphinx_html_log.txt
+            # echo $?
+            # grep "^.* WARNING: .*$" ~/sphinx_html_log.txt || true
+            # if grep -q "^.* WARNING: .*$" ~/sphinx_html_log.txt; then
+            #     echo "Warnings found:"
+            #     grep "^.* WARNING: .*$" ~/sphinx_html_log.txt || true
+            # fi
+            for log in ~/sphinx_html_log.txt ~/sphinx_latex_log.txt; do
+              if [ -f "$log" ] && grep -q "WARNING:" "$log"; then
+                echo "Warnings found in $log:"
+                grep "WARNING:" "$log" || true
+              fi
+            done
+      - run:
+          name: Save sphinx traceback
+          when: always
+          command: |
+            cp /tmp/sphinx-err-*.log ~/sphinx-traceback.log || true
+      # you must store the artifact explicitly:
+      - store_artifacts:
+          path: ~/sphinx_html_log.txt
+          destination: sphinx_html_log.txt
+      - store_artifacts:
+          path: ~/sphinx_latex_log.txt
+          destination: sphinx_latex_log.txt
+      - store_artifacts:
+          path: ~/sphinx-traceback.log
+          destination: sphinx-traceback.log
+      # NOTE: the `documentation-pdf` artifact is now produced by `build_docs_pdf`
+      # (this job no longer compiles PDFs).
+      - store_artifacts:
+          # path: docs/build/html/stable/index.html  # index.html
+          path: docs/build/html/stable
+          destination: docs/build/html/stable  # CircleCI to preserve the full directory structure
+          # destination: docs  # (docs/index.html because of destination: docs).
+        # Persist BOTH the HTML tree and the emitted LaTeX sources so that
+        # `build_docs_pdf` can compile the .tex, and `deploy` can publish the HTML.
+      - persist_to_workspace:
+          # root: ~/repo
+          root: docs/build
+          paths:
+            - html    # deployable site (build/html/stable) — consumed by deploy
+            - latex   # emitted .tex sources — consumed by build_docs_pdf
+      - run:
+          name: "🔗 Docs available at:"
+          # https://app.circleci.com/pipelines/<org>/<repo>/<pipeline_number>/workflows/<workflow_id>/jobs/<job_id>/artifacts
+          command: |
+            echo "🔗 Local artifact URL:"
+            echo "${CIRCLE_BUILD_URL}/artifacts/${CIRCLE_NODE_INDEX}/docs/build/html/stable/index.html"
+  # Run benchmarks
+  # Reference guide checking
+
+##########################################
+# Here is where the real jobs are defined.
+##########################################
+
+jobs:
+  ## Build scikit-plots from source
+  build_scikitplot:
+    # YAML anchor & alias
+    <<: *defaults
+    description: "Build new docs"
+    steps:
+      - run: echo "🤖 Hi I'm on a Container Runner!"
+      - run:
+          name: "🔧 Show run_docs_build flag"
+          command: |
+            echo "run_docs_build: << pipeline.parameters.run_docs_build >>" || true
+      ## run built-in
+      - checkout
+      - run: ./tools/circle/checkout_merge_commit.sh
+      ## run commands
+      - check-skip  # This calls your custom command
+      - merge
+      - submodules
+      - restore_cache:
+          keys:
+            - deps_ccache-{{ .Branch }}  # prefix match: latest cache for this branch
+            - deps_ccache                # prefix match: latest cache from any branch
+      - restore_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}  # v1-deps_ccache-datasets-{{ .Branch }}-{{ checksum "tools/circle/fetch_datasets.sh" }}
+      ## os py deps
+      - apt-install
+      - npm-install  # jupyterlite_sphinx need terminal kernel
+      - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
+      - pip-install
+      - build-scikit-plots
+      # - upload-codecov
+      # - store_artifacts:
+      #     path: results
+      - save_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}
+          paths:
+            - ~/scikit_plots_data
+      - save_cache:
+          key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}  # unique key, so save actually persists
+          paths:
+            - ~/.ccache
+            - ~/.cache/pip
+      - run:
+          name: ccache performance
+          when: always
+          command: |
+            ccache -vs || echo "ccache stats unavailable" >&2
+      # Persists generated documentation so that it can be attached and deployed
+      # in the 'deploy' step.
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - .
+  ## Build scikit-plots docs from source
+  build_docs:
+    <<: *defaults
+    description: "📘 Build new docs"
+    steps:
+      - run: echo "🤖 Hi I'm on a Container Runner!"
+      - build-docs
+
+  ## Compile the Sphinx-emitted LaTeX sources into PDF(s).
+  ## Deliberately lightweight: no checkout / micromamba / node / pip. It only
+  ## attaches the `latex/` tree emitted by `build_docs` and runs the LaTeX
+  ## toolchain, so it stays far under the per-job 1h cap even as documents grow.
+  ##
+  ## SEAMLESS MULTI-PDF CONTRACT (no CI change needed to add/remove PDFs):
+  ##   The set of PDFs is defined ONLY by `latex_documents` in docs/source/conf.py.
+  ##   `make all-pdf` compiles every emitted .tex; the glob below copies whatever
+  ##   was produced. Today that is a single APIs reference (scikit-plots-apis.pdf).
+  ##   To ship more later (user_guide/index, introduction/index, learn/index,
+  ##   auto_examples/index, or the whole root index), just uncomment the matching
+  ##   tuple(s) in conf.py — this job and `deploy` pick them up automatically.
+  build_docs_pdf:
+    <<: *defaults
+    description: "📄 Compile Sphinx LaTeX → PDF"
+    steps:
+      - run: echo "🤖 PDF compile node (LaTeX only)"
+      - attach_workspace:
+          at: docs/build            # brings in html/ and latex/ from build_docs
+      # Only install the (heavy) LaTeX toolchain when we're actually compiling PDFs.
+      - when:
+          condition: << pipeline.parameters.run_latex_pdf >>
+          steps:
+            - apt-install-latex
+      - run:
+          name: "📄 Compile PDF(s) from emitted LaTeX"
+          no_output_timeout: 30m
+          command: |
+            set -Eeuo pipefail
+            # run_latex_pdf gate. Always create the pdf dir so the persist below
+            # stays valid; skip all compile work when the flag is off.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            install -d docs/build/pdf
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → skipping PDF compile (no-op)."
+              exit 0
+            fi
+            if [ ! -d docs/build/latex ] || ! ls docs/build/latex/*.tex >/dev/null 2>&1; then
+              echo "run_latex_pdf=true but no emitted .tex in docs/build/latex." >&2
+              echo "build_docs must run with the SAME run_latex_pdf=true flag."  >&2
+              exit 1
+            fi
+            # The Sphinx latex builder writes its own Makefile with an `all-pdf`
+            # target that drives latexmk over every emitted document.
+            make -C docs/build/latex all-pdf 2>&1 | tee ~/latex_compile_log.txt
+
+            # Collect whatever PDFs were produced (names come from conf.py).
+            install -d docs/build/pdf
+            shopt -s nullglob
+            pdfs=(docs/build/latex/*.pdf)
+            test "${#pdfs[@]}" -gt 0 || { echo "ERROR: all-pdf produced no PDFs" >&2; exit 1; }
+            for f in "${pdfs[@]}"; do
+              test -s "$f" || { echo "ERROR: empty PDF $f" >&2; exit 1; }
+              install -m 0644 "$f" docs/build/pdf/
+            done
+            echo
+            echo "Compiled PDF(s):"
+            ls -lh docs/build/pdf/
+      - run:
+          name: Save LaTeX traceback
+          when: always
+          command: |
+            cp /tmp/sphinx-err-*.log ~/latex-traceback.log 2>/dev/null || true
+      - store_artifacts:
+          path: ~/latex_compile_log.txt
+          destination: latex_compile_log.txt
+      - store_artifacts:
+          path: docs/build/pdf
+          destination: documentation-pdf
+      # Persist just the compiled PDFs for `deploy` to fold into the HTML tree.
+      - persist_to_workspace:
+          root: docs/build
+          paths:
+            - pdf
+
+  # Upload build output to scipy/devdocs repository, using SSH deploy keys.
+  # The keys are only available for builds on main branch.
+  # https://developer.github.com/guides/managing-deploy-keys/
+  # https://circleci.com/docs/2.0/configuration-reference/#add_ssh_keys
+  deploy:
+    <<: *defaults
+    description: "🌐 Deploy new docs"
+    steps:
+      - run: echo "🤖 Hi I'm on Runners!"
+      - checkout
+      - run: ./tools/circle/checkout_merge_commit.sh
+      # Attach documentation generated upstream: the HTML tree from `build_docs`
+      # (docs/build/html) and the compiled PDF(s) from `build_docs_pdf`
+      # (docs/build/pdf).
+      - attach_workspace:
+          at: docs/build
+      # Fold the compiled PDF(s) into the deployable HTML tree's _downloads/.
+      # Glob-based, so it publishes whatever conf.py's latex_documents produced
+      # (currently scikit-plots-apis.pdf) with no per-file coupling.
+      - run:
+          name: "📎 Assemble PDF(s) into HTML _downloads"
+          command: |
+            set -Eeuo pipefail
+            # run_latex_pdf gate: when off, there are no PDFs — publish HTML only.
+            RUN_LATEX_PDF="<< pipeline.parameters.run_latex_pdf >>"
+            if [ "$RUN_LATEX_PDF" != "true" ]; then
+              echo "run_latex_pdf=false → no PDFs to assemble; publishing HTML only."
+              exit 0
+            fi
+            install -d docs/build/html/stable/_downloads
+            shopt -s nullglob
+            pdfs=(docs/build/pdf/*.pdf)
+            test "${#pdfs[@]}" -gt 0 || { echo "ERROR: no PDFs to publish" >&2; exit 1; }
+            for f in "${pdfs[@]}"; do
+              install -m 0644 "$f" docs/build/html/stable/_downloads/
+            done
+            echo "Published downloads:"
+            ls -lh docs/build/html/stable/_downloads/
+      - run: ls -ltrh docs/build/html/stable
+      ## Add the SSH key to the environment (this step tells CircleCI to use the private key from the SSH Key settings)
+      - add_ssh_keys:
+          fingerprints:
+            ## INFO: Since CircleCI cannot decrypt SSH keys, every new key must have an empty passphrase.
+            ## https://circleci.com/docs/add-ssh-key/#steps
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux
+            ## https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account?platform=linux
+            ##
+            ## Generate the ED25519 SSH Key Pair (with custom name id_ed25519_circleci):
+            ## ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+            ## ssh-keygen -t ed25519 -C "your_email@example.com"
+            ## ssh-keygen -t ed25519 -C "your_email@example.com" -f ~/.ssh/id_ed25519_circleci
+            ## ssh-keygen -t ed25519-sk -C "your_email@example.com"  # hardware security key
+            ##
+            ## apply private key (not the public key) to "chmod 600" in order to ensure that only the owner can read and write the private key
+            ## chmod 600 ~/.ssh/id_ed25519_circleci
+            ## cat ~/.ssh/id_ed25519_circleci
+            ##
+            ## apply public key can have more relaxed permissions, but chmod 644 is commonly used.
+            ## chmod 644 ~/.ssh/id_ed25519_circleci.pub
+            ## cat ~/.ssh/id_ed25519_circleci.pub
+            ##
+            ## circleci
+            ## Hostname: github.com
+            ## Private Key*: ...
+            ##
+            ## Only add the public key to GitHub (id_ed25519_circleci.pub), not the private key (id_ed25519_circleci).
+            ## ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICIo9OIfO9BdffgYEKxyg5Zkj7hlX00yV3w1cH2JKpQz your_email@example.com
+            ##
+            ## The fingerprint can be SHA256 or MD5.
+            ## SHA256 fingerprints should be prefixed with SHA256: and MD5 fingerprints should include the colons between character pairs.
+            ## This will give you the MD5 fingerprint that you need for CircleCI.
+            ## ssh-keygen -E md5 -lf ~/.ssh/id_ed25519_circleci.pub
+            ## 256 MD5:1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3 your_email@example.com (ED25519)
+            ##
+            ## you've added the private key to CircleCI's project settings -> Additional SSH Keys,
+            ## is for identifying the correct private key that CircleCI will use during the build process.
+            ## Also ensure that the private key is added to the CircleCI project
+            ## and that the public key has been added to the additional repositories that you want to checkout from within your job.
+            ## Fingerprint: Used to tell CircleCI which private key to use for SSH connections.
+            ## All fingerprints in the fingerprints list must correspond to keys that have been added through the CircleCI application.
+            ## Fingerprints in CircleCI environment variables will fail.
+            # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Replace with your public key's fingerprint
+            - "fa:a7:3e:10:71:de:f5:31:0e:3a:44:6a:b4:f5:be:8f"  # Add fingerprint here
+            - "37:fe:6f:1b:28:01:ba:85:73:01:ef:2e:15:14:65:d7"  # Add fingerprint here
+      ## Add GitHub's SSH key to the known_hosts to avoid verification prompts
+      - run:
+          name: Trust GitHub SSH key
+          command: |
+            set -ex;
+            cat /etc/os-release || true
+            # sudo apt-get install -y openssh-client
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts  # This step ensures GitHub's public key is trusted.
+            ## Ensure the SSH config file (if used) is only accessible by the user
+            chmod og= ~/.ssh/config  # Set permissions to only allow the user to access the config file.
+      # Optionally, you could disable host key checking if you want to bypass the verification (not recommended for security reasons):
+      # - run:
+      #     name: Disable SSH StrictHostKeyChecking
+      #     command: |
+      #       echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config  # Disables SSH host key verification.
+      #       chmod og= ~/.ssh/config  # Ensures the SSH config file is only accessible by the user (security).
+      ## Use SSH to clone the repository
+      - run:
+          name: "📥 Upload new docs to cloned the repo over SSH"
+          command: |
+            ## if [[ "${CIRCLE_BRANCH}" =~ ^main$|^[0-9]+\.[0-9]+\.X$ ]]; then
+            if [[ "${CIRCLE_BRANCH}" =~ ^main$|^subpackage-bug-fix$|^((maintenance|release)/)?[0-9]+\.[0-9]+(\.x|\.[0-9]+)?$ ]]; then
+              bash ./tools/circle/push_doc.sh docs/build/html/stable
+            fi
+      ## Use SSH to clone the repository
+      ## https://github.com/devcontainers/template-starter/blob/main/.github/workflows/release.yaml
+      # - run:
+      #     name: upload new docs via ssh
+      #     command: |
+      #       set -ex;
+      #       mkdir -p ~/.ssh
+      #       echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config
+      #       chmod og= ~/.ssh/config
+      #       git clone git@github.com:scipy/devdocs.git devdocs;
+      #       cd devdocs;
+      #       (git checkout --orphan tmp && git branch -D gh-pages || true);
+      #       git checkout --orphan gh-pages;
+      #       git reset --hard;
+      #       cp -R /tmp/build/html/. .;
+      #       touch .nojekyll;
+      #       git config --global user.email github-actions[bot]@users.noreply.github.com;
+      #       git config --global user.name github-actions[bot];
+      #       git config --global user.email "scipy-circleci-bot@nomail";
+      #       git config --global user.name "scipy-circleci-bot";
+      #       git config --global push.default simple;
+      #       git add . > /dev/null;
+      #       git commit -m "Docs build of $CIRCLE_SHA1";
+      #       # git push https://x-access-token:${TOKEN}@github.com/org/repo.git
+      #       git push --set-upstream origin gh-pages --force
+      #     # env:
+      #     #   TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+
+  # _sphinx_llm A02 semantic config-parity maintenance matrix.
+  # Cell jobs are evidence producers; the aggregate job is the single gate.
+  sphinx_llm_a02_parity:
+    parameters:
+      python_version: {type: string}
+      sphinx_spec: {type: string}
+      cell_id: {type: string}
+    docker:
+      - image: cimg/python:<< parameters.python_version >>
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: A02 semantic config parity
+          command: |
+            set -Eeuo pipefail
+            bash scikitplot/_externals/_sphinx_ext/_sphinx_llm/_maintenance/ci/run_a02_cell.sh \
+              '<< parameters.python_version >>' \
+              '<< parameters.sphinx_spec >>' \
+              '<< parameters.cell_id >>' \
+              /tmp/a02-evidence
+      - persist_to_workspace:
+          root: /tmp/a02-evidence
+          paths:
+            - '*.json'
+
+  sphinx_llm_a02_aggregate:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: small
+    steps:
+      - checkout
+      - attach_workspace: {at: /tmp/a02-evidence}
+      - run:
+          name: Validate A02 10-cell evidence
+          command: |
+            set -Eeuo pipefail
+            python scikitplot/_externals/_sphinx_ext/_sphinx_llm/_maintenance/run_a02_matrix.py \
+              --evidence-dir /tmp/a02-evidence \
+              --output /tmp/a02-evidence/A02_MATRIX_RESULT.json \
+              --require-green
+      - store_artifacts:
+          path: /tmp/a02-evidence
+          destination: sphinx-llm-a02
+          when: always
+
+#########################################
+# Defining workflows gets us parallelism.
+#########################################
+
+workflows:
+  # version: 2
+
+  # Accept Separatable Workflow
+  default:
+
+    # Conditional run based on parameter:
+    # when: << pipeline.parameters.run_docs_build >>
+    when:
+      equal: [true, << pipeline.parameters.run_docs_build >>]
+
+    jobs:
+      - build_scikitplot
+      # NOTE: If you rename this job, then you must update the `if` condition
+      # and `circleci-jobs` option in `.github/workflows/circleci.yml`.
+      - build_docs:
+          requires:
+            - build_scikitplot
+      # PDF compile is a separate job so neither Sphinx nor LaTeX work alone
+      # approaches the Free-plan 1h per-job cap.
+      - build_docs_pdf:
+          requires:
+            - build_docs
+      - deploy:
+          requires:
+            # deploy needs BOTH the HTML tree (build_docs) and the PDF(s)
+            # (build_docs_pdf). Listing both is explicit; the workspace attached
+            # in deploy is cumulative over all ancestors regardless.
+            - build_docs
+            - build_docs_pdf
+          filters:
+            branches:
+              # ignore: gh-pages
+              only:
+                - main
+                - subpackage-bug-fix
+                - maintenance/**
+              # - release/*
+              # - staging
+              # - master
+              # - gh-pages
+              # - '*.x' # ignore versioned branches
+
+
+  # Explicit one-shot A02 compatibility campaign. Trigger with the pipeline
+  # parameter run_sphinx_llm_a02=true; default docs CI remains unchanged.
+  sphinx_llm_a02_compatibility:
+    when:
+      equal: [true, << pipeline.parameters.run_sphinx_llm_a02 >>]
+    jobs:
+      - sphinx_llm_a02_parity:
+          name: a02-py312-sphinx5
+          python_version: "3.12"
+          sphinx_spec: ">=5.1,<6"
+          cell_id: "py312-sphinx5"
+      - sphinx_llm_a02_parity:
+          name: a02-py312-sphinx6
+          python_version: "3.12"
+          sphinx_spec: ">=6,<7"
+          cell_id: "py312-sphinx6"
+      - sphinx_llm_a02_parity:
+          name: a02-py312-sphinx7
+          python_version: "3.12"
+          sphinx_spec: ">=7,<8"
+          cell_id: "py312-sphinx7"
+      - sphinx_llm_a02_parity:
+          name: a02-py312-sphinx8
+          python_version: "3.12"
+          sphinx_spec: ">=8,<9"
+          cell_id: "py312-sphinx8"
+      - sphinx_llm_a02_parity:
+          name: a02-py312-sphinx9
+          python_version: "3.12"
+          sphinx_spec: ">=9,<10"
+          cell_id: "py312-sphinx9"
+      - sphinx_llm_a02_parity:
+          name: a02-py39-sphinx7
+          python_version: "3.9"
+          sphinx_spec: ">=7,<8"
+          cell_id: "py39-sphinx7"
+      - sphinx_llm_a02_parity:
+          name: a02-py310-sphinx7
+          python_version: "3.10"
+          sphinx_spec: ">=7,<8"
+          cell_id: "py310-sphinx7"
+      - sphinx_llm_a02_parity:
+          name: a02-py311-sphinx8
+          python_version: "3.11"
+          sphinx_spec: ">=8,<9"
+          cell_id: "py311-sphinx8"
+      - sphinx_llm_a02_parity:
+          name: a02-py313-sphinx9
+          python_version: "3.13"
+          sphinx_spec: ">=9,<10"
+          cell_id: "py313-sphinx9"
+      - sphinx_llm_a02_parity:
+          name: a02-py314-sphinx9
+          python_version: "3.14"
+          sphinx_spec: ">=9,<10"
+          cell_id: "py314-sphinx9"
+      - sphinx_llm_a02_aggregate:
+          name: a02-parity-aggregate
+          requires:
+            - a02-py312-sphinx5
+            - a02-py312-sphinx6
+            - a02-py312-sphinx7
+            - a02-py312-sphinx8
+            - a02-py312-sphinx9
+            - a02-py39-sphinx7
+            - a02-py310-sphinx7
+            - a02-py311-sphinx8
+            - a02-py313-sphinx9
+            - a02-py314-sphinx9
+
+  # # Conditional workflow that runs jobs only if run_docs_build == true
+  # test_workflow:
+  #   # Conditional run based on parameter:
+  #   # when: << pipeline.parameters.run_docs_build >>
+  #   when:
+  #     equal: [true, << pipeline.parameters.run_docs_build >>]
+
+  #   jobs:
+  #     # Conditional steps inside the job
+  #     # steps:
+  #     #   - when:
+  #     #       condition:
+  #     #         equal: [true, << pipeline.parameters.run_docs_build >>]
+  #     #       steps:
+  #     #         - run: echo "Running build_scikitplot job"
+  #     # - run_benchmarks:
+  #     #   requires:
+  #     #     - build_scikitplot
+  #     # - refguide_check:
+  #     #     requires:
+  #     #       - build_scikitplot

@@ -43,6 +43,7 @@ Covers
 
 from __future__ import annotations
 
+import logging
 import json
 import pathlib
 import tempfile
@@ -66,6 +67,10 @@ from .._multimodal_embedding import (
     _make_whisper_encoder_fn,
 )
 
+
+# python -m pytest \
+#   scikitplot/corpus/_embeddings/tests/test__multimodal_embedding.py \
+#   -ra --maxfail=0
 
 # ---------------------------------------------------------------------------
 # Extended CorpusDocument stub for multimodal tests
@@ -532,6 +537,10 @@ class TestMultimodalEmbeddingEngineEmbedVideo:
 # ===========================================================================
 # MultimodalEmbeddingEngine.embed_documents (dispatch by modality)
 # ===========================================================================
+# python -m pytest \
+#   scikitplot/corpus/_embeddings/tests/test__multimodal_embedding.py \
+#   -k "EmbedDocuments" \
+#   -vv --maxfail=0
 
 
 class TestMultimodalEmbeddingEngineEmbedDocuments:
@@ -570,31 +579,128 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
         assert out[0].embedding is not None
         assert out[0].embedding.shape[0] == 32  # noqa: PLR2004
 
-    def test_unknown_modality_falls_back_to_text(self) -> None:
+    def test_unknown_modality_warns_and_falls_back_to_text(self) -> None:
         e = _custom_engine(text_dim=16, normalize=False)
         docs = [_Doc("fallback", modality="unknown_xyz")]
         out = e.embed_documents(docs)
         assert out[0].embedding.shape == (16,)
 
-    def test_image_missing_raw_tensor_uses_zeros(self) -> None:
-        """IMAGE doc with raw_tensor=None must not crash — uses zero array."""
+    def test_image_missing_raw_tensor_warns_and_remains_unembedded(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         e = _custom_engine(image_dim=8, normalize=False)
-        docs = [_Doc("", modality="image", raw_tensor=None)]
-        out = e.embed_documents(docs)
-        assert out[0].embedding is not None
-        assert out[0].embedding.shape == (8,)
+        logger = logging.getLogger(
+            "scikitplot.corpus._embeddings._multimodal_embedding"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                out = e.embed_documents(
+                    [_Doc("", modality="image", raw_tensor=None)]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert len(out) == 1
+        assert out[0].embedding is None
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "IMAGE" in record.getMessage()
+            and "leaving them unembedded" in record.getMessage()
+            for record in caplog.records
+        )
 
-    def test_audio_missing_raw_tensor_uses_zeros(self) -> None:
+    def test_audio_missing_raw_tensor_warns_and_remains_unembedded(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         e = _custom_engine(audio_dim=8, normalize=False)
-        docs = [_Doc("", modality="audio", raw_tensor=None)]
-        out = e.embed_documents(docs)
-        assert out[0].embedding is not None
+        logger = logging.getLogger(
+            "scikitplot.corpus._embeddings._multimodal_embedding"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                out = e.embed_documents(
+                    [_Doc("", modality="audio", raw_tensor=None)]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert len(out) == 1
+        assert out[0].embedding is None
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "AUDIO" in record.getMessage()
+            and "leaving them unembedded" in record.getMessage()
+            for record in caplog.records
+        )
 
-    def test_video_missing_raw_tensor_uses_zeros(self) -> None:
+    def test_video_missing_raw_tensor_warns_and_remains_unembedded(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
         e = _custom_engine(image_dim=8, normalize=False)
-        docs = [_Doc("", modality="video", raw_tensor=None)]
+        logger = logging.getLogger(
+            "scikitplot.corpus._embeddings._multimodal_embedding"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                out = e.embed_documents(
+                    [_Doc("", modality="video", raw_tensor=None)]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert len(out) == 1
+        assert out[0].embedding is None
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "VIDEO" in record.getMessage()
+            and "leaving them unembedded" in record.getMessage()
+            for record in caplog.records
+        )
+
+    def test_image_batch_missing_tensor_does_not_affect_valid_documents(
+        self,
+    ) -> None:
+        e = _custom_engine(image_dim=8, normalize=False)
+        docs = [
+            _Doc(
+                "",
+                modality="image",
+                raw_tensor=np.zeros((4, 4, 3), dtype=np.uint8),
+            ),
+            _Doc(
+                "",
+                modality="image",
+                raw_tensor=None,
+            ),
+            _Doc(
+                "",
+                modality="image",
+                raw_tensor=np.zeros((4, 4, 3), dtype=np.uint8),
+            ),
+        ]
         out = e.embed_documents(docs)
+        assert len(out) == 3
         assert out[0].embedding is not None
+        assert out[1].embedding is None
+        assert out[2].embedding is not None
 
     def test_preserves_original_doc_order(self) -> None:
         e = _custom_engine(text_dim=4, image_dim=4, normalize=False)
@@ -1243,7 +1349,7 @@ class TestCoerceDocuments:
     def test_single_doc_wrapped_in_list(self) -> None:
         doc = _Doc("hello")
         out = _coerce_documents(doc)
-        assert isinstance(out, list)
+        assert list(out) == list(out)  # RetrievalResponse is sequence-like
         assert len(out) == 1
         assert out[0] is doc
 
@@ -1263,7 +1369,7 @@ class TestCoerceDocuments:
 
     def test_all_none_list_returns_empty(self) -> None:
         out = _coerce_documents([None, None, None])
-        assert out == []
+        assert list(out) == []
 
     def test_idempotent_on_clean_list(self) -> None:
         """Calling twice on a clean list is a no-op (returns same object)."""
@@ -1292,13 +1398,13 @@ class TestEmbedDocumentsNoneAndSingle:
     def test_none_returns_empty_list(self) -> None:
         e = _custom_engine()
         out = e.embed_documents(None)
-        assert out == []
+        assert list(out) == []
 
     def test_single_doc_returns_list_of_one(self) -> None:
         e = _custom_engine(text_dim=4, normalize=False)
         doc = _Doc("hello world")
         out = e.embed_documents(doc)
-        assert isinstance(out, list)
+        assert list(out) == list(out)  # RetrievalResponse is sequence-like
         assert len(out) == 1
         assert out[0].embedding is not None
         assert out[0].embedding.shape == (4,)
@@ -1320,7 +1426,7 @@ class TestEmbedDocumentsNoneAndSingle:
     def test_all_none_list_returns_empty(self) -> None:
         e = _custom_engine()
         out = e.embed_documents([None, None])
-        assert out == []
+        assert list(out) == []
 
     def test_single_image_doc(self) -> None:
         e = _custom_engine(image_dim=8, normalize=False)
@@ -1352,7 +1458,7 @@ class TestEmbedDocumentsWithCacheNoneAndSingle:
     def test_none_returns_empty_list(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine()
         out = e.embed_documents_with_cache(None, tmp_path / "src.txt")
-        assert out == []
+        assert list(out) == []
 
     def test_single_doc_accepted(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(text_dim=4, normalize=False, enable_cache=False)
@@ -1360,7 +1466,7 @@ class TestEmbedDocumentsWithCacheNoneAndSingle:
         src.write_text("data")
         doc = _Doc("hello")
         out = e.embed_documents_with_cache(doc, src)
-        assert isinstance(out, list)
+        assert list(out) == list(out)  # RetrievalResponse is sequence-like
         assert len(out) == 1
         assert out[0].embedding is not None
 
@@ -1382,14 +1488,14 @@ class TestEnsureEmbeddedNoneAndSingle:
     def test_none_returns_empty_list(self) -> None:
         exp = LLMTrainingExporter()
         out = exp._ensure_embedded(None)
-        assert out == []
+        assert list(out) == []
 
     def test_single_already_embedded_wrapped(self) -> None:
         emb = np.ones(4, dtype=np.float32)
         doc = _Doc("x", embedding=emb)
         exp = LLMTrainingExporter()
         out = exp._ensure_embedded(doc)
-        assert isinstance(out, list)
+        assert list(out) == list(out)  # RetrievalResponse is sequence-like
         assert len(out) == 1
         assert out[0] is doc
 
@@ -1398,7 +1504,7 @@ class TestEnsureEmbeddedNoneAndSingle:
         exp = LLMTrainingExporter(engine=engine)
         doc = _Doc("needs emb")
         out = exp._ensure_embedded(doc)
-        assert isinstance(out, list)
+        assert list(out) == list(out)  # RetrievalResponse is sequence-like
         assert len(out) == 1
         assert out[0].embedding is not None
 
@@ -1413,7 +1519,7 @@ class TestEnsureEmbeddedNoneAndSingle:
         """None coerces to [] → fast path (all embedded vacuously), no raise."""
         exp = LLMTrainingExporter(engine=None)
         out = exp._ensure_embedded(None)
-        assert out == []
+        assert list(out) == []
 
 
 # ===========================================================================

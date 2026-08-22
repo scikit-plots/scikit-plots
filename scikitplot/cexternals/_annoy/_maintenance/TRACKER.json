@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.cexternals._annoy",
+  "role": "the shared C++ source of truth",
+  "family": "annoy (cexternals/_annoy + annoy + memmap + random)",
+  "shared_source": "scikitplot/cexternals/_annoy/src/",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 29,
+      "source_loc": 23846,
+      "test_files": 14,
+      "test_loc": 1001,
+      "markdown_files": 5
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 1,
+        "src_loc": 33,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_annoy": {
+        "src": 28,
+        "src_loc": 23813,
+        "test": 14,
+        "test_loc": 1001
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 11520,
+        "path": "_annoy/src/annoymodule.cc"
+      },
+      {
+        "loc": 5132,
+        "path": "_annoy/src/annoylib.h"
+      },
+      {
+        "loc": 1597,
+        "path": "_annoy/_backup/src/annoylib.h"
+      },
+      {
+        "loc": 1361,
+        "path": "_annoy/_plotting.py"
+      },
+      {
+        "loc": 685,
+        "path": "_annoy/_backup/src/annoymodule.cc"
+      },
+      {
+        "loc": 434,
+        "path": "_annoy/_backup/fastannoy/annoymodule.cpp"
+      },
+      {
+        "loc": 346,
+        "path": "_annoy/src/annoyluamodule.cc"
+      },
+      {
+        "loc": 321,
+        "path": "_annoy/_backup/src/annoyluamodule.cc"
+      },
+      {
+        "loc": 311,
+        "path": "_annoy/src/mman.h"
+      },
+      {
+        "loc": 242,
+        "path": "_annoy/_backup/src/mman.h"
+      }
+    ]
+  },
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+  }
+}

@@ -40,10 +40,24 @@ from typing import Any, Callable, Literal, Sequence
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "NormalizerConfig",
     "TextNormalizer",
+    "TextNormalizerConfig",
     "normalize_text",
 ]
+
+
+# This remains useful even with fail-soft behavior.
+_VALID_NORMALIZATION_STEPS = frozenset(
+    {
+        "unicode",
+        "ligatures",
+        "control_chars",
+        "hyphenation",
+        "whitespace",
+        "lowercase",
+        "custom",
+    }
+)
 
 
 # =====================================================================
@@ -52,7 +66,7 @@ __all__ = [
 
 
 @dataclass(frozen=True)
-class NormalizerConfig:
+class TextNormalizerConfig:
     r"""Configuration for :class:`TextNormalizer`.
 
     Parameters
@@ -98,10 +112,10 @@ class NormalizerConfig:
     ``fix_hyphenation=False`` (CJK does not hyphenate) and
     ``unicode_form="NFKC"`` (normalises full-width characters).
 
-    **Developer note:** ``steps`` is excluded from ``__hash__`` and
-    ``__eq__`` so that two configs with identical boolean flags but
-    different ``steps`` lists are treated as equal for caching.  If you
-    need strict equality on ``steps``, compare the lists explicitly.
+    **Developer note:** ``steps`` participates in semantic
+    equality because changing the ordered step list changes
+    normalization behavior. It remains excluded from
+    ``__hash__`` while represented as a mutable list.
     """
 
     unicode_form: Literal["NFC", "NFD", "NFKC", "NFKD", ""] = "NFKC"
@@ -112,7 +126,8 @@ class NormalizerConfig:
     lowercase: bool = False
     min_length: int = 1
     custom_pipeline: tuple[Callable[[str], str], ...] = field(default_factory=tuple)
-    steps: list[str] | None = field(default=None, hash=False, compare=False)
+    # remove compare=False So equality now includes steps.
+    steps: list[str, ...] | None = field(default=None, hash=False)
     """Ordered list of normalisation step names to apply.
 
     When ``None`` (default), the list is derived automatically from the
@@ -124,6 +139,11 @@ class NormalizerConfig:
 
     Notes
     -----
+    Do not silently deduplicate unless the normalizer contract explicitly
+    says each stage can execute at most once.
+    Order and repetition might eventually be intentional:
+    ``stage ordering is semantic`` So preserving caller input is safest.
+
     Valid step names:
 
     ``"unicode"`` :
@@ -170,6 +190,34 @@ class NormalizerConfig:
             # frozen=True blocks normal assignment; object.__setattr__ is the
             # canonical workaround used throughout the Python dataclass ecosystem.
             object.__setattr__(self, "steps", derived)
+            return
+
+        # Explicit steps are fail-soft:
+        # preserve valid steps, warn once for invalid entries, and continue.
+        invalid_steps = [
+            step
+            for step in self.steps
+            if (not isinstance(step, str) or step not in _VALID_NORMALIZATION_STEPS)
+        ]
+        if invalid_steps:
+            logger.warning(
+                (
+                    "TextNormalizerConfig: ignoring invalid or unknown normalization "
+                    "step(s) %r; valid steps are %r"
+                ),
+                invalid_steps,
+                sorted(_VALID_NORMALIZATION_STEPS),
+            )
+        valid_steps = [
+            step
+            for step in self.steps
+            if (isinstance(step, str) and step in _VALID_NORMALIZATION_STEPS)
+        ]
+        object.__setattr__(
+            self,
+            "steps",
+            valid_steps,
+        )
 
 
 # =====================================================================
@@ -225,7 +273,7 @@ _MULTI_NL_RE = re.compile(r"\n{3,}")
 def normalize_text(
     text: str,
     *,
-    config: NormalizerConfig | None = None,
+    config: TextNormalizerConfig | None = None,
 ) -> str | None:
     r"""Normalise *text* according to *config*.
 
@@ -233,7 +281,7 @@ def normalize_text(
     ----------
     text : str
         Raw text to normalise.
-    config : NormalizerConfig or None, optional
+    config : TextNormalizerConfig or None, optional
         Configuration.  ``None`` uses defaults.
 
     Returns
@@ -248,7 +296,7 @@ def normalize_text(
     'The first computer was huge.'
     """
     if config is None:
-        config = NormalizerConfig()
+        config = TextNormalizerConfig()
 
     s = text
 
@@ -301,7 +349,7 @@ class TextNormalizer:
 
     Parameters
     ----------
-    config : NormalizerConfig or None, optional
+    config : TextNormalizerConfig or None, optional
         Normalisation settings.  ``None`` uses defaults.
 
     Notes
@@ -338,9 +386,9 @@ class TextNormalizer:
 
     def __init__(
         self,
-        config: NormalizerConfig | None = None,
+        config: TextNormalizerConfig | None = None,
     ) -> None:
-        self.config = config or NormalizerConfig()
+        self.config = config or TextNormalizerConfig()
 
     def normalize(self, text: str) -> str:  # noqa: PLR0912
         r"""Normalise a single string using only the steps in ``config.steps``.
@@ -366,13 +414,13 @@ class TextNormalizer:
 
         Examples
         --------
-        >>> n = TextNormalizer(NormalizerConfig(steps=["unicode"]))
+        >>> n = TextNormalizer(TextNormalizerConfig(steps=["unicode"]))
         >>> "\\ufb01" not in n.normalize("fi\\ufb01rst")
         True
-        >>> n2 = TextNormalizer(NormalizerConfig(steps=["whitespace"]))
+        >>> n2 = TextNormalizer(TextNormalizerConfig(steps=["whitespace"]))
         >>> "   " not in n2.normalize("Hello   world")
         True
-        >>> TextNormalizer(NormalizerConfig()).normalize("")
+        >>> TextNormalizer(TextNormalizerConfig()).normalize("")
         ''
         """
         if not text:

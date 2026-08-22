@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scikit-plots.github.io/schemas/maintenance-checkpoint.schema.json",
+  "title": "Maintenance checkpoint execution record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "checkpoint",
+    "status",
+    "production_code_modified",
+    "contracts_touched",
+    "files_read",
+    "files_changed",
+    "findings_opened",
+    "findings_closed",
+    "risks"
+  ],
+  "properties": {
+    "checkpoint": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "BLOCKED",
+        "COMPLETE",
+        "DEFERRED",
+        "SUPERSEDED"
+      ]
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "completed_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_anchor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "upstream_anchor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "production_code_modified": {
+      "type": "boolean"
+    },
+    "contracts_touched": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files_read": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings_opened": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings_closed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rollback": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

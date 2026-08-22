@@ -135,6 +135,9 @@
  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
   <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
  </a>
+ <a href="https://scikit-plots-learn.readthedocs.io/en/latest" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20readthedocs.io-brightgreen&logo=webauthn">
+ </a>
  <br>
  <!-- Zenodo -->
  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
@@ -264,7 +267,8 @@ Run `scikitplot.mcp` directly on your system or inside Docker; Docker changes ho
 
 ```bash
 # (experimental) Force activate environment
-docker run -it --rm scikitplot/scikit-plots -p 8000:8000 -ic "bash -ic 'python -m scikitplot.mcp --docker'"
+# docker run -it --rm scikitplot/scikit-plots -p 8000:8000 -ic "bash -ic 'python -m scikitplot.mcp --docker'"
+docker run -it --rm scikitplot/scikit-plots -p 8000:8000 -ic "bash -ic 'scikitplot mcp --docker'"
 ```
 
 **Note**: If port `8000` is currently in use, you can fallback to port `3000` using `-p 3000:8000`.
@@ -1295,7 +1299,9 @@ https://emojidb.org/
 
  𝄞 ✍︎ ✍🏻 ✍️ 🪶 ✎ᝰ.📓🗒 ˎˊ˗ 🖍 𓂃✍︎  𓂃🖌 ✒️ ⬇ ↓ 🖋  🖌 🗝 🕊 🛡 🎧 🆔 🪪
 
- 🐳 🦭 🐋 🐬 🐟 🧩 🐞 🦋 🪲 🕷️ 🐛 🦠 🦖 🦗 🐢 🦎 🦆 🦢 🦇 🪳 🦜 🐱
+ 🖶 🖨️ 📰 📄 📚 🏢 🏭
+
+ 🐳 🦭 🐋 🐬 🐟 🧩 🐞 🦋 🪲 🕷️ 🐛 🦠 🦖 🦗 🐢 🦎 🦆 🦢 🦇 🪳 🦜 🐱 🐈
 
  𓀀 🕷 𐂂 𓃶 𓃡 𓃠 𓆝 𓆟 𓆞 𓆝 𓆟 𓅰 𓅬 𓅭 𓅮 𓅯 𓆝 𓆟 𓆞
 

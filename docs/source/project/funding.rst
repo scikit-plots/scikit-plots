@@ -37,6 +37,10 @@ scikit-plots project.
         <td>CPU time on their Continuous Integration servers</td>
       </tr>
       <tr>
+        <td><a href="https://about.readthedocs.com//">Read the Docs</a></td>
+        <td>CPU time on their Continuous Integration servers</td>
+      </tr>
+      <tr>
         <td><a href="https://www.github.com">GitHub</a></td>
         <td>Teams account</td>
       </tr>

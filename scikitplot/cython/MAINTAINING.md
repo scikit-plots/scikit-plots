@@ -1,145 +1,79 @@
-<!--
-Authors: The scikit-plots developers
-SPDX-License-Identifier: BSD-3-Clause
--->
 # Maintaining `scikitplot.cython`
 
-The single entry point for anyone changing this subsystem. It records **how** to
-make a safe change, **why** the current design is the way it is, and **what** has
-already been reviewed — so that hard-won knowledge lives with the code and is
-verified against it rather than rotting in a scratch file.
+Entry point. **Self-contained**: a fresh session needs no chat history.
 
-This file is guarded by `tests/test__maintainer_docs.py`: the test fails if a
-referenced document is missing or if a reviewed finding is dropped from the log.
+```text
+archive: scikit-plots.zip
+sha256:  59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950
+```
 
-## Document map
+## Position: fully independent
 
-| Document | Audience | Purpose |
-|---|---|---|
-| `DEV_NOTES.md` | maintainers | Design goals, packaging, reuse-after-restart. |
-| `OPERATIONS.md` | operators | Trust model, cache recovery, concurrency, batch, unsupported platforms. Snippets are doctested (`_operations_examples.py`). |
-| `ADR-0001-runtime-lifecycle.md` | maintainers | Decision record: native-extension lifecycle (unload / free-threaded / subinterpreter / fork). |
-| `MAINTAINING.md` (this file) | maintainers | Workflow, prevention rules, review log, ADR index. |
+**No sibling submodule imports it, and it imports none** — verified by AST. It
+can be reviewed, changed and released without coordinating with another campaign.
 
-## Change workflow (reusable)
+But its dependency is unusual. The other five depend on *code*; this one depends
+on a **toolchain** (Cython, a C compiler) and on **caller-supplied source**.
 
-Every non-trivial change to this subsystem follows the same loop. It is
-deliberately the same rhythm used for the R1–R30 hardening campaign:
+> Every other submodule processes data. This one processes *programs*.
 
-1. **Reproduce / ground.** Reproduce the defect or write the failing test first.
-   For a lifecycle/concurrency claim, prove it with a real process/thread
-   schedule, not a single-process mock (see rule L-29).
-2. **Root-cause, minimal fix.** Change the fewest lines in the fewest files.
-   Prefer a localized fix over a broad refactor.
-3. **Permanent regression test.** Encode the corrected contract. If a test
-   codified the *old, broken* behavior, rewrite it to the correct contract —
-   do not delete it.
-4. **Always-green gate.** The full suite must pass before packaging:
-   `PYTHONPATH=. python -m pytest -q scikitplot/cython/tests`.
-5. **Public-surface parity.** New public symbol? Update `__init__.pyi` the same
-   change. The AST guard (`tests/test__stub_parity.py`) enforces this.
-6. **Document the "why."** A design decision → a new ADR. A trap that could
-   recur → a prevention rule below.
+## Read order
 
-## Prevention rules (lessons that must not recur)
+1. `_maintenance/DEPENDENCY_MAP.md` — why "no edges" still means an unusual dependency
+2. `_maintenance/MAINTENANCE_MODEL.md`
+3. `_maintenance/TRACKER_LOGICAL.md` — **what single-process testing cannot prove**
+4. `_maintenance/TRACKER_PHYSICAL.md`
+5. `_maintenance/SUBMODULE_STRUCTURE.md`
+6. `_maintenance/VERIFICATION.md`
 
-Each rule is *specific, actionable, and verifiable*. Read these before touching
-the named area.
+Still authoritative and **tested against the code**:
+`_maintenance/ADR-0001-runtime-lifecycle.md`,
+`_maintenance/OPERATIONS.md`, `_maintenance/DEV_NOTES.md`.
 
-- **L-SEC (strict must be operative).** A security master-switch (`strict`) must
-  actually govern the guards it implies. Verify by asserting a permissive value
-  flips the derived flags and an explicit per-flag value overrides the switch.
-  *Area: `_security.py`.*
-- **L-CACHE (key from the real toolchain).** Cache keys must fold the toolchain
-  the build backend *actually* selects (resolved compiler + ABI + free-threaded
-  flag), never a `PATH`/`sysconfig` guess. Verify by asserting a different
-  resolved compiler yields a different fingerprint. *Area: `_cache.py`,
-  `_profiles.py`.*
-- **L-CON (exclusive means exclusive).** A build lock must exclude across
-  *processes*. The staleness grace period must be **decoupled** from the wait
-  timeout — a non-blocking probe (`timeout_s=0`) must never reclaim a live lock.
-  Verify with a real two-process schedule (held → timeout, released → acquired).
-  *Area: `_lock.py`. See `ADR`-adjacent test `test__interprocess_exclusivity.py`.*
-- **L-BATCH (report, don't vanish).** A batch that commits irreversible side
-  effects (imported modules) must return a structured partial result with a
-  resume token on failure, not fail-fast-and-vanish. Never fake rollback of
-  something that cannot be undone. *Area: `_public.py`, `_result.py`.*
-- **L-VALIDATE (validate, don't coerce).** External metadata that drives builds
-  must be validated strictly against a schema (reject unknown versions,
-  wrong-typed entries, uncontained paths) — silent coercion hides malformed
-  input. Keep a lenient default only as explicit opt-out. *Area:
-  `_templates_api.py`.*
-- **L-OBS (typed diagnostics, bounded logs).** Capture tool output in a *bounded*
-  buffer and attach a typed diagnostic (phase, module, versions, status, log
-  tail) to failures; preserve the human-readable message for compatibility.
-  *Area: `_builder.py`, `_budget.py`.*
-- **L-ABI (declare, then guard).** For behavior that cannot be universally
-  guaranteed (unload, free-threaded, subinterpreter, fork), publish an explicit
-  capability record and a guard that errors by default with an opt-in — never a
-  false promise (`supports_unload` is `False`). *Area: `_profiles.py`,
-  `ADR-0001`.*
-- **L-PERF (remove redundant work; defer risky indexes).** Optimize by
-  eliminating duplicated/unbounded work (dedupe normalized paths *after*
-  validation; give traversal a budget). Defer a consistency-critical cache
-  index until its benchmark justifies a dedicated design — a manifest must never
-  become a second source of truth. *Area: `_public.py`, `_gc.py`.*
-- **L-DOC (tested docs).** Operational docs must be executable: pair prose with
-  doctested examples and a test that validates the Markdown, so claims cannot
-  drift from the implementation. *Area: `OPERATIONS.md`,
-  `_operations_examples.py`.*
+## Run this first
 
-## Review log — deep semantic review (R1–R30)
+```console
+$ python scikitplot/cython/_maintenance/check_trackers.py
+$ python -m pytest scikitplot/cython -q -p no:cacheprovider
+```
 
-All 30 findings from the deep semantic review are closed. Each was a
-self-contained change with a regression test and an always-green gate; all fixes
-are cumulative in the shipped package.
+**Read the skip count.** The suite needs a working Cython and C toolchain, and a
+skipped build test looks like a passing one under `-q`.
 
-| Finding | Area | Correction |
-|---|---|---|
-| CYTHON-CON-001 | lock | Exclusive mkdir + owner token. |
-| CYTHON-CACHE-001 | cache | Staged build + atomic publish. |
-| CYTHON-GC-001 | gc | GC under lock; skip held keys. |
-| CYTHON-LOAD-002 | loader | Atomic artifact staging. |
-| CYTHON-SEC-001 | security | Single validation choke point. |
-| CYTHON-API-001 | public | Source `.pyx` via trusted include dirs. |
-| CYTHON-CACHE-002 | cache | Basename containment + artifact hash. |
-| CYTHON-PIN-001 | pins | Typed error + atomic pin writes. |
-| CYTHON-WASM-001 | profiles | Platform capabilities + asset check. |
-| CYTHON-LOAD-001 | loader | Import transaction (sys.modules). |
-| CYTHON-CACHE-003 | cache | Toolchain fingerprint. |
-| CYTHON-TPL-001 | templates | Path containment. |
-| CYTHON-PKG-001 | builder | Dotted-name validation. |
-| CYTHON-CON-002 | builder | setuptools / registry thread safety. |
-| CYTHON-RES-001 | budget | Build budget + bounded buffer + timeout. |
-| CYTHON-CACHE-004 | public | Transactional export. |
-| CYTHON-COMP-001 | compiler | Compiler capabilities + spec version. |
-| CYTHON-TYP-001 | stub | Stub parity + AST guard. |
-| CYTHON-SEC-002 | security | `allow_*` default None; strict operative. |
-| CYTHON-SCH-001 | cache | Meta schema version + reuse gate. |
-| CYTHON-API-002 | api | Stability tiers. |
-| CYTHON-API-003 | utils | ASCII-only sanitize + collision suffix. |
-| CYTHON-BATCH-001 | public | Batch partial result + resume token. |
-| CYTHON-DOC-001 | docs | Tested operational guide. |
-| CYTHON-PORT-001 | profiles | Resolved compiler keys the cache. |
-| CYTHON-TPL-002 | templates | Strict metadata validation. |
-| CYTHON-OBS-001 | builder | Typed diagnostics + bounded capture. |
-| CYTHON-ABI-001 | profiles | Runtime lifecycle contract + ADR-0001. |
-| CYTHON-TEST-001 | lock | Decouple staleness; true 2-process test (fixed a real exclusivity bug). |
-| CYTHON-PERF-001 | public/gc | Normalized-path dedup + bounded traversal. |
+## Current state
 
-## Adding an ADR
+```text
+source  191 files /  15898 LOC     (includes 306 template files / 5 709 LOC)
+tests    45 files /  11492 LOC     ratio 0.72
+open findings: 5   (Y00 input — revalidate, do not accept)
+```
 
-Record any decision that is expensive to reverse or non-obvious. Copy the shape
-of `ADR-0001-runtime-lifecycle.md`: **Status · Context · Decision · Consequences
-· Alternatives considered**. Number sequentially (`ADR-0002-...`) and add a row
-to the document map above.
+Two readings of the same tree, both correct and worth knowing:
 
-## Deferred to repo / CI (intentionally not in the installed package)
+* the **gate** counts `_templates/` as source — it is compilable source;
+* the **docs** count it separately — 306 files, 22 families, treated as *test
+  inputs* by `test__templates_containment.py`.
 
-The following are contributor-process or environment concerns and live at the
-repository root, not in the wheel: the full review-campaign playbook; Windows CI
-jobs (rather than skips); crash / `ENOSPC` fault-injection; a free-threaded /
-subinterpreter subprocess matrix on special CPython builds; a live JupyterLite
-test; `package_data` globs that ship `OPERATIONS.md` / `ADR-*` / `_templates/**`
-in the wheel; a `mypy`/`pyright` type-check gate on the stub; and a future
-indexed cache manifest with a 100k-entry benchmark (see rule L-PERF).
+Excluding templates the ratio is **0.95, the project's highest**; including them
+it is 0.72. The gate uses the conservative reading.
+
+**Do not begin implementation.** Establish the big picture first.
+
+## The one rule
+
+> Never let an operation succeed on **unvalidated input**, and never leave a
+> resource in a state the next process cannot reason about.
+
+The second half is not theoretical. A non-blocking lock probe with `timeout_s=0`
+once **destroyed live locks held by other processes** — a probe that answered its
+question by breaking the thing it was asking about, invisible to every
+single-process test.
+
+## Why this submodule matters beyond itself
+
+Its 30-finding campaign **established the methodology every other submodule now
+uses**: zero hallucination, root-cause fixes only, an always-green gate,
+per-turn evidence, guard tests that make findings permanently verifiable.
+
+It was reviewed first and documented last, which is why this set adds little to
+its verification and much to the record of why its tests exist.

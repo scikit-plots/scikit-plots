@@ -45,6 +45,7 @@ import pathlib
 import sqlite3
 import threading
 from dataclasses import dataclass, field  # noqa: F401
+from enum import unique
 from typing import Any, Dict, Iterator, List, Optional, Sequence  # noqa: F401
 
 from .._atomic import atomic_write_path
@@ -53,11 +54,13 @@ from .._schema import (  # noqa: F401
     CorpusDocument,
     SectionType,
     SourceType,
+    _StrEnumBase,
 )
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "FilterSupport",
     "InMemoryStorage",
     "JSONLStorage",
     "QueryResult",
@@ -89,6 +92,10 @@ class StorageQuery:
         Filter by ``SectionType`` value string. Default: ``None``.
     collection_id : str or None, optional
         Filter by corpus collection identifier. Default: ``None``.
+    parent_doc_id : str or None, optional
+        Filter to the direct children of this ``doc_id``.  Without this the
+        document hierarchy was recorded but unqueryable -- "give me the
+        children of X" was inexpressible (finding F-R08-02). Default: ``None``.
     full_text : str or None, optional
         Full-text search string. Supported by ``SQLiteStorage`` (FTS5)
         only; ignored by ``InMemoryStorage`` and ``JSONLStorage``.
@@ -104,9 +111,48 @@ class StorageQuery:
     language: str | None = None
     section_type: str | None = None
     collection_id: str | None = None
+    parent_doc_id: str | None = None
     full_text: str | None = None
     limit: int = 100
     offset: int = 0
+
+
+@unique
+class FilterSupport(_StrEnumBase):
+    """How a backend handled one requested filter.
+
+    Notes
+    -----
+    **User-focused.**  Every backend answers, per filter, exactly one of these.
+    ``SUPPORTED`` and ``EMULATED`` both mean the filter *was applied*; they
+    differ in ranking quality and cost.  ``REJECTED`` means the query did not
+    run.
+
+    **Developer-focused.**  Silently ignoring a filter is deliberately **not**
+    one of the options.  ``StorageQuery.full_text`` used to be documented as
+    *"ignored by InMemoryStorage and JSONLStorage"*, and on a three-document
+    corpus where one matched, both returned **all three** with no exception,
+    warning or status (finding F-R07-01).
+
+    That is worse than the empty-result collapse found elsewhere in this
+    codebase: an unsupported filter *over*-reports, which looks like success,
+    and any downstream ``top_k`` or threshold then operates on the wrong
+    candidate set.
+
+    ``EMULATED`` is a first-class state rather than a hidden detail because
+    ``InMemoryStorage`` genuinely *can* answer ``full_text`` -- it holds the
+    text.  The honest answer is "supported by substring scan, not FTS5
+    ranking", and hiding that difference is how F-R07-01 happened.
+    """
+
+    SUPPORTED = "supported"
+    """Executed natively by the backend."""
+
+    EMULATED = "emulated"
+    """Executed with equivalent semantics by a fallback path, declared here."""
+
+    REJECTED = "rejected"
+    """Refused; the query did not run."""
 
 
 @dataclass(frozen=True)
@@ -122,16 +168,61 @@ class QueryResult:
         Total number of matching documents (before ``limit``/``offset``).
     query : StorageQuery
         The query that produced this result (for traceability).
+    filter_support : dict[str, FilterSupport], optional
+        Per-filter account of how each *requested* filter was handled.  Filters
+        the caller did not set do not appear.
+
+    Notes
+    -----
+    **Developer.**  ``filter_support`` is a required part of the result rather
+    than an optional courtesy, so a backend cannot quietly drop a filter it does
+    not implement (ADR-R07-002).
+
+    Examples
+    --------
+    >>> # a caller can assert the filter actually ran
+    >>> # result.filter_support["full_text"] is FilterSupport.EMULATED
     """
 
     documents: list[CorpusDocument]
     total: int
     query: StorageQuery
+    filter_support: dict[str, FilterSupport] = field(default_factory=dict)
 
     @property
     def has_more(self) -> bool:
         """Return ``True`` if there are more pages beyond this one."""
         return self.query.offset + len(self.documents) < self.total
+
+    @property
+    def emulated_filters(self) -> list[str]:
+        """Names of filters answered by a fallback path rather than natively."""
+        return sorted(
+            name
+            for name, support in self.filter_support.items()
+            if support is FilterSupport.EMULATED
+        )
+
+    def require_native(self) -> None:
+        """Raise if any requested filter was emulated rather than native.
+
+        Raises
+        ------
+        RuntimeError
+            If any filter reports :attr:`FilterSupport.EMULATED`.
+
+        Notes
+        -----
+        **User.**  Call this when emulation is not acceptable -- for example
+        when comparing ranking quality across backends, where a substring scan
+        and an FTS5 index are not interchangeable.
+        """
+        emulated = self.emulated_filters
+        if emulated:
+            raise RuntimeError(
+                f"query filters {emulated} were emulated, not executed "
+                f"natively by this backend"
+            )
 
 
 # ===========================================================================
@@ -238,8 +329,20 @@ def _dict_to_doc(data: dict[str, Any]) -> CorpusDocument:
     return CorpusDocument.from_dict(data)
 
 
-def _matches_query(doc: CorpusDocument, q: StorageQuery) -> bool:
-    """Return ``True`` if ``doc`` satisfies the non-full-text filters."""
+def _matches_query(  # ruff: ignore[too-many-return-statements]
+    doc: CorpusDocument,
+    q: StorageQuery,
+) -> bool:
+    """Return ``True`` if ``doc`` satisfies every requested filter.
+
+    Notes
+    -----
+    **Developer.**  ``full_text`` is applied here as a case-insensitive
+    substring scan over the document text.  It is *emulation*, not FTS5: there
+    is no stemming, no tokenisation and no relevance ranking.  Backends using
+    this matcher must therefore report ``full_text`` as
+    :attr:`FilterSupport.EMULATED`, never ``SUPPORTED`` (finding F-R07-01).
+    """
     if q.input_path and doc.input_path != q.input_path:
         return False
     if q.source_type and doc.source_type.value != q.source_type:
@@ -248,9 +351,54 @@ def _matches_query(doc: CorpusDocument, q: StorageQuery) -> bool:
         return False
     if q.section_type and doc.section_type.value != q.section_type:
         return False
-    if q.collection_id and doc.collection_id != q.collection_id:  # noqa: SIM103
+    if q.collection_id and doc.collection_id != q.collection_id:
         return False
+    if q.parent_doc_id and doc.parent_doc_id != q.parent_doc_id:
+        return False
+    if q.full_text:
+        text = getattr(doc, "text", "") or ""
+        if q.full_text.lower() not in text.lower():
+            return False
     return True
+
+
+#: Filters handled natively by the attribute matcher above.
+_NATIVE_ATTRIBUTE_FILTERS = (
+    "input_path",
+    "parent_doc_id",
+    "source_type",
+    "language",
+    "section_type",
+    "collection_id",
+)
+
+
+def _filter_support(
+    q: StorageQuery, *, full_text: FilterSupport
+) -> dict[str, FilterSupport]:
+    """Report how each *requested* filter was handled.
+
+    Parameters
+    ----------
+    q : StorageQuery
+        The query, inspected for which filters the caller actually set.
+    full_text : FilterSupport
+        How this backend handled ``full_text``.
+
+    Returns
+    -------
+    dict of str to FilterSupport
+        One entry per requested filter.  Unset filters are omitted, so a caller
+        can distinguish "not asked for" from "asked for and emulated".
+    """
+    support = {
+        name: FilterSupport.SUPPORTED
+        for name in _NATIVE_ATTRIBUTE_FILTERS
+        if getattr(q, name)
+    }
+    if q.full_text:
+        support["full_text"] = full_text
+    return support
 
 
 # ===========================================================================
@@ -333,8 +481,10 @@ class InMemoryStorage(StorageBase):
         """
         Filter documents by the query parameters.
 
-        Full-text search (``q.full_text``) is not supported — the
-        ``full_text`` field is ignored silently.
+        Full-text search (``q.full_text``) is **emulated** by a case-insensitive
+        substring scan and reported as :attr:`FilterSupport.EMULATED` -- there
+        is no stemming, tokenisation or relevance ranking.  It is never
+        silently ignored (finding F-R07-01).
 
         Parameters
         ----------
@@ -350,7 +500,12 @@ class InMemoryStorage(StorageBase):
         matching = [d for d in docs if _matches_query(d, q)]
         total = len(matching)
         page = matching[q.offset : q.offset + q.limit] if q.limit > 0 else []
-        return QueryResult(documents=page, total=total, query=q)
+        return QueryResult(
+            documents=page,
+            total=total,
+            query=q,
+            filter_support=_filter_support(q, full_text=FilterSupport.EMULATED),
+        )
 
     def count(self) -> int:
         """Return total stored document count in O(1)."""
@@ -558,7 +713,12 @@ class JSONLStorage(StorageBase):
 
         total = len(matching)
         page = matching[q.offset : q.offset + q.limit] if q.limit > 0 else []
-        return QueryResult(documents=page, total=total, query=q)
+        return QueryResult(
+            documents=page,
+            total=total,
+            query=q,
+            filter_support=_filter_support(q, full_text=FilterSupport.EMULATED),
+        )
 
     def count(self) -> int:
         """Return total stored document count in O(1)."""
@@ -587,6 +747,31 @@ CREATE TABLE IF NOT EXISTS corpus_documents (
     json_data       TEXT NOT NULL
 );
 """
+
+
+def _sqlite_has_fts5() -> bool:
+    """Return whether this SQLite build provides the FTS5 extension.
+
+    Notes
+    -----
+    **Developer.**  FTS5 is a *compile-time* SQLite option, not a guarantee
+    (unknown U-10).  A build without it cannot create ``corpus_fts``, so
+    ``full_text`` cannot be served natively -- and reporting ``SUPPORTED``
+    unconditionally would be exactly the unverified capability claim this
+    codebase has been correcting.  The probe is cheap and cached by the caller.
+    """
+    try:
+        conn = sqlite3.connect(":memory:")
+    except Exception:  # ruff: ignore[blind-except]  # pragma: no cover - defensive
+        return False
+    try:
+        conn.execute("CREATE VIRTUAL TABLE _probe USING fts5(x);")
+        return True
+    except sqlite3.Error:
+        return False
+    finally:
+        conn.close()
+
 
 _CREATE_FTS_SQL = """
 CREATE VIRTUAL TABLE IF NOT EXISTS corpus_fts
@@ -680,11 +865,21 @@ class SQLiteStorage(StorageBase):
         return conn
 
     def _init_schema(self) -> None:
-        """Create tables and indexes if they don't exist."""
+        """Create tables and indexes if they don't exist.
+
+        Notes
+        -----
+        **Developer.**  FTS5 availability is probed and recorded rather than
+        assumed, so ``query()`` can report ``full_text`` support truthfully on a
+        SQLite build compiled without the extension (unknown U-10).
+        """
+        #: Whether this SQLite build provides FTS5 (compile-time option).
+        self._has_fts5 = _sqlite_has_fts5()
         with self._lock, self._conn:
             self._conn.execute(_CREATE_TABLE_SQL)
-            self._conn.execute(_CREATE_FTS_SQL)
-            self._conn.execute(_DEDUP_FTS_SQL)
+            if self._has_fts5:
+                self._conn.execute(_CREATE_FTS_SQL)
+                self._conn.execute(_DEDUP_FTS_SQL)
             for idx_sql in _CREATE_INDEXES_SQL:
                 self._conn.execute(idx_sql)
 
@@ -870,7 +1065,21 @@ class SQLiteStorage(StorageBase):
             except Exception as exc:  # noqa: BLE001
                 logger.warning("SQLiteStorage.query: skipping malformed row: %s.", exc)
 
-        return QueryResult(documents=docs, total=total, query=q)
+        return QueryResult(
+            documents=docs,
+            total=total,
+            query=q,
+            # FTS5 is a compile-time option (U-10); report what this build
+            # actually provides rather than assuming it.
+            filter_support=_filter_support(
+                q,
+                full_text=(
+                    FilterSupport.SUPPORTED
+                    if self._has_fts5
+                    else FilterSupport.EMULATED
+                ),
+            ),
+        )
 
     def count(self) -> int:
         """Return total stored document count via fast SQL COUNT."""

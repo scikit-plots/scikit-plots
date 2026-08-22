@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_llm",
+  "source_anchor": {
+    "archive": "scikit-plots_20260821-211419_A02-current-ci-rebase-ready-applied.zip",
+    "sha256": "ba83b4f25ef9c2549956e727f54250a81a26800030b5156a3110455194338f49",
+    "lineage_archive": "scikit-plots(20260821-211419).zip",
+    "lineage_sha256": "4990b417e7d6309bc3ca2c4691ee735b1fcdf9e698c38a129908419ea80178d6",
+    "observed_date": "2026-08-22"
+  },
+  "upstreams": [
+    {
+      "name": "NVIDIA/sphinx-llm",
+      "role": "primary_architecture_and_vendor_base",
+      "commit": "2a971d7da6a5d7df81f7bff3612ee1822a060c17",
+      "describe": "v1.0.0-1-g2a971d7",
+      "archive_sha256": "4b3fc9173a67a4a93292639886d52afacf8eabc9f955477e6c2a8ae4d227c3e5",
+      "license": "Apache-2.0",
+      "local_path": "sphinx_llm/",
+      "lock_path": "sphinx_llm/vendor.lock.json",
+      "status": "UPSTREAM_PRESERVED_SOURCE_AND_PINNED_BEHAVIOR_GREEN",
+      "portable_baseline": "_maintenance/VENDOR_BASELINE.json",
+      "portable_manifest_sha256": "e19f91b85e2c6a130e772eaee6a4788cefd8391ba739c50d9471b57601229845",
+      "current_main_delta": "IDENTICAL_AT_2026_08_22",
+      "ci_corroboration": "_maintenance/UPSTREAM_CI_CORROBORATION.md",
+      "ci_test_run": {
+        "workflow": "Test",
+        "run_number": 211,
+        "run_id": 31871592483,
+        "status": "SUCCESS",
+        "commit": "2a971d7da6a5d7df81f7bff3612ee1822a060c17"
+      },
+      "ci_python_3_13_sphinx_9_job": {
+        "job_id": 94980976384,
+        "status": "SUCCEEDED",
+        "matrix": "Python 3.13 / Sphinx >=9,<10"
+      },
+      "ci_build_docs_run": {
+        "workflow": "Build Sphinx Docs",
+        "run_number": 275,
+        "run_id": 31871592444,
+        "status": "SUCCESS",
+        "jobs_completed": 5,
+        "commit": "2a971d7da6a5d7df81f7bff3612ee1822a060c17"
+      },
+      "ci_baseline": "_maintenance/UPSTREAM_CI_BASELINE.json",
+      "a01_proof_mode": "PINNED_UPSTREAM_CI_EQUIVALENT"
+    },
+    {
+      "name": "jdillard/sphinx-llms-txt",
+      "role": "curation_design_source",
+      "commit": "9d0660ba71c3c5dfe3023ebc2d281ddcb3070241",
+      "describe": "v0.7.1-5-g9d0660b",
+      "archive_sha256": "b932eec8b0ada1b12de4237602f27e46d59cd41c14201f8553b4d77bc24c7186",
+      "license": "MIT",
+      "status": "REFERENCE_ONLY"
+    }
+  ],
+  "physical": {
+    "implementation_status": "A02_CIRCLECI_INTEGRATED_CLOSURE_VERIFIER_READY_AWAITING_REAL_10_CELL_EXECUTION_A03_LOCKED",
+    "directories": [
+      "sphinx_llm",
+      "core",
+      "adapters",
+      "curation",
+      "compat",
+      "tests",
+      "upstream",
+      "_maintenance"
+    ],
+    "retired_placeholders": [
+      "upstream"
+    ],
+    "forbidden_runtime_dependencies": [
+      "_maintenance",
+      "tests",
+      "scikitplot._externals._sphinx_ext._sphinx_ai_assistant"
+    ],
+    "new_module_review_threshold_loc": 1500,
+    "vendored_tests": {
+      "path": "sphinx_llm/tests",
+      "python_files_including_init": 5,
+      "loc_including_init": 2809,
+      "execution_status": "GREEN_PINNED_UPSTREAM_CI_EQUIVALENT_LOCAL_EXACT_LOCK_ENVIRONMENT_BLOCKED",
+      "test_modules": 4,
+      "test_functions": 95,
+      "harness": "_maintenance/run_upstream_tests.py",
+      "harness_layout_status": "GREEN",
+      "upstream_docs_fixture": "_maintenance/upstream_test_fixture/docs/source",
+      "upstream_docs_fixture_files": 9,
+      "direct_vendor_path_execution": "INVALID_FOR_UPSTREAM_RELATIVE_DOCS_ASSUMPTION",
+      "environment_evidence": "_maintenance/UPSTREAM_TEST_ENVIRONMENT.json",
+      "environment_fixture": "_maintenance/upstream_test_environment/{pyproject.toml,uv.lock}",
+      "pinned_python": "3.13",
+      "preparer": "_maintenance/prepare_upstream_test_environment.py",
+      "lockset_evidence": "_maintenance/UPSTREAM_TEST_LOCKSET.json",
+      "selected_external_distributions": 50,
+      "current_environment_counts": {
+        "exact": 16,
+        "mismatched": 15,
+        "missing": 19
+      },
+      "upstream_ci_corroboration": "GREEN_TEST_211_PY313_SPHINX9_SUCCEEDED",
+      "local_exact_lock_status": "ENVIRONMENT_BLOCKED",
+      "upstream_ci_baseline": "_maintenance/UPSTREAM_CI_BASELINE.json",
+      "accepted_a01_proof_mode": "PINNED_UPSTREAM_CI_EQUIVALENT"
+    },
+    "files": [
+      {
+        "path": "__init__.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 46,
+        "responsibility": "outer Sphinx extension integration; selects downstream config-parity generator while preserving vendored core"
+      },
+      {
+        "path": "sphinx_llm/__init__.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 2,
+        "responsibility": "upstream package init"
+      },
+      {
+        "path": "sphinx_llm/docref.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 662,
+        "responsibility": "document reference/routing"
+      },
+      {
+        "path": "sphinx_llm/markdown_builder.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 79,
+        "responsibility": "Markdown sub-build"
+      },
+      {
+        "path": "sphinx_llm/summary.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 184,
+        "responsibility": "optional summary"
+      },
+      {
+        "path": "sphinx_llm/txt.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 1122,
+        "responsibility": "llms/page-output"
+      },
+      {
+        "path": "sphinx_llm/version.py",
+        "origin_classification": "UPSTREAM_PRESERVED",
+        "baseline_loc": 10,
+        "responsibility": "upstream version"
+      },
+      {
+        "path": "compat/__init__.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 2,
+        "responsibility": "downstream compatibility package"
+      },
+      {
+        "path": "compat/primary_build_context.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 251,
+        "responsibility": "capture/integrity-check/restore effective primary Sphinx config across child build"
+      },
+      {
+        "path": "compat/_child_config.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 54,
+        "responsibility": "child-only bootstrap restoring primary config before and after Sphinx config init"
+      },
+      {
+        "path": "compat/markdown_generator.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 158,
+        "responsibility": "Apache-2.0 NVIDIA-derived downstream generator shim with prominent local modification notice; vendor remains untouched"
+      },
+      {
+        "path": "tests/test_primary_build_context.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 130,
+        "responsibility": "dependency-light config snapshot/CLI/fail-closed unit tests"
+      },
+      {
+        "path": "tests/test_primary_config_override_integration.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 44,
+        "responsibility": "Sphinx integration regression for programmatic config override parity"
+      },
+      {
+        "path": "_maintenance/A02_MATRIX_PLAN.json",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 105,
+        "responsibility": "canonical provider-neutral 10-cell downstream parity execution plan"
+      },
+      {
+        "path": "_maintenance/run_a02_matrix.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 385,
+        "responsibility": "validate/aggregate per-cell A02 evidence and render advisory CI fragments"
+      },
+      {
+        "path": "_maintenance/ci/run_a02_cell.sh",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 97,
+        "responsibility": "minimal per-cell Sphinx environment install plus parity execution"
+      },
+      {
+        "path": "tests/test_a02_matrix_orchestrator.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 226,
+        "responsibility": "dependency-light matrix planning/aggregation/fingerprint/CI-gating regression tests"
+      },
+      {
+        "path": "_maintenance/A02_MATRIX_EXECUTION.md",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 170,
+        "responsibility": "human execution/CI integration contract for downstream parity matrix"
+      },
+      {
+        "path": "_maintenance/CIRCLECI_INTEGRATION_BASELINE.json",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 35,
+        "responsibility": "bounded public-main CircleCI source/integration evidence"
+      },
+      {
+        "path": "_maintenance/verify_a02_circleci_integration.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 192,
+        "responsibility": "dependency-light strict checked-in and structural-YAML candidate verifier for A02 CI wiring"
+      },
+      {
+        "path": "_maintenance/CIRCLECI_INTEGRATION.md",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 81,
+        "responsibility": "human contract for explicit one-shot A02 CircleCI execution"
+      },
+      {
+        "path": "_maintenance/verify_a02_closure_evidence.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 292,
+        "responsibility": "read-only post-CI artifact verifier; recomputes 10-cell aggregate and requires coherent CircleCI execution provenance before closure eligibility"
+      },
+      {
+        "path": "_maintenance/A02_CLOSURE_EVIDENCE.md",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 38,
+        "responsibility": "human contract for safe artifact verification and reviewed A02 closure"
+      },
+      {
+        "path": "_maintenance/schemas/a02-closure-decision.schema.json",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 214,
+        "responsibility": "schema for non-mutating A02 closure decision evidence"
+      },
+      {
+        "path": "tests/test_a02_closure_evidence.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 216,
+        "responsibility": "dependency-light closure bundle, recomputation, duplicate/traversal, non-mutation, and CircleCI provenance-consistency regression tests"
+      },
+      {
+        "path": "_maintenance/prepare_a02_reconciliation.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 317,
+        "responsibility": "read-only A02 human-reconciliation readiness receipt; requires genuine closure-eligible CircleCI evidence and pins target digests"
+      },
+      {
+        "path": "_maintenance/A02_RECONCILIATION_READINESS.md",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 32,
+        "responsibility": "human contract for non-mutating post-CI reconciliation preparation"
+      },
+      {
+        "path": "_maintenance/schemas/a02-reconciliation-readiness.schema.json",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 88,
+        "responsibility": "schema for A02 reconciliation-readiness receipt"
+      },
+      {
+        "path": "tests/test_a02_reconciliation_readiness.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 155,
+        "responsibility": "dependency-light tests for genuine evidence requirement, non-mutation, target digest pinning, and unsafe output refusal"
+      },
+      {
+        "path": "_maintenance/render_a02_circleci_rebase.py",
+        "origin_classification": "DOWNSTREAM_ONLY",
+        "baseline_loc": 225,
+        "responsibility": "read-only current-CI rebase renderer with parsed-YAML integration classification; separate candidate/diff only"
+      },
+      {
+        "path": "tests/test_a02_circleci_rebase.py",
+        "origin_classification": "DOWNSTREAM_TEST_ONLY",
+        "baseline_loc": 206,
+        "responsibility": "dependency-light tests for structural-YAML CircleCI rebase classification, refusal boundaries, and candidate verification"
+      }
+    ],
+    "vendor_baseline": {
+      "path": "_maintenance/VENDOR_BASELINE.json",
+      "portable_algorithm": "sha256-sorted-relative-file-digests-v1",
+      "aggregate_sha256": "e19f91b85e2c6a130e772eaee6a4788cefd8391ba739c50d9471b57601229845",
+      "upstream_preserved_files": 13,
+      "legacy_lock_portability": "PATH_DEPENDENT"
+    },
+    "upstream_compatibility": {
+      "evidence": "_maintenance/UPSTREAM_COMPATIBILITY_BASELINE.json",
+      "matrix_cells": 10,
+      "matrix_green": 10,
+      "status": "IMPLEMENTED_AWAITING_EXECUTABLE_CONFIG_PARITY",
+      "python_floor": "UPSTREAM_3_9_DOWNSTREAM_CORE_3_8_POLICY_DEFERRED",
+      "config_override_strategy": "DOWNSTREAM_COMPAT_INTEGRITY_CHECKED_CONFIG_SNAPSHOT",
+      "unit_tests": "GREEN_10_PASSED",
+      "integration_gate": "CIRCLECI_INTEGRATED_REBASE_RENDERER_CLOSURE_AND_RECONCILIATION_READINESS_READY_NOT_RUN_0_OF_10_GREEN",
+      "vendor_files_modified": false,
+      "closure_evidence": "GREEN_READ_ONLY_RECOMPUTE_AND_MATCH_11_TESTS_CIRCLECI_PROVENANCE_BOUND_PLUS_RECONCILIATION_RECEIPT_6_TESTS_PLUS_REBASE_7_TESTS"
+    }
+  },
+  "logical_contracts": [
+    {
+      "id": "SLLM-C01",
+      "name": "UpstreamCore",
+      "owner": "sphinx_llm/",
+      "status": "HOLDS",
+      "invariant": "NVIDIA-compatible behavior remains isolated and synchronizable.",
+      "verification": "A01 vendor/tests/license byte parity + docs/project/lock/workflow fixture parity + staged-layout GREEN + official pinned NVIDIA Python-3.13/Sphinx-9 CI SUCCESS; local exact-lock reproduction remains ENVIRONMENT_BLOCKED but is not mislabeled GREEN; A02 pinned upstream CI matrix 10/10 GREEN, but downstream semantic config-override parity remains a separate blocker"
+    },
+    {
+      "id": "SLLM-C02",
+      "name": "SemanticBuild",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Canonical Markdown is built from resolved Sphinx semantics, not final HTML.",
+      "verification": "Sphinx fixture differential tests"
+    },
+    {
+      "id": "SLLM-C03",
+      "name": "MarkdownPageRouting",
+      "owner": "core/",
+      "status": "PARTIAL",
+      "invariant": "html/dirhtml/suffix modes map each document deterministically to Markdown URLs/files.",
+      "verification": "A02 preserved upstream suite exercises html/dirhtml, file/url/auto/both/replace suffix modes and published link locations across the successful pinned matrix"
+    },
+    {
+      "id": "SLLM-C04",
+      "name": "NodeAdapterRegistry",
+      "owner": "adapters/",
+      "status": "PLANNED",
+      "invariant": "Known custom semantic nodes are rendered by explicit adapters; registration is inspectable.",
+      "verification": "registry unit tests"
+    },
+    {
+      "id": "SLLM-C05",
+      "name": "DirectiveCompatibility",
+      "owner": "adapters/ + tests/roots/test-llm-directives",
+      "status": "PLANNED",
+      "invariant": "Enabled extensions lose no unexplained semantic content.",
+      "verification": "compatibility report unsupported==0"
+    },
+    {
+      "id": "SLLM-C06",
+      "name": "CurationPolicy",
+      "owner": "curation/",
+      "status": "PLANNED",
+      "invariant": "Inclusion/exclusion/order/code/size behavior is deterministic and separately configurable.",
+      "verification": "curation tests"
+    },
+    {
+      "id": "SLLM-C07",
+      "name": "LlmsIndex",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "llms.txt is small, semantic, link-based, described, and deterministic.",
+      "verification": "golden/parser tests"
+    },
+    {
+      "id": "SLLM-C08",
+      "name": "LlmsFull",
+      "owner": "curation/",
+      "status": "PLANNED",
+      "invariant": "llms-full.txt is optional, bounded, never silently truncated, and reports skip/note policy.",
+      "verification": "size-policy tests"
+    },
+    {
+      "id": "SLLM-C09",
+      "name": "ArtifactManifest",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Every represented document has a machine-readable inventory record.",
+      "verification": "manifest schema validation"
+    },
+    {
+      "id": "SLLM-C10",
+      "name": "CompatibilityReport",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Node classes, handling mode, unknowns, and losses are counted and reviewable.",
+      "verification": "compatibility schema + zero-loss gate"
+    },
+    {
+      "id": "SLLM-C11",
+      "name": "Provenance",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Each artifact records source kind, fidelity, hashes, transforms, warnings, and generation origin.",
+      "verification": "provenance schema tests"
+    },
+    {
+      "id": "SLLM-C12",
+      "name": "SummaryGeneration",
+      "owner": "sphinx_llm/ + core/",
+      "status": "PARTIAL",
+      "invariant": "Optional LLM summaries are opt-in, credential-safe, cached, provenance-recorded, and fallback-safe.",
+      "verification": "A02 pinned upstream 10-cell matrix executes summary/cache/security tests including html/dirhtml and parallel/sequential modes; A10 still owns downstream provenance/provider hardening"
+    },
+    {
+      "id": "SLLM-C13",
+      "name": "HtmlCompatibilityFallback",
+      "owner": "compat/",
+      "status": "PLANNED",
+      "invariant": "Static generated HTML without canonical Sphinx representation can be converted offline and labeled compatibility fidelity.",
+      "verification": "fallback fixture tests"
+    },
+    {
+      "id": "SLLM-C14",
+      "name": "ConsumerBoundary",
+      "owner": "core/ + published artifacts",
+      "status": "PLANNED",
+      "invariant": "Runtime consumers use static artifacts; any Python build-time consumer uses only an explicit public facade, never private vendor internals.",
+      "verification": "API/import-surface + static-consumer tests"
+    },
+    {
+      "id": "SLLM-C15",
+      "name": "DiscoveryLinks",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Published HTML advertises canonical Markdown and applicable llms.txt without exposing secrets.",
+      "verification": "HTML metadata tests"
+    },
+    {
+      "id": "SLLM-C16",
+      "name": "LocaleVersionRouting",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Version/language builds cannot cross-link to the wrong artifact set.",
+      "verification": "matrix build tests"
+    },
+    {
+      "id": "SLLM-C17",
+      "name": "RawContentSafety",
+      "owner": "adapters/",
+      "status": "PLANNED",
+      "invariant": "Executable/raw browser markup cannot pass into agent Markdown without explicit sanitization policy.",
+      "verification": "malicious raw-node fixtures"
+    },
+    {
+      "id": "SLLM-C18",
+      "name": "OptionalDependencyBoundary",
+      "owner": "core/",
+      "status": "PLANNED",
+      "invariant": "Missing optional generation/provider dependencies degrade explicitly without breaking deterministic representation.",
+      "verification": "dependency-blocker tests"
+    },
+    {
+      "id": "SLLM-C19",
+      "name": "PrimaryBuildSemanticContext",
+      "owner": "compat/ + upstream integration boundary",
+      "status": "PARTIAL",
+      "invariant": "The Markdown sub-build receives every primary-build semantic input required to resolve the same document content, including tags, confdir, and explicit config overrides.",
+      "verification": "A02 upstream tags/confdir GREEN; downstream integrity-checked config snapshot shim implemented outside vendor; 10 config-transfer tests + 14 matrix/orchestration tests + 11 closure/provenance tests + 6 reconciliation-readiness tests GREEN; dedicated opt-in CircleCI workflow and read-only receipt preparer present; real downstream parity remains 0/10 GREEN and A03 stays locked."
+    }
+  ]
+}

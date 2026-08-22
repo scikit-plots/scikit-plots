@@ -1135,7 +1135,7 @@ class AudioReader(DocumentReader):
     Build a corpus of Beethoven recordings and a book of music notes.
     Use Whisper ASR to transcribe audio segments (or provide companion
     ``.lrc`` files with lyrics). Each audio segment carries ``timecode_start``
-    and ``timecode_end`` for temporal alignment. Use ``SimilarityIndex``
+    and ``timecode_end`` for temporal alignment. Use ``RetrievalIndex``
     with ``MatchMode.SEMANTIC`` to find which book passages match which
     audio segments — like Shazam for text-to-audio alignment.
 
@@ -1148,7 +1148,7 @@ class AudioReader(DocumentReader):
     with a classifier that labels sounds (``"bird"``, ``"donkey"``,
     ``"cat"``, ``"dog"``, ``"rooster"``). Each chunk carries
     ``metadata["audio_label"]`` and a text description. Use
-    ``SimilarityIndex`` with ``MatchMode.KEYWORD`` to match labels
+    ``RetrievalIndex`` with ``MatchMode.KEYWORD`` to match labels
     against sentences in *The Town Musicians of Bremen*.
 
     **Chunk metadata keys (companion):**

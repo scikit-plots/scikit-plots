@@ -9,7 +9,7 @@ Tests for scikitplot.corpus._normalizers._text_normalizer
 
 Coverage
 --------
-* :class:`NormalizerConfig` — construction, defaults, ``__post_init__``
+* :class:`TextNormalizerConfig` — construction, defaults, ``__post_init__``
   validation, ``steps`` auto-derivation, invalid unicode_form,
   negative min_length, custom_pipeline, explicit ``steps`` override.
 * :func:`normalize_text` — each step in isolation (unicode, ligatures,
@@ -31,13 +31,14 @@ Run with::
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from unittest.mock import patch
 
 import pytest
 
-from .._text_normalizer import NormalizerConfig, TextNormalizer, normalize_text
+from .._text_normalizer import TextNormalizerConfig, TextNormalizer, normalize_text
 
 
 # ---------------------------------------------------------------------------
@@ -73,19 +74,27 @@ _OE = "\u0153"   # œ → oe
 _AE = "\u00e6"   # æ → ae
 
 
+# python -m pytest \
+#   scikitplot/corpus/_normalizers/tests/test__text_normalizer.py \
+#   -ra --maxfail=0
+
 # ===========================================================================
-# NormalizerConfig — construction and validation
+# TextNormalizerConfig — construction and validation
 # ===========================================================================
+# python -m pytest \
+#   scikitplot/corpus/_normalizers/tests/test__text_normalizer.py \
+#   -k "equality or config" \
+#   -vv --maxfail=0
 
 
 class TestNormalizerConfig:
 
     def test_default_unicode_form_is_nfkc(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert cfg.unicode_form == "NFKC"
 
     def test_defaults_booleans(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert cfg.expand_ligatures is True
         assert cfg.fix_hyphenation is True
         assert cfg.collapse_whitespace is True
@@ -93,11 +102,11 @@ class TestNormalizerConfig:
         assert cfg.lowercase is False
 
     def test_default_min_length_is_one(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert cfg.min_length == 1
 
     def test_default_custom_pipeline_empty(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert cfg.custom_pipeline == ()
 
     # ------------------------------------------------------------------
@@ -105,14 +114,14 @@ class TestNormalizerConfig:
     # ------------------------------------------------------------------
 
     def test_steps_auto_derived_all_on(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert isinstance(cfg.steps, list)
         # All default-true steps must appear.
         for step in ("unicode", "ligatures", "control_chars", "hyphenation", "whitespace"):
             assert step in cfg.steps
 
     def test_steps_auto_derived_excludes_disabled_steps(self) -> None:
-        cfg = NormalizerConfig(
+        cfg = TextNormalizerConfig(
             expand_ligatures=False,
             fix_hyphenation=False,
             lowercase=False,
@@ -124,23 +133,23 @@ class TestNormalizerConfig:
         assert "custom" not in cfg.steps
 
     def test_steps_auto_derived_includes_lowercase_when_enabled(self) -> None:
-        cfg = NormalizerConfig(lowercase=True)
+        cfg = TextNormalizerConfig(lowercase=True)
         assert "lowercase" in cfg.steps
 
     def test_steps_auto_derived_includes_custom_when_pipeline_nonempty(self) -> None:
-        cfg = NormalizerConfig(custom_pipeline=(str.strip,))
+        cfg = TextNormalizerConfig(custom_pipeline=(str.strip,))
         assert "custom" in cfg.steps
 
     def test_steps_explicit_override_respected(self) -> None:
-        cfg = NormalizerConfig(steps=["whitespace"])
+        cfg = TextNormalizerConfig(steps=["whitespace"])
         assert cfg.steps == ["whitespace"]
 
     def test_steps_explicit_empty_list(self) -> None:
-        cfg = NormalizerConfig(steps=[])
+        cfg = TextNormalizerConfig(steps=[])
         assert cfg.steps == []
 
     def test_steps_order_follows_pipeline_order(self) -> None:
-        cfg = NormalizerConfig(lowercase=True)
+        cfg = TextNormalizerConfig(lowercase=True)
         expected_order = [
             "unicode", "ligatures", "control_chars",
             "hyphenation", "whitespace", "lowercase",
@@ -156,35 +165,60 @@ class TestNormalizerConfig:
 
     def test_invalid_unicode_form_raises(self) -> None:
         with pytest.raises(ValueError, match="unicode_form"):
-            NormalizerConfig(unicode_form="INVALID")
+            TextNormalizerConfig(unicode_form="INVALID")
 
     def test_negative_min_length_raises(self) -> None:
         with pytest.raises(ValueError, match="min_length"):
-            NormalizerConfig(min_length=-1)
+            TextNormalizerConfig(min_length=-1)
 
     def test_zero_min_length_accepted(self) -> None:
-        cfg = NormalizerConfig(min_length=0)
+        cfg = TextNormalizerConfig(min_length=0)
         assert cfg.min_length == 0
 
     def test_empty_unicode_form_disables_step(self) -> None:
-        cfg = NormalizerConfig(unicode_form="")
+        cfg = TextNormalizerConfig(unicode_form="")
         assert "unicode" not in cfg.steps
 
     def test_all_unicode_forms_accepted(self) -> None:
         for form in ("NFC", "NFD", "NFKC", "NFKD", ""):
-            cfg = NormalizerConfig(unicode_form=form)
+            cfg = TextNormalizerConfig(unicode_form=form)
             assert cfg.unicode_form == form
 
     def test_frozen_immutable(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         with pytest.raises((AttributeError, TypeError)):
             cfg.lowercase = True  # type: ignore[misc]
 
-    def test_equality_ignores_steps_list(self) -> None:
-        """Two configs differing only in ``steps`` must compare equal."""
-        cfg1 = NormalizerConfig(steps=["unicode"])
-        cfg2 = NormalizerConfig(steps=["whitespace"])
-        # steps is excluded from hash/compare (hash=False, compare=False).
+    def test_equality_same_steps(self) -> None:
+        cfg1 = TextNormalizerConfig(steps=["unicode", "whitespace"])
+        cfg2 = TextNormalizerConfig(steps=["unicode", "whitespace"])
+        assert cfg1 == cfg2
+
+    def test_equality_includes_steps_list(self) -> None:
+        cfg1 = TextNormalizerConfig(steps=["unicode"])
+        cfg2 = TextNormalizerConfig(steps=["whitespace"])
+        # steps is excluded from hash (hash=False).
+        assert cfg1 != cfg2
+
+    def test_equality_steps_order_is_semantic(self) -> None:
+        cfg1 = TextNormalizerConfig(steps=["unicode", "whitespace"])
+        cfg2 = TextNormalizerConfig(steps=["whitespace", "unicode"])
+        assert cfg1 != cfg2
+
+    def test_equality_uses_sanitized_steps(self) -> None:
+        cfg1 = TextNormalizerConfig(
+            steps=[
+                "unicode",
+                "bad_step",
+                "whitespace",
+            ]
+        )
+        cfg2 = TextNormalizerConfig(
+            steps=[
+                "unicode",
+                "whitespace",
+            ]
+        )
         assert cfg1 == cfg2
 
 
@@ -201,21 +235,25 @@ class TestNormalizeText:
 
     def test_unicode_nfkc_normalises_fullwidth(self) -> None:
         # Full-width digit U+FF10 → ASCII '0'
-        result = normalize_text("\uff10", config=NormalizerConfig(unicode_form="NFKC"))
+        result = normalize_text("\uff10", config=TextNormalizerConfig(unicode_form="NFKC"))
         assert result == "0"
 
     def test_unicode_disabled_leaves_text_unchanged(self) -> None:
         text = "\uff10\uff11"
         result = normalize_text(
             text,
-            config=NormalizerConfig(unicode_form="", expand_ligatures=False,
-                                    strip_control_chars=False, fix_hyphenation=False,
-                                    collapse_whitespace=False),
+            config=TextNormalizerConfig(
+                unicode_form="",
+                expand_ligatures=False,
+                strip_control_chars=False,
+                fix_hyphenation=False,
+                collapse_whitespace=False,
+            ),
         )
         assert result == text
 
     def test_unicode_nfc_accepted(self) -> None:
-        result = normalize_text("café", config=NormalizerConfig(unicode_form="NFC"))
+        result = normalize_text("café", config=TextNormalizerConfig(unicode_form="NFC"))
         assert isinstance(result, str)
 
     # ------------------------------------------------------------------
@@ -223,47 +261,51 @@ class TestNormalizeText:
     # ------------------------------------------------------------------
 
     def test_fi_ligature_expanded(self) -> None:
-        result = normalize_text(f"ef{_FI}cient", config=NormalizerConfig())
+        result = normalize_text(f"ef{_FI}cient", config=TextNormalizerConfig())
         assert _FI not in result
         assert "fi" in result
 
     def test_fl_ligature_expanded(self) -> None:
-        result = normalize_text(f"e{_FL}uent", config=NormalizerConfig())
+        result = normalize_text(f"e{_FL}uent", config=TextNormalizerConfig())
         assert _FL not in result
         assert "fl" in result
 
     def test_ff_ligature_expanded(self) -> None:
-        result = normalize_text(f"di{_FF}erent", config=NormalizerConfig())
+        result = normalize_text(f"di{_FF}erent", config=TextNormalizerConfig())
         assert _FF not in result
         assert "ff" in result
 
     def test_ffi_ligature_expanded(self) -> None:
-        result = normalize_text(f"e{_FFI}cient", config=NormalizerConfig())
+        result = normalize_text(f"e{_FFI}cient", config=TextNormalizerConfig())
         assert _FFI not in result
         assert "ffi" in result
 
     def test_oe_ligature_expanded(self) -> None:
-        result = normalize_text(f"{_OE}uvre", config=NormalizerConfig())
+        result = normalize_text(f"{_OE}uvre", config=TextNormalizerConfig())
         assert _OE not in result
         assert "oe" in result
 
     def test_ae_ligature_expanded(self) -> None:
-        result = normalize_text(f"{_AE}sthetic", config=NormalizerConfig())
+        result = normalize_text(f"{_AE}sthetic", config=TextNormalizerConfig())
         assert _AE not in result
         assert "ae" in result
 
     def test_ligatures_disabled_leaves_chars(self) -> None:
         # unicode_form="" must also be disabled: NFKC itself decomposes ligatures.
-        cfg = NormalizerConfig(unicode_form="", expand_ligatures=False,
-                               fix_hyphenation=False, strip_control_chars=False,
-                               collapse_whitespace=False)
+        cfg = TextNormalizerConfig(
+            unicode_form="",
+            expand_ligatures=False,
+            fix_hyphenation=False,
+            strip_control_chars=False,
+            collapse_whitespace=False,
+        )
         text = f"ef{_FI}cient"
         result = normalize_text(text, config=cfg)
         assert _FI in result
 
     def test_multiple_ligatures_in_one_string(self) -> None:
         text = f"{_FI}rst {_FL}oor"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "first" in result
         assert "floor" in result
 
@@ -273,28 +315,32 @@ class TestNormalizeText:
 
     def test_zero_width_space_removed(self) -> None:
         text = "Hello\u200bworld"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "\u200b" not in result
 
     def test_soft_hyphen_removed(self) -> None:
         text = "hyp\xadhenation"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "\xad" not in result
 
     def test_bom_removed(self) -> None:
         text = "\ufeffHello world."
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "\ufeff" not in result
 
     def test_newline_and_tab_preserved(self) -> None:
-        cfg = NormalizerConfig(collapse_whitespace=False)
+        cfg = TextNormalizerConfig(collapse_whitespace=False)
         result = normalize_text("line1\nline2\ttab", config=cfg)
         assert "\n" in result
         assert "\t" in result
 
     def test_control_disabled_leaves_chars(self) -> None:
-        cfg = NormalizerConfig(strip_control_chars=False, expand_ligatures=False,
-                               fix_hyphenation=False, collapse_whitespace=False)
+        cfg = TextNormalizerConfig(
+            strip_control_chars=False,
+            expand_ligatures=False,
+            fix_hyphenation=False,
+            collapse_whitespace=False,
+        )
         text = "A\u200bB"
         result = normalize_text(text, config=cfg)
         assert "\u200b" in result
@@ -305,24 +351,28 @@ class TestNormalizeText:
 
     def test_hyphenated_line_break_rejoined(self) -> None:
         text = "compu-\nter"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "computer" in result
         assert "-\n" not in result
 
     def test_hyphen_mid_word_no_newline_unchanged(self) -> None:
         text = "well-known technique"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "well-known" in result
 
     def test_hyphen_with_trailing_spaces_before_newline(self) -> None:
         text = "algo-  \nrithm"
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         # Hyphen + whitespace + newline should be joined.
         assert "-" not in result or "algorithm" in result
 
     def test_hyphenation_disabled_preserves_break(self) -> None:
-        cfg = NormalizerConfig(fix_hyphenation=False, collapse_whitespace=False,
-                               strip_control_chars=False, expand_ligatures=False)
+        cfg = TextNormalizerConfig(
+            fix_hyphenation=False,
+            collapse_whitespace=False,
+            strip_control_chars=False,
+            expand_ligatures=False,
+        )
         text = "compu-\nter"
         result = normalize_text(text, config=cfg)
         assert "-\n" in result
@@ -336,26 +386,30 @@ class TestNormalizeText:
     # ------------------------------------------------------------------
 
     def test_multiple_spaces_collapsed(self) -> None:
-        result = normalize_text("Hello   world", config=NormalizerConfig())
+        result = normalize_text("Hello   world", config=TextNormalizerConfig())
         assert "  " not in result
         assert "Hello world" in result
 
     def test_tabs_collapsed_to_space(self) -> None:
-        result = normalize_text("col1\tcol2", config=NormalizerConfig())
+        result = normalize_text("col1\tcol2", config=TextNormalizerConfig())
         assert "\t" not in result
 
     def test_leading_trailing_whitespace_stripped(self) -> None:
-        result = normalize_text("  leading and trailing  ", config=NormalizerConfig())
+        result = normalize_text("  leading and trailing  ", config=TextNormalizerConfig())
         assert result is not None and result == result.strip()
 
     def test_excess_blank_lines_collapsed(self) -> None:
         text = "Para one.\n\n\n\nPara two."
-        result = normalize_text(text, config=NormalizerConfig())
+        result = normalize_text(text, config=TextNormalizerConfig())
         assert "\n\n\n" not in (result or "")
 
     def test_whitespace_disabled_preserves_spaces(self) -> None:
-        cfg = NormalizerConfig(collapse_whitespace=False, fix_hyphenation=False,
-                               strip_control_chars=False, expand_ligatures=False)
+        cfg = TextNormalizerConfig(
+            collapse_whitespace=False,
+            fix_hyphenation=False,
+            strip_control_chars=False,
+            expand_ligatures=False,
+        )
         text = "Hello   world"
         result = normalize_text(text, config=cfg)
         assert "   " in result
@@ -365,12 +419,12 @@ class TestNormalizeText:
     # ------------------------------------------------------------------
 
     def test_lowercase_applied(self) -> None:
-        cfg = NormalizerConfig(lowercase=True)
+        cfg = TextNormalizerConfig(lowercase=True)
         result = normalize_text("HELLO WORLD", config=cfg)
         assert result == "hello world"
 
     def test_lowercase_default_false(self) -> None:
-        result = normalize_text("HELLO WORLD", config=NormalizerConfig())
+        result = normalize_text("HELLO WORLD", config=TextNormalizerConfig())
         assert result == "HELLO WORLD"
 
     # ------------------------------------------------------------------
@@ -382,7 +436,7 @@ class TestNormalizeText:
         def custom_fn(s: str) -> str:
             marker.append(True)
             return s + "!"
-        cfg = NormalizerConfig(custom_pipeline=(custom_fn,))
+        cfg = TextNormalizerConfig(custom_pipeline=(custom_fn,))
         result = normalize_text("hello", config=cfg)
         assert result is not None and result.endswith("!")
         assert marker
@@ -395,7 +449,7 @@ class TestNormalizeText:
         def fn2(s: str) -> str:
             log.append(2)
             return s + "_2"
-        cfg = NormalizerConfig(custom_pipeline=(fn1, fn2))
+        cfg = TextNormalizerConfig(custom_pipeline=(fn1, fn2))
         result = normalize_text("x", config=cfg)
         assert log == [1, 2]
         assert result is not None and result.endswith("_1_2")
@@ -405,22 +459,22 @@ class TestNormalizeText:
     # ------------------------------------------------------------------
 
     def test_below_min_length_returns_none(self) -> None:
-        cfg = NormalizerConfig(min_length=10)
+        cfg = TextNormalizerConfig(min_length=10)
         result = normalize_text("Hi", config=cfg)
         assert result is None
 
     def test_exactly_min_length_returns_text(self) -> None:
-        cfg = NormalizerConfig(min_length=5)
+        cfg = TextNormalizerConfig(min_length=5)
         result = normalize_text("Hello", config=cfg)
         assert result == "Hello"
 
     def test_above_min_length_returns_text(self) -> None:
-        cfg = NormalizerConfig(min_length=3)
+        cfg = TextNormalizerConfig(min_length=3)
         result = normalize_text("Hello", config=cfg)
         assert result is not None
 
     def test_min_length_zero_never_returns_none_for_nonempty(self) -> None:
-        cfg = NormalizerConfig(min_length=0)
+        cfg = TextNormalizerConfig(min_length=0)
         result = normalize_text("x", config=cfg)
         assert result is not None
 
@@ -429,33 +483,36 @@ class TestNormalizeText:
     # ------------------------------------------------------------------
 
     def test_config_none_uses_defaults(self) -> None:
-        """``config=None`` must behave identically to default ``NormalizerConfig()``."""
+        """``config=None`` must behave identically to default ``TextNormalizerConfig()``."""
         text = "The  \ufb01rst  compu-\nter  was huge."
         assert normalize_text(text, config=None) == normalize_text(
-            text, config=NormalizerConfig()
+            text, config=TextNormalizerConfig()
         )
 
     def test_empty_string_with_min_length_one_returns_none(self) -> None:
-        result = normalize_text("", config=NormalizerConfig(min_length=1))
+        result = normalize_text("", config=TextNormalizerConfig(min_length=1))
         assert result is None
 
     def test_empty_string_with_min_length_zero_returns_empty(self) -> None:
-        result = normalize_text("", config=NormalizerConfig(min_length=0))
+        result = normalize_text("", config=TextNormalizerConfig(min_length=0))
         assert result == ""
 
     def test_only_whitespace_collapses_to_empty(self) -> None:
-        result = normalize_text("   \t\n  ", config=NormalizerConfig(min_length=1))
+        result = normalize_text("   \t\n  ", config=TextNormalizerConfig(min_length=1))
         assert result is None
 
     def test_unicode_already_normalised_unchanged(self) -> None:
         text = "café"  # pre-composed NFC
-        result = normalize_text(text, config=NormalizerConfig(unicode_form="NFC"))
+        result = normalize_text(text, config=TextNormalizerConfig(unicode_form="NFC"))
         # The original check looked for "calf", which was likely a typo for "café"
         assert result is not None and result == "café"  # NFC-normalised "café" unchanged
 
 # ===========================================================================
 # TextNormalizer.normalize — step-selective string method
 # ===========================================================================
+# python -m pytest \
+#   scikitplot/corpus/_normalizers/tests/test__text_normalizer.py::TestTextNormalizerNormalize \
+#   -vv --maxfail=0
 
 
 class TestTextNormalizerNormalize:
@@ -471,7 +528,7 @@ class TestTextNormalizerNormalize:
         assert "efficient" in result
 
     def test_steps_selective_only_unicode(self) -> None:
-        cfg = NormalizerConfig(steps=["unicode"])
+        cfg = TextNormalizerConfig(steps=["unicode"])
         n = TextNormalizer(cfg)
         # Ligature should remain (step not in list).
         text = f"ef{_FI}cient"
@@ -480,57 +537,240 @@ class TestTextNormalizerNormalize:
         assert isinstance(result, str)
 
     def test_steps_selective_only_whitespace(self) -> None:
-        cfg = NormalizerConfig(steps=["whitespace"])
+        cfg = TextNormalizerConfig(steps=["whitespace"])
         n = TextNormalizer(cfg)
         result = n.normalize("Hello   world")
         assert "  " not in result
 
     def test_steps_selective_only_lowercase(self) -> None:
-        cfg = NormalizerConfig(lowercase=True, steps=["lowercase"])
+        cfg = TextNormalizerConfig(lowercase=True, steps=["lowercase"])
         n = TextNormalizer(cfg)
         result = n.normalize("HELLO")
         assert result == "hello"
 
     def test_steps_selective_only_ligatures(self) -> None:
-        cfg = NormalizerConfig(steps=["ligatures"])
+        cfg = TextNormalizerConfig(steps=["ligatures"])
         n = TextNormalizer(cfg)
         result = n.normalize(f"ef{_FI}cient")
         assert "fi" in result
 
     def test_steps_selective_only_hyphenation(self) -> None:
-        cfg = NormalizerConfig(steps=["hyphenation"])
+        cfg = TextNormalizerConfig(steps=["hyphenation"])
         n = TextNormalizer(cfg)
         result = n.normalize("compu-\nter")
         assert "computer" in result
 
     def test_steps_selective_only_control_chars(self) -> None:
-        cfg = NormalizerConfig(steps=["control_chars"])
+        cfg = TextNormalizerConfig(steps=["control_chars"])
         n = TextNormalizer(cfg)
         result = n.normalize("Hello\u200bworld")
         assert "\u200b" not in result
 
     def test_steps_selective_custom(self) -> None:
         fn = lambda s: s.replace("x", "y")  # noqa: E731
-        cfg = NormalizerConfig(custom_pipeline=(fn,), steps=["custom"])
+        cfg = TextNormalizerConfig(custom_pipeline=(fn,), steps=["custom"])
         n = TextNormalizer(cfg)
         assert n.normalize("axb") == "ayb"
 
     def test_steps_empty_list_returns_original(self) -> None:
-        cfg = NormalizerConfig(steps=[])
+        cfg = TextNormalizerConfig(steps=[])
         n = TextNormalizer(cfg)
         text = "Hello   \ufb01rst"
         assert n.normalize(text) == text
 
-    def test_unknown_step_silently_skipped(self) -> None:
-        """An unrecognised step name must not raise — just be silently ignored."""
-        cfg = NormalizerConfig(steps=["whitespace", "nonexistent_step"])
-        n = TextNormalizer(cfg)
-        result = n.normalize("Hello   world")
-        assert "  " not in result  # whitespace step ran fine
+    def test_unknown_step_logs_warning_and_is_ignored(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """An unrecognised step warns, is ignored, and does not abort."""
+        logger = logging.getLogger(
+            "scikitplot.corpus._normalizers._text_normalizer"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                cfg = TextNormalizerConfig(
+                    steps=[
+                        "unicode",
+                        "nonexistent_step",
+                        "whitespace",
+                    ]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert cfg.steps == [
+            "unicode",
+            "whitespace",
+        ]
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "invalid or unknown normalization step" in record.getMessage()
+            and "nonexistent_step" in record.getMessage()
+            for record in caplog.records
+        )
+        # This proves all three requirements:
+        # invalid step did not abort       ✅
+        # invalid step was not executed    ✅
+        # problem was observable           ✅
+
+    def test_multiple_unknown_steps_log_once_and_are_ignored(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        logger = logging.getLogger(
+            "scikitplot.corpus._normalizers._text_normalizer"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                cfg = TextNormalizerConfig(
+                    steps=[
+                        "unicode",
+                        "bad_a",
+                        "whitespace",
+                        "bad_b",
+                    ]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert cfg.steps == [
+            "unicode",
+            "whitespace",
+        ]
+        warnings = [
+            record
+            for record in caplog.records
+            if (
+                record.name == logger.name
+                and record.levelno == logging.WARNING
+                and "invalid or unknown normalization step"
+                in record.getMessage()
+            )
+        ]
+        assert len(warnings) == 1
+        message = warnings[0].getMessage()
+        assert "bad_a" in message
+        assert "bad_b" in message
+
+    def test_all_unknown_steps_result_in_empty_steps(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        logger = logging.getLogger(
+            "scikitplot.corpus._normalizers._text_normalizer"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                cfg = TextNormalizerConfig(
+                    steps=[
+                        "bad_a",
+                        "bad_b",
+                    ]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert cfg.steps == []
+        warnings = [
+            record
+            for record in caplog.records
+            if (
+                record.name == logger.name
+                and record.levelno == logging.WARNING
+                and "invalid or unknown normalization step"
+                in record.getMessage()
+            )
+        ]
+        assert len(warnings) == 1
+        message = warnings[0].getMessage()
+        assert "bad_a" in message
+        assert "bad_b" in message
+
+    def test_non_string_steps_warn_and_are_ignored(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        logger = logging.getLogger(
+            "scikitplot.corpus._normalizers._text_normalizer"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                cfg = TextNormalizerConfig(
+                    steps=[
+                        "unicode",
+                        None,
+                        123,
+                        "whitespace",
+                    ]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert cfg.steps == [
+            "unicode",
+            "whitespace",
+        ]
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "invalid or unknown normalization step"
+            in record.getMessage()
+            for record in caplog.records
+        )
+
+    def test_valid_explicit_steps_do_not_log_warning(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        logger = logging.getLogger(
+            "scikitplot.corpus._normalizers._text_normalizer"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                cfg = TextNormalizerConfig(
+                    steps=[
+                        "unicode",
+                        "whitespace",
+                    ]
+                )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert cfg.steps == [
+            "unicode",
+            "whitespace",
+        ]
+        assert not any(
+            record.name == logger.name
+            and record.levelno >= logging.WARNING
+            and "normalization step" in record.getMessage()
+            for record in caplog.records
+        )
 
     def test_normalize_never_returns_none(self) -> None:
         """``normalize()`` must always return str, never None."""
-        cfg = NormalizerConfig(min_length=1000)
+        cfg = TextNormalizerConfig(min_length=1000)
         n = TextNormalizer(cfg)
         result = n.normalize("short")
         assert isinstance(result, str)
@@ -628,7 +868,7 @@ class TestTextNormalizerNormalizeDocuments:
         )
 
     def test_min_length_sets_normalized_text_to_none(self) -> None:
-        cfg = NormalizerConfig(min_length=100)
+        cfg = TextNormalizerConfig(min_length=100)
         n = TextNormalizer(cfg)
         doc = self._doc("short")
         results = n.normalize_documents([doc])
@@ -636,7 +876,7 @@ class TestTextNormalizerNormalizeDocuments:
 
     def test_custom_normalizer_applied_in_batch(self) -> None:
         fn = lambda s: s.upper()  # noqa: E731
-        cfg = NormalizerConfig(custom_pipeline=(fn,))
+        cfg = TextNormalizerConfig(custom_pipeline=(fn,))
         n = TextNormalizer(cfg)
         docs = [self._doc("hello"), self._doc("world")]
         results = n.normalize_documents(docs)

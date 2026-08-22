@@ -124,8 +124,10 @@ def _coerce_documents(
     Returns
     -------
     list[CorpusDocument]
-        Non-None list, always safe to iterate. Empty list when input is
-        None or an all-None list.
+        Always a list. ``[]`` when input normalises to empty.
+        Documents with usable modality evidence receive an embedding.
+        IMAGE, AUDIO, or VIDEO documents lacking ``raw_tensor`` are
+        returned unchanged and a warning is emitted.
 
     Notes
     -----
@@ -847,7 +849,7 @@ class MultimodalEmbeddingEngine:
     # Primary public API
     # ------------------------------------------------------------------
 
-    def embed_documents(
+    def embed_documents(  # ruff: ignore[too-many-branches]
         self,
         documents: CorpusDocument | list[CorpusDocument] | None,
         input_path: pathlib.Path | None = None,
@@ -863,7 +865,7 @@ class MultimodalEmbeddingEngine:
         - ``AUDIO`` → :meth:`embed_audio`
         - ``VIDEO`` → :meth:`embed_video`
         - ``MULTIMODAL`` → fused text + image (see ``multimodal_fusion``)
-        - fallback: treats as TEXT using ``doc.text`` or ``""``
+        - unknown modality → warning + text fallback: ``doc.text`` or ``""``
 
         Parameters
         ----------
@@ -879,7 +881,9 @@ class MultimodalEmbeddingEngine:
         -------
         list[CorpusDocument]
             Always a list. ``[]`` when input normalises to empty.
-            ``embedding`` field populated on every returned document.
+            Documents with usable modality evidence receive an embedding.
+            IMAGE, AUDIO, or VIDEO documents lacking ``raw_tensor`` are
+            returned unchanged and a warning is emitted.
         """  # noqa: D205
         # Normalize: None / single-doc / list-with-Nones → clean list[CorpusDocument]
         documents = _coerce_documents(documents)
@@ -902,6 +906,7 @@ class MultimodalEmbeddingEngine:
 
         for mod_str, idx_doc_pairs in groups.items():
             indices, group_docs = zip(*idx_doc_pairs)
+            active_indices = indices
 
             if mod_str == "text":
                 texts = [
@@ -913,51 +918,104 @@ class MultimodalEmbeddingEngine:
                 vecs = self.embed_texts(texts)
 
             elif mod_str == "image":
-                arrays = [getattr(d, "raw_tensor", None) for d in group_docs]
-                missing = [i for i, a in enumerate(arrays) if a is None]
-                if missing:
-                    logger.warning(
-                        "MultimodalEmbeddingEngine: %d IMAGE docs have "
-                        "raw_tensor=None — using zero vectors.",
-                        len(missing),
-                    )
-                # Replace None with zeros (will embed to zero vector)
-                dim_hint = next(
-                    (a.shape for a in arrays if a is not None), (224, 224, 3)
-                )
-                arrays = [
-                    a if a is not None else np.zeros(dim_hint, dtype=np.uint8)
-                    for a in arrays
+                available = [
+                    (idx, getattr(doc, "raw_tensor", None))
+                    for idx, doc in zip(indices, group_docs)
+                    if getattr(doc, "raw_tensor", None) is not None
                 ]
+                missing_count = len(group_docs) - len(available)
+                if missing_count:
+                    logger.warning(
+                        "MultimodalEmbeddingEngine: %d IMAGE document(s) have "
+                        "raw_tensor=None; leaving them unembedded.",
+                        missing_count,
+                    )
+                if not available:
+                    continue
+                active_indices, arrays = zip(*available)
                 vecs = self.embed_images(list(arrays))
 
             elif mod_str == "audio":
-                waveforms = [getattr(d, "raw_tensor", None) for d in group_docs]
-                waveforms = [
-                    w if w is not None else np.zeros(16000, dtype=np.float32)
-                    for w in waveforms
+                available = [
+                    (idx, getattr(doc, "raw_tensor", None))
+                    for idx, doc in zip(indices, group_docs)
+                    if getattr(doc, "raw_tensor", None) is not None
                 ]
+                missing_count = len(group_docs) - len(available)
+                if missing_count:
+                    logger.warning(
+                        "MultimodalEmbeddingEngine: %d AUDIO document(s) have "
+                        "raw_tensor=None; leaving them unembedded.",
+                        missing_count,
+                    )
+                if not available:
+                    continue
+                active_indices, waveforms = zip(*available)
                 vecs = self.embed_audio(list(waveforms))
 
             elif mod_str == "video":
-                frame_seqs = [getattr(d, "raw_tensor", None) for d in group_docs]
-                frame_seqs = [
-                    (
-                        f
-                        if f is not None
-                        else np.zeros(
-                            (_VIDEO_FRAME_SAMPLE, 224, 224, 3), dtype=np.uint8
-                        )
-                    )
-                    for f in frame_seqs
+                available = [
+                    (idx, getattr(doc, "raw_tensor", None))
+                    for idx, doc in zip(indices, group_docs)
+                    if getattr(doc, "raw_tensor", None) is not None
                 ]
+                missing_count = len(group_docs) - len(available)
+                if missing_count:
+                    logger.warning(
+                        "MultimodalEmbeddingEngine: %d VIDEO document(s) have "
+                        "raw_tensor=None; leaving them unembedded.",
+                        missing_count,
+                    )
+                if not available:
+                    continue
+                active_indices, frame_seqs = zip(*available)
                 vecs = self.embed_video(list(frame_seqs))
 
             elif mod_str == "multimodal":
-                vecs = self._embed_multimodal(list(group_docs))
+                with_media = [
+                    (idx, doc)
+                    for idx, doc in zip(indices, group_docs)
+                    if getattr(doc, "raw_tensor", None) is not None
+                ]
+                without_media = [
+                    (idx, doc)
+                    for idx, doc in zip(indices, group_docs)
+                    if getattr(doc, "raw_tensor", None) is None
+                ]
+                # A multimodal document still contains genuine text evidence.
+                # Missing media therefore degrades to text rather than synthetic media.
+                if without_media:
+                    logger.warning(
+                        (
+                            "MultimodalEmbeddingEngine: %d MULTIMODAL document(s) have "
+                            "raw_tensor=None; using text-only embedding."
+                        ),
+                        len(without_media),
+                    )
+                    text_indices, text_docs = zip(*without_media)
+                    texts = [
+                        getattr(d, "normalized_text", None)
+                        or getattr(d, "text", None)
+                        or ""
+                        for d in text_docs
+                    ]
+                    text_vecs = self._maybe_project(self.embed_texts(texts))
+                    for orig_idx, vec in zip(text_indices, text_vecs):
+                        results[orig_idx] = vec
+                if not with_media:
+                    continue
+                active_indices, media_docs = zip(*with_media)
+                vecs = self._embed_multimodal(list(media_docs))
 
             else:
-                # Unknown modality — fall back to text
+                # The text fallback is reasonable for fail-soft operation
+                logger.warning(
+                    (
+                        "MultimodalEmbeddingEngine: unknown modality %r; "
+                        "falling back to text embedding."
+                    ),
+                    mod_str,
+                )
                 texts = [
                     getattr(d, "normalized_text", None)
                     or getattr(d, "text", None)
@@ -969,7 +1027,7 @@ class MultimodalEmbeddingEngine:
             # Apply projection if needed
             vecs = self._maybe_project(vecs)
 
-            for orig_idx, vec in zip(indices, vecs):
+            for orig_idx, vec in zip(active_indices, vecs):
                 results[orig_idx] = vec
 
         # Rebuild list preserving order
@@ -1110,7 +1168,10 @@ class MultimodalEmbeddingEngine:
         Returns
         -------
         list[CorpusDocument]
-            Documents with embeddings populated. ``[]`` when input is empty.
+            Always a list. ``[]`` when input normalises to empty.
+            Documents with usable modality evidence receive an embedding.
+            IMAGE, AUDIO, or VIDEO documents lacking ``raw_tensor`` are
+            returned unchanged and a warning is emitted.
         """
         # Normalize to clean list[CorpusDocument] before any logic.
         documents = _coerce_documents(documents)
@@ -1501,7 +1562,10 @@ class LLMTrainingExporter:
         Returns
         -------
         list[CorpusDocument]
-            All documents with ``embedding`` populated.
+            Always a list. ``[]`` when input normalises to empty.
+            Documents with usable modality evidence receive an embedding.
+            IMAGE, AUDIO, or VIDEO documents lacking ``raw_tensor`` are
+            returned unchanged and a warning is emitted.
         """
         # Normalize to clean list; preserves list identity when no Nones present
         # so callers doing `out is docs` continue to work on the fast path.

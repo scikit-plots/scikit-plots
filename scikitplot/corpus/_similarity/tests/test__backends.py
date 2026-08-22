@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Tests for corpus._similarity._backends and the SimilarityIndex query seam
+Tests for corpus._similarity._backends and the RetrievalIndex query seam
 =========================================================================
 
 Coverage targets
@@ -20,7 +20,7 @@ Coverage targets
   (``scikitplot.annoy.Index`` high-level and ``scikitplot.annoy._annoy.Index``
   Cython) via injected fakes, the ``1 - d**2/2`` angular→cosine recovery,
   ``dtype`` / ``index_dtype`` passthrough, and ``impl='auto'`` fallback.
-* :class:`SimilarityIndex` — the ``query(vector, k) -> [(doc_id, score)]``
+* :class:`RetrievalIndex` — the ``query(vector, k) -> [(doc_id, score)]``
   seam consumed by :mod:`scikitplot.mcp`, ``backend_name``, and graceful
   degradation to sparse when embeddings are non-finite.
 
@@ -44,7 +44,7 @@ from typing import Any
 import numpy as np
 import pytest
 
-from scikitplot.corpus._similarity import SearchConfig, SearchResult, SimilarityIndex
+from scikitplot.corpus._similarity import RetrievalConfig, RetrievalHit, RetrievalIndex
 from scikitplot.corpus._similarity import _backends as B
 
 
@@ -154,11 +154,11 @@ Q = np.array([1.0, 0.0], dtype=np.float32)
 
 
 # ===================================================================== #
-# SearchConfig validation
+# RetrievalConfig validation
 # ===================================================================== #
 class TestSearchConfig:
     def test_defaults(self):
-        cfg = SearchConfig()
+        cfg = RetrievalConfig()
         assert cfg.backend == "auto"
         assert cfg.annoy_impl == "auto"
         assert cfg.annoy_metric == "angular"
@@ -166,15 +166,15 @@ class TestSearchConfig:
     @pytest.mark.parametrize("bad", ["nope", "faisss", ""])
     def test_rejects_unknown_backend(self, bad):
         with pytest.raises(ValueError):
-            SearchConfig(backend=bad)
+            RetrievalConfig(backend=bad)
 
     def test_rejects_bad_annoy_impl(self):
         with pytest.raises(ValueError):
-            SearchConfig(annoy_impl="nope")
+            RetrievalConfig(annoy_impl="nope")
 
     def test_rejects_annoy_n_trees_below_one(self):
         with pytest.raises(ValueError):
-            SearchConfig(annoy_n_trees=0)
+            RetrievalConfig(annoy_n_trees=0)
 
 
 # ===================================================================== #
@@ -252,6 +252,54 @@ class TestSelectBackend:
 # ===================================================================== #
 # AnnoyBackend — both implementations
 # ===================================================================== #
+class TestGenericBackendConfiguration:
+    class CustomBackend(B.VectorIndexBackend):
+        name = "custom-test"
+
+        def __init__(self, *, marker: str) -> None:
+            self.marker = marker
+            self._dim = 0
+            self._rows = 0
+
+        def build(self, embeddings):
+            arr = np.asarray(embeddings, dtype=np.float32)
+            self._rows = len(arr)
+            self._dim = int(arr.shape[1])
+
+        def query(self, vector, k):
+            return [(0, 1.0)] if self._rows and k else []
+
+    def test_select_backend_accepts_backend_subclass_and_index_kwargs(self):
+        backend = B.select_backend(
+            self.CustomBackend,
+            index_kwargs={"marker": "configured"},
+        )
+        assert isinstance(backend, self.CustomBackend)
+        assert backend.marker == "configured"
+
+    def test_invalid_generic_kwargs_name_the_backend(self):
+        with pytest.raises(TypeError, match="invalid index_kwargs for backend 'bruteforce'"):
+            B.select_backend("bruteforce", index_kwargs={"unknown": 1})
+
+    def test_retrieval_index_forwards_generic_kwargs_to_custom_backend(self):
+        cfg = RetrievalConfig(
+            match_mode="semantic",
+            backend=self.CustomBackend,
+            index_kwargs={"marker": "via-config"},
+        )
+        idx = RetrievalIndex(cfg)
+        idx.build(self._docs())
+        assert idx.backend_name == "custom-test"
+        assert idx._backend.marker == "via-config"
+
+    @staticmethod
+    def _docs():
+        return [
+            _Doc("a", "alpha", embedding=[1.0, 0.0]),
+            _Doc("b", "beta", embedding=[0.0, 1.0]),
+        ]
+
+
 class TestAnnoyBackend:
     @pytest.mark.parametrize("fake_annoy", [(True, True)], indirect=True)
     def test_highlevel_cosine_recovery(self, fake_annoy):
@@ -294,7 +342,7 @@ class TestAnnoyBackend:
 
 
 # ===================================================================== #
-# SimilarityIndex end-to-end + the MCP query() seam
+# RetrievalIndex end-to-end + the MCP query() seam
 # ===================================================================== #
 class TestSimilarityIndexSeam:
     def _docs(self):
@@ -305,7 +353,7 @@ class TestSimilarityIndexSeam:
         ]
 
     def test_semantic_and_backend_name(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="semantic", top_k=3, backend="auto"))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="semantic", top_k=3, backend="auto"))
         idx.build(self._docs())
         assert idx.backend_name in ["annoy", "bruteforce"]
         assert idx.has_embeddings
@@ -314,7 +362,7 @@ class TestSimilarityIndexSeam:
         assert all(-1.0 <= r.score <= 1.0 for r in res)
 
     def test_query_seam_returns_doc_id_score(self):
-        idx = SimilarityIndex(SearchConfig(top_k=3, backend="auto"))
+        idx = RetrievalIndex(RetrievalConfig(top_k=3, backend="auto"))
         idx.build(self._docs())
         seam = idx.query([1.0, 0.0, 0.0], k=2)
         assert len(seam) == 2
@@ -323,7 +371,7 @@ class TestSimilarityIndexSeam:
         assert all(isinstance(d, str) for d, _ in seam)
 
     def test_query_seam_empty_without_dense(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="keyword", top_k=2))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="keyword", top_k=2))
         idx.build([_Doc("k0", "qubit"), _Doc("k1", "logic")])
         assert idx.backend_name is None
         assert idx.query([1.0, 2.0], k=1) == []
@@ -333,7 +381,7 @@ class TestSimilarityIndexSeam:
             _Doc("b0", "alpha beta", embedding=[1.0, float("nan")]),
             _Doc("b1", "beta gamma", embedding=[0.0, 1.0]),
         ]
-        idx = SimilarityIndex(SearchConfig(match_mode="keyword", top_k=2, backend="auto"))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="keyword", top_k=2, backend="auto"))
         idx.build(docs)
         assert idx.backend_name is None          # dense disabled
         assert len(idx.search("beta")) >= 1      # sparse still works
@@ -349,51 +397,92 @@ class TestResultProvenance:
             _Doc("d1", "beta gamma delta", embedding=[0.0, 1.0, 0.0]),
         ]
 
-    def test_generation_starts_zero_and_increments(self):
-        idx = SimilarityIndex(SearchConfig(backend="auto"))
-        assert idx.index_generation == 0
+    def test_generation_is_none_before_build(self):
+        assert RetrievalIndex(RetrievalConfig(backend="auto")).index_generation is None
+
+    def test_rebuilding_identical_content_is_idempotent(self):
+        """P-I1-02: the generation is derived from content, not incremented.
+
+        The former counter made ``build()`` the only NON_IDEMPOTENT operation in
+        the package (R04).  Rebuilding the same documents with the same
+        configuration is the same index, so it must yield the same generation.
+        """
+        idx = RetrievalIndex(RetrievalConfig(backend="auto"))
         idx.build(self._docs())
-        assert idx.index_generation == 1
+        first = idx.index_generation
         idx.build(self._docs())
-        assert idx.index_generation == 2
+        assert idx.index_generation == first
+
+    def test_generation_survives_a_process_boundary(self):
+        """F-R01-06 / F-R04-01: a counter carried no cross-process information.
+
+        Two independent indexes over the same content must agree, which a
+        per-instance counter could never express -- and the value round-trips
+        through JSON, so a persisted index can be compared at load time.
+        """
+        import json
+
+        a, b = RetrievalIndex(), RetrievalIndex()
+        a.build(self._docs())
+        b.build(self._docs())
+        assert a.index_generation == b.index_generation
+
+        payload = json.loads(json.dumps(a.index_generation.to_dict()))
+        from scikitplot.corpus import IndexGeneration
+
+        assert IndexGeneration.from_dict(payload) == a.index_generation
+
+    def test_different_content_yields_a_different_generation(self):
+        a, b = RetrievalIndex(), RetrievalIndex()
+        a.build(self._docs())
+        b.build(self._docs()[:1])
+        assert a.index_generation != b.index_generation
 
     def test_semantic_result_carries_backend_and_generation(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="semantic", top_k=2, backend="auto"))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="semantic", top_k=2, backend="auto"))
         idx.build(self._docs())
         res = idx.search("q", query_embedding=[1.0, 0.0, 0.0])
         assert res
         assert res[0].backend in ["annoy", "bruteforce"]
-        assert res[0].index_generation == idx.index_generation == 1
+        assert res[0].index_generation == idx.index_generation
 
     def test_keyword_result_has_no_backend_but_a_generation(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="keyword", top_k=2))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="keyword", top_k=2))
         idx.build(self._docs())
         res = idx.search("beta")
         assert res
         assert res[0].backend is None
-        assert res[0].index_generation == 1
+        assert res[0].index_generation == idx.index_generation
 
     def test_hybrid_result_carries_backend(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="hybrid", top_k=2, backend="auto"))
+        idx = RetrievalIndex(RetrievalConfig(match_mode="hybrid", top_k=2, backend="auto"))
         idx.build(self._docs())
         res = idx.search("beta", query_embedding=[0.0, 1.0, 0.0])
         assert res
         assert res[0].backend in ["annoy", "bruteforce"]
-        assert res[0].index_generation == 1
+        assert res[0].index_generation == idx.index_generation
 
     def test_provenance_excluded_from_equality(self):
         # Same doc/score/mode but different provenance must remain equal,
         # so provenance never breaks existing equality-based tests.
-        a = SearchResult(doc="x", score=0.5, match_mode="semantic",
+        a = RetrievalHit(doc="x", score=0.5, match_mode="semantic",
                          backend="annoy", index_generation=1)
-        b = SearchResult(doc="x", score=0.5, match_mode="semantic",
+        b = RetrievalHit(doc="x", score=0.5, match_mode="semantic",
                          backend="faiss", index_generation=9)
         assert a == b
         assert hash(a) == hash(b)
 
     def test_stale_generation_detectable(self):
-        idx = SimilarityIndex(SearchConfig(match_mode="semantic", top_k=1, backend="auto"))
+        """Detection now means "different content", not "built later".
+
+        A counter answered "was this rebuilt?"; a content-derived identity
+        answers "does this result match the index I hold?", which is the
+        question a caller actually has -- and the only one that survives a
+        restart.
+        """
+        idx = RetrievalIndex(RetrievalConfig(match_mode="semantic", top_k=1, backend="auto"))
         idx.build(self._docs())
         stale = idx.search("q", query_embedding=[1.0, 0.0, 0.0])[0]
-        idx.build(self._docs())  # rebuild -> generation bumps
-        assert stale.index_generation < idx.index_generation
+        idx.build(self._docs()[:1])  # different content -> different generation
+        assert stale.index_generation != idx.index_generation
+        assert not idx.index_generation.matches(stale.index_generation)

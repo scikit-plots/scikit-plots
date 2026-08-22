@@ -25,7 +25,7 @@
 #                 ← MultimodalEmbeddingEngine routes by doc.modality
 #                 ← raw_tensor, raw_bytes, raw_shape, raw_dtype set by readers
 # _adapters.py    ← all to_*() functions accept list[CorpusDocument]
-# _similarity/    ← SimilarityIndex.build() indexes doc.embedding
+# _similarity/    ← RetrievalIndex.build() indexes doc.embedding
 # _pipeline.py    ← CorpusPipeline.run() returns list[CorpusDocument]
 # _corpus_builder ← CorpusBuilder.build() → BuildResult.documents
 # _storage/       ← StorageBase.save(doc) / .get(doc_id) → CorpusDocument
@@ -79,7 +79,7 @@ Used by
 -------
 - :class:`~scikitplot.corpus._embeddings._embedding.EmbeddingEngine.embed_documents`
 - :class:`~scikitplot.corpus._embeddings._multimodal_embedding.MultimodalEmbeddingEngine.embed_documents`
-- :class:`~scikitplot.corpus._similarity.SimilarityIndex`
+- :class:`~scikitplot.corpus._similarity.RetrievalIndex`
 - :func:`~scikitplot.corpus._adapters.to_rag_tuples`
 """
 

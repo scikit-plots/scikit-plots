@@ -1,0 +1,42 @@
+{
+ "schema_version": 1,
+ "module": "scikitplot._externals._sphinx_ext._sphinx_ai_backend",
+ "role": "PROPOSED: the deployable services the extension talks to \u2014 proxy, model space, edge worker",
+ "proposed": true,
+ "family": "sphinx docs AI (_sphinx_llm + _sphinx_ai_assistant + _sphinx_ai_backend)",
+ "source": {
+  "archive": "scikit-plots.zip",
+  "sha256": "59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950"
+ },
+ "physical": {
+  "totals": {
+   "source_files": 15,
+   "source_loc_all_files": 9942,
+   "code_files": 7,
+   "source_loc_code_only": 8384,
+   "test_files": 0,
+   "test_loc": 0,
+   "backup_files": 0,
+   "backup_loc": 0
+  },
+  "by_extension": {
+   ".py": 6,
+   ".txt": 3,
+   ".md": 3,
+   "": 1,
+   ".js": 1,
+   ".toml": 1
+  },
+  "paths": [
+   "_hf_spaces_proxy",
+   "_hf_spaces_model",
+   "_cf_worker",
+   "dev_proxy.py"
+  ],
+  "counting_rule": "source_loc_all_files counts newlines in every regular file under a recorded path; source_loc_code_only counts newlines in .py and .js files only. Both are recomputed by check_trackers.py. The former single 'source_loc: 9896' was not reproducible under either rule: it mixed code-only counts for _hf_spaces_proxy/_hf_spaces_model with an all-files count for _cf_worker, and recorded dev_proxy.py as ~1800 lines when it is 362."
+ },
+ "antecessors": [],
+ "successors": [
+  "_sphinx_ai_assistant (is its client)"
+ ]
+}

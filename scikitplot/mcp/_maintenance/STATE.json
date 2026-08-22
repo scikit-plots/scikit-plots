@@ -1,0 +1,658 @@
+{
+  "schema_version": 2,
+  "module": "scikitplot.mcp",
+  "source": {
+    "archive": "scikit-plots(20260821-131657).zip",
+    "sha256_recorded_anchor": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f",
+    "sha256_actual_reviewed": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f",
+    "anchor_match": true,
+    "consequence": "M14 reviewed directly against the 2026-08-21 uploaded source archive.",
+    "sha256_prior_reviewed": "119855928dd052165c71efa61fa505aa206726265c7c375943084e64793c4018"
+  },
+  "maintenance_set": {
+    "version": "LIVE_V1",
+    "mirrors": "scikitplot/corpus/_maintenance (same discipline, same file names)",
+    "gate": "python scikitplot/mcp/_maintenance/check_trackers.py",
+    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
+  },
+  "campaign": {
+    "name": "deferred closure revalidation",
+    "guide": "MCP_UNIFIED_DEFERRED_REVIEW_GUIDE.md",
+    "runs": {
+      "M00": {
+        "status": "COMPLETE_WITH_BLOCKERS",
+        "exit_gate_met": false,
+        "revalidated_by": "M00-R against a complete tree",
+        "deliverables": [
+          "_maintenance/checkpoints/M00_REVALIDATION.md",
+          "_maintenance/checkpoints/M00_DEFERRED_ISSUE_MATRIX.md",
+          "_maintenance/checkpoints/M00R_REVALIDATION_COMPLETE_TREE.md"
+        ],
+        "blockers_cleared": [
+          "archive incomplete / cannot import"
+        ],
+        "blockers_remaining": [
+          "RULESET.md, MCP_COMPATIBILITY_POLICY.md, DESIGN.md still absent (all KEEP, all in mandated read order, two cited from runtime source)",
+          "source anchor still stale in MAINTAINING.md"
+        ]
+      },
+      "M01": {
+        "status": "PARTIAL",
+        "correction": "M00-R marked this BLOCKED. Too strong: the guide states the packaging rule itself (sec6), and marker semantics + the SDK's published Requires-Python settle MCP-M00-10 on evidence. The missing policy document is needed to RATIFY the decision, not to make it.",
+        "checklist_closed": [
+          "base install",
+          "[mcp] extra",
+          "Python floor",
+          "SDK Requires-Python interaction",
+          "Pydantic declaration",
+          "CLI install hints"
+        ],
+        "checklist_defective": [
+          "direct vs transitive dependencies (M01-01)",
+          "README install commands (M01-03)"
+        ],
+        "checklist_deferred_to_M12": [
+          "clean wheel",
+          "wheel[mcp]",
+          "wheel metadata",
+          "unsupported-interpreter resolver behaviour",
+          "minimum supported SDK",
+          "latest supported SDK"
+        ],
+        "deliverable": "_maintenance/checkpoints/M01_PACKAGING_TIER_CONTRACT.md"
+      },
+      "M02": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "result": "Optionality contract HOLDS on all seven guide-mandated surfaces under an __import__ blocker. Two decisions taken (MCP-D04, MCP-D02); two new findings.",
+        "deliverable": "_maintenance/checkpoints/M02_IMPORT_OPTIONALITY_CONTRACT.md"
+      },
+      "M03": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "result": "Capability model assessed against all 6 required states and 5 required fields. 2 of 6 states expressible; sdk_version and sdk_compatible missing. Static/effective split is correct and the 'never advertise unregistered' rule is SATISFIED. Vocabulary decided: adopt Corpus CapabilityStatus.",
+        "deliverable": "_maintenance/checkpoints/M03_RUNTIME_CAPABILITY_TRUTH.md"
+      },
+      "M04": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "result": "Neutral-result envelope implemented; FAILED != EMPTY now holds and is guarded by 13 tests. Found and fixed `or []` flattening of a falsy failed outcome."
+      },
+      "M05": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "result": "Option A with the tier boundary corrected: SearchCoordinator (Tier-L) holds the neutral orchestration; SearchService is a thin wire adapter. Corpus RetrievalIndex already existed, so Option B's extraction was already done. Closed MCP-D02 and MCP-M00-07; 5 of 6 MCP-M00-12 failures closed by fixing code."
+      },
+      "M06": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "result": "Schema/validation audit: input validation complete, declared schema matches enforcement, unsafe schemes blocked, content sanitised, traversal rejected, private seam isolated to one function. 4 new findings; 2 items deferred to M12.",
+        "mode": "REVIEW ONLY"
+      },
+      "M07": {
+        "status": "PARTIAL",
+        "exit_gate_met": false,
+        "result": "FIRST run with the real SDK. Suite: pristine 153 passed / this tree 166 passed / 0 failed. Closed M06's two deferred items and M06-04. Found and fixed M07-01 and M07-02: M04's status was dropped by the closed output model and never reported on the success path, so MCP-D03 held at Tier-L but FAILED at the wire.",
+        "deferred_to_M12": [
+          "stdio transport",
+          "Streamable HTTP transport",
+          "cancellation",
+          "client disconnect",
+          "timeout",
+          "HTTP status/error shape",
+          "isError with structured payload"
+        ]
+      },
+      "M08": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "mode": "REVIEW ONLY",
+        "result": "All 8 bundles reduce to one invocation, `python -m scikitplot.mcp`, EXECUTED over real stdio: tools listed, call succeeded, unknown-arg rejected. No embedded credentials in 17 JSON files. M02-01/M02-02 remain open."
+      },
+      "M09": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "mode": "REVIEW ONLY",
+        "result": "Verified through the real protocol: raw exceptions not exposed (a credential-bearing DSN was masked), injection payload carries the UNTRUSTED notice, file:// neutralised, health endpoint minimal, k/query bounded at two layers, semaphore bounds concurrency. Annotations are enforced, not merely advertised."
+      },
+      "M10": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "mode": "REVIEW ONLY",
+        "result": "No sampling/elicitation/roots/subscribe and no write-capable tools. The server is a passive read-only capability provider; the conditional sampling requirements do not apply."
+      },
+      "M11": {
+        "status": "COMPLETE",
+        "exit_gate_met": true,
+        "mode": "REVIEW ONLY",
+        "result": "All M04/M05/M07 changes are ADDITIVE. Nothing removed from __all__; SearchService did not move; tool input schema and output required-fields identical to the pristine tree. New wire fields are optional, so existing clients are unaffected. No migration adapter needed."
+      },
+      "M12": {
+        "status": "MOSTLY_COMPLETE",
+        "mode": "REVIEW ONLY",
+        "result": "Live Streamable HTTP closed: server bound on 127.0.0.1:8000, existing harness RUN (27 passed, 1 optional skip), cancellation clean with health 200 after, 25-way concurrency 0 exceptions, SIGTERM -> ordered shutdown and port released with no orphan.",
+        "green": [
+          "base/lazy imports",
+          "in-process round-trip",
+          "stdio round-trip",
+          "Streamable HTTP",
+          "tool list/call",
+          "resource list/read",
+          "strict unknown args",
+          "structured output",
+          "timeouts/cancellation",
+          "shutdown",
+          "failed-vs-empty mapping",
+          "effective capabilities"
+        ],
+        "not_run": [
+          "build wheel",
+          "install wheel[mcp]",
+          "Python 3.10 + min MCP v2",
+          "Python 3.10 + latest MCP v2",
+          "next-Python prerelease lane"
+        ],
+        "cause": "Needs a meson-python/Cython toolchain and multiple interpreters. Asserting wheel metadata without a built wheel would be INFERRED presented as VERIFIED.",
+        "deliverable": "_maintenance/checkpoints/M12_LIVE_HTTP_CLOSURE.md"
+      },
+      "M13": {
+        "status": "COMPLETE",
+        "mode": "IMPLEMENTATION",
+        "result": "Closed 12 findings including the campaign's only live rejection-list violation (MCP-D01). Suite 166 -> 172 passed, 0 failed. Closure criteria 8/13 -> 11/13.",
+        "deliverable": "_maintenance/checkpoints/M13_BLOCKER_REMEDIATION.md"
+      },
+      "M14": {
+        "status": "VERIFIED_OFFLINE_LIVE_ENV_PENDING",
+        "mode": "IMPLEMENTATION_SHOWCASE",
+        "result": "Added local Corpus+Annoy CLI backend selection, deterministic HashEmbedder integration, stable resource lookup, and a CI-oriented Hamlet MCP gallery. Full offline MCP suite: 164 passed, 2 skipped. Native Annoy + MCP SDK live HTTP unavailable in this harness.",
+        "deliverable": "_maintenance/checkpoints/M14_CORPUS_ANNOY_DOCKER_SHOWCASE.md"
+      }
+    },
+    "active_run": "M12-LIVE",
+    "production_code_modified": true,
+    "implementation_note": "M04 and M05 were authorised implementation increments, scoped to the Corpus-facing retrieval sections and SearchService ownership. M06 was review-only."
+  },
+  "governing_rule": "MCP owns the wire; Corpus owns retrieval semantics. Neither imports the other's concerns. When one needs something from the other, a contract is published, not an import added.",
+  "boundary_rules": [
+    {
+      "rule": "_server.py is the only module that may import mcp or pydantic",
+      "status": "HOLDS",
+      "evidence": "AST module-scope scan: _server.py only (pydantic at module scope; mcp/starlette nested)",
+      "enforced_by": "check_trackers.py -- SOURCE FILES ONLY; blind to tests (MCP-M00-05)"
+    },
+    {
+      "rule": "corpus and annoy are never imported at module scope",
+      "status": "HOLDS",
+      "evidence": "AST: _corpus_annoy.py:284 and _hybrid.py:349 are both call-time (nested)",
+      "enforced_by": "check_trackers.py -- source files only"
+    },
+    {
+      "rule": "import scikitplot.mcp requires no SDK",
+      "status": "HOLDS_IN_CODE / UNVERIFIED_AT_RUNTIME (archive cannot import)",
+      "enforced_by": "tests/test_mcp_import_surface.py::test_import_and_discovery_without_pydantic",
+      "correction": "Prior records claimed 'NOTHING - should be a test'. DISPROVED: the test exists and blocks pydantic via subprocess import blocker.",
+      "gap": "star import is NOT covered -- see MCP-D04"
+    }
+  ],
+  "open_findings": [
+    {
+      "id": "MCP-M00-01",
+      "severity": "P2",
+      "status": "VERIFIED_RUNTIME",
+      "title": "Test files import the server tier unguarded; suite fails COLLECTION without [mcp]",
+      "evidence": "Static: 5 test modules import _server at module scope; 4 unguarded. test_protocol_in_memory.py guards correctly (importorskip line 7 precedes import line 11).",
+      "correction": "Recorded '4 of 6 test files'. Actual: 4 of 13 test_*.py modules (15 .py incl. __init__). Named files are correct.",
+      "files": [
+        "tests/test_mcp_hardening.py",
+        "tests/test_mcp_runtime_status.py",
+        "tests/test_mcp_version_guard.py",
+        "tests/test_server.py"
+      ],
+      "extra": "test_server.py also imports starlette, which the [mcp] extra does NOT declare; guarding pydantic alone is insufficient.",
+      "runtime_status": "CONFIRMED in M00-R: '2 skipped, 4 errors' reproduced exactly, same four files.",
+      "scope_extension": "See MCP-M00-12: guarding these four leaves 6 further failures. Fixing collection alone does NOT green the suite.",
+      "m07": "With [mcp] installed the suite is GREEN on both the pristine tree (153 passed) and this tree (166 passed). Every recorded error/failure was an artefact of the missing extra, not a code defect."
+    },
+    {
+      "id": "MCP-M00-02",
+      "severity": "P3",
+      "status": "CONFIRMED_UNDERSTATED",
+      "title": "Corpus-derived drift: 10 occurrences, not 6, and not all are docs",
+      "evidence": "Exhaustive grep of scikitplot/mcp/**: all 7 recorded line numbers accurate, but 4 more exist.",
+      "unlisted": {
+        "_corpus_annoy.py:96": "docstring",
+        "_corpus_annoy.py:98": "docstring",
+        "_corpus_annoy.py:247": "Sphinx :class: cross-reference to a RENAMED target -> docs-build failure under nitpick",
+        "_corpus_annoy.py:320": "inside a RuntimeError message -> user-facing runtime string"
+      },
+      "correction": "The claim 'ALL are docstrings/comments' is FALSE. Impact is not purely documentation."
+    },
+    {
+      "id": "MCP-M00-03",
+      "severity": "P3",
+      "status": "PARTLY_DISPROVED_INVARIANTS_NOW_RUNTIME_VERIFIED",
+      "title": "Claim that three boundary invariants are unchecked",
+      "evidence": "tests/test_mcp_import_surface.py tests invariant 3 via subprocess with a pydantic import blocker, asserting 'pydantic' not in sys.modules.",
+      "correction": "TRACKER_PHYSICAL.md sec6 'Protected by: nothing' and TRACKER_LOGICAL.md sec2 'should be a test' are wrong for invariant 3.",
+      "residual_gap": "Real gap is different and narrower: the gate ignores test files entirely -> MCP-M00-05.",
+      "m00r": "All three boundary invariants VERIFIED at runtime; TRACKER_PHYSICAL sec6 'only numpy' claim is TRUE."
+    },
+    {
+      "id": "MCP-M00-04",
+      "severity": "P2",
+      "status": "SUBSTANTIALLY_DISPROVED",
+      "title": "Markdown/source counts do not describe this tree",
+      "evidence": "Measured: 17 md (not 31); _maintenance 8 (not 16); _maintenance/history 0 md (not 6, holds .py only); 17 source files (not 16); 3515 source LOC (not 3182/3503); md:src ratio 1.0 (not 1.9).",
+      "real_problem": "18 dangling documentation targets. Three are marked KEEP, are in the mandated read order, and are cited from RUNTIME SOURCE: RULESET.md, MCP_COMPATIBILITY_POLICY.md, DESIGN.md.",
+      "unknown": "Cannot determine from this archive whether KEEP files were wrongly deleted or merely omitted from the zip.",
+      "m00r": "Markdown now 19 (was 17; +2 checkpoints). TRACKER.json still records 31 and compare() still never reads it."
+    },
+    {
+      "id": "MCP-M00-05",
+      "severity": "P2",
+      "status": "NEW",
+      "title": "The drift gate is blind to test files and to markdown drift",
+      "evidence": "Empirical probe: module-scope 'import pydantic' in tests/ -> exit 0 (undetected); identical violation in a source file -> exit 1 (detected).",
+      "consequence": "check_trackers.py cannot detect a regression of MCP-M00-01, the module's highest-severity finding.",
+      "second_gap": "compare() iterates recorded['totals'] only; physical.markdown_files (31) is recorded but NEVER compared -- which is why 31->17 drift passed at exit 0.",
+      "third_gap": "check_logical() verifies a contract's module FILE exists, not that the named SYMBOL is defined there -> MCP-M00-07 undetected.",
+      "note": "MAINTAINING.md claims both boundary consequences are 'mechanically enforced'. True only for non-test source."
+    },
+    {
+      "id": "MCP-M00-06",
+      "severity": "P2",
+      "status": "NEW_RECOMMENDATION_VALIDATED",
+      "title": "Tier-L test imports a Tier-L function through the Tier-S module",
+      "evidence": "test_mcp_runtime_status.py line 1 declares 'SDK-free ... Tier-L, Python 3.8+'; line 9 imports server_runtime_status from _server. It is DEFINED in _capabilities.py:129 and only re-exported by _server.py:35.",
+      "fix": "Re-point the import to _capabilities: one line, no behaviour change, removes one of the four collection errors in MCP-M00-01.",
+      "relation": "root cause of MCP-D07",
+      "m00r": "Verified: server_runtime_status imports pydantic-free from _capabilities with an identical key set. The one-line re-point is safe."
+    },
+    {
+      "id": "MCP-M00-07",
+      "severity": "P2",
+      "status": "CLOSED_IN_M05",
+      "title": "SearchService contract is misattributed and its recorded invariant is false",
+      "evidence": "TRACKER_LOGICAL.md sec1 and TRACKER.json record module=_core.py, 'Protocol-neutral ... never MCP wire types'. Actual: class SearchService is at _server.py:110 (sole definition); search() -> SearchDocsOutput (_server.py:136); SearchDocsOutput subclasses _ClosedModel(BaseModel) (_server.py:53,77).",
+      "impact": "The documented protocol-neutral service layer DOES NOT EXIST. The only SearchService is pydantic-backed and lives in the SDK-importing module.",
+      "consequence": "Explains MCP-D02: integrations must reach into _server, and the public scikitplot.mcp.SearchService is itself a lazy server-tier export, so 'use the public API' does not fix it.",
+      "makes_concrete": "Run M05 (SearchService ownership); M05 now precedes D02 rather than being independent of it.",
+      "m00r": "UNCHANGED and live: class SearchService at _server.py:110; TRACKER.json still records module=_core.py.",
+      "resolution": "SearchCoordinator (_core.py, Tier-L) is now the protocol-neutral service layer; SearchService (_server.py) is the wire adapter. TRACKER.json corrected to record both accurately."
+    },
+    {
+      "id": "MCP-M00-08",
+      "severity": "P3",
+      "status": "CLOSED_IN_M13",
+      "title": "Malformed user-facing error string",
+      "evidence": "_corpus_annoy.py:290-292 implicit concatenation renders as '...build the retriever installthe corpus/embedding extras...'",
+      "resolution": "Malformed message fixed with MCP-D05."
+    },
+    {
+      "id": "MCP-M00-09",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "pytest.ini blocks the verification command documented in MAINTAINING.md",
+      "evidence": "Repo-root addopts hard-codes '-p sphinx.testing.fixtures' (sphinx mandatory for ANY pytest run) and '--maxfail=1' (hides all errors after the first).",
+      "scope": "Outside scikitplot/mcp/**; recorded because it blocks MCP's own verification contract. Route to the CLI/packaging campaign.",
+      "m00r": "STRENGTHENED: --maxfail=1 truncated the documented command to '1 skipped, 1 error', understating its own expected output."
+    },
+    {
+      "id": "MCP-M00-10",
+      "severity": "P2",
+      "status": "CLOSED_IN_M13",
+      "title": "The [mcp] extra contradicts the policy stated in its own comment; the test that would catch it is commented out",
+      "evidence": "pyproject.toml [mcp]: an 11-line comment states the SDK line must carry NO python marker; the next line is 'mcp>=2.0.0,<3; python_version >= \"3.10\"'. Effect: on 3.8/3.9 the extra resolves to pydantic-only instead of failing -- exactly the failure the comment describes.",
+      "disabled_gate": "test_mcp_import_surface.py::test_mcp_extra_declares_server_dependencies has its marker assertions commented out, leaving sdk_lines computed-and-unused and 'import re as _re' unused.",
+      "relation": "concrete substance of MCP-D06",
+      "blocked_by": "MCP_COMPATIBILITY_POLICY.md is the adjudicating document and is missing -> M01 is BLOCKED.",
+      "m00r": "UNCHANGED and live: pyproject.toml byte-identical to the M00 tree; marker still present; still unadjudicable without the missing policy.",
+      "correction": "M00/M00-R said the extra 'violates policy'. More precisely: the marker SATISFIES guide sec6 (which forbids declaring mcp BELOW the SDK floor) while producing exactly the partial-extra failure its own in-file comment identifies.",
+      "adjudication": "Verified: mcp 2.0.0 Requires-Python >=3.10 (PyPI). Marker evaluation: on py3.8/3.9 the mcp requirement is DROPPED and pydantic survives, so pip install 'scikit-plots[mcp]' SUCCEEDS with no server. Removing the marker satisfies BOTH the guide and the comment; keeping it satisfies only the weaker rule. No trade-off exists, so MCP_COMPATIBILITY_POLICY.md is needed only to ratify.",
+      "recommendation": "Remove the python_version marker; re-enable the commented-out assertion in test_mcp_import_surface.py; record an ADR.",
+      "resolution": "python_version marker removed from the SDK line; disabled assertion re-enabled."
+    },
+    {
+      "id": "MCP-M00-11",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "Source anchor is stale in MAINTAINING.md and the trackers",
+      "evidence": "Three distinct archives reviewed (611bdbf3 recorded, 43f5060c M00, 1198559 M00-R). None matches the recorded anchor.",
+      "fix": "Update MAINTAINING.md line 10, TRACKER.json and STATE.json to 1198559... once this tree is accepted as canonical.",
+      "consequence": "Until then the guide's REVERIFY rule re-triggers on every run, forcing full re-derivation each time."
+    },
+    {
+      "id": "MCP-M00-12",
+      "severity": "P2",
+      "status": "MOSTLY_CLOSED_IN_M05",
+      "title": "Fixing the four collection guards will NOT produce a green suite",
+      "evidence": "pytest with the 4 erroring files ignored: '6 failed, 96 passed, 2 skipped'. All six fail with ModuleNotFoundError: pydantic via _server.py:22. Collection errors abort the run, so these were never visible.",
+      "true_scope": "4 collection errors + 6 runtime failures, not 4 files.",
+      "triage": {
+        "guard_legitimately_server_tier": [
+          "test_cli.py::test_backend_self_test_is_repeatable_and_avoids_server_creation",
+          "test_cli.py::test_backend_self_test_can_require_exact_canary",
+          "test_cli.py::test_backend_self_test_required_match_fails_closed",
+          "test_cli.py::test_backend_self_test_expected_doc_id_fails_closed",
+          "test_mcp_import_surface.py::test_searchservice_lazily_requires_pydantic_but_is_reachable"
+        ],
+        "DO_NOT_GUARD_fix_the_code": [
+          "test_mcp_integrations.py::test_docs_toolkit_is_sdk_free_and_read_only"
+        ]
+      },
+      "critical_note": "test_docs_toolkit_is_sdk_free_and_read_only asserts a property the code does NOT have. Guarding it would convert a true failure into a silent skip and erase the evidence for MCP-D02.",
+      "resolution": "5 of 6 closed by FIXING CODE, not guarding: the agno toolkit and --self-test both now use the Tier-L coordinator. Remaining: test_searchservice_lazily_requires_pydantic_but_is_reachable, which requires pydantic by design and needs an importorskip guard -- decide together with MCP-M00-01's four collection errors.",
+      "m07": "With [mcp] installed the suite is GREEN on both the pristine tree (153 passed) and this tree (166 passed). Every recorded error/failure was an artefact of the missing extra, not a code defect."
+    },
+    {
+      "id": "MCP-M00-13",
+      "severity": "P3",
+      "status": "NEW_OUT_OF_SCOPE",
+      "title": "scikitplot/logging.py shadows stdlib logging when cwd is scikitplot/",
+      "evidence": "cd scikitplot && python -c 'import scikitplot.mcp' -> ImportError: cannot import name 'CRITICAL' from partially initialized module 'logging'.",
+      "scope": "Outside scikitplot/mcp/**. Route to the CLI/packaging campaign with MCP-M00-09.",
+      "note": "Fails with a confusing circular-import error instead of the package's own source-directory guard warning."
+    },
+    {
+      "id": "M01-01",
+      "severity": "P3",
+      "status": "CLOSED_IN_M13",
+      "title": "starlette is an undeclared direct dependency, relied upon transitively",
+      "evidence": "Imported at _server.py:341,344 (call time) and tests/test_server.py:16 (MODULE SCOPE, unguarded). Declared nowhere in pyproject.toml.",
+      "acknowledged_in_source": "_server.py:347 comment reads '# pragma: no cover - installed with MCP SDK' -- an explicit statement of transitive reliance.",
+      "policy_violated": "Standing rule 'Do not rely on transitive dependencies'; guide sec6 'direct vs transitive dependencies'.",
+      "impact": "Latent today (the SDK does pull starlette). Becomes active if the SDK restructures deps: create_server(health_path=...) raises at runtime, and tests/test_server.py fails at COLLECTION -- same defect class as MCP-M00-01.",
+      "fix": "Declare starlette in [mcp] with a documented range. This is an addition, so it narrows no compatibility range.",
+      "severity_correction": "M01 rated this P2 assuming the SDK might drop starlette. M07 shows starlette is a HARD requirement of mcp itself (blocking it breaks the SDK import outright), so that scenario is unrealistic. Finding stands (undeclared direct import; module-scope import in tests/test_server.py:16) but downgraded to P3.",
+      "resolution": "starlette>=0.40 declared in the [mcp] extra; new assertion enforces it."
+    },
+    {
+      "id": "M01-03",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "README documents the marker behaviour but not the trap it creates",
+      "evidence": "README.md:41 'pip install \"scikit-plots[mcp]\"  # installs mcp>=2.0.0,<3 on Python >= 3.10'. Accurate for 3.10+; silent about 3.8/3.9, where the SAME command succeeds and yields no server.",
+      "fix": "If the marker is removed per MCP-M00-10 this line becomes correct as written; if kept, the README must state the partial-extra outcome."
+    },
+    {
+      "id": "M01-04",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "Python 3.14 support is claimed in classifiers but unevidenced",
+      "evidence": "pyproject.toml:169 declares 'Programming Language :: Python :: 3.14'; requires-python='>=3.8' has no upper bound. No evidence the suite runs on 3.14. Base deps carry 3.13-specific handling (numpy <= 2.4.6) but nothing for 3.14.",
+      "standard": "MAINTENANCE_MODEL.md 'HOW MUCH': 'Claiming SDK compatibility -> tested against that SDK, or the claim is not made.' The same standard should apply to interpreter claims.",
+      "fix": "Produce CI evidence for 3.14 or drop the classifier -- the guide's 'next-Python prerelease readiness' item."
+    },
+    {
+      "id": "M01-05",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "The min/latest SDK test matrix is currently degenerate",
+      "evidence": "PyPI: mcp 2.0.0 is the ONLY stable 2.x release (others are a1-a3, b1, b2 prereleases). Under 'mcp>=2.0.0,<3', minimum == latest == 2.0.0.",
+      "consequence": "The standing 'test against minimum and latest supported versions' rule is trivially satisfiable now and stops being so on the first 2.1 release, silently.",
+      "fix": "Pin as an explicit M12 gate rather than discovering it later."
+    },
+    {
+      "id": "M02-01",
+      "severity": "P2",
+      "status": "CLOSED_IN_M13",
+      "title": "The documented actionable SDK error is unreachable on the path all 8 plugin bundles use",
+      "evidence": "python -m scikitplot.mcp with no [mcp] -> raw 'ModuleNotFoundError: No module named pydantic' traceback, exit 1. __main__.py:51 imports the _server MODULE, so _server.py:22 (module-scope pydantic) raises before the guarded SDK import at _server.py:274-283 can produce its message.",
+      "unreachable_message": "_server.py:280 'MCP SDK v2 is required for the server layer; on Python >= 3.10 install it with: pip install \"mcp>=2.0.0,<3\".' Only fires when pydantic is present but the SDK is not.",
+      "compounding": "__main__.py never calls server_runtime_status() before create_server() at line 564 (grep confirms zero references), though _capabilities.py:131 states that function exists precisely so callers avoid this exception.",
+      "impact": "Every plugin bundle declares 'python -m scikitplot.mcp'. A base-install user of Claude/Cursor/VSCode/Codex/Cline/Continue/Windsurf/OpenClaw gets a traceback naming pydantic, with no mention of the [mcp] extra.",
+      "fix": "M07: consult server_runtime_status() and exit with its reason before touching _server. Depends on MCP-D01 being fixed first, or the pre-flight reports server_available=True in the shadowing case.",
+      "resolution": "__main__.py pre-flights server_runtime_status() before touching the server tier; base install now gets an actionable SystemExit instead of a raw pydantic traceback."
+    },
+    {
+      "id": "M02-02",
+      "severity": "P3",
+      "status": "NEW",
+      "title": "All 8 plugin bundles hard-code bare 'python' as the launch command",
+      "evidence": "Every bundle declares {'command': 'python', 'args': ['-m','scikitplot.mcp']}.",
+      "risk": "Many distributions ship only python3; where the client does not activate the venv, 'python' resolves to a system interpreter without scikit-plots, yielding 'No module named scikitplot' -- a different unhelpful failure.",
+      "fix": "sys.executable is unavailable in static JSON; document the prerequisite in plugins/README.md or give per-bundle absolute-interpreter guidance."
+    },
+    {
+      "id": "M03-01",
+      "severity": "P2",
+      "status": "CLOSED_IN_M13",
+      "title": "Capability reporting cannot express 4 of the 6 states the guide requires",
+      "evidence": "server_runtime_status()'s entire vocabulary is sdk_present:bool plus reason in {None,'python<3.10','mcp-sdk-not-installed'}. PRESENT_INCOMPATIBLE, BROKEN, MISCONFIGURED and UNKNOWN have no representation.",
+      "aggravating": "A client receiving server_available:true cannot tell whether that was probed or assumed.",
+      "fix": "Adopt Corpus CapabilityStatus and add sdk_version/sdk_compatible. M03-01, M03-02 and MCP-D01 resolve together or not at all.",
+      "resolution": "All six required states expressible via the Corpus-mirrored CapabilityStatus vocabulary."
+    },
+    {
+      "id": "M03-02",
+      "severity": "P2",
+      "status": "CLOSED_IN_M13",
+      "title": "A present-but-broken SDK install reports as PRESENT_COMPATIBLE",
+      "evidence": "Constructed mcp/__init__.py raising ImportError (shape of a corrupt or ABI-mismatched package): server_runtime_status() -> server_available True, sdk_present True, reason None, while 'import mcp' raises.",
+      "distinct_from_D01": "D01 is a false positive from PATH SHADOWING; this is a false positive from an UNHEALTHY INSTALL. Same root: find_spec answers locatability, not importability or version.",
+      "resolution": "Probing uses importlib.metadata.version + range check, so a broken/incompatible SDK is no longer reported as compatible."
+    },
+    {
+      "id": "M03-03",
+      "severity": "P2",
+      "status": "CLOSED_IN_M13",
+      "title": "Probe failure is silently reported as ABSENT rather than UNKNOWN",
+      "evidence": "_capabilities.py:168-171 `except (ImportError, ValueError): return False`. A failed probe means UNKNOWN; reporting False means 'not installed, go install it', which may be wrong.",
+      "violates": "MAINTENANCE_MODEL.md: 'An unverified claim is worse than a narrow one. Prefer UNKNOWN or a declared degradation over a confident guess.'",
+      "cross_module": "Corpus ALREADY FIXED THIS EXACT DEFECT and recorded why. corpus/_capabilities.py CapabilityStatus docstring: 'Finding F-R02-05 measured that a backend whose is_available() RAISED -- an installed but corrupt, mis-linked or ABI-incompatible native library -- reported exactly the same as one that was never installed.' MCP's _present() reproduces the defect Corpus retired. Cite F-R02-05 in the ADR.",
+      "resolution": "A failed probe returns UNKNOWN, never ABSENT."
+    },
+    {
+      "id": "M03-04",
+      "severity": "P3",
+      "status": "CLOSED_IN_M13",
+      "title": "create_server registers the health route with no transport awareness",
+      "evidence": "create_server gates only on `if health_path is not None:` (_server.py:335) and takes NO transport parameter. effective_server_capabilities reports health only for streamable-http. Diverges in 2 of 8 configurations: stdio + health_path set.",
+      "why_cli_is_safe": "__main__.py:568 passes health_path=None unless transport=='streamable-http'. The invariant therefore holds by CALLER CONVENTION, not by construction -- the MCP-M00-05 / MCP-M00-07 pattern again.",
+      "compounds_M01_01": "The documented default create_server(retriever) has health_path='/healthz', so it executes `from starlette.requests import ...` (_server.py:341) -- requiring an UNDECLARED dependency to register a route the default stdio transport cannot serve.",
+      "evidence_class": "VERIFIED by control-flow reading; not executed (create_server needs pydantic + SDK). Runtime confirmation belongs to M12.",
+      "fix": "Make create_server transport-aware, or default health_path=None so the route is opt-in. Sequence with M07.",
+      "resolution": "create_server(health_path=...) now defaults to None; the HTTP route is opt-in."
+    },
+    {
+      "id": "M06-01",
+      "severity": "P3",
+      "status": "DEFERRED_WITH_REASON",
+      "title": "An uncoercible score is coerced to a legitimate 0.0",
+      "evidence": "nan, inf, -inf, 'abc' and None all emerge as 0.0. 0.0 is a valid similarity score, so 'unusable' is indistinguishable from 'genuinely zero'.",
+      "pattern": "Same shape as M03-03 (_present() -> False for a failed probe) and MCP-D05 (BROKEN reported as ABSENT). Three sites, one habit.",
+      "fix": "Emit None for an uncoercible score.",
+      "deferral_reason": "The honest fix changes the advertised output schema (CitationOutput.score is a typed float; making it nullable would break a strict client). M11 established every change so far is additive; not traded for a P3 late in the campaign. Belongs with a schema version bump."
+    },
+    {
+      "id": "M06-02",
+      "severity": "P3",
+      "status": "CLOSED_IN_M13",
+      "title": "'.' and '..' are accepted as document identifiers",
+      "evidence": "_DOC_ID_RE = \\A[A-Za-z0-9._:-]{1,200}\\Z accepts '.' and '..'; ':' is accepted too. Full traversal is blocked ('/' excluded), verified across 12 identifiers.",
+      "why_it_matters": "document_reader is caller-supplied third-party code; a reader doing Path(base)/doc_id receives a directory reference. On Windows ':' permits drive-relative or ADS forms.",
+      "fix": "Exclude '.', '..' and a leading ':'. Narrows no legitimate identifier.",
+      "resolution": "_DOC_ID_RE rejects '.', '..' and a leading ':'."
+    },
+    {
+      "id": "M06-03",
+      "severity": "P3",
+      "status": "DEFERRED_WITH_REASON",
+      "title": "Non-URI strings are emitted as citation URIs",
+      "evidence": "'not a uri' -> 'not a uri#a'. Dangerous schemes ARE blocked (javascript:, data:, file:, vbscript: -> ''), so this is not a security hole, but a citation whose URI is not a URI is a broken citation a client may render as a link.",
+      "fix": "Reject it (empty, as with blocked schemes) or validate it parses as a relative reference.",
+      "deferral_reason": "Dangerous schemes are already blocked, so this is cosmetic correctness; tightening risks rejecting legitimate relative references."
+    },
+    {
+      "id": "M06-04",
+      "severity": "P2",
+      "status": "RESOLVED_IN_M07",
+      "title": "The same retrieval failure maps to two different wire outcomes",
+      "evidence": "One retriever with a down backend, varying only `strict`: strict=False -> RESULT isError=True retrieval_status='failed'; strict=True -> RAISES RuntimeError('documentation search is temporarily unavailable').",
+      "analysis": "`strict` was a diagnostic control. After M04 it also selects the wire error channel. Not a regression: the divergence pre-existed but was invisible because the non-strict path lied (EMPTY / isError False). M04 made both truthful and thereby exposed that they are two paths.",
+      "recommendation": "Make structuredContent.retrieval_status + isError canonical -- it carries per-leg detail, whereas RuntimeError collapses everything to one opaque sentence. Keep `strict` for logging only. Decide in M07.",
+      "blocks": "Mapping Corpus ErrorRecord.code/ErrorCategory onto the wire (deferred from M04) -- the destination depends on which channel wins.",
+      "resolution": "search_docs now raises on a FAILED outcome, so both strict modes yield is_error=True at the protocol level. `strict` is a diagnostic control again."
+    },
+    {
+      "id": "M07-01",
+      "severity": "P2",
+      "status": "FIXED_IN_M07",
+      "title": "M04's retrieval status never reached the MCP wire",
+      "evidence": "Protocol measurement: strict=False -> is_error=False, retrieval_status=None. SearchDocsOutput is a closed model (extra=forbid) whose field list lacked retrieval_status/retrieval_errors, so pydantic SILENTLY DROPPED them; SearchService also read only structuredContent and never raw['isError'].",
+      "significance": "MCP-D03 held at Tier-L and FAILED at the wire -- the only externally observable place. This was a gap in M04's own verification and is exactly the failure the guide's rule 'do not infer transport correctness from unit-level direct function calls' names.",
+      "fix": "retrieval_status and retrieval_errors added as documented optional fields; SearchService propagates both."
+    },
+    {
+      "id": "M07-02",
+      "severity": "P2",
+      "status": "FIXED_IN_M07",
+      "title": "The success path never reported retrieval status",
+      "evidence": "build_search_docs_result set retrieval_status only in its `if not safe:` branch, so any result WITH hits carried no status.",
+      "significance": "DEGRADED was invisible exactly when it matters most -- a partial result that still returns passages. A client inspecting only `count` would never learn evidence was missing.",
+      "fix": "Success path now reports status and surfaces retrieval_errors. Verified: fusion fail+ok -> is_error=False, status='degraded', count=1, errors=['index down']."
+    },
+    {
+      "id": "M07-03",
+      "severity": "P3",
+      "status": "CLOSED_IN_M13",
+      "title": "The SDK-missing guard misreports any transitive ImportError as 'SDK not installed'",
+      "evidence": "With starlette blocked but mcp installed, create_server raises 'MCP SDK v2 is required ... pip install mcp>=2.0.0,<3'. The SDK IS installed; the guard caught an ImportError from inside the SDK's own dependency chain.",
+      "pattern": "Fourth site of one habit, after M03-03, MCP-D05 and M06-01: converting 'something is wrong in a way I did not check' into a confident, specific, wrong claim.",
+      "resolution": "create_server consults the capability probe and distinguishes absent / incompatible / broken-environment."
+    }
+  ],
+  "corpus_contracts_to_map": {
+    "RetrievalResponse/RetrievalStatus": "M04 core question: DEGRADED is neither success nor error on the wire",
+    "LegOutcome/LegStatus": "optional per-leg diagnostics resource",
+    "ErrorRecord": "already JSON-serialisable; reuse rather than inventing a second error shape",
+    "CapabilityStatus": "server_capabilities() should consume this, not define a parallel vocabulary",
+    "ComponentCatalog": "answers 'what backends exist' without importing them",
+    "ToolCallInput/ToolCallResult": "protocol-NEUTRAL payload shapes owned by Corpus; adding pydantic or mcp to them breaks the boundary"
+  },
+  "tripwires": {
+    "sdk_importers": 1,
+    "module_scope_corpus_imports": 0,
+    "min_test_source_ratio": 0.5,
+    "max_markdown_to_source_ratio": 2.5,
+    "max_module_loc": 1200
+  },
+  "fresh_chat_read_order": [
+    "_maintenance/MAINTENANCE_MODEL.md",
+    "_maintenance/RULESET.md",
+    "_maintenance/TRACKER_LOGICAL.md",
+    "_maintenance/TRACKER_PHYSICAL.md",
+    "_maintenance/SUBMODULE_STRUCTURE.md",
+    "_maintenance/MCP_COMPATIBILITY_POLICY.md",
+    "_maintenance/DESIGN.md",
+    "_maintenance/VERIFICATION.md"
+  ],
+  "next_exact_action": "Run the M14 Hamlet showcase in a provisioned CI/container with a usable scikitplot.annoy native backend and scikit-plots[mcp], setting SCIKITPLOT_GALLERY_RUN_MCP_DOCKER=1. Require direct Annoy search, CLI --self-test, /healthz readiness, official mcp.Client search_docs round trip, resource lookup, and clean subprocess shutdown to pass before marking the live gate closed.",
+  "project_sequence": {
+    "corpus": "COMPLETE (review R00-R16, implementation IMPL-01-18)",
+    "mcp": "NEXT - run M00",
+    "annoy": "AFTER MCP",
+    "cli": "AFTER ANNOY"
+  },
+  "deferred_queue_MCP_D01_D09": {
+    "result": "9 of 9 CONFIRMED OPEN; none disproved. D01 and D02 promoted to runtime proof in M00-R.",
+    "detail": "_maintenance/checkpoints/M00_DEFERRED_ISSUE_MATRIX.md",
+    "D01": "CLOSED in M13. Probing moved from importlib.util.find_spec (answers 'is a module of this name on sys.path') to importlib.metadata.version + range check against mcp>=2.0.0,<3. Verified: with a decoy mcp/ directory present, find_spec saw the decoy while metadata reported the real 2.0.0. sdk_version and sdk_compatible added. Guarded by 3 new tests.",
+    "D02": "DECIDED in M02 - VIOLATES guide sec7 ('no optional framework integration should unexpectedly import _server unless explicitly server-tier'). Measured: integrations IMPORT base-safely; ScikitplotDocsToolkit() CONSTRUCTION fails with pydantic blocked, while OpenClawMcpConfig() is fully base-safe. The agno toolkit is not merely undeclared as server-tier -- it positively advertises the opposite in THREE user-facing places (integrations/__init__.py:12, integrations/README.md:8, docs_toolkit.py:5), all claiming Legacy Retrieval tier (Python 3.8+) operation. All three are false. BLOCKED on M05 / MCP-M00-07. Do NOT correct the docs before M05 decides which way it resolves, and do NOT guard test_docs_toolkit_is_sdk_free_and_read_only.",
+    "D03": "OPEN P2 - DocsRetriever returns bare list[RetrievedChunk]; no status channel. strict=False default -> total failure returns [] indistinguishable from no-match. The M04 flattening already exists one layer below the wire",
+    "D04": "DECIDED in M02 - NOT base-safe, confirmed on the real package: 'import scikitplot.mcp' and dir() pass with pydantic blocked; 'from scikitplot.mcp import *' raises ImportError. DECISION: remove the 4 server-tier names from __all__. They stay reachable via __getattr__ attribute access, so nothing is lost; __all__ IS the star-import surface and listing lazily-served optional names defeats the lazy tier at the one operation that resolves every entry. REQUIRED: add the star-import case to test_mcp_import_surface.py, or the decision is unenforced (the MCP-M00-05 pattern).",
+    "D05": "CLOSED in M13. _corpus_annoy.py now catches ImportError for ABSENT and reports any other exception as 'installed but failed to import; this is a broken installation, not a missing one'.",
+    "D06": "OPEN P2 - see MCP-M00-10; assertions are not merely weaker, they are disabled, and the live metadata violates the policy",
+    "D07": "OPEN P2 - see MCP-M00-06 for the precise root cause",
+    "D08": "OPEN P3 - justification STRENGTHENED in M02. The 'SDK-free therefore Legacy-tier' inference is the direct cause of D02's three false claims: SDK-free (no mcp import) is true, Legacy-tier (pydantic-free) is a different property. M00 rated this terminological; M02 shows the conflation produced three incorrect user-facing statements and one failing test. Rating holds at P3; the finding is load-bearing, not cosmetic.",
+    "D09": "OPEN P2 - see MCP-M00-04; 18 dangling targets, 10 superseded facts, and stale_lifecycle.py (the archival tool SUBMODULE_STRUCTURE.md says to use) has itself been archived"
+  },
+  "accepted_seam_guide_sec4": {
+    "status": "PARTIALLY_VERIFIED",
+    "fails_closed": "VERIFIED - _server.py:191-201 raises RuntimeError if _tool_manager/get_tool/fn_metadata.arg_model are absent",
+    "unknown_args_rejected": "VERIFIED statically - extra='forbid' + additionalProperties is False, else RuntimeError",
+    "min_and_latest_sdk_pass": "UNKNOWN - no SDK installable here; defer to M12",
+    "residual_risk": "_server.py:210 mutates argument_model.model_config on the SDK-generated class and force-rebuilds it; if a future SDK caches argument models across servers this is shared-state mutation. Track in M06/M07."
+  },
+  "measured_physical": {
+    "source_files": 17,
+    "source_loc": 3515,
+    "test_files": 15,
+    "test_modules_test_star": 13,
+    "test_loc": 2096,
+    "markdown_files": 19,
+    "test_to_source_loc_ratio": 0.596,
+    "markdown_to_source_ratio": 1.12,
+    "largest_module": "__main__.py (608)",
+    "suite_without_mcp_extra": "2 skipped, 4 errors (collection); 6 failed / 96 passed / 2 skipped once collection is bypassed",
+    "note": "TRACKER.json physical.markdown_files=31 remains stale AND is never compared by the gate (MCP-M00-05)."
+  },
+  "runtime_verification_M00R": {
+    "environment": "pydantic, mcp, starlette, anyio, httpx ALL ABSENT = the intended 'without [mcp]' condition",
+    "check_trackers": "exit 0 -- 17 source / 15 test files, 3515 / 2096 LOC",
+    "pytest_documented_command": "1 skipped, 1 error -- pytest.ini --maxfail=1 TRUNCATES the run (MCP-M00-09)",
+    "pytest_maxfail_100": "2 skipped, 4 errors -- MATCHES the documented expectation exactly, same four files",
+    "pytest_ignoring_4_erroring_files": "6 failed, 96 passed, 2 skipped -- see MCP-M00-12",
+    "import_surface": "VERIFIED from outside source tree: corpus/annoy/pydantic/mcp NOT loaded; numpy is the only third-party module"
+  },
+  "lessons": [
+    {
+      "date": "2026-08-18",
+      "title": "A missing document is not automatically a blocker",
+      "context": "M00-R marked M01 BLOCKED pending MCP_COMPATIBILITY_POLICY.md.",
+      "issue": "M01 was substantially answerable: the guide states the packaging rule itself (sec6), and marker semantics plus the SDK's published Requires-Python settle MCP-M00-10 deterministically.",
+      "root_cause": "Treated 'the adjudicating document is missing' as 'the question is unanswerable' without walking the evidence precedence list. The guide sits at rank 1-3 (snapshot / deterministic reproducers / package metadata); the missing policy is rank 5 (source-side maintenance documents).",
+      "prevention_rule_when": "a run is about to be marked BLOCKED on a missing document",
+      "prevention_rule_then": "walk the evidence precedence list top-down and record, per blocked item, which rank could settle it; mark BLOCKED only for items no higher-ranked source can reach, and PARTIAL for the rest",
+      "verified_by": "any BLOCKED item in STATE.json names the precedence ranks checked and why each failed"
+    }
+  ],
+  "runtime_verification_M02": {
+    "conditions": "pydantic, mcp, mcp_types, starlette, anyio, httpx (and agno) blocked via __import__ blocker on a tree where none are installed",
+    "import scikitplot.mcp": "PASS - _server not loaded",
+    "server_runtime_status": "PASS",
+    "server_capabilities": "PASS",
+    "effective_server_capabilities": "PASS",
+    "--help": "PASS exit 0",
+    "--list-capabilities": "PASS exit 0",
+    "--print-effective-config": "PASS exit 0",
+    "dir(scikitplot.mcp)": "PASS - 46 entries, does NOT resolve, base-safe",
+    "from scikitplot.mcp import *": "FAIL ImportError: pydantic -- see MCP-D04",
+    "integrations import": "PASS (all three)",
+    "OpenClawMcpConfig() construct": "PASS - fully base-safe",
+    "ScikitplotDocsToolkit() construct": "FAIL ImportError: pydantic -- see MCP-D02",
+    "plugin metadata": "17 JSON files across 8 bundles, all valid; no .py in plugins/",
+    "python -m scikitplot.mcp (default plugin launch)": "raw ModuleNotFoundError traceback, exit 1 -- see M02-01"
+  },
+  "capability_model_M03": {
+    "required_states_expressible": "2 of 6 (ABSENT, PRESENT_COMPATIBLE-but-assumed)",
+    "inexpressible": [
+      "PRESENT_INCOMPATIBLE",
+      "BROKEN",
+      "MISCONFIGURED",
+      "UNKNOWN"
+    ],
+    "required_fields_present": [
+      "sdk_present",
+      "server_available",
+      "reason (== reason_code, naming mismatch only)"
+    ],
+    "required_fields_missing": [
+      "sdk_version",
+      "sdk_compatible"
+    ],
+    "static_vs_effective": "CORRECT - effective derives from static via each resource's 'requires' key; matches create_server's document_reader gate exactly",
+    "never_advertise_unregistered": "SATISFIED - verified across all 8 configurations",
+    "decision": "Adopt Corpus CapabilityStatus (scikitplot/corpus/_capabilities.py:106): AVAILABLE|ABSENT|BROKEN|INCOMPATIBLE|MISCONFIGURED|UNREACHABLE|UNKNOWN. Verified to cover all 6 guide states with UNREACHABLE spare. Consume by value; the boundary still forbids a module-scope corpus import."
+  },
+  "closure": {
+    "status": "NOT_CLOSED",
+    "criteria_met": "12 of 13",
+    "rejection_list_live_violations": "NONE - 'trust package presence as compatibility' fixed in M13",
+    "remaining": [
+      "min/latest real SDK matrix degenerate (M01-05): mcp 2.0.0 is the only stable 2.x release, so min == latest. Satisfiable the day 2.1 ships; pin it as a CI gate now. The wheel-build and Python 3.10 lanes belong here too and need a toolchain this container lacks.",
+      "historical maintenance state: RULESET.md, MCP_COMPATIBILITY_POLICY.md and DESIGN.md have been absent from ALL FOUR archives supplied during this campaign. DESIGN.md is still cited from runtime source (_hybrid.py:22,346). Only the maintainer can resolve this. Anchor should move to 9be9218a... (MCP-M00-11)."
+    ],
+    "transport_lanes": "stdio GREEN (M08); Streamable HTTP GREEN (M12-LIVE); in-process GREEN (M07); cancellation and shutdown GREEN (M12-LIVE)."
+  }
+}

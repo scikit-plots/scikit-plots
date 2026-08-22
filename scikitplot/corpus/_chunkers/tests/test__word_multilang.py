@@ -43,6 +43,17 @@ from .._word import (
 from ..._types import ChunkResult
 
 
+# python -m pytest \
+#   scikitplot/corpus/_chunkers/tests/test__word_multilang.py \
+#   -vv --maxfail=0
+
+# Then the focused Snowball tests across both files:
+# python -m pytest \
+#   scikitplot/corpus/_chunkers/tests/test__word_multilang.py \
+#   scikitplot/corpus/_chunkers/tests/test__word_advanced.py \
+#   -k "snowball" \
+#   -vv --maxfail=0
+
 # ===========================================================================
 # _strip_unicode_punct — pure function
 # ===========================================================================
@@ -115,31 +126,36 @@ class TestWordChunkerConfigCustomValidation:
                 )
             )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "HIGH-04: WordChunker does not yet raise ValueError when "
-            "StemmingBackend.SNOWBALL is given an unsupported language "
-            "('arabic'). The validation exists for CJK scripts but not for "
-            "all SNOWBALL-unsupported languages. Fix target: 0.5.0."
-        ),
-    )
-    def test_snowball_unsupported_language_raises(self) -> None:
-        """SNOWBALL must reject languages it does not support."""
-        with pytest.raises(ValueError, match="SNOWBALL"):
-            WordChunker(
-                WordChunkerConfig(
-                    stemmer=StemmingBackend.SNOWBALL,
-                    nltk_language="arabic",  # not in SNOWBALL supported list
-                )
+    def test_snowball_arabic_language_does_not_raise(self) -> None:
+        """Arabic is a supported Snowball language."""
+        chunker = WordChunker(
+            WordChunkerConfig(
+                stemmer=StemmingBackend.SNOWBALL,
+                nltk_language="arabic",  # Snowball-supported language
             )
+        )
+        assert chunker is not None
 
-    def test_snowball_cjk_language_raises(self) -> None:
+    # SUPPORTED
+    # ├── arabic
+    # ├── english
+    # └── german
+    # UNSUPPORTED
+    # ├── chinese
+    # ├── klingon
+    # ├── elvish
+    # ├── arabic_dialect
+    # └── xyz_unknown
+    # CJK
+    # ├── Chinese
+    # ├── Japanese
+    # └── Korean
+    def test_snowball_chinese_language_raises(self) -> None:
         with pytest.raises(ValueError, match="SNOWBALL"):
             WordChunker(
                 WordChunkerConfig(
                     stemmer=StemmingBackend.SNOWBALL,
-                    nltk_language="chinese",
+                    nltk_language="chinese",  # not in SNOWBALL supported list
                 )
             )
 

@@ -977,14 +977,12 @@
             return document.createTextNode('🕺');
         }
         const img = document.createElement('img');
-        // const version = window.location.pathname.split("/")[1]; // "dev" or "stable"
-        // const root = window.location.pathname.match(/^\/[^/]+/)[0];
-        // if the script itself is inside _static, even better because
-        // DOCUMENTATION_OPTIONS.URL_ROOT points back to the documentation root.:
-        // img.src = new URL("animated_gif/dancer_anim.gif", import.meta.url).href;
-        // img.src = new URL("_static/animated_gif/dancer_anim.gif", document.baseURI).href;
-        const urlRoot = window.DOCUMENTATION_OPTIONS?.URL_ROOT ?? "/dev/";
-        img.src = `${urlRoot}_static/animated_gif/dancer_anim.gif`;
+        // getStaticAssetUrl() derives _static/ from the loaded <script>/<link>
+        // tag itself (see "Static path detection" below), so this resolves
+        // correctly under /dev/, /stable/, a version tag, or a ReadTheDocs
+        // /en/latest/-style prefix — unlike a URL_ROOT fallback hardcoded to
+        // one deployment.
+        img.src = getStaticAssetUrl('animated_gif/dancer_anim.gif');
         img.className = 'ai-assistant-panel-dancer-gif';
         img.height = 11;
         img.alt = '';
@@ -1907,7 +1905,7 @@
         mainBtn.title = 'Copy this page as Markdown for AI / LLMs';
 
         var mainIcon = document.createElement('img');
-        mainIcon.src = staticPath + '/copy-to-clipboard.svg';
+        mainIcon.src = getStaticAssetUrl('copy-to-clipboard.svg', staticPath);
         mainIcon.className = 'ai-assistant-icon';
         mainIcon.setAttribute('aria-hidden', 'true');
         mainIcon.alt = '';
@@ -1931,7 +1929,7 @@
         dropBtn.setAttribute('aria-haspopup', 'true');
 
         var dropIcon = document.createElement('img');
-        dropIcon.src = staticPath + '/arrow-down.svg';
+        dropIcon.src = getStaticAssetUrl('arrow-down.svg', staticPath);
         dropIcon.className = 'ai-assistant-dropdown-icon';
         dropIcon.setAttribute('aria-hidden', 'true');
         dropIcon.alt = '';
@@ -1959,12 +1957,12 @@
 
         // 1. Markdown export
         if (features.markdown_export) {
-            dropdown.appendChild(createMenuItem('copy-markdown', 'Copy page', 'Copy this page as Markdown for LLMs.', staticPath + '/copy-to-clipboard.svg'));
+            dropdown.appendChild(createMenuItem('copy-markdown', 'Copy page', 'Copy this page as Markdown for LLMs.', getStaticAssetUrl('copy-to-clipboard.svg', staticPath)));
             hasItems = true;
         }
 
         if (features.view_markdown) {
-            dropdown.appendChild(createMenuItem('view-markdown', 'View as Markdown', 'View this page as Markdown.', staticPath + '/markdown.svg'));
+            dropdown.appendChild(createMenuItem('view-markdown', 'View as Markdown', 'View this page as Markdown.', getStaticAssetUrl('markdown.svg', staticPath)));
             hasItems = true;
         }
 
@@ -1977,7 +1975,7 @@
                 enabledProviders.forEach(function (kv) {
                     var key  = kv[0], provider = kv[1];
                     var icon = provider.icon || 'comment-discussion.svg';
-                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
+                    var iconPath = getStaticAssetUrl(icon, staticPath);
                     var item = createMenuItem('ai-chat-' + key, provider.label, provider.description || 'Open AI chat with this page context.', iconPath);
                     item.dataset.provider = key;
                     dropdown.appendChild(item);
@@ -1995,7 +1993,7 @@
                 enabledTools.forEach(function (kv) {
                     var key = kv[0], tool = kv[1];
                     var icon = tool.icon || 'ai-tools.svg';
-                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
+                    var iconPath = getStaticAssetUrl(icon, staticPath);
                     var item = createMenuItem('mcp-' + key, tool.label, tool.description || 'Install MCP server.', iconPath);
                     item.dataset.mcpTool = key;
                     dropdown.appendChild(item);
@@ -2015,7 +2013,7 @@
         if (features.ai_panel) {
             var panelTitle = cfg.panelTitle || 'AI Assistant';
             if (hasItems) dropdown.appendChild(createSeparator());
-            var panelItem = createMenuItem('ai-panel-open', panelTitle, 'Ask ' + panelTitle + ' about this page', staticPath + '/ai-panel.svg');
+            var panelItem = createMenuItem('ai-panel-open', panelTitle, 'Ask ' + panelTitle + ' about this page', getStaticAssetUrl('ai-panel.svg', staticPath));
             dropdown.appendChild(panelItem);
         }
 
@@ -2315,7 +2313,7 @@
 
     function _pdfIconSource(staticPath, mode) {
         var def = _PDF_MODE_DEFS[mode] || _PDF_MODE_DEFS.print;
-        return staticPath.replace(/\/$/, '') + '/' + def.iconFile;
+        return getStaticAssetUrl(def.iconFile, staticPath);
     }
 
     function _pdfSwitchAccessibleLabel(mode, target) {
@@ -2624,6 +2622,44 @@
             if (href.indexOf('_static') !== -1) return href.substring(0, href.indexOf('_static') + 7);
         }
         return '_static';
+    }
+
+    /**
+     * Resolve `asset` to a URL safe to assign to `img.src` regardless of page
+     * depth or deployment prefix (`/dev/`, `/stable/`, a version tag,
+     * ReadTheDocs `/en/latest/`, a custom `html_baseurl`, ...).
+     *
+     * Values already matched by `_ABSOLUTE_ICON_RE` (an `https:`/`data:`/
+     * `blob:` URL, or a root-relative `/path`) are returned unchanged — this
+     * is what lets a Python-supplied `data:image/svg+xml;base64,...` icon
+     * (see `_static/__init__.py`, `_ICON_META` / `_PROVIDER_META`) skip
+     * `_static/` and avoid a network request entirely.
+     *
+     * Otherwise `asset` is treated as a bare filename under the resolved
+     * static directory and joined with `new URL()`, the same normalization
+     * `_getSphinxDocsRootUrl()` already uses — one canonical way to build a
+     * `_static/`-relative URL instead of each call site re-deriving it.
+     *
+     * @param {string} asset - Bare filename ('checked.svg') or an
+     *     already-absolute src.
+     * @param {string} [base] - Static-dir base to resolve against. Defaults
+     *     to `getStaticPath()`; pass an already-computed local `staticPath`
+     *     to skip recomputing it (cheap either way — `getStaticPath()` is
+     *     memoized).
+     * @returns {string} An absolute (or already-absolute) URL, or `''` if
+     *     `asset` is empty.
+     */
+    function getStaticAssetUrl(asset, base) {
+        asset = String(asset || '');
+        if (!asset) { return ''; }
+        if (_ABSOLUTE_ICON_RE.test(asset)) { return asset; }
+
+        var staticBase = String(base || getStaticPath() || '_static').replace(/\/?$/, '/');
+        try {
+            return new URL(asset.replace(/^\/+/, ''), new URL(staticBase, document.baseURI)).href;
+        } catch (_e) {
+            return staticBase + asset.replace(/^\/+/, '');
+        }
     }
 
     // ── Widget placement ──────────────────────────────────────────────────────
@@ -3035,7 +3071,7 @@
         if (!iconEl || !textSpan) return;
         var origSrc  = iconEl.src;
         var origText = textSpan.textContent;
-        iconEl.src           = getStaticPath() + '/checked.svg';
+        iconEl.src           = getStaticAssetUrl('checked.svg');
         textSpan.textContent = 'Copied';
         mainButton.classList.add('ai-assistant-button-success');
         setTimeout(function () {
@@ -22581,12 +22617,13 @@ opts.jsonPayload + '\n' +
         var ns = window.AI_ASSISTANT = window.AI_ASSISTANT || {};
         if (ns._wired) { return; }              // idempotent across re-injection
         ns._wired          = true;
-        ns.config          = function () { return _cfg(); };
-        ns.getStaticPath   = getStaticPath;     // asset base URL resolver
-        ns.icons           = ICONS;             // inline SVG map
-        ns.fetch           = _fetch;            // AI_COMPAT-aware fetch
-        ns.hapticFeedback  = _hapticFeedback;   // no-op where unsupported
-        ns.attachLongPress = _attachLongPress;  // pointer long-press helper
+        ns.config             = function () { return _cfg(); };
+        ns.getStaticPath      = getStaticPath;      // _static/ base path (no trailing slash)
+        ns.getStaticAssetUrl  = getStaticAssetUrl;  // filename or absolute src -> resolved URL
+        ns.icons              = ICONS;              // inline SVG map
+        ns.fetch              = _fetch;             // AI_COMPAT-aware fetch
+        ns.hapticFeedback     = _hapticFeedback;     // no-op where unsupported
+        ns.attachLongPress    = _attachLongPress;    // pointer long-press helper
     }());
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────

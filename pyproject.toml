@@ -84,6 +84,10 @@ requires = [
   # "numpy==2.3.2; python_version == '3.13'",
   # "numpy>=2.0.0; python_version >= '3.9' and python_version != '3.13'",
   'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+    # Upper bound justification (P-I0-09 / finding F-R14-02): NumPy has not
+  # published a 3.13-compatible wheel beyond 2.4.6 that this project has
+  # been tested against. Re-evaluate on each NumPy minor release and raise
+  # or remove the bound once a newer 3.13 wheel passes CI.
   "numpy <= 2.4.6; python_version == '3.13'",
   'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
 ]
@@ -252,6 +256,10 @@ requires-python = ">=3.8"
 dependencies = [
   # --- Core Numerical Libraries ---
   'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+    # Upper bound justification (P-I0-09 / finding F-R14-02): NumPy has not
+  # published a 3.13-compatible wheel beyond 2.4.6 that this project has
+  # been tested against. Re-evaluate on each NumPy minor release and raise
+  # or remove the bound once a newer 3.13 wheel passes CI.
   "numpy <= 2.4.6; python_version == '3.13'",
   'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
   "scipy>=1.7.0",                           # >=1.11.1,<2.0.0
@@ -384,6 +392,10 @@ build = [
   ## disabling build isolation.
   ## py>=3.9 Numpy C-Api Headers by python module
   'numpy>=1.20,!=1.24.0; python_version < "3.9"',
+    # Upper bound justification (P-I0-09 / finding F-R14-02): NumPy has not
+  # published a 3.13-compatible wheel beyond 2.4.6 that this project has
+  # been tested against. Re-evaluate on each NumPy minor release and raise
+  # or remove the bound once a newer 3.13 wheel passes CI.
   "numpy <= 2.4.6; python_version == '3.13'",
   'numpy>=2.0.0; python_version >= "3.9" and python_version != "3.13"',
 ]
@@ -418,6 +430,7 @@ dev = [
 ## Testing dependencies, Free-threaded (No-GIL) Python builds, suffix 't'
 test_nogil = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
+  "scikit-plots[mcp]",
 
   "hypothesis",                             # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
@@ -436,8 +449,6 @@ test_nogil = [
   "pyinstrument",                           # Performance profiler time helper
   "beautifulsoup4",                         # sphinx
 
-  "mcp",                                    # https://github.com/modelcontextprotocol/modelcontextprotocol
-
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
 
@@ -450,6 +461,11 @@ test_nogil = [
 ## Standard testing dependencies (Python 3.8 → 3.14)
 test = [
   "scikit-plots[test_nogil]",               # Reference the 'test' group as a dependency
+
+  # Required by [tool.pytest.ini_options] addopts "--doctest-rst".  Without it a
+  # clean `pip install scikit-plots[test] && pytest` aborts on an unrecognised
+  # argument BEFORE collection begins (P-I0-10 / finding F-R14-02).
+  "pytest-doctestplus>=1.0",
 
   ## Free-threaded builds (3.13t, 3.14t) should skip 'h5py' completely.
   # "h5py",                                   # https://docs.h5py.org/en/stable/quick.html#quick
@@ -510,6 +526,36 @@ maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
 
+## mcp submodule dep
+mcp = [
+  # Tier-S server extra. The SDK is imported via the public ``mcp.types`` alias
+  # (projects that depend on ``mcp`` should not import the standalone ``mcp_types``).
+  #
+  # NO python marker on the SDK line: requesting [mcp] on Python 3.8/3.9 must FAIL
+  # at dependency resolution, because the MCP SDK's own Requires-Python (>=3.10)
+  # rejects the interpreter. A marker would instead silently drop the SDK and leave
+  # a partial (pydantic-only) extra, which does not mean "server installed".
+  # The base install (no extra) remains Python 3.8+ clean.
+  # https://github.com/modelcontextprotocol/python-sdk
+  # https://github.com/modelcontextprotocol/modelcontextprotocol
+  # M01/MCP-M00-10: NO python_version marker, per the rule stated above. A
+  # marker makes pip DROP this line on 3.8/3.9 and silently install a
+  # pydantic-only extra; without it the SDK's own Requires-Python (>=3.10)
+  # rejects the interpreter and resolution fails loudly, which is intended.
+  'mcp>=2.0.0,<3',
+  # Server-tier runtime: pydantic backs the tool I/O models and SearchService.
+  # It is required whenever the server surface is used, so it is declared here
+  # (pydantic supports Python 3.8+, hence no version marker).
+  'pydantic>=2,<3',
+  # M01-01: starlette is imported DIRECTLY by _server.py (the HTTP health
+  # route) and by tests/test_server.py at module scope. It arrives today only
+  # as a transitive dependency of the MCP SDK; declaring it makes the direct
+  # use explicit, per the "do not rely on transitive dependencies" rule. The
+  # range is deliberately wide -- this adds a declaration, it does not narrow
+  # any existing compatibility range.
+  'starlette>=0.40',
+]
+
 ## mlflow submodule dep
 mlflow = [
   "mlflow",                                 # mlflow
@@ -528,14 +574,18 @@ cython = [
 corpus = [
   "nltk",                                   # nltk
   "gensim",
+  "datasets",
   "langdetect",
   "pytesseract",
+  "whisper",
   "faster-whisper",
   "openai-whisper",
   "youtube-transcript-api",
   "pypdf",
+  "pdfminer",
   "pdfminer.six",
   "sentence-transformers",
+  "langchain-core",
 ]
 
 ## Specialized dependencies for specific hardware

@@ -9,7 +9,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # TODO move to seaborn._core.typing?
-    from .._core.plot import FacetSpec, PairSpec
+    from seaborn._core.plot import FacetSpec, PairSpec
     from matplotlib.figure import SubFigure
 
 

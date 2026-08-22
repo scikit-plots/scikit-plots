@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scikit-plots.github.io/schemas/ai-assistant-setting-definition.schema.json",
+  "title": "AI assistant setting definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "key",
+    "type",
+    "default",
+    "scope",
+    "persistence",
+    "sensitivity",
+    "client_visible"
+  ],
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "boolean",
+        "string",
+        "integer",
+        "number",
+        "enum",
+        "url",
+        "repo-id"
+      ]
+    },
+    "default": {},
+    "scope": {
+      "enum": [
+        "build",
+        "browser",
+        "server",
+        "shared"
+      ]
+    },
+    "persistence": {
+      "enum": [
+        "none",
+        "memory",
+        "session",
+        "local",
+        "server"
+      ]
+    },
+    "sensitivity": {
+      "enum": [
+        "public",
+        "internal",
+        "credential-presence",
+        "secret"
+      ]
+    },
+    "client_visible": {
+      "type": "boolean"
+    },
+    "server_authoritative": {
+      "type": "boolean"
+    },
+    "deprecated": {
+      "type": "boolean"
+    },
+    "validation": {
+      "type": "object"
+    },
+    "documentation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

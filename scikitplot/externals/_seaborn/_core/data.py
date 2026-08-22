@@ -9,7 +9,7 @@ from typing import cast
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.typing import DataSource, VariableSpec, ColumnName
+from seaborn._core.typing import DataSource, VariableSpec, ColumnName
 
 
 class PlotData:

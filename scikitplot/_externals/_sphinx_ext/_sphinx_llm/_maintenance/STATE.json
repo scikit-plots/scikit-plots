@@ -1,0 +1,294 @@
+{
+ "schema_version": 1,
+ "subsystem": "scikitplot._externals._sphinx_ext._sphinx_llm",
+ "generated_date": "2026-08-22",
+ "source_anchor": {
+  "archive": "scikit-plots_20260821-211419_A02-current-ci-rebase-ready-applied.zip",
+  "sha256": "ba83b4f25ef9c2549956e727f54250a81a26800030b5156a3110455194338f49",
+  "lineage_archive": "scikit-plots(20260821-211419).zip",
+  "lineage_sha256": "4990b417e7d6309bc3ca2c4691ee735b1fcdf9e698c38a129908419ea80178d6"
+ },
+ "upstream_anchor": {
+  "repository": "NVIDIA/sphinx-llm",
+  "commit": "2a971d7da6a5d7df81f7bff3612ee1822a060c17",
+  "archive_sha256": "4b3fc9173a67a4a93292639886d52afacf8eabc9f955477e6c2a8ae4d227c3e5",
+  "local_path": "sphinx_llm/",
+  "lock_path": "sphinx_llm/vendor.lock.json",
+  "status": "SOURCE_AND_PINNED_BEHAVIOR_BASELINE_GREEN",
+  "portable_baseline": "_maintenance/history/VENDOR_BASELINE.json",
+  "portable_manifest_sha256": "e19f91b85e2c6a130e772eaee6a4788cefd8391ba739c50d9471b57601229845"
+ },
+ "secondary_reference": {
+  "repository": "jdillard/sphinx-llms-txt",
+  "commit": "9d0660ba71c3c5dfe3023ebc2d281ddcb3070241",
+  "archive_sha256": "b932eec8b0ada1b12de4237602f27e46d59cd41c14201f8553b4d77bc24c7186",
+  "status": "REFERENCE_ONLY"
+ },
+ "governing_rule": "Canonical LLM output is a deterministic semantic representation of the resolved Sphinx document; unexplained semantic loss is never silently accepted.",
+ "phase": "A02_DEFERRED_PERMANENTLY",
+ "active_checkpoint": null,
+ "production_code_modified": true,
+ "checkpoints": {
+  "A00": {
+   "title": "MAINTENANCE_BOOTSTRAP",
+   "status": "COMPLETE",
+   "production_code_modified": false
+  },
+  "A01": {
+   "title": "UPSTREAM_VENDOR_BASELINE",
+   "status": "COMPLETE",
+   "production_code_modified": false
+  },
+  "A02": {
+   "title": "UPSTREAM_COMPATIBILITY",
+   "status": "DEFERRED_PERMANENTLY",
+   "production_code_modified": true,
+   "deferral_rationale": "The ten-cell downstream parity matrix will not be executed. CircleCI will not be triggered and no local equivalent run is planned. A02's shim is source- and unit-proved only; its cross-version integration behaviour is permanently unproved.",
+   "residual_risk": "Version-specific Sphinx lifecycle differences could still allow HTML/Markdown divergence: the downstream ifconfig regression was never executed across the ten pinned compatibility cells, and no equivalent matrix is planned.",
+   "deferred_on": "2026-08-22",
+   "reversal_condition": "An explicitly reviewed equivalent matrix, verified against _maintenance/history/A02_MATRIX_PLAN.json, may still reopen and close A02."
+  },
+  "A03": {
+   "title": "SEMANTIC_NODE_INVENTORY",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A04": {
+   "title": "DIRECTIVE_ADAPTER_REGISTRY",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A05": {
+   "title": "CANONICAL_MARKDOWN",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A06": {
+   "title": "LLMS_TXT_V2",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A07": {
+   "title": "LLMS_FULL_CURATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A08": {
+   "title": "MANIFEST_PROVENANCE",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A09": {
+   "title": "HTML_COMPAT_FALLBACK",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A10": {
+   "title": "BUILD_TIME_LLM_AUGMENTATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A11": {
+   "title": "CONSUMER_API",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A12": {
+   "title": "AI_ASSISTANT_MIGRATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "A13": {
+   "title": "CLOSURE",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  }
+ },
+ "verification_snapshot": {
+  "maintenance_checker": "FAIL_ONE_KNOWN_BLOCKER_A02_IMPLEMENTATION_FINGERPRINT_DRIFT",
+  "state_json_syntax": "GREEN",
+  "tracker_json_syntax": "GREEN",
+  "vendor_baseline_json_syntax": "GREEN",
+  "state_schema": "GREEN",
+  "tracker_schema": "GREEN",
+  "vendor_baseline_schema": "GREEN",
+  "pinned_upstream_source_parity": "GREEN_BYTE_IDENTICAL",
+  "portable_vendor_manifest": "GREEN",
+  "legacy_vendor_lock": "GREEN_AT_RECORDED_ORIGINAL_PATH_NONPORTABLE",
+  "current_nvidia_main_delta": "GREEN_IDENTICAL_AT_2026_08_22",
+  "import_isolation": "GREEN",
+  "license_source_provenance": "GREEN",
+  "license_distribution_notice": "DEFERRED_UNTIL_SUBMODULE_IS_PACKAGED",
+  "upstream_tests": "GREEN_PINNED_UPSTREAM_CI_EQUIVALENT",
+  "vendor_python_syntax_compile": "GREEN",
+  "production_code_modified_by_A01": false,
+  "checker_negative_control_vendor_drift": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "checker_negative_control_premature_a01_completion": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "vendor_tree_unchanged_by_A01": "GREEN",
+  "upstream_test_fixture_parity": "GREEN_9_FILES_BYTE_IDENTICAL",
+  "upstream_test_harness_layout": "GREEN_EPHEMERAL_UPSTREAM_SHAPE",
+  "upstream_test_runner_integrity_gate": "GREEN_CHECK_TRACKERS_REQUIRED_BEFORE_STAGING",
+  "checker_negative_control_fixture_drift": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "checker_negative_control_missing_harness": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "harness_full_preflight": "ENVIRONMENT_BLOCKED_EXIT_3_AFTER_GREEN_LAYOUT_AND_INTEGRITY",
+  "upstream_test_environment_fixture": "GREEN_PINNED_PYPROJECT_UV_LOCK_BYTE_IDENTICAL",
+  "upstream_test_environment_policy": "PYTHON_3_13_EXACT_UV_LOCK_FOR_A01",
+  "upstream_test_environment_current": "ENVIRONMENT_BLOCKED_FULL_LOCKSET_16_EXACT_15_MISMATCHED_19_MISSING",
+  "upstream_test_environment_schema": "GREEN",
+  "upstream_test_environment_preparer": "GREEN_PREPARE_ONLY",
+  "upstream_test_environment_offline_sync": "ENVIRONMENT_BLOCKED_EXIT_3_EXACT_LOCK_RESOLVED_CACHE_MISS",
+  "checker_negative_control_environment_lock_drift": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "checker_negative_control_premature_a01_environment_completion": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "environment_preparer_source_tree_refusal": "GREEN_EXPECTED_REFUSAL",
+  "upstream_test_lockset_manifest": "GREEN_50_SELECTED_EXTERNAL_DISTRIBUTIONS",
+  "upstream_test_environment_online_sync": "ENVIRONMENT_BLOCKED_EXIT_3_DNS_DOWNLOAD_FAILURE",
+  "runner_full_lockset_gate": "GREEN_IMPLEMENTED_ANCHORS_NO_LONGER_SUFFICIENT",
+  "checker_negative_control_lockset_drift": "GREEN_EXPECTED_FAILURE_DETECTED_NONANCHOR_VERSION_NOT_IN_PRESERVED_LOCK",
+  "upstream_test_lockset_uv_dry_run_parity": "GREEN_50_OF_50",
+  "upstream_official_ci_pinned_commit": "GREEN_CORROBORATION_TEST_RUN_211_SUCCESS",
+  "upstream_official_ci_python_3_13_sphinx_9": "GREEN_CORROBORATION_JOB_94980976384_SUCCEEDED",
+  "upstream_official_ci_local_closure_role": "ACCEPTED_A01_PINNED_BASELINE_PROOF_WITH_LOCAL_BYTE_EQUIVALENCE",
+  "upstream_official_ci_build_docs": "GREEN_CORROBORATION_BUILD_DOCS_275_SUCCESS_5_JOBS",
+  "upstream_tests_local_exact_lock": "ENVIRONMENT_BLOCKED_FULL_LOCKSET_16_EXACT_15_MISMATCHED_19_MISSING",
+  "a01_behavior_proof_mode": "PINNED_UPSTREAM_CI_EQUIVALENT",
+  "upstream_ci_baseline_json": "GREEN_SCHEMA_AND_INTERNAL_EQUIVALENCE",
+  "upstream_ci_workflow_fixture": "GREEN_BYTE_IDENTICAL_SHA256_2e89600dc67f68da5aa7a2d25fe0a298b2c0b039d8551d30eeeebc903a4342b5",
+  "a01_checkpoint": "GREEN_COMPLETE_PINNED_UPSTREAM_CI_EQUIVALENT",
+  "a02_upstream_compatibility_matrix": "GREEN_PINNED_UPSTREAM_CI_10_OF_10",
+  "a02_html_dirhtml_routing": "GREEN_UPSTREAM_MATRIX_CI_EXERCISED",
+  "a02_suffix_modes": "GREEN_UPSTREAM_MATRIX_CI_EXERCISED",
+  "a02_primary_tag_forwarding": "GREEN_UPSTREAM_MATRIX_CI_EXERCISED",
+  "a02_primary_confdir_forwarding": "GREEN_UPSTREAM_MATRIX_CI_EXERCISED",
+  "a02_primary_config_override_forwarding": "IMPLEMENTED_DOWNSTREAM_AWAITING_EXECUTABLE_REGRESSION",
+  "a02_summary_cache_baseline": "GREEN_UPSTREAM_MATRIX_CI_EXERCISED",
+  "a02_python_3_8_project_floor": "DEFERRED_EXTENSION_POLICY_UPSTREAM_REQUIRES_3_9",
+  "a02_checkpoint": "DEFERRED_PERMANENTLY_NO_MATRIX_RUN_PLANNED",
+  "a02_downstream_config_parity_shim": "GREEN_SOURCE_AND_UNIT_10_PASSED",
+  "a02_config_parity_integration_fixture": "GREEN_PRESENT_IFCONFIG_PROGRAMMATIC_OVERRIDE",
+  "a02_config_parity_executable_gate": "DEFERRED_PERMANENTLY_MATRIX_NOT_RUN_0_OF_10",
+  "a02_vendor_tree_unchanged": "GREEN_BYTE_IDENTICAL",
+  "a02_production_code_modified": "YES_BOUNDED_DOWNSTREAM_COMPAT_ONLY",
+  "a02_downstream_parity_matrix": "DEFERRED_PERMANENTLY_0_OF_10",
+  "a02_parity_runner_required_cells": "GREEN_LISTS_10_MATCH_BASELINE",
+  "a02_parity_runner_cell_guard": "GREEN_WRONG_PYTHON_EXPECTED_FAILURE_DETECTED",
+  "a02_downstream_matrix_checker": "GREEN_FAIL_CLOSED_0_OF_10",
+  "a02_negative_control_matrix_cell_drift": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_negative_control_green_without_evidence": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_negative_control_premature_completion": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_matrix_plan": "GREEN_CANONICAL_10_CELL_PLAN",
+  "a02_matrix_orchestrator": "GREEN_DEPENDENCY_LIGHT_AGGREGATOR",
+  "a02_matrix_harness_tests": "STALE_PRE_CANDIDATE_CLAIM_NOT_REPRODUCIBLE_IN_THIS_TREE",
+  "a02_minimal_import_stage": "GREEN_AVOIDS_FULL_SCIKITPLOT_RUNTIME_IMPORT",
+  "a02_ci_cell_runner": "GREEN_EVIDENCE_PRODUCER_RED_BLOCKED_PERSIST_AGGREGATOR_SINGLE_GATE",
+  "a02_matrix_implementation_fingerprint": "GREEN_RECOMPUTED_FAIL_CLOSED",
+  "a02_matrix_evidence_schemas": "GREEN_CELL_AND_AGGREGATE_SYNTHETIC_SELF_TEST",
+  "a02_matrix_empty_evidence_guard": "GREEN_REQUIRE_GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_circleci_reference": "GREEN_VALID_YAML_10_CELLS_PLUS_AGGREGATOR_GATED_RUN_DOCS_BUILD",
+  "a02_ci_cell_runner_syntax": "GREEN_BASH_N",
+  "a02_circleci_integration": "DORMANT_UNDER_PERMANENT_DEFERRAL_WORKFLOW_PRESENT_DEFAULT_FALSE",
+  "a02_circleci_public_base": "GREEN_PUBLIC_MAIN_BASELINE_SHA256_DAF67DB414D7D89BDB9C25CD03BA01CBD676AE1F88D99B258CF4AF83B3868964",
+  "a02_circleci_execution": "DEFERRED_PERMANENTLY_NOT_RUN",
+  "a02_dependency_light_combined_tests": "STALE_PRE_CANDIDATE_CLAIM_NOT_REPRODUCIBLE_IN_THIS_TREE",
+  "a02_ci_evidence_producer_outage_control": "GREEN_CELL_EXIT_0_ENVIRONMENT_BLOCKED_AGGREGATOR_EXIT_1",
+  "a02_circleci_yaml": "GREEN_PYYAML_6_PARSE_6_JOBS_2_WORKFLOWS",
+  "a02_negative_control_circleci_default_on": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_negative_control_circleci_missing_aggregate_gate": "GREEN_EXPECTED_FAILURE_DETECTED",
+  "a02_negative_control_evidence_producer_regression": "GREEN_EXPECTED_TEST_FAILURE_DETECTED",
+  "a02_closure_evidence_verifier": "GREEN_READ_ONLY_DIRECTORY_OR_ZIP_RECOMPUTE_AND_MATCH_NO_AUTO_MUTATION",
+  "a02_closure_harness_tests": "STALE_PRE_CANDIDATE_CLAIM_NOT_REPRODUCIBLE_IN_THIS_TREE",
+  "a02_closure_decision_schema": "GREEN_SYNTHETIC_SELF_TEST",
+  "a02_real_closure_decision": "DEFERRED_PERMANENTLY_NO_CLOSURE_DECISION",
+  "a02_circleci_aggregate_artifact_retention": "GREEN_WHEN_ALWAYS_RED_BLOCKED_DIAGNOSTICS_PERSIST",
+  "a02_circleci_current_public_main": "REBASE_APPLIED_AND_VERIFIED_2026_08_22_INTEGRATED_SHA256_MATCHES_RECORDED_BASELINE",
+  "a02_closure_circleci_provenance": "GREEN_PIPELINE_WORKFLOW_UNIQUE_JOB_PROJECT_REVISION_CONSISTENCY_REQUIRED_FOR_ELIGIBILITY",
+  "a02_reconciliation_readiness_preparer": "GREEN_READ_ONLY_RECEIPT_PINS_EVIDENCE_AND_13_TARGET_DIGESTS",
+  "a02_reconciliation_readiness_tests": "STALE_PRE_CANDIDATE_CLAIM_NOT_REPRODUCIBLE_IN_THIS_TREE",
+  "a02_reconciliation_readiness_schema": "GREEN",
+  "a02_circleci_semantic_rebase_renderer": "GREEN_SEPARATE_OUTPUT_NO_IN_PLACE_MUTATION",
+  "a02_circleci_candidate_verifier": "GREEN_SEMANTIC_MODE_NO_HISTORICAL_DIGEST_PIN",
+  "a02_circleci_rebase_tests": "STALE_PRE_CANDIDATE_CLAIM_NOT_REPRODUCIBLE_IN_THIS_TREE"
+ },
+ "blockers": [
+  {
+   "id": "A02-G01",
+   "checkpoint": "A02",
+   "status": "DEFERRED_PERMANENTLY",
+   "reason": "The ten-cell downstream parity matrix will not be executed. CircleCI will not be triggered and no local equivalent run is planned. A02's shim is source- and unit-proved only; its cross-version integration behaviour is permanently unproved.",
+   "residual_risk": "Version-specific Sphinx lifecycle differences could still allow HTML/Markdown divergence: the downstream ifconfig regression was never executed across the ten pinned compatibility cells, and no equivalent matrix is planned."
+  }
+ ],
+ "next_actions": [
+  "Do not trigger CircleCI for A02 and do not hand-mark any parity cell; the matrix is permanently deferred.",
+  "Keep A02_MATRIX_PLAN.json, run_a02_matrix.py, run_a02_config_parity.py and ci/run_a02_cell.sh: they define what an equivalent matrix would have to prove if the deferral is ever reversed.",
+  "Resolve the half-landed A03-A12 candidate: land or withdraw the three _sphinx_ai_assistant files listed in history/A03_A13_CANDIDATE_STATUS.md before any A12 claim.",
+  "Any A03-A13 checkpoint that reaches COMPLETE must record depends_on_unproved=['A02']; the checker enforces this.",
+  "Narrow the advertised compatibility claim: the config-parity shim is unit-proved only, with cross-version integration behaviour permanently unverified.",
+  "Do not edit history/A02_MATRIX_PLAN.json to clear the implementation fingerprint drift; that drift is the recorded consequence of the staged A03-A12 overlay."
+ ],
+ "reconciliation": {
+  "file": "RECONCILIATION.md",
+  "checked_against": "scikit-plots_20260821-211419_A00-applied.zip",
+  "source_sha256": "82afef355312dd068183dc2ef32184051e3b02121ed6de683c852058aac9a388",
+  "corrections": [
+   {
+    "id": "REC-1",
+    "was": "A01 performs vendoring",
+    "is": "vendor tree already exists at sphinx_llm/",
+    "effect": "A01 verifies rather than recopies; integrity remains UNVERIFIED until A01"
+   },
+   {
+    "id": "REC-2",
+    "was": "vendored directory should be upstream/",
+    "is": "keep sphinx_llm/ because upstream tests use absolute sphinx_llm imports",
+    "effect": "upstream/ is retired placeholder; downstream layers stay beside sphinx_llm/"
+   },
+   {
+    "id": "REC-3",
+    "was": "two-submodule family",
+    "is": "_sphinx_ai_backend maintenance shell now exists, but service code is still physically inside _sphinx_ai_assistant",
+    "effect": "B14 remains a proposed MOVE, not completed export"
+   },
+   {
+    "id": "REC-4",
+    "was": "assistant dependency described inconsistently as facade-only vs artifact-only",
+    "is": "runtime consumption is static-artifact-only; optional Python facade is build-time-only if A11 proves it necessary",
+    "effect": "consumer boundary is explicit without runtime Python coupling"
+   },
+   {
+    "id": "REC-5",
+    "was": "legacy lock tree_hash assumed portable",
+    "is": "bash-sha256sum tree hash embeds the target path; it matches at the recorded original /work path but changes after relocation",
+    "effect": "A01 adds path-independent VENDOR_BASELINE.json; legacy lock remains historical vendoring evidence rather than sole portable integrity proof"
+   },
+   {
+    "id": "REC-6",
+    "was": "A01 could close with upstream tests explicitly ENVIRONMENT_BLOCKED",
+    "is": "RULESET rule 35 forbids checkpoint completion while required proof is ENVIRONMENT_BLOCKED",
+    "effect": "A01 is BLOCKED_ENVIRONMENT after source parity verification; A02 must not start"
+   },
+   {
+    "id": "REC-7",
+    "was": "preserved NVIDIA tests were assumed runnable directly from _sphinx_llm/sphinx_llm/tests once dependencies existed",
+    "is": "tests preserve upstream repo-relative docs/source path assumptions; maintenance recreates repo/src/sphinx_llm + repo/docs/source ephemerally without editing vendor bytes",
+    "effect": "test-layout fidelity is GREEN via run_upstream_tests.py; A01 remains blocked only on missing executable dependencies/full behavior proof"
+   },
+   {
+    "id": "REC-8",
+    "was": "A01 had one closure path: local GREEN_EXACT_LOCK plus locally executed preserved tests",
+    "is": "A01 accepts either local exact-lock execution or official NVIDIA CI on the exact pinned commit when vendor/tests/docs/project metadata/uv.lock/test workflow are all locally byte-verified against that commit",
+    "effect": "A01 closes with PINNED_UPSTREAM_CI_EQUIVALENT; the sandbox local exact-lock gap remains explicitly ENVIRONMENT_BLOCKED and A02 owns broader compatibility"
+   }
+  ],
+  "lineage_archive": "scikit-plots(20260821-211419).zip",
+  "lineage_sha256": "4990b417e7d6309bc3ca2c4691ee735b1fcdf9e698c38a129908419ea80178d6"
+ },
+ "family_observations": [
+  "_sphinx_ai_backend currently contains maintenance files only; backend service paths remain under _sphinx_ai_assistant.",
+  "The backend maintenance checker is not green in this snapshot; fixing it is outside _sphinx_llm A00 and must not be silently folded into this checkpoint.",
+  "The MCP edge remains claimed/unverified and requires its owning later checkpoints plus MCP M04 evidence."
+ ],
+ "maintenance_layout": {
+  "working_set_location": "_maintenance/history/",
+  "rationale": "Deliberate maintainer filing decision; check_trackers.py resolves maintenance paths through history/ via mpath()/rpath() so no recorded path string or digest changed."
+ }
+}

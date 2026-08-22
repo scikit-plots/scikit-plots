@@ -32,8 +32,10 @@ server layer, delivered — see ``_maintenance/DESIGN.md``).
 
 from __future__ import annotations
 
+import logging
 import math
 import re
+import threading
 from dataclasses import dataclass, field
 from itertools import islice
 from typing import Any, Iterable, Protocol, runtime_checkable
@@ -44,12 +46,15 @@ from urllib.parse import (  # ruff: ignore[unused-import]
     urlunsplit,
 )
 
+from ._outcome import DEGRADED, FAILED, status_of
+
 __all__ = [
     "MAX_CHUNK_CHARS",
     "MAX_QUERY_CHARS",
     "MAX_RESULTS",
     "DocsRetriever",
     "RetrievedChunk",
+    "SearchCoordinator",
     "build_search_docs_result",
 ]
 
@@ -58,10 +63,14 @@ __all__ = [
 #: user-contributed); capping bounds prompt-stuffing and keeps responses within
 #: client context limits.
 MAX_CHUNK_CHARS: int = 4000
+logger = logging.getLogger(__name__)
+
 MAX_QUERY_CHARS: int = 1024
 
 #: Hard cap on results returned in one tool call.
 MAX_RESULTS: int = 20
+#: Upper bound on in-flight searches accepted by :class:`SearchCoordinator`.
+_MAX_CONCURRENCY: int = 128
 
 #: Control characters to strip from untrusted chunk text before it enters a
 #: JSON-RPC payload (keep normal whitespace: tab, LF, CR).
@@ -304,21 +313,41 @@ def build_search_docs_result(
     }
 
     if not safe:
-        message = "No matching documentation was found for this query."
+        # M04 invariant: FAILED retrieval != EMPTY retrieval. Claiming "no
+        # matching documentation" when every backend failed is a confident wrong
+        # answer, so the message and ``isError`` follow the retrieval status.
+        status = status_of(chunks)
+        reasons = list(getattr(chunks, "errors", list)())
+        if status == FAILED:
+            message = (
+                "Documentation retrieval failed; this is not a statement that no "
+                "documentation matches the query."
+            )
+        elif status == DEGRADED:
+            message = (
+                "No matching documentation was found, but at least one retrieval "
+                "path did not run, so this result may be incomplete."
+            )
+        else:
+            message = "No matching documentation was found for this query."
+        structured: dict[str, Any] = {
+            "query": clean_query,
+            "count": 0,
+            "passages": [],
+            "citations": [],
+            "message": message,
+            "retrieval_status": status,
+            "security": security,
+        }
+        if reasons:
+            structured["retrieval_errors"] = reasons
         return {
             # Keep a human-readable TextContent block for older clients while
             # keeping machine-readable passages empty. A synthetic status
             # message is not a retrieved passage and must not affect ``count``.
             "content": [{"type": "text", "text": message}],
-            "structuredContent": {
-                "query": clean_query,
-                "count": 0,
-                "passages": [],
-                "citations": [],
-                "message": message,
-                "security": security,
-            },
-            "isError": False,
+            "structuredContent": structured,
+            "isError": status == FAILED,
         }
 
     content_blocks: list[dict[str, str]] = []
@@ -346,15 +375,174 @@ def build_search_docs_result(
         )
 
     passages = [block["text"] for block in content_blocks]
+    # M07: report the status on the success path too. A DEGRADED result still
+    # carries hits, so a client that only inspects ``count`` would never learn
+    # that part of the evidence was missing.
+    ok_status = status_of(chunks)
+    ok_structured: dict[str, Any] = {
+        "query": clean_query,
+        "count": len(citations),
+        "passages": passages,
+        "citations": citations,
+        "message": None,
+        "retrieval_status": ok_status,
+        "security": security,
+    }
+    ok_reasons = list(getattr(chunks, "errors", list)())
+    if ok_reasons:
+        ok_structured["retrieval_errors"] = ok_reasons
     return {
         "content": content_blocks,
-        "structuredContent": {
-            "query": clean_query,
-            "count": len(citations),
-            "passages": passages,
-            "citations": citations,
-            "message": None,
-            "security": security,
-        },
+        "structuredContent": ok_structured,
         "isError": False,
     }
+
+
+class SearchCoordinator:
+    """
+    Validated, concurrency-bounded search orchestration, free of wire models.
+
+    This is the Legacy Retrieval tier (Python 3.8+, no ``pydantic``, no MCP SDK)
+    half of what used to live entirely inside
+    :class:`scikitplot.mcp._server.SearchService`.
+
+    Parameters
+    ----------
+    retriever : DocsRetriever
+        Any object implementing ``search(query, k)``.
+    max_concurrency : int, optional
+        Maximum number of in-flight searches (1-128, default 4).
+    acquire_timeout_seconds : float, optional
+        How long to wait for a concurrency slot before reporting the service
+        busy (default 0.05).
+
+    Raises
+    ------
+    TypeError
+        If ``retriever`` does not implement :class:`DocsRetriever`, or if the
+        bounds are not numbers.
+    ValueError
+        If the bounds are outside their permitted ranges.
+
+    See Also
+    --------
+    scikitplot.mcp._server.SearchService : Wire adapter that returns pydantic
+        models built from this coordinator's output.
+
+    Notes
+    -----
+    **User-focused.** Use this when you want scikit-plots' documentation search
+    without installing the ``[mcp]`` extra — for example inside an agent
+    framework adapter. It returns plain dictionaries.
+
+    **Developer-focused.** Run M05 decided that the neutral orchestration
+    (argument validation, bounded concurrency, retriever invocation and result
+    shaping) belongs at Tier-L, and that ``SearchService`` is a wire/model
+    adapter over it. Keeping the two separate is what allows
+    ``integrations/`` to depend on the public Tier-L surface without pulling
+    ``pydantic`` into a base install.
+    """
+
+    def __init__(
+        self,
+        retriever: DocsRetriever,
+        *,
+        max_concurrency: int = 4,
+        acquire_timeout_seconds: float = 0.05,
+    ) -> None:
+        if not isinstance(retriever, DocsRetriever):
+            raise TypeError("retriever must implement DocsRetriever.search(query, k)")
+        if isinstance(max_concurrency, bool) or not isinstance(max_concurrency, int):
+            raise TypeError("max_concurrency must be an integer")
+        if not 1 <= max_concurrency <= _MAX_CONCURRENCY:
+            raise ValueError(
+                f"max_concurrency must be between 1 and {_MAX_CONCURRENCY}"
+            )
+        if isinstance(acquire_timeout_seconds, bool) or not isinstance(
+            acquire_timeout_seconds, (int, float)
+        ):
+            raise TypeError("acquire_timeout_seconds must be a number")
+        if acquire_timeout_seconds < 0:
+            raise ValueError("acquire_timeout_seconds must be non-negative")
+        self._retriever = retriever
+        self._slots = threading.BoundedSemaphore(max_concurrency)
+        self._acquire_timeout = float(acquire_timeout_seconds)
+
+    def validate(self, query: str, k: int = 5) -> tuple[str, int]:
+        """
+        Validate and normalise tool arguments.
+
+        Parameters
+        ----------
+        query : str
+            Raw query text.
+        k : int, optional
+            Requested number of passages.
+
+        Returns
+        -------
+        tuple of (str, int)
+            The stripped query and the validated limit.
+
+        Raises
+        ------
+        ValueError
+            If ``query`` is not a non-empty string within
+            :data:`MAX_QUERY_CHARS`, or ``k`` is not an integer within
+            ``1..``:data:`MAX_RESULTS`.
+        """
+        if not isinstance(query, str):
+            raise ValueError(  # ruff: ignore[type-check-without-type-error]
+                "query must be a string"
+            )
+        clean_query = query.strip()
+        if not clean_query:
+            raise ValueError("query must not be empty")
+        if len(clean_query) > MAX_QUERY_CHARS:
+            raise ValueError(f"query must be at most {MAX_QUERY_CHARS} characters")
+        if isinstance(k, bool) or not isinstance(k, int):
+            raise ValueError(  # ruff: ignore[type-check-without-type-error]
+                "k must be an integer"
+            )
+        if not 1 <= k <= MAX_RESULTS:
+            raise ValueError(f"k must be between 1 and {MAX_RESULTS}")
+        return clean_query, k
+
+    def search(self, query: str, k: int = 5) -> dict[str, Any]:
+        """
+        Run one bounded, validated search and return the neutral result.
+
+        Parameters
+        ----------
+        query : str
+            Query text.
+        k : int, optional
+            Maximum passages to return.
+
+        Returns
+        -------
+        dict
+            The full tool result, i.e. ``{"content", "structuredContent",
+            "isError"}`` as produced by :func:`build_search_docs_result`.
+
+        Raises
+        ------
+        ValueError
+            If the arguments are invalid.
+        RuntimeError
+            If no concurrency slot is available, or the retriever failed.
+        """
+        clean_query, limit = self.validate(query, k)
+        if not self._slots.acquire(timeout=self._acquire_timeout):
+            raise RuntimeError("search service is busy; retry shortly")
+        try:
+            try:
+                chunks = self._retriever.search(clean_query, limit)
+            except Exception as exc:
+                logger.exception("documentation retriever failed")
+                raise RuntimeError(
+                    "documentation search is temporarily unavailable"
+                ) from exc
+            return build_search_docs_result(clean_query, chunks, max_results=limit)
+        finally:
+            self._slots.release()

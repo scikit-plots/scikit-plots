@@ -51,6 +51,7 @@ from .._text import (
     _detect_encoding,
 )
 from .._zip import ZipReader, _is_within, _should_skip
+from ..._schema import SourceType
 
 
 # ===========================================================================
@@ -516,6 +517,48 @@ class TestZipReaderGetRawChunks:
         assert "Content A." in all_text
         assert "Content B." in all_text
         assert "Content C." in all_text
+
+    def test_member_provenance_reaches_documents(self, tmp_path: Path) -> None:
+        zpath = self._make_zip(
+            tmp_path,
+            {
+                "notes/a.txt": "Alpha member content.",
+                "notes/b.txt": "Beta member content.",
+            },
+        )
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
+        docs = list(reader.get_documents())
+
+        assert {doc.input_path for doc in docs} == {
+            "archive.zip/notes/a.txt",
+            "archive.zip/notes/b.txt",
+        }
+        assert all(doc.source_type == SourceType.ARTICLE for doc in docs)
+
+    def test_raw_member_chunk_exposes_logical_input_path(self, tmp_path: Path) -> None:
+        zpath = self._make_zip(tmp_path, {"docs/readme.txt": "Hello archive."})
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
+        chunks = list(reader.get_raw_chunks())
+
+        assert chunks[0]["input_path"] == "archive.zip/docs/readme.txt"
+        assert chunks[0]["source_type"] == SourceType.ARTICLE
+
+    def test_nested_member_provenance_is_compositional(self, tmp_path: Path) -> None:
+        inner_buffer = io.BytesIO()
+        with zipfile.ZipFile(inner_buffer, "w") as inner:
+            inner.writestr("deep/document.txt", "Nested archive evidence.")
+
+        outer = tmp_path / "outer.zip"
+        with zipfile.ZipFile(outer, "w") as zf:
+            zf.writestr("nested/inner.zip", inner_buffer.getvalue())
+
+        docs = list(ZipReader(input_path=outer).get_documents())
+
+        assert len(docs) == 1
+        assert docs[0].input_path == (
+            "outer.zip/nested/inner.zip/deep/document.txt"
+        )
+        assert docs[0].source_type == SourceType.ARTICLE
 
     def test_zipslip_member_skipped(self, tmp_path: Path) -> None:
         """A member with a path-traversal name must be silently skipped."""

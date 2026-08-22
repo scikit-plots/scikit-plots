@@ -33,7 +33,7 @@ Coverage targets (28 % → 85 %+)
 * :class:`BuilderFactories` — TypeError on non-callable field.
 * :class:`FactoryCorpusBuilder` — construction, ``build`` delegates,
   factory overrides (chunker, normalizer, enricher, embedding_engine).
-* :class:`CustomSimilarityIndex` — ``__init__`` (TypeError on
+* :class:`CustomRetrievalIndex` — ``__init__`` (TypeError on
   non-callable), ``build`` / ``n_documents`` / ``has_embeddings``
   delegation, ``search`` with custom scorer (returns scorer result, fn
   error → RuntimeError), search without scorer (delegates inner),
@@ -44,6 +44,7 @@ All tests use stdlib only.  No ML/NLP dependencies required.
 
 from __future__ import annotations
 
+import logging
 import pathlib
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -57,7 +58,7 @@ from .._custom_hooks import (
     CustomFilter,
     CustomNLPEnricher,
     CustomNormalizer,
-    CustomSimilarityIndex,
+    CustomRetrievalIndex,
     FactoryCorpusBuilder,
     HookableCorpusPipeline,
     PipelineHooks,
@@ -65,8 +66,17 @@ from .._custom_hooks import (
 from .._chunkers._fixed_window import FixedWindowChunker
 from .._corpus_builder import BuilderConfig
 from .._schema import ChunkingStrategy, CorpusDocument
-from .._similarity._similarity import SearchConfig, SearchResult
+from .._similarity._similarity import RetrievalConfig, RetrievalHit
 
+
+# python -m pytest \
+#   scikitplot/corpus/tests/test__custom_hooks.py \
+#   -vv --maxfail=0
+
+# python -m pytest \
+#   scikitplot/corpus/tests/test__custom_hooks.py \
+#   -k "filter" \
+#   -vv --maxfail=0
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -204,13 +214,29 @@ class TestCustomFilter:
         cf = CustomFilter(lambda doc: 1)
         assert cf.include(_doc()) is True
 
-    def test_include_swallows_exception_and_returns_false(self) -> None:
-        def bad_fn(doc: CorpusDocument) -> bool:
-            raise ValueError("unexpected")
-
+    def test_include_exception_warns_and_keeps_document(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        def bad_fn(_doc):
+            raise RuntimeError("boom")
         cf = CustomFilter(bad_fn)
-        result = cf.include(_doc())
-        assert result is False
+        doc = _doc()  # use the existing fixture/helper in this file
+        logger = logging.getLogger("scikitplot.corpus._custom_hooks")
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(logging.WARNING, logger=logger.name):
+                result = cf.include(doc)
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert result is True
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "Keeping document" in record.getMessage()
+            for record in caplog.records
+        )
 
     def test_explicit_name(self) -> None:
         cf = CustomFilter(lambda doc: True, name="MyFilter")
@@ -416,6 +442,20 @@ class TestCustomNLPEnricher:
         result = enricher.enrich_documents([_doc("hello world")])
         assert len(result) == 1
 
+    def test_custom_tokenizer_exception_falls_back_to_inner(
+        self,
+    ) -> None:
+        def broken_tokenizer(_text):
+            raise RuntimeError("boom")
+        enricher = CustomNLPEnricher(
+            custom_config=CustomEnricherConfig(
+                custom_tokenizer=broken_tokenizer,
+            )
+        )
+        expected = enricher._inner._tokenize("hello world")
+        actual = enricher._tokenize("hello world")
+        assert actual == expected
+
     def test_custom_stopwords_applied(self) -> None:
         # Custom stopwords that filter everything
         enricher = CustomNLPEnricher(
@@ -446,6 +486,30 @@ class TestCustomNLPEnricher:
         assert extracted  # was called
         if result[0].keywords is not None:
             assert "custom_keyword" in result[0].keywords
+
+    def test_custom_filter_exception_warns_and_keeps_document(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        def broken_filter(_doc):
+            raise RuntimeError("boom")
+        logger = logging.getLogger("scikitplot.corpus._custom_hooks")
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(logging.WARNING, logger=logger.name):
+                filter_ = CustomFilter(broken_filter)
+                # attach caplog.handler directly if project logger propagation requires it
+                result = filter_.include(_doc())
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert result is True
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "Keeping document" in record.getMessage()
+            for record in caplog.records
+        )
 
     def test_repr_contains_class_name(self) -> None:
         enricher = CustomNLPEnricher()
@@ -582,7 +646,7 @@ class TestHookableCorpusPipeline:
         results = pipeline.run_url(
             [str(tmp_txt), str(tmp_txt)], stop_on_error=False
         )
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
         assert len(results) == 2
 
     def test_repr_contains_class_name(self) -> None:
@@ -686,54 +750,54 @@ class TestFactoryCorpusBuilder:
         builder = FactoryCorpusBuilder(config=BuilderConfig(build_index=True))
         builder.build(tmp_txt)
         results = builder.search("simple", match_mode="strict")
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
 
 
 # ===========================================================================
-# Layer 8 — CustomSimilarityIndex
+# Layer 8 — CustomRetrievalIndex
 # ===========================================================================
 
 
 class TestCustomSimilarityIndex:
     def test_init_no_custom_scorer(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         assert idx.custom_scorer_fn is None
         assert idx._scorer_name is None
 
     def test_init_with_callable_scorer(self) -> None:
         scorer = lambda q, docs, cfg: []  # noqa: E731
-        idx = CustomSimilarityIndex(custom_scorer_fn=scorer)
+        idx = CustomRetrievalIndex(custom_scorer_fn=scorer)
         assert idx.custom_scorer_fn is scorer
 
     def test_init_non_callable_scorer_raises(self) -> None:
         with pytest.raises(TypeError, match="callable"):
-            CustomSimilarityIndex(custom_scorer_fn="bad")  # type: ignore[arg-type]
+            CustomRetrievalIndex(custom_scorer_fn="bad")  # type: ignore[arg-type]
 
     def test_build_delegates_n_documents(self) -> None:
         docs = [_doc(f"text {i}", idx=i) for i in range(3)]
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         idx.build(docs)
         assert idx.n_documents == 3
 
     def test_build_empty_raises(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         with pytest.raises(ValueError):
             idx.build([])
 
     def test_has_embeddings_false_without_embeddings(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         idx.build([_doc("text")])
         assert idx.has_embeddings is False
 
     def test_search_uses_custom_scorer_fn(self) -> None:
-        expected_result = [SearchResult(doc=_doc("x"), score=1.0, match_mode="custom")]
+        expected_result = [RetrievalHit(doc=_doc("x"), score=1.0, match_mode="custom")]
 
         def my_scorer(
-            query: str, docs: list, cfg: SearchConfig
-        ) -> list[SearchResult]:
+            query: str, docs: list, cfg: RetrievalConfig
+        ) -> list[RetrievalHit]:
             return expected_result
 
-        idx = CustomSimilarityIndex(custom_scorer_fn=my_scorer)
+        idx = CustomRetrievalIndex(custom_scorer_fn=my_scorer)
         idx.build([_doc("text")])
         results = idx.search("query")
         assert results is expected_result
@@ -742,37 +806,37 @@ class TestCustomSimilarityIndex:
         def bad_scorer(query: str, docs: list, cfg: Any) -> list:
             raise ValueError("scorer failure")
 
-        idx = CustomSimilarityIndex(custom_scorer_fn=bad_scorer)
+        idx = CustomRetrievalIndex(custom_scorer_fn=bad_scorer)
         idx.build([_doc("text")])
         with pytest.raises(RuntimeError, match="scorer failure"):
             idx.search("query")
 
     def test_search_without_scorer_delegates_to_inner(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         docs = [_doc("quick brown fox"), _doc("machine learning")]
         idx.build(docs)
-        cfg = SearchConfig(match_mode="strict")
+        cfg = RetrievalConfig(match_mode="strict")
         results = idx.search("brown", config=cfg)
         assert len(results) == 1
 
     def test_repr_contains_class_info(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         idx.build([_doc("text")])
         r = repr(idx)
-        assert "CustomSimilarityIndex" in r
+        assert "CustomRetrievalIndex" in r
         assert "n_docs" in r
 
     def test_scorer_name_stored(self) -> None:
         def named_scorer(q: str, docs: list, cfg: Any) -> list:
             return []
 
-        idx = CustomSimilarityIndex(custom_scorer_fn=named_scorer)
+        idx = CustomRetrievalIndex(custom_scorer_fn=named_scorer)
         assert idx._scorer_name == "named_scorer"
 
     def test_search_passes_config_override_to_inner(self) -> None:
-        idx = CustomSimilarityIndex()
+        idx = CustomRetrievalIndex()
         docs = [_doc("alpha"), _doc("beta"), _doc("gamma")]
         idx.build(docs)
-        cfg = SearchConfig(match_mode="strict", top_k=1)
+        cfg = RetrievalConfig(match_mode="strict", top_k=1)
         results = idx.search("alpha", config=cfg)
         assert len(results) <= 1

@@ -1,5 +1,5 @@
 from matplotlib import colors
-from ._compat import register_colormap
+from seaborn._compat import register_colormap
 
 
 _rocket_lut = [

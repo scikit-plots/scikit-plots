@@ -1,9 +1,0 @@
-**************************
-Sphinx and Read the Docs
-**************************
-
-.. contents:: Table of Contents
-
-.. _sphinx-and-read-the-docs-resources:
-
-.. include:: sphinx-readthedocs-content.rst

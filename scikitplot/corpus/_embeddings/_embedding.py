@@ -480,7 +480,7 @@ class EmbeddingEngine:
 
     **Normalisation:** When ``normalize=True``, zero-norm vectors (e.g.
     empty-string inputs) are left as zero vectors rather than producing
-    NaN. The normalisation guard in :class:`~scikitplot.corpus.similarity.SimilarityIndex`
+    NaN. The normalisation guard in :class:`~scikitplot.corpus.similarity.RetrievalIndex`
     will warn if any zero vectors are detected at search time.
 
     Examples

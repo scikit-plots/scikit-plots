@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.cython",
+  "role": "runtime Cython/C build service \u2014 it compiles and loads code the caller supplies",
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950"
+  },
+  "maintenance_set": {
+    "version": "LIVE_V1",
+    "mirrors": "corpus, mcp, annoy-family, sphinx-family and _cli _maintenance/",
+    "gate": "python scikitplot/cython/_maintenance/check_trackers.py",
+    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
+  },
+  "physical_totals": {
+    "source_files": 191,
+    "source_loc": 15898,
+    "test_files": 45,
+    "test_loc": 11492,
+    "markdown_files": 41
+  },
+  "position": "FULLY INDEPENDENT - imports no sibling submodule and none imports it (verified by AST)",
+  "unusual_dependency": "not on code but on a TOOLCHAIN (Cython + a C compiler) and on caller-supplied SOURCE",
+  "governing_rule": "Never let an operation succeed on unvalidated input, and never leave a resource in a state the next process cannot reason about.",
+  "historical_defect": "A non-blocking lock probe with timeout_s=0 DESTROYED live locks held by other processes - a probe that answered its question by breaking the thing it asked about. Invisible to any single-process test.",
+  "open_findings": [
+    {
+      "id": "CY-Y00-01",
+      "severity": "P3",
+      "title": "`__pycache__/` ships in the source tree",
+      "evidence": "observation O-6 from the Corpus campaign; third submodule found carrying it (corpus, _cli, cython)",
+      "fix": "packaging fix"
+    },
+    {
+      "id": "CY-Y00-02",
+      "severity": "P2",
+      "title": "`_builder.py` is 2 097 lines and constructs compiler subprocess arguments",
+      "evidence": "largest module; size and trust boundary coincide",
+      "fix": "split argument construction (pure) from subprocess invocation (effectful)"
+    },
+    {
+      "id": "CY-Y00-03",
+      "severity": "P2",
+      "title": "The security gate's permitted-source rules are not published",
+      "evidence": "users discover the boundary by hitting it; _security.py + the strict suite define it in code only",
+      "fix": "publish the rules"
+    },
+    {
+      "id": "CY-Y00-04",
+      "severity": "P3",
+      "title": "Toolchain flags may not all be covered by pins",
+      "evidence": "_pins.py exists for reproducibility; whether coverage is complete is unestablished",
+      "fix": "audit; an unpinned flag breaks reproducibility silently"
+    },
+    {
+      "id": "CY-Y00-05",
+      "severity": "P3",
+      "title": "A green suite does not prove interprocess correctness",
+      "evidence": "the known historical defect - a probe destroying another process's lock - is invisible to single-process tests. test__interprocess_exclusivity.py and test__gc_coordination.py cover two cases; stale-lock-after-kill and cross-toolchain reproducibility are open",
+      "fix": "extend the interprocess battery"
+    }
+  ],
+  "unverified_claims": [
+    "every toolchain flag is pinned",
+    "the security gate cannot be bypassed by an untested source shape",
+    "no stale lock survives an abnormally terminated process",
+    "builds are reproducible across toolchains"
+  ],
+  "strengths_to_preserve": [
+    "test:source LOC 0.95 - the project's highest",
+    "OPERATIONS.md and DEV_NOTES.md are TESTED against the code (test__operations_docs, test__maintainer_docs)",
+    "stub parity is tested",
+    "interprocess exclusivity is tested",
+    "templates are treated as test inputs, not documentation"
+  ],
+  "fresh_chat_read_order": [
+    "_maintenance/DEPENDENCY_MAP.md",
+    "_maintenance/MAINTENANCE_MODEL.md",
+    "_maintenance/TRACKER_LOGICAL.md",
+    "_maintenance/TRACKER_PHYSICAL.md",
+    "_maintenance/SUBMODULE_STRUCTURE.md",
+    "_maintenance/VERIFICATION.md"
+  ],
+  "next_exact_action": "Start checkpoint Y00 (snapshot + revalidation). This submodule has NO edges, so it can be reviewed at any point without coordinating with another campaign. Revalidate the five findings in open_findings against the tree with evidence. Read the SKIP COUNT when running the suite: it needs a working Cython and C toolchain, and a skipped build test looks like a passing one under -q. Do NOT begin implementation.",
+  "project_sequence": {
+    "corpus": "COMPLETE",
+    "mcp": "M00 pending",
+    "annoy_family": "A00 pending",
+    "sphinx_family": "S00 pending",
+    "cli": "C00 pending",
+    "cython": "Y00 - independent, any time"
+  }
+}

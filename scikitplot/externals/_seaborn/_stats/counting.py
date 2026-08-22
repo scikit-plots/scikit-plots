@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
-from .._core.scales import Scale
-from .._stats.base import Stat
+from seaborn._core.groupby import GroupBy
+from seaborn._core.scales import Scale
+from seaborn._stats.base import Stat
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

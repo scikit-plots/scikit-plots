@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scikit-plots.github.io/schemas/ai-assistant-endpoint-profile.schema.json",
+  "title": "Client-safe endpoint profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "chat_url"
+  ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "chat_url": {
+      "type": "string"
+    },
+    "discovery_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "share_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "feedback_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "capabilities": {
+      "type": "object"
+    },
+    "auth_mode": {
+      "enum": [
+        "server",
+        "none",
+        "developer_escape_hatch"
+      ]
+    },
+    "has_share_auth": {
+      "type": "boolean"
+    },
+    "has_feedback_auth": {
+      "type": "boolean"
+    }
+  }
+}

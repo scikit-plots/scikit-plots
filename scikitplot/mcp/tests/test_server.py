@@ -97,11 +97,14 @@ def _install_fake_sdk(monkeypatch):
     mcp_module = types.ModuleType("mcp")
     server_module = types.ModuleType("mcp.server")
     server_module.MCPServer = FakeMCPServer
-    types_module = types.ModuleType("mcp_types")
+    # create_server imports ToolAnnotations from the public ``mcp.types`` alias.
+    types_module = types.ModuleType("mcp.types")
     types_module.ToolAnnotations = FakeToolAnnotations
+    mcp_module.server = server_module
+    mcp_module.types = types_module
     monkeypatch.setitem(sys.modules, "mcp", mcp_module)
     monkeypatch.setitem(sys.modules, "mcp.server", server_module)
-    monkeypatch.setitem(sys.modules, "mcp_types", types_module)
+    monkeypatch.setitem(sys.modules, "mcp.types", types_module)
 
 
 def _request(path="/healthz"):

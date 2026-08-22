@@ -1,3 +1,10 @@
+# scikitplot/corpus/_registry/_registry.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._registry._registry
 =========================================
@@ -119,6 +126,14 @@ class ComponentRegistry:
         self._filters: dict[str, type] = {}
         self._readers: dict[str, type] = {}
         self._normalizers: dict[str, type] = {}
+        #: Keys populated by :meth:`register_builtins`.  Overwriting one
+        #: requires an explicit ``replace=True`` (P-I0-07 / F-R12-01).
+        self._builtin_keys: dict[str, set[str]] = {
+            "chunker": set(),
+            "filter": set(),
+            "reader": set(),
+            "normalizer": set(),
+        }
         self._lock: threading.Lock = threading.Lock()
         self._builtins_registered: bool = False
 
@@ -212,7 +227,13 @@ class ComponentRegistry:
     # Chunker registration / retrieval
     # ------------------------------------------------------------------
 
-    def register_chunker(self, name: str, cls: type) -> None:
+    def register_chunker(
+        self,
+        name: str,
+        cls: type,
+        *,
+        replace: bool = False,
+    ) -> None:
         """
         Register a chunker class under ``name``.
 
@@ -224,6 +245,8 @@ class ComponentRegistry:
         cls : type
             Concrete class inheriting from
             :class:`~scikitplot.corpus._base.ChunkerBase`.
+        replace : bool
+            False
 
         Raises
         ------
@@ -232,15 +255,9 @@ class ComponentRegistry:
         TypeError
             If ``cls`` is not a type.
         """
-        self._validate_registration(name, cls)
+        self._validate_registration(name, cls, _lazy_protocol("ChunkerProtocol"))
         with self._lock:
-            if name in self._chunkers:
-                logger.warning(
-                    "ComponentRegistry: overriding existing chunker %r (%s → %s).",
-                    name,
-                    self._chunkers[name].__name__,
-                    cls.__name__,
-                )
+            self._check_overwrite("chunker", name, self._chunkers, cls, replace)
             self._chunkers[name] = cls
 
     def get_chunker(self, name: str) -> type:
@@ -278,7 +295,13 @@ class ComponentRegistry:
     # Filter registration / retrieval
     # ------------------------------------------------------------------
 
-    def register_filter(self, name: str, cls: type) -> None:  # noqa: D417
+    def register_filter(  # noqa: D417
+        self,
+        name: str,
+        cls: type,
+        *,
+        replace: bool = False,
+    ) -> None:
         """
         Register a filter class under ``name``.
 
@@ -289,8 +312,9 @@ class ComponentRegistry:
             Concrete class inheriting from
             :class:`~scikitplot.corpus._base.FilterBase`.
         """
-        self._validate_registration(name, cls)
+        self._validate_registration(name, cls, None)
         with self._lock:
+            self._check_overwrite("filter", name, self._filters, cls, replace)
             self._filters[name] = cls
 
     def get_filter(self, name: str) -> type:  # noqa: D417
@@ -326,7 +350,13 @@ class ComponentRegistry:
     # Reader registration / retrieval
     # ------------------------------------------------------------------
 
-    def register_reader(self, name: str, cls: type) -> None:
+    def register_reader(
+        self,
+        name: str,
+        cls: type,
+        *,
+        replace: bool = False,
+    ) -> None:
         r"""
         Register a reader class under ``name`` (typically a file extension).
 
@@ -338,9 +368,12 @@ class ComponentRegistry:
         cls : type
             Concrete class inheriting from
             :class:`~scikitplot.corpus._base.DocumentReader`.
+        replace : bool
+            False
         """
-        self._validate_registration(name, cls)
+        self._validate_registration(name, cls, None)
         with self._lock:
+            self._check_overwrite("reader", name, self._readers, cls, replace)
             self._readers[name] = cls
 
     def get_reader(self, name: str) -> type:  # noqa: D417
@@ -376,19 +409,29 @@ class ComponentRegistry:
     # Normalizer registration / retrieval
     # ------------------------------------------------------------------
 
-    def register_normalizer(self, name: str, cls: type) -> None:  # noqa: D417
+    def register_normalizer(
+        self,
+        name: str,
+        cls: type,
+        *,
+        replace: bool = False,
+    ) -> None:  # noqa: D417
         """
         Register a normalizer class under ``name``.
 
         Parameters
         ----------
         name : str
+            a normalizer class.
         cls : type
             Concrete class inheriting from
             :class:`~scikitplot.corpus._normalizers.NormalizerBase`.
+        replace : bool
+            False
         """
-        self._validate_registration(name, cls)
+        self._validate_registration(name, cls, _lazy_protocol("NormalizerProtocol"))
         with self._lock:
+            self._check_overwrite("normalizer", name, self._normalizers, cls, replace)
             self._normalizers[name] = cls
 
     def get_normalizer(self, name: str) -> type:  # noqa: D417
@@ -621,8 +664,37 @@ class ComponentRegistry:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _validate_registration(name: str, cls: type) -> None:
-        """Validate name and class before insertion."""
+    def _validate_registration(
+        name: str, cls: type, expected_base: type | None = None
+    ) -> None:
+        """Validate name, class and protocol conformance before insertion.
+
+        Parameters
+        ----------
+        name : str
+            Registry key. Must be a non-empty, non-whitespace string.
+        cls : type
+            Candidate class.
+        expected_base : type or None, optional
+            Runtime-checkable Protocol the candidate must satisfy structurally.
+            ``None`` skips the conformance check, which is used only where no
+            base is importable without a circular import.
+
+        Raises
+        ------
+        ValueError
+            If ``name`` is empty or whitespace-only.
+        TypeError
+            If ``cls`` is not a class, or does not satisfy ``expected_base``.
+
+        Notes
+        -----
+        **Developer.**  The conformance check exists so a non-conforming class
+        fails *at the registration site* rather than at an unrelated later call
+        site (finding F-R12-01 / P3).  Before this check, ``register_chunker
+        ("bogus", object)`` succeeded and the resulting ``AttributeError``
+        surfaced during chunking, far from its cause.
+        """
         if not name or not name.strip():
             raise ValueError(
                 "ComponentRegistry: registration name must be a non-empty string."
@@ -632,6 +704,77 @@ class ComponentRegistry:
                 f"ComponentRegistry: expected a class (type), "
                 f"got {type(cls).__name__} for name {name!r}."
             )
+        if expected_base is not None:
+            try:
+                conforms = issubclass(cls, expected_base)
+            except TypeError:  # non-method members make issubclass unusable
+                conforms = True
+        else:
+            conforms = True
+        if not conforms:
+            raise TypeError(
+                f"ComponentRegistry: {cls.__name__!r} registered under {name!r} "
+                f"does not satisfy {expected_base.__name__!r}. "
+                f"Registering a non-conforming class would defer the failure to "
+                f"an unrelated call site."
+            )
+
+    def _check_overwrite(
+        self, kind: str, name: str, store: dict[str, type], cls: type, replace: bool
+    ) -> None:
+        """Refuse to silently overwrite an existing registration.
+
+        Raises
+        ------
+        ValueError
+            If ``name`` is already registered and ``replace`` is ``False``.
+
+        Notes
+        -----
+        **User.**  Pass ``replace=True`` to intentionally substitute a component.
+
+        **Developer.**  Finding F-R12-01 (P2) recorded that a built-in could be
+        displaced silently -- ``register_chunker("sentence", Impostor)`` returned
+        normally and every later chunk used the impostor.  Silent replacement is
+        the "plausible success after altered execution" shape this codebase has
+        already been bitten by three times; it is now an error by default.
+        """
+        if name not in store or replace:
+            return
+        builtin = name in self._builtin_keys.get(kind, ())
+        raise ValueError(
+            f"ComponentRegistry: {kind} {name!r} is already registered to "
+            f"{store[name].__name__!r}"
+            + (" (a built-in)" if builtin else "")
+            + f"; refusing to replace it with {cls.__name__!r} silently. "
+            f"Pass replace=True to substitute it deliberately."
+        )
+
+
+def _lazy_protocol(name: str) -> type | None:
+    """Resolve a runtime-checkable Protocol from ``_types`` lazily.
+
+    Notes
+    -----
+    **Developer.**  Conformance is checked *structurally* against a
+    ``runtime_checkable`` Protocol rather than nominally against a base class.
+    A plugin that implements ``chunk``/``chunk_batch`` is a valid chunker
+    whether or not it happens to inherit :class:`ChunkerBase`; requiring
+    inheritance would reject duck-typed third-party components, which is the
+    opposite of what a plugin registry is for.
+
+    ``_registry`` is imported during package initialisation, so ``_types``
+    cannot be imported at module scope (see the header note on circular
+    imports).  Failure to resolve degrades to *no* check rather than to a
+    spurious rejection.
+    """
+    try:
+        from .. import _types  # ruff: ignore[import-outside-top-level]
+    # defensive, see module header
+    except Exception:  # ruff: ignore[blind-except]  # pragma: no cover
+        return None
+    obj = getattr(_types, name, None)
+    return obj if isinstance(obj, type) else None
 
 
 # ===========================================================================

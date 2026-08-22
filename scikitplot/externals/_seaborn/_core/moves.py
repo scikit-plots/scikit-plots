@@ -5,9 +5,9 @@ from typing import ClassVar, Callable, Optional, Union, cast
 import numpy as np
 from pandas import DataFrame
 
-from .._core.groupby import GroupBy
-from .._core.scales import Scale
-from .._core.typing import Default
+from seaborn._core.groupby import GroupBy
+from seaborn._core.scales import Scale
+from seaborn._core.typing import Default
 
 default = Default()
 

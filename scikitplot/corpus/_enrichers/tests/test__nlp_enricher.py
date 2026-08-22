@@ -43,6 +43,17 @@ import pytest
 from .._nlp_enricher import BUILTIN_STOPWORDS, EnricherConfig, NLPEnricher
 
 
+# python -m pytest \
+#   scikitplot/corpus/_enrichers/tests/test__nlp_enricher.py \
+#   scikitplot/corpus/_enrichers/tests/test__nlp_enricher_advanced.py \
+#   -ra --maxfail=0
+
+# python -m pytest \
+#   scikitplot/corpus/_enrichers/tests/test__nlp_enricher.py \
+#   scikitplot/corpus/_enrichers/tests/test__nlp_enricher_advanced.py \
+#   -k "keyword or yake or keybert" \
+#   -vv --maxfail=0
+
 # ---------------------------------------------------------------------------
 # Minimal CorpusDocument stub (avoids importing the full schema)
 # ---------------------------------------------------------------------------
@@ -317,6 +328,20 @@ class TestEnrichDocuments:
         tokens = result[0].tokens or []
         assert "normalized" in tokens or "hello" in tokens
 
+    def test_remove_stopwords_false_does_not_resolve_stopword_resources(self) -> None:
+        """Dependency-free enrichment must not touch optional stopword data."""
+        enricher = self._enricher(remove_stopwords=False, min_token_length=1)
+
+        with patch.object(
+            enricher,
+            "_get_stopwords_for",
+            side_effect=AssertionError("stopword resources must not be resolved"),
+        ) as get_stopwords:
+            result = enricher.enrich_documents([_doc("the quick brown fox")])
+
+        get_stopwords.assert_not_called()
+        assert result[0].tokens == ["the", "quick", "brown", "fox"]
+
     def test_empty_documents_list(self) -> None:
         enricher = self._enricher()
         assert enricher.enrich_documents([]) == []
@@ -580,17 +605,203 @@ class TestKeywordExtractors:
         enricher = NLPEnricher(EnricherConfig())
         assert enricher._compute_tfidf_scores([]) is None
 
-    def test_yake_falls_back_on_missing_import(self) -> None:
+    def test_yake_missing_import_returns_none(self) -> None:
         enricher = NLPEnricher(EnricherConfig(keyword_extractor="yake"))
         with patch.dict("sys.modules", {"yake": None}):
             result = enricher._keywords_yake("hello world machine learning")
         assert result is None  # falls back gracefully
 
-    def test_keybert_falls_back_on_missing_import(self) -> None:
+    def test_yake_missing_dependency_falls_back_to_frequency(
+        self,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(
+                keyword_extractor="yake",
+                max_keywords=3,
+            )
+        )
+        text = "python python machine learning machine data"
+        tokens = [
+            "python",
+            "python",
+            "machine",
+            "learning",
+            "machine",
+            "data",
+        ]
+        with patch.dict(
+            "sys.modules",
+            {"yake": None},
+        ):
+            result = e._extract_keywords(
+                text,
+                tokens,
+            )
+        expected = e._keywords_frequency(tokens)
+        assert result == expected
+
+    def test_yake_fallback_logs_warning(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(keyword_extractor="yake")
+        )
+        logger = logging.getLogger(
+            "scikitplot.corpus._enrichers._nlp_enricher"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                with patch.dict(
+                    "sys.modules",
+                    {"yake": None},
+                ):
+                    result = e._extract_keywords(
+                        "python python machine learning",
+                        [
+                            "python",
+                            "python",
+                            "machine",
+                            "learning",
+                        ],
+                    )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert result is not None
+        warnings = [
+            record
+            for record in caplog.records
+            if (
+                record.name == logger.name
+                and record.levelno == logging.WARNING
+                and "falling back to frequency keywords"
+                in record.getMessage()
+            )
+        ]
+        assert len(warnings) == 1
+
+    def test_enrich_documents_yake_missing_still_populates_keywords(
+        self,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(
+                keyword_extractor="yake",
+                max_keywords=3,
+            )
+        )
+        doc = _Doc(
+            "python python machine learning machine data"
+        )
+        with patch.dict(
+            "sys.modules",
+            {"yake": None},
+        ):
+            out = e.enrich_documents([doc])
+        assert out[0].keywords
+
+    def test_keybert_missing_import_returns_none(self) -> None:
         enricher = NLPEnricher(EnricherConfig(keyword_extractor="keybert"))
         with patch.dict("sys.modules", {"keybert": None}):
             result = enricher._keywords_keybert("hello world machine learning")
         assert result is None
+
+    def test_keybert_missing_dependency_falls_back_to_frequency(
+        self,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(
+                keyword_extractor="keybert",
+                max_keywords=3,
+            )
+        )
+        text = "python python machine learning machine data"
+        tokens = [
+            "python",
+            "python",
+            "machine",
+            "learning",
+            "machine",
+            "data",
+        ]
+        with patch.dict(
+            "sys.modules",
+            {"keybert": None},
+        ):
+            result = e._extract_keywords(
+                text,
+                tokens,
+            )
+        expected = e._keywords_frequency(tokens)
+        assert result == expected
+
+    def test_keybert_fallback_logs_warning(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(keyword_extractor="keybert")
+        )
+        logger = logging.getLogger(
+            "scikitplot.corpus._enrichers._nlp_enricher"
+        )
+        logger.addHandler(caplog.handler)
+        try:
+            caplog.clear()
+            with caplog.at_level(
+                logging.WARNING,
+                logger=logger.name,
+            ):
+                with patch.dict(
+                    "sys.modules",
+                    {"keybert": None},
+                ):
+                    result = e._extract_keywords(
+                        "python python machine learning",
+                        [
+                            "python",
+                            "python",
+                            "machine",
+                            "learning",
+                        ],
+                    )
+        finally:
+            logger.removeHandler(caplog.handler)
+        assert result is not None
+        warnings = [
+            record
+            for record in caplog.records
+            if (
+                record.name == logger.name
+                and record.levelno == logging.WARNING
+                and "falling back to frequency keywords"
+                in record.getMessage()
+            )
+        ]
+        assert len(warnings) == 1
+
+    def test_enrich_documents_keybert_missing_still_populates_keywords(
+        self,
+    ) -> None:
+        e = NLPEnricher(
+            EnricherConfig(
+                keyword_extractor="keybert",
+                max_keywords=3,
+            )
+        )
+        doc = _Doc(
+            "python python machine learning machine data"
+        )
+        with patch.dict(
+            "sys.modules",
+            {"keybert": None},
+        ):
+            out = e.enrich_documents([doc])
+        assert out[0].keywords
 
 
 # ===========================================================================

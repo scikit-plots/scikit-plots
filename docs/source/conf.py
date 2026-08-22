@@ -255,7 +255,6 @@ extensions = [
     # "sphinx_automodapi.smart_resolver",
     #
     # Matplotlib extensions (load after built-ins)
-    #
     "matplotlib.sphinxext.figmpl_directive",
     "matplotlib.sphinxext.mathmpl",
     "matplotlib.sphinxext.plot_directive",  # Integrate Matplotlib plots into documentation.
@@ -267,29 +266,27 @@ extensions = [
     #
     # Third-party extensions (load after built-ins and matplotlib/IPython)
     #
+    'myst_parser',  # Markdown parser (.md files) with Sphinx
+    # "ablog",  # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py#L100
+    # 'nbsphinx',  # to publish Jupyter notebooks as documentation pages.
+    #
+    # gallery extensions (these affect layout and content presentation)
+    "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
+    "sphinx_design",  # Add design components and elements to documentation. Add directive type "dropdown" "grid"
     # https://sphinx-extensions.readthedocs.io/en/latest/
     # https://sphinx-extensions.readthedocs.io/en/latest/sphinx-prompt.html
     "sphinx_prompt",  # Add prompts and outputs to your documentation "sphinx-prompt"
-    "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
     "sphinx_togglebutton",   # https://sphinx-togglebutton.readthedocs.io/en/latest/index.html
-    "sphinx_design",  # Add design components and elements to documentation.
-    #
     # "_sphinx_ext.skplt_ext.sphinx_tabs_patch",   # <-- must come BEFORE sphinx_tabs.tabs
     'scikitplot.externals._sphinxext.sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
-    #
-    # "ablog",  # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py#L100
-    'myst_parser',  # Markdown parser (.md files) with Sphinx
-    # 'nbsphinx',  # to publish Jupyter notebooks as documentation pages.
-    # gallery extensions (these affect layout and content presentation)
-    "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
+    "sphinx_tags",  # Needs to be loaded *after* autodoc.
+    # "sphinx_remove_toctrees",  # Remove certain TOC trees from specific documentation pages.
+    "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
     # "sphinxcontrib.mermaid",  # https://sphinxcontrib-mermaid-demo.readthedocs.io/  https://pypi.org/project/sphinxcontrib-mermaid/
-    #
-    "sphinx_tags",  # Needs to be loaded *after* autodoc.
-    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     #
     # Custom extensions (these should be placed last to avoid conflicts)
     # See _sphinx_ext/
@@ -315,9 +312,9 @@ extensions = [
     # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
     "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.gallery_directive",  # "_extension.gallery_directive",
     "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.component_directive",  # "_extension.component_directive",
+    "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
     # "sphinxcontrib.youtube",
     "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",
-    "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
     #
     # https://isolveit.github.io/sphinx-pdf-generate
@@ -1236,6 +1233,7 @@ html_static_path = [
 # A better solution would be to follow the merge of:
 # https://github.com/pydata/pydata-sphinx-theme/pull/1682
 html_sidebars = {
+    # "<page_pattern>": ["list", "of", "templates"],
     "introduction/index": [
         "search-field",
         "sidebar-nav-bs",
@@ -1834,6 +1832,7 @@ tags_badge_colors = {
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
 # python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv
 intersphinx_mapping = {
+    # "scikitplot": ("https://scikit-plots.github.io/dev/", (None, "https://scikit-plots.github.io/stable/")),
     # Build
     "python": (f"https://docs.python.org/{sys.version_info.major}/", None),
     "pip": ("https://pip.pypa.io/en/stable/", None),
@@ -2461,12 +2460,13 @@ for old_link in old_links_dict:
 
 # Base URL — used by llms.txt and AI provider prompt templates
 # html_baseurl = "https://docs.example.com"
-html_baseurl = "https://scikit-plots.github.io"
+# html_baseurl = "https://scikit-plots-learn.readthedocs.io/en/latest"
+html_baseurl = "https://scikit-plots.github.io/dev"  # main or release branch
 ai_assistant_enabled = True
 
 # scikit-plots default:
 ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
-ai_assistant_panel_site_url = "https://scikit-plots.github.io/dev"
+ai_assistant_panel_site_url = f"{html_baseurl}"  # fallback default html_baseurl
 
 # → https://scikit-plots.github.io/dev/apis/scikitplot.html
 # → https://scikit-plots.github.io/dev/user_guide/logging/index.html
@@ -2475,8 +2475,8 @@ ai_assistant_panel_site_url = "https://scikit-plots.github.io/dev"
 #
 # Page and/or can be use hash value correspond title
 # AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
-ai_assistant_pdf_url_mode_toggle = True
-ai_assistant_pdf_export_url = f"{html_baseurl}"
+ai_assistant_pdf_url_mode_toggle = False
+ai_assistant_pdf_export_url = f"{html_baseurl}"  # fallback default html_baseurl
 
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)

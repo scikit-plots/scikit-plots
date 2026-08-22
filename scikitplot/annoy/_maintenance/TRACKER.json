@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.annoy",
+  "role": "the Cython + Python layer over the shared C++ source",
+  "family": "annoy (cexternals/_annoy + annoy + memmap + random)",
+  "shared_source": "scikitplot/cexternals/_annoy/src/",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 17,
+      "source_loc": 13535,
+      "test_files": 46,
+      "test_loc": 6134,
+      "markdown_files": 48
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 3,
+        "src_loc": 740,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_annoy": {
+        "src": 6,
+        "src_loc": 9333,
+        "test": 26,
+        "test_loc": 3954
+      },
+      "_maintenance": {
+        "src": 1,
+        "src_loc": 51,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_mixins": {
+        "src": 7,
+        "src_loc": 3411,
+        "test": 2,
+        "test_loc": 160
+      },
+      "tests": {
+        "src": 0,
+        "src_loc": 0,
+        "test": 18,
+        "test_loc": 2020
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 4208,
+        "path": "_annoy/annoylib.pyx.in"
+      },
+      {
+        "loc": 4007,
+        "path": "_annoy/_backup/annoylib_pyx.in"
+      },
+      {
+        "loc": 878,
+        "path": "_mixins/_vectors.py"
+      },
+      {
+        "loc": 774,
+        "path": "_mixins/_ndarray.py"
+      },
+      {
+        "loc": 604,
+        "path": "_annoy/annoylib.pxd.in"
+      },
+      {
+        "loc": 527,
+        "path": "_mixins/_meta.py"
+      },
+      {
+        "loc": 434,
+        "path": "_annoy/annoymodule.cpp"
+      },
+      {
+        "loc": 426,
+        "path": "_mixins/_pickle.py"
+      },
+      {
+        "loc": 381,
+        "path": "_mixins/_io.py"
+      },
+      {
+        "loc": 369,
+        "path": "_mixins/_plotting.py"
+      }
+    ]
+  },
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+  }
+}

@@ -39,6 +39,59 @@ def test_docker_profile_uses_streamable_http_and_container_bind():
     assert config.allow_unauthenticated_remote is True
 
 
+
+
+def test_corpus_annoy_profile_is_explicit_and_offline_by_default():
+    config = _parse(
+        "--docker",
+        "--corpus-annoy",
+        "/tmp/hamlet",
+        "--hash-dimension",
+        "384",
+        "--annoy-n-trees",
+        "12",
+        "--annoy-metric",
+        "angular",
+    )
+    assert config.corpus_annoy == "/tmp/hamlet"
+    assert config.corpus_embedding_model is None
+    assert config.hash_dimension == 384
+    assert config.annoy_n_trees == 12
+    assert config.annoy_metric == "angular"
+
+
+def test_corpus_annoy_and_jsonl_are_mutually_exclusive():
+    with pytest.raises(SystemExit, match="mutually exclusive"):
+        _parse("--docs-jsonl", "docs.jsonl", "--corpus-annoy", "/tmp/docs")
+
+
+def test_corpus_annoy_environment_config_is_supported():
+    config = _parse(
+        environ={
+            "SCIKITPLOT_MCP_CORPUS_ANNOY": "/srv/docs",
+            "SCIKITPLOT_MCP_HASH_DIMENSION": "512",
+            "SCIKITPLOT_MCP_ANNOY_N_TREES": "20",
+            "SCIKITPLOT_MCP_ANNOY_METRIC": "angular",
+        }
+    )
+    assert config.corpus_annoy == "/srv/docs"
+    assert config.hash_dimension == 512
+    assert config.annoy_n_trees == 20
+
+
+def test_corpus_annoy_loader_uses_hash_embedder_profile(monkeypatch, tmp_path):
+    captured = {}
+    sentinel = object()
+
+    def fake_build(config):
+        captured["config"] = config
+        return sentinel
+
+    monkeypatch.setattr(cli, "_build_corpus_annoy_retriever", fake_build)
+    config = _parse("--corpus-annoy", str(tmp_path))
+    assert cli._load_retriever(config) is sentinel
+    assert captured["config"].corpus_annoy == str(tmp_path)
+
 def test_remote_bind_requires_explicit_acknowledgement():
     with pytest.raises(SystemExit, match="refusing unauthenticated non-local bind"):
         _parse("--transport", "streamable-http", "--host", "0.0.0.0")
@@ -158,6 +211,11 @@ def test_docker_main_passes_http_and_health_settings(monkeypatch):
         return FakeServer()
 
     monkeypatch.setattr(cli, "create_server", fake_create_server)
+    monkeypatch.setattr(
+        cli,
+        "server_runtime_status",
+        lambda: {"server_available": True},
+    )
     assert cli.main(["--docker", "--port", "8123", "--path", "/rpc"]) == 0
     assert captured["create"]["health_path"] == "/healthz"
     assert captured["run"] == {
@@ -195,6 +253,51 @@ def test_backend_self_test_is_repeatable_and_avoids_server_creation(monkeypatch)
     assert first["count"] == len(first["passages"]) == len(first["citations"])
     assert first["count"] >= 1
 
+
+
+
+def test_corpus_annoy_self_test_uses_selected_retriever_without_server(monkeypatch, tmp_path):
+    class Retriever:
+        def search(self, query, k=5):
+            from scikitplot.mcp import RetrievedChunk
+
+            return [
+                RetrievedChunk(
+                    text="Hamlet dreams of death and sleep.",
+                    source_uri="hamlet.txt",
+                    doc_id="hamlet-1",
+                    title="Hamlet",
+                    score=0.9,
+                )
+            ][:k]
+
+        def get(self, doc_id):
+            return None
+
+    monkeypatch.setattr(cli, "_build_corpus_annoy_retriever", lambda _config: Retriever())
+    monkeypatch.setattr(
+        cli,
+        "create_server",
+        lambda *_args, **_kwargs: pytest.fail("server must not be created"),
+    )
+    output = io.StringIO()
+    assert (
+        cli.main(
+            [
+                "--corpus-annoy",
+                str(tmp_path),
+                "--self-test",
+                "--self-test-query",
+                "sleep dream death",
+                "--self-test-require-match",
+            ],
+            stdout=output,
+        )
+        == 0
+    )
+    payload = json.loads(output.getvalue())
+    assert payload["count"] == 1
+    assert payload["citations"][0]["doc_id"] == "hamlet-1"
 
 def test_probe_and_self_test_are_mutually_exclusive():
     with pytest.raises(SystemExit, match="mutually exclusive"):

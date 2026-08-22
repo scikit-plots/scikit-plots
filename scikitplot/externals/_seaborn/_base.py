@@ -11,12 +11,12 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
-from ._core.data import PlotData
-from .palettes import (
+from seaborn._core.data import PlotData
+from seaborn.palettes import (
     QUAL_PALETTES,
     color_palette,
 )
-from .utils import (
+from seaborn.utils import (
     _check_argument,
     _version_predates,
     desaturate,

@@ -46,14 +46,26 @@ def generate_requirement_file(name, req_list, *, extra_list=None):
     Path(req_fname).parent.mkdir(parents=True, exist_ok=True)
 
     comment = {
-        "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
+        "scikit-plots[legacy]": "-r legacy.txt",
         "scikit-plots[core]": "-r core.txt",
+        "scikit-plots[build]": "-r build.txt",
+        "scikit-plots[dev]": "-r dev.txt",
+        "scikit-plots[test_nogil]": "-r test_nogil.txt",
+        "scikit-plots[test]": "-r test.txt",
+        "scikit-plots[emscripten_test]": "-r emscripten_test.txt",
+        "scikit-plots[doc]": "-r doc.txt",
+        "scikit-plots[maintenance]": "-r maintenance.txt",
+        "scikit-plots[mcp]": "-r mcp.txt",
+        "scikit-plots[mlflow]": "-r mlflow.txt",
+        "scikit-plots[cython]": "-r cython.txt",
+        "scikit-plots[corpus]": "-r corpus.txt",
         "scikit-plots[cpu]": "-r cpu.txt",
         "scikit-plots[gpu]": "-r gpu.txt",
-        "scikit-plots[legacy]": "-r legacy.txt",
         "scikit-plots[tpu]": "-r tpu.txt",
-        "scikit-plots[test_nogil]": "-r test_nogil.txt",
-        # TODO:remove once scikit-umfpack issues are resolved
+        "scikit-plots[extend]": "-r extend.txt",
+        "scikit-plots[ci32_requirements]": "-r ci32_requirements.txt",
+        "scikit-plots[ci_requirements]": "-r ci_requirements.txt",
+        # TODO: remove once scikit-umfpack issues are resolved
         "scikit-umfpack": "# scikit-umfpack  # circular dependency issues",
     }
 

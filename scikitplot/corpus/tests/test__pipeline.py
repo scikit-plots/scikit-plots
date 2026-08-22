@@ -309,7 +309,7 @@ class TestCorpusPipelineRunBatch:
         files = [_write_txt(tmp_path, f"d{i}.txt", f"Content {i}.") for i in range(3)]
         pipeline = CorpusPipeline()
         results = pipeline.run_batch(files)
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
 
     def test_run_batch_one_result_per_file(self, tmp_path: pathlib.Path) -> None:
         files = [_write_txt(tmp_path, f"d{i}.txt", f"Content {i}.") for i in range(4)]

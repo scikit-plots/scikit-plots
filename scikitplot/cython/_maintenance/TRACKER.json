@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.cython",
+  "role": "runtime Cython/C build service \u2014 it compiles and loads code the caller supplies",
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950"
+  },
+  "physical": {
+    "totals": {
+      "source_files": 191,
+      "source_loc": 15898,
+      "test_files": 45,
+      "test_loc": 11492,
+      "markdown_files": 41
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 17,
+        "src_loc": 10864,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_maintenance": {
+        "src": 2,
+        "src_loc": 358,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_templates": {
+        "src": 172,
+        "src_loc": 4676,
+        "test": 0,
+        "test_loc": 0
+      },
+      "tests": {
+        "src": 0,
+        "src_loc": 0,
+        "test": 45,
+        "test_loc": 11492
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 2097,
+        "path": "_builder.py"
+      },
+      {
+        "loc": 1450,
+        "path": "_public.py"
+      },
+      {
+        "loc": 1253,
+        "path": "_templates_api.py"
+      },
+      {
+        "loc": 1241,
+        "path": "_custom_compiler.py"
+      },
+      {
+        "loc": 1031,
+        "path": "_cache.py"
+      },
+      {
+        "loc": 728,
+        "path": "_profiles.py"
+      },
+      {
+        "loc": 697,
+        "path": "_security.py"
+      },
+      {
+        "loc": 403,
+        "path": "_result.py"
+      },
+      {
+        "loc": 370,
+        "path": "_loader.py"
+      },
+      {
+        "loc": 316,
+        "path": "_gc.py"
+      }
+    ],
+    "note": "The gate's scan() classifies _templates/*.py and *.pyx as SOURCE, because they are compilable source by any static reading. The maintenance docs report them separately (306 files / 5 709 LOC across 22 families) because they are TEST INPUTS. Both readings are correct; the gate uses the conservative one.",
+    "templates": {
+      "files": 306,
+      "loc": 5709,
+      "families": 22,
+      "classified_as": "source by the gate; test inputs by the docs"
+    }
+  },
+  "antecessors": [],
+  "successors": [],
+  "independence": "imports NO sibling submodule; verified by AST"
+}

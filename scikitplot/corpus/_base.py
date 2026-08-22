@@ -1185,8 +1185,15 @@ class DocumentReader(abc.ABC):
             # rest → metadata. Keys "text" and "section_type" are consumed.
             promoted: dict[str, Any] = {}
             chunk_metadata: dict[str, Any] = {}
+            # Aggregate/container readers may provide a logical source label
+            # for an individual child member (for example
+            # ``archive.zip/report.pdf``).  Keep that label first-class rather
+            # than leaking it into metadata or collapsing it to the outer
+            # container's filename.
+            raw_input_path = raw_chunk.get("input_path")
+
             for k, v in raw_chunk.items():
-                if k in ("text", "section_type"):
+                if k in ("text", "section_type", "input_path"):
                     continue
                 if k in _PROMOTED_RAW_KEYS:
                     promoted[k] = v
@@ -1245,7 +1252,11 @@ class DocumentReader(abc.ABC):
                 ml: dict[str, Any] = per_chunk_meta.get("multilang") or {}
 
                 doc = CorpusDocument.create(
-                    input_path=self.file_name,
+                    input_path=(
+                        str(raw_input_path)
+                        if raw_input_path not in (None, "")
+                        else self.file_name
+                    ),
                     chunk_index=chunk_index,
                     text=chunk_text,
                     section_type=section_type,
@@ -2476,6 +2487,19 @@ class _MultiSourceReader:
         """
         self.close()
 
+    @property
+    def errors(self) -> list:
+        """Structured diagnostics collected during iteration.
+
+        Returns
+        -------
+        list of ErrorRecord
+            One record per failed document under ``COLLECT``, ``RETRY``
+            or ``FALLBACK``.  Empty under ``RAISE`` (which propagates)
+            and under ``SKIP`` (which deliberately keeps no record).
+        """
+        return list(self._errors)
+
     def close(self) -> None:
         """Release temporary directories created by ``from_url()`` downloads.
 
@@ -2748,7 +2772,7 @@ class PipelineGuard:
     ----------
     policy : ErrorPolicy, optional
         How to handle per-document exceptions.
-        Default: :attr:`~ErrorPolicy.LOG` (log and skip).
+        Default: :attr:`~ErrorPolicy.COLLECT` (record and continue).
     dedup : bool, optional
         Drop documents with duplicate ``content_hash``.
         Default: ``True``.
@@ -2786,7 +2810,7 @@ class PipelineGuard:
 
     >>> from pathlib import Path
     >>> guard = PipelineGuard(
-    ...     policy=ErrorPolicy.LOG,
+    ...     policy=ErrorPolicy.COLLECT,
     ...     dedup=True,
     ...     checkpoint_path=Path("corpus.ckpt.jsonl"),
     ...     checkpoint_every=200,
@@ -2823,7 +2847,7 @@ class PipelineGuard:
         ----------
         policy : ErrorPolicy or None, optional
             Per-document error handling.  ``None`` defaults to
-            :attr:`~ErrorPolicy.LOG`.  Default: ``None``.
+            :attr:`~ErrorPolicy.COLLECT`.  Default: ``None``.
         dedup : bool, optional
             Drop documents with duplicate ``content_hash``.  Default: ``True``.
         checkpoint_path : pathlib.Path or None, optional
@@ -2842,7 +2866,7 @@ class PipelineGuard:
                 ErrorPolicy as _EP,
             )
 
-            _default_policy = _EP.LOG
+            _default_policy = _EP.COLLECT
         except ImportError:
             _default_policy = None  # type: ignore[assignment]
 
@@ -2865,6 +2889,10 @@ class PipelineGuard:
         self._n_yielded: int = 0
         self._n_skipped_dedup: int = 0
         self._n_errors: int = 0
+        #: Structured diagnostics accumulated under COLLECT / RETRY / FALLBACK.
+        #: Deliberately holds ``ErrorRecord`` rather than live exceptions --
+        #: see :mod:`scikitplot.corpus._diagnostics` (findings F-R02-03, F-R11-02).
+        self._errors: list = []
         self._ckpt_file: Any | None = None  # open file handle
 
         # Load checkpoint if it exists
@@ -2901,50 +2929,55 @@ class PipelineGuard:
         """
         import time  # noqa: F401, PLC0415
 
-        try:
-            from ._schema import (  # noqa: N814, PLC0415
-                ErrorPolicy as _EP,
-            )
-
-            _SKIP = _EP.SKIP  # noqa: N806
-            _LOG = _EP.LOG  # noqa: N806
-            _RETRY = _EP.RETRY  # noqa: N806
-        except ImportError:
-            _SKIP = _LOG = _RETRY = None  # type: ignore[assignment]  # noqa: N806
+        from ._diagnostics import ErrorCategory, ErrorRecord  # noqa: PLC0415
+        from ._schema import ErrorPolicy  # noqa: PLC0415
 
         for item in self._safe_iter(source):
             # item is either a CorpusDocument or an Exception
             if isinstance(item, BaseException):
                 exc = item
                 self._n_errors += 1
-                policy_val = getattr(self.policy, "value", str(self.policy))
+                policy = ErrorPolicy(self.policy)
 
-                if self.policy in (_LOG, _SKIP) or str(self.policy) in ("log", "skip"):
-                    if (
-                        self.policy in (_LOG,)  # noqa: FURB171
-                        or str(self.policy) == "log"
-                    ):
-                        logger.warning(
-                            "PipelineGuard: document error (policy=%s): %s: %s",
-                            policy_val,
-                            type(exc).__name__,
-                            exc,
-                        )
-                    continue  # skip the bad document
+                if policy is ErrorPolicy.RAISE:
+                    raise exc
 
-                if (
-                    self.policy in (_RETRY,)  # noqa: FURB171
-                    or str(self.policy) == "retry"
-                ):
-                    # Retry is handled in _safe_iter; if we reach here it failed
-                    logger.warning(
-                        "PipelineGuard: exhausted %d retries: %s",
-                        self.max_retries,
+                if policy is ErrorPolicy.SKIP:
+                    continue  # discard, keep no record
+
+                # RETRY reaching here means the retries were exhausted; its
+                # terminal state is COLLECT, so an exhausted retry is visible in
+                # `errors` rather than only as a log line (ADR-R02-001).
+                code = (
+                    "RETRIES_EXHAUSTED"
+                    if policy is ErrorPolicy.RETRY
+                    else "DOCUMENT_FAILED"
+                )
+                category = (
+                    ErrorCategory.RESOURCE
+                    if policy is ErrorPolicy.RETRY
+                    else ErrorCategory.PARSE
+                )
+                self._errors.append(
+                    ErrorRecord.from_exception(
                         exc,
+                        code=code,
+                        category=category,
+                        stage="read",
+                        details=(
+                            {"max_retries": self.max_retries}
+                            if policy is ErrorPolicy.RETRY
+                            else {}
+                        ),
                     )
-                    continue
-
-                raise exc  # RAISE policy
+                )
+                logger.warning(
+                    "PipelineGuard: document error (policy=%s): %s: %s",
+                    policy.value,
+                    type(exc).__name__,
+                    exc,
+                )
+                continue
 
             doc = item
 
@@ -3005,6 +3038,7 @@ class PipelineGuard:
             "n_yielded": self._n_yielded,
             "n_skipped_dedup": self._n_skipped_dedup,
             "n_errors": self._n_errors,
+            "errors": [r.to_dict() for r in self._errors],
         }
 
     def __repr__(self) -> str:

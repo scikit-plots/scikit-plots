@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "scikitplot-docs": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "scikitplot.mcp"
+      ]
+    }
+  }
+}
