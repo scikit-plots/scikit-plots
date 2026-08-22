@@ -31,8 +31,20 @@ def test_programmatic_config_override_reaches_markdown_subbuild(tmp_path: Path):
     outdir = tmp_path / "html"
     doctreedir = tmp_path / "doctrees"
 
-    # Absolute path to your custom configuration file
-    custom_config_path = os.path.abspath(os.path.join(srcdir, "conf_overrides.py"))
+    # Use text; do not save a permanent conf.py.
+    conf_content = (
+        "project = 'sphinx-llm config parity fixture'\n"
+        "extensions = [\n"
+        "    'sphinx.ext.ifconfig',\n"
+        "    'scikitplot._externals._sphinx_ext._sphinx_llm',\n"
+        "]\n"
+        "feature_mode = 'override'\n"
+        "llms_txt_build_parallel = False\n"
+        "llms_txt_full_build = False\n\n"
+        "def setup(app):\n"
+        "    app.add_config_value('feature_mode', 'base', 'env')\n"
+    )
+    (srcdir / "conf.py").write_text(conf_content, encoding="utf-8")
 
     app = Sphinx(
         srcdir=srcdir,
@@ -40,11 +52,16 @@ def test_programmatic_config_override_reaches_markdown_subbuild(tmp_path: Path):
         outdir=outdir,
         doctreedir=doctreedir,
         buildername="html",
-        confoverrides={
-            "config_file": custom_config_path,  # Forces Sphinx to load conf_overrides.py
-            "feature_mode": "override",
-            "llms_txt_build_parallel": False,
-        },
+        # confoverrides={
+        #     "project": "sphinx-llm config parity fixture",
+        #     "extensions": [
+        #         "sphinx.ext.ifconfig",
+        #         "scikitplot._externals._sphinx_ext._sphinx_llm",
+        #     ],
+        #     "feature_mode": "override",
+        #     "llms_txt_build_parallel": False,
+        #     "llms_txt_full_build": False,
+        # },
         freshenv=True,
     )
     app.build(force_all=True)
