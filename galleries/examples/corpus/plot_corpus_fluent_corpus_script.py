@@ -216,7 +216,7 @@ print("keyword replacement:", keyword_replace.plan().get("embedder"))
 
 # %%
 # Every domain also has a ``replace_*`` method
-# -------------------------------------------
+# --------------------------------------------
 # The replacement API is generated consistently for all configuration domains.
 # This small introspection block gives new users a quick map of the available
 # fluent vocabulary.

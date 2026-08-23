@@ -97,8 +97,8 @@ A configured source becomes operational only when ``run()`` is called:
 >>> with runtime_fluent.materialize() as runtime:
 ...     result = runtime.run()  # doctest: +SKIP
 
-Network and optional-capability examples
-----------------------------------------
+Network and optional-capability examples:
+
 Live URLs, OCR, ASR, spaCy, NLTK resource-backed NLP, model embeddings, and
 native vector backends depend on the corresponding environment capability.
 User-facing examples should not fabricate results when a capability is absent.

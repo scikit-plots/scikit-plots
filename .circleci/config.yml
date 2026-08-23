@@ -669,6 +669,52 @@ commands:
               jupyterlite-pyodide-kernel \
               jupyterlite-xeus \
               jupyterlite-terminal
+
+            # Pre-install the NLTK data in CI.
+            # python -m nltk.downloader punkt_tab wordnet omw-1.4
+            #
+            # `python -m nltk.downloader` cannot work on this executor. NLTK's
+            # pathsec guard refuses any fetch that egresses through a proxy,
+            # because it cannot pin the validated IP and so cannot enforce SSRF
+            # protection (CWE-918). CircleCI egresses through a proxy, so the
+            # downloader fails with "Security Violation" — which is exactly the
+            # error the failing docs build reported.
+            #
+            # Worse, it fails *quietly*: `nltk.downloader` prints the error and
+            # exits 0, so `set -Eeuo pipefail` does not catch it and the build
+            # continues to die 50 minutes later inside sphinx-gallery.
+            #
+            # Fetching the packages directly avoids the guard entirely: these
+            # are the same archives the downloader would retrieve, from the same
+            # repository, and no NLTK code path is involved.
+            export NLTK_DATA="$HOME/nltk_data"
+            mkdir -p "$NLTK_DATA/tokenizers" "$NLTK_DATA/corpora"
+
+            NLTK_PKGS="https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages"
+            curl -sSfL "$NLTK_PKGS/tokenizers/punkt_tab.zip" -o /tmp/punkt_tab.zip
+            curl -sSfL "$NLTK_PKGS/corpora/wordnet.zip"      -o /tmp/wordnet.zip
+            curl -sSfL "$NLTK_PKGS/corpora/omw-1.4.zip"      -o /tmp/omw-1.4.zip
+
+            unzip -q -o /tmp/punkt_tab.zip -d "$NLTK_DATA/tokenizers"
+            unzip -q -o /tmp/wordnet.zip   -d "$NLTK_DATA/corpora"
+            unzip -q -o /tmp/omw-1.4.zip   -d "$NLTK_DATA/corpora"
+
+            # Fail here, in 2 seconds, rather than in the gallery 50 minutes on.
+            python - <<'PY'
+            import sys
+            import nltk
+            missing = []
+            for path in ("tokenizers/punkt_tab/english/", "corpora/wordnet", "corpora/omw-1.4"):
+                try:
+                    nltk.data.find(path)
+                except LookupError:
+                    missing.append(path)
+            if missing:
+                sys.exit("NLTK data missing after install: " + ", ".join(missing))
+            from nltk.tokenize import sent_tokenize
+            assert sent_tokenize("A. B.") == ["A.", "B."]
+            print("NLTK data verified:", ", ".join(nltk.data.path[:2]))
+            PY
   build-scikit-plots:
     description: build scikit-plots
     steps:

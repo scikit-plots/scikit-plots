@@ -213,15 +213,15 @@ class ErrorPolicy(_StrEnumBase):
     -----
     **User-focused.**  Choose what should happen to a document that fails:
 
-    ==========  ====================================================
-    value       behaviour
-    ==========  ====================================================
-    ``raise``   propagate immediately (default, strictest)
-    ``skip``    discard and continue, no record kept
-    ``retry``   retry up to ``max_retries``, then ``collect``
-    ``collect`` discard and continue, keeping an ``ErrorRecord``
-    ``fallback`` degrade to a declared alternative, keeping a record
-    ==========  ====================================================
+    ============  ====================================================
+    value         behaviour
+    ============  ====================================================
+    ``raise``     propagate immediately (default, strictest)
+    ``skip``      discard and continue, no record kept
+    ``retry``     retry up to ``max_retries``, then ``collect``
+    ``collect``   discard and continue, keeping an ``ErrorRecord``
+    ``fallback``   degrade to a declared alternative, keeping a record
+    ============  ====================================================
 
     **Developer-focused.**  This enum controls *behaviour only*.  Logging is
     orthogonal and is configured through the standard :mod:`logging` module.
@@ -1878,22 +1878,6 @@ class CorpusDocument:
         content. This is a one-time breaking change: corpora built before v2
         must be re-indexed (their ids differ).
 
-        Examples
-        --------
-        >>> CorpusDocument.make_doc_id("file.txt", 0, "Hello world.")
-        '...'  # deterministic 16-char hex
-        >>> a = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "X")
-        >>> b = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "Y")
-        >>> a != b  # full-content identity: no 64-char-prefix collision
-        True
-        >>> (
-        ...     CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.BOOK)
-        ...     != CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.MOVIE)
-        ... )
-        True
-
-        Notes
-        -----
         **Collision bound (P-I0-11 / finding O-12).**  The digest is truncated to
         16 hex characters, i.e. **64 bits**.  By the birthday bound the collision
         probability is approximately ``n**2 / 2**65``:
@@ -1909,6 +1893,20 @@ class CorpusDocument:
         This is ample for the corpus scales this package targets, but it is a
         *bound*, not a guarantee.  A deployment approaching 1e9 documents in one
         collection should widen the truncation rather than assume uniqueness.
+
+        Examples
+        --------
+        >>> CorpusDocument.make_doc_id("file.txt", 0, "Hello world.")
+        '...'  # deterministic 16-char hex
+        >>> a = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "X")
+        >>> b = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "Y")
+        >>> a != b  # full-content identity: no 64-char-prefix collision
+        True
+        >>> (
+        ...     CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.BOOK)
+        ...     != CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.MOVIE)
+        ... )
+        True
         """
 
         st_val = (

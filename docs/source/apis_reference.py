@@ -724,7 +724,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
                 # for inheritance-diagram
                 "classes": [
-                    "Annoy",
+                    "_annoy.Annoy",
+                    "_annoy.AnnoyIndex",
                 ],
             },
             {
