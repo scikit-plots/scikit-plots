@@ -57,7 +57,70 @@ def summary_fingerprint(
     api_key_env: str = DEFAULT_API_KEY_ENV,
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
 ) -> str:
-    """Return a stable cache key for text and every generation setting."""
+    """
+    Return a stable cache key for text and every generation setting.
+
+    Parameters
+    ----------
+    text : str
+        Document text the summary was generated from.
+    model : str
+        Model identifier used for generation.
+    base_url : str, optional
+        OpenAI-compatible endpoint the request was sent to.
+    api_key_env : str, optional
+        **Name of the environment variable** holding the credential, for example
+        ``"OPENAI_API_KEY"``. Not the credential itself; see Notes.
+    reasoning_effort : str, optional
+        Reasoning-effort setting used for generation.
+
+    Returns
+    -------
+    str
+        Hex SHA-256 digest identifying this text/settings combination.
+
+    See Also
+    --------
+    MarkdownGenerator._summary_fingerprint : the current fingerprint, which
+        hashes a settings mapping and is used by ``generate_page_summary``.
+
+    Notes
+    -----
+    **This is the legacy cache key and its formula is frozen.**
+    ``docref.py`` evaluates it inside a set named ``legacy_hashes``, alongside an
+    MD5 digest, to recognise cache entries written by earlier versions. Changing
+    which fields it hashes, or their order or separator, would not "improve" the
+    key — it would stop the function recognising the entries it exists to
+    recognise. New fields belong in the current fingerprint instead.
+
+    **On the CodeQL alert** (``py/weak-sensitive-data-hashing``): the query
+    matches the identifier ``api_key_env`` with its sensitive-name heuristic and
+    reports SHA-256 as unsuitable for password hashing. Neither half applies.
+
+    ``api_key_env`` carries an environment variable *name* --
+    ``DEFAULT_API_KEY_ENV = "OPENAI_API_KEY"`` -- not a secret. The credential
+    itself is read separately as ``configured_api_key = os.environ.get(...)`` in
+    :func:`generate_summary` and never reaches this function; there is no
+    dataflow from it to any hash.
+
+    And this is a cache key, not stored authentication material. The query's own
+    guidance names SHA-2 as correct outside password hashing. The slow, salted
+    alternatives it suggests -- Argon2, scrypt, bcrypt, PBKDF2 -- salt per call
+    by design, which would make the digest non-deterministic and every lookup a
+    miss.
+
+    The alert is suppressed at the call site rather than worked around, because
+    every available workaround would either break the frozen formula or rename a
+    public keyword argument to satisfy a heuristic.
+
+    Examples
+    --------
+    >>> summary_fingerprint("hello world", "gpt-4o")[:16]
+    '45548d26938f8ec1'
+    """
+    # codeql[py/weak-sensitive-data-hashing]: `api_key_env` is the *name* of an
+    # environment variable, not a credential, and this is a deterministic cache
+    # key rather than stored authentication material. See Notes above.
     return hashlib.sha256(
         (
             f"{SUMMARY_PROMPT_VERSION}\0{model}\0{base_url}\0{api_key_env}"
