@@ -14298,3 +14298,101 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     word-break: break-all;
   }
 }
+
+/* ── Copy mode switch ──────────────────────────────────────────────────────
+ *
+ * Deliberately mirrors .ai-assistant-pdf-mode-switch: same track/thumb
+ * primitives, same geometry, same accent-on-checked treatment. Two controls
+ * that behave identically should look identical, so a reader learns the
+ * interaction once.
+ *
+ *   aria-checked="false" -> Rendered page   (browser Turndown, convenience)
+ *   aria-checked="true"  -> Published file  (static page.md, canonical)
+ */
+
+.ai-assistant-copy-section {
+    --ai-pdf-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    display: block;
+}
+
+.ai-assistant-copy-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+}
+
+.ai-assistant-copy-section[data-copy-has-toggle="false"] .ai-assistant-copy-row {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ai-assistant-copy-mode-switch {
+    position: relative;
+    align-self: stretch;
+    justify-content: center;
+    width: 48px;
+    min-width: 48px;
+    margin: 0;
+    border: 0;
+    border-radius: 0 4px 4px 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+    touch-action: manipulation;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.ai-assistant-copy-mode-switch:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-bs-theme="dark"] .ai-assistant-copy-mode-switch:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-assistant-copy-mode-switch:focus-visible {
+    outline: 2px solid var(--pst-color-primary, #0a7d91);
+    outline-offset: -2px;
+}
+
+.ai-assistant-copy-mode-switch .ai-assistant-copy-toggle-track {
+    width: 34px;
+    height: 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+[data-bs-theme="dark"] .ai-assistant-copy-mode-switch .ai-assistant-copy-toggle-track {
+    border-color: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.ai-assistant-copy-mode-switch .ai-assistant-copy-toggle-thumb {
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+}
+
+.ai-assistant-copy-mode-switch[aria-checked="true"] .ai-assistant-copy-toggle-track {
+    background: var(--ai-pdf-accent);
+}
+
+.ai-assistant-copy-mode-switch[aria-checked="true"] .ai-assistant-copy-toggle-thumb {
+    transform: translateX(16px);
+}
+
+/* Accessible current-mode text. Visual feedback is the moving thumb and the
+ * changing description line on the Copy item itself. */
+.ai-assistant-copy-toggle-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}

@@ -1648,9 +1648,58 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_max_entries = 2
         _mod.generate_llms_txt(sphinx_app, exception=None)
+        # The structured layout emits "- [Title](url)" entries. The previous
+        # assertion counted lines ending in ".md", which was the flat format's
+        # shape; max_entries was always honoured, the shape changed under it.
+        text = (tmp_html_tree / "llms.txt").read_text()
+        entries = [l for l in text.splitlines() if l.startswith("- [")]
+        assert len(entries) == 2
+        assert all(".md)" in line for line in entries)
+
+    def test_max_entries_limits_output_in_flat_format(self, sphinx_app, tmp_html_tree):
+        """`format="flat"` still emits bare URLs, one per line."""
+        for i in range(5):
+            (tmp_html_tree / f"page{i}.md").write_text(f"# Page{i}\n", encoding="utf-8")
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.html_baseurl = ""
+        sphinx_app.config.ai_assistant_base_url = ""
+        sphinx_app.config.ai_assistant_llms_txt_max_entries = 2
+        sphinx_app.config.ai_assistant_llms_txt_format = "flat"
+        _mod.generate_llms_txt(sphinx_app, exception=None)
         lines = [l for l in (tmp_html_tree / "llms.txt").read_text().splitlines()
                  if l.endswith(".md")]
         assert len(lines) == 2
+
+    def test_unset_llms_txt_config_does_not_warn(self, sphinx_app, tmp_html_tree, caplog):
+        """A mock/unset config is "not configured", not a misconfiguration.
+
+        Reading these values with a bare ``getattr`` made every test using the
+        mocked Sphinx config log two warnings accusing the maintainer of setting
+        something they never set.
+        """
+        (tmp_html_tree / "page.md").write_text("# Page\n", encoding="utf-8")
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.html_baseurl = ""
+        sphinx_app.config.ai_assistant_base_url = ""
+        with caplog.at_level("WARNING"):
+            _mod.generate_llms_txt(sphinx_app, exception=None)
+        noise = [r.getMessage() for r in caplog.records
+                 if "llms_txt_format" in r.getMessage()
+                 or "llms_txt_sections" in r.getMessage()]
+        assert noise == []
+
+    def test_invalid_llms_txt_format_still_warns(self, sphinx_app, tmp_html_tree, caplog):
+        """A real, wrong string is still reported — only mocks go quiet."""
+        (tmp_html_tree / "page.md").write_text("# Page\n", encoding="utf-8")
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.html_baseurl = ""
+        sphinx_app.config.ai_assistant_base_url = ""
+        sphinx_app.config.ai_assistant_llms_txt_format = "nonsense"
+        with caplog.at_level("WARNING"):
+            _mod.generate_llms_txt(sphinx_app, exception=None)
+        assert any("llms_txt_format" in r.getMessage() for r in caplog.records)
+        # …and it falls back rather than raising.
+        assert (tmp_html_tree / "llms.txt").exists()
 
     def test_max_entries_zero_skips_writing(self, sphinx_app, tmp_html_tree):
         (tmp_html_tree / "page.md").write_text("# Page\n", encoding="utf-8")

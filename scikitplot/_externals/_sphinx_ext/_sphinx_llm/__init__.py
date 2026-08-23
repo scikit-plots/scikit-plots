@@ -7,7 +7,114 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-"""Sphinx extension for static, machine-consumable documentation artifacts."""
+"""
+Sphinx extension for static, machine-consumable documentation artifacts.
+
+Current v2 does not require llms-full.txt; it encourages targeted retrieval.
+so not need stuff everything into LLM context as giant llms-full.txt.
+Closer to the new llms.txt v2 model in one important respect
+::
+
+    HTML page
+    │
+    ├── discover → relevant Markdown page
+    │
+    └── discover → applicable llms.txt
+                            │
+                            ▼
+                    selectively fetch
+                        needed pages
+
+::
+
+            NVIDIA upstream
+            pinned baseline
+                    │
+                    ▼
+            scikitplot wrapper
+                    │
+        ┌───────────┼───────────────┐
+        ▼           ▼               ▼
+    compatibility  semantics    curation/API
+                    │
+        ┌───────────┼───────────────┐
+        ▼           ▼               ▼
+    llms.txt   page.html.md     _llms/*.json
+                    │
+                    ▼
+            retrieval / agents
+                    │
+                    ▼
+            _sphinx_ai_assistant
+
+::
+
+    _sphinx_llm/
+    │
+    ├── sphinx_llm/          ← VENDOR ZONE
+    │   └── stay extremely close to NVIDIA
+    │
+    ├── compat/              ← SCITIKPLOT INTEGRATION
+    ├── adapters/            ← SCITIKPLOT SEMANTICS
+    ├── curation/            ← SCITIKPLOT POLICY
+    ├── core/
+    ├── api.py
+    └── _maintenance/
+
+::
+
+    extensions = [
+        # ...
+        # "sphinx_llm.txt",
+        "scikitplot._externals._sphinx_ext._sphinx_llm",
+        "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    ]
+
+    # Core
+    llms_txt_enabled = True
+    llms_txt_discovery_links = True
+
+    # Corpus should reveal unsupported semantics rather than hide them.
+    llms_txt_unknown_node_policy = "warn"
+
+    # Giant single-file corpus is not necessary for normal deployment.
+    llms_txt_full_build = False
+
+    # Compatibility fallback must not silently become primary rendering.
+    llms_txt_html_fallback = False
+
+Improve directive support better representation and semantic correctness:
+
+- sphinx_gallery.gen_gallery
+- sphinx_design
+- sphinx_prompt
+- sphinx_togglebutton
+- sphinx_tabs.tabs
+- IPython.sphinxext.ipython_directive
+- matplotlib.sphinxext.plot_directive
+- scikitplot._externals._sphinx_ext._sphinx_jinja_render
+- scikitplot._externals._sphinx_ext._pydata_sphinx_theme.gallery_directive
+- scikitplot._externals._sphinx_ext._pydata_sphinx_theme.component_directive
+- scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite
+- scikitplot._externals._sphinx_ext._sphinxcontrib_youtube
+- scikitplot._externals._sphinx_ext._sphinx_ai_assistant
+
+Recognition:
+
+- grid
+- row
+- column
+- container
+- tab
+- dropdown
+- card
+- youtube
+- video
+- iframe
+- jupyterlite
+- inheritance_diagram
+- thumbnail
+"""
 
 from __future__ import annotations
 

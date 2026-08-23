@@ -501,6 +501,8 @@ doc = [
   "sphinxcontrib-svg2pdfconverter",         # SVG to PDF conversion
   "sphinxcontrib-mermaid",                  # Mermaid graphs
 
+  # "sphinx-markdown-builder",                # https://github.com/liran-funaro/sphinx-markdown-builder for https://github.com/NVIDIA/sphinx-llm
+
   "pydata-sphinx-theme",                    # PyData theme
   "colorspacious",                          # Color management
   "jinja2",                                 # Templating engine
@@ -880,6 +882,7 @@ exclude = [
   "benchmarks/**",
   "docs/source/**",
   "galleries/**",
+  "maintenance/**",
   "third_party/**",
   "tools/**",
   "**tests",
@@ -928,6 +931,7 @@ exclude = [
   "benchmarks/**",
   "docs/source/**",
   "galleries/**",
+  "maintenance/**",
   "third_party/**",
   "tools/**",
   "**tests",

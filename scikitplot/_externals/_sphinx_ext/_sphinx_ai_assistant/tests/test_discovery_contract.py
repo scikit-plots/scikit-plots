@@ -32,10 +32,10 @@ from pathlib import Path
 import pytest
 
 # Submodule root = parent of the tests/ directory.
-_ROOT = Path(__file__).resolve().parent.parent
-_CONTRACT = _ROOT / "_maintenance" / "discovery_contract.json"
-_APP_PY = _ROOT / "_hf_spaces_proxy" / "app.py"
-_JS = _ROOT / "_static" / "ai-assistant.js"
+_ROOT = Path(__file__).resolve().parent
+_CONTRACT = _ROOT / "discovery_contract.json"
+_APP_PY = _ROOT.parent / "_hf_spaces_proxy" / "app.py"
+_JS = _ROOT.parent / "_static" / "ai-assistant.js"
 
 
 def _load_contract() -> dict:

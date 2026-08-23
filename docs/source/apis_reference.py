@@ -945,7 +945,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "CustomFilter",
                     "CustomNLPEnricher",
                     "CustomNormalizer",
-                    "CustomSimilarityIndex",
+                    "CustomRetrievalIndex",
                     "FactoryCorpusBuilder",
                     "HookableCorpusPipeline",
                     "PipelineHooks",
@@ -1039,8 +1039,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "UnicodeNormalizer",
                     "WhitespaceNormalizer",
                     # _text_normalizer
-                    "NormalizerConfig",
                     "TextNormalizer",
+                    "TextNormalizerConfig",
                     "normalize_text",
                 ],
             },
@@ -1114,9 +1114,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
-                    "SearchConfig",
-                    "SearchResult",
-                    "SimilarityIndex",
+                    "RetrievalConfig",
+                    "RetrievalHit",
+                    "RetrievalIndex",
                 ],
             },
             {

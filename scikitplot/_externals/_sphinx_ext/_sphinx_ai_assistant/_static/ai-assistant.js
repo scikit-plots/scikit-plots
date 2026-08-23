@@ -3,7 +3,8 @@
  *
  * Features
  * ────────
- *   • Markdown export (clipboard copy + view as .md)
+ *   • Markdown export — clipboard copy with a source picker
+ *     (rendered page / published file), plus view as .md
  *   • AI chat deep-links (Claude, ChatGPT, Gemini, …)
  *   • MCP tool integration (VS Code, Claude Desktop, …)
  *   • PDF export with a capability-aware URL / Print method picker
@@ -18,6 +19,57 @@
  * All behaviour driven by window.AI_ASSISTANT_CONFIG injected by the
  * Python extension's add_ai_assistant_context().
  *
+ * Representation model
+ * ────────────────────
+ * Every page has two Markdown representations, and keeping them distinct is the
+ * most important rule in this file.
+ *
+ *   page.md          built at build-finished from the final HTML   CANONICAL
+ *   clipboard text   converted here, from the live DOM, by Turndown CONVENIENCE
+ *
+ * User-facing meaning: canonical is not "better written", it is *fetchable*.
+ * page.md is a real file at a real URL, so a crawler, ChatGPT, Claude, Gemini,
+ * an MCP client or curl can read it. A browser conversion exists only in this
+ * tab. That is why View as Markdown opens the published URL instead of a blob:
+ * — a blob: URL cannot be handed to anyone else.
+ *
+ * Developer rule: never substitute one for the other silently. If a canonical
+ * fetch fails, report it and name the alternative (see handleCopyMarkdown).
+ * A reader who asked for the published file and was quietly given a browser
+ * conversion has been answered confidently and wrongly.
+ *
+ * UI surfaces
+ * ───────────
+ *   Toolbar button   Copy page              → clipboard, current copy mode
+ *   Dropdown
+ *     Copy page      + mode switch          → clipboard; switch picks the source
+ *                                             thumb left  = Rendered page  (convenience)
+ *                                             thumb right = Published file (canonical)
+ *     View as Markdown                      → new tab at page.md            (canonical)
+ *     Ask ChatGPT / Claude / Gemini …       → provider receives page.md URL (canonical)
+ *     MCP tools                             → editor/tool deep links
+ *     PDF / Print + method switch           → prepared URL, or window.print()
+ *   Floating panel   Ask AI                 → in-page chat drawer
+ *
+ * Two switches, one interaction: the copy-mode switch deliberately reuses the
+ * PDF picker's track/thumb primitives and geometry. Both are siblings of their
+ * action button, never children — nested buttons are invalid HTML and behave
+ * unreliably for keyboard and assistive technology — and both use
+ * role=menuitemcheckbox with an aria-label that states the current mode *and*
+ * what activating will do.
+ *
+ * Copy mode resolution
+ * ────────────────────
+ *   reader preference (localStorage)  →  build-time copyMode  →  'browser'
+ *
+ * with the build-time value winning outright when copyModeToggle is false, so a
+ * stored preference cannot resurrect a mode the site turned off. Storage that
+ * throws (private mode, quota, cross-origin iframe) degrades to the build-time
+ * default rather than breaking Copy.
+ *
+ * Default is 'browser' because it always succeeds: it needs no build artifact,
+ * so Copy still works on a site with Markdown generation switched off.
+ *
  * Browser baseline
  * ────────────────
  *   – Modern browsers (ES2017+): async/await, arrow functions and spread are
@@ -29,7 +81,10 @@
  * ────────
  *   – All user-facing HTML via textContent / setAttribute, never innerHTML.
  *   – window.open() passes 'noopener,noreferrer' on all external links.
- *   – sessionStorage for PDF-mode persistence (no cross-origin leak).
+ *   – sessionStorage for PDF-mode persistence, localStorage for the copy-mode
+ *     preference (both same-origin only; no cross-origin leak).
+ *   – The static copy path fetches same-origin with credentials:'same-origin'
+ *     and refuses an empty or non-OK response rather than pasting a 404 body.
  *
  * Developer notes
  * ───────────────
@@ -50,7 +105,7 @@
  *     _fetch, _isSafeUrl, ICONS, haptics, long-press)       L37
  *   Markdown converter (Turndown vendored inline)            ~L1107
  *   Toolbar + dropdown (createAIAssistantUI)                ~L1127
- *     ├─ Copy page / View as Markdown
+ *     ├─ Copy page (+ copy-mode switch) / View as Markdown
  *     ├─ Ask-LLM deep links (ChatGPT / Claude / Gemini)
  *     ├─ MCP tools
  *     └─ PDF / Print (createPdfSection, handlePdfExport)    ~L1305
@@ -270,6 +325,65 @@
      * @type {string}
      */
     var _EXPORT_LINK_MODE_KEY = 'ai-assistant-export-link-mode';
+
+    /**
+     * localStorage key for the Copy representation mode.
+     *
+     * Two modes, and the distinction is the whole point of the control:
+     *
+     *   'browser'  Turndown over the live DOM. CONVENIENCE. Always available,
+     *              because it needs no build artifact.
+     *   'static'   fetch the build-time page.md. CANONICAL — byte-identical to
+     *              what "View as Markdown" opens and to what an AI provider is
+     *              given.
+     *
+     * Canonical is not a quality claim. A browser conversion can be excellent
+     * and still not be canonical, because no external agent — a crawler,
+     * ChatGPT, Claude, Gemini, an MCP client, curl — can fetch something that
+     * only exists in this tab. That is also why View opens the static URL
+     * rather than a blob:.
+     *
+     * Persisted so the reader's choice survives reloads; falls back to the
+     * build-time default when storage is unavailable (private mode, quota,
+     * cross-origin iframe).
+     *
+     * @type {string}
+     */
+    var _COPY_MODE_KEY = 'ai-assistant-copy-mode';
+
+    /** Valid Copy modes, mirroring COPY_MODES in __init__.py. */
+    var _COPY_MODES = ['browser', 'static'];
+
+    /**
+     * Resolve the active Copy mode.
+     *
+     * Precedence: reader preference, then the build-time default, then
+     * 'browser'. When the toggle is disabled the build-time value wins outright
+     * so a stored preference cannot resurrect a mode the site turned off.
+     *
+     * @returns {string} 'browser' or 'static'
+     */
+    function _copyMode() {
+        var cfg = _cfg();
+        var configured = _COPY_MODES.indexOf(cfg.copyMode) >= 0 ? cfg.copyMode : 'browser';
+        if (cfg.copyModeToggle === false) return configured;
+        try {
+            var stored = localStorage.getItem(_COPY_MODE_KEY);
+            if (_COPY_MODES.indexOf(stored) >= 0) return stored;
+        } catch (_) { /* storage unavailable; fall through to configured */ }
+        return configured;
+    }
+
+    /**
+     * Persist the reader's Copy mode. Storage failure is non-fatal: the mode
+     * still applies for this page view, it simply will not survive a reload.
+     *
+     * @param {string} mode
+     */
+    function _setCopyMode(mode) {
+        if (_COPY_MODES.indexOf(mode) < 0) return;
+        try { localStorage.setItem(_COPY_MODE_KEY, mode); } catch (_) {}
+    }
 
     /**
      * User-settable dataset repo override — the runtime, no-recompile
@@ -1943,6 +2057,186 @@
         return container;
     }
 
+    /**
+     * Human-readable description of a Copy mode, used for the menu item's
+     * secondary line and the switch's accessible label.
+     *
+     * @param {string} mode 'browser' or 'static'
+     * @returns {string}
+     */
+    function _copyModeDescription(mode) {
+        return _copyModeProcess(mode).description;
+    }
+
+    /**
+     * The process behind each Copy mode, in the reader's terms.
+     *
+     * The description answers what actually happens when the button is pressed:
+     * where the text comes from, and whether that source can be missing. Both
+     * matter at the moment of choosing, and neither is visible from the label.
+     *
+     *   browser  nothing is fetched. The page in front of you is converted in
+     *            place, so it always succeeds — including on a site built with
+     *            ai_assistant_generate_markdown = False.
+     *   static   page.md is fetched over the network. It is the same file View
+     *            opens and the same URL Ask AI sends, so the paste matches what
+     *            a model reads exactly. If the page was excluded from Markdown
+     *            generation, there is nothing to fetch and Copy says so rather
+     *            than quietly converting the page instead.
+     *
+     * @param {string} mode 'browser' or 'static'
+     * @returns {{label: string, description: string}}
+     */
+    function _copyModeProcess(mode) {
+        if (mode === 'static') {
+            return {
+                label: 'Published file',
+                description: 'Fetches the published page.md \u2014 byte-for-byte what View opens and Ask AI sends.',
+            };
+        }
+        return {
+            label: 'Rendered page',
+            description: 'Converts the page you are viewing, here in the browser. No download, always available.',
+        };
+    }
+
+    /**
+     * Accessible label for the Copy mode switch, stating both the current mode
+     * and what activating the switch will do.
+     *
+     * @param {string} mode
+     * @returns {string}
+     */
+    function _copySwitchAccessibleLabel(mode) {
+        return mode === 'static'
+            ? 'Copy fetches the published page.md. Activate to convert the rendered page in the browser instead.'
+            : 'Copy converts the rendered page in the browser. Activate to fetch the published page.md instead.';
+    }
+
+    /**
+     * Build the Copy row: the Copy menu item plus its mode switch.
+     *
+     * The switch is a **sibling** of the menu item, never a child. Nested
+     * buttons are invalid HTML and behave unreliably for keyboard and
+     * assistive technology; `menuitemcheckbox` keeps the control valid inside
+     * the surrounding menu. This mirrors the PDF mode switch exactly, so the
+     * two controls are learned once.
+     *
+     * When `copyModeToggle` is false the section renders as a plain menu item
+     * with no switch, and the mode is whatever the build pinned.
+     *
+     * @param {string} staticPath
+     * @returns {HTMLElement}
+     */
+    function createCopySection(staticPath) {
+        var mode      = _copyMode();
+        var hasSwitch = _cfg().copyModeToggle !== false;
+
+        var section = document.createElement('div');
+        section.className = 'ai-assistant-copy-section';
+        section.dataset.copyMode = mode;
+        section.dataset.copyHasToggle = hasSwitch ? 'true' : 'false';
+
+        var row = document.createElement('div');
+        row.className = 'ai-assistant-copy-row';
+
+        var item = createMenuItem(
+            'copy-markdown',
+            'Copy page',
+            _copyModeDescription(mode),
+            getStaticAssetUrl('copy-to-clipboard.svg', staticPath)
+        );
+        item.classList.add('ai-assistant-copy-action');
+        item.dataset.copyMode = mode;
+
+        // Mirrors the PDF row: the description is the accessible explanation of
+        // the action, so the item points at it rather than repeating the text
+        // in an aria-label that can drift from it.
+        var itemDesc = item.querySelector('.ai-assistant-menu-item-description');
+        if (itemDesc) {
+            itemDesc.id = 'ai-assistant-copy-desc';
+            itemDesc.classList.add('ai-assistant-copy-desc');
+            item.setAttribute('aria-describedby', 'ai-assistant-copy-desc');
+        }
+
+        row.appendChild(item);
+
+        if (hasSwitch) {
+            var modeSwitch = document.createElement('button');
+            modeSwitch.className = 'ai-assistant-copy-mode-switch ai-assistant-mic-popup-toggle';
+            modeSwitch.id = 'ai-assistant-copy-toggle';
+            modeSwitch.type = 'button';
+            modeSwitch.setAttribute('role', 'menuitemcheckbox');
+            modeSwitch.setAttribute('aria-checked', mode === 'static' ? 'true' : 'false');
+            modeSwitch.setAttribute('aria-label', _copySwitchAccessibleLabel(mode));
+            modeSwitch.title = _copySwitchAccessibleLabel(mode);
+
+            var track = document.createElement('span');
+            track.className = 'ai-assistant-mic-toggle-track ai-assistant-copy-toggle-track';
+            track.setAttribute('aria-hidden', 'true');
+
+            var thumb = document.createElement('span');
+            thumb.className = 'ai-assistant-mic-toggle-thumb ai-assistant-copy-toggle-thumb';
+            track.appendChild(thumb);
+
+            // Visually hidden, but the authoritative current-mode text for
+            // screen readers; sighted feedback comes from the thumb position
+            // and the changing description line.
+            var text = document.createElement('span');
+            text.className = 'ai-assistant-copy-toggle-text';
+            text.textContent = _copyModeProcess(mode).label;
+
+            modeSwitch.appendChild(track);
+            modeSwitch.appendChild(text);
+
+            modeSwitch.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                setCopyMode(_copyMode() === 'static' ? 'browser' : 'static');
+            });
+
+            row.appendChild(modeSwitch);
+        }
+
+        section.appendChild(row);
+        return section;
+    }
+
+    /**
+     * Apply a Copy mode to the live DOM and persist it.
+     *
+     * Kept separate from the click handler so the mode can also be set
+     * programmatically without synthesising an event.
+     *
+     * @param {string} next 'browser' or 'static'
+     */
+    function setCopyMode(next) {
+        if (_COPY_MODES.indexOf(next) < 0) return;
+        _setCopyMode(next);
+
+        var section = document.querySelector('.ai-assistant-copy-section');
+        if (section) section.dataset.copyMode = next;
+
+        var item = document.getElementById('ai-assistant-copy-markdown');
+        if (item) {
+            item.dataset.copyMode = next;
+            // createMenuItem writes '…-menu-item-description'. Querying
+            // '…-menu-item-desc' silently matched nothing, so the description
+            // kept describing the mode the reader had just left.
+            var desc = item.querySelector('.ai-assistant-menu-item-description');
+            if (desc) desc.textContent = _copyModeDescription(next);
+        }
+
+        var sw = document.getElementById('ai-assistant-copy-toggle');
+        if (sw) {
+            sw.setAttribute('aria-checked', next === 'static' ? 'true' : 'false');
+            sw.setAttribute('aria-label', _copySwitchAccessibleLabel(next));
+            sw.title = _copySwitchAccessibleLabel(next);
+            var label = sw.querySelector('.ai-assistant-copy-toggle-text');
+            if (label) label.textContent = _copyModeProcess(next).label;
+        }
+    }
+
     function createDropdown() {
         var dropdown = document.createElement('div');
         dropdown.className = 'ai-assistant-dropdown';
@@ -1957,7 +2251,7 @@
 
         // 1. Markdown export
         if (features.markdown_export) {
-            dropdown.appendChild(createMenuItem('copy-markdown', 'Copy page', 'Copy this page as Markdown for LLMs.', getStaticAssetUrl('copy-to-clipboard.svg', staticPath)));
+            dropdown.appendChild(createCopySection(staticPath));
             hasItems = true;
         }
 
@@ -2842,6 +3136,7 @@
         });
 
         var ts = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', emDelimiter: '*' });
+        _applyConfiguredRules(ts);
         ts.addRule('preserveCodeBlocks', {
             filter: ['pre'],
             replacement: function (content, node) {
@@ -2855,6 +3150,152 @@
         });
 
         return Promise.resolve(ts.turndown(cloned.innerHTML));
+    }
+
+    /**
+     * Map a video embed URL to its shareable watch form and a platform label.
+     *
+     * Mirrors _video_link() in __init__.py, and the prefixes arrive from the
+     * server in conversionRules[].videoPrefixes so the two paths cannot drift.
+     *
+     * An embed URL renders a bare player and several clients refuse to open it,
+     * so it is the wrong thing to paste into a chat or hand to an AI tool.
+     * Query parameters are preserved: a start time or playlist position was set
+     * deliberately by the author.
+     *
+     * @param {string} src
+     * @returns {Array} [label, href]
+     */
+    function _videoLink(src) {
+        if (!src) return ['Video', src];
+        var prefixes = (_cfg().videoEmbedPrefixes || []);
+        for (var i = 0; i < prefixes.length; i++) {
+            var p = prefixes[i];
+            if (p && p.prefix && src.indexOf(p.prefix) === 0) {
+                if (!p.watch) return [p.label, src];
+                return [p.label, p.watch + src.slice(p.prefix.length)];
+            }
+        }
+        var peertube = _cfg().peertubePaths;
+        if (peertube && peertube.embed && src.indexOf(peertube.embed) >= 0) {
+            return ['PeerTube video', src.replace(peertube.embed, peertube.watch)];
+        }
+        return ['Video', src];
+    }
+
+    /**
+     * Install the shared conversion rules on a TurndownService instance.
+     *
+     * The rules arrive in window.AI_ASSISTANT_CONFIG.conversionRules, generated
+     * from CONVERSION_RULES in __init__.py. They are not duplicated here: this
+     * function is a driver, and adding a rule means adding a table row on the
+     * Python side, which both paths then pick up.
+     *
+     * That is deliberate. Two hand-maintained rule sets drift, and the drift is
+     * invisible — Copy and Ask AI would return different Markdown for the same
+     * page with nothing on screen to indicate it.
+     *
+     * Kinds:
+     *   drop         render nothing
+     *   link         "[label](src|href)" — for embeds Markdown cannot show
+     *   fence        wrap the content in a code fence
+     *   admonition   "> **Title**" block quote
+     *   passthrough  leave the default conversion alone
+     *
+     * A malformed rule is skipped rather than thrown: a bad selector in the
+     * page config must not break Copy for the whole site.
+     *
+     * @param {object} ts TurndownService instance
+     */
+    function _applyConfiguredRules(ts) {
+        var rules = (_cfg().conversionRules || []);
+        if (!Array.isArray(rules)) return;
+
+        rules.forEach(function (rule) {
+            if (!rule || !rule.selector || !rule.name) return;
+            var kind  = rule.kind || 'passthrough';
+            if (kind === 'passthrough') return;
+            var label = rule.label || 'Link';
+
+            try {
+                // Validate the selector once, here, rather than on every node.
+                document.createDocumentFragment().querySelector(rule.selector);
+            } catch (_) {
+                _log('warn', 'AI Assistant: skipping conversion rule with an invalid selector:', rule.name);
+                return;
+            }
+
+            ts.addRule('shared_' + rule.name, {
+                filter: function (node) {
+                    try { return node.matches && node.matches(rule.selector); }
+                    catch (_) { return false; }
+                },
+                replacement: function (content, node) {
+                    if (kind === 'drop') return '';
+                    if (kind === 'unwrap') return content;
+                    if (kind === 'link' || kind === 'video') {
+                        var href = (node.getAttribute('src') || node.getAttribute('href') || '').trim();
+                        if (!href) return content;
+                        var text = label;
+                        if (kind === 'video') {
+                            // Same embed→watch mapping as the build-time path,
+                            // driven by the table the server sent.
+                            var mapped = _videoLink(href);
+                            text = mapped[0];
+                            href = mapped[1];
+                        }
+                        return '\n[' + text + '](' + href + ')\n';
+                    }
+                    if (kind === 'fence') {
+                        return '\n```\n' + String(content).trim() + '\n```\n';
+                    }
+                    if (kind === 'heading') {
+                        // Flatten to text: a card header is
+                        // <div><p><strong>…</strong></p></div>, and converting
+                        // each layer independently doubles the emphasis.
+                        var title = (node.textContent || '').trim();
+                        return title ? '\n**' + title + '**\n' : '';
+                    }
+
+                    if (kind === 'admonition') {
+                        var titleEl = node.querySelector('.admonition-title');
+                        var title = titleEl ? titleEl.textContent.trim() : '';
+                        var body = String(content).trim();
+                        if (title && body.indexOf(title) === 0) body = body.slice(title.length).trim();
+                        return title ? '\n> **' + title + '**\n> ' + body + '\n' : content;
+                    }
+                    return content;
+                },
+            });
+        });
+    }
+
+    /**
+     * Fetch the canonical build-time Markdown for the current page.
+     *
+     * @returns {Promise<string>} the page.md body
+     *
+     * Rejects when the artifact is absent or empty. It deliberately does **not**
+     * fall back to the browser conversion: silently substituting convenience
+     * output for canonical output would make the control lie about which
+     * representation the reader received. The caller surfaces the failure and
+     * names the alternative instead.
+     */
+    function fetchStaticMarkdown() {
+        var url = getMarkdownUrl();
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('No static Markdown at ' + url + ' (HTTP ' + response.status + ')');
+                }
+                return response.text();
+            })
+            .then(function (text) {
+                if (!text || !text.trim()) {
+                    throw new Error('Static Markdown at ' + url + ' is empty');
+                }
+                return text;
+            });
     }
 
     function getMarkdownUrl() {
@@ -2872,14 +3313,27 @@
     // ── Action handlers ───────────────────────────────────────────────────────
 
     function handleCopyMarkdown(showInlineConfirmation) {
-        convertToMarkdown()
+        var mode = _copyMode();
+        var source = mode === 'static' ? fetchStaticMarkdown() : convertToMarkdown();
+        source
             .then(function (markdown) {
                 copyToClipboard(markdown, showInlineConfirmation);
                 closeDropdown();
             })
             .catch(function (err) {
-                _log('error', 'AI Assistant: Failed to convert to Markdown:', err);
-                showNotification('Failed to convert page to Markdown.', true);
+                _log('error', 'AI Assistant: Copy failed in ' + mode + ' mode:', err);
+                if (mode === 'static') {
+                    // Name the alternative rather than taking it silently. The
+                    // reader asked for the canonical file; giving them the
+                    // browser conversion without saying so would defeat the
+                    // reason they switched.
+                    showNotification(
+                        'No published Markdown for this page. Switch Copy to page mode to copy the rendered page instead.',
+                        true
+                    );
+                } else {
+                    showNotification('Failed to convert page to Markdown.', true);
+                }
             });
     }
 
