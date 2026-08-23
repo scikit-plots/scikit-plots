@@ -54,14 +54,13 @@ def summary_fingerprint(
     model: str,
     *,
     base_url: str = "",
-    api_provider: str = DEFAULT_API_KEY_ENV,  # Renamed from api_key_env
+    api_key_env: str = DEFAULT_API_KEY_ENV,
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
 ) -> str:
     """Return a stable cache key for text and every generation setting."""
-    provider_str = hashlib.sha256(api_provider).hexdigest()
     return hashlib.sha256(
         (
-            f"{SUMMARY_PROMPT_VERSION}\0{model}\0{base_url}\0{provider_str}"
+            f"{SUMMARY_PROMPT_VERSION}\0{model}\0{base_url}"  # \0{api_key_env}
             f"\0{reasoning_effort}\0{text}"
         ).encode()
     ).hexdigest()

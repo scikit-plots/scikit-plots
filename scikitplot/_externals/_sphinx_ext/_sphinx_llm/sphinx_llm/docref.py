@@ -311,7 +311,7 @@ def _legacy_seed(
             contents,
             settings.model,
             base_url=settings.base_url,
-            api_provider=settings.api_key_env,  # Updated parameter name
+            api_key_env=settings.api_key_env,
             reasoning_effort=summary_client.DEFAULT_REASONING_EFFORT,
         ),
     }
