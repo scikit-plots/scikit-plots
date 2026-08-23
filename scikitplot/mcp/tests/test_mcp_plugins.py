@@ -36,7 +36,7 @@ def test_all_configs_launch_our_server():
         for entry in _iter_server_entries(data):
             args = entry.get("args", [])
             # Command must invoke this module (module form or console command).
-            joined = f"{entry.get('command','')} {' '.join(map(str, args))}"
+            joined = f"{entry.get('command', '')} {' '.join(map(str, args))}"
             assert "scikitplot.mcp" in joined or "scikitplot mcp" in joined, (path, entry)
             checked += 1
     assert checked > 0, "no MCP server config entries found in plugins/"

@@ -1,8 +1,12 @@
 # CodeQL scan configuration for scikit-plots.
-# Reference this from the CodeQL workflow:
-#   - uses: github/codeql-action/init@v3
-#     with:
-#       config-file: ./.github/codeql/codeql-config.yml
+#
+# Referenced from the CodeQL workflow with:
+#
+#     - uses: github/codeql-action/init@v3
+#       with:
+#         languages: python
+#         config-file: ./.github/codeql/codeql-config.yml
+#
 name: "scikit-plots CodeQL config"
 
 paths-ignore:
@@ -12,6 +16,7 @@ paths-ignore:
   # Historical backup snapshots of the widget assets — not shipped, not maintained.
   - '**/_sphinx_ai_assistant/_static/_backup/**'
   - 'scikitplot/cexternals/_annoy/_backup/**'
+  - scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm/**
 
 # NOTE: Turndown is vendored INLINE in ai-assistant.js and its 6 inherent alerts
 # (unreachable-statement, ASI, use-before-declaration, useless-assignment) are
