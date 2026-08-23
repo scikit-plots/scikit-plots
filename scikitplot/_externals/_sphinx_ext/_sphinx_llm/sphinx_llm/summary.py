@@ -58,8 +58,7 @@ def summary_fingerprint(
     reasoning_effort: str = DEFAULT_REASONING_EFFORT,
 ) -> str:
     """Return a stable cache key for text and every generation setting."""
-    # lgtm[py/weak-sensitive-data-hashing]
-    return hashlib.sha256(
+    return hashlib.sha256(  # lgtm[py/weak-sensitive-data-hashing]
         (
             f"{SUMMARY_PROMPT_VERSION}\0{model}\0{base_url}\0{api_provider}"
             f"\0{reasoning_effort}\0{text}"
