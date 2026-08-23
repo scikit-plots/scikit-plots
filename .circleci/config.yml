@@ -700,7 +700,7 @@ commands:
             unzip -q -o /tmp/omw-1.4.zip   -d "$NLTK_DATA/corpora"
 
             # Fail here, in 2 seconds, rather than in the gallery 50 minutes on.
-            python << 'PY'
+            python - \<< 'PY'
             import sys
             import nltk
             missing = []
