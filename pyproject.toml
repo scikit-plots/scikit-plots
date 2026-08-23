@@ -447,7 +447,6 @@ test_nogil = [
   "mpmath",                                 # Arbitrary precision math
   "tenacity",                               # general-purpose retrying library, written in Python
   "pyinstrument",                           # Performance profiler time helper
-  "beautifulsoup4",                         # sphinx
 
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
@@ -501,7 +500,9 @@ doc = [
   "sphinxcontrib-svg2pdfconverter",         # SVG to PDF conversion
   "sphinxcontrib-mermaid",                  # Mermaid graphs
 
-  # "sphinx-markdown-builder",                # https://github.com/liran-funaro/sphinx-markdown-builder for https://github.com/NVIDIA/sphinx-llm
+  # "sphinx-markdown-builder",              # https://github.com/liran-funaro/sphinx-markdown-builder for https://github.com/NVIDIA/sphinx-llm
+  "beautifulsoup4",                         # HTML parsing for Markdown generation sphinx ai
+  "markdownify",                            # HTML -> Markdown conversion sphinx ai
 
   "pydata-sphinx-theme",                    # PyData theme
   "colorspacious",                          # Color management

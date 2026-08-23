@@ -4377,11 +4377,24 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         return
 
     if not _has_markdown_deps():
-        log.warning(
-            "AI Assistant: Markdown generation requires beautifulsoup4 and "
-            "markdownify.  Install them with: "
-            "pip install beautifulsoup4 markdownify"
+        missing = [
+            "beautifulsoup4" if name == "bs4" else name
+            for name in ("bs4", "markdownify")
+            if importlib.util.find_spec(name) is None
+        ]
+        detail = ", ".join(missing) or "beautifulsoup4, markdownify"
+        verb = "is" if len(missing) == 1 else "are"
+        message = (
+            "AI Assistant: ai_assistant_generate_markdown is True but "
+            f"{detail} {verb} not installed, so no page.md was written and "
+            "llms.txt will be skipped. Every .md URL on the published site "
+            "will return 404. Install with: pip install " + detail.replace(", ", " ")
         )
+        if _cfg_bool(app.config, "ai_assistant_strict", False):
+            from sphinx.errors import ExtensionError  # noqa: PLC0415
+
+            raise ExtensionError(message)
+        log.warning(message)
         return
 
     outdir = Path(builder.outdir)
@@ -6083,6 +6096,18 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # Optional {path_prefix: "Section Title"} overrides. Without it, section
     # titles are derived from the first path segment.
     app.add_config_value("ai_assistant_llms_txt_sections", None, "html")
+    # ---- strict mode ------------------------------------------------------
+    # When True, a configuration that asks for something the environment cannot
+    # deliver fails the build instead of warning. Currently that means
+    # `ai_assistant_generate_markdown = True` with beautifulsoup4 or
+    # markdownify missing.
+    #
+    # Default False, because an optional feature quietly staying off is the
+    # right behaviour for a docs build that never asked for it. But a site that
+    # set generate_markdown=True *did* ask, and a warning inside a 1 133-page
+    # build log is not a signal anyone sees — the published site simply serves
+    # 404 for every page.md.
+    app.add_config_value("ai_assistant_strict", False, "html")
 
     # ---- AI panel (floating chat drawer) config ----------------------------
     #
