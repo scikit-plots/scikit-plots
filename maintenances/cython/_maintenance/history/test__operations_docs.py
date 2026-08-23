@@ -13,6 +13,7 @@ chapters (security, cache, concurrency, recovery, platform), be well-formed
 Markdown, and its executable examples (``_operations_examples.py``) must pass as
 doctests — so the documentation is tested, not just written.
 """
+
 from __future__ import annotations
 
 import doctest
