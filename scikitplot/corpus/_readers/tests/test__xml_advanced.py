@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
+from ...conftest import captured_logger
+
 from .._xml import _clark_to_prefix, _xpath_elements
 
 
@@ -136,20 +138,16 @@ class TestXpathElementsStdlib:
         logger = logging.getLogger(
             "scikitplot.corpus._readers._xml"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                results = _xpath_elements(
-                    root,
-                    "[invalid xpath!!!",
-                    {},
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            results = _xpath_elements(
+                root,
+                "[invalid xpath!!!",
+                {},
+            )
         # caplog.messages	    A list of all captured log messages, formatted for easy access.
         # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
         # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
@@ -196,20 +194,16 @@ class TestXpathElementsStdlib:
         logger = logging.getLogger(
             "scikitplot.corpus._readers._xml"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                results = _xpath_elements(
-                    root,
-                    ".//missing",
-                    {},
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            results = _xpath_elements(
+                root,
+                ".//missing",
+                {},
+            )
         # caplog.messages	    A list of all captured log messages, formatted for easy access.
         # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
         # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.

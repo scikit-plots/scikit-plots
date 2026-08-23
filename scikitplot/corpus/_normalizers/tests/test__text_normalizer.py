@@ -38,6 +38,8 @@ from unittest.mock import patch
 
 import pytest
 
+from ...conftest import captured_logger
+
 from .._text_normalizer import TextNormalizerConfig, TextNormalizer, normalize_text
 
 
@@ -586,22 +588,18 @@ class TestTextNormalizerNormalize:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                cfg = TextNormalizerConfig(
-                    steps=[
-                        "unicode",
-                        "nonexistent_step",
-                        "whitespace",
-                    ]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            cfg = TextNormalizerConfig(
+                steps=[
+                    "unicode",
+                    "nonexistent_step",
+                    "whitespace",
+                ]
+            )
         assert cfg.steps == [
             "unicode",
             "whitespace",
@@ -625,23 +623,19 @@ class TestTextNormalizerNormalize:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                cfg = TextNormalizerConfig(
-                    steps=[
-                        "unicode",
-                        "bad_a",
-                        "whitespace",
-                        "bad_b",
-                    ]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            cfg = TextNormalizerConfig(
+                steps=[
+                    "unicode",
+                    "bad_a",
+                    "whitespace",
+                    "bad_b",
+                ]
+            )
         assert cfg.steps == [
             "unicode",
             "whitespace",
@@ -668,21 +662,17 @@ class TestTextNormalizerNormalize:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                cfg = TextNormalizerConfig(
-                    steps=[
-                        "bad_a",
-                        "bad_b",
-                    ]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            cfg = TextNormalizerConfig(
+                steps=[
+                    "bad_a",
+                    "bad_b",
+                ]
+            )
         assert cfg.steps == []
         warnings = [
             record
@@ -706,23 +696,19 @@ class TestTextNormalizerNormalize:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                cfg = TextNormalizerConfig(
-                    steps=[
-                        "unicode",
-                        None,
-                        123,
-                        "whitespace",
-                    ]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            cfg = TextNormalizerConfig(
+                steps=[
+                    "unicode",
+                    None,
+                    123,
+                    "whitespace",
+                ]
+            )
         assert cfg.steps == [
             "unicode",
             "whitespace",
@@ -742,21 +728,17 @@ class TestTextNormalizerNormalize:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                cfg = TextNormalizerConfig(
-                    steps=[
-                        "unicode",
-                        "whitespace",
-                    ]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            cfg = TextNormalizerConfig(
+                steps=[
+                    "unicode",
+                    "whitespace",
+                ]
+            )
         assert cfg.steps == [
             "unicode",
             "whitespace",

@@ -40,6 +40,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ...conftest import captured_logger
+
 from .._nlp_enricher import BUILTIN_STOPWORDS, EnricherConfig, NLPEnricher
 
 
@@ -650,28 +652,24 @@ class TestKeywordExtractors:
         logger = logging.getLogger(
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            with patch.dict(
+                "sys.modules",
+                {"yake": None},
             ):
-                with patch.dict(
-                    "sys.modules",
-                    {"yake": None},
-                ):
-                    result = e._extract_keywords(
-                        "python python machine learning",
-                        [
-                            "python",
-                            "python",
-                            "machine",
-                            "learning",
-                        ],
-                    )
-        finally:
-            logger.removeHandler(caplog.handler)
+                result = e._extract_keywords(
+                    "python python machine learning",
+                    [
+                        "python",
+                        "python",
+                        "machine",
+                        "learning",
+                    ],
+                )
         assert result is not None
         warnings = [
             record
@@ -749,28 +747,24 @@ class TestKeywordExtractors:
         logger = logging.getLogger(
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            with patch.dict(
+                "sys.modules",
+                {"keybert": None},
             ):
-                with patch.dict(
-                    "sys.modules",
-                    {"keybert": None},
-                ):
-                    result = e._extract_keywords(
-                        "python python machine learning",
-                        [
-                            "python",
-                            "python",
-                            "machine",
-                            "learning",
-                        ],
-                    )
-        finally:
-            logger.removeHandler(caplog.handler)
+                result = e._extract_keywords(
+                    "python python machine learning",
+                    [
+                        "python",
+                        "python",
+                        "machine",
+                        "learning",
+                    ],
+                )
         assert result is not None
         warnings = [
             record

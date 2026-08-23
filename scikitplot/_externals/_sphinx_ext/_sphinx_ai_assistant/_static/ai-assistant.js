@@ -3124,9 +3124,60 @@
 
     // ── Markdown conversion ───────────────────────────────────────────────────
 
+    /**
+     * Minimum text length for a matched element to count as page content.
+     * Mirrors CONTENT_MIN_CHARS in __init__.py.
+     */
+    var CONTENT_MIN_CHARS = 200;
+
+    /**
+     * Resolve the page's content element, skipping matches that hold none.
+     *
+     * Mirrors _select_content_element() in __init__.py so Copy and the
+     * build-time page.md agree on what "the content" is. They previously could
+     * not: some pages render article.bd-article as a title banner with the body
+     * in div.bd-content beside it, and taking the first match meant converting
+     * the banner.
+     *
+     * Selector order still leads — the first match carrying real content wins,
+     * so a specific selector is never passed over for a broader one. Only when
+     * nothing clears the threshold does the largest match win, which keeps a
+     * genuinely short page working.
+     *
+     * @returns {Element|null}
+     */
+    function _resolveContentElement() {
+        var cfg = _cfg();
+        var selectors = [];
+        // A custom content_selector leads. The default 'article' does not:
+        // it is broad enough to outrank the theme's own selector on any page
+        // that happens to contain an <article>, which would defeat the preset.
+        if (cfg.content_selector && cfg.content_selector !== 'article') {
+            selectors.push(cfg.content_selector);
+        }
+        if (Array.isArray(cfg.content_selectors)) {
+            selectors = selectors.concat(cfg.content_selectors);
+        }
+        if (cfg.content_selector) selectors.push(cfg.content_selector);
+        if (!selectors.length) selectors = ['article'];
+
+        var best = null;
+        var bestLen = -1;
+        for (var i = 0; i < selectors.length; i++) {
+            var match;
+            try { match = document.querySelector(selectors[i]); }
+            catch (_) { continue; }
+            if (!match) continue;
+            var len = (match.textContent || '').trim().length;
+            if (len >= CONTENT_MIN_CHARS) return match;
+            if (len > bestLen) { best = match; bestLen = len; }
+        }
+        return best;
+    }
+
     function convertToMarkdown() {
         var contentSelector = (_cfg().content_selector) || 'article';
-        var content = document.querySelector(contentSelector);
+        var content = _resolveContentElement();
 
         if (!content) return Promise.reject(new Error('Could not find page content (selector: ' + contentSelector + ')'));
 

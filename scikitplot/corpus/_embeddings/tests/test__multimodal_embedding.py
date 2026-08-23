@@ -53,6 +53,8 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from ...conftest import captured_logger
+
 from .._multimodal_embedding import (
     DEFAULT_AUDIO_MODEL,
     DEFAULT_IMAGE_MODEL,
@@ -593,18 +595,14 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                out = e.embed_documents(
-                    [_Doc("", modality="image", raw_tensor=None)]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            out = e.embed_documents(
+                [_Doc("", modality="image", raw_tensor=None)]
+            )
         assert len(out) == 1
         assert out[0].embedding is None
         assert any(
@@ -623,18 +621,14 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                out = e.embed_documents(
-                    [_Doc("", modality="audio", raw_tensor=None)]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            out = e.embed_documents(
+                [_Doc("", modality="audio", raw_tensor=None)]
+            )
         assert len(out) == 1
         assert out[0].embedding is None
         assert any(
@@ -653,18 +647,14 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(
-                logging.WARNING,
-                logger=logger.name,
-            ):
-                out = e.embed_documents(
-                    [_Doc("", modality="video", raw_tensor=None)]
-                )
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            out = e.embed_documents(
+                [_Doc("", modality="video", raw_tensor=None)]
+            )
         assert len(out) == 1
         assert out[0].embedding is None
         assert any(

@@ -51,6 +51,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ..conftest import captured_logger
+
 from .._custom_hooks import (
     BuilderFactories,
     CustomChunker,
@@ -223,13 +225,12 @@ class TestCustomFilter:
         cf = CustomFilter(bad_fn)
         doc = _doc()  # use the existing fixture/helper in this file
         logger = logging.getLogger("scikitplot.corpus._custom_hooks")
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(logging.WARNING, logger=logger.name):
-                result = cf.include(doc)
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            result = cf.include(doc)
         assert result is True
         assert any(
             record.name == logger.name
@@ -494,15 +495,14 @@ class TestCustomNLPEnricher:
         def broken_filter(_doc):
             raise RuntimeError("boom")
         logger = logging.getLogger("scikitplot.corpus._custom_hooks")
-        logger.addHandler(caplog.handler)
-        try:
-            caplog.clear()
-            with caplog.at_level(logging.WARNING, logger=logger.name):
-                filter_ = CustomFilter(broken_filter)
-                # attach caplog.handler directly if project logger propagation requires it
-                result = filter_.include(_doc())
-        finally:
-            logger.removeHandler(caplog.handler)
+        with captured_logger(
+            caplog,
+            logger.name,
+            logging.WARNING,
+        ):
+            filter_ = CustomFilter(broken_filter)
+            # attach caplog.handler directly if project logger propagation requires it
+            result = filter_.include(_doc())
         assert result is True
         assert any(
             record.name == logger.name

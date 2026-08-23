@@ -882,9 +882,9 @@ def _match_conversion_rule(el):
 
 
 def _render_conversion_rule(  # ruff: ignore[too-many-return-statements]
-    rule,
+    rule: dict,
     el,
-    text,
+    text: str,
 ):
     """Render an element according to a matched rule.
 
@@ -1008,7 +1008,7 @@ def _video_link(src):
 
 
 def _apply_conversion_rules(  # ruff: ignore[too-many-branches]
-    html_content,
+    html_content: str,
 ):
     """Rewrite the parsed HTML according to the shared rule table.
 
@@ -3129,6 +3129,11 @@ _THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
     "pydata_sphinx_theme": (
         "article.bd-article",
         "div.bd-article-container article",
+        # Some pages render article.bd-article as a title banner only, with the
+        # body in div.bd-content > section beside it. Verified on
+        # learn/terminology/index.html: the article holds one <p> (132 chars,
+        # 0 links) while div.bd-content holds 22 533 chars and 900 links.
+        "div.bd-content",
         'div[role="main"]',
         "main",
     ),
@@ -3268,6 +3273,151 @@ _THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
         "div#main",
     ),
 }
+
+
+#: Minimum text length for a matched element to be accepted as page content.
+#:
+#: Below this, the match is treated as a banner or wrapper and the probe
+#: continues to the next selector. 200 characters is well under any real
+#: documentation page and well over a title block: the case that motivated it
+#: measured 132.
+CONTENT_MIN_CHARS = 200
+
+
+def _select_content_element(soup, selectors, min_chars: int = CONTENT_MIN_CHARS):
+    """Return the page's content element, skipping matches that hold none.
+
+    Parameters
+    ----------
+    soup : bs4.BeautifulSoup
+        Parsed page.
+    selectors : sequence of str
+        CSS selectors, most specific first.
+    min_chars : int, optional
+        Text length at or above which a match is accepted outright.
+
+    Returns
+    -------
+    bs4.element.Tag or None
+        The chosen element, or ``None`` when no selector matched at all.
+
+    Notes
+    -----
+    User note: if a page's Markdown contains only its title, this is the
+    function that decided which part of the page was "the content". Adding a
+    more specific selector to ``ai_assistant_content_selectors`` puts it first
+    in the probe.
+
+    Developer note: the previous rule was "first selector that matches wins",
+    which is wrong whenever a theme renders an empty container earlier in the
+    list than the real one. On ``learn/terminology/index.html`` the pydata theme
+    puts a title banner in ``article.bd-article`` -- 132 characters, no links --
+    and the 22 533-character body in ``div.bd-content`` beside it. The old rule
+    matched the banner and converted it, so every ``page.md`` for such a page
+    was its own title.
+
+    Selector *order* still leads: the first match carrying real content wins, so
+    a specific selector is never passed over in favour of a broader one that
+    happens to hold more. Only if no match clears ``min_chars`` does the largest
+    match win, which keeps a genuinely short page working rather than emitting
+    nothing.
+
+    Examples
+    --------
+    >>> from bs4 import BeautifulSoup  # doctest: +SKIP
+    >>> soup = BeautifulSoup(
+    ...     '<article class="a"><p>x</p></article><div class="b">'
+    ...     + "y" * 500
+    ...     + "</div>",
+    ...     "html.parser",
+    ... )  # doctest: +SKIP
+    >>> _select_content_element(soup, ["article.a", "div.b"])["class"]  # doctest: +SKIP
+    ['b']
+    """
+    best = None
+    best_len = -1
+    for selector in selectors:
+        try:
+            match = soup.select_one(selector)
+        except Exception:  # noqa: BLE001  # ruff: ignore[try-except-continue]
+            # soupsieve raises its own SelectorSyntaxError, which is not a
+            # subclass of ValueError. A malformed selector is a configuration
+            # error, reported by the sanitiser; it must not take down a build
+            # mid-conversion, and the probe continues to the next candidate.
+            continue
+        if match is None:
+            continue
+        length = len(match.get_text(strip=True))
+        if length >= min_chars:
+            return match
+        if length > best_len:
+            best, best_len = match, length
+    return best
+
+
+#: Default for ``ai_assistant_content_selector``. Recognised so an unset value
+#: does not outrank the theme's own selectors; see :func:`_detect_theme_preset`.
+_GENERIC_CONTENT_SELECTOR = "article"
+
+
+def _detect_theme_preset(config: Any) -> str:
+    """Return the selector preset to use, detecting it from ``html_theme``.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+
+    Returns
+    -------
+    str
+        A key of :data:`_THEME_SELECTOR_PRESETS`, or ``""`` when the theme is
+        unknown and no preset was configured.
+
+    Notes
+    -----
+    User note: you do not normally need to set ``ai_assistant_theme_preset``.
+    It is derived from ``html_theme``, so changing theme changes the selectors
+    with it. Set it explicitly only to override that, or to name a preset for a
+    theme this extension has not heard of -- ``"plain_html"`` is a reasonable
+    choice for an unfamiliar or non-Sphinx layout.
+
+    Developer note: an explicit setting always wins, so this cannot surprise a
+    site that already configured one. Detection normalises case and hyphens
+    because ``html_theme`` is written both ways in the wild
+    (``sphinx-rtd-theme`` and ``sphinx_rtd_theme`` are the same theme).
+
+    Without this, the preset table was 25 themes of dead weight: it is keyed by
+    theme name, and nothing read the theme name. A site switching to Furo kept
+    pydata's selectors and quietly converted the wrong element -- the same
+    failure that produced title-only ``page.md`` files.
+
+    Examples
+    --------
+    >>> class C:
+    ...     html_theme = "sphinx-rtd-theme"
+    >>> _detect_theme_preset(C())
+    'sphinx_rtd_theme'
+    >>> class D:
+    ...     html_theme = "something_unknown"
+    >>> _detect_theme_preset(D())
+    ''
+    """
+    explicit = _cfg_str(config, "ai_assistant_theme_preset")
+    if explicit:
+        return explicit
+
+    theme = _cfg_str(config, "html_theme") or ""
+    normalised = theme.strip().lower().replace("-", "_")
+    if normalised in _THEME_SELECTOR_PRESETS:
+        return normalised
+    # `sphinx_rtd_theme` is also published as `rtd`; `mkdocs-material` as
+    # `material`. Try the bare stem before giving up.
+    stem = normalised.removeprefix("sphinx_").removesuffix("_theme")
+    for candidate in (stem, f"sphinx_{stem}_theme", f"{stem}_theme"):
+        if candidate in _THEME_SELECTOR_PRESETS:
+            return candidate
+    return ""
 
 
 def _resolve_content_selectors(
@@ -3494,11 +3644,7 @@ def _process_html_file_worker(
         html_content = html_file.read_text(encoding="utf-8", errors="replace")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        main_content = None
-        for selector in selectors:
-            main_content = soup.select_one(selector)
-            if main_content:
-                break
+        main_content = _select_content_element(soup, selectors)
 
         if main_content is None:
             return ("skipped", rel_str, "No main content element found")
@@ -3768,8 +3914,7 @@ LLMS_TXT_ROOT_FIRST = ("index.md", "README.md", "readme.md")
 
 
 def _llms_entry_title(markdown: str, fallback: str) -> str:
-    r"""
-    Extract a human title from a Markdown document.
+    r"""Extract a human title from a Markdown document.
 
     Parameters
     ----------
@@ -3811,8 +3956,7 @@ def _llms_entry_title(markdown: str, fallback: str) -> str:
 
 
 def _llms_entry_description(markdown: str, limit: int = 160) -> str:
-    r"""
-    Extract a one-line description from a Markdown document.
+    r"""Extract a one-line description from a Markdown document.
 
     Parameters
     ----------
@@ -3930,8 +4074,7 @@ def _llms_section_for(rel_posix: str, mapping: dict | None = None) -> str:
 
 
 def _render_llms_txt(project, summary, entries):
-    r"""
-    Render the structured ``llms.txt`` body.
+    r"""Render the structured ``llms.txt`` body.
 
     Parameters
     ----------
@@ -4402,7 +4545,7 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         app.config.ai_assistant_markdown_exclude_patterns
     )
 
-    preset: str | None = getattr(app.config, "ai_assistant_theme_preset", None) or None
+    preset: str | None = _detect_theme_preset(app.config) or None
     selectors: list[str] = list(
         _resolve_content_selectors(
             preset,
@@ -5499,6 +5642,14 @@ def add_ai_assistant_context(
     config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
+        # The full probe list, so the browser resolves the content element the
+        # same way the build-time converter does.
+        "content_selectors": list(
+            _resolve_content_selectors(
+                _detect_theme_preset(app.config),
+                list(app.config.ai_assistant_content_selectors or []),
+            )
+        ),
         # Always include every feature flag — partial conf.py dicts are safe.
         "features": features_merged,
         "providers": providers_resolved,

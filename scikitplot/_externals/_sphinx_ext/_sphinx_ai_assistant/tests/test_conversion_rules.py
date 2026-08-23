@@ -373,3 +373,149 @@ def test_topic_title_becomes_a_bold_line():
     html = '<nav class="contents"><p class="topic-title">Table of Contents</p><ul><li><p>x</p></li></ul></nav>'
     out = aia.html_to_markdown(html)
     assert out.lstrip().startswith("**Table of Contents**")
+
+
+# ---------------------------------------------------------------- content element
+
+def _soup(html):
+    return bs4.BeautifulSoup(html, "html.parser")
+
+
+def test_first_selector_with_content_wins_not_first_that_matches():
+    """
+    The defect: a title banner matched before the real body.
+
+    `learn/terminology/index.html` renders `article.bd-article` as a 132-character
+    banner with the 22 533-character body in `div.bd-content` beside it. Taking
+    the first match made every such page.md its own title and nothing else.
+    """
+    html = (
+        '<article class="bd-article"><p>Title banner</p></article>'
+        '<div class="bd-content"><section><p>' + "body " * 100 + "</p></section></div>"
+    )
+    chosen = aia._select_content_element(_soup(html), ["article.bd-article", "div.bd-content"])
+    assert chosen.get("class") == ["bd-content"]
+
+
+def test_specific_selector_still_leads_when_it_has_content():
+    """Order matters: a broader match must not win just by being larger."""
+    html = (
+        '<article class="bd-article"><p>' + "article body " * 40 + "</p></article>"
+        '<div class="bd-content"><p>' + "much more content " * 200 + "</p></div>"
+    )
+    chosen = aia._select_content_element(_soup(html), ["article.bd-article", "div.bd-content"])
+    assert chosen.get("class") == ["bd-article"]
+
+
+def test_largest_match_wins_when_nothing_clears_the_threshold():
+    """A genuinely short page must still convert, not emit nothing."""
+    html = '<article class="a"><p>hi</p></article><div class="b"><p>a longer stub</p></div>'
+    chosen = aia._select_content_element(_soup(html), ["article.a", "div.b"])
+    assert chosen.get("class") == ["b"]
+
+
+def test_returns_none_when_no_selector_matches():
+    assert aia._select_content_element(_soup("<p>x</p>"), ["article.missing"]) is None
+
+
+def test_malformed_selector_is_skipped_not_fatal():
+    """soupsieve raises SelectorSyntaxError, not ValueError; a build must survive it."""
+    html = '<div class="bd-content"><p>' + "body " * 100 + "</p></div>"
+    chosen = aia._select_content_element(_soup(html), ["<<<bad>>>", "div.bd-content"])
+    assert chosen.get("class") == ["bd-content"]
+
+
+def test_threshold_is_configurable():
+    html = '<article class="a"><p>' + "x" * 150 + '</p></article><div class="b"><p>y</p></div>'
+    assert aia._select_content_element(_soup(html), ["article.a"], min_chars=100).get("class") == ["a"]
+    assert aia._select_content_element(_soup(html), ["article.a"], min_chars=500).get("class") == ["a"]
+
+
+def test_pydata_preset_probes_bd_content():
+    """`div.bd-content` must sit after the article selectors, before `main`."""
+    order = aia._resolve_content_selectors("pydata_sphinx_theme", [])
+    assert "div.bd-content" in order
+    assert order.index("article.bd-article") < order.index("div.bd-content")
+    assert order.index("div.bd-content") < order.index("main")
+
+
+def test_browser_resolves_the_content_element_the_same_way():
+    """Copy and page.md must agree on what "the content" is."""
+    js = _JS.read_text(encoding="utf-8")
+    assert "_resolveContentElement" in js
+    assert f"CONTENT_MIN_CHARS = {aia.CONTENT_MIN_CHARS}" in js
+    assert "content_selectors" in js
+
+
+# ---------------------------------------------------------------- theme presets
+
+class _Cfg:
+    """Minimal stand-in for a Sphinx config."""
+
+    def __init__(self, **kw):
+        self.html_theme = kw.pop("html_theme", "")
+        self.ai_assistant_theme_preset = kw.pop("preset", None)
+
+
+@pytest.mark.parametrize(
+    ("theme", "expected"),
+    [
+        ("pydata_sphinx_theme", "pydata_sphinx_theme"),
+        ("furo", "furo"),
+        ("sphinx_rtd_theme", "sphinx_rtd_theme"),
+        ("sphinx-rtd-theme", "sphinx_rtd_theme"),   # hyphenated spelling
+        ("PyData_Sphinx_Theme", "pydata_sphinx_theme"),  # case
+        ("alabaster", "alabaster"),
+        ("sphinx_book_theme", "sphinx_book_theme"),
+        ("mkdocs_material", "mkdocs_material"),
+        ("classic", "classic"),
+    ],
+)
+def test_preset_is_detected_from_html_theme(theme, expected):
+    assert aia._detect_theme_preset(_Cfg(html_theme=theme)) == expected
+
+
+def test_unknown_theme_falls_back_to_the_default_probe():
+    """No preset is better than the wrong preset; the union list still applies."""
+    assert aia._detect_theme_preset(_Cfg(html_theme="totally_unknown")) == ""
+    assert aia._resolve_content_selectors("", []) == aia._DEFAULT_CONTENT_SELECTORS
+
+
+def test_explicit_preset_overrides_detection():
+    cfg = _Cfg(html_theme="furo", preset="plain_html")
+    assert aia._detect_theme_preset(cfg) == "plain_html"
+
+
+def test_each_theme_gets_its_own_selector_first():
+    """The point of detection: the theme's container leads its probe."""
+    expected_first = {
+        "furo": 'article[role="main"]',
+        "sphinx_rtd_theme": "div.rst-content",
+        "alabaster": "div.document",
+        "pydata_sphinx_theme": "article.bd-article",
+        "mkdocs_material": "article.md-content__inner",
+    }
+    for theme, first in expected_first.items():
+        assert aia._resolve_content_selectors(theme, [])[0] == first
+
+
+def test_every_preset_resolves_to_sanitised_selectors():
+    """A preset that cannot be parsed would silently disable itself."""
+    soup = bs4.BeautifulSoup("<div></div>", "html.parser")
+    for theme in aia._THEME_SELECTOR_PRESETS:
+        for selector in aia._resolve_content_selectors(theme, []):
+            soup.select(selector)  # raises on an invalid selector
+
+
+def test_non_sphinx_presets_are_available():
+    """Static-site generators are supported targets, not an accident."""
+    for name in ("mkdocs", "mkdocs_material", "docusaurus", "vitepress",
+                 "hugo", "jekyll", "hexo", "gitbook", "plain_html"):
+        assert name in aia._THEME_SELECTOR_PRESETS
+
+
+def test_generic_default_selector_does_not_lead_the_browser_probe():
+    """An unset `content_selector` must not outrank the theme's own."""
+    js = _JS.read_text(encoding="utf-8")
+    assert "cfg.content_selector !== 'article'" in js
+    assert aia._GENERIC_CONTENT_SELECTOR == "article"
