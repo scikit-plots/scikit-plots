@@ -18,6 +18,11 @@ than by implementation detail.
     # !pip install nltk gensim langdetect faster-whisper openai-whisper pytesseract youtube-transcript-api
     # sudo apt-get install tesseract-ocr
 
+.. seealso::
+  * https://github.com/modelcontextprotocol/python-sdk
+  * https://github.com/semantica-agi/semantica
+  * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
+
 Start here
 ----------
 

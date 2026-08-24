@@ -15,6 +15,7 @@ searched, adapted, and exported.
 .. seealso::
   * https://github.com/modelcontextprotocol/python-sdk
   * https://github.com/semantica-agi/semantica
+  * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
 
 Choose the API that matches the job
 -----------------------------------

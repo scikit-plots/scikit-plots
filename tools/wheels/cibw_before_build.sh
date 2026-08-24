@@ -367,12 +367,40 @@ setup_windows() {
 
         # Diagnostics
         python --version
-        python -m delvewheel --version
         python -c \
             "import locale, sys; \
              print('Python:', sys.version); \
              print('Preferred encoding:', locale.getpreferredencoding(False)); \
              print('UTF-8 mode:', sys.flags.utf8_mode)"
+
+        python -m pip --version || true
+        python -c 'from importlib.metadata import version; print("wheel", version("wheel"))' || true
+        python -c 'from importlib.metadata import version; print("delvewheel", version("delvewheel"))' || true
+        # python -m delvewheel -h || true
+
+#         python -c '
+# from importlib.metadata import version
+# for package in ("pip", "wheel", "setuptools", "cibuildwheel", "delvewheel"):
+#     try:
+#         print(f"{package}: {version(package)}")
+#     except Exception as exc:
+#         print(f"{package}: unavailable ({exc})")
+# '
+#         python - <<'PY'
+# from importlib.metadata import PackageNotFoundError, version
+#
+# for package in (
+#     "pip",
+#     "wheel",
+#     "setuptools",
+#     "cibuildwheel",
+#     "delvewheel",
+# ):
+#     try:
+#         print(f"{package}: {version(package)}")
+#     except PackageNotFoundError:
+#         print(f"{package}: not installed")
+# PY
     fi
 }
 # setup_windows_pkgconf() {

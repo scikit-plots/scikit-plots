@@ -89,6 +89,7 @@ Quick start
 .. seealso::
   * https://github.com/modelcontextprotocol/python-sdk
   * https://github.com/semantica-agi/semantica
+  * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
 
 ..
   # https://github.com/roy-ht/langdetect
