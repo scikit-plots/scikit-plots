@@ -51,8 +51,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ..conftest import captured_logger
-
+# from ..conftest import captured_logger
 from .._custom_hooks import (
     BuilderFactories,
     CustomChunker,
@@ -219,6 +218,7 @@ class TestCustomFilter:
     def test_include_exception_warns_and_keeps_document(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         def bad_fn(_doc):
             raise RuntimeError("boom")
@@ -226,7 +226,6 @@ class TestCustomFilter:
         doc = _doc()  # use the existing fixture/helper in this file
         logger = logging.getLogger("scikitplot.corpus._custom_hooks")
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -491,12 +490,12 @@ class TestCustomNLPEnricher:
     def test_custom_filter_exception_warns_and_keeps_document(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         def broken_filter(_doc):
             raise RuntimeError("boom")
         logger = logging.getLogger("scikitplot.corpus._custom_hooks")
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):

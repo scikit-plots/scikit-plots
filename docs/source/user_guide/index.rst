@@ -143,12 +143,12 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **mcp**
+        **model context protocol**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            MCP <./mcp/index.rst>
+            Mcp <./mcp/index.rst>
 
     .. grid-item-card::
         :padding: 3

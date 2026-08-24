@@ -53,7 +53,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from ...conftest import captured_logger
+# from ...conftest import captured_logger
 
 from .._multimodal_embedding import (
     DEFAULT_AUDIO_MODEL,
@@ -590,13 +590,13 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
     def test_image_missing_raw_tensor_warns_and_remains_unembedded(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         e = _custom_engine(image_dim=8, normalize=False)
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -616,13 +616,13 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
     def test_audio_missing_raw_tensor_warns_and_remains_unembedded(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         e = _custom_engine(audio_dim=8, normalize=False)
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -642,13 +642,13 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
     def test_video_missing_raw_tensor_warns_and_remains_unembedded(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         e = _custom_engine(image_dim=8, normalize=False)
         logger = logging.getLogger(
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
