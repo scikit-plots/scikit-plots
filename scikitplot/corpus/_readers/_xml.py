@@ -357,6 +357,22 @@ def _xpath_elements(
     prefixes to be declared in the ``namespaces`` kwarg — it cannot
     resolve bare ``{uri}`` references.  :func:`_clark_to_prefix` handles
     this conversion so callers can use whichever notation they prefer.
+    ::
+
+      lxml valid query
+          → matching elements
+      lxml valid query / no match
+          → []
+      lxml invalid query
+          → WARNING
+          → []
+      stdlib valid query
+          → matching elements
+      stdlib valid query / no match
+          → []
+      stdlib invalid query
+          → WARNING
+          → []
     """
     # XPath succeeds
     #     → results assigned
@@ -378,7 +394,15 @@ def _xpath_elements(
             # depending on version and XPath expression.  Importing these
             # names at module level would create a hard lxml dependency;
             # catching Exception and logging is the correct pattern here.
-            logger.warning("XMLReader: lxml XPath error for %r: %s", xpath, exc)
+            logger.warning(
+                (
+                    "XMLReader: invalid or unsupported lxml XPath %r; "
+                    "returning no matches: %s"
+                ),
+                xpath,
+                exc,
+                exc_info=True,
+            )
             logger.debug(
                 "Rewritten lxml XPath: %r; namespaces=%r",
                 lxml_xpath,
@@ -402,7 +426,15 @@ def _xpath_elements(
         # unsupported XPath expressions, but the exact type is undocumented
         # and has changed across Python versions.  Log and return empty list
         # so a single bad XPath does not abort the entire document read.
-        logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)
+        logger.warning(
+            (
+                "XMLReader: invalid or unsupported stdlib XPath %r; "
+                "returning no matches: %s"
+            ),
+            xpath,
+            exc,
+            exc_info=True,
+        )
         logger.debug(
             "stdlib XPath failure details",
             exc_info=True,

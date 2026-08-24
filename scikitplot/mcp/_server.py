@@ -15,19 +15,25 @@ from __future__ import annotations
 
 import logging
 import re
-import threading
 from collections.abc import Callable
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
 
+from ._capabilities import (
+    effective_server_capabilities,
+    server_capabilities,
+    server_runtime_status,
+)
 from ._core import (
     MAX_QUERY_CHARS,
     MAX_RESULTS,
     DocsRetriever,
     RetrievedChunk,
+    SearchCoordinator,
     build_search_docs_result,
 )
+from ._outcome import FAILED as _FAILED_STATUS
 from ._version import __version__
 
 __all__ = [
@@ -35,10 +41,18 @@ __all__ = [
     "SearchDocsOutput",
     "SearchService",
     "create_server",
+    "effective_server_capabilities",
+    "server_capabilities",
+    "server_runtime_status",
 ]
 
 logger = logging.getLogger(__name__)
-_DOC_ID_RE = re.compile(r"\A[A-Za-z0-9._:-]{1,200}\Z")
+#: Document identifiers accepted by the ``docs://chunk/{doc_id}`` resource.
+#: ``/`` is excluded so traversal cannot be expressed, and the negative
+#: lookahead rejects the bare ``.`` and ``..`` forms (M06-02): those are
+#: directory references, not document identifiers, and ``document_reader`` is
+#: caller-supplied code that should never have to defend against them.
+_DOC_ID_RE = re.compile(r"\A(?!\.{1,2}\Z)(?!:)[A-Za-z0-9._:-]{1,200}\Z")
 _MAX_RESOURCE_CHARS = 20_000
 
 
@@ -79,6 +93,15 @@ class SearchDocsOutput(_ClosedModel):
     passages: list[str]
     citations: list[CitationOutput]
     message: str | None = None
+    #: Neutral retrieval status mirroring
+    #: :class:`scikitplot.corpus.RetrievalStatus`. ``"failed"`` means every
+    #: retrieval path failed and is NOT a statement that no documentation
+    #: matches; ``"degraded"`` means the result may be incomplete. Advertised on
+    #: the wire so a client can distinguish these from a genuine ``"empty"``.
+    retrieval_status: str | None = None
+    #: Explanations from any leg that did not run cleanly. Present only when
+    #: ``retrieval_status`` is ``"degraded"`` or ``"failed"``.
+    retrieval_errors: list[StrictStr] | None = None
     security: SecurityOutput
 
     @model_validator(mode="after")
@@ -100,7 +123,34 @@ class SearchDocsOutput(_ClosedModel):
 
 
 class SearchService:
-    """Validated, bounded orchestration independent from the MCP SDK itself."""
+    """Wire adapter: bounded, validated search returning pydantic tool models.
+
+    Parameters
+    ----------
+    retriever : DocsRetriever
+        Any object implementing ``search(query, k)``.
+    max_concurrency : int, optional
+        Maximum number of in-flight searches (1-128, default 4).
+    acquire_timeout_seconds : float, optional
+        How long to wait for a concurrency slot (default 0.05).
+
+    See Also
+    --------
+    scikitplot.mcp.SearchCoordinator : The Tier-L orchestration this wraps.
+
+    Notes
+    -----
+    **Developer-focused.** Run M05 decided Option A: the neutral orchestration
+    lives at Tier-L in :class:`~scikitplot.mcp.SearchCoordinator`, and this class
+    is the server-tier adapter that turns its plain dictionaries into
+    ``pydantic`` models for the MCP wire. Validation and concurrency bounds are
+    *not* reimplemented here — behaviour is inherited from the coordinator, so
+    the two cannot drift.
+
+    Callers that do not need wire models (framework integrations, the Legacy
+    Retrieval tier) should use :class:`~scikitplot.mcp.SearchCoordinator`
+    directly and avoid the ``[mcp]`` extra entirely.
+    """
 
     def __init__(
         self,
@@ -109,54 +159,27 @@ class SearchService:
         max_concurrency: int = 4,
         acquire_timeout_seconds: float = 0.05,
     ) -> None:
-        if not isinstance(retriever, DocsRetriever):
-            raise TypeError("retriever must implement DocsRetriever.search(query, k)")
-        if isinstance(max_concurrency, bool) or not isinstance(max_concurrency, int):
-            raise TypeError("max_concurrency must be an integer")
-        if not 1 <= max_concurrency <= 128:  # ruff: ignore[magic-value-comparison]
-            raise ValueError("max_concurrency must be between 1 and 128")
-        if isinstance(acquire_timeout_seconds, bool) or not isinstance(
-            acquire_timeout_seconds, (int, float)
-        ):
-            raise TypeError("acquire_timeout_seconds must be a number")
-        if acquire_timeout_seconds < 0:
-            raise ValueError("acquire_timeout_seconds must be non-negative")
-        self._retriever = retriever
-        self._slots = threading.BoundedSemaphore(max_concurrency)
-        self._acquire_timeout = float(acquire_timeout_seconds)
+        self._coordinator = SearchCoordinator(
+            retriever,
+            max_concurrency=max_concurrency,
+            acquire_timeout_seconds=acquire_timeout_seconds,
+        )
 
     def search(self, query: str, k: int = 5) -> SearchDocsOutput:
-        if not isinstance(query, str):
-            raise ValueError(  # ruff: ignore[type-check-without-type-error]
-                "query must be a string"
-            )
-        clean_query = query.strip()
-        if not clean_query:
-            raise ValueError("query must not be empty")
-        if len(clean_query) > MAX_QUERY_CHARS:
-            raise ValueError(f"query must be at most {MAX_QUERY_CHARS} characters")
-        if isinstance(k, bool) or not isinstance(k, int):
-            raise ValueError(  # ruff: ignore[type-check-without-type-error]
-                "k must be an integer"
-            )
-        limit = k
-        if not 1 <= limit <= MAX_RESULTS:
-            raise ValueError(f"k must be between 1 and {MAX_RESULTS}")
+        """Search and return the validated wire model.
 
-        if not self._slots.acquire(timeout=self._acquire_timeout):
-            raise RuntimeError("search service is busy; retry shortly")
-        try:
-            try:
-                chunks = self._retriever.search(clean_query, limit)
-            except Exception as exc:
-                logger.exception("documentation retriever failed")
-                raise RuntimeError(
-                    "documentation search is temporarily unavailable"
-                ) from exc
-            raw = build_search_docs_result(clean_query, chunks, max_results=limit)
-        finally:
-            self._slots.release()
+        Parameters
+        ----------
+        query : str
+            Query text.
+        k : int, optional
+            Maximum passages to return.
 
+        Returns
+        -------
+        SearchDocsOutput
+        """
+        raw = self._coordinator.search(query, k)
         structured = raw["structuredContent"]
         citations = [
             CitationOutput.model_validate(item) for item in structured["citations"]
@@ -167,6 +190,8 @@ class SearchService:
             passages=list(structured["passages"]),
             citations=citations,
             message=structured.get("message"),
+            retrieval_status=structured.get("retrieval_status"),
+            retrieval_errors=structured.get("retrieval_errors"),
             security=SecurityOutput.model_validate(structured["security"]),
         )
 
@@ -234,21 +259,60 @@ def create_server(
     max_concurrency: int = 4,
     version: str = __version__,
     log_level: str = "INFO",
-    health_path: str | None = "/healthz",
+    health_path: str | None = None,
 ) -> Any:
     """Create an official MCP Python SDK v2 ``MCPServer`` instance.
 
     Importing :mod:`scikitplot.mcp` remains SDK-independent; the optional MCP
     dependency is imported only when this factory is called.
+
+    Raises
+    ------
+    RuntimeError
+        If the interpreter is older than Python 3.10 (the MCP SDK v2 floor), or
+        if the optional MCP SDK v2 is not installed. The two causes carry
+        distinct messages so a 3.8/3.9 user is not told to "install mcp" when the
+        real blocker is the interpreter version.
+
+    Notes
+    -----
+    The MCP Python SDK v2 requires Python >= 3.10 (verified against the official
+    SDK documentation). scikit-plots itself supports Python >= 3.8, so the server
+    layer is an optional feature gated on the newer floor.
     """
+    import sys  # ruff: ignore[import-outside-top-level]
+
+    if sys.version_info < (3, 10):
+        raise RuntimeError(
+            "the scikitplot.mcp server layer requires Python >= 3.10 "
+            f"(running {sys.version_info[0]}.{sys.version_info[1]}); "
+            "the optional MCP SDK v2 does not support older interpreters."
+        )
     try:
         from mcp.server import (  # ruff: ignore[import-outside-top-level] # type: ignore[]
             MCPServer,
         )
-        from mcp_types import ToolAnnotations  # ruff: ignore[import-outside-top-level]
+        from mcp.types import ToolAnnotations  # ruff: ignore[import-outside-top-level]
     except ImportError as exc:  # pragma: no cover - depends on optional package
+        # M07-03: an ImportError here does not automatically mean "SDK missing".
+        # It is also raised when the SDK IS installed but one of its own
+        # dependencies is broken. Consult the capability probe before blaming
+        # the user for a package they may already have.
+        status = server_runtime_status()
+        if status["sdk_status"] == "absent":
+            raise RuntimeError(
+                "MCP SDK v2 is required for the server layer; on Python >= 3.10 "
+                'install it with: pip install "mcp>=2.0.0,<3".'
+            ) from exc
+        if status["sdk_status"] == "incompatible":
+            raise RuntimeError(
+                f"the installed MCP SDK ({status['sdk_version']}) is outside the "
+                'supported range "mcp>=2.0.0,<3"; install a supported version.'
+            ) from exc
         raise RuntimeError(
-            'MCP SDK v2 is required for the server layer; install with "pip install mcp>=2,<3".'
+            f"the MCP SDK is installed (version {status['sdk_version']}) but the "
+            "server layer could not be imported; this is a broken environment, "
+            f"not a missing package. Original error: {type(exc).__name__}: {exc}"
         ) from exc
 
     service = SearchService(retriever, max_concurrency=max_concurrency)
@@ -297,10 +361,25 @@ def create_server(
             Field(ge=1, le=MAX_RESULTS, description="Maximum passages to return"),
         ] = 5,
     ) -> SearchDocsOutput:
-        return service.search(query, k)
+        result = service.search(query, k)
+        if result.retrieval_status == _FAILED_STATUS:
+            # M07: a total retrieval failure is a tool error, not a successful
+            # call that happened to return nothing. Raising is what makes the
+            # SDK set ``isError`` on the wire; the structured payload above
+            # still carries the per-leg detail for clients that read it.
+            raise RuntimeError(
+                "documentation retrieval failed; this is not a statement that "
+                "no documentation matches the query"
+            )
+        return result
 
     _forbid_unknown_tool_arguments(mcp, "search_docs")
 
+    # M03-04: the health route is opt-in. ``create_server`` has no ``transport``
+    # parameter and so cannot know whether an HTTP route is reachable; defaulting
+    # it on registered an unreachable endpoint for stdio servers and pulled in
+    # starlette for a feature the caller never asked for. Callers that serve over
+    # Streamable HTTP pass health_path explicitly (as __main__.py does).
     if health_path is not None:
         if not isinstance(health_path, str) or not health_path.startswith("/"):
             raise ValueError("health_path must start with '/' or be None")

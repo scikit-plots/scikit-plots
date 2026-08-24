@@ -351,10 +351,28 @@ setup_openblas() {
 ######################################################################
 # Function to handle Windows-specific setup
 setup_windows() {
-    if [[ $RUNNER_OS == "Windows" ]]; then
+    if [[ "$RUNNER_OS" == "Windows" ]]; then
         log_info "Windows platform detected. Installing delvewheel and wheel..."
-        # delvewheel is the equivalent of delocate/auditwheel for windows.
+
+        # Python 3.8 + delvewheel 1.10.0 compatibility:
+        # Force UTF-8 mode to avoid Windows cp1252 UnicodeDecodeError
+        # while delvewheel patches Python source files.
+        if python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 8) else 1)'; then
+            log_info "Python 3.8 detected. Enabling UTF-8 mode for delvewheel."
+            export PYTHONUTF8=1
+        fi
+
+        # delvewheel is the equivalent of delocate/auditwheel for Windows.
         python -m pip install delvewheel wheel
+
+        # Diagnostics
+        python --version
+        python -m delvewheel --version
+        python -c \
+            "import locale, sys; \
+             print('Python:', sys.version); \
+             print('Preferred encoding:', locale.getpreferredencoding(False)); \
+             print('UTF-8 mode:', sys.flags.utf8_mode)"
     fi
 }
 # setup_windows_pkgconf() {

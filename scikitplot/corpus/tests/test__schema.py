@@ -80,7 +80,7 @@ class TestInitExports:
     def test_errorpolicy_importable(self):
         assert ErrorPolicy.RAISE == "raise"
         assert ErrorPolicy.SKIP == "skip"
-        assert ErrorPolicy.LOG == "log"
+        assert ErrorPolicy.COLLECT == "collect"
         assert ErrorPolicy.RETRY == "retry"
 
     def test_modality_in_all(self):
@@ -256,11 +256,13 @@ class TestModality:
 
 class TestErrorPolicy:
     def test_all_values(self):
-        assert {p.value for p in ErrorPolicy} == {"raise", "skip", "log", "retry"}
+        assert {p.value for p in ErrorPolicy} == {
+            "raise", "skip", "retry", "collect", "fallback",
+        }
 
     def test_str_equality(self):
         assert ErrorPolicy.SKIP == "skip"
-        assert ErrorPolicy.LOG == "log"
+        assert ErrorPolicy.COLLECT == "collect"
 
     def test_coercion(self):
         assert ErrorPolicy("retry") is ErrorPolicy.RETRY
@@ -296,7 +298,7 @@ class TestSectionType:
 class TestChunkingStrategy:
     def test_all_values(self):
         expected = {"sentence", "paragraph", "fixed_window", "semantic",
-                    "page", "block", "custom", "none"}
+                    "word", "recursive", "page", "block", "custom", "none"}
         assert {c.value for c in ChunkingStrategy} == expected
 
 

@@ -139,7 +139,15 @@ def build_parser(
             help=spec.summary,
             aliases=list(spec.aliases),
             description=spec.summary,
+            add_help=spec.delegate is None,
         )
+        if spec.delegate is not None:
+            # Cosmetic only: delegated commands are intercepted before argparse
+            # parsing (see run/_split_delegated). This entry makes them appear in
+            # top-level `--help` and captures stray args if ever reached directly.
+            cp.add_argument("_delegate_argv", nargs=argparse.REMAINDER)
+            cp.set_defaults(_spec=spec)
+            continue
         for prm in spec.params:
             add_param(cp, prm)
         _add_verbosity(cp, "_sub")  # accept -v/-q after the command too
@@ -155,9 +163,58 @@ def _net_verbosity(ns: argparse.Namespace) -> int:
     return resolve(verbose, quiet)
 
 
+def _globals_parser() -> argparse.ArgumentParser:
+    """
+    Run a parser with only the global options, for the prefix before a delegated
+    command (whose own args must not be parsed here).
+    """  # ruff: ignore[missing-blank-line-after-summary]
+    gp = argparse.ArgumentParser(prog="scikitplot", add_help=True)
+    gp.add_argument("-V", "--version", action="store_true", dest="_version")
+    _add_verbosity(gp, "_root")
+    return gp
+
+
+def _split_delegated(argv: Sequence[str]):
+    """If argv targets a delegated command, return (prefix, spec, rest).
+
+    Scans for the first token that names a registered command. If that command
+    is delegated, everything after it is returned verbatim as ``rest`` (so the
+    submodule owns parsing, including ``--help``). Native commands and the
+    no-command case return ``None`` (handled by the normal argparse path).
+    """
+    from ..registry import resolve  # ruff: ignore[import-outside-top-level]
+
+    for index, token in enumerate(argv):
+        spec = resolve(token)
+        if spec is None:
+            continue
+        if spec.delegate is not None:
+            return list(argv[:index]), spec, list(argv[index + 1 :])
+        return None  # first recognized command is native -> normal path
+    return None
+
+
 def run(argv: Sequence[str] | None = None) -> int:
     """Parse ``argv`` and dispatch. Returns a process exit code."""
     argv = list(sys.argv[1:] if argv is None else argv)
+
+    delegated = _split_delegated(argv)
+    if delegated is not None:
+        prefix, spec, rest = delegated
+        gns = _globals_parser().parse_args(prefix)  # -v/-q/-V/-h before the command
+        verbosity = _net_verbosity(gns)
+        from ..logging import configure  # ruff: ignore[import-outside-top-level]
+
+        configure(verbosity)
+        if getattr(gns, "_version", False):
+            from ..app import _version_string  # ruff: ignore[import-outside-top-level]
+
+            sys.stdout.write(_version_string() + "\n")
+            return 0
+        from ..loader import run_delegate  # ruff: ignore[import-outside-top-level]
+
+        return run_delegate(spec.delegate, rest, install_hint=spec.install_hint)
+
     parser = build_parser()
     ns = parser.parse_args(argv)
     verbosity = _net_verbosity(ns)
@@ -165,7 +222,6 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     configure(verbosity)  # route diagnostics to stderr at the resolved level
     if getattr(ns, "_version", False):
-        # lazy
         from ..app import _version_string  # ruff: ignore[import-outside-top-level]
 
         sys.stdout.write(_version_string() + "\n")

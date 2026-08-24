@@ -58,9 +58,43 @@ class TestCapabilitySnapshot:
         ann = capability_snapshot()["ann_backends"]
         assert isinstance(ann, dict)
         for entry in ann.values():
-            assert set(entry) == {"available", "version"}
+            assert set(entry) == {
+                "status",
+                "reason_code",
+                "available",
+                "version",
+                "aliases",
+            }
+            # F-R02-05: status is the authority; `available` is derived from it.
+            assert entry["available"] is (entry["status"] == "available")
+            assert (entry["reason_code"] is None) is (entry["status"] == "available")
             assert isinstance(entry["available"], bool)
             assert entry["version"] is None or isinstance(entry["version"], str)
+            assert isinstance(entry["aliases"], list)
+
+    def test_backends_are_keyed_by_canonical_identity(self):
+        """
+        P-I0-06 / F-R02-06: one entry per implementation, aliases as a field.
+
+        ``"brute"`` was previously a second registry entry for
+        ``BruteForceBackend``, so the snapshot reported five backends for four
+        classes -- with contradictory versions, because the distribution map had
+        no entry for the alias.  Anything counting backends, or embedding this
+        snapshot in a build manifest, recorded a phantom.
+        """
+        from scikitplot.corpus._similarity._backends import _BACKENDS
+
+        ann = capability_snapshot()["ann_backends"]
+        assert len(ann) == len({id(cls) for cls in _BACKENDS.values()})
+        assert "brute" not in ann
+        assert ann["bruteforce"]["aliases"] == ["brute"]
+
+    def test_alias_resolves_to_the_same_backend(self):
+        """An alias remains accepted at the call site even though it is not an entry."""
+        from scikitplot.corpus._similarity import _backends as backends
+
+        assert backends.canonical_backend_name("brute") == "bruteforce"
+        assert backends.select_backend("brute").name == "bruteforce"
 
     def test_extra_distributions(self):
         snap = capability_snapshot(extra_distributions=["pytest"])

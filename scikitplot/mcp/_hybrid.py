@@ -39,6 +39,15 @@ from dataclasses import replace
 from typing import Any, Callable, Sequence
 
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
+from ._outcome import (
+    DEGRADED,
+    EMPTY,
+    FAILED,
+    SUCCESS,
+    LegRecord,
+    RetrievalOutcome,
+    status_of,
+)
 
 __all__ = [
     "DEFAULT_RRF_K",
@@ -51,6 +60,10 @@ __all__ = [
 DEFAULT_RRF_K: int = 60
 
 _MAX_RETRIEVAL_K: int = 50
+#: Evidence-path label reported in :class:`~scikitplot.mcp._outcome.LegRecord`.
+_LEXICAL_LEG = "lexical"
+#: Cap on how many per-hit mapping errors are joined into one leg explanation.
+_MAX_LEG_ERRORS = 3
 logger = logging.getLogger(__name__)
 
 
@@ -185,13 +198,18 @@ class HybridRetriever(DocsRetriever):
         self._fanout = max(1, min(int(fanout), 20))
         self._strict = bool(strict)
 
-    def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
+    def search(  # ruff: ignore[too-many-branches]
+        self,
+        query: str,
+        k: int = 5,
+    ) -> list[RetrievedChunk]:
         """Query every leg, fuse by RRF, and return the top-``k`` fused chunks."""
         if not isinstance(query, str) or not query.strip():
-            return []
+            return RetrievalOutcome([], legs=[LegRecord("fusion", EMPTY)])
 
         k = max(1, min(int(k), _MAX_RETRIEVAL_K))
         per_leg = min(_MAX_RETRIEVAL_K, max(k, self._fanout * k))
+        legs: list[LegRecord] = []
 
         ranked_lists: list[tuple[float, list[RetrievedChunk]]] = []
         best_chunk: dict[str, RetrievedChunk] = {}
@@ -203,8 +221,15 @@ class HybridRetriever(DocsRetriever):
         ):
             if weight == 0:
                 continue
+            leg_name = f"{index}:{type(retriever).__name__}"
             try:
-                raw_hits = retriever.search(query, per_leg) or []
+                # NOTE: deliberately not ``... or []``. An empty
+                # RetrievalOutcome is falsy, so ``or []`` would replace a
+                # FAILED leg with a plain empty list and discard exactly the
+                # status this fusion needs to report (M04).
+                raw_hits = retriever.search(query, per_leg)
+                if raw_hits is None:
+                    raw_hits = []
                 if not isinstance(raw_hits, list):
                     raw_hits = list(raw_hits)
                 invalid = [
@@ -225,8 +250,37 @@ class HybridRetriever(DocsRetriever):
                 )
                 if self._strict:
                     raise
+                # M04: record the skipped leg so a fully-failed fusion is not
+                # reported as an empty corpus.
+                legs.append(LegRecord(leg_name, FAILED, error=str(exc)))
                 continue
 
+            # A leg that ran but returned nothing is EMPTY, not a failure; the
+            # distinction is what keeps DEGRADED meaningful after fusion. When
+            # the sub-retriever is itself outcome-aware, inherit its status so a
+            # nested degradation survives fusion instead of being flattened.
+            inner = status_of(raw_hits)
+            if inner in (FAILED, DEGRADED):
+                # Carry the inner status through verbatim: only if *every* leg
+                # is FAILED should the fused outcome derive FAILED. Collapsing
+                # FAILED to DEGRADED here would make that unreachable.
+                legs.append(
+                    LegRecord(
+                        leg_name,
+                        inner,
+                        hit_count=len(hits),
+                        error="; ".join(getattr(raw_hits, "errors", list)())
+                        or f"leg reported {inner}",
+                    )
+                )
+            else:
+                legs.append(
+                    LegRecord(
+                        leg_name,
+                        SUCCESS if hits else EMPTY,
+                        hit_count=len(hits),
+                    )
+                )
             ranked_lists.append((weight, hits))
             for hit in hits:
                 identity = _chunk_key(hit)
@@ -244,11 +298,14 @@ class HybridRetriever(DocsRetriever):
             fused.items(),
             key=lambda item: (-item[1], first_seen.get(item[0], 10**12), item[0]),
         )[:k]
-        return [
-            replace(best_chunk[identity], score=score)
-            for identity, score in ordered
-            if identity in best_chunk
-        ]
+        return RetrievalOutcome(
+            [
+                replace(best_chunk[identity], score=score)
+                for identity, score in ordered
+                if identity in best_chunk
+            ],
+            legs=legs,
+        )
 
 
 class Bm25Retriever(DocsRetriever):
@@ -284,7 +341,7 @@ class Bm25Retriever(DocsRetriever):
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Run FTS5/BM25 and map hits to :class:`RetrievedChunk`."""
         if not isinstance(query, str) or not query.strip():
-            return []
+            return RetrievalOutcome([], legs=[LegRecord(_LEXICAL_LEG, EMPTY)])
         k = max(1, min(int(k), _MAX_RETRIEVAL_K))
 
         try:
@@ -293,10 +350,15 @@ class Bm25Retriever(DocsRetriever):
             logger.warning("BM25 search failed: %s", exc, exc_info=self._strict)
             if self._strict:
                 raise
-            return []
+            # M04: the lexical leg did not run; say so rather than returning a
+            # bare [] that reads as "no such documentation".
+            return RetrievalOutcome(
+                [], legs=[LegRecord(_LEXICAL_LEG, FAILED, error=str(exc))]
+            )
 
         output: list[RetrievedChunk] = []
         seen: set[str] = set()
+        mapping_errors: list[str] = []
         for item in hits:
             try:
                 doc_id, score = item
@@ -315,6 +377,7 @@ class Bm25Retriever(DocsRetriever):
                 )
                 if self._strict:
                     raise
+                mapping_errors.append(str(exc))
                 continue
 
             seen.add(doc_id)
@@ -328,7 +391,20 @@ class Bm25Retriever(DocsRetriever):
                     anchor=str(record.get("anchor", "")),
                 )
             )
-        return output
+        if mapping_errors:
+            leg = LegRecord(
+                _LEXICAL_LEG,
+                DEGRADED,
+                hit_count=len(output),
+                error="; ".join(mapping_errors[:_MAX_LEG_ERRORS]),
+            )
+        else:
+            leg = LegRecord(
+                _LEXICAL_LEG,
+                SUCCESS if output else EMPTY,
+                hit_count=len(output),
+            )
+        return RetrievalOutcome(output, legs=[leg])
 
     @classmethod
     def from_corpus_sqlite(

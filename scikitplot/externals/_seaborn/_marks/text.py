@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib.transforms import ScaledTranslation
 
-from .._marks.base import (
+from seaborn._marks.base import (
     Mark,
     Mappable,
     MappableFloat,

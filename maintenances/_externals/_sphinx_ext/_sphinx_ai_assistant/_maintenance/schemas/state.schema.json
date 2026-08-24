@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scikit-plots.github.io/schemas/sphinx-ai-assistant-maintenance-state.schema.json",
+  "title": "Sphinx AI assistant maintenance state",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "subsystem",
+    "source_anchor",
+    "governing_rule",
+    "phase",
+    "active_checkpoint",
+    "production_code_modified",
+    "checkpoints",
+    "verification_snapshot",
+    "next_actions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "subsystem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_anchor": {
+      "type": "object",
+      "required": [
+        "archive",
+        "sha256"
+      ],
+      "properties": {
+        "archive": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "upstream_anchor": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "secondary_reference": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "governing_rule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "phase": {
+      "type": "string"
+    },
+    "active_checkpoint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "production_code_modified": {
+      "type": "boolean"
+    },
+    "checkpoints": {
+      "type": "object"
+    },
+    "verification_snapshot": {
+      "type": "object"
+    },
+    "blockers": {
+      "type": "array"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

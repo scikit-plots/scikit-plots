@@ -230,14 +230,22 @@ def show_config(
       warnings.warn("Install `pyyaml` for better output", stacklevel=1)
       # Convert Python dictionary to JSON string
       print(json.dumps(CONFIG, indent=2, separators=(',', ': ')))
+    # try:  # Non-standard library, check import
+    #   # print Python objects in a human-readable format
+    #   from pprint import pprint
+    #   # Pretty-print the dictionary like JSON string
+    #   pprint(CONFIG)
+    # except ModuleNotFoundError:
+    #   return CONFIG
   elif mode == DisplayModes.dicts.value:
-    try:  # Non-standard library, check import
-      # print Python objects in a human-readable format
-      from pprint import pprint
-      # Pretty-print the dictionary like JSON string
-      pprint(CONFIG)
-    except ModuleNotFoundError:
-      return CONFIG
+    # Honor the documented contract: 'dicts' mode returns the configuration as a
+    # dictionary (side-effect free). A deep copy prevents callers from mutating
+    # the module-level CONFIG. (Previously this branch pprinted CONFIG and always
+    # returned None, since the `return CONFIG` was dead code under an except that
+    # never triggered -- breaking any caller that relied on the returned dict,
+    # e.g. `scikitplot show-config --format json`.)
+    import copy
+    return copy.deepcopy(CONFIG)
   else:
     raise AttributeError(
       f"Invalid `mode`, use one of: {', '.join([e.value for e in DisplayModes])}"
@@ -246,3 +254,64 @@ def show_config(
 ######################################################################
 ## ...
 ######################################################################
+
+# ---------------------------------------------------------------------------
+# Standalone module entry point: ``python -m scikitplot.config.__config__``
+# Self-contained argparse logic (no scikitplot._cli dependency).
+# ---------------------------------------------------------------------------
+def _build_arg_parser():
+    """Build the argparse parser for the standalone runner."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m scikitplot.config.__config__",
+        description="Show scikit-plots build and runtime configuration.",
+        epilog="Equivalent CLI command: `scikitplot show-config`.",
+    )
+    parser.add_argument(
+        "-m", "--mode", default="stdout",
+        choices=("stdout", "dicts"),
+        help="Output mode (default: %(default)s).",
+    )
+    return parser
+
+
+def main(argv=None):
+    """Standalone entry point for ``python -m scikitplot.config.__config__``.
+
+    Parameters
+    ----------
+    argv : list of str, optional
+        Argument vector; defaults to ``sys.argv[1:]``.
+
+    Returns
+    -------
+    int
+        Process exit code.
+
+    See Also
+    --------
+    argparse : Batteries-included CLI parsing (used here); auto-help & validation.
+    click : Richer CLI via decorators; an optional third-party dependency.
+    optparse : Deprecated predecessor to :mod:`argparse` (kept for legacy only).
+    getopt : Low-level, C-``getopt``-style parsing.
+    sys.argv : Raw arguments; minimal, no help or validation.
+    """
+    import sys
+
+    args = _build_arg_parser().parse_args(sys.argv[1:] if argv is None else argv)
+    if args.mode == "dicts":
+        # Read the authoritative CONFIG mapping directly (side-effect free),
+        # robust regardless of the show_config(mode="dicts") library fix.
+        import copy
+        import json
+
+        json.dump(copy.deepcopy(CONFIG), sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+    else:
+        show_config(mode="stdout")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

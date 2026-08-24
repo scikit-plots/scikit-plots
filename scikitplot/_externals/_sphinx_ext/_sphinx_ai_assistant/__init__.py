@@ -60,6 +60,105 @@ lives *inside* the function or class body that needs it, guarded by a
 try/except where appropriate.  Nothing is imported at module scope except
 the standard library.  This keeps ``import time`` cost near zero and
 avoids ``ImportError`` at load time when optional packages are absent.
+Representation model
+--------------------
+Every page exists in two Markdown representations, and the difference is the
+single most important thing to understand about this extension.
+
+====================  ====================================  ===============
+Representation        How it is produced                    Status
+====================  ====================================  ===============
+``page.md``           build time, from the final HTML       **canonical**
+clipboard text        run time, from the live DOM           **convenience**
+====================  ====================================  ===============
+
+``page.md`` is written by :func:`generate_markdown_files`; the clipboard text is
+produced by the Turndown build vendored inside ``_static/ai-assistant.js``.
+
+**User note.** *Canonical* is not a claim that one is better written. It means
+one of them is a real file at a real URL, so anything can fetch it — a crawler,
+ChatGPT, Claude, Gemini, an MCP client, ``curl``. The browser conversion exists
+only inside the tab you are looking at. That is the whole distinction, and it is
+why *View as Markdown* opens the published file instead of generating one
+locally: a ``blob:`` URL cannot be handed to anyone.
+
+**Developer note.** Do not blur the two. If a canonical path fails, say so and
+name the alternative; never substitute convenience output and report success.
+A reader who chose the published file and silently received a browser conversion
+has been given the wrong answer confidently, which is worse than an error.
+
+Surfaces
+--------
+::
+
+    Control                   Reader gets              Source           Build
+                                                                        artifact
+    ----------------------------------------------------------------------------
+    Copy page  (browser)      clipboard Markdown       live DOM         not needed
+    Copy page  (static)       clipboard Markdown       fetched page.md  required
+    View as Markdown          new tab on the file      page.md URL      required
+    Ask AI                    provider gets the URL    page.md URL      required
+
+The Copy control carries a two-state switch, modelled on the PDF method picker
+so the interaction is learned once. It defaults to ``browser`` because that mode
+always succeeds: it needs nothing from the build, so Copy keeps working on a
+site with ``ai_assistant_generate_markdown = False``.
+
+Configure the default and whether readers may change it::
+
+    ai_assistant_copy_mode = "browser"  # or "static"
+    ai_assistant_copy_mode_toggle = True  # False pins the mode, hides the switch
+
+Build pipeline
+--------------
+::
+
+    Sphinx
+        │
+    all normal extensions           sphinx_design, sphinx_tabs, Sphinx-Gallery,
+        │                           IPython, Matplotlib, JupyterLite, the
+        ▼                           PyData theme directives, …
+    final HTML
+        │
+    build-finished                  ← this extension runs here, last
+        │
+        ├── generate_markdown_files()   final HTML → page.md  (canonical)
+        │
+        └── generate_llms_txt()         the page.md set → llms.txt
+
+**Developer note** — why the ordering matters more than it looks. Converting
+*after* the build means every directive has already been resolved to HTML::
+
+    RST/MyST → custom directive → Sphinx → theme → FINAL HTML → Markdown
+
+so there is no custom docutils node for a Markdown visitor to learn. A
+Markdown-builder approach would have to understand every extension in the
+stack; this one has to understand HTML. That is the reason this extension needs
+no sibling producer, and the reason its dependency surface is: zero module-scope
+non-stdlib imports, with ``bs4``/``markdownify`` optional and ``find_spec``-gated.
+
+Directive fidelity (planned, not yet implemented)
+-------------------------------------------------
+Conversion is currently generic HTML→Markdown. Better semantic fidelity is
+planned for the markup emitted by:
+
+``sphinx_gallery.gen_gallery``, ``sphinx_design``, ``sphinx_prompt``,
+``sphinx_togglebutton``, ``sphinx_tabs.tabs``,
+``IPython.sphinxext.ipython_directive``,
+``matplotlib.sphinxext.plot_directive``, and the in-tree
+``_sphinx_jinja_render``, ``_pydata_sphinx_theme.gallery_directive``,
+``_pydata_sphinx_theme.component_directive``, ``_sphinx_gallery_jupyterlite``
+and ``_sphinxcontrib_youtube`` extensions.
+
+Structures to be recognised: ``grid``, ``row``, ``column``, ``container``,
+``tab``, ``dropdown``, ``card``, ``youtube``, ``video``, ``iframe``,
+``jupyterlite``, ``inheritance_diagram``, ``thumbnail``.
+
+**Developer note.** Both conversion paths must gain each rule together. If the
+build-time converter learns a directive and the browser Turndown rules do not,
+Copy and Ask AI start disagreeing about the same page — a divergence no user can
+see and no current test would catch. Treat their equivalence as the acceptance
+criterion, not the rules themselves.
 
 .. seealso:
   * https://huggingface.co/spaces/scikit-plots/ai/tree/main
@@ -447,6 +546,574 @@ def _get_logger():
     return _logger
 
 
+#: Structures both conversion paths must render identically.
+#:
+#: One table, two consumers. The build-time converter dispatches on it, and it
+#: is serialised into ``window.AI_ASSISTANT_CONFIG.conversionRules`` so the
+#: browser generates its Turndown rules from the same data. A rule therefore
+#: cannot exist on one side only, which is the failure this table exists to
+#: prevent: a directive the build understands and the browser does not makes
+#: Copy and Ask AI disagree about the same page, with nothing to show for it.
+#:
+#: Each entry carries:
+#:
+#: ``name``
+#:     stable identifier, used in tests and in the client payload.
+#: ``selector``
+#:     CSS selector, understood by ``soup.select`` and by
+#:     ``element.matches`` alike. Both sides must be able to evaluate it.
+#: ``kind``
+#:     how to render: ``"admonition"``, ``"link"``, ``"fence"`` or ``"drop"``.
+#: ``label``
+#:     human prefix for ``"link"`` output.
+#: ``status``
+#:     ``"implemented"`` rules are active and serialised. ``"superseded"``
+#:     rules were investigated and are covered by another entry.  ``"planned"`` rules
+#:     are declared but inert; they document the target and are asserted to be
+#:     inert by the test suite, so the list cannot quietly rot into a claim.
+#: ``evidence``
+#:     where the selector was verified. A rule with no rendered HTML to check
+#:     against stays ``"planned"``: guessing a selector produces a rule that
+#:     silently never fires, which is worse than an absent one.
+CONVERSION_RULES = (
+    {
+        "name": "admonition",
+        "selector": "div.admonition",
+        "kind": "admonition",
+        "status": "implemented",
+        "evidence": "handled by convert_div since before this table existed",
+    },
+    {
+        "name": "video-embed",
+        "selector": "iframe[src]",
+        "kind": "video",
+        "label": "Video",
+        "status": "implemented",
+        "evidence": (
+            "_sphinxcontrib_youtube/tests/test_build/{youtube,vimeo,peertube}.html "
+            "render div.video_wrapper > iframe[src]; the embed-to-watch mapping "
+            "comes from that submodule's own youtube.py/peertube.py"
+        ),
+    },
+    {
+        "name": "headerlink",
+        "selector": "a.headerlink",
+        "kind": "drop",
+        "status": "implemented",
+        "evidence": (
+            "standard Sphinx permalink anchor; already dropped by the browser path"
+        ),
+    },
+    # ---- sphinx-design, grounded in the published site ---------------------
+    {
+        "name": "card-header",
+        "selector": "div.sd-card-header",
+        "kind": "heading",
+        "status": "implemented",
+        "evidence": (
+            "dev/user_guide/index.html renders 18 headers as "
+            "div.sd-card-header > p.sd-card-text > strong, which converted to "
+            "'****nearest neighbor****' before this rule"
+        ),
+    },
+    {
+        "name": "card",
+        "selector": "div.sd-card",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": (
+            "dev/user_guide/index.html, dev/devel/index.html, dev/project/gallery.html"
+        ),
+    },
+    {
+        "name": "inheritance-diagram",
+        "selector": 'img[src*="inheritance-"]',
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": (
+            "dev/user_guide/annoy/annoy_index_inheritance_diagrams.html renders "
+            "img[src*=inheritance-] whose alt already reads 'Inheritance diagram "
+            "of ...'; the default image conversion preserves it"
+        ),
+    },
+    # ---- layout, recognised and deliberately transparent --------------------
+    # These carry no semantics a Markdown reader can use. Recording them as
+    # explicit passthrough documents that they were considered, and keeps a
+    # future generic div rule from accidentally giving them structure.
+    {
+        "name": "row",
+        "selector": "div.sd-row",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": "dev/user_guide/index.html renders div.sd-row.sd-row-cols-*",
+    },
+    {
+        "name": "column",
+        "selector": "div.sd-col",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": "dev/user_guide/index.html renders div.sd-col.sd-d-flex-row",
+    },
+    {
+        "name": "container",
+        "selector": "div.sd-container-fluid",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": (
+            "dev/user_guide/index.html renders div.sd-container-fluid.sd-sphinx-override"
+        ),
+    },
+    # ---- sphinx-design tabs, dropdowns and rubrics --------------------------
+    # Verified against dev/install/installation.html (10 sd-tab-set, 5 labels)
+    # and dev/devel/guide_maintainer.html (3 sd-dropdown, 2 rubrics).
+    {
+        "name": "tab-label",
+        "selector": "label.sd-tab-label",
+        "kind": "heading",
+        "status": "implemented",
+        "evidence": (
+            "dev/install/installation.html renders label.sd-tab-label for 'pip', "
+            "'conda', 'Windows', …; without a rule they convert to bare "
+            "paragraphs indistinguishable from body text, so a reader cannot "
+            "tell the alternatives apart"
+        ),
+    },
+    {
+        "name": "tab-input",
+        "selector": "input[name^='sd-tab-set']",
+        "kind": "drop",
+        "status": "implemented",
+        "evidence": (
+            "dev/install/installation.html uses hidden radio inputs to drive the "
+            "CSS-only tab switch; they carry no reader content"
+        ),
+    },
+    {
+        "name": "dropdown-summary",
+        "selector": "summary.sd-summary-title",
+        "kind": "heading",
+        "status": "implemented",
+        "evidence": (
+            "dev/devel/guide_maintainer.html renders "
+            "details.sd-dropdown > summary.sd-summary-title; the title otherwise "
+            "converts to a bare line with no indication it labels a collapsed section"
+        ),
+    },
+    {
+        "name": "rubric",
+        "selector": "p.rubric",
+        "kind": "heading",
+        "status": "implemented",
+        "evidence": (
+            "dev/devel/guide_maintainer.html and dev/apis/scikitplot.corpus.html "
+            "render p.rubric ('Preparation', 'Permissions'); a rubric is "
+            "semantically a heading but converts to an ordinary paragraph"
+        ),
+    },
+    {
+        "name": "hlist",
+        "selector": "table.hlist",
+        "kind": "unwrap",
+        "status": "implemented",
+        "evidence": (
+            "dev/learn/terminology/index.html uses 27 table.hlist elements. "
+            "Sphinx's hlist is a *layout* table wrapping ordinary <ul>s; "
+            "converting it as a Markdown table produced a one-cell table with an "
+            "empty header and every list item flattened onto one line "
+            "('* A * B * C'), destroying 27 lists of terminology links"
+        ),
+    },
+    {
+        "name": "topic-title",
+        "selector": "p.topic-title",
+        "kind": "heading",
+        "status": "implemented",
+        "evidence": (
+            "dev/learn/hands-on/edtech/cloud-computing/6-open-vpn/vpn.html "
+            "renders nav.contents > p.topic-title ('Table of Contents'); like a "
+            "rubric it is semantically a heading but converts to a bare line"
+        ),
+    },
+    # ---- planned: declared, inert, and asserted inert -----------------------
+    # Each still needs rendered HTML before its selector can be written.
+    {
+        "name": "grid",
+        "selector": "div.sd-container-fluid",
+        "kind": "passthrough",
+        "status": "superseded",
+        "evidence": (
+            "the grid directive renders as sd-container-fluid/sd-row/sd-col; covered by the container, row and column rules"
+        ),
+    },
+    {
+        "name": "tab-content",
+        "selector": "div.sd-tab-content",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": (
+            "dev/install/installation.html; the panel body needs no wrapper of its own once its label is a heading"
+        ),
+    },
+    {
+        "name": "button-link",
+        "selector": "a.sd-btn",
+        "kind": "passthrough",
+        "status": "implemented",
+        "evidence": (
+            "dev/project/community.html renders a.sd-btn as a real anchor; the default link conversion already preserves text and href"
+        ),
+    },
+    {
+        "name": "thumbnail",
+        "selector": None,
+        "kind": "passthrough",
+        "status": "planned",
+        "evidence": (
+            "no sphx-glr-thumbcontainer markup in any fetched page; dev/index.html's img.img-thumbnail are sponsor logos, not sphinx_gallery thumbnails"
+        ),
+    },
+    {
+        "name": "jupyterlite",
+        "selector": None,
+        "kind": "passthrough",
+        "status": "planned",
+        "evidence": (
+            "dev/index.html has iframe.numpy-shell-frame, already covered by the video-embed rule; a dedicated label needs a real JupyterLite directive page"
+        ),
+    },
+)
+
+#: Rule kinds the converters know how to execute.
+CONVERSION_KINDS = (
+    "admonition",
+    "link",
+    "video",
+    "fence",
+    "drop",
+    "heading",
+    "unwrap",
+    "passthrough",
+)
+
+
+def _implemented_conversion_rules():
+    """Return the active rules, in table order.
+
+    Returns
+    -------
+    list of dict
+        Entries whose ``status`` is ``"implemented"``.
+
+    Notes
+    -----
+    Developer note: order is preserved because the browser applies rules in
+    sequence and the first match wins. Sorting here would change browser
+    behaviour without changing any rule.
+    """
+    return [rule for rule in CONVERSION_RULES if rule.get("status") == "implemented"]
+
+
+def _conversion_rules_payload():
+    """Serialise the active rules for the page config.
+
+    Returns
+    -------
+    list of dict
+        ``{"name", "selector", "kind", "label"}`` per active rule.
+
+    Notes
+    -----
+    Only the fields the browser needs are sent. ``evidence`` and ``status`` are
+    maintenance metadata and stay server-side; shipping them would grow every
+    page for no reader benefit.
+    """
+    payload = []
+    for rule in _implemented_conversion_rules():
+        selector = rule.get("selector")
+        if not selector:
+            continue
+        payload.append(
+            {
+                "name": rule["name"],
+                "selector": selector,
+                "kind": rule.get("kind", "passthrough"),
+                "label": rule.get("label", ""),
+            }
+        )
+    return payload
+
+
+def _match_conversion_rule(el):
+    """Find the first active rule matching a BeautifulSoup element.
+
+    Parameters
+    ----------
+    el : bs4.element.Tag
+        Element being converted.
+
+    Returns
+    -------
+    dict or None
+        The matching rule, or ``None``.
+
+    Notes
+    -----
+    Developer note: matching is done with ``soup.select`` semantics via the
+    element's own ``parent``, because a bare ``Tag`` has no ``matches``. The
+    selector is evaluated against the parent's subtree and the element is
+    checked for membership, which keeps the same selector string usable by the
+    browser's ``element.matches``. One selector language, two engines.
+    """
+    parent = getattr(el, "parent", None)
+    for rule in _implemented_conversion_rules():
+        selector = rule.get("selector")
+        if not selector:
+            continue
+        try:
+            if parent is not None and el in parent.select(selector):
+                return rule
+            if parent is None and el.select_one(selector) is el:
+                return rule
+        except (ValueError, NotImplementedError):
+            # An unsupported selector must not break a build; it is a rule
+            # authoring error, surfaced by the test suite rather than here.
+            continue
+    return None
+
+
+def _render_conversion_rule(  # ruff: ignore[too-many-return-statements]
+    rule: dict,
+    el,
+    text: str,
+):
+    """Render an element according to a matched rule.
+
+    Parameters
+    ----------
+    rule : dict
+        Entry from :data:`CONVERSION_RULES`.
+    el : bs4.element.Tag
+        Element being converted.
+    text : str
+        Already-converted Markdown of the element's children.
+
+    Returns
+    -------
+    str
+        Markdown for the element.
+
+    Examples
+    --------
+    >>> _render_conversion_rule({"kind": "drop"}, None, "ignored")
+    ''
+    """
+    kind = rule.get("kind", "passthrough")
+    if kind == "drop":
+        return ""
+    if kind == "unwrap":
+        return text or ""
+    if kind in ("link", "video"):
+        href = (el.get("src") or el.get("href") or "").strip() if el is not None else ""
+        if not href:
+            return text or ""
+        if kind == "video":
+            label, href = _video_link(href)
+        else:
+            label = rule.get("label") or "Link"
+        return f"\n[{label}]({href})\n"
+    if kind == "fence":
+        body = (text or "").strip()
+        return f"\n```\n{body}\n```\n"
+    if kind == "heading":
+        # Card headers arrive as <p class="sd-card-text"><strong>…</strong></p>
+        # inside a header <div>. Converting each layer independently yields
+        # ``****text****`` — four asterisks, which Markdown renders as literal
+        # punctuation, not bold. Flattening to the element's text and emitting a
+        # single emphasis pair is the whole point of the rule.
+        title = (el.get_text(strip=True) if el is not None else (text or "")).strip()
+        return f"\n**{title}**\n" if title else ""
+    return text or ""
+
+
+#: Embed-URL prefixes mapped to their shareable watch form.
+#:
+#: Taken from ``_sphinxcontrib_youtube`` rather than invented. That extension
+#: already makes this substitution itself for output formats that cannot embed:
+#: ``visit_video_node_epub`` and ``visit_video_node_latex`` emit a link built
+#: from ``platform_url``, which is ``https://youtu.be/`` for YouTube
+#: (``youtube.py``) and ``https://{instance}/w/`` for PeerTube
+#: (``peertube.py``). Markdown is in exactly that position, so it follows the
+#: same rule.
+#:
+#: Vimeo is deliberately absent. Its ``_platform_url`` *is*
+#: ``https://player.vimeo.com/video/`` (``vimeo.py``), so the submodule states
+#: no separate watch form and none is guessed here — only the label changes.
+VIDEO_EMBED_PREFIXES = (
+    ("https://www.youtube.com/embed/", "https://youtu.be/", "YouTube video"),
+    ("https://www.youtube-nocookie.com/embed/", "https://youtu.be/", "YouTube video"),
+    ("https://player.vimeo.com/video/", None, "Vimeo video"),
+)
+
+#: PeerTube is instance-hosted, so its embed path is matched rather than its host.
+PEERTUBE_EMBED_PATH = "/videos/embed/"
+PEERTUBE_WATCH_PATH = "/w/"
+
+
+def _video_link(src):
+    """Map an embed URL to a shareable link and a platform label.
+
+    Parameters
+    ----------
+    src : str
+        The ``src`` attribute of a video ``<iframe>``.
+
+    Returns
+    -------
+    tuple of (str, str)
+        ``(label, href)``. ``href`` is the watch URL where the platform defines
+        one, otherwise ``src`` unchanged.
+
+    Notes
+    -----
+    User note: the link you get is the one you would share with a person. An
+    embed URL renders a bare player and several clients refuse to open it, so
+    it is the wrong thing to paste into a chat or hand to an AI tool.
+
+    Developer note: query parameters are preserved. ``_sphinxcontrib_youtube``
+    appends ``url_parameters`` to the embed URL and carries them through to its
+    epub/latex link, so dropping them here would lose a start time or a
+    playlist position the author set deliberately.
+
+    Examples
+    --------
+    >>> _video_link("https://www.youtube.com/embed/dQw4w9WgXcQ")
+    ('YouTube video', 'https://youtu.be/dQw4w9WgXcQ')
+    >>> _video_link("https://player.vimeo.com/video/148751763")
+    ('Vimeo video', 'https://player.vimeo.com/video/148751763')
+    >>> _video_link("https://example.org/embedded")
+    ('Video', 'https://example.org/embedded')
+    """
+    if not src:
+        return "Video", src
+    for prefix, watch, label in VIDEO_EMBED_PREFIXES:
+        if src.startswith(prefix):
+            if watch is None:
+                return label, src
+            return label, watch + src[len(prefix) :]
+    if PEERTUBE_EMBED_PATH in src:
+        return "PeerTube video", src.replace(
+            PEERTUBE_EMBED_PATH, PEERTUBE_WATCH_PATH, 1
+        )
+    return "Video", src
+
+
+def _apply_conversion_rules(  # ruff: ignore[too-many-branches]
+    html_content: str,
+):
+    """Rewrite the parsed HTML according to the shared rule table.
+
+    Parameters
+    ----------
+    html_content : str
+        Raw HTML.
+
+    Returns
+    -------
+    str
+        HTML with ``drop`` elements removed, ``heading`` elements flattened to a
+        single bold paragraph, and ``link`` elements replaced by an anchor.
+        Returned unchanged when BeautifulSoup is unavailable or nothing matched.
+
+    Notes
+    -----
+    Developer note: rules are applied as a pre-pass over the soup rather than
+    through ``convert_<tag>`` overrides. Two reasons, both load-bearing.
+
+    First, markdownify's converter signatures have changed across releases, so
+    an override that delegates to ``super()`` pins the extension to one of them
+    — which the dependency policy forbids. A pre-pass needs no knowledge of the
+    converter's internals.
+
+    Second, a rule may target any element. ``label.sd-tab-label``,
+    ``summary.sd-summary-title`` and ``p.rubric`` each dispatch to a different
+    ``convert_*`` method, so covering them by override would mean one override
+    per tag and a rule table that could only address tags already overridden.
+    The pre-pass makes the selector the only thing that matters, which is what
+    lets the browser evaluate the same selector with ``element.matches``.
+
+    Elements are rewritten on a parsed copy; the caller's string is untouched.
+    """
+    rules = [
+        rule
+        for rule in _implemented_conversion_rules()
+        if rule.get("selector")
+        and rule.get("kind") in ("drop", "heading", "link", "video", "unwrap")
+    ]
+    if not rules:
+        return html_content
+    try:
+        from bs4 import BeautifulSoup  # noqa: PLC0415
+    except ImportError:
+        # Optional dependency absent: conversion still works, structures simply
+        # keep their default rendering.
+        return html_content
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    changed = False
+    for rule in rules:
+        try:
+            matches = soup.select(rule["selector"])
+        except (ValueError, NotImplementedError):
+            # An unsupported selector is a rule-authoring error, surfaced by the
+            # test suite rather than by breaking a build.
+            continue
+        kind = rule["kind"]
+        for el in matches:
+            if kind == "drop":
+                el.decompose()
+                changed = True
+            elif kind == "unwrap":
+                # A layout table carries no tabular meaning: Sphinx's hlist uses
+                # one to place an ordinary list in columns. Converting it as a
+                # table collapses every item onto a single line, because a
+                # Markdown cell cannot contain line breaks. Removing the table
+                # scaffolding lets the inner lists convert as lists.
+                for scaffold in el.find_all(["colgroup", "col"]):
+                    scaffold.decompose()
+                for scaffold in el.find_all(["thead", "tbody", "tr", "td", "th"]):
+                    scaffold.unwrap()
+                el.unwrap()
+                changed = True
+            elif kind == "heading":
+                title = el.get_text(strip=True)
+                if not title:
+                    el.decompose()
+                    changed = True
+                    continue
+                # Flatten to one emphasis pair. A card header arrives as
+                # <div><p><strong>…</strong></p></div>; converting each layer
+                # independently doubles the emphasis.
+                replacement = soup.new_tag("p")
+                strong = soup.new_tag("strong")
+                strong.string = title
+                replacement.append(strong)
+                el.replace_with(replacement)
+                changed = True
+            elif kind in ("link", "video"):
+                href = (el.get("src") or el.get("href") or "").strip()
+                if not href:
+                    continue
+                if kind == "video":
+                    label, href = _video_link(href)
+                else:
+                    label = rule.get("label") or "Link"
+                anchor = soup.new_tag("a", href=href)
+                anchor.string = label
+                el.replace_with(anchor)
+                changed = True
+    return str(soup) if changed else html_content
+
+
 def _build_converter_class():
     """Build and cache the :class:`SphinxMarkdownConverter` class lazily.
 
@@ -551,6 +1218,12 @@ def _build_converter_class():
             -----
             This method reads (but never mutates) the original element.
             """
+            rule = _match_conversion_rule(el)
+            if rule is not None and rule.get("kind") not in (
+                "admonition",
+                "passthrough",
+            ):
+                return _render_conversion_rule(rule, el, text)
             classes: list[str] = list(el.get("class") or [])
             if "admonition" in classes:
                 title_el = el.find("p", class_="admonition-title")
@@ -2014,6 +2687,63 @@ def _validate_base_url(url: str) -> str:
     return url.rstrip("/")
 
 
+COPY_MODES = ("browser", "static")
+
+
+def _validate_copy_mode(value):
+    """Validate the configured default Copy representation.
+
+    Parameters
+    ----------
+    value : str or None
+        Value of ``ai_assistant_copy_mode``. ``None`` selects the default.
+
+    Returns
+    -------
+    str
+        One of :data:`COPY_MODES`.
+
+    Raises
+    ------
+    ExtensionError
+        If ``value`` is neither ``None`` nor a member of :data:`COPY_MODES`.
+
+    See Also
+    --------
+    _validate_position : the same fail-fast pattern for panel placement.
+
+    Notes
+    -----
+    User note: ``"browser"`` copies what you are looking at, converted in the
+    page. ``"static"`` copies the file an AI reads, which is the same bytes the
+    *View as Markdown* link opens. They usually agree; where they differ, the
+    static file is authoritative.
+
+    Developer note: this rejects rather than coerces. A silently-corrected
+    ``ai_assistant_copy_mode = "Static"`` would produce a working build whose
+    Copy control disagrees with the documented contract, and that class of
+    defect is only ever found by a reader.
+
+    Examples
+    --------
+    >>> _validate_copy_mode(None)
+    'browser'
+    >>> _validate_copy_mode("static")
+    'static'
+    """
+    if value is None:
+        return COPY_MODES[0]
+    if not isinstance(value, str) or value not in COPY_MODES:
+        from sphinx.errors import (  # ruff: ignore[import-outside-top-level]
+            ExtensionError,
+        )
+
+        raise ExtensionError(
+            f"ai_assistant_copy_mode must be one of {COPY_MODES!r}, got {value!r}"
+        )
+    return value
+
+
 def _validate_position(position: str) -> str:
     """Validate and normalise the widget position string.
 
@@ -2399,6 +3129,11 @@ _THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
     "pydata_sphinx_theme": (
         "article.bd-article",
         "div.bd-article-container article",
+        # Some pages render article.bd-article as a title banner only, with the
+        # body in div.bd-content > section beside it. Verified on
+        # learn/terminology/index.html: the article holds one <p> (132 chars,
+        # 0 links) while div.bd-content holds 22 533 chars and 900 links.
+        "div.bd-content",
         'div[role="main"]',
         "main",
     ),
@@ -2540,6 +3275,151 @@ _THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
 }
 
 
+#: Minimum text length for a matched element to be accepted as page content.
+#:
+#: Below this, the match is treated as a banner or wrapper and the probe
+#: continues to the next selector. 200 characters is well under any real
+#: documentation page and well over a title block: the case that motivated it
+#: measured 132.
+CONTENT_MIN_CHARS = 200
+
+
+def _select_content_element(soup, selectors, min_chars: int = CONTENT_MIN_CHARS):
+    """Return the page's content element, skipping matches that hold none.
+
+    Parameters
+    ----------
+    soup : bs4.BeautifulSoup
+        Parsed page.
+    selectors : sequence of str
+        CSS selectors, most specific first.
+    min_chars : int, optional
+        Text length at or above which a match is accepted outright.
+
+    Returns
+    -------
+    bs4.element.Tag or None
+        The chosen element, or ``None`` when no selector matched at all.
+
+    Notes
+    -----
+    User note: if a page's Markdown contains only its title, this is the
+    function that decided which part of the page was "the content". Adding a
+    more specific selector to ``ai_assistant_content_selectors`` puts it first
+    in the probe.
+
+    Developer note: the previous rule was "first selector that matches wins",
+    which is wrong whenever a theme renders an empty container earlier in the
+    list than the real one. On ``learn/terminology/index.html`` the pydata theme
+    puts a title banner in ``article.bd-article`` -- 132 characters, no links --
+    and the 22 533-character body in ``div.bd-content`` beside it. The old rule
+    matched the banner and converted it, so every ``page.md`` for such a page
+    was its own title.
+
+    Selector *order* still leads: the first match carrying real content wins, so
+    a specific selector is never passed over in favour of a broader one that
+    happens to hold more. Only if no match clears ``min_chars`` does the largest
+    match win, which keeps a genuinely short page working rather than emitting
+    nothing.
+
+    Examples
+    --------
+    >>> from bs4 import BeautifulSoup  # doctest: +SKIP
+    >>> soup = BeautifulSoup(
+    ...     '<article class="a"><p>x</p></article><div class="b">'
+    ...     + "y" * 500
+    ...     + "</div>",
+    ...     "html.parser",
+    ... )  # doctest: +SKIP
+    >>> _select_content_element(soup, ["article.a", "div.b"])["class"]  # doctest: +SKIP
+    ['b']
+    """
+    best = None
+    best_len = -1
+    for selector in selectors:
+        try:
+            match = soup.select_one(selector)
+        except Exception:  # noqa: BLE001  # ruff: ignore[try-except-continue]
+            # soupsieve raises its own SelectorSyntaxError, which is not a
+            # subclass of ValueError. A malformed selector is a configuration
+            # error, reported by the sanitiser; it must not take down a build
+            # mid-conversion, and the probe continues to the next candidate.
+            continue
+        if match is None:
+            continue
+        length = len(match.get_text(strip=True))
+        if length >= min_chars:
+            return match
+        if length > best_len:
+            best, best_len = match, length
+    return best
+
+
+#: Default for ``ai_assistant_content_selector``. Recognised so an unset value
+#: does not outrank the theme's own selectors; see :func:`_detect_theme_preset`.
+_GENERIC_CONTENT_SELECTOR = "article"
+
+
+def _detect_theme_preset(config: Any) -> str:
+    """Return the selector preset to use, detecting it from ``html_theme``.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+
+    Returns
+    -------
+    str
+        A key of :data:`_THEME_SELECTOR_PRESETS`, or ``""`` when the theme is
+        unknown and no preset was configured.
+
+    Notes
+    -----
+    User note: you do not normally need to set ``ai_assistant_theme_preset``.
+    It is derived from ``html_theme``, so changing theme changes the selectors
+    with it. Set it explicitly only to override that, or to name a preset for a
+    theme this extension has not heard of -- ``"plain_html"`` is a reasonable
+    choice for an unfamiliar or non-Sphinx layout.
+
+    Developer note: an explicit setting always wins, so this cannot surprise a
+    site that already configured one. Detection normalises case and hyphens
+    because ``html_theme`` is written both ways in the wild
+    (``sphinx-rtd-theme`` and ``sphinx_rtd_theme`` are the same theme).
+
+    Without this, the preset table was 25 themes of dead weight: it is keyed by
+    theme name, and nothing read the theme name. A site switching to Furo kept
+    pydata's selectors and quietly converted the wrong element -- the same
+    failure that produced title-only ``page.md`` files.
+
+    Examples
+    --------
+    >>> class C:
+    ...     html_theme = "sphinx-rtd-theme"
+    >>> _detect_theme_preset(C())
+    'sphinx_rtd_theme'
+    >>> class D:
+    ...     html_theme = "something_unknown"
+    >>> _detect_theme_preset(D())
+    ''
+    """
+    explicit = _cfg_str(config, "ai_assistant_theme_preset")
+    if explicit:
+        return explicit
+
+    theme = _cfg_str(config, "html_theme") or ""
+    normalised = theme.strip().lower().replace("-", "_")
+    if normalised in _THEME_SELECTOR_PRESETS:
+        return normalised
+    # `sphinx_rtd_theme` is also published as `rtd`; `mkdocs-material` as
+    # `material`. Try the bare stem before giving up.
+    stem = normalised.removeprefix("sphinx_").removesuffix("_theme")
+    for candidate in (stem, f"sphinx_{stem}_theme", f"{stem}_theme"):
+        if candidate in _THEME_SELECTOR_PRESETS:
+            return candidate
+    return ""
+
+
 def _resolve_content_selectors(
     preset: str | None,
     custom_selectors: list[str],
@@ -2642,10 +3522,13 @@ def html_to_markdown(
         pass
 
     ConverterClass = _build_converter_class()  # noqa: N806
+    html_content = _apply_conversion_rules(html_content)
     return ConverterClass(
         heading_style="ATX",
         bullets="*",
-        strong_em_symbol="**",
+        # A single character: markdownify doubles it for <strong>. "**" here
+        # yields "****text****", which is not bold in any Markdown dialect.
+        strong_em_symbol="*",
         strip=tags,
     ).convert(html_content)
 
@@ -2761,11 +3644,7 @@ def _process_html_file_worker(
         html_content = html_file.read_text(encoding="utf-8", errors="replace")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        main_content = None
-        for selector in selectors:
-            main_content = soup.select_one(selector)
-            if main_content:
-                break
+        main_content = _select_content_element(soup, selectors)
 
         if main_content is None:
             return ("skipped", rel_str, "No main content element found")
@@ -3024,6 +3903,249 @@ def process_html_directory(
 # ---------------------------------------------------------------------------
 # Standalone llms.txt generator — PUBLIC
 # ---------------------------------------------------------------------------
+
+
+LLMS_TXT_FORMATS = ("structured", "flat")
+
+#: Documents placed before the first ``##`` section, in this order. These are
+#: the pages an agent should read first, and the layout puts them where a reader
+#: of the raw file will see them first too.
+LLMS_TXT_ROOT_FIRST = ("index.md", "README.md", "readme.md")
+
+
+def _llms_entry_title(markdown: str, fallback: str) -> str:
+    r"""Extract a human title from a Markdown document.
+
+    Parameters
+    ----------
+    markdown : str
+        Full text of a generated ``.md`` file.
+    fallback : str
+        Title to use when the document has no ATX heading, typically derived
+        from the file name.
+
+    Returns
+    -------
+    str
+        The first level-1 heading, or ``fallback``.
+
+    Notes
+    -----
+    Developer note: only ``# `` at the start of a line counts. A ``#`` inside a
+    fenced code block would be a false positive, but the generated files put the
+    page title first, so the first match is reached before any fence. Scanning
+    is bounded to the opening lines for that reason and to keep whole-site
+    generation linear in page count rather than page size.
+
+    Examples
+    --------
+    >>> _llms_entry_title("# Getting started\n\ntext", "fallback")
+    'Getting started'
+    >>> _llms_entry_title("no heading here", "Fallback")
+    'Fallback'
+    """
+    for line in markdown.splitlines()[:40]:
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            title = stripped[2:].strip()
+            if title:
+                return title
+        if stripped.startswith("```"):
+            break
+    return fallback
+
+
+def _llms_entry_description(markdown: str, limit: int = 160) -> str:
+    r"""Extract a one-line description from a Markdown document.
+
+    Parameters
+    ----------
+    markdown : str
+        Full text of a generated ``.md`` file.
+    limit : int, default=160
+        Maximum length of the returned description. Longer text is cut at the
+        last word boundary before ``limit`` and suffixed with an ellipsis.
+
+    Returns
+    -------
+    str
+        First prose paragraph flattened to one line, or ``""`` when the document
+        has no prose before its first heading or code block.
+
+    Notes
+    -----
+    User note: this is what an AI tool sees next to each link when it decides
+    which page to open. A page whose first paragraph is boilerplate will read as
+    boilerplate in ``llms.txt``.
+
+    Developer note: headings, fences, list markers, block quotes and directive
+    residue are skipped rather than included, because a description of
+    ``"- item"`` tells a reader nothing. Returning ``""`` is a valid outcome and
+    the caller omits the ``": description"`` suffix entirely rather than
+    emitting a dangling colon.
+
+    Examples
+    --------
+    >>> _llms_entry_description("# T\n\nA short summary.\n")
+    'A short summary.'
+    >>> _llms_entry_description("# T\n\n```py\ncode\n```\n")
+    ''
+    """
+    collected: list[str] = []
+    for line in markdown.splitlines()[:200]:
+        stripped = line.strip()
+        if not stripped:
+            if collected:
+                break
+            continue
+        if stripped.startswith(("```", ":::", "~~~")):
+            # A fence terminates the search. Prose *after* a leading code block
+            # is not a page summary, and without this the first line inside the
+            # fence would be collected as one.
+            break
+        if stripped.startswith(("#", "|", ">", "-", "*", "+", "..")):
+            if collected:
+                break
+            continue
+        if stripped[0].isdigit() and stripped[1:3] in (". ", ") "):
+            if collected:
+                break
+            continue
+        collected.append(stripped)
+    text = " ".join(collected).strip()
+    if not text:
+        return ""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip(",;:.")
+    return f"{cut}\u2026"
+
+
+def _llms_section_for(rel_posix: str, mapping: dict | None = None) -> str:
+    """Return the section heading a generated page belongs under.
+
+    Parameters
+    ----------
+    rel_posix : str
+        Path of the ``.md`` file relative to the output directory, using forward
+        slashes.
+    mapping : dict, optional
+        Explicit ``{path_prefix: section_title}`` overrides from
+        ``ai_assistant_llms_txt_sections``. The longest matching prefix wins, so
+        ``"apis/deprecated"`` can be separated from ``"apis"``.
+
+    Returns
+    -------
+    str
+        Section title, or ``""`` for a root-level page, which is emitted before
+        the first ``##`` heading.
+
+    Notes
+    -----
+    Developer note: the derived title is the first path segment with separators
+    turned into spaces and each word capitalised — ``user_guide/x.md`` becomes
+    ``User Guide``. It is deliberately mechanical. Anything cleverer would
+    produce headings that differ between projects for reasons a maintainer
+    cannot predict, and the override mapping exists for the cases where the
+    mechanical answer is wrong.
+
+    Examples
+    --------
+    >>> _llms_section_for("user_guide/intro.md")
+    'User Guide'
+    >>> _llms_section_for("index.md")
+    ''
+    >>> _llms_section_for("apis/x.md", {"apis": "API Reference"})
+    'API Reference'
+    """
+    if mapping:
+        for prefix in sorted(mapping, key=len, reverse=True):
+            normalised = str(prefix).strip("/")
+            if normalised and (
+                rel_posix == normalised or rel_posix.startswith(normalised + "/")
+            ):
+                return str(mapping[prefix])
+    head, sep, _ = rel_posix.partition("/")
+    if not sep:
+        return ""
+    words = head.replace("-", " ").replace("_", " ").split()
+    return " ".join(word[:1].upper() + word[1:] for word in words)
+
+
+def _render_llms_txt(project, summary, entries):
+    r"""Render the structured ``llms.txt`` body.
+
+    Parameters
+    ----------
+    project : str
+        Project name, used as the level-1 heading.
+    summary : str or None
+        One-paragraph description emitted as a block quote directly under the
+        heading. Omitted when empty.
+    entries : list of dict
+        Each entry provides ``section``, ``title``, ``url`` and ``description``.
+
+    Returns
+    -------
+    str
+        Complete file body, ending in a newline.
+
+    See Also
+    --------
+    _llms_section_for : how ``section`` is derived.
+
+    Notes
+    -----
+    Developer note: sections keep first-appearance order rather than being
+    sorted, so the file mirrors the order pages were generated in, which follows
+    the toctree. Sorting alphabetically would put ``API Reference`` before
+    ``Getting Started`` for every project, which is exactly backwards for a
+    reader — human or agent — meeting the project for the first time.
+
+    Examples
+    --------
+    >>> _render_llms_txt(
+    ...     "P",
+    ...     None,
+    ...     [
+    ...         {"section": "", "title": "Home", "url": "/index.md", "description": ""},
+    ...     ],
+    ... )
+    '# P\n\n- [Home](/index.md)\n'
+    """
+    lines = [f"# {project}", ""]
+    if summary:
+        lines.append(f"> {summary}")
+        lines.append("")
+
+    order: list[str] = []
+    grouped: dict[str, list] = {}
+    for entry in entries:
+        section = entry.get("section") or ""
+        if section not in grouped:
+            grouped[section] = []
+            order.append(section)
+        grouped[section].append(entry)
+
+    # Root-level pages first: they are the entry points, and an agent reading
+    # top-down should meet them before any section.
+    order.sort(key=lambda name: name != "")
+
+    for section in order:
+        if section:
+            lines.append(f"## {section}")
+            lines.append("")
+        for entry in grouped[section]:
+            title = entry.get("title") or entry.get("url", "")
+            url = entry.get("url", "")
+            description = entry.get("description") or ""
+            suffix = f": {description}" if description else ""
+            lines.append(f"- [{title}]({url}){suffix}")
+        lines.append("")
+
+    body = "\n".join(lines).rstrip("\n")
+    return body + "\n"
 
 
 def generate_llms_txt_standalone(
@@ -3398,11 +4520,24 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         return
 
     if not _has_markdown_deps():
-        log.warning(
-            "AI Assistant: Markdown generation requires beautifulsoup4 and "
-            "markdownify.  Install them with: "
-            "pip install beautifulsoup4 markdownify"
+        missing = [
+            "beautifulsoup4" if name == "bs4" else name
+            for name in ("bs4", "markdownify")
+            if importlib.util.find_spec(name) is None
+        ]
+        detail = ", ".join(missing) or "beautifulsoup4, markdownify"
+        verb = "is" if len(missing) == 1 else "are"
+        message = (
+            "AI Assistant: ai_assistant_generate_markdown is True but "
+            f"{detail} {verb} not installed, so no page.md was written and "
+            "llms.txt will be skipped. Every .md URL on the published site "
+            "will return 404. Install with: pip install " + detail.replace(", ", " ")
         )
+        if _cfg_bool(app.config, "ai_assistant_strict", False):
+            from sphinx.errors import ExtensionError  # noqa: PLC0415
+
+            raise ExtensionError(message)
+        log.warning(message)
         return
 
     outdir = Path(builder.outdir)
@@ -3410,7 +4545,7 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         app.config.ai_assistant_markdown_exclude_patterns
     )
 
-    preset: str | None = getattr(app.config, "ai_assistant_theme_preset", None) or None
+    preset: str | None = _detect_theme_preset(app.config) or None
     selectors: list[str] = list(
         _resolve_content_selectors(
             preset,
@@ -3473,7 +4608,7 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     )
 
 
-def generate_llms_txt(  # noqa: PLR0911
+def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
     app: Sphinx, exception: Exception | None
 ) -> None:
     """Post-build hook: write ``llms.txt`` listing all generated ``.md`` URLs.
@@ -3548,23 +4683,75 @@ def generate_llms_txt(  # noqa: PLR0911
     )
     project_name: str = getattr(app.config, "project", "Documentation")
 
+    # Read through the _cfg_* guards: an unset value, or a mock under test, is
+    # "not configured" rather than a misconfiguration, and must not warn.
+    fmt = _cfg_str(app.config, "ai_assistant_llms_txt_format") or LLMS_TXT_FORMATS[0]
+    if fmt not in LLMS_TXT_FORMATS:
+        log.warning(
+            "AI Assistant: ai_assistant_llms_txt_format=%r is not one of %r; using %r.",
+            fmt,
+            LLMS_TXT_FORMATS,
+            LLMS_TXT_FORMATS[0],
+        )
+        fmt = LLMS_TXT_FORMATS[0]
+    sections_map = _cfg_dict(app.config, "ai_assistant_llms_txt_sections")
+    summary = _cfg_str(app.config, "ai_assistant_llms_txt_summary")
+
+    # Entry points first, then everything else in generated (toctree) order.
+    def _root_first(md_file):
+        rel = str(md_file.relative_to(outdir)).replace(os.sep, "/")
+        if "/" not in rel and rel in LLMS_TXT_ROOT_FIRST:
+            return (0, LLMS_TXT_ROOT_FIRST.index(rel))
+        return (1, 0)
+
+    md_files = sorted(md_files, key=_root_first)
+
     llms_txt = outdir / "llms.txt"
     with llms_txt.open("w", encoding="utf-8") as fh:
-        fh.write(f"# {project_name} Documentation\n\n")
-        fh.write(
-            "This file lists all available documentation pages "
-            "in Markdown format.\n"
-            "Generated by scikitplot._externals._sphinx_ext._sphinx_ai_assistant.\n\n"
-        )
-        for md_file in md_files:
-            rel = md_file.relative_to(outdir)
-            rel_posix = str(rel).replace(os.sep, "/")
-            line = f"{base_url}/{rel_posix}" if base_url else rel_posix
-            if full_content:
-                content = md_file.read_text(encoding="utf-8", errors="replace")
-                fh.write(f"\n---\n{line}\n\n{content}\n")
-            else:
-                fh.write(f"{line}\n")
+        if fmt == "flat" or full_content:
+            # `full_content` inlines every page, so headings and descriptions
+            # would only repeat text that follows two lines later.
+            fh.write(f"# {project_name} Documentation\n\n")
+            fh.write(
+                "This file lists all available documentation pages "
+                "in Markdown format.\n"
+                "Generated by scikitplot._externals._sphinx_ext._sphinx_ai_assistant.\n\n"
+            )
+            for md_file in md_files:
+                rel = md_file.relative_to(outdir)
+                rel_posix = str(rel).replace(os.sep, "/")
+                line = f"{base_url}/{rel_posix}" if base_url else rel_posix
+                if full_content:
+                    content = md_file.read_text(encoding="utf-8", errors="replace")
+                    fh.write(f"\n---\n{line}\n\n{content}\n")
+                else:
+                    fh.write(f"{line}\n")
+        else:
+            entries = []
+            for md_file in md_files:
+                rel = md_file.relative_to(outdir)
+                rel_posix = str(rel).replace(os.sep, "/")
+                url = f"{base_url}/{rel_posix}" if base_url else rel_posix
+                try:
+                    text = md_file.read_text(encoding="utf-8", errors="replace")
+                except OSError as exc:
+                    # One unreadable page must not lose the whole index.
+                    log.warning(
+                        "AI Assistant: cannot read %s for llms.txt: %s", rel_posix, exc
+                    )
+                    text = ""
+                fallback = (
+                    rel.stem.replace("-", " ").replace("_", " ").strip() or rel_posix
+                )
+                entries.append(
+                    {
+                        "section": _llms_section_for(rel_posix, sections_map),
+                        "title": _llms_entry_title(text, fallback),
+                        "url": url,
+                        "description": _llms_entry_description(text),
+                    }
+                )
+            fh.write(_render_llms_txt(project_name, summary, entries))
 
     log.info(f"AI Assistant: llms.txt written with {len(md_files)} entries")
 
@@ -3643,6 +4830,48 @@ def _cfg_str_list(config: Any, key: str) -> list[str]:
     if isinstance(val, (list, tuple)):
         return [str(item) for item in val if isinstance(item, str)]
     return []
+
+
+def _cfg_dict(config: Any, key: str) -> dict | None:
+    """Safely read a mapping config value.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+    key : str
+        Configuration key to read.
+
+    Returns
+    -------
+    dict or None
+        The value when it is a genuine ``dict``; ``None`` otherwise, which the
+        caller treats as "not configured".
+
+    See Also
+    --------
+    _cfg_list : the same guard for sequence values.
+
+    Notes
+    -----
+    Developer note: this exists for the same reason as :func:`_cfg_list`. Under
+    test a Sphinx config is a :class:`~unittest.mock.MagicMock`, so attribute
+    access yields a mock rather than the configured type. Reading such a value
+    with a bare ``getattr`` and then type-checking it produces a warning that
+    accuses the maintainer of misconfiguring something they never set. Silence
+    there is correct: an unset value is not a mistake.
+
+    Examples
+    --------
+    >>> class C:
+    ...     mapping = {"apis": "API"}
+    >>> _cfg_dict(C(), "mapping")
+    {'apis': 'API'}
+    >>> _cfg_dict(C(), "absent") is None
+    True
+    """
+    val = getattr(config, key, None)
+    return dict(val) if isinstance(val, dict) else None
 
 
 def _cfg_list(config: Any, key: str) -> list:
@@ -4413,6 +5642,14 @@ def add_ai_assistant_context(
     config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
+        # The full probe list, so the browser resolves the content element the
+        # same way the build-time converter does.
+        "content_selectors": list(
+            _resolve_content_selectors(
+                _detect_theme_preset(app.config),
+                list(app.config.ai_assistant_content_selectors or []),
+            )
+        ),
         # Always include every feature flag — partial conf.py dicts are safe.
         "features": features_merged,
         "providers": providers_resolved,
@@ -4440,6 +5677,26 @@ def add_ai_assistant_context(
         "pdfUrlModeToggle": _cfg_bool(
             app.config, "ai_assistant_pdf_url_mode_toggle", True
         ),
+        # ---- Copy mode ------------------------------------------------------
+        # "browser" -> convenience (Turndown over the live DOM, the default)
+        # "static"  -> canonical   (fetch the build-time page.md)
+        # The browser may override this per reader; see the copy-mode switch.
+        "copyMode": _validate_copy_mode(
+            _cfg_str(app.config, "ai_assistant_copy_mode") or None
+        ),
+        # False hides the switch and pins Copy to copyMode.
+        "copyModeToggle": _cfg_bool(app.config, "ai_assistant_copy_mode_toggle", True),
+        # ---- shared conversion rules ----------------------------------------
+        # The browser builds its Turndown rules from this list, so the two
+        # conversion paths cannot drift apart: there is one table, not two.
+        "conversionRules": _conversion_rules_payload(),
+        # The embed→watch map, so the browser resolves a video link exactly as
+        # the build-time converter does. Sourced from _sphinxcontrib_youtube.
+        "videoEmbedPrefixes": [
+            {"prefix": prefix, "watch": watch, "label": label}
+            for prefix, watch, label in VIDEO_EMBED_PREFIXES
+        ],
+        "peertubePaths": {"embed": PEERTUBE_EMBED_PATH, "watch": PEERTUBE_WATCH_PATH},
         # ---- AI panel (floating chat drawer) --------------------------------
         # Basic identity
         "panelTitle": (
@@ -4962,6 +6219,46 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # Set False to hide the toggle and lock to the mode implied by
     # ``ai_assistant_pdf_export_url`` (URL mode when non-empty, Print otherwise).
     app.add_config_value("ai_assistant_pdf_url_mode_toggle", True, "html")
+    # ---- Copy mode ------------------------------------------------------
+    # Which representation the Copy control produces by default.
+    #
+    #   "browser"  convert the live DOM with the vendored Turndown build.
+    #              Convenience: needs no build artifact, so Copy keeps working
+    #              on a site with Markdown generation switched off.
+    #   "static"   fetch the build-time ``page.md``. Canonical: byte-identical
+    #              to what View opens and to what an AI provider is sent.
+    #
+    # Default "browser" because it always succeeds. An invalid value is
+    # rejected at build time rather than silently coerced, so a typo in
+    # ``conf.py`` is a build error and not a surprising runtime mode.
+    app.add_config_value("ai_assistant_copy_mode", "browser", "html")
+    # Whether the reader may switch modes. False pins Copy to
+    # ``ai_assistant_copy_mode`` and hides the switch entirely.
+    app.add_config_value("ai_assistant_copy_mode_toggle", True, "html")
+    # ---- llms.txt layout -------------------------------------------------
+    # "structured" (default) follows llmstxt.org: an H1, an optional blockquote
+    # summary, "## Section" headings and "- [Title](url): description" entries.
+    # "flat" restores the previous output, a bare list of URLs, for anything
+    # that already parses it line by line.
+    app.add_config_value("ai_assistant_llms_txt_format", "structured", "html")
+    # One-paragraph project description, emitted as the blockquote under the
+    # heading. Falls back to the Sphinx `project` description when unset.
+    app.add_config_value("ai_assistant_llms_txt_summary", None, "html")
+    # Optional {path_prefix: "Section Title"} overrides. Without it, section
+    # titles are derived from the first path segment.
+    app.add_config_value("ai_assistant_llms_txt_sections", None, "html")
+    # ---- strict mode ------------------------------------------------------
+    # When True, a configuration that asks for something the environment cannot
+    # deliver fails the build instead of warning. Currently that means
+    # `ai_assistant_generate_markdown = True` with beautifulsoup4 or
+    # markdownify missing.
+    #
+    # Default False, because an optional feature quietly staying off is the
+    # right behaviour for a docs build that never asked for it. But a site that
+    # set generate_markdown=True *did* ask, and a warning inside a 1 133-page
+    # build log is not a signal anyone sees — the published site simply serves
+    # 404 for every page.md.
+    app.add_config_value("ai_assistant_strict", False, "html")
 
     # ---- AI panel (floating chat drawer) config ----------------------------
     #

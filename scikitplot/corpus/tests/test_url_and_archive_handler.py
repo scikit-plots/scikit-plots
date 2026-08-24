@@ -1285,7 +1285,19 @@ class TestMaxWorkersParallel:
 
         # The bad file should produce an error entry, not silently vanish
         assert len(result.errors) == 1
-        assert str(bad) in str(result.errors[0][0])
+        record = result.errors[0]
+
+        # P-I1-04: errors are structured ErrorRecords, not (str, Exception) tuples.
+        assert record.source_id == str(bad)
+        assert record.code == "SOURCE_INGEST_FAILED"
+        assert record.category == "source"
+        assert record.exception_type  # the type NAME, not the exception object
+        assert record.traceback_text is None  # opt-in only
+
+        # F-R02-03: a BuildResult must be serialisable for run manifests.
+        import json
+
+        json.dumps([r.to_dict() for r in result.errors])
 
     def test_default_max_workers_is_1(self):
         assert BuilderConfig().max_workers == 1

@@ -168,6 +168,117 @@ def test_corpus_annoy_retriever_composition():
     assert res["structuredContent"]["citations"][0]["source_uri"] == "https://d.io/1#a1"
 
 
+
+
+def test_corpus_annoy_get_exposes_indexed_document():
+    r = CorpusAnnoyRetriever(_FakeEmbedder(), _FakeIndex(), _fake_lookup)
+    doc = r.get("d1")
+    assert doc is not None
+    assert doc.doc_id == "d1"
+    assert doc.text == "chunk one"
+    assert doc.source_uri == "https://d.io/1"
+    assert r.get("missing") is None
+
+
+def test_from_corpus_annoy_accepts_explicit_local_batch_embedder(monkeypatch, tmp_path):
+    calls = {}
+
+    class FakeDoc:
+        def __init__(self, doc_id, text, embedding=None):
+            self.doc_id = doc_id
+            self.text = text
+            self.normalized_text = text
+            self.input_path = "hamlet.txt"
+            self.source_title = "Hamlet"
+            self.embedding = embedding
+
+        def replace(self, **kwargs):
+            return FakeDoc(
+                self.doc_id,
+                self.text,
+                embedding=kwargs.get("embedding", self.embedding),
+            )
+
+    class FakeBuilderConfig:
+        def __init__(self, **kwargs):
+            calls["config"] = kwargs
+
+    class FakeCorpusBuilder:
+        def __init__(self, config):
+            self.config = config
+
+        def build(self, docs_path):
+            calls["docs_path"] = docs_path
+            return types.SimpleNamespace(
+                documents=[FakeDoc("h1", "sleep dream death")],
+                index=None,
+            )
+
+    class FakeRetrievalConfig:
+        def __init__(self, **kwargs):
+            calls["retrieval_config"] = kwargs
+
+    class FakeRetrievalIndex:
+        def __init__(self, config):
+            self.config = config
+            self.has_embeddings = False
+            self.docs = []
+
+        def build(self, documents):
+            self.docs = list(documents)
+            self.has_embeddings = True
+            calls["built_embedding"] = self.docs[0].embedding
+
+        def query(self, vector, k):
+            calls["query"] = (list(vector), k)
+            return [("h1", 0.9)]
+
+    class FakeEmbeddingEngine:
+        pass
+
+    fake_corpus = types.ModuleType("scikitplot.corpus")
+    fake_corpus.BuilderConfig = FakeBuilderConfig
+    fake_corpus.CorpusBuilder = FakeCorpusBuilder
+    fake_corpus.EmbeddingEngine = FakeEmbeddingEngine
+    fake_corpus.RetrievalConfig = FakeRetrievalConfig
+    fake_corpus.RetrievalIndex = FakeRetrievalIndex
+    monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
+
+    class LocalEmbedder:
+        def __call__(self, texts):
+            calls.setdefault("embed_batches", []).append(list(texts))
+            return [[1.0, 0.0] for _ in texts]
+
+    retriever = CorpusAnnoyRetriever.from_corpus_annoy(
+        str(tmp_path),
+        embedder=LocalEmbedder(),
+        backend="annoy",
+        metric="angular",
+        n_trees=11,
+    )
+    hits = retriever.search("sleep", k=1)
+
+    assert calls["config"] == {
+        "chunker": "paragraph",
+        "normalize": True,
+        "enrich": False,
+        "embed": False,
+        "build_index": False,
+    }
+    assert calls["retrieval_config"] == {
+        "match_mode": "semantic",
+        "backend": "annoy",
+        "index_kwargs": {"metric": "angular", "n_trees": 11},
+    }
+    assert calls["built_embedding"] == [1.0, 0.0]
+    assert calls["embed_batches"] == [
+        ["sleep dream death"],
+        ["sleep"],
+    ]
+    assert hits[0].doc_id == "h1"
+    assert hits[0].source_uri == "hamlet.txt"
+    assert hits[0].title == "Hamlet"
+
 def test_corpus_annoy_empty_query():
     r = CorpusAnnoyRetriever(_FakeEmbedder(), _FakeIndex(), _fake_lookup)
     assert r.search("   ", k=3) == []

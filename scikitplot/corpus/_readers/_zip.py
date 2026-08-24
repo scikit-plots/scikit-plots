@@ -429,7 +429,10 @@ class ZipReader(DocumentReader):
         member is fully extracted before its reader is called.
         """
         archive_path = self.input_path
-        archive_name = archive_path.name
+        # ``file_name`` preserves a parent ZipReader's filename_override for
+        # nested archives, giving compositional provenance such as
+        # ``outer.zip/inner.zip/document.txt``.
+        archive_name = self.file_name
         supported = set(DocumentReader.supported_types())
 
         tmp_dir = Path(tempfile.mkdtemp(prefix="skplt_zip_"))
@@ -553,7 +556,19 @@ class ZipReader(DocumentReader):
                             isbn=provenance.get("isbn"),
                             **member_kw,
                         )
-                        yield from sub_reader.get_raw_chunks()
+                        # Preserve child-reader provenance when yielding
+                        # through the outer ZipReader.  Without this bridge,
+                        # DocumentReader.get_documents() only sees the outer
+                        # archive reader and collapses every document to the
+                        # archive filename / UNKNOWN source type.
+                        member_label = f"{archive_name}/{member_path}"
+                        for raw_chunk in sub_reader.get_raw_chunks():
+                            bridged = dict(raw_chunk)
+                            bridged.setdefault("input_path", member_label)
+                            for key, value in sub_reader.source_provenance.items():
+                                if value is not None:
+                                    bridged.setdefault(key, value)
+                            yield bridged
                         logger.debug(
                             "ZipReader: processed member %s from %s (type=%s)",
                             member_path,

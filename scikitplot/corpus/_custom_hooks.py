@@ -28,7 +28,7 @@ Architecture overview:
     Layer 5 ── CustomNLPEnricher / CustomEnricherConfig (NLPEnricher backends)
     Layer 6 ── HookableCorpusPipeline / PipelineHooks  (lifecycle callbacks)
     Layer 7 ── FactoryCorpusBuilder / BuilderFactories (component factories)
-    Layer 8 ── CustomSimilarityIndex                   (custom scorer)
+    Layer 8 ── CustomRetrievalIndex                   (custom scorer)
 
 Layer 1 is implemented directly in :class:`~scikitplot.corpus._base.DocumentReader`
 via the ``custom_extractor`` and ``custom_extractor_kwargs`` dataclass fields — no
@@ -56,7 +56,7 @@ every customization point::
         BuilderFactories,
         FactoryCorpusBuilder,
         # Similarity
-        CustomSimilarityIndex,
+        CustomRetrievalIndex,
     )
 
 Python compatibility:
@@ -115,7 +115,7 @@ __all__ = [
     # Layer 4 — Normalizers
     "CustomNormalizer",
     # Layer 8 — Similarity scorer
-    "CustomSimilarityIndex",
+    "CustomRetrievalIndex",
     "FactoryCorpusBuilder",
     # Layer 6 — Pipeline hooks
     "HookableCorpusPipeline",
@@ -371,12 +371,12 @@ class CustomFilter(FilterBase):
             return bool(self._fn(doc))
         except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "CustomFilter(%r): fn raised on doc %r: %s. Discarding.",
+                "CustomFilter(%r): fn raised on doc %r: %s. Keeping document.",
                 self._name,
                 getattr(doc, "doc_id", "?"),
                 exc,
             )
-            return False
+            return True
 
     def __repr__(self) -> str:  # noqa: D105
         return f"CustomFilter(fn={self._name!r})"
@@ -1660,23 +1660,23 @@ class FactoryCorpusBuilder:
 
 
 # =============================================================================
-# Layer 8 — CustomSimilarityIndex
+# Layer 8 — CustomRetrievalIndex
 # =============================================================================
 
 
-class CustomSimilarityIndex:
+class CustomRetrievalIndex:
     """
-    :class:`~scikitplot.corpus._similarity.SimilarityIndex` extended with a
+    :class:`~scikitplot.corpus._similarity.RetrievalIndex` extended with a
     fully-replaceable custom scorer callable.
 
     When ``custom_scorer_fn`` is provided, :meth:`search` calls it instead of
     the built-in strict / keyword / semantic / hybrid modes.  The callable
     receives the query string, the full document list, and the
-    :class:`~scikitplot.corpus._similarity.SearchConfig` object.
+    :class:`~scikitplot.corpus._similarity.RetrievalConfig` object.
 
     Parameters
     ----------
-    config : SearchConfig or None, optional
+    config : RetrievalConfig or None, optional
         Default search configuration.
     custom_scorer_fn : callable or None, optional
         Custom scoring callable.  When set, completely replaces the built-in
@@ -1685,11 +1685,11 @@ class CustomSimilarityIndex:
             def custom_scorer_fn(
                 query: str,
                 documents: list[CorpusDocument],
-                config: SearchConfig,
-            ) -> list[SearchResult]: ...
+                config: RetrievalConfig,
+            ) -> list[RetrievalHit]: ...
 
         The callable must return a list of
-        :class:`~scikitplot.corpus._similarity.SearchResult` instances.
+        :class:`~scikitplot.corpus._similarity.RetrievalHit` instances.
 
     Raises
     ------
@@ -1702,7 +1702,7 @@ class CustomSimilarityIndex:
     a dense retrieval backend (Weaviate, Qdrant, Pinecone), or any other
     scoring logic that requires access to the full document list at query time.
 
-    **Developer note:** The built-in index (:class:`~scikitplot.corpus._similarity.SimilarityIndex`)
+    **Developer note:** The built-in index (:class:`~scikitplot.corpus._similarity.RetrievalIndex`)
     is wrapped, not subclassed, to avoid MRO conflicts with its lazy-import
     dependencies.  All ``build()``, property, and ``__repr__`` calls are
     delegated to the inner index.
@@ -1720,14 +1720,14 @@ class CustomSimilarityIndex:
             texts = [d.text[:512] for d in docs]
             resp = co.rerank(query=query, documents=texts, top_n=cfg.top_k)
             return [
-                SearchResult(
+                RetrievalHit(
                     doc=docs[r.index], score=r.relevance_score, match_mode="cohere"
                 )
                 for r in resp.results
             ]
 
 
-        index = CustomSimilarityIndex(custom_scorer_fn=cohere_rerank)
+        index = CustomRetrievalIndex(custom_scorer_fn=cohere_rerank)
         index.build(corpus_documents)
         results = index.search("clinical trial outcomes")
     """  # noqa: D205
@@ -1743,10 +1743,10 @@ class CustomSimilarityIndex:
 
         Parameters
         ----------
-        config : SearchConfig or None, optional
+        config : RetrievalConfig or None, optional
             config.
         custom_scorer_fn : callable or None, optional
-            ``(query, documents, config) -> list[SearchResult]``.
+            ``(query, documents, config) -> list[RetrievalHit]``.
 
         Raises
         ------
@@ -1754,17 +1754,17 @@ class CustomSimilarityIndex:
             If ``custom_scorer_fn`` is not callable.
         """
         from ._similarity._similarity import (  # noqa: PLC0415
-            SearchConfig,
-            SimilarityIndex,
+            RetrievalConfig,
+            RetrievalIndex,
         )
 
         if custom_scorer_fn is not None and not callable(custom_scorer_fn):
             raise TypeError(
-                "CustomSimilarityIndex: custom_scorer_fn must be callable or None; "
+                "CustomRetrievalIndex: custom_scorer_fn must be callable or None; "
                 f"got {type(custom_scorer_fn).__name__!r}."
             )
 
-        self._inner = SimilarityIndex(config=config or SearchConfig())
+        self._inner = RetrievalIndex(config=config or RetrievalConfig())
         self.config = self._inner.config
         self.custom_scorer_fn = custom_scorer_fn
         self._scorer_name = (
@@ -1809,21 +1809,21 @@ class CustomSimilarityIndex:
 
         When ``custom_scorer_fn`` is set it is called with
         ``(query, documents, resolved_config)`` and its return value is
-        used directly.  Otherwise :meth:`~scikitplot.corpus._similarity.SimilarityIndex.search`
+        used directly.  Otherwise :meth:`~scikitplot.corpus._similarity.RetrievalIndex.search`
         is called on the inner index.
 
         Parameters
         ----------
         query : str
             Query string.
-        config : SearchConfig or None, optional
+        config : RetrievalConfig or None, optional
             Per-query config override.
         query_embedding : array-like or None, optional
             Pre-computed query embedding for semantic/hybrid modes.
 
         Returns
         -------
-        list[SearchResult]
+        list[RetrievalHit]
             Results sorted by descending score.
 
         Raises
@@ -1835,7 +1835,7 @@ class CustomSimilarityIndex:
 
         if self.custom_scorer_fn is not None:
             logger.info(
-                "CustomSimilarityIndex: calling custom_scorer_fn %r.",
+                "CustomRetrievalIndex: calling custom_scorer_fn %r.",
                 self._scorer_name,
             )
             try:
@@ -1846,7 +1846,7 @@ class CustomSimilarityIndex:
                 )
             except Exception as exc:
                 raise RuntimeError(
-                    f"CustomSimilarityIndex: custom_scorer_fn "
+                    f"CustomRetrievalIndex: custom_scorer_fn "
                     f"{self._scorer_name!r} raised: {exc}"
                 ) from exc
 
@@ -1872,7 +1872,7 @@ class CustomSimilarityIndex:
 
     def __repr__(self) -> str:  # noqa: D105
         return (
-            f"CustomSimilarityIndex("
+            f"CustomRetrievalIndex("
             f"n_docs={self.n_documents}, "
             f"dense={self.has_embeddings}, "
             f"scorer={self._scorer_name!r})"

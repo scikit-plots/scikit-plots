@@ -189,6 +189,33 @@ ast: astropy
 	@python ./maint_tools/verify_vendor.py "../scikitplot/cexternals/_astropy"
 
 ######################################################################
+## complex submodule: (c)externals
+######################################################################
+
+# v1.0.0 03d825b62d89c99f6213c430ca309ebadb13305b
+# main   2a971d7da6a5d7df81f7bff3612ee1822a060c17
+sphinx_llm:
+	@bash ./maint_tools/vendor_repo.sh \
+		--repo-url "https://github.com/NVIDIA/sphinx-llm.git" \
+		--repo-ref "2a971d7da6a5d7df81f7bff3612ee1822a060c17" \
+		--target-dir "../third_party/sphinx_llm" \
+    	--move-to "../scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm" \
+		--nested-folder "src/sphinx_llm" \
+		--src-subdir "src/sphinx_llm" \
+		--readme-name "README.md"
+
+sllm: sphinx_llm
+	@python ../scikitplot/_build_utils/fix_submodule_import.py \
+		-m 'sphinx_llm' \
+		-r '../scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm'
+
+	@bash ./maint_tools/vendor_repo.sh \
+		--target-dir "../scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm" \
+		--update-hash
+
+	@python ./maint_tools/verify_vendor.py "../scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm"
+
+######################################################################
 ## verify test
 ######################################################################
 

@@ -1,0 +1,22 @@
+{
+  "name": "scikitplot-docs-continue",
+  "displayName": "scikit-plots Docs (Continue)",
+  "description": "Read-only, source-cited documentation search for scikit-plots, served over the Model Context Protocol.",
+  "version": "0.1.0",
+  "author": {
+    "name": "The scikit-plots developers"
+  },
+  "homepage": "https://github.com/scikit-plots/scikit-plots",
+  "repository": "https://github.com/scikit-plots/scikit-plots",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "scikit-plots",
+    "documentation",
+    "retrieval",
+    "search",
+    "citations",
+    "mcp",
+    "read-only",
+    "continue"
+  ]
+}

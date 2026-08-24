@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
+from ...conftest import captured_logger
+
 from .._xml import _clark_to_prefix, _xpath_elements
 
 
@@ -117,56 +119,106 @@ class TestXpathElementsStdlib:
     def test_no_match_returns_empty(self) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
         results = _xpath_elements(root, ".//div", {})
-        assert results == []
+        assert list(results) == []
 
     def test_bad_xpath_returns_empty_not_raises(self) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
         results = _xpath_elements(root, "[invalid xpath!!!", {})
-        assert results == []
+        assert list(results) == []
 
     def test_bad_xpath_logs_warning_and_returns_empty(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
-
-        with caplog.at_level(
+        # I prefer caplog with direct handler attachment, because you're testing the logging semantic, not terminal presentation.
+        # capfd versus caplog They test two different contracts.
+        # Use: caplog when you want to prove: a WARNING LogRecord was emitted
+        # Use: capfd  when you want to prove: the final configured application output reached stderr
+        logger = logging.getLogger(
+            "scikitplot.corpus._readers._xml"
+        )
+        with captured_logger(
+            caplog,
+            logger.name,
             logging.WARNING,
-            logger="scikitplot.corpus._readers._xml",
         ):
             results = _xpath_elements(
                 root,
                 "[invalid xpath!!!",
                 {},
             )
-
         # caplog.messages	    A list of all captured log messages, formatted for easy access.
         # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
         # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
         # caplog.record_tuples	A list of tuples, each containing the logger name, log level, and message, allowing for structured assertions.
-        assert results == []
-        assert "stdlib XPath error" in caplog.text
+        assert list(results) == []
+        assert any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "invalid or unsupported" in record.getMessage()
+            and "XPath" in record.getMessage()
+            for record in caplog.records
+        )
+        # assert "stdlib XPath error" in caplog.text
+        # assert "stdlib XPath error" in caplog.readouterr().err
         # Just ensure it didn't raise
+        #
+        # This preserves exactly the architecture you want:
+        # invalid XPath
+        # → warning ✅
+        # → empty result ✅
+        # → no exception ✅
+        # → pipeline continues ✅
+        # → project propagate=False unchanged ✅
 
-
+    # INVALID XPath
+    # → []
+    # → WARNING ✅
+    # VALID XPath / zero matches
+    # → []
+    # → no WARNING ✅
+    # python -m pytest \
+    # scikitplot/corpus/_readers/tests/test__xml_advanced.py::TestXpathElementsStdlib::test_bad_xpath_logs_warning_and_returns_empty \
+    # scikitplot/corpus/_readers/tests/test__xml_advanced.py::TestXpathElementsStdlib::test_valid_xpath_with_no_match_does_not_log_warning \
+    # -vv
     def test_valid_xpath_with_no_match_does_not_log_warning(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
-
-        with caplog.at_level(
+        # I prefer caplog with direct handler attachment, because you're testing the logging semantic, not terminal presentation.
+        # capfd versus caplog They test two different contracts.
+        # Use: caplog when you want to prove: a WARNING LogRecord was emitted
+        # Use: capfd  when you want to prove: the final configured application output reached stderr
+        logger = logging.getLogger(
+            "scikitplot.corpus._readers._xml"
+        )
+        with captured_logger(
+            caplog,
+            logger.name,
             logging.WARNING,
-            logger="scikitplot.corpus._readers._xml",
         ):
             results = _xpath_elements(
                 root,
                 ".//missing",
                 {},
             )
-
-        assert results == []
-        assert "XPath error" not in caplog.text
+        # caplog.messages	    A list of all captured log messages, formatted for easy access.
+        # caplog.text	        A string containing the entire captured log output, useful for text-based assertions.
+        # caplog.records	    A list of logging.LogRecord instances, providing detailed information about each log event.
+        # caplog.record_tuples	A list of tuples, each containing the logger name, log level, and message, allowing for structured assertions.
+        assert list(results) == []
+        assert not any(
+            record.name == logger.name
+            and record.levelno == logging.WARNING
+            and "invalid or unsupported" in record.getMessage()
+            and "XPath" in record.getMessage()
+            for record in caplog.records
+        )
+        # assert "stdlib XPath error" in caplog.text
+        # assert "stdlib XPath error" in caplog.readouterr().err
+        # Just ensure it didn't raise
 
 
 # ===========================================================================

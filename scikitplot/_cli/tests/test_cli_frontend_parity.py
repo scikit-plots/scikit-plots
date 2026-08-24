@@ -24,6 +24,8 @@ MATRIX = [
     ["show-config", "--format", "toml"],
     ["info", "--format", "toml"],
     ["show-versions", "--format", "json"],
+    ["show-versions", "--mode", "dict", "--format", "json"],
+    ["show-config", "--mode", "dicts", "--format", "toml"],
     ["doctor"],
     ["doctor", "--mask-envs"],
     ["doctor", "--mask-envs", "--format", "json"],

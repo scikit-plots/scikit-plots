@@ -24,7 +24,7 @@ Design principles:
 * All public types are ``dataclass(frozen=True)`` or ``Protocol`` — no
   mutable shared state.
 * Every field has an explicit type annotation and default where safe.
-* ``ChunkerConfig``, ``SourceConfig``, ``NormalizerConfig``, and
+* ``ChunkerConfig``, ``SourceConfig``, ``NormalizerConfigBase``, and
   ``StorageConfig`` are abstract base dataclasses — concrete subclasses
   in their respective submodules inherit from them.
 * No circular imports: this module imports only from the standard library.
@@ -39,8 +39,6 @@ from __future__ import annotations
 
 import hashlib
 import types
-import uuid
-import warnings  # LOW-03 / CRITICAL-01b: needed for DeprecationWarning on legacy classes
 from dataclasses import dataclass, field
 from dataclasses import replace as _dc_replace
 from enum import Enum, unique
@@ -55,11 +53,9 @@ from typing import (  # noqa: F401
     runtime_checkable,
 )
 
-if TYPE_CHECKING:
-    from typing_extensions import Self  # noqa: F401
-
-# if TYPE_CHECKING:
-#     pass  # reserved for forward-reference stubs
+if TYPE_CHECKING:  # pragma: no cover - typing-only imports
+    from .._schema import CorpusDocument
+    from ._schema import ChunkingStrategy
 
 __all__: Final[list[str]] = [  # noqa: RUF022
     # Aliases
@@ -71,27 +67,23 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     # Enumerations
     "DocumentStatus",
     "ContentType",
-    "ChunkStrategy",  # deprecated 0.4.0 → ChunkingStrategy; kept for compat
     "StorageBackend",
     "NormalizerType",
     # Core containers
     "Chunk",
     "ChunkResult",
-    "Document",  # deprecated 0.4.0 → CorpusDocument; kept for compat
     # Abstract configs
     "ChunkerConfig",
     "SourceConfig",
-    "NormalizerConfig",
+    "NormalizerConfigBase",
     "StorageConfig",
     # Pipeline
     "PipelineStep",
     "PipelineConfig",
-    "LegacyPipelineResult",  # HIGH-06: canonical name (deprecated 0.4.0 → 0.6.0)
-    "PipelineResult",  # HIGH-06: backward-compat alias = LegacyPipelineResult
     # Embedding / retrieval
     "EmbeddedChunk",
     "RetrievalQuery",
-    "RetrievalResult",
+    "ChunkHit",
     # Storage
     "CorpusRecord",
     # Protocols
@@ -108,8 +100,8 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     "TrainingExample",
     "TrainingDataset",
     # MCP
-    "MCPToolInput",
-    "MCPToolResult",
+    "ToolCallInput",
+    "ToolCallResult",
     # Multilang / preprocessing (Layer 0–3)  # noqa: RUF003
     "SemantemeInfo",
     "PreprocessingStep",
@@ -145,7 +137,7 @@ EmbeddingVector = list[float]
 
 @unique
 class DocumentStatus(str, Enum):
-    """Lifecycle state of a :class:`Document` in the corpus pipeline.
+    """Lifecycle state of a :class:`CorpusDocument` in the corpus pipeline.
 
     Values
     ------
@@ -206,71 +198,6 @@ class ContentType(str, Enum):
     CSV = "text/csv"
     CODE = "text/x-code"
     UNKNOWN = "application/octet-stream"
-
-
-@unique
-class ChunkStrategy(str, Enum):
-    """Registered chunking strategy identifiers.
-
-    .. deprecated:: 0.4.0
-        Use :class:`~scikitplot.corpus._schema.ChunkingStrategy` instead.
-        ``ChunkStrategy`` duplicates ``ChunkingStrategy`` and **will be
-        removed in 0.6.0**.  Replace every ``ChunkStrategy.SENTENCE`` with
-        ``ChunkingStrategy.SENTENCE``, etc.
-
-    Values
-    ------
-    SENTENCE
-        Sentence-boundary splitting.
-    PARAGRAPH
-        Blank-line paragraph splitting.
-    FIXED_WINDOW
-        Fixed-size sliding window.
-    WORD
-        Word-level tokenisation / normalisation.
-    SEMANTIC
-        Embedding-based semantic segmentation (future).
-    RECURSIVE
-        Recursive character splitter (LangChain-style, future).
-    CUSTOM
-        User-registered strategy not in the standard set.
-    """
-
-    # LOW-03b fix: emit DeprecationWarning on first member access so callers
-    # are notified at runtime, not just via static analysis.
-    def __new__(cls, value: str) -> Self:
-        obj = str.__new__(cls, value)
-        obj._value_ = value
-        warnings.warn(
-            "ChunkStrategy is deprecated since 0.4.0 and will be removed in "
-            "0.6.0. Use ChunkingStrategy from scikitplot.corpus._schema.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return obj
-
-    SENTENCE = "sentence"
-    PARAGRAPH = "paragraph"
-    FIXED_WINDOW = "fixed_window"
-    WORD = "word"
-    SEMANTIC = "semantic"
-    RECURSIVE = "recursive"
-    CUSTOM = "custom"
-
-
-# LOW-03b fix (revised): Python Enum caches members at class-definition time,
-# so __new__ fires only once during the class body — NOT when a caller accesses
-# ChunkStrategy.SENTENCE later.  The correct pattern for a deprecated Enum is
-# to emit the warning at the point where the caller first imports the name.
-# We achieve this by overriding __class_getitem__ and adding a module-level
-# __getattr__ in _types.py so that `from _types import ChunkStrategy` triggers
-# the warning.  The simpler alternative (used here to avoid modifying module
-# __getattr__ which is fragile) is to attach the warning to the class itself
-# via __init_subclass__ cannot apply to the class itself.  We therefore use the
-# most reliable approach: emit once at module import via a side-effecting
-# registration after the class body.
-# This means the warning fires when `_types` is first imported — which is
-# exactly when `from scikitplot.corpus import ChunkStrategy` resolves.
 
 
 @unique
@@ -517,159 +444,6 @@ class ChunkResult:
 
 
 @dataclass(frozen=True)
-class Document:
-    """A raw source document entering the corpus pipeline.
-
-    .. deprecated:: 0.4.0
-        Use :class:`~scikitplot.corpus._schema.CorpusDocument` instead.
-        ``Document`` **will be removed in 0.6.0**.
-
-    Parameters
-    ----------
-    doc_id : str
-        Globally unique document identifier.  Auto-generated (UUID4) if
-        not supplied explicitly — callers should prefer explicit IDs for
-        reproducible pipelines.
-    text : str
-        Full raw document text.  Must not be empty.
-    content_type : ContentType
-        MIME-style type of the document payload.
-    input_path : str or None
-        Human-readable origin descriptor (file path, URL, database key).
-    status : DocumentStatus
-        Current lifecycle state.  Defaults to ``PENDING``.
-    metadata : MetadataDict
-        Arbitrary document-level key/value pairs (language, author,
-        timestamp, tags, …).
-    checksum : str or None
-        SHA-256 hex digest of ``text``.  Set automatically via
-        :meth:`with_checksum` — not computed at construction to keep the
-        constructor pure.
-
-    Examples
-    --------
-    >>> doc = Document(
-    ...     doc_id="d1", text="Hello world.", content_type=ContentType.PLAIN_TEXT
-    ... )
-    >>> doc.status
-    <DocumentStatus.PENDING: 'pending'>
-    """
-
-    doc_id: str
-    text: str
-    content_type: ContentType = ContentType.PLAIN_TEXT
-    input_path: str | None = None
-    status: DocumentStatus = DocumentStatus.PENDING
-    metadata: MetadataDict = field(default_factory=dict)
-    checksum: str | None = None
-
-    def __post_init__(self) -> None:
-        # LOW-03a fix: emit DeprecationWarning so callers are notified at
-        # construction time, not just via static analysis or docstring.
-        # stacklevel=2 points the warning at the caller's line, not here.
-        warnings.warn(
-            "Document is deprecated since 0.4.0 and will be removed in 0.6.0. "
-            "Use CorpusDocument from scikitplot.corpus._schema instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    @staticmethod
-    def new(
-        text: str,
-        content_type: ContentType = ContentType.PLAIN_TEXT,
-        input_path: str | None = None,
-        metadata: MetadataDict | None = None,
-    ) -> Document:
-        """Construct a :class:`Document` with an auto-generated UUID4 ID.
-
-        Parameters
-        ----------
-        text : str
-            Raw document text.
-        content_type : ContentType
-            MIME type of the content.
-        input_path : str, optional
-            Origin descriptor.
-        metadata : MetadataDict, optional
-            Extra metadata.
-
-        Returns
-        -------
-        Document
-            New instance with ``doc_id=str(uuid.uuid4())``.
-
-        Raises
-        ------
-        ValueError
-            If *text* is empty or whitespace-only.
-        """
-        if not text or not text.strip():
-            raise ValueError("Document text must not be empty.")
-        return Document(
-            doc_id=str(uuid.uuid4()),
-            text=text,
-            content_type=content_type,
-            input_path=input_path,
-            metadata=metadata or {},
-        )
-
-    def with_checksum(self) -> Document:
-        """Return a copy of this document with ``checksum`` populated.
-
-        Returns
-        -------
-        Document
-            New frozen instance with SHA-256 checksum set.
-
-        Notes
-        -----
-        CRITICAL-04d fix: uses ``dataclasses.replace`` so any field added to
-        :class:`Document` in the future is automatically preserved without
-        updating this method.
-        """
-        # CRITICAL-04d: dc_replace propagates all fields not listed here.
-        digest = hashlib.sha256(self.text.encode("utf-8")).hexdigest()
-        return _dc_replace(self, checksum=digest)
-
-    def with_status(self, status: DocumentStatus) -> Document:
-        """Return a copy of this document with an updated status.
-
-        Parameters
-        ----------
-        status : DocumentStatus
-            New lifecycle state.
-
-        Returns
-        -------
-        Document
-            New frozen instance with updated status.
-
-        Notes
-        -----
-        CRITICAL-04e fix: uses ``dataclasses.replace`` so any field added to
-        :class:`Document` in the future is automatically preserved without
-        updating this method.
-        """
-        # CRITICAL-04e: dc_replace propagates all fields not listed here.
-        return _dc_replace(self, status=status)
-
-    def char_count(self) -> int:
-        """Return the character length of the document text.
-
-        Returns
-        -------
-        int
-        """
-        return len(self.text)
-
-
-# ===========================================================================
-# Section 5 — Abstract config base classes
-# ===========================================================================
-
-
-@dataclass(frozen=True)
 class ChunkerConfig:
     """Abstract base configuration for all chunker implementations.
 
@@ -694,7 +468,7 @@ class SourceConfig:
 
 
 @dataclass(frozen=True)
-class NormalizerConfig:
+class NormalizerConfigBase:
     """Abstract base configuration for text normaliser implementations.
 
     Parameters
@@ -741,7 +515,7 @@ class PipelineStep:
     step_type : str
         One of ``"source"``, ``"normalizer"``, ``"chunker"``,
         ``"embedder"``, ``"storage"``.
-    config : ChunkerConfig | NormalizerConfig | SourceConfig | StorageConfig
+    config : ChunkerConfig | NormalizerConfigBase | SourceConfig | StorageConfig
         Configuration object for this step.  Must be an instance of the
         appropriate abstract config base.
     enabled : bool
@@ -750,7 +524,7 @@ class PipelineStep:
 
     name: str
     step_type: str
-    config: ChunkerConfig | NormalizerConfig | SourceConfig | StorageConfig
+    config: ChunkerConfig | NormalizerConfigBase | SourceConfig | StorageConfig
     enabled: bool = True
 
 
@@ -780,77 +554,6 @@ class PipelineConfig:
     steps: list[PipelineStep]
     description: str = ""
     metadata: MetadataDict = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class LegacyPipelineResult:
-    """Result returned after a complete pipeline run (types-layer record).
-
-    .. deprecated:: 0.4.0
-        This class collides in name with
-        :class:`~scikitplot.corpus._pipeline.PipelineResult` (the
-        canonical pipeline summary).  ``LegacyPipelineResult`` **will be
-        removed in 0.6.0**.  Use
-        :class:`~scikitplot.corpus._pipeline.PipelineResult` instead.
-
-    Parameters
-    ----------
-    pipeline_id : str
-        Identifier of the pipeline that produced this result.
-    doc_id : str
-        Identifier of the document that was processed.
-    chunk_results : list[ChunkResult]
-        One :class:`ChunkResult` per chunker step in the pipeline.
-    status : DocumentStatus
-        Final document status after the run.
-    error : str or None
-        Error message if ``status == FAILED``.  ``None`` on success.
-    metadata : MetadataDict
-        Aggregate run metadata (duration_ms, step_timings, …).
-    """
-
-    pipeline_id: str
-    doc_id: str
-    chunk_results: list[ChunkResult]
-    status: DocumentStatus
-    error: str | None = None
-    metadata: MetadataDict = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        # HIGH-06 / LOW-03c fix: warn on construction so callers see the
-        # collision risk immediately.  stacklevel=2 points at the caller.
-        warnings.warn(
-            "LegacyPipelineResult (formerly PipelineResult in _types) is "
-            "deprecated since 0.4.0 and will be removed in 0.6.0. "
-            "Use PipelineResult from scikitplot.corpus._pipeline instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    def succeeded(self) -> bool:
-        """Return ``True`` if the pipeline completed without error.
-
-        Returns
-        -------
-        bool
-        """
-        return self.status == DocumentStatus.READY
-
-    def all_chunks(self) -> list[Chunk]:
-        """Flatten all :class:`ChunkResult` objects into a single list.
-
-        Returns
-        -------
-        list[Chunk]
-            All chunks from all chunker steps, in order.
-        """
-        return [chunk for result in self.chunk_results for chunk in result.chunks]
-
-
-# HIGH-06 / backward-compat alias: code that imported PipelineResult from
-# _types still works; the DeprecationWarning fires on construction, not import.
-# This alias will be removed in 0.6.0 together with LegacyPipelineResult.
-PipelineResult = LegacyPipelineResult  # noqa: N816  (lowercase-alias intentional)
 
 
 # ===========================================================================
@@ -926,7 +629,7 @@ class RetrievalQuery:
 
 
 @dataclass(frozen=True)
-class RetrievalResult:
+class ChunkHit:
     """A single result returned from the corpus retrieval layer.
 
     Parameters
@@ -1093,21 +796,21 @@ class NormalizerProtocol(Protocol):
 class SourceProtocol(Protocol):
     """Structural interface every document source must satisfy."""
 
-    def load(self) -> list[Document]:
+    def load(self) -> list[CorpusDocument]:
         """Load and return all available documents.
 
         Returns
         -------
-        list[Document]
+        list[CorpusDocument]
         """
         ...
 
-    def stream(self) -> Iterator[Document]:
+    def stream(self) -> Iterator[CorpusDocument]:
         """Yield documents one at a time without loading all into memory.
 
         Yields
         ------
-        Document
+        CorpusDocument
         """
         ...
 
@@ -1169,7 +872,7 @@ class StorageProtocol(Protocol):
     def search(
         self,
         query: RetrievalQuery,
-    ) -> list[RetrievalResult]:
+    ) -> list[ChunkHit]:
         """Execute a retrieval query against this backend.
 
         Parameters
@@ -1179,7 +882,7 @@ class StorageProtocol(Protocol):
 
         Returns
         -------
-        list[RetrievalResult]
+        list[ChunkHit]
             Ranked results.
         """
         ...
@@ -1196,7 +899,7 @@ class ChunkerRegistration:
 
     Parameters
     ----------
-    strategy : ChunkStrategy
+    strategy : ChunkingStrategy
         The strategy key this registration maps to.
     chunker_class : type
         The concrete chunker class (must satisfy :class:`ChunkerProtocol`).
@@ -1206,7 +909,7 @@ class ChunkerRegistration:
         Human-readable description of this chunker.
     """
 
-    strategy: ChunkStrategy
+    strategy: ChunkingStrategy
     chunker_class: type
     default_config: ChunkerConfig
     description: str = ""
@@ -1348,8 +1051,16 @@ class TrainingDataset:
 
 
 @dataclass(frozen=True)
-class MCPToolInput:
+class ToolCallInput:
     """Input payload for a Model Context Protocol tool call.
+
+    .. note::
+       **Protocol-neutral payload shape, not an MCP wire model.**
+       Corpus does not own the Model Context Protocol wire format
+       (see the submodule ownership split).  Adding a ``pydantic``
+       model, an ``mcp`` SDK import, or protocol-version handling to
+       this class would move wire concerns into Corpus and violate
+       that boundary.  Finding F-R15-01 / P-I0-13.
 
     Parameters
     ----------
@@ -1367,13 +1078,21 @@ class MCPToolInput:
 
 
 @dataclass(frozen=True)
-class MCPToolResult:
+class ToolCallResult:
     """Result returned from a Model Context Protocol tool call.
+
+    .. note::
+       **Protocol-neutral payload shape, not an MCP wire model.**
+       Corpus does not own the Model Context Protocol wire format
+       (see the submodule ownership split).  Adding a ``pydantic``
+       model, an ``mcp`` SDK import, or protocol-version handling to
+       this class would move wire concerns into Corpus and violate
+       that boundary.  Finding F-R15-01 / P-I0-13.
 
     Parameters
     ----------
     call_id : str
-        Identifier matching the originating :class:`MCPToolInput`.
+        Identifier matching the originating :class:`ToolCallInput`.
     content : Any
         Tool result payload (str, list, dict, …).
     is_error : bool
@@ -1985,50 +1704,3 @@ class MultilangChunkMeta:
             out["embedding"] = list(self.embedding)
 
         return out
-
-
-# ===========================================================================
-# Module-level __getattr__ — lazy deprecation warnings on legacy name access
-# ===========================================================================
-#
-# LOW-03b (revised): Python caches Enum members at class-definition time, so
-# overriding Enum.__new__ does NOT fire when a caller does `ChunkStrategy.SENTENCE`
-# after the class has already been defined.  The correct mechanism is a module-level
-# __getattr__ that fires the warning the first time the deprecated name is resolved
-# from this module (e.g. `from scikitplot.corpus._types import ChunkStrategy`).
-#
-# Note: this only covers direct imports from _types.  When the name is re-exported
-# through __init__.py the warning fires on the first access of the binding.
-# Callers who already have a reference to ChunkStrategy will NOT see the warning
-# again — this matches standard Python deprecation behaviour.
-
-_DEPRECATED_NAMES: dict[str, str] = {
-    "ChunkStrategy": (
-        "ChunkStrategy is deprecated since 0.4.0 and will be removed in 0.6.0. "
-        "Use ChunkingStrategy from scikitplot.corpus._schema instead."
-    ),
-}
-_DEPRECATED_WARNED: set[str] = set()
-
-
-def __getattr__(name: str) -> object:
-    """Emit ``DeprecationWarning`` on first access of deprecated module names.
-
-    Notes
-    -----
-    LOW-03b fix: Python resolves module-level names via ``__getattr__`` only
-    when the name is NOT already in the module ``__dict__``.  Deprecated names
-    that are still defined in the module body are therefore handled by keeping
-    them in ``_DEPRECATED_NAMES`` and popping them from ``__dict__`` at the
-    end of module initialisation — but that would break ``from _types import *``.
-    Instead we emit the warning here for the first ``import`` that triggers a
-    lookup, covering the common usage pattern.
-    """
-    if name in _DEPRECATED_NAMES and name not in _DEPRECATED_WARNED:
-        _DEPRECATED_WARNED.add(name)
-        warnings.warn(
-            _DEPRECATED_NAMES[name],
-            DeprecationWarning,
-            stacklevel=2,
-        )
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

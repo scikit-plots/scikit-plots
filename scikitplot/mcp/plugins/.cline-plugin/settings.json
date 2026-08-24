@@ -1,0 +1,11 @@
+{
+  "cline.mcpServers": {
+    "scikitplot-docs": {
+      "command": "python",
+      "args": [
+        "-m",
+        "scikitplot.mcp"
+      ]
+    }
+  }
+}

@@ -1195,7 +1195,7 @@ class WordChunker(MultilangMixin):
                 "WordChunkerConfig.custom_lemmatizer must be set when "
                 "lemmatizer=LemmatizationBackend.CUSTOM."
             )
-        # Guard SNOWBALL against unsupported languages (e.g. Arabic, CJK).
+        # Guard SNOWBALL against languages outside the supported backend set.
         if self._cfg.stemmer == StemmingBackend.SNOWBALL:
             langs = coerce_language(self._cfg.nltk_language, default="english")
             for lang in langs:

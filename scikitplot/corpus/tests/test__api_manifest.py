@@ -36,21 +36,19 @@ def test_pipeline_result_is_canonical():
     assert c.PipelineResult is Canonical
 
 
-def test_pipeline_result_is_not_the_deprecated_alias():
-    """It must not be the deprecated ``_types`` alias of LegacyPipelineResult."""
-    import scikitplot.corpus._types as _types
-
-    assert c.PipelineResult is not _types.PipelineResult
-
-
-def test_legacy_pipeline_result_still_reachable():
-    """The deprecated type stays importable under its explicit legacy name."""
-    from scikitplot.corpus._types import LegacyPipelineResult
-
-    assert c.LegacyPipelineResult is LegacyPipelineResult
-
-
 def test_all_names_resolve_on_this_platform():
     """Every advertised name must resolve as a real attribute of the facade."""
     missing = [n for n in c.__all__ if not hasattr(c, n)]
     assert not missing, f"names in __all__ with no attribute: {missing}"
+
+def test_pipeline_result_has_exactly_one_definition() -> None:
+    """
+    ADR-C22 / DEC-157: the LegacyPipelineResult shim and its ``_types`` alias
+    are deleted, so ``PipelineResult`` is defined once, in ``_pipeline``.
+    """
+    import scikitplot.corpus as c
+    from scikitplot.corpus import _pipeline, _types
+
+    assert c.PipelineResult is _pipeline.PipelineResult
+    assert not hasattr(_types, "PipelineResult")
+    assert not hasattr(_types, "LegacyPipelineResult")

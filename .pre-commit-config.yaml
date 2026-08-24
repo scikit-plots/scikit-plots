@@ -273,6 +273,7 @@ repos:
               |docs/build\
               |docs/source\
               |galleries\
+              |maintenances\
               |third_party\
               |tools\
               |tests\

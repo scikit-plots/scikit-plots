@@ -7,11 +7,18 @@
 
 """`scikitplot show-config` - build and runtime configuration.
 
-For human ``text`` output this delegates to the library ``show_config``. For
-structured output (``json``/``yaml``/``toml``) it reads the authoritative
-``CONFIG`` mapping directly, which is side-effect free and works regardless of
-whether the library ``show_config(mode="dicts")`` fix is applied. See
-``_maintenance/FINDINGS.md`` (CLI-FE-010) and ``show_config_fix.diff``.
+Two output controls:
+
+* ``--mode`` (default ``stdout``) selects the library render mode
+  (``stdout`` | ``dicts``).
+* ``--format`` (default ``text``) selects serialization for structured data.
+
+Precedence: an explicit structured ``--format`` (json/yaml/toml) always emits the
+configuration mapping. Otherwise ``--mode`` drives: ``stdout`` delegates to the
+library's printer; ``dicts`` emits the mapping as ``text``. Structured output is
+read from the authoritative ``CONFIG`` mapping directly (side-effect free), which
+is robust whether or not the library ``show_config(mode="dicts")`` fix is applied
+(see FINDINGS CLI-FE-010).
 """
 
 from __future__ import annotations
@@ -22,19 +29,27 @@ from ..context import Context
 from ..output import emit
 
 
-def run(ctx: Context, *, fmt: str = "text") -> int:
-    """Render build/runtime configuration in the requested format."""
-    if fmt == "text":
-        # lazy: library's human-readable printer
-        from ... import show_config  # ruff: ignore[import-outside-top-level]
-
-        show_config(mode="stdout")
-        return 0
+def _config_dict() -> dict:
     # Structured output: read the authoritative configuration mapping directly.
     # This avoids the historical ``show_config(mode="dicts")`` behavior that
     # pretty-printed to stdout and returned None, which corrupted machine output.
-    # single data source of truth
+    # single data source of truth, authoritative data source
     from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
 
-    emit(ctx, copy.deepcopy(CONFIG))
+    return copy.deepcopy(CONFIG)
+
+
+def run(ctx: Context, *, mode: str = "stdout", fmt: str = "text") -> int:
+    """Render configuration per ``--mode``/``--format`` (see module docstring)."""
+    if fmt != "text":  # explicit serialization wins
+        emit(ctx, _config_dict())
+        return 0
+    if mode == "dicts":  # structured data as text
+        emit(ctx, _config_dict())
+        return 0
+    # lazy: library's human-readable printer
+    # mode == "stdout": library printer
+    from ... import show_config  # ruff: ignore[import-outside-top-level]
+
+    show_config(mode="stdout")
     return 0

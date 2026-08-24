@@ -31,8 +31,40 @@ from typing import Mapping, TextIO
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, build_opener
 
+from ._capabilities import (  # SDK-free (no pydantic)
+    server_capabilities,
+    server_runtime_status,
+)
+from ._core import SearchCoordinator  # SDK-free (no pydantic)
 from ._demo import InMemoryBm25Retriever, builtin_demo_retriever
-from ._server import SearchService, create_server
+
+
+# Server-tier factories exposed as module attributes so callers/tests reference and
+# patch them here, but the pydantic + MCP-SDK import happens only when they are
+# CALLED. This keeps --help / --print-effective-config / --list-capabilities
+# base-install safe (no server-tier import), while --self-test / server startup
+# import the server tier on demand.
+def SearchService(*args, **kwargs):  # noqa: N802 (proxy keeps the class name)
+    """Lazy proxy for :class:`scikitplot.mcp._server.SearchService`."""
+    from ._server import (  # ruff: ignore[import-outside-top-level]
+        SearchService as _SearchService,
+    )
+
+    return _SearchService(*args, **kwargs)
+
+
+def create_server(*args, **kwargs):
+    """Lazy proxy for :func:`scikitplot.mcp._server.create_server`."""
+    from ._server import (  # ruff: ignore[import-outside-top-level]
+        create_server as _create_server,
+    )
+
+    return _create_server(*args, **kwargs)
+
+
+# NOTE: SearchService / create_server are imported lazily, only in the
+# branches that build the server tier, so --help / --print-effective-config /
+# --list-capabilities stay base-install safe (no pydantic/SDK import).
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _REMOTE_BIND_HOSTS = {"0.0.0.0", "::"}  # ruff: ignore[hardcoded-bind-all-interfaces]
@@ -51,6 +83,11 @@ class RuntimeConfig:
 
     transport: str
     docs_jsonl: str | None
+    corpus_annoy: str | None
+    corpus_embedding_model: str | None
+    hash_dimension: int
+    annoy_metric: str
+    annoy_n_trees: int
     host: str
     port: int
     path: str
@@ -93,6 +130,41 @@ def _parser() -> argparse.ArgumentParser:
         "--docs-jsonl",
         help="Optional bounded JSONL corpus; built-in demo is the default",
     )
+    parser.add_argument(
+        "--corpus-annoy",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Build a local scikitplot.corpus retriever from PATH and force the "
+            "Annoy vector backend. Uses the deterministic HashEmbedder unless "
+            "--corpus-embedding-model is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--corpus-embedding-model",
+        default=None,
+        help=(
+            "Optional model-backed embedding name for --corpus-annoy. "
+            "Omit for the deterministic offline HashEmbedder."
+        ),
+    )
+    parser.add_argument(
+        "--hash-dimension",
+        type=int,
+        default=None,
+        help="HashEmbedder dimension used by --corpus-annoy when no model is selected",
+    )
+    parser.add_argument(
+        "--annoy-metric",
+        default=None,
+        help="Annoy metric used by --corpus-annoy",
+    )
+    parser.add_argument(
+        "--annoy-n-trees",
+        type=int,
+        default=None,
+        help="Annoy tree count used by --corpus-annoy",
+    )
     parser.add_argument("--host", default=None, help="HTTP bind host")
     parser.add_argument("--port", type=int, default=None, help="HTTP bind port")
     parser.add_argument("--path", default=None, help="Streamable HTTP endpoint path")
@@ -133,6 +205,12 @@ def _parser() -> argparse.ArgumentParser:
         "--print-effective-config",
         action="store_true",
         help="Print validated effective configuration as JSON and exit",
+    )
+    parser.add_argument(
+        "--list-capabilities",
+        action="store_true",
+        help="Print the read-only tool/resource inventory as JSON and exit "
+        "(does not import the MCP SDK or start a server)",
     )
     parser.add_argument(
         "--self-test",
@@ -236,6 +314,38 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
             "SCIKITPLOT_MCP_TRANSPORT must be 'stdio' or 'streamable-http'"
         )
 
+    corpus_annoy_raw = args.corpus_annoy
+    if corpus_annoy_raw is None:
+        corpus_annoy_raw = env.get("SCIKITPLOT_MCP_CORPUS_ANNOY")
+    corpus_annoy = (
+        corpus_annoy_raw.strip()
+        if isinstance(corpus_annoy_raw, str) and corpus_annoy_raw.strip()
+        else None
+    )
+
+    corpus_embedding_model_raw = args.corpus_embedding_model
+    if corpus_embedding_model_raw is None:
+        corpus_embedding_model_raw = env.get("SCIKITPLOT_MCP_CORPUS_EMBEDDING_MODEL")
+    corpus_embedding_model = (
+        corpus_embedding_model_raw.strip()
+        if isinstance(corpus_embedding_model_raw, str)
+        and corpus_embedding_model_raw.strip()
+        else None
+    )
+    hash_dimension = (
+        args.hash_dimension
+        if args.hash_dimension is not None
+        else _env_int(env, "SCIKITPLOT_MCP_HASH_DIMENSION", 256)
+    )
+    annoy_metric = (
+        args.annoy_metric or _env_value(env, "SCIKITPLOT_MCP_ANNOY_METRIC", "angular")
+    ).strip()
+    annoy_n_trees = (
+        args.annoy_n_trees
+        if args.annoy_n_trees is not None
+        else _env_int(env, "SCIKITPLOT_MCP_ANNOY_N_TREES", 10)
+    )
+
     default_host = (
         "0.0.0.0"  # ruff: ignore[hardcoded-bind-all-interfaces]
         if docker
@@ -309,6 +419,17 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         else None
     )
 
+    if args.docs_jsonl and corpus_annoy:
+        raise SystemExit("--docs-jsonl and --corpus-annoy are mutually exclusive")
+    if not 8 <= hash_dimension <= 65536:  # ruff: ignore[magic-value-comparison]
+        raise SystemExit("--hash-dimension must be between 8 and 65536")
+    if not 1 <= annoy_n_trees <= 10000:  # ruff: ignore[magic-value-comparison]
+        raise SystemExit("--annoy-n-trees must be between 1 and 10000")
+    if not annoy_metric or any(char.isspace() for char in annoy_metric):
+        raise SystemExit(
+            "--annoy-metric must be a non-empty metric name without whitespace"
+        )
+
     if not 1 <= port <= 65535:  # ruff: ignore[magic-value-comparison]
         raise SystemExit("--port must be between 1 and 65535")
     if not 1 <= max_concurrency <= 128:  # ruff: ignore[magic-value-comparison]
@@ -365,6 +486,11 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
     return RuntimeConfig(
         transport=transport,
         docs_jsonl=args.docs_jsonl,
+        corpus_annoy=corpus_annoy,
+        corpus_embedding_model=corpus_embedding_model,
+        hash_dimension=hash_dimension,
+        annoy_metric=annoy_metric,
+        annoy_n_trees=annoy_n_trees,
         host=host,
         port=port,
         path=path,
@@ -465,6 +591,50 @@ def _write_json(payload: object, *, stream: TextIO) -> None:
     stream.flush()
 
 
+def _build_corpus_annoy_retriever(config: RuntimeConfig):
+    """Build the optional Corpus+Annoy retriever without importing it at CLI import time."""
+    if config.corpus_annoy is None:
+        raise RuntimeError("corpus_annoy path is not configured")
+    docs_path = Path(config.corpus_annoy)
+    if not docs_path.exists():
+        raise SystemExit(f"--corpus-annoy does not exist: {docs_path}")
+
+    from ._corpus_annoy import (  # ruff: ignore[import-outside-top-level]
+        CorpusAnnoyRetriever,
+    )
+
+    kwargs = {
+        "metric": config.annoy_metric,
+        "n_trees": config.annoy_n_trees,
+        "backend": "annoy",
+        "strict": True,
+    }
+    if config.corpus_embedding_model is not None:
+        kwargs["embedding_model"] = config.corpus_embedding_model
+    else:
+        from scikitplot.corpus import (  # ruff: ignore[import-outside-top-level]
+            HashEmbedder,
+        )
+
+        kwargs["embedder"] = HashEmbedder(dimension=config.hash_dimension)
+
+    return CorpusAnnoyRetriever.from_corpus_annoy(str(docs_path), **kwargs)
+
+
+def _load_retriever(config: RuntimeConfig):
+    """Load exactly one configured retrieval backend."""
+    if config.corpus_annoy:
+        return _build_corpus_annoy_retriever(config)
+    if config.docs_jsonl:
+        docs_path = Path(config.docs_jsonl)
+        if not docs_path.is_file():
+            raise SystemExit(
+                f"--docs-jsonl does not exist or is not a file: {docs_path}"
+            )
+        return InMemoryBm25Retriever.from_jsonl(docs_path)
+    return builtin_demo_retriever()
+
+
 def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
     argv: list[str] | None = None,
     *,
@@ -489,24 +659,23 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
         _write_json(asdict(config), stream=output_stream)
         return 0
 
+    if args.list_capabilities:
+        _write_json(server_capabilities(), stream=output_stream)
+        return 0
+
     if config.probe:
         return _probe_health(config)
 
-    if config.docs_jsonl:
-        docs_path = Path(config.docs_jsonl)
-        if not docs_path.is_file():
-            raise SystemExit(
-                f"--docs-jsonl does not exist or is not a file: {docs_path}"
-            )
-        retriever = InMemoryBm25Retriever.from_jsonl(docs_path)
-    else:
-        retriever = builtin_demo_retriever()
+    retriever = _load_retriever(config)
 
     if config.self_test:
-        result = SearchService(retriever, max_concurrency=1).search(
+        # M05: the self-test deliberately uses the Tier-L coordinator, not the
+        # pydantic wire adapter, so ``--self-test`` stays runnable on a base
+        # install. This is what test_backend_self_test_*_avoids_server_creation
+        # asserts by name.
+        payload = SearchCoordinator(retriever, max_concurrency=1).search(
             config.self_test_query, 3
-        )
-        payload = result.model_dump(mode="json")
+        )["structuredContent"]
         if payload["count"] != len(payload["passages"]) or payload["count"] != len(
             payload["citations"]
         ):
@@ -528,6 +697,29 @@ def main(  # ruff: ignore[too-many-branches, undocumented-public-function]
                 )
         _write_json(payload, stream=output_stream)
         return 0
+
+    # M02-01: pre-flight the capability probe before touching the server tier.
+    # ``create_server`` imports ``_server``, whose module-scope ``pydantic``
+    # import raises before the SDK guard inside it can produce an actionable
+    # message -- so a base install got a raw ModuleNotFoundError traceback from
+    # the exact command every plugin bundle declares. This is what
+    # ``server_runtime_status`` was written for (see _capabilities.py).
+    status = server_runtime_status()
+    if not status["server_available"]:
+        logger.error(
+            "cannot start the MCP server: %s (python=%s, sdk_status=%s, "
+            "sdk_version=%s)",
+            status["reason"],
+            status["python"],
+            status["sdk_status"],
+            status["sdk_version"],
+        )
+        raise SystemExit(
+            "the MCP server layer is unavailable: "
+            f"{status['reason']}. Install the server extra with: "
+            'pip install "scikit-plots[mcp]"   '
+            "(the SDK-free retrieval tier remains usable without it)."
+        )
 
     server = create_server(
         retriever,

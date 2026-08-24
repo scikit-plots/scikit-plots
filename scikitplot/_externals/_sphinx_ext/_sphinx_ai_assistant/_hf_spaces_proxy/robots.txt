@@ -1,4 +1,7 @@
 # https://developers.google.com/crawling/docs/robots-txt/create-robots-txt
+# https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec
+# https://docs.readthedocs.com/platform/stable/guides/technical-docs-seo-guide.html#use-a-robots-txt-file
+#
 # This robots.txt file controls crawling of URLs under https://example.com.
 # All crawlers are disallowed to crawl files in the "includes" directory, such
 # as .css, .js, but Google needs them for rendering, so Googlebot is allowed

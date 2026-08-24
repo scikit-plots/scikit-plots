@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scikit-plots.github.io/schemas/sphinx-ai-assistant-tracker.schema.json",
+  "title": "Sphinx AI assistant tracker",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "subsystem",
+    "source_anchor",
+    "physical",
+    "logical_contracts"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "subsystem": {
+      "type": "string"
+    },
+    "source_anchor": {
+      "type": "object"
+    },
+    "physical": {
+      "type": "object"
+    },
+    "logical_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "owner",
+          "status",
+          "invariant",
+          "verification"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^AIA-C[0-9]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "invariant": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

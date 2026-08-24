@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot._cli",
+  "role": "the command-line front door; delegates to submodules by string, never by import",
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950"
+  },
+  "maintenance_set": {
+    "version": "LIVE_V1",
+    "mirrors": "corpus, mcp, annoy-family and sphinx-family _maintenance/",
+    "gate": "python scikitplot/_cli/_maintenance/check_trackers.py",
+    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
+  },
+  "physical_totals": {
+    "source_files": 33,
+    "source_loc": 7383,
+    "test_files": 14,
+    "test_loc": 636,
+    "backup_files": 11,
+    "backup_loc": 2781,
+    "markdown_files": 10
+  },
+  "delegation_targets": [
+    "scikitplot.mcp.__main__:main"
+  ],
+  "position": "TERMINAL CONSUMER - nothing depends on _cli; it is reviewed last",
+  "optionality_mechanism": "module-path strings in registry.py, resolved at runtime via importlib/runpy - never an import",
+  "open_findings": [
+    {
+      "id": "CLI-C00-01",
+      "severity": "P2",
+      "title": "`_backup/` ships 11 files / 2 781 LOC of the previous, unreachable CLI",
+      "evidence": "optparse+click option modules, _misc.py, its own cli.py and commands; the 3 largest files in the submodule are all here",
+      "fix": "archive to history/ or out of the tree"
+    },
+    {
+      "id": "CLI-C00-02",
+      "severity": "P3",
+      "title": "`__pycache__/` ships in the source archive",
+      "evidence": "recorded as O-6 during the Corpus campaign and routed here; still present",
+      "fix": "packaging fix"
+    },
+    {
+      "id": "CLI-C00-03",
+      "severity": "P2",
+      "title": "No documented exit-code table",
+      "evidence": "exit codes are the CLI's compatibility surface for scripts; the mapping is currently inferred from code",
+      "fix": "publish the table"
+    },
+    {
+      "id": "CLI-C00-04",
+      "severity": "P3",
+      "title": "The delegation registry has exactly one target",
+      "evidence": "scikitplot.mcp.__main__:main; the machinery is general, the usage is not yet, so edge cases are exercised only by tests",
+      "fix": "expected; recorded so registry tests are read correctly"
+    },
+    {
+      "id": "CLI-C00-05",
+      "severity": "P2",
+      "title": "The one delegation target cannot be validated end-to-end",
+      "evidence": "MCP's suite does not collect without [mcp] installed (MCP-M00-01)",
+      "fix": "blocked on MCP M00"
+    },
+    {
+      "id": "CLI-C00-06",
+      "severity": "P3",
+      "title": "test : source LOC is 0.09",
+      "evidence": "the suite is well DESIGNED - delegation, frontend parity, output contract, import contract, verbosity, format coverage each have a file - but thin in volume",
+      "fix": "raise volume, not intent"
+    }
+  ],
+  "unverified_claims": [
+    "every exit code is documented",
+    "--help works end-to-end with no optional dependencies installed",
+    "the mcp delegation works end-to-end (blocked on MCP-M00-01)"
+  ],
+  "fresh_chat_read_order": [
+    "_maintenance/DEPENDENCY_MAP.md",
+    "_maintenance/MAINTENANCE_MODEL.md",
+    "_maintenance/TRACKER_LOGICAL.md",
+    "_maintenance/TRACKER_PHYSICAL.md",
+    "_maintenance/SUBMODULE_STRUCTURE.md",
+    "_maintenance/VERIFICATION.md"
+  ],
+  "next_exact_action": "Start checkpoint C00 (snapshot + revalidation). _cli is reviewed LAST because it is the terminal consumer: every command is a surface over a submodule whose contracts are still settling. Revalidate the six findings in open_findings against the tree with evidence rather than accepting them. CLI-C00-05 is blocked on MCP's M00. Do NOT begin implementation.",
+  "project_sequence": {
+    "corpus": "COMPLETE",
+    "mcp": "M00 pending",
+    "annoy_family": "A00 pending",
+    "sphinx_family": "S00 pending",
+    "cli": "C00 - LAST"
+  }
+}

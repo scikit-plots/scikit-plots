@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/NVIDIA/sphinx-llm.git",
+  "version": "2a971d7da6a5d7df81f7bff3612ee1822a060c17",
+  "commit_hash": "2a971d7da6a5d7df81f7bff3612ee1822a060c17",
+  "tree_mode": "bash-sha256sum",
+  "tree_hash": "0829d7756b99fe74a4e167c5789f95d799df78f037f6c62a83085e6fcc7bc872",
+  "generated_utc": "2026-08-22T05:16:40Z"
+}

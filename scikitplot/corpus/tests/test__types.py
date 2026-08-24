@@ -8,30 +8,28 @@ from typing import Any
 import pytest
 
 from .. import _types as m
+from .._schema import ChunkingStrategy
 from .._types import (
     BowVector,
     Chunk,
     ChunkResult,
-    ChunkStrategy,
     ChunkerConfig,
     ChunkerProtocol,
     ChunkerRegistration,
     ContentType,
     CorpusRecord,
-    Document,
     DocumentStatus,
     EmbeddedChunk,
-    MCPToolInput,
-    MCPToolResult,
+    ToolCallInput,
+    ToolCallResult,
     MetadataDict,
-    NormalizerConfig,
+    NormalizerConfigBase,
     NormalizerProtocol,
     NormalizerType,
     PipelineConfig,
-    PipelineResult,
     PipelineStep,
     RetrievalQuery,
-    RetrievalResult,
+    ChunkHit,
     SourceConfig,
     StorageBackend,
     StorageConfig,
@@ -77,17 +75,17 @@ class TestContentType:
         assert ContentType.UNKNOWN.value == "application/octet-stream"
 
 
-class TestChunkStrategy:
+class TestChunkingStrategy:
     def test_all_strategies_present(self) -> None:
         expected = {
-            "sentence", "paragraph", "fixed_window",
-            "word", "semantic", "recursive", "custom",
+            "sentence", "paragraph", "fixed_window", "semantic",
+            "word", "recursive", "page", "block", "custom", "none",
         }
-        actual = {s.value for s in ChunkStrategy}
+        actual = {s.value for s in ChunkingStrategy}
         assert expected == actual
 
     def test_str_equality(self) -> None:
-        assert ChunkStrategy.SENTENCE == "sentence"
+        assert ChunkingStrategy.SENTENCE == "sentence"
 
 
 class TestStorageBackend:
@@ -250,69 +248,6 @@ class TestChunkResult:
 # ===========================================================================
 
 
-class TestDocument:
-    def test_basic_construction(self) -> None:
-        doc = Document(doc_id="d1", text="Hello.")
-        assert doc.doc_id == "d1"
-        assert doc.text == "Hello."
-
-    def test_default_status_is_pending(self) -> None:
-        doc = Document(doc_id="d1", text="Hi.")
-        assert doc.status == DocumentStatus.PENDING
-
-    def test_default_content_type(self) -> None:
-        doc = Document(doc_id="d1", text="Hi.")
-        assert doc.content_type == ContentType.PLAIN_TEXT
-
-    def test_default_checksum_is_none(self) -> None:
-        doc = Document(doc_id="d1", text="Hi.")
-        assert doc.checksum is None
-
-    def test_new_generates_uuid(self) -> None:
-        doc = Document.new("Hello world.")
-        assert len(doc.doc_id) == 36
-        assert uuid.UUID(doc.doc_id)  # does not raise
-
-    def test_new_rejects_empty_text(self) -> None:
-        with pytest.raises(ValueError, match="empty"):
-            Document.new("")
-
-    def test_new_rejects_whitespace_text(self) -> None:
-        with pytest.raises(ValueError, match="empty"):
-            Document.new("   ")
-
-    def test_with_checksum_sets_digest(self) -> None:
-        doc = Document(doc_id="d1", text="hello")
-        doc2 = doc.with_checksum()
-        assert doc2.checksum is not None
-        assert len(doc2.checksum) == 64
-
-    def test_with_checksum_does_not_mutate(self) -> None:
-        doc = Document(doc_id="d1", text="hello")
-        _ = doc.with_checksum()
-        assert doc.checksum is None
-
-    def test_with_status_returns_new(self) -> None:
-        doc = Document(doc_id="d1", text="hello")
-        doc2 = doc.with_status(DocumentStatus.READY)
-        assert doc2.status == DocumentStatus.READY
-        assert doc.status == DocumentStatus.PENDING
-
-    def test_char_count(self) -> None:
-        doc = Document(doc_id="d1", text="hello")
-        assert doc.char_count() == 5
-
-    def test_frozen_prevents_mutation(self) -> None:
-        doc = Document(doc_id="d1", text="hi")
-        with pytest.raises((AttributeError, TypeError)):
-            doc.text = "bye"  # type: ignore[misc]
-
-
-# ===========================================================================
-# Section 5 — Abstract config base classes
-# ===========================================================================
-
-
 class TestAbstractConfigs:
     def test_chunker_config_instantiates(self) -> None:
         cfg = ChunkerConfig()
@@ -323,7 +258,7 @@ class TestAbstractConfigs:
         assert isinstance(cfg, SourceConfig)
 
     def test_normalizer_config_defaults(self) -> None:
-        cfg = NormalizerConfig()
+        cfg = NormalizerConfigBase()
         assert cfg.enabled is True
         assert cfg.normalizer_type == NormalizerType.CUSTOM
 
@@ -375,49 +310,8 @@ class TestPipelineConfig:
         assert cfg.steps == []
 
 
-class TestPipelineResult:
-    def _make_result(
-        self, status: DocumentStatus = DocumentStatus.READY
-    ) -> PipelineResult:
-        chunk = Chunk(text="hi", start_char=0, end_char=2)
-        cr = ChunkResult(chunks=[chunk])
-        return PipelineResult(
-            pipeline_id="p1",
-            doc_id="d1",
-            chunk_results=[cr],
-            status=status,
-        )
-
-    def test_succeeded_true(self) -> None:
-        r = self._make_result(DocumentStatus.READY)
-        assert r.succeeded() is True
-
-    def test_succeeded_false(self) -> None:
-        r = self._make_result(DocumentStatus.FAILED)
-        assert r.succeeded() is False
-
-    def test_all_chunks_flattens(self) -> None:
-        r = self._make_result()
-        chunks = r.all_chunks()
-        assert len(chunks) == 1
-        assert isinstance(chunks[0], Chunk)
-
-    def test_all_chunks_multiple_results(self) -> None:
-        c1 = Chunk(text="a", start_char=0, end_char=1)
-        c2 = Chunk(text="b", start_char=1, end_char=2)
-        cr1 = ChunkResult(chunks=[c1])
-        cr2 = ChunkResult(chunks=[c2])
-        r = PipelineResult(
-            pipeline_id="p1", doc_id="d1",
-            chunk_results=[cr1, cr2], status=DocumentStatus.READY
-        )
-        assert len(r.all_chunks()) == 2
-
-
-# ===========================================================================
-# Section 7 — Embedding & retrieval types
-# ===========================================================================
-
+# CORPUS-R00-F001: this class deliberately exercises the deprecated
+# ``LegacyPipelineResult`` shim; see the note on ``TestDocument`` above.
 
 class TestEmbeddedChunk:
     def test_valid_construction(self) -> None:
@@ -467,7 +361,7 @@ class TestRetrievalQuery:
 class TestRetrievalResult:
     def test_basic_construction(self) -> None:
         chunk = Chunk(text="hi", start_char=0, end_char=2)
-        r = RetrievalResult(chunk=chunk, score=0.95, rank=0)
+        r = ChunkHit(chunk=chunk, score=0.95, rank=0)
         assert r.score == pytest.approx(0.95)
         assert r.rank == 0
 
@@ -556,21 +450,21 @@ class TestProtocols:
 class TestChunkerRegistration:
     def test_basic_construction(self) -> None:
         reg = ChunkerRegistration(
-            strategy=ChunkStrategy.SENTENCE,
+            strategy=ChunkingStrategy.SENTENCE,
             chunker_class=object,
             default_config=ChunkerConfig(),
             description="Sentence splitter",
         )
-        assert reg.strategy == ChunkStrategy.SENTENCE
+        assert reg.strategy == ChunkingStrategy.SENTENCE
 
     def test_frozen(self) -> None:
         reg = ChunkerRegistration(
-            strategy=ChunkStrategy.WORD,
+            strategy=ChunkingStrategy.WORD,
             chunker_class=object,
             default_config=ChunkerConfig(),
         )
         with pytest.raises((AttributeError, TypeError)):
-            reg.strategy = ChunkStrategy.PARAGRAPH  # type: ignore[misc]
+            reg.strategy = ChunkingStrategy.PARAGRAPH  # type: ignore[misc]
 
 
 # ===========================================================================
@@ -676,7 +570,7 @@ class TestTrainingDataset:
 
 class TestMCPTypes:
     def test_tool_input_construction(self) -> None:
-        inp = MCPToolInput(
+        inp = ToolCallInput(
             tool_name="search_corpus",
             arguments={"query": "transformer", "top_k": 5},
             call_id="call_001",
@@ -684,12 +578,12 @@ class TestMCPTypes:
         assert inp.tool_name == "search_corpus"
 
     def test_tool_result_success(self) -> None:
-        r = MCPToolResult(call_id="call_001", content=["result1"])
+        r = ToolCallResult(call_id="call_001", content=["result1"])
         assert r.is_error is False
         assert r.error_message is None
 
     def test_tool_result_error(self) -> None:
-        r = MCPToolResult(
+        r = ToolCallResult(
             call_id="call_002",
             content=None,
             is_error=True,
@@ -699,7 +593,7 @@ class TestMCPTypes:
         assert "not found" in r.error_message
 
     def test_frozen_tool_input(self) -> None:
-        inp = MCPToolInput(
+        inp = ToolCallInput(
             tool_name="t", arguments={}, call_id="c1"
         )
         with pytest.raises((AttributeError, TypeError)):

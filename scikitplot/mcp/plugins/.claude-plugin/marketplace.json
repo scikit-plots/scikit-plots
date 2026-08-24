@@ -1,0 +1,21 @@
+{
+  "name": "scikitplot-local",
+  "owner": {
+    "name": "The scikit-plots developers",
+    "url": "https://github.com/scikit-plots/scikit-plots"
+  },
+  "plugins": [
+    {
+      "name": "scikitplot-docs",
+      "description": "scikit-plots documentation search for Claude: read-only, cited passages.",
+      "source": "./",
+      "category": "Documentation",
+      "tags": [
+        "scikit-plots",
+        "documentation",
+        "mcp",
+        "read-only"
+      ]
+    }
+  ]
+}

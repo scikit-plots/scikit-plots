@@ -250,7 +250,7 @@ References:
 	:hidden:
 
 	Tutorials <auto_examples/index>
-	Learn <learn/index.rst>
+	Learn <https://scikit-plots-learn.readthedocs.io/en/latest/learn/index.html>
 	Tags <_tags/tagsindex.rst>
 
 .. toctree::

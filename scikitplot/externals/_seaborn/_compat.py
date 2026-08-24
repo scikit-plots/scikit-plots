@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 from matplotlib.figure import Figure
-from .utils import _version_predates
+from seaborn.utils import _version_predates
 
 
 def norm_from_scale(scale, norm):

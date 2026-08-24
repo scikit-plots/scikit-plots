@@ -107,8 +107,9 @@ class CommandSpec:
     summary : str
         One-line description used in help.
     handler : str
-        Lazy import target ``"package.module:attribute"``. The attribute must be
-        a callable ``run(ctx, **params) -> int``.
+        For NATIVE commands: lazy import target ``"package.module:attribute"``.
+        The attribute must be a callable ``run(ctx, **params) -> int``. Mutually
+        exclusive with ``delegate``.
     params : tuple of Param
         Command parameters, in declaration order.
     aliases : tuple of str
@@ -119,16 +120,44 @@ class CommandSpec:
         Mark as deprecated (still runnable; emits a stderr notice).
     capabilities : tuple of str
         Capability keys this command requires (checked before dispatch).
+    delegate : str or None
+        For DELEGATED (pass-through) commands: a target the submodule owns.
+        ``"module:attr"`` calls ``attr(argv) -> int``; a bare ``"module"`` is
+        executed like ``python -m module``. All trailing CLI arguments (including
+        ``--help``) are forwarded verbatim. Mutually exclusive with ``handler``;
+        ``params`` must be empty. See ``EXTENDING.md``.
+    install_hint : str or None
+        Optional message shown when a delegated submodule (or its dependency)
+        cannot be imported, e.g. ``"pip install scikit-plots[mcp]"``.
     """
 
     name: str
     summary: str
-    handler: str
+    handler: str = ""
     params: tuple[Param, ...] = ()
     aliases: tuple[str, ...] = ()
     hidden: bool = False
     deprecated: bool = False
     capabilities: tuple[str, ...] = ()
+    delegate: str | None = None
+    install_hint: str | None = None
+
+    def __post_init__(self) -> None:
+        # A command is either NATIVE (handler + params) or DELEGATED (delegate).
+        if self.delegate is not None:
+            if self.handler:
+                raise ValueError(
+                    f"command {self.name!r}: set either handler or delegate, not both"
+                )
+            if self.params:
+                raise ValueError(
+                    f"delegated command {self.name!r} must not declare params; "
+                    "all arguments pass through to the submodule verbatim"
+                )
+        elif not self.handler:
+            raise ValueError(
+                f"command {self.name!r} must set either handler or delegate"
+            )
 
 
 __all__ = ["CommandSpec", "Param", "ParamKind"]

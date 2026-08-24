@@ -133,24 +133,24 @@ def sample_docs() -> list[_MockDoc]:
 
 
 # ===========================================================================
-# TestNormalizerConfig
+# TestTextNormalizerConfig
 # ===========================================================================
 
 
-class TestNormalizerConfig:
+class TestTextNormalizerConfig:
     def test_default_steps(self):
         from scikitplot.corpus._normalizers._text_normalizer import (  # noqa: PLC0415
-            NormalizerConfig,
+            TextNormalizerConfig,
         )
-        cfg = NormalizerConfig()
+        cfg = TextNormalizerConfig()
         assert "unicode" in cfg.steps
         assert "whitespace" in cfg.steps
 
     def test_custom_steps(self):
         from scikitplot.corpus._normalizers._text_normalizer import (  # noqa: PLC0415
-            NormalizerConfig,
+            TextNormalizerConfig,
         )
-        cfg = NormalizerConfig(steps=["unicode"])
+        cfg = TextNormalizerConfig(steps=["unicode"])
         assert cfg.steps == ["unicode"]
 
 
@@ -163,27 +163,27 @@ class TestNormalizeText:
     def test_unicode_normalise(self):
         from scikitplot.corpus._normalizers._text_normalizer import (  # noqa: PLC0415
             TextNormalizer,
-            NormalizerConfig,
+            TextNormalizerConfig,
         )
-        n = TextNormalizer(NormalizerConfig(steps=["unicode"]))
+        n = TextNormalizer(TextNormalizerConfig(steps=["unicode"]))
         result = n.normalize("fi\ufb01rst")  # fi ligature
         assert "\ufb01" not in result
 
     def test_whitespace_normalise(self):
         from scikitplot.corpus._normalizers._text_normalizer import (  # noqa: PLC0415
             TextNormalizer,
-            NormalizerConfig,
+            TextNormalizerConfig,
         )
-        n = TextNormalizer(NormalizerConfig(steps=["whitespace"]))
+        n = TextNormalizer(TextNormalizerConfig(steps=["whitespace"]))
         result = n.normalize("Hello   world\n\nfoo")
         assert "   " not in result
 
     def test_empty_string(self):
         from scikitplot.corpus._normalizers._text_normalizer import (  # noqa: PLC0415
             TextNormalizer,
-            NormalizerConfig,
+            TextNormalizerConfig,
         )
-        n = TextNormalizer(NormalizerConfig())
+        n = TextNormalizer(TextNormalizerConfig())
         assert n.normalize("") == ""
 
 
@@ -254,13 +254,13 @@ class TestNLPEnricher:
 
 class TestSearchConfig:
     def test_default_mode(self):
-        from scikitplot.corpus._similarity._similarity import SearchConfig  # noqa: PLC0415
-        cfg = SearchConfig()
+        from scikitplot.corpus._similarity._similarity import RetrievalConfig  # noqa: PLC0415
+        cfg = RetrievalConfig()
         assert cfg.match_mode in ("keyword", "hybrid", "semantic", "strict")
 
     def test_custom_mode(self):
-        from scikitplot.corpus._similarity._similarity import SearchConfig  # noqa: PLC0415
-        cfg = SearchConfig(match_mode="strict", top_k=3)
+        from scikitplot.corpus._similarity._similarity import RetrievalConfig  # noqa: PLC0415
+        cfg = RetrievalConfig(match_mode="strict", top_k=3)
         assert cfg.top_k == 3
 
 
@@ -272,9 +272,9 @@ class TestSearchConfig:
 class TestSimilarityIndex:
     def test_build_and_search_keyword(self, sample_docs):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
-        idx = SimilarityIndex(config=SearchConfig(match_mode="keyword", top_k=3))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="keyword", top_k=3))
         idx.build(sample_docs)
         assert idx.n_documents == 5
         results = idx.search("question")
@@ -283,9 +283,9 @@ class TestSimilarityIndex:
 
     def test_build_empty_raises_or_ok(self):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
-        idx = SimilarityIndex(config=SearchConfig())
+        idx = RetrievalIndex(config=RetrievalConfig())
         try:
             idx.build([])
         except (ValueError, RuntimeError):
@@ -293,9 +293,9 @@ class TestSimilarityIndex:
 
     def test_strict_search(self, sample_docs):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
-        idx = SimilarityIndex(config=SearchConfig(match_mode="strict", top_k=5))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="strict", top_k=5))
         idx.build(sample_docs)
         results = idx.search("golden")
         assert all(r.score in (0.0, 1.0) for r in results)
@@ -615,6 +615,55 @@ class TestBuilderConfig:
         assert cfg.probe_url_content_type is False
         assert cfg.probe_url_timeout == 30
 
+    def test_retrieval_config_is_canonical_new_index_config_path(self):
+        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
+            BuilderConfig,
+            CorpusBuilder,
+        )
+        from scikitplot.corpus._similarity import RetrievalConfig  # noqa: PLC0415
+
+        retrieval = RetrievalConfig(
+            backend="bruteforce",
+            index_kwargs={},
+        )
+        builder = CorpusBuilder(
+            BuilderConfig(build_index=True, retrieval_config=retrieval)
+        )
+        assert builder._get_index_config() is retrieval
+
+    def test_legacy_index_kwargs_remain_supported(self):
+        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
+            BuilderConfig,
+            CorpusBuilder,
+        )
+
+        builder = CorpusBuilder(
+            BuilderConfig(
+                build_index=True,
+                index_kwargs={"backend": "bruteforce", "top_k": 3},
+            )
+        )
+        cfg = builder._get_index_config()
+        assert cfg.backend == "bruteforce"
+        assert cfg.top_k == 3
+
+    def test_new_and_legacy_index_config_paths_conflict(self):
+        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
+            BuilderConfig,
+            CorpusBuilder,
+        )
+        from scikitplot.corpus._similarity import RetrievalConfig  # noqa: PLC0415
+
+        builder = CorpusBuilder(
+            BuilderConfig(
+                build_index=True,
+                retrieval_config=RetrievalConfig(backend="bruteforce"),
+                index_kwargs={"top_k": 3},
+            )
+        )
+        with pytest.raises(ValueError, match="cannot both be supplied"):
+            builder._get_index_config()
+
 
 # ===========================================================================
 # TestBuildResult
@@ -711,7 +760,7 @@ class TestPipelineGuard:
             yield _MockDoc(doc_id="ok", content_hash="b" * 32)
             raise ValueError("log me")
 
-        guard = PipelineGuard(policy=ErrorPolicy.LOG, dedup=False)
+        guard = PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=False)
         list(guard.iter(bad_source()))
         assert guard.stats["n_errors"] >= 1
 
@@ -735,7 +784,7 @@ class TestPipelineGuard:
             _MockDoc(doc_id=f"d{i}", content_hash="same_hash_0000000000000000000")
             for i in range(3)
         ]
-        guard = PipelineGuard(policy=ErrorPolicy.LOG, dedup=True)
+        guard = PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=True)
         result = list(guard.iter(iter(docs)))
         assert len(result) == 1
         assert guard.stats["n_skipped_dedup"] == 2
@@ -748,7 +797,7 @@ class TestPipelineGuard:
             _MockDoc(doc_id=f"d{i}", content_hash=f"{i:032d}")
             for i in range(3)
         ]
-        guard = PipelineGuard(policy=ErrorPolicy.LOG, dedup=True)
+        guard = PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=True)
         result = list(guard.iter(iter(docs)))
         assert len(result) == 3
         assert guard.stats["n_skipped_dedup"] == 0
@@ -757,21 +806,21 @@ class TestPipelineGuard:
         from scikitplot.corpus._base import PipelineGuard  # noqa: PLC0415
         from scikitplot.corpus._schema import ErrorPolicy  # noqa: PLC0415
         docs = [_MockDoc(doc_id=f"d{i}", content_hash=None) for i in range(3)]
-        guard = PipelineGuard(policy=ErrorPolicy.LOG, dedup=True)
+        guard = PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=True)
         result = list(guard.iter(iter(docs)))
         assert len(result) == 3
 
     def test_context_manager_closes(self, sample_docs):
         from scikitplot.corpus._base import PipelineGuard  # noqa: PLC0415
         from scikitplot.corpus._schema import ErrorPolicy  # noqa: PLC0415
-        with PipelineGuard(policy=ErrorPolicy.LOG, dedup=False) as guard:
+        with PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=False) as guard:
             result = list(guard.iter(iter(sample_docs)))
         assert len(result) == 5
 
     def test_stats_keys(self, sample_docs):
         from scikitplot.corpus._base import PipelineGuard  # noqa: PLC0415
         from scikitplot.corpus._schema import ErrorPolicy  # noqa: PLC0415
-        guard = PipelineGuard(policy=ErrorPolicy.LOG, dedup=False)
+        guard = PipelineGuard(policy=ErrorPolicy.COLLECT, dedup=False)
         list(guard.iter(iter(sample_docs)))
         stats = guard.stats
         assert "n_yielded" in stats
@@ -788,7 +837,7 @@ class TestPipelineGuard:
         try:
             # First run — write checkpoint every 2 docs
             guard = PipelineGuard(
-                policy=ErrorPolicy.LOG, dedup=False,
+                policy=ErrorPolicy.COLLECT, dedup=False,
                 checkpoint_path=ckpt, checkpoint_every=2,
             )
             with guard:
@@ -805,7 +854,7 @@ class TestPipelineGuard:
 
             # Second run — checkpoint loaded, seen ids skipped
             guard2 = PipelineGuard(
-                policy=ErrorPolicy.LOG, dedup=False,
+                policy=ErrorPolicy.COLLECT, dedup=False,
                 checkpoint_path=ckpt, checkpoint_every=100,
             )
             # Previously seen doc_ids should be in _seen_ids
@@ -820,7 +869,7 @@ class TestPipelineGuard:
             ckpt = pathlib.Path(tf.name)
         try:
             guard = PipelineGuard(
-                policy=ErrorPolicy.LOG, dedup=False,
+                policy=ErrorPolicy.COLLECT, dedup=False,
                 checkpoint_path=ckpt, checkpoint_every=3,
             )
             with guard:
@@ -1152,10 +1201,10 @@ class TestLLMTrainingExporter:
 class TestMCPCorpusServer:
     def test_list_tools(self, sample_docs):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
         from scikitplot.corpus._adapters import MCPCorpusServer  # noqa: PLC0415
-        idx = SimilarityIndex(config=SearchConfig(match_mode="keyword"))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="keyword"))
         idx.build(sample_docs)
         srv = MCPCorpusServer(index=idx, server_name="test-server")
         tools = srv.list_tools()
@@ -1165,10 +1214,10 @@ class TestMCPCorpusServer:
 
     def test_repr(self, sample_docs):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
         from scikitplot.corpus._adapters import MCPCorpusServer  # noqa: PLC0415
-        idx = SimilarityIndex(config=SearchConfig())
+        idx = RetrievalIndex(config=RetrievalConfig())
         idx.build(sample_docs)
         srv = MCPCorpusServer(index=idx)
         assert "MCPCorpusServer" in repr(srv)
@@ -1182,14 +1231,14 @@ class TestMCPCorpusServer:
 class TestLangChainCorpusRetriever:
     def test_retriever_get_relevant_documents(self, sample_docs):
         from scikitplot.corpus._similarity._similarity import (  # noqa: PLC0415
-            SimilarityIndex, SearchConfig,
+            RetrievalIndex, RetrievalConfig,
         )
         from scikitplot.corpus._adapters import LangChainCorpusRetriever  # noqa: PLC0415
-        idx = SimilarityIndex(config=SearchConfig(match_mode="keyword", top_k=3))
+        idx = RetrievalIndex(config=RetrievalConfig(match_mode="keyword", top_k=3))
         idx.build(sample_docs)
         retriever = LangChainCorpusRetriever(index=idx)
         results = retriever.get_relevant_documents("question")
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
 
 
 # ===========================================================================

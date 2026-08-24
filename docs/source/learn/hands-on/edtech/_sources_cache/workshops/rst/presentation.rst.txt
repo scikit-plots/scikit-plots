@@ -1,7 +1,0 @@
-**************************
-RST Workshop: Presentation
-**************************
-
-The presentation will be loaded closer to the conference date.
-
-.. _rst_workshop_2020:

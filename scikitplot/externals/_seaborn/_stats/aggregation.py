@@ -5,14 +5,14 @@ from typing import ClassVar, Callable
 import pandas as pd
 from pandas import DataFrame
 
-from .._core.scales import Scale
-from .._core.groupby import GroupBy
-from .._stats.base import Stat
-from .._statistics import (
+from seaborn._core.scales import Scale
+from seaborn._core.groupby import GroupBy
+from seaborn._stats.base import Stat
+from seaborn._statistics import (
     EstimateAggregator,
     WeightedAggregator,
 )
-from .._core.typing import Vector
+from seaborn._core.typing import Vector
 
 
 @dataclass

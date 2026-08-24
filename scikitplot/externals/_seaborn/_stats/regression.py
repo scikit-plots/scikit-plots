@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from .._stats.base import Stat
+from seaborn._stats.base import Stat
 
 
 @dataclass

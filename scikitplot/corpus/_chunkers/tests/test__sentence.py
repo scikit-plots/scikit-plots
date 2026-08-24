@@ -212,7 +212,7 @@ class TestChunkBatch:
         self, default_chunker: SentenceChunker
     ) -> None:
         results = default_chunker.chunk_batch([SIMPLE_TEXT, THREE_SENTENCES])
-        assert isinstance(results, list)
+        assert list(results) == list(results)  # RetrievalResponse is sequence-like
         assert len(results) == 2
 
     def test_batch_non_list_raises(

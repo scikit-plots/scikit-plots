@@ -44,6 +44,27 @@ unioned across all specified languages.  Tokenisation uses:
 - ``"spacy"``   — requires a loaded spaCy model
 - ``"custom"``  — any callable or :class:`~._custom_tokenizer.TokenizerProtocol`
 
+YAKE available
+→ YAKE result
+
+YAKE unavailable
+→ WARNING
+→ real frequency result
+
+KeyBERT available
+→ KeyBERT result
+
+KeyBERT unavailable
+→ WARNING
+→ real frequency result
+
+backend internal/config error
+→ propagate
+→ do not silently downgrade
+
+keyword_extractor=None
+→ None
+
 Backends are lazy-loaded:
 
 No NLP library is imported at module level.  Each backend is imported on
@@ -406,6 +427,8 @@ class EnricherConfig:
     )
 
     # --- Keywords ---
+    # TODO: So the smallest stabilization change is simply to make the existing promise true.
+    # keyword_missing_policy = "raise" | "frequency" | "none"
     keyword_extractor: Literal["frequency", "tfidf", "yake", "keybert"] | None = (
         "frequency"
     )
@@ -553,7 +576,7 @@ class NLPEnricher:
     # Public API
     # ------------------------------------------------------------------
 
-    def enrich_documents(
+    def enrich_documents(  # ruff: ignore[too-many-branches]
         self,
         documents: Sequence[Any],
         *,
@@ -596,9 +619,15 @@ class NLPEnricher:
                 out.append(doc)
                 continue
 
-            # Resolve language for this document
-            langs = self._resolve_languages(text)
-            stopwords = self._get_stopwords_for(langs)
+            # Resolve stopwords only when token filtering actually needs them.
+            # ``remove_stopwords=False`` is the dependency-free path and must not
+            # require optional NLTK stopword data merely because NLTK happens to
+            # be installed in the environment.
+            if self.config.remove_stopwords:
+                langs = self._resolve_languages(text)
+                stopwords = self._get_stopwords_for(langs)
+            else:
+                stopwords = frozenset()
 
             # Tokenize
             raw_tokens, spacy_doc_obj = self._tokenize_with_spacy(text)
@@ -990,7 +1019,11 @@ class NLPEnricher:
     # Keyword extraction
     # ------------------------------------------------------------------
 
-    def _extract_keywords(self, text: str, tokens: list[str]) -> list[str] | None:
+    def _extract_keywords(  # ruff: ignore[too-many-return-statements]
+        self,
+        text: str,
+        tokens: list[str],
+    ) -> list[str] | None:
         """Extract keywords from *text* / *tokens*.
 
         Parameters
@@ -1008,10 +1041,35 @@ class NLPEnricher:
         cfg = self.config
         if cfg.keyword_extractor is None:
             return None
+        # the YAKE/KeyBERT branches conceptually to:
+        # frequency
+        # → frequency(tokens)
+        # tfidf
+        # → tfidf(tokens)
+        # yake
+        # → YAKE(text)
+        # → unavailable → frequency(tokens)
+        # keybert
+        # → KeyBERT(text)
+        # → unavailable → frequency(tokens)
+        # None
+        # → None
         if cfg.keyword_extractor == "yake":
-            return self._keywords_yake(text)
+            keywords = self._keywords_yake(text)
+            if keywords is None:
+                logger.warning(
+                    "YAKE is unavailable; falling back to frequency keywords."
+                )
+                return self._keywords_frequency(tokens)
+            return keywords
         if cfg.keyword_extractor == "keybert":
-            return self._keywords_keybert(text)
+            keywords = self._keywords_keybert(text)
+            if keywords is None:
+                logger.warning(
+                    "KeyBERT is unavailable; falling back to frequency keywords."
+                )
+                return self._keywords_frequency(tokens)
+            return keywords
         if cfg.keyword_extractor == "tfidf":
             return self._keywords_tfidf(tokens)
         # "frequency" (default)
@@ -1111,8 +1169,8 @@ class NLPEnricher:
         """
         try:
             import yake  # type: ignore[import]  # noqa: PLC0415
+        # Keep this narrow — don't catch arbitrary backend errors
         except ImportError:
-            logger.warning("YAKE not installed; falling back to frequency keywords.")
             return None
 
         kwargs: dict[str, Any] = {
@@ -1139,8 +1197,8 @@ class NLPEnricher:
         """
         try:
             from keybert import KeyBERT  # type: ignore[import]  # noqa: PLC0415
+        # Keep this narrow — don't catch arbitrary backend errors
         except ImportError:
-            logger.warning("KeyBERT not installed; falling back to frequency keywords.")
             return None
 
         kwargs: dict[str, Any] = {"top_n": self.config.max_keywords}

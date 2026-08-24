@@ -1,0 +1,143 @@
+{
+ "schema_version": 1,
+ "subsystem": "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+ "generated_date": "2026-08-20",
+ "source_anchor": {
+  "archive": "scikit-plots(20260820-114035).zip",
+  "sha256": "15d914046eaa3059c16bde66eadcc41ebb3a6d824de36acb876e170925aa74cc"
+ },
+ "governing_rule": "The browser is presentation, documentation is untrusted evidence, and the server owns authority; the assistant owns its canonical representation and emits it at build time.",
+ "phase": "CAPABILITY_INCREMENTS_1_TO_5_LANDED",
+ "active_checkpoint": "B08",
+ "production_code_modified": false,
+ "checkpoints": {
+  "B00": "COMPLETE",
+  "B01": "IN_PROGRESS",
+  "B02": {
+   "title": "SECURITY_P0_REVALIDATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B03": {
+   "title": "CLIENT_SERVER_CONFIG_AUTHORITY",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B04": {
+   "title": "PROMPT_AUTHORITY",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B05": {
+   "title": "PROXY_ROUTING_CORS",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B06": {
+   "title": "AUTH_IDENTITY_LIMITS",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B07": {
+   "title": "FEEDBACK_PROVENANCE",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B08": "IN_PROGRESS",
+  "B09": {
+   "title": "RUNTIME_HTML_FALLBACK_DEMOTION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B10": {
+   "title": "SETTINGS_SCHEMA_CONSOLIDATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B11": {
+   "title": "STRUCTURAL_DECOMPOSITION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B12": {
+   "title": "CORPUS_MCP_INTEGRATION",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  },
+  "B13": {
+   "title": "CLOSURE",
+   "status": "NOT_STARTED",
+   "production_code_modified": false
+  }
+ },
+ "verification_snapshot": {
+  "assistant_maintenance_gate": "GREEN",
+  "backend_maintenance_gate": "GREEN",
+  "python_suites": "GREEN_85_PASSED",
+  "browser_copy_mode_harness": "GREEN_13_PASSED",
+  "conversion_regression_22_published_pages": "GREEN_QUADRUPLE_ASTERISK_209_TO_0_EMBED_URLS_TO_0_EMPTY_TABLE_ROWS_TO_0_121_STRUCTURAL_BOLD_LINES_GAINED",
+  "module_scope_non_stdlib_imports": "ZERO",
+  "new_runtime_dependencies_added": "NONE",
+  "copy_static_equals_ask_ai_bytes": "NOT_EXECUTED_NEEDS_A_LIVE_BUILD",
+  "assistant_builds_without_sphinx_llm": "NOT_EXECUTED_NEEDS_A_LIVE_BUILD"
+ },
+ "blockers": [],
+ "next_actions": [
+  "Delete _static/_backup/ (20 files, 55 496 code LOC) and _sphinx_llm/_sphinx_llm.zip; git already holds both. See DELETE_LIST.txt in the increment 4 bundle.",
+  "git mv _maintenance/checkpoints/B01_SPHINX_LLM_DEPENDENCY_BOUNDARY.md to B01_REPRESENTATION_BOUNDARY.md; the checkpoint no longer concerns _sphinx_llm, only its filename does.",
+  "Run a real docs build and assert COPY(static) and ASK AI resolve to byte-identical content; this is B08's remaining exit criterion and cannot be proven from a source snapshot.",
+  "Run a build with _sphinx_llm absent from `extensions` and confirm no assistant surface degrades; this is B01's remaining exit criterion.",
+  "Directive coverage is verified against 21 source documents and 22 rendered pages; a source using a directive outside that census may still need a rule.",
+  "Supply a page rendering sphinx_gallery thumbnails (sphx-glr-thumbcontainer) and a JupyterLite directive; the two remaining conversion rules are one table row each once their markup exists.",
+  "Teach check_trackers.py to require the B00-B14 checkpoint documents by ID; they currently scan as orphans because STATE.json references them by ID rather than filename.",
+  "The MCP edge stays claimed, not proven: whether sources are verified and what happens on DEGRADED needs MCP's run M04 and cannot be closed from this side."
+ ],
+ "proposed_checkpoints": {
+  "B14_BACKEND_EXPORT": {
+   "status": "PROPOSED",
+   "blocks": "nothing",
+   "why": "9 896 LOC of internet-facing service code with ZERO tests, invisible inside an extension whose suite covers the extension",
+   "how": "a MOVE not a rewrite: one commit with no content change, then a second adding tests"
+  }
+ },
+ "unverified_claims": [
+  "the assistant reaches MCP for VERIFIED sources",
+  "returned sources are verified rather than merely displayed",
+  "the MCP path honours RetrievalResponse.DEGRADED (also MCP run M04)",
+  "docs build without a live backend",
+  "no secrets are committed in service source"
+ ],
+ "representation_contract": {
+  "canonical": "static page.md, written at build-finished by generate_markdown_files()",
+  "convenience": "browser Turndown over the live DOM, used by Copy in its default mode",
+  "surfaces": {
+   "VIEW": "opens the static .md URL (canonical)",
+   "ASK_AI": "sends the static .md URL (canonical); an external provider cannot fetch a blob: URL",
+   "COPY": "browser-generated by default (convenience), switchable to the static .md (canonical)"
+  },
+  "rule": "Canonical means exactly one thing: the build-time artifact. A browser conversion is never canonical, however good it is, because no external agent can fetch it."
+ },
+ "upstream_position": {
+  "sphinx_llm": "FROZEN",
+  "rationale": "The assistant already generates static page.md and llms.txt itself at build-finished, so neither the NVIDIA vendored package nor the _sphinx_llm wrapper is required for any assistant surface. Measured: 0 references to _sphinx_llm in __init__.py, _static/ai-assistant.js, _static/__init__.py or any test; all 19 files mentioning it are documentation.",
+  "dependency_effect": "Freezing _sphinx_llm removes hard module-scope imports of sphinx, docutils and sphinx_markdown_builder. The assistant keeps zero module-scope non-stdlib imports; bs4/markdownify stay optional and find_spec-gated, Turndown stays vendored inline."
+ },
+ "checkpoint_intent": {
+  "B01": "SEVER the _sphinx_llm boundary and prove it severed (was: define the boundary).",
+  "B08": "OWN the static representation as producer (was: consume it from _sphinx_llm).",
+  "A12": "WITHDRAWN. The overlay existed to make the assistant consume _sphinx_llm artifacts."
+ },
+ "checkpoint_evidence": {
+  "B00": "Maintenance set reconciled to the pivot across both live submodules; assistant and backend gates both GREEN; the backend gate rewritten so it can pass at all.",
+  "B01": "Severed in code and proven: 0 references to _sphinx_llm in __init__.py, _static/ai-assistant.js, _static/__init__.py or any test. The gate now detects an import rather than scanning raw text, so it no longer reports a docstring as a dependency. NOT yet executed: a build with _sphinx_llm absent from `extensions`, which is the remaining exit criterion.",
+  "B08": "The assistant is the producer: page.md and llms.txt are written at build-finished, llms.txt now follows the llmstxt.org layout, and Copy selects between the canonical file and the browser conversion. NOT yet proven: that COPY(static) and ASK AI resolve to byte-identical content, which needs a live build."
+ },
+ "landed_increments": {
+  "1": "Pivot blockers cleared: reverse-dependency rule fixed, governing rule rewritten, B01/B08 re-scoped, A12 withdrawn.",
+  "1b": "Both live _maintenance sets reconciled; AIA-002 (P0) and AIA-013 (P1) withdrawn; AIA-C04 Consumer -> Producer.",
+  "2": "Copy mode toggle: browser (convenience, default) | static (canonical). Config ai_assistant_copy_mode(+_toggle). No silent fallback.",
+  "3": "Developer and user notes in __init__.py and ai-assistant.js: representation model, surfaces, build pipeline, planned directive work.",
+  "4": "llms.txt follows llmstxt.org: H1, blockquote summary, ## sections, '- [Title](url): description'. format='flat' preserves the old output.",
+  "5": "Directive fidelity: 17 rules in one shared table read by both conversion paths; strong_em_symbol root-cause fix; video embed URLs mapped to watch URLs; Sphinx hlist layout tables unwrapped back into lists."
+ }
+}

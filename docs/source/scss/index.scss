@@ -40,8 +40,6 @@ div.sk-landing-top-bar {
     var(--sk-landing-bg-3) 59%,
     var(--sk-landing-bg-4) 100%
   );
-  // width: 80%;
-  // margin: 0 auto; /* Center the content horizontally */
 
   .sk-landing-header,
   .sk-landing-subheader {
@@ -149,6 +147,22 @@ div.sk-landing-more-info {
 
   .sk-more-testimonials {
     text-align: right !important;
+  }
+}
+
+/* Funding section */
+
+div.sk-landing-funding {
+  a.sk-funding-link {
+    text-decoration: none;
+
+    div.sk-funding-logos > img {
+      height: 40px;
+      margin: 0 8px 8px 8px;
+      padding: 5px;
+      border-radius: 3px;
+      background-color: white;
+    }
   }
 }
 

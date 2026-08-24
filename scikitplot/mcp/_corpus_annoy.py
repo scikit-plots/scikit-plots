@@ -43,6 +43,7 @@ import logging
 from typing import Any, Callable, Protocol
 
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
+from ._outcome import DEGRADED, EMPTY, FAILED, SUCCESS, LegRecord, RetrievalOutcome
 
 __all__ = [
     "CorpusAnnoyRetriever",
@@ -52,6 +53,11 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 _MAX_RETRIEVAL_K = 50
+#: Evidence-path label reported in :class:`~scikitplot.mcp._outcome.LegRecord`.
+_DENSE_LEG = "dense"
+#: Cap on how many per-hit mapping errors are joined into one leg explanation,
+#: so a pathological corpus cannot produce an unbounded diagnostic string.
+_MAX_LEG_ERRORS = 3
 
 
 class Embedder(Protocol):
@@ -72,6 +78,22 @@ class VectorIndex(Protocol):
 
 
 # ---- adapters over the corpus public API (kept private) ---------------------
+class _BatchQueryEmbedder:
+    """Adapt a batch embedder/callable to the MCP single-query protocol."""
+
+    def __init__(self, embedder: Any) -> None:
+        self._embedder = embedder
+
+    def embed(self, text: str) -> Any:
+        batch = getattr(self._embedder, "embed", None)
+        if batch is None:
+            batch = self._embedder
+        vectors = batch([text])
+        if vectors is None or len(vectors) != 1:
+            raise ValueError("embedder must return one vector for one query")
+        return vectors[0]
+
+
 class _CorpusEmbedder:
     """Embed one query string via a corpus ``EmbeddingEngine``.
 
@@ -134,8 +156,8 @@ def _doc_to_record(doc: Any) -> dict[str, Any]:
     return {
         # "text": _first(doc, "normalized_text", "text", "content"),
         "text": g("normalized_text", "text", "content"),
-        "source_uri": g("source_uri", "source", "url", "path"),
-        "title": g("title", "section", "heading"),
+        "source_uri": g("source_uri", "input_path", "source", "url", "path"),
+        "title": g("source_title", "title", "section", "heading"),
         "anchor": g("anchor", "section_id", "fragment"),
     }
 
@@ -174,10 +196,32 @@ class CorpusAnnoyRetriever(DocsRetriever):
         self._lookup = doc_lookup
         self._strict = bool(strict)
 
+    def get(self, doc_id: str) -> RetrievedChunk | None:
+        """Return one indexed document by stable id for the MCP resource surface."""
+        if not isinstance(doc_id, str) or not doc_id:
+            return None
+        record = self._lookup(doc_id) or {}
+        if not isinstance(record, dict):
+            if self._strict:
+                raise TypeError("doc_lookup must return a mapping")
+            return None
+        text = str(record.get("text", ""))
+        if not text:
+            return None
+        return RetrievedChunk(
+            text=text,
+            source_uri=str(record.get("source_uri", "")),
+            score=0.0,
+            doc_id=doc_id,
+            title=str(record.get("title", "")),
+            anchor=str(record.get("anchor", "")),
+            extra=dict(record.get("extra", {}) or {}),
+        )
+
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Embed ``query``, ANN-search, and map hits to :class:`RetrievedChunk`."""
         if not isinstance(query, str) or not query.strip():
-            return []
+            return RetrievalOutcome([], legs=[LegRecord(_DENSE_LEG, EMPTY)])
         k = max(1, min(int(k), _MAX_RETRIEVAL_K))
 
         try:
@@ -189,10 +233,15 @@ class CorpusAnnoyRetriever(DocsRetriever):
             logger.warning("Dense retrieval failed: %s", exc, exc_info=self._strict)
             if self._strict:
                 raise
-            return []
+            # M04: the dense leg did not run. Returning a bare [] here would be
+            # indistinguishable from "the corpus holds no match".
+            return RetrievalOutcome(
+                [], legs=[LegRecord(_DENSE_LEG, FAILED, error=str(exc))]
+            )
 
         output: list[RetrievedChunk] = []
         seen: set[str] = set()
+        mapping_errors: list[str] = []
         for item in hits:
             try:
                 doc_id, score = item
@@ -211,6 +260,9 @@ class CorpusAnnoyRetriever(DocsRetriever):
                 )
                 if self._strict:
                     raise
+                # M04: a dropped hit is a partial loss, recorded so the caller
+                # can tell a thin result from a complete one.
+                mapping_errors.append(str(exc))
                 continue
 
             seen.add(doc_id)
@@ -225,7 +277,20 @@ class CorpusAnnoyRetriever(DocsRetriever):
                     extra=dict(record.get("extra", {}) or {}),
                 )
             )
-        return output
+        if mapping_errors:
+            leg = LegRecord(
+                _DENSE_LEG,
+                DEGRADED,
+                hit_count=len(output),
+                error="; ".join(mapping_errors[:_MAX_LEG_ERRORS]),
+            )
+        else:
+            leg = LegRecord(
+                _DENSE_LEG,
+                SUCCESS if output else EMPTY,
+                hit_count=len(output),
+            )
+        return RetrievalOutcome(output, legs=[leg])
 
     # ------------------------------------------------------------------
     @classmethod
@@ -236,6 +301,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
         metric: str = "angular",
         n_trees: int = 10,
         embedding_model: str = "all-MiniLM-L6-v2",
+        embedder: Any | None = None,
         backend: str = "annoy",
         strict: bool = False,
     ) -> CorpusAnnoyRetriever:
@@ -259,8 +325,15 @@ class CorpusAnnoyRetriever(DocsRetriever):
         n_trees : int, optional
             Annoy tree count (accuracy/size trade-off).
         embedding_model : str, optional
-            Sentence-embedding model. The query embedder uses the *same* model,
-            so query and corpus vectors share one space.
+            Sentence-embedding model used when *embedder* is ``None``. The query
+            embedder uses the same model so query and corpus vectors share one
+            space.
+        embedder : callable or object with ``embed(list[str])``, optional
+            Explicit local batch embedder. When provided, the corpus is ingested
+            without model embeddings, this callable supplies document vectors,
+            and the same callable embeds queries. This is suitable for
+            deterministic/offline helpers such as
+            :class:`scikitplot.corpus.HashEmbedder`.
         backend : str, optional
             Dense ANN backend for the corpus index. ``'annoy'`` (default) or
             ``'auto'`` (Annoy first, then FAISS / Voyager / brute-force).
@@ -286,52 +359,111 @@ class CorpusAnnoyRetriever(DocsRetriever):
                 CorpusBuilder,
                 EmbeddingEngine,
             )
-        except Exception as exc:  # pragma: no cover - integration path
+        except ImportError as exc:  # pragma: no cover - integration path
+            # MCP-D05: ImportError only. Catching Exception reported a BROKEN
+            # corpus (installed but failing to import) as ABSENT, telling the
+            # user to install a package that is already present.
             raise RuntimeError(
-                "scikitplot.corpus is required to build the retriever install"
+                "scikitplot.corpus is required to build the retriever; install "
                 "the corpus/embedding extras (pip install scikit-plots[corpus])."
             ) from exc
-
-        # 1. One pass: ingest + embed + build the Annoy-backed similarity index.
-        #    ``index_kwargs`` is forwarded verbatim into the corpus
-        #    ``SearchConfig``, so the vector backend lives entirely in corpus.
-        builder = CorpusBuilder(
-            BuilderConfig(
-                chunker="paragraph",
-                normalize=True,
-                enrich=True,
-                embed=True,
-                embedding_model=embedding_model,
-                build_index=True,
-                index_kwargs={
-                    "match_mode": "semantic",
-                    "backend": backend,
-                    "annoy_metric": metric,
-                    "annoy_n_trees": int(n_trees),
-                },
-            )
-        )
-        result = builder.build(docs_path)
-        documents = getattr(result, "documents", result)
-        index = getattr(result, "index", None)
-        if index is None or not hasattr(index, "query"):
+        except Exception as exc:  # pragma: no cover - integration path
+            # MCP-M00-08 / MCP-D05: BROKEN is not ABSENT.
             raise RuntimeError(
-                "corpus build produced no queryable semantic index; ensure "
-                "embeddings are available so SimilarityIndex has a dense backend."
+                "scikitplot.corpus is installed but failed to import; this is a "
+                "broken installation, not a missing one. Original error: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+
+        if embedder is None:
+            # Model-backed compatibility path. CorpusBuilder owns embedding and
+            # index construction exactly as before.
+            builder = CorpusBuilder(
+                BuilderConfig(
+                    chunker="paragraph",
+                    normalize=True,
+                    enrich=True,
+                    embed=True,
+                    embedding_model=embedding_model,
+                    build_index=True,
+                    index_kwargs={
+                        "match_mode": "semantic",
+                        "backend": backend,
+                        "annoy_metric": metric,
+                        "annoy_n_trees": int(n_trees),
+                    },
+                )
+            )
+            result = builder.build(docs_path)
+            documents = list(getattr(result, "documents", result))
+            index = getattr(result, "index", None)
+            if index is None or not hasattr(index, "query"):
+                raise RuntimeError(
+                    "corpus build produced no queryable semantic index; ensure "
+                    "embeddings are available so RetrievalIndex has a dense backend."
+                )
+            query_embedder: Embedder = _CorpusEmbedder(
+                getattr(result, "embedding_engine", None)
+                or getattr(builder, "embedding_engine", None)
+                or EmbeddingEngine(model_name=embedding_model)
+            )
+        else:
+            # Deterministic/local path. Ingest first, then apply the caller's
+            # batch embedder and let Corpus own the selected vector backend.
+            from scikitplot.corpus import (  # noqa: PLC0415
+                RetrievalConfig,
+                RetrievalIndex,
             )
 
-        # 2. Query embedder — the SAME model that embedded the corpus, so query
-        #    and document vectors live in one space.
-        # Prefer a corpus-owned engine on the result/builder when exposed.  The
-        # fallback constructs the same named model, but a production integration
-        # test must also pin model revision, normalisation, and vector dimension.
-        engine = (
-            getattr(result, "embedding_engine", None)
-            or getattr(builder, "embedding_engine", None)
-            or EmbeddingEngine(model_name=embedding_model)
-        )
+            builder = CorpusBuilder(
+                BuilderConfig(
+                    chunker="paragraph",
+                    normalize=True,
+                    enrich=False,
+                    embed=False,
+                    build_index=False,
+                )
+            )
+            result = builder.build(docs_path)
+            raw_documents = list(getattr(result, "documents", result))
+            if not raw_documents:
+                raise RuntimeError("corpus build produced no retrievable documents")
 
-        # 3. Document lookup keyed by the doc_id the index returns.
+            batch = getattr(embedder, "embed", None) or embedder
+            texts = [
+                str(getattr(doc, "normalized_text", None) or getattr(doc, "text", ""))
+                for doc in raw_documents
+            ]
+            vectors = batch(texts)
+            if vectors is None or len(vectors) != len(raw_documents):
+                raise RuntimeError(
+                    "custom embedder must return one vector per corpus document"
+                )
+            documents = [
+                doc.replace(embedding=vectors[index])
+                for index, doc in enumerate(raw_documents)
+            ]
+            backend_kwargs = (
+                {"metric": metric, "n_trees": int(n_trees)}
+                if backend in {"annoy", "auto"}
+                else {}
+            )
+            index = RetrievalIndex(
+                RetrievalConfig(
+                    match_mode="semantic",
+                    backend=backend,
+                    index_kwargs=backend_kwargs,
+                )
+            )
+            index.build(documents)
+            if not index.has_embeddings or not hasattr(index, "query"):
+                raise RuntimeError(
+                    "corpus build produced no queryable semantic index; ensure "
+                    "the requested vector backend is installed and usable."
+                )
+            query_embedder = _BatchQueryEmbedder(embedder)
+
+        # Document lookup keyed by the doc_id the index returns.
         table: dict[str, dict[str, Any]] = {}
         for doc in documents:
             doc_id = _value(doc, "doc_id")
@@ -344,7 +476,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
             raise RuntimeError("corpus build produced no retrievable documents")
 
         return cls(
-            _CorpusEmbedder(engine),
+            query_embedder,
             _SimilarityVectorIndex(index),
             lambda doc_id: table.get(str(doc_id), {}),
             strict=strict,

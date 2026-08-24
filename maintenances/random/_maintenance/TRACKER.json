@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.random",
+  "role": "KISS RNG over the shared `kissrandom.h`",
+  "family": "annoy (cexternals/_annoy + annoy + memmap + random)",
+  "shared_source": "scikitplot/cexternals/_annoy/src/",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 5,
+      "source_loc": 4555,
+      "test_files": 4,
+      "test_loc": 1435,
+      "markdown_files": 4
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 1,
+        "src_loc": 45,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_kiss": {
+        "src": 4,
+        "src_loc": 4510,
+        "test": 4,
+        "test_loc": 1435
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 3985,
+        "path": "_kiss/kiss_random.pyx"
+      },
+      {
+        "loc": 237,
+        "path": "_kiss/kiss_random.pxi"
+      },
+      {
+        "loc": 198,
+        "path": "_kiss/kiss_random.pxd"
+      },
+      {
+        "loc": 90,
+        "path": "_kiss/__init__.py"
+      },
+      {
+        "loc": 45,
+        "path": "__init__.py"
+      }
+    ]
+  },
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+  }
+}

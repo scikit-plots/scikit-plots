@@ -44,7 +44,13 @@ class TestChunkerRegistration:
         r = ComponentRegistry()
 
         class FakeChunker:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         r.register_chunker("fake", FakeChunker)
         assert r.get_chunker("fake") is FakeChunker
@@ -58,10 +64,22 @@ class TestChunkerRegistration:
         r = ComponentRegistry()
 
         class A:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         class B:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         r.register_chunker("zebra", B)
         r.register_chunker("apple", A)
@@ -77,19 +95,36 @@ class TestChunkerRegistration:
         with pytest.raises(TypeError, match="class"):
             r.register_chunker("x", "not_a_class")  # type: ignore[arg-type]
 
-    def test_override_warns_and_replaces(self, caplog: pytest.LogCaptureFixture) -> None:
-        import logging
+    def test_override_requires_explicit_replace(self) -> None:
         r = ComponentRegistry()
 
         class V1:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         class V2:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         r.register_chunker("my_chunker", V1)
-        with caplog.at_level(logging.WARNING):
+
+        # P-I0-07 / F-R12-01: silent replacement is now an error by default.
+        with pytest.raises(ValueError, match="refusing to replace it"):
             r.register_chunker("my_chunker", V2)
+        assert r.get_chunker("my_chunker") is V1
+
+        # Deliberate substitution still works when asked for explicitly.
+        r.register_chunker("my_chunker", V2, replace=True)
         assert r.get_chunker("my_chunker") is V2
 
 
@@ -130,7 +165,13 @@ class TestNormalizerRegistration:
         r = ComponentRegistry()
 
         class FakeNorm:
-            pass
+            """Minimal structurally-conforming normalizer (P-I0-08)."""
+
+            def normalize(self, text, **kwargs):
+                return text
+
+            def normalize_batch(self, texts, **kwargs):
+                return list(texts)
 
         r.register_normalizer("fake_norm", FakeNorm)
         assert r.get_normalizer("fake_norm") is FakeNorm
@@ -155,6 +196,12 @@ class TestBuildMethods:
             def __init__(self, *, size: int = 10) -> None:
                 self.size = size
 
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
+
         r.register_chunker("fake", FakeChunker)
         instance = r.build_chunker("fake", size=42)
         assert isinstance(instance, FakeChunker)
@@ -178,6 +225,12 @@ class TestBuildMethods:
             def __init__(self, form: str = "NFC") -> None:
                 self.form = form
 
+            def normalize(self, text, **kwargs):
+                return text
+
+            def normalize_batch(self, texts, **kwargs):
+                return list(texts)
+
         r.register_normalizer("fake_norm", FakeNorm)
         instance = r.build_normalizer("fake_norm", form="NFKC")
         assert instance.form == "NFKC"
@@ -193,7 +246,13 @@ class TestSnapshot:
         r = ComponentRegistry()
 
         class C:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         r.register_chunker("my_chunker", C)
         snap = r.snapshot()
@@ -223,7 +282,13 @@ class TestRegisterBuiltins:
         r = ComponentRegistry()
 
         class FakeChunker:
-            pass
+            """Minimal structurally-conforming chunker (P-I0-08)."""
+
+            def chunk(self, text, **kwargs):
+                return [text]
+
+            def chunk_batch(self, texts, **kwargs):
+                return [[t] for t in texts]
 
         class FakeFilter:
             pass

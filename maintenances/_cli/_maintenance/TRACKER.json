@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot._cli",
+  "role": "the command-line front door; delegates to submodules by string, never by import",
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "59bfa61efc838a2e1daa17335a7f861f9d5232fd69930140455533a461385950"
+  },
+  "physical": {
+    "totals": {
+      "source_files": 36,
+      "source_loc": 4976,
+      "test_files": 14,
+      "test_loc": 636,
+      "markdown_files": 17
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 13,
+        "src_loc": 1042,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_backup": {
+        "src": 11,
+        "src_loc": 2781,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_commands": {
+        "src": 7,
+        "src_loc": 304,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_frontends": {
+        "src": 3,
+        "src_loc": 472,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_maintenance": {
+        "src": 2,
+        "src_loc": 377,
+        "test": 0,
+        "test_loc": 0
+      },
+      "tests": {
+        "src": 0,
+        "src_loc": 0,
+        "test": 14,
+        "test_loc": 636
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 925,
+        "path": "_backup/_cmd_options/_cmd_options_optparse.py"
+      },
+      {
+        "loc": 772,
+        "path": "_backup/_misc.py"
+      },
+      {
+        "loc": 401,
+        "path": "_backup/_cmd_options/_cmd_options_click.py"
+      },
+      {
+        "loc": 400,
+        "path": "_backup/cli.py"
+      },
+      {
+        "loc": 260,
+        "path": "_maintenance/check_trackers.py"
+      },
+      {
+        "loc": 238,
+        "path": "_frontends/_argparse.py"
+      },
+      {
+        "loc": 219,
+        "path": "_frontends/_click.py"
+      },
+      {
+        "loc": 163,
+        "path": "_spec.py"
+      },
+      {
+        "loc": 162,
+        "path": "loader.py"
+      },
+      {
+        "loc": 149,
+        "path": "registry.py"
+      }
+    ]
+  },
+  "delegation_targets": [
+    "scikitplot.mcp.__main__:main"
+  ],
+  "antecessors": [
+    "config (deferred)",
+    "utils (deferred)"
+  ],
+  "successors": []
+}

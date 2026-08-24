@@ -334,6 +334,9 @@ class TestModuleLevelRegistryHelpers:
 # ===========================================================================
 # ScriptType enum
 # ===========================================================================
+# python -m pytest \
+#   scikitplot/corpus/_chunkers/tests/test__custom_tokenizer.py::TestScriptType \
+#   -vv --maxfail=0
 
 
 class TestScriptType:
@@ -343,29 +346,50 @@ class TestScriptType:
             assert isinstance(name, str)
             assert isinstance(member.value, str)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "HIGH-04: ScriptType has grown extra members (e.g. ARMENIAN) "
-            "beyond the original expected set. The test expected a fixed "
-            "12-member enum but the actual enum has more. Either update "
-            "the expected set to match the current enum, or lock the enum "
-            "to the original 12. Fix target: 0.5.0."
-        ),
-    )
     def test_expected_members_present(self) -> None:
-        expected = {
-            "LATIN", "CJK", "ARABIC", "HEBREW", "DEVANAGARI",
-            "GREEK", "CYRILLIC", "ETHIOPIC", "GEORGIAN", "EGYPTIAN",
-            "MIXED", "UNKNOWN",
+        required = {
+            "LATIN",
+            "CJK",
+            "HAN",
+            "HIRAGANA",
+            "KATAKANA",
+            "HANGUL",
+            "ARABIC",
+            "HEBREW",
+            "DEVANAGARI",
+            "THAI",
+            "SOUTHEAST_ASIAN",
+            "MYANMAR",
+            "KHMER",
+            "SOUTH_ASIAN",
+            "TIBETAN",
+            "GREEK",
+            "CYRILLIC",
+            "ARMENIAN",
+            "GEORGIAN",
+            "ETHIOPIC",
+            "EGYPTIAN",
+            "EGYPTIAN_HIEROGLYPHS",
+            "MONGOLIAN",
+            "EMOJI",
+            "SYMBOLIC",
+            "MIXED",
+            "UNKNOWN",
         }
-        actual = {m.name for m in ScriptType}
-        assert sorted(expected) == sorted(actual)
+        actual = {member.name for member in ScriptType}
+        assert required <= actual
+
+    def test_member_values_are_unique(self) -> None:
+        values = [member.value for member in ScriptType]
+        assert len(values) == len(set(values))
 
 
 # ===========================================================================
 # detect_script — one test per ScriptType branch
 # ===========================================================================
+# python -m pytest \
+#   scikitplot/corpus/_chunkers/tests/test__custom_tokenizer.py::TestDetectScript \
+#   -vv --maxfail=0
 
 
 class TestDetectScript:
@@ -429,16 +453,45 @@ class TestDetectScript:
     def test_unknown_empty_string(self) -> None:
         assert detect_script("") == ScriptType.UNKNOWN
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "HIGH-04: detect_script(\"!@#$%^&*()\"}) returns a non-UNKNOWN "
-            "value for pure punctuation/symbol input. The function should "
-            "classify symbol-only strings as UNKNOWN. Fix target: 0.5.0."
-        ),
+    # A-Z     → LATIN
+    # [\]^_`  → not LATIN
+    # a-z     → LATIN
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "[",
+            "\\",
+            "]",
+            "^",
+            "_",
+            "`",
+            "[]",
+            r"\^_`",
+        ],
     )
+    def test_ascii_gap_punctuation_is_not_latin(
+        self,
+        text: str,
+    ) -> None:
+        assert detect_script(text) is ScriptType.UNKNOWN
+
     def test_unknown_symbols_only(self) -> None:
-        assert detect_script("!@#$%^&*()") == ScriptType.UNKNOWN
+        assert detect_script("!@#$%^&*()") is ScriptType.UNKNOWN
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "a_b",
+            "hello!",
+            "[abc]",
+            "ABC_123",
+        ],
+    )
+    def test_latin_with_punctuation_remains_latin(
+        self,
+        text: str,
+    ) -> None:
+        assert detect_script(text) is ScriptType.LATIN
 
     def test_mixed_latin_arabic(self) -> None:
         # 50/50 mix — should be MIXED

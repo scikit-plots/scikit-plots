@@ -23,27 +23,27 @@ from matplotlib.figure import Figure
 import numpy as np
 from PIL import Image
 
-from .._marks.base import Mark
-from .._stats.base import Stat
-from .._core.data import PlotData
-from .._core.moves import Move
-from .._core.scales import Scale
-from .._core.subplots import Subplots
-from .._core.groupby import GroupBy
-from .._core.properties import PROPERTIES, Property
-from .._core.typing import (
+from seaborn._marks.base import Mark
+from seaborn._stats.base import Stat
+from seaborn._core.data import PlotData
+from seaborn._core.moves import Move
+from seaborn._core.scales import Scale
+from seaborn._core.subplots import Subplots
+from seaborn._core.groupby import GroupBy
+from seaborn._core.properties import PROPERTIES, Property
+from seaborn._core.typing import (
     DataSource,
     VariableSpec,
     VariableSpecList,
     OrderSpec,
     Default,
 )
-from .._core.exceptions import PlotSpecError
-from .._core.rules import categorical_order
-from .._compat import get_layout_engine, set_layout_engine
-from ..utils import _version_predates
-from ..rcmod import axes_style, plotting_context
-from ..palettes import color_palette
+from seaborn._core.exceptions import PlotSpecError
+from seaborn._core.rules import categorical_order
+from seaborn._compat import get_layout_engine, set_layout_engine
+from seaborn.utils import _version_predates
+from seaborn.rcmod import axes_style, plotting_context
+from seaborn.palettes import color_palette
 
 from typing import TYPE_CHECKING, TypedDict
 if TYPE_CHECKING:

@@ -1211,11 +1211,15 @@ def detect_script(  # noqa: PLR0912
             counts["symbolic"] += 1
 
         # ── Latin: Basic + Extended A/B + Supplemental + IPA ─────────
+        # A-Z     → LATIN
+        # [\]^_`  → not LATIN
+        # a-z     → LATIN
         elif (
-            0x0041 <= cp <= 0x007A  # A-Z a-z  # noqa: PLR2004
-            or 0x00C0 <= cp <= 0x024F  # Latin Extended  # noqa: PLR2004
-            or 0x0250 <= cp <= 0x02AF  # IPA Extensions  # noqa: PLR2004
-            or 0x1E00 <= cp <= 0x1EFF  # Latin Extended Additional  # noqa: PLR2004
+            0x0041 <= cp <= 0x005A  # noqa: PLR2004  # ASCII uppercase A-Z
+            or 0x0061 <= cp <= 0x007A  # noqa: PLR2004  # ASCII lowercase a-z
+            or 0x00C0 <= cp <= 0x024F  # noqa: PLR2004  # Latin Extended
+            or 0x0250 <= cp <= 0x02AF  # noqa: PLR2004  # IPA Extensions
+            or 0x1E00 <= cp <= 0x1EFF  # noqa: PLR2004  # Latin Extended Additional
         ):
             counts["latin"] += 1
 
