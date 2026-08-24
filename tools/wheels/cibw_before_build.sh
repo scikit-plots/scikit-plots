@@ -360,6 +360,8 @@ setup_windows() {
         if python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 8) else 1)'; then
             log_info "Python 3.8 detected. Enabling UTF-8 mode for delvewheel."
             export PYTHONUTF8=1
+            # python -X utf8 -c "import sys; print(sys.flags.utf8_mode)"
+            python -c "import sys; print(sys.flags.utf8_mode)"
         fi
 
         # delvewheel is the equivalent of delocate/auditwheel for Windows.
