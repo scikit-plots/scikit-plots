@@ -75,6 +75,27 @@ set -Eeuo pipefail
 # anything that doesn't export it gets the unchanged, pre-existing behavior.
 : "${ANACONDA_LABEL:=}"
 
+# ANACONDA_CLI: the argv prefix used for EVERY anaconda-client invocation
+# (version probe, upload, and any future diagnostic).  It is an array, not a
+# string, so that a multi-word launcher such as
+#   (conda run --no-capture-output -n upload anaconda)
+# is expanded as separate argv entries rather than being re-split by the shell.
+#
+# WHY THIS EXISTS
+# ───────────────
+# upload_wheels() may obtain the client in one of two ways (conda env, or pip
+# into whatever interpreter is first on PATH).  Previously the install step and
+# the upload step chose independently: the script created a conda env named
+# "upload", then called a BARE `anaconda`, which PATH resolved to the base
+# Miniconda installation instead.  On runners where those two resolve to
+# different anaconda-client versions the uploader silently used a client that
+# was never probed.  ANACONDA_CLI removes that ambiguity: whichever branch
+# succeeds in upload_wheels() sets this array, and every later call uses it.
+#
+# Default: the bare command, preserving the previous behavior for any caller
+# that invokes anaconda_upload_with_retry() without calling upload_wheels().
+declare -a ANACONDA_CLI=(anaconda)
+
 # ── set_travis_vars ──────────────────────────────────────────────────────────
 # Translates Travis-CI event variables into the IS_PUSH / IS_SCHEDULE_DISPATCH
 # flags consumed by set_upload_vars.
@@ -132,6 +153,8 @@ set_upload_vars() {
 # ANACONDA_LABEL      : (optional) label/channel to upload to. Empty/unset
 #                        ⇒ no --label flag ⇒ anaconda-client's default
 #                        ("main"). Non-empty ⇒ `--label "$ANACONDA_LABEL"`.
+# ANACONDA_CLI        : argv array for the anaconda-client launcher, resolved
+#                        by upload_wheels(). Defaults to (anaconda).
 #
 # Tuneable (optional env vars with sane defaults)
 # --------
@@ -172,7 +195,7 @@ anaconda_upload_with_retry() {
         # and the exit code in a single step.  set -e is restored immediately
         # afterwards so the outer errexit contract is never broken.
         set +e
-        out=$(anaconda --verbose -q -t "$TOKEN" upload --force \
+        out=$("${ANACONDA_CLI[@]}" --verbose -q -t "$TOKEN" upload --force \
             ${label_args[@]+"${label_args[@]}"} \
             -u "$USERNAME" "$artifact" 2>&1)
         rc=$?
@@ -246,23 +269,11 @@ upload_wheels() {
     echo "PWD: ${PWD}"
     ls -lah
 
-    # ── Install anaconda-client ──────────────────────────────────────────────
-    # Both conda and pip are tried; || true is intentional because:
-    #   • The environment may already have anaconda-client installed.
-    #   • conda activate requires shell initialisation that varies by runner.
-    #   • pip is a reliable fallback, especially on win-arm64 where
-    #     anaconda-client is not available via conda.
-    # A missing CLI is caught with a clear "command not found" at upload time.
-    if [[ -n "${CONDA:-}" ]]; then
-        # Guard against set -u: CONDA may be unset on pip-only runners.
-        export PATH="${CONDA}/bin:${PATH}"
-    fi
-    conda create -n upload -y anaconda-client 2>/dev/null || true
-    # shellcheck disable=SC1091
-    conda activate upload 2>/dev/null || true
-    pip install --no-cache-dir anaconda-client 2>/dev/null || true
-
     # ── Guard: only upload when explicitly enabled ───────────────────────────
+    # Checked BEFORE installing anaconda-client: a PR / non-dispatch job has
+    # nothing to upload, so provisioning a conda environment there is pure cost
+    # and pure risk (network, solver, disk) for an operation that returns 0
+    # immediately afterwards.
     if [[ "${ANACONDA_UPLOAD:-false}" != "true" ]]; then
         echo "ANACONDA_UPLOAD is not 'true' — skipping upload"
         return 0
@@ -271,6 +282,55 @@ upload_wheels() {
     if [[ -z "${TOKEN:-}" ]]; then
         echo "TOKEN is not set — skipping upload"
         return 0
+    fi
+
+    # ── Resolve anaconda-client (exactly one source, never a mix) ────────────
+    # Two supported provisioning models, tried in order:
+    #
+    #   1. conda env "upload"  → invoked via `conda run`, NOT `conda activate`.
+    #      `conda activate` needs `etc/profile.d/conda.sh` to have been sourced
+    #      into the current shell; in a non-interactive CI step that is not
+    #      guaranteed, and when it fails the subsequent bare `anaconda` silently
+    #      resolves to whatever is first on PATH — i.e. the base installation.
+    #      `conda run` requires no shell initialisation and is unambiguous.
+    #
+    #   2. pip into the current interpreter → fallback for runners where
+    #      anaconda-client is not installable via conda (e.g. win-arm64).
+    #
+    # Whichever branch wins sets ANACONDA_CLI, and the SAME argv is used for the
+    # version probe printed below and for the real upload. There is no longer a
+    # path where the probed client and the invoked client can differ.
+    if [[ -n "${CONDA:-}" ]]; then
+        # Guard against set -u: CONDA may be unset on pip-only runners.
+        export PATH="${CONDA}/bin:${PATH}"
+    fi
+
+    # `conda create` fails when the env already exists (re-run of a job, warm
+    # runner image), so fall through to `conda install` for idempotency rather
+    # than treating "already provisioned" as a failure.
+    if command -v conda > /dev/null 2>&1 \
+        && { conda create -y -n upload -c conda-forge anaconda-client \
+             || conda install -y -n upload -c conda-forge anaconda-client; }
+    then
+        # --no-capture-output makes `conda run` pass the child's stdout/stderr
+        # straight through to this shell's fds. That keeps the existing
+        # `out=$(... 2>&1)` capture and `$?` propagation in
+        # anaconda_upload_with_retry byte-for-byte accurate.
+        ANACONDA_CLI=(conda run --no-capture-output -n upload anaconda)
+        echo "anaconda-client source: conda env 'upload'"
+        conda run --no-capture-output -n upload python --version
+    else
+        python -m pip install --no-cache-dir anaconda-client
+        ANACONDA_CLI=(anaconda)
+        echo "anaconda-client source: pip (current interpreter)"
+        python --version
+    fi
+
+    # Fail fast and loudly here rather than at the first upload attempt: a
+    # broken client is a permanent, local, non-retryable condition.
+    if ! "${ANACONDA_CLI[@]}" --version; then
+        echo "❌  anaconda-client is not usable via: ${ANACONDA_CLI[*]}"
+        return 1
     fi
 
     echo "TOKEN found, scanning for artifacts..."
