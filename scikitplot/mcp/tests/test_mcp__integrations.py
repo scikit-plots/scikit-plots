@@ -1,8 +1,8 @@
 """Integrations are read-only, SDK-free, and emit valid config for our server."""
 import json
 
-from scikitplot.mcp.integrations.agno import ScikitplotDocsToolkit
-from scikitplot.mcp.integrations.openclaw import OpenClawMcpConfig
+from .._integrations._agno import ScikitplotDocsToolkit
+from .._integrations._openclaw import OpenClawMcpConfig
 
 
 def test_docs_toolkit_is_sdk_free_and_read_only():
@@ -32,7 +32,7 @@ def test_openclaw_config_rejects_bad_transport():
 def test_build_agno_toolkit_actionable_without_agno():
     # agno is not installed here; the builder must raise a clear ImportError.
     import pytest
-    from scikitplot.mcp.integrations.agno import build_agno_toolkit
+    from .._integrations._agno import build_agno_toolkit
     with pytest.raises(ImportError, match="agno"):
         build_agno_toolkit()
 
@@ -48,8 +48,8 @@ def test_importing_integrations_pulls_no_sdk_or_framework():
     repo_root = pathlib.Path(__file__).resolve().parents[3]  # dir containing scikitplot/
     probe = (
         "import sys\n"
-        "import scikitplot.mcp.integrations.agno\n"
-        "import scikitplot.mcp.integrations.openclaw\n"
+        "import scikitplot.mcp._integrations._agno\n"
+        "import scikitplot.mcp._integrations._openclaw\n"
         "leaked = [m for m in ('mcp', 'mcp_types', 'agno', 'starlette') "
         "if m in sys.modules]\n"
         "sys.stdout.write('LEAKED=' + ','.join(leaked))\n"

@@ -8,7 +8,7 @@ import pathlib
 
 import pytest
 
-_PLUGINS = pathlib.Path(__file__).resolve().parent.parent / "plugins"
+_PLUGINS = pathlib.Path(__file__).resolve().parent.parent / "_plugins"
 _JSON = sorted(_PLUGINS.rglob("*.json"))
 
 
@@ -39,4 +39,4 @@ def test_all_configs_launch_our_server():
             joined = f"{entry.get('command', '')} {' '.join(map(str, args))}"
             assert "scikitplot.mcp" in joined or "scikitplot mcp" in joined, (path, entry)
             checked += 1
-    assert checked > 0, "no MCP server config entries found in plugins/"
+    assert checked > 0, "no MCP server config entries found in _plugins/"
