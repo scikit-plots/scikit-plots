@@ -38,6 +38,10 @@ The normal user workflow is intentionally small:
 You do not need to understand the retrieval internals to get started. Retrieval
 finds and ranks evidence; it does not make the underlying data true.
 
+.. seealso::
+  * https://github.com/modelcontextprotocol/python-sdk
+  * https://github.com/semantica-agi/semantica
+
 .. contents:: On this page
    :local:
    :depth: 2

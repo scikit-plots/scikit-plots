@@ -28,6 +28,7 @@ from numpy import __version__ as __numpy_version__
 
 # PEP0440 compatible formatted version, see:
 # https://www.python.org/dev/peps/pep-0440/
+# https://semver.org/
 #
 # Generic release markers:
 #   X.Y.0   # For first release after an increment in Y

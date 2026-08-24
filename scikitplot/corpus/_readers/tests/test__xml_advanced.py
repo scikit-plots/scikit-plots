@@ -24,8 +24,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from ...conftest import captured_logger
-
+# from ...conftest import captured_logger
 from .._xml import _clark_to_prefix, _xpath_elements
 
 
@@ -129,6 +128,7 @@ class TestXpathElementsStdlib:
     def test_bad_xpath_logs_warning_and_returns_empty(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
         # I prefer caplog with direct handler attachment, because you're testing the logging semantic, not terminal presentation.
@@ -139,7 +139,6 @@ class TestXpathElementsStdlib:
             "scikitplot.corpus._readers._xml"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -185,6 +184,7 @@ class TestXpathElementsStdlib:
     def test_valid_xpath_with_no_match_does_not_log_warning(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         root = ET.fromstring("<root><p>text</p></root>")
         # I prefer caplog with direct handler attachment, because you're testing the logging semantic, not terminal presentation.
@@ -195,7 +195,6 @@ class TestXpathElementsStdlib:
             "scikitplot.corpus._readers._xml"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):

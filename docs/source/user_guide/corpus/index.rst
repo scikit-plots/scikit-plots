@@ -86,6 +86,11 @@ Quick start
 
 * :ref:`sphx_glr_auto_examples_corpus_plot_corpus_who_per_file_script.py`: Example notebook.
 
+.. seealso::
+  * https://github.com/modelcontextprotocol/python-sdk
+  * https://github.com/semantica-agi/semantica
+  * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
+
 ..
   # https://github.com/roy-ht/langdetect
 

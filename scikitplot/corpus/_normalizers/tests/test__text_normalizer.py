@@ -38,8 +38,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ...conftest import captured_logger
-
+# from ...conftest import captured_logger
 from .._text_normalizer import TextNormalizerConfig, TextNormalizer, normalize_text
 
 
@@ -583,13 +582,13 @@ class TestTextNormalizerNormalize:
     def test_unknown_step_logs_warning_and_is_ignored(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         """An unrecognised step warns, is ignored, and does not abort."""
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -619,12 +618,12 @@ class TestTextNormalizerNormalize:
     def test_multiple_unknown_steps_log_once_and_are_ignored(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -658,12 +657,12 @@ class TestTextNormalizerNormalize:
     def test_all_unknown_steps_result_in_empty_steps(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -692,12 +691,12 @@ class TestTextNormalizerNormalize:
     def test_non_string_steps_warn_and_are_ignored(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -724,12 +723,12 @@ class TestTextNormalizerNormalize:
     def test_valid_explicit_steps_do_not_log_warning(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         logger = logging.getLogger(
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):

@@ -20,6 +20,7 @@ import time.
 
 .. seealso::
   * https://github.com/modelcontextprotocol/python-sdk
+  * https://github.com/semantica-agi/semantica
 """
 
 from __future__ import annotations

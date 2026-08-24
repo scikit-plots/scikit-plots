@@ -126,7 +126,8 @@ def is_unexpected(name):
 SKIP_LIST = [
     "scikitplot._build_utils._meson_features",  # not module
     # root artifact
-    "scikitplot.conftest",
+    "scikitplot.conftest",  # common fixture/hook for entire scikitplot
+    "scikitplot.corpus.conftest",  # common fixture/hook for entire corpus
     # optional
 ]
 

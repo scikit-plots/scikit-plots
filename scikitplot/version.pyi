@@ -9,6 +9,19 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""
+scikit-plots Releases (Next) (Docs).
+
+* https://libraries.io/pypi/scikit-plots/versions
+
+.. seealso::
+
+    PEP0440 compatible formatted version, see:
+
+    * https://www.python.org/dev/peps/pep-0440/
+    * https://semver.org/
+"""
+
 # Only imports when type checking
 from typing import TYPE_CHECKING
 

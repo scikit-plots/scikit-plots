@@ -40,8 +40,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ...conftest import captured_logger
-
+# from ...conftest import captured_logger
 from .._nlp_enricher import BUILTIN_STOPWORDS, EnricherConfig, NLPEnricher
 
 
@@ -645,6 +644,7 @@ class TestKeywordExtractors:
     def test_yake_fallback_logs_warning(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         e = NLPEnricher(
             EnricherConfig(keyword_extractor="yake")
@@ -653,7 +653,6 @@ class TestKeywordExtractors:
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
@@ -740,6 +739,7 @@ class TestKeywordExtractors:
     def test_keybert_fallback_logs_warning(
         self,
         caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         e = NLPEnricher(
             EnricherConfig(keyword_extractor="keybert")
@@ -748,7 +748,6 @@ class TestKeywordExtractors:
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
         with captured_logger(
-            caplog,
             logger.name,
             logging.WARNING,
         ):
