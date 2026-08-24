@@ -354,31 +354,27 @@ setup_windows() {
     if [[ "$RUNNER_OS" == "Windows" ]]; then
         log_info "Windows platform detected. Installing delvewheel and wheel..."
 
-        # Python 3.8 + delvewheel 1.10.0 compatibility:
-        # Force UTF-8 mode to avoid Windows cp1252 UnicodeDecodeError
-        # while delvewheel patches Python source files.
-        if python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 8) else 1)'; then
-            log_info "Python 3.8 detected. Enabling UTF-8 mode for delvewheel."
-            export PYTHONUTF8=1
-            # python -X utf8 -c "import sys; print(sys.flags.utf8_mode)"
-            python -c "import sys; print(sys.flags.utf8_mode)"
-        fi
-
         # delvewheel is the equivalent of delocate/auditwheel for Windows.
         python -m pip install delvewheel wheel
 
         # Diagnostics
         python --version
+        python -m pip --version || true
+        # python -m delvewheel -h || true
+
         python -c \
             "import locale, sys; \
              print('Python:', sys.version); \
              print('Preferred encoding:', locale.getpreferredencoding(False)); \
              print('UTF-8 mode:', sys.flags.utf8_mode)"
 
-        python -m pip --version || true
-        python -c 'from importlib.metadata import version; print("wheel", version("wheel"))' || true
-        python -c 'from importlib.metadata import version; print("delvewheel", version("delvewheel"))' || true
-        # python -m delvewheel -h || true
+        python -c \
+            'from importlib.metadata import version; print("wheel", version("wheel"))' \
+            || true
+
+        python -c \
+            'from importlib.metadata import version; print("delvewheel", version("delvewheel"))' \
+            || true
 
 #         python -c '
 # from importlib.metadata import version

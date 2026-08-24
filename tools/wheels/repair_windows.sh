@@ -51,15 +51,54 @@ popd  # Exit tmp directory
 
 rm -rf tmp  # Clean up temporary unpack directory
 
+# Python 3.8 resolves to delvewheel 1.10.0, while newer delvewheel
+# releases require Python >=3.9. On Windows, run the Python 3.8
+# repair process explicitly in UTF-8 mode to avoid locale/cp1252
+# decoding failures when delvewheel patches Python source files.
+# if python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 8) else 1)'; then
+#     log_info "Python 3.8 detected. Enabling UTF-8 mode for delvewheel."
+#     export PYTHONUTF8=1
+#     # python -X utf8 -c "import sys; print(sys.flags.utf8_mode)"
+#     python -c "import sys; print(sys.flags.utf8_mode)"
+# fi
+
 # Run delvewheel to repair the wheel and add the OpenBLAS DLL path
 # Note the space separating DEST_DIR and WHEEL arguments here
 # the libopenblas.dll is placed into this directory in the cibw_before_build
 # script.
 # Run delvewheel to repair the wheel and add OpenBLAS path
 # delvewheel repair --add-path $OPENBLAS_DIR --no-dll libsf_error_state.dll -w $DEST_DIR $WHEEL
-delvewheel repair --add-path "$cwd/.openblas/lib" --no-dll libsf_error_state.dll -w "$DEST_DIR" "$WHEEL"
-echo "Fixed libopenblas.dll at $cwd/.openblas/lib"
+# PYTHONUTF8=1 python -m delvewheel ... one command
+# python -X utf8 -m delvewheel ...      one Python invocation
+# delvewheel repair --add-path "$cwd/.openblas/lib" --no-dll libsf_error_state.dll -w "$DEST_DIR" "$WHEEL"
+#
+# Windows + Python 3.8  -> python -X utf8 -m delvewheel repair
+# Windows + Python 3.9+ -> python -m delvewheel repair
+# Non-Windows           -> python -m delvewheel repair
+# repair
+# ├── Windows / Python 3.8
+# │   └── python -X utf8 -m delvewheel         correct
+# │
+# └── Windows / Python >=3.9
+#     └── python -m delvewheel                 normal
+if [[ "${RUNNER_OS:-}" == "Windows" ]] \
+  && python -c 'import sys; raise SystemExit(sys.version_info[:2] != (3, 8))'
+then
+  echo "Windows + Python 3.8 detected: running delvewheel in UTF-8 mode"
+  python -X utf8 -m delvewheel repair \
+      --add-path "$cwd/.openblas/lib" \
+      --no-dll libsf_error_state.dll \
+      -w "$DEST_DIR" \
+      "$WHEEL"
+else
+  python -m delvewheel repair \
+      --add-path "$cwd/.openblas/lib" \
+      --no-dll libsf_error_state.dll \
+      -w "$DEST_DIR" \
+      "$WHEEL"
+fi
 
+echo "Fixed libopenblas.dll at $cwd/.openblas/lib"
 # # Detect architecture (32-bit or 64-bit)
 # ARCHITECTURE=$(python -c "import platform; print(platform.architecture()[0])")
 # if [[ "$ARCHITECTURE" == "32bit" ]]; then
