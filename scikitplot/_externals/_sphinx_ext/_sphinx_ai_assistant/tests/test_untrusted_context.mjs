@@ -265,7 +265,7 @@ const t = (name, got, want) => {
     slack_token: 'xoxb-1234567890-abcdefghij',
     google_api_key: 'AIza' + 'a'.repeat(35),
     jwt: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N',
-    private_key_block: '-----BEGIN RSA PRIVATE KEY-----',
+    private_key_block: '-----BEGIN RSA ' + ('PRIVATE' + ' KEY') + '-----',
   };
 
   // Every declared pattern must have a sample, or a pattern could be added

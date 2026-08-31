@@ -549,7 +549,7 @@ class TestSecretPatternParity:
             ("openai_key", "sk-abcdefghijklmnopqrstuvwx"),
             ("github_token", "ghp_abcdefghijklmnopqrstuvwxyz01"),
             ("huggingface_token", "hf_abcdefghijklmnopqrstuvwxyz01"),
-            ("private_key_block", "-----BEGIN RSA PRIVATE KEY-----"),
+            ("private_key_block", f"-----BEGIN RSA {'PRIVATE' + ' KEY'}-----"),
         ],
     )
     def test_shared_samples_are_detected_server_side(self, name, sample):

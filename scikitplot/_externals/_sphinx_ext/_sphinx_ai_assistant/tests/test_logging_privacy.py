@@ -65,7 +65,12 @@ def test_sanitize_log_text_removes_sensitive_values(telemetry, kind: str, value:
 
 def test_private_key_and_bearer_are_redacted(telemetry) -> None:
     token = SECRET_VALUES["hf"]
-    pem = "-----BEGIN RSA PRIVATE KEY-----\nSUPERSECRETMATERIAL\n-----END RSA PRIVATE KEY-----"
+    private_key_marker = "PRIVATE" + " KEY"
+    pem = (
+        f"-----BEGIN RSA {private_key_marker}-----\n"
+        "SUPERSECRETMATERIAL\n"
+        f"-----END RSA {private_key_marker}-----"
+    )
     out = telemetry.sanitize_log_text(f"Authorization: Bearer {token}\n{pem}")
     assert token not in out
     assert "SUPERSECRETMATERIAL" not in out
