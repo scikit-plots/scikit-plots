@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -590,9 +591,11 @@ def main(  # ruff: ignore[undocumented-public-function]
     try:
         result = verify(args.evidence)
     except EvidenceError as exc:
-        logger.warning(json.dumps({"ok": False, "code": str(exc)}, sort_keys=True))
+        sys.stderr.write(
+            json.dumps({"ok": False, "code": str(exc)}, sort_keys=True) + "\n"
+        )
         return 2
-    logger.warning(json.dumps(result, sort_keys=True))
+    sys.stdout.write(json.dumps(result, sort_keys=True) + "\n")
     return 0
 
 

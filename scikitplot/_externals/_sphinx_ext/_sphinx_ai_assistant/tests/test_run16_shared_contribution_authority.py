@@ -32,16 +32,20 @@ def _assert_run16_source_contract(ledger_src: str, app_src: str, storage_src: st
     assert 'class RedisContributionLedger' in ledger_src
     assert 'receipt_id_externalized": "hmac_sha256"' in ledger_src
     assert "if state == 'promoting' and old_lease <= now then\n  entry.state='promotion_uncertain'" in ledger_src
-    shared_route = (
-        'if CONTRIBUTION_REQUIRE_SHARED and not (\n'
-        '        bool(ledger_manifest.get("shared")) and bool(ledger_manifest.get("authoritative"))\n'
-        '    ):\n'
-        '        raise HTTPException(status_code=503, detail="Shared contribution lifecycle authority is required.")'
-    )
-    assert shared_route in app_src
+    route_start = app_src.index('@app.post("/v1/contribute")')
+    route_end = app_src.index('raw = await _read_limited_body', route_start)
+    shared_route = app_src[route_start:route_end]
+    assert 'if CONTRIBUTION_REQUIRE_SHARED and not (' in shared_route
+    assert 'bool(ledger_manifest.get("shared"))' in shared_route
+    assert 'bool(ledger_manifest.get("authoritative"))' in shared_route
+    assert 'status_code=503' in shared_route
+    assert 'detail="Shared contribution lifecycle authority is required."' in shared_route
     assert 'mark_promotion_uncertain' in app_src
     assert 'bool(getattr(exc, "transient", False))' in app_src
-    assert 'raise StorageWriteError(f"{target.provider.upper()}_TRANSPORT", transient=True)' in storage_src
+    transport_pos = storage_src.index('f"{target.provider.upper()}_TRANSPORT"')
+    transport_block = storage_src[max(0, transport_pos - 160): transport_pos + 200]
+    assert 'raise StorageWriteError(' in transport_block
+    assert 'transient=True' in transport_block
 
 def _entry(receipt_id: str = "receipt-a") -> dict:
     return {
@@ -608,14 +612,10 @@ def test_run16_positive_control_mutant_shared_requirement_removed_is_caught():
     ledger_src = (PROXY / "_utils" / "_contribution_ledger.py").read_text(encoding="utf-8")
     app_src = (PROXY / "app.py").read_text(encoding="utf-8")
     storage_src = (PROXY / "_utils" / "_storage.py").read_text(encoding="utf-8")
-    anchor = (
-        'if CONTRIBUTION_REQUIRE_SHARED and not (\n'
-        '        bool(ledger_manifest.get("shared")) and bool(ledger_manifest.get("authoritative"))\n'
-        '    ):\n'
-        '        raise HTTPException(status_code=503, detail="Shared contribution lifecycle authority is required.")'
-    )
-    assert app_src.count(anchor) == 1
-    mutated = app_src.replace(anchor, anchor.replace('if CONTRIBUTION_REQUIRE_SHARED', 'if False'), 1)
+    route_start = app_src.index('@app.post("/v1/contribute")')
+    anchor = 'if CONTRIBUTION_REQUIRE_SHARED and not ('
+    gate_start = app_src.index(anchor, route_start)
+    mutated = app_src[:gate_start] + app_src[gate_start:].replace(anchor, 'if False and not (', 1)
     with pytest.raises(AssertionError):
         _assert_run16_source_contract(ledger_src, mutated, storage_src)
 
@@ -646,8 +646,12 @@ def test_run16_positive_control_mutant_transport_ambiguity_downgraded_is_caught(
     ledger_src = (PROXY / "_utils" / "_contribution_ledger.py").read_text(encoding="utf-8")
     app_src = (PROXY / "app.py").read_text(encoding="utf-8")
     storage_src = (PROXY / "_utils" / "_storage.py").read_text(encoding="utf-8")
-    anchor = 'raise StorageWriteError(f"{target.provider.upper()}_TRANSPORT", transient=True)'
-    assert storage_src.count(anchor) == 1
-    mutated = storage_src.replace(anchor, 'raise StorageWriteError(f"{target.provider.upper()}_TRANSPORT", transient=False)', 1)
+    marker = 'f"{target.provider.upper()}_TRANSPORT"'
+    transport_pos = storage_src.index(marker)
+    transient_pos = storage_src.index('transient=True', transport_pos)
+    assert transient_pos - transport_pos < 160
+    mutated = storage_src[:transient_pos] + storage_src[transient_pos:].replace(
+        'transient=True', 'transient=False', 1
+    )
     with pytest.raises(AssertionError):
         _assert_run16_source_contract(ledger_src, app_src, mutated)

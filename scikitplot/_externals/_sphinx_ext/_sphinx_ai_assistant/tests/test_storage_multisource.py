@@ -363,7 +363,8 @@ def test_shared_env_loader_prefers_hf_dataset_token(monkeypatch):
 def test_multisource_config_suppresses_legacy_hf_token_warning_path():
     root = Path(__file__).resolve().parents[1]
     source = (root / "_hf_spaces_proxy" / "app.py").read_text(encoding="utf-8")
-    assert "_LEGACY_HF_STORAGE_ACTIVE: bool = bool(TRAINING_DATASET_REPO and not RECORD_STORAGE_TARGETS)" in source
+    assert "_LEGACY_HF_STORAGE_ACTIVE: bool = bool(" in source
+    assert "TRAINING_DATASET_REPO and not RECORD_STORAGE_TARGETS" in source
     assert 'TRAINING_DATASET_REPO if _LEGACY_HF_STORAGE_ACTIVE else ""' in source
     assert "if _LEGACY_HF_STORAGE_ACTIVE and not HF_DATASET_TOKEN:" in source
 

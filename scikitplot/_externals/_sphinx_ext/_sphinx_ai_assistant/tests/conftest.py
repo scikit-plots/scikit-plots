@@ -190,6 +190,108 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_placeholder = "Ask a question about this page\u2026"
     cfg.ai_assistant_panel_api_enabled = False
     cfg.ai_assistant_panel_page_help = True
+
+    # Modern AI-assistant defaults.  Keep these concrete: a missing attribute
+    # on MagicMock becomes another MagicMock, which is intentionally rejected
+    # by the extension's strict config validators and can create unrelated
+    # warnings/errors in tests that are trying to assert a different signal.
+    # This list mirrors the literal defaults registered by setup().
+    cfg.ai_assistant_pdf_url_mode_toggle = True
+    cfg.ai_assistant_copy_mode = "browser"
+    cfg.ai_assistant_copy_mode_toggle = True
+    cfg.ai_assistant_llms_txt_format = "structured"
+    cfg.ai_assistant_llms_txt_summary = None
+    cfg.ai_assistant_llms_txt_sections = None
+    cfg.ai_assistant_strict = False
+
+    cfg.ai_assistant_panel_quick_questions = []
+    cfg.ai_assistant_panel_speak_banner = True
+    cfg.ai_assistant_panel_trigger_label = "Ask AI"
+    cfg.ai_assistant_panel_start_minimized = True
+    cfg.ai_assistant_panel_trigger_toggle = True
+    cfg.ai_assistant_panel_reasoning = False
+    cfg.ai_assistant_panel_effort_levels = []
+    cfg.ai_assistant_panel_effort_default = ""
+    cfg.ai_assistant_panel_stub_models = True
+    cfg.ai_assistant_panel_injection_notice = True
+    cfg.ai_assistant_panel_model_editing = True
+    cfg.ai_assistant_panel_persist = True
+    cfg.ai_assistant_panel_remember_conversation = True
+    cfg.ai_assistant_panel_shortcut = "Alt+Shift+A"
+    cfg.ai_assistant_panel_api_url = ""
+    cfg.ai_assistant_panel_api_model = ""
+    cfg.ai_assistant_panel_api_models = []
+    cfg.ai_assistant_panel_api_streaming = True
+    cfg.ai_assistant_panel_inline_model_picker = True
+
+    cfg.ai_assistant_panel_usage_policy = True
+    cfg.ai_assistant_panel_usage_policy_title = "Usage Policy"
+    cfg.ai_assistant_panel_usage_policy_html = ""
+    cfg.ai_assistant_panel_terms = True
+    cfg.ai_assistant_panel_terms_title = "Terms of Service"
+    cfg.ai_assistant_panel_terms_link_text = "Terms of Service"
+    cfg.ai_assistant_panel_terms_html = ""
+    cfg.ai_assistant_panel_share = True
+    cfg.ai_assistant_panel_share_label = "Share"
+    cfg.ai_assistant_panel_share_targets = []
+    cfg.ai_assistant_panel_links = True
+    cfg.ai_assistant_panel_links_title = "Project Links"
+    cfg.ai_assistant_panel_links_html = ""
+
+    cfg.ai_assistant_panel_source = True
+    cfg.ai_assistant_panel_source_url = ""
+    cfg.ai_assistant_panel_source_label = "Source Repository"
+    cfg.ai_assistant_panel_source_desc = ""
+    cfg.ai_assistant_panel_source_btn_label = "Source"
+    cfg.ai_assistant_panel_site = True
+    cfg.ai_assistant_panel_site_url = ""
+    cfg.ai_assistant_panel_site_label = "Project Website"
+    cfg.ai_assistant_panel_site_desc = ""
+    cfg.ai_assistant_panel_site_btn_label = "Website"
+    cfg.ai_assistant_panel_dataset_repo = ""
+    cfg.ai_assistant_panel_hf_space_url = ""
+    cfg.ai_assistant_panel_hf_space_label = "HuggingFace Space"
+    cfg.ai_assistant_panel_hf_dataset_url = ""
+    cfg.ai_assistant_panel_hf_dataset_label = "HuggingFace Dataset"
+    cfg.ai_assistant_panel_hf_endpoint_url = ""
+    cfg.ai_assistant_panel_hf_endpoint_label = "Active Endpoint"
+
+    cfg.ai_assistant_panel_hamburger = True
+    cfg.ai_assistant_panel_feedback = True
+    cfg.ai_assistant_panel_feedback_question = "Was this helpful?"
+    cfg.ai_assistant_panel_feedback_options = []
+    cfg.ai_assistant_panel_feedback_placeholder = ""
+    cfg.ai_assistant_panel_feedback_submit = "Send feedback"
+    cfg.ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
+    cfg.ai_assistant_panel_feedback_log = False
+    cfg.ai_assistant_panel_feedback_scale = "auto"
+
+    cfg.ai_assistant_isolation_origin = ""
+    cfg.ai_assistant_isolation_frame_path = "/ai-assistant-isolated.html"
+    cfg.ai_assistant_isolation_context_max_chars = 200000
+    cfg.ai_assistant_isolation_parent_origins = []
+    cfg.ai_assistant_isolation_allow_microphone = False
+
+    cfg.ai_assistant_panel_feedback_endpoint = ""
+    cfg.ai_assistant_panel_feedback_token = ""
+    cfg.ai_assistant_allow_runtime_tokens = False
+    cfg.ai_assistant_allow_credentialed_fetch = False
+    cfg.ai_assistant_global_share_endpoint = ""
+    cfg.ai_assistant_global_share_token = ""
+    cfg.ai_assistant_global_share_ttl_days = 30
+    cfg.ai_assistant_training_endpoint = ""
+    cfg.ai_assistant_endpoint_profiles = {}
+    cfg.ai_assistant_endpoint_default_profile = ""
+
+    cfg.ai_assistant_panel_privacy_title = "Privacy & Responsibility"
+    cfg.ai_assistant_panel_privacy_link_text = "Privacy & Responsibility"
+    cfg.ai_assistant_panel_privacy_html = ""
+    cfg.ai_assistant_search_bar = False
+    cfg.ai_assistant_search_bar_selector = ""
+    cfg.ai_assistant_search_bar_position = "top"
+    cfg.ai_assistant_search_bar_mini = False
+    cfg.ai_assistant_panel_search_placeholder = "Ask AI about these docs…"
+
     # Standard Sphinx values
     cfg.html_baseurl = ""
     cfg.html_static_path = []

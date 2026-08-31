@@ -27,10 +27,13 @@ def _load_rate_module():
 def _assert_hf_shared_authority_contract(src: str) -> None:
     assert 'if RATE_LIMIT_REQUIRE_SHARED and RATE_LIMIT_BACKEND == "local":' in src
     assert 'if RATE_LIMIT_BACKEND != "local":' in src
-    assert 'raise HTTPException(status_code=503, detail="Shared rate limiter unavailable.")' in src
     start = src.index('if RATE_LIMIT_BACKEND != "local":')
     end = src.index('now = _time.time()', start)
     shared_branch = src[start:end]
+    # Keep the assertion semantic: formatter changes may wrap HTTPException over
+    # multiple lines without changing the fail-closed 503 contract.
+    assert 'status_code=503' in shared_branch
+    assert 'detail="Shared rate limiter unavailable."' in shared_branch
     assert '_chat_rl' not in shared_branch
     assert '_share_rl' not in shared_branch
     assert '_feedback_rl' not in shared_branch
@@ -120,7 +123,10 @@ def test_redis_mode_requires_nontrivial_identity_secret():
 
 def test_hf_proxy_redis_mode_is_fail_closed_not_local_fallback():
     src = APP.read_text(encoding="utf-8")
-    assert 'RATE_LIMIT_BACKEND: str = os.environ.get("RATE_LIMIT_BACKEND", "local")' in src
+    # Formatting may wrap the assignment; assert the environment contract rather
+    # than one historical single-line rendering of it.
+    assert 'RATE_LIMIT_BACKEND: str = (' in src
+    assert 'os.environ.get("RATE_LIMIT_BACKEND", "local").strip().lower() or "local"' in src
     _assert_hf_shared_authority_contract(src)
     for scope in ('scope="chat"', 'scope="share"', 'scope="feedback"', 'scope="contribution"'):
         assert scope in src

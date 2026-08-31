@@ -41,12 +41,11 @@ def main(  # ruff: ignore[undocumented-public-function]
         result = verify(args.evidence)
     except Exception as exc:  # ruff: ignore[blind-except]
         code = getattr(exc, "args", ["RELEASE_GATE_FAILED"])[0] or "RELEASE_GATE_FAILED"
-        logger.warning(
-            json.dumps({"ok": False, "code": str(code)}, sort_keys=True),
-            file=sys.stderr,
+        sys.stderr.write(
+            json.dumps({"ok": False, "code": str(code)}, sort_keys=True) + "\n"
         )
         return 2
-    logger.warning(json.dumps(result, sort_keys=True))
+    sys.stdout.write(json.dumps(result, sort_keys=True) + "\n")
     return 0
 
 

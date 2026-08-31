@@ -40,4 +40,4 @@ def subjects() -> dict[str, object]:  # ruff: ignore[undocumented-public-functio
 
 
 if __name__ == "__main__":
-    logger.warning(json.dumps(subjects(), sort_keys=True))
+    sys.stdout.write(json.dumps(subjects(), sort_keys=True) + "\n")

@@ -215,10 +215,9 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
 
 if __name__ == "__main__":
     try:
-        logger.warning(json.dumps(verify(), sort_keys=True))
+        sys.stdout.write(json.dumps(verify(), sort_keys=True) + "\n")
     except Exception as exc:  # ruff: ignore[blind-except]
-        logger.warning(
-            json.dumps({"ok": False, "error": str(exc)}, sort_keys=True),
-            file=sys.stderr,
+        sys.stderr.write(
+            json.dumps({"ok": False, "error": str(exc)}, sort_keys=True) + "\n"
         )
         raise SystemExit(1) from exc

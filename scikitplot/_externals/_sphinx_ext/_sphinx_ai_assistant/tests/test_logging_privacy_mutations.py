@@ -47,11 +47,32 @@ def _assert_model_privacy_contract(src: str) -> None:
     assert "access_log=False" in src
 
 
+def _mutate_redaction_rule(src: str, replacement: str) -> str:
+    """
+    Disable exactly one redaction rule selected by its semantic replacement.
+
+    Mutation tests should not depend on source-format trivia such as ``re.I``
+    versus ``re.IGNORECASE``. The replacement label is the stable privacy
+    contract; the regex spelling and flags may be refactored without weakening
+    the rule.
+    """
+    lines = src.splitlines(keepends=True)
+    matches = [
+        index
+        for index, line in enumerate(lines)
+        if "re.compile(" in line and replacement in line
+    ]
+    assert len(matches) == 1, (replacement, matches)
+    index = matches[0]
+    indent = lines[index][: len(lines[index]) - len(lines[index].lstrip())]
+    newline = "\n" if lines[index].endswith("\n") else ""
+    lines[index] = f'{indent}(re.compile(r"a^"), {replacement!r}),{newline}'
+    return "".join(lines)
+
+
 def test_mutant_bearer_redaction_removed_is_detected() -> None:
     src = (PROXY / "_utils" / "_telemetry.py").read_text(encoding="utf-8")
-    anchor = '(re.compile(r"\\bBearer\\s+[^\\s,;]+", re.I), "Bearer <credential-redacted>"),'
-    assert src.count(anchor) == 1
-    mutated = src.replace(anchor, '(re.compile(r"a^"), "Bearer <credential-redacted>"),', 1)
+    mutated = _mutate_redaction_rule(src, "Bearer <credential-redacted>")
     mod = _load_text_module(mutated, "run5_mutant_bearer")
     secret = "opaquecredentialvalue987654321"
     assert secret in mod.sanitize_log_text(f"Bearer {secret}")
@@ -59,9 +80,7 @@ def test_mutant_bearer_redaction_removed_is_detected() -> None:
 
 def test_mutant_url_redaction_removed_is_detected() -> None:
     src = (PROXY / "_utils" / "_telemetry.py").read_text(encoding="utf-8")
-    anchor = '(re.compile(r"\\bhttps?://[^\\s\\\"\'<>]+", re.I), "<url-redacted>"),'
-    assert src.count(anchor) == 1
-    mutated = src.replace(anchor, '(re.compile(r"a^"), "<url-redacted>"),', 1)
+    mutated = _mutate_redaction_rule(src, "<url-redacted>")
     mod = _load_text_module(mutated, "run5_mutant_url")
     private = "https://example.com/private/path?x=abcdef#fragment"
     assert private in mod.sanitize_log_text(private)
@@ -78,9 +97,8 @@ def test_mutant_model_raw_traceback_restored_is_detected() -> None:
 
 def test_mutant_model_access_log_restored_is_detected() -> None:
     src = (MODEL / "app.py").read_text(encoding="utf-8")
-    anchor = "        access_log=False,      # Request paths may contain bearer capabilities."
-    assert src.count(anchor) == 1
-    mutated = src.replace(anchor, "        access_log=True,", 1)
+    assert src.count("access_log=False") == 1
+    mutated = src.replace("access_log=False", "access_log=True", 1)
     with pytest.raises(AssertionError):
         _assert_model_privacy_contract(mutated)
 

@@ -1915,6 +1915,26 @@ class TestSetup:
         }
         assert required.issubset(names), f"Missing: {required - names}"
 
+    def test_shared_sphinx_fixture_covers_every_registered_config(self, app, sphinx_app):
+        """The shared MagicMock config must not invent values on demand.
+
+        Missing config attributes on ``MagicMock`` auto-create nested mocks.
+        Strict validators then (correctly) reject those mocks, which can add
+        unrelated warnings/errors to tests that are asserting another signal.
+        Keep the fixture synchronized with every value registered by setup().
+        """
+        _mod.setup(app)
+        registered = {c[0][0] for c in app.add_config_value.call_args_list}
+        unresolved = sorted(
+            name
+            for name in registered
+            if isinstance(getattr(sphinx_app.config, name), MagicMock)
+        )
+        assert unresolved == [], (
+            "tests/conftest.py::_make_config is missing concrete defaults for: "
+            + ", ".join(unresolved)
+        )
+
     def test_events_connected(self, app):
         _mod.setup(app)
         event_names = [c[0][0] for c in app.connect.call_args_list]
