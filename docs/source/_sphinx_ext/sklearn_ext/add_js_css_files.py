@@ -59,6 +59,9 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     shell_css_path = "shell_styles.css"
     shell_code_css_path = "shell_code_styles.css"
 
+    principles_js_path = "scripts/principles-ticker.js"
+    principles_css_path = "styles/principles-ticker.css"
+
     # missing_file = []
     # for file in [apis_search_js_path, api_search_css_path, index_css_path, apis_css_path]:
     #     if not os.path.exists(os.path.join(app.builder.outdir, "_static", file)):
@@ -105,6 +108,8 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
         )
         # Internal: Include the modular JavaScript file
         app.add_js_file(shell_js_path)
+        app.add_js_file(principles_js_path)
+        # CSS
         # External: Link to Prism.js CSS for syntax highlighting
         app.add_css_file(
             "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css",
@@ -114,6 +119,7 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
         app.add_css_file(index_css_path)
         app.add_css_file(shell_css_path)
         app.add_css_file(shell_code_css_path)
+        app.add_css_file(principles_css_path)
         # logger.info("Adding JS and CSS files for page: %s", pagename)
     elif pagename.startswith("modules/generated/"):
         app.add_css_file(apis_css_path)

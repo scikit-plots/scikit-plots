@@ -21,12 +21,12 @@ Composition (grounded in the public APIs of both modules)
   yielding ``CorpusDocument`` objects that already carry source provenance
   (page / section) — i.e. the citation metadata.
 * **Vector index** — the embedding vectors are indexed for ANN search by
-  ``scikitplot.corpus.SimilarityIndex``, whose dense backend defaults to
+  ``scikitplot.corpus.RetrievalIndex``, whose dense backend defaults to
   ``scikitplot.annoy`` (``add_item`` → ``build`` → ``get_nns_by_vector``,
   persistent and memory-mapped). The corpus index owns the backend selection
   and the cosine score contract, so this module does not re-implement vector
   search or distance-to-score maths. Hybrid keyword+vector fusion is available
-  in-corpus via ``SimilarityIndex`` (BM25 + dense RRF).
+  in-corpus via ``RetrievalIndex`` (BM25 + dense RRF).
 * **Query time** — embed the query with the same ``EmbeddingEngine``, ask the
   index's ``query(vector, k)`` seam for top-k ``(doc_id, score)`` pairs, map
   each id back to its ``CorpusDocument`` and onto a :class:`RetrievedChunk`
@@ -70,7 +70,7 @@ class VectorIndex(Protocol):
     """
     Anything that returns ``(doc_id, score)`` pairs for a query vector.
 
-    Satisfied by ``scikitplot.corpus.SimilarityIndex`` (via its ``query``
+    Satisfied by ``scikitplot.corpus.RetrievalIndex`` (via its ``query``
     seam), whose default dense backend is ``scikitplot.annoy``.
     """
 
@@ -115,9 +115,9 @@ class _CorpusEmbedder:
 
 
 class _SimilarityVectorIndex:
-    """Adapt corpus ``SimilarityIndex.query`` to the :class:`VectorIndex` protocol.
+    """Adapt corpus ``RetrievalIndex.query`` to the :class:`VectorIndex` protocol.
 
-    ``SimilarityIndex.query(vector, k)`` already returns ``(doc_id, score)``
+    ``RetrievalIndex.query(vector, k)`` already returns ``(doc_id, score)``
     pairs with a unified cosine score, so this is a straight pass-through that
     keeps the retriever decoupled from the concrete index type.
     """
@@ -310,7 +310,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
 
         Wires :mod:`scikitplot.corpus` end to end. A single
         :class:`~scikitplot.corpus.CorpusBuilder` pass ingests, embeds, and
-        builds an Annoy-backed :class:`~scikitplot.corpus.SimilarityIndex`
+        builds an Annoy-backed :class:`~scikitplot.corpus.RetrievalIndex`
         (selected through ``index_kwargs``), and this retriever consumes that
         index's vector-level ``query`` seam directly. There is no second,
         ad-hoc Annoy index and no bespoke distance-to-score arithmetic — the

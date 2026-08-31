@@ -33,20 +33,30 @@
 /* Container Flex for the interactive shell and lesson content */
 .numpy-shell-container {
     display: flex;
+    flex: 1 1 auto;
     position: relative;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;  /* Ensure even space between sections */
+    /* justify-content: space-around; */
+    /* gap: 5px; */
     align-items: stretch;  /* Ensure all children stretch to the same height */
     margin: auto;
     width: 100%;  /* Full width of the parent container */
-    height: 75vh;  /* Set the parent container to take 100% of its container's height */
-    max-width: 1500px;
-    min-height: 500px;
+
+    /*
+     * Mobile-first:
+     * the code and shell sections are stacked vertically below 720px.
+     * Do not constrain their parent to 75vh, otherwise the second section
+     * overflows into the content that follows.
+     */
+    height: auto;
+    min-height: 0;
+
+    /* max-width: 1500px; */
 }
 
 /* Lesson text container */
 .shell-lesson {
-    flex: 1;
     text-align: left;
     padding: 0 1px;
     width: auto;
@@ -81,8 +91,8 @@
 
 /* Code section (takes 33% of the width) */
 .shell-lesson.code-container {
-    flex: 0 0 33.3%;  /* Takes 33.3% of the width */
-    width: auto;  /* Allowing the code container to resize based on content */
+    flex: 0 0 auto;
+    width: 100%;  /* Full width below 720px */
     height: 75vh;  /* Make sure this section stretches to match height of parent */
     overflow-y: auto;  /* Enable scrolling if content overflows */
 }
@@ -119,8 +129,8 @@
 
 /* Shell section (takes 66% of the width) */
 .shell-lesson.shell-container {
-    flex: 0 0 66.6%;  /* Takes 66.6% of the width */
-    width: auto;
+    flex: 0 0 auto;
+    width: 100%;  /* Full width below 720px */
     height: 75vh;  /* Make sure this section stretches to match height of parent */
 }
 .numpy-shell-frame {
@@ -154,19 +164,571 @@
     border-left: 1px solid white !important;
 }
 
-/* Responsive styling for smaller screens */
-@media only screen and (max-width: 800px) {
+
+/* Responsive layout
+ * < 720px  : vertical, 100% / 100%
+ * >= 720px : horizontal, 33.33% / 66.67%
+ */
+@media only screen and (min-width: 720px) {
     .numpy-shell-container {
-        flex-direction: column;  /* Stack sections vertically */
-        justify-content: space-around;
-        gap: 5px;  /* Reduce gap between sections */
+        flex-direction: row;
+        height: 75vh;
+        min-height: 500px;
     }
-    /* For smaller screens, make both sections take full width (100%) */
-    .shell-lesson.code-container,
+
+    .shell-lesson.code-container {
+        flex: 0 0 33.33333333%;
+        width: 33.33333333%;
+    }
+
     .shell-lesson.shell-container {
-        flex: 0 0 100%;  /* Each section takes 100% width */
+        flex: 0 0 66.66666667%;
+        width: 66.66666667%;
     }
+
     .numpy-shell-frame {
-        min-height: 500px;  /* Ensure shell has enough height */
+        min-height: 500px;
     }
+}
+
+/* ==========================================================================
+   Interactive shell workspace
+   ========================================================================== */
+
+/*
+ * Public state API:
+ *
+ *   data-shell-view="split"  -> code + shell
+ *   data-shell-view="code"   -> code only
+ *   data-shell-view="shell"  -> shell only
+ *
+ * JavaScript changes only this state attribute. CSS owns all layout.
+ */
+.shell-workspace {
+    --shell-code-percent: 33.33333333%;
+    --shell-splitter-size: 10px;
+
+    width: 100%;
+    min-width: 0;
+}
+
+
+/* ==========================================================================
+   Unified shell action bar
+   ========================================================================== */
+
+/*
+ * Desktop target:
+ *
+ *   [Open Tutorial Notebooks] [Lab] [Retro] [REPL] | [menu]
+ *
+ * The links may scroll locally if the content container becomes unusually
+ * narrow, but the workspace menu remains visible at the far right.
+ */
+.shell-actionbar {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+
+    width: 100%;
+    min-width: 0;
+
+    margin: 0 0 0.45rem;
+}
+
+
+.shell-actionbar-links {
+    min-width: 0;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
+}
+
+
+.shell-actionbar .demo-links {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+
+    width: max-content;
+
+    margin: 0 0 0 auto;
+    padding: 0;
+
+    list-style: none;
+    white-space: nowrap;
+}
+
+
+.shell-actionbar .demo-links li {
+    flex: 0 0 auto;
+
+    margin: 0;
+    padding: 0;
+
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 0.45rem;
+
+    background: rgba(128, 128, 128, 0.05);
+}
+
+
+.shell-actionbar .demo-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+
+    min-height: 36px;
+
+    padding: 0.35rem 0.6rem;
+
+    color: inherit;
+    text-decoration: none;
+
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+
+.shell-actionbar .demo-links i {
+    flex: 0 0 auto;
+    font-size: 0.9rem;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+    .shell-actionbar .demo-links li:hover {
+        background: rgba(128, 128, 128, 0.11);
+    }
+}
+
+
+.shell-actionbar .demo-links a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+}
+
+
+.shell-actionbar-divider {
+    flex: 0 0 auto;
+
+    width: 1px;
+    height: 24px;
+
+    background: rgba(128, 128, 128, 0.35);
+}
+
+
+/* ==========================================================================
+   Expandable workspace-view menu
+   ========================================================================== */
+
+.shell-view-menu {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+
+.shell-view-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    padding: 0;
+
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-radius: 0.45rem;
+
+    background: rgba(128, 128, 128, 0.05);
+    color: inherit;
+
+    cursor: pointer;
+    list-style: none;
+}
+
+
+.shell-view-menu-trigger::-webkit-details-marker {
+    display: none;
+}
+
+
+.shell-view-menu-trigger::marker {
+    content: "";
+}
+
+
+/* Dependency-free three-line menu icon. */
+.shell-view-menu-icon,
+.shell-view-menu-icon::before,
+.shell-view-menu-icon::after {
+    display: block;
+
+    width: 15px;
+    height: 1.5px;
+
+    border-radius: 999px;
+
+    background: currentColor;
+}
+
+
+.shell-view-menu-icon {
+    position: relative;
+}
+
+
+.shell-view-menu-icon::before,
+.shell-view-menu-icon::after {
+    position: absolute;
+    left: 0;
+
+    content: "";
+}
+
+
+.shell-view-menu-icon::before {
+    top: -5px;
+}
+
+
+.shell-view-menu-icon::after {
+    top: 5px;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+    .shell-view-menu-trigger:hover {
+        background: rgba(128, 128, 128, 0.11);
+    }
+}
+
+
+.shell-view-menu-trigger:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+
+.shell-view-menu[open] .shell-view-menu-trigger {
+    background: rgba(128, 128, 128, 0.16);
+    border-color: currentColor;
+}
+
+
+.shell-view-menu-panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    z-index: 30;
+
+    display: grid;
+    gap: 0.25rem;
+
+    width: max-content;
+    min-width: 210px;
+
+    padding: 0.35rem;
+
+    border: 1px solid var(--bd-border-color, rgba(128, 128, 128, 0.4));
+    border-radius: 0.55rem;
+
+    background: var(--bd-content-bg, Canvas);
+    color: var(--bd-text-color, CanvasText);
+
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+
+.shell-workspace-button {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+
+    width: 100%;
+    min-height: 44px;
+
+    padding: 0.45rem 0.65rem;
+
+    border: 1px solid transparent;
+    border-radius: 0.4rem;
+
+    background: transparent;
+    color: inherit;
+
+    text-align: left;
+    font: inherit;
+
+    cursor: pointer;
+}
+
+
+.shell-workspace-button-title {
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+
+.shell-workspace-button-desc {
+    font-size: 0.7rem;
+    font-weight: 400;
+    line-height: 1.2;
+    opacity: 0.72;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+    .shell-workspace-button:hover {
+        background: rgba(128, 128, 128, 0.09);
+    }
+}
+
+
+.shell-workspace-button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+
+.shell-workspace-button[aria-pressed="true"] {
+    border-color: rgba(128, 128, 128, 0.35);
+    background: rgba(128, 128, 128, 0.14);
+}
+
+
+.shell-workspace-button[aria-pressed="true"]
+.shell-workspace-button-title::before {
+    content: "✓";
+    margin-right: 0.4rem;
+}
+
+
+.shell-view-menu-separator {
+    height: 1px;
+    margin: 0.15rem 0.25rem;
+    background: rgba(128, 128, 128, 0.25);
+}
+
+
+.shell-workspace-reset .shell-workspace-button-title::before {
+    content: "↺";
+    margin-right: 0.4rem;
+}
+
+
+/*
+ * Keep a single compact action line on small screens too. The links become
+ * horizontally scrollable, while the workspace menu remains pinned.
+ */
+@media only screen and (max-width: 719.98px) {
+    .shell-actionbar {
+        gap: 0.35rem;
+    }
+
+    .shell-actionbar .demo-links a {
+        min-height: 34px;
+        padding-inline: 0.5rem;
+        font-size: 0.76rem;
+    }
+
+    .shell-actionbar-divider {
+        height: 22px;
+    }
+
+    .shell-view-menu-trigger {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+
+/*
+ * Hidden focus-mode panel.
+ *
+ * The element stays in the DOM. In particular, the iframe is not recreated,
+ * so returning to Split/Shell keeps the same running JupyterLite document.
+ */
+.shell-workspace [data-shell-panel][hidden] {
+    display: none !important;
+}
+
+
+/*
+ * Mobile-first behavior (< 720px)
+ *
+ * Split:
+ *   code  100%
+ *   shell 100%
+ *
+ * Code/Shell focus:
+ *   selected panel 100%
+ */
+.shell-workspace [data-shell-panel] {
+    min-width: 0;
+    width: 100%;
+    flex: 0 0 auto;
+}
+
+
+/* ==========================================================================
+   Desktop workspace (>= 720px)
+   ========================================================================== */
+
+@media only screen and (min-width: 720px) {
+
+    /*
+     * Default + user-customizable split view.
+     *
+     * The panel flex bases total 100%. The fixed splitter is absorbed by
+     * flex-shrink proportionally, preserving the requested ratio.
+     */
+    .shell-workspace[data-shell-view="split"]
+    .shell-lesson.code-container {
+        flex: 0 1 var(--shell-code-percent);
+        width: auto;
+    }
+
+    .shell-workspace[data-shell-view="split"]
+    .shell-lesson.shell-container {
+        flex: 0 1 calc(100% - var(--shell-code-percent));
+        width: auto;
+    }
+
+
+    /*
+     * Code focus.
+     */
+    .shell-workspace[data-shell-view="code"]
+    .shell-lesson.code-container {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+
+
+    /*
+     * Shell focus.
+     */
+    .shell-workspace[data-shell-view="shell"]
+    .shell-lesson.shell-container {
+        flex: 0 0 100%;
+        width: 100%;
+    }
+}
+
+
+/* ==========================================================================
+   Resizable Split separator
+   ========================================================================== */
+
+.shell-splitter {
+    display: none;
+}
+
+
+@media only screen and (min-width: 720px) {
+    .shell-workspace[data-shell-view="split"] .shell-splitter {
+        display: flex;
+        flex: 0 0 var(--shell-splitter-size);
+        align-items: center;
+        justify-content: center;
+
+        width: var(--shell-splitter-size);
+        min-width: var(--shell-splitter-size);
+        height: 75vh;
+        min-height: 500px;
+
+        padding: 0;
+
+        cursor: col-resize;
+        touch-action: none;
+        user-select: none;
+        outline: none;
+    }
+
+
+    .shell-splitter-grip {
+        display: block;
+
+        width: 2px;
+        height: 48px;
+
+        border-radius: 999px;
+        background: rgba(128, 128, 128, 0.38);
+
+        transition:
+            width 120ms ease,
+            background 120ms ease,
+            opacity 120ms ease;
+    }
+
+
+    @media (hover: hover) and (pointer: fine) {
+        .shell-splitter:hover .shell-splitter-grip {
+            width: 3px;
+            background: currentColor;
+            opacity: 0.68;
+        }
+    }
+
+
+    .shell-splitter:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -2px;
+        border-radius: 4px;
+    }
+
+
+    .shell-splitter:focus-visible .shell-splitter-grip,
+    .shell-workspace[data-shell-resizing="true"] .shell-splitter-grip {
+        width: 3px;
+        background: currentColor;
+        opacity: 0.82;
+    }
+
+
+    .shell-workspace[data-shell-resizing="true"] {
+        cursor: col-resize;
+        user-select: none;
+    }
+
+
+    /* Prevent the embedded JupyterLite iframe from stealing the drag. */
+    .shell-workspace[data-shell-resizing="true"] iframe {
+        pointer-events: none;
+    }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .shell-splitter-grip {
+        transition: none;
+    }
+}
+
+
+/*
+ * Horizontal workspace sizing belongs to the workspace, not to the iframe.
+ * Keep the iframe fluid so Shell focus reliably uses all available width.
+ *
+ * Vertical resize remains available without fighting the workspace's
+ * horizontal 33/67 / 100% layout controller.
+ */
+.shell-workspace .numpy-shell-frame {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
 }

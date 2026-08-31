@@ -1,0 +1,721 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320"
+        }
+      ],
+      "name": "annotated-doc",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/annotated-doc@0.0.4",
+      "scope": "required",
+      "type": "library",
+      "version": "0.0.4"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53"
+        }
+      ],
+      "name": "annotated-types",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/annotated-types@0.7.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.7.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "08b310f9e24a9594186fd75b4f73f4a4152069e3853f1ed8bfbf58369f4ad708"
+        }
+      ],
+      "name": "anyio",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/anyio@4.13.0",
+      "scope": "required",
+      "type": "library",
+      "version": "4.13.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3c52e209ba0a4ad7aebe60436a4ab349c39e1e602e8c134221e546902ad25897"
+        }
+      ],
+      "name": "certifi",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/certifi@2026.5.20",
+      "scope": "required",
+      "type": "library",
+      "version": "2026.5.20"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a2bf429bb3033c89fa4936ffb35d5cb471e3719e1f3c8a7c3fff0b8314305613"
+        }
+      ],
+      "name": "click",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/click@8.3.3",
+      "scope": "required",
+      "type": "library",
+      "version": "8.3.3"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3"
+        }
+      ],
+      "name": "fastapi",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/fastapi@0.141.1",
+      "scope": "required",
+      "type": "library",
+      "version": "0.141.1"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "96f5f6344709aa1572bbf631c640e4ebeeb519e08da902c39a001882f30ac258"
+        }
+      ],
+      "name": "filelock",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/filelock@3.29.0",
+      "scope": "required",
+      "type": "library",
+      "version": "3.29.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "11ef7bb35dab8a394fde6e608221d5cf3e8499401c249bebaeaad760a1a8dec2"
+        }
+      ],
+      "name": "fsspec",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/fsspec@2026.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2026.4.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86"
+        }
+      ],
+      "name": "h11",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/h11@0.16.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.16.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3531b1823a0e6d77d80f9ed15ca0e00f0d115094f8ac033d5cae88f4564cc949"
+        }
+      ],
+      "name": "hf-xet",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/hf-xet@1.5.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"
+        }
+      ],
+      "name": "httpcore",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/httpcore@1.0.9",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.9"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"
+        }
+      ],
+      "name": "httpx",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "scope": "required",
+      "type": "library",
+      "version": "0.28.1"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "64340de934b9ce37857ef85a82de72f5629e8a270f9119eabb12bf495eb53c22"
+        }
+      ],
+      "name": "huggingface-hub",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/huggingface-hub@1.16.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.16.1"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "466e48829084efe2548012b855df21540b96f2e20e51bd124c851536556a592c"
+        }
+      ],
+      "name": "idna",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/idna@3.17",
+      "scope": "required",
+      "type": "library",
+      "version": "3.17"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a"
+        }
+      ],
+      "name": "markdown-it-py",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/markdown-it-py@4.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "4.2.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"
+        }
+      ],
+      "name": "mdurl",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/mdurl@0.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.1.2"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"
+        }
+      ],
+      "name": "packaging",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/packaging@25.0",
+      "scope": "required",
+      "type": "library",
+      "version": "25.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "45a282cde31d808236fd7ea9d919b128653c8b38b393d1c4ab335c62924d9aba"
+        }
+      ],
+      "name": "pydantic",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/pydantic@2.13.4",
+      "scope": "required",
+      "type": "library",
+      "version": "2.13.4"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f9fa868638bf362d3d138ea55829cefb3d5f4b0d7f142234382a15e2485dbec4"
+        }
+      ],
+      "name": "pydantic-core",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/pydantic-core@2.46.4",
+      "scope": "required",
+      "type": "library",
+      "version": "2.46.4"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176"
+        }
+      ],
+      "name": "pygments",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/pygments@2.20.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.20.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d"
+        }
+      ],
+      "name": "pyyaml",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/pyyaml@6.0.3",
+      "scope": "required",
+      "type": "library",
+      "version": "6.0.3"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb"
+        }
+      ],
+      "name": "redis",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/redis@8.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "8.1.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb"
+        }
+      ],
+      "name": "rich",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/rich@15.0.0",
+      "scope": "required",
+      "type": "library",
+      "version": "15.0.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686"
+        }
+      ],
+      "name": "shellingham",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/shellingham@1.5.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.4"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a86dd39d14bb45f85a3d18525215a9ef0cfd1f192ac793220e72598c90335f0c"
+        }
+      ],
+      "name": "starlette",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/starlette@1.6.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.6.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ee1e4c0e59148062281c49d80b25b67771a127c85fc9676d3be5f243206826bf"
+        }
+      ],
+      "name": "tqdm",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/tqdm@4.67.3",
+      "scope": "required",
+      "type": "library",
+      "version": "4.67.3"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e70549ec5a403ca8a0bf0802ddd9f3c6ff7a14ccbb859b01b697baa943636f33"
+        }
+      ],
+      "name": "typer",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/typer@0.26.3",
+      "scope": "required",
+      "type": "library",
+      "version": "0.26.3"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+        }
+      ],
+      "name": "typing-extensions",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/typing-extensions@4.16.0",
+      "scope": "required",
+      "type": "library",
+      "version": "4.16.0"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7"
+        }
+      ],
+      "name": "typing-inspection",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/typing-inspection@0.4.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.4.2"
+    },
+    {
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "48097851328b87ec36117d3d575234519eb58c2b22d79666e9bbc6c49a761dad"
+        }
+      ],
+      "name": "uvicorn",
+      "properties": [
+        {
+          "name": "scikitplot:lock-target",
+          "value": "CPython 3.11 / linux/amd64"
+        },
+        {
+          "name": "scikitplot:artifact-policy",
+          "value": "binary-wheel-only"
+        }
+      ],
+      "purl": "pkg:pypi/uvicorn@0.48.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.48.0"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "pkg:generic/scikit-plots-ai-proxy@6.8.0",
+      "name": "scikit-plots-ai-proxy",
+      "type": "application",
+      "version": "6.8.0"
+    },
+    "properties": [
+      {
+        "name": "scikitplot:scope",
+        "value": "python-runtime-lock-only"
+      },
+      {
+        "name": "scikitplot:target",
+        "value": "CPython 3.11 / linux/amd64"
+      },
+      {
+        "name": "scikitplot:note",
+        "value": "A full image SBOM must be generated from the built container before release."
+      }
+    ],
+    "timestamp": "2026-08-30T00:00:00Z"
+  },
+  "serialNumber": "urn:uuid:d714f9a3-0034-5843-b870-51885c937bc8",
+  "specVersion": "1.6",
+  "version": 1
+}

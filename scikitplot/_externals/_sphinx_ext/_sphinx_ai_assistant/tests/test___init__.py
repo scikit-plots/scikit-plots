@@ -64,7 +64,7 @@ import re
 from urllib.parse import urlparse
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from bs4 import BeautifulSoup
@@ -1919,12 +1919,24 @@ class TestSetup:
         _mod.setup(app)
         event_names = [c[0][0] for c in app.connect.call_args_list]
         assert "html-page-context" in event_names
-        assert event_names.count("build-finished") == 2
+        build_finished_handlers = [
+            c[0][1]
+            for c in app.connect.call_args_list
+            if c[0][0] == "build-finished"
+        ]
+        assert build_finished_handlers == [
+            _mod.generate_isolation_policy,
+            _mod.generate_markdown_files,
+            _mod.generate_llms_txt,
+        ]
 
     def test_css_and_js_added(self, app):
         _mod.setup(app)
         app.add_css_file.assert_called_once_with("ai-assistant.css")
-        app.add_js_file.assert_called_once_with("ai-assistant.js", loading_method='defer')
+        assert app.add_js_file.call_args_list == [
+            call("ai-assistant-isolation-host.js", loading_method="defer"),
+            call("ai-assistant.js", loading_method="defer"),
+        ]
 
     def test_static_path_appended(self, app):
         _mod.setup(app)
@@ -3485,6 +3497,7 @@ class TestV03ConfigPlumbing:
 
     _V03_KEYS = [
         "panelPersist",
+        "panelRememberConversation",
         "panelShortcut",
         "panelApiUrl",
         "panelApiModel",
@@ -3505,6 +3518,10 @@ class TestV03ConfigPlumbing:
         # trigger pill UX keys (v0.2/v0.3 boundary)
         "panelTriggerLabel",
         "panelStartMinimized",
+        "panelTriggerToggle",
+        "panelReasoning",
+        "panelInjectionNotice",
+        "panelModelEditing",
         # search-bar position
         "searchBarPosition",
     ]
@@ -3527,9 +3544,20 @@ class TestV03ConfigPlumbing:
         # Safe defaults: persistence on, shortcut safe chord, search-bar OFF,
         # feedback on, no proxy configured.
         assert cfg["panelPersist"] is True
+        assert cfg["panelRememberConversation"] is True
         assert cfg["panelShortcut"] == "Alt+Shift+A"
         assert cfg["searchBar"] is False
         assert cfg["panelApiUrl"] == ""
+        # The trigger-pill visibility switch is offered by default, and its
+        # build default keeps the pill on screen — an upgrade with no conf.py
+        # change must render exactly what the previous release rendered.
+        assert cfg["panelTriggerToggle"] is True
+        # Reasoning parameters are opt-in: a deployment that has not declared
+        # support must send a request body identical to the pre-feature one.
+        assert cfg["panelReasoning"] is False
+        assert cfg["panelInjectionNotice"] is True
+        assert cfg["panelModelEditing"] is True
+        assert cfg["panelStartMinimized"] is True
 
     def test_v03_config_json_serialisable(self, sphinx_app):
         import json
@@ -3554,3 +3582,104 @@ class TestCfgListHelper:
 
     def test_missing_key_returns_empty(self):
         assert _mod._cfg_list(type("C", (), {})(), "absent") == []
+
+
+# ===========================================================================
+# Stub test models in the picker
+# ===========================================================================
+
+
+_EP_URL = "https://proxy.example.org/v1/chat/completions"
+
+
+class TestStubModelInjection:
+    """`ai_assistant_panel_stub_models` appends test entries, safely."""
+
+    def test_no_endpoint_means_no_stub_entries(self):
+        """A stub entry pointing nowhere turns a diagnostic into a second
+        thing to diagnose."""
+        models = [{"id": "real", "model": "m", "provider": "custom"}]
+        assert _mod._with_stub_models(models, True, "") is models
+
+    def test_endpoint_is_inherited_from_the_first_real_model(self):
+        """The stub must reach the SAME proxy the site already uses."""
+        models = [{"id": "real", "model": "m", "endpoint": _EP_URL}]
+        assert _mod._stub_endpoint(models, "") == _EP_URL
+
+    def test_endpoint_falls_back_to_the_shared_url(self):
+        assert _mod._stub_endpoint([], _EP_URL) == _EP_URL
+
+    def test_endpoint_prefers_a_model_entry_over_the_shared_url(self):
+        models = [{"id": "real", "model": "m", "endpoint": _EP_URL}]
+        assert _mod._stub_endpoint(models, "https://other.example/v1") == _EP_URL
+
+    def test_endpoint_skips_entries_without_one(self):
+        models = [{"id": "a", "model": "m"}, {"id": "b", "endpoint": _EP_URL}]
+        assert _mod._stub_endpoint(models, "") == _EP_URL
+
+    def test_endpoint_resolution_survives_junk_entries(self):
+        assert _mod._stub_endpoint(["nope", None, 7], "") == ""
+        assert _mod._stub_endpoint(None, "") == ""
+
+    def test_every_stub_entry_carries_the_inherited_endpoint(self):
+        out = _mod._with_stub_models([], True, _EP_URL)
+        assert all(e["endpoint"] == _EP_URL for e in out)
+
+    def test_disabled_by_default_leaves_the_list_untouched(self):
+        models = [{"id": "real", "model": "m", "provider": "custom"}]
+        assert _mod._with_stub_models(models, False) is models
+
+    def test_enabled_appends_the_stub_entries(self):
+        models = [{"id": "real", "model": "m", "provider": "custom"}]
+        out = _mod._with_stub_models(models, True, _EP_URL)
+        ids = [e["id"] for e in out]
+        assert ids[0] == "real"
+        assert "stub-echo" in ids
+        assert "stub-qa" in ids
+        assert "stub-hostile" in ids
+
+    def test_stub_entries_come_last(self):
+        """Appending, not prepending: order decides the fallback active model."""
+        models = [{"id": "real", "model": "m", "provider": "custom"}]
+        out = _mod._with_stub_models(models, True, _EP_URL)
+        assert out[0]["id"] == "real"
+        assert all(e["id"].startswith("stub-") for e in out[1:])
+
+    def test_no_stub_entry_claims_default(self):
+        """Enabling the rig must not change which model a reader talks to."""
+        out = _mod._with_stub_models([], True, _EP_URL)
+        assert all(e.get("default") is not True for e in out)
+
+    def test_every_stub_model_id_uses_the_reserved_prefix(self):
+        out = _mod._with_stub_models([], True, _EP_URL)
+        assert all(e["model"].startswith("stub/") for e in out)
+
+    def test_entries_are_copies_not_the_module_level_dicts(self):
+        """A caller mutating the result must not corrupt the build."""
+        out = _mod._with_stub_models([], True, _EP_URL)
+        out[0]["label"] = "mutated"
+        again = _mod._with_stub_models([], True, _EP_URL)
+        assert again[0]["label"] != "mutated"
+
+    def test_non_list_input_is_returned_unchanged(self):
+        """Never convert the legacy string form into something invalid."""
+        assert _mod._with_stub_models("legacy-string", True, _EP_URL) == "legacy-string"
+        assert _mod._with_stub_models(None, True, _EP_URL) is None
+
+    def test_echo_entry_declares_reasoning_support(self):
+        """Only a declaring entry makes the panel SEND the fields to report."""
+        out = _mod._with_stub_models([], True, _EP_URL)
+        echo = next(e for e in out if e["id"] == "stub-echo")
+        assert echo["reasoning"] is True
+
+    def test_qa_entry_does_not_declare_it(self):
+        """So the two request shapes can be compared in one session."""
+        out = _mod._with_stub_models([], True, _EP_URL)
+        qa = next(e for e in out if e["id"] == "stub-qa")
+        assert "reasoning" not in qa
+
+    def test_entries_survive_the_real_validator(self):
+        """They pass through _filter_panel_models like any other entry."""
+        out = _mod._filter_panel_models(_mod._with_stub_models([], True, _EP_URL))
+        assert len(out) == 3
+        assert {e["id"] for e in out} == {"stub-echo", "stub-qa", "stub-hostile"}

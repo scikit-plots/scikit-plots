@@ -1,46 +1,64 @@
-# scikit-plots/ai  ·  Dockerfile  v3.1.0
-#
-# Changes from v3.0.0
-# ───────────────────
-# + COPY _shared_logic.py — required because app.py v3.1.0 imports from it.
-#   If this COPY is missing, the container starts, uvicorn loads app.py, and
-#   `from _shared_logic import ...` raises ModuleNotFoundError at import time.
-#   This would manifest as the container restarting in a crash loop, with
-#   HF logging "ModuleNotFoundError: No module named '_shared_logic'".
-#
-# Unchanged from v3.0.0
-# ─────────────────────
-# Base image, WORKDIR, port, CMD, HEALTHCHECK are all identical.
-#
+# scikit-plots/ai · Dockerfile · v3.3.0
+# Reproducible Linux/amd64 security profile for Hugging Face Docker Spaces.
 # SPDX-License-Identifier: BSD-3-Clause
 
-FROM python:3.11-slim
+# Immutable multi-platform index for the current official
+# python:3.11.16-slim-bookworm image reviewed on 2026-08-30.  CI must verify
+# both this digest and the selected linux/amd64 manifest before release.
+ARG PYTHON_IMAGE=python:3.11.16-slim-bookworm@sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b
 
-WORKDIR /app
+FROM --platform=linux/amd64 ${PYTHON_IMAGE} AS builder
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Build an isolated runtime venv.  Only prebuilt wheels whose bytes are named
+# by requirements.lock are accepted; no dependency resolver drift or source
+# build is permitted in the release image path.
+RUN python -m venv /opt/venv
+COPY requirements.lock /tmp/requirements.lock
+RUN /opt/venv/bin/python -m pip install \
+      --no-cache-dir \
+      --require-hashes \
+      --only-binary=:all: \
+      -r /tmp/requirements.lock \
+    && rm -f /tmp/requirements.lock
 
-# Copy _shared_logic.py BEFORE app.py so Docker layer cache is invalidated
-# only when these files actually change (requirements.txt changes least often;
-# _shared_logic.py changes less often than app.py).
-COPY _dataset_schema.py .
-COPY _shared_logic.py .
-COPY app.py .
+FROM --platform=linux/amd64 ${PYTHON_IMAGE} AS runtime
 
-# HuggingFace Spaces routes traffic to the port declared in README.md
-# (app_port: 7860).  Do not change without also updating README.md.
+# HF Docker Spaces recommends UID 1000.  The app never needs root at runtime.
+RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin user \
+    && rm -rf \
+      /usr/local/lib/python3.11/site-packages/pip* \
+      /usr/local/lib/python3.11/site-packages/setuptools* \
+      /usr/local/lib/python3.11/site-packages/wheel* \
+      /usr/local/bin/pip* \
+      /usr/local/bin/wheel*
+
+COPY --from=builder /opt/venv /opt/venv
+
+ENV PATH=/opt/venv/bin:$PATH \
+    HOME=/home/user \
+    XDG_CACHE_HOME=/tmp/.cache \
+    HF_HOME=/tmp/huggingface \
+    TMPDIR=/tmp \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEPLOYMENT_PROFILE=strict
+
+WORKDIR /home/user/app
+COPY --chown=1000:1000 _utils ./_utils
+COPY --chown=1000:1000 app.py deduplicate_dataset.py ./
+
+USER 1000:1000
 EXPOSE 7860
 
-# Health check — probes /health every 15 s after a 10 s startup grace period.
-# The container is marked unhealthy (and restarted by HF) if /health fails
-# 3 consecutive times.  This ensures requests are only routed to the container
-# after uvicorn has bound its port and app.py startup validation has passed.
-#
-# Using python -c avoids installing curl into the image.
+# Stdlib-only health probe; no curl/wget package is added to the runtime image.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c \
-        "import urllib.request; urllib.request.urlopen('http://localhost:7860/health')" \
-    || exit 1
+    CMD python -I -c \
+      "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/health', timeout=4).read(1)" \
+      || exit 1
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--no-access-log"]

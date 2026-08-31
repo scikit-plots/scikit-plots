@@ -242,6 +242,7 @@ from typing import (  # noqa: F401
     Tuple,
     Union,
 )
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runtime
     from sphinx.application import Sphinx
@@ -1975,6 +1976,7 @@ _PANEL_MODEL_OPTIONAL_KEYS: tuple[str, ...] = (
     "info_url",  # public model homepage (e.g. anthropic.com/claude)
     "default",  # bool; at most one entry may set True
     "icon",  # SVG filename in _static/ or absolute URI
+    "custom_fields",  # UI-only [{key?, label, value, display}] metadata; never sent upstream
 )
 
 
@@ -2092,7 +2094,7 @@ def _normalize_panel_models(raw: Any) -> list[dict[str, Any]]:
     return out
 
 
-def _validate_panel_model(
+def _validate_panel_model(  # ruff: ignore[too-many-branches]
     model: dict[str, Any],
     name: str = "",
 ) -> list[str]:
@@ -2170,6 +2172,53 @@ def _validate_panel_model(
     mid = str(model.get("id", ""))
     if mid and not re.match(r"^[A-Za-z0-9_.:\-]+$", mid):
         errors.append(f"{prefix}id {mid!r} must contain only [A-Za-z0-9_.:-]")
+
+    # Optional UI-only metadata mirrors the browser custom-field editor. Keep
+    # this schema deliberately small so model metadata cannot become an
+    # arbitrary request-body escape hatch. Values are rendered with textContent
+    # in the browser and are never forwarded to provider APIs.
+    custom_fields = model.get("custom_fields")
+    if custom_fields is not None:
+        if not isinstance(custom_fields, (list, tuple)):
+            errors.append(f"{prefix}custom_fields must be a list")
+        elif len(custom_fields) > 8:  # ruff: ignore[magic-value-comparison]
+            errors.append(f"{prefix}custom_fields may contain at most 8 entries")
+        else:
+            seen_custom_keys: set[str] = set()
+            for field_index, field in enumerate(custom_fields):
+                field_prefix = f"{prefix}custom_fields[{field_index}]: "
+                if not isinstance(field, dict):
+                    errors.append(f"{field_prefix}must be a mapping")
+                    continue
+                label = field.get("label")
+                value = field.get("value")
+                display = field.get("display", "detail")
+                key = field.get("key")
+                if (
+                    not isinstance(label, str)
+                    or not label.strip()
+                    or len(label.strip()) > 40  # ruff: ignore[magic-value-comparison]
+                ):
+                    errors.append(f"{field_prefix}label must be 1-40 characters")
+                if (
+                    not isinstance(value, str)
+                    or not value.strip()
+                    or len(value.strip()) > 120  # ruff: ignore[magic-value-comparison]
+                ):
+                    errors.append(f"{field_prefix}value must be 1-120 characters")
+                if display not in {"detail", "badge"}:
+                    errors.append(f"{field_prefix}display must be 'detail' or 'badge'")
+                if key is not None:
+                    if not isinstance(key, str) or not re.match(
+                        r"^[a-z][a-z0-9_]{0,31}$", key
+                    ):
+                        errors.append(
+                            f"{field_prefix}key must match [a-z][a-z0-9_]{{0,31}}"
+                        )
+                    elif key in seen_custom_keys:
+                        errors.append(f"{field_prefix}key must be unique")
+                    else:
+                        seen_custom_keys.add(key)
 
     return errors
 
@@ -2495,7 +2544,7 @@ import ipaddress  # stdlib — safe to add to existing imports block
 #: Schema version emitted as ``_schemaV`` in every validated profile dict.
 #: Increment when the profile dict shape changes incompatibly so the JS
 #: registry can detect and discard stale localStorage caches.
-_PROFILE_SCHEMA_VERSION: int = 2
+_PROFILE_SCHEMA_VERSION: int = 3
 
 #: Maximum number of profiles before a Sphinx WARNING is emitted.
 #: More than this is unusual and may indicate a conf.py loop/bug.
@@ -2504,6 +2553,20 @@ _MAX_PROFILE_COUNT: int = 20
 #: Maximum character length for a profile ``label`` field.
 #: Enforced during validation; truncated labels get a WARNING.
 _MAX_PROFILE_LABEL_LEN: int = 80
+
+#: Endpoint URL/route limits.  These are deliberately bounded to prevent
+#: pathological DOM/storage/network inputs while remaining far above normal API
+#: endpoint sizes.
+_MAX_ENDPOINT_URL_LEN: int = 2048
+_MAX_ENDPOINT_ROUTE_LEN: int = 1024
+_MAX_ENDPOINT_QUERY_LEN: int = 1024
+_MAX_ENDPOINT_HOST_LEN: int = 253
+
+#: Characters that make endpoint display/parsing ambiguous or unsafe.  Bidi and
+#: zero-width controls are rejected to reduce URL-spoofing risk.
+_ENDPOINT_UNSAFE_RE = re.compile(
+    r"[\\\x00-\x20\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]"
+)
 
 #: JS prototype-pollution sentinel keys.  These must *never* appear as
 #: top-level keys in ``window.AI_ASSISTANT_ENDPOINTS`` or in a profile dict
@@ -2542,99 +2605,209 @@ _PRIVATE_NETWORKS: tuple[ipaddress.IPv4Network, ...] = (
     ipaddress.ip_network("240.0.0.0/4"),  # reserved
 )
 
-#: Token field characters that indicate XSS / injection attempts.
-#: These are rejected regardless of other validation.
-_TOKEN_INJECT_RE = re.compile(
-    r"(<\s*script|javascript:|data:\s*text/html|</|>)",
-    re.IGNORECASE,
-)
+#: Build-time endpoint-profile bearer-token values are deliberately never
+#: serialized. Runtime-entered tokens are validated separately in browser code
+#: and live only in memory for the page lifetime.
 
 
 # ── BLOCK A helper function ──────────────────────────────────────────────────
 
 
+def _endpoint_host_is_private_or_reserved(  # ruff: ignore[too-many-return-statements]
+    host: str,
+) -> bool:
+    """Return True for literal/private/reserved endpoint hosts without DNS I/O."""
+    host_lower = (host or "").strip().lower().rstrip(".")
+    if not host_lower:
+        return True
+    if host_lower in {
+        "localhost",
+        "localhost.localdomain",
+        "ip6-localhost",
+        "metadata.google.internal",
+        "metadata.internal",
+        "metadata.amazonaws.com",
+    }:
+        return True
+    if host_lower.endswith((".localhost", ".local", ".internal", ".lan", ".home")):
+        return True
+    # Bare hostnames are local/container DNS names rather than public endpoints.
+    if "." not in host_lower and ":" not in host_lower:
+        return True
+    try:
+        addr = ipaddress.ip_address(host_lower)
+    except ValueError:
+        return False
+    if getattr(addr, "ipv4_mapped", None) is not None:
+        return True
+    if addr.version == 6:  # noqa: PLR2004
+        return bool(
+            addr.is_loopback
+            or addr.is_private
+            or addr.is_link_local
+            or addr.is_multicast
+            or addr.is_unspecified
+            or addr.is_reserved
+        )
+    return bool(
+        any(addr in network for network in _PRIVATE_NETWORKS)
+        or addr.is_multicast
+        or addr.is_unspecified
+        or addr.is_reserved
+    )
+
+
+def _endpoint_host_syntax(host: str) -> tuple[str, str]:
+    """Canonicalise a host and return ``(ascii_host, error_code)``."""
+    raw_host = (host or "").strip().rstrip(".")
+    if not raw_host:
+        return "", "URL_HOST"
+    try:
+        # Preserve IPv6 literals; canonicalise DNS/IDN names to ASCII punycode.
+        addr = ipaddress.ip_address(raw_host)
+    except ValueError:
+        try:
+            ascii_host = raw_host.encode("idna").decode("ascii").lower()
+        except (UnicodeError, ValueError):
+            return "", "URL_HOST_ENCODING"
+        if len(ascii_host) > _MAX_ENDPOINT_HOST_LEN:
+            return "", "URL_HOST_TOO_LONG"
+        labels = ascii_host.split(".")
+        label_re = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE)
+        if any(
+            not label
+            or len(label) > 63  # ruff: ignore[magic-value-comparison]
+            or not label_re.fullmatch(label)
+            for label in labels
+        ):
+            return "", "URL_HOST_SYNTAX"
+        return ascii_host, ""
+    else:
+        return str(addr), ""
+
+
+def _endpoint_path_is_unsafe(path: str) -> str:
+    """Return a fixed reason code for ambiguous/traversal path encodings."""
+    if re.search(r"%(?:0[0-9a-f]|1[0-9a-f]|7f|2f|5c)", path, re.IGNORECASE):
+        return "URL_ENCODED_CONTROL"
+    if re.search(r"%25(?:2e|2f|5c)", path, re.IGNORECASE):
+        return "URL_DOUBLE_ENCODING"
+    for segment in path.split("/"):
+        try:
+            decoded = unquote(segment)
+        # urllib is deliberately forgiving
+        except Exception:  # pragma: no cover  # ruff: ignore[blind-except]
+            return "URL_BAD_ENCODING"
+        if decoded in {".", ".."}:
+            return "URL_TRAVERSAL"
+    return ""
+
+
+def _normalise_absolute_endpoint_url(  # ruff: ignore[too-many-branches, too-many-return-statements]
+    raw: Any, *, allow_query: bool = True
+) -> tuple[str, str, bool]:
+    """Validate/canonicalise an absolute HTTP(S) endpoint.
+
+    Returns ``(url, error_code, private_or_reserved)``.  No diagnostic contains
+    the rejected URL, which keeps build logs safe to share.
+    """
+    if raw is None:
+        return "", "", False
+    value = str(raw).strip()
+    if not value:
+        return "", "", False
+    if len(value) > _MAX_ENDPOINT_URL_LEN:
+        return "", "URL_TOO_LONG", False
+    if _ENDPOINT_UNSAFE_RE.search(value):
+        return "", "URL_UNSAFE_CHAR", False
+    if not _URL_SCHEME_RE.match(value):
+        return "", "URL_SCHEME", False
+    try:
+        parts = urlsplit(value)
+        port = parts.port  # forces invalid-port validation
+    except (ValueError, TypeError):
+        return "", "URL_MALFORMED", False
+    if parts.scheme.lower() not in {"http", "https"}:
+        return "", "URL_SCHEME", False
+    if parts.username or parts.password:
+        return "", "URL_USERINFO", False
+    if parts.fragment:
+        return "", "URL_FRAGMENT", False
+    if parts.query and not allow_query:
+        return "", "BASE_QUERY", False
+    if len(parts.query) > _MAX_ENDPOINT_QUERY_LEN:
+        return "", "URL_QUERY_TOO_LONG", False
+    if len(parts.path) > _MAX_ENDPOINT_ROUTE_LEN:
+        return "", "URL_PATH_TOO_LONG", False
+    path_code = _endpoint_path_is_unsafe(parts.path)
+    if path_code:
+        return "", path_code, False
+    ascii_host, host_code = _endpoint_host_syntax(parts.hostname or "")
+    if host_code:
+        return "", host_code, False
+
+    is_private = _endpoint_host_is_private_or_reserved(ascii_host)
+    host_for_url = f"[{ascii_host}]" if ":" in ascii_host else ascii_host
+    ports = {
+        443: "https",
+        80: "http",
+    }
+    default_port = any(
+        k == port and v == parts.scheme.lower() for k, v in ports.items()
+    )
+    if port is not None and not default_port:
+        host_for_url = f"{host_for_url}:{port}"
+    path = (parts.path or "").rstrip("/")
+    normalized = urlunsplit((parts.scheme.lower(), host_for_url, path, parts.query, ""))
+    if len(normalized) > _MAX_ENDPOINT_URL_LEN:
+        return "", "URL_TOO_LONG", is_private
+    return normalized, "", is_private
+
+
+def _normalise_relative_endpoint_route(  # ruff: ignore[too-many-return-statements]
+    raw: Any,
+) -> tuple[str, str]:
+    """Validate/canonicalise a Base-relative endpoint route."""
+    if raw is None:
+        return "", ""
+    value = str(raw).strip()
+    if not value:
+        return "", ""
+    if len(value) > _MAX_ENDPOINT_ROUTE_LEN:
+        return "", "ROUTE_TOO_LONG"
+    if value.startswith("//") or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", value):
+        return "", "ROUTE_AUTHORITY"
+    if _ENDPOINT_UNSAFE_RE.search(value):
+        return "", "ROUTE_UNSAFE_CHAR"
+    if "#" in value:
+        return "", "ROUTE_FRAGMENT"
+    route = value.lstrip("/")
+    path, sep, query = route.partition("?")
+    path = path.rstrip("/")
+    if not path:
+        return "", "ROUTE_EMPTY"
+    if len(query) > _MAX_ENDPOINT_QUERY_LEN:
+        return "", "ROUTE_QUERY_TOO_LONG"
+    if len(path.split("/")) > 64:  # ruff: ignore[magic-value-comparison]
+        return "", "ROUTE_TOO_DEEP"
+    path_code = _endpoint_path_is_unsafe(path)
+    if path_code:
+        return "", path_code.replace("URL_", "ROUTE_", 1)
+    return path + (("?" + query) if sep else ""), ""
+
+
 def _check_private_ip_url(url: str) -> bool:
-    """Return True when *url*'s host resolves to a known private IP range.
+    """Return True when an HTTP(S) URL names a private/reserved literal host.
 
-    Parameters
-    ----------
-    url : str
-        A URL string already confirmed to begin with ``https://`` or
-        ``http://`` (i.e. ``_URL_SCHEME_RE`` has already matched).
-
-    Returns
-    -------
-    bool
-        ``True`` when the host literal is a private IPv4 address, a
-        loopback address (``127.*`` / ``::1``), or a well-known private
-        hostname (``localhost``, ``*.local``).  ``False`` for all public
-        addresses and for any hostname that cannot be parsed as an IP.
-
-    Notes
-    -----
-    Developer: This function performs *only* lexical / literal analysis.
-    It does NOT perform DNS resolution — that would be a network side
-    effect inside a Sphinx build, which is unacceptable.  A hostname
-    like ``my-internal-proxy.corp.example.com`` is NOT flagged; only
-    literal private IPs and the reserved hostnames listed below are.
-
-    Developer: Returns ``False`` (not an error) for unrecognised hosts so
-    that the strict caller (``_validate_profile``) only warns on
-    well-known problematic values.  Operators using split-DNS or internal
-    proxies should expect the WARNING and can suppress it by setting a
-    ``_allow_private`` flag on the profile dict (future extension).
-
-    Developer: IPv6 loopback ``::1`` is detected.  Full IPv6 private
-    range analysis (``fc00::/7``) is omitted — the ULA range is not
-    widely used for proxy deployments and false-positives would confuse
-    Ollama / WSL2 users.
-
-    Examples
-    --------
-    >>> _check_private_ip_url("http://127.0.0.1:8080/v1")
-    True
-    >>> _check_private_ip_url("http://localhost/v1")
-    True
-    >>> _check_private_ip_url("https://proxy.example.com/v1")
-    False
-    >>> _check_private_ip_url("http://192.168.1.42/v1")
-    True
-    >>> _check_private_ip_url("http://10.0.0.1/api")
-    True
-    >>> _check_private_ip_url("https://1.1.1.1/v1")
-    False
+    This remains DNS-free by design; DNS rebinding requires a network-layer or
+    explicit host allowlist defense and cannot be proven safe by lexical parsing.
     """
     try:
-        # Cheap host extraction: strip scheme, split on first "/".
-        without_scheme = re.sub(r"^https?://", "", url, flags=re.IGNORECASE)
-        host_port = without_scheme.split("/")[0]
-        # Remove port if present (handle IPv6 brackets).
-        if host_port.startswith("["):
-            # IPv6 literal: [::1]:8080 → strip brackets.
-            host = host_port.split("]")[0].lstrip("[")
-        else:
-            host = host_port.split(":")[0]
-
-        host_lower = host.lower().strip()
-
-        # ── Reserved hostnames (lexical check — no DNS) ───────────────
-        if host_lower in ("localhost", "localhost.localdomain", "ip6-localhost"):
-            return True
-        if host_lower.endswith((".local", ".internal")):
-            return True
-        if host_lower == "::1":
-            return True
-
-        # ── Literal IPv4 / IPv6 address check ─────────────────────────
-        addr = ipaddress.ip_address(host)
-        if addr.version == 6:  # noqa: PLR2004
-            return addr.is_loopback or addr.is_private or addr.is_link_local
-        # IPv4: check against all private networks.
-        return any(addr in network for network in _PRIVATE_NETWORKS)
-
-    except (ValueError, AttributeError, IndexError):
-        # host is a hostname or malformed — cannot determine; not flagged.
+        parts = urlsplit(url)
+        host = parts.hostname or ""
+    except (ValueError, TypeError):
         return False
+    return _endpoint_host_is_private_or_reserved(host)
 
 
 #: Regex for the ``mcpb_url`` field in ``claude_desktop`` MCP tools.
@@ -2651,6 +2824,149 @@ _DANGEROUS_CSS_CHARS_RE = re.compile(r"[<>]")
 
 #: Widget positions accepted by the JavaScript widget.
 _ALLOWED_POSITIONS: frozenset = frozenset({"sidebar", "title", "floating", "none"})
+
+
+def _validate_isolation_origin(value: Any) -> str:
+    """Return a canonical separate-origin assistant origin or ``""``.
+
+    Production origins must use HTTPS and contain origin components only: no
+    credentials, path, query, or fragment. HTTP is accepted only for localhost
+    development. Runtime JavaScript additionally refuses an origin equal to the
+    documentation page origin because that would provide no SOP isolation.
+    """
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        parts = urlsplit(raw)
+        host = (parts.hostname or "").lower()
+        local = host in {"localhost", "::1"} or host.startswith("127.")
+        if parts.scheme not in ({"https", "http"} if local else {"https"}):
+            raise ValueError(
+                "isolation origin must use HTTPS (HTTP only for localhost)"
+            )
+        if parts.username or parts.password or parts.query or parts.fragment:
+            raise ValueError(
+                "isolation origin must not contain credentials/query/fragment"
+            )
+        if parts.path not in {"", "/"}:
+            raise ValueError("isolation origin must not contain a path")
+        if not parts.netloc or not host:
+            raise ValueError("isolation origin must be absolute")
+        return f"{parts.scheme}://{parts.netloc}".rstrip("/")
+    except (TypeError, ValueError) as exc:
+        _get_logger().warning(
+            "AI Assistant isolation security: INVALID_ISOLATION_ORIGIN; configured value ignored (%s).",
+            type(exc).__name__,
+        )
+        return ""
+
+
+def _validate_isolation_frame_path(value: Any) -> str:
+    """Return a bounded root-relative isolated-frame asset path."""
+    raw = str(value or "/ai-assistant-isolated.html").strip()
+    if (
+        not raw.startswith("/")
+        or ".." in raw
+        or "?" in raw
+        or "#" in raw
+        or len(raw) > 512  # ruff: ignore[magic-value-comparison]
+        or any(ch in raw for ch in "<>\\\\")
+    ):
+        _get_logger().warning(
+            "AI Assistant isolation security: INVALID_ISOLATION_FRAME_PATH; using default."
+        )
+        return "/ai-assistant-isolated.html"
+    return raw
+
+
+def _validate_isolation_parent_origin(value: Any) -> str:
+    """Return one canonical documentation parent origin or ``""``.
+
+    Remote origins require HTTPS. HTTP is accepted only for loopback/local
+    development. Credentials, paths, queries, and fragments are forbidden so
+    the generated frame policy compares exact browser origins only.
+    """
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        parts = urlsplit(raw)
+        host = (parts.hostname or "").lower()
+        local = host in {"localhost", "::1"} or host.startswith("127.")
+        if parts.scheme not in ({"https", "http"} if local else {"https"}):
+            raise ValueError("parent origin must use HTTPS (HTTP only for localhost)")
+        if parts.username or parts.password or parts.query or parts.fragment:
+            raise ValueError(
+                "parent origin must not contain credentials/query/fragment"
+            )
+        if parts.path not in {"", "/"}:
+            raise ValueError("parent origin must not contain a path")
+        if not parts.netloc or not host:
+            raise ValueError("parent origin must be absolute")
+        return f"{parts.scheme}://{parts.netloc}".rstrip("/")
+    except (TypeError, ValueError) as exc:
+        _get_logger().warning(
+            "AI Assistant isolation security: INVALID_PARENT_ORIGIN; configured value ignored (%s).",
+            type(exc).__name__,
+        )
+        return ""
+
+
+def _resolve_isolation_parent_origins(config: Any) -> list[str]:
+    """Resolve a bounded exact-origin allowlist for the isolated-frame policy."""
+    raw_values = _cfg_str_list(config, "ai_assistant_isolation_parent_origins")
+    if not raw_values:
+        derived = (
+            _cfg_str(config, "html_baseurl")
+            or _cfg_str(config, "ai_assistant_base_url")
+            or ""
+        )
+        if derived:
+            try:
+                parts = urlsplit(derived)
+                if parts.scheme and parts.netloc:
+                    raw_values = [f"{parts.scheme}://{parts.netloc}"]
+            except (TypeError, ValueError):
+                raw_values = []
+    out: list[str] = []
+    for raw in raw_values[:32]:
+        origin = _validate_isolation_parent_origin(raw)
+        if origin and origin not in out:
+            out.append(origin)
+    return out
+
+
+def generate_isolation_policy(app: Any, exception: Exception | None) -> None:
+    """Write the B42 closed parent-origin policy into the built ``_static`` tree.
+
+    The source package also ships a deny-all policy. A successful Sphinx build
+    overwrites that copy with this deterministic allowlist. A failed build does
+    not manufacture release policy evidence.
+    """
+    if exception is not None:
+        return
+    isolation_origin = _validate_isolation_origin(
+        getattr(app.config, "ai_assistant_isolation_origin", "")
+    )
+    parents = _resolve_isolation_parent_origins(app.config)
+    parents = [p for p in parents if p != isolation_origin]
+    policy = {
+        "schemaVersion": 1,
+        "protocolVersion": "2.0.0",
+        "isolationOrigin": isolation_origin,
+        "allowedParentOrigins": parents,
+    }
+    outdir = Path(app.outdir) / "_static"
+    outdir.mkdir(parents=True, exist_ok=True)
+    target = outdir / "ai-assistant-isolation-policy.json"
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(policy, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        + "\n",
+        encoding="utf-8",
+    )
+    tmp.replace(target)
 
 
 def _validate_base_url(url: str) -> str:
@@ -4781,6 +5097,263 @@ def _cfg_str(config: Any, key: str) -> str | None:
     return val if isinstance(val, str) else None
 
 
+#: Test-only model entries answered by the proxy itself, never forwarded
+#: upstream.  See ``_hf_spaces_proxy/_utils/_stub_model.py`` for the responder.
+#:
+#: Appended AFTER the real models and never marked ``default``, so enabling
+#: them cannot change which model a reader actually talks to.  Ids are
+#: prefixed ``stub-`` so they cannot collide with a real entry.
+#:
+#: ``reasoning`` differs on purpose between the first two: the echo entry
+#: declares support so the panel SENDS the effort and thinking fields, which
+#: is the only way ``stub/echo`` can report on them; the qa entry does not, so
+#: the two request shapes can be compared side by side in one session.
+_STUB_MODEL_ENTRIES: list[dict] = [
+    {
+        "id": "stub-echo",
+        "model": "stub/echo",
+        "provider": "custom",
+        "label": "Stub · echo request",
+        "description": (
+            "Test model. Reports exactly what the browser sent — body keys, "
+            "reasoning fields and their values, credential headers by shape, "
+            "and any secret-shaped strings in the page context. No model is "
+            "called and no credential is read."
+        ),
+        "reasoning": True,
+    },
+    {
+        "id": "stub-qa",
+        "model": "stub/qa",
+        "provider": "custom",
+        "label": "Stub · canned answers",
+        "description": (
+            "Test model. Deterministic replies from a fixture table — try "
+            '"ping". Sends no reasoning fields, for comparison with the '
+            "echo entry."
+        ),
+    },
+    {
+        "id": "stub-hostile",
+        "model": "stub/hostile",
+        "provider": "custom",
+        "label": "Stub · hostile output",
+        "description": (
+            "Test model. Replies containing prompt-injection text, script "
+            "tags, and malformed markup, to check how this panel renders a "
+            "reply that should not be trusted."
+        ),
+    },
+]
+
+
+def _stub_endpoint(models: Any, fallback_url: str) -> str:
+    """Resolve the endpoint the stub models should target.
+
+    The stub must reach the SAME proxy the site already uses -- that is the
+    whole point of the rig.  Inheriting the endpoint rather than accepting a
+    separate one removes the failure where the stub passes against a proxy
+    that is not the one serving readers.
+
+    Parameters
+    ----------
+    models : Any
+        Raw ``ai_assistant_panel_api_models`` value.
+    fallback_url : str
+        ``ai_assistant_panel_api_url``, used for single-model deployments.
+
+    Returns
+    -------
+    str
+        The first real model's endpoint, else the shared URL, else ``""``.
+    """
+    if isinstance(models, list):
+        for entry in models:
+            if isinstance(entry, dict):
+                endpoint = str(entry.get("endpoint") or "").strip()
+                if endpoint:
+                    return endpoint
+    return str(fallback_url or "").strip()
+
+
+def _with_stub_models(models: Any, enabled: bool, endpoint: str = "") -> Any:
+    """Append the stub test models when ``enabled``.
+
+    Parameters
+    ----------
+    models : Any
+        Raw value of ``ai_assistant_panel_api_models`` before validation.
+    enabled : bool
+        Value of ``ai_assistant_panel_stub_models``.
+    endpoint : str, optional
+        Endpoint the stub entries should target, from :func:`_stub_endpoint`.
+
+    Returns
+    -------
+    Any
+        ``models`` unchanged when disabled, when it is not a list, or when no
+        endpoint could be resolved.  A stub entry pointing nowhere is worse
+        than an absent one: it turns a diagnostic into a second thing to
+        diagnose.
+
+    Notes
+    -----
+    **Developer note** -- Appending here rather than in JS is deliberate: the
+    entries then pass through ``_filter_panel_models`` like any other, so they
+    are shape-normalised, security-validated, and de-duplicated by the same
+    code.  A second, JS-side injection path could accept an entry the Python
+    validator would have refused.
+
+    **Developer note** -- Copies are appended, not the module-level dicts, so
+    a caller mutating the returned list cannot corrupt
+    :data:`_STUB_MODEL_ENTRIES` for the rest of the build.
+    """
+    if not enabled or not isinstance(models, list):
+        return models
+    if not endpoint:
+        try:  # noqa: SIM105
+            _get_logger().warning(
+                "AI Assistant: ai_assistant_panel_stub_models is True but no "
+                "endpoint could be resolved; stub models were not added."
+            )
+        except Exception:  # noqa: BLE001
+            pass
+        return models
+    return list(models) + [
+        {**entry, "endpoint": endpoint} for entry in _STUB_MODEL_ENTRIES
+    ]
+
+
+def _log_reasoning_config_fallback(code: str, option: str) -> None:
+    """Log a privacy-safe config fallback without echoing the bad value.
+
+    Only fixed diagnostic codes and option names are emitted.  Raw model ids,
+    endpoints, request bodies, exception messages and user content are never
+    included, because Sphinx logs are commonly retained by CI providers.
+    """
+    try:  # ruff: ignore[suppressible-exception]
+        _get_logger().error(
+            "AI Assistant [%s]: invalid %s; safe provider defaults will be used.",
+            code,
+            option,
+        )
+    except Exception:  # noqa: BLE001
+        # Logging must never turn a fail-soft configuration fallback into a
+        # documentation-build failure (including minimal test environments
+        # where Sphinx itself is not importable).
+        pass
+
+
+def _cfg_effort_levels(config: Any) -> list:  # ruff: ignore[too-many-return-statements]
+    """Resolve ``ai_assistant_panel_effort_levels`` to a JSON-serialisable list.
+
+    Mirrors the validation the JS-side ``_applyEffortLevelsOverride`` already
+    performs, so a malformed value degrades the same way in both places:
+    rather than injecting something the browser will reject anyway (and log
+    a confusing warning about), an obviously-wrong value here is treated as
+    "not declared" at the Python layer already. The JS layer still owns the
+    authoritative validation (id charset, reserved words, duplicates) --
+    this is a coarse pre-filter so a site.conf typo (e.g. a dict instead of
+    a list) can't break ``json.dumps`` of the whole injected config blob.
+
+    Parameters
+    ----------
+    config : sphinx.config.Config
+        The Sphinx config object.
+
+    Returns
+    -------
+    list
+        A plain list of ``{id, label, hint, desc}`` dicts (unknown keys
+        dropped, missing optional keys omitted). ``[]`` when the option is
+        absent, not a list, has the wrong length (must be 2-8 entries to
+        match the JS-side bound), or contains an entry that isn't a mapping
+        with at least a string ``id``.
+    """
+    value = getattr(config, "ai_assistant_panel_effort_levels", [])
+    if value in (None, [], ()):
+        return []
+    if not isinstance(value, (list, tuple)):
+        _log_reasoning_config_fallback(
+            "EFFORT_LEVELS_INVALID", "ai_assistant_panel_effort_levels"
+        )
+        return []
+    if not (2 <= len(value) <= 8):  # ruff: ignore[magic-value-comparison]
+        _log_reasoning_config_fallback(
+            "EFFORT_LEVELS_INVALID", "ai_assistant_panel_effort_levels"
+        )
+        return []
+    out = []
+    for entry in value:
+        if not isinstance(entry, dict):
+            _log_reasoning_config_fallback(
+                "EFFORT_LEVELS_INVALID", "ai_assistant_panel_effort_levels"
+            )
+            return []
+        level_id = entry.get("id")
+        if not isinstance(level_id, str) or not level_id:
+            _log_reasoning_config_fallback(
+                "EFFORT_LEVELS_INVALID", "ai_assistant_panel_effort_levels"
+            )
+            return []
+        clean = {"id": level_id}
+        for key in ("label", "hint", "desc"):
+            val = entry.get(key)
+            if isinstance(val, str):
+                clean[key] = val
+        out.append(clean)
+    try:
+        json.dumps(out)
+    except (TypeError, ValueError):
+        _log_reasoning_config_fallback(
+            "EFFORT_LEVELS_INVALID", "ai_assistant_panel_effort_levels"
+        )
+        return []
+    return out
+
+
+def _cfg_reasoning(config: Any) -> bool | dict:
+    """Resolve ``ai_assistant_panel_reasoning`` to a JSON-serialisable value.
+
+    The option is deliberately dual-typed: ``True``/``False`` for the common
+    case, or a ``dict`` declaring capability booleans plus validated wire
+    settings for a proxy that renames them. Anything else -- a string, a
+    number, or a test double
+    -- is not a declaration this extension can act on, and is treated as
+    "not declared" rather than passed through.
+
+    Passing an unvalidated value through would put a non-serialisable object
+    into the injected config and break the page, so the type check is the
+    guard, not a nicety.
+
+    Parameters
+    ----------
+    config : sphinx.config.Config
+        The Sphinx config object.
+
+    Returns
+    -------
+    bool or dict
+        ``False`` when the option is absent or of an unusable type.
+    """
+    value = getattr(config, "ai_assistant_panel_reasoning", False)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, dict):
+        # Keys and values must survive json.dumps; a dict of dicts/strings/ints
+        # does, anything exotic does not.
+        try:
+            json.dumps(value)
+        except (TypeError, ValueError):
+            _log_reasoning_config_fallback(
+                "REASONING_INVALID", "ai_assistant_panel_reasoning"
+            )
+            return False
+        return value
+    _log_reasoning_config_fallback("REASONING_INVALID", "ai_assistant_panel_reasoning")
+    return False
+
+
 def _cfg_bool(config: Any, key: str, default: bool = False) -> bool:
     """Safely read a boolean config value; returns *default* for non-bool/int values.
 
@@ -5008,25 +5581,23 @@ def _cfg_endpoint_url(config: Any, key: str) -> str:
     stripped = raw.strip()
     if not stripped:
         return ""
-    if not _URL_SCHEME_RE.match(stripped):
+    normalized, code, is_private = _normalise_absolute_endpoint_url(
+        stripped, allow_query=True
+    )
+    if code:
         _get_logger().warning(
-            "AI Assistant: %r = %r is not a valid https:// or "
-            "http:// URL and will be ignored.  Accepted schemes: https, http.",
+            "AI Assistant endpoint security: %s field=%s; configured value ignored.",
+            code,
             key,
-            stripped,
         )
         return ""
-    # SSRF / private-IP advisory warning (does NOT reject the URL).
-    if _check_private_ip_url(stripped):
+    if is_private:
         _get_logger().warning(
-            "AI Assistant: %r = %r targets a private IP or reserved hostname.  "
-            "End-user browsers cannot reach this address.  "
-            "This is expected for local-development proxies; set a public URL "
-            "for production deployments.",
+            "AI Assistant endpoint security: PRIVATE_OR_RESERVED_HOST field=%s; "
+            "trusted conf.py value retained for local-development compatibility.",
             key,
-            stripped,
         )
-    return stripped
+    return normalized
 
 
 def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
@@ -5036,15 +5607,15 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
     ----------
     raw : Any
         The raw profile value from ``conf.py``.  Must be a ``dict``; all
-        URL fields are validated with the same logic as
-        :func:`_cfg_endpoint_url`; token and integer fields are sanitised.
+        ``base`` is validated as an absolute http(s) URL; feature endpoint
+        fields additionally accept Base-relative routes or empty/null inheritance; token and integer fields are sanitised.
     key : str
         Profile key (e.g. ``"cf"``); used only in warning messages.
 
     Returns
     -------
     dict
-        Normalised profile with every expected key present.  Invalid URL
+        Normalised profile with every expected key present.  Invalid endpoint
         fields are replaced with ``""`` and a Sphinx WARNING is emitted so
         the build still completes but the operator sees actionable output.
         Returns an empty ``{}`` when ``raw`` is not a ``dict`` or when the
@@ -5071,11 +5642,12 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
       ``window.AI_ASSISTANT_ENDPOINTS`` object, which would pollute
       ``Object.prototype`` in every browser tab.
 
-    * Token fields containing ``<``, ``>``, ``script``, or
-      ``javascript:`` are rejected (XSS guard) because tokens flow
-      into ``Authorization: Bearer`` headers constructed by JS string
-      concatenation — an injected ``\n`` or tag could break the header
-      or, in some poorly-written proxy code, inject a new HTTP header.
+    * Build-time token fields are never serialized into the browser. Static
+      Sphinx output is public to every reader who can fetch the page, so a
+      token read from ``os.environ`` during a build would still become a
+      client-visible credential if retained here. Non-empty token values are
+      ignored with a warning; browser-entered runtime tokens are a separate,
+      memory-only compatibility path.
 
     * Label fields are length-capped at ``_MAX_PROFILE_LABEL_LEN``
       characters to prevent layout overflow attacks in the profile-
@@ -5102,7 +5674,7 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
     >>> _validate_profile({"chat": "https://ok.example.com"}, "__proto__")
     {}
     """
-    _URL_KEYS = ("chat", "share", "feedback", "training")  # noqa: N806
+    _URL_KEYS = ("base", "chat", "share", "feedback", "training")  # noqa: N806
     _TOKEN_KEYS = ("shareToken", "feedbackToken")  # noqa: N806
     _INT_KEYS = ("ttlDays",)  # noqa: N806
 
@@ -5139,68 +5711,93 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
         )
         raw_label = raw_label[:_MAX_PROFILE_LABEL_LEN]
 
+    raw_dataset_repo = str(raw.get("datasetRepo", "") or "").strip()
+    if raw_dataset_repo and not re.fullmatch(
+        r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?/"
+        r"[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?",
+        raw_dataset_repo,
+    ):
+        _get_logger().warning(
+            "AI Assistant: endpoint profile %r datasetRepo is not a valid "
+            "HuggingFace owner/repo id — ignoring the dataset override.",
+            key,
+        )
+        raw_dataset_repo = ""
+
     result: dict = {
         "label": raw_label,
+        "datasetRepo": raw_dataset_repo,
         "_schemaV": _PROFILE_SCHEMA_VERSION,
     }
     _warnings: list[str] = []
 
-    # ── URL field validation ──────────────────────────────────────────────
+    # ── Endpoint field validation ─────────────────────────────────────────
+    # ``base`` is an absolute HTTP(S) service root with no query/fragment.
+    # Feature fields accept absolute endpoints, Base-relative routes, or blank.
+    # Build-time private hosts remain an explicit trusted-author compatibility
+    # path but are flagged; runtime-added browser profiles reject them outright.
     for url_key in _URL_KEYS:
         raw_url = raw.get(url_key, "")
-        if not raw_url:
+        if raw_url is None or raw_url == "":
             result[url_key] = ""
             continue
-        stripped = str(raw_url).strip().rstrip("/")
-        if not stripped:
+
+        raw_text = str(raw_url).strip()
+        if not raw_text:
             result[url_key] = ""
             continue
-        if not _URL_SCHEME_RE.match(stripped):
+
+        if url_key != "base" and not _URL_SCHEME_RE.match(raw_text):
+            relative, code = _normalise_relative_endpoint_route(raw_text)
+            if code:
+                _get_logger().warning(
+                    "AI Assistant endpoint security: %s field=%s; profile value ignored.",
+                    code,
+                    url_key,
+                )
+                result[url_key] = ""
+                continue
+            result[url_key] = relative
+            continue
+
+        normalized, code, is_private = _normalise_absolute_endpoint_url(
+            raw_text,
+            allow_query=(url_key != "base"),
+        )
+        if code:
             _get_logger().warning(
-                "AI Assistant: endpoint profile %r field %r = %r is not a "
-                "valid https:// or http:// URL and will be ignored.  "
-                "Accepted schemes: https, http.",
-                key,
+                "AI Assistant endpoint security: %s field=%s; profile value ignored.",
+                code,
                 url_key,
-                stripped,
             )
             result[url_key] = ""
             continue
-        # SSRF / private-IP advisory.
-        if _check_private_ip_url(stripped):
+        if is_private:
             _get_logger().warning(
-                "AI Assistant: endpoint profile %r field %r = %r targets a "
-                "private IP or reserved hostname.  End-user browsers cannot "
-                "reach this address outside the documentation server's network.  "
-                "This is expected for local development; use a public URL for "
-                "production.",
-                key,
+                "AI Assistant endpoint security: PRIVATE_OR_RESERVED_HOST field=%s; "
+                "trusted conf.py value retained for local-development compatibility.",
                 url_key,
-                stripped,
             )
             _warnings.append(url_key)
-        result[url_key] = stripped
+        result[url_key] = normalized
 
-    # ── Token field validation ────────────────────────────────────────────
+    # ── Secret boundary: build-time token values never reach HTML ─────────
+    # The extension is static/open-source browser code. A value read from an
+    # environment variable during ``sphinx-build`` is not server-side once it
+    # is serialized into the generated page. Keep the fields empty for client
+    # shape compatibility and never include/log the configured secret value.
     for tok_key in _TOKEN_KEYS:
-        val = raw.get(tok_key, "")
-        if val:
-            tok_str = str(val)
-            # Reject tokens containing HTML/script injection attempts.
-            if _TOKEN_INJECT_RE.search(tok_str):
-                _get_logger().warning(
-                    "AI Assistant: endpoint profile %r token field %r contains "
-                    "characters that could enable XSS injection ('<', '>', "
-                    "'script', 'javascript:') — field cleared.  "
-                    "Tokens must be plain Bearer credential strings.",
-                    key,
-                    tok_key,
-                )
-                result[tok_key] = ""
-            else:
-                result[tok_key] = tok_str
-        else:
-            result[tok_key] = ""
+        if raw.get(tok_key):
+            _get_logger().warning(
+                "AI Assistant secret boundary: endpoint profile %r configured %s, "
+                "but build-time bearer credentials are never serialized into "
+                "generated documentation. The value was ignored. Configure "
+                "authorization on the server boundary, or enter a short-lived "
+                "runtime credential explicitly for the current page only.",
+                key,
+                tok_key,
+            )
+        result[tok_key] = ""
 
     # ── Integer field validation ──────────────────────────────────────────
     for int_key in _INT_KEYS:
@@ -5217,7 +5814,9 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
     return result
 
 
-def _serialize_endpoint_profiles(config: Any) -> tuple:
+def _serialize_endpoint_profiles(  # ruff: ignore[too-many-branches]
+    config: Any,
+) -> tuple:
     """Read, validate, and serialise the endpoint profile registry.
 
     Parameters
@@ -5290,7 +5889,7 @@ def _serialize_endpoint_profiles(config: Any) -> tuple:
     >>> default
     'cf'
     >>> profiles["_meta"]["schemaVersion"]
-    2
+    3
     """
     raw_dict = getattr(config, "ai_assistant_endpoint_profiles", None)
     default_key = _cfg_str(config, "ai_assistant_endpoint_default_profile") or ""
@@ -5368,9 +5967,23 @@ def _serialize_endpoint_profiles(config: Any) -> tuple:
     fb_url = _cfg_endpoint_url(config, "ai_assistant_panel_feedback_endpoint") or ""
     sh_url = _cfg_endpoint_url(config, "ai_assistant_global_share_endpoint") or ""
     tr_url = _cfg_endpoint_url(config, "ai_assistant_training_endpoint") or ""
-    fb_tok = _cfg_str(config, "ai_assistant_panel_feedback_token") or ""
-    sh_tok = _cfg_str(config, "ai_assistant_global_share_token") or ""
+    fb_tok_configured = bool(
+        _cfg_str(config, "ai_assistant_panel_feedback_token") or ""
+    )
+    sh_tok_configured = bool(_cfg_str(config, "ai_assistant_global_share_token") or "")
     ttl = _cfg_int(config, "ai_assistant_global_share_ttl_days", 30)
+
+    for _secret_key, _configured in (
+        ("ai_assistant_panel_feedback_token", fb_tok_configured),
+        ("ai_assistant_global_share_token", sh_tok_configured),
+    ):
+        if _configured:
+            _get_logger().warning(
+                "AI Assistant secret boundary: %s is configured but will not "
+                "be serialized into generated HTML. Static documentation "
+                "cannot safely contain production bearer credentials.",
+                _secret_key,
+            )
 
     if not (fb_url or sh_url or tr_url):
         return {}, ""
@@ -5382,24 +5995,14 @@ def _serialize_endpoint_profiles(config: Any) -> tuple:
             chat_base = chat_base[: -len(suffix)]
             break
 
-    # Validate tokens from legacy flat keys.
-    def _scrub_token(tok: str) -> str:
-        if _TOKEN_INJECT_RE.search(tok):
-            _get_logger().warning(
-                "AI Assistant: a legacy token value contains injection "
-                "characters and has been cleared."
-            )
-            return ""
-        return tok
-
     auto_profile: dict = {
         "label": "Default",
         "chat": chat_base,
         "share": sh_url,
         "feedback": fb_url,
         "training": tr_url,
-        "shareToken": _scrub_token(sh_tok),
-        "feedbackToken": _scrub_token(fb_tok),
+        "shareToken": "",
+        "feedbackToken": "",
         "ttlDays": ttl,
         "_schemaV": _PROFILE_SCHEMA_VERSION,
         "_warn": [],
@@ -5639,6 +6242,13 @@ def add_ai_assistant_context(
         {k: bool(v) for k, v in dict(app.config.ai_assistant_features).items()}
     )
 
+    # Raw panel-model list, resolved once: both the stub injection and its
+    # endpoint inheritance read it, and two reads of a config value a user
+    # can express two ways is how they drift apart.
+    _panel_models_raw = _cfg_list(
+        app.config, "ai_assistant_panel_api_models"
+    ) or _cfg_str(app.config, "ai_assistant_panel_api_models")
+
     config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
@@ -5697,6 +6307,34 @@ def add_ai_assistant_context(
             for prefix, watch, label in VIDEO_EMBED_PREFIXES
         ],
         "peertubePaths": {"embed": PEERTUBE_EMBED_PATH, "watch": PEERTUBE_WATCH_PATH},
+        # ---- B41 separate-origin runtime isolation ---------------------------
+        # Empty = compatibility/same-origin runtime. Non-empty = fail-closed
+        # separate-origin frame; the parent runs only the narrow host bridge.
+        "isolationOrigin": _validate_isolation_origin(
+            getattr(app.config, "ai_assistant_isolation_origin", "")
+        ),
+        "isolationFramePath": _validate_isolation_frame_path(
+            getattr(
+                app.config,
+                "ai_assistant_isolation_frame_path",
+                "/ai-assistant-isolated.html",
+            )
+        ),
+        "isolationContextMaxChars": max(
+            1000,
+            min(
+                500000,
+                _cfg_int(
+                    app.config, "ai_assistant_isolation_context_max_chars", 200000
+                ),
+            ),
+        ),
+        "isolationProtocolVersion": "2.0.0",
+        # Cross-origin microphone delegation is high-trust and therefore
+        # independent from merely rendering the speech UI. Default OFF.
+        "isolationAllowMicrophone": _cfg_bool(
+            app.config, "ai_assistant_isolation_allow_microphone", False
+        ),
         # ---- AI panel (floating chat drawer) --------------------------------
         # Basic identity
         "panelTitle": (
@@ -5740,15 +6378,73 @@ def add_ai_assistant_context(
         # False → pill hidden; panel opens only via the dropdown button.
         # Controls whether createAIAssistantUI() eagerly creates the trigger
         # pill before the user has ever opened the panel.
+        #
+        # This is also the *build default* for the reader-facing visibility
+        # switch below: the reader's stored choice starts from this value.
         "panelStartMinimized": _cfg_bool(
             app.config, "ai_assistant_panel_start_minimized", True
+        ),
+        # False hides the trigger-pill visibility switch on the AI Assistant
+        # row and pins the pill to ``panelStartMinimized``, exactly as
+        # ``copyModeToggle`` / ``pdfUrlModeToggle`` pin their own controls.
+        # Only ever consulted when the ``ai_panel`` feature is enabled, since
+        # the switch is built inside that branch of the dropdown.
+        "panelTriggerToggle": _cfg_bool(
+            app.config, "ai_assistant_panel_trigger_toggle", True
+        ),
+        # Whether the configured endpoint accepts the effort / extended-
+        # reasoning parameters.  Passed through verbatim (bool or dict) rather
+        # than coerced: a dict declares the wire field names for a proxy that
+        # uses non-standard ones.  Default False because sending an unknown
+        # top-level field makes a strict OpenAI-compatible endpoint reject the
+        # whole request -- guessing "supported" would break chat for every
+        # deployment that had not opted in.  Per-model ``reasoning`` keys in
+        # ``ai_assistant_panel_api_models`` override this.
+        "panelReasoning": _cfg_reasoning(app.config),
+        # Provider-specific effort/reasoning button scale shown in the model
+        # sheet. list[dict] of {id, label, hint, desc}, 2-8 entries, ordered
+        # least->most effort. Empty (default) leaves the JS-side built-in
+        # 5-option stub (Low/Medium/High/Extra/Max) in place -- see the
+        # CAUTION block above ai-assistant.js's _applyEffortLevelsOverride
+        # for why that stub is a generic placeholder, not a recommendation,
+        # and must be customised here rather than hand-edited in the JS.
+        "panelEffortLevels": _cfg_effort_levels(app.config),
+        # Which of the above ids starts selected. Empty string (default)
+        # lets the JS fall back to its own built-in default / first entry.
+        "panelEffortDefault": (
+            _cfg_str(app.config, "ai_assistant_panel_effort_default") or ""
+        ),
+        # Whether to show the reader a notice when the page contains text that
+        # reads like instructions to an assistant.  Informational only: it
+        # never changes what is sent, because the containment fence is the
+        # defence and this is the commentary.  Default True; set False on a
+        # site whose documentation is ABOUT prompt injection and would trip
+        # the heuristic constantly.
+        "panelInjectionNotice": _cfg_bool(
+            app.config, "ai_assistant_panel_injection_notice", True
+        ),
+        # Whether readers may correct a model's configuration from the panel.
+        # Default True: a build-time model list is the one thing in this widget
+        # that cannot be fixed without rebuilding the whole documentation set,
+        # and a wrong endpoint is discovered in the browser.  Corrections are
+        # stored locally as a diff, never uploaded, and never change what any
+        # other reader sees.
+        "panelModelEditing": _cfg_bool(
+            app.config, "ai_assistant_panel_model_editing", True
         ),
         # ---- v0.3 keys ------------------------------------------------------
         # Each maps 1:1 to a window.AI_ASSISTANT_CONFIG.* read in
         # ai-assistant.js.  Keys use the JS camelCase the reader expects.
         #
-        # R-persist: sessionStorage transcript (default True).
+        # R-persist: sessionStorage transcript capability (default True).
         "panelPersist": _cfg_bool(app.config, "ai_assistant_panel_persist", True),
+        # Initial state of the reader-facing "Remember conversation in this tab"
+        # switch.  This is only the site default for a tab with no explicit
+        # reader choice yet; once the reader toggles it, the per-tab
+        # sessionStorage preference wins until that tab is closed.
+        "panelRememberConversation": _cfg_bool(
+            app.config, "ai_assistant_panel_remember_conversation", True
+        ),
         # R7: keyboard shortcut chord (str; "" disables).
         "panelShortcut": (
             _cfg_str(app.config, "ai_assistant_panel_shortcut")
@@ -5764,8 +6460,14 @@ def add_ai_assistant_context(
         # already shape-normalised, security-validated, and de-duplicated by
         # ``_filter_panel_models`` — the JS does NOT re-validate.
         "panelApiModels": _filter_panel_models(
-            _cfg_list(app.config, "ai_assistant_panel_api_models")
-            or _cfg_str(app.config, "ai_assistant_panel_api_models")
+            _with_stub_models(
+                _panel_models_raw,
+                _cfg_bool(app.config, "ai_assistant_panel_stub_models", True),
+                _stub_endpoint(
+                    _panel_models_raw,
+                    _cfg_str(app.config, "ai_assistant_panel_api_url"),
+                ),
+            )
         ),
         # Provider → accent-colour map forwarded to JS for badge rendering.
         # Merged with JS-side defaults so either side can extend without
@@ -5783,6 +6485,18 @@ def add_ai_assistant_context(
         # Inline picker beside mic + send (Claude-style bar).
         "panelInlineModelPicker": _cfg_bool(
             app.config, "ai_assistant_panel_inline_model_picker", True
+        ),
+        # ── Usage Policy sheet ─────────────────────────────────────────────
+        "panelUsagePolicy": _cfg_bool(
+            app.config, "ai_assistant_panel_usage_policy", True
+        ),
+        "panelUsagePolicyTitle": (
+            _cfg_str(app.config, "ai_assistant_panel_usage_policy_title")
+            or "Usage Policy"
+        ),
+        # Trusted author HTML (from conf.py, not end-user input).
+        "panelUsagePolicyHtml": (
+            _cfg_str(app.config, "ai_assistant_panel_usage_policy_html") or ""
         ),
         # ── Phase B: Terms of Service sheet ────────────────────────────────
         "panelTerms": _cfg_bool(app.config, "ai_assistant_panel_terms", True),
@@ -5951,18 +6665,29 @@ def add_ai_assistant_context(
         "panelFeedbackEndpoint": _cfg_endpoint_url(
             app.config, "ai_assistant_panel_feedback_endpoint"
         ),
-        # Token sent as Authorization: Bearer <token>.  Empty string = no header.
-        # Operators must read this from os.environ — never hardcode in conf.py.
-        "panelFeedbackToken": (
-            _cfg_str(app.config, "ai_assistant_panel_feedback_token") or ""
+        # SECURITY: static Sphinx output is client-visible. Keep this legacy
+        # compatibility key empty even when conf.py sets a token; build-time
+        # bearer credentials must never be serialized into generated HTML.
+        "panelFeedbackToken": "",
+        # Browser-entered bearer credentials are a high-risk compatibility
+        # surface because same-origin JavaScript can observe page memory.
+        # Default OFF; production authorization belongs at the server boundary.
+        "allowRuntimeTokens": _cfg_bool(
+            app.config, "ai_assistant_allow_runtime_tokens", False
+        ),
+        # Ambient browser cookies/session credentials are not assistant API
+        # credentials. Service fetches omit them unless the site owner makes
+        # this separate compatibility opt-in. Explicit caller `omit` remains omit.
+        "allowCredentialedFetch": _cfg_bool(
+            app.config, "ai_assistant_allow_credentialed_fetch", False
         ),
         # ── Global share (P2) ─────────────────────────────────────────────
         "panelGlobalShareEndpoint": _cfg_endpoint_url(
             app.config, "ai_assistant_global_share_endpoint"
         ),
-        "panelGlobalShareToken": (
-            _cfg_str(app.config, "ai_assistant_global_share_token") or ""
-        ),
+        # Same client-secret boundary as feedback: server authorization must
+        # not depend on a bearer credential baked into static documentation.
+        "panelGlobalShareToken": "",
         "panelGlobalShareTtlDays": _cfg_int(
             app.config, "ai_assistant_global_share_ttl_days", 30
         ),
@@ -6306,6 +7031,71 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     minimized the panel, requiring them to first click the expand button
     #     then "AI Assistant".  Set to False only when you prefer the lighter
     #     initial paint at the cost of discoverability.
+    #
+    # ``ai_assistant_panel_model_editing``
+    #     When True (default) every model row carries an edit control, and a
+    #     reader can correct any field -- endpoint, wire model name, provider,
+    #     reasoning support -- from the panel itself.
+    #
+    #     Corrections to models defined in ``conf.py`` are stored as a DIFF in
+    #     that reader's browser: a later ``conf.py`` change still reaches them
+    #     for every field they did not touch, and "reset" restores the shipped
+    #     value.  Nothing is uploaded and no other reader is affected.
+    #
+    #     Default True because a build-time model list is the one part of this
+    #     widget that otherwise needs a full documentation rebuild to fix, and
+    #     the mistake is discovered in the browser.  Set False to present the
+    #     configured list as read-only.
+    #
+    # ``ai_assistant_panel_injection_notice``
+    #     When True (default) the panel tells the reader if the current page
+    #     contains text that reads like instructions to an assistant.  It is a
+    #     heuristic with real false positives and real misses, and it never
+    #     blocks, edits, or drops anything -- the page is sent identically
+    #     either way.  Set False on a site documenting prompt injection or LLM
+    #     security, where the notice would fire on ordinary content and teach
+    #     readers to ignore it.
+    #
+    # ``ai_assistant_panel_stub_models``
+    #     When True, three test-only models are appended to the model picker:
+    #     ``Stub · echo request``, ``Stub · canned answers``, and
+    #     ``Stub · hostile output``.  They are answered by the proxy itself and
+    #     never forwarded upstream, so they exercise the real client/server
+    #     path -- CORS, auth handling, body validation, SSE framing -- with the
+    #     model removed.  Requires ``STUB_ENABLED=true`` on the proxy.
+    #
+    #     Default True.  They cost nothing until selected.  The proxy reserves
+    #     the ``stub/*`` namespace: when ``STUB_ENABLED`` is false it returns a
+    #     local 503 ``stub_disabled`` response and never forwards the diagnostic
+    #     model id to a real provider.
+    #     Having them present by default means a misbehaving deployment can be
+    #     diagnosed from the panel itself, with no conf.py edit and no rebuild.
+    #     Set False to hide them from readers on a public site.
+    #
+    # ``ai_assistant_panel_reasoning``
+    #     Whether the configured chat endpoint accepts the effort and
+    #     extended-reasoning request parameters.  ``False`` (default) means the
+    #     panel never sends them: the provider's own defaults apply, the model
+    #     buttons read "Default", and the sheet controls are shown inert with
+    #     an explanation.  ``True`` sends the standard fields for the body
+    #     shape in use.  A dict can declare model capabilities separately
+    #     from proxy wire settings, e.g. ``{"effort": True, "thinking": False,
+    #     "effortParam": "reasoning_effort"}``. Thinking wire modes are
+    #     ``boolean``, ``adaptive`` or ``budget``; unsupported models should
+    #     leave the corresponding capability False. A per-model ``reasoning``
+    #     key in ``ai_assistant_panel_api_models`` overrides this for that model.
+    #
+    #     Default False on purpose: an endpoint that rejects unknown top-level
+    #     fields answers a request carrying them with a 400, so opting in must
+    #     be a decision someone makes about a proxy they control.
+    #
+    # ``ai_assistant_panel_trigger_toggle``
+    #     When True (default) the "AI Assistant" dropdown row carries a
+    #     two-state switch that lets each reader show or hide the floating
+    #     trigger pill permanently; the choice is stored in the browser and
+    #     starts from ``ai_assistant_panel_start_minimized``.  Set False to
+    #     hide the switch and pin the pill to the build value.  Ignored when
+    #     the ``ai_panel`` feature is disabled — there is no pill to control.
     app.add_config_value("ai_assistant_panel_title", "AI Assistant", "html")
     app.add_config_value(
         "ai_assistant_panel_placeholder",
@@ -6318,6 +7108,13 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_label", "Ask AI", "html")
     app.add_config_value("ai_assistant_panel_start_minimized", True, "html")
+    app.add_config_value("ai_assistant_panel_trigger_toggle", True, "html")
+    app.add_config_value("ai_assistant_panel_reasoning", False, "html")
+    app.add_config_value("ai_assistant_panel_effort_levels", [], "html")
+    app.add_config_value("ai_assistant_panel_effort_default", "", "html")
+    app.add_config_value("ai_assistant_panel_stub_models", True, "html")
+    app.add_config_value("ai_assistant_panel_injection_notice", True, "html")
+    app.add_config_value("ai_assistant_panel_model_editing", True, "html")
 
     # -----------------------------------------------------------------------
     # v0.3 config values — resize, persistence, shortcut, proxy, feedback,
@@ -6331,10 +7128,19 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # -----------------------------------------------------------------------
 
     # ``ai_assistant_panel_persist`` (bool, default True)
-    #     True  → conversation is stored in sessionStorage so it survives
-    #             intra-site navigation; cleared on tab close or "new chat".
-    #     False → in-memory only (lost on any navigation).
+    #     Master capability switch for sessionStorage transcript persistence.
+    #     False disables the reader-facing remember switch and forces
+    #     in-memory-only conversations.
     app.add_config_value("ai_assistant_panel_persist", True, "html")
+
+    # ``ai_assistant_panel_remember_conversation`` (bool, default True)
+    #     Initial state of "Remember conversation in this tab" for a new tab
+    #     that has no explicit reader choice yet.  True keeps the conversation
+    #     across same-tab documentation page changes/reloads via sessionStorage.
+    #     The reader can still turn it off; that explicit per-tab choice wins
+    #     until the tab is closed.  No transcript is sent over the network by
+    #     this setting.
+    app.add_config_value("ai_assistant_panel_remember_conversation", True, "html")
 
     # ``ai_assistant_panel_shortcut`` (str, default "Alt+Shift+A")
     #     Keyboard chord that toggles the panel.  MUST contain at least one
@@ -6394,6 +7200,17 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     style).  Set False to keep the picker accessible only through the
     #     dedicated sheet button in the sub-bar.
     app.add_config_value("ai_assistant_panel_inline_model_picker", True, "html")
+
+    # ── Usage Policy sheet ────────────────────────────────────────────────
+    # ``ai_assistant_panel_usage_policy`` (bool, default True)
+    #     Expose the Usage Policy sheet under Hamburger → More.
+    app.add_config_value("ai_assistant_panel_usage_policy", True, "html")
+    app.add_config_value(
+        "ai_assistant_panel_usage_policy_title", "Usage Policy", "html"
+    )
+    # Trusted author HTML (from conf.py, NOT end-user input). Empty → built-in
+    # concise usage/safety guidance.
+    app.add_config_value("ai_assistant_panel_usage_policy_html", "", "html")
 
     # ── Phase B: Terms of Service sheet ───────────────────────────────────
     # ``ai_assistant_panel_terms`` (bool, default True)
@@ -6502,7 +7319,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #
     # ``ai_assistant_panel_dataset_repo`` (str, default "")
     #     Explicit "org/repo-name" of the HuggingFace dataset that stores
-    #     feedback and training contributions (e.g.
+    #     feedback telemetry and dataset contributions (e.g.
     #     "scikit-plots/ai-assistant-contributions"). When set, the Extended
     #     Settings → Dataset Endpoint section shows its links directly (P1).
     #     When empty, the panel auto-discovers it from the proxy's GET /
@@ -6583,10 +7400,10 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
 
     # ``ai_assistant_panel_feedback_log`` (bool, default False)
-    #     When True the JS also console.log()s each submission (dev aid).
-    #     The submission is ALWAYS dispatched as a DOM CustomEvent
-    #     ('ai-assistant-feedback') for doc-author analytics hooks; the
-    #     extension itself never stores or transmits it.
+    #     When True the JS also emits privacy-scrubbed local diagnostics (dev aid).
+    #     Public ``ai-assistant-feedback`` page integration is NOT automatic:
+    #     B40/B42 require the reader's separate versioned page-integration
+    #     permission. Network telemetry is governed by an independent consent.
     app.add_config_value("ai_assistant_panel_feedback_log", False, "html")
 
     # ``ai_assistant_panel_feedback_scale`` (str, default "auto")
@@ -6621,6 +7438,29 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     so the final user can see the numeric weight on hover.
     app.add_config_value("ai_assistant_panel_feedback_scale", "auto", "html")
 
+    # ── B41 separate-origin assistant isolation ─────────────────────────────
+    # ``ai_assistant_isolation_origin`` (str, default "")
+    #     Optional dedicated HTTPS origin that hosts ai-assistant-isolated.html
+    #     and the companion static assets. When set, the parent page does NOT
+    #     run the full assistant runtime and there is no silent same-origin
+    #     fallback if the MessageChannel handshake fails. HTTP is accepted only
+    #     for localhost development. The runtime refuses an origin equal to the
+    #     documentation page origin.
+    app.add_config_value("ai_assistant_isolation_origin", "", "html")
+    # ``ai_assistant_isolation_frame_path`` must be root-relative on that origin.
+    app.add_config_value(
+        "ai_assistant_isolation_frame_path", "/ai-assistant-isolated.html", "html"
+    )
+    # Maximum visible page context crossing the host→isolated boundary.
+    app.add_config_value("ai_assistant_isolation_context_max_chars", 200000, "html")
+    # Exact documentation origins permitted by the generated isolated-frame policy.
+    # Empty derives one parent origin from html_baseurl / ai_assistant_base_url;
+    # if neither is an absolute safe origin, the generated policy denies all.
+    app.add_config_value("ai_assistant_isolation_parent_origins", [], "html")
+    # Cross-origin microphone permission is never delegated merely because the
+    # speech UI exists. Site owner must explicitly opt in.
+    app.add_config_value("ai_assistant_isolation_allow_microphone", False, "html")
+
     # ── Feedback POST endpoint ───────────────────────────────────────────────
     # ``ai_assistant_panel_feedback_endpoint`` (str, default "")
     #     URL of the remote endpoint that receives POST /v1/feedback requests.
@@ -6630,11 +7470,23 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_feedback_endpoint", "", "html")
 
     # ``ai_assistant_panel_feedback_token`` (str, default "")
-    #     Bearer token for write-authenticated feedback endpoints.
-    #     Sent as Authorization: Bearer <token> when non-empty.
-    #     Read from os.environ — NEVER hardcode a token in conf.py.
-    #     Example: os.environ.get("FEEDBACK_WRITE_TOKEN", "")
+    #     DEPRECATED SECURITY COMPATIBILITY KEY. Non-empty values are ignored
+    #     and never serialized into generated HTML. Static documentation cannot
+    #     safely carry bearer credentials, even when conf.py read them from an
+    #     environment variable. Configure authorization at the server boundary.
     app.add_config_value("ai_assistant_panel_feedback_token", "", "html")
+
+    # ``ai_assistant_allow_runtime_tokens`` (bool, default False)
+    #     Explicit site-owner compatibility opt-in for browser-entered
+    #     short-lived Share/Feedback bearer tokens.  Default False because
+    #     same-origin page JavaScript shares the browser memory trust boundary.
+    #     Tokens are never serialized into static HTML or Web Storage.
+    #     Production deployments should keep this False and authorize server-side.
+    app.add_config_value("ai_assistant_allow_runtime_tokens", False, "html")
+    # Ambient browser cookies/session credentials are omitted from assistant
+    # service fetches by default. This compatibility flag permits only
+    # credentials="same-origin"; credentials="include" is never allowed.
+    app.add_config_value("ai_assistant_allow_credentialed_fetch", False, "html")
 
     # ── Global share endpoint ────────────────────────────────────────────────
     # ``ai_assistant_global_share_endpoint`` (str, default "")
@@ -6644,8 +7496,10 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_global_share_endpoint", "", "html")
 
     # ``ai_assistant_global_share_token`` (str, default "")
-    #     Bearer token for POST /v1/share.
-    #     Example: os.environ.get("SHARE_WRITE_TOKEN", "")
+    #     DEPRECATED SECURITY COMPATIBILITY KEY. Non-empty values are ignored
+    #     and never serialized into generated HTML. Share authorization belongs
+    #     on the server; browser/runtime tokens are disabled by default; a site owner must explicitly
+    #     enable ``ai_assistant_allow_runtime_tokens`` for short-lived self-hosted compatibility.
     app.add_config_value("ai_assistant_global_share_token", "", "html")
 
     # ``ai_assistant_global_share_ttl_days`` (int, default 30)
@@ -6653,10 +7507,10 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     Minimum: 1.  Maximum: 365.  Enforced server-side.
     app.add_config_value("ai_assistant_global_share_ttl_days", 30, "html")
 
-    # ── Training contribution endpoint ───────────────────────────────────────
+    # ── Dataset contribution endpoint ────────────────────────────────────────
     # ``ai_assistant_training_endpoint`` (str, default "")
-    #     URL of the HF Spaces proxy endpoint for training contributions.
-    #     When empty (default), the contribution UI is not rendered.
+    #     URL of the HF Spaces proxy endpoint for explicit dataset contributions.
+    #     When empty (default), the contribution surface reports that no endpoint is configured.
     #     No write token — the proxy validates using its own HF_TOKEN.
     #     Example: os.environ.get("TRAINING_ENDPOINT", "")
     app.add_config_value("ai_assistant_training_endpoint", "", "html")
@@ -6666,14 +7520,20 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     Named endpoint profiles enabling runtime-switchable proxy backends.
     #     Each key is a profile identifier; each value is a dict with fields:
     #       label         (str)  — Human-readable name for the profile switcher UI.
-    #       chat          (str)  — BASE URL; /v1/chat/completions appended by JS.
-    #       share         (str)  — BASE URL; /v1/share appended by JS (P1 global share).
-    #       feedback      (str)  — BASE URL; /v1/feedback appended by JS (P3 feedback).
-    #       training      (str)  — BASE URL; /v1/contribute appended by JS (P2 training).
-    #       shareToken    (str)  — Authorization: Bearer token for share writes.
-    #       feedbackToken (str)  — Authorization: Bearer token for feedback writes.
+    #       base          (str)  — Preferred one-service BASE URL. Feature URLs inherit it.
+    #       chat          (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
+    #       share         (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
+    #       feedback      (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
+    #       training      (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
+    #       datasetRepo   (str)  — Optional HuggingFace owner/repo override; otherwise auto-discovered.
+    #       shareToken    (str)  — RESERVED/RUNTIME-ONLY; non-empty build-time value is ignored.
+    #       feedbackToken (str)  — RESERVED/RUNTIME-ONLY; non-empty build-time value is ignored.
     #       ttlDays       (int)  — Share TTL override (0 = use global setting).
-    #     All fields are optional; empty string disables the feature.
+    #     Feature endpoint forms are intentionally flexible:
+    #       absolute: "https://proxy.example.com/v1/share"
+    #       relative: "v1/share" or "/v1/share" (joined beneath base)
+    #       inherited: "", None, or omitted (base + built-in default route)
+    #     If no base is available, an empty/null feature remains unavailable.
     #
     #     ALL profiles are baked into the rendered HTML at build time.
     #     The browser _EP registry reads them and the user/developer can switch
@@ -6688,17 +7548,15 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #               "share":        os.environ.get("CF_WORKER_URL", ""),
     #               "feedback":     os.environ.get("CF_WORKER_URL", ""),
     #               "training":     "",
-    #               "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
-    #               "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+    #               # Do not place bearer secrets here. All profiles are baked
+    #               # into static HTML; authorization belongs at the server.
     #           },
     #           "hf": {
     #               "label": "HF Spaces",
-    #               "chat":         os.environ.get("HF_SPACE_URL", ""),
-    #               "share":        os.environ.get("CF_WORKER_URL", ""),
-    #               "feedback":     os.environ.get("HF_SPACE_URL", ""),
-    #               "training":     os.environ.get("HF_SPACE_URL", ""),
-    #               "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
-    #               "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+    #               "base":          os.environ.get("HF_SPACE_URL", ""),
+    #               "share":         os.environ.get("CF_WORKER_URL", ""),  # optional override
+    #               "datasetRepo":   "scikit-plots/ai-assistant-contributions",  # optional; auto-discovered when omitted
+    #               # Browser-visible build profiles intentionally contain no secrets.
     #           },
     #       }
     app.add_config_value("ai_assistant_endpoint_profiles", {}, "html")
@@ -6768,6 +7626,10 @@ def setup(app: Sphinx) -> dict[str, Any]:
 
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_css_file
     app.add_css_file("ai-assistant.css")
+    # B41 host bridge must execute first. It is a no-op unless an isolation
+    # origin was explicitly configured; when active it suppresses the full
+    # same-origin runtime before ai-assistant.js executes.
+    app.add_js_file("ai-assistant-isolation-host.js", loading_method="defer")
     # https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_js_file
     # Not required for correctness — but recommended, purely for performance.
     # renders <script src="…/ai-assistant.js" defer>.
@@ -6779,6 +7641,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
 
     # ---- Event hooks -------------------------------------------------------
     app.connect("html-page-context", add_ai_assistant_context)
+    app.connect("build-finished", generate_isolation_policy)
     app.connect("build-finished", generate_markdown_files)
     app.connect("build-finished", generate_llms_txt)
 

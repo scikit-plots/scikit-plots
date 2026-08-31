@@ -1,13 +1,14 @@
 {# set repl_url = repl_url | default("https://jupyterlite.github.io/demo/repl/?toolbar=1&kernel=python&code=import%20numpy%20as%20np") #}
 {%- set repl_url = repl_url | default("https://jupyterlite-pyodide-kernel.readthedocs.io/en/latest/_static/repl/index.html?kernel=python&code=import%20this") %}
 
-<div class="shell-lesson shell-container">
+<div>
   <!-- Interactive Shell -->
   <!-- src="https://jupyterlite.github.io/demo/repl/?toolbar=1&kernel=python&code=import%20numpy%20as%20np" -->
+  <!-- src="https://jupyterlite.github.io/demo/repl/#toolbar=1&kernel=python&execute=0&code=import+numpy+as+np" -->
   <iframe
-    class="numpy-shell-frame"
-    src={{ repl_url }}
-    width="100%" height="auto"
+    src="{{ repl_url }}"
+    width="100%" height="71vh"
+    style="height: 71vh; display: block;"
   >Try the REPL!
   </iframe>
 </div>

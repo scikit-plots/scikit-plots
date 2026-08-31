@@ -1,4 +1,15 @@
-"""Lightweight maintenance drift checker for ``_sphinx_ai_assistant``."""
+"""
+Lightweight maintenance drift checker for ``_sphinx_ai_assistant``.
+
+The maintenance control plane intentionally lives outside the runtime package::
+
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/
+    maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/
+
+This checker works both in a full repository checkout and in a standalone
+maintenance archive. Runtime-dependent checks are enabled only when the sibling
+``scikitplot`` tree can be located.
+"""
 
 from __future__ import annotations
 
@@ -7,8 +18,7 @@ import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
-EXT_ROOT = ROOT.parent
+MAINT_MODULE_ROOT = HERE.parent
 
 REQUIRED = [
     "MAINTENANCE_MODEL.md",
@@ -21,6 +31,8 @@ REQUIRED = [
     "CONFIG_ARCHITECTURE.md",
     "INTEGRATION_CONTRACT.md",
     "RUNTIME_FLOW.md",
+    "APP_STREAMING_RUNBOOK.md",
+    "SECURITY_IMPLEMENTATION_RUNBOOK.md",
     "SECURITY_MODEL.md",
     "SECURITY_FINDINGS_INDEX.md",
     "REGISTRY.md",
@@ -37,12 +49,35 @@ REQUIRED_SCHEMAS = [
     "endpoint-profile.schema.json",
     "setting-definition.schema.json",
 ]
+REQUIRED_TODO = [
+    "lessons.md",
+    "todo.md",
+]
 
 
-def load_json(  # ruff: ignore[undocumented-public-function]
-    path: Path,
-    errors: list[str],
-):
+def _repository_root() -> Path | None:
+    """Return the repository root when this tree is under ``maintenances/``."""
+    for candidate in (MAINT_MODULE_ROOT, *MAINT_MODULE_ROOT.parents):
+        if candidate.name == "maintenances":
+            return candidate.parent
+    return None
+
+
+def _runtime_root() -> Path | None:
+    repo = _repository_root()
+    if repo is None:
+        return None
+    candidate = (
+        repo
+        / "scikitplot"
+        / "_externals"
+        / "_sphinx_ext"
+        / "_sphinx_ai_assistant"
+    )
+    return candidate if candidate.is_dir() else None
+
+
+def load_json(path: Path, errors: list[str]):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:  # ruff: ignore[blind-except]
@@ -52,26 +87,31 @@ def load_json(  # ruff: ignore[undocumented-public-function]
 
 def main() -> int:  # ruff: ignore[too-many-branches, undocumented-public-function]
     errors: list[str] = []
+
     for name in REQUIRED:
         if not (HERE / name).is_file():
             errors.append(f"missing maintenance file: {name}")
     for name in REQUIRED_SCHEMAS:
-        p = HERE / "schemas" / name
-        if not p.is_file():
+        path = HERE / "schemas" / name
+        if not path.is_file():
             errors.append(f"missing schema: schemas/{name}")
         else:
-            load_json(p, errors)
+            load_json(path, errors)
+    for name in REQUIRED_TODO:
+        if not (MAINT_MODULE_ROOT / "todo" / name).is_file():
+            errors.append(f"missing maintenance todo file: todo/{name}")
+    if not (HERE / "history" / "design-stub-and-guards.md").is_file():
+        errors.append("missing historical design: history/design-stub-and-guards.md")
 
-    state = (
-        load_json(HERE / "STATE.json", errors)
-        if (HERE / "STATE.json").exists()
-        else None
-    )
-    tracker = (
-        load_json(HERE / "TRACKER.json", errors)
-        if (HERE / "TRACKER.json").exists()
-        else None
-    )
+    # The old source-local tasks/ directory is intentionally retired. Keeping
+    # this invariant executable prevents maintenance prose from drifting back
+    # into the runtime package.
+    if (MAINT_MODULE_ROOT / "tasks").exists():
+        errors.append("legacy maintenance directory present: tasks/ (use todo/)")
+
+    state = load_json(HERE / "STATE.json", errors) if (HERE / "STATE.json").exists() else None
+    tracker = load_json(HERE / "TRACKER.json", errors) if (HERE / "TRACKER.json").exists() else None
+
     if state:
         for key in [
             "schema_version",
@@ -89,48 +129,75 @@ def main() -> int:  # ruff: ignore[too-many-branches, undocumented-public-functi
         sha = state.get("source_anchor", {}).get("sha256", "")
         if sha and not re.fullmatch(r"[0-9a-f]{64}", sha):
             errors.append("STATE.json source sha256 is not 64 lowercase hex chars")
+        for checkpoint_id in state.get("checkpoints", {}):
+            matches = list((HERE / "checkpoints").glob(f"{checkpoint_id}_*.md"))
+            if len(matches) != 1:
+                errors.append(
+                    f"checkpoint {checkpoint_id} must map to exactly one file; found {len(matches)}"
+                )
+
     if tracker:
         ids = [c.get("id") for c in tracker.get("logical_contracts", [])]
         if len(ids) != len(set(ids)):
             errors.append("TRACKER.json has duplicate logical contract IDs")
 
-    # If the actual sibling producer exists, enforce reverse-dependency rule by
-    # scanning its production Python files for assistant references.
-    producer = EXT_ROOT / "_sphinx_llm"
-    if producer.exists():
-        producer_maint = producer / "_maintenance"
-        for p in producer.rglob("*.py"):
-            if producer_maint in p.parents or "tests" in p.parts:
-                continue
-            text = p.read_text(encoding="utf-8", errors="ignore")
-            # Only an *import* is a dependency. Naming the assistant in a
-            # module docstring, an architecture diagram or a conf.py example is
-            # prose, and flagging it made the gate red for documentation.
-            for line in text.splitlines():
-                stripped = line.strip()
-                if not stripped.startswith(("import ", "from ")):
-                    continue
-                if "_sphinx_ai_assistant" in stripped:
-                    errors.append(
-                        f"reverse dependency: {p} imports _sphinx_ai_assistant"
-                    )
-                    break
+    runtime_root = _runtime_root()
+    if runtime_root is not None:
+        if (runtime_root / "tasks").exists():
+            errors.append(
+                "runtime maintenance leakage: scikitplot/.../_sphinx_ai_assistant/tasks/ exists"
+            )
+        if (runtime_root / "_maintenance").exists():
+            errors.append(
+                "runtime maintenance leakage: scikitplot/.../_sphinx_ai_assistant/_maintenance/ exists"
+            )
+        if (runtime_root / "MAINTAINING.md").exists():
+            errors.append(
+                "runtime maintenance leakage: scikitplot/.../_sphinx_ai_assistant/MAINTAINING.md exists"
+            )
+        if (runtime_root / "_backup").exists():
+            errors.append(
+                "runtime maintenance leakage: scikitplot/.../_sphinx_ai_assistant/_backup/ exists"
+            )
 
-    # Historical backup must remain non-runtime. Flag obvious Python/JS runtime
-    # references outside backup itself when the actual source tree is present.
-    for p in ROOT.rglob("*.py"):
-        if HERE in p.parents or "tests" in p.parts:
-            continue
-        text = p.read_text(encoding="utf-8", errors="ignore")
-        if "_static/_backup" in text or "_static\\_backup" in text:
-            errors.append(f"runtime backup dependency reference: {p.relative_to(ROOT)}")
+        # Enforce the frozen reverse-dependency boundary if the producer exists.
+        producer = runtime_root.parent / "_sphinx_llm"
+        if producer.exists():
+            for path in producer.rglob("*.py"):
+                if "tests" in path.parts:
+                    continue
+                text = path.read_text(encoding="utf-8", errors="ignore")
+                for line in text.splitlines():
+                    stripped = line.strip()
+                    if not stripped.startswith(("import ", "from ")):
+                        continue
+                    if "_sphinx_ai_assistant" in stripped:
+                        errors.append(
+                            f"reverse dependency: {path} imports _sphinx_ai_assistant"
+                        )
+                        break
+
+        # Historical backups are maintenance-only. Runtime code must never
+        # refer to them.
+        for path in runtime_root.rglob("*.py"):
+            if "tests" in path.parts:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "_static/_backup" in text or "_static\\_backup" in text:
+                errors.append(
+                    f"runtime backup dependency reference: {path.relative_to(runtime_root)}"
+                )
 
     if errors:
         print("_sphinx_ai_assistant maintenance drift: FAIL")  # ruff: ignore[print]
-        for e in errors:
-            print(f" - {e}")  # ruff: ignore[print]
+        for error in errors:
+            print(f" - {error}")  # ruff: ignore[print]
         return 1
-    print("_sphinx_ai_assistant maintenance drift: GREEN")  # ruff: ignore[print]
+
+    mode = "repository" if runtime_root is not None else "standalone-maintenance"
+    print(  # ruff: ignore[print]
+        f"_sphinx_ai_assistant maintenance drift: GREEN ({mode})"
+    )
     return 0
 
 

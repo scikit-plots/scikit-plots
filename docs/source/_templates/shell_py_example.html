@@ -24,10 +24,15 @@ ax, features = sp.estimators.plot_feature_importances(
     figsize=(12,5)
 ); -->
 
-<div class="shell-lesson code-container">
-  <!-- First Code block with copy button -->
+<div
+  id="shell-code-panel"
+  class="shell-lesson code-container"
+  data-shell-panel="code"
+  data-auto-copy
+>
+  <!-- Code blocks are auto-enhanced with their own copy button -->
   <div class="code-content">
-    <pre><code class="language-python" id="code-block-1"
+    <pre><code class="language-python"
 ># Example code to try:
 import micropip; await micropip.install("ipywidgets")
 import io
@@ -57,8 +62,6 @@ upload.observe(
 # Load the data
 X, y = data_3_classes(return_X_y=True, as_frame=True)
 X</code></pre>
-    <!-- Copy button with data-copy-target attribute -->
-    <button class="copy-btn" data-copy-target="code-block-1">&#128203; Copy</button>
   </div>
 
   <div class="note-content">
@@ -70,24 +73,20 @@ X</code></pre>
   </ul>
   </div>
 
-  <!-- Second Code block with copy button -->
+  <!-- Add more code blocks freely; no IDs or manual copy buttons are required -->
   <div class="code-content">
-    <pre><code class="language-python" id="code-block-2"
+    <pre><code class="language-python"
 ># Check installed packages:
 # import micropip; micropip.list()
 df = process_file()
 df</code></pre>
-    <!-- Copy button with data-copy-target attribute -->
-    <button class="copy-btn" data-copy-target="code-block-2">&#128203; Copy</button>
 
-    <!-- <pre><code class="language-python" id="code-block-3"
+    <!-- <pre><code class="language-python"
 ># Install (wheel or WASM compiled) packages:
 await micropip.install('scikit-plots')</code></pre> -->
-    <!-- Copy button with data-copy-target attribute -->
-    <!-- <button class="copy-btn" data-copy-target="code-block-3">&#128203; Copy</button> -->
 
   </div>
 
-  <!-- Add more code blocks with their respective copy buttons as needed -->
+  <!-- Any additional <pre><code> block inside data-auto-copy is handled automatically -->
 
 </div>

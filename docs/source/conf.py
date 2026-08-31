@@ -882,6 +882,7 @@ add_function_parentheses = False
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 # Exclude patterns for files and directories to ignore when looking for source files
+# Prevent Sphinx from scanning temporary files, virtualenvs, or root build dirs
 exclude_patterns = [  # glob-style
     "**/.git",  # Ignores all .git directories
     "**.ipynb_checkpoints",
@@ -893,6 +894,10 @@ exclude_patterns = [  # glob-style
     ".DS_Store",  # Ignore .DS_Store (used by macOS Finder)
     "venv",  # Ignore virtual environment directory (if applicable)
     "env",  # Ignore virtual environment directory (if applicable)
+
+    # JupyterLite / Cockle Integration, Cockle acts as the WebAssembly-powered shell backend.
+    "**/.cockle_temp/**",
+    ".cockle_temp",
 
     # "learn/hands-on/edtech/_sources_cache/**",   # raw source cache — never a doc
     # "learn/hands-on/edtech/**/urls.rst",
@@ -976,8 +981,9 @@ html_theme_options = {
     # [('bitbucket_user', 'bitbucket_repo', 'bitbucket_version'), ('github_user', 'github_repo', 'github_version'), ('gitlab_user', 'gitlab_repo', 'gitlab_version')]
     "use_edit_page_button": True,  # False
     # -- Appearance Settings --------------------------------------------------
-    "pygments_light_style": "tango",  # "github-light",
-    "pygments_dark_style": "monokai",  # "github-dark",
+    # _static/pygments.css
+    "pygments_light_style": "sas",  # "github-light", "tango", "default"
+    "pygments_dark_style": "monokai",  # "github-dark", "monokai", "friendly"
     # If the version compares greater than the preferred version
     # (or if the version match contains the strings "dev", "rc" or "pre"),
     # the announcement will say they are viewing an unstable development version instead.
@@ -1086,9 +1092,9 @@ html_theme_options = {
     "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
     # navbar_persistent is persistent right (even when on mobiles)
     # "navbar_persistent": ["search-button"],
-    "content_footer_items": [],
+    "content_footer_items": [],  # "principles-ticker",
     "footer_start": ["copyright"],
-    "footer_center": [],
+    "footer_center": [],  # "principles-ticker",
     "footer_end": [],
     # -- Article and Content Settings -----------------------------------------
     "article_header_start": ["breadcrumbs"],
@@ -1193,6 +1199,7 @@ html_favicon = "logos/scikit-plots-favicon.ico"
 html_css_files = [
     "styles/colors.css",
     "styles/custom.css",
+    "styles/principles-ticker.css",
 ]
 
 # Additional JS files
@@ -1200,6 +1207,7 @@ html_js_files = [
     # ("custom-icons.js", {"defer": "defer"}),
     "scripts/dropdown.js",
     "scripts/version-switcher.js",
+    "scripts/principles-ticker.js",
 ]
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -1327,6 +1335,12 @@ htmlhelp_basename = 'scikit-plotsdoc'
 
 #     # Additional stuff for the LaTeX preamble.
 #     'preamble': '',
+#     "preamble": r"""
+#         \usepackage{amsmath}\usepackage{amsfonts}\usepackage{bm}
+#         \usepackage{morefloats}\usepackage{enumitem} \setlistdepth{10}
+#         \let\oldhref\href
+#         \renewcommand{\href}[2]{\oldhref{#1}{\hbox{#2}}}
+#         """
 
 #     # Latex figure (float) alignment
 #     'figure_align': 'htbp',
@@ -2456,130 +2470,94 @@ for old_link in old_links_dict:
 
 ##########################################################################
 ## Extension: scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant options
+## Run 33 configuration alignment — explicit, privacy-first, profile-based
 ##########################################################################
 
-# Base URL — used by llms.txt and AI provider prompt templates
-# html_baseurl = "https://docs.example.com"
-# html_baseurl = "https://scikit-plots-learn.readthedocs.io/en/latest"
+# Base URL used by generated Markdown/llms.txt links and page-level metadata.
 html_baseurl = "https://scikit-plots.github.io/dev"  # main or release branch
+
+# ---------------------------------------------------------------------------
+# Core extension + generated context
+# ---------------------------------------------------------------------------
 ai_assistant_enabled = True
-
-# scikit-plots default:
-ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
-ai_assistant_panel_site_url = f"{html_baseurl}"  # fallback default html_baseurl
-
-# → https://scikit-plots.github.io/dev/apis/scikitplot.html
-# → https://scikit-plots.github.io/dev/user_guide/logging/index.html
-# → (primary-all)         https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf
-# → (optionally-fallback) https://scikit-plots.github.io/dev/_downloads/scikit-plots-user-guide.pdf
-#
-# Page and/or can be use hash value correspond title
-# AI_ASSISTANT_PDF_PAGE_MAP → https://scikit-plots.github.io/dev/_downloads/scikit-plots.pdf#page=42
-ai_assistant_pdf_url_mode_toggle = False
-ai_assistant_pdf_export_url = f"{html_baseurl}"  # fallback default html_baseurl
-
-# Where to render the AI-assistant button.
-# "sidebar"  → right sidebar, above the page TOC (works well with pydata)
-# "title"    → next to the page heading
 ai_assistant_position = "sidebar"
 
-ai_assistant_search_bar = True
-ai_assistant_search_bar_mini = False  # accept full width
-ai_assistant_search_bar_selector = ".bd-sidebar-primary"  # pydata theme
-ai_assistant_search_bar_position = "top"
-
-# CSS selector used by the JavaScript widget to extract page content for
-# copy-as-Markdown and AI-chat features.
-#
-# pydata-sphinx-theme:  "article.bd-article"  or  'div[role="main"]'
-# Furo theme:           'article[role="main"]'
-# Alabaster / Classic:  "div.document"
-# Read the Docs theme:  'div[role="main"]'
+# Runtime/live-DOM content root and build-time fallback selectors.
 ai_assistant_content_selector = "article.bd-article"
-
-# Ordered list of CSS selectors the *build-time* Markdown generator probes
-# to locate the main content element in each HTML file.  The first selector
-# that matches is used.
 ai_assistant_content_selectors = [
-    # PyData Sphinx Theme (canonical)
-    # https://github.com/pydata/pydata-sphinx-theme/tree/main/src/pydata_sphinx_theme/assets/styles
-    # https://raw.githubusercontent.com/pydata/pydata-sphinx-theme/refs/heads/main/src/pydata_sphinx_theme/assets/styles/pydata-sphinx-theme.scss
-    "article.bd-article",      # PST >= 0.13
-    # Furo / semantic main article
-    'article[role="main"]',    # Furo canonical
-    # RTD / older themes
-    'div[role="main"]',        # RTD / older PST
-    # Classic Sphinx themes
+    "article.bd-article",      # PyData Sphinx Theme
+    'article[role="main"]',    # Furo
+    'div[role="main"]',        # RTD / older themes
     "div.document",            # Classic / Alabaster
-    "div.body",                # Older Sphinx themes
-    # Generic semantic fallbacks
-    "main",                    # HTML5 main landmark
-    # Absolute last resort
-    "article",                 # Broad fallback
+    "div.body",
+    "main",
+    "article",
 ]
 
-# Generate a ``.md`` companion for every ``.html`` file after the build.
-# Requires: pip install beautifulsoup4 markdownify
+# Build-time Markdown companions and llms.txt.
 ai_assistant_generate_markdown = True
-
-# Path substrings excluded from Markdown generation
 ai_assistant_markdown_exclude_patterns = [
     "genindex",
     "search",
     "py-modindex",
-    "_sources",          # Sphinx rst source download files — no prose
-    "_static",           # CSS, JS, images — not documentation text
+    "_sources",
+    "_static",
 ]
+ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
+ai_assistant_max_workers = 1  # conservative for large docs builds
 
-# Maximum number of parallel worker processes for Markdown generation.
-# None → os.cpu_count() or 1.
-# Keep as 1 too mant files cause memory error
-ai_assistant_max_workers = 1  # None / "auto" or a positive integer
-
-# Write an llms.txt index file listing all generated .md page URLs.
-# See: https://llmstxt.org/
 ai_assistant_generate_llms_txt = True
+ai_assistant_base_url = ""  # inherit html_baseurl
+ai_assistant_llms_txt_max_entries = None
+# Keep the index compact; page.md files already contain the full page text.
+ai_assistant_llms_txt_full_content = False
+ai_assistant_llms_txt_format = "structured"
+ai_assistant_llms_txt_summary = None
+ai_assistant_llms_txt_sections = None
 
-# Base URL prepended to .md paths in llms.txt.
-# Falls back to html_baseurl when empty.
-ai_assistant_base_url = ""  # use html_baseurl above
+# Copy uses the live browser DOM by default; readers may switch to static page.md.
+ai_assistant_copy_mode = "browser"  # "browser" | "static"
+ai_assistant_copy_mode_toggle = True
 
+# Fail-soft remains appropriate for optional docs features. Set True in CI when
+# missing Markdown-generation dependencies should fail the documentation build.
+ai_assistant_strict = False
+
+# Optional prompt/context author hooks. Keep raw-image injection off by default.
+ai_assistant_intention = None
+ai_assistant_custom_context = None
+ai_assistant_custom_prompt_prefix = None
+ai_assistant_include_raw_image = False
+
+# ---------------------------------------------------------------------------
+# Top-level feature switches
+# ---------------------------------------------------------------------------
 ai_assistant_features = {
-    # ── Core export features ──────────────────────────────────────────────
-    # Copy the current page as Markdown (main button + dropdown item).
     "markdown_export": True,
-    # Open the companion .md file in a new tab.
     "view_markdown": True,
-
-    # ── AI chat deep-links ────────────────────────────────────────────────
-    # Show enabled AI provider buttons (Claude, ChatGPT, Gemini, …).
     "ai_chat": True,
-
-    # ── MCP integration ───────────────────────────────────────────────────
-    # Show MCP "Connect" buttons for VS Code, Claude Desktop, etc.
-    # Requires at least one enabled entry in ``ai_assistant_mcp_tools``.
-    "mcp_integration": True,   # False ← disable MCP section on this site
-
-    # ── Theme toggle ──────────────────────────────────────────────────────
-    # Dark / light / system color-scheme toggle button.
-    "theme_toggle": True,   # False ← hide if the theme handles it already
-
-    # ── PDF export ────────────────────────────────────────────────────────
-    # "Export as PDF" centered button + URL/Print mode toggle.
-    # IMPORTANT: must be set explicitly — the JS default is True, but relying
-    # on JS defaults means conf.py cannot disable it cleanly.
+    "mcp_integration": True,
+    "theme_toggle": True,
     "pdf_export": True,
-
-    # ── AI panel ─────────────────────────────────────────────────────────
-    # Floating in-page AI assistant chat panel (slide-in drawer).
-    # IMPORTANT: this key MUST be present and True for the panel button to
-    # appear in the dropdown.  The JS safe default is False (opt-in) — if
-    # this key is absent from conf.py the panel is invisible.
-    # Root cause of BUG-1: partial ai_assistant_features dict that omits
-    # this key → JS defaults ai_panel = False → button never created.
     "ai_panel": True,
 }
 
+# PDF URL/Print chooser.
+ai_assistant_pdf_url_mode_toggle = True
+ai_assistant_pdf_export_url = f"{html_baseurl}"
+
+# ---------------------------------------------------------------------------
+# Standalone AI search bar
+# ---------------------------------------------------------------------------
+ai_assistant_search_bar = True
+ai_assistant_search_bar_mini = False
+ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+ai_assistant_search_bar_position = "top"
+ai_assistant_panel_search_placeholder = "Ask AI about these docs…"
+
+# ---------------------------------------------------------------------------
+# Web/deep-link providers
+# ---------------------------------------------------------------------------
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
     "chatgpt": {
@@ -2635,41 +2613,47 @@ ai_assistant_providers = {
     },
 }
 
-# When False (default), the panel renders as a UI stub: the send button
-# appears functional, a simulated 400 ms "thinking" delay occurs, and then
-# a stub message is shown explaining that API mode is disabled.  This is
-# useful for demonstrating the UI without incurring API costs.
-ai_assistant_panel_api_enabled = True  # False
-
+# ---------------------------------------------------------------------------
+# Floating AI panel — UI, state, reasoning/effort, and request behavior
+# ---------------------------------------------------------------------------
+ai_assistant_panel_title = "AI Assistant"
+ai_assistant_panel_placeholder = "Ask a question about this page…"
+ai_assistant_panel_api_enabled = True
 ai_assistant_panel_quick_questions = [
     "What does this page cover?",
     "Show me a quick usage example.",
     "What are the key parameters?",
 ]
+ai_assistant_panel_page_help = True
+ai_assistant_panel_speak_banner = True
+ai_assistant_panel_trigger_label = "Ask AI"
+ai_assistant_panel_start_minimized = True
+ai_assistant_panel_trigger_toggle = True
+ai_assistant_panel_persist = True
+ai_assistant_panel_shortcut = "Alt+Shift+A"
 
-# ai_assistant_panel_api_url = "https://scikit-plots-ai.hf.space"  # "/_proxy/hf"  # "/_proxy/anthropic"
-# ai_assistant_panel_api_model = "scikit-plots/Qwen2.5-Coder-7B-Instruct"  # "scikit-plots/gpt-oss-20b"  # "claude-sonnet-4-20250514"
+# Reasoning/effort is capability-gated. False means the UI may expose the
+# controls/editor, but unsupported wire parameters are never guessed/sent.
+ai_assistant_panel_reasoning = False
+ai_assistant_panel_effort_levels = []      # built-in/provider-aware presets
+ai_assistant_panel_effort_default = ""
+ai_assistant_panel_model_editing = True
+ai_assistant_panel_stub_models = True
+ai_assistant_panel_injection_notice = True
+ai_assistant_panel_inline_model_picker = True
+ai_assistant_panel_api_streaming = True
 
-import os  # noqa: E402 — conf.py files commonly place imports after preamble
-
-# Single proxy base URL resolved once at build time from the environment.
-# ⚠️  PRODUCTION WARNING
-# ─────────────────────────────────────────────────────────────────────────────
-# The default fallback "http://localhost:8787" is for LOCAL DEVELOPMENT ONLY.
-# If AI_PROXY_BASE is not set in your CI/CD environment, every model endpoint
-# will silently point at localhost and all panel API calls will fail for
-# readers of your published documentation.
-#
-# Set the environment variable (or CI/CD secret) to your deployed proxy:
-#   Local dev  : export AI_PROXY_BASE=http://localhost:8787
-#   Staging/CI : export AI_PROXY_BASE=https://<org>-ai-proxy.hf.space
-#   Production : export AI_PROXY_BASE=https://hf-proxy.<subdomain>.workers.dev
-#
-# SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
-# here. They live only in the proxy's server-side environment / secret store.
-# ─────────────────────────────────────────────────────────────────────────────
-_AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "https://scikit-plots-ai.hf.space")
-# _AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "http://localhost:8787")
+# ---------------------------------------------------------------------------
+# Proxy authority — one public browser-facing base, secrets stay server-side
+# ---------------------------------------------------------------------------
+# AI_PROXY_BASE is canonical. PROXY_BASE_URL remains a compatibility fallback.
+# Never put HF_TOKEN/API keys/bearer credentials in this file: conf.py values
+# are serialized into public documentation HTML when consumed by the extension.
+_AI_PROXY_BASE: str = (
+    os.environ.get("AI_PROXY_BASE")
+    or os.environ.get("PROXY_BASE_URL")
+    or "https://scikit-plots-ai.hf.space"
+).rstrip("/")
 
 ai_assistant_panel_api_models = [
     # ── Paid-tier entries (commented out — require deployed proxies) ──────
@@ -2815,22 +2799,108 @@ ai_assistant_panel_api_models = [
     },
 ]
 
-_PROXY_BASE: str = os.environ.get("PROXY_BASE_URL", "https://scikit-plots-ai.hf.space")
+# ---------------------------------------------------------------------------
+# Usage / policy / share / project-link sheets
+# ---------------------------------------------------------------------------
+ai_assistant_panel_usage_policy = True
+ai_assistant_panel_usage_policy_title = "Usage Policy"
+ai_assistant_panel_usage_policy_html = ""  # built-in safe default
 
+ai_assistant_panel_terms = True
+ai_assistant_panel_terms_title = "Terms of Service"
+ai_assistant_panel_terms_link_text = "Terms of Service"
+ai_assistant_panel_terms_html = ""
+
+ai_assistant_panel_share = True
+ai_assistant_panel_share_label = "Share"
+ai_assistant_panel_share_targets = []  # built-in targets
+
+ai_assistant_panel_links = True
+ai_assistant_panel_links_title = "Project Links"
+ai_assistant_panel_links_html = ""
+
+ai_assistant_panel_source = True
+ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
+ai_assistant_panel_source_label = "GitHub Source"
+ai_assistant_panel_source_desc = "Browse, contribute, report issues, and review the scikit-plots source."
+ai_assistant_panel_source_btn_label = "Source"
+
+ai_assistant_panel_site = True
+ai_assistant_panel_site_url = f"{html_baseurl}"
+ai_assistant_panel_site_label = "Documentation Site"
+ai_assistant_panel_site_desc = "Explore the scikit-plots API reference and user guide."
+ai_assistant_panel_site_btn_label = "Website"
+
+# Dataset/contribution resource cards. The active endpoint is derived from the
+# endpoint profile unless explicitly overridden.
+ai_assistant_panel_dataset_repo = "scikit-plots/ai-assistant-contributions"
+ai_assistant_panel_hf_space_url = ""
+ai_assistant_panel_hf_space_label = "HuggingFace Space"
+ai_assistant_panel_hf_dataset_url = ""
+ai_assistant_panel_hf_dataset_label = "HuggingFace Dataset"
+ai_assistant_panel_hf_endpoint_url = ""
+ai_assistant_panel_hf_endpoint_label = "Active Endpoint"
+
+ai_assistant_panel_hamburger = True
+
+# ---------------------------------------------------------------------------
+# Feedback / telemetry / privacy
+# ---------------------------------------------------------------------------
+# Local rating UI is always usable. Network telemetry remains separately
+# permission-gated by the runtime; logging stays off by default.
+ai_assistant_panel_feedback = True
+ai_assistant_panel_feedback_question = "Was this helpful?"
+ai_assistant_panel_feedback_options = []   # built-in adaptive gradient
+ai_assistant_panel_feedback_scale = "auto"
+ai_assistant_panel_feedback_placeholder = ""
+ai_assistant_panel_feedback_submit = "Send feedback"
+ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
+ai_assistant_panel_feedback_log = False
+
+ai_assistant_panel_privacy_title = "Privacy & Responsibility"
+ai_assistant_panel_privacy_link_text = "Privacy & Responsibility"
+ai_assistant_panel_privacy_html = ""       # built-in structured privacy copy
+
+# Browser-entered bearer credentials and ambient cookies remain OFF. Production
+# authorization belongs on the proxy/service, not in static docs or Web Storage.
+ai_assistant_allow_runtime_tokens = False
+ai_assistant_allow_credentialed_fetch = False
+
+# ---------------------------------------------------------------------------
+# Separate-origin isolation — explicit safe defaults
+# ---------------------------------------------------------------------------
+# Leave origin empty for current same-origin mode. For strict deployments set a
+# dedicated HTTPS origin and configure the proxy CORS allow-list for that origin.
+ai_assistant_isolation_origin = ""
+ai_assistant_isolation_frame_path = "/ai-assistant-isolated.html"
+ai_assistant_isolation_context_max_chars = 200_000
+ai_assistant_isolation_parent_origins = []  # derive from html_baseurl when enabled
+ai_assistant_isolation_allow_microphone = False
+
+# ---------------------------------------------------------------------------
+# Endpoint profile registry — preferred modern configuration
+# ---------------------------------------------------------------------------
+# One browser-visible BASE URL feeds the built-in routes:
+#   chat     -> /v1/chat/completions
+#   share    -> /v1/share
+#   feedback -> /v1/feedback
+#   training -> /v1/contribute
+# No build-time tokens belong in this profile. The service authenticates
+# upstream/server-side writes using its own secret store.
+ai_assistant_global_share_ttl_days = 30
 ai_assistant_endpoint_profiles = {
     "default": {
-        "label":        "Default Proxy",
-        "chat":         _PROXY_BASE,
-        "share":        _PROXY_BASE,
-        "feedback":     _PROXY_BASE,
-        "training":     _PROXY_BASE,
-        "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
-        "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
-        "ttlDays":      30,
+        "label": "Default Proxy",
+        "base": _AI_PROXY_BASE,
+        "datasetRepo": "scikit-plots/ai-assistant-contributions",
+        "ttlDays": 30,
     },
 }
-# ai_assistant_endpoint_default_profile = "default"
+ai_assistant_endpoint_default_profile = "default"
 
+# Legacy flat endpoint/token keys are intentionally NOT set when explicit
+# profiles are present. Explicit profiles take precedence, and static token
+# config is deprecated/ignored by the latest extension.
 
 ai_assistant_mcp_tools = {
     "vscode": {
@@ -2958,6 +3028,12 @@ sphinx_gallery_conf = {
     # "filename_pattern": r'/plot',  # re.escape(os.sep) + "plot" gives: "/plot" or gives: "\\\\plot"
     # 'filename_pattern': r'^((?!(sg|skip)).)*$',
     # "ignore_pattern": r'__init__\\.py',
+    # Match plot_*.py files, but skip .cockle_temp and source/logos
+    # "filename_pattern": r"/(?!.*(\.cockle_temp|source/logos))plot_.*\.py$",
+    # "filename_pattern": r"/(?!.*\.cockle_temp)plot_.*\.py$",
+    # Ignore any path containing ".cockle_temp" OR starting with "source/logos"
+    # "ignore_pattern": r"\.cockle_temp",
+    "ignore_pattern": r"(\.cockle_temp|source/logos)",
     # Specify the module to document
     # Optionally sort the examples within subsections (uncomment if needed): sorts subsections based on titles
     # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'

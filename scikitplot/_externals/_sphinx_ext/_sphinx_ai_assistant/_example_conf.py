@@ -912,6 +912,266 @@ ai_assistant_panel_trigger_label = "Ask AI"
 # createAIPanel() (C-4) ensures a second pill is never created.
 ai_assistant_panel_start_minimized = True
 
+# Type:    bool
+# Default: True
+#
+# Whether readers may permanently show or hide the floating trigger pill
+# themselves.  When True (default) the "AI Assistant" row in the dropdown
+# carries a two-state switch, built exactly like the PDF method switch and the
+# Copy mode switch; the reader's choice is stored in the browser and survives
+# reloads.  Set to False to hide the switch and pin the pill to
+# ``ai_assistant_panel_start_minimized``.
+#
+# User note: The switch answers "do I want this floating button on my screen at
+# all?".  It starts from ``ai_assistant_panel_start_minimized``, so a site that
+# ships the pill visible keeps shipping it visible — nothing changes until a
+# reader decides otherwise.  Minimizing the panel always brings the pill back
+# even when it is switched off, because an open conversation must never be left
+# without a way back to it -- and while that is the case the switch itself moves
+# to "shown" and greys out, explaining that the minimized conversation is
+# holding it there, so the control never contradicts what is on screen.  Closing
+# the panel releases the lock and returns both the pill and the switch to
+# whatever the reader chose.
+#
+# Developer note: This key is ignored unless ``ai_assistant_features["ai_panel"]``
+# is True — the switch is constructed inside that branch of ``createDropdown()``
+# in ``ai-assistant.js``, so a build without the panel renders neither the switch
+# nor the pill.  The stored preference lives in ``localStorage`` under
+# ``ai-assistant-panel-trigger``; when this key is False the stored value is
+# ignored outright, so turning the switch off cannot be defeated by a stale
+# browser entry.
+ai_assistant_panel_trigger_toggle = True
+
+# Type:    bool | dict
+# Default: False
+#
+# Whether the configured chat endpoint accepts the effort level and extended-
+# reasoning ("thinking") request parameters.
+#
+# User note: When this is False -- the default -- the Effort and Thinking
+# controls in the model sheet are shown but inactive, with a note explaining
+# that requests use the provider's own defaults, and both model buttons read
+# "Default" instead of naming a level.  Nothing is silently ignored: the panel
+# tells the reader exactly what will happen.
+#
+# Developer note: Default False is a safety choice, not a limitation.  A strict
+# OpenAI-compatible endpoint rejects a request carrying an unknown top-level
+# field with a 400, so sending these parameters on a guess would break chat for
+# every deployment that had not opted in.  Turn this on once you know your
+# proxy forwards them.
+#
+# ``True`` remains a backwards-compatible shorthand for the standard fields
+# of the body shape in use. For new deployments prefer a dict that declares
+# MODEL CAPABILITIES separately from PROXY WIRE SETTINGS::
+#
+#     ai_assistant_panel_reasoning = {
+#         "effort": True,
+#         "thinking": False,
+#         "effortParam": "reasoning_effort",
+#         "effortValues": {"low": "low", "medium": "medium", "high": "high",
+#                          "extra": "high", "max": "high"},
+#     }
+#
+# Thinking is not universal across providers/models. Enable it only when the
+# selected model/proxy mapping is known. The supported top-level adapter modes
+# are ``boolean`` (field=true), ``adaptive`` (field={type:"adaptive"}), and
+# ``budget`` (field={type:"enabled", budget_tokens:N})::
+#
+#     ai_assistant_panel_reasoning = {
+#         "effort": False,
+#         "thinking": True,
+#         "thinkingParam": "thinking",
+#         "thinkingMode": "budget",
+#         "budgetMin": 1024,
+#         "budgetMax": 8192,
+#     }
+#
+# Invalid optional reasoning configuration is fail-soft: the browser retries
+# once without the optional fields on a schema rejection/pre-response pipe
+# close, then keeps that model on provider defaults for the page. Diagnostics
+# use fixed codes/messages only; request bodies, endpoints, provider error
+# payloads and user content are never written to the console or Sphinx log.
+#
+# Per-model override -- the usual case, since one deployment often mixes a
+# reasoning-capable proxy with a plain HuggingFace inference endpoint::
+#
+#     ai_assistant_panel_api_models = [
+#         {"id": "sonnet", "provider": "anthropic", "reasoning": True},
+#         {"id": "hf-mistral", "provider": "huggingface", "reasoning": False},
+#     ]
+ai_assistant_panel_reasoning = False
+
+# Type:    list[dict]
+# Default: [] (uses the built-in 5-option stub: Low/Medium/High/Extra/Max)
+#
+# Replaces the panel's effort-level button scale shown in the model sheet.
+# Each entry is ``{"id": str, "label": str, "hint": str, "desc": str}`` --
+# only ``id`` is required, the rest fall back to sensible defaults. Must be
+# 2-8 entries, ordered least effort -> most effort. ``id`` is the storage key
+# that a per-model ``effortValues`` mapping (see ``ai_assistant_panel_reasoning``
+# above and ``ai_assistant_panel_api_models``) must supply a value for every
+# one of.
+#
+# User note: leaving this unset does not break anything -- the panel falls
+# back to a generic 5-option stub -- but that stub is a placeholder, not a
+# fit for any specific provider's real effort/reasoning tiers, and the panel
+# logs a one-time browser-console warning saying so. Set this once you know
+# what scale your endpoint actually offers.
+#
+# Example -- OpenAI's newer four-tier reasoning scale (Instant/Medium/High/Pro)
+# instead of the built-in five::
+#
+#     ai_assistant_panel_effort_levels = [
+#         {"id": "instant", "label": "Instant", "hint": "Fastest",
+#          "desc": "Instant replies, minimal reasoning."},
+#         {"id": "medium",  "label": "Medium",  "hint": "Balanced",
+#          "desc": "Balanced quality and speed."},
+#         {"id": "high",    "label": "High",    "hint": "Deep",
+#          "desc": "Thorough analysis."},
+#         {"id": "pro",     "label": "Pro",     "hint": "Max",
+#          "desc": "Maximum reasoning quality."},
+#     ]
+#     ai_assistant_panel_effort_default = "medium"
+#
+# A per-model ``effortValues`` map must then key off these same four ids
+# (not the built-in ``low``/``medium``/``high``/``extra``/``max``)::
+#
+#     ai_assistant_panel_reasoning = {
+#         "effortParam": "reasoning_effort",
+#         "effortValues": {"instant": "minimal", "medium": "medium",
+#                          "high": "high", "pro": "high"},
+#     }
+#
+# CAUTION: do not hand-edit the stub array inside ai-assistant.js instead of
+# using this setting -- that changes the fallback for every deployment that
+# has NOT configured this option, not just the one you meant to customise.
+ai_assistant_panel_effort_levels = []
+
+# Type:    str
+# Default: "" (JS falls back to its own built-in default, or the first entry)
+#
+# Which ``id`` from ``ai_assistant_panel_effort_levels`` starts selected.
+# Ignored if it doesn't match one of the configured ids -- the panel falls
+# back to the first entry rather than erroring, since a stale default after
+# renaming a level is a copy-paste mistake, not a reason to break the sheet.
+ai_assistant_panel_effort_default = ""
+
+# ---------------------------------------------------------------------------
+# Stub test profile -- connectivity and security testing without a model
+# ---------------------------------------------------------------------------
+#
+# Any model id beginning with ``stub/`` is answered by the proxy itself: a
+# deterministic responder that never forwards upstream and never reads a
+# credential.  Everything else about the request is real -- same URL, same body
+# shape, same CORS preflight, same auth handling, same rate limiter, same body
+# validation, same SSE framing -- so it exercises the wire rather than
+# simulating it.
+#
+# Enable it on the proxy with ``STUB_ENABLED=true`` (HF Space Variable, or the
+# environment for ``dev_proxy.py``).  It is off by default.  ``stub/*`` is a
+# reserved fail-closed namespace: when disabled the proxy returns HTTP 503
+# locally and never forwards the diagnostic id to a real model provider.
+#
+# Modes::
+#
+#     stub/echo         reports exactly what arrived
+#     stub/qa           canned answers from a fixture table
+#     stub/hostile      injection payloads and malformed markup, to test the
+#                       CLIENT's rendering and guards
+#     stub/error:503    returns that HTTP status
+#     stub/slow:2000    delays, for timeout / abort / streaming tests
+#
+# User note: ``stub/echo`` answers "what did my browser actually send?" by
+# showing you -- the model id, body keys, stream flag, max_tokens, system
+# prompt size, which reasoning fields were sent and with what values, whether
+# any credential header arrived, and whether the page context contained
+# anything shaped like a secret.  Toggle Effort or Extended reasoning in the
+# model sheet, ask again, and read the difference in the reply.
+#
+# Developer note: credential header VALUES are never echoed -- only presence,
+# length, scheme, and a three-character prefix class.  An echo endpoint that
+# reflects Authorization verbatim is an exfiltration primitive, not a test
+# tool.  Responses are JSON only, so the stub cannot become a reflected-XSS
+# oracle on the proxy's origin, and stub/hostile replies travel the ordinary
+# reply field so they take the ordinary rendering path.
+#
+# Turn the flag below on and three test models appear in the picker.  You do
+# not write the entries yourself: they are appended after your real models,
+# never marked default, and they inherit the endpoint of your first configured
+# model -- so the rig reaches the SAME proxy your readers do, which is the
+# whole point.  With no endpoint resolvable, nothing is added and a build
+# warning says so; a stub entry pointing nowhere would turn a diagnostic into
+# a second thing to diagnose.
+#
+#     Stub - echo request     reports exactly what the browser sent
+#     Stub - canned answers   deterministic replies (try "ping")
+#     Stub - hostile output   injection payloads and malformed markup
+#
+# The echo entry declares ``reasoning`` support and the qa entry does not, on
+# purpose: only a declaring entry makes the panel SEND the effort and thinking
+# fields, so switching between the two shows you both request shapes in one
+# session.
+#
+# Default False.  These are diagnostic tools, not reader-facing options.
+ai_assistant_panel_stub_models = True
+
+# Type:    bool
+# Default: True
+#
+# Whether the panel tells the reader when the current page contains text that
+# reads like instructions to an assistant.
+#
+# User note: Informational only.  The page is sent identically either way --
+# it is always fenced as data and credential-shaped strings are always
+# redacted.  This notice just says "the answer you are about to read came from
+# a page that tried to talk to me".
+#
+# Developer note: This is a heuristic and it is documented as one.  It will
+# have false positives and it will miss real attacks; the containment fence is
+# the defence, this is the commentary.  It requires THREE distinct kinds of
+# instruction-shaped phrasing before saying anything, because one is ordinary
+# on a page about LLM security -- and it counts kinds, not matches, so quoting
+# a single payload thirty times still scores one.
+#
+# Set False on a site whose documentation is ABOUT prompt injection, agent
+# design, or LLM security.  On those pages the notice fires on ordinary
+# content and teaches readers to ignore it, which is worse than not having it.
+ai_assistant_panel_injection_notice = True
+
+# ---------------------------------------------------------------------------
+# Capability discovery (no configuration needed)
+# ---------------------------------------------------------------------------
+#
+# The value above is a statement about your proxy, written here, in a different
+# repository from the proxy itself -- so it goes stale the moment the proxy
+# changes.  The panel therefore also ASKS.
+#
+# On first use of the model sheet it fetches ``<chat-origin>/health`` once per
+# session and reads a ``capabilities.reasoning`` block if one is there.  The
+# bundled proxies publish it: set ``REASONING_ENABLED=true`` in the HF Space
+# secrets (or the environment for ``dev_proxy.py``) and no ``conf.py`` change
+# is needed at all.
+#
+# Precedence, highest first:
+#   1. a per-model ``reasoning`` key in ai_assistant_panel_api_models
+#   2. what the endpoint advertised at /health
+#   3. ai_assistant_panel_reasoning above
+#   4. off
+#
+# Discovery outranks this setting because the proxy is the authority on itself.
+# The per-model key still outranks discovery, so you can override a proxy that
+# advertises wrongly without waiting for it to be redeployed.
+#
+# Developer note: the discovery document is treated as untrusted input.  Field
+# names must match ``^[a-z][a-z0-9_]{0,39}$`` and must not be one of the
+# reserved request fields (``model``, ``messages``, ``system``, ``stream``,
+# ``max_tokens``, ``__proto__`` and friends), so an advertised declaration can
+# introduce a parameter but can never override one that decides what is sent
+# or to whom.  Values are type-checked, length-capped and range-clamped; the
+# probe is same-origin with the chat endpoint, sends no credentials, has a 3 s
+# timeout, and fails closed -- any error, timeout or malformed document leaves
+# the controls on "Default", which is exactly the pre-discovery behaviour.
+
 # ===========================================================================
 # v0.3 — resize, persistence, shortcut, proxy, feedback, privacy, search-bar
 # ===========================================================================
@@ -1232,13 +1492,13 @@ ai_assistant_panel_api_models = [
     #     Authorization: Bearer ${HF_TOKEN}
     # NEVER embed the token in this conf.py file.
     # Model card: https://huggingface.co/openai/gpt-oss-20b
-    # https://router.huggingface.co/v1/chat/completions
+    # Browser endpoint MUST be your proxy; the proxy may call router.huggingface.co server-side.
     {
         "id":          "gpt-oss-20b-hf",
         "label":       "GPT-OSS 20B (OpenAI/HuggingFace)",
         "provider":    "huggingface",
         "model":       "openai/gpt-oss-20b",
-        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
         "info_url":    "https://huggingface.co/openai/gpt-oss-20b",
         "description": (
             "OpenAI open-source 20B via HuggingFace Inference API — "
@@ -1251,7 +1511,7 @@ ai_assistant_panel_api_models = [
         "label":       "Qwen2.5-Coder-7B-Instruct (Qwen/HuggingFace)",
         "provider":    "huggingface",
         "model":       "Qwen/Qwen2.5-Coder-7B-Instruct",
-        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
         "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct",
         "description": (
             "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
@@ -1263,7 +1523,7 @@ ai_assistant_panel_api_models = [
         "label":       "Qwen2.5-Coder-32B-Instruct (Qwen/HuggingFace)",
         "provider":    "huggingface",
         "model":       "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
         "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct",
         "description": (
             "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
@@ -1806,47 +2066,63 @@ ai_assistant_panel_hf_endpoint_label = "Active Endpoint"
 # via CSS at ≤ 460 px, and the hamburger is the canonical entry-point.
 ai_assistant_panel_hamburger = True
 
-# ── How to access feedback for model training ───────────────────────────────
+# ── Separate-origin assistant isolation (recommended for strict deployments) ─
+# The strongest browser boundary runs the assistant UI/state on a distinct
+# origin and leaves only a small capability bridge on the documentation page.
+# Deploy the contents of this extension's ``_static`` directory to the isolated
+# origin, then enable:
 #
-# The extension itself NEVER stores or transmits a feedback submission.
-# Instead, every submit dispatches an ``ai-assistant-feedback`` CustomEvent
-# on ``document`` with the shape (schemaVersion: 1):
+# ai_assistant_isolation_origin = "https://assistant.example.com"
+# ai_assistant_isolation_frame_path = "/ai-assistant-isolated.html"
+# ai_assistant_isolation_context_max_chars = 200_000
+# ai_assistant_isolation_parent_origins = ["https://docs.example.com"]
+# ai_assistant_isolation_allow_microphone = False
 #
-#   {
-#     schemaVersion: 1,
-#     ratingValue:   -1 | 0 | +1 | ...,   // SIGNED INT (training signal)
-#     ratingLabel:   "negative" | ...,    // string
-#     rating:        "negative" | ...,    // legacy alias of ratingLabel
-#     message:       "free-text…",
-#     query:         "the user's question",
-#     answer:        "the model's full reply",
-#     model:         {id, provider, model} | null,
-#     answerIndex:   <int>,
-#     page:          "https://docs.example.com/x.html",
-#     ts:            <ms epoch>,
-#     sessionId:     "<uuid>"             // idempotency key
-#   }
+# B42 protocol 2.0.0 generates the capability nonce inside the isolated frame,
+# verifies a build-generated exact parent-origin policy, and transfers one
+# MessageChannel only after source/origin/policy validation. WebCrypto failure is
+# fail-closed; there is no Math.random fallback. The iframe sandbox does not grant
+# popup escape or top navigation, and live HTTP(S) anchors cannot navigate the
+# isolated browsing context onto the docs origin.
 #
-# Doc authors attach their own listener (e.g. in a custom JS file added via
-# html_js_files) and forward to the storage of their choice:
+# The isolation origin must be HTTPS (localhost HTTP is allowed for development),
+# must not contain credentials/path/query/fragment, and MUST differ from the docs
+# origin. There is no silent same-origin downgrade: a failed policy/handshake
+# disables the assistant for that page. Add the isolated origin—not the docs
+# origin—to the proxy browser CORS allow-list for chat/share/feedback/contribution.
+# Cross-origin microphone delegation is independently OFF unless explicitly
+# enabled above. See ISOLATION_DEPLOYMENT.md for CSP/frame-ancestor guidance.
+
+# ── Feedback telemetry, page integration, and contribution boundaries ───────
+#
+# Local rating buttons work without network telemetry and without publishing
+# assistant lifecycle state to the host page. Internal UI coordination uses a
+# private event bus. Readers may separately enable "Allow page integration
+# events" in the assistant UI; that permission is versioned, OFF by default,
+# and does not grant network telemetry permission.
+#
+# When page integration is explicitly enabled, selected events are projected
+# onto ``document`` with bounded detail. For example ``ai-assistant-feedback``
+# contains rating mechanics only (no question, answer, note, model, endpoint,
+# page URL, bearer token, provider model id, or stable conversation id). Other
+# model/profile lifecycle events are similarly reduced before publication.
+#
+# A documentation author may listen to those optional events, but MUST treat
+# that as a separate user-authorized integration surface. Do not automatically
+# forward them to analytics, APM, logs, or another service. Network telemetry
+# requires its own explicit reader permission. Dataset contribution is a third,
+# separate flow with exact JSON inspection, privacy review, explicit consent,
+# quarantine, and receipt-based deletion/withdrawal.
+#
+# Example local-only UI integration after the reader enables page integration:
 #
 #   document.addEventListener("ai-assistant-feedback", function (ev) {
-#       fetch("/_collect/feedback", {
-#           method:  "POST",
-#           headers: {"content-type": "application/json"},
-#           body:    JSON.stringify(ev.detail),
-#           keepalive: true,    // survives page-unload races
-#       });
+#       // Update trusted same-origin UI only. Do NOT forward automatically.
+#       console.debug("Local rating event", ev.detail.ratingValue);
 #   });
 #
-# The "/_collect/feedback" endpoint should:
-#   • require an origin / referer check;
-#   • dedup on (sessionId, answerIndex);
-#   • write to your store of choice (S3 JSONL, BigQuery, Postgres, …);
-#   • NEVER echo back submissions to the browser.
-#
-# When ai_assistant_panel_feedback_log = True the JS also console.log()s
-# each submission — useful while developing the listener.
+# The old content-rich feedback event contract is retired and must not be
+# reintroduced.
 
 # ── R5: feedback block ("Was this helpful?") ──────────────────────────────
 # Type:    bool
@@ -1865,9 +2141,9 @@ ai_assistant_panel_feedback_question = "Was this helpful?"
 #   {"emoji": "<char>", "title": "<hover/aria text>", "value": "<sent value>"}
 # The JS widget auto-scales emoji size (via CSS data-count) so all buttons
 # always stay on one line regardless of count.
-# The chosen value + free text are dispatched as a DOM CustomEvent
-# 'ai-assistant-feedback' (detail = {rating, message, page, ts}) so doc
-# authors can wire their own analytics.  The extension stores/sends nothing.
+# The chosen value and optional note stay local by default. A separately
+# consented page-integration event exposes only bounded rating mechanics, and
+# separately consented network telemetry also excludes Q&A/note/model/page data.
 #
 # ── Example A: minimal 3-emoji (classic thumbs) ───────────────────────────
 # ai_assistant_panel_feedback_options = [
@@ -2433,48 +2709,52 @@ ai_assistant_mcp_tools = {
 # switch between at runtime from the Endpoint Configuration sheet —
 # WITHOUT rebuilding the documentation.
 #
-# Each profile is a dict describing which proxy URLs are available for
-# each AI feature:
+# Each profile has one preferred service base. Feature-specific URLs are
+# optional overrides used only when a route lives on another service:
 #
-#   chat       → the BASE URL; JS appends '/v1/chat/completions'
-#   share      → the BASE URL; JS appends '/v1/share'
-#   feedback   → the BASE URL; JS appends '/v1/feedback'
-#   training   → the BASE URL; JS appends '/v1/contribute'
+#   base       → REQUIRED/recommended service BASE URL
+#   chat       → absolute URL or Base-relative route; blank/null inherits default
+#   share      → absolute URL or Base-relative route; blank/null inherits default
+#   feedback   → absolute URL or Base-relative route; blank/null inherits default
+#   training   → absolute URL or Base-relative route; blank/null inherits default
+#   datasetRepo→ optional HuggingFace owner/repo; otherwise GET {base}/ discovery
 #
-# All four are optional; an empty string disables that feature for the
-# profile.  Profiles are baked into every rendered HTML page at Sphinx
-# build time.  No rebuild is needed to switch between them at runtime.
+# Relative routes may be written with or without a leading slash. Surrounding
+# whitespace is trimmed. Legacy profiles that explicitly repeat host-only
+# chat/share/feedback/training values continue to work unchanged.
 #
 # ┌─────────────────────────────────────────────────────────────────────────┐
 # │ SECURITY — WHAT GETS BAKED INTO THE HTML                                │
 # │                                                                         │
-# │ Every profile dict (including auth tokens) is serialised into a         │
-# │ <script> block on every HTML page:                                      │
+# │ Every profile dict is serialised into a <script> block on every HTML    │
+# │ page. Therefore ALL profile values are client-visible configuration.     │
 # │                                                                         │
 # │   window.AI_ASSISTANT_ENDPOINTS = { ...all profiles... };               │
 # │                                                                         │
 # │ Consequences:                                                           │
 # │                                                                         │
-# │ 1. NEVER put secret API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)  │
-# │    in any profile field.  The proxy server holds those; conf.py only    │
-# │    holds the URL of YOUR proxy.                                         │
+# │ 1. NEVER put API keys, bearer tokens, cookies, private keys, passwords, │
+# │    signed URLs, or other credentials in any build-time profile field.   │
+# │    Reading a value from os.environ protects Git, NOT generated HTML.     │
 # │                                                                         │
-# │ 2. ``shareToken`` and ``feedbackToken`` may hold write-only             │
-# │    authorization tokens (e.g. a Cloudflare Worker token that grants     │
-# │    POST access to a single route).  These tokens ARE visible to anyone  │
-# │    who views the page source.  Choose tokens that are:                  │
-# │      a) write-only (cannot be used to read data),                       │
-# │      b) rate-limited on the proxy side,                                 │
-# │      c) scoped to a single operation (share or feedback, not both).     │
+# │ 2. ``shareToken`` / ``feedbackToken`` are runtime-only compatibility    │
+# │    fields. Non-empty values supplied in conf.py are ignored and a build │
+# │    warning is emitted. Server-side authorization is the production      │
+# │    boundary.                                                            │
 # │                                                                         │
-# │ 3. Do NOT embed tokens that can be used for chat — an attacker with the │
-# │    source of your page would then have a free AI chat endpoint.         │
+# │ 3. Browser-entered runtime tokens are DISABLED by default. A site owner │
+# │    must explicitly set ai_assistant_allow_runtime_tokens=True for a     │
+# │    short-lived/self-hosted compatibility workflow. Even then they are   │
+# │    memory-only and never written to Web Storage. Production auth stays  │
+# │    server-side.                                                         │
 # │                                                                         │
-# │ 4. The extension validates all URLs against an http/https allow-list    │
-# │    and strips any field containing HTML-injection characters from token │
-# │    values.  Values that point to private IPs (127.x, 10.x, 192.168.x,   │
-# │    etc.) trigger a Sphinx WARNING so operators notice SSRF-risky        │
-# │    configs in their CI output.                                          │
+# │ 4. Endpoint URLs are length-bounded, parsed/canonicalised, restricted   │
+# │    to http(s), and rejected when they contain embedded credentials,      │
+# │    fragments, control/bidi characters, ambiguous backslashes, traversal, │
+# │    unsafe encoded separators, or malformed hosts. Browser-added profiles │
+# │    additionally block private/reserved hosts. Trusted conf.py private    │
+# │    hosts remain available for local development but emit a Sphinx        │
+# │    WARNING. Rejected URL values are never echoed into diagnostics.        │
 # │                                                                         │
 # │ 5. Profile keys must not be JavaScript prototype property names         │
 # │    (__proto__, constructor, toString …) — the extension rejects these   │
@@ -2487,20 +2767,27 @@ ai_assistant_mcp_tools = {
 #   label         (str)   — Display name shown in the profile-switcher UI.
 #                           Max 80 characters.
 #
-# Optional URL fields (all default to ""):
-#   chat          (str)   — BASE URL for AI chat completions.
-#                           JS appends '/v1/chat/completions'.
-#   share         (str)   — BASE URL for global share (P1).
-#                           JS appends '/v1/share'.
-#   feedback      (str)   — BASE URL for panel feedback (P3).
-#                           JS appends '/v1/feedback'.
-#   training      (str)   — BASE URL for training data contribution (P2).
-#                           JS appends '/v1/contribute'.
+# Preferred service field:
+#   base          (str)   — One service BASE URL inherited by all feature routes.
 #
-# Optional token fields:
-#   shareToken    (str)   — Bearer token for share write operations.
-#                           Visible in page source; use write-only tokens.
-#   feedbackToken (str)   — Bearer token for feedback write operations.
+# Optional endpoint overrides (all default to ""):
+#   chat          (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/chat/completions'.
+#   share         (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/share'.
+#   feedback      (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/feedback'.
+#   training      (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/contribute'.
+#
+# Optional resource field:
+#   datasetRepo   (str)   — HuggingFace owner/repo. When omitted, the browser
+#                           discovers training.dataset_repo from GET {base}/.
+#
+# Runtime-only token fields (DO NOT configure in conf.py):
+#   shareToken    (str)   — Optional short-lived browser-session credential.
+#   feedbackToken (str)   — Optional short-lived browser-session credential.
+# Build-time values for either field are ignored and never serialized.
 #
 # Optional integer fields:
 #   ttlDays       (int)   — Share link TTL override in days.
@@ -2510,8 +2797,8 @@ ai_assistant_mcp_tools = {
 #
 # The _EP registry (window-scope singleton) exposes:
 #
-#   _EP.resolve('chat')           → active profile's chat base URL
-#   _EP.resolve('share')          → active profile's share base URL
+#   _EP.resolve('chat')           → chat override, else active profile base
+#   _EP.resolve('share')          → share override, else active profile base
 #   _EP.resolve('feedback')       → active profile's feedback base URL
 #   _EP.resolve('training')       → active profile's training base URL
 #   _EP.resolveToken('shareToken')    → token for share writes
@@ -2520,8 +2807,8 @@ ai_assistant_mcp_tools = {
 #   _EP.setActive('cf')           → switch to the 'cf' profile
 #   _EP.list()                    → [{key, label}, ...] all profiles
 #   _EP.hasProfiles()             → true when any profile is registered
-#   _EP.addCustomProfile(prof)    → add a runtime-only profile (not persisted
-#                                   across rebuilds; stored in localStorage)
+#   _EP.addCustomProfile(prof)    → add a runtime profile; non-secret routing
+#                                   fields persist, token values remain memory-only
 #   _EP.deleteCustomProfile(key)  → remove a custom profile
 #   _EP.clearCustom()             → remove ALL custom profiles
 #   _EP.exportCustom()            → JSON string of all custom profiles
@@ -2553,7 +2840,9 @@ ai_assistant_mcp_tools = {
 #
 #   §4 Add Profile       — Form to add a runtime-only custom profile.
 #                          Simple mode: one base URL for all features.
-#                          Advanced mode: per-feature URLs + tokens.
+#                          Advanced mode: per-feature URLs plus optional
+#                          page-session-only runtime credentials entered in
+#                          the browser; never build-time/static tokens.
 #                          Live URL validation with SSRF warnings.
 #
 #   §5 Import / Export   — Export all custom profiles as JSON for sharing.
@@ -2571,6 +2860,39 @@ ai_assistant_mcp_tools = {
 #   _EP.onProfileChange(function (newKey, oldKey) {
 #       console.log("Switched from", oldKey, "to", newKey);
 #   });
+#
+# ── Recommended minimal profile — one service + auto-discovery ─────────────
+#
+# The browser talks only to the service base. Chat / Share / Feedback /
+# Training inherit that base, and GET {base}/ discovers the backing dataset.
+#
+# SECURITY — endpoint profile credentials
+# ---------------------------------------
+# Every profile below is serialized into generated HTML. Environment
+# variables used here are therefore NOT server secrets after the build.
+# Never place production bearer/API credentials in shareToken,
+# feedbackToken, endpoint query strings, or any other client config.
+# Prefer server-side authorization. Browser-entered bearer credentials are disabled by default.
+# Set this to True only for deliberate short-lived/self-hosted compatibility.
+ai_assistant_allow_runtime_tokens = False
+# If explicitly enabled, enter only a short-lived runtime token
+# manually in the browser when a self-hosted development workflow needs it.
+#
+# Assistant-service fetches also omit ambient browser cookies/session credentials
+# by default. Keep False for strict deployments. If a legacy same-origin service
+# intentionally depends on browser cookies, this permits only same-origin
+# credentials; cross-origin `include` is never allowed by the central wrapper.
+ai_assistant_allow_credentialed_fetch = False
+#
+# ai_assistant_endpoint_profiles = {
+#     "hf": {
+#         "label": "Scikit-plots HF",
+#         "base": "https://scikit-plots-ai.hf.space",
+#         # datasetRepo is optional; discovery currently resolves
+#         # scikit-plots/ai-assistant-contributions from the service.
+#     },
+# }
+# ai_assistant_endpoint_default_profile = "hf"
 #
 # ── Option 1 — Single Cloudflare Worker ────────────────────────────────────
 
@@ -2598,11 +2920,9 @@ _CF_WORKER_URL = os.environ.get("CF_WORKER_URL", "")
 #         # Leave empty ("") to disable this feature for this profile.
 #         "training": "",
 #
-#         # ── Write-only tokens ──────────────────────────────────────────
-#         # These tokens ARE visible in page source — use write-only,
-#         # rate-limited, scoped tokens ONLY.  Never embed a master API key.
-#         "shareToken":    os.environ.get("SHARE_WRITE_TOKEN", ""),
-#         "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+#         # ── Authorization ───────────────────────────────────────────────
+#         # No bearer token belongs in this static profile. Enforce normal
+#         # production authorization on the Worker/service itself.
 #
 #         # ── Share TTL ─────────────────────────────────────────────────
 #         # 0 = use global ai_assistant_global_share_ttl_days (default 30).
@@ -2626,8 +2946,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "share":        _CF_WORKER_URL,
 #         "feedback":     _CF_WORKER_URL,
 #         "training":     "",
-#         "shareToken":   os.environ.get("CF_SHARE_TOKEN", ""),
-#         "feedbackToken": os.environ.get("CF_FEEDBACK_TOKEN", ""),
+#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
+#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      30,
 #     },
 #
@@ -2640,8 +2960,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "share":        _CF_WORKER_URL,     # reuse CF for reliable share
 #         "feedback":     _HF_SPACE_URL,
 #         "training":     _HF_SPACE_URL,
-#         "shareToken":   os.environ.get("CF_SHARE_TOKEN", ""),
-#         "feedbackToken": "",
+#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
+#         # feedbackToken omitted: build-time credentials are forbidden.
 #         "ttlDays":      7,
 #     },
 # }
@@ -2683,8 +3003,7 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "share":        "",
 #         "feedback":     "http://localhost:8787",
 #         "training":     "",
-#         "shareToken":   "",
-#         "feedbackToken": "",
+#         # Runtime tokens, if needed for local development, are entered in-browser.
 #         "ttlDays":      0,
 #     },
 #
@@ -2695,8 +3014,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "share":        os.environ.get("STAGING_PROXY_URL", ""),
 #         "feedback":     os.environ.get("STAGING_PROXY_URL", ""),
 #         "training":     "",
-#         "shareToken":   os.environ.get("STAGING_SHARE_TOKEN", ""),
-#         "feedbackToken": os.environ.get("STAGING_FEEDBACK_TOKEN", ""),
+#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
+#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      1,
 #     },
 #
@@ -2707,8 +3026,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "share":        os.environ.get("PROD_PROXY_URL", ""),
 #         "feedback":     os.environ.get("PROD_PROXY_URL", ""),
 #         "training":     os.environ.get("PROD_PROXY_URL", ""),
-#         "shareToken":   os.environ.get("PROD_SHARE_TOKEN", ""),
-#         "feedbackToken": os.environ.get("PROD_FEEDBACK_TOKEN", ""),
+#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
+#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      30,
 #     },
 # }
@@ -2731,12 +3050,11 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 # ai_assistant_endpoint_profiles = {
 #     "default": {
 #         "label":        "Default Proxy",
-#         "chat":         _PROXY_BASE,
-#         "share":        _PROXY_BASE,
-#         "feedback":     _PROXY_BASE,
-#         "training":     _PROXY_BASE,
-#         "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
-#         "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+#         "base":         _PROXY_BASE,
+#         # Optional: "datasetRepo": "scikit-plots/ai-assistant-contributions",
+#         # Usually omit datasetRepo and let GET {base}/ auto-discover it.
+#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
+#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      30,
 #     },
 # }

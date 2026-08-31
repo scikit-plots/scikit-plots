@@ -105,7 +105,8 @@ def build_repl_url(
     validate_non_empty_string(base_url, "base_url")
 
     # https://jupyterlite.github.io/demo/repl/?toolbar=1&kernel=python&execute=1&code=import%20numpy%20as%20np
+    # https://jupyterlite.github.io/demo/repl/#toolbar=1&kernel=python&theme=JupyterLab+Light&execute=0&code=import+numpy+as+np
     query: str = urlencode({KERNEL_PARAM: kernel, CODE_PARAM: code})
-    url: str = f"{base_url.rstrip('/')}?toolbar=1&execute=1&{query}"
+    url: str = f"{base_url.rstrip('/')}?toolbar=1&execute=0&{query}"
     validate_url_length(url)
     return url

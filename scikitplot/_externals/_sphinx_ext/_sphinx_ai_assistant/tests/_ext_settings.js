@@ -548,10 +548,10 @@
         legacyDecode: function (raw) { return raw === null ? true : raw === 'true'; },
     });
     define('feedbackPersist', {
-        type: 'boolean', default: true, label: 'Store ratings permanently',
-        legacyKey: 'ai-assistant-feedback-persist',
-        // historical: getItem(...) !== 'false'
-        legacyDecode: function (raw) { return raw !== 'false'; },
+        type: 'boolean', default: false, label: 'Send rating telemetry',
+        legacyKey: 'ai-assistant-feedback-telemetry',
+        // privacy v3: absent/anything except exact 'true' stays opt-out
+        legacyDecode: function (raw) { return raw === 'true'; },
     });
     define('datasetRepo', {
         type: 'string', default: '', label: 'Custom dataset repo',

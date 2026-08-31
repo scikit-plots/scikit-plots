@@ -32,9 +32,12 @@
 <article class="bd-article">
 <div class="container-fluid sk-landing-top-bar py-4">
   <div class="container sk-landing-container">
+    <!-- <div class="row"> -->
     <div class="row justify-content-center">
       <!-- Content -->
-      <div class="col-lg-8 text-center">
+      <!-- <div class="col-md-6 mb-3 mb-md-0"> -->
+      <!-- <div class="col-lg-8 text-center"> -->
+      <div class="col-lg-8 text-left">
         <h1 class="sk-landing-header font-monospace">scikit-plots</h1>
         <h4 class="sk-landing-subheader fst-italic mb-3">Machine Learning Visualization in Python</h4>
 
@@ -51,13 +54,15 @@
             Release Highlights for {{ release_highlights_version }}
           </a>
         {%- endif %}
-
+        </div>
+        <!-- <div class="col-md-6 d-flex"> -->
+      <div class="col-lg-8 text-left">
         <!-- Description List -->
         <ul class="sk-landing-header-body list-unstyled mt-4">
           <li>Open source, commercially usable - BSD license</li>
-          <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Systems over Silos - SoS | Clarity over Complexity - CoC</li>
-          <li>&nbsp;&nbsp;&nbsp;&nbsp;Reliability over Rush - RoR | Progress over Perfection - PoP</li>
-          <li>Better over Best - BoB | Value over Vanity - VoV</li>
+          <!-- <li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Systems over Silos - SoS | Clarity over Complexity - CoC</li> -->
+          <!-- <li>&nbsp;&nbsp;&nbsp;&nbsp;Reliability over Rush - RoR | Progress over Perfection - PoP</li> -->
+          <!-- <li>Better over Best - BoB | Value over Vanity - VoV</li> -->
         </ul>
       </div>
     </div>
@@ -340,6 +345,10 @@
       </div>
     </a>
   </div>
+</div>
+
+<div class="additional-content">
+  {%- include "principles-ticker.html" %}
 </div>
 </article>
 {%- endblock footer %}

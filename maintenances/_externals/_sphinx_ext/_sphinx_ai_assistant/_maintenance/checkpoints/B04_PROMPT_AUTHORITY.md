@@ -1,6 +1,6 @@
 # B04 — Prompt Authority
 
-Status: **NOT_STARTED**
+Status: **COMPLETE VIA B20 / RUN 4**
 Type: **bounded maintenance/change campaign checkpoint**
 Subsystem: **_sphinx_ai_assistant**
 
@@ -36,25 +36,27 @@ Fill these fields in this file when the checkpoint becomes active:
 
 ```yaml
 checkpoint: B04
-status: NOT_STARTED | IN_PROGRESS | BLOCKED | COMPLETE | DEFERRED | SUPERSEDED
-started_at: null
-completed_at: null
-source_anchor: null
+status: COMPLETE
+started_at: 2026-08-29
+completed_at: 2026-08-29
+source_anchor: scikitplot__sphinx_ai_assistant_b18_run3_global_share_authority_overlay.zip
 upstream_anchor: null
-production_code_modified: false
-contracts_touched: []
-files_read: []
-files_changed: []
+production_code_modified: true
+contracts_touched: [AIA-C05, AIA-C12, AIA-C18]
+files_read: [browser JS, HF proxy, Cloudflare Worker, dev proxy, direct HF model service]
+files_changed: [see B20_PROMPT_AUTHORITY_CREDENTIAL_BINDING.md]
 findings_opened: []
-findings_closed: []
-risks: []
-rollback: null
+findings_closed: [SEC-P0-04, SEC-P0-05]
+risks: [custom endpoints remain outside bundled trust boundary, CORS/resource/logging parity deferred]
+rollback: revert B20/Run4 as one security-breaking protocol increment
 ```
 
 ## Verification gates
 
-- [ ] direct caller cannot set system authority
-- [ ] malicious page content remains reference data
+- [x] direct caller cannot set system authority
+- [x] malicious page content remains reference data
+
+Implementation and evidence live in `B20_PROMPT_AUTHORITY_CREDENTIAL_BINDING.md`.
 
 ## Closure rule
 

@@ -1,0 +1,20 @@
+# Operator reference only; Hugging Face Docker Spaces does not consume this.
+services:
+  ai-proxy:
+    build:
+      context: .
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=128m,mode=1777
+    ports:
+      - "7860:7860"
+    environment:
+      DEPLOYMENT_PROFILE: strict
+    restart: unless-stopped

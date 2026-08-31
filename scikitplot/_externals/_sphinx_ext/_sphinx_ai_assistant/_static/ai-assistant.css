@@ -1837,6 +1837,22 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     display: flex;
 }
 
+/* B52: once the shared panel-body coordinator has measured this menu, its
+ * inline top/left coordinates become authoritative.  Keep oversized action
+ * sets usable inside a short/narrow transcript instead of clipping outside. */
+.ai-assistant-panel-bubble-action-more-menu[data-boundary-positioned="true"] {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+}
+.ai-assistant-panel-bubble-action-more-menu[data-placement="top"]    { transform-origin: bottom left; }
+.ai-assistant-panel-bubble-action-more-menu[data-placement="bottom"] { transform-origin: top left; }
+.ai-assistant-panel-bubble-action-more-menu[data-placement="left"]   { transform-origin: center right; }
+.ai-assistant-panel-bubble-action-more-menu[data-placement="right"]  { transform-origin: center left; }
+
 [data-bs-theme="dark"] .ai-assistant-panel-bubble-action-more-menu {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45),
                 0 2px  6px rgba(0, 0, 0, 0.28);
@@ -3063,10 +3079,17 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 .ai-assistant-panel-hamburger[data-open="true"] {
     display: flex;
 }
+/* Three columns — icon | label | keycap — so the caps line up in one column
+ * regardless of label length. That alignment is the point: a ragged right edge
+ * makes the keys read as trailing punctuation instead of a consistent,
+ * scannable affordance. The label column is the only flexible one, so it
+ * absorbs every difference between "Share" and "Privacy & Responsibility". */
 .ai-assistant-panel-hamburger-item {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: 0.95rem minmax(0, 1fr) 1.55rem;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
     padding: 0.4rem 0.55rem;
     border: 0;
     background: transparent;
@@ -3074,6 +3097,10 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     border-radius: 6px;
     cursor: pointer;
     text-align: left;
+    /* Primary + expanded More menu typography. Keep the generous hit target
+     * and icon size, but make labels/keycaps visually lighter and denser. */
+    font-size: 0.625rem;
+    line-height: 1.35;
 }
 .ai-assistant-panel-hamburger-item:hover {
     background: rgba(127, 127, 127, 0.12);
@@ -3082,6 +3109,48 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     width: 0.95rem;
     height: 0.95rem;
     flex: 0 0 auto;
+}
+
+.ai-assistant-panel-hamburger-item-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Keep every single-letter accelerator on one exact vertical rail.  Generic
+ * keycaps size to their content, which is useful for chords such as Alt/Shift
+ * but lets a wide glyph such as “M” grow a fraction wider than “C”.  Hamburger
+ * accelerators are always one letter, so give the group and cap a fixed square
+ * slot.  Monospace is an extra guard against font-dependent glyph metrics. */
+.ai-assistant-panel-hamburger-item > .ai-assistant-kbd-group {
+    width: 1.55rem;
+    justify-self: end;
+    justify-content: center;
+}
+.ai-assistant-panel-hamburger-item > .ai-assistant-kbd-group > .ai-assistant-kbd {
+    box-sizing: border-box;
+    width: 1.35rem;
+    min-width: 1.35rem;
+    padding-left: 0;
+    padding-right: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Destructive item. Colour is a reinforcement, never the carrier — the label
+ * says "Clear conversation" and the action confirms before running, so a
+ * reader who cannot distinguish the hue loses nothing. */
+.ai-assistant-panel-hamburger-item--danger {
+    color: var(--pst-color-danger, #b42318);
+}
+
+.ai-assistant-panel-hamburger-item--danger:hover {
+    background: color-mix(in srgb, var(--pst-color-danger, #b42318) 10%, transparent);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-hamburger-item--danger,
+.dark .ai-assistant-panel-hamburger-item--danger {
+    color: #f97066;
 }
 
 /* Share sheet rows. */
@@ -4175,7 +4244,7 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
    ``.ai-assistant-panel-sheet-section`` (built by ``_buildSheetSection()``)
    which provides the labelled rule divider.
 
-   Section §A  Effort     – 4-button segmented control (Low / Medium / High / Max).
+   Section §A  Effort     – dynamic 2–8 button segmented control + editor.
    Section §B  Thinking   – toggle pill + collapsible token-budget range input.
    Section §C  Coming soon– read-only feature-preview rows, aria-hidden.
 
@@ -4231,12 +4300,16 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
 
 /* ─── §A  Effort segmented control ─────────────────────────────────────── */
 
-/* 4-column grid container.
- * Adding a fifth entry requires changing grid-template-columns to repeat(5,1fr).
- * The inner padding + 3px gap produce a single-unit visual affordance. */
+/* Dynamic 2–8 column grid container. The registry supplies the count via
+ * --ai-effort-count; no CSS edit is required when levels are added/removed. */
 .ai-assistant-panel-effort-seg {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* Column count comes from the JS registry via --ai-effort-count, set by
+     * _appendModelSheetSections() from _EFFORT_LEVELS.length. The previous
+     * hard-coded repeat(4, 1fr) meant appending a level silently broke the
+     * layout — the registry's own docstring had to carry a warning about it.
+     * The fallback keeps the control sane if the property is ever missing. */
+    grid-template-columns: repeat(var(--ai-effort-count, 4), 1fr);
     gap: 3px;
     padding: 3px;
     background: var(
@@ -4261,7 +4334,11 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 5px 3px;
+    /* min-width: 0 lets a cell shrink below its content width, which is what
+     * makes five equal columns viable in a narrow panel; without it the grid
+     * would be forced wider than its container and overflow. */
+    min-width: 0;
+    padding: 5px 2px;
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
@@ -4328,6 +4405,500 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
 
 [data-bs-theme="dark"] .ai-assistant-panel-effort-desc {
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
+}
+
+/* ─── §A.1  Effort editor launch + collapsible customization section ────────
+ *
+ * The common path stays compact: one quiet Customize button sits below the
+ * live effort description. The heavier editor is a separate
+ * .ai-assistant-panel-sheet-section immediately after Effort and starts
+ * hidden. This preserves the sheet's existing visual grammar while giving
+ * power users a real add/edit/remove surface instead of a console-only API.
+ */
+
+.ai-assistant-panel-effort-editor-launch {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.4rem;
+}
+
+.ai-assistant-panel-effort-editor-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.25rem 0.48rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #d0d7de)
+    );
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #59636e));
+    font: inherit;
+    font-size: 0.71rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease;
+}
+
+.ai-assistant-panel-effort-editor-toggle:hover,
+.ai-assistant-panel-effort-editor-toggle.is-open {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: color-mix(in srgb,
+        var(--pst-color-primary, #2980b9) 7%, transparent);
+}
+
+.ai-assistant-panel-effort-editor-toggle:focus { outline: none; }
+.ai-assistant-panel-effort-editor-toggle:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-effort-editor-toggle-icon,
+.ai-assistant-panel-effort-editor-add-icon,
+.ai-assistant-panel-effort-editor-remove-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-assistant-panel-effort-editor-toggle-icon,
+.ai-assistant-panel-effort-editor-toggle-icon svg {
+    width: 0.78rem;
+    height: 0.78rem;
+}
+
+.ai-assistant-panel-effort-editor-section[hidden] {
+    display: none !important;
+}
+
+.ai-assistant-panel-effort-editor-section {
+    margin-top: 0.7rem;
+    padding-bottom: 0.15rem;
+}
+
+/* Provider-style starting points. A click only fills the draft; Save commits. */
+.ai-assistant-panel-effort-editor-presets {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+    margin-bottom: 0.55rem;
+}
+
+.ai-assistant-panel-effort-editor-presets-label {
+    margin-right: 0.08rem;
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+}
+
+.ai-assistant-panel-effort-editor-preset {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 1.75rem;
+    padding: 0.18rem 0.42rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #d0d7de)
+    );
+    border-radius: 999px;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+    font: inherit;
+    font-size: 0.69rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ai-assistant-panel-effort-editor-preset:hover,
+.ai-assistant-panel-effort-editor-preset[data-suggested="true"] {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: color-mix(in srgb,
+        var(--pst-color-primary, #2980b9) 6%,
+        var(--pst-color-surface, #fff));
+}
+
+.ai-assistant-panel-effort-editor-preset:focus { outline: none; }
+.ai-assistant-panel-effort-editor-preset:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
+.ai-assistant-panel-effort-editor-preset-count {
+    min-width: 1.05rem;
+    padding: 0.02rem 0.25rem;
+    border-radius: 999px;
+    background: rgba(127, 127, 127, 0.13);
+    text-align: center;
+    font-size: 0.61rem;
+    font-weight: 600;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6a737d));
+}
+
+.ai-assistant-panel-effort-editor-preset-suggested {
+    font-size: 0.58rem;
+    font-weight: 600;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+.ai-assistant-panel-effort-editor-preset-suggested[hidden] {
+    display: none !important;
+}
+
+/* Editable scale rows: order | label | id | remove. */
+.ai-assistant-panel-effort-editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+}
+
+.ai-assistant-panel-effort-editor-row {
+    display: grid;
+    grid-template-columns: 1.45rem minmax(0, 1.15fr) minmax(0, 0.9fr) 1.8rem;
+    align-items: end;
+    gap: 0.34rem;
+    padding: 0.42rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e8)
+    );
+    border-radius: 8px;
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, rgba(127, 127, 127, 0.025))
+    );
+}
+
+.ai-assistant-panel-effort-editor-order {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    background: rgba(127, 127, 127, 0.12);
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font-size: 0.62rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.ai-assistant-panel-effort-editor-field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.17rem;
+}
+
+.ai-assistant-panel-effort-editor-field-name {
+    font-size: 0.61rem;
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+}
+
+.ai-assistant-panel-effort-editor-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #d0d7de)
+    );
+    border-radius: 6px;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+    font: inherit;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-assistant-panel-effort-editor-id-input {
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 0.68rem;
+}
+
+.ai-assistant-panel-effort-editor-input::placeholder {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #adb5bd));
+    opacity: 0.8;
+}
+
+.ai-assistant-panel-effort-editor-input:focus {
+    outline: none;
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.14);
+}
+
+.ai-assistant-panel-effort-editor-remove {
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease,
+                border-color 0.15s ease;
+}
+
+.ai-assistant-panel-effort-editor-remove-icon,
+.ai-assistant-panel-effort-editor-remove-icon svg {
+    width: 0.82rem;
+    height: 0.82rem;
+}
+
+.ai-assistant-panel-effort-editor-remove:hover:not(:disabled) {
+    color: #c62828;
+    border-color: rgba(198, 40, 40, 0.28);
+    background: rgba(198, 40, 40, 0.07);
+}
+
+.ai-assistant-panel-effort-editor-remove:focus { outline: none; }
+.ai-assistant-panel-effort-editor-remove:focus-visible {
+    outline: 2px solid #c62828;
+    outline-offset: 1px;
+}
+
+.ai-assistant-panel-effort-editor-remove:disabled {
+    opacity: 0.32;
+    cursor: not-allowed;
+}
+
+/* The requested "| + |" affordance: full-width dashed insertion target. */
+.ai-assistant-panel-effort-editor-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: 100%;
+    min-height: 2rem;
+    margin-top: 0.42rem;
+    padding: 0.32rem 0.55rem;
+    border: 1px dashed var(
+        --pst-color-border,
+        var(--color-foreground-border, #b9c0c7)
+    );
+    border-radius: 7px;
+    background: transparent;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ai-assistant-panel-effort-editor-add:hover:not(:disabled) {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: color-mix(in srgb,
+        var(--pst-color-primary, #2980b9) 6%, transparent);
+}
+
+.ai-assistant-panel-effort-editor-add:focus { outline: none; }
+.ai-assistant-panel-effort-editor-add:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-effort-editor-add:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.ai-assistant-panel-effort-editor-add-icon,
+.ai-assistant-panel-effort-editor-add-icon svg {
+    width: 0.82rem;
+    height: 0.82rem;
+}
+
+.ai-assistant-panel-effort-editor-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.38rem;
+    margin-top: 0.52rem;
+}
+
+.ai-assistant-panel-effort-editor-cancel,
+.ai-assistant-panel-effort-editor-save {
+    min-height: 1.85rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ai-assistant-panel-effort-editor-cancel {
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #d0d7de)
+    );
+    background: transparent;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+}
+
+.ai-assistant-panel-effort-editor-save {
+    border: 1px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: #fff;
+}
+
+.ai-assistant-panel-effort-editor-cancel:hover {
+    background: rgba(127, 127, 127, 0.08);
+}
+
+.ai-assistant-panel-effort-editor-save:hover {
+    filter: brightness(0.96);
+}
+
+.ai-assistant-panel-effort-editor-cancel:focus,
+.ai-assistant-panel-effort-editor-save:focus { outline: none; }
+.ai-assistant-panel-effort-editor-cancel:focus-visible,
+.ai-assistant-panel-effort-editor-save:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-effort-editor-status {
+    min-height: 1em;
+    margin: 0.38rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+
+.ai-assistant-panel-effort-editor-status--error {
+    color: #c62828;
+}
+
+.ai-assistant-panel-effort-editor-status--success {
+    color: #1b7f3a;
+}
+
+.ai-assistant-panel-effort-editor-status--warning {
+    color: #9a6700;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-toggle,
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-preset,
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-input {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-preset,
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-input {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--pst-color-text-base, rgba(255, 255, 255, 0.88));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-row {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-status--success {
+    color: #72d58b;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-editor-status--warning {
+    color: #e3b341;
+}
+
+/* On genuinely narrow panels, preserve full input width by stacking ID below
+ * Label while the order marker and remove button stay fixed at the edges. */
+@media (max-width: 400px) {
+    .ai-assistant-panel-effort-editor-row {
+        grid-template-columns: 1.45rem minmax(0, 1fr) 1.8rem;
+        align-items: start;
+    }
+    .ai-assistant-panel-effort-editor-order {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+    .ai-assistant-panel-effort-editor-field {
+        grid-column: 2;
+    }
+    .ai-assistant-panel-effort-editor-id-field {
+        grid-row: 2;
+    }
+    .ai-assistant-panel-effort-editor-remove {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        align-self: center;
+    }
+}
+
+/* Thinking editor reuses the effort editor's quiet controls, but its form
+ * is a compact capability/wire grid rather than a variable-length list. */
+.ai-assistant-panel-thinking-editor-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: 0.46rem;
+}
+
+.ai-assistant-panel-thinking-editor-field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.ai-assistant-panel-thinking-editor-help {
+    font-size: 0.62rem;
+    line-height: 1.35;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+}
+
+.ai-assistant-panel-thinking-editor-select {
+    width: 100%;
+    min-height: 1.95rem;
+}
+
+.ai-assistant-panel-thinking-editor-budget-field[data-inert="true"] {
+    opacity: 0.48;
+}
+
+.ai-assistant-panel-thinking-editor-section .ai-assistant-panel-effort-editor-actions {
+    flex-wrap: wrap;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-thinking-editor-select {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--pst-color-text-base, rgba(255, 255, 255, 0.88));
+}
+
+@media (max-width: 430px) {
+    .ai-assistant-panel-thinking-editor-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .ai-assistant-panel-thinking-editor-section .ai-assistant-panel-effort-editor-actions {
+        justify-content: stretch;
+    }
+    .ai-assistant-panel-thinking-editor-section .ai-assistant-panel-effort-editor-cancel,
+    .ai-assistant-panel-thinking-editor-section .ai-assistant-panel-effort-editor-save {
+        flex: 1 1 auto;
+    }
 }
 
 /* ─── §B  Extended-reasoning (thinking) row ─────────────────────────────── */
@@ -4578,7 +5149,12 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
 @media (prefers-reduced-motion: reduce) {
     .ai-assistant-panel-thinking-toggle,
     .ai-assistant-panel-thinking-toggle-thumb,
-    .ai-assistant-panel-effort-btn {
+    .ai-assistant-panel-effort-btn,
+    .ai-assistant-panel-effort-editor-toggle,
+    .ai-assistant-panel-effort-editor-preset,
+    .ai-assistant-panel-effort-editor-input,
+    .ai-assistant-panel-effort-editor-add,
+    .ai-assistant-panel-effort-editor-remove {
         transition: none;
     }
 }
@@ -5163,13 +5739,15 @@ details.ai-md-section[open] > summary .ai-md-section-chevron {
 }
 
 /* ON state — brand-coloured track + thumb shifted right */
-.ai-assistant-mic-popup-toggle[aria-pressed="true"] .ai-assistant-mic-toggle-track {
+.ai-assistant-mic-popup-toggle[aria-pressed="true"] .ai-assistant-mic-toggle-track,
+.ai-assistant-mic-popup-toggle[aria-checked="true"] .ai-assistant-mic-toggle-track {
     background: var(
         --pst-color-primary,
         var(--color-brand-primary, #2980b9)
     );
 }
-.ai-assistant-mic-popup-toggle[aria-pressed="true"] .ai-assistant-mic-toggle-thumb {
+.ai-assistant-mic-popup-toggle[aria-pressed="true"] .ai-assistant-mic-toggle-thumb,
+.ai-assistant-mic-popup-toggle[aria-checked="true"] .ai-assistant-mic-toggle-thumb {
     transform: translateX(12px);
 }
 
@@ -7730,33 +8308,20 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     white-space: nowrap;
 }
 
-/* When share-link is ON: tint icon + label with accent colour so the active
- * state is immediately readable without opening the menu. */
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-icon,
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-label {
+/* When share-link is ON: tint icon + label with accent colour.  The row
+ * itself is the interactive control, so no descendant id / :has() lookup is
+ * required and every cloned toolbar stays visually synchronized. */
+.ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-icon,
+.ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-label {
     color: var(--color-accent, #0969da);
 }
 
 [data-bs-theme="dark"]
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-icon,
-.dark
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-icon,
+.ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-icon,
+.dark .ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-icon,
 [data-bs-theme="dark"]
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-label,
-.dark
-.ai-assistant-export-menu-mode-row:has(
-    #ai-assistant-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-export-menu-mode-label {
+.ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-label,
+.dark .ai-assistant-export-menu-mode-row[aria-checked="true"] .ai-assistant-export-menu-mode-label {
     color: var(--pst-color-primary, #58a6ff);
 }
 
@@ -7767,6 +8332,98 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
  * absolute positioning, slide-in animation (data-open), z-index, and focus
  * trapping.  Only the new inner layout needs styling here.
  * ════════════════════════════════════════════════════════════════════════════ */
+
+/* One stable sheet, compact in-sheet format switcher. */
+.ai-assistant-conv-share-format-switcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px 7px;
+    border-bottom: 1px solid var(--color-border, #d0d7de);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+[data-bs-theme="dark"] .ai-assistant-conv-share-format-switcher,
+.dark .ai-assistant-conv-share-format-switcher {
+    border-bottom-color: var(--pst-color-border, #30363d);
+}
+
+.ai-assistant-conv-share-format-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 5px 9px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-foreground-secondary, #586069);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.ai-assistant-conv-share-format-btn:hover {
+    background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+}
+
+.ai-assistant-conv-share-format-btn[aria-selected="true"] {
+    background: rgba(9, 105, 218, 0.1);
+    border-color: rgba(9, 105, 218, 0.22);
+    color: var(--color-accent, #0969da);
+}
+
+.ai-assistant-conv-share-format-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-accent, #0969da));
+    outline-offset: 1px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-conv-share-format-btn,
+.dark .ai-assistant-conv-share-format-btn {
+    color: var(--pst-color-text-muted, #8b949e);
+}
+
+[data-bs-theme="dark"] .ai-assistant-conv-share-format-btn:hover,
+.dark .ai-assistant-conv-share-format-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-bs-theme="dark"] .ai-assistant-conv-share-format-btn[aria-selected="true"],
+.dark .ai-assistant-conv-share-format-btn[aria-selected="true"] {
+    background: rgba(88, 166, 255, 0.12);
+    border-color: rgba(88, 166, 255, 0.26);
+    color: var(--pst-color-primary, #58a6ff);
+}
+
+.ai-assistant-conv-share-format-icon {
+    display: inline-flex;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+}
+
+.ai-assistant-conv-share-format-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.ai-assistant-conv-share-format-host {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+}
+
+.ai-assistant-conv-share-format-panel {
+    width: 100%;
+    min-width: 0;
+}
 
 .ai-assistant-conv-share-body {
     display: flex;
@@ -8051,6 +8708,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 /* ── Reduced-motion ──────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
+    .ai-assistant-conv-share-format-btn,
     .ai-assistant-conv-share-opt,
     .ai-assistant-conv-share-action-btn,
     .ai-assistant-conv-share-generate-btn,
@@ -9240,41 +9898,121 @@ a.ai-assistant-panel-ep-resolved-url:focus-visible {
    §L  Add Profile collapsible form
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Toggle button — text link style (no box). */
+/* Endpoint disclosure launchers — same visual language as the Model sheet's
+   “Add model” button: compact icon + label, dashed edge, stable text, and a
+   disclosure chevron instead of swapping labels while a panel is open. */
 .ai-assistant-panel-ep-add-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0;
+    gap: 0.32rem;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.28rem 0.52rem;
     margin: 0.3rem 0;
-    background: none;
-    border: none;
+    border: 1px dashed color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 62%, transparent
+    );
+    border-radius: 6px;
+    background: color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 6%, transparent
+    );
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
     font: inherit;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 500;
-    color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    line-height: 1.2;
+    text-align: left;
     cursor: pointer;
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    transition: text-decoration-color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease;
 }
 
 .ai-assistant-panel-ep-add-toggle:hover {
-    text-decoration-color: currentColor;
+    border-style: solid;
+    background: color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 11%, transparent
+    );
 }
 
-.ai-assistant-panel-ep-add-toggle:focus         { outline: none; }
+.ai-assistant-panel-ep-add-toggle[aria-expanded="true"] {
+    border-style: solid;
+    background: color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 12%, transparent
+    );
+}
+
+.ai-assistant-panel-ep-add-toggle:focus { outline: none; }
 .ai-assistant-panel-ep-add-toggle:focus-visible {
     outline: 2px solid var(
         --pst-color-primary,
         var(--color-brand-primary, #2563eb)
     );
     outline-offset: 2px;
-    border-radius: 3px;
+}
+
+.ai-assistant-panel-ep-add-toggle-icon,
+.ai-assistant-panel-ep-add-toggle-icon svg {
+    width: 0.8rem;
+    height: 0.8rem;
+    flex: 0 0 auto;
+}
+
+.ai-assistant-panel-ep-add-toggle-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-assistant-panel-ep-add-toggle-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.72rem;
+    height: 0.72rem;
+    margin-left: 0.1rem;
+    flex: 0 0 auto;
+    opacity: 0.68;
+    transform: rotate(0deg);
+    transition: transform 0.15s ease;
+}
+
+.ai-assistant-panel-ep-add-toggle-chevron svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ai-assistant-panel-ep-add-toggle[aria-expanded="true"]
+.ai-assistant-panel-ep-add-toggle-chevron {
+    transform: rotate(180deg);
 }
 
 [data-bs-theme="dark"] .ai-assistant-panel-ep-add-toggle {
-    color: #93c5fd;
+    border-color: color-mix(in srgb, var(--pst-color-primary, #58a6ff) 65%, transparent);
+    background: color-mix(in srgb, var(--pst-color-primary, #58a6ff) 8%, transparent);
+    color: var(--pst-color-primary, #93c5fd);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-add-toggle:hover,
+[data-bs-theme="dark"] .ai-assistant-panel-ep-add-toggle[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--pst-color-primary, #58a6ff) 14%, transparent);
+}
+
+@media (max-width: 500px) {
+    .ai-assistant-panel-ep-add-toggle {
+        width: 100%;
+        min-height: 2rem;
+    }
+    .ai-assistant-panel-ep-add-toggle-chevron {
+        margin-left: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-ep-add-toggle,
+    .ai-assistant-panel-ep-add-toggle-chevron {
+        transition: none;
+    }
 }
 
 /* Form container. */
@@ -11870,23 +12608,6 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     background: rgba(156, 163, 175, 0.15);
     color: #6b7280;
 }
-/* "Coming soon" future-feature placeholder rows */
-.ai-assistant-panel-ep-ext-future-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.3rem 0;
-    font-size: 0.76rem;
-    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #aaa));
-    opacity: 0.7;
-}
-.ai-assistant-panel-ep-ext-future-row svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    stroke: currentColor;
-    fill: none;
-}
 /* Dark mode overrides */
 [data-bs-theme="dark"] .ai-assistant-panel-ep-ext-sub-head {
     color: var(--pst-color-text-muted, #9ca3af);
@@ -12031,25 +12752,6 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     margin: 0.2rem 0 0;
 }
 
-/* Custom dataset repo override form — P0 in _buildDatasetSection's
- * resolution chain. datasetCustomClearBtn intentionally reuses
- * .ai-assistant-panel-ep-ext-dataset-refresh-btn's low-emphasis style
- * ("Reset to default" reads as secondary next to Save). */
-.ai-assistant-panel-ep-ext-dataset-custom {
-    margin: 0.5rem 0 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px dashed var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
-}
-.ai-assistant-panel-ep-ext-dataset-custom-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.3rem;
-}
-.ai-assistant-panel-ep-ext-dataset-custom-row .ai-assistant-panel-ep-input {
-    flex: 1;
-    min-width: 0;
-}
 .ai-assistant-panel-ep-ext-dataset-refresh-btn {
     display: inline-flex;
     align-items: center;
@@ -12297,6 +12999,24 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
         opacity   0.14s ease,
         transform 0.14s ease;
 }
+/* Once JS has measured the live panel body, top/left become authoritative.
+ * The popup stays inside the transcript viewport and owns its own small scroll
+ * area when the panel is shorter than the menu's natural height. */
+.ai-assistant-fbk-popup[data-boundary-positioned="true"] {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+}
+.ai-assistant-fbk-popup[data-placement="top"]    { transform-origin: bottom right; }
+.ai-assistant-fbk-popup[data-placement="bottom"] { transform-origin: top right; }
+.ai-assistant-fbk-popup[data-placement="left"]   { transform-origin: center right; }
+.ai-assistant-fbk-popup[data-placement="right"]  { transform-origin: center left; }
+.ai-assistant-fbk-popup[data-placement="top"]:not([data-pinned="true"])    { transform: translateY(3px); }
+.ai-assistant-fbk-popup[data-placement="bottom"]:not([data-pinned="true"]) { transform: translateY(-3px); }
+.ai-assistant-fbk-popup[data-placement="left"]:not([data-pinned="true"])   { transform: translateX(3px); }
+.ai-assistant-fbk-popup[data-placement="right"]:not([data-pinned="true"])  { transform: translateX(-3px); }
 .ai-assistant-fbk-popup[data-pinned="true"] {
     opacity: 1;
     pointer-events: auto;
@@ -12342,6 +13062,16 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
 }
 /* Hairline separator between rows */
+.ai-assistant-fbk-popup-hint {
+    margin: -0.12rem 0.68rem 0.5rem 2.35rem;
+    font-size: 0.71rem;
+    line-height: 1.38;
+    color: var(--pst-color-text-muted, #64748b);
+}
+[data-bs-theme="dark"] .ai-assistant-fbk-popup-hint {
+    color: #9ca3af;
+}
+
 .ai-assistant-fbk-popup-sep {
     height: 1px;
     background: var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
@@ -12419,16 +13149,17 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  *         span.ai-assistant-share-export-mode-badge     ← "Download" | "Link"
  *         span.ai-assistant-share-export-chevron        ← chevronDown SVG
  *     div.ai-assistant-share-export-body   [data-open="false|true"]
- *       div.ai-assistant-share-export-cards              ← responsive auto-fill grid
+ *       div.ai-assistant-share-export-body-inner         ← single collapse child
+ *         div.ai-assistant-share-export-cards            ← responsive auto-fill grid
  *         button.ai-assistant-share-export-card × 3
  *           span.ai-assistant-share-export-card-icon
  *           span.ai-assistant-share-export-card-label
  *           span.ai-assistant-share-export-card-hint
  *       div.ai-assistant-share-export-sep                ← hairline
- *       div.ai-assistant-share-export-mode-row           ← link-mode toggle
+ *       button.ai-assistant-share-export-mode-row        ← shared link-mode control
  *         span.ai-assistant-share-export-mode-icon
  *         span.ai-assistant-share-export-mode-label
- *         button#ai-assistant-share-export-link-toggle   ← reuses mic-pill CSS
+ *         span.ai-assistant-mic-toggle-track             ← visual pill
  *   div.ai-assistant-share-export-divider                ← separator to targets
  *
  * ════════════════════════════════════════════════════════════════════════════ */
@@ -12545,25 +13276,19 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     transition: background 0.13s ease, color 0.13s ease;
 }
 
-/* When link mode is ON: accent the badge to match the toolbar toggle tint. */
-.ai-assistant-share-export-trigger:has(
-    + .ai-assistant-share-export-body
-      #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-badge {
+/* When link mode is ON: accent the badge.  The section receives the shared
+ * state directly from _buildExportModeControl, avoiding descendant id lookups. */
+.ai-assistant-share-export-section[data-link-mode="true"]
+.ai-assistant-share-export-mode-badge {
     background: rgba(9, 105, 218, 0.12);
     color: var(--color-accent, #0969da);
 }
 
 [data-bs-theme="dark"]
-.ai-assistant-share-export-trigger:has(
-    + .ai-assistant-share-export-body
-      #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-badge,
-.dark
-.ai-assistant-share-export-trigger:has(
-    + .ai-assistant-share-export-body
-      #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-badge {
+.ai-assistant-share-export-section[data-link-mode="true"]
+.ai-assistant-share-export-mode-badge,
+.dark .ai-assistant-share-export-section[data-link-mode="true"]
+.ai-assistant-share-export-mode-badge {
     background: rgba(88, 166, 255, 0.13);
     color: var(--pst-color-primary, #58a6ff);
 }
@@ -12606,9 +13331,9 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  * without JS-measured pixel heights (no layout thrash).
  *
  * The grid-template-rows: 0fr → 1fr animation requires the immediate child
- * to have overflow:hidden (the inner .ai-assistant-share-export-cards +
- * mode-row wrapper).  We wrap content in a min-height:0 span so the grid
- * transition clips correctly.
+ * to have overflow:hidden.  All export controls live inside one explicit
+ * .ai-assistant-share-export-body-inner child with min-height:0 so the grid
+ * transition clips correctly and the closed body contributes zero height.
  */
 .ai-assistant-share-export-body {
     display: grid;
@@ -12626,10 +13351,11 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 }
 
 /*
- * Inner container — overflow:hidden required for the grid-template-rows
- * collapse trick.  min-height:0 prevents min-content from overriding 0fr.
+ * Exactly one immediate child is required for the 0fr → 1fr accordion.
+ * overflow:hidden clips its full contents while closed; min-height:0 lets the
+ * grid track truly resolve to zero instead of honoring min-content height.
  */
-.ai-assistant-share-export-body > * {
+.ai-assistant-share-export-body-inner {
     overflow: hidden;
     min-height: 0;
 }
@@ -12651,8 +13377,13 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  *
  * WIDE mode (≥ 400 px container, via @container below):
  *   Single-column horizontal rows — icon disc + label + hint on one line.
- *   Stub cards are hidden and replaced by a subtle "more soon" footer.
  *   This covers panels that the user has resized or maximized (max 960 px).
+ *
+ * Across ALL modes the card set and its order are identical: every
+ * implemented format in registry order, then every preview. Only the
+ * arrangement changes with width, never the membership and never the
+ * sequence — a card the reader saw at one size is in the same relative
+ * position at every other size.
  *
  * EXTRA-WIDE mode (≥ 560 px container, via @container below):
  *   Two-column grid of horizontal rows.  Handles the maximized panel state
@@ -12669,6 +13400,27 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     gap: 0.4rem;
     padding: 0.55rem 0 0.3rem;
 }
+
+/* ── "More export formats..." footer ───────────────────────────────────
+    * Participates in the CSS grid as a real grid item (pseudo-elements of
+    * a grid container are grid items per spec).  No DOM change required.
+    */
+/* .ai-assistant-share-export-cards::after {
+    content: 'More export formats...';
+    display: block;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    color: var(--pst-color-text-muted,
+                var(--color-foreground-secondary, #586069));
+    text-align: center;
+    padding: 0.15rem 0.5rem 0.05rem;
+    opacity: 0.6;
+    font-style: italic;
+    letter-spacing: 0.01em;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+} */
 
 /* ─── Individual format cards ─────────────────────────────────────────────── */
 /*
@@ -12724,17 +13476,21 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  * (JS sets `disabled` + `aria-disabled`) and visually demoted:
  *   • Dashed border — signals "not yet available" vs. solid active cards.
  *   • Reduced opacity — present but clearly secondary.
- *   • `pointer-events: none` — belt-and-suspenders against any accidental
- *     interaction not caught by `disabled` (e.g. programmatic `.click()`).
  *
- * Activation path: remove `stub: true` from the JS formats entry.
- * No CSS changes needed — the modifier class simply disappears.
+ * `pointer-events: none` was REMOVED. It made the card inert to the mouse
+ * while keyboard Enter still reached it, so the two input methods behaved
+ * differently on the same element — and it silently swallowed the click that
+ * now answers "why did nothing happen?". Refusal belongs in one place: the
+ * JS handler preventDefaults and announces, for pointer and keyboard alike.
+ *
+ * Activation path: move the entry from _EXPORT_STUB_FORMATS to
+ * _EXPORT_FORMATS in the JS registry. No CSS changes needed — the modifier
+ * class simply disappears.
  */
 .ai-assistant-share-export-card--stub {
     opacity: 0.46;
     cursor: default;
     border-style: dashed;
-    pointer-events: none;
 }
 
 /* Stub cards must NOT respond to hover — override the active hover rule. */
@@ -12907,32 +13663,19 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     white-space: nowrap;
 }
 
-/* Accent mode-row icon + label when link mode is ON — matches dropdown tint. */
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-icon,
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-label {
+/* Accent mode-row icon + label when link mode is ON — the row is the
+ * button, so state is read directly from aria-pressed. */
+.ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-icon,
+.ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-label {
     color: var(--color-accent, #0969da);
 }
 
 [data-bs-theme="dark"]
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-icon,
-.dark
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-icon,
+.ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-icon,
+.dark .ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-icon,
 [data-bs-theme="dark"]
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-label,
-.dark
-.ai-assistant-share-export-mode-row:has(
-    #ai-assistant-share-export-link-toggle[aria-pressed="true"]
-) .ai-assistant-share-export-mode-label {
+.ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-label,
+.dark .ai-assistant-share-export-mode-row[aria-pressed="true"] .ai-assistant-share-export-mode-label {
     color: var(--pst-color-primary, #58a6ff);
 }
 
@@ -12966,10 +13709,9 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  *   ≥ 560 px   → 2-column horizontal list          (maximized panel)
  *
  * Design decisions:
- *   • Wide mode hides all stub cards — a list of disabled rows clutters the
- *     UI.  A CSS ::after footer delivers the "more soon" message instead.
- *   • The duplicate TOML stub (symmetric bookend design) is redundant at any
- *     width above compact; hiding it avoids confusing duplication.
+ *   • Card membership and order do not change with width. Previews render at
+ *     every size, always last; there is no width at which the "coming soon"
+ *     signal changes mechanism or moves.
  *   • Hint text revealed as single-line truncated row — fully readable at
  *     wide widths without any wrapping or layout thrash.
  *   • Left-accent inset box-shadow on hover — a 2 px primary-color bar
@@ -12990,32 +13732,38 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
         padding: 0.45rem 0 0.2rem;
     }
 
-    /* ── "More formats coming soon" footer ─────────────────────────────────
-     * Participates in the CSS grid as a real grid item (pseudo-elements of
-     * a grid container are grid items per spec).  No DOM change required.
-     * aria-hidden: the TOML stub cards in narrow mode carry the AT signal
-     * ("coming soon"); this footer is decorative reinforcement only.
+    /* ── Preview cards in row layout ───────────────────────────────────────
+     * Wide mode used to HIDE every preview card and substitute a
+     * `::after` footer reading "More export formats coming soon". Two
+     * mechanisms delivering one message, each present at only some widths:
+     * the reader saw a named TOML card below 400 px and an anonymous italic
+     * sentence above it, and neither the card order nor the message survived
+     * a resize intact.
+     *
+     * There is now one mechanism at every width — the preview card itself,
+     * in registry order, last. It says WHICH format is coming, carries a real
+     * accessible name, and is the same element a developer activates by
+     * moving one registry entry. The footer is gone.
+     *
+     * The only width-dependent thing left is styling: previews get no hover
+     * accent bar, because they are not going anywhere when clicked.
      */
-    .ai-assistant-share-export-cards::after {
-        content: 'More export formats coming soon';
-        display: block;
-        font-size: 0.68rem;
-        line-height: 1.4;
-        color: var(--pst-color-text-muted,
-                   var(--color-foreground-secondary, #586069));
-        text-align: center;
-        padding: 0.15rem 0.5rem 0.05rem;
-        opacity: 0.6;
-        font-style: italic;
-        letter-spacing: 0.01em;
-        pointer-events: none;
-        -webkit-user-select: none;
-        user-select: none;
+    .ai-assistant-share-export-card--stub:hover {
+        background: transparent;
+        border-color: rgba(127, 127, 127, 0.2);
+        box-shadow: none;
     }
 
-    /* Stub cards hidden in wide mode — the footer above replaces them */
-    .ai-assistant-share-export-card--stub {
-        display: none;
+    [data-bs-theme="dark"] .ai-assistant-share-export-card--stub:hover,
+    .dark .ai-assistant-share-export-card--stub:hover {
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: none;
+    }
+
+    .ai-assistant-share-export-card--stub:hover
+        .ai-assistant-share-export-card-icon {
+        background: color-mix(in srgb, var(--pst-color-primary, #2980b9) 10%, transparent);
     }
 
     /* ── Card: horizontal row ───────────────────────────────────────────────
@@ -13123,27 +13871,23 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 /*
  * Fires at panels wider than ~590 px — covers the maximized state
  * (min(960 px, 100 vw − 1 rem)) and any user-resized panel above that.
- * With 3 active cards + ::after footer, the grid fills as:
  *
- *   [ JSON  ] [ HTML  ]
- *   [ Text  ] [ more soon ]
+ * With 3 implemented formats + 1 preview the grid fills as a complete 2×2
+ * block, in registry order, reading left-to-right then top-to-bottom:
  *
- * ::after spans naturally into col 2, row 2 — no explicit placement needed.
- * grid-column: 1 / -1 is NOT used so the footer aligns right of the last
- * card, giving a balanced two-column appearance.
+ *   [ JSON      ] [ HTML      ]
+ *   [ Plain text] [ TOML soon ]
+ *
+ * That squareness is not a coincidence to preserve at all costs — it is what
+ * four items do in two columns. Adding a second preview gives 5 items and a
+ * ragged final row, which is correct and readable; do not add a filler card
+ * to "balance" it.
  */
 @container share-export-panel (min-width: 560px) {
 
     .ai-assistant-share-export-cards {
         grid-template-columns: 1fr 1fr;
         gap: 0.35rem;
-    }
-
-    /* Footer in 2-col: align text left to match the card beside it */
-    .ai-assistant-share-export-cards::after {
-        text-align: left;
-        padding-left: 0.6rem;
-        align-self: center;
     }
 }
 
@@ -13930,49 +14674,204 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
    inherits light/dark/theme colours without extra JS.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* §P.1 — Section container: top-border divider + consistent spacing */
+/* §P.1 — Model-management surface: adjacent to the model list, before Effort. */
 .ai-assistant-panel-custom-section {
     margin: 0.75rem 0 0;
-    padding: 0.75rem 0.5rem 1rem;
-    border-top: 1px solid var(
-        --pst-color-border,
-        var(--color-foreground-border, #e1e4e5)
-    );
+    padding: 0 1rem 0.1rem;
 }
 
-/* §P.2 — Header row: label + count badge side-by-side */
+/* §P.2 — Compact launcher: primary actions only. Secondary count lives in
+   the disclosed editor heading so the strip stays stable on narrow panels. */
 .ai-assistant-panel-custom-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.6rem;
+    gap: 0.45rem;
+}
+
+.ai-assistant-panel-custom-new-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.27rem 0.55rem;
+    border: 1px dashed color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 62%, transparent
+    );
+    border-radius: 6px;
+    background: color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 6%, transparent
+    );
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    font: inherit;
     font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(
-        --pst-color-text-base,
-        var(--color-foreground-primary, #212529)
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                opacity 0.15s ease;
+}
+
+.ai-assistant-panel-custom-new-btn:hover:not(:disabled) {
+    border-style: solid;
+    background: color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 11%, transparent
     );
 }
 
-/* §P.3 — Count badge pushed to the right */
+.ai-assistant-panel-custom-new-btn:focus { outline: none; }
+.ai-assistant-panel-custom-new-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-custom-new-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ai-assistant-panel-custom-new-icon,
+.ai-assistant-panel-custom-new-icon svg {
+    width: 0.78rem;
+    height: 0.78rem;
+    flex-shrink: 0;
+}
+
+/* §P.3 — Capacity badge: secondary information next to “Custom Models”.
+   Keeping this out of the launcher prevents a fourth grid item from forcing
+   Revert/Customize to wrap on small panels. */
 .ai-assistant-panel-custom-count {
-    margin-left: auto;
-    font-size: 0.7rem;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0.08rem 0.3rem;
+    border: 1px solid color-mix(
+        in srgb, var(--pst-color-border, #d8dee4) 72%, transparent
+    );
+    border-radius: 999px;
+    background: color-mix(
+        in srgb, var(--pst-color-on-background, #f6f7f8) 72%, transparent
+    );
+    font-size: 0.64rem;
+    font-weight: 600;
+    line-height: 1.15;
     color: var(
         --pst-color-text-muted,
         var(--color-foreground-secondary, #6c757d)
     );
+    white-space: nowrap;
 }
 
-/* §P.4 — Form wrapper: stacked fields */
+.ai-assistant-panel-custom-revert-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    justify-self: end;
+    padding: 0.27rem 0.48rem;
+    border: 1px solid color-mix(
+        in srgb, var(--pst-color-warning, #b54708) 42%, transparent
+    );
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pst-color-warning, #b54708);
+    font: inherit;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+                opacity 0.15s ease;
+}
+
+.ai-assistant-panel-custom-revert-btn:hover:not(:disabled) {
+    background: color-mix(
+        in srgb, var(--pst-color-warning, #b54708) 9%, transparent
+    );
+    border-color: var(--pst-color-warning, #b54708);
+}
+
+.ai-assistant-panel-custom-revert-btn:focus { outline: none; }
+.ai-assistant-panel-custom-revert-btn:focus-visible {
+    outline: 2px solid var(--pst-color-warning, #b54708);
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-custom-revert-btn:disabled {
+    opacity: 0.34;
+    cursor: not-allowed;
+}
+
+.ai-assistant-panel-custom-revert-icon,
+.ai-assistant-panel-custom-revert-icon svg {
+    width: 0.72rem;
+    height: 0.72rem;
+    flex-shrink: 0;
+}
+
+.ai-assistant-panel-custom-editor-toggle {
+    justify-self: end;
+}
+
+/* §P.4 — Collapsible editor shared by Add, Customize, and row-level Edit. */
+.ai-assistant-panel-custom-editor[hidden] {
+    display: none !important;
+}
+
+.ai-assistant-panel-custom-editor {
+    margin-top: 0.55rem;
+    padding: 0.65rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+    border-radius: 8px;
+    background: color-mix(
+        in srgb,
+        var(--pst-color-on-background, var(--color-background-secondary, #f6f7f8)) 70%,
+        transparent
+    );
+}
+
+.ai-assistant-panel-custom-editor-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    margin-bottom: 0.55rem;
+}
+
+.ai-assistant-panel-custom-editor-title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    flex: 0 1 auto;
+}
+
+.ai-assistant-panel-custom-editor-title {
+    min-width: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #212529));
+}
+
+.ai-assistant-panel-custom-editor-hint {
+    min-width: 0;
+    margin-left: auto;
+    font-size: 0.66rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6c757d));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* §P.5 — Form wrapper: stacked fields inside the disclosed editor. */
 .ai-assistant-panel-custom-form {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.55rem;
 }
 
 /* §P.5 — Individual field row (label on top, input below) */
@@ -14156,9 +15055,203 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     border-color: #dc3545;
 }
 
-/* §P.16 — Dark-mode overrides */
-[data-bs-theme="dark"] .ai-assistant-panel-custom-section {
-    border-top-color: rgba(255, 255, 255, 0.1);
+/* §P.16 — Extensible, UI-only custom metadata fields. */
+.ai-assistant-panel-custom-fields-group {
+    margin-top: 0.2rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid color-mix(
+        in srgb, var(--pst-color-border, #ced4da) 70%, transparent
+    );
+}
+
+.ai-assistant-panel-custom-fields-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+
+.ai-assistant-panel-custom-field-count {
+    flex-shrink: 0;
+    font-size: 0.62rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6c757d));
+}
+
+.ai-assistant-panel-custom-fields-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+}
+
+.ai-assistant-panel-custom-field-row {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 0.9fr) minmax(7rem, 1.25fr) 5.4rem 1.75rem;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-custom-field-row .ai-assistant-panel-custom-input,
+.ai-assistant-panel-custom-field-row .ai-assistant-panel-custom-select {
+    min-width: 0;
+}
+
+.ai-assistant-panel-custom-field-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6c757d));
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ai-assistant-panel-custom-field-remove-btn:hover {
+    border-color: color-mix(in srgb, #dc3545 45%, transparent);
+    background: color-mix(in srgb, #dc3545 8%, transparent);
+    color: #dc3545;
+}
+
+.ai-assistant-panel-custom-field-remove-btn:focus { outline: none; }
+.ai-assistant-panel-custom-field-remove-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #0d6efd));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-custom-field-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.34rem 0.5rem;
+    border: 1px dashed color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 45%, transparent
+    );
+    border-radius: 7px;
+    background: transparent;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    font: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.ai-assistant-panel-custom-field-add-btn:hover:not(:disabled) {
+    border-style: solid;
+    background: color-mix(in srgb, var(--pst-color-primary, #2980b9) 7%, transparent);
+}
+
+.ai-assistant-panel-custom-field-add-btn:focus { outline: none; }
+.ai-assistant-panel-custom-field-add-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-custom-field-add-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ai-assistant-panel-custom-field-add-icon,
+.ai-assistant-panel-custom-field-add-icon svg {
+    width: 0.76rem;
+    height: 0.76rem;
+    flex-shrink: 0;
+}
+
+/* Model-card representation of reader-defined metadata. */
+.ai-assistant-panel-model-custom-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 11rem;
+    padding: 0.05rem 0.28rem;
+    border: 1px dashed color-mix(
+        in srgb, var(--pst-color-primary, #2980b9) 38%, transparent
+    );
+    border-radius: 999px;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6c757d));
+    font-size: 0.58rem;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-assistant-panel-model-custom-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.18rem 0.5rem;
+    margin-top: 0.18rem;
+    min-width: 0;
+    font-size: 0.62rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6c757d));
+}
+
+.ai-assistant-panel-model-custom-meta-item {
+    display: inline-flex;
+    gap: 0.22rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-model-custom-meta-key {
+    font-weight: 600;
+}
+
+.ai-assistant-panel-model-custom-meta-key::after {
+    content: ':';
+}
+
+.ai-assistant-panel-model-custom-meta-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .ai-assistant-panel-custom-field-row {
+        grid-template-columns: minmax(0, 1fr) 5.4rem 1.75rem;
+    }
+    .ai-assistant-panel-custom-field-name {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 420px) {
+    .ai-assistant-panel-custom-field-row {
+        grid-template-columns: minmax(0, 1fr) 1.75rem;
+    }
+    .ai-assistant-panel-custom-field-name,
+    .ai-assistant-panel-custom-field-value {
+        grid-column: 1 / -1;
+    }
+    .ai-assistant-panel-custom-field-display {
+        grid-column: 1;
+    }
+    .ai-assistant-panel-custom-field-remove-btn {
+        grid-column: 2;
+    }
+}
+
+/* §P.17 — Dark-mode overrides */
+[data-bs-theme="dark"] .ai-assistant-panel-custom-editor {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.035);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-custom-new-btn {
+    border-color: color-mix(in srgb, var(--pst-color-primary, #58a6ff) 65%, transparent);
+    background: color-mix(in srgb, var(--pst-color-primary, #58a6ff) 8%, transparent);
 }
 
 [data-bs-theme="dark"] .ai-assistant-panel-custom-input,
@@ -14173,13 +15266,44 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* §P.17 — Reduced-motion: suppress transitions in the form controls */
+/* §P.18 — Reduced-motion: suppress transitions in the form controls */
 @media (prefers-reduced-motion: reduce) {
     .ai-assistant-panel-custom-input,
     .ai-assistant-panel-custom-select,
     .ai-assistant-panel-custom-add-btn,
-    .ai-assistant-panel-custom-del-btn {
+    .ai-assistant-panel-custom-new-btn,
+    .ai-assistant-panel-custom-editor-toggle,
+    .ai-assistant-panel-custom-revert-btn,
+    .ai-assistant-panel-custom-del-btn,
+    .ai-assistant-panel-custom-field-add-btn,
+    .ai-assistant-panel-custom-field-remove-btn,
+    .ai-assistant-panel-model-remove-btn {
         transition: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .ai-assistant-panel-custom-header {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 0.28rem;
+    }
+    .ai-assistant-panel-custom-new-btn,
+    .ai-assistant-panel-custom-revert-btn,
+    .ai-assistant-panel-custom-editor-toggle {
+        padding-inline: 0.38rem;
+        white-space: nowrap;
+    }
+    .ai-assistant-panel-custom-editor-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+    .ai-assistant-panel-custom-editor-title-row {
+        max-width: 100%;
+    }
+    .ai-assistant-panel-custom-editor-hint {
+        margin-left: 0;
+        max-width: 100%;
     }
 }
 
@@ -14342,6 +15466,21 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     align-items: center;
 }
 
+/* Quiet divider keeps the integrated row readable without making a card. */
+.ai-assistant-copy-mode-switch::before {
+    position: absolute;
+    top: 13px;
+    bottom: 13px;
+    left: 0;
+    width: 1px;
+    background: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.16))
+    );
+    content: "";
+    opacity: 0.72;
+}
+
 .ai-assistant-copy-mode-switch:hover {
     background: rgba(0, 0, 0, 0.04);
 }
@@ -14395,4 +15534,2220 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     clip: rect(0, 0, 0, 0) !important;
     white-space: nowrap !important;
     border: 0 !important;
+}
+
+/* ── AI panel trigger visibility switch ────────────────────────────────────
+ *
+ * Third instance of the same control, deliberately identical to
+ * .ai-assistant-pdf-mode-switch and .ai-assistant-copy-mode-switch: same
+ * track/thumb primitives, same 48px gutter, same accent-on-checked treatment.
+ * A reader learns the interaction once and it holds across all three rows.
+ *
+ *   aria-checked="true"  -> the floating "Ask AI" pill is shown on every page
+ *   aria-checked="false" -> the pill is hidden while the panel is not in use
+ *
+ * The switch is only ever rendered when the ai_panel feature is enabled, so
+ * these rules match nothing on a build without the panel.
+ */
+
+.ai-assistant-panel-section {
+    --ai-pdf-accent: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    display: block;
+}
+
+.ai-assistant-panel-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+}
+
+/* No switch (panelTriggerToggle = False): the row collapses to the plain menu
+   item it was before this control existed. */
+.ai-assistant-panel-section[data-panel-has-toggle="false"] .ai-assistant-panel-row {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ai-assistant-panel-mode-switch {
+    position: relative;
+    align-self: stretch;
+    justify-content: center;
+    width: 48px;
+    min-width: 48px;
+    margin: 0;
+    border: 0;
+    border-radius: 0 4px 4px 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+    touch-action: manipulation;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* Quiet divider keeps the integrated row readable without making a card. */
+.ai-assistant-panel-mode-switch::before {
+    position: absolute;
+    top: 13px;
+    bottom: 13px;
+    left: 0;
+    width: 1px;
+    background: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.16))
+    );
+    content: "";
+    opacity: 0.72;
+}
+
+.ai-assistant-panel-mode-switch:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-mode-switch:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-assistant-panel-mode-switch:focus-visible {
+    outline: 2px solid var(--pst-color-primary, #0a7d91);
+    outline-offset: -2px;
+}
+
+.ai-assistant-panel-mode-switch .ai-assistant-panel-toggle-track {
+    width: 34px;
+    height: 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-mode-switch .ai-assistant-panel-toggle-track {
+    border-color: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.ai-assistant-panel-mode-switch .ai-assistant-panel-toggle-thumb {
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+}
+
+.ai-assistant-panel-mode-switch[aria-checked="true"] .ai-assistant-panel-toggle-track {
+    background: var(--ai-pdf-accent);
+}
+
+.ai-assistant-panel-mode-switch[aria-checked="true"] .ai-assistant-panel-toggle-thumb {
+    transform: translateX(16px);
+}
+
+/* Accessible current-state text. Visual feedback is the moving thumb and the
+ * pill itself appearing or disappearing immediately. */
+.ai-assistant-panel-toggle-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Locked: a minimized conversation pins the pill on screen, so the switch is
+ * shown inert rather than live-but-ignored. Mirrors
+ * .ai-assistant-pdf-mode-switch--disabled exactly. */
+.ai-assistant-panel-mode-switch--disabled,
+.ai-assistant-panel-mode-switch[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ai-assistant-panel-mode-switch:disabled:hover,
+.ai-assistant-panel-mode-switch--disabled:hover,
+.ai-assistant-panel-mode-switch[aria-disabled="true"]:hover {
+    /* Suppress the interactive hover affordance while disabled. */
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+}
+
+/* ── Visually-hidden utility ───────────────────────────────────────────────
+ *
+ * Removed from the visual layout, kept in the accessibility tree — the
+ * canonical clip-rect pattern, matching the .*-toggle-text rules above.
+ *
+ * This class was already applied by the JS (the Endpoint Configuration sheet's
+ * live region, and now the export-card live region) but had NO rule anywhere in
+ * this stylesheet, so every element wearing it rendered as ordinary visible
+ * text. Defining it here fixes that for all current and future users of the
+ * class rather than papering over one of them.
+ */
+.ai-assistant-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* ── Export menu: preview ("soon") items ───────────────────────────────────
+ *
+ * The toolbar dropdown renders the same registry as the share sheet's format
+ * cards — same set, same order, same preview logic — so it needs the same
+ * visual vocabulary for a format that is not available yet. These rules are
+ * the menu-row equivalent of .ai-assistant-share-export-card--stub: dashed
+ * left rail instead of a dashed box, since a full-width row reads better with
+ * an edge marker than an outline.
+ *
+ * Deliberately NO `pointer-events: none`. Refusal lives in one place, the
+ * shared _applyExportPreviewSemantics() click handler, so pointer and keyboard
+ * behave identically. Suppressing the click here would silence the very
+ * announcement that tells the reader why nothing happened.
+ *
+ * Activation path: move the entry from _EXPORT_STUB_FORMATS to
+ * _EXPORT_FORMATS in the JS registry. No CSS change — the modifier class
+ * simply stops being applied.
+ */
+.ai-assistant-export-menu-item--stub {
+    position: relative;
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Dashed leading rail — the row-layout counterpart of the card's dashed box. */
+.ai-assistant-export-menu-item--stub::before {
+    content: "";
+    position: absolute;
+    top: 0.3rem;
+    bottom: 0.3rem;
+    left: 0;
+    width: 0;
+    border-left: 2px dashed rgba(127, 127, 127, 0.45);
+    border-radius: 2px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-export-menu-item--stub::before,
+.dark .ai-assistant-export-menu-item--stub::before {
+    border-left-color: rgba(255, 255, 255, 0.28);
+}
+
+/* Previews are reachable, so they keep a focus ring — but they must not
+   pretend to be actionable on hover. */
+.ai-assistant-export-menu-item--stub:hover,
+.ai-assistant-export-menu-item--stub:active {
+    background: none;
+    color: inherit;
+}
+
+.ai-assistant-export-menu-item--stub:hover > span:first-child {
+    background: none;
+}
+
+/* ── Export menu: "soon" badge ─────────────────────────────────────────────
+ *
+ * Trailing pill, vertically centred in the row. The card's badge is an
+ * absolutely-positioned corner overlay because a card is a box; a menu row is
+ * a line, so the badge sits at the end of it as a flex item. Same wording,
+ * same accent, same aria-hidden treatment — only the placement differs,
+ * because the two containers differ.
+ */
+.ai-assistant-export-menu-soon {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 0.57rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.5;
+    padding: 0.05rem 0.27rem;
+    border-radius: 999px;
+    background: var(--pst-color-primary, #2980b9);
+    color: #fff;
+    opacity: 0.82;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+[data-bs-theme="dark"] .ai-assistant-export-menu-soon,
+.dark .ai-assistant-export-menu-soon {
+    opacity: 0.72;
+}
+
+/* ── Effort segmented control: narrow-panel typography ─────────────────────
+ *
+ * Five levels in a panel that can be ~300 px wide leaves roughly 55 px per
+ * cell. The label always wins that space; the one-word hint is the first
+ * thing to go, because "High" alone still identifies the level while a
+ * clipped "Balan…" identifies nothing.
+ *
+ * The escalation is deliberate and ordered: tighten type first, drop the
+ * hint only when tightening is no longer enough. Nothing here reflows the
+ * grid — the control stays one row of equal cells at every width, so the
+ * position of a level never moves.
+ */
+@media (max-width: 575px) {
+    .ai-assistant-panel-effort-lbl {
+        font-size: 0.72rem;
+    }
+    .ai-assistant-panel-effort-hint {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 400px) {
+    /* Hidden, not removed: the hint is aria-hidden decoration, and the
+     * level's own description still appears below the control. */
+    .ai-assistant-panel-effort-hint {
+        display: none;
+    }
+}
+
+/* ── Effort chip on model buttons ──────────────────────────────────────────
+ *
+ * Shows the active effort level beside the active model on every control
+ * that names the model — the footer inline picker and the sub-bar model
+ * link — so "what will answer me" is fully visible without opening the
+ * sheet. Built by the shared _attachEffortChip() helper, so both surfaces
+ * get the identical element and the identical live-update path.
+ *
+ * aria-hidden on the chip: the host button's accessible name already states
+ * the effort, and announcing it twice on focus is noise.
+ *
+ * flex-shrink: 0 — the model name truncates, the effort never does. A
+ * half-rendered "Hi…" would be worse than useless, and the chip is the
+ * shorter of the two by design.
+ */
+.ai-assistant-panel-effort-chip {
+    flex-shrink: 0;
+    font-size: 0.64rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 0.02rem 0.32rem;
+    border-radius: 999px;
+    letter-spacing: 0.01em;
+    color: var(--pst-color-text-muted,
+               var(--color-foreground-secondary, #586069));
+    background: rgba(127, 127, 127, 0.16);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-chip,
+.dark .ai-assistant-panel-effort-chip {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--pst-color-text-muted, rgba(255, 255, 255, 0.72));
+}
+
+/* The two top levels are the ones worth noticing at a glance: they cost the
+ * most time, so a reader who left one selected should be reminded of it.
+ * Accent tint only — never colour alone as the carrier, since the label text
+ * states the level outright. */
+.ai-assistant-panel-effort-chip[data-effort="extra"],
+.ai-assistant-panel-effort-chip[data-effort="max"] {
+    color: #fff;
+    background: var(--pst-color-primary, #2980b9);
+    opacity: 0.82;
+}
+
+/* Narrow screens: both host buttons collapse to icon-only, so the chip goes
+ * with the label and chevron it sits between. Same breakpoint, same rule
+ * block ordering as those elements — see the @media (max-width: 575px)
+ * collapse rules above. */
+@media (max-width: 575px) {
+    .ai-assistant-panel-inline-picker-effort,
+    .ai-assistant-panel-model-link-effort {
+        display: none;
+    }
+}
+
+/* ── Sheet section note ────────────────────────────────────────────────────
+ *
+ * One short paragraph between a section's LABEL ──── rule and its control,
+ * explaining the trade-off the control represents. Built by
+ * _buildSheetSection(label, note, noteId), so every section that needs one
+ * gets the identical DOM and these rules apply everywhere without a
+ * per-section variant.
+ *
+ * Typography is deliberately quieter than .ai-assistant-panel-effort-desc,
+ * the line that sits BELOW the effort control: the two are visible at the
+ * same time and answer different questions. The note is standing context and
+ * never changes; the desc is live feedback about the selected level and must
+ * read as the more prominent of the two, or a reader watching it update will
+ * lose track of which line just changed.
+ *
+ * Referenced by aria-describedby from the control above it, so a screen
+ * reader announces the trade-off on focus instead of leaving it to whoever
+ * happens to read past the buttons.
+ */
+.ai-assistant-panel-sheet-section-note {
+    margin: -0.15rem 0 0.55rem;
+    padding: 0 0.1rem;
+}
+
+.ai-assistant-panel-sheet-section-note-text {
+    margin: 0;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+    /* text-wrap: pretty avoids a one-word last line on the ~2-3 line lengths
+     * these notes run to; harmless where unsupported. */
+    text-wrap: pretty;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-sheet-section-note-text,
+.dark .ai-assistant-panel-sheet-section-note-text {
+    color: var(--pst-color-text-muted, #8b949e);
+}
+
+/* ── Reasoning controls with no declared endpoint support ──────────────────
+ *
+ * When the configured endpoint has not declared that it forwards the effort
+ * and extended-reasoning parameters, the panel does not send them — the
+ * provider's own defaults apply. The controls are shown INERT rather than
+ * hidden: a reader who has seen them on another site, or in a screenshot,
+ * would otherwise be left wondering where they went. The note above each
+ * section states the situation and names who can change it.
+ *
+ * Dimmed and cursor-default, matching .ai-assistant-share-export-card--stub
+ * and .ai-assistant-export-menu-item--stub. Deliberately NO pointer-events:
+ * none — refusal lives in the click handlers so pointer and keyboard behave
+ * identically, which is the rule the export previews established.
+ */
+.ai-assistant-panel-effort-seg[data-unsupported="true"],
+.ai-assistant-panel-thinking-row[data-unsupported="true"] {
+    opacity: 0.45;
+}
+
+.ai-assistant-panel-effort-seg[data-unsupported="true"]
+    .ai-assistant-panel-effort-btn,
+.ai-assistant-panel-thinking-row[data-unsupported="true"]
+    .ai-assistant-panel-thinking-toggle {
+    cursor: default;
+}
+
+/* No hover affordance on a control that will not respond. */
+.ai-assistant-panel-effort-seg[data-unsupported="true"]
+    .ai-assistant-panel-effort-btn:hover {
+    background: transparent;
+}
+
+/* "Default" chip: the provider's own settings apply, so it reads as neutral
+ * information rather than as a level the reader selected. Never the accent
+ * treatment given to Extra and Max — nothing here is worth flagging. */
+.ai-assistant-panel-effort-chip[data-effort="default"] {
+    font-weight: 500;
+    font-style: italic;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+    background: rgba(127, 127, 127, 0.12);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-effort-chip[data-effort="default"],
+.dark .ai-assistant-panel-effort-chip[data-effort="default"] {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Token budget slider: disabled state ───────────────────────────────────
+ *
+ * The slider is disabled by two independent gates (see _syncBudgetEnabled in
+ * ai-assistant.js): the reader's extended-reasoning preference being off, and
+ * the endpoint not offering extended reasoning at all. The second case is the
+ * one that needs explaining — the toggle above may render pressed-on from a
+ * previous session while nothing it controls reaches the request.
+ *
+ * `data-inert` marks the whole area rather than styling the input alone, so
+ * the value readout dims with the control it belongs to. A crisp number beside
+ * a greyed slider reads as "this is the setting in force", which is exactly
+ * the wrong impression.
+ */
+.ai-assistant-panel-budget-range:disabled {
+    cursor: default;
+    opacity: 0.5;
+    accent-color: var(--pst-color-text-muted,
+                      var(--color-foreground-muted, #8c959f));
+}
+
+.ai-assistant-panel-budget-area[data-inert="true"] .ai-assistant-panel-budget-value,
+.ai-assistant-panel-budget-area[data-inert="true"] .ai-assistant-panel-budget-label,
+.ai-assistant-panel-budget-area[data-inert="true"] .ai-assistant-panel-budget-tick {
+    opacity: 0.55;
+}
+
+/* ── Keycaps ───────────────────────────────────────────────────────────────
+ *
+ * One component for every shortcut the panel shows: the single-letter
+ * accelerator on each menu row and the multi-key panel shortcut on the row
+ * below them. Built by _createShortcutCaps() in ai-assistant.js, so a change
+ * here changes both and they cannot drift into two visual languages.
+ *
+ * Sized in `em` against the surrounding text rather than in rem, so a cap
+ * stays proportionate to whatever row it sits in — the menu rows and the
+ * smaller hint row use the same rules at different scales.
+ *
+ * The group is aria-hidden: these glyphs do not read aloud usefully (a screen
+ * reader announces U+21E7 as "up arrow" at best), so the host control carries
+ * the shortcut in its accessible name and in aria-keyshortcuts instead.
+ */
+.ai-assistant-kbd-group {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.ai-assistant-kbd {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    /* Square-ish at any font size: the box grows with the text it contains,
+     * so a one-character cap and a "Ctrl" cap share a baseline and a height. */
+    height: calc(1em + 6px);
+    min-width: calc(1em + 6px);
+    padding: 0 3px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9em;
+    line-height: 1;
+    color: inherit;
+    /* Tinted from currentColor rather than a fixed grey, so the caps stay
+     * legible in light and dark themes and inside the danger row without a
+     * separate rule for each. */
+    background: color-mix(in srgb, currentColor 10%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+/* Fallback for engines without color-mix: a neutral tint that works on both
+ * themes. Overridden by the rule above wherever color-mix is supported. */
+@supports not (background: color-mix(in srgb, currentColor 10%, transparent)) {
+    .ai-assistant-kbd {
+        background: rgba(127, 127, 127, 0.14);
+        border-color: rgba(127, 127, 127, 0.28);
+    }
+}
+
+/* Coarse pointers have no keyboard to press these with. Hidden rather than
+ * removed from the DOM so the accessible names stay intact for a screen
+ * reader driving a touch device with a paired keyboard. */
+@media (pointer: coarse) {
+    .ai-assistant-panel-hamburger-item .ai-assistant-kbd-group {
+        display: none;
+    }
+}
+
+/* ── Redaction notice ──────────────────────────────────────────────────────
+ *
+ * Shown in the transcript when a credential-shaped string was removed from
+ * the page context before sending. Visible, not merely logged: a silent
+ * redaction protects the secret and leaves the reader believing the page was
+ * sent whole -- never learning that their key is published on it, which is the
+ * thing they most need to know.
+ *
+ * Styled as a caution rather than an error. Nothing failed; something was
+ * prevented, and the reader has an action to take on the page itself.
+ * role="status" (set in JS) announces it politely rather than interrupting.
+ */
+.ai-assistant-panel-redaction-notice {
+    margin: 0.4rem 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--pst-color-warning, #b54708);
+    background: color-mix(in srgb, var(--pst-color-warning, #b54708) 8%, transparent);
+    color: var(--pst-color-text-base, inherit);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+@supports not (background: color-mix(in srgb, currentColor 8%, transparent)) {
+    .ai-assistant-panel-redaction-notice {
+        background: rgba(181, 71, 8, 0.08);
+    }
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-redaction-notice,
+.dark .ai-assistant-panel-redaction-notice {
+    border-left-color: #f79009;
+    background: rgba(247, 144, 9, 0.12);
+}
+
+/* Injection notice — same shape as the redaction notice, deliberately.
+ * Both say "something about this page is worth knowing"; giving them separate
+ * visual languages would ask the reader to learn two alarms instead of one.
+ * Neutral rather than red: nothing was blocked and nothing failed, and a
+ * notice that looks like an error on a page that turns out to be a tutorial
+ * teaches readers to dismiss the next one unread. */
+.ai-assistant-panel-injection-notice {
+    border-left-color: var(--pst-color-info, #0a7d91);
+    background: color-mix(in srgb, var(--pst-color-info, #0a7d91) 8%, transparent);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-injection-notice,
+.dark .ai-assistant-panel-injection-notice {
+    border-left-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+}
+
+/* ── Model row: responsive action surface ───────────────────────────────
+ *
+ * One DOM action group serves every breakpoint:
+ *   >= 500 px — one narrow vertical icon rail; labels float on hover/focus
+ *   < 500 px  — vertical-ellipsis disclosure; same controls become a popover
+ *
+ * State-aware rail:
+ *   normal row — Edit, Delete
+ *   edited row — Edited, Delete, Reset
+ *
+ * Icons remain visible; readable labels are exposed by tooltip/ARIA so model
+ * text keeps the maximum horizontal space.
+ */
+.ai-assistant-panel-model-row {
+    position: relative;
+}
+
+.ai-assistant-panel-model-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08rem;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.ai-assistant-panel-model-edit-btn,
+.ai-assistant-panel-model-remove-btn,
+.ai-assistant-panel-model-row-reset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.22rem;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0.15rem 0.3rem;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font: inherit;
+    font-size: 0.7rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: opacity 0.12s ease, background-color 0.12s ease,
+                color 0.12s ease;
+}
+
+.ai-assistant-panel-model-edit-btn,
+.ai-assistant-panel-model-remove-btn {
+    opacity: 1;
+}
+
+/* Stable state ordering: normal = Edit/Delete; edited = Edited/Delete/Reset. */
+.ai-assistant-panel-model-edit-btn { order: 1; }
+.ai-assistant-panel-model-edited-status { order: 1; }
+.ai-assistant-panel-model-remove-btn { order: 2; }
+.ai-assistant-panel-model-row-reset-btn { order: 3; }
+
+.ai-assistant-panel-model-edit-btn:hover,
+.ai-assistant-panel-model-edit-btn:focus-visible,
+.ai-assistant-panel-model-row-reset-btn:hover,
+.ai-assistant-panel-model-row-reset-btn:focus-visible,
+.ai-assistant-panel-model-edited-status:hover,
+.ai-assistant-panel-model-edited-status:focus-visible {
+    background: rgba(127, 127, 127, 0.14);
+    color: inherit;
+}
+
+.ai-assistant-panel-model-remove-btn:hover,
+.ai-assistant-panel-model-remove-btn:focus-visible {
+    background: color-mix(in srgb, #dc3545 13%, transparent);
+    color: #dc3545;
+}
+
+/* A compiled model removed by the reader is represented by a local tombstone.
+ * Keep the row in the DOM so Revert can restore it immediately without reload. */
+.ai-assistant-panel-model-row[data-model-removed="true"] {
+    display: none !important;
+}
+
+/* Once a local override exists, Edited replaces Edit. Delete remains available
+ * and Reset is added below it. Removing the override restores Edit. */
+.ai-assistant-panel-model-row[data-overridden="true"]
+    .ai-assistant-panel-model-edit-btn {
+    display: none;
+}
+
+.ai-assistant-panel-model-row-reset-btn {
+    color: var(--pst-color-warning, #b54708);
+}
+
+/* Edited is both a visible local-override status and the affordance to continue
+ * editing that same model. It deliberately reuses the normal action-button
+ * interaction instead of opening a separate editor path. */
+.ai-assistant-panel-model-edited-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.22rem;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0.15rem 0.22rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pst-color-warning, #b54708);
+    font: inherit;
+    font-size: 0.66rem;
+    font-weight: 500;
+    line-height: 1.1;
+    white-space: nowrap;
+    opacity: 0.9;
+    cursor: pointer;
+}
+
+.ai-assistant-panel-model-edited-status:focus { outline: none; }
+.ai-assistant-panel-model-edited-status:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
+.ai-assistant-panel-model-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.9em;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.ai-assistant-panel-model-action-text {
+    display: inline;
+}
+
+/* Mobile action disclosure is absent at normal widths. */
+.ai-assistant-panel-model-menu-btn {
+    display: none;
+    flex: 0 0 auto;
+    margin-left: auto;
+    width: 1.8rem;
+    height: 1.8rem;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font: inherit;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ai-assistant-panel-model-menu-btn:hover,
+.ai-assistant-panel-model-menu-btn:focus-visible,
+.ai-assistant-panel-model-row[data-actions-open="true"]
+    .ai-assistant-panel-model-menu-btn {
+    background: rgba(127, 127, 127, 0.14);
+    color: inherit;
+}
+
+.ai-assistant-panel-model-menu-btn:focus { outline: none; }
+.ai-assistant-panel-model-menu-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
+/* At every non-mobile width, keep model management in one narrow vertical
+ * icon rail: Edit, Delete, Reset, Edited. The readable action label is a
+ * floating tooltip, never inline text, so it cannot steal horizontal space
+ * from the model title or description. aria-label remains the accessible name. */
+@media (min-width: 500px) {
+    .ai-assistant-panel-model-action-text {
+        display: none;
+    }
+
+    .ai-assistant-panel-model-edit-btn,
+    .ai-assistant-panel-model-remove-btn,
+    .ai-assistant-panel-model-row-reset-btn,
+    .ai-assistant-panel-model-edited-status {
+        position: relative;
+        width: 1.65rem;
+        min-width: 1.65rem;
+        height: 1.65rem;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .ai-assistant-panel-model-actions [data-action-label]::after {
+        content: attr(data-action-label);
+        position: absolute;
+        z-index: 30;
+        right: calc(100% + 0.34rem);
+        top: 50%;
+        transform: translate(0.16rem, -50%);
+        padding: 0.22rem 0.38rem;
+        border: 1px solid var(
+            --pst-color-border,
+            var(--color-foreground-border, rgba(127, 127, 127, 0.32))
+        );
+        border-radius: 5px;
+        background: var(
+            --pst-color-background,
+            var(--color-background-primary, #fff)
+        );
+        color: var(--pst-color-text-base, var(--color-foreground-primary, inherit));
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
+        font-size: 0.68rem;
+        font-weight: 500;
+        line-height: 1.1;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.1s ease, transform 0.1s ease,
+                    visibility 0s linear 0.1s;
+    }
+
+    .ai-assistant-panel-model-actions [data-action-label]:hover::after,
+    .ai-assistant-panel-model-actions button[data-action-label]:focus-visible::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(0, -50%);
+        transition-delay: 0s;
+    }
+
+    [data-bs-theme="dark"]
+        .ai-assistant-panel-model-actions [data-action-label]::after,
+    .dark .ai-assistant-panel-model-actions [data-action-label]::after {
+        background: var(--pst-color-background, #1b1e21);
+        border-color: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.36);
+    }
+}
+
+/* Small screens: replace inline management actions with one vertical-ellipsis
+ * button. Opening it reuses the exact same controls as a compact popover. */
+@media (max-width: 499.98px) {
+    .ai-assistant-panel-model-menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-assistant-panel-model-actions {
+        display: none;
+        position: absolute;
+        z-index: 12;
+        top: calc(100% - 0.28rem);
+        right: 0.5rem;
+        min-width: 8.5rem;
+        margin: 0;
+        padding: 0.3rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.12rem;
+        border: 1px solid var(
+            --pst-color-border,
+            var(--color-foreground-border, rgba(127, 127, 127, 0.32))
+        );
+        border-radius: 8px;
+        background: var(
+            --pst-color-background,
+            var(--color-background-primary, #fff)
+        );
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+    }
+
+    .ai-assistant-panel-model-row[data-actions-open="true"] {
+        z-index: 11;
+    }
+
+    .ai-assistant-panel-model-row[data-actions-open="true"]
+        .ai-assistant-panel-model-actions {
+        display: flex;
+    }
+
+    .ai-assistant-panel-model-actions
+        .ai-assistant-panel-model-edit-btn,
+    .ai-assistant-panel-model-actions
+        .ai-assistant-panel-model-remove-btn,
+    .ai-assistant-panel-model-actions
+        .ai-assistant-panel-model-row-reset-btn,
+    .ai-assistant-panel-model-actions
+        .ai-assistant-panel-model-edited-status {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        justify-content: flex-start;
+        padding: 0.42rem 0.5rem;
+        opacity: 1;
+        font-size: 0.72rem;
+    }
+
+    .ai-assistant-panel-model-actions .ai-assistant-panel-model-action-text {
+        display: inline;
+    }
+
+    .ai-assistant-panel-model-edited-status {
+        background: color-mix(
+            in srgb, var(--pst-color-warning, #b54708) 7%, transparent
+        );
+        border-radius: 5px;
+    }
+
+    [data-bs-theme="dark"] .ai-assistant-panel-model-actions,
+    .dark .ai-assistant-panel-model-actions {
+        background: var(--pst-color-background, #1b1e21);
+        border-color: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
+    }
+}
+
+/* ── Custom form: button row ───────────────────────────────────────────── */
+.ai-assistant-panel-custom-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.ai-assistant-panel-custom-cancel-btn,
+.ai-assistant-panel-custom-reset-btn {
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--pst-color-border, rgba(127, 127, 127, 0.3));
+    background: transparent;
+    color: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+/* Reset discards a local correction, so it reads as a caution rather than a
+ * neutral action -- but never as a danger: the build-time value it restores is
+ * the site's own, and nothing is lost that cannot be re-entered. */
+.ai-assistant-panel-custom-reset-btn {
+    border-color: color-mix(in srgb, var(--pst-color-warning, #b54708) 45%, transparent);
+    color: var(--pst-color-warning, #b54708);
+}
+
+.ai-assistant-panel-custom-cancel-btn:hover,
+.ai-assistant-panel-custom-reset-btn:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+
+/* Touch/coarse-pointer users cannot reveal row actions with hover. Keep both
+ * management affordances discoverable on those devices while preserving the
+ * quieter hover-only desktop presentation. */
+@media (hover: none), (pointer: coarse) {
+    .ai-assistant-panel-model-edit-btn,
+    .ai-assistant-panel-model-remove-btn {
+        opacity: 1;
+    }
+}
+
+/* ─── Hamburger “More” disclosure + shortcut sheet ─────────────────────────
+   Primary menu stays compact; lower-frequency policy/reference/help actions
+   expand inline so the same popover works from either left or right anchor
+   without a flyout escaping a narrow panel. */
+.ai-assistant-panel-hamburger-more-btn {
+    grid-template-columns: 0.95rem minmax(0, 1fr) 1.55rem;
+}
+.ai-assistant-panel-hamburger-more-btn .ai-assistant-panel-hamburger-item-icon {
+    width: 0.95rem;
+    text-align: center;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+.ai-assistant-panel-hamburger-more-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    justify-self: end;
+    font-size: 0.55rem;
+    line-height: 1;
+    transform: rotate(0deg);
+    transform-origin: center;
+    transition: transform 0.14s ease;
+}
+.ai-assistant-panel-hamburger-more-btn[aria-expanded="true"]
+    .ai-assistant-panel-hamburger-more-chevron {
+    transform: rotate(90deg);
+}
+.ai-assistant-panel-hamburger-more-region {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    gap: 0.15rem;
+    padding-left: 0.35rem;
+    border-left: 1px solid rgba(127, 127, 127, 0.16);
+    margin-left: 0.45rem;
+}
+.ai-assistant-panel-hamburger-more-region[hidden] {
+    display: none !important;
+}
+.ai-assistant-panel-hamburger-more-region .ai-assistant-panel-hamburger-item {
+    padding-left: 0.45rem;
+}
+.ai-assistant-panel-hamburger-more-region .ai-assistant-panel-hamburger-sep {
+    margin-left: 0.1rem;
+    margin-right: 0.25rem;
+}
+
+/* Bottom hint: panel chord on the left, single-letter E on the right. */
+.ai-assistant-panel-hamburger-kbd-row {
+    width: 100%;
+    box-sizing: border-box;
+}
+.ai-assistant-panel-hamburger-kbd-exit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+    margin-left: auto;
+    padding-left: 0.42rem;
+    border-left: 1px solid rgba(127, 127, 127, 0.2);
+}
+
+/* Match the footer E cap to the exact accelerator rail used by menu rows. */
+.ai-assistant-panel-hamburger-kbd-exit > .ai-assistant-kbd-group {
+    width: 1.55rem;
+    justify-content: center;
+}
+.ai-assistant-panel-hamburger-kbd-exit .ai-assistant-kbd {
+    box-sizing: border-box;
+    width: 1.35rem;
+    min-width: 1.35rem;
+    padding-left: 0;
+    padding-right: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Keyboard-shortcuts sheet: a compact two-column command reference generated
+   from the same registry that powers the hamburger accelerators. */
+.ai-assistant-panel-shortcuts-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.ai-assistant-panel-shortcuts-body h4 {
+    margin-top: 0.8rem;
+    margin-bottom: 0.2rem;
+}
+.ai-assistant-panel-shortcuts-body h4:first-child {
+    margin-top: 0;
+}
+.ai-assistant-panel-shortcut-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.42rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(127, 127, 127, 0.055);
+}
+.ai-assistant-panel-shortcut-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.ai-assistant-panel-shortcut-row .ai-assistant-kbd-group {
+    justify-self: end;
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 420px) {
+    .ai-assistant-panel-hamburger {
+        max-width: calc(100% - 1.5rem);
+        min-width: min(13rem, calc(100% - 1.5rem));
+    }
+    .ai-assistant-panel-hamburger-more-region {
+        padding-left: 0.2rem;
+        margin-left: 0.25rem;
+    }
+    .ai-assistant-panel-hamburger-kbd-row {
+        flex-wrap: wrap;
+        row-gap: 0.25rem;
+    }
+    .ai-assistant-panel-hamburger-kbd-exit {
+        margin-left: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-hamburger-more-chevron {
+        transition: none;
+    }
+}
+
+/* ── Endpoint topology v3: one service base + discovered dataset ─────────── */
+.ai-assistant-panel-ep-simple-topology {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.7rem;
+}
+
+.ai-assistant-panel-ep-simple-intro {
+    width: min(100%, 46rem);
+    margin-inline: auto;
+    text-align: center;
+}
+
+.ai-assistant-panel-ep-resource-card {
+    width: min(100%, 46rem);
+    box-sizing: border-box;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d7de));
+    border-radius: 0.55rem;
+    background: color-mix(in srgb, var(--pst-color-surface, #fff) 96%, transparent);
+}
+
+.ai-assistant-panel-ep-resource-label {
+    margin-bottom: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+}
+
+.ai-assistant-panel-ep-resource-row {
+    margin-top: 0;
+}
+
+.ai-assistant-panel-ep-resource-row .ai-assistant-panel-ep-input {
+    min-width: 0;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.ai-assistant-panel-ep-resource-meta {
+    min-height: 1rem;
+    margin-top: 0.35rem;
+    font-size: 0.66rem;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+
+.ai-assistant-panel-ep-simple-actions {
+    width: min(100%, 46rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 1.9rem;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-resource-card {
+    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.025);
+}
+
+@media (max-width: 500px) {
+    .ai-assistant-panel-ep-resource-card {
+        padding: 0.55rem;
+        border-radius: 0.45rem;
+    }
+    .ai-assistant-panel-ep-resource-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 0.25rem;
+    }
+}
+
+/* ── Endpoint topology v4: Hugging Face token-role posture ─────────────── */
+.ai-assistant-panel-ep-token-type-card {
+    text-align: center;
+}
+
+.ai-assistant-panel-ep-token-types {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    width: min(100%, 28rem);
+    margin: 0.1rem auto 0;
+}
+
+.ai-assistant-panel-ep-token-type-chip {
+    min-width: 0;
+    padding: 0.34rem 0.45rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d7de));
+    border-radius: 999px;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font-size: 0.68rem;
+    font-weight: 650;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-ep-token-type-chip[data-active="true"] {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: color-mix(in srgb, var(--pst-color-primary, #2980b9) 10%, transparent);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+}
+
+.ai-assistant-panel-ep-token-type-chip[data-token-type="fine-grained"][data-active="true"] {
+    font-weight: 750;
+}
+
+.ai-assistant-panel-ep-token-type-chip[data-token-type="write"][data-active="true"] {
+    border-style: dashed;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-token-type-chip {
+    border-color: rgba(255,255,255,0.14);
+    color: var(--pst-color-text-muted, #9ca3af);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-token-type-chip[data-active="true"] {
+    color: var(--pst-color-text-base, #e5e7eb);
+    background: color-mix(in srgb, var(--pst-color-primary, #60a5fa) 14%, transparent);
+}
+
+@media (max-width: 420px) {
+    .ai-assistant-panel-ep-token-types {
+        grid-template-columns: 1fr;
+        width: min(100%, 13rem);
+    }
+}
+
+/* ── conf.py helper — compact, topology-aware build-time promotion ───────── */
+.ai-assistant-panel-ep-snippet-helper {
+    margin-top: 0.45rem;
+    padding: 0.65rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--pst-color-on-background, #fff) 96%, transparent);
+}
+
+.ai-assistant-panel-ep-snippet-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-ep-snippet-top-text {
+    display: grid;
+    gap: 0.08rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-ep-snippet-title {
+    font-size: 0.76rem;
+    line-height: 1.25;
+}
+
+.ai-assistant-panel-ep-snippet-active {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font-size: 0.64rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.ai-assistant-panel-ep-snippet-badge {
+    flex: 0 0 auto;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d7de));
+    border-radius: 999px;
+    padding: 0.12rem 0.42rem;
+    font-size: 0.58rem;
+    line-height: 1.35;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #57606a));
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+}
+
+.ai-assistant-panel-ep-snippet-hint {
+    margin: 0.45rem 0;
+}
+
+.ai-assistant-panel-ep-snippet-modes {
+    display: inline-grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d7de));
+    border-radius: 6px;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+}
+
+.ai-assistant-panel-ep-snippet-mode {
+    min-width: 0;
+    border: 0;
+    border-radius: 4px;
+    padding: 0.24rem 0.5rem;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #57606a));
+    font: inherit;
+    font-size: 0.64rem;
+    line-height: 1.25;
+    cursor: pointer;
+}
+
+.ai-assistant-panel-ep-snippet-mode[aria-pressed="true"] {
+    background: var(--pst-color-background, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+    box-shadow: 0 0 0 1px var(--pst-color-border, var(--color-foreground-border, #d0d7de));
+}
+
+.ai-assistant-panel-ep-snippet-mode:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #4d90fe));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-ep-snippet-copy-row {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ai-assistant-panel-ep-snippet-copy-btn {
+    white-space: nowrap;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-snippet-helper,
+[data-bs-theme="dark"] .ai-assistant-panel-ep-snippet-modes {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-snippet-mode[aria-pressed="true"] {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--pst-color-text-base, #e4e6ea);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 500px) {
+    .ai-assistant-panel-ep-snippet-top {
+        align-items: center;
+    }
+    .ai-assistant-panel-ep-snippet-modes {
+        display: grid;
+        width: 100%;
+    }
+    .ai-assistant-panel-ep-snippet-copy-row {
+        align-items: stretch;
+    }
+    .ai-assistant-panel-ep-snippet-copy-btn {
+        width: 100%;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Endpoint JSON import — bounded editor + dedicated validation/action surface
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ai-assistant-panel-ep-import-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 0.5rem;
+    padding: 0.65rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-background-border, rgba(0, 0, 0, 0.10))
+    );
+    border-radius: 8px;
+    background: var(
+        --pst-color-surface,
+        var(--color-background-secondary, rgba(0, 0, 0, 0.025))
+    );
+}
+
+.ai-assistant-panel-ep-import-intro {
+    margin: 0;
+    line-height: 1.45;
+}
+
+.ai-assistant-panel-ep-import-editor {
+    overflow: hidden;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-background-border, rgba(0, 0, 0, 0.16))
+    );
+    border-radius: 7px;
+    background: var(
+        --pst-color-background,
+        var(--color-background-primary, #fff)
+    );
+}
+
+.ai-assistant-panel-ep-import-editor:focus-within {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    box-shadow: 0 0 0 2px color-mix(
+        in srgb,
+        var(--pst-color-primary, #2563eb) 16%,
+        transparent
+    );
+}
+
+.ai-assistant-panel-ep-import-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.38rem 0.55rem;
+    border-bottom: 1px solid var(
+        --pst-color-border,
+        var(--color-background-border, rgba(0, 0, 0, 0.08))
+    );
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, rgba(0, 0, 0, 0.025))
+    );
+}
+
+.ai-assistant-panel-ep-import-label {
+    min-width: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+}
+
+.ai-assistant-panel-ep-import-meta {
+    flex: 0 0 auto;
+    font: 600 0.61rem/1.2 var(--pst-font-family-monospace, monospace);
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6b7280));
+    white-space: nowrap;
+}
+
+.ai-assistant-panel-ep-import-ta {
+    display: block;
+    width: 100%;
+    min-height: 7.5rem;
+    max-height: 14rem;
+    margin: 0;
+    padding: 0.65rem;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    resize: vertical;
+    overflow: auto;
+    box-sizing: border-box;
+    background: transparent;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+    font: 0.69rem/1.5 var(--pst-font-family-monospace, 'SFMono-Regular', Consolas, monospace);
+    tab-size: 2;
+}
+
+.ai-assistant-panel-ep-import-ta::placeholder {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8a9099));
+    opacity: 0.78;
+}
+
+.ai-assistant-panel-ep-import-ta[aria-invalid="true"] {
+    background: color-mix(in srgb, var(--pst-color-danger, #dc2626) 3%, transparent);
+}
+
+.ai-assistant-panel-ep-import-status {
+    min-height: 1.65rem;
+    margin: 0;
+    padding: 0.35rem 0.55rem 0.4rem;
+    border-top: 1px solid var(
+        --pst-color-border,
+        var(--color-background-border, rgba(0, 0, 0, 0.07))
+    );
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6b7280));
+    font-size: 0.65rem;
+    line-height: 1.35;
+}
+
+.ai-assistant-panel-ep-import-status--ok {
+    color: var(--pst-color-success, #15803d);
+}
+.ai-assistant-panel-ep-import-status--warn {
+    color: var(--pst-color-warning, #a16207);
+}
+.ai-assistant-panel-ep-import-status--error {
+    color: var(--pst-color-danger, #b91c1c);
+}
+
+.ai-assistant-panel-ep-import-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-ep-import-shortcut {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8a9099));
+    font: 500 0.61rem/1.2 var(--pst-font-family-monospace, monospace);
+    white-space: nowrap;
+}
+
+.ai-assistant-panel-ep-import-action-btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.ai-assistant-panel-ep-import-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    white-space: nowrap;
+}
+.ai-assistant-panel-ep-import-submit > span:first-child,
+.ai-assistant-panel-ep-import-submit > span:first-child svg {
+    display: inline-flex;
+    width: 0.82rem;
+    height: 0.82rem;
+}
+
+.ai-assistant-panel-ep-import-submit:disabled,
+.ai-assistant-panel-ep-import-clear-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-form {
+    background: rgba(255, 255, 255, 0.025);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-editor {
+    background: rgba(0, 0, 0, 0.18);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-editor-head {
+    background: rgba(255, 255, 255, 0.035);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-label,
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-ta {
+    color: var(--pst-color-text-base, #e5e7eb);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-status {
+    border-top-color: rgba(255, 255, 255, 0.07);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-status--ok { color: #4ade80; }
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-status--warn { color: #fbbf24; }
+[data-bs-theme="dark"] .ai-assistant-panel-ep-import-status--error { color: #f87171; }
+
+@media (max-width: 500px) {
+    .ai-assistant-panel-ep-import-form {
+        padding: 0.55rem;
+    }
+    .ai-assistant-panel-ep-import-ta {
+        min-height: 6.5rem;
+        max-height: 11rem;
+        font-size: 0.66rem;
+    }
+    .ai-assistant-panel-ep-import-actions {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 0.38rem;
+    }
+    .ai-assistant-panel-ep-import-shortcut {
+        align-self: flex-end;
+    }
+    .ai-assistant-panel-ep-import-action-btns {
+        width: 100%;
+    }
+    .ai-assistant-panel-ep-import-action-btns > button {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-ep-import-editor {
+        transition: none;
+    }
+}
+
+/* Provider-neutral record-storage diagnostics. */
+.ai-assistant-panel-storage-target {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    padding: 0.58rem 0.66rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.48rem;
+    background: var(--pst-color-surface, rgba(0, 0, 0, 0.02));
+}
+.ai-assistant-panel-storage-target-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.4rem;
+}
+.ai-assistant-panel-storage-target-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.77rem;
+}
+.ai-assistant-panel-storage-target-role,
+.ai-assistant-panel-storage-target-state {
+    font-size: 0.63rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    white-space: nowrap;
+}
+.ai-assistant-panel-storage-target-role {
+    padding: 0.08rem 0.32rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 999px;
+}
+.ai-assistant-panel-storage-target-repo,
+.ai-assistant-panel-storage-target-token {
+    font-size: 0.66rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    overflow-wrap: anywhere;
+}
+.ai-assistant-panel-storage-target-repo {
+    font-family: var(--font-stack-monospace, monospace);
+}
+.ai-assistant-panel-storage-target-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.28rem;
+}
+.ai-assistant-panel-storage-target-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.28rem 0.38rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.34rem;
+    color: inherit;
+    text-decoration: none;
+    font-size: 0.65rem;
+    line-height: 1.2;
+}
+.ai-assistant-panel-storage-target-link:hover {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    text-decoration: none;
+}
+.ai-assistant-panel-storage-target-link[aria-disabled="true"] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.ai-assistant-panel-storage-target-link:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-storage-target {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--pst-color-border, #374151);
+}
+@media (max-width: 500px) {
+    .ai-assistant-panel-storage-target-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .ai-assistant-panel-storage-target-state {
+        grid-column: 1 / -1;
+    }
+    .ai-assistant-panel-storage-target-links {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Record-storage HF dataset-token posture reuses the shared three-role chips. */
+.ai-assistant-panel-storage-target-token-head {
+    margin-bottom: 0.32rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--pst-color-text-muted, #6b7280);
+}
+.ai-assistant-panel-storage-target-token-capability {
+    margin-top: 0.28rem;
+    font-size: 0.69rem;
+    line-height: 1.35;
+    color: var(--pst-color-text-muted, #6b7280);
+}
+
+
+/* ========================================================================== */
+/* Run 7 — local privacy preflight                                             */
+/* ========================================================================== */
+.ai-assistant-privacy-preflight-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, .48);
+  backdrop-filter: blur(2px);
+}
+
+.ai-assistant-privacy-preflight-dialog {
+  width: min(36rem, 100%);
+  max-height: min(42rem, calc(100vh - 2rem));
+  overflow: auto;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: .9rem;
+  padding: 1rem;
+  background: var(--pst-color-background, #fff);
+  color: var(--pst-color-text-base, #1f2328);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .25);
+}
+
+.ai-assistant-privacy-preflight-dialog h3 {
+  margin: 0 0 .55rem;
+  font-size: 1.05rem;
+}
+
+.ai-assistant-privacy-preflight-intro,
+.ai-assistant-privacy-preflight-advisory {
+  margin: .45rem 0;
+  line-height: 1.45;
+}
+
+.ai-assistant-privacy-preflight-findings {
+  margin: .75rem 0;
+  padding-left: 1.25rem;
+}
+
+.ai-assistant-privacy-preflight-findings li {
+  margin: .35rem 0;
+  overflow-wrap: anywhere;
+}
+
+.ai-assistant-privacy-preflight-advisory {
+  font-size: .88rem;
+  opacity: .82;
+}
+
+.ai-assistant-privacy-preflight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: .9rem;
+}
+
+.ai-assistant-privacy-preflight-btn {
+  min-height: 2.25rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: .55rem;
+  padding: .45rem .7rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ai-assistant-privacy-preflight-btn--primary {
+  font-weight: 600;
+  border-color: currentColor;
+}
+
+.ai-assistant-privacy-preflight-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .ai-assistant-privacy-preflight-overlay {
+    align-items: flex-end;
+    padding: .5rem;
+  }
+
+  .ai-assistant-privacy-preflight-dialog {
+    width: 100%;
+    max-height: calc(100vh - 1rem);
+    border-radius: .9rem .9rem .65rem .65rem;
+  }
+
+  .ai-assistant-privacy-preflight-actions {
+    flex-direction: column;
+  }
+
+  .ai-assistant-privacy-preflight-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-privacy-preflight-overlay,
+  .ai-assistant-privacy-preflight-dialog {
+    scroll-behavior: auto;
+  }
+}
+
+/* ==========================================================================
+ * Run 8 — Share conversation v2 information architecture
+ * Format → Destination → Content & privacy → Advanced → Result → Artifacts.
+ * ========================================================================== */
+.ai-assistant-conv-share-v2-body { display:flex; flex-direction:column; gap:.8rem; }
+.ai-assistant-conv-share-v2-intro { margin-bottom:.1rem; }
+.ai-assistant-conv-share-summary { font-size:.78rem; color:var(--pst-color-text-muted,#667085); font-weight:600; }
+.ai-assistant-conv-share-warning { border:1px solid rgba(217,119,6,.35); border-radius:.6rem; background:rgba(245,158,11,.08); padding:.55rem .7rem; text-align:left; font:inherit; font-size:.76rem; cursor:pointer; color:inherit; }
+.ai-assistant-conv-share-section-title { margin-top:.2rem; font-size:.72rem; font-weight:750; letter-spacing:.055em; text-transform:uppercase; opacity:.68; }
+.ai-assistant-conv-share-destinations { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; }
+.ai-assistant-conv-share-destination { display:flex; flex-direction:column; gap:.2rem; min-width:0; padding:.7rem; border:1px solid rgba(127,127,127,.25); border-radius:.75rem; background:transparent; color:inherit; text-align:left; cursor:pointer; font:inherit; }
+.ai-assistant-conv-share-destination strong { font-size:.82rem; }
+.ai-assistant-conv-share-destination span { font-size:.75rem; line-height:1.35; }
+.ai-assistant-conv-share-destination small { font-size:.68rem; line-height:1.3; opacity:.68; }
+.ai-assistant-conv-share-destination[aria-pressed="true"] { border-color:currentColor; box-shadow:0 0 0 1px currentColor inset; }
+.ai-assistant-conv-share-destination:disabled { opacity:.48; cursor:not-allowed; }
+.ai-assistant-conv-share-collapse { border-top:1px solid rgba(127,127,127,.18); }
+.ai-assistant-conv-share-collapse-toggle { width:100%; display:flex; justify-content:space-between; gap:1rem; border:0; background:transparent; color:inherit; padding:.72rem .1rem; font:inherit; font-weight:650; cursor:pointer; }
+.ai-assistant-conv-share-collapse-toggle > span:last-child { font-size:.72rem; opacity:.68; font-weight:500; }
+.ai-assistant-conv-share-collapse-panel { padding:0 0 .7rem; }
+.ai-assistant-conv-share-preset-row { display:flex; flex-wrap:wrap; gap:.4rem; }
+.ai-assistant-conv-share-preset { border:1px solid rgba(127,127,127,.25); background:transparent; color:inherit; border-radius:999px; padding:.35rem .65rem; font:inherit; font-size:.74rem; cursor:pointer; }
+.ai-assistant-conv-share-preset[aria-pressed="true"] { border-color:currentColor; font-weight:700; }
+.ai-assistant-conv-share-custom-grid { margin-top:.65rem; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem .8rem; }
+.ai-assistant-conv-share-custom-grid label { display:flex; gap:.4rem; align-items:center; font-size:.75rem; }
+.ai-assistant-conv-share-locked { grid-column:1/-1; font-size:.7rem; opacity:.72; margin:.25rem 0 0; }
+.ai-assistant-conv-share-advanced-stats { font-size:.74rem; font-weight:600; margin-bottom:.35rem; }
+.ai-assistant-conv-share-primary-row { justify-content:flex-end; }
+.ai-assistant-conv-share-result { border:1px solid rgba(127,127,127,.25); border-radius:.8rem; padding:.75rem; display:flex; flex-direction:column; gap:.45rem; }
+.ai-assistant-conv-share-result-meta { font-size:.72rem; opacity:.7; }
+.ai-assistant-conv-share-result-actions { display:flex; flex-wrap:wrap; gap:.4rem; }
+.ai-assistant-conv-share-artifacts { display:flex; flex-direction:column; gap:.4rem; }
+.ai-assistant-conv-share-artifact { display:flex; align-items:center; gap:.45rem; border:1px solid rgba(127,127,127,.18); border-radius:.65rem; padding:.5rem .55rem; }
+.ai-assistant-conv-share-artifact-text { min-width:0; flex:1; display:flex; flex-direction:column; gap:.1rem; }
+.ai-assistant-conv-share-artifact-text strong { font-size:.76rem; }
+.ai-assistant-conv-share-artifact-text span { font-size:.66rem; opacity:.68; overflow-wrap:anywhere; }
+.ai-assistant-conv-share-contribution-separated { margin-top:.65rem; }
+.ai-assistant-conv-share-fmt-yaml, .ai-assistant-conv-share-fmt-toml { font-weight:700; }
+
+@media (max-width:720px) {
+  .ai-assistant-conv-share-destinations { grid-template-columns:1fr; }
+  .ai-assistant-conv-share-custom-grid { grid-template-columns:1fr; }
+  .ai-assistant-conv-share-format-switcher { overflow-x:auto; flex-wrap:nowrap; }
+  .ai-assistant-conv-share-artifact { align-items:flex-start; flex-wrap:wrap; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   B47 — DATASET CONTRIBUTION SHEET / HUMAN-READABLE REVIEW SURFACE
+   Mirrors the section rhythm used by Endpoint Configuration while keeping
+   contribution consent, privacy review, and submission semantics unchanged.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ai-assistant-panel-contribution-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-bottom: 1.5rem;
+}
+
+.ai-assistant-panel-contribution-intro {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.8rem;
+    background: var(--pst-color-on-background, var(--color-background-secondary, rgba(37, 99, 235, 0.035)));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+    font-size: 0.79rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+.ai-assistant-panel-contribution-endpoint {
+    position: relative;
+    margin: -0.2rem 0 0;
+    padding-left: 1rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+}
+.ai-assistant-panel-contribution-endpoint::before {
+    content: '';
+    position: absolute;
+    left: 0.1rem;
+    top: 0.45em;
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 999px;
+    background: var(--pst-color-danger, #dc2626);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pst-color-danger, #dc2626) 14%, transparent);
+}
+.ai-assistant-panel-contribution-endpoint[data-ready="true"] {
+    font-weight: 600;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #374151));
+}
+.ai-assistant-panel-contribution-endpoint[data-ready="true"]::before {
+    background: var(--pst-color-success, #16a34a);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pst-color-success, #16a34a) 14%, transparent);
+}
+
+/* _buildSheetSection() already provides the same label/rule language used by
+   Endpoint Configuration. Contribution lives inside a padded privacy body, so
+   remove the model-sheet-specific horizontal gutters here. */
+.ai-assistant-panel-contribution .ai-assistant-panel-contribution-section {
+    margin-top: 0.15rem;
+    padding: 0;
+}
+.ai-assistant-panel-contribution .ai-assistant-panel-contribution-section +
+.ai-assistant-panel-contribution-section {
+    margin-top: 0.35rem;
+}
+.ai-assistant-panel-contribution-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+}
+.ai-assistant-panel-contribution-section-label {
+    flex-shrink: 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.ai-assistant-panel-contribution-section-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+}
+.ai-assistant-panel-contribution-section-note {
+    margin: -0.15rem 0 0.65rem;
+    padding: 0 0.1rem;
+}
+.ai-assistant-panel-contribution-section-note-text {
+    margin: 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c959f));
+    font-size: 0.74rem;
+    line-height: 1.45;
+    text-wrap: pretty;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-contribution-section-rule {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ai-assistant-panel-contribution-scopes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.42rem;
+}
+.ai-assistant-panel-contribution-scope {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 4.6rem;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.22rem;
+    padding: 0.68rem 0.78rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.78rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #111827));
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+.ai-assistant-panel-contribution-scope:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 4%, var(--pst-color-surface, #fff));
+}
+.ai-assistant-panel-contribution-scope:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    outline-offset: 2px;
+}
+.ai-assistant-panel-contribution-scope strong {
+    padding-right: 1.25rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+}
+.ai-assistant-panel-contribution-scope span {
+    font-size: 0.68rem;
+    line-height: 1.38;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    text-wrap: pretty;
+}
+.ai-assistant-panel-contribution-scope::after {
+    content: '';
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1.5px solid var(--pst-color-border, #cbd5e1);
+    border-radius: 999px;
+    background: transparent;
+    transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+.ai-assistant-panel-contribution-scope[data-active="true"] {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 6%, var(--pst-color-surface, #fff));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--pst-color-primary, #2563eb) 38%, transparent);
+}
+.ai-assistant-panel-contribution-scope[data-active="true"]::after {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    background: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    box-shadow: inset 0 0 0 2px var(--pst-color-surface, #fff);
+}
+.ai-assistant-panel-contribution-scope:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ai-assistant-panel-contribution-summary {
+    margin-top: 0.45rem;
+    padding: 0.48rem 0.62rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 999px;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.70rem;
+    line-height: 1.35;
+    text-align: center;
+}
+.ai-assistant-panel-contribution-summary[data-error="true"] {
+    border-color: color-mix(in srgb, var(--pst-color-danger, #dc2626) 50%, transparent);
+    color: var(--pst-color-danger, #b42318);
+    font-weight: 600;
+}
+
+.ai-assistant-panel-contribution-review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+.ai-assistant-panel-contribution-included,
+.ai-assistant-panel-contribution-excluded,
+.ai-assistant-panel-contribution-result {
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.72rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    font-size: 0.74rem;
+    line-height: 1.45;
+}
+.ai-assistant-panel-contribution-included strong,
+.ai-assistant-panel-contribution-excluded strong,
+.ai-assistant-panel-contribution-result > strong {
+    display: block;
+    margin-bottom: 0.24rem;
+    font-size: 0.72rem;
+}
+.ai-assistant-panel-contribution-included {
+    border-left: 3px solid var(--pst-color-success, #16a34a);
+}
+.ai-assistant-panel-contribution-excluded {
+    border-left: 3px solid var(--pst-color-warning, #d97706);
+}
+.ai-assistant-panel-contribution-intro,
+.ai-assistant-panel-contribution-hint,
+.ai-assistant-panel-contribution-included p,
+.ai-assistant-panel-contribution-excluded p,
+.ai-assistant-panel-contribution-result p {
+    margin: 0;
+}
+.ai-assistant-panel-contribution-hint,
+.ai-assistant-panel-contribution-included p,
+.ai-assistant-panel-contribution-excluded p,
+.ai-assistant-panel-contribution-result p {
+    font-size: 0.72rem;
+    line-height: 1.5;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+}
+
+.ai-assistant-panel-contribution-note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+    margin-top: 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.ai-assistant-panel-contribution-note-head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.ai-assistant-panel-contribution-optional {
+    padding: 0.08rem 0.35rem;
+    border-radius: 999px;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f3f4f6));
+    color: var(--pst-color-text-muted, #6b7280);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.ai-assistant-panel-contribution-note-count {
+    margin-left: auto;
+    color: var(--pst-color-text-muted, #6b7280);
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+.ai-assistant-panel-contribution-note textarea {
+    width: 100%;
+    box-sizing: border-box;
+    field-sizing: content;
+    resize: vertical;
+    min-height: 4.1rem;
+    max-height: 12rem;
+    padding: 0.62rem 0.68rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.68rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #111827));
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.45;
+    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.ai-assistant-panel-contribution-note textarea:focus {
+    outline: none;
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--pst-color-primary, #2563eb) 16%, transparent);
+}
+.ai-assistant-panel-contribution-note-help {
+    color: var(--pst-color-text-muted, #6b7280);
+    font-size: 0.66rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.ai-assistant-panel-contribution-inspect-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+.ai-assistant-panel-contribution-inspect-btn {
+    min-height: 2rem;
+    border-radius: 0.62rem;
+}
+.ai-assistant-panel-contribution-size {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.65rem;
+    padding: 0.08rem 0.48rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 999px;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.ai-assistant-panel-contribution-hint {
+    margin-top: 0.45rem;
+}
+.ai-assistant-panel-contribution-preview {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0.55rem 0 0;
+    min-height: 6rem;
+    max-height: min(52vh, 34rem);
+    overflow: auto;
+    resize: vertical;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 2;
+    padding: 0.78rem 0.82rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.72rem;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.68rem;
+    line-height: 1.48;
+    scrollbar-gutter: stable;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.025);
+}
+.ai-assistant-panel-contribution-preview[data-size="compact"] { max-height: min(30vh, 14rem); }
+.ai-assistant-panel-contribution-preview[data-size="medium"]  { max-height: min(42vh, 22rem); }
+.ai-assistant-panel-contribution-preview[data-size="large"]   { max-height: min(52vh, 34rem); }
+.ai-assistant-panel-contribution-preview:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    outline-offset: 2px;
+}
+
+.ai-assistant-panel-contribution-consent {
+    margin: 0;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.72rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+}
+.ai-assistant-panel-contribution-submit {
+    width: 100%;
+    min-height: 2.45rem;
+    margin-top: 0.55rem;
+    border-radius: 0.68rem;
+    font-weight: 650;
+}
+.ai-assistant-panel-contribution-result {
+    margin-top: 0.55rem;
+}
+.ai-assistant-panel-contribution-result:empty { display: none; }
+.ai-assistant-panel-contribution-result .ai-assistant-conv-share-action-btn {
+    margin: 0.45rem 0.35rem 0 0;
+}
+.ai-assistant-panel-contribution-import {
+    margin-top: 0.5rem;
+}
+.ai-assistant-panel-contribute-link { white-space: nowrap; }
+
+[data-bs-theme="dark"] .ai-assistant-panel-contribution-scope[data-active="true"],
+[data-bs-theme="dark"] .ai-assistant-panel-contribution-intro {
+    background: color-mix(in srgb, var(--pst-color-primary, #60a5fa) 8%, transparent);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-contribution-preview {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 720px) {
+    .ai-assistant-panel-contribution-scopes,
+    .ai-assistant-panel-contribution-review-grid {
+        grid-template-columns: 1fr;
+    }
+    .ai-assistant-panel-contribution-scope {
+        min-height: 0;
+    }
+    .ai-assistant-panel-contribution-preview {
+        max-height: min(46vh, 24rem);
+        font-size: 0.66rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-contribution-scope,
+    .ai-assistant-panel-contribution-note textarea {
+        transition: none;
+    }
+}
+
+/* B41 separate-origin host frame. Class-driven sizing avoids inline styles so
+   a strict docs CSP does not need style-src 'unsafe-inline'. */
+.ai-assistant-isolated-host-frame {
+    position: fixed;
+    right: 8px;
+    bottom: 8px;
+    border: 0;
+    background: transparent;
+    z-index: 2147482999;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+}
+.ai-assistant-isolated-host-frame--idle { width: min(480px, calc(100vw - 16px)); height: min(150px, calc(100vh - 16px)); }
+.ai-assistant-isolated-host-frame--panel { width: min(560px, calc(100vw - 16px)); height: min(880px, calc(100vh - 16px)); }
+.ai-assistant-isolated-host-frame--menu { width: min(560px, calc(100vw - 16px)); height: min(720px, calc(100vh - 16px)); }
+.ai-assistant-isolated-host-frame--full { left: 0; top: 0; right: auto; bottom: auto; width: 100vw; height: 100vh; max-width: none; max-height: none; }
+.ai-assistant-isolation-error {
+    position: fixed; right: 12px; bottom: 12px; z-index: 2147483000;
+    max-width: 360px; padding: 10px 12px; border: 1px solid currentColor;
+    border-radius: 8px; background: Canvas; color: CanvasText; font: 13px/1.4 sans-serif;
 }

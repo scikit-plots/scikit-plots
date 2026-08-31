@@ -41,17 +41,22 @@ A Sphinx extension that adds AI-powered features to documentation pages, making 
 
 - **Mouse-resizable**: drag the top-left grip to resize (clamped to the
   viewport, size persisted per tab)
-- **Conversation persistence**: chat survives navigation within the tab via
-  `sessionStorage` (`ai_assistant_panel_persist`, default on); cleared on tab
-  close or "Start a new chat"
+- **Conversation persistence**: when `ai_assistant_panel_persist = True`, the
+  **Remember conversation in this tab** switch starts from the configurable
+  `ai_assistant_panel_remember_conversation` site default (**True** by default).
+  The reader can override it for the current tab; that explicit ON/OFF choice
+  survives same-tab page navigation but disappears when the tab closes. The
+  transcript stays in `sessionStorage` only, and invalid/oversized stored state
+  fails closed and is cleared.
 - **Start a new chat**: refresh-icon button clears the conversation without a
   page reload
 - **Export as txt**: download the whole conversation as a plain-text file
 - **Copy this answer**: per-answer copy button under each assistant reply
-- **Feedback**: configurable "Was this helpful?" block — 3–5 emoji options
-  (default 😀/😐/🙁) plus an optional free-text box and submit; submissions are
-  dispatched as an `ai-assistant-feedback` DOM `CustomEvent` for your own
-  analytics (the extension stores and sends nothing itself)
+- **Feedback**: configurable local rating UI plus an optional note. Network
+  rating telemetry is a separate explicit permission and never contains Q&A,
+  note, model, page URL, or stable conversation identity. Host-page lifecycle
+  events use another explicit permission; internal assistant coordination stays
+  on a private bus and public events are bounded projections only
 - **Keyboard shortcut**: toggle the panel with a configurable chord
   (`ai_assistant_panel_shortcut`, default `Alt+Shift+A`; a modifier is
   required, a bare key is rejected)
@@ -68,6 +73,78 @@ A Sphinx extension that adds AI-powered features to documentation pages, making 
 
 See [`_example_conf.py`](_example_conf.py) for every new option, its type,
 default, and rationale.
+
+### Optional separate-origin isolation
+
+For deployments that do not want documentation-origin scripts to have ambient
+access to assistant DOM, transcript, preferences, model state, or management
+receipts, configure `ai_assistant_isolation_origin` to a **distinct HTTPS
+origin**. Isolation is fail-closed: when requested, the full same-origin runtime
+is suppressed even if the host bridge or frame handshake fails.
+
+The parent page exposes only a small versioned capability bridge for bounded
+page context, canonical Markdown reads, print, UI sizing, and separately
+consented public integration events. B42 protocol 2.0.0 uses a build-generated
+exact parent-origin policy and a **frame-generated WebCrypto nonce** that never
+appears in `iframe.src`; the parent consumes the valid HELLO before later page
+listeners can observe it, then transfers one `MessageChannel`. Runtime messages
+are bounded, exactly sequenced, and capability-allowlisted. Configuration and
+endpoint descriptors are snapshotted/sanitized at host startup, and isolated Web
+Storage is namespaced by parent origin + docs-root path.
+
+The isolated frame cannot self-navigate HTTP(S) onto the docs origin, popup
+sandbox escape is not granted, and cross-origin microphone permission is an
+independent site-owner opt-in. Assistant-service fetches omit ambient cookies by
+default; a separate compatibility flag can permit only same-origin credentials.
+
+This reduces the same-origin confidentiality surface; it does **not** make a
+fully compromised parent page trustworthy. Production deployments must also
+serve the isolated origin with restrictive response headers. See
+[`ISOLATION_DEPLOYMENT.md`](ISOLATION_DEPLOYMENT.md) for the deployment contract
+and residual threat boundary.
+
+### Endpoint profiles — one service, flexible routes
+
+Endpoint profiles use one absolute `base` service URL. Each feature endpoint can
+then be configured in any of three forms:
+
+- **absolute** — `https://proxy.example.com/v1/share`
+- **relative** — `v1/share` or `/v1/share` (joined beneath `base`)
+- **inherited** — `""`, `None`, or omitted (uses `base` + the built-in default route)
+
+Surrounding whitespace is trimmed. Endpoint values are bounded and canonicalised
+before use. The browser rejects embedded URL credentials, fragments, protocol-
+relative authorities, private/reserved runtime hosts, control/bidi characters,
+ambiguous backslashes, traversal (including encoded forms), invalid percent-
+encoding, overlong paths/queries, and non-HTTP(S) schemes. Relative routes cannot
+switch authority/scheme and are always resolved beneath `base`. Old custom
+profiles restored from browser storage are re-sanitised before use. Build-time
+`conf.py` private/local hosts remain available for trusted local-development
+workflows but emit a privacy-safe Sphinx warning.
+
+`datasetRepo` is optional metadata and is normally auto-discovered from
+`GET {base}/` via `training.dataset_repo`. URL validation is defense-in-depth;
+production proxies should still enforce their own destination allowlist/network
+policy because client-side lexical validation cannot prove DNS/redirect safety.
+
+```python
+ai_assistant_endpoint_profiles = {
+    "hf": {
+        "label": "Scikit-plots HF",
+        "base": "https://scikit-plots-ai.hf.space",
+        "chat": "v1/chat/completions",     # relative
+        "share": "/v1/share",             # relative with leading slash
+        "feedback": "",                   # inherit default
+        "training": None,                  # inherit default
+        # "datasetRepo": "scikit-plots/ai-assistant-contributions",
+    },
+}
+ai_assistant_endpoint_default_profile = "hf"
+```
+
+Absolute provider-specific endpoints are also supported and are used verbatim,
+so heterogeneous deployments can override only the routes that need a different
+host or path. Legacy host-only feature values remain compatible.
 
 ## Installation
 
@@ -161,6 +238,14 @@ ai_assistant_pdf_url_mode_toggle = True
 
 # AI assistant panel (floating chat drawer)
 ai_assistant_panel_title = "AI Assistant"          # header label in the panel
+# Whether readers may permanently show or hide the floating "Ask AI" pill
+# themselves, via a switch on the "AI Assistant" dropdown row (default True).
+# The switch starts from ai_assistant_panel_start_minimized and stores the
+# reader's choice in the browser. Set False to hide the switch and pin the
+# pill to the build value. Ignored when features['ai_panel'] is False.
+# While a minimized conversation is waiting the pill is pinned visible and the
+# switch is locked to match, so the two can never disagree on screen.
+ai_assistant_panel_trigger_toggle = True
 ai_assistant_panel_placeholder = "Ask a question about this page…"
 # False → stub mode (safe for any static build, no API calls)
 # True  → live mode (POSTs to Anthropic /v1/messages; requires API access)

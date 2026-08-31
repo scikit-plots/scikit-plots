@@ -16,7 +16,7 @@ The heavy pieces already exist elsewhere in scikit-plots and must NOT be
 re-implemented here (DRY):
 
 * **Retrieval** — :mod:`scikitplot.corpus` ingests / chunks / embeds documents
-  and offers ``SimilarityIndex`` + ``SQLiteStorage`` (FTS5) search; and/or
+  and offers ``RetrievalIndex`` + ``SQLiteStorage`` (FTS5) search; and/or
   :mod:`scikitplot.annoy` provides an approximate-nearest-neighbour vector
   index. A concrete retriever composes those (see ``_corpus_annoy.py``).
 * **MCP formatting** — :mod:`scikitplot.corpus` already exposes

@@ -129,3 +129,32 @@ cannot be answered from this side alone. Until it is, this edge is recorded as
 
 `_sphinx_llm` is not in the order. It is frozen, and reviewing frozen code that
 nothing imports spends attention where no change can arrive.
+
+
+## Run 19 release dependency plane
+
+```text
+requirements.txt (5 exact direct deps)
+        |
+        v
+requirements.lock (30 exact hashed runtime wheels, CPython 3.11 linux/amd64)
+        |                         |
+        |                         +--> python-runtime.cdx.json
+        |                               exact Python-only SBOM parity
+        v
+Docker builder --require-hashes --only-binary=:all:
+        |
+        v
+isolated /opt/venv
+        |
+        v
+non-root runtime image
+
+_rate_limit.py ---------+
+_share_store.py --------+--> _redis_security.py --> rediss verified transport
+_contribution_ledger.py-+
+```
+
+`verify_supply_chain.py` checks the source-controlled edges. Fresh advisory,
+container-layer SBOM/CVE and provenance systems are release-environment edges,
+not vendored dependencies of the service.

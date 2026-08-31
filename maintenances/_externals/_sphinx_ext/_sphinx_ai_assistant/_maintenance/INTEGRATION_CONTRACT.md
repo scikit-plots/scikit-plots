@@ -77,3 +77,10 @@ COPY                 -> always available; browser mode needs no build artifact
 
 COPY working without any build artifact is the property that keeps the assistant
 useful on a site whose Markdown generation is switched off.
+
+
+## Separate-origin integration contract — B41
+
+A site may set `ai_assistant_isolation_origin` to a distinct HTTPS origin (localhost HTTP only for development). That origin must host the B41 isolated bootstrap/static assets and be allowed by the configured proxy CORS policy. `ai_assistant_isolation_frame_path` is root-relative only. `ai_assistant_isolation_context_max_chars` bounds the host snapshot.
+
+The runtime protocol is `1.0.0`. Window messaging is bootstrap-only; the transferred MessagePort owns runtime requests. Unknown versions/capabilities, replayed sequences, wrong source/origin and oversized messages are ignored/rejected. No extension/plugin should treat this port as a general RPC transport.

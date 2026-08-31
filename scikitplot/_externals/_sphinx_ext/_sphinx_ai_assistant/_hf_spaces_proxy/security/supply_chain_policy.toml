@@ -1,0 +1,38 @@
+schema_version = 1
+reviewed_at = "2026-08-30"
+target_python = "3.11.16"
+target_platform = "linux/amd64"
+lock_file = "requirements.lock"
+sbom_file = "security/python-runtime.cdx.json"
+require_hashes = true
+binary_only = true
+require_non_root = true
+require_read_only_reference = true
+require_redis_tls_in_strict = true
+
+[base_image]
+repository = "python"
+tag = "3.11.16-slim-bookworm"
+index_digest = "sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b"
+# This is an immutable multi-platform index. CI must resolve linux/amd64 from
+# this exact index and record the resulting manifest digest in release evidence.
+
+[advisory_floors]
+# Current explicit floors discovered during the B38 review.  These are
+# ratchets, not a substitute for a fresh advisory database scan.
+click = "8.3.3"
+starlette = "1.6.0"
+
+[release_gates]
+python_advisory_scan = true
+container_vulnerability_scan = true
+container_sbom = true
+provenance_attestation = true
+
+[release_evidence]
+policy_file = "security/release_evidence_policy.toml"
+example_file = "security/release-evidence.example.json"
+verifier_file = "security/verify_release_evidence.py"
+combined_gate_file = "security/verify_release_gate.py"
+redis_probe_file = "security/probe_redis_authority.py"
+subject_printer_file = "security/release_subjects.py"

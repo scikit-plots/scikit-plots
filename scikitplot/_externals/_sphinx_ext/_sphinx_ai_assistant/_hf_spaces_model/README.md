@@ -17,8 +17,8 @@ short_description: ai-model
 # scikit-plots AI Model Endpoint
 
 ZeroGPU Space that serves scikit-plots model weights via an
-OpenAI-compatible REST endpoint.  Called by the proxy Space
-(`scikit-plots/ai`) via its `BACKEND_URL` environment variable.
+server-authoritative REST endpoint.  Called by the proxy Space
+(`scikit-plots/ai`) via its `HF_SPACES_MODEL_URL` Path-2 configuration.
 
 ## Primary endpoint
 
@@ -26,15 +26,25 @@ OpenAI-compatible REST endpoint.  Called by the proxy Space
 POST /v1/chat/completions
 ```
 
-Request body (OpenAI Chat Completions format):
+Request body (`scikitplot-chat-v1`; caller-controlled system/developer roles are rejected):
 
 ```json
 {
+  "contract": "scikitplot-chat-v1",
   "model": "scikit-plots/Qwen2.5-Coder-7B-Instruct",
-  "messages": [{"role": "user", "content": "Hello"}],
-  "max_tokens": 512
+  "user_message": "Hello",
+  "context": {
+    "page_text": "Untrusted documentation text",
+    "page_descriptor": "Example page"
+  },
+  "max_tokens": 512,
+  "stream": false
 }
 ```
+
+The policy is intentionally public: security does not depend on hiding the
+system prompt.  The service reconstructs the authoritative system role from
+its own code, so direct callers cannot replace it.
 
 ## Other endpoints
 
@@ -43,7 +53,7 @@ Request body (OpenAI Chat Completions format):
 | `GET` | `/` | Status page | https://scikit-plots-ai-model.hf.space |
 | `GET` | `/health` | Liveness probe (model loaded check) | https://scikit-plots-ai-model.hf.space/health |
 | `GET` | `/ui` | Gradio test UI | https://scikit-plots-ai-model.hf.space/ui |
-| `POST` | `/v1/chat/completions` | Primary inference endpoint | https://scikit-plots-ai-model.hf.space/v1/chat/completions |
+| `POST` | `/v1/chat/completions` | Server-authoritative inference endpoint | https://scikit-plots-ai-model.hf.space/v1/chat/completions |
 
 ## ⚠️ Cold start
 
@@ -65,7 +75,7 @@ Set in **Space → Settings → Repository secrets**:
 |---|---|---|---|
 | `MODEL_ID` | No | `scikit-plots/Qwen2.5-Coder-7B-Instruct` | Model weights to load. Supports `scikit-plots/*` mirrors. |
 | `ALLOWED_ORIGINS` | No | `https://scikit-plots-ai.hf.space` | Comma-separated CORS origins. Add `http://localhost:7860` for local dev. Do not set to `*` in production. |
-| `MAX_BODY_BYTES` | No | `10485760` | Maximum request body size (bytes). Non-integer values fall back to default. |
+| `MAX_BODY_BYTES` | No | `10485760` | Maximum request body size, enforced while streaming and hard-clamped to 16 MiB. Non-integer values fall back to default. |
 
 ## Why this works with scikit-plots/* mirrors
 
@@ -79,8 +89,9 @@ Provider — so they work here but fail with the HF Serverless API.
 Add these to `scikit-plots/ai` → Settings → Repository secrets:
 
 ```
-BACKEND_URL   = https://scikit-plots-ai-model.hf.space/v1/chat/completions
-PROXY_TIMEOUT = 600
+HF_SPACES_MODEL_URL        = https://scikit-plots-ai-model.hf.space/v1/chat/completions
+HF_SPACES_MODEL_NAMESPACES = scikit-plots
+PATH2_TIMEOUT              = 600
 ```
 
 ## References

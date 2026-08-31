@@ -1,145 +1,26 @@
-# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/dataset_schema.py
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_utils/_dataset_schema.py
 #
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Canonical schema, normalization, and pandas loading for the AI-assistant dataset.
+"""Canonical schema and normalization for collection records.
 
-Background
-----------
-Two independent server endpoints write to the same HuggingFace dataset repo:
+Schema v4 separates telemetry from two explicit contribution record families:
 
-* ``POST /v1/feedback``   → ``feedback/TIMESTAMP.jsonl``
-* ``POST /v1/contribute`` → ``contributions/TIMESTAMP.jsonl``
+* ``feedback`` is privacy-minimal rating telemetry.  Content, model, page and
+  conversation identity are discarded even when legacy/direct callers submit them;
+  ``trainingStatus`` is always ``telemetry``.
+* ``contribution`` is explicit-content intake. Q&A records retain the historical
+  ``query``/``answer`` shape while conversation records carry one ordered ``messages``
+  array. Both carry versioned consent, enter ``quarantined`` state, and are
+  training-eligible only after an authorised review promotes them.
 
-Before this module, these two paths used *different* field names for the same
-logical concept (e.g. ``conversationId`` vs ``_sessionId``, ``page`` vs
-``_page``, ``model`` vs ``_model``), had an inconsistent ``ratingLabel``
-type (snake_case slug for panel feedback; Title Case string for quick 👍/👎
-feedback), and copied the entire raw client payload into feedback records
-(including the legacy ``rating`` alias and unfiltered extra fields).
-
-This module fixes all of those issues by providing a single canonical schema
-that **both** endpoints write.  Every stored JSONL row is an output of
-:func:`normalize_feedback_record` or :func:`normalize_contribution_record`.
-Old records written before this fix can be read through :func:`normalize_record`
-which back-fills the new fields from the legacy ones.
-
-Canonical key order (identical in every row)
---------------------------------------------
-::
-
-    schemaVersion
-    _source           _ts            _dedup_key
-    conversationId    feedbackId
-    answerIndex       action         prevFeedbackId    editCount    status
-    ratingValue       ratingSlug     ratingTitle       ratingMode   message
-    query             answer
-    model
-    page              consentVersion
-    ts
-
-Notes
------
-User note
-    Load the full dataset in one line::
-
-        from dataset_schema import load_dataset
-
-        df = load_dataset("feedback/", "contributions/")
-
-Developer note — Rating vocabulary
-    ``ratingLabel`` is now always a snake_case slug (canonical identifier).
-    ``ratingTitle`` carries the human-readable display string for dashboards.
-    Old quick-feedback records that stored ``ratingLabel = "Not helpful"`` are
-    normalised: the Title Case string is moved to ``ratingTitle`` and a slug
-    derived to populate ``ratingSlug`` / ``ratingLabel``.
-
-Developer note — Model shape
-    Both feedback and contribution payloads now build the model object via the
-    shared client-side ``_buildModelInfo(cfg)`` helper, so every record that
-    carries model attribution has the **same 8-key shape** (see
-    :data:`MODEL_KEYS`): ``id, provider, model, label, endpoint, info_url,
-    description, default``.  :func:`normalize_model` still projects *any*
-    input dict (including pre-v2 3-key ``{id, provider, model}`` records) onto
-    this 8-key shape for backward compatibility — missing keys become
-    ``None``.
-
-Developer note — Retraction records (``action="retract"``)
-    A retraction payload has ``action="retract"`` and ``prevSessionId`` pointing
-    to the ``sessionId`` (= ``feedbackId``) of the record being invalidated.
-    The normalised form uses ``prevFeedbackId`` for clarity and fills all rating /
-    content / model fields with ``None``.
-
-Developer note — Supersession chains (``action="rate"`` + ``prevFeedbackId``)
-    When a user edits a previously submitted rating, the **new** ``rate``
-    record now also carries ``prevFeedbackId`` = the ``feedbackId`` of the
-    rating it replaces (in addition to the separate ``retract`` tombstone for
-    the old record).  This gives downstream tooling a direct, walkable edit
-    history per ``(conversationId, answerIndex)`` without having to infer
-    chains purely from ``_ts`` ordering.  ``editCount`` is a monotonically
-    increasing counter (``0`` for the first rating, ``+1`` per edit) carried
-    alongside ``prevFeedbackId`` for quick "rating churn" analysis without
-    walking the chain.
-
-Developer note — ``feedbackId`` cross-source linkage
-    Contribution records now carry ``feedbackId`` = the ``feedbackId`` of the
-    per-answer feedback event that was active when the user clicked
-    "Contribute" (``None`` when the user never rated that answer
-    individually).  This is a **direct foreign key** between a
-    ``contributions/`` row and a ``feedback/`` row — in addition to the
-    coarser ``_dedup_key`` (``"{conversationId}:{answerIndex}"``) — and is the
-    preferred join key for ``deduplicate_dataset.py`` going forward.
-
-Developer note — ``consentVersion`` (reserved)
-    Consent-version tracking is **not currently enforced**.
-    :data:`CONSENT_VERSION_ENABLED` is ``False``, so :func:`normalize_record`,
-    :func:`normalize_feedback_record`, and :func:`normalize_contribution_record`
-    all write ``consentVersion: null`` regardless of what the client sends —
-    including historical records that stored ``"v1.0"``.  This keeps every row
-    in the combined DataFrame consistent.  See :data:`RESERVED_CONSENT_VERSION`
-    for the value to adopt when this feature is implemented.
-
-Schema version history
------------------------
-``schemaVersion: 1`` (initial canonical schema)
-    ``feedbackId`` / ``prevFeedbackId`` always ``None`` for contribution
-    records; ``prevFeedbackId`` only set on ``action="retract"`` feedback
-    records; ``model`` may be a 3-key ``{id, provider, model}`` dict (quick
-    feedback) or 8-key dict (panel/contribution); ``consentVersion`` may be
-    ``"v1.0"`` on contribution records; no ``editCount`` column.
-
-``schemaVersion: 2`` (this version) — additive, backward compatible
-    * ``feedbackId`` populated on contribution records when the answer was
-      individually rated before contributing (see "feedbackId cross-source
-      linkage" above).
-    * ``prevFeedbackId`` populated on ``action="rate"`` records (both sources)
-      when the rating supersedes a prior one (see "Supersession chains" above).
-    * New ``editCount`` column (``int``, default ``0``).
-    * ``model`` is always the full 8-key shape when present (see "Model shape"
-      above); old 3-key records are still readable via :func:`normalize_model`.
-    * ``consentVersion`` is always ``None`` (see "consentVersion (reserved)"
-      above); old ``"v1.0"`` values are normalised away on read.
-
-    :func:`normalize_record` reads ``schemaVersion: 1`` rows transparently —
-    all v2-only fields default via ``setdefault`` (``feedbackId=None``,
-    ``prevFeedbackId=None``, ``editCount=0``).
-
-Security note
-    Client IP addresses are **never stored** in dataset records.  The proxy
-    (``app.py``) passes every ``client_ip`` through ``_mask_ip()`` before any
-    log entry is written, and the normalisation functions in this module
-    receive only the sanitised JSON payload — the raw IP never enters any
-    field accepted or emitted by this module.
-
-References
-----------
-See ``DATASET_COLLECTION_GUIDANCE.md`` for the deduplication contract, the
-``feedbackId`` / ``prevFeedbackId`` supersession-chain resolution algorithm,
-and the training-pipeline usage of ``_source``, ``_dedup_key``, and ``status``.
+Historical v1/v2/v3 rows remain readable through :func:`normalize_record`, but old
+contributions become ``legacy_unreviewed`` rather than silently entering training.
+Client IP addresses are never dataset fields.  See ``DATASET_COLLECTION_GUIDANCE.md``
+for lifecycle and retention policy.
 """
 
 from __future__ import annotations
@@ -160,8 +41,8 @@ logger = logging.getLogger(__name__)
 #: Increment when a breaking field-name change is introduced; additive
 #: changes (new optional columns, wider population of existing columns) bump
 #: this too so consumers can branch on ``schemaVersion`` to know which fields
-#: to expect.  See "Schema version history" above for what changed in v2.
-SCHEMA_VERSION: int = 2
+#: to expect.  See the module docstring and collection guidance for version semantics.
+SCHEMA_VERSION: int = 4
 
 #: Ordered list of canonical column names.  Every stored JSONL row and every
 #: row in the pandas DataFrame will have these columns in exactly this order.
@@ -171,13 +52,12 @@ CANONICAL_COLUMNS: list[str] = [
     # ── Provenance (server-side, mandatory) ──────────────────────────────────
     "_source",  # "feedback" | "contribution"
     "_ts",  # server receive time, ms since epoch (int)
-    "_dedup_key",  # "{conversationId}:{answerIndex}"
-    # ── Session identity ──────────────────────────────────────────────────────
-    "conversationId",  # stable per-page-load chat session UUID
-    "feedbackId",  # per-feedback-event id. For contributions: the feedbackId
-    # of the matching per-answer feedback event, or None if
-    # the user never rated this answer individually.
+    "_dedup_key",  # server event/receipt scoped key; never a stable user identity
+    # ── Event identity ────────────────────────────────────────────────────────
+    "conversationId",  # legacy field; v3 feedback/contribution normalization writes None
+    "feedbackId",  # feedback event id only; contributions write None
     # ── Record descriptor ─────────────────────────────────────────────────────
+    "recordType",  # "qa" | "conversation" (feedback writes None)
     "answerIndex",  # 0-based position of answer in the conversation
     "action",  # "rate" | "retract"
     "prevFeedbackId",  # feedbackId of the record this one supersedes/invalidates.
@@ -189,27 +69,29 @@ CANONICAL_COLUMNS: list[str] = [
     # edits/re-rates the same answer (mirrors prevFeedbackId
     # chain length without walking it). None for retracts.
     "status",  # "active" | "retracted"  (dedup pipeline manages)
+    "trainingStatus",  # "telemetry" | "quarantined" | "eligible" | "withdrawn" | "legacy_unreviewed"
     # ── Rating ────────────────────────────────────────────────────────────────
     "ratingValue",  # int | None: numeric score (-5..+5 for panel; -1|+1 for quick)
     "ratingSlug",  # str | None: snake_case canonical slug ("helpful", "mostly_positive")
     "ratingTitle",  # str | None: human display string ("Helpful", "Mostly yes")
     "ratingMode",  # str | None: "quick" | "panel"
-    "message",  # str: free-text user comment (empty string when absent)
+    "message",  # contribution text only; feedback telemetry writes empty string
     # ── Conversation content ──────────────────────────────────────────────────
-    "query",  # str: user question
-    "answer",  # str: model response
+    "query",  # contribution user question; feedback telemetry writes empty string
+    "answer",  # Q&A contribution model response; feedback telemetry/conversations write empty string
+    "messages",  # conversation contribution ordered message list; otherwise None
     # ── Model ────────────────────────────────────────────────────────────────
     "model",  # dict | None: normalised 8-key model object (see MODEL_KEYS)
+    "modelEvidence",  # None | "client_reported" | "legacy_unverified"
     # ── Context ───────────────────────────────────────────────────────────────
     "page",  # str: documentation page URL
-    "consentVersion",  # str | None: reserved for future use — always None while
-    # CONSENT_VERSION_ENABLED is False (see below)
+    "consentVersion",  # str | None: required for current contribution consent policy
     # ── Timestamps ───────────────────────────────────────────────────────────
     "ts",  # int: client-side event time, ms since epoch
 ]
 
 #: Required keys for the normalised model sub-object.
-#: Both feedback (3-key shape) and contribution (8-key shape) are expanded to
+#: Legacy/model-bearing contribution shapes are expanded to
 #: this full set; keys absent in the source are filled with ``None``.
 MODEL_KEYS: list[str] = [
     "id",  # canonical model identifier (e.g. "Qwen2.5-Coder-7B-Instruct-hf")
@@ -223,27 +105,17 @@ MODEL_KEYS: list[str] = [
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Consent-version handling (reserved for future use)
+# Consent-version handling
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Master switch for consent-version tracking.  While ``False`` (current
-#: state), every normaliser writes ``consentVersion: null`` regardless of what
-#: the client sent — including historical contribution records that stored
-#: ``"v1.0"`` — so the column is uniformly ``None`` across the whole dataset.
-#:
-#: To activate consent-version tracking in the future:
-#:   1. Set this to ``True``.
-#:   2. Set :data:`RESERVED_CONSENT_VERSION` to the real version string
-#:      (e.g. keep ``"1.0.0"``, or bump it).
-#:   3. In ``ai-assistant.js``, uncomment the ``CONSENT_VERSION`` constant and
-#'      change ``consentVersion: null`` back to ``consentVersion: CONSENT_VERSION``
-#:      in the ``/v1/contribute`` payload (see the matching comment there).
-CONSENT_VERSION_ENABLED: bool = False
-
-#: Semantic version string reserved for the consent-banner copy/flow, for use
-#: once :data:`CONSENT_VERSION_ENABLED` is flipped to ``True``.  Bump this
-#: whenever consent terms change materially.  Currently unused.
-RESERVED_CONSENT_VERSION: str = "1.0.0"
+#: Current contribution consent is versioned and enforced.  Bump this value
+#: whenever the displayed contribution terms change materially and update the
+#: browser ``CONSENT_VERSION`` in the same run.
+CONSENT_VERSION_ENABLED: bool = True
+RESERVED_CONSENT_VERSION: str = "2.0.0"
+FEEDBACK_TELEMETRY_CONSENT_VERSION: str = "1.0.0"
+FEEDBACK_TELEMETRY_SCHEMA_VERSION: int = 4
+LEGACY_CONSENT_VERSIONS: frozenset[str] = frozenset({"1.0.0"})
 
 
 def _resolve_consent_version(raw: Any) -> str | None:
@@ -259,10 +131,7 @@ def _resolve_consent_version(raw: Any) -> str | None:
     Returns
     -------
     str or None
-        ``None`` while :data:`CONSENT_VERSION_ENABLED` is ``False`` (current
-        behaviour) — *regardless* of ``raw``, so historical ``"v1.0"`` values
-        are normalised away too.  Once enabled, ``raw`` is passed through
-        unchanged if it is a non-empty string, else ``None`` (this function
+        the declared non-empty consent version while enforcement is enabled, else ``None`` (this function
         never *invents* a consent version for a record that did not declare
         one — :data:`RESERVED_CONSENT_VERSION` is purely documentation for
         what the JS widget should send once re-enabled).
@@ -276,7 +145,8 @@ def _resolve_consent_version(raw: Any) -> str | None:
 
     Examples
     --------
-    >>> _resolve_consent_version("v1.0")  # CONSENT_VERSION_ENABLED=False
+    >>> _resolve_consent_version("2.0.0")
+    '2.0.0'
     >>> _resolve_consent_version(None)
     """
     if not CONSENT_VERSION_ENABLED:
@@ -659,133 +529,148 @@ def normalize_feedback_record(
     *,
     server_ts_ms: int,
 ) -> dict[str, Any]:
-    """Build a canonical record from a raw ``POST /v1/feedback`` payload.
+    """Normalize ordinary feedback to privacy-minimal telemetry.
 
-    Parameters
-    ----------
-    payload : dict
-        Raw JSON body received by the feedback endpoint.  Handles both normal
-        rating records and ``action="retract"`` tombstones.
-    server_ts_ms : int
-        Server receive timestamp in milliseconds since epoch (``int(time.time() * 1000)``).
-        Pass the same value for the entire request to avoid per-call clock drift.
-
-    Returns
-    -------
-    dict
-        Canonical record with all ``CANONICAL_COLUMNS`` keys in order.
-
-    Notes
-    -----
-    Developer note — Security
-        The previous implementation used ``{**payload, ...}`` which forwarded
-        arbitrary client-supplied fields directly into the dataset.  This
-        implementation whitelists only the known fields from the JS schema,
-        discarding unexpected keys.  The legacy ``rating`` alias is dropped
-        (its value was always identical to ``ratingLabel``).  All identifier
-        fields (``conversationId``, ``feedbackId``, ``prevFeedbackId``) are
-        passed through :func:`_safe_id` and ``editCount`` through
-        :func:`_safe_int` to bound type/size regardless of client input.
-
-    Developer note — Retract records (``action="retract"``)
-        ``prevFeedbackId`` is set from ``payload["prevSessionId"]`` —
-        the ``feedbackId`` of the record being invalidated.  ``editCount`` is
-        ``None`` (not applicable to a tombstone).
-
-    Developer note — Rate records with ``prevFeedbackId`` (edits)
-        When the new JS sends ``payload["prevFeedbackId"]`` on an
-        ``action="rate"`` record, it means this rating *replaces* an earlier
-        one for the same ``(conversationId, answerIndex)`` — the value is the
-        ``feedbackId`` of that earlier rating (a separate ``retract``
-        tombstone for it is sent too).  ``editCount`` is
-        ``payload["editCount"]`` (``0`` for a first-time rating).
-
-    Developer note — ratingLabel normalization
-        Old quick-feedback records set ``ratingLabel = opt.title`` (Title Case:
-        ``"Not helpful"`` / ``"Helpful"``); the new JS sets
-        ``ratingLabel = opt.slug`` (snake_case: ``"not_helpful"`` / ``"helpful"``).
-        :func:`normalize_rating` handles both transparently.
-
-    Examples
-    --------
-    >>> record = normalize_feedback_record(payload, server_ts_ms=1_700_000_000_000)
-    >>> list(record.keys()) == CANONICAL_COLUMNS
-    True
+    Feedback is not a training-data collection channel.  Direct/legacy callers
+    may still submit historical fields such as ``query``, ``answer``, ``message``,
+    ``model``, ``page`` or ``conversationId``; they are deliberately discarded.
+    Only bounded rating mechanics are retained.
     """
-    is_retract: bool = payload.get("action") == "retract"
+    is_retract = payload.get("action") == "retract"
+    feedback_id = _safe_id(payload.get("feedbackId") or payload.get("sessionId"))
+    prev_feedback_id = _safe_id(
+        payload.get("prevFeedbackId") or payload.get("prevSessionId")
+    )
+    answer_index = payload.get("answerIndex")
+    try:
+        answer_index = int(answer_index) if answer_index is not None else None
+    except (TypeError, ValueError):
+        answer_index = None
 
-    # ── Identity ──────────────────────────────────────────────────────────────
-    conversation_id: str | None = _safe_id(payload.get("conversationId"))
-    # Feedback sessionId is the per-submission idempotency key, renamed to
-    # feedbackId to distinguish it from the chat-session conversationId.
-    feedback_id: str | None = _safe_id(payload.get("sessionId"))
-    answer_index: int | None = payload.get("answerIndex")
-
-    # ── Supersession / edit-chain fields ──────────────────────────────────────
     if is_retract:
-        # prevSessionId in the retract payload points to the sessionId
-        # (= feedbackId) of the original record being invalidated.
-        prev_feedback_id: str | None = _safe_id(payload.get("prevSessionId"))
-        edit_count: int | None = None  # not applicable to a tombstone
-    else:
-        # New JS sends prevFeedbackId on a "rate" record when this rating
-        # replaces an earlier one (an edit) — see "Rate records with
-        # prevFeedbackId" above.  None for a first-time rating.
-        prev_feedback_id = _safe_id(payload.get("prevFeedbackId"))
-        edit_count = _safe_int(payload.get("editCount"), default=0)
-
-    # ── Rating (None for retracts) ────────────────────────────────────────────
-    if is_retract:
-        rating_fields: dict[str, Any] = {
-            "ratingSlug": None,
-            "ratingTitle": None,
-            "ratingMode": None,
-        }
+        rating_fields = {"ratingSlug": None, "ratingTitle": None, "ratingMode": None}
     else:
         rating_fields = normalize_rating(
             payload.get("ratingValue"),
             payload.get("ratingLabel"),
-            rating_mode=payload.get("ratingMode"),  # new JS field (None if old)
-            rating_title=payload.get("ratingTitle"),  # new JS field (None if old)
+            rating_mode=payload.get("ratingMode"),
+            rating_title=payload.get("ratingTitle"),
             feedback_id=feedback_id,
         )
 
-    # ── Model (None for retracts; populated for both quick and panel feedback
-    # since _buildModelInfo(cfg) is now used uniformly on the client) ─────────
-    raw_model: dict | None = payload.get("model")
-    if isinstance(raw_model, str):
-        # Guard: old or malformed payloads sometimes send model as a bare string.
-        raw_model = {"id": raw_model, "provider": None, "model": raw_model}
-
-    # ── Assemble canonical record ─────────────────────────────────────────────
+    # Deliberately avoid a conversation/session linkage key.  A persisted rating
+    # is telemetry only and is never eligible for the training builder.
+    dedup = f"feedback:{feedback_id}" if feedback_id else None
     return _ordered(
         {
-            "schemaVersion": int(payload.get("schemaVersion") or SCHEMA_VERSION),
+            "schemaVersion": SCHEMA_VERSION,
             "_source": "feedback",
             "_ts": server_ts_ms,
-            "_dedup_key": f"{conversation_id or ''}:{answer_index}",
-            "conversationId": conversation_id,
+            "_dedup_key": dedup,
+            "conversationId": None,
             "feedbackId": feedback_id,
-            "answerIndex": int(answer_index) if answer_index is not None else None,
+            "recordType": None,
+            "answerIndex": answer_index,
             "action": "retract" if is_retract else "rate",
             "prevFeedbackId": prev_feedback_id,
-            "editCount": edit_count,
+            "editCount": (
+                None if is_retract else _safe_int(payload.get("editCount"), default=0)
+            ),
             "status": "active",
+            "trainingStatus": "telemetry",
             "ratingValue": None if is_retract else payload.get("ratingValue"),
             "ratingSlug": rating_fields["ratingSlug"],
             "ratingTitle": rating_fields["ratingTitle"],
             "ratingMode": rating_fields["ratingMode"],
-            "message": "" if is_retract else (payload.get("message") or ""),
-            "query": "" if is_retract else (payload.get("query") or ""),
-            "answer": "" if is_retract else (payload.get("answer") or ""),
-            "model": None if is_retract else normalize_model(raw_model),
-            "page": "" if is_retract else (payload.get("page") or ""),
-            "consentVersion": _resolve_consent_version(
-                None
-            ),  # feedback never declares consent
+            "message": "",
+            "query": "",
+            "answer": "",
+            "messages": None,
+            "model": None,
+            "modelEvidence": None,
+            "page": "",
+            "consentVersion": None,
             "ts": payload.get("ts"),
         }
     )
+
+
+_MAX_CONVERSATION_MESSAGES: int = 100
+_MAX_CONVERSATION_MESSAGE_CHARS: int = 100_000
+_MAX_CONTRIBUTION_NOTE_CHARS: int = 2_000
+# Public contract aliases used by browser/server parity validation.  The
+# normalizer keeps defensive bounds for legacy rows, while current schema-v4
+# intake rejects over-limit reviewed content instead of silently truncating it.
+MAX_CONVERSATION_MESSAGES: int = _MAX_CONVERSATION_MESSAGES
+MAX_CONVERSATION_MESSAGE_CHARS: int = _MAX_CONVERSATION_MESSAGE_CHARS
+MAX_CONTRIBUTION_NOTE_CHARS: int = _MAX_CONTRIBUTION_NOTE_CHARS
+
+
+def _bounded_text(value: Any, *, limit: int) -> str:
+    """Return a bounded string for explicit contribution content."""
+    if not isinstance(value, str):
+        return ""
+    return value[:limit]
+
+
+def normalize_conversation_messages(value: Any) -> list[dict[str, Any]]:
+    """Normalize one explicit whole-conversation message array.
+
+    Only ``user`` and ``assistant`` roles are accepted. Error/tool/system rows are
+    deliberately excluded from this training/evaluation contribution family.
+    Per-assistant model and rating metadata remain client-reported evidence.
+    """
+    if not isinstance(value, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for raw in value[:_MAX_CONVERSATION_MESSAGES]:
+        if not isinstance(raw, dict):
+            continue
+        role = raw.get("role")
+        if role not in {"user", "assistant"}:
+            continue
+        content = _bounded_text(
+            raw.get("content"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
+        )
+        if not content:
+            continue
+        item: dict[str, Any] = {
+            "role": role,
+            "content": content,
+            "ts": (
+                raw.get("ts")
+                if isinstance(raw.get("ts"), (int, float))
+                and not isinstance(raw.get("ts"), bool)
+                else None
+            ),
+        }
+        if role == "assistant":
+            raw_model = raw.get("model")
+            item["model"] = (
+                normalize_model(raw_model) if isinstance(raw_model, dict) else None
+            )
+            raw_feedback = raw.get("feedback")
+            if isinstance(raw_feedback, dict):
+                rating = normalize_rating(
+                    raw_feedback.get("ratingValue"),
+                    raw_feedback.get("ratingLabel"),
+                    rating_mode=raw_feedback.get("ratingMode"),
+                    rating_title=raw_feedback.get("ratingTitle"),
+                    feedback_id=None,
+                )
+                item["feedback"] = {
+                    "ratingValue": raw_feedback.get("ratingValue"),
+                    "ratingSlug": rating["ratingSlug"],
+                    "ratingTitle": rating["ratingTitle"],
+                    "ratingMode": rating["ratingMode"],
+                    "note": _bounded_text(
+                        raw_feedback.get("note"), limit=_MAX_CONTRIBUTION_NOTE_CHARS
+                    ),
+                }
+            else:
+                item["feedback"] = None
+        out.append(item)
+    return out
 
 
 def normalize_contribution_record(
@@ -793,103 +678,159 @@ def normalize_contribution_record(
     *,
     envelope: dict[str, Any],
     server_ts_ms: int,
+    training_status: str = "quarantined",
+    submission_id: str | None = None,
 ) -> dict[str, Any]:
-    """Build a canonical record from one turn in a ``POST /v1/contribute`` batch.
+    """Normalize one explicitly consented Q&A or conversation contribution."""
+    if training_status not in {"quarantined", "eligible", "legacy_unreviewed"}:
+        training_status = "quarantined"
+    dedup_base = _safe_id(submission_id) or "pending"
+    declared_type = rec.get("recordType")
+    record_type = "conversation" if declared_type == "conversation" else "qa"
 
-    Parameters
-    ----------
-    rec : dict
-        A single item from ``payload["records"]`` (one per-turn ``tRecord``).
-    envelope : dict
-        The outer contribution POST body (contains ``sessionId``, ``page``,
-        ``model``, ``consentVersion``, etc.).
-    server_ts_ms : int
-        Server receive timestamp in milliseconds since epoch.  Compute once
-        per request and pass to all calls so every row in the batch has the
-        same ``_ts``.
+    if record_type == "conversation":
+        messages = normalize_conversation_messages(rec.get("messages"))
+        return _ordered(
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "_source": "contribution",
+                "_ts": server_ts_ms,
+                "_dedup_key": f"{dedup_base}:conversation",
+                "conversationId": None,
+                "feedbackId": None,
+                "recordType": "conversation",
+                "answerIndex": None,
+                "action": "rate",
+                "prevFeedbackId": None,
+                "editCount": 0,
+                "status": "active",
+                "trainingStatus": training_status,
+                "ratingValue": None,
+                "ratingSlug": None,
+                "ratingTitle": None,
+                "ratingMode": None,
+                "message": _bounded_text(
+                    rec.get("message"), limit=_MAX_CONTRIBUTION_NOTE_CHARS
+                ),
+                "query": "",
+                "answer": "",
+                "messages": messages,
+                "model": None,
+                "modelEvidence": (
+                    "client_reported_per_message"
+                    if any(
+                        isinstance(m.get("model"), dict)
+                        for m in messages
+                        if m.get("role") == "assistant"
+                    )
+                    else None
+                ),
+                "page": envelope.get("page") or "",
+                "consentVersion": _resolve_consent_version(
+                    envelope.get("consentVersion")
+                ),
+                "ts": rec.get("ts"),
+            }
+        )
 
-    Returns
-    -------
-    dict
-        Canonical record with all ``CANONICAL_COLUMNS`` keys in order.
-
-    Notes
-    -----
-    Developer note — Field renaming
-        The previous implementation stored ``_sessionId``, ``_page``,
-        ``_model``, ``_consentVersion`` (underscore-prefixed server-side
-        names).  These are now stored without the prefix (``conversationId``,
-        ``page``, ``model``, ``consentVersion``) matching the feedback schema.
-        ``_source``, ``_ts``, and ``_dedup_key`` keep their underscore prefix
-        because they are universal provenance fields managed exclusively by
-        the server.
-
-    Developer note — ``feedbackId`` / ``prevFeedbackId`` / ``editCount``
-        ``tRecords`` (built client-side from ``_feedbackStore``) now forward
-        ``feedbackId`` (the per-answer feedback event's own ``sessionId``,
-        if the user rated this answer individually before contributing),
-        ``prevFeedbackId`` (set when that feedback event was itself an edit
-        of an earlier one), and ``editCount``.  All three pass through
-        :func:`_safe_id` / :func:`_safe_int`.  ``feedbackId`` is ``None`` when
-        the user contributed without ever rating that specific answer.
-
-    Developer note — ``_ts`` consistency
-        All rows in a single contribute batch share the same ``server_ts_ms``
-        value.  The previous inline ``int(_time.time() * 1000)`` inside a
-        list comprehension produced slightly different ``_ts`` values per row.
-        Callers must compute ``server_ts_ms`` once before iterating.
-
-    Examples
-    --------
-    >>> ts = int(time.time() * 1000)
-    >>> rows = [
-    ...     normalize_contribution_record(r, envelope=payload, server_ts_ms=ts)
-    ...     for r in payload["records"]
-    ...     if isinstance(r, dict)
-    ... ]
-    """
-    # conversation_id is the JS _sessionId (stable per-page-load chat session UUID).
-    # The envelope calls it "sessionId" (without underscore); we rename to conversationId.
-    conversation_id: str | None = _safe_id(envelope.get("sessionId"))
-    answer_index: int | None = rec.get("answerIndex")
-
+    answer_index = rec.get("answerIndex")
+    try:
+        answer_index = int(answer_index) if answer_index is not None else None
+    except (TypeError, ValueError):
+        answer_index = None
     rating_fields = normalize_rating(
         rec.get("ratingValue"),
         rec.get("ratingLabel"),
-        rating_mode=rec.get("ratingMode"),  # from _feedbackStore.ratingMode (new JS)
-        rating_title=rec.get("ratingTitle"),  # from _feedbackStore.ratingTitle (new JS)
-        feedback_id=rec.get("feedbackId"),  # now forwarded — see docstring above
+        rating_mode=rec.get("ratingMode"),
+        rating_title=rec.get("ratingTitle"),
+        feedback_id=None,
     )
-
     return _ordered(
         {
-            "schemaVersion": int(envelope.get("schemaVersion") or SCHEMA_VERSION),
+            "schemaVersion": SCHEMA_VERSION,
             "_source": "contribution",
             "_ts": server_ts_ms,
-            "_dedup_key": f"{conversation_id or ''}:{answer_index}",
-            "conversationId": conversation_id,
-            # feedbackId: the per-answer feedback event's own id (sessionId), when
-            # the user rated this answer individually before contributing.  None
-            # when they contributed without rating this specific answer.
-            "feedbackId": _safe_id(rec.get("feedbackId")),
-            "answerIndex": int(answer_index) if answer_index is not None else None,
+            "_dedup_key": f"{dedup_base}:{answer_index}",
+            "conversationId": None,
+            "feedbackId": None,
+            "recordType": "qa",
+            "answerIndex": answer_index,
             "action": "rate",
-            # prevFeedbackId: forwarded from the matching feedback event when that
-            # event was itself an edit of an earlier rating (edit chain).
-            "prevFeedbackId": _safe_id(rec.get("prevFeedbackId")),
-            "editCount": _safe_int(rec.get("editCount"), default=0),
+            "prevFeedbackId": None,
+            "editCount": 0,
             "status": "active",
+            "trainingStatus": training_status,
             "ratingValue": rec.get("ratingValue"),
             "ratingSlug": rating_fields["ratingSlug"],
             "ratingTitle": rating_fields["ratingTitle"],
             "ratingMode": rating_fields["ratingMode"],
-            "message": rec.get("message") or "",
-            "query": rec.get("query") or "",
-            "answer": rec.get("answer") or "",
+            "message": _bounded_text(
+                rec.get("message"), limit=_MAX_CONTRIBUTION_NOTE_CHARS
+            ),
+            "query": _bounded_text(
+                rec.get("query"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
+            ),
+            "answer": _bounded_text(
+                rec.get("answer"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
+            ),
+            "messages": None,
             "model": normalize_model(envelope.get("model")),
+            "modelEvidence": "client_reported" if envelope.get("model") else None,
             "page": envelope.get("page") or "",
             "consentVersion": _resolve_consent_version(envelope.get("consentVersion")),
             "ts": rec.get("ts"),
+        }
+    )
+
+
+def normalize_contribution_withdrawal_record(
+    dedup_key: str,
+    *,
+    server_ts_ms: int,
+) -> dict[str, Any]:
+    """Create a privacy-minimal contribution withdrawal tombstone.
+
+    The tombstone carries no original question, answer, note, page, model, or
+    participant identifier.  It only repeats the server-owned contribution
+    deduplication key so the training builder can suppress an earlier eligible
+    row by last-write-wins.  This is a *training withdrawal* signal; it is not
+    proof that append-only Git/provider history was physically erased.
+    """
+    key = _safe_id(dedup_key)
+    if not key:
+        raise ValueError("A valid contribution deduplication key is required.")
+    answer_index = None
+    try:  # ruff: ignore[suppressible-exception]
+        answer_index = int(key.rsplit(":", 1)[1])
+    except (IndexError, TypeError, ValueError):
+        pass
+    return _ordered(
+        {
+            "schemaVersion": SCHEMA_VERSION,
+            "_source": "contribution",
+            "_ts": server_ts_ms,
+            "_dedup_key": key,
+            "conversationId": None,
+            "feedbackId": None,
+            "recordType": None,
+            "answerIndex": answer_index,
+            "action": "withdraw",
+            "prevFeedbackId": None,
+            "editCount": 0,
+            "status": "withdrawn",
+            "trainingStatus": "withdrawn",
+            "ratingValue": None,
+            "ratingSlug": None,
+            "ratingTitle": None,
+            "ratingMode": None,
+            "message": "",
+            "query": "",
+            "answer": "",
+            "model": None,
+            "modelEvidence": None,
+            "page": "",
+            "consentVersion": None,
+            "ts": None,
         }
     )
 
@@ -976,22 +917,27 @@ def normalize_record(raw: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912
     out.pop("rating", None)
 
     # ── Back-fill missing canonical fields (schemaVersion: 1 → 2) ─────────────
-    out.setdefault("schemaVersion", SCHEMA_VERSION)
+    out["schemaVersion"] = SCHEMA_VERSION
     out.setdefault("feedbackId", None)
+    out.setdefault("recordType", "qa" if source == "contribution" else None)
     out.setdefault("action", "rate")
     out.setdefault("prevFeedbackId", None)
     # editCount: None for retraction tombstones (not applicable), 0 for any
     # pre-v2 "rate" record that predates this column.
     out.setdefault("editCount", None if out.get("action") == "retract" else 0)
     out.setdefault("status", "active")
+    out.setdefault(
+        "trainingStatus",
+        "legacy_unreviewed" if source == "contribution" else "telemetry",
+    )
     out.setdefault("message", "")
     out.setdefault("query", "")
     out.setdefault("answer", "")
+    out.setdefault("messages", None)
     out.setdefault("page", "")
+    out.setdefault("modelEvidence", "legacy_unverified" if out.get("model") else None)
 
-    # ── consentVersion: always resolved through _resolve_consent_version so
-    # historical "v1.0" values and new None values are consistent across the
-    # whole dataset while CONSENT_VERSION_ENABLED is False. ───────────────────
+    # ── consentVersion is normalized through the current version policy. ─────
     out["consentVersion"] = _resolve_consent_version(out.get("consentVersion"))
 
     # ── Defensive re-coercion of identifier/count fields on legacy rows ───────

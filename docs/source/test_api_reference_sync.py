@@ -1,8 +1,8 @@
 """
 Consistency check between ``apis_reference.py`` and the live package.
 
-Background
-----------
+Background:
+
 ``doc/apis_reference.py`` (``APIS_REFERENCE``) is a hand-maintained index of
 every public name Sphinx's ``autosummary`` should document for each module.
 Nothing enforces that it stays in sync with the code: when a class or

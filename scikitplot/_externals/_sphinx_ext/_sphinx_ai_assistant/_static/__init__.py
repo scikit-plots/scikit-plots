@@ -73,6 +73,7 @@ __all__ = [
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
     "_SVG_DATABASE",
+    "_SVG_DATASET",
     "_SVG_DEFAULT",
     "_SVG_ERROR_ALERT",
     "_SVG_EXPORT_TXT",
@@ -89,6 +90,7 @@ __all__ = [
     "_SVG_RETRY",
     "_SVG_SEARCH_AI",
     "_SVG_SEARCH_SPARKLE",
+    "_SVG_SHARE_LINK",
     "_SVG_SHIELD_ALERT",
     "_SVG_SPARKLE",
     "_SVG_SPARKLE_LEFT_2_NOVA_UP_DOWN",
@@ -386,6 +388,55 @@ _SVG_DATABASE: str = (
     "Ljg2OS00LjcyMi44NjktMS44MDUgMC0zLjQ3NS0uMzItNC43MjEtLjg2OWE2LjMyNyA2LjMyNyAwIDAg"
     "MS0uNzc5LS40MDZaIi8+Cjwvc3ZnPgo="
 )
+
+# GitHub Octicon "cache" — dataset/contribution action.
+# Mirrors ai-assistant.js ICONS.dataset and dataset.svg.
+_SVG_DATASET: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGFyaWEtaGlkZGVuPSJ0cnVlIiBkYXRhLWNv"
+    "bXBvbmVudD0iT2N0aWNvbiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE2IDE2IiB2ZXJzaW9uPSIxLjEiIHdp"
+    "ZHRoPSIxNiIgZGF0YS12aWV3LWNvbXBvbmVudD0idHJ1ZSIgY2xhc3M9Im9jdGljb24gb2N0aWNvbi1jYWNoZSIg"
+    "ZmlsbD0iY3VycmVudENvbG9yIj4KICA8cGF0aCBkPSJNMi41IDUuNzI0VjhjMCAuMjQ4LjIzOC43IDEuMTY5IDEu"
+    "MTU5Ljg3NC40MyAyLjE0NC43NDUgMy42Mi44MjJhLjc1Ljc1IDAgMSAxLS4wNzggMS40OThjLTEuNjIyLS4wODUt"
+    "My4xMDItLjQzMi00LjIwNC0uOTc1YTUuNTY1IDUuNTY1IDAgMCAxLS41MDctLjI4VjEyLjVjMCAuMTMzLjA1OC4z"
+    "MTguMjgyLjU1MS4yMjcuMjM3LjU5MS40ODMgMS4xMDEuNzA3IDEuMDE1LjQ0NyAyLjQ3Ljc0MiA0LjExNy43NDIu"
+    "NDA2IDAgLjgwMi0uMDE4IDEuMTgzLS4wNTJhLjc1MS43NTEgMCAxIDEgLjEzNCAxLjQ5NEM4Ljg5IDE1Ljk4IDgu"
+    "NDUgMTYgOCAxNmMtMS44MDUgMC0zLjQ3NS0uMzItNC43MjEtLjg2OS0uNjIzLS4yNzQtMS4xNzMtLjYxOS0xLjU3"
+    "OS0xLjA0MS0uNDA4LS40MjUtLjctLjk2NC0uNy0xLjU5di05YzAtLjYyNi4yOTItMS4xNjUuNy0xLjU5MS40MDYt"
+    "LjQyLjk1Ni0uNzY2IDEuNTc5LTEuMDRDNC41MjUuMzIgNi4xOTUgMCA4IDBjMS44MDYgMCAzLjQ3Ni4zMiA0Ljcy"
+    "MS44NjkuNjIzLjI3NCAxLjE3My42MTkgMS41NzkgMS4wNDEuNDA4LjQyNS43Ljk2NC43IDEuNTkgMCAuNjI2LS4y"
+    "OTIgMS4xNjUtLjcgMS41OTEtLjQwNi40Mi0uOTU2Ljc2Ni0xLjU3OCAxLjA0QzExLjQ3NSA2LjY4IDkuODA1IDcg"
+    "OCA3Yy0xLjgwNSAwLTMuNDc1LS4zMi00LjcyMS0uODY5YTYuMTUgNi4xNSAwIDAgMS0uNzc5LS40MDdabTAtMi4y"
+    "MjRjMCAuMTMzLjA1OC4zMTguMjgyLjU1MS4yMjcuMjM3LjU5MS40ODMgMS4xMDEuNzA3QzQuODk4IDUuMjA1IDYu"
+    "MzUzIDUuNSA4IDUuNWMxLjY0NiAwIDMuMTAxLS4yOTUgNC4xMTgtLjc0Mi41MDgtLjIyNC44NzMtLjQ3MSAxLjEt"
+    "LjcwOC4yMjQtLjIzMi4yODItLjQxNy4yODItLjU1IDAtLjEzMy0uMDU4LS4zMTgtLjI4Mi0uNTUxLS4yMjctLjIz"
+    "Ny0uNTkxLS40ODMtMS4xMDEtLjcwN0MxMS4xMDIgMS43OTUgOS42NDcgMS41IDggMS41Yy0xLjY0NiAwLTMuMTAx"
+    "LjI5NS00LjExOC43NDItLjUwOC4yMjQtLjg3My40NzEtMS4xLjcwOC0uMjI0LjIzMi0uMjgyLjQxNy0uMjgyLjU1"
+    "WiIvPgogIDxwYXRoIGQ9Ik0xNC40OSA3LjU4MmEuMzc1LjM3NSAwIDAgMC0uNjYtLjMxM2wtMy42MjUgNC42MjVh"
+    "LjM3NS4zNzUgMCAwIDAgLjI5NS42MDZoMi4xMjdsLS42MTkgMi45MjJhLjM3NS4zNzUgMCAwIDAgLjY2Ni4zMDRs"
+    "My4xMjUtNC4xMjVBLjM3NS4zNzUgMCAwIDAgMTUuNSAxMWgtMS43NzhsLjc2OS0zLjQxOFoiLz4KPC9zdmc+Cg=="
+)
+
+
+# GitHub Octicon "share" — dedicated export Share-link mode action.
+# Mirrors ai-assistant.js ICONS.linkMode and share-link.svg.
+_SVG_SHARE_LINK: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGRhdGEtY29tcG9uZW50PSJP"
+    "Y3RpY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSIgZm9jdXNhYmxlPSJmYWxzZSIgY2xhc3M9Im9jdGlj"
+    "b24gb2N0aWNvbi1zaGFyZSIgdmlld0JveD0iMCAwIDE2IDE2IiB3aWR0aD0iMTYiIGhlaWdodD0i"
+    "MTYiIGZpbGw9ImN1cnJlbnRDb2xvciIgZGlzcGxheT0iaW5saW5lLWJsb2NrIiBvdmVyZmxvdz0i"
+    "dmlzaWJsZSIgc3R5bGU9InZlcnRpY2FsLWFsaWduOiB0ZXh0LWJvdHRvbTsiPjxwYXRoIGQ9Ik0z"
+    "Ljc1IDYuNWEuMjUuMjUgMCAwIDAtLjI1LjI1djYuNWMwIC4xMzguMTEyLjI1LjI1LjI1aDguNWEu"
+    "MjUuMjUgMCAwIDAgLjI1LS4yNXYtNi41YS4yNS4yNSAwIDAgMC0uMjUtLjI1aC0xYS43NS43NSAw"
+    "IDAgMSAwLTEuNWgxYy45NjYgMCAxLjc1Ljc4NCAxLjc1IDEuNzV2Ni41QTEuNzUgMS43NSAwIDAg"
+    "MSAxMi4yNSAxNWgtOC41QTEuNzUgMS43NSAwIDAgMSAyIDEzLjI1di02LjVDMiA1Ljc4NCAyLjc4"
+    "NCA1IDMuNzUgNWgxYS43NS43NSAwIDAgMSAwIDEuNVpNNy44MjMuMTc3YS4yNS4yNSAwIDAgMSAu"
+    "MzU0IDBsMi44OTYgMi44OTZhLjI1LjI1IDAgMCAxLS4xNzcuNDI3SDguNzV2NS43NWEuNzUuNzUg"
+    "MCAwIDEtMS41IDBWMy41SDUuMTA0YS4yNS4yNSAwIDAgMS0uMTc3LS40MjdaIj48L3BhdGg+PC9z"
+    "dmc+Cg=="
+)
+
 
 # GitHub Octicon "upload" (filled, 16x16 viewBox).
 # Additive fallback for a future file-upload action; no behaviour is wired here.
@@ -953,9 +1004,11 @@ _ICON_META: dict[str, dict[str, str]] = {
     "model": {"icon": _SVG_MODEL, "desc": "Choose a model"},
     "terms": {"icon": _SVG_TERMS, "desc": "Terms of Service"},
     "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
+    "share-link": {"icon": _SVG_SHARE_LINK, "desc": "Share conversation as a link"},
     "comment-discussion": {"icon": _SVG_COMMENT_DISCUSSION, "desc": "Discussion"},
     "upload": {"icon": _SVG_UPLOAD, "desc": "Upload a file"},
     "database": {"icon": _SVG_DATABASE, "desc": "Database"},
+    "dataset": {"icon": _SVG_DATASET, "desc": "Contribute to dataset"},
     "printer": {"icon": _SVG_PRINTER, "desc": "Print or save as PDF"},
     "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
     "info": {"icon": _SVG_INFO, "desc": "Model information"},

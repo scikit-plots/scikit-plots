@@ -1,0 +1,13 @@
+# Deny-by-default build context: only the runtime unit is sent to Docker.
+*
+!Dockerfile
+!requirements.txt
+!requirements.lock
+!app.py
+!deduplicate_dataset.py
+!_utils/
+!_utils/**
+_utils/__pycache__/
+_utils/**/__pycache__/
+_utils/**/*.pyc
+_utils/**/*.pyo

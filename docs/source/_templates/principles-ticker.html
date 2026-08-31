@@ -1,0 +1,189 @@
+<div
+  class="sp-principles"
+  data-sp-principles
+  data-sp-persist="true"
+  data-sp-storage-key="scikitplots:principles-ticker"
+  data-sp-speed-default="normal"
+  data-sp-speed-slow="42"
+  data-sp-speed-normal="28"
+  data-sp-speed-fast="16"
+  data-sp-menu-placement="up"
+  aria-label="Project principles"
+>
+  <div class="sp-principles__viewport">
+    <div class="sp-principles__track">
+      <div class="sp-principles__group">
+
+        <span class="sp-principles__item">
+          Systems over Silos • SoS
+        </span>
+
+        <span class="sp-principles__item">
+          Clarity over Complexity • CoC
+        </span>
+
+        <span class="sp-principles__item">
+          Reliability over Rush • RoR
+        </span>
+
+        <span class="sp-principles__item">
+          Progress over Perfection • PoP
+        </span>
+
+        <span class="sp-principles__item">
+          Better over Best • BoB
+        </span>
+
+        <span class="sp-principles__item">
+          Value over Vanity • VoV
+        </span>
+
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Compact ticker controls.
+
+    The menu opens upward by default because this component is commonly used
+    near a footer. Set data-sp-menu-placement="down" on the root when the
+    ticker is used near the top of a page.
+  -->
+  <details
+    class="sp-principles__menu"
+    data-sp-menu
+  >
+    <summary
+      class="sp-principles__menu-trigger"
+      aria-label="Ticker settings"
+      title="Ticker settings"
+    >
+      <span
+        class="sp-principles__menu-icon"
+        aria-hidden="true"
+      ></span>
+    </summary>
+
+    <div
+      class="sp-principles__menu-panel"
+      aria-label="Ticker settings"
+    >
+      <div class="sp-principles__menu-section">
+        <span class="sp-principles__menu-heading">
+          Motion
+        </span>
+
+        <button
+          type="button"
+          class="sp-principles__menu-button"
+          data-sp-action="toggle"
+          aria-pressed="false"
+        >
+          <span
+            class="sp-principles__menu-button-title"
+            data-sp-toggle-title
+          >
+            Pause
+          </span>
+
+          <span
+            class="sp-principles__menu-button-desc"
+            data-sp-toggle-description
+          >
+            Stop ticker motion
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="sp-principles__menu-button"
+          data-sp-action="reverse"
+          aria-pressed="false"
+        >
+          <span class="sp-principles__menu-button-title">
+            Direction
+          </span>
+
+          <span
+            class="sp-principles__menu-button-desc"
+            data-sp-direction-description
+          >
+            Forward
+          </span>
+        </button>
+      </div>
+
+      <div class="sp-principles__menu-section">
+        <span class="sp-principles__menu-heading">
+          Speed
+        </span>
+
+        <div
+          class="sp-principles__speed-group"
+          role="group"
+          aria-label="Ticker speed"
+        >
+          <button
+            type="button"
+            class="sp-principles__speed-button"
+            data-sp-speed="slow"
+            aria-pressed="false"
+          >
+            Slow
+          </button>
+
+          <button
+            type="button"
+            class="sp-principles__speed-button"
+            data-sp-speed="normal"
+            aria-pressed="true"
+          >
+            Normal
+          </button>
+
+          <button
+            type="button"
+            class="sp-principles__speed-button"
+            data-sp-speed="fast"
+            aria-pressed="false"
+          >
+            Fast
+          </button>
+        </div>
+      </div>
+
+      <div
+        class="sp-principles__menu-separator"
+        aria-hidden="true"
+      ></div>
+
+      <button
+        type="button"
+        class="sp-principles__menu-button"
+        data-sp-action="shuffle"
+      >
+        <span class="sp-principles__menu-button-title">
+          Shuffle
+        </span>
+
+        <span class="sp-principles__menu-button-desc">
+          Randomize principle order
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="sp-principles__menu-button"
+        data-sp-action="reset"
+      >
+        <span class="sp-principles__menu-button-title">
+          Reset
+        </span>
+
+        <span class="sp-principles__menu-button-desc">
+          Restore defaults and original order
+        </span>
+      </button>
+    </div>
+  </details>
+</div>

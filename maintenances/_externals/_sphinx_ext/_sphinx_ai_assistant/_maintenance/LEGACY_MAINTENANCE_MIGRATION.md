@@ -25,3 +25,18 @@ If a live index references a “full archive” or plan that is not present in t
 actual repository snapshot, record that as a maintenance finding. A fresh chat
 must not depend on an inaccessible previous conversation to recover security
 evidence.
+
+## 2026-08-28 repository-level maintenance relocation
+
+Legacy source-local maintenance material is now mapped as follows:
+
+| Legacy runtime-local path | New maintenance path |
+|---|---|
+| `_sphinx_ai_assistant/_maintenance/` | `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/` |
+| `_sphinx_ai_assistant/_backup/` | `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_backup/` |
+| `_sphinx_ai_assistant/MAINTAINING.md` | `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/MAINTAINING.md` |
+| `_sphinx_ai_assistant/tasks/` | `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/todo/` |
+
+Do not leave compatibility copies in the runtime module. The repository-level
+maintenance checker is the compatibility boundary: it understands the mirrored
+location and explicitly fails if source-local maintenance directories return.

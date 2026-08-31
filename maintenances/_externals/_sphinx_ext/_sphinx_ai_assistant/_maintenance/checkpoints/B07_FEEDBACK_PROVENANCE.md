@@ -1,6 +1,6 @@
 # B07 — Feedback Provenance
 
-Status: **NOT_STARTED**
+Status: **COMPLETE VIA B22 / RUN 6**
 Type: **bounded maintenance/change campaign checkpoint**
 Subsystem: **_sphinx_ai_assistant**
 
@@ -10,7 +10,8 @@ Harden feedback/training persistence, consent versioning, and poisoning boundary
 
 ## Prerequisites
 
-- `B06`
+- Original sequence prerequisite: `B06`.
+- Security campaign execution: B18 Run 6 / `B22_FEEDBACK_CONTRIBUTION_PROVENANCE_RETENTION.md` implemented the bounded provenance boundary before the later release-wide B05/B06 parity pass.
 
 ## Scope
 
@@ -32,29 +33,28 @@ Harden feedback/training persistence, consent versioning, and poisoning boundary
 
 ## Execution record schema
 
-Fill these fields in this file when the checkpoint becomes active:
+Execution was completed through B22 / Run 6. The authoritative implementation/evidence record is `B22_FEEDBACK_CONTRIBUTION_PROVENANCE_RETENTION.md`.
 
 ```yaml
 checkpoint: B07
-status: NOT_STARTED | IN_PROGRESS | BLOCKED | COMPLETE | DEFERRED | SUPERSEDED
-started_at: null
-completed_at: null
-source_anchor: null
-upstream_anchor: null
-production_code_modified: false
-contracts_touched: []
-files_read: []
-files_changed: []
-findings_opened: []
-findings_closed: []
-risks: []
-rollback: null
+status: COMPLETE
+started_at: 2026-08-29
+completed_at: 2026-08-29
+source_anchor: B18 Run 6 overlay
+production_code_modified: true
+contracts_touched: [AIA-C13, AIA-C20]
+findings_closed: [AIA-008, SEC-P0-06, SEC-P0-07, SEC-P0-18]
+risks:
+  - process-local quarantine is not a durable multi-replica review store
+  - physical erasure after promotion is not guaranteed across append-only/mirrored storage
+  - Cloudflare contribution/review parity remains incomplete
+rollback: restore Run 5 baseline only together with re-opening the Run 6 findings/contracts
 ```
 
 ## Verification gates
 
-- [ ] untrusted contribution labeled
-- [ ] consent/provenance schema tests
+- [x] untrusted contribution labeled
+- [x] consent/provenance schema tests
 
 ## Closure rule
 
@@ -65,3 +65,7 @@ A checkpoint is not `COMPLETE` until:
 3. `REGISTRY.md`, `STATE.json`, and relevant tracker files agree;
 4. any remaining limitation is explicitly `DEFERRED` or `BLOCKED`, never hidden;
 5. the next bounded checkpoint is `B08`.
+
+## Run 6 closure note
+
+B22 additionally proves minimal opt-in rating telemetry, server-side over-collection stripping, exact versioned consent, quarantine-before-durable-storage, capability-protected pending deletion, separate review promotion, explicit model evidence, and fail-closed training eligibility. The original B07 wording is retained only as the historical checkpoint identity.

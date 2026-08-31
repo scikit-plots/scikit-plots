@@ -1,28 +1,90 @@
-/* Padding for the code block to make room for the copy button */
-pre {
-    padding-top: 10px;
-    padding-right: 60px; /* Make room for the copy button */
+/* ==========================================================================
+   Automatic code-copy button
+   ========================================================================== */
+
+/*
+ * JavaScript adds .copy-btn-host to the wrapper that owns each code block.
+ * This creates the positioning context for that block's generated button.
+ */
+.copy-btn-host {
+    position: relative;
 }
 
-/* Copy button styles */
-.copy-btn {
+
+/*
+ * Reserve horizontal space so long code does not render underneath the
+ * generated copy button.
+ *
+ * Scoped to auto-copy content only; this avoids changing unrelated <pre>
+ * blocks elsewhere in the documentation.
+ */
+[data-auto-copy] .copy-btn-host > pre {
+    padding-top: 10px;
+    padding-right: 72px;
+}
+
+
+/* Generated copy button */
+[data-auto-copy] .copy-btn {
     position: absolute;
     top: 10px;
     right: 10px;
+    z-index: 2;
+
+    min-height: 30px;
+
+    padding: 5px 8px;
+
+    border: 1px solid transparent;
+    border-radius: 4px;
+
     background: transparent;
-    border: none;
-    font-size: 12px;
-    cursor: pointer;
     color: #007bff;
-    padding: 5px;
-    border-radius: 3px;
+
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.2;
+
+    cursor: pointer;
 }
-.copy-btn:focus {
-    outline: none;
+
+
+/* Pointer hover enhancement */
+@media (hover: hover) and (pointer: fine) {
+    [data-auto-copy] .copy-btn:hover {
+        color: #0056b3;
+        background: rgb(0 123 255 / 8%);
+    }
 }
-.copy-btn:hover {
-    color: #0056b3;
+
+
+/* Keyboard accessibility */
+[data-auto-copy] .copy-btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
 }
-.copy-btn.copied {
+
+
+/* JS exposes state; CSS owns presentation */
+[data-auto-copy] .copy-btn[data-copy-state="success"] {
     color: green;
 }
+
+
+[data-auto-copy] .copy-btn[data-copy-state="error"] {
+    color: #b42318;
+}
+
+
+/* Optional disabled state for future use */
+[data-auto-copy] .copy-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+
+/*
+ * Keep inline code unaffected.
+ *
+ * Only <pre><code> blocks are enhanced by JavaScript.
+ */

@@ -1,11 +1,11 @@
-# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_shared_logic.py
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_utils/_shared_logic.py
 #
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# _shared_logic.py  v6.2.0
+# _shared_logic.py  v7.0.0
 #
 # Single source of truth for shared constants, pure helper functions, and
 # type aliases used by the deployed proxy (_hf_spaces_proxy/app.py) and the
@@ -22,7 +22,7 @@
 # Three ordered routing paths — each with its own configurable read timeout:
 #
 #   Path 1 — BACKEND_URL set (explicit override)
-#     Forward to BACKEND_URL.  HF_TOKEN injected when also set.
+#     Forward to BACKEND_URL.  Only BACKEND_AUTH_TOKEN may be attached by callers.
 #     Read timeout: proxy_timeout kwarg (env: PROXY_TIMEOUT, default 600 s).
 #
 #   Path 2 — Model namespace in HF_SPACES_MODEL_NAMESPACES
@@ -162,6 +162,13 @@ import logging
 import os
 import re
 from typing import Any, Literal
+from urllib.parse import urlsplit
+
+try:
+    from ._telemetry import sanitize_log_text
+except ImportError:  # standalone HF Space deployment
+    from _utils._telemetry import sanitize_log_text
+
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +177,7 @@ __all__ = [  # noqa: RUF022
     "PROXY_VERSION",
     # Constants — routing / timeout
     "DEFAULT_HF_BASE",
+    "DEFAULT_HF_PROVIDER_MODELS",
     "DEFAULT_HF_SPACES_MODEL_NAMESPACES",
     "DEFAULT_HF_SPACES_MODEL_URL",
     "DEFAULT_MAX_BODY_BYTES",
@@ -203,6 +211,7 @@ __all__ = [  # noqa: RUF022
     "_validate_token_config",
     # Helpers — routing / env
     "_resolve_upstream_url",
+    "_validate_credential_destination",
     "_validate_env",
     "load_proxy_env",
 ]
@@ -213,7 +222,7 @@ __all__ = [  # noqa: RUF022
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Proxy release version — bump on every breaking change.
-PROXY_VERSION: str = "6.2.0"
+PROXY_VERSION: str = "7.3.0"
 
 #: HuggingFace Inference Providers router base URL (no trailing slash).
 #: Only used for Path 3 (standard provider models) when ``BACKEND_URL`` is
@@ -225,6 +234,16 @@ PROXY_VERSION: str = "6.2.0"
 #: EAI_NODATA / EAI_NONAME) from within HF Docker Spaces; the router hostname
 #: resolves correctly and is the current HF Inference Providers endpoint.
 DEFAULT_HF_BASE: str = "https://router.huggingface.co"
+
+#: Public Hugging Face Inference Provider models advertised by the bundled
+#: example configuration. Keep this default synchronized with the Cloudflare
+#: Worker so both bundled proxies accept the same public model choices.
+#: Operators can replace the exact set with ``ALLOWED_MODELS``.
+DEFAULT_HF_PROVIDER_MODELS: tuple[str, ...] = (
+    "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "Qwen/Qwen2.5-Coder-32B-Instruct",
+    "openai/gpt-oss-20b",
+)
 
 #: Fallback model ID when the request body omits the ``model`` field.
 #: Must have a registered HF Inference Provider for Path 3.
@@ -300,13 +319,15 @@ DEFAULT_HF_SPACES_MODEL_NAMESPACES: tuple[str, ...] = ("scikit-plots",)
 #                    Best practice: fine-grained with inference-api scope only,
 #                    OR classic read.  Never use a write token here.
 #
-#   HF_WRITE_TOKEN — dataset write token (/v1/contribute → HfApi.create_commit).
-#                    Best practice: fine-grained scoped to ONE dataset repo,
-#                    OR classic write.  Never use a read token here.
+#   HF_DATASET_TOKEN — preferred dataset-persistence token. Best practice:
+#                      fine-grained scoped to ONE dataset repo. Classic Write
+#                      also works; classic Read never does.
+#   HF_WRITE_TOKEN   — historical alias for HF_DATASET_TOKEN.
 #
 # Optional type-declaration env vars (Space → Settings → Repository secrets):
-#   HF_TOKEN_TYPE       = fine-grained | read | write   (default: auto-detect)
-#   HF_WRITE_TOKEN_TYPE = fine-grained | write          (default: auto-detect)
+#   HF_TOKEN_TYPE         = fine-grained | read | write (default: auto-detect)
+#   HF_DATASET_TOKEN_TYPE = fine-grained | read | write (preferred)
+#   HF_WRITE_TOKEN_TYPE   = fine-grained | read | write (legacy alias)
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -579,46 +600,18 @@ def _build_cors_headers(allowed_origin: str = "*") -> dict[str, str]:
 
 
 def _token_log_fragment(token: str, token_type: str = "") -> str:
+    """Return non-secret token configuration state for legacy log call sites.
+
+    The historical implementation exposed an 8+4 character credential
+    fragment.  Run 5 deliberately removes that behavior: partial credentials
+    are still credentials and may become identifying/correlatable in retained
+    logs.  Keep the helper name for source compatibility, but return only
+    presence and optional type metadata.
     """
-    Produce a safely-truncated token string for log output.
-
-    Parameters
-    ----------
-    token : str
-        A HuggingFace API token (typically ``hf_xxx...``).
-    token_type : str, optional
-        Token type string (one of the ``HF_TOKEN_TYPE_*`` constants).
-        When non-empty and not ``"unknown"``, appended as a parenthetical
-        suffix so log lines identify the token class without exposing the
-        value.  Example: ``hf_abcde...1234 (read)``.
-
-    Returns
-    -------
-    str
-        A truncated representation showing the first 8 and last 4
-        characters separated by ``...``.  Returns ``"<not-set>"`` when
-        *token* is empty or shorter than 12 characters.
-
-    Notes
-    -----
-    **Security note** — Never widen the exposed fragment beyond 8+4
-    characters without a log-aggregation security review.
-
-    Examples
-    --------
-    >>> _token_log_fragment("hf_abcdefghij1234")
-    'hf_abcde...1234'
-    >>> _token_log_fragment("hf_abcdefghij1234", token_type="read")
-    'hf_abcde...1234 (read)'
-    >>> _token_log_fragment("")
-    '<not-set>'
-    """
-    if not token or len(token) < 12:  # noqa: PLR2004
+    if not token:
         return "<not-set>"
-    fragment = f"{token[:8]}...{token[-4:]}"
-    if token_type and token_type != HF_TOKEN_TYPE_UNKNOWN:
-        return f"{fragment} ({token_type})"
-    return fragment
+    label = str(token_type or "").strip().lower()
+    return f"<set> ({label})" if label and label != "unknown" else "<set>"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -815,9 +808,7 @@ class _RedactingFilter(logging.Filter):
             scrubs their message content.
         """
         # Materialise the full %-formatted string first, then scrub it.
-        msg: str = record.getMessage()
-        for pattern, replacement in _REDACT_PATTERNS:
-            msg = pattern.sub(replacement, msg)
+        msg: str = sanitize_log_text(record.getMessage())
         # Write the scrubbed text back and clear args so that any subsequent
         # call to getMessage() returns the already-scrubbed string without
         # attempting to re-apply % formatting.
@@ -1030,8 +1021,9 @@ def _validate_token_config(
     hf_token : str
         HuggingFace token used for inference (``HF_TOKEN`` env var).
     hf_write_token : str
-        HuggingFace token used for dataset writes (``HF_WRITE_TOKEN`` env
-        var).  Pass empty string when not configured.
+        HuggingFace token used for dataset persistence. New deployments pass the
+        effective ``HF_DATASET_TOKEN``; legacy callers may still pass
+        ``HF_WRITE_TOKEN``. Pass empty string when not configured.
     training_dataset_repo : str, optional
         HuggingFace Dataset repo ID (``TRAINING_DATASET_REPO`` env var).
         Pass empty string when ``/v1/contribute`` is not enabled.
@@ -1099,17 +1091,14 @@ def _validate_token_config(
             "Set HF_TOKEN_TYPE=read or HF_TOKEN_TYPE=fine-grained after replacing."
         )
 
-    # ── Write token (HF_WRITE_TOKEN) type check ──────────────────────────────
+    # ── Dataset-persistence token type check ─────────────────────────────────
     if hf_write_token and not _token_suitable_for_writes(hf_write_token_type):
         messages.append(
-            f"ERROR: HF_WRITE_TOKEN type is {hf_write_token_type!r}. "
-            "Classic read tokens cannot push commits to HuggingFace repositories "
-            "(HF API returns HTTP 403 / 401). "
-            "Every POST /v1/contribute will fail with HTTP 503. "
-            "Replace HF_WRITE_TOKEN with: (a) a fine-grained token with write "
-            "access scoped to the training dataset repo, or (b) a classic write "
-            "token. "
-            "See HF Settings → Tokens → New token → Fine-grained → Write access."
+            f"ERROR: dataset persistence token type is {hf_write_token_type!r}. "
+            "Read tokens cannot push commits to Hugging Face repositories. "
+            "Use HF_DATASET_TOKEN with a fine-grained token scoped to write the "
+            "target dataset repo (preferred), or a classic Write token. "
+            "Legacy HF_WRITE_TOKEN remains supported as an alias."
         )
 
     # ── Training repo + effective write token consistency ────────────────────
@@ -1120,13 +1109,13 @@ def _validate_token_config(
         effective_type = hf_write_token_type if hf_write_token else hf_token_type
         if effective_token and not _token_suitable_for_writes(effective_type):
             messages.append(
-                f"ERROR: TRAINING_DATASET_REPO={training_dataset_repo!r} is "
-                "configured but the effective write token type "
+                "ERROR: TRAINING_DATASET_REPO is configured but the effective "
+                "write token type "
                 f"({effective_type!r}) cannot push to HuggingFace repositories. "
                 "POST /v1/contribute will always fail with HTTP 503. "
-                "Set HF_WRITE_TOKEN to a write-capable token (fine-grained with "
-                "write access to the dataset repo, or a classic write token). "
-                f"Set HF_WRITE_TOKEN_TYPE accordingly."
+                "Set HF_DATASET_TOKEN to a write-capable token (fine-grained with "
+                "write access to the dataset repo, or a classic Write token). "
+                f"Set HF_DATASET_TOKEN_TYPE accordingly."
             )
 
     return messages
@@ -1137,6 +1126,8 @@ def _resolve_upstream_url(
     *,
     backend_url: str,
     hf_token: str,
+    backend_auth_token: str = "",
+    hf_spaces_auth_token: str = "",
     hf_base: str = DEFAULT_HF_BASE,
     default_model: str = DEFAULT_MODEL,
     hf_spaces_model_url: str = DEFAULT_HF_SPACES_MODEL_URL,
@@ -1155,14 +1146,14 @@ def _resolve_upstream_url(
     --------
     1. *backend_url* is non-empty → **Path 1**: explicit custom backend.
        Forward to *backend_url* (Docker Model Runner, Ollama, any backend).
-       *hf_token* is injected only when it is also set.
+       *backend_auth_token* is injected only when explicitly configured.
        Read timeout: *proxy_timeout* (env ``PROXY_TIMEOUT``, default 600 s).
 
     2. Model namespace is in *hf_spaces_model_namespaces* → **Path 2**: HF model Space.
        Forward to *hf_spaces_model_url* (the ``scikit-plots/ai-model`` Space).
        CPU inference on a 7B model takes 4-5 minutes; *path2_read_timeout*
        (env ``PATH2_TIMEOUT``, default 600 s) prevents premature timeout.
-       *hf_token* is injected when set (needed for private Spaces).
+       *hf_spaces_auth_token* is injected only when explicitly configured.
 
     3. Otherwise → **Path 3**: HF Serverless Inference API (default).
        Build ``{hf_base}/{model}/v1/chat/completions`` and inject *hf_token*
@@ -1179,7 +1170,11 @@ def _resolve_upstream_url(
         Value of the ``BACKEND_URL`` environment variable.  Non-empty string
         triggers Path 1; empty string means "proceed to Path 2 / 3".
     hf_token : str
-        HuggingFace API token.  Required for Path 3; optional for Paths 1 and 2.
+        HuggingFace inference token.  Used only for Path 3.
+    backend_auth_token : str, optional
+        Dedicated bearer capability bound to Path 1 ``backend_url``.
+    hf_spaces_auth_token : str, optional
+        Dedicated bearer capability bound to Path 2 ``hf_spaces_model_url``.
     hf_base : str, optional
         HF Serverless Inference API base URL (no trailing slash).
     default_model : str, optional
@@ -1261,8 +1256,8 @@ def _resolve_upstream_url(
 
     # ── Path 1: explicit custom backend override ──────────────────────────────
     if backend_url:
-        if hf_token:
-            headers["Authorization"] = f"Bearer {hf_token}"
+        if backend_auth_token:
+            headers["Authorization"] = f"Bearer {backend_auth_token}"
         return backend_url, headers, proxy_timeout
 
     # Extract model ID from request body (needed for Paths 2 and 3).
@@ -1272,8 +1267,8 @@ def _resolve_upstream_url(
     if hf_spaces_model_url and _is_custom_model_namespace(
         model, hf_spaces_model_namespaces
     ):
-        if hf_token:
-            headers["Authorization"] = f"Bearer {hf_token}"
+        if hf_spaces_auth_token:
+            headers["Authorization"] = f"Bearer {hf_spaces_auth_token}"
         return hf_spaces_model_url, headers, path2_read_timeout
 
     # ── Path 3: HF Serverless Inference API (provider models) ─────────────────
@@ -1287,8 +1282,57 @@ def _resolve_upstream_url(
     # Embedding the model ID in the path produces a 404/422 with no log entry
     # because _forward passes non-2xx upstream responses through transparently.
     url = f"{hf_base.rstrip('/')}/v1/chat/completions"
-    headers["Authorization"] = f"Bearer {hf_token}"
+    # Do not manufacture an empty ``Authorization: Bearer `` header.  Besides
+    # being useless, malformed/whitespace-only auth values may be rejected at
+    # the local HTTP protocol layer before a request ever reaches Hugging Face.
+    # When the token is absent, send no Authorization header and let the caller
+    # or upstream return a normal authentication/configuration error.
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
     return url, headers, path3_read_timeout
+
+
+def _validate_credential_destination(
+    url: str,
+    *,
+    credential_kind: str,
+    allow_local_http: bool = False,
+) -> None:
+    """Fail closed when a server credential could be sent to an unsafe URL.
+
+    ``credential_kind`` is descriptive and never contains the credential.  HF
+    inference tokens are bound to official Hugging Face HTTPS origins; custom
+    backend/Space tokens are separately configured and therefore bind to the
+    exact operator-selected destination rather than reusing ``HF_TOKEN``.
+    """
+    if not url:
+        raise RuntimeError(f"{credential_kind} is configured without a destination URL")
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower().rstrip(".")
+        port = parts.port
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            f"unsafe destination for {credential_kind}: malformed URL"
+        ) from exc
+    if parts.username or parts.password or parts.query or parts.fragment:
+        raise RuntimeError(
+            f"unsafe destination for {credential_kind}: userinfo/query/fragment is not allowed"
+        )
+    is_local = host in {"localhost", "127.0.0.1", "::1"}
+    if parts.scheme != "https" and not (
+        allow_local_http and parts.scheme == "http" and is_local
+    ):
+        raise RuntimeError(
+            f"unsafe destination for {credential_kind}: HTTPS is required"
+        )
+    if credential_kind == "HF_TOKEN":
+        if host != "router.huggingface.co" and not host.endswith(".huggingface.co"):
+            raise RuntimeError(
+                "unsafe destination for HF_TOKEN: token is bound to official Hugging Face origins"
+            )
+        if port not in (None, 443):
+            raise RuntimeError("unsafe destination for HF_TOKEN: non-standard port")
 
 
 def _validate_env(
@@ -1373,8 +1417,10 @@ def load_proxy_env() -> dict[str, Any]:
             Classified token type for *hf_token* (env ``HF_TOKEN_TYPE``).
             One of ``"fine-grained"``, ``"read"``, ``"write"``, ``"unknown"``.
         ``hf_write_token_type`` : str
-            Classified token type for *hf_write_token* (env ``HF_WRITE_TOKEN_TYPE``).
-            One of ``"fine-grained"``, ``"write"``, ``"unknown"``.
+            Classified type for the legacy ``HF_WRITE_TOKEN`` alias.
+        ``hf_dataset_token_type`` : str
+            Classified type for the effective dataset-persistence token. One of
+            ``"fine-grained"``, ``"read"``, ``"write"``, ``"unknown"``.
 
     Examples
     --------
@@ -1398,6 +1444,7 @@ def load_proxy_env() -> dict[str, Any]:
     )
 
     _hf_token: str = os.environ.get("HF_TOKEN", "").strip()
+    _hf_dataset_token_explicit: str = os.environ.get("HF_DATASET_TOKEN", "").strip()
     _hf_write_token: str = os.environ.get("HF_WRITE_TOKEN", "").strip()
 
     # Classify token types from explicit declarations (preferred) or heuristics.
@@ -1411,21 +1458,27 @@ def load_proxy_env() -> dict[str, Any]:
         _hf_write_token,
         declared_type=os.environ.get("HF_WRITE_TOKEN_TYPE"),
     )
+    _hf_dataset_token: str = _hf_dataset_token_explicit or _hf_write_token or _hf_token
+    _hf_dataset_token_type: str = (
+        _classify_token_type(
+            _hf_dataset_token_explicit,
+            declared_type=os.environ.get("HF_DATASET_TOKEN_TYPE"),
+        )
+        if _hf_dataset_token_explicit
+        else (_hf_write_token_type if _hf_write_token else _hf_token_type)
+    )
 
     return {
         "backend_url": os.environ.get("BACKEND_URL", "").strip(),
         "hf_token": _hf_token,
-        # Dedicated write token for dataset push operations.
-        # Principle of least privilege: set HF_WRITE_TOKEN to a write-scoped
-        # fine-grained token so HF_TOKEN can remain read-only / inference-only.
-        # Falls back to hf_token when absent for backward compatibility.
+        # Preferred dataset token + legacy alias. Never forward the effective
+        # dataset token to model backends.
         "hf_write_token": _hf_write_token,
-        "hf_dataset_token": _hf_write_token or _hf_token,
-        # Token type metadata — used by _validate_token_config at startup.
-        # Operators can override auto-detection by setting HF_TOKEN_TYPE /
-        # HF_WRITE_TOKEN_TYPE to "fine-grained", "read", or "write".
+        "hf_dataset_token": _hf_dataset_token,
+        # Token type metadata — used by startup validation and discovery.
         "hf_token_type": _hf_token_type,
         "hf_write_token_type": _hf_write_token_type,
+        "hf_dataset_token_type": _hf_dataset_token_type,
         "hf_base": os.environ.get("HF_BASE", DEFAULT_HF_BASE).rstrip("/"),
         "default_model": (
             os.environ.get("DEFAULT_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
@@ -1450,5 +1503,5 @@ def load_proxy_env() -> dict[str, Any]:
             os.environ.get("MAX_BODY_BYTES"),
             DEFAULT_MAX_BODY_BYTES,
         ),
-        "allowed_origins": os.environ.get("ALLOWED_ORIGINS", "*").strip(),
+        "allowed_origins": os.environ.get("ALLOWED_ORIGINS", "").strip(),
     }

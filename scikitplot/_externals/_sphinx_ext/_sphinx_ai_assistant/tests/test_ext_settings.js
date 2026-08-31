@@ -56,7 +56,7 @@ section('defaults', () => {
     const { api } = freshModule();
     eq(api.get('streaming'), true, 'streaming defaults true');
     eq(api.get('shareLinkMode'), true, 'shareLinkMode defaults true');
-    eq(api.get('feedbackPersist'), true, 'feedbackPersist defaults true');
+    eq(api.get('feedbackPersist'), false, 'feedbackPersist defaults false');
     eq(api.get('datasetRepo'), '', 'datasetRepo defaults empty string');
     eq(api.get('nope'), undefined, 'unknown key returns undefined');
     eq(api.has('streaming'), true, 'has() true for defined');
@@ -145,7 +145,7 @@ section('import re-validation', () => {
     ok(res.applied.indexOf('datasetRepo') !== -1, 'valid repo applied');
     ok(res.skipped.some(s => s.key === 'feedbackPersist'), 'invalid value skipped');
     ok(res.skipped.some(s => s.key === 'unknownKey'), 'unknown key skipped');
-    eq(api.get('feedbackPersist'), true, 'rejected value left at default');
+    eq(api.get('feedbackPersist'), false, 'rejected value left at default');
     ok(!api.importJSON('not json').ok, 'non-JSON rejected');
     ok(!api.importJSON(JSON.stringify({ _v: 1 })).ok, 'missing settings rejected');
     ok(!api.importJSON(JSON.stringify([])).ok, 'array rejected');
@@ -157,7 +157,7 @@ section('legacy migration', () => {
     const storage = makeStorage({
         'ai-assistant-streaming-on': 'false',        // → false
         'ai-assistant-export-link-mode': 'false',    // stored!=='true' → false
-        'ai-assistant-feedback-persist': 'false',    // → false
+        'ai-assistant-feedback-telemetry': 'false',    // → false
         'ai-assistant-custom-dataset-repo': 'owner/name',
     });
     const { api } = freshModule({ storage });

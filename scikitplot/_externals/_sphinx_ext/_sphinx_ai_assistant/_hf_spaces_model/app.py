@@ -1,9 +1,9 @@
-# scikit-plots/ai-model  ·  app.py  v4.0.0
+# scikit-plots/ai-model  ·  app.py  v4.1.0
 #
 # PURPOSE
 # ───────
-# Dual-mode Space that downloads model weights and serves them via an
-# OpenAI-compatible REST endpoint:
+# Dual-mode Space that downloads model weights and serves them via a
+# server-authoritative chat endpoint using the public scikitplot-chat-v1 contract:
 #
 #     POST /v1/chat/completions
 #
@@ -12,12 +12,12 @@
 #   ZeroGPU Spaces  — @spaces.GPU scope; model moves CPU ↔ CUDA per request.
 #   CPU basic Space — inference runs on CPU; spaces is not required.
 #
-# The proxy Space (scikit-plots/ai) calls this endpoint via its
-# BACKEND_URL environment variable.
+# The proxy Space (scikit-plots/ai) calls this endpoint via
+# HF_SPACES_MODEL_URL when a configured model namespace selects Path 2.
 #
-# Browsers should NEVER call this Space directly — all requests go
-# through the proxy which handles CORS, token injection, and SSE
-# streaming.
+# Production browser traffic should route through the proxy for shared
+# CORS/routing/stream handling.  The model endpoint nevertheless revalidates
+# the same typed contract because direct HTTP callers are always possible.
 #
 # DESIGN PRINCIPLES
 # ─────────────────
@@ -328,7 +328,7 @@
 Dual-mode model Space for scikit-plots AI endpoint.
 
 Downloads and runs model weights on HuggingFace ZeroGPU (GPU) or
-CPU basic (CPU), exposing an OpenAI-compatible REST endpoint consumed
+CPU basic (CPU), exposing a server-authoritative REST endpoint consumed
 by the proxy Space.
 
 Notes
@@ -388,10 +388,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+
+try:
+    from ._telemetry import configure_privacy_logging
+except ImportError:  # standalone HF Space deployment
+    from _telemetry import configure_privacy_logging
 import os
 import threading
 import time
-import traceback
 import uuid
 from typing import Any, Final
 
@@ -405,6 +409,21 @@ from gradio.routes import (  # type: ignore[]
 )
 from starlette.types import ASGIApp, Receive, Scope, Send
 from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[]
+
+try:
+    from ._chat_contract import (
+        CHAT_CONTRACT,
+        ChatContractError,
+        build_upstream_payload,
+        parse_chat_request,
+    )
+except ImportError:  # HF Space app.py execution from repository root
+    from _chat_contract import (  # type: ignore[no-redef]
+        CHAT_CONTRACT,
+        ChatContractError,
+        build_upstream_payload,
+        parse_chat_request,
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ZeroGPU detection
@@ -431,11 +450,7 @@ except ImportError:
 # Logging
 # ─────────────────────────────────────────────────────────────────────────────
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=("%(asctime)s | %(levelname)s | %(name)s | %(message)s"),
-)
-
+configure_privacy_logging(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 logger.info("Starting scikit-plots ai-model Space initialization...")
@@ -535,9 +550,12 @@ _DEFAULT_TOP_P: Final[float] = 1.0
 
 DEFAULT_MAX_BODY_BYTES: Final[int] = 10 * 1024 * 1024
 
-MAX_BODY_BYTES: Final[int] = _safe_int(
-    os.environ.get("MAX_BODY_BYTES"),
-    DEFAULT_MAX_BODY_BYTES,
+MAX_BODY_BYTES: Final[int] = max(
+    16_384,
+    min(
+        _safe_int(os.environ.get("MAX_BODY_BYTES"), DEFAULT_MAX_BODY_BYTES),
+        16 * 1024 * 1024,
+    ),
 )
 
 _raw_cors: str = os.environ.get(
@@ -548,14 +566,22 @@ _raw_cors: str = os.environ.get(
 CORS_ORIGINS: Final[list[str]] = (
     ["*"]
     if _raw_cors == "*"
-    else [origin.strip() for origin in _raw_cors.split(",") if origin.strip()]
+    else [
+        origin.strip().rstrip("/") for origin in _raw_cors.split(",") if origin.strip()
+    ]
 )
+if CORS_ORIGINS == ["*"]:
+    logger.warning(
+        "MODEL_CORS_WILDCARD: ALLOWED_ORIGINS=* explicitly enables every browser origin; "
+        "use an exact origin list in production."
+    )
 
 logger.info(
-    "Configuration loaded | MODEL_ID=%s | MAX_BODY_BYTES=%s | CORS=%s | ZeroGPU=%s",
+    "Configuration loaded | model=%s | max_body_bytes=%s | cors_wildcard=%s | cors_origin_count=%d | zerogpu=%s",
     MODEL_ID,
     MAX_BODY_BYTES,
-    CORS_ORIGINS,
+    CORS_ORIGINS == ["*"],
+    0 if CORS_ORIGINS == ["*"] else len(CORS_ORIGINS),
     _ZEROGPU,
 )
 
@@ -564,7 +590,7 @@ logger.info(
 # ─────────────────────────────────────────────────────────────────────────────
 # Computed once from immutable configuration; never recomputed at request time.
 
-_VERSION: Final[str] = "4.0.0"
+_VERSION: Final[str] = "4.1.0"
 """Service version string. Single source of truth for health() and startup log."""
 
 _DEVICE: Final[str] = "cuda" if (_ZEROGPU and torch.cuda.is_available()) else "cpu"
@@ -577,10 +603,11 @@ All CUDA calls inside ``_generate`` are guarded by ``_DEVICE == "cuda"``.
 """
 
 _VALID_ROLES: Final[frozenset[str]] = frozenset({"system", "user", "assistant"})
-"""Accepted OpenAI message roles for the Qwen2.5 chat template.
+"""Internal roles accepted by the Qwen2.5 chat template.
 
-Unknown roles produce a clear 400 validation error instead of a cryptic
-chat-template exception buried inside _generate().
+This is **not** the public HTTP authorization boundary.  The REST endpoint
+accepts only ``scikitplot-chat-v1`` and constructs these messages server-side.
+Gradio/local helpers may still use the internal role validator.
 """
 
 _SYSTEM_FINGERPRINT: Final[str] = "fp-" + MODEL_ID.lower().replace("/", "-").replace(
@@ -1132,7 +1159,7 @@ def _generate(  # noqa: PLR0912
 
         except Exception as exc:
             logger.exception("Inference failure.")
-            raise RuntimeError(f"Inference failed: {exc}") from exc
+            raise RuntimeError("Inference failed.") from exc
 
         finally:
             logger.info("Releasing inference resources...")
@@ -1249,6 +1276,26 @@ logger.info(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _origin_allowed(request: Request) -> bool:
+    """Allow missing Origin for server callers and exact/same-origin browsers."""
+    origin = request.headers.get("origin", "").strip().rstrip("/")
+    if not origin:
+        return True
+    if CORS_ORIGINS == ["*"] or origin in CORS_ORIGINS:
+        return True
+    host = request.headers.get("host", "").strip().lower()
+    if host:
+        try:
+            from urllib.parse import urlsplit  # ruff: ignore[import-outside-top-level]
+
+            parsed = urlsplit(origin)
+            if parsed.scheme in {"http", "https"} and parsed.netloc.lower() == host:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
 async def _read_bounded_body(
     request: Request,
 ) -> bytes:
@@ -1273,23 +1320,33 @@ async def _read_bounded_body(
     Notes
     -----
     Developer note
-        Body is read once in full before JSON parsing.
-        Enforcing size here prevents unbounded memory growth from
-        malformed or adversarial payloads.
+        Body is consumed incrementally before JSON parsing. The reader stops
+        as soon as the configured byte ceiling is crossed, so chunked requests
+        cannot force an unbounded application-level allocation.
 
     User note
         Maximum body size is controlled by the ``MAX_BODY_BYTES``
         environment variable (default: 10 MiB).
     """
-    body = await request.body()
+    raw_cl = request.headers.get("content-length")
+    if raw_cl not in (None, ""):
+        try:
+            content_length = int(raw_cl)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Invalid Content-Length header.") from exc
+        if content_length < 0:
+            raise ValueError("Invalid Content-Length header.")
+        if content_length > MAX_BODY_BYTES:
+            raise ValueError("Request body exceeds configured limit.")
 
-    if len(body) > MAX_BODY_BYTES:
-        raise ValueError(
-            f"Request body size {len(body):,} bytes "
-            f"exceeds maximum of {MAX_BODY_BYTES:,} bytes."
-        )
-
-    return body
+    body = bytearray()
+    async for chunk in request.stream():
+        if not chunk:
+            continue
+        if len(body) + len(chunk) > MAX_BODY_BYTES:
+            raise ValueError("Request body exceeds configured limit.")
+        body.extend(chunk)
+    return bytes(body)
 
 
 def _parse_request_body(
@@ -1521,14 +1578,10 @@ def _error_response(
     .. [1] OpenAI API reference: Error codes
            https://platform.openai.com/docs/guides/error-codes
     """
-    # Log traceback internally for server-side errors only.
+    # Server-side call sites log bounded exception metadata before invoking
+    # this response helper.  Do not format another traceback here: doing so can
+    # duplicate exception text and source paths into logs.
     if error_type == "server_error":
-        logger.error(
-            "Server error response | code=%s | traceback=\n%s",
-            code,
-            traceback.format_exc(),
-        )
-
         safe_server_messages: dict[str, str] = {
             "model_load_error": "Model loading failed. Please retry in a few minutes.",
             "inference_error": "Inference failed. Please retry.",
@@ -1859,6 +1912,18 @@ logger.info(
 )
 
 
+@_app_inner.middleware("http")
+async def _browser_origin_guard(request: Request, call_next):
+    """Reject disallowed browser origins before Gradio/REST handlers do work."""
+    if not _origin_allowed(request):
+        return JSONResponse(
+            {"detail": "Origin not allowed."},
+            status_code=403,
+            headers={"Cache-Control": "no-store"},
+        )
+    return await call_next(request)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Health endpoint
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1889,20 +1954,21 @@ async def health() -> JSONResponse:
     Examples
     --------
     >>> # curl http://localhost:7860/health
-    ... # {"status": "ok", "model": "...", "version": "4.0.0",
+    ... # {"status": "ok", "model": "...", "version": "4.1.0",
     ... #  "model_ready": true, "device": "cpu"}
     """
-    logger.info("GET /health")
-
     return JSONResponse(
         content={
             "status": "ok",
-            "model": MODEL_ID,
             "version": _VERSION,
-            "model_ready": _model_is_loaded.is_set(),
-            "device": _DEVICE,
+            "ready": _model_is_loaded.is_set(),
+            "capabilities": {
+                "chat_request": {"contract": CHAT_CONTRACT},
+                "reasoning": {"enabled": False},
+            },
         },
         status_code=200,
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -1916,7 +1982,7 @@ async def chat_completions(  # noqa: PLR0911
     request: Request,
 ) -> JSONResponse:
     """
-    OpenAI-compatible chat completions endpoint.
+    Server-authoritative chat completions endpoint.
 
     Parameters
     ----------
@@ -1931,7 +1997,7 @@ async def chat_completions(  # noqa: PLR0911
         HTTP 413 if the body exceeds ``MAX_BODY_BYTES``.
 
         HTTP 400 if the body is not valid UTF-8 JSON, or if
-        ``messages``, ``max_tokens``, ``temperature``, or ``top_p``
+        the ``scikitplot-chat-v1`` contract or bounded request fields
         fail validation.
 
         HTTP 500 on inference failure or unexpected server error.
@@ -1943,9 +2009,8 @@ async def chat_completions(  # noqa: PLR0911
 
         1. Read and bound-check raw body bytes (413 guard).
         2. Decode and parse JSON (400 guard).
-        3. Extract ``messages``, ``max_tokens``, ``temperature``,
-           ``top_p``, and ``model`` fields.
-        4. Validate with field-specific validators (400 guard).
+        3. Parse ``scikitplot-chat-v1`` and reject unknown/client-authority fields.
+        4. Construct the authoritative system/user messages server-side.
         4b. Lazy model load — ``_ensure_model_loaded()`` via
             ``asyncio.to_thread`` (500 on failure).
         5. Count prompt tokens on CPU (no GPU needed).
@@ -1965,22 +2030,10 @@ async def chat_completions(  # noqa: PLR0911
         always serves ``MODEL_ID``.
 
     User note
-        Compatible with the OpenAI Python SDK:
-
-        .. code-block:: python
-
-            import openai
-
-            client = openai.OpenAI(
-                base_url="https://<space>.hf.space",
-                api_key="unused",
-            )
-            response = client.chat.completions.create(
-                model="any",
-                messages=[{"role": "user", "content": "Hello"}],
-                temperature=0.7,
-                top_p=1.0,
-            )
+        This endpoint intentionally does **not** accept arbitrary OpenAI
+        ``messages``.  Send the public ``scikitplot-chat-v1`` envelope used by
+        the documentation client/proxy.  The model service owns the system
+        policy even when called directly.
     """
     request_id = uuid.uuid4().hex
 
@@ -1997,10 +2050,9 @@ async def chat_completions(  # noqa: PLR0911
         # Client → generic message
         # Server logs → full exception details
         logger.warning(
-            "Body size exceeded | request_id=%s | error=%s",
+            "Body size exceeded | request_id=%s | error_type=%s",
             request_id,
-            exc,
-            exc_info=exc,
+            type(exc).__name__,
         )
         return _error_response(
             message="Request body too large.",  # str(exc),
@@ -2017,10 +2069,9 @@ async def chat_completions(  # noqa: PLR0911
         # Client → generic message
         # Server logs → full exception details
         logger.warning(
-            "JSON parse error | request_id=%s | error=%s",
+            "JSON parse error | request_id=%s | error_type=%s",
             request_id,
-            exc,
-            exc_info=exc,
+            type(exc).__name__,
         )
         return _error_response(
             message="invalid_request_error",  # str(exc),
@@ -2029,43 +2080,32 @@ async def chat_completions(  # noqa: PLR0911
             status_code=400,
         )
 
-    # ── 3. Field extraction ───────────────────────────────────────────────────
+    # ── 3. Public contract validation + server-owned authority ───────────────
 
-    messages_raw: object = payload.get("messages")
-    max_tokens_raw: object = payload.get(
-        "max_tokens",
-        _MAX_NEW_TOKENS_DEFAULT,
-    )
-    temperature_raw: object = payload.get(
-        "temperature",
-        _DEFAULT_TEMPERATURE,
-    )
-    top_p_raw: object = payload.get(
-        "top_p",
-        _DEFAULT_TOP_P,
-    )
-    # Log requested model for proxy-routing diagnostics only.
-    # This Space always serves MODEL_ID regardless of the field value.
-    model_requested: object = payload.get("model", MODEL_ID)
-
-    # ── 4. Input validation ───────────────────────────────────────────────────
-
+    # The model Space is independently reachable, so it cannot trust the
+    # proxy to have already removed caller-controlled ``system`` /
+    # ``developer`` roles.  Parse the same small public contract here and
+    # construct the authoritative OpenAI messages locally.  A direct caller
+    # may know this policy (the project is open source) but cannot replace it.
     try:
-        messages = _validate_messages(messages_raw)
-        max_new_tokens = _clamp_max_tokens(max_tokens_raw)
-        temperature = _validate_temperature(temperature_raw)
-        top_p = _validate_top_p(top_p_raw)
-    except ValueError as exc:
-        # Client → generic message
-        # Server logs → full exception details
+        chat_req = parse_chat_request(
+            raw_body,
+            allowed_models=(MODEL_ID,),
+        )
+        trusted = build_upstream_payload(chat_req)
+        messages = _validate_messages(trusted["messages"])
+        max_new_tokens = _clamp_max_tokens(trusted["max_tokens"])
+        temperature = _DEFAULT_TEMPERATURE
+        top_p = _DEFAULT_TOP_P
+        model_requested: object = chat_req.model
+    except (ChatContractError, ValueError) as exc:
         logger.warning(
-            "Validation error | request_id=%s | error=%s",
+            "Chat contract validation failed | request_id=%s | error_type=%s",
             request_id,
-            exc,
-            exc_info=exc,
+            type(exc).__name__,
         )
         return _error_response(
-            message="Invalid request parameters.",  # str(exc),
+            message="Invalid request parameters.",
             error_type="invalid_request_error",
             code="invalid_value",
             status_code=400,
@@ -2125,10 +2165,9 @@ async def chat_completions(  # noqa: PLR0911
         # Client → generic message
         # Server logs → full exception details
         logger.warning(
-            "Inference validation error | request_id=%s | error=%s",
+            "Inference validation error | request_id=%s | error_type=%s",
             request_id,
-            exc,
-            exc_info=exc,
+            type(exc).__name__,
         )
         return _error_response(
             message="Invalid inference request.",  # str(exc),
@@ -2236,7 +2275,7 @@ _DEVELOPER_UI_HTML: Final[str] = (
     "    <tr><td>GET</td><td><code>/health</code></td>"
     "<td>Liveness check. Returns model identity, version, and readiness.</td></tr>\n"
     "    <tr><td>POST</td><td><code>/v1/chat/completions</code></td>"
-    "<td>OpenAI-compatible chat completions endpoint.</td></tr>\n"
+    "<td>Server-authoritative scikitplot-chat-v1 endpoint; OpenAI-compatible response.</td></tr>\n"
     "  </table>\n"
     f"  <p>Model: <code>{MODEL_ID}</code></p>\n"
     f"  <p>Version: <code>{_VERSION}</code></p>\n"
@@ -2397,7 +2436,7 @@ logger.info(
     "  model     : %s\n"
     "  device    : %s\n"
     "  ZeroGPU   : %s\n"
-    "  CORS      : %s\n"
+    "  CORS wildcard: %s\n"
     "  max_body  : %s bytes\n"
     "  ASGI root : _GradioRootFix(_app_inner)\n"
     "  routes    : GET /health | POST /v1/chat/completions\n"
@@ -2406,7 +2445,7 @@ logger.info(
     MODEL_ID,
     _DEVICE,
     _ZEROGPU,
-    CORS_ORIGINS,
+    CORS_ORIGINS == ["*"],
     MAX_BODY_BYTES,
 )
 
@@ -2443,4 +2482,5 @@ if __name__ == "__main__":
         host="0.0.0.0",  # noqa: S104
         port=7860,
         log_level="warning",  # Application logger handles structured logging.
+        access_log=False,  # Request paths may contain bearer capabilities.
     )

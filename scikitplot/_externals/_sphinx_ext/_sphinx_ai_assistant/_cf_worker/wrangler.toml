@@ -4,13 +4,13 @@
 #
 # Setup
 # ─────
-# 1. Run: npm create cloudflare@latest -- hf-proxy
-#    (NOT `wrangler init` — that command was removed in Wrangler v3)
-# 2. Replace the generated src/index.js with the one in this directory.
-# 3. Add your token (stored encrypted — never in this file):
+# 1. Deploy this bundled directory directly (the `main` path below matches it).
+#    If you instead copy the Worker into a generated C3 project under `src/`,
+#    change `main` to `src/index.js`.
+# 2. Add your token (stored encrypted — never in this file):
 #      wrangler secret put HF_TOKEN
-# 4. Deploy:
-#      wrangler deploy
+# 3. Deploy:
+#      npx wrangler deploy
 #
 # Free tier limits
 # ────────────────
@@ -21,12 +21,12 @@
 # See: https://developers.cloudflare.com/workers/platform/limits/
 
 name            = "hf-proxy"
-main            = "src/index.js"
+main            = "index.js"
 
 # compatibility_date must be within the last year for Workers runtime features.
 # Update to a recent date (YYYY-MM-DD) if needed.
 # See: https://developers.cloudflare.com/workers/configuration/compatibility-dates/
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-08-01"
 
 # Optional: route requests through a custom domain.
 # Uncomment and fill in your domain after adding it to Cloudflare:
@@ -36,12 +36,17 @@ compatibility_date = "2024-09-23"
 
 # Secrets (set via `wrangler secret put`, NEVER hardcode here):
 #   HF_TOKEN            — HuggingFace API token with "Inference" read permission.
-#   SHARE_WRITE_TOKEN   — Bearer token for POST /v1/share (run: wrangler secret put SHARE_WRITE_TOKEN)
+#   SHARE_WRITE_TOKEN   — Server-only create token for POST /v1/share (run: wrangler secret put SHARE_WRITE_TOKEN)
+#                         Fixed /update and /revoke POSTs use the per-share X-Share-Edit-Token; legacy PATCH is retired and pre-generation DELETE is migration-only.
 #   FEEDBACK_WRITE_TOKEN— Bearer token for POST /v1/feedback (run: wrangler secret put FEEDBACK_WRITE_TOKEN)
+#   RATE_LIMIT_IDENTITY_SECRET — >=32-byte random secret used to HMAC client identities before Durable Object routing.
+#                                Generate independently; do not reuse provider/API tokens.
 
 # ── KV Namespace ────────────────────────────────────────────────────────────
-# Shared namespace for share entries (sh:<uuid>), feedback entries (fb:<uuid>),
-# and rate-limit counters (rl:sh:<ip> / rl:fb:<ip>).
+# Shared namespace for structured share entries (sh:<uuid>) and feedback entries
+# (fb:<uuid>). Soft rate-limit event keys remain compatibility fallback only;
+# the bundled production config uses RATE_LIMIT_DO below for authoritative
+# cross-PoP per-identity decisions.
 #
 # Setup (one-time):
 #   wrangler kv namespace create "SHARE_KV"
@@ -50,8 +55,65 @@ compatibility_date = "2024-09-23"
 # Naming convention for keys:
 #   sh:<uuid>        Share entry   (TTL: panelGlobalShareTtlDays days)
 #   fb:<uuid>        Feedback entry (TTL: 90 days)
-#   rl:sh:<ipHash>   Share rate-limit counter (TTL: 3600 s)
-#   rl:fb:<ipHash>   Feedback rate-limit counter (TTL: 3600 s)
+#   rl:chat:<ipHash>:<event> Chat rate-limit event (TTL: 3600 s)
+#   rl:sh:<ipHash>:<event>   Share rate-limit event (TTL: 3600 s)
+#   rl:fb:<ipHash>:<event>   Feedback rate-limit event (TTL: 3600 s)
 [[kv_namespaces]]
 binding = "SHARE_KV"
 id      = "PASTE_ID_FROM_WRANGLER_KV_NAMESPACE_CREATE_HERE"
+
+# ── Authoritative distributed rate limiter ──────────────────────────────────
+# Each route-family + HMAC-SHA256 client identity maps to its own SQLite-backed
+# Durable Object. The HMAC key is RATE_LIMIT_IDENTITY_SECRET. Cloudflare guarantees global uniqueness and strongly
+# consistent object storage, so different PoPs still serialize one identity's
+# quota decision through the same bucket. The Worker falls back to KV only when
+# this binding is intentionally absent in local/custom deployments.
+[[durable_objects.bindings]]
+name = "RATE_LIMIT_DO"
+class_name = "RateLimitBucket"
+
+[exports.RateLimitBucket]
+type = "durable-object"
+storage = "sqlite"
+
+# Recommended non-secret production vars (defaults shown):
+# [vars]
+# ALLOWED_ORIGINS              = ""  # optional extra exact origins; official https://scikit-plots.github.io is always retained
+# MAX_BODY_BYTES               = "10485760"
+# MAX_RESPONSE_BYTES           = "8388608"  # decoded upstream bytes; hard-capped at 33554432
+# CHAT_RATE_LIMIT_PER_HOUR     = "30"
+# SHARE_RATE_LIMIT_PER_HOUR    = "10"
+# FEEDBACK_RATE_LIMIT_PER_HOUR = "30"
+# SHARE_MAX_BODY_BYTES         = "512000"
+# SHARE_MAX_ENTRIES            = "256"
+# SHARE_MAX_TOTAL_BYTES        = "16777216"
+#
+# Origin is a browser abuse boundary, not authentication. Server-to-server calls
+# without Origin remain possible and must rely on their own auth/capability rules.
+# RATE_LIMIT_DO is the bundled authoritative per-identity decision plane. Do not
+# replace it with the Workers Rate Limiting binding when exact cross-PoP decisions
+# are required: that binding is intentionally local/permissive. Workers KV event
+# keys remain a compatibility-only soft fallback.
+#
+# Note: Workers KV listing is eventually consistent. The Worker enforces a hard
+# per-entry limit and a conservative observed aggregate/count gate; deployments
+# requiring a strictly atomic global quota should move Share state to a Durable Object.
+
+[vars]
+# Explicit chat spend/authority allow-list. Keep this synchronized with the
+# public model choices you intentionally expose in the documentation UI.
+ALLOWED_MODELS = "Qwen/Qwen2.5-Coder-7B-Instruct,Qwen/Qwen2.5-Coder-32B-Instruct,openai/gpt-oss-20b"
+RATE_LIMIT_REQUIRE_AUTHORITATIVE = "true"
+# Opaque Origin (file:// / sandbox) Share access is an explicit opt-in.
+SHARE_ALLOW_OPAQUE_ORIGIN = "false"
+SHARE_ALLOW_OPAQUE_ORIGIN_WRITE = "false"
+
+# Privacy defense in depth: current Share links keep their read capability in a
+# URL fragment, and all current Share reads/status/mutations use fixed request
+# paths. Disable automatic invocation logs because they include request URLs;
+# privacy-minimized custom application logs remain available.
+[observability]
+enabled = true
+
+[observability.logs]
+invocation_logs = false

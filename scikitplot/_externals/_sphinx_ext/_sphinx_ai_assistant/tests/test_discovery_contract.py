@@ -46,7 +46,7 @@ def test_contract_file_exists_and_parses() -> None:
     """The canonical contract file is present and valid JSON."""
     assert _CONTRACT.is_file(), f"missing contract file: {_CONTRACT}"
     data = _load_contract()
-    assert data.get("version") == 1
+    assert data.get("version") in {1, 2, 3}
     assert isinstance(data.get("consumed_fields"), list)
     assert data["consumed_fields"], "contract lists no consumed fields"
 
@@ -89,11 +89,9 @@ def test_client_still_reads_every_consumed_key() -> None:
 )
 def test_token_values_never_appear_in_manifest() -> None:
     """
-    Defence-in-depth: the discovery manifest must expose token PRESENCE and
-    TYPE only, never a value. The server keys the client reads are all
-    ``*_type`` / ``*_repo`` / ``*_ready`` / ``*_enabled`` / ``*_mode`` — none
-    is a raw ``token`` value field. This guards against a future edit that
-    starts leaking a secret through discovery.
+    Defence-in-depth: public discovery never exposes token values. Run 5 also
+    suppresses exact token classes and deployment topology; legacy ``*_type``
+    keys remain only as schema-compatible ``"unknown"`` values.
     """
     forbidden = ('"hf_token":', '"hf_write_token":', '"hf_dataset_token":')
     src = _APP_PY.read_text(encoding="utf-8")

@@ -77,6 +77,11 @@ repos:
         # args: ["--branch=main"]
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
+        exclude: "^(\
+            scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_untrusted_context.mjs\
+            |scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_logging_privacy.py\
+            |scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_stub_model.py\
+          )$"
       - id: check-added-large-files  # Prevent giant files from being committed.
         args: ["--enforce-all", "--maxkb=333"]  # 333 KB is the default size limit.
         exclude: "^(\
