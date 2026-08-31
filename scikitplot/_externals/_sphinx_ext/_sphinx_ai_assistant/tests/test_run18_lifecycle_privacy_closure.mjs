@@ -133,8 +133,10 @@ ok(loadFn.includes('_ssDel(_TRANSCRIPT_KEY)'),'invalid/off transcript state is d
 
 ok(src.includes("sessionStorage.getItem('ai-assistant-mic-device-id')"),'microphone device preference is session-scoped');
 ok(!src.includes("localStorage.getItem('ai-assistant-mic-device-id')"),'microphone device ID is not read from persistent localStorage');
-ok(src.includes('Save management receipt'),'explicit contribution receipt export is present');
-ok(src.includes('Import management receipt'),'explicit contribution receipt import is present');
+ok(src.includes('Save private receipt'),'explicit contribution receipt export is present');
+ok(src.includes('Import private receipt'),'explicit contribution receipt import is present');
+ok(src.includes('Copy private withdrawal code'),'portable private withdrawal capability is present');
+ok(src.includes('Copy support reference'),'non-secret maintainer support fallback is present');
 ok(src.includes("status: 'outcome_unknown'"),'contribution receipt models unknown outcome');
 ok(src.includes("phase: outcomeUnknown ? 'outcome_unknown' : 'error'"),'Global Share models unknown create outcome');
 ok(src.includes("recoveringGlobal ? _pendingGlobalCreate.payload"),'Global Share retry reuses exact prepared payload');

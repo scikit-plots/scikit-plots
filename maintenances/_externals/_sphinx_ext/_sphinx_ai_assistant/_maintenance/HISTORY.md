@@ -474,3 +474,12 @@ Permissions-Policy denial. Proxy deployment version ratcheted to **7.0.0**.
 - Only the Primary storage target owns approval; mirrors remain replication targets.
 - Proxy deployment version ratcheted to **7.3.0**.
 - Working-tree boundary: B54 **13/13**, focused **151 passed**, Node **50/50**, runnable non-Sphinx **824 passed, 3 skipped**, compile **72/72**, Sphinx-inclusive **1290 / 3 / 5 / 62** missing-`sphinx`-only.
+
+## Run 40 / B59 — CORS default origins and Space configuration
+
+- Added both current documentation origins as package defaults: Scikit-plots GitHub Pages and Scikit-plots Learn on Read the Docs.
+- Added `ALLOWED_ORIGINS_MODE=additive|replace`; downstream/fork deployments can replace package defaults without editing proxy source.
+- Kept wildcard CORS as an explicit insecure compatibility mode and preserved strict-mode rejection.
+- Mirrored the origin-composition contract in the Cloudflare Worker.
+- Preserved privacy-minimal health diagnostics while adding default-origin count/coverage facts.
+- Expanded the HF Space README with a clean Variables-vs-Secrets guide, current Scikit-plots examples, custom-site recipes, and explicit classification of `TRAINING_DATASET_REPO` as non-secret configuration.

@@ -78,7 +78,8 @@ storage = "sqlite"
 
 # Recommended non-secret production vars (defaults shown):
 # [vars]
-# ALLOWED_ORIGINS              = ""  # optional extra exact origins; official https://scikit-plots.github.io is always retained
+# ALLOWED_ORIGINS              = ""  # exact origins; additive by default; built-ins are scikit-plots.github.io + scikit-plots-learn.readthedocs.io
+# ALLOWED_ORIGINS_MODE         = "additive"  # additive | replace; replace is useful for downstream/fork deployments
 # MAX_BODY_BYTES               = "10485760"
 # MAX_RESPONSE_BYTES           = "8388608"  # decoded upstream bytes; hard-capped at 33554432
 # CHAT_RATE_LIMIT_PER_HOUR     = "30"

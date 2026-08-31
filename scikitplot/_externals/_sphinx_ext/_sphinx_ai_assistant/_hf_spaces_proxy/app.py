@@ -87,7 +87,8 @@
 #                       persistence; fine-grained repo-write is preferred.
 #   HF_WRITE_TOKEN_TYPE Legacy type declaration for HF_WRITE_TOKEN.
 #                       Accepted values: fine-grained | read | write.
-#   ALLOWED_ORIGINS     Comma-separated additional exact CORS origins. The official docs origin is always included; set * only as an explicit insecure compatibility escape hatch.
+#   ALLOWED_ORIGINS     Comma-separated exact CORS origins. Additive by default; use ALLOWED_ORIGINS_MODE=replace for downstream sites.
+#   ALLOWED_ORIGINS_MODE additive (default) keeps built-in Scikit-plots origins; replace trusts only ALLOWED_ORIGINS.
 #   RECORD_STORAGE_TARGETS  Optional JSON array defining one primary record
 #                       store plus mirrors (huggingface/github/gitlab/bitbucket).
 #                       Credentials are referenced only through env names with
@@ -993,8 +994,11 @@ _protocol_retries: int = max(
 # CORS
 # ─────────────────────────────────────────────────────────────────────────────
 
-_DEFAULT_ALLOWED_ORIGINS = "https://scikit-plots.github.io"
-_OFFICIAL_ALLOWED_ORIGINS: tuple[str, ...] = (_DEFAULT_ALLOWED_ORIGINS,)
+_DEFAULT_ALLOWED_ORIGINS: tuple[str, ...] = (
+    "https://scikit-plots.github.io",
+    "https://scikit-plots-learn.readthedocs.io",
+)
+_ALLOWED_ORIGIN_MODES: frozenset[str] = frozenset({"additive", "replace"})
 
 
 def _normalise_browser_origin(value: str) -> str:
@@ -1017,18 +1021,32 @@ def _normalise_browser_origin(value: str) -> str:
     return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
 
 
-def _build_allowed_origins(raw: str) -> list[str]:
+def _normalise_allowed_origins_mode(value: str) -> str:
+    """Return the supported CORS composition mode without echoing bad input."""
+    mode = str(value or "additive").strip().lower() or "additive"
+    if mode not in _ALLOWED_ORIGIN_MODES:
+        logger.warning(
+            "AI proxy [CORS_MODE_INVALID]: invalid ALLOWED_ORIGINS_MODE; using additive defaults."
+        )
+        return "additive"
+    return mode
+
+
+def _build_allowed_origins(raw: str, *, mode: str = "additive") -> list[str]:
     """Build the exact browser-origin allowlist.
 
-    The official Scikit-Plots documentation origin is a package-owned trust
-    anchor and cannot be accidentally removed by an ``ALLOWED_ORIGINS``
-    deployment override.  The environment variable adds exact origins.  Only
-    an explicit ``*`` selects wildcard compatibility mode.
+    ``additive`` retains the package defaults and appends deployment-specific
+    exact origins. ``replace`` starts empty so downstream/open-source deployments
+    can own their complete browser-origin trust boundary without editing source.
+    Only an explicit ``*`` selects wildcard compatibility mode.
     """
     text = str(raw or "").strip()
     if text == "*":
         return ["*"]
-    merged: list[str] = list(_OFFICIAL_ALLOWED_ORIGINS)
+    selected_mode = _normalise_allowed_origins_mode(mode)
+    merged: list[str] = (
+        list(_DEFAULT_ALLOWED_ORIGINS) if selected_mode == "additive" else []
+    )
     for item in text.split(","):
         item = item.strip()  # ruff: ignore[redefined-loop-name]
         if not item:
@@ -1045,7 +1063,12 @@ def _build_allowed_origins(raw: str) -> list[str]:
 
 
 _raw_origins: str = os.environ.get("ALLOWED_ORIGINS", "").strip()
-_allowed_origins: list[str] = _build_allowed_origins(_raw_origins)
+ALLOWED_ORIGINS_MODE: str = _normalise_allowed_origins_mode(
+    os.environ.get("ALLOWED_ORIGINS_MODE", "additive")
+)
+_allowed_origins: list[str] = _build_allowed_origins(
+    _raw_origins, mode=ALLOWED_ORIGINS_MODE
+)
 
 #: Optional Share-only compatibility for browser opaque origins such as
 #: ``file://`` documents, which browsers serialize as ``Origin: null``.  This is
@@ -1076,9 +1099,13 @@ if _allowed_origins == ["*"]:
         "AI proxy [CORS_WILDCARD]: ALLOWED_ORIGINS=* explicitly enables every browser origin; "
         "use an exact comma-separated origin list in production."
     )
+elif ALLOWED_ORIGINS_MODE == "replace":
+    logger.info(
+        "AI proxy CORS: replacement mode active; only exact ALLOWED_ORIGINS entries are trusted."
+    )
 elif _raw_origins:
     logger.info(
-        "AI proxy CORS: official docs origin retained; ALLOWED_ORIGINS contributes additional exact origins."
+        "AI proxy CORS: built-in documentation origins retained; ALLOWED_ORIGINS contributes additional exact origins."
     )
 
 #: Trust ``X-Forwarded-For`` only when a known ingress proxy strips/overwrites
@@ -1824,7 +1851,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_allowed_origins,
-    allow_methods=["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     # Authorization added for write endpoints (POST /v1/feedback, POST /v1/contribute)
     # that validate a Bearer token.  Without this the browser preflight rejects
     # requests containing Authorization headers before the handler runs.
@@ -2706,14 +2733,19 @@ def _canonical_payload_digest(value: Any) -> str:
 def _cors_public_status() -> dict[str, Any]:
     """Return public CORS diagnostics without exposing custom/private origins."""
     wildcard = _allowed_origins == ["*"]
+    primary_default = _DEFAULT_ALLOWED_ORIGINS[0]
     return {
-        "official_docs_origin": _DEFAULT_ALLOWED_ORIGINS,
-        "official_docs_origin_allowed": (
-            wildcard or _DEFAULT_ALLOWED_ORIGINS in _allowed_origins
+        # Backward-compatible singular fields refer to the primary project origin.
+        "official_docs_origin": primary_default,
+        "official_docs_origin_allowed": wildcard or primary_default in _allowed_origins,
+        "default_allowed_origin_count": len(_DEFAULT_ALLOWED_ORIGINS),
+        "default_allowed_origins_allowed": (
+            wildcard
+            or all(origin in _allowed_origins for origin in _DEFAULT_ALLOWED_ORIGINS)
         ),
         "wildcard": wildcard,
         "allowed_origin_count": None if wildcard else len(_allowed_origins),
-        "env_semantics": "additive",
+        "env_semantics": ALLOWED_ORIGINS_MODE,
         "share_opaque_origin_allowed": SHARE_ALLOW_OPAQUE_ORIGIN,
         "share_opaque_origin_write_allowed": bool(
             SHARE_ALLOW_OPAQUE_ORIGIN and SHARE_ALLOW_OPAQUE_ORIGIN_WRITE
@@ -2746,6 +2778,8 @@ async def root() -> JSONResponse:
                     FEEDBACK_TELEMETRY_CONSENT_VERSION
                 ),
                 "contribution_review_mode": CONTRIBUTION_REVIEW_MODE,
+                "pending_review_updates": True,
+                "duplicate_resubmit_policy": "same-receipt-noop-or-update",
                 "canonical_branch": getattr(
                     getattr(_STORAGE, "primary", None), "branch", None
                 ),
@@ -3123,6 +3157,52 @@ def _storage_receipt_metadata(receipt: Any) -> dict[str, Any]:
     }
 
 
+def _contribution_review_reference(
+    entry: dict[str, Any], review: Any | None = None
+) -> dict[str, Any]:
+    """Return non-secret review locator metadata safe for participant support.
+
+    This intentionally excludes provider URLs, repository tokens, management
+    capabilities, and raw contribution content.  The reference is useful when
+    a participant no longer has a working management capability and needs a
+    maintainer to locate the native PR/MR or its stable review file.
+    """
+    storage = entry.get("storage") if isinstance(entry.get("storage"), dict) else {}
+    raw_review = (
+        storage.get("review") if isinstance(storage.get("review"), dict) else {}
+    )
+    paths = storage.get("paths") if isinstance(storage.get("paths"), dict) else {}
+
+    provider = str(getattr(review, "provider", "") or raw_review.get("provider") or "")[
+        :32
+    ]
+    review_id = str(
+        getattr(review, "review_id", "") or raw_review.get("reviewId") or ""
+    )[:32]
+    path = str(getattr(review, "path", "") or "")
+    if not path:
+        target_id = str(raw_review.get("targetId") or "")
+        if target_id and target_id in paths:
+            path = str(paths.get(target_id) or "")
+        elif len(paths) == 1:
+            path = str(next(iter(paths.values())) or "")
+    # Storage paths are validated before entering the ledger.  Re-bound here so
+    # malformed legacy metadata cannot turn a support reference into log/markup
+    # injection material.
+    path = path.replace("\\", "/").replace("\r", "").replace("\n", "")[:512]
+    if not path or path.startswith("/") or ".." in path.split("/"):
+        path = ""
+
+    out: dict[str, Any] = {}
+    if provider:
+        out["reviewProvider"] = provider
+    if review_id and review_id.isdigit():
+        out["reviewId"] = review_id
+    if path:
+        out["reviewPath"] = path
+    return out
+
+
 def _contribution_status_payload(entry: dict[str, Any]) -> dict[str, Any]:
     state = str(entry.get("state") or "unknown")
     return {
@@ -3147,6 +3227,9 @@ def _contribution_status_payload(entry: dict[str, Any]) -> dict[str, Any]:
         ),
         "physicalErasureGuaranteed": False,
         "physicalErasureScope": "not-guaranteed",
+        "reviewRevision": max(
+            1, int((entry.get("operation") or {}).get("reviewRevision") or 1)
+        ),
         "expiresAt": (
             int(float(entry.get("expiresAt") or 0) * 1000)
             if entry.get("expiresAt")
@@ -3220,13 +3303,24 @@ def _provider_review_content(entry: dict[str, Any]) -> bytes:
 
 
 async def _ensure_provider_review(entry: dict[str, Any]):
-    """Create or recover the native provider review for an intake receipt."""
+    """Resolve one native review, opening it only for legacy/unbound receipts."""
     if not _provider_review_enabled():
         return None
     if _STORAGE.primary is None:
         raise StorageWriteError("NO_PRIMARY_TARGET")
-    return await _STORAGE.open_contribution_review(
-        receipt_id=str(entry.get("receiptId") or ""),
+    receipt_id = str(entry.get("receiptId") or "")
+    storage_hint = (
+        entry.get("storage") if isinstance(entry.get("storage"), dict) else {}
+    )
+    if isinstance(storage_hint.get("review"), dict):
+        review = await _STORAGE.get_contribution_review(
+            receipt_id, review_hint=storage_hint
+        )
+        if review is None:
+            raise StorageWriteError("REVIEW_NOT_FOUND")
+        return review
+    review = await _STORAGE.open_contribution_review(
+        receipt_id=receipt_id,
         content=_provider_review_content(entry),
         commit_message=(
             "Automated dataset contribution review. "
@@ -3234,6 +3328,15 @@ async def _ensure_provider_review(entry: dict[str, Any]):
         ),
         path_timestamp=float(entry.get("receivedAt") or _time.time()),
     )
+    if str(entry.get("state") or "") == "quarantined":
+        try:
+            bound = await _CONTRIBUTION_LEDGER.set_pending_storage(
+                receipt_id, storage=review.storage_metadata()
+            )
+            entry["storage"] = bound.get("storage") or review.storage_metadata()
+        except ContributionLedgerError as exc:
+            raise StorageWriteError("REVIEW_BIND_LEDGER", transient=True) from exc
+    return review
 
 
 async def _sync_provider_review_merge(
@@ -3374,6 +3477,7 @@ def _contribution_replay_response(
     ledger_manifest: dict[str, Any],
     replay: bool,
     review: Any | None = None,
+    review_update: str = "",
 ) -> JSONResponse:
     body = {
         "accepted": True,
@@ -3386,12 +3490,18 @@ def _contribution_replay_response(
         "idempotentReplay": bool(replay),
         "reviewMode": CONTRIBUTION_REVIEW_MODE,
         "trainingEligible": str(entry.get("state") or "") == "eligible",
+        "reviewRevision": max(
+            1, int((entry.get("operation") or {}).get("reviewRevision") or 1)
+        ),
     }
+    if review_update:
+        body["reviewUpdate"] = review_update
     if review is not None:
         body["reviewProvider"] = str(getattr(review, "provider", "") or "")
         body["reviewStatus"] = str(getattr(review, "status", "") or "")
     elif _provider_review_enabled() and _STORAGE.primary is not None:
         body["reviewProvider"] = _STORAGE.primary.provider
+    body.update(_contribution_review_reference(entry, review))
     # Legacy/non-envelope API clients need the generated capability once.
     # Current browser clients already hold it locally, so never echo it.
     if delete_token:
@@ -3615,11 +3725,11 @@ async def contribute(  # ruff: ignore[too-many-branches]
         "withdrawalStorage": {},
         "currentViewRemoval": {},
         "lastError": "",
-        "operation": (
-            {"payloadDigest": payload_digest, "operationId": operation_id}
-            if envelope
-            else {}
-        ),
+        "operation": {
+            "payloadDigest": payload_digest,
+            "operationId": operation_id if envelope else "",
+            "reviewRevision": 1,
+        },
         "rowCount": len(normalized),
     }
     try:
@@ -3671,6 +3781,213 @@ async def contribute(  # ruff: ignore[too-many-branches]
     )
 
 
+def _validate_contribution_update_payload(payload: Any) -> list[Any]:
+    """Validate the same public contribution contract used by intake."""
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=422, detail="Contribution body must be a JSON object."
+        )
+    if payload.get("consentFlag") is not True:
+        raise HTTPException(
+            status_code=422, detail="Explicit contribution consent is required."
+        )
+    schema_version = payload.get("schemaVersion")
+    if schema_version not in {2, 3, 4}:
+        raise HTTPException(
+            status_code=422, detail="Unsupported contribution schemaVersion."
+        )
+    consent_version = payload.get("consentVersion")
+    consent_ok = (
+        consent_version == RESERVED_CONSENT_VERSION
+        if schema_version == 4  # ruff: ignore[magic-value-comparison]
+        else consent_version in (LEGACY_CONSENT_VERSIONS | {RESERVED_CONSENT_VERSION})
+    )
+    if not consent_ok:
+        raise HTTPException(
+            status_code=422,
+            detail="Consent text changed or is missing. Reload the page and review consent again.",
+        )
+    records = payload.get("records")
+    if not isinstance(records, list) or not records:
+        raise HTTPException(status_code=422, detail="records must be a non-empty list.")
+    if len(records) > MAX_CONTRIBUTION_RECORDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Too many records. Maximum {MAX_CONTRIBUTION_RECORDS} per request.",
+        )
+    if schema_version == 4:  # ruff: ignore[magic-value-comparison]
+        _strict_current_contribution_records(records)
+    return records
+
+
+@app.put("/v1/contribute/{receipt_id}")
+async def update_pending_contribution(
+    receipt_id: str, request: Request
+) -> JSONResponse:
+    """Replace a pending review instead of opening a duplicate PR/MR."""
+    ledger_manifest = _CONTRIBUTION_LEDGER.manifest()
+    entry = await _authorized_contribution_entry(receipt_id, request)
+    current_review = None
+    if str(entry.get("state") or "") == "quarantined" and _provider_review_enabled():
+        try:
+            entry, current_review = await _sync_provider_review_merge(entry)
+        except StorageWriteError as exc:
+            logger.warning(
+                json.dumps(
+                    {"event": "contribute.review_update_status_fail", "code": exc.code}
+                )
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="Contribution review status could not be verified.",
+            ) from exc
+    if str(entry.get("state") or "") != "quarantined":
+        raise HTTPException(
+            status_code=409, detail="Only a pending contribution review can be updated."
+        )
+
+    raw = await _read_limited_body(request, CONTRIBUTION_MAX_BODY_BYTES, "Contribution")
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body.") from exc
+    records = _validate_contribution_update_payload(payload)
+    payload_digest = _canonical_payload_digest(payload)
+    operation = (
+        entry.get("operation") if isinstance(entry.get("operation"), dict) else {}
+    )
+    current_digest = str(operation.get("payloadDigest") or "")
+
+    if current_digest and secrets.compare_digest(current_digest, payload_digest):
+        review = current_review
+        if review is None and _provider_review_enabled():
+            try:
+                review = await _ensure_provider_review(entry)
+            except StorageWriteError as exc:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Contribution review could not be recovered.",
+                ) from exc
+        logger.info(json.dumps({"event": "contribute.review_duplicate_suppressed"}))
+        return _contribution_replay_response(
+            entry,
+            receipt_id=receipt_id,
+            delete_token="",
+            ledger_manifest=ledger_manifest,
+            replay=True,
+            review=review,
+            review_update="unchanged",
+        )
+
+    server_ts_ms = int(_time.time() * 1000)
+    normalized = [
+        normalize_contribution_record(
+            rec,
+            envelope=payload,
+            server_ts_ms=server_ts_ms,
+            training_status="quarantined",
+            submission_id=receipt_id,
+        )
+        for rec in records
+    ]
+    normalized = [
+        row
+        for row in normalized
+        if row.get("recordType") != "conversation" or bool(row.get("messages"))
+    ]
+    if not normalized:
+        raise HTTPException(
+            status_code=422, detail="No valid contribution records were supplied."
+        )
+    encoded = ("\n".join(json.dumps(r, ensure_ascii=False) for r in normalized)).encode(
+        "utf-8"
+    )
+    next_revision = max(1, int(operation.get("reviewRevision") or 1)) + 1
+    review = current_review
+    if _provider_review_enabled():
+        eligible_bytes = _provider_review_content({"records": normalized})
+        try:
+            review = await _STORAGE.update_contribution_review(
+                receipt_id=receipt_id,
+                content=eligible_bytes,
+                commit_message=f"Update dataset contribution review (revision {next_revision})",
+                path_timestamp=float(entry.get("receivedAt") or _time.time()),
+                review_hint=(
+                    entry.get("storage")
+                    if isinstance(entry.get("storage"), dict)
+                    else None
+                ),
+            )
+        except StorageWriteError as exc:
+            if exc.code in {"REVIEW_CLOSED", "REVIEW_MERGED", "REVIEW_NOT_FOUND"}:
+                raise HTTPException(
+                    status_code=409,
+                    detail="The existing repository review is no longer open for updates.",
+                ) from exc
+            logger.error(
+                json.dumps({"event": "contribute.review_update_fail", "code": exc.code})
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="The existing repository review could not be updated safely.",
+            ) from exc
+
+    try:
+        updated = await _CONTRIBUTION_LEDGER.replace_pending_payload(
+            receipt_id,
+            records=normalized,
+            byte_count=len(encoded),
+            dedup_keys=[
+                str(row.get("_dedup_key") or "")
+                for row in normalized
+                if row.get("_dedup_key")
+            ],
+            payload_digest=payload_digest,
+            row_count=len(normalized),
+            storage=(
+                review.storage_metadata()
+                if review is not None
+                else (
+                    entry.get("storage")
+                    if isinstance(entry.get("storage"), dict)
+                    else {}
+                )
+            ),
+        )
+    except ContributionLedgerError as exc:
+        logger.error(
+            json.dumps(
+                {"event": "contribute.review_update_ledger_fail", "code": exc.code}
+            )
+        )
+        raise _contribution_ledger_http_error(exc) from exc
+
+    logger.info(
+        json.dumps(
+            {
+                "event": "contribute.review_updated",
+                "rows": len(normalized),
+                "revision": int(
+                    (updated.get("operation") or {}).get("reviewRevision")
+                    or next_revision
+                ),
+                "review_provider": (
+                    getattr(review, "provider", None) if review else None
+                ),
+            }
+        )
+    )
+    return _contribution_replay_response(
+        updated,
+        receipt_id=receipt_id,
+        delete_token="",
+        ledger_manifest=ledger_manifest,
+        replay=False,
+        review=review,
+        review_update="updated",
+    )
+
+
 async def _authorized_contribution_entry(
     receipt_id: str, request: Request
 ) -> dict[str, Any]:
@@ -3707,6 +4024,7 @@ async def contribution_status(receipt_id: str, request: Request) -> JSONResponse
     if review is not None:
         body["reviewProvider"] = review.provider
         body["reviewStatus"] = review.status
+    body.update(_contribution_review_reference(entry, review))
     return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
 
@@ -3731,7 +4049,14 @@ async def delete_or_withdraw_contribution(  # ruff: ignore[too-many-branches]
             entry, _review = await _sync_provider_review_merge(entry)
             state = str(entry.get("state") or "")
             if state == "quarantined":
-                close_result = await _STORAGE.close_contribution_review(receipt_id)
+                close_result = await _STORAGE.close_contribution_review(
+                    receipt_id,
+                    review_hint=(
+                        entry.get("storage")
+                        if isinstance(entry.get("storage"), dict)
+                        else None
+                    ),
+                )
                 logger.info(
                     json.dumps(
                         {"event": "contribute.review_closed", "result": close_result}
@@ -3896,7 +4221,14 @@ async def promote_contribution(  # ruff: ignore[too-many-branches]
             # The native provider review already contains these exact eligible
             # bytes. Merge the PR/MR instead of creating a second direct commit.
             prepared_review = await _ensure_provider_review(entry)
-            merged_review = await _STORAGE.merge_contribution_review(receipt_id)
+            merged_review = await _STORAGE.merge_contribution_review(
+                receipt_id,
+                review_hint=(
+                    entry.get("storage")
+                    if isinstance(entry.get("storage"), dict)
+                    else None
+                ),
+            )
             if prepared_review is None:
                 raise StorageWriteError("REVIEW_NOT_FOUND")
             receipt = replace(prepared_review, status=merged_review.status)

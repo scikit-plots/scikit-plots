@@ -2,66 +2,64 @@
 
 ## Schema v4 privacy and contribution lifecycle — authoritative
 
-> **Run 6 policy:** where older historical sections below describe feedback as
+> **Current policy:** where older historical sections below describe feedback as
 > training input, cross-source feedback/contribution joins, unversioned consent,
-> or immediate contribution persistence, this section supersedes them.
+> immediate contribution persistence, or review-token-only promotion, this section
+> supersedes them. For the human workflow first read
+> [`../DATASET_CONTRIBUTION_GUIDE.md`](../DATASET_CONTRIBUTION_GUIDE.md).
 
 - Ordinary `/v1/feedback` is rating telemetry only. Query, answer, note, model,
   page and conversation identity are discarded server-side; durable feedback is
   opt-in and marked `trainingStatus="telemetry"`.
-- Current schema v4 keeps feedback telemetry and explicit content contribution
+- Schema v4 keeps feedback telemetry and explicit content contribution
   structurally separate. Contribution has two record families: `recordType="qa"`
-  for selected/rated Q&A and `recordType="conversation"` for one ordered
-  `messages[]` record. Whole-conversation mode does not explode turns into
-  independent training rows.
-- The browser's dedicated **Contribute to dataset** sheet is the only content-bearing
-  contribution surface. **This Q&A**, **Rated answers**, and **Whole conversation**
-  converge on the same exact-JSON inspection, privacy preflight, consent, quarantine,
-  receipt-delete, and post-promotion withdrawal lifecycle. Share/export owns no
-  contribution controls.
-- Schema v4 requires contribution consent `2.0.0`. Legacy schema v2/v3 clients may
-  continue using historical consent `1.0.0` for compatibility; that legacy consent
-  is not accepted for schema v4's broader conversation-record contract.
-- `/v1/contribute` requires `consentFlag=true` and the current
-  `consentVersion`. Accepted content enters the mutable contribution receipt
-  ledger with `trainingStatus="quarantined"`; it is not written directly to
-  Git/HF/provider mirrors. The default `memory` backend is process-local; the
-  optional `sqlite` backend is restart-durable/local-transactional. The optional
-  `redis` backend provides one shared atomic receipt authority across replicas when
-  every replica is pointed at the same intended Redis consistency domain.
-- The receipt has a separate delete capability. Before promotion, DELETE removes
-  raw content from the active review ledger. This is a logical/content lifecycle
-  guarantee, **not** a forensic promise about SQLite pages/WAL, filesystem
-  snapshots, backups, or provider infrastructure.
-- Only the operator review endpoint, protected by `CONTRIBUTION_REVIEW_TOKEN`,
-  may atomically claim and promote rows to durable `trainingStatus="eligible"`;
-  concurrent duplicate promotion is rejected by the lifecycle state machine.
-- The receipt capability survives promotion as a server-side hash. A later
-  DELETE records a privacy-minimal `withdraw` tombstone keyed by `_dedup_key`,
-  suppresses that eligible row from ordinary training output, and attempts
-  best-effort removal from provider current views. Versioned repository history
-  is not claimed erased.
-- Client model/provider metadata is evidence `client_reported`, not verified
-  identity. Historical model metadata is `legacy_unverified`.
-- `deduplicate_dataset.py` fails closed: default training output accepts only
-  `trainingStatus="eligible"`. `--include-unreviewed` exists for explicit
-  audit/recovery and still excludes feedback telemetry.
-- Physical deletion after promotion to versioned/mirrored storage is **not
-  guaranteed** by this implementation. Withdrawal is an enforceable training
-  exclusion in the dataset builder, but it must not be described as global
-  physical erasure.
-- `CONTRIBUTION_REQUIRE_DURABLE=true` can fail closed unless the local ledger
-  reports restart durability. `CONTRIBUTION_REQUIRE_SHARED=true` independently
-  requires shared transactional authority. SQLite closes the first property; Redis
-  can close the second when correctly deployed. Repository code does not infer
-  Redis persistence/backup durability from shared coordination alone.
+  and one ordered `recordType="conversation"` with `messages[]`. Whole-conversation
+  mode is not exploded into unrelated training rows.
+- **Contribute to dataset** is the only content-bearing contribution surface.
+  **This Q&A**, **Rated answers**, and **Whole conversation** converge on exact-JSON
+  inspection, privacy preflight, explicit versioned consent, quarantine/review,
+  private management receipt, pending delete, and post-approval withdrawal.
+- Schema v4 contribution consent is `2.0.0`. Legacy schema v2/v3 clients may use
+  historical consent `1.0.0` only for the legacy contract.
+- `/v1/contribute` always creates a lifecycle receipt first and starts at
+  `trainingStatus="quarantined"`; quarantined content is never ordinary training
+  input. The lifecycle backend may be `memory`, `sqlite`, or `redis`.
+- **Recommended human-review mode:** `CONTRIBUTION_REVIEW_MODE=provider-pr`. The
+  Primary storage target receives a native Hugging Face/GitHub/GitLab/Bitbucket
+  review object. The configured canonical branch (`main` by default) is the
+  eligibility boundary. Merge means eligible. Close/decline remains
+  training-ineligible and the browser renders it as **NOT ACCEPTED**.
+- **Compatibility mode:** `CONTRIBUTION_REVIEW_MODE=ledger`. Content stays in the
+  lifecycle ledger until the authenticated `/promote` endpoint, protected by
+  `CONTRIBUTION_REVIEW_TOKEN`, writes/promotes eligible bytes.
+- Only the **Primary** owns review authority. Mirrors do not independently approve
+  or reject the same contribution. An external Primary UI merge is detected on a
+  later status/management check and ratchets the receipt to `eligible`. Current
+  code does not synchronously fan that external merge out to mirrors.
+- The receipt has a separate delete/withdraw capability. Before approval, DELETE
+  closes the pending provider review when applicable and removes active receipt
+  content. After approval, the same capability records a privacy-minimal
+  withdrawal tombstone and attempts best-effort current-view removal.
+- Provider-review durability and receipt durability are different. A PR/MR can
+  survive a proxy restart while `CONTRIBUTION_LEDGER_BACKEND=memory` loses the
+  contributor-management authority. Use persistent SQLite for one instance or
+  shared Redis for replicas when long-lived receipt management matters.
+- `deduplicate_dataset.py` fails closed: ordinary training output accepts only
+  `trainingStatus="eligible"` and applies later withdrawal state.
+- Physical deletion from versioned repository history, database pages/WAL,
+  backups, CDN/provider logs, or infrastructure snapshots is **not guaranteed**.
+  Withdrawal is an enforceable training-exclusion/current-view operation, not a
+  claim of global forensic erasure.
+- `CONTRIBUTION_REQUIRE_DURABLE=true` can fail closed unless receipt storage is
+  restart-durable. `CONTRIBUTION_REQUIRE_SHARED=true` independently requires a
+  shared transactional receipt authority.
 
 
 **Component:** scikit-plots Sphinx AI Assistant proxy
 **Scope:** Feedback and consent-gated contribution records
 **Storage:** Hugging Face, GitHub, GitLab, Bitbucket Cloud, or a primary + mirrors
-**Guide version:** 3.0
-**Verified against implementation:** 2026-08-29
+**Guide version:** 4.0
+**Verified against implementation:** 2026-08-31
 **Audience:** first-time operator → maintainer → senior platform engineer
 
 ---
@@ -324,7 +322,7 @@ TRAINING_DATASET_REPO=scikit-plots/ai-assistant-contributions
 **Secret**:
 
 ```text
-HF_DATASET_TOKEN=hf_xxxxxxxxxxxxxxxxx
+HF_DATASET_TOKEN=<hf-repo-write-token>
 ```
 
 **Variable**:
@@ -382,7 +380,7 @@ This is the preferred foundation if you expect to add mirrors later.
 ### Secrets
 
 ```text
-AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=hf_xxxxxxxxxxxxxxxxx
+AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=<hf-repo-write-token>
 ```
 
 ### Variables
@@ -482,7 +480,7 @@ which officially requires repository `Contents: write` for fine-grained tokens.
 ### Step 3 — add Secret
 
 ```text
-AI_RECORD_STORAGE_TOKEN_GITHUB_PRIMARY=github_pat_xxxxxxxxx
+AI_RECORD_STORAGE_TOKEN_GITHUB_PRIMARY=<github-repo-token>
 ```
 
 ### Step 4 — add Variable
@@ -520,13 +518,13 @@ This matches the topology you are using.
 #### Secret 1 — HF write credential
 
 ```text
-AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=hf_xxxxxxxxx
+AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=<hf-repo-write-token>
 ```
 
 #### Secret 2 — GitHub write credential
 
 ```text
-AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=github_pat_xxxxxxxxx
+AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=<github-repo-token>
 ```
 
 #### Variable — target topology
@@ -706,9 +704,11 @@ Possible capability states include:
 
 ---
 
-## 10. Test 2: real contribution write
+## 10. Test 2: real contribution intake and native review
 
-Use a clearly synthetic record and delete it later if desired.
+Prefer the browser's **Contribute to dataset** sheet for normal operation because
+it performs exact-JSON inspection, privacy preflight, and the current consent UX.
+For an operator smoke test, use a clearly synthetic schema-v4 record:
 
 ```bash
 BASE=https://scikit-plots-ai.hf.space
@@ -716,67 +716,95 @@ BASE=https://scikit-plots-ai.hf.space
 curl -sS "$BASE/v1/contribute" \
   -H "Content-Type: application/json" \
   -d '{
-    "schemaVersion": 2,
+    "schemaVersion": 4,
     "consentFlag": true,
-    "consentVersion": null,
-    "sessionId": "storage-smoke-test-001",
+    "consentVersion": "2.0.0",
     "page": "https://example.invalid/storage-smoke-test",
-    "model": {
-      "id": "storage-test",
-      "provider": "test",
-      "model": "test"
-    },
+    "model": null,
     "records": [
       {
+        "recordType": "qa",
         "answerIndex": 0,
-        "query": "storage smoke test",
-        "answer": "synthetic test record",
-        "ratingValue": 2,
-        "ratingLabel": "positive",
-        "message": "delete after verification",
-        "ts": 1787900000000
+        "query": "synthetic storage smoke test",
+        "answer": "synthetic answer for review only",
+        "message": "operator smoke test; remove after verification"
       }
     ]
   }' | python -m json.tool
 ```
 
-Expected shape:
+In recommended `provider-pr` mode, expect a lifecycle response shaped like:
 
 ```json
 {
-  "contributed": true,
+  "accepted": true,
+  "status": "quarantined",
   "rows": 1,
-  "recordId": "<24-hex-content-id>",
-  "primary": "hf-primary",
-  "mirrors": {
-    "github-mirror": "ok"
-  }
+  "receiptId": "<opaque receipt>",
+  "deleteToken": "<private management capability>",
+  "consentVersion": "2.0.0",
+  "reviewMode": "provider-pr",
+  "reviewProvider": "huggingface",
+  "reviewStatus": "open",
+  "trainingEligible": false
 }
 ```
 
-The exact record ID depends on the normalized payload content.
+The exact response may contain additional content-free lifecycle metadata. Keep the
+`deleteToken` private; current browser clients generate/hold their management
+capability locally and do not require the server to echo it.
 
-### Verify both repositories
+### Verify the Primary review — not `main`
 
-The new storage layout is date-sharded:
+Do **not** expect the new contribution on the canonical branch immediately. Open
+the Primary provider's review UI:
+
+```text
+Hugging Face -> Dataset -> Community / Pull Requests
+GitHub       -> Repository -> Pull requests
+GitLab       -> Project -> Merge requests
+Bitbucket    -> Repository -> Pull requests
+```
+
+The review should contain a contribution path such as:
 
 ```text
 contributions/YYYY/MM/DD/ct_<recordId>.jsonl
 ```
 
-For the same accepted request, Primary and Mirrors receive the **same canonical
-bytes and record ID**.
+but that path exists only on the isolated review ref until approval.
 
-Check:
+For a provider-native smoke test:
 
-```text
-HF:     contributions/.../ct_<recordId>.jsonl
-GitHub: contributions/.../ct_<recordId>.jsonl
+1. verify the review is open;
+2. verify the contribution is absent from canonical `main`;
+3. inspect the exact JSON/JSONL bytes;
+4. merge the review;
+5. call **Check status** in the browser or the receipt-status endpoint;
+6. confirm the lifecycle becomes `eligible`;
+7. confirm the canonical branch now contains the record.
+
+If you close/decline instead, the contribution remains training-ineligible and the
+browser renders the provider review state as **NOT ACCEPTED**.
+
+### Mirror expectations
+
+If the topology is HF Primary + GitHub Mirror, the smoke test creates an HF review
+only. The GitHub Mirror is not an independent review authority. Current code does
+not synchronously replicate a human Primary merge to Mirrors; use explicit
+reconciliation when immediate mirror convergence is required.
+
+### Compatibility `ledger` mode
+
+If `GET /` reports:
+
+```json
+"contribution_review_mode": "ledger"
 ```
 
-Both files should contain identical bytes.
+the same intake remains in the receipt ledger and no provider review is expected.
+Only the separately authorized promotion path can write the eligible record.
 
----
 
 ## 11. Test 3: rating telemetry and contribution quarantine
 
@@ -803,21 +831,35 @@ page listeners receive bounded rating mechanics, not the Q&A/note/model/page tup
 
 ### Contribution receipt lifecycle
 
-`POST /v1/contribute` does **not** write directly to Primary/Mirrors. A successful
-request returns `status="quarantined"`, a short-lived receipt, and a separate
-delete/withdraw capability. The content is training-ineligible at this stage.
+`POST /v1/contribute` always starts with `status="quarantined"`, a lifecycle
+receipt, and a separate management capability. The content is training-ineligible
+at this stage. What happens next depends on `CONTRIBUTION_REVIEW_MODE`.
 
-Only an authorized operator review/promotion request may create durable
-`trainingStatus="eligible"` rows. Promotion uses an atomic lifecycle claim so a
-second concurrent reviewer cannot write the same receipt again. After promotion,
-raw contributed content is cleared from the receipt ledger; lifecycle metadata, server-owned
-dedup keys, provider paths, and only the delete-capability hash remain.
+With `provider-pr`, the proxy opens a native review on the **Primary**:
 
-The same receipt capability remains valid after promotion. DELETE then means
-**withdraw from training use**, not "erase every copy": the proxy persists
-privacy-minimal withdrawal tombstones and attempts current-view deletion from the
-configured provider targets. `deduplicate_dataset.py` applies the later withdrawal
-through last-write-wins and does not emit the tombstone itself.
+```text
+quarantined + reviewStatus=open
+        |
+        +-- maintainer merge ------> eligible
+        |
+        +-- close / decline -------> quarantined + reviewStatus=closed/rejected
+                                     (browser: NOT ACCEPTED)
+```
+
+The proxy writes the future eligible bytes to their final canonical path inside
+the isolated provider review ref. They do not become part of the canonical branch
+until merge. A later **Check status** observes a manual merge and atomically
+ratchets the lifecycle receipt to `eligible`.
+
+With compatibility `ledger` mode, only the authenticated promotion endpoint may
+claim the receipt and write durable `trainingStatus="eligible"` rows.
+
+After approval, raw contributed content is cleared from the receipt ledger;
+lifecycle metadata, server-owned dedup keys, provider paths, and the
+delete-capability hash remain. The same receipt capability then means **withdraw
+from training use**: the proxy writes privacy-minimal withdrawal tombstones and
+attempts current-view deletion. `deduplicate_dataset.py` applies the later
+withdrawal through last-write-wins and does not emit the tombstone itself.
 
 For restart durability on a single writable instance, configure:
 
@@ -845,10 +887,11 @@ This is an important production readiness test.
 
 1. Keep the HF Primary token valid.
 2. Temporarily replace/revoke the GitHub Mirror token.
-3. Submit one synthetic contribution and confirm it is quarantined.
-4. Promote that quarantine receipt with the separate review capability.
+3. Submit one synthetic contribution and confirm it is quarantined/in review.
+4. If using `provider-pr`, merge the Primary provider review. If using `ledger`,
+   promote the quarantine receipt with the separate review capability.
 
-Expected promotion behavior:
+Expected approval/promotion behavior:
 
 ```text
 HF Primary      success
@@ -1004,7 +1047,7 @@ For a private dataset, prefer an environment token rather than passing a raw
 credential on the command line:
 
 ```bash
-export HF_DATASET_READ_TOKEN=hf_xxxxxxxxx
+export HF_DATASET_READ_TOKEN=<hf-repo-write-token>
 
 python deduplicate_dataset.py \
   --repo-id scikit-plots/ai-assistant-contributions \
@@ -1052,7 +1095,7 @@ read** if practical. Training/dedup does not need the write token used by
 `app.py`.
 
 ```bash
-export GITHUB_DATASET_READ_TOKEN=github_pat_xxxxxxxxx
+export GITHUB_DATASET_READ_TOKEN=<github-repo-token>
 
 python deduplicate_dataset.py \
   --provider github \

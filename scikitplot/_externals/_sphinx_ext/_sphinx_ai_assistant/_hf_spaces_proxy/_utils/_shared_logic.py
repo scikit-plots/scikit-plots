@@ -1413,6 +1413,8 @@ def load_proxy_env() -> dict[str, Any]:
             Path 3 read timeout (env ``PATH3_TIMEOUT``).
         ``max_body_bytes`` : int
         ``allowed_origins`` : str
+        ``allowed_origins_mode`` : str
+            Raw deployment composition mode (``additive`` or ``replace``).
         ``hf_token_type`` : str
             Classified token type for *hf_token* (env ``HF_TOKEN_TYPE``).
             One of ``"fine-grained"``, ``"read"``, ``"write"``, ``"unknown"``.
@@ -1504,4 +1506,8 @@ def load_proxy_env() -> dict[str, Any]:
             DEFAULT_MAX_BODY_BYTES,
         ),
         "allowed_origins": os.environ.get("ALLOWED_ORIGINS", "").strip(),
+        "allowed_origins_mode": (
+            os.environ.get("ALLOWED_ORIGINS_MODE", "additive").strip().lower()
+            or "additive"
+        ),
     }

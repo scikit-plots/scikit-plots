@@ -8454,6 +8454,25 @@
         });
     }
 
+    /** Replace an existing pending review using its participant capability. */
+    function _putTrainingContribution(url, payload, receipt, onSuccess, onError) {
+        if (!(receipt && receipt.receiptId && receipt.deleteToken)) {
+            if (typeof onError === 'function') onError({ status: 0, message: 'Missing contribution management capability' });
+            return;
+        }
+        _remotePost(url.replace(/\/$/, '') + '/' + encodeURIComponent(receipt.receiptId), '', payload, {
+            method: 'PUT', keepalive: false,
+            headers: { 'X-Contribution-Delete-Token': receipt.deleteToken },
+            onSuccess: function (res) {
+                res = res && typeof res === 'object' ? res : {};
+                if (!res.deleteToken) res.deleteToken = receipt.deleteToken;
+                if (!res.receiptId) res.receiptId = receipt.receiptId;
+                if (typeof onSuccess === 'function') onSuccess(res);
+            },
+            onError: onError,
+        });
+    }
+
     var _CONTRIBUTION_SCHEMA_VERSION = 4;
     var _CONTRIBUTION_CONSENT_VERSION = '2.0.0';
     var _CONTRIBUTION_MAX_CLIENT_BYTES = 240 * 1024;
@@ -8461,6 +8480,74 @@
     var _CONTRIBUTION_MAX_RECORDS = 100;
     var _CONTRIBUTION_MAX_MESSAGES = 100;
     var _CONTRIBUTION_MAX_MESSAGE_CHARS = 100000;
+    var _ACTIVE_CONTRIBUTION_REVIEW_KEY = 'ai-assistant-active-contribution-review-v1';
+    var _activeContributionReviewMemory = {};
+
+    function _contributionReviewSlot(scope, answerIndex) {
+        var ai = Number.isInteger(answerIndex) ? String(answerIndex) : '-';
+        return _getConversationId() + '|' + String(scope || 'conversation') + '|' + ai;
+    }
+
+    function _readActiveContributionReviews() {
+        var out = {};
+        if (_persistEnabled()) {
+            try {
+                var parsed = JSON.parse(_ssGet(_ACTIVE_CONTRIBUTION_REVIEW_KEY) || '{}');
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) out = parsed;
+            } catch (_) {}
+        }
+        Object.keys(_activeContributionReviewMemory).forEach(function (key) {
+            out[key] = _activeContributionReviewMemory[key];
+        });
+        return out;
+    }
+
+    function _activeContributionReview(scope, answerIndex, endpoint) {
+        var slot = _contributionReviewSlot(scope, answerIndex);
+        var item = _readActiveContributionReviews()[slot];
+        if (!item || typeof item !== 'object') return null;
+        if (!/^[0-9a-f]{32}$/i.test(String(item.receiptId || ''))) return null;
+        if (typeof item.deleteToken !== 'string' || item.deleteToken.length < 32 || item.deleteToken.length > 256) return null;
+        if (String(item.endpoint || '') !== _safeUrlForLog(endpoint)) return null;
+        return item;
+    }
+
+    function _rememberActiveContributionReview(res, endpoint, scope, answerIndex) {
+        if (!(res && res.receiptId && res.deleteToken)) return;
+        var slot = _contributionReviewSlot(scope, answerIndex);
+        var item = {
+            receiptId: String(res.receiptId),
+            deleteToken: String(res.deleteToken),
+            endpoint: _safeUrlForLog(endpoint),
+            reviewMode: String(res.reviewMode || 'provider-pr'),
+            reviewProvider: String(res.reviewProvider || ''),
+            reviewId: String(res.reviewId || ''),
+            reviewPath: String(res.reviewPath || ''),
+            reviewRevision: Math.max(1, Number(res.reviewRevision) || 1),
+            expiresAt: res.expiresAt || null,
+            savedAt: Date.now()
+        };
+        _activeContributionReviewMemory[slot] = item;
+        if (!_persistEnabled()) return;
+        var all = _readActiveContributionReviews();
+        all[slot] = item;
+        // Bounded tab-local state: one active review per logical conversation scope.
+        var keys = Object.keys(all);
+        if (keys.length > 24) {
+            keys.sort(function (a, b) { return Number(all[a].savedAt || 0) - Number(all[b].savedAt || 0); });
+            keys.slice(0, keys.length - 24).forEach(function (key) { delete all[key]; });
+        }
+        _ssSet(_ACTIVE_CONTRIBUTION_REVIEW_KEY, JSON.stringify(all));
+    }
+
+    function _forgetActiveContributionReview(scope, answerIndex) {
+        var slot = _contributionReviewSlot(scope, answerIndex);
+        delete _activeContributionReviewMemory[slot];
+        if (!_persistEnabled()) return;
+        var all = _readActiveContributionReviews();
+        delete all[slot];
+        _ssSet(_ACTIVE_CONTRIBUTION_REVIEW_KEY, JSON.stringify(all));
+    }
 
     /** Resolve the active dataset-contribution endpoint without UI ownership. */
     function _resolveContributionEndpoint() {
@@ -8575,7 +8662,9 @@
             recordType: 'conversation',
             messages: messages,
             message: String(note || ''),
-            ts: Date.now(),
+            // Stable when the reviewed conversation is unchanged. Using Date.now()
+            // here made identical resubmits look like new revisions to the server.
+            ts: (messages[messages.length - 1] && messages[messages.length - 1].ts) || Date.now(),
             _source: 'contribution',
         };
     }
@@ -8962,6 +9051,7 @@
         } else {
             _ssDel(_TRANSCRIPT_KEY);
             _ssDel(_CONVERSATION_ID_KEY);
+            _ssDel('ai-assistant-active-contribution-review-v1');
         }
         var toggle = document.getElementById('ai-assistant-remember-conversation-toggle');
         if (toggle) toggle.setAttribute('aria-checked', allow ? 'true' : 'false');
@@ -23292,6 +23382,16 @@
         consent.appendChild(consentCheck); consent.appendChild(consentText);
         submitSection.appendChild(consent);
 
+        var continuity = document.createElement('div');
+        continuity.className = 'ai-assistant-panel-contribution-continuity';
+        continuity.setAttribute('role', 'status');
+        var continuityStrong = document.createElement('strong');
+        continuityStrong.textContent = 'One review per conversation';
+        var continuityText = document.createElement('span');
+        continuity.appendChild(continuityStrong);
+        continuity.appendChild(continuityText);
+        submitSection.appendChild(continuity);
+
         var submit = document.createElement('button');
         submit.type = 'button';
         submit.className = 'ai-assistant-conv-share-perm-save-btn ai-assistant-panel-contribution-submit';
@@ -23304,16 +23404,42 @@
         result.setAttribute('aria-live', 'polite');
         submitSection.appendChild(result);
 
+        var recovery = document.createElement('details');
+        recovery.className = 'ai-assistant-panel-contribution-recovery';
+        var recoverySummary = document.createElement('summary');
+        recoverySummary.textContent = 'Recover withdrawal access';
+        recovery.appendChild(recoverySummary);
+        var recoveryHelp = document.createElement('p');
+        recoveryHelp.textContent = 'Use a private receipt file or withdrawal code you saved earlier. The code is a management capability: keep it private. If the capability no longer resolves, copy the non-secret support reference and contact a maintainer.';
+        recovery.appendChild(recoveryHelp);
+        var recoveryCode = document.createElement('input');
+        recoveryCode.type = 'password';
+        recoveryCode.autocomplete = 'off';
+        recoveryCode.spellcheck = false;
+        recoveryCode.maxLength = 8192;
+        recoveryCode.className = 'ai-assistant-panel-contribution-recovery-code';
+        recoveryCode.placeholder = 'Paste private withdrawal code';
+        recoveryCode.setAttribute('aria-label', 'Private contribution withdrawal code');
+        recovery.appendChild(recoveryCode);
+        var recoveryActions = document.createElement('div');
+        recoveryActions.className = 'ai-assistant-panel-contribution-recovery-actions';
+        var loadRecoveryCode = document.createElement('button');
+        loadRecoveryCode.type = 'button';
+        loadRecoveryCode.className = 'ai-assistant-conv-share-action-btn';
+        loadRecoveryCode.textContent = 'Load private code';
+        recoveryActions.appendChild(loadRecoveryCode);
         var importReceipt = document.createElement('button');
         importReceipt.type = 'button';
         importReceipt.className = 'ai-assistant-conv-share-action-btn ai-assistant-panel-contribution-import';
-        importReceipt.textContent = 'Import management receipt';
+        importReceipt.textContent = 'Import private receipt';
+        recoveryActions.appendChild(importReceipt);
+        recovery.appendChild(recoveryActions);
         var importReceiptFile = document.createElement('input');
         importReceiptFile.type = 'file';
         importReceiptFile.accept = 'application/json,.json';
         importReceiptFile.hidden = true;
-        submitSection.appendChild(importReceipt);
-        submitSection.appendChild(importReceiptFile);
+        recovery.appendChild(importReceiptFile);
+        submitSection.appendChild(recovery);
 
         sheet.appendChild(body);
 
@@ -23384,6 +23510,15 @@
                 summary.textContent = '1 Q&A record · ' + _formatByteSize(bytes);
             }
 
+            var activeReview = endpoint
+                ? _activeContributionReview(selectedScope, context.answerIndex, endpoint)
+                : null;
+            submit.textContent = activeReview ? 'Update existing review' : 'Submit for review';
+            continuity.dataset.active = activeReview ? 'true' : 'false';
+            continuityText.textContent = activeReview
+                ? (' This tab remembers revision ' + Math.max(1, Number(activeReview.reviewRevision) || 1) + '. Changed reviewed content updates the same repository review; identical content creates no new commit.')
+                : ' Repeated submissions from this conversation are linked in this tab so reviewers receive one evolving PR/MR instead of duplicates.';
+
             var tooLarge = bytes > _CONTRIBUTION_MAX_CLIENT_BYTES;
             var validationError = payload ? _validateDatasetContributionPayload(payload) : '';
             if (tooLarge || validationError) {
@@ -23396,6 +23531,22 @@
             if (!preview.hidden) {
                 preview.textContent = payload ? JSON.stringify(payload, null, 2) : '';
                 _syncContributionPreviewDensity();
+            }
+            // Closing/reopening the panel must not hide an authority the tab still owns.
+            // Rehydrate the management actions whenever this logical conversation has
+            // an active receipt but the result card was cleared by sheet/context reset.
+            if (activeReview && !result.firstChild) {
+                _renderReceipt({
+                    status: 'quarantined',
+                    receiptId: activeReview.receiptId,
+                    deleteToken: activeReview.deleteToken,
+                    expiresAt: activeReview.expiresAt || null,
+                    reviewMode: activeReview.reviewMode || 'provider-pr',
+                    reviewProvider: activeReview.reviewProvider || '',
+                    reviewId: activeReview.reviewId || '',
+                    reviewPath: activeReview.reviewPath || '',
+                    reviewRevision: activeReview.reviewRevision || 1
+                }, endpoint);
             }
         }
 
@@ -23413,25 +23564,127 @@
         });
         consentCheck.addEventListener('change', function () { _refresh(false); });
 
-        function _managementReceiptObject(res) {
+        var _CONTRIBUTION_MANAGEMENT_CODE_PREFIX = 'aicm2.';
+
+        function _managementReceiptObject(res, endpoint) {
             if (!(res && res.receiptId && res.deleteToken)) return null;
             return {
-                schemaVersion: 1,
+                schemaVersion: 2,
                 kind: 'dataset-contribution-management',
                 receiptId: String(res.receiptId),
                 deleteToken: String(res.deleteToken),
                 expiresAt: res.expiresAt || null,
                 consentVersion: res.consentVersion || _CONTRIBUTION_CONSENT_VERSION,
+                reviewMode: String(res.reviewMode || ''),
+                reviewProvider: String(res.reviewProvider || ''),
+                reviewId: String(res.reviewId || ''),
+                reviewPath: String(res.reviewPath || ''),
+                reviewRevision: Math.max(1, Number(res.reviewRevision) || 1),
+                serviceHint: _safeUrlForLog(endpoint),
                 savedAt: Date.now()
             };
         }
 
-        function _saveManagementReceipt(res) {
-            var receipt = _managementReceiptObject(res);
+        function _normalizeManagementReceipt(saved) {
+            if (!saved || saved.kind !== 'dataset-contribution-management' ||
+                    (saved.schemaVersion !== 1 && saved.schemaVersion !== 2) ||
+                    !/^[0-9a-f]{32}$/i.test(String(saved.receiptId || '')) ||
+                    typeof saved.deleteToken !== 'string' || saved.deleteToken.length < 32 || saved.deleteToken.length > 256) {
+                return null;
+            }
+            return {
+                schemaVersion: Number(saved.schemaVersion),
+                kind: 'dataset-contribution-management',
+                receiptId: String(saved.receiptId),
+                deleteToken: String(saved.deleteToken),
+                expiresAt: saved.expiresAt || null,
+                consentVersion: String(saved.consentVersion || _CONTRIBUTION_CONSENT_VERSION),
+                reviewMode: String(saved.reviewMode || ''),
+                reviewProvider: String(saved.reviewProvider || ''),
+                reviewId: /^[0-9]{1,20}$/.test(String(saved.reviewId || '')) ? String(saved.reviewId) : '',
+                reviewPath: typeof saved.reviewPath === 'string' && saved.reviewPath.length <= 512 ? saved.reviewPath : '',
+                reviewRevision: Math.max(1, Number(saved.reviewRevision) || 1),
+                serviceHint: String(saved.serviceHint || ''),
+                savedAt: Number(saved.savedAt) || Date.now()
+            };
+        }
+
+        function _managementReceiptMatchesEndpoint(receipt, endpoint) {
+            if (!(receipt && Number(receipt.schemaVersion) >= 2 && receipt.serviceHint)) return true;
+            return String(receipt.serviceHint) === _safeUrlForLog(endpoint);
+        }
+
+        function _encodeManagementCode(receipt) {
+            try {
+                var raw = JSON.stringify(receipt);
+                if (!raw || raw.length > 6144) return '';
+                var b64 = btoa(unescape(encodeURIComponent(raw)));
+                return _CONTRIBUTION_MANAGEMENT_CODE_PREFIX + b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+            } catch (_) { return ''; }
+        }
+
+        function _decodeManagementCode(value) {
+            var code = String(value || '').trim();
+            if (code.indexOf(_CONTRIBUTION_MANAGEMENT_CODE_PREFIX) !== 0 || code.length > 8192) return null;
+            try {
+                var b64 = code.slice(_CONTRIBUTION_MANAGEMENT_CODE_PREFIX.length).replace(/-/g, '+').replace(/_/g, '/');
+                while (b64.length % 4) b64 += '=';
+                var raw = decodeURIComponent(escape(atob(b64)));
+                if (raw.length > 6144) return null;
+                return _normalizeManagementReceipt(JSON.parse(raw));
+            } catch (_) { return null; }
+        }
+
+        function _copyContributionText(textValue, successMessage, failureMessage) {
+            var value = String(textValue || '');
+            if (!value) return;
+            function ok() { showNotification(successMessage, false); }
+            function fail() { showNotification(failureMessage || 'Could not copy to clipboard.', true); }
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(value).then(ok, fail);
+                    return;
+                }
+            } catch (_) {}
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = value;
+                ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+                document.body.appendChild(ta); ta.focus(); ta.select();
+                var copied = document.execCommand && document.execCommand('copy');
+                document.body.removeChild(ta);
+                copied ? ok() : fail();
+            } catch (_) { fail(); }
+        }
+
+        function _supportReferenceText(res) {
+            if (!(res && res.receiptId)) return '';
+            var lines = [
+                'Dataset contribution support reference',
+                'Receipt: ' + String(res.receiptId)
+            ];
+            if (res.reviewProvider) lines.push('Provider: ' + String(res.reviewProvider));
+            if (res.reviewId) lines.push('Review: #' + String(res.reviewId));
+            if (res.reviewPath) lines.push('Record: ' + String(res.reviewPath));
+            if (res.reviewRevision) lines.push('Revision: ' + Math.max(1, Number(res.reviewRevision) || 1));
+            lines.push('This reference contains no withdrawal capability. A maintainer can use it to locate the review/record.');
+            return lines.join('\n');
+        }
+
+        function _maintainerWithdrawalRequestText(res) {
+            var ref = _supportReferenceText(res);
+            return ref ? (
+                'Please close/reject this pending dataset contribution, or remove its current training-eligible view if it was already merged.\n\n' +
+                ref
+            ) : '';
+        }
+
+        function _saveManagementReceipt(res, endpoint) {
+            var receipt = _managementReceiptObject(res, endpoint);
             if (!receipt) return false;
             _downloadBlob(JSON.stringify(receipt, null, 2), 'application/json',
-                'ai-contribution-management-' + _isoFileStamp() + '.json');
-            showNotification('Management receipt saved. Keep it private: it can delete or withdraw this contribution.', false);
+                'ai-contribution-private-management-' + _isoFileStamp() + '.json');
+            showNotification('Private management receipt saved. Keep it private: it can delete or withdraw this contribution.', false);
             return true;
         }
 
@@ -23439,24 +23692,80 @@
             result.textContent = '';
             var title = document.createElement('strong');
             var providerReview = !!(res && res.status === 'quarantined' && res.reviewMode === 'provider-pr');
-            title.textContent = res && res.status === 'quarantined'
-                ? 'Submitted for review' : (res && res.status === 'outcome_unknown' ? 'Outcome unknown' : 'Contribution management');
+            var updateKind = String(res && res.reviewUpdate || '');
+            var revision = Math.max(1, Number(res && res.reviewRevision) || 1);
+            title.textContent = updateKind === 'updated'
+                ? 'Review updated'
+                : updateKind === 'unchanged'
+                    ? 'Already in review · no changes'
+                    : res && res.status === 'quarantined'
+                        ? 'Submitted for review'
+                        : (res && res.status === 'outcome_unknown' ? 'Outcome unknown' : 'Contribution management');
             var text = document.createElement('p');
-            text.textContent = providerReview
-                ? ('Status: IN REVIEW · queued in the ' + String(res.reviewProvider || 'repository') + ' review workflow; not training-eligible unless merged into the canonical branch.')
-                : res && res.status === 'quarantined'
-                    ? 'Status: QUARANTINED · not training-eligible until an authorized review promotes it.'
-                : res && res.status === 'outcome_unknown'
-                    ? 'The request may have reached the server. The recovery capability below resolves the deterministic receipt without resubmitting content.'
-                    : 'Management capability loaded. Check status before acting if this receipt was imported.';
+            text.textContent = updateKind === 'updated'
+                ? ('Status: IN REVIEW · revision ' + revision + ' updated in the same ' + String(res.reviewProvider || 'repository') + ' review thread. No duplicate review was opened.')
+                : updateKind === 'unchanged'
+                    ? ('Status: IN REVIEW · revision ' + revision + ' already contains this reviewed payload. No new review or commit was created.')
+                    : providerReview
+                        ? ('Status: IN REVIEW · revision ' + revision + ' queued in the ' + String(res.reviewProvider || 'repository') + ' review workflow; not training-eligible unless merged into the canonical branch.')
+                        : res && res.status === 'quarantined'
+                            ? 'Status: QUARANTINED · not training-eligible until an authorized review promotes it.'
+                        : res && res.status === 'outcome_unknown'
+                            ? 'The request may have reached the server. The recovery capability below resolves the deterministic receipt without resubmitting content.'
+                            : 'Management capability loaded. Check status before acting if this receipt was imported.';
             result.appendChild(title); result.appendChild(text);
             if (!(res && res.receiptId && res.deleteToken)) return;
+            if (res.status === 'quarantined' && res.status !== 'outcome_unknown') {
+                _rememberActiveContributionReview(res, endpoint, selectedScope, context.answerIndex);
+                _refresh(false);
+            }
+
+            var supportRef = document.createElement('div');
+            supportRef.className = 'ai-assistant-panel-contribution-support-ref';
+            var supportStrong = document.createElement('strong');
+            supportStrong.textContent = 'Keep withdrawal access';
+            var supportMeta = document.createElement('span');
+            supportMeta.textContent = res.reviewPath
+                ? (' ' + String(res.reviewPath))
+                : (' receipt ' + String(res.receiptId));
+            supportRef.appendChild(supportStrong); supportRef.appendChild(supportMeta);
+            var supportHelp = document.createElement('small');
+            supportHelp.textContent = 'Save either private option outside this tab. If it later stops resolving, the non-secret support reference can be sent to a maintainer. Never publish the private receipt or withdrawal code.';
+            supportRef.appendChild(supportHelp);
+            result.appendChild(supportRef);
 
             var save = document.createElement('button');
             save.type = 'button'; save.className = 'ai-assistant-conv-share-action-btn';
-            save.textContent = 'Save management receipt';
-            save.addEventListener('click', function () { _saveManagementReceipt(res); });
+            save.textContent = 'Save private receipt';
+            save.addEventListener('click', function () { _saveManagementReceipt(res, endpoint); });
             result.appendChild(save);
+
+            var copyPrivate = document.createElement('button');
+            copyPrivate.type = 'button'; copyPrivate.className = 'ai-assistant-conv-share-action-btn';
+            copyPrivate.textContent = 'Copy private withdrawal code';
+            copyPrivate.addEventListener('click', function () {
+                var receipt = _managementReceiptObject(res, endpoint);
+                var code = receipt ? _encodeManagementCode(receipt) : '';
+                if (!code) { showNotification('Could not create a private withdrawal code.', true); return; }
+                _copyContributionText(code, 'Private withdrawal code copied. Store it securely and do not publish it.');
+            });
+            result.appendChild(copyPrivate);
+
+            var copySupport = document.createElement('button');
+            copySupport.type = 'button'; copySupport.className = 'ai-assistant-conv-share-action-btn';
+            copySupport.textContent = 'Copy support reference';
+            copySupport.addEventListener('click', function () {
+                _copyContributionText(_supportReferenceText(res), 'Non-secret support reference copied.');
+            });
+            result.appendChild(copySupport);
+
+            var copyRequest = document.createElement('button');
+            copyRequest.type = 'button'; copyRequest.className = 'ai-assistant-conv-share-action-btn';
+            copyRequest.textContent = 'Copy maintainer removal request';
+            copyRequest.addEventListener('click', function () {
+                _copyContributionText(_maintainerWithdrawalRequestText(res), 'Maintainer removal request copied.');
+            });
+            result.appendChild(copyRequest);
 
             var check = document.createElement('button');
             check.type = 'button'; check.className = 'ai-assistant-conv-share-action-btn'; check.textContent = 'Check status';
@@ -23469,15 +23778,25 @@
                         check.disabled = false;
                         var state = String(lifecycle && lifecycle.status || 'unknown').toLowerCase();
                         var reviewState = String(lifecycle && lifecycle.reviewStatus || '').toLowerCase();
+                        var liveRevision = Math.max(1, Number(lifecycle && lifecycle.reviewRevision) || revision);
+                        if (lifecycle && lifecycle.reviewProvider) res.reviewProvider = String(lifecycle.reviewProvider);
+                        if (lifecycle && lifecycle.reviewId) res.reviewId = String(lifecycle.reviewId);
+                        if (lifecycle && lifecycle.reviewPath) res.reviewPath = String(lifecycle.reviewPath);
+                        res.reviewRevision = liveRevision;
                         if (state === 'eligible') {
-                            text.textContent = 'Status: APPROVED · merged into the canonical training-eligible branch.';
+                            _forgetActiveContributionReview(selectedScope, context.answerIndex);
+                            text.textContent = 'Status: APPROVED · revision ' + liveRevision + ' merged into the canonical training-eligible branch.';
                         } else if (state === 'quarantined' && lifecycle && lifecycle.reviewMode === 'provider-pr' && (reviewState === 'closed' || reviewState === 'rejected')) {
+                            _forgetActiveContributionReview(selectedScope, context.answerIndex);
                             text.textContent = 'Status: NOT ACCEPTED · the repository review was closed without merge.';
                         } else if (state === 'quarantined' && lifecycle && lifecycle.reviewMode === 'provider-pr') {
-                            text.textContent = 'Status: IN REVIEW · awaiting maintainer merge or close in the repository review UI.';
+                            res.reviewRevision = liveRevision;
+                            _rememberActiveContributionReview(res, endpoint, selectedScope, context.answerIndex);
+                            text.textContent = 'Status: IN REVIEW · revision ' + liveRevision + ' awaiting maintainer merge or close in the repository review UI.';
                         } else {
                             text.textContent = 'Status: ' + state.toUpperCase() + '.';
                         }
+                        _refresh(false);
                     },
                     onError: function (err) {
                         check.disabled = false;
@@ -23499,11 +23818,15 @@
                     headers: { 'X-Contribution-Delete-Token': res.deleteToken },
                     onSuccess: function (lifecycle) {
                         if (lifecycle && lifecycle.status === 'deleted') {
+                            _forgetActiveContributionReview(selectedScope, context.answerIndex);
+                            _refresh(false);
                             manage.textContent = 'Pending data deleted';
                             text.textContent = providerReview
                                 ? 'Pending repository review closed and active receipt content cleared before merge. This does not claim physical erasure from provider Git history, caches, backups, or infrastructure snapshots.'
                                 : 'Pending contribution removed from the active review ledger before promotion. This does not claim forensic deletion from database pages, backups, or infrastructure snapshots.';
                         } else if (lifecycle && lifecycle.status === 'withdrawn') {
+                            _forgetActiveContributionReview(selectedScope, context.answerIndex);
+                            _refresh(false);
                             manage.textContent = 'Training use withdrawn';
                             text.textContent = 'Training withdrawal recorded. Current provider views were removed where possible; versioned provider history is not claimed physically erased.';
                         } else {
@@ -23524,29 +23847,71 @@
             result.appendChild(manage);
         }
 
+        loadRecoveryCode.addEventListener('click', function () {
+            var saved = _decodeManagementCode(recoveryCode.value);
+            recoveryCode.value = '';
+            if (!saved) { result.textContent = 'Private withdrawal code is invalid or unsupported.'; return; }
+            var endpoint = _resolveContributionEndpoint();
+            if (!endpoint) { result.textContent = 'Configure the contribution endpoint before loading a withdrawal code.'; return; }
+            if (!_managementReceiptMatchesEndpoint(saved, endpoint)) {
+                result.textContent = 'This private withdrawal code belongs to a different contribution service. Open the original site/service instead of sending the capability to the current endpoint.';
+                return;
+            }
+            _renderReceipt(saved, endpoint);
+        });
+        recoveryCode.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') { event.preventDefault(); loadRecoveryCode.click(); }
+        });
         importReceipt.addEventListener('click', function () { importReceiptFile.click(); });
         importReceiptFile.addEventListener('change', function () {
             var file = importReceiptFile.files && importReceiptFile.files[0];
             importReceiptFile.value = '';
-            if (!file || file.size > 64 * 1024) { result.textContent = 'Management receipt is missing or too large.'; return; }
+            if (!file || file.size > 64 * 1024) { result.textContent = 'Private management receipt is missing or too large.'; return; }
             var reader = new FileReader();
             reader.onload = function () {
                 try {
-                    var saved = JSON.parse(String(reader.result || ''));
-                    if (!saved || saved.kind !== 'dataset-contribution-management' || saved.schemaVersion !== 1 ||
-                            !/^[0-9a-f]{32}$/i.test(String(saved.receiptId || '')) ||
-                            typeof saved.deleteToken !== 'string' || saved.deleteToken.length < 32 || saved.deleteToken.length > 256) {
-                        throw new Error('invalid management receipt');
-                    }
+                    var saved = _normalizeManagementReceipt(JSON.parse(String(reader.result || '')));
+                    if (!saved) throw new Error('invalid management receipt');
                     var endpoint = _resolveContributionEndpoint();
-                    if (!endpoint) { result.textContent = 'Configure the contribution endpoint before importing a management receipt.'; return; }
+                    if (!endpoint) { result.textContent = 'Configure the contribution endpoint before importing a private management receipt.'; return; }
+                    if (!_managementReceiptMatchesEndpoint(saved, endpoint)) {
+                        result.textContent = 'This private management receipt belongs to a different contribution service. Open the original site/service instead of sending the capability to the current endpoint.';
+                        return;
+                    }
                     _renderReceipt(saved, endpoint);
-                } catch (_) { result.textContent = 'Management receipt is invalid or unsupported.'; }
+                } catch (_) { result.textContent = 'Private management receipt is invalid or unsupported.'; }
             };
-            reader.onerror = function () { result.textContent = 'Management receipt could not be read.'; };
+            reader.onerror = function () { result.textContent = 'Private management receipt could not be read.'; };
             reader.readAsText(file);
         });
 
+
+        function _sendUpdatedContribution(endpoint, reviewedPayload, activeReview) {
+            submit.disabled = true; submit.textContent = 'Updating review…';
+            result.textContent = 'Updating the existing repository review…';
+            _putTrainingContribution(endpoint, reviewedPayload, activeReview, function (res) {
+                consentCheck.checked = false;
+                submit.textContent = 'Update existing review';
+                _renderReceipt(res, endpoint);
+                _refresh(false);
+            }, function (err) {
+                var status = Number(err && err.status) || 0;
+                if (status === 409 || status === 404 || status === 410) {
+                    _forgetActiveContributionReview(selectedScope, context.answerIndex);
+                    submit.textContent = 'Submit for review';
+                    _refresh(false);
+                    result.textContent = status === 409
+                        ? 'The previous review is no longer open. Review the payload again and submit to create a new follow-up review.'
+                        : 'The previous review receipt is no longer available. Review the payload again and submit to create a new review.';
+                    return;
+                }
+                submit.textContent = 'Update existing review';
+                _refresh(false);
+                result.textContent = status === 422
+                    ? 'Update rejected: the reviewed payload does not match the current consent/schema limits.'
+                    : 'The existing review could not be updated. No new review was opened; retry keeps the same review identity.';
+            });
+        }
 
         async function _sendReviewedContribution(endpoint, reviewedPayload, envelope) {
             pendingContributionOperation = { endpoint: endpoint, payload: reviewedPayload, envelope: envelope };
@@ -23604,6 +23969,11 @@
             var reviewedError = _validateDatasetContributionPayload(review.value);
             if (reviewedError || _datasetContributionPayloadBytes(review.value) > _CONTRIBUTION_MAX_CLIENT_BYTES) {
                 result.textContent = reviewedError || 'The reviewed contribution is too large for one request.'; return;
+            }
+            var activeReview = _activeContributionReview(selectedScope, context.answerIndex, endpoint);
+            if (activeReview) {
+                _sendUpdatedContribution(endpoint, review.value, activeReview);
+                return;
             }
             var envelope = await _newOperationEnvelope();
             if (!envelope) {

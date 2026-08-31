@@ -158,6 +158,64 @@ class MemoryContributionLedger:
             self._sweep_locked(_now())
             return _copy_entry(self.entries.get(receipt_id))
 
+    async def replace_pending_payload(
+        self,
+        receipt_id: str,
+        *,
+        records: list[dict[str, Any]],
+        byte_count: int,
+        dedup_keys: list[str],
+        payload_digest: str,
+        row_count: int,
+        storage: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Replace one quarantined payload without changing receipt authority."""
+        async with self._lock:
+            now = _now()
+            self._sweep_locked(now)
+            entry = self.entries.get(receipt_id)
+            if entry is None:
+                raise ContributionLedgerError("NOT_FOUND")
+            if entry.get("state") == "expired":
+                raise ContributionLedgerError("EXPIRED")
+            if entry.get("state") != "quarantined":
+                raise ContributionLedgerError("NOT_PENDING")
+            _, total = self._pending_counts_locked()
+            old_bytes = int(entry.get("bytes") or 0)
+            if total - old_bytes + int(byte_count) > self.max_pending_bytes:
+                raise ContributionLedgerError("PENDING_BYTE_CAPACITY")
+            operation = dict(entry.get("operation") or {})
+            operation["payloadDigest"] = str(payload_digest)
+            operation["reviewRevision"] = int(operation.get("reviewRevision") or 1) + 1
+            entry["records"] = _copy_entry({"records": records})["records"]
+            entry["bytes"] = int(byte_count)
+            entry["dedupKeys"] = list(dedup_keys)
+            entry["operation"] = operation
+            entry["rowCount"] = int(row_count)
+            if storage is not None:
+                entry["storage"] = _copy_entry(storage) or {}
+            entry["lastError"] = ""
+            entry["updatedAt"] = now
+            return _copy_entry(entry) or {}
+
+    async def set_pending_storage(
+        self, receipt_id: str, *, storage: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Attach provider-review metadata while the receipt is quarantined."""
+        async with self._lock:
+            now = _now()
+            self._sweep_locked(now)
+            entry = self.entries.get(receipt_id)
+            if entry is None:
+                raise ContributionLedgerError("NOT_FOUND")
+            if entry.get("state") == "expired":
+                raise ContributionLedgerError("EXPIRED")
+            if entry.get("state") != "quarantined":
+                raise ContributionLedgerError("NOT_PENDING")
+            entry["storage"] = _copy_entry(storage) or {}
+            entry["updatedAt"] = now
+            return _copy_entry(entry) or {}
+
     async def begin_promotion(self, receipt_id: str) -> dict[str, Any]:
         async with self._lock:
             now = _now()
@@ -622,6 +680,130 @@ class SQLiteContributionLedger:
 
             return await asyncio.to_thread(_op)
 
+    async def replace_pending_payload(
+        self,
+        receipt_id: str,
+        *,
+        records: list[dict[str, Any]],
+        byte_count: int,
+        dedup_keys: list[str],
+        payload_digest: str,
+        row_count: int,
+        storage: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        async with self._lock:
+
+            def _op() -> dict[str, Any]:
+                conn = self._connect()
+                try:
+                    conn.execute("BEGIN IMMEDIATE")
+                    now = _now()
+                    self._sweep_sync(conn, now)
+                    row = conn.execute(
+                        "SELECT * FROM contribution_receipts WHERE receipt_id=?",
+                        (receipt_id,),
+                    ).fetchone()
+                    entry = self._row_to_entry(row)
+                    if entry is None:
+                        raise ContributionLedgerError("NOT_FOUND")
+                    if entry.get("state") == "expired":
+                        raise ContributionLedgerError("EXPIRED")
+                    if entry.get("state") != "quarantined":
+                        raise ContributionLedgerError("NOT_PENDING")
+                    pending_bytes = int(
+                        conn.execute(
+                            "SELECT COALESCE(SUM(bytes), 0) FROM contribution_receipts WHERE state IN ('quarantined','promoting','promotion_uncertain','withdrawing')"
+                        ).fetchone()[0]
+                    )
+                    if (
+                        pending_bytes - int(entry.get("bytes") or 0) + int(byte_count)
+                        > self.max_pending_bytes
+                    ):
+                        raise ContributionLedgerError("PENDING_BYTE_CAPACITY")
+                    operation = dict(entry.get("operation") or {})
+                    operation["payloadDigest"] = str(payload_digest)
+                    operation["reviewRevision"] = (
+                        int(operation.get("reviewRevision") or 1) + 1
+                    )
+                    storage_json = (
+                        json.dumps(storage, separators=(",", ":"))
+                        if storage is not None
+                        else json.dumps(
+                            entry.get("storage") or {}, separators=(",", ":")
+                        )
+                    )
+                    conn.execute(
+                        """UPDATE contribution_receipts
+                           SET records_json=?,bytes=?,dedup_keys_json=?,operation_json=?,row_count=?,storage_json=?,last_error='',updated_at=?
+                           WHERE receipt_id=?""",
+                        (
+                            json.dumps(
+                                records, ensure_ascii=False, separators=(",", ":")
+                            ),
+                            int(byte_count),
+                            json.dumps(dedup_keys, separators=(",", ":")),
+                            json.dumps(operation, separators=(",", ":")),
+                            int(row_count),
+                            storage_json,
+                            now,
+                            receipt_id,
+                        ),
+                    )
+                    row = conn.execute(
+                        "SELECT * FROM contribution_receipts WHERE receipt_id=?",
+                        (receipt_id,),
+                    ).fetchone()
+                    conn.commit()
+                    return self._row_to_entry(row) or {}
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+
+            return await asyncio.to_thread(_op)
+
+    async def set_pending_storage(
+        self, receipt_id: str, *, storage: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Persist provider-review metadata without changing lifecycle state."""
+        async with self._lock:
+
+            def _op() -> dict[str, Any]:
+                conn = self._connect()
+                try:
+                    conn.execute("BEGIN IMMEDIATE")
+                    self._sweep_sync(conn, _now())
+                    row = conn.execute(
+                        "SELECT state FROM contribution_receipts WHERE receipt_id=?",
+                        (receipt_id,),
+                    ).fetchone()
+                    if row is None:
+                        raise ContributionLedgerError("NOT_FOUND")
+                    if row["state"] == "expired":
+                        raise ContributionLedgerError("EXPIRED")
+                    if row["state"] != "quarantined":
+                        raise ContributionLedgerError("NOT_PENDING")
+                    now = _now()
+                    conn.execute(
+                        "UPDATE contribution_receipts SET storage_json=?,updated_at=? WHERE receipt_id=?",
+                        (json.dumps(storage, separators=(",", ":")), now, receipt_id),
+                    )
+                    row = conn.execute(
+                        "SELECT * FROM contribution_receipts WHERE receipt_id=?",
+                        (receipt_id,),
+                    ).fetchone()
+                    conn.commit()
+                    self._checkpoint_sensitive(conn)
+                    return self._row_to_entry(row) or {}
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+
+            return await asyncio.to_thread(_op)
+
     async def begin_promotion(self, receipt_id: str) -> dict[str, Any]:
         return await self._transition(
             receipt_id,
@@ -941,6 +1123,47 @@ elseif state == 'withdrawing' and lease_until > 0 and lease_until <= now then
   raw = cjson.encode(entry)
   redis.call('SET', KEYS[4], raw); redis.call('PERSIST', KEYS[4]); redis.call('ZADD', KEYS[1], immortal, member)
 end
+return {1, raw}
+""".strip()
+
+_REDIS_REPLACE_PENDING_LUA = r"""
+local now=tonumber(ARGV[1]); local member=ARGV[2]; local records_json=ARGV[3]
+local new_bytes=tonumber(ARGV[4]); local dedup_json=ARGV[5]; local payload_digest=ARGV[6]
+local row_count=tonumber(ARGV[7]); local max_bytes=tonumber(ARGV[8]); local terminal_retention=tonumber(ARGV[9]); local storage_json=ARGV[10]
+local raw=redis.call('GET', KEYS[4]); if not raw then return {0, 'NOT_FOUND'} end
+local entry=cjson.decode(raw); local state=tostring(entry.state or ''); local expires_at=tonumber(entry.expiresAt or 0)
+if state == 'quarantined' and expires_at <= now then
+  entry.state='expired'; entry.records={}; entry.bytes=0; entry.updatedAt=now
+  raw=cjson.encode(entry); redis.call('SET', KEYS[4], raw, 'EX', terminal_retention)
+  redis.call('ZREM', KEYS[2], member); redis.call('HDEL', KEYS[3], member); redis.call('ZADD', KEYS[1], now+terminal_retention, member)
+  return {0, 'EXPIRED'}
+end
+if state ~= 'quarantined' then return {0, 'NOT_PENDING'} end
+local values=redis.call('HVALS', KEYS[3]); local total=0
+for _, value in ipairs(values) do total=total+tonumber(value) end
+local old_bytes=tonumber(entry.bytes or 0)
+if total-old_bytes+new_bytes > max_bytes then return {0, 'PENDING_BYTE_CAPACITY'} end
+entry.records=cjson.decode(records_json); entry.bytes=new_bytes; entry.dedupKeys=cjson.decode(dedup_json); entry.rowCount=row_count
+local op=entry.operation or {}; op.payloadDigest=payload_digest; op.reviewRevision=tonumber(op.reviewRevision or 1)+1; entry.operation=op
+if storage_json ~= '' then entry.storage=cjson.decode(storage_json) end
+entry.lastError=''; entry.updatedAt=now
+raw=cjson.encode(entry); redis.call('SET', KEYS[4], raw, 'KEEPTTL'); redis.call('HSET', KEYS[3], member, new_bytes)
+return {1, raw}
+""".strip()
+
+_REDIS_SET_PENDING_STORAGE_LUA = r"""
+local now=tonumber(ARGV[1]); local member=ARGV[2]; local storage_json=ARGV[3]; local terminal_retention=tonumber(ARGV[4])
+local raw=redis.call('GET', KEYS[4]); if not raw then return {0, 'NOT_FOUND'} end
+local entry=cjson.decode(raw); local state=tostring(entry.state or ''); local expires_at=tonumber(entry.expiresAt or 0)
+if state == 'quarantined' and expires_at <= now then
+  entry.state='expired'; entry.records={}; entry.bytes=0; entry.updatedAt=now
+  raw=cjson.encode(entry); redis.call('SET', KEYS[4], raw, 'EX', terminal_retention)
+  redis.call('ZREM', KEYS[2], member); redis.call('HDEL', KEYS[3], member); redis.call('ZADD', KEYS[1], now+terminal_retention, member)
+  return {0, 'EXPIRED'}
+end
+if state ~= 'quarantined' then return {0, 'NOT_PENDING'} end
+entry.storage=cjson.decode(storage_json); entry.updatedAt=now
+raw=cjson.encode(entry); redis.call('SET', KEYS[4], raw, 'KEEPTTL')
 return {1, raw}
 """.strip()
 
@@ -1307,6 +1530,60 @@ class RedisContributionLedger:
         if not ok:
             raise ContributionLedgerError(str(value))
         return self._decode(value, receipt_id)
+
+    async def replace_pending_payload(
+        self,
+        receipt_id: str,
+        *,
+        records: list[dict[str, Any]],
+        byte_count: int,
+        dedup_keys: list[str],
+        payload_digest: str,
+        row_count: int,
+        storage: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        member, receipt_key = self._keys(receipt_id)
+        ok, value = await self._eval(
+            _REDIS_REPLACE_PENDING_LUA,
+            [self._all_key, self._pending_key, self._pending_bytes_key, receipt_key],
+            [
+                _now(),
+                member,
+                json.dumps(records, ensure_ascii=False, separators=(",", ":")),
+                int(byte_count),
+                json.dumps(dedup_keys, separators=(",", ":")),
+                str(payload_digest),
+                int(row_count),
+                self.max_pending_bytes,
+                self.terminal_retention_seconds,
+                (
+                    json.dumps(storage, ensure_ascii=False, separators=(",", ":"))
+                    if storage is not None
+                    else ""
+                ),
+            ],
+        )
+        if not ok:
+            raise ContributionLedgerError(str(value))
+        return self._decode(value, receipt_id) or {}
+
+    async def set_pending_storage(
+        self, receipt_id: str, *, storage: dict[str, Any]
+    ) -> dict[str, Any]:
+        member, receipt_key = self._keys(receipt_id)
+        ok, value = await self._eval(
+            _REDIS_SET_PENDING_STORAGE_LUA,
+            [self._all_key, self._pending_key, self._pending_bytes_key, receipt_key],
+            [
+                _now(),
+                member,
+                json.dumps(storage, ensure_ascii=False, separators=(",", ":")),
+                self.terminal_retention_seconds,
+            ],
+        )
+        if not ok:
+            raise ContributionLedgerError(str(value))
+        return self._decode(value, receipt_id) or {}
 
     async def begin_promotion(self, receipt_id: str) -> dict[str, Any]:
         member, receipt_key = self._keys(receipt_id)

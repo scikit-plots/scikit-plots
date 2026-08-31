@@ -75,6 +75,8 @@ on the same proxy without interfering.
 | `security/` | Offline lock/SBOM verifier, policy, CycloneDX Python SBOM, and networked release gates |
 | `docker-compose.hardened.reference.yml` | Operator reference for read-only/rootless/capability-dropped deployment |
 | `README.md` | This file — HF Space metadata + full documentation |
+| `../DATASET_CONTRIBUTION_GUIDE.md` | Reader + maintainer contribution lifecycle, native review, receipt management, and scenario guide |
+| `DATASET_COLLECTION_GUIDANCE.md` | Deep multi-store operations, provider topology, migration, deduplication, and training-data assembly |
 
 > **Critical** — commit the complete `_utils/` package with `app.py`. The Dockerfile copies
 > `_utils/` as a directory so helper dependencies cannot be accidentally omitted one-by-one.
@@ -101,10 +103,15 @@ on the same proxy without interfering.
 | `POST` | `/v1/share/revoke`     | Revoke the share | Requires `X-Share-Edit-Token` |
 | legacy | `/v1/share/{uuid}`     | Bounded pre-generation compatibility: `HEAD`/`GET` and authenticated `DELETE`; `PATCH` is retired with `410` | Only objects lacking generation-2 metadata are eligible; responses advertise `Deprecation`/`Sunset`/successor headers |
 | `POST` | `/v1/contribute`       | Consent-gated contribution intake into the mutable receipt ledger | Rate-limited: 5/client/hour |
+| `PUT` | `/v1/contribute/{receipt}` | Update the same pending review | Requires `X-Contribution-Delete-Token`; identical content is a no-op, changed content becomes a new revision on the same PR/MR |
 | `GET` | `/v1/contribute/{receipt}` | Read content-free receipt lifecycle status | Requires `X-Contribution-Delete-Token` |
 | `DELETE` | `/v1/contribute/{receipt}` | Delete still-pending intake or withdraw an already-promoted contribution from training use | Requires `X-Contribution-Delete-Token`; never claims repository-history erasure |
 | `POST` | `/v1/contribute/{receipt}/promote` | Optional API-driven merge/promotion | Requires `CONTRIBUTION_REVIEW_TOKEN`; in `provider-pr` mode it merges the native PR/MR instead of creating a second direct commit |
 
+> **Dataset operators:** start with [`../DATASET_CONTRIBUTION_GUIDE.md`](../DATASET_CONTRIBUTION_GUIDE.md)
+> for the reader/maintainer workflow and scenario guide. Use
+> [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md) for deep
+> provider-storage, migration, deduplication, and multi-store operations.
 
 ### Global Share security contract
 
@@ -168,6 +175,44 @@ Share URLs. An explicit `http://<same SPACE_HOST>` value is upgraded to HTTPS;
 unrelated remote HTTP bases still fail closed. `TRUST_X_FORWARDED_FOR` defaults
 to false; enable it only when the ingress proxy is known to overwrite
 caller-supplied forwarding headers.
+
+
+### Pending-review continuity
+
+In `provider-pr` mode the first accepted submission binds the receipt to the
+provider-native review ID. Subsequent updates authenticated by the same
+participant management capability use `PUT /v1/contribute/{receipt}`.
+
+- identical reviewed content -> `reviewUpdate="unchanged"`, no provider commit;
+- changed reviewed content -> `reviewUpdate="updated"`, `reviewRevision += 1`;
+- Hugging Face -> update `refs/pr/N`;
+- GitHub/GitLab/Bitbucket -> update the existing source branch;
+- merged/closed review -> HTTP 409; the proxy does not silently open a replacement;
+- normal status/update/withdraw -> direct lookup by persisted provider review ID;
+- bounded repository scanning -> legacy/recovery fallback only.
+
+This makes the provider's ordinary PR/MR page the reviewer dashboard even at
+large queue sizes: one receipt stays in the same review thread rather than
+opening one new thread per click.
+
+### Participant recovery and maintainer support references
+
+The browser can persist participant management authority outside tab state as either a
+private JSON receipt or a compact **private withdrawal code** using the `aicm2.…` format. Both carry the
+management capability and must remain secret. They are accepted only against the
+currently configured contribution endpoint; an imported receipt never redirects the
+browser to an arbitrary endpoint from the file.
+
+Provider-native responses/status also return bounded **non-secret** locator metadata:
+`reviewProvider`, numeric `reviewId`, and the stable `reviewPath` such as
+`contributions/YYYY/MM/DD/ct_<review-key>.jsonl`. Provider review URLs, repository
+tokens, contribution content, and the management token are not included in that
+support metadata. This gives participants a safe reference to send maintainers if an
+old receipt can no longer be resolved.
+
+A saved capability does not change `CONTRIBUTION_QUARANTINE_TTL_SECONDS` or ledger
+durability. Use SQLite/Redis for durable receipt management; treat the non-secret
+support reference as the fallback for an expired/lost pending lifecycle record.
 
 ### `POST /v1/contribute` — payload schema
 
@@ -246,12 +291,98 @@ pages/WAL remnants, backups, CDN/provider logs, and infrastructure snapshots are
 
 ## Configuration
 
-Configure values in **Space → Settings** using the correct surface:
+Configure the Space from **Settings → Variables and secrets**. Hugging Face exposes
+Variables as non-sensitive deployment configuration and keeps Secrets private. See
+[Managing Spaces variables and secrets](https://huggingface.co/docs/hub/spaces-overview#managing-secrets).
 
-- **Secrets** — credentials such as HF/GitHub/GitLab/Bitbucket tokens.
-- **Variables** — non-sensitive configuration such as repository IDs, token-type labels, booleans, and `RECORD_STORAGE_TARGETS`.
+### Variables and secrets
 
-See [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for the beginner-to-operator storage guide, including exact HF-only, GitHub-only, Primary+Mirror, migration, testing, and deduplication recipes.
+Use one simple rule: **configuration goes in Variables; credentials and capabilities go in Secrets**.
+Both surfaces become environment variables inside the container, so putting a non-secret value
+in Secrets still works technically, but it makes maintenance harder and hides which settings are
+actually sensitive.
+
+#### Variables — public / non-sensitive
+
+| Name | Required? | Typical value | Notes |
+|---|---:|---|---|
+| `RECORD_STORAGE_TARGETS` | Multi-store deployments | JSON array | Provider-neutral Primary + Mirrors topology. May contain repo IDs and `token_env` **names**, never token values. If repository topology itself is confidential, it is acceptable to store this JSON as a Secret instead. |
+| `TRAINING_DATASET_REPO` | Legacy HF-only mode | `scikit-plots/ai-assistant-contributions` | Repository identifier, not a credential. If this is currently stored as a Secret, it can be moved to Variables unless you intentionally treat the repo identity as confidential. Ignored as the active topology when `RECORD_STORAGE_TARGETS` is set. |
+| `ALLOWED_MODELS` | No | comma-separated model IDs | Exact Path-3 model allow-list. Do not use `*`; an explicit model list prevents the proxy from becoming a general-purpose inference relay. |
+| `HF_SPACES_MODEL_NAMESPACES` | No | `scikit-plots` | Model owner prefixes routed through the configured Path-2 model Space. |
+| `ALLOWED_ORIGINS` | Custom sites only | comma-separated origins | Exact browser origins such as `https://docs.example.org`. Origins contain only scheme + host (+ optional port): no path, query, fragment, or trailing page URL. |
+| `ALLOWED_ORIGINS_MODE` | No | `additive` | `additive` keeps the bundled Scikit-plots origins and adds `ALLOWED_ORIGINS`; `replace` trusts only `ALLOWED_ORIGINS` and is the recommended mode for forks/downstream sites that want their own CORS boundary. |
+| `CONTRIBUTION_REVIEW_MODE` | No | `provider-pr` or `ledger` | Native provider PR/MR review or historical ledger review. |
+
+| `HF_TOKEN_TYPE` | Recommended | `fine-grained` / `read` / `write` | Non-secret classification label for `HF_TOKEN`; avoids `unknown` startup diagnostics. |
+| `HF_DATASET_TOKEN_TYPE` | Legacy HF persistence | `fine-grained` | Non-secret classification label for the dataset-persistence token. |
+
+The proxy has two built-in browser origins because this extension is currently deployed on both
+Scikit-plots documentation sites:
+
+```text
+https://scikit-plots.github.io
+https://scikit-plots-learn.readthedocs.io
+```
+
+With the default `ALLOWED_ORIGINS_MODE=additive`, both remain trusted and any
+`ALLOWED_ORIGINS` entries are appended. A downstream/open-source deployment can take complete
+control without editing `app.py`:
+
+```text
+# Custom/fork deployment: trust only these sites
+ALLOWED_ORIGINS=https://docs.example.org,https://learn.example.org
+ALLOWED_ORIGINS_MODE=replace
+```
+
+To add a site while retaining the two Scikit-plots defaults:
+
+```text
+ALLOWED_ORIGINS=https://preview.example.org
+ALLOWED_ORIGINS_MODE=additive
+```
+
+Never use `ALLOWED_ORIGINS=*` in production. CORS is a browser abuse boundary, not authentication;
+server-to-server clients without an `Origin` header still rely on their own token/capability controls.
+
+#### Secrets — private / server-only
+
+| Name | Required? | Purpose |
+|---|---:|---|
+| `HF_TOKEN` | Path 3 inference | Hugging Face inference credential. Prefer least privilege; it should not also be your broad repository-write token. |
+| `AI_RECORD_STORAGE_TOKEN_HF_PRIMARY` | When referenced by `RECORD_STORAGE_TARGETS` | Example HF Primary write credential. The exact name is configurable through each target's `token_env`. |
+| `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR` | When referenced by `RECORD_STORAGE_TARGETS` | Example GitHub Mirror write credential. Use an independent least-privilege token. |
+| `AI_RECORD_STORAGE_TOKEN_*` | Per configured target | Provider-specific HF/GitHub/GitLab/Bitbucket write credential. Only names with this prefix are accepted by storage target configuration. |
+| `HF_DATASET_TOKEN` | Legacy HF-only persistence | Preferred legacy dataset token; fine-grained to the target dataset repository. |
+| `CONTRIBUTION_REVIEW_TOKEN` | Optional | API-driven review/promotion capability. Not required when maintainers review entirely through provider-native PR/MR UI. |
+| `RATE_LIMIT_IDENTITY_SECRET` | Redis rate limiting | HMAC key used to pseudonymize shared rate-limit identities. |
+| `CONTRIBUTION_LEDGER_KEY_SECRET` | Redis contribution ledger | HMAC key used to pseudonymize receipt identifiers. |
+| Redis URLs containing credentials | When Redis is used | Keep `RATE_LIMIT_REDIS_URL`, `SHARE_STORE_REDIS_URL`, and `CONTRIBUTION_LEDGER_REDIS_URL` private when they contain usernames/passwords/tokens. |
+
+A practical Scikit-plots Space layout is therefore:
+
+```text
+# Variables
+RECORD_STORAGE_TARGETS=<provider-neutral JSON topology>
+ALLOWED_MODELS=openai/gpt-oss-20b,Qwen/Qwen2.5-Coder-7B-Instruct,Qwen/Qwen2.5-Coder-32B-Instruct,scikit-plots/gpt-oss-20b,scikit-plots/Qwen2.5-Coder-7B-Instruct,scikit-plots/Qwen2.5-Coder-32B-Instruct
+HF_SPACES_MODEL_NAMESPACES=scikit-plots
+ALLOWED_ORIGINS_MODE=additive
+# ALLOWED_ORIGINS may remain empty because both current Scikit-plots sites are built in.
+
+# Legacy-only variable (not needed as the active topology when RECORD_STORAGE_TARGETS is used)
+TRAINING_DATASET_REPO=scikit-plots/ai-assistant-contributions
+
+# Secrets
+HF_TOKEN=<inference-token>
+AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=<repo-scoped-write-token>
+AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=<repo-scoped-write-token>
+```
+
+The proxy never reads provider token values from `RECORD_STORAGE_TARGETS`; it reads only the
+configured `token_env` name and then resolves that environment variable server-side. Keep token
+values out of `conf.py`, generated Sphinx HTML, JavaScript, logs, repository URLs, and commit metadata.
+
+Start with [../DATASET_CONTRIBUTION_GUIDE.md](../DATASET_CONTRIBUTION_GUIDE.md) for contribution review and lifecycle behavior. Then use [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for exact HF/GitHub/GitLab/Bitbucket storage, Primary+Mirror, migration, testing, and deduplication recipes.
 
 ### Tokens
 
@@ -317,7 +448,7 @@ production.
 | `BACKEND_URL` | No | `""` | **Path 1** — Explicit upstream URL.  All requests forwarded here when set.  Use for Docker Model Runner, Ollama, or any custom backend. |
 | `HF_SPACES_MODEL_URL` | No | — | **Path 2** — Custom ZeroGPU Space URL (e.g. `https://scikit-plots-ai-model.hf.space/v1/chat/completions`). Receives requests whose `model` matches `HF_SPACES_MODEL_NAMESPACES`. |
 | `HF_SPACES_MODEL_NAMESPACES` | No | `scikit-plots` | Comma-separated model owner prefixes routed to Path 2 (e.g. `scikit-plots,my-org`). |
-| `ALLOWED_MODELS` | No | bundled public model set | Exact Path-3 provider model IDs accepted by the strict chat contract. The default matches the public models shown by `_example_conf.py`: `Qwen/Qwen2.5-Coder-7B-Instruct`, `Qwen/Qwen2.5-Coder-32B-Instruct`, and `openai/gpt-oss-20b`. |
+| `ALLOWED_MODELS` | No | `DEFAULT_MODEL` + bundled provider models | Exact model IDs accepted by the strict chat contract before routing. The bundled defaults include the configured `DEFAULT_MODEL` plus `Qwen/Qwen2.5-Coder-7B-Instruct`, `Qwen/Qwen2.5-Coder-32B-Instruct`, and `openai/gpt-oss-20b`; Path-2 namespaces remain an additional explicit admission rule. |
 | `HF_BASE` | No | `https://router.huggingface.co` | **Path 3** — HF Serverless API base URL.  Only used when Path 1 and Path 2 do not match. |
 | `DEFAULT_MODEL` | No | `scikit-plots/Qwen2.5-Coder-7B-Instruct` | Fallback model when the request body omits `"model"`. |
 
@@ -386,7 +517,8 @@ All values are in seconds.  Non-integer values silently fall back to the default
 
 | Variable | Default | Description |
 |---|---|---|
-| `ALLOWED_ORIGINS` | empty | Comma-separated **additional** exact browser origins. The official `https://scikit-plots.github.io` origin is always retained so an environment override cannot accidentally break the shipped documentation. Missing `Origin` remains valid for server-to-server clients. `*` is an explicit insecure compatibility escape hatch and is not authentication. |
+| `ALLOWED_ORIGINS` | empty | Comma-separated exact browser origins. In `additive` mode they are appended to the two bundled defaults (`https://scikit-plots.github.io`, `https://scikit-plots-learn.readthedocs.io`). In `replace` mode they are the complete browser allow-list. Missing `Origin` remains valid for server-to-server clients. `*` is an explicit insecure compatibility escape hatch and is not authentication. |
+| `ALLOWED_ORIGINS_MODE` | `additive` | `additive` retains the bundled project origins; `replace` starts from an empty allow-list and trusts only valid entries from `ALLOWED_ORIGINS`. Invalid values fail safely back to `additive`. |
 | `DEPLOYMENT_PROFILE` | `compat` | `compat` preserves explicit legacy deployment choices. The hardened Dockerfile sets `strict`, which fails startup as root, rejects wildcard origins and opaque-origin **writes**, and requires verified TLS for all configured Redis authorities. Read-only opaque Share compatibility remains a separate explicit opt-in because local `file://` viewers may need it. |
 | `REDIS_REQUIRE_TLS` | `false` (`true` in strict) | Requires `rediss://`; URL query parameters are rejected so callers cannot disable certificate verification through redis-py URL options. |
 | `REQUIRE_NON_ROOT` | `false` (`true` in strict) | Fails application startup when the process is UID 0 on POSIX. |
@@ -527,7 +659,7 @@ Set the referenced tokens as independent secrets, for example:
 ```text
 AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=hf_...
 AI_RECORD_STORAGE_TOKEN_HF_PRIMARY_TYPE=fine-grained
-AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=github_pat_...
+AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=<github-repo-token>
 ```
 
 Only environment names beginning with `AI_RECORD_STORAGE_TOKEN_` are accepted
@@ -694,8 +826,15 @@ HF_DATASET_TOKEN           = hf_<fine-grained-dataset-token>
 # For Primary + Mirrors, use RECORD_STORAGE_TARGETS instead; see DATASET_COLLECTION_GUIDANCE.md.
 
 # Security
-# Optional extra origins; official https://scikit-plots.github.io is built in.
+# Both current Scikit-plots origins are built in:
+#   https://scikit-plots.github.io
+#   https://scikit-plots-learn.readthedocs.io
+# Leave empty to use only those defaults, or add exact custom origins.
 ALLOWED_ORIGINS            =
+ALLOWED_ORIGINS_MODE       = additive
+# Fork/downstream alternative:
+# ALLOWED_ORIGINS=https://docs.example.org,https://learn.example.org
+# ALLOWED_ORIGINS_MODE=replace
 # Optional read-only local-file (Origin:null) Share compatibility.
 # Keep false unless you explicitly need Global Share viewing from file:// pages.
 SHARE_ALLOW_OPAQUE_ORIGIN       = false
@@ -712,7 +851,7 @@ BASE=https://scikit-plots-ai.hf.space
 
 # 1. Liveness probe
 curl $BASE/health
-# {"status":"ok","version":"6.8.0"}
+# {"status":"ok","version":"7.3.0"}
 
 # Optional deterministic stub rig status
 curl -s $BASE/health | python3 -m json.tool
@@ -871,7 +1010,6 @@ the custom ZeroGPU Space that actually has the weights loaded.  This is why
 ## References
 
 - [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) — End-to-end single/multi-store setup, testing, deduplication, migration, and provider references
-- [FREE_PROXY_SOLUTIONS.md](./FREE_PROXY_SOLUTIONS.md) — Full routing path decision tree
 - [HuggingFace fine-grained tokens](https://huggingface.co/docs/hub/security-tokens)
 - [HTTPX exception hierarchy](https://www.python-httpx.org/exceptions/) — `LocalProtocolError` vs `RemoteProtocolError` semantics used by the stream bridge
 - [Hugging Face streaming](https://huggingface.co/docs/text-generation-inference/conceptual/streaming) — OpenAI-compatible `stream=True` / SSE behavior

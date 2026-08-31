@@ -48,7 +48,10 @@ def _request(*, headers: list[tuple[bytes, bytes]] | None = None, chunks: list[b
 
 
 def test_hf_default_cors_is_exact_and_browser_denial_happens_before_handler():
-    assert proxy._DEFAULT_ALLOWED_ORIGINS == "https://scikit-plots.github.io"
+    assert proxy._DEFAULT_ALLOWED_ORIGINS == (
+        "https://scikit-plots.github.io",
+        "https://scikit-plots-learn.readthedocs.io",
+    )
     assert proxy._allowed_origins != ["*"]
     with TestClient(proxy.app) as client:
         no_origin = client.get("/health")
@@ -149,7 +152,9 @@ def test_direct_model_body_gate_streams_and_hard_clamps_configuration():
 
 def test_worker_uses_exact_default_origin_streaming_body_and_edge_identity():
     src = WORKER.read_text(encoding="utf-8")
-    assert 'DEFAULT_ALLOWED_ORIGINS = "https://scikit-plots.github.io"' in src
+    assert 'const DEFAULT_ALLOWED_ORIGINS = Object.freeze([' in src
+    assert '"https://scikit-plots.github.io"' in src
+    assert '"https://scikit-plots-learn.readthedocs.io"' in src
     assert "if (!_originAllowed(request, env))" in src
     assert "request.body.getReader()" in src
     assert "request.text()" not in src

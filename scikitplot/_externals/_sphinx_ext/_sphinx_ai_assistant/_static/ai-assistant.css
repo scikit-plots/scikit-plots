@@ -17682,6 +17682,27 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     border-radius: 0.72rem;
     background: var(--pst-color-surface, var(--color-background-primary, #fff));
 }
+.ai-assistant-panel-contribution-continuity {
+    display: grid;
+    gap: 0.18rem;
+    margin-top: 0.55rem;
+    padding: 0.62rem 0.72rem;
+    border: 1px dashed var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 4%, transparent);
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.72rem;
+    line-height: 1.42;
+}
+.ai-assistant-panel-contribution-continuity strong {
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+    font-size: 0.74rem;
+}
+.ai-assistant-panel-contribution-continuity[data-active="true"] {
+    border-style: solid;
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 8%, transparent);
+}
+
 .ai-assistant-panel-contribution-submit {
     width: 100%;
     min-height: 2.45rem;
@@ -17697,7 +17718,65 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     margin: 0.45rem 0.35rem 0 0;
 }
 .ai-assistant-panel-contribution-import {
+    margin-top: 0;
+}
+.ai-assistant-panel-contribution-recovery {
+    margin-top: 0.6rem;
+    padding: 0.58rem 0.65rem;
+    border: 1px dashed var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.7rem;
+    background: var(--pst-color-on-background, var(--color-background-secondary, #f6f8fa));
+}
+.ai-assistant-panel-contribution-recovery > summary {
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 650;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+}
+.ai-assistant-panel-contribution-recovery > p {
+    margin: 0.45rem 0;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.68rem;
+    line-height: 1.45;
+}
+.ai-assistant-panel-contribution-recovery-code {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 2.1rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d1d5db));
+    border-radius: 0.55rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #111827));
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.66rem;
+}
+.ai-assistant-panel-contribution-recovery-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+}
+.ai-assistant-panel-contribution-support-ref {
+    display: grid;
+    gap: 0.16rem;
     margin-top: 0.5rem;
+    padding: 0.5rem 0.58rem;
+    border-radius: 0.58rem;
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 5%, transparent);
+    overflow-wrap: anywhere;
+}
+.ai-assistant-panel-contribution-support-ref strong {
+    font-size: 0.7rem;
+}
+.ai-assistant-panel-contribution-support-ref span {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.64rem;
+}
+.ai-assistant-panel-contribution-support-ref small {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.64rem;
+    line-height: 1.4;
 }
 .ai-assistant-panel-contribute-link { white-space: nowrap; }
 

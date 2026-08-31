@@ -215,9 +215,9 @@ def test_app_provider_pr_mode_submits_eligible_future_main_bytes(monkeypatch):
                 review_url="https://github.com/org/repo/pull/8", status="open",
                 record_id=st.record_id_for(kwargs["content"]), path="contributions/x.jsonl",
             )
-        async def get_contribution_review(self, receipt_id): return None
-        async def close_contribution_review(self, receipt_id): return "closed"
-        async def merge_contribution_review(self, receipt_id): raise AssertionError("not used")
+        async def get_contribution_review(self, receipt_id, **kwargs): return None
+        async def close_contribution_review(self, receipt_id, **kwargs): return "closed"
+        async def merge_contribution_review(self, receipt_id, **kwargs): raise AssertionError("not used")
         async def remove_current_view(self, *a, **k): return {}
 
     monkeypatch.setattr(proxy_app, "_STORAGE", FakeStorage())
@@ -251,8 +251,14 @@ def test_provider_pr_pending_delete_closes_review_before_local_tombstone(monkeyp
                 review_branch=st.review_branch_for(kwargs["receipt_id"]), review_key=st.review_key_for(kwargs["receipt_id"]),
                 review_id="1", review_url="https://gitlab.com/org/repo/-/merge_requests/1", status="open",
                 record_id=st.record_id_for(kwargs["content"]), path="contributions/x.jsonl")
-        async def close_contribution_review(self, receipt_id): closed.append(receipt_id); return "closed"
-        async def merge_contribution_review(self, receipt_id): raise AssertionError
+        async def get_contribution_review(self, receipt_id, **kwargs):
+            return st.ReviewReceipt(
+                provider="gitlab", target_id="gitlab-primary", repo="org/repo", base_branch="main",
+                review_branch=st.review_branch_for(receipt_id), review_key=st.review_key_for(receipt_id),
+                review_id="1", review_url="https://gitlab.com/org/repo/-/merge_requests/1", status="open",
+                record_id="", path="contributions/x.jsonl")
+        async def close_contribution_review(self, receipt_id, **kwargs): closed.append(receipt_id); return "closed"
+        async def merge_contribution_review(self, receipt_id, **kwargs): raise AssertionError
         async def remove_current_view(self, *a, **k): return {}
 
     monkeypatch.setattr(proxy_app, "_STORAGE", FakeStorage())
@@ -285,8 +291,14 @@ def test_manual_provider_ui_merge_ratchets_receipt_to_eligible(monkeypatch):
                 review_branch=st.review_branch_for(kwargs["receipt_id"]), review_key=st.review_key_for(kwargs["receipt_id"]),
                 review_id="2", review_url="https://github.com/org/repo/pull/2", status=state["review"],
                 record_id=st.record_id_for(kwargs["content"]), path="contributions/final.jsonl")
-        async def close_contribution_review(self, receipt_id): return "closed"
-        async def merge_contribution_review(self, receipt_id): raise AssertionError
+        async def get_contribution_review(self, receipt_id, **kwargs):
+            return st.ReviewReceipt(
+                provider="github", target_id="github-primary", repo="org/repo", base_branch="main",
+                review_branch=st.review_branch_for(receipt_id), review_key=st.review_key_for(receipt_id),
+                review_id="2", review_url="https://github.com/org/repo/pull/2", status=state["review"],
+                record_id="", path="contributions/final.jsonl")
+        async def close_contribution_review(self, receipt_id, **kwargs): return "closed"
+        async def merge_contribution_review(self, receipt_id, **kwargs): raise AssertionError
         async def remove_current_view(self, *a, **k): return {}
 
     monkeypatch.setattr(proxy_app, "_STORAGE", FakeStorage())
@@ -322,8 +334,14 @@ def test_closed_provider_review_remains_noneligible_and_reports_review_state(mon
                 review_branch=st.review_branch_for(kwargs["receipt_id"]), review_key=st.review_key_for(kwargs["receipt_id"]),
                 review_id="3", review_url="https://bitbucket.org/org/repo/pull-requests/3", status="closed",
                 record_id=st.record_id_for(kwargs["content"]), path="contributions/final.jsonl")
-        async def close_contribution_review(self, receipt_id): return "closed"
-        async def merge_contribution_review(self, receipt_id): raise AssertionError
+        async def get_contribution_review(self, receipt_id, **kwargs):
+            return st.ReviewReceipt(
+                provider="bitbucket", target_id="bitbucket-primary", repo="org/repo", base_branch="main",
+                review_branch=st.review_branch_for(receipt_id), review_key=st.review_key_for(receipt_id),
+                review_id="3", review_url="https://bitbucket.org/org/repo/pull-requests/3", status="closed",
+                record_id="", path="contributions/final.jsonl")
+        async def close_contribution_review(self, receipt_id, **kwargs): return "closed"
+        async def merge_contribution_review(self, receipt_id, **kwargs): raise AssertionError
         async def remove_current_view(self, *a, **k): return {}
 
     monkeypatch.setattr(proxy_app, "_STORAGE", FakeStorage())

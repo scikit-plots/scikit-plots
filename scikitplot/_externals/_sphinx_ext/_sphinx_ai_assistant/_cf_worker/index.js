@@ -54,8 +54,11 @@ const HF_BASE = "https://router.huggingface.co";
  * lifecycle/status checks that do not download conversation content.
  * The original `POST, OPTIONS` only list caused share link opens to fail.
  */
-const DEFAULT_ALLOWED_ORIGINS = "https://scikit-plots.github.io";
-const OFFICIAL_ALLOWED_ORIGINS = Object.freeze([DEFAULT_ALLOWED_ORIGINS]);
+const DEFAULT_ALLOWED_ORIGINS = Object.freeze([
+  "https://scikit-plots.github.io",
+  "https://scikit-plots-learn.readthedocs.io",
+]);
+const ALLOWED_ORIGIN_MODES = Object.freeze(['additive', 'replace']);
 
 function _normaliseBrowserOrigin(value) {
   const candidate = String(value || '').trim().replace(/\/$/, '');
@@ -69,10 +72,15 @@ function _normaliseBrowserOrigin(value) {
   } catch { return ''; }
 }
 
+function _allowedOriginsMode(env) {
+  const mode = String(env.ALLOWED_ORIGINS_MODE || 'additive').trim().toLowerCase() || 'additive';
+  return ALLOWED_ORIGIN_MODES.includes(mode) ? mode : 'additive';
+}
+
 function _allowedOrigins(env) {
   const raw = String(env.ALLOWED_ORIGINS || '').trim();
   if (raw === '*') return ['*'];
-  const merged = [...OFFICIAL_ALLOWED_ORIGINS];
+  const merged = _allowedOriginsMode(env) === 'additive' ? [...DEFAULT_ALLOWED_ORIGINS] : [];
   for (const item of raw.split(',')) {
     const origin = _normaliseBrowserOrigin(item);
     if (origin && !merged.includes(origin)) merged.push(origin);
@@ -124,7 +132,7 @@ function corsHeaders(request, env) {
   const origin = _normaliseBrowserOrigin(rawOrigin);
   const allowed = _allowedOrigins(env);
   const headers = {
-    "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Share-Edit-Token, X-AI-Operation-Id, X-AI-Resource-Id, X-AI-Management-Token-Hash, X-AI-Operation-Created-At",
   };
   if (rawOrigin === 'null' && _shareOpaqueOriginAllowed(request, env)) {
@@ -991,11 +999,14 @@ export default {
         },
         share: _shareStorageStatus(env),
         cors: {
-          official_docs_origin: DEFAULT_ALLOWED_ORIGINS,
-          official_docs_origin_allowed: _allowedOrigins(env).includes('*') || _allowedOrigins(env).includes(DEFAULT_ALLOWED_ORIGINS),
+          // Keep the historical singular field for discovery compatibility.
+          official_docs_origin: DEFAULT_ALLOWED_ORIGINS[0],
+          official_docs_origin_allowed: _allowedOrigins(env).includes('*') || _allowedOrigins(env).includes(DEFAULT_ALLOWED_ORIGINS[0]),
+          default_allowed_origin_count: DEFAULT_ALLOWED_ORIGINS.length,
+          default_allowed_origins_allowed: _allowedOrigins(env).includes('*') || DEFAULT_ALLOWED_ORIGINS.every((origin) => _allowedOrigins(env).includes(origin)),
           wildcard: _allowedOrigins(env).includes('*'),
           allowed_origin_count: _allowedOrigins(env).includes('*') ? null : _allowedOrigins(env).length,
-          env_semantics: 'additive',
+          env_semantics: _allowedOriginsMode(env),
           share_opaque_origin_allowed: String(env.SHARE_ALLOW_OPAQUE_ORIGIN || '').toLowerCase() === 'true',
           share_opaque_origin_write_allowed:
             String(env.SHARE_ALLOW_OPAQUE_ORIGIN || '').toLowerCase() === 'true' &&
