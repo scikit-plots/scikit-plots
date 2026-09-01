@@ -55,12 +55,19 @@ It contains:
 - one rating;
 - quick or detailed rating mode;
 - an optional written feedback note;
-- bounded model/page evidence when explicitly shared with maintainers.
+- originating model attribution (`provider` + concrete model name) and bounded page evidence when explicitly shared with maintainers.
 
 Feedback records live under the configured `feedback/` storage path. An open
 review is not training-eligible. If the reader granted the current explicit
 review/model-improvement consent and a maintainer merges the PR/MR, that single
 Q&A becomes training-eligible together with its quality signal.
+
+The Feedback tab includes **Inspect feedback payload**, with local-only **Inspect JSON**,
+**Copy JSON to clipboard**, and **Download JSON file** actions. This preview is the
+exact client review payload. It includes the Q&A, rating/quality inputs, optional note,
+and the model attribution belonging to the assistant turn that actually produced the
+answer. Inspect/copy/download never submit anything. If originating model attribution
+is unavailable, review sharing fails closed instead of creating an ambiguous training row.
 
 ### Dataset contribution
 

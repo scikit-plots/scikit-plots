@@ -503,3 +503,13 @@ Permissions-Policy denial. Proxy deployment version ratcheted to **7.0.0**.
 - Training builder now admits eligible `feedback` as well as eligible `contribution`, while privacy-minimal rating telemetry remains excluded.
 - Proxy public API version ratcheted to **7.4.0**.
 - Runnable non-Sphinx working-tree boundary: **864 passed, 3 skipped**.
+
+## Run 46 / B65 — feedback payload inspection and model attribution
+
+- Added Contribution-style Inspect/Copy/Download JSON controls to the Feedback tab; all are local-only and display the exact review payload.
+- Made the assistant transcript turn the model-attribution authority so changing the currently selected model after generation cannot relabel an older answer.
+- Feedback review now fails closed client-side and server-side if originating `provider` + concrete model name are unavailable.
+- Included model identity in feedback-review no-op fingerprints.
+- Replaced text-filled feedback popup icon slots with Octicon `comment-discussion` and `pulse` SVGs.
+- Corrected `ratingTitle` validation to measure the title rather than the rating label.
+- Runnable non-Sphinx boundary: **869 passed, 3 skipped**.

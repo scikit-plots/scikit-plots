@@ -17993,3 +17993,26 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     .ai-assistant-panel-feedback-channel-grid { grid-template-columns: 1fr; }
 }
 .ai-assistant-panel-feedback-activity-actions { margin-top: 4px; }
+
+/* Run 46 — feedback review payload/model evidence */
+.ai-assistant-fbk-popup-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+.ai-assistant-panel-feedback-model-evidence {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0.2rem 0 0.5rem;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+.ai-assistant-panel-feedback-model-evidence strong {
+    flex: 0 0 auto;
+}
+.ai-assistant-panel-feedback-model-evidence span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--pst-color-text-muted, #64748b);
+}

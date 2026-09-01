@@ -1214,3 +1214,18 @@ Source freeze before packaging: **308 files**, exact `scikitplot/` + `maintenanc
 - proxy version: **7.4.0**;
 - canonical runtime-source SHA-256: `2af3f4d840c3b680c6798112eb1196d94f0c23aff9a8550f7cd8f43e5c69a9ac`;
 - final immutable package replay and archive SHA-256 are recorded externally after package freeze.
+
+## Run 46 / B65 — feedback payload/model evidence working-tree verification
+
+- dedicated Run 46 Python contract: **4 passed**;
+- dedicated Run 46 browser/source contract: **15/15**;
+- feedback review/control-plane/documentation + registered Node focused plane: **83 passed**;
+- full runnable non-Sphinx suite: **869 passed, 3 skipped**;
+- all-inclusive replay: remaining non-green cases require unavailable `sphinx`; excluding `test___init__.py` leaves **869 passed, 3 skipped**;
+- originating model review invariant: client fail-closed + server `provider`/`model` validation GREEN;
+- feedback JSON inspect/copy/download remains local-only: GREEN;
+- telemetry serializer/privacy harnesses after payload refactor: GREEN;
+- Python and JavaScript syntax: GREEN;
+- proxy public API remains **7.4.0** (no new endpoint or consent-version ratchet in Run 46).
+- release subjects after Run 46 freeze: proxy **7.4.0**, runtime-source SHA-256 `50835b65e8013c52023da2c055add024dd0a8a3aeab751c82cf9fd451a3f8fbd`;
+- supply-chain verifier: GREEN.

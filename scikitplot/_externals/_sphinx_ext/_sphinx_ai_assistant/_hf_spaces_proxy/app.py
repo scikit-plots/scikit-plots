@@ -5037,6 +5037,13 @@ def _feedback_review_pipeline_ready() -> bool:
     return _STORAGE.primary is not None and _STORAGE.primary_ready()
 
 
+def _is_above_thr(
+    label: str,
+    thr: int = 64,
+) -> bool:
+    return len(label) > thr
+
+
 def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
     payload: Any,
 ) -> dict[str, Any]:
@@ -5066,6 +5073,26 @@ def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
     query = payload.get("query")
     answer = payload.get("answer")
     message = payload.get("message", "")
+    model = payload.get("model")
+    if not isinstance(model, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="Feedback review requires originating model attribution.",
+        )
+    model_provider = model.get("provider")
+    model_name = model.get("model")
+    if (
+        not isinstance(model_provider, str)
+        or not model_provider.strip()
+        or _is_above_thr(model_provider, 128)
+        or not isinstance(model_name, str)
+        or not model_name.strip()
+        or _is_above_thr(model_name, 512)
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Feedback review originating model attribution is invalid.",
+        )
     if not isinstance(query, str) or not query.strip():
         raise HTTPException(
             status_code=422, detail="Feedback review requires the question text."
@@ -5112,17 +5139,11 @@ def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
     label = payload.get("ratingLabel")
     title = payload.get("ratingTitle")
 
-    def is_above_thr(
-        label: str = label,
-        thr: int = 64,
-    ):
-        return len(label) > thr
-
-    if label is not None and (not isinstance(label, str) or is_above_thr(label, 64)):
+    if label is not None and (not isinstance(label, str) or _is_above_thr(label, 64)):
         raise HTTPException(
             status_code=422, detail="Feedback review ratingLabel is invalid."
         )
-    if title is not None and (not isinstance(title, str) or is_above_thr(label, 128)):
+    if title is not None and (not isinstance(title, str) or _is_above_thr(title, 128)):
         raise HTTPException(
             status_code=422, detail="Feedback review ratingTitle is invalid."
         )

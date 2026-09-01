@@ -1399,6 +1399,8 @@
         // GitHub Octicon "comment-discussion" — additive and not wired to a control yet.
         // Mirrors comment-discussion.svg / _SVG_COMMENT_DISCUSSION in _static/__init__.py.
         commentDiscussion: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"/></svg>',
+        // GitHub Octicon "pulse" — feedback/telemetry activity.
+        pulse: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"/></svg>',
         // GitHub Octicon "upload" — additive and not wired to a control yet.
         // Mirrors upload.svg / _SVG_UPLOAD in _static/__init__.py.
         upload: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z"/></svg>',
@@ -8763,12 +8765,24 @@
             ratingScaleMax: payload.ratingScaleMax,
             message: payload.message || '',
             query: payload.query || '',
-            answer: payload.answer || ''
+            answer: payload.answer || '',
+            modelId: payload.model && payload.model.id || null,
+            modelProvider: payload.model && payload.model.provider || null,
+            modelName: payload.model && payload.model.model || null
         });
     }
 
     function _feedbackReviewPayload(detail) {
         detail = detail || {};
+        var answerIndex = typeof detail.answerIndex === 'number' ? detail.answerIndex : null;
+        var qa = answerIndex != null ? _contributionQaAtIndex(answerIndex) : null;
+        // The assistant turn that produced the rated answer is the attribution
+        // authority. For indexed rendered answers we fail closed when the
+        // transcript lacks model evidence rather than guessing from the model
+        // that happens to be selected later.
+        var model = qa && qa.model && typeof qa.model === 'object'
+            ? qa.model
+            : (answerIndex == null && detail.model && typeof detail.model === 'object' ? detail.model : null);
         return {
             schemaVersion: _FEEDBACK_REVIEW_SCHEMA_VERSION,
             consentFlag: true,
@@ -8779,7 +8793,7 @@
             feedbackId: detail.sessionId || detail.feedbackId || null,
             prevFeedbackId: detail.prevFeedbackId || null,
             editCount: detail.editCount || 0,
-            answerIndex: typeof detail.answerIndex === 'number' ? detail.answerIndex : null,
+            answerIndex: answerIndex,
             ratingValue: detail.ratingValue,
             ratingLabel: detail.ratingLabel || null,
             ratingTitle: detail.ratingTitle || null,
@@ -8787,12 +8801,22 @@
             ratingScaleMin: Number(detail.ratingScaleMin),
             ratingScaleMax: Number(detail.ratingScaleMax),
             message: String(detail.message || '').slice(0, _CONTRIBUTION_NOTE_MAX_CHARS),
-            query: String(detail.query || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
-            answer: String(detail.answer || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
-            model: detail.model && typeof detail.model === 'object' ? detail.model : null,
+            query: String((qa && qa.query) || detail.query || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
+            answer: String((qa && qa.answer) || detail.answer || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
+            model: model,
             page: detail.page || '',
-            ts: detail.ts || Date.now()
+            ts: detail.ts || (qa && qa.ts) || Date.now()
         };
+    }
+
+    function _feedbackReviewPayloadIssue(payload) {
+        if (!payload || !String(payload.query || '').trim()) return 'Question text is unavailable.';
+        if (!String(payload.answer || '').trim()) return 'Answer text is unavailable.';
+        var model = payload.model;
+        if (!model || typeof model !== 'object' || !String(model.provider || '').trim() || !String(model.model || '').trim()) {
+            return 'Originating model attribution is unavailable. Reviewable feedback requires the model that produced this answer.';
+        }
+        return '';
     }
 
     function _feedbackReviewRequest(detail, onResult) {
@@ -8806,6 +8830,11 @@
             return false;
         }
         var payload = _feedbackReviewPayload(detail);
+        var payloadIssue = _feedbackReviewPayloadIssue(payload);
+        if (payloadIssue) {
+            if (typeof onResult === 'function') onResult({ error: true, status: 422, message: payloadIssue, reason: 'payload-incomplete' });
+            return false;
+        }
         var fingerprint = _feedbackReviewFingerprint(payload);
         var answerIndex = typeof detail.answerIndex === 'number' ? detail.answerIndex : null;
         var active = _getActiveFeedbackReview(answerIndex);
@@ -13226,7 +13255,7 @@
         reviewShareRow.className = 'ai-assistant-fbk-popup-row';
         var reviewShareIcon = document.createElement('span');
         reviewShareIcon.className = 'ai-assistant-fbk-popup-icon';
-        reviewShareIcon.textContent = 'Review';
+        reviewShareIcon.innerHTML = ICONS.commentDiscussion || '<span>💬</span>';
         reviewShareIcon.setAttribute('aria-hidden', 'true');
         var reviewShareLabel = document.createElement('span');
         reviewShareLabel.className = 'ai-assistant-fbk-popup-label';
@@ -13278,7 +13307,7 @@
         feedbackCenterRow.setAttribute('aria-label', 'Open feedback review and management');
         var feedbackCenterIcon = document.createElement('span');
         feedbackCenterIcon.className = 'ai-assistant-fbk-popup-icon';
-        feedbackCenterIcon.textContent = 'Feedback';
+        feedbackCenterIcon.innerHTML = ICONS.pulse || '<span>〽</span>';
         feedbackCenterIcon.setAttribute('aria-hidden', 'true');
         var feedbackCenterLabel = document.createElement('span');
         feedbackCenterLabel.className = 'ai-assistant-fbk-popup-label';
@@ -15808,7 +15837,7 @@
 
         var reviewToggle = _buildExtToggleRow(
             'Share feedback for review & model improvement',
-            'Separate from anonymous telemetry and whole-conversation contribution. A merge approves this single Q&A + normalized quality signal for training. When enabled, a quick rating or saved detailed feedback may create or update one provider-native review containing exactly this Q&A, the rating, and the optional written note. Repeated unchanged feedback is a no-op; changed feedback updates the same review. Feedback records never become training-eligible.',
+            'Separate from anonymous telemetry and whole-conversation contribution. A merge approves this single Q&A + normalized quality signal for training. When enabled, a quick rating or saved detailed feedback may create or update one provider-native review containing exactly this Q&A, the rating, and the optional written note. Repeated unchanged feedback is a no-op; changed feedback updates the same review. Only a maintainer merge can make the explicitly consented reviewed Q&A training-eligible.',
             _feedbackReviewEnabled,
             null
         );
@@ -24246,6 +24275,102 @@
             });
             qaActions.appendChild(share);
             qaGroup.appendChild(qaActions);
+
+            // Exact one-Q&A review payload inspection. This is browser-local:
+            // inspecting/copying/downloading never grants review or training
+            // permission and never sends a network request.
+            var reviewPayload = entry ? _feedbackReviewPayload(Object.assign({}, entry, {
+                answerIndex: context.answerIndex,
+                query: context.questionText || entry.query || '',
+                answer: context.answerText || entry.answer || ''
+            })) : null;
+            var reviewPayloadIssue = reviewPayload ? _feedbackReviewPayloadIssue(reviewPayload) : 'Select a rating first.';
+
+            var inspectGroup = _contributionSection(
+                'Inspect feedback payload',
+                'This is the exact client payload used for maintainer review. The originating model is part of the required Q&A evidence.'
+            );
+            wrap.appendChild(inspectGroup);
+
+            var modelEvidence = document.createElement('div');
+            modelEvidence.className = 'ai-assistant-panel-feedback-model-evidence';
+            var modelStrong = document.createElement('strong');
+            modelStrong.textContent = 'Originating model';
+            var modelText = document.createElement('span');
+            if (reviewPayload && reviewPayload.model) {
+                var m = reviewPayload.model;
+                modelText.textContent = [m.provider || '', m.model || '', m.label || ''].filter(Boolean).join(' · ');
+            } else {
+                modelText.textContent = 'Unavailable';
+            }
+            modelEvidence.appendChild(modelStrong);
+            modelEvidence.appendChild(modelText);
+            inspectGroup.appendChild(modelEvidence);
+
+            var feedbackInspectRow = document.createElement('div');
+            feedbackInspectRow.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-inspect-row ai-assistant-panel-feedback-inspect-row';
+            var feedbackInspectBtn = _feedbackWorkspaceButton('Inspect JSON', 'ai-assistant-panel-feedback-inspect-btn');
+            var feedbackCopyBtn = _feedbackWorkspaceButton('⎘ Copy JSON to clipboard', 'ai-assistant-panel-feedback-copy-json');
+            var feedbackDownloadBtn = _feedbackWorkspaceButton('↓ Download JSON file', 'ai-assistant-panel-feedback-download-json');
+            var feedbackSize = document.createElement('span');
+            feedbackSize.className = 'ai-assistant-panel-contribution-size ai-assistant-panel-feedback-payload-size';
+            var feedbackPreview = document.createElement('pre');
+            feedbackPreview.className = 'ai-assistant-panel-contribution-preview ai-assistant-panel-feedback-preview';
+            feedbackPreview.id = 'ai-assistant-panel-feedback-preview-json';
+            feedbackPreview.hidden = true;
+            feedbackPreview.setAttribute('aria-label', 'Feedback review JSON preview');
+            feedbackPreview.setAttribute('tabindex', '0');
+            feedbackPreview.dataset.size = 'compact';
+            feedbackInspectBtn.setAttribute('aria-expanded', 'false');
+            feedbackInspectBtn.setAttribute('aria-controls', feedbackPreview.id);
+            feedbackInspectBtn.disabled = !!reviewPayloadIssue;
+            feedbackCopyBtn.disabled = !!reviewPayloadIssue;
+            feedbackDownloadBtn.disabled = !!reviewPayloadIssue;
+            feedbackSize.textContent = reviewPayload && !reviewPayloadIssue
+                ? _formatByteSize(_utf8ByteLength(JSON.stringify(reviewPayload)))
+                : reviewPayloadIssue;
+            feedbackInspectRow.appendChild(feedbackInspectBtn);
+            feedbackInspectRow.appendChild(feedbackCopyBtn);
+            feedbackInspectRow.appendChild(feedbackDownloadBtn);
+            feedbackInspectRow.appendChild(feedbackSize);
+            inspectGroup.appendChild(feedbackInspectRow);
+
+            var feedbackInspectHint = document.createElement('p');
+            feedbackInspectHint.className = 'ai-assistant-panel-contribution-hint';
+            feedbackInspectHint.textContent = reviewPayloadIssue
+                ? reviewPayloadIssue + ' Reviewable feedback is not sent until complete Q&A + model evidence is available.'
+                : 'Inspection is local-only. Sharing still requires the separate review/model-improvement permission; maintainer merge remains the training-eligibility gate.';
+            inspectGroup.appendChild(feedbackInspectHint);
+            inspectGroup.appendChild(feedbackPreview);
+
+            function _syncFeedbackPreviewDensity() {
+                if (feedbackPreview.hidden) return;
+                var text = feedbackPreview.textContent || '';
+                var lines = text ? text.split('\n').length : 0;
+                feedbackPreview.dataset.size = lines <= 14 ? 'compact' : (lines <= 32 ? 'medium' : 'large');
+            }
+            feedbackInspectBtn.addEventListener('click', function () {
+                feedbackPreview.hidden = !feedbackPreview.hidden;
+                feedbackInspectBtn.textContent = feedbackPreview.hidden ? 'Inspect JSON' : 'Hide JSON';
+                feedbackInspectBtn.setAttribute('aria-expanded', feedbackPreview.hidden ? 'false' : 'true');
+                feedbackPreview.textContent = (!feedbackPreview.hidden && reviewPayload) ? JSON.stringify(reviewPayload, null, 2) : '';
+                _syncFeedbackPreviewDensity();
+            });
+            feedbackCopyBtn.addEventListener('click', function () {
+                if (!reviewPayload || reviewPayloadIssue) return;
+                _copyContributionText(JSON.stringify(reviewPayload, null, 2), 'Feedback review JSON copied locally. Nothing was submitted.');
+            });
+            feedbackDownloadBtn.addEventListener('click', function () {
+                if (!reviewPayload || reviewPayloadIssue) return;
+                _downloadBlob(JSON.stringify(reviewPayload, null, 2), 'application/json',
+                    'ai-feedback-review-payload-' + _isoFileStamp() + '.json');
+                showNotification('Feedback review JSON file saved locally. Nothing was submitted.', false);
+            });
+
+            // Sharing is only valid when the exact inspected payload passes the
+            // same client preflight that protects automatic quick-rating review.
+            share.disabled = !entry || !_feedbackReviewEnabled || !!reviewPayloadIssue;
+            if (reviewPayloadIssue) share.title = reviewPayloadIssue;
 
             var review = _getActiveFeedbackReview(context.answerIndex);
             if (review) {

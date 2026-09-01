@@ -101,8 +101,10 @@ the server-side proxy's secret store.
   explicit permission and never contains Q&A, note, model, page URL, or stable
   conversation identity. A second explicit **Share feedback for review & model
   improvement** permission can place exactly one Q&A into an updatable
-  provider-native feedback review; a maintainer merge makes that Q&A
-  training-eligible together with a normalized quality score/percentage.
+  provider-native feedback review; the Feedback tab can inspect/copy/download
+  the exact review JSON locally before sharing, and originating model attribution
+  is required so the reviewed Q&A remains useful and auditable. A maintainer merge
+  makes that Q&A training-eligible together with a normalized quality score/percentage.
   Host-page lifecycle
   events remain independently permissioned.
 - **Keyboard shortcut**: toggle the panel with a configurable chord
