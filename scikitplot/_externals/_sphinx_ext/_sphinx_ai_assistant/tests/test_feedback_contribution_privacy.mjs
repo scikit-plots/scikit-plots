@@ -25,8 +25,8 @@ for (const forbidden of ['query:', 'answer:', 'message:', 'model:', 'page:', 'co
 }
 ok(src.includes("detail: _feedbackLocalEventPayload(detail || {})") || src.includes("return _feedbackLocalEventPayload(detail);"), 'public feedback event uses privacy-minimal detail');
 ok(src.includes("if (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) { return false; }"), 'network helper self-gates on consent');
-ok(src.includes("'Send rating telemetry'"), 'settings name is truthful');
-ok(src.includes('your question, the AI answer, optional note, model, page URL and conversation identifier stay local'), 'settings explain local sensitive fields');
+ok(src.includes("'Send anonymous rating telemetry'"), 'settings name is truthful');
+ok(src.includes('Question text, answer text, written notes, model identity, page URL and conversation identifiers are excluded from telemetry'), 'settings explain excluded sensitive fields');
 ok(src.includes("var _CONTRIBUTION_CONSENT_VERSION = '2.0.0';"), 'new contribution uses consent v2');
 ok(src.includes('var _CONTRIBUTION_SCHEMA_VERSION = 4;'), 'new contribution uses schema v4');
 const builder = section('function _buildDatasetContributionPayload(', 'function _datasetContributionPayloadBytes(');
@@ -41,7 +41,7 @@ ok(contribution.includes("lifecycle.status === 'withdrawn'"), 'UI recognizes pos
 ok(contribution.includes('versioned provider history is not claimed physically erased'), 'UI does not overclaim provider-history erasure');
 ok(contribution.includes('does not claim forensic deletion from database pages, backups, or infrastructure snapshots'), 'UI does not overclaim pending forensic erasure');
 ok(contribution.includes('not training-eligible until an authorized review promotes it'), 'UI does not claim immediate training ingestion');
-ok(src.includes("persistLabel.textContent = 'Send rating telemetry'"), 'feedback popup no longer calls telemetry dataset save');
+ok(src.includes("persistLabel.textContent = 'Anonymous rating telemetry'"), 'feedback popup labels telemetry without implying dataset save');
 ok(src.includes("contributeLabel.textContent = 'Contribute this Q&A"), 'feedback popup has explicit Q&A contribution shortcut');
 
 console.log(`${passed} passed, ${failed} failed`);

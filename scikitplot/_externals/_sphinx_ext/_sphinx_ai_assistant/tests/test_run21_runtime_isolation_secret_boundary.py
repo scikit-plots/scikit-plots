@@ -24,8 +24,8 @@ shared = importlib.import_module("_utils._shared_logic")
 
 
 def test_proxy_version_ratchets_for_runtime_isolation():
-    assert shared.PROXY_VERSION == "7.3.0"
-    assert 'PROXY_VERSION: str = "7.3.0"' in (PROXY / "_utils" / "_shared_logic.py").read_text()
+    assert shared.PROXY_VERSION == "7.4.0"
+    assert 'PROXY_VERSION: str = "7.4.0"' in (PROXY / "_utils" / "_shared_logic.py").read_text()
 
 
 def test_opaque_origin_read_and_write_authority_are_separate_in_fresh_process():

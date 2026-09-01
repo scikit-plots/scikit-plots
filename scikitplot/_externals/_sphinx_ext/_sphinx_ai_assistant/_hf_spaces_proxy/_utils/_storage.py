@@ -281,10 +281,27 @@ def review_title_for(receipt_id: str) -> str:
 
 
 def review_description_for(
-    review_identity: str, base_branch: str, reject_word: str = "close"
+    review_identity: str,
+    base_branch: str,
+    reject_word: str = "close",
+    *,
+    review_kind: str = "contribution",
 ) -> str:
     raw = str(review_identity or "")
     key = raw if re.fullmatch(r"[0-9a-f]{24}", raw) else review_key_for(raw)
+    if review_kind == "feedback":
+        return (
+            "Automated maintainer feedback review.\n\n"
+            f"- Review key: `{key}`\n"
+            f"- Canonical branch: `{base_branch}`\n"
+            "- Training eligible while this review is open: **No**\n"
+            "- Merge = approve this Q&A + quality signal for the canonical training view.\n"
+            "- Repeated quick/detailed updates from the same management receipt update this same review as new commits.\n"
+            "- Review the latest revision; earlier commits are the feedback edit history.\n"
+            "- The latest merged revision becomes training eligible; close/reject never does.\n"
+            f"- {reject_word.capitalize()} without merge = reject the feedback review.\n\n"
+            "A participant may withdraw the feedback later; provider Git history is not claimed physically erased."
+        )
     return (
         "Automated dataset contribution review.\n\n"
         f"- Review key: `{key}`\n"
@@ -295,6 +312,20 @@ def review_description_for(
         f"- {reject_word.capitalize()} without merge = reject.\n\n"
         "Review the latest revision; earlier commits are retained as review history."
     )
+
+
+def feedback_review_key_for(receipt_id: str) -> str:
+    """Return a non-identifying stable key for one feedback-review lifecycle."""
+    raw = ("feedback:" + str(receipt_id or "")).encode("utf-8", errors="ignore")
+    return hashlib.sha256(raw).hexdigest()[:24]
+
+
+def feedback_review_branch_for(receipt_id: str) -> str:
+    return f"ai-feedback-{feedback_review_key_for(receipt_id)}"
+
+
+def feedback_review_title_for(receipt_id: str) -> str:
+    return f"Feedback review {feedback_review_key_for(receipt_id)}"
 
 
 def _safe_id(value: Any, fallback: str) -> str:
@@ -515,6 +546,15 @@ def review_record_path(
     dt = datetime.fromtimestamp(now or time.time(), tz=timezone.utc)
     folder = target.folder_for("contributions")
     return f"{folder}/{dt:%Y/%m/%d}/ct_{review_key_for(receipt_id)}.jsonl"
+
+
+def feedback_review_record_path(
+    target: StorageTarget, receipt_id: str, now: float | None = None
+) -> str:
+    """Return the stable canonical path owned by one reviewable feedback item."""
+    dt = datetime.fromtimestamp(now or time.time(), tz=timezone.utc)
+    folder = target.folder_for("feedback")
+    return f"{folder}/{dt:%Y/%m/%d}/fb_{feedback_review_key_for(receipt_id)}.jsonl"
 
 
 def record_id_for(content: bytes) -> str:
@@ -869,6 +909,7 @@ class StorageCoordinator:
                 record_id=rid,
                 content=content,
                 message=commit_message,
+                description=review_description_for(key, target.branch),
             )
 
     async def update_contribution_review(
@@ -921,6 +962,136 @@ class StorageCoordinator:
                 message=commit_message,
             )
             return replace(review, record_id=rid, path=path)
+
+    async def open_feedback_review(
+        self,
+        *,
+        receipt_id: str,
+        content: bytes,
+        commit_message: str,
+        path_timestamp: float | None = None,
+    ) -> ReviewReceipt:
+        """Open one provider-native review for a content-bearing feedback item."""
+        target = self.primary
+        if target is None:
+            raise StorageWriteError("NO_PRIMARY_TARGET")
+        if not target.token:
+            raise StorageWriteError("PRIMARY_TOKEN_MISSING")
+        rid = record_id_for(content)
+        path = feedback_review_record_path(target, receipt_id, path_timestamp)
+        key = feedback_review_key_for(receipt_id)
+        branch = feedback_review_branch_for(receipt_id)
+        title = feedback_review_title_for(receipt_id)
+        async with self._locks[target.id]:
+            return await self._open_review_target(
+                target,
+                branch=branch,
+                key=key,
+                title=title,
+                path=path,
+                record_id=rid,
+                content=content,
+                message=commit_message,
+                description=review_description_for(
+                    key, target.branch, review_kind="feedback"
+                ),
+            )
+
+    async def update_feedback_review(
+        self,
+        *,
+        receipt_id: str,
+        content: bytes,
+        commit_message: str,
+        path_timestamp: float | None = None,
+        review_hint: dict[str, Any] | None = None,
+    ) -> ReviewReceipt:
+        """Update the existing feedback PR/MR without opening a duplicate review."""
+        target = self.primary
+        if target is None:
+            raise StorageWriteError("NO_PRIMARY_TARGET")
+        if not target.token:
+            raise StorageWriteError("PRIMARY_TOKEN_MISSING")
+        rid = record_id_for(content)
+        path = feedback_review_record_path(target, receipt_id, path_timestamp)
+        key = feedback_review_key_for(receipt_id)
+        branch = feedback_review_branch_for(receipt_id)
+        title = feedback_review_title_for(receipt_id)
+        async with self._locks[target.id]:
+            hinted = self._review_from_hint(
+                target, branch=branch, key=key, review_hint=review_hint
+            )
+            review = (
+                await self._refresh_review_target(target, hinted)
+                if hinted is not None
+                else await self._discover_review_target(
+                    target, branch=branch, key=key, title=title
+                )
+            )
+            if review is None:
+                raise StorageWriteError("REVIEW_NOT_FOUND")
+            if review.status == "merged":
+                raise StorageWriteError("REVIEW_MERGED")
+            if review.status in {"closed", "rejected"}:
+                raise StorageWriteError("REVIEW_CLOSED")
+            await self._update_review_target(
+                target,
+                review=review,
+                path=path,
+                content=content,
+                message=commit_message,
+            )
+            return replace(review, record_id=rid, path=path)
+
+    async def get_feedback_review(
+        self, receipt_id: str, *, review_hint: dict[str, Any] | None = None
+    ) -> ReviewReceipt | None:
+        """Return current feedback-review state, preferring the persisted locator."""
+        target = self.primary
+        if target is None or not target.token:
+            return None
+        key = feedback_review_key_for(receipt_id)
+        branch = feedback_review_branch_for(receipt_id)
+        title = feedback_review_title_for(receipt_id)
+        async with self._locks[target.id]:
+            hinted = self._review_from_hint(
+                target, branch=branch, key=key, review_hint=review_hint
+            )
+            if hinted is not None:
+                return await self._refresh_review_target(target, hinted)
+            return await self._discover_review_target(
+                target, branch=branch, key=key, title=title
+            )
+
+    async def close_feedback_review(
+        self, receipt_id: str, *, review_hint: dict[str, Any] | None = None
+    ) -> str:
+        """Close/reject one pending feedback review and remove its source branch."""
+        target = self.primary
+        if target is None or not target.token:
+            return "not-configured"
+        key = feedback_review_key_for(receipt_id)
+        branch = feedback_review_branch_for(receipt_id)
+        title = feedback_review_title_for(receipt_id)
+        async with self._locks[target.id]:
+            hinted = self._review_from_hint(
+                target, branch=branch, key=key, review_hint=review_hint
+            )
+            review = (
+                await self._refresh_review_target(target, hinted)
+                if hinted is not None
+                else await self._discover_review_target(
+                    target, branch=branch, key=key, title=title
+                )
+            )
+            if review is None:
+                return "already-absent"
+            if review.status == "merged":
+                return "already-merged"
+            if review.status not in {"closed", "rejected"}:
+                await self._close_review_target(target, review)
+            await self._delete_review_branch(target, branch)
+            return "closed"
 
     async def get_contribution_review(
         self, receipt_id: str, *, review_hint: dict[str, Any] | None = None
@@ -1203,6 +1374,7 @@ class StorageCoordinator:
         record_id: str,
         content: bytes,
         message: str,
+        description: str | None = None,
     ) -> ReviewReceipt:
         existing = await self._discover_review_target(
             target, branch=branch, key=key, title=title
@@ -1211,15 +1383,39 @@ class StorageCoordinator:
             return replace(existing, record_id=record_id, path=path)
         if target.provider == "huggingface":
             return await self._open_hf_review(
-                target, branch, key, title, path, record_id, content, message
+                target,
+                branch,
+                key,
+                title,
+                path,
+                record_id,
+                content,
+                message,
+                description,
             )
         if target.provider == "github":
             return await self._open_github_review(
-                target, branch, key, title, path, record_id, content, message
+                target,
+                branch,
+                key,
+                title,
+                path,
+                record_id,
+                content,
+                message,
+                description,
             )
         if target.provider == "gitlab":
             return await self._open_gitlab_review(
-                target, branch, key, title, path, record_id, content, message
+                target,
+                branch,
+                key,
+                title,
+                path,
+                record_id,
+                content,
+                message,
+                description,
             )
         return await self._open_bitbucket_review(
             target, branch, key, title, path, record_id, content, message
@@ -1299,7 +1495,16 @@ class StorageCoordinator:
         )
 
     async def _open_hf_review(  # ruff: ignore[too-many-positional-arguments]
-        self, target, branch, key, title, path, record_id, content, message
+        self,
+        target,
+        branch,
+        key,
+        title,
+        path,
+        record_id,
+        content,
+        message,
+        description=None,
     ):
         try:
             from huggingface_hub import CommitOperationAdd, HfApi  # noqa: PLC0415
@@ -1315,7 +1520,8 @@ class StorageCoordinator:
                         CommitOperationAdd(path_in_repo=path, path_or_fileobj=content)
                     ],
                     commit_message=f"{title} · revision 1",
-                    commit_description=review_description_for(key, target.branch),
+                    commit_description=description
+                    or review_description_for(key, target.branch),
                     create_pr=True,
                 ),
             )
@@ -1390,7 +1596,16 @@ class StorageCoordinator:
             ) from exc
 
     async def _open_github_review(  # ruff: ignore[too-many-positional-arguments]
-        self, target, branch, key, title, path, record_id, content, message
+        self,
+        target,
+        branch,
+        key,
+        title,
+        path,
+        record_id,
+        content,
+        message,
+        description=None,
     ):
         owner, repo = _repo_parts(target.repo)
         headers = {
@@ -1435,7 +1650,7 @@ class StorageCoordinator:
                 "title": title,
                 "head": branch,
                 "base": target.branch,
-                "body": review_description_for(key, target.branch),
+                "body": description or review_description_for(key, target.branch),
             },
             timeout=20.0,
         )
@@ -1505,7 +1720,16 @@ class StorageCoordinator:
         return None
 
     async def _open_gitlab_review(  # ruff: ignore[too-many-positional-arguments]
-        self, target, branch, key, title, path, record_id, content, message
+        self,
+        target,
+        branch,
+        key,
+        title,
+        path,
+        record_id,
+        content,
+        message,
+        description=None,
     ):
         base = target.api_base or "https://gitlab.com/api/v4"
         project = quote(target.repo, safe="")
@@ -1534,7 +1758,9 @@ class StorageCoordinator:
                 "source_branch": branch,
                 "target_branch": target.branch,
                 "title": title,
-                "description": review_description_for(key, target.branch),
+                "description": (
+                    description or review_description_for(key, target.branch)
+                ),
                 "remove_source_branch": True,
             },
             timeout=20.0,
@@ -1597,7 +1823,16 @@ class StorageCoordinator:
         return None
 
     async def _open_bitbucket_review(  # ruff: ignore[too-many-positional-arguments]
-        self, target, branch, key, title, path, record_id, content, message
+        self,
+        target,
+        branch,
+        key,
+        title,
+        path,
+        record_id,
+        content,
+        message,
+        description=None,
     ):
         workspace, repo = _repo_parts(target.repo)
         headers = {
@@ -1629,7 +1864,9 @@ class StorageCoordinator:
                 "source": {"branch": {"name": branch}},
                 "destination": {"branch": {"name": target.branch}},
                 "close_source_branch": True,
-                "description": review_description_for(key, target.branch, "decline"),
+                "description": (
+                    description or review_description_for(key, target.branch, "decline")
+                ),
             },
             timeout=20.0,
         )

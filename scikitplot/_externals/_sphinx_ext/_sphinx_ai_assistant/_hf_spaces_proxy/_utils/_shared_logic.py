@@ -222,7 +222,7 @@ __all__ = [  # noqa: RUF022
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Proxy release version — bump on every breaking change.
-PROXY_VERSION: str = "7.3.0"
+PROXY_VERSION: str = "7.4.0"
 
 #: HuggingFace Inference Providers router base URL (no trailing slash).
 #: Only used for Path 3 (standard provider models) when ``BACKEND_URL`` is

@@ -338,8 +338,9 @@ def load_sources_records(
 def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> list[dict]:
     """Build the training set from reviewed records, then deduplicate.
 
-    By default only ``_source=contribution`` rows with
-    ``trainingStatus=eligible`` plus privacy-minimal ``action=withdraw``
+    By default reviewed ``contribution`` and explicitly training-consented
+    ``feedback`` rows with ``trainingStatus=eligible`` are admitted, plus
+    privacy-minimal ``action=withdraw``
     tombstones are admitted. Withdrawal tombstones participate in last-write-
     wins so a later participant withdrawal suppresses the matching eligible
     row, then the tombstone itself is excluded from training output. Feedback
@@ -357,7 +358,8 @@ def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> lis
 
     filtered: list[dict] = []
     for rec in records:
-        if rec.get("_source") != "contribution":
+        source = rec.get("_source")
+        if source not in {"contribution", "feedback"}:
             continue
         status = rec.get("trainingStatus")
         action = rec.get("action")
@@ -366,6 +368,7 @@ def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> lis
             or status == "eligible"
             or (
                 include_unreviewed
+                and source == "contribution"
                 and status in {"quarantined", "legacy_unreviewed", None}
             )
         ):
@@ -1031,7 +1034,8 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
     excluded = sum(
         1
         for r in all_records
-        if r.get("_source") != "contribution" or r.get("trainingStatus") != "eligible"
+        if r.get("_source") not in {"contribution", "feedback"}
+        or r.get("trainingStatus") != "eligible"
     )
     logger.info("  %d record(s) excluded by training eligibility policy", excluded)
     duplicates_removed = max(

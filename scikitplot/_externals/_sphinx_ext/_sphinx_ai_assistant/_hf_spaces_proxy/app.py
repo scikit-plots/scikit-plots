@@ -5,7 +5,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v7.3.0
+# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v7.4.0
 #
 # Server-authoritative chat proxy for sphinx-ai-assistant.
 #
@@ -208,6 +208,7 @@ try:
         normalize_contribution_record,
         normalize_contribution_withdrawal_record,
         normalize_feedback_record,
+        normalize_feedback_review_record,
     )
 except Exception:  # noqa: BLE001
     from _utils._dataset_schema import (  # type: ignore[import]
@@ -221,6 +222,7 @@ except Exception:  # noqa: BLE001
         normalize_contribution_record,
         normalize_contribution_withdrawal_record,
         normalize_feedback_record,
+        normalize_feedback_review_record,
     )
 
 try:
@@ -1139,6 +1141,27 @@ FEEDBACK_PERSIST_ENABLED: bool = os.environ.get(
 #: Independent small body limit for rating telemetry.
 FEEDBACK_MAX_BODY_BYTES: int = 16 * 1024
 
+#: Content-bearing maintainer feedback is a separate authority from telemetry.
+#: ``provider-pr`` opens/updates one native review per participant receipt;
+#: ``disabled`` keeps all ratings local/telemetry-only even if a stale client
+#: attempts the review route.  Browser review permission is independently
+#: versioned and required on every review create/update.
+FEEDBACK_REVIEW_MODE: str = (
+    os.environ.get("FEEDBACK_REVIEW_MODE", "provider-pr").strip().lower()
+    or "provider-pr"
+)
+if FEEDBACK_REVIEW_MODE not in {"disabled", "provider-pr"}:
+    FEEDBACK_REVIEW_MODE = "disabled"
+FEEDBACK_REVIEW_CONSENT_VERSION: str = "2.0.0"
+FEEDBACK_TRAINING_CONSENT_VERSION: str = "1.0.0"
+FEEDBACK_REVIEW_MAX_BODY_BYTES: int = 256 * 1024
+FEEDBACK_REVIEW_TTL_SECONDS: int = max(
+    3600,
+    min(
+        30 * 86400, _safe_int(os.environ.get("FEEDBACK_REVIEW_TTL_SECONDS"), 7 * 86400)
+    ),
+)
+
 #: Pending contribution review configuration.
 #: ``ledger`` keeps the historical process/DB quarantine and requires explicit
 #: promotion. ``provider-pr`` writes the future eligible record to a native
@@ -1224,6 +1247,47 @@ CONTRIBUTION_LEDGER_TERMINAL_RETENTION_SECONDS: int = max(
 )
 
 
+#: Feedback-review lifecycle uses the same hardened ledger implementation but
+#: a distinct namespace/file so its participant capabilities and capacity never
+#: collide with dataset-contribution receipts. Defaults inherit the contribution
+#: backend topology for operator simplicity.
+FEEDBACK_REVIEW_LEDGER_BACKEND: str = (
+    os.environ.get("FEEDBACK_REVIEW_LEDGER_BACKEND", CONTRIBUTION_LEDGER_BACKEND)
+    .strip()
+    .lower()
+    or CONTRIBUTION_LEDGER_BACKEND
+)
+FEEDBACK_REVIEW_LEDGER_SQLITE_PATH: str = os.environ.get(
+    "FEEDBACK_REVIEW_LEDGER_SQLITE_PATH",
+    CONTRIBUTION_LEDGER_SQLITE_PATH + ".feedback-review",
+).strip()
+FEEDBACK_REVIEW_LEDGER_REDIS_URL: str = os.environ.get(
+    "FEEDBACK_REVIEW_LEDGER_REDIS_URL", CONTRIBUTION_LEDGER_REDIS_URL
+).strip()
+FEEDBACK_REVIEW_LEDGER_KEY_SECRET: str = os.environ.get(
+    "FEEDBACK_REVIEW_LEDGER_KEY_SECRET", CONTRIBUTION_LEDGER_KEY_SECRET
+)
+FEEDBACK_REVIEW_LEDGER_KEY_PREFIX: str = os.environ.get(
+    "FEEDBACK_REVIEW_LEDGER_KEY_PREFIX",
+    CONTRIBUTION_LEDGER_KEY_PREFIX + ":feedback-review",
+).strip() or (CONTRIBUTION_LEDGER_KEY_PREFIX + ":feedback-review")
+FEEDBACK_REVIEW_REQUIRE_DURABLE: bool = os.environ.get(
+    "FEEDBACK_REVIEW_REQUIRE_DURABLE",
+    "true" if CONTRIBUTION_REQUIRE_DURABLE else "false",
+).strip().lower() in {"1", "true", "yes", "on"}
+FEEDBACK_REVIEW_REQUIRE_SHARED: bool = os.environ.get(
+    "FEEDBACK_REVIEW_REQUIRE_SHARED",
+    "true" if CONTRIBUTION_REQUIRE_SHARED else "false",
+).strip().lower() in {"1", "true", "yes", "on"}
+FEEDBACK_REVIEW_LEDGER_MAX_RECEIPTS: int = max(
+    128,
+    min(
+        100_000,
+        _safe_int(os.environ.get("FEEDBACK_REVIEW_LEDGER_MAX_RECEIPTS"), 10_000),
+    ),
+)
+
+
 #: Rate-limit backend. ``local`` is the bounded compatibility abuse gate.
 #: ``redis`` is a shared atomic fixed-window decision domain suitable for
 #: horizontally scaled proxy replicas. Redis mode requires a >=32-byte secret
@@ -1256,6 +1320,9 @@ SHARE_RATE_LIMIT_PER_HOUR: int = max(
 )
 FEEDBACK_RATE_LIMIT_PER_HOUR: int = max(
     1, min(_safe_int(os.environ.get("FEEDBACK_RATE_LIMIT_PER_HOUR"), 30), 10_000)
+)
+FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR: int = max(
+    1, min(_safe_int(os.environ.get("FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR"), 20), 10_000)
 )
 CONTRIBUTION_RATE_LIMIT_PER_HOUR: int = max(
     1, min(_safe_int(os.environ.get("CONTRIBUTION_RATE_LIMIT_PER_HOUR"), 5), 10_000)
@@ -1374,6 +1441,8 @@ _chat_rl: dict[str, tuple[int, float]] = {}
 _chat_rl_lock = asyncio.Lock()
 _contrib_rl: dict[str, tuple[int, float]] = {}
 _contrib_rl_lock = asyncio.Lock()
+_feedback_review_rl: dict[str, tuple[int, float]] = {}
+_feedback_review_rl_lock = asyncio.Lock()
 
 #: Optional shared rate-limit authority. Configuration errors are retained as
 #: bounded codes and cause every rate-limited route to fail closed in redis mode.
@@ -1433,6 +1502,34 @@ except ContributionLedgerError as _ledger_exc:
 _contrib_quarantine: dict[str, dict[str, Any]] = getattr(
     _CONTRIBUTION_LEDGER, "entries", {}
 )
+
+_FEEDBACK_REVIEW_LEDGER_CONFIG_ERROR: str = ""
+_FEEDBACK_REVIEW_LEDGER_READY: bool = False
+try:
+    _FEEDBACK_REVIEW_LEDGER = build_contribution_ledger(
+        FEEDBACK_REVIEW_LEDGER_BACKEND,
+        sqlite_path=FEEDBACK_REVIEW_LEDGER_SQLITE_PATH,
+        redis_url=FEEDBACK_REVIEW_LEDGER_REDIS_URL,
+        redis_key_secret=FEEDBACK_REVIEW_LEDGER_KEY_SECRET,
+        redis_key_prefix=FEEDBACK_REVIEW_LEDGER_KEY_PREFIX,
+        redis_timeout_seconds=CONTRIBUTION_LEDGER_REDIS_TIMEOUT_SECONDS,
+        operation_lease_seconds=CONTRIBUTION_OPERATION_LEASE_SECONDS,
+        require_redis_tls=REDIS_REQUIRE_TLS,
+        max_pending_entries=max(128, CONTRIBUTION_QUARANTINE_MAX_ENTRIES),
+        max_pending_bytes=max(4 * 1024 * 1024, CONTRIBUTION_QUARANTINE_MAX_TOTAL_BYTES),
+        max_receipts=FEEDBACK_REVIEW_LEDGER_MAX_RECEIPTS,
+        terminal_retention_seconds=CONTRIBUTION_LEDGER_TERMINAL_RETENTION_SECONDS,
+    )
+except ContributionLedgerError as _feedback_ledger_exc:
+    _FEEDBACK_REVIEW_LEDGER_CONFIG_ERROR = _feedback_ledger_exc.code
+    _FEEDBACK_REVIEW_LEDGER = build_contribution_ledger(
+        "memory",
+        sqlite_path=FEEDBACK_REVIEW_LEDGER_SQLITE_PATH,
+        max_pending_entries=max(128, CONTRIBUTION_QUARANTINE_MAX_ENTRIES),
+        max_pending_bytes=max(4 * 1024 * 1024, CONTRIBUTION_QUARANTINE_MAX_TOTAL_BYTES),
+        max_receipts=FEEDBACK_REVIEW_LEDGER_MAX_RECEIPTS,
+        terminal_retention_seconds=CONTRIBUTION_LEDGER_TERMINAL_RETENTION_SECONDS,
+    )
 
 #: In-memory per-IP rate-limit store for share endpoint.
 _share_rl: dict[str, tuple[int, float]] = {}
@@ -1663,7 +1760,7 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
     This allows concurrent Path 2 requests (600 s) and Path 3 requests
     (120 s) to coexist on the same client without either blocking the other.
     """
-    global _http_client, _SHARED_RATE_LIMITER_READY, _CONTRIBUTION_LEDGER_READY, _SHARE_STORE_READY  # noqa: PLW0603
+    global _http_client, _SHARED_RATE_LIMITER_READY, _CONTRIBUTION_LEDGER_READY, _FEEDBACK_REVIEW_LEDGER_READY, _SHARE_STORE_READY  # noqa: PLW0603
     _deployment_error = _deployment_policy_error()
     if _deployment_error:
         logger.critical(
@@ -1691,6 +1788,12 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
     except ContributionLedgerError as exc:
         _CONTRIBUTION_LEDGER_READY = False
         logger.error("Contribution lifecycle backend unavailable: code=%s", exc.code)
+    try:
+        await _FEEDBACK_REVIEW_LEDGER.initialize()
+        _FEEDBACK_REVIEW_LEDGER_READY = True
+    except ContributionLedgerError as exc:
+        _FEEDBACK_REVIEW_LEDGER_READY = False
+        logger.error("Feedback review lifecycle backend unavailable: code=%s", exc.code)
     try:
         await _SHARE_STORE.initialize()
         _SHARE_STORE_READY = True
@@ -1735,6 +1838,33 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
         _ledger_manifest.get("backend"),
         _ledger_manifest.get("durability"),
         bool(_ledger_manifest.get("shared")),
+    )
+    _feedback_review_manifest = _FEEDBACK_REVIEW_LEDGER.manifest()
+    if _FEEDBACK_REVIEW_LEDGER_CONFIG_ERROR:
+        logger.error(
+            "Feedback review lifecycle backend invalid: code=%s",
+            _FEEDBACK_REVIEW_LEDGER_CONFIG_ERROR,
+        )
+    if FEEDBACK_REVIEW_REQUIRE_DURABLE and not bool(
+        _feedback_review_manifest.get("durable")
+    ):
+        logger.error(
+            "Feedback review requires durable lifecycle storage but configured backend is non-durable."
+        )
+    if FEEDBACK_REVIEW_REQUIRE_SHARED and not (
+        bool(_feedback_review_manifest.get("shared"))
+        and bool(_feedback_review_manifest.get("authoritative"))
+        and _FEEDBACK_REVIEW_LEDGER_READY
+    ):
+        logger.error(
+            "Feedback review requires shared authoritative lifecycle storage but it is unavailable."
+        )
+    logger.info(
+        "Feedback review lifecycle ready: mode=%s backend=%s durability=%s shared=%s",
+        FEEDBACK_REVIEW_MODE,
+        _feedback_review_manifest.get("backend"),
+        _feedback_review_manifest.get("durability"),
+        bool(_feedback_review_manifest.get("shared")),
     )
     _share_manifest = _SHARE_STORE.manifest()
     if _SHARE_STORE_CONFIG_ERROR:
@@ -1820,6 +1950,8 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
         await _STORAGE.close()
         await _CONTRIBUTION_LEDGER.close()
         _CONTRIBUTION_LEDGER_READY = False
+        await _FEEDBACK_REVIEW_LEDGER.close()
+        _FEEDBACK_REVIEW_LEDGER_READY = False
         await _SHARE_STORE.close()
         _SHARE_STORE_READY = False
         if _SHARED_RATE_LIMITER is not None:
@@ -1863,6 +1995,7 @@ app.add_middleware(
         "Authorization",
         "X-Share-Edit-Token",
         "X-Contribution-Delete-Token",
+        "X-Feedback-Review-Token",
         "X-AI-Operation-Id",
         "X-AI-Resource-Id",
         "X-AI-Management-Token-Hash",
@@ -2777,6 +2910,11 @@ async def root() -> JSONResponse:
                 "feedback_telemetry_consent_version": (
                     FEEDBACK_TELEMETRY_CONSENT_VERSION
                 ),
+                "feedback_review_mode": FEEDBACK_REVIEW_MODE,
+                "feedback_review_ready": _feedback_review_pipeline_ready(),
+                "feedback_review_consent_version": FEEDBACK_REVIEW_CONSENT_VERSION,
+                "feedback_training_consent_version": FEEDBACK_TRAINING_CONSENT_VERSION,
+                "feedback_review_updates": True,
                 "contribution_review_mode": CONTRIBUTION_REVIEW_MODE,
                 "pending_review_updates": True,
                 "duplicate_resubmit_policy": "same-receipt-noop-or-update",
@@ -4878,6 +5016,624 @@ async def share_delete(share_id: str, request: Request) -> JSONResponse:
         {"revoked": True},
         headers={"Cache-Control": "no-store", **_legacy_share_headers(entry)},
     )
+
+
+def _feedback_review_enabled() -> bool:
+    return FEEDBACK_REVIEW_MODE == "provider-pr"
+
+
+def _feedback_review_pipeline_ready() -> bool:
+    if not _feedback_review_enabled():
+        return False
+    if _FEEDBACK_REVIEW_LEDGER_CONFIG_ERROR or not _FEEDBACK_REVIEW_LEDGER_READY:
+        return False
+    manifest = _FEEDBACK_REVIEW_LEDGER.manifest()
+    if FEEDBACK_REVIEW_REQUIRE_DURABLE and not bool(manifest.get("durable")):
+        return False
+    if FEEDBACK_REVIEW_REQUIRE_SHARED and not (
+        bool(manifest.get("shared")) and bool(manifest.get("authoritative"))
+    ):
+        return False
+    return _STORAGE.primary is not None and _STORAGE.primary_ready()
+
+
+def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
+    payload: Any,
+) -> dict[str, Any]:
+    """Validate explicit one-Q&A maintainer feedback without silent truncation."""
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=422, detail="Feedback review body must be an object."
+        )
+    if payload.get("schemaVersion") != 1:
+        raise HTTPException(
+            status_code=422, detail="Unsupported feedback review schemaVersion."
+        )
+    if (
+        payload.get("consentFlag") is not True
+        or payload.get("consentVersion") != FEEDBACK_REVIEW_CONSENT_VERSION
+    ):
+        raise HTTPException(
+            status_code=403, detail="Explicit feedback review permission is required."
+        )
+    if (
+        payload.get("trainingConsentFlag") is not True
+        or payload.get("trainingConsentVersion") != FEEDBACK_TRAINING_CONSENT_VERSION
+    ):
+        raise HTTPException(
+            status_code=403, detail="Explicit feedback training permission is required."
+        )
+    query = payload.get("query")
+    answer = payload.get("answer")
+    message = payload.get("message", "")
+    if not isinstance(query, str) or not query.strip():
+        raise HTTPException(
+            status_code=422, detail="Feedback review requires the question text."
+        )
+    if not isinstance(answer, str) or not answer.strip():
+        raise HTTPException(
+            status_code=422, detail="Feedback review requires the answer text."
+        )
+    if (
+        len(query) > MAX_CONVERSATION_MESSAGE_CHARS
+        or len(answer) > MAX_CONVERSATION_MESSAGE_CHARS
+    ):
+        raise HTTPException(
+            status_code=422, detail="Feedback review Q&A exceeds the supported size."
+        )
+    if not isinstance(message, str) or len(message) > MAX_CONTRIBUTION_NOTE_CHARS:
+        raise HTTPException(
+            status_code=422, detail="Feedback review note exceeds the supported size."
+        )
+    value = payload.get("ratingValue")
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise HTTPException(
+            status_code=422, detail="Feedback review requires a numeric rating."
+        )
+    scale_min = payload.get("ratingScaleMin")
+    scale_max = payload.get("ratingScaleMax")
+    if (
+        not isinstance(scale_min, (int, float))
+        or isinstance(scale_min, bool)
+        or not isinstance(scale_max, (int, float))
+        or isinstance(scale_max, bool)
+        or scale_min >= scale_max
+        or value < scale_min
+        or value > scale_max
+    ):
+        raise HTTPException(
+            status_code=422, detail="Feedback review rating scale is invalid."
+        )
+    mode = payload.get("ratingMode")
+    if mode not in {"quick", "panel"}:
+        raise HTTPException(
+            status_code=422, detail="Feedback review ratingMode must be quick or panel."
+        )
+    label = payload.get("ratingLabel")
+    title = payload.get("ratingTitle")
+
+    def is_above_thr(
+        label: str = label,
+        thr: int = 64,
+    ):
+        return len(label) > thr
+
+    if label is not None and (not isinstance(label, str) or is_above_thr(label, 64)):
+        raise HTTPException(
+            status_code=422, detail="Feedback review ratingLabel is invalid."
+        )
+    if title is not None and (not isinstance(title, str) or is_above_thr(label, 128)):
+        raise HTTPException(
+            status_code=422, detail="Feedback review ratingTitle is invalid."
+        )
+    return payload
+
+
+def _feedback_review_reference(
+    entry: dict[str, Any], review: Any | None = None
+) -> dict[str, Any]:
+    storage = entry.get("storage") if isinstance(entry.get("storage"), dict) else {}
+    raw_review = (
+        storage.get("review") if isinstance(storage.get("review"), dict) else {}
+    )
+    paths = storage.get("paths") if isinstance(storage.get("paths"), dict) else {}
+    provider = str(getattr(review, "provider", "") or raw_review.get("provider") or "")[
+        :32
+    ]
+    review_id = str(
+        getattr(review, "review_id", "") or raw_review.get("reviewId") or ""
+    )[:32]
+    path = str(getattr(review, "path", "") or "")
+    if not path:
+        target_id = str(raw_review.get("targetId") or "")
+        if target_id and target_id in paths:
+            path = str(paths.get(target_id) or "")
+        elif len(paths) == 1:
+            path = str(next(iter(paths.values())) or "")
+    path = path.replace("\\", "/").replace("\r", "").replace("\n", "")[:512]
+    if not path or path.startswith("/") or ".." in path.split("/"):
+        path = ""
+    out: dict[str, Any] = {}
+    if provider:
+        out["reviewProvider"] = provider
+    if review_id.isdigit():
+        out["reviewId"] = review_id
+    if path:
+        out["reviewPath"] = path
+    return out
+
+
+def _feedback_review_public_status(
+    entry: dict[str, Any], review: Any | None = None
+) -> dict[str, Any]:
+    state = str(entry.get("state") or "unknown")
+    review_state = str(getattr(review, "status", "") or "").lower()
+    if state == "eligible":
+        status = "reviewed"
+    elif state == "withdrawn":
+        status = "withdrawn"
+    elif state in {"deleted", "expired"}:
+        status = state
+    elif review_state in {"closed", "rejected"}:
+        status = "rejected"
+    else:
+        status = "in_review"
+    body = {
+        "status": status,
+        "reviewMode": FEEDBACK_REVIEW_MODE,
+        "trainingEligible": state == "eligible",
+        "feedbackReview": True,
+        "reviewRevision": max(
+            1, int((entry.get("operation") or {}).get("reviewRevision") or 1)
+        ),
+        "expiresAt": (
+            int(float(entry.get("expiresAt") or 0) * 1000)
+            if entry.get("expiresAt")
+            else None
+        ),
+    }
+    if review is not None:
+        body["reviewStatus"] = review.status
+    body.update(_feedback_review_reference(entry, review))
+    return body
+
+
+def _feedback_review_response(
+    entry: dict[str, Any],
+    *,
+    receipt_id: str,
+    delete_token: str,
+    review: Any | None,
+    replay: bool = False,
+    review_update: str = "",
+) -> JSONResponse:
+    body = {
+        "accepted": True,
+        "receiptId": receipt_id,
+        "idempotentReplay": bool(replay),
+        **_feedback_review_public_status(entry, review),
+    }
+    if review_update:
+        body["reviewUpdate"] = review_update
+    if delete_token:
+        body["deleteToken"] = delete_token
+    return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+
+async def _authorized_feedback_review_entry(
+    receipt_id: str, request: Request
+) -> dict[str, Any]:
+    try:
+        entry = await _FEEDBACK_REVIEW_LEDGER.get(receipt_id)
+    except ContributionLedgerError as exc:
+        raise _contribution_ledger_http_error(exc) from exc
+    if entry is None:
+        raise HTTPException(
+            status_code=404, detail="Feedback review receipt not found."
+        )
+    supplied = request.headers.get("X-Feedback-Review-Token", "")
+    if not supplied or not verify_edit_token(
+        supplied, str(entry.get("deleteTokenHash") or "")
+    ):
+        raise HTTPException(
+            status_code=403, detail="Invalid feedback review management capability."
+        )
+    return entry
+
+
+async def _ensure_feedback_provider_review(entry: dict[str, Any]):
+    if not _feedback_review_enabled():
+        return None
+    receipt_id = str(entry.get("receiptId") or "")
+    storage_hint = (
+        entry.get("storage") if isinstance(entry.get("storage"), dict) else {}
+    )
+    if isinstance(storage_hint.get("review"), dict):
+        review = await _STORAGE.get_feedback_review(
+            receipt_id, review_hint=storage_hint
+        )
+        if review is None:
+            raise StorageWriteError("REVIEW_NOT_FOUND")
+        return review
+    records = [row for row in entry.get("records", []) if isinstance(row, dict)]
+    if not records:
+        raise StorageWriteError("EMPTY_REVIEW")
+    content = ("\n".join(json.dumps(r, ensure_ascii=False) for r in records)).encode(
+        "utf-8"
+    )
+    review = await _STORAGE.open_feedback_review(
+        receipt_id=receipt_id,
+        content=content,
+        commit_message="Open maintainer feedback review · revision 1",
+        path_timestamp=float(entry.get("receivedAt") or _time.time()),
+    )
+    try:
+        bound = await _FEEDBACK_REVIEW_LEDGER.set_pending_storage(
+            receipt_id, storage=review.storage_metadata()
+        )
+        entry["storage"] = bound.get("storage") or review.storage_metadata()
+    except ContributionLedgerError as exc:
+        raise StorageWriteError("REVIEW_BIND_LEDGER", transient=True) from exc
+    return review
+
+
+async def _sync_feedback_review_merge(
+    entry: dict[str, Any],
+) -> tuple[dict[str, Any], Any | None]:
+    if not _feedback_review_enabled() or str(entry.get("state") or "") != "quarantined":
+        return entry, None
+    review = await _ensure_feedback_provider_review(entry)
+    if review is None or review.status != "merged":
+        return entry, review
+    try:
+        claimed = await _FEEDBACK_REVIEW_LEDGER.begin_promotion(
+            str(entry.get("receiptId") or "")
+        )
+        claim = str(claimed.get("operationClaim") or "") or None
+        reviewed = await _FEEDBACK_REVIEW_LEDGER.mark_promoted(
+            str(entry.get("receiptId") or ""),
+            storage=review.storage_metadata(),
+            claim_token=claim,
+        )
+        logger.info(
+            json.dumps({"event": "feedback_review.merged", "provider": review.provider})
+        )
+        return reviewed, review
+    except ContributionLedgerError:
+        current = await _FEEDBACK_REVIEW_LEDGER.get(str(entry.get("receiptId") or ""))
+        if current is not None and str(current.get("state") or "") == "eligible":
+            return current, review
+        raise
+
+
+@app.post("/v1/feedback/review")
+async def create_feedback_review(request: Request) -> JSONResponse:
+    """Create one explicit content-bearing maintainer feedback review."""
+    if not _feedback_review_pipeline_ready():
+        raise HTTPException(
+            status_code=503, detail="Feedback review workflow is unavailable."
+        )
+    raw = await _read_limited_body(
+        request, FEEDBACK_REVIEW_MAX_BODY_BYTES, "Feedback review"
+    )
+    try:
+        payload = _validate_feedback_review_payload(json.loads(raw))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body.") from exc
+    envelope = _operation_envelope(
+        request,
+        payload,
+        "feedback-review",
+        max_age_ms=FEEDBACK_REVIEW_TTL_SECONDS * 1000,
+    )
+    if envelope:
+        receipt_id, delete_hash, operation_id = envelope
+        delete_token = ""
+    else:
+        receipt_id, delete_token, operation_id = (
+            uuid.uuid4().hex,
+            generate_edit_token(),
+            "",
+        )
+        delete_hash = hash_edit_token(delete_token)
+    payload_digest = _canonical_payload_digest(payload)
+
+    if envelope:
+        try:
+            existing = await _FEEDBACK_REVIEW_LEDGER.get(receipt_id)
+        except ContributionLedgerError as exc:
+            raise _contribution_ledger_http_error(exc) from exc
+        if existing is not None:
+            op = (
+                existing.get("operation")
+                if isinstance(existing.get("operation"), dict)
+                else {}
+            )
+            if not (
+                secrets.compare_digest(
+                    str(op.get("payloadDigest") or ""), payload_digest
+                )
+                and secrets.compare_digest(
+                    str(op.get("operationId") or ""), operation_id
+                )
+                and secrets.compare_digest(
+                    str(existing.get("deleteTokenHash") or ""), delete_hash
+                )
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Feedback review operation identity was reused with different content.",
+                )
+            review = await _ensure_feedback_provider_review(existing)
+            return _feedback_review_response(
+                existing,
+                receipt_id=receipt_id,
+                delete_token=delete_token,
+                review=review,
+                replay=True,
+                review_update="unchanged",
+            )
+
+    client_ip = _client_ip(request)
+    allowed, _count = await _consume_rate_limit(
+        _feedback_review_rl,
+        _feedback_review_rl_lock,
+        client_ip,
+        limit=FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR,
+        scope="feedback-review",
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded for feedback reviews.",
+            headers={"Retry-After": "3600"},
+        )
+
+    server_ts_ms = int(_time.time() * 1000)
+    record = normalize_feedback_review_record(
+        payload, server_ts_ms=server_ts_ms, receipt_id=receipt_id
+    )
+    encoded = json.dumps(record, ensure_ascii=False).encode("utf-8")
+    entry = {
+        "receiptId": receipt_id,
+        "kind": "feedback-review",
+        "state": "quarantined",
+        "records": [record],
+        "bytes": len(encoded),
+        "deleteTokenHash": delete_hash,
+        "expiresAt": _time.time() + FEEDBACK_REVIEW_TTL_SECONDS,
+        "receivedAt": _time.time(),
+        "dedupKeys": [str(record.get("_dedup_key") or "")],
+        "storage": {},
+        "withdrawalStorage": {},
+        "currentViewRemoval": {},
+        "lastError": "",
+        "operation": {
+            "payloadDigest": payload_digest,
+            "operationId": operation_id,
+            "reviewRevision": 1,
+        },
+        "rowCount": 1,
+    }
+    try:
+        await _FEEDBACK_REVIEW_LEDGER.create(entry)
+    except ContributionLedgerError as exc:
+        raise _contribution_ledger_http_error(exc) from exc
+    try:
+        review = await _ensure_feedback_provider_review(entry)
+    except StorageWriteError as exc:
+        logger.error(
+            json.dumps({"event": "feedback_review.open_fail", "code": exc.code})
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Feedback was accepted into review lifecycle but its repository review could not be opened. Retry the same action.",
+        ) from exc
+    logger.info(
+        json.dumps({"event": "feedback_review.opened", "provider": review.provider})
+    )
+    return _feedback_review_response(
+        entry, receipt_id=receipt_id, delete_token=delete_token, review=review
+    )
+
+
+@app.put("/v1/feedback/review/{receipt_id}")
+async def update_feedback_review(receipt_id: str, request: Request) -> JSONResponse:
+    """Update one open feedback review; identical content is a no-op."""
+    entry = await _authorized_feedback_review_entry(receipt_id, request)
+    if str(entry.get("state") or "") == "quarantined":
+        try:
+            entry, current_review = await _sync_feedback_review_merge(entry)
+        except (StorageWriteError, ContributionLedgerError) as exc:
+            raise HTTPException(
+                status_code=503, detail="Feedback review state could not be refreshed."
+            ) from exc
+    else:
+        current_review = None
+    if str(entry.get("state") or "") != "quarantined":
+        raise HTTPException(
+            status_code=409, detail="Feedback review is no longer open for updates."
+        )
+    if current_review is not None and current_review.status in {"closed", "rejected"}:
+        raise HTTPException(
+            status_code=409, detail="Feedback review was closed and cannot be updated."
+        )
+    raw = await _read_limited_body(
+        request, FEEDBACK_REVIEW_MAX_BODY_BYTES, "Feedback review"
+    )
+    try:
+        payload = _validate_feedback_review_payload(json.loads(raw))
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Invalid JSON body.") from exc
+    digest = _canonical_payload_digest(payload)
+    operation = (
+        entry.get("operation") if isinstance(entry.get("operation"), dict) else {}
+    )
+    if str(operation.get("payloadDigest") or "") and secrets.compare_digest(
+        str(operation.get("payloadDigest") or ""), digest
+    ):
+        review = current_review or await _ensure_feedback_provider_review(entry)
+        return _feedback_review_response(
+            entry,
+            receipt_id=receipt_id,
+            delete_token="",
+            review=review,
+            replay=True,
+            review_update="unchanged",
+        )
+    record = normalize_feedback_review_record(
+        payload, server_ts_ms=int(_time.time() * 1000), receipt_id=receipt_id
+    )
+    encoded = json.dumps(record, ensure_ascii=False).encode("utf-8")
+    next_revision = max(1, int(operation.get("reviewRevision") or 1)) + 1
+    try:
+        review = await _STORAGE.update_feedback_review(
+            receipt_id=receipt_id,
+            content=encoded,
+            commit_message=f"Update maintainer feedback review · revision {next_revision}",
+            path_timestamp=float(entry.get("receivedAt") or _time.time()),
+            review_hint=(
+                entry.get("storage") if isinstance(entry.get("storage"), dict) else None
+            ),
+        )
+    except StorageWriteError as exc:
+        if exc.code in {"REVIEW_CLOSED", "REVIEW_MERGED", "REVIEW_NOT_FOUND"}:
+            raise HTTPException(
+                status_code=409, detail="Feedback review is no longer open for updates."
+            ) from exc
+        raise HTTPException(
+            status_code=503, detail="Feedback review could not be updated safely."
+        ) from exc
+    try:
+        updated = await _FEEDBACK_REVIEW_LEDGER.replace_pending_payload(
+            receipt_id,
+            records=[record],
+            byte_count=len(encoded),
+            dedup_keys=[str(record.get("_dedup_key") or "")],
+            payload_digest=digest,
+            row_count=1,
+            storage=review.storage_metadata(),
+        )
+    except ContributionLedgerError as exc:
+        raise _contribution_ledger_http_error(exc) from exc
+    logger.info(
+        json.dumps(
+            {
+                "event": "feedback_review.updated",
+                "revision": next_revision,
+                "provider": review.provider,
+            }
+        )
+    )
+    return _feedback_review_response(
+        updated,
+        receipt_id=receipt_id,
+        delete_token="",
+        review=review,
+        review_update="updated",
+    )
+
+
+@app.get("/v1/feedback/review/{receipt_id}")
+async def feedback_review_status(  # ruff: ignore[undocumented-public-function]
+    receipt_id: str,
+    request: Request,
+) -> JSONResponse:
+    entry = await _authorized_feedback_review_entry(receipt_id, request)
+    review = None
+    if str(entry.get("state") or "") == "quarantined" and _feedback_review_enabled():
+        try:
+            entry, review = await _sync_feedback_review_merge(entry)
+        except (StorageWriteError, ContributionLedgerError) as exc:
+            logger.warning(
+                json.dumps(
+                    {
+                        "event": "feedback_review.status_fail",
+                        "error_type": type(exc).__name__,
+                    }
+                )
+            )
+    return JSONResponse(
+        _feedback_review_public_status(entry, review),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.delete("/v1/feedback/review/{receipt_id}")
+async def withdraw_feedback_review(receipt_id: str, request: Request) -> JSONResponse:
+    """Withdraw pending or merged maintainer feedback using participant authority."""
+    entry = await _authorized_feedback_review_entry(receipt_id, request)
+    state = str(entry.get("state") or "")
+    if state == "quarantined":
+        try:
+            entry, review = await _sync_feedback_review_merge(entry)
+            state = str(entry.get("state") or "")
+        except (StorageWriteError, ContributionLedgerError) as exc:
+            raise HTTPException(
+                status_code=503, detail="Feedback review state could not be refreshed."
+            ) from exc
+        if state == "quarantined":
+            if review is not None and review.status not in {"closed", "rejected"}:
+                try:
+                    await _STORAGE.close_feedback_review(
+                        receipt_id,
+                        review_hint=(
+                            entry.get("storage")
+                            if isinstance(entry.get("storage"), dict)
+                            else None
+                        ),
+                    )
+                except StorageWriteError as exc:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="Feedback review could not be closed safely.",
+                    ) from exc
+            try:
+                deleted = await _FEEDBACK_REVIEW_LEDGER.delete_pending(receipt_id)
+            except ContributionLedgerError as exc:
+                raise _contribution_ledger_http_error(exc) from exc
+            logger.info(json.dumps({"event": "feedback_review.withdrawn_pending"}))
+            body = _feedback_review_public_status(deleted, review)
+            body["status"] = "withdrawn"
+            return JSONResponse(body, headers={"Cache-Control": "no-store"})
+    if state in {"deleted", "withdrawn"}:
+        body = _feedback_review_public_status(entry, None)
+        body["status"] = "withdrawn"
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
+    if state == "expired":
+        raise HTTPException(status_code=410, detail="Feedback review receipt expired.")
+    if state not in {"eligible", "promotion_uncertain", "withdrawal_uncertain"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Feedback review cannot be withdrawn in its current state.",
+        )
+    try:
+        claimed = await _FEEDBACK_REVIEW_LEDGER.begin_withdrawal(receipt_id)
+        claim = str(claimed.get("operationClaim") or "") or None
+    except ContributionLedgerError as exc:
+        raise _contribution_ledger_http_error(exc) from exc
+    storage = claimed.get("storage") if isinstance(claimed.get("storage"), dict) else {}
+    removal = await _STORAGE.remove_current_view(
+        dict(storage.get("paths") or {}),
+        record_id=str(storage.get("recordId") or "") or None,
+    )
+    try:
+        withdrawn = await _FEEDBACK_REVIEW_LEDGER.mark_withdrawn(
+            receipt_id,
+            withdrawal_storage={},
+            current_view_removal=removal,
+            claim_token=claim,
+        )
+    except ContributionLedgerError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Feedback removal completed but lifecycle confirmation failed.",
+        ) from exc
+    logger.info(json.dumps({"event": "feedback_review.withdrawn_reviewed"}))
+    body = _feedback_review_public_status(withdrawn, None)
+    body["status"] = "withdrawn"
+    body["currentViewRemoval"] = removal
+    return JSONResponse(body, status_code=202, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/v1/feedback")

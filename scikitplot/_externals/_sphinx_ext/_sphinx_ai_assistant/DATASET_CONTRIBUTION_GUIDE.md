@@ -8,8 +8,7 @@ maps to Hugging Face, GitHub, GitLab, and Bitbucket Cloud.
 Use this guide when you see **Contribute to dataset**, **Submit for review**,
 `Status: QUARANTINED`, or `Status: IN REVIEW` in the assistant UI.
 
-For low-level storage topology, deduplication, migration, and provider API details,
-see [`_hf_spaces_proxy/DATASET_COLLECTION_GUIDANCE.md`](./_hf_spaces_proxy/DATASET_COLLECTION_GUIDANCE.md).
+For local ratings, anonymous telemetry, and one-Q&A maintainer feedback review, see [`FEEDBACK_REVIEW_GUIDE.md`](./FEEDBACK_REVIEW_GUIDE.md). For low-level storage topology, deduplication, migration, and provider API details, see [`_hf_spaces_proxy/DATASET_COLLECTION_GUIDANCE.md`](./_hf_spaces_proxy/DATASET_COLLECTION_GUIDANCE.md).
 
 ---
 
@@ -61,25 +60,24 @@ boundary. An open review is **not** training data.
 
 ---
 
-## 2. Three control planes that must stay separate
+## 2. Four control planes that must stay separate
 
 The assistant deliberately separates three kinds of user action:
 
 | Control plane | Contains conversation content? | Network by default? | Training eligible? |
 |---|---:|---:|---:|
 | Share/export | only when the reader explicitly shares/exports | depends on chosen share mode | No |
-| Rating feedback | No Q&A content in telemetry | Off until explicit telemetry permission | No |
+| Anonymous rating telemetry | No Q&A content in telemetry | Off until explicit telemetry permission | No |
+| Maintainer feedback review | Exactly one Q&A + rating + optional note | Off until separate review-sharing permission | Never |
 | Dataset contribution | Yes, exact reviewed content | Only after explicit contribution consent | Only after review approval |
 
-A thumbs-up/down rating is not a dataset contribution. A shared conversation is
-not a dataset contribution. Only the dedicated **Contribute to dataset** workflow
-can submit content for training review.
+A thumbs-up/down rating is not a dataset contribution. Sharing one Q&A with maintainers is also not a dataset contribution and remains permanently non-training feedback. A shared conversation is not a dataset contribution. Only the dedicated **Dataset contribution** tab can submit content for training review.
 
 ---
 
 ## 3. What the reader does
 
-The contribution sheet supports three scopes:
+The shared **Feedback & contribution** workspace has separate **Feedback**, **Dataset contribution**, and **Activity** tabs. The Dataset contribution tab supports three scopes:
 
 - **This Q&A** — one selected user/assistant exchange.
 - **Rated answers** — only Q&A records the reader explicitly rated.

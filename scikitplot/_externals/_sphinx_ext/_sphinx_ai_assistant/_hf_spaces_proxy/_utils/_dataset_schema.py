@@ -11,7 +11,9 @@ Schema v4 separates telemetry from two explicit contribution record families:
 
 * ``feedback`` is privacy-minimal rating telemetry.  Content, model, page and
   conversation identity are discarded even when legacy/direct callers submit them;
-  ``trainingStatus`` is always ``telemetry``.
+  ``trainingStatus`` is ``telemetry`` for privacy-minimal rating telemetry.
+  Explicit content-bearing feedback review is a separate consented path and may
+  carry future ``eligible`` bytes that become canonical only after maintainer merge.
 * ``contribution`` is explicit-content intake. Q&A records retain the historical
   ``query``/``answer`` shape while conversation records carry one ordered ``messages``
   array. Both carry versioned consent, enter ``quarantined`` state, and are
@@ -57,9 +59,9 @@ CANONICAL_COLUMNS: list[str] = [
     "conversationId",  # legacy field; v3 feedback/contribution normalization writes None
     "feedbackId",  # feedback event id only; contributions write None
     # ── Record descriptor ─────────────────────────────────────────────────────
-    "recordType",  # "qa" | "conversation" (feedback writes None)
+    "recordType",  # "qa" | "conversation" (telemetry writes None; reviewed feedback writes "qa")
     "answerIndex",  # 0-based position of answer in the conversation
-    "action",  # "rate" | "retract"
+    "action",  # "rate" | "retract" | "review" | "withdraw"
     "prevFeedbackId",  # feedbackId of the record this one supersedes/invalidates.
     # action="rate":    set when this rating replaces an earlier
     #                   one for the same answerIndex (an edit).
@@ -69,12 +71,16 @@ CANONICAL_COLUMNS: list[str] = [
     # edits/re-rates the same answer (mirrors prevFeedbackId
     # chain length without walking it). None for retracts.
     "status",  # "active" | "retracted"  (dedup pipeline manages)
-    "trainingStatus",  # "telemetry" | "quarantined" | "eligible" | "withdrawn" | "legacy_unreviewed"
+    "trainingStatus",  # "telemetry" | "reviewed" | "quarantined" | "eligible" | "withdrawn" | "legacy_unreviewed"
     # ── Rating ────────────────────────────────────────────────────────────────
     "ratingValue",  # int | None: numeric score (-5..+5 for panel; -1|+1 for quick)
     "ratingSlug",  # str | None: snake_case canonical slug ("helpful", "mostly_positive")
     "ratingTitle",  # str | None: human display string ("Helpful", "Mostly yes")
     "ratingMode",  # str | None: "quick" | "panel"
+    "ratingScaleMin",  # numeric lower bound used to normalize reviewed feedback quality
+    "ratingScaleMax",  # numeric upper bound used to normalize reviewed feedback quality
+    "qualityScore",  # float | None: normalized answer quality in [0, 1]
+    "qualityPercent",  # float | None: qualityScore * 100, rounded for dashboards
     "message",  # contribution text only; feedback telemetry writes empty string
     # ── Conversation content ──────────────────────────────────────────────────
     "query",  # contribution user question; feedback telemetry writes empty string
@@ -85,7 +91,8 @@ CANONICAL_COLUMNS: list[str] = [
     "modelEvidence",  # None | "client_reported" | "legacy_unverified"
     # ── Context ───────────────────────────────────────────────────────────────
     "page",  # str: documentation page URL
-    "consentVersion",  # str | None: required for current contribution consent policy
+    "consentVersion",  # str | None: review/contribution sharing consent version
+    "trainingConsentVersion",  # str | None: explicit consent version for training eligibility
     # ── Timestamps ───────────────────────────────────────────────────────────
     "ts",  # int: client-side event time, ms since epoch
 ]
@@ -591,6 +598,89 @@ def normalize_feedback_record(
             "page": "",
             "consentVersion": None,
             "ts": payload.get("ts"),
+        }
+    )
+
+
+def normalize_feedback_review_record(
+    payload: dict[str, Any],
+    *,
+    server_ts_ms: int,
+    receipt_id: str,
+) -> dict[str, Any]:
+    """Normalize explicitly consented Q&A feedback for provider review.
+
+    This is intentionally distinct from privacy-minimal feedback telemetry.  The
+    reader authorizes one Q&A, rating, optional note, and training use if a
+    maintainer accepts the native PR/MR.  The review ref therefore carries the
+    *future canonical* ``trainingStatus=eligible`` bytes, while the API/ledger
+    continues to report ``trainingEligible=false`` until the provider review is
+    actually merged.
+    """
+    feedback_id = _safe_id(payload.get("feedbackId") or payload.get("sessionId"))
+    answer_index = payload.get("answerIndex")
+    try:
+        answer_index = int(answer_index) if answer_index is not None else None
+    except (TypeError, ValueError):
+        answer_index = None
+    rating_fields = normalize_rating(
+        payload.get("ratingValue"),
+        payload.get("ratingLabel"),
+        rating_mode=payload.get("ratingMode"),
+        rating_title=payload.get("ratingTitle"),
+        feedback_id=feedback_id,
+    )
+    rating_value = float(payload.get("ratingValue"))
+    rating_min = float(payload.get("ratingScaleMin"))
+    rating_max = float(payload.get("ratingScaleMax"))
+    quality_score = (rating_value - rating_min) / (rating_max - rating_min)
+    quality_score = max(0.0, min(1.0, quality_score))
+    quality_percent = round(quality_score * 100.0, 2)
+    model = payload.get("model")
+    if not isinstance(model, dict):
+        model = None
+    return _ordered(
+        {
+            "schemaVersion": SCHEMA_VERSION,
+            "_source": "feedback",
+            "_ts": server_ts_ms,
+            "_dedup_key": f"feedback-review:{receipt_id}" if receipt_id else None,
+            "conversationId": None,
+            "feedbackId": feedback_id,
+            "recordType": "qa",
+            "answerIndex": answer_index,
+            "action": "review",
+            "prevFeedbackId": _safe_id(payload.get("prevFeedbackId")),
+            "editCount": _safe_int(payload.get("editCount"), default=0),
+            "status": "active",
+            "trainingStatus": "eligible",
+            "ratingValue": payload.get("ratingValue"),
+            "ratingSlug": rating_fields["ratingSlug"],
+            "ratingTitle": rating_fields["ratingTitle"],
+            "ratingMode": rating_fields["ratingMode"],
+            "ratingScaleMin": rating_min,
+            "ratingScaleMax": rating_max,
+            "qualityScore": round(quality_score, 6),
+            "qualityPercent": quality_percent,
+            "message": _bounded_text(
+                payload.get("message"), limit=_MAX_CONTRIBUTION_NOTE_CHARS
+            ),
+            "query": _bounded_text(
+                payload.get("query"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
+            ),
+            "answer": _bounded_text(
+                payload.get("answer"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
+            ),
+            "messages": None,
+            "model": normalize_model(model) if model else None,
+            "modelEvidence": "client_selected" if model else None,
+            "page": _bounded_text(payload.get("page"), limit=2048),
+            "consentVersion": str(payload.get("consentVersion") or "")[:32] or None,
+            "trainingConsentVersion": (
+                str(payload.get("trainingConsentVersion") or "")[:32] or None
+            ),
+            "ts": payload.get("ts"),
+            "feedbackReview": True,
         }
     )
 

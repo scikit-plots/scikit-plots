@@ -1202,3 +1202,15 @@ Dedicated gates: 12 Python provider-boundary tests; 20 executable browser semant
 - maintenance drift: **GREEN** before package freeze.
 
 Source freeze before packaging: **308 files**, exact `scikitplot/` + `maintenances/`, zero cache/bytecode; exact Run 34 → Run 35 diff **3 added · 15 modified · 0 removed = 18 paths**. Immutable ZIP SHA-256 is recorded after final-byte replay so release evidence never self-references a mutable archive.
+
+## Run 45 / B64 — feedback review training/quality working-tree verification
+
+- feedback review + quality/control-plane/documentation + registered Node focused plane: **88 passed**;
+- full runnable non-Sphinx suite: **864 passed, 3 skipped**;
+- browser feedback-review consent migration: v1 review-only consent fails closed; v2 review/model-improvement consent GREEN;
+- explicit server training-consent rejection: GREEN;
+- quality normalization: quick `-1/+1 -> 0/100%`; multi-level `[-2,-1,0,+1,+2]`, `+1 -> 75%`: GREEN;
+- default training builder admits only `trainingStatus=eligible` contribution/feedback records and continues to exclude telemetry: GREEN;
+- proxy version: **7.4.0**;
+- canonical runtime-source SHA-256: `2af3f4d840c3b680c6798112eb1196d94f0c23aff9a8550f7cd8f43e5c69a9ac`;
+- final immutable package replay and archive SHA-256 are recorded externally after package freeze.

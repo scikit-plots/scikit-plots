@@ -79,7 +79,7 @@ def _evidence(tmp_path: Path, now: datetime) -> Path:
             "releaseId": "run20-test",
             "generatedAt": fmt(now - timedelta(minutes=5)),
             "expiresAt": fmt(now + timedelta(hours=12)),
-            "proxyVersion": "7.3.0",
+            "proxyVersion": "7.4.0",
             "targetPlatform": "linux/amd64",
         },
         "source": {
@@ -309,7 +309,7 @@ def test_evidence_and_artifact_symlinks_are_forbidden(tmp_path):
 
 def test_release_subject_printer_exposes_only_non_secret_content_addressed_inputs():
     out = subjects_mod.subjects()
-    assert out["proxy_version"] == "7.3.0"
+    assert out["proxy_version"] == "7.4.0"
     assert out["target_platform"] == "linux/amd64"
     assert len(out["requirements_lock_sha256"]) == 64
     assert len(out["python_sbom_sha256"]) == 64
@@ -386,6 +386,6 @@ def test_runtime_source_digest_includes_non_python_utils_files(tmp_path):
     assert before != after
 
 
-def test_proxy_version_ratchets_to_b39_release():
+def test_proxy_version_ratchets_to_feedback_review_training_release():
     shared_path = PROXY / "_utils/_shared_logic.py"
-    assert 'PROXY_VERSION: str = "7.3.0"' in shared_path.read_text()
+    assert 'PROXY_VERSION: str = "7.4.0"' in shared_path.read_text()

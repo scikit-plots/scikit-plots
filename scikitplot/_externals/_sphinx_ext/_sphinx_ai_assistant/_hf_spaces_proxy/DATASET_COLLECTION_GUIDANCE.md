@@ -974,6 +974,7 @@ There are two intentionally separate collection paths:
 | Path | Endpoint | Typical folder | Content semantics |
 |---|---|---|---|
 | Rating telemetry | `POST /v1/feedback` | `feedback/` | bounded rating/event mechanics only; never training-eligible |
+| Reviewed Q&A feedback | `POST /v1/feedback/review` | `feedback/` | Q&A + rating + optional note; eligible only after explicit training consent and maintainer merge |
 | Explicit contribution | `POST /v1/contribute` | `contributions/` | user-reviewed Q&A or one ordered conversation record |
 
 Feedback telemetry no longer carries query/answer content, so it is **not** joined

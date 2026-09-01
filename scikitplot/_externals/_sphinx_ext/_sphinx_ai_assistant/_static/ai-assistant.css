@@ -17619,15 +17619,21 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 }
 
 .ai-assistant-panel-contribution-inspect-row {
-    display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.55rem;
-    flex-wrap: wrap;
+    margin-bottom: 0;
 }
-.ai-assistant-panel-contribution-inspect-btn {
+.ai-assistant-panel-contribution-inspect-row .ai-assistant-panel-contribution-size {
+    margin-left: auto;
+}
+.ai-assistant-panel-contribution-action-btn {
     min-height: 2rem;
-    border-radius: 0.62rem;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+}
+.ai-assistant-panel-contribution-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
 }
 .ai-assistant-panel-contribution-size {
     display: inline-flex;
@@ -17714,8 +17720,41 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     margin-top: 0.55rem;
 }
 .ai-assistant-panel-contribution-result:empty { display: none; }
-.ai-assistant-panel-contribution-result .ai-assistant-conv-share-action-btn {
-    margin: 0.45rem 0.35rem 0 0;
+.ai-assistant-panel-contribution-action-group {
+    margin-top: 0.62rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid color-mix(in srgb, var(--pst-color-border, #d1d5db) 72%, transparent);
+}
+.ai-assistant-panel-contribution-action-group-head {
+    display: grid;
+    gap: 0.08rem;
+    margin-bottom: 0.38rem;
+}
+.ai-assistant-panel-contribution-action-group-head strong {
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1f2937));
+    font-size: 0.69rem;
+    line-height: 1.3;
+}
+.ai-assistant-panel-contribution-action-group-head span {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #6b7280));
+    font-size: 0.64rem;
+    line-height: 1.38;
+}
+.ai-assistant-panel-contribution-action-row {
+    margin-bottom: 0;
+    align-items: stretch;
+}
+.ai-assistant-panel-contribution-action-row .ai-assistant-panel-ep-io-btn {
+    flex: 1 1 10.5rem;
+}
+.ai-assistant-panel-contribution-action-group[data-kind="private"] {
+    border-top-color: color-mix(in srgb, var(--pst-color-primary, #2563eb) 30%, transparent);
+}
+.ai-assistant-panel-contribution-action-group[data-kind="support"] {
+    border-top-style: dashed;
+}
+.ai-assistant-panel-contribution-action-group[data-kind="lifecycle"] {
+    border-top-color: color-mix(in srgb, var(--pst-color-warning, #d97706) 32%, transparent);
 }
 .ai-assistant-panel-contribution-import {
     margin-top: 0;
@@ -17742,20 +17781,17 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 .ai-assistant-panel-contribution-recovery-code {
     width: 100%;
     box-sizing: border-box;
-    min-height: 2.1rem;
-    padding: 0.45rem 0.55rem;
-    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d1d5db));
-    border-radius: 0.55rem;
-    background: var(--pst-color-surface, var(--color-background-primary, #fff));
-    color: var(--pst-color-text-base, var(--color-foreground-primary, #111827));
+    min-height: 2.15rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 0.66rem;
 }
 .ai-assistant-panel-contribution-recovery-actions {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-    margin-top: 0.4rem;
+    margin-top: 0.45rem;
+    margin-bottom: 0;
+    align-items: stretch;
+}
+.ai-assistant-panel-contribution-recovery-actions .ai-assistant-panel-ep-io-btn {
+    flex: 1 1 10rem;
 }
 .ai-assistant-panel-contribution-support-ref {
     display: grid;
@@ -17800,6 +17836,15 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
         max-height: min(46vh, 24rem);
         font-size: 0.66rem;
     }
+    .ai-assistant-panel-contribution-inspect-row .ai-assistant-panel-contribution-size {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+    }
+    .ai-assistant-panel-contribution-action-row .ai-assistant-panel-ep-io-btn,
+    .ai-assistant-panel-contribution-recovery-actions .ai-assistant-panel-ep-io-btn {
+        flex-basis: 100%;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -17830,3 +17875,121 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     max-width: 360px; padding: 10px 12px; border: 1px solid currentColor;
     border-radius: 8px; background: Canvas; color: CanvasText; font: 13px/1.4 sans-serif;
 }
+
+/* ── Feedback & contribution workspace (Run 45 / B64) ─────────────────── */
+.ai-assistant-panel-feedback-workspace-tabs {
+    padding-inline: 14px;
+}
+
+.ai-assistant-panel-feedback-workspace-pane[hidden] {
+    display: none !important;
+}
+
+.ai-assistant-panel-feedback-workspace-pane {
+    min-height: 0;
+    overflow: auto;
+}
+
+.ai-assistant-panel-feedback-workspace-body,
+.ai-assistant-panel-feedback-activity-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.ai-assistant-panel-feedback-review-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #d0d7de);
+    border-radius: 10px;
+    background: var(--color-background-secondary, rgba(127, 127, 127, 0.05));
+}
+
+.ai-assistant-panel-feedback-review-toggle-row > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.ai-assistant-panel-feedback-review-toggle-row small,
+.ai-assistant-panel-feedback-current-card small,
+.ai-assistant-panel-feedback-activity-card small {
+    color: var(--color-foreground-secondary, #6e7781);
+    overflow-wrap: anywhere;
+}
+
+.ai-assistant-panel-feedback-current-card,
+.ai-assistant-panel-feedback-activity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #d0d7de);
+    border-radius: 10px;
+    background: var(--color-background-secondary, rgba(127, 127, 127, 0.04));
+}
+
+.ai-assistant-panel-feedback-workspace-actions {
+    margin-top: 8px;
+}
+
+.ai-assistant-panel-feedback-review-line {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ai-assistant-panel-feedback-review-status {
+    margin-top: 8px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-feedback-review-toggle-row,
+[data-bs-theme="dark"] .ai-assistant-panel-feedback-current-card,
+[data-bs-theme="dark"] .ai-assistant-panel-feedback-activity-card,
+.dark .ai-assistant-panel-feedback-review-toggle-row,
+.dark .ai-assistant-panel-feedback-current-card,
+.dark .ai-assistant-panel-feedback-activity-card {
+    border-color: var(--pst-color-border, #30363d);
+}
+
+@media (max-width: 720px) {
+    .ai-assistant-panel-feedback-review-toggle-row {
+        align-items: flex-start;
+    }
+    .ai-assistant-panel-feedback-workspace-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+    .ai-assistant-panel-feedback-workspace-actions .ai-assistant-panel-ep-io-btn {
+        width: 100%;
+    }
+}
+
+.ai-assistant-panel-feedback-channel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ai-assistant-panel-feedback-channel-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #d0d7de);
+    border-radius: 10px;
+}
+
+.ai-assistant-panel-feedback-channel-card small {
+    color: var(--color-foreground-secondary, #6e7781);
+}
+
+@media (max-width: 720px) {
+    .ai-assistant-panel-feedback-channel-grid { grid-template-columns: 1fr; }
+}
+.ai-assistant-panel-feedback-activity-actions { margin-top: 4px; }

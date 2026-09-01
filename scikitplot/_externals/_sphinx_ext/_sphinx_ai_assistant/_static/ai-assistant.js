@@ -1005,6 +1005,77 @@
             : 'Local only — no network telemetry. Ratings stay in this browser unless you explicitly contribute content.';
     }
 
+    // Content-bearing maintainer feedback is a separate authority from rating
+    // telemetry.  Enabling telemetry never enables this permission and vice
+    // versa.  The review permission authorizes one Q&A + rating + optional
+    // note to enter the configured repository review workflow. In consent
+    // v2 the same visible permission also authorizes training use only after
+    // an authorized maintainer merges that review.
+    var _FEEDBACK_REVIEW_CONSENT_VERSION = '2.0.0';
+    var _FEEDBACK_TRAINING_CONSENT_VERSION = '1.0.0';
+    var _FEEDBACK_REVIEW_PREF_KEY = 'ai-assistant-feedback-review-consent';
+    var _feedbackReviewGrantedAt = null;
+
+    function _readFeedbackReviewConsent() {
+        try {
+            var raw = localStorage.getItem(_FEEDBACK_REVIEW_PREF_KEY);
+            if (!raw) return false;
+            var saved = JSON.parse(raw);
+            if (!saved || saved.enabled !== true ||
+                    saved.version !== _FEEDBACK_REVIEW_CONSENT_VERSION) return false;
+            var grantedAt = Number(saved.grantedAt);
+            if (!Number.isFinite(grantedAt) || grantedAt <= 0) return false;
+            _feedbackReviewGrantedAt = grantedAt;
+            return true;
+        } catch (_) { return false; }
+    }
+
+    var _feedbackReviewEnabled = _readFeedbackReviewConsent();
+    var _feedbackReviewServerInfo = null;
+
+    function _feedbackReviewStatusText() {
+        if (!_feedbackReviewEnabled) {
+            return 'Local only — Q&A text and written notes are not sent to repository review. Enable sharing only if you want maintainers to review this feedback.';
+        }
+        if (_feedbackReviewServerInfo && _feedbackReviewServerInfo.ready === false) {
+            return 'Permission active, but the configured service does not currently advertise a ready feedback-review workflow. Ratings still remain local unless a review request succeeds.';
+        }
+        return 'Permission active — future quick ratings and saved detailed feedback may create or update one maintainer repository review for this Q&A. If a maintainer merges it, the Q&A + quality signal becomes training-eligible; close/reject never does.';
+    }
+
+    function _setFeedbackReviewMode(enabled) {
+        _feedbackReviewEnabled = !!enabled;
+        _feedbackReviewGrantedAt = enabled ? Date.now() : null;
+        try {
+            if (enabled) {
+                localStorage.setItem(_FEEDBACK_REVIEW_PREF_KEY, JSON.stringify({
+                    enabled: true,
+                    version: _FEEDBACK_REVIEW_CONSENT_VERSION,
+                    grantedAt: _feedbackReviewGrantedAt
+                }));
+            } else {
+                localStorage.removeItem(_FEEDBACK_REVIEW_PREF_KEY);
+            }
+        } catch (_) {
+            if (enabled) {
+                _feedbackReviewEnabled = false;
+                _feedbackReviewGrantedAt = null;
+            }
+        }
+        document.querySelectorAll('[data-feedback-review-toggle]').forEach(function (el) {
+            el.setAttribute('aria-checked', _feedbackReviewEnabled ? 'true' : 'false');
+        });
+        document.querySelectorAll('[data-feedback-review-status]').forEach(function (el) {
+            el.textContent = _feedbackReviewStatusText();
+        });
+        try {
+            _dispatchAssistantEvent(new CustomEvent('ai-assistant-feedback-review-permission', {
+                detail: { enabled: _feedbackReviewEnabled, version: _FEEDBACK_REVIEW_CONSENT_VERSION }
+            }));
+        } catch (_) {}
+        return _feedbackReviewEnabled;
+    }
+
     /**
      * Selected microphone device ID.
      *
@@ -8009,6 +8080,71 @@
      *   before appending so callers control the rendering moment.  Always
      *   call ``container.innerHTML = ''`` immediately before this call.
      */
+    function _syncFeedbackRatingControls(answerIndex) {
+        var entry = _feedbackStore[answerIndex] || null;
+        document.querySelectorAll('[data-feedback-answer-index="' + answerIndex + '"]').forEach(function (btn) {
+            var mode = btn.getAttribute('data-feedback-mode') || '';
+            var value = Number(btn.getAttribute('data-feedback-rating-value'));
+            var active = !!entry && entry.ratingMode === mode && Number(entry.ratingValue) === value;
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        document.querySelectorAll('.ai-assistant-panel-feedback[data-answer-index="' + answerIndex + '"] .ai-assistant-panel-feedback-btn').forEach(function (btn) {
+            var value = Number(btn.getAttribute('data-value'));
+            var active = !!entry && entry.ratingMode === 'panel' && Number(entry.ratingValue) === value;
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function _feedbackReviewBadgeText(answerIndex) {
+        var active = _getActiveFeedbackReview(answerIndex);
+        if (!active) return '';
+        var rev = Math.max(1, Number(active.reviewRevision) || 1);
+        var provider = active.reviewProvider ? (' · ' + active.reviewProvider) : '';
+        return 'IN REVIEW · revision ' + rev + provider + ' · merge required for training eligibility';
+    }
+
+    function _refreshFeedbackThanksIfVisible(answerIndex, answerText, questionText, cfg) {
+        var container = document.querySelector('.ai-assistant-panel-feedback[data-answer-index="' + answerIndex + '"]');
+        if (!container || container.getAttribute('data-feedback-state') !== 'thanks') return;
+        container.innerHTML = '';
+        _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg || _cfg());
+    }
+
+    function _clearFeedbackAfterWithdrawal(answerIndex, answerText, questionText) {
+        delete _feedbackStore[answerIndex];
+        _feedbackGivenSet.delete(answerIndex);
+        _syncFeedbackRatingControls(answerIndex);
+        var block = document.querySelector('.ai-assistant-panel-feedback[data-answer-index="' + answerIndex + '"]');
+        if (block) {
+            block.innerHTML = '';
+            block.setAttribute('data-feedback-state', 'form');
+            _rebuildFeedbackFormIn(block, answerIndex, answerText, questionText);
+        }
+        try {
+            _dispatchAssistantEvent(new CustomEvent('ai-assistant-feedback-local-reset', { detail: { answerIndex: answerIndex } }));
+        } catch (_) {}
+    }
+
+    function _queueFeedbackReview(detail, answerIndex, answerText, questionText, cfg) {
+        if (!_feedbackReviewEnabled) return;
+        _feedbackReviewRequest(detail, function (res) {
+            if (res && res.error) {
+                var msg = res.status === 409
+                    ? 'The previous feedback review is closed or merged. Your rating remains local; open Feedback to start a follow-up review.'
+                    : 'Your rating was saved locally, but the maintainer feedback review could not be updated.';
+                showNotification(msg, true);
+                _refreshFeedbackThanksIfVisible(answerIndex, answerText, questionText, cfg);
+                return;
+            }
+            if (res && res.reason === 'unchanged') {
+                showNotification('Feedback review already contains this exact rating and note. No duplicate commit was created.', false);
+            } else if (res && !res.skipped) {
+                showNotification((res.reviewUpdate === 'updated' ? 'Feedback review updated' : 'Feedback submitted for maintainer review') + ' · revision ' + (res.reviewRevision || 1) + '.', false);
+            }
+            _refreshFeedbackThanksIfVisible(answerIndex, answerText, questionText, cfg);
+        });
+    }
+
     function _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg) {
         cfg = cfg || _cfg();
         var thanks = (typeof cfg.panelFeedbackThanks === 'string' &&
@@ -8038,6 +8174,73 @@
             _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText);
         });
         container.appendChild(editBtn);
+
+        container.setAttribute('data-feedback-state', 'thanks');
+        var activeReview = _getActiveFeedbackReview(answerIndex);
+        if (activeReview) {
+            var reviewWrap = document.createElement('div');
+            reviewWrap.className = 'ai-assistant-panel-feedback-review-status';
+            var reviewText = document.createElement('span');
+            reviewText.className = 'ai-assistant-panel-feedback-review-status-text';
+            reviewText.textContent = _feedbackReviewBadgeText(answerIndex);
+            reviewWrap.appendChild(reviewText);
+
+            var reviewActions = document.createElement('div');
+            reviewActions.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-feedback-review-actions';
+            var check = document.createElement('button');
+            check.type = 'button';
+            check.className = 'ai-assistant-panel-ep-io-btn';
+            check.textContent = '↻ Check review';
+            check.addEventListener('click', function () {
+                check.disabled = true;
+                _feedbackReviewStatus(answerIndex, function (res) {
+                    check.disabled = false;
+                    if (res && res.status === 'reviewed') {
+                        reviewText.textContent = 'REVIEWED · merged · training-eligible Q&A + quality signal';
+                    } else if (res && res.status === 'rejected') {
+                        reviewText.textContent = 'NOT ACCEPTED · repository review closed without merge';
+                    } else if (res && res.status === 'in_review') {
+                        var current = _getActiveFeedbackReview(answerIndex);
+                        if (current) {
+                            current.reviewRevision = Math.max(1, Number(res.reviewRevision) || current.reviewRevision || 1);
+                            current.reviewProvider = res.reviewProvider || current.reviewProvider || '';
+                            current.reviewId = res.reviewId || current.reviewId || '';
+                            current.reviewPath = res.reviewPath || current.reviewPath || '';
+                            _rememberActiveFeedbackReview(current, current.endpoint, answerIndex, current.fingerprint);
+                        }
+                        reviewText.textContent = _feedbackReviewBadgeText(answerIndex);
+                    } else if (res && res.error) {
+                        showNotification('Feedback review status could not be checked.', true);
+                    }
+                });
+            });
+            reviewActions.appendChild(check);
+
+            var withdraw = document.createElement('button');
+            withdraw.type = 'button';
+            withdraw.className = 'ai-assistant-panel-ep-io-btn ai-assistant-panel-ep-io-btn--danger ai-assistant-panel-feedback-withdraw';
+            withdraw.textContent = 'Withdraw feedback';
+            withdraw.addEventListener('click', function () {
+                withdraw.disabled = true;
+                _withdrawFeedbackReview(answerIndex, function (res) {
+                    if (res && res.error) {
+                        withdraw.disabled = false;
+                        showNotification('Feedback withdrawal could not be completed.', true);
+                        return;
+                    }
+                    _clearFeedbackAfterWithdrawal(answerIndex, answerText, questionText);
+                    showNotification('Feedback withdrawn. Local rating controls were reset.', false);
+                });
+            });
+            reviewActions.appendChild(withdraw);
+            reviewWrap.appendChild(reviewActions);
+            container.appendChild(reviewWrap);
+        } else if (_feedbackReviewEnabled) {
+            var pendingHint = document.createElement('p');
+            pendingHint.className = 'ai-assistant-panel-feedback-review-hint';
+            pendingHint.textContent = 'Review & model-improvement sharing is ON. Saving or changing this rating will create/update one repository review; only a maintainer merge makes the Q&A + quality signal training-eligible.';
+            container.appendChild(pendingHint);
+        }
     }
 
     /**
@@ -8081,6 +8284,7 @@
      */
     function _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText) {
         var cfg = _cfg();
+        container.setAttribute('data-feedback-state', 'form');
 
         var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
             cfg.panelFeedbackQuestion) || 'Was this helpful?';
@@ -8157,6 +8361,9 @@
             b.title = tip;
             b.setAttribute('aria-label', tip);
             b.setAttribute('data-value', String(num));
+            b.setAttribute('data-feedback-answer-index', String(answerIndex));
+            b.setAttribute('data-feedback-rating-value', String(num));
+            b.setAttribute('data-feedback-mode', 'panel');
 
             // preselect the previously submitted option when editing.
             b.setAttribute('aria-pressed',
@@ -8191,6 +8398,10 @@
             cfg.panelFeedbackSubmit) || 'Send feedback';
 
         submit.addEventListener('click', function () {
+            if (chosen.value === null || chosen.value === undefined) {
+                showNotification('Choose a rating before saving feedback.', true);
+                return;
+            }
             var sid;
             try {
                 if (window.crypto && typeof window.crypto.randomUUID === 'function') {
@@ -8220,6 +8431,8 @@
                 ratingLabel:    chosen.label,
                 ratingTitle:    chosen.title,
                 ratingMode:     'panel',
+                ratingScaleMin: Math.min.apply(null, scale),
+                ratingScaleMax: Math.max.apply(null, scale),
                 rating:         chosen.label,  // @deprecated: alias of ratingLabel
                 // prevFeedbackId / editCount: edit-chain linkage (see above).
                 prevFeedbackId: _supersededFeedbackId,
@@ -8273,6 +8486,8 @@
                 ratingLabel:    chosen.label,   // snake_case slug ("mostly_positive")
                 ratingTitle:    chosen.title,   // human display string ("Mostly yes")
                 ratingMode:     'panel',
+                ratingScaleMin: Math.min.apply(null, scale),
+                ratingScaleMax: Math.max.apply(null, scale),
                 // Edit-chain linkage — forwarded into tRecords by
                 // /v1/contribute (see _supersededFeedbackId above).
                 prevFeedbackId: detail.prevFeedbackId,
@@ -8286,6 +8501,8 @@
                 conversationId: detail.conversationId,
                 page:           detail.page,
             };
+            _syncFeedbackRatingControls(answerIndex);
+            _queueFeedbackReview(detail, answerIndex, answerText, questionText, cfg);
 
             container.innerHTML = '';
             _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg);
@@ -8471,6 +8688,229 @@
             },
             onError: onError,
         });
+    }
+
+    var _FEEDBACK_REVIEW_SCHEMA_VERSION = 1;
+    var _ACTIVE_FEEDBACK_REVIEW_KEY = 'ai-assistant-active-feedback-review-v1';
+    var _activeFeedbackReviewMemory = {};
+
+    function _feedbackReviewSlot(answerIndex) {
+        return _getConversationId() + '|feedback|' + String(Number.isInteger(answerIndex) ? answerIndex : '-');
+    }
+
+    function _readActiveFeedbackReviews() {
+        var out = {};
+        if (_persistEnabled()) {
+            try {
+                var parsed = JSON.parse(_ssGet(_ACTIVE_FEEDBACK_REVIEW_KEY) || '{}');
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) out = parsed;
+            } catch (_) {}
+        }
+        Object.keys(_activeFeedbackReviewMemory).forEach(function (k) { out[k] = _activeFeedbackReviewMemory[k]; });
+        return out;
+    }
+
+    function _writeActiveFeedbackReviews(map) {
+        _activeFeedbackReviewMemory = map && typeof map === 'object' ? map : {};
+        if (_persistEnabled()) {
+            try { _ssSet(_ACTIVE_FEEDBACK_REVIEW_KEY, JSON.stringify(_activeFeedbackReviewMemory)); } catch (_) {}
+        }
+    }
+
+    function _getActiveFeedbackReview(answerIndex) {
+        return _readActiveFeedbackReviews()[_feedbackReviewSlot(answerIndex)] || null;
+    }
+
+    function _rememberActiveFeedbackReview(receipt, endpoint, answerIndex, fingerprint) {
+        if (!(receipt && receipt.receiptId && receipt.deleteToken)) return null;
+        var map = _readActiveFeedbackReviews();
+        var slot = _feedbackReviewSlot(answerIndex);
+        map[slot] = {
+            receiptId: String(receipt.receiptId),
+            deleteToken: String(receipt.deleteToken),
+            reviewRevision: Math.max(1, Number(receipt.reviewRevision) || 1),
+            reviewProvider: String(receipt.reviewProvider || ''),
+            reviewId: String(receipt.reviewId || ''),
+            reviewPath: String(receipt.reviewPath || ''),
+            endpoint: String(endpoint || ''),
+            fingerprint: String(fingerprint || ''),
+            status: String(receipt.status || 'in_review')
+        };
+        _writeActiveFeedbackReviews(map);
+        return map[slot];
+    }
+
+    function _forgetActiveFeedbackReview(answerIndex) {
+        var map = _readActiveFeedbackReviews();
+        delete map[_feedbackReviewSlot(answerIndex)];
+        _writeActiveFeedbackReviews(map);
+    }
+
+    function _resolveFeedbackReviewEndpoint() {
+        var training = _resolveContributionEndpoint();
+        if (!training) return '';
+        return String(training).replace(/\/v1\/contribute\/?$/i, '/v1/feedback/review');
+    }
+
+    function _feedbackReviewFingerprint(payload) {
+        payload = payload || {};
+        return JSON.stringify({
+            ratingValue: payload.ratingValue,
+            ratingLabel: payload.ratingLabel || null,
+            ratingTitle: payload.ratingTitle || null,
+            ratingMode: payload.ratingMode || null,
+            ratingScaleMin: payload.ratingScaleMin,
+            ratingScaleMax: payload.ratingScaleMax,
+            message: payload.message || '',
+            query: payload.query || '',
+            answer: payload.answer || ''
+        });
+    }
+
+    function _feedbackReviewPayload(detail) {
+        detail = detail || {};
+        return {
+            schemaVersion: _FEEDBACK_REVIEW_SCHEMA_VERSION,
+            consentFlag: true,
+            consentVersion: _FEEDBACK_REVIEW_CONSENT_VERSION,
+            consentAt: _feedbackReviewGrantedAt || Date.now(),
+            trainingConsentFlag: true,
+            trainingConsentVersion: _FEEDBACK_TRAINING_CONSENT_VERSION,
+            feedbackId: detail.sessionId || detail.feedbackId || null,
+            prevFeedbackId: detail.prevFeedbackId || null,
+            editCount: detail.editCount || 0,
+            answerIndex: typeof detail.answerIndex === 'number' ? detail.answerIndex : null,
+            ratingValue: detail.ratingValue,
+            ratingLabel: detail.ratingLabel || null,
+            ratingTitle: detail.ratingTitle || null,
+            ratingMode: detail.ratingMode || 'panel',
+            ratingScaleMin: Number(detail.ratingScaleMin),
+            ratingScaleMax: Number(detail.ratingScaleMax),
+            message: String(detail.message || '').slice(0, _CONTRIBUTION_NOTE_MAX_CHARS),
+            query: String(detail.query || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
+            answer: String(detail.answer || '').slice(0, _CONTRIBUTION_MAX_MESSAGE_CHARS),
+            model: detail.model && typeof detail.model === 'object' ? detail.model : null,
+            page: detail.page || '',
+            ts: detail.ts || Date.now()
+        };
+    }
+
+    function _feedbackReviewRequest(detail, onResult) {
+        if (!_feedbackReviewEnabled || !_feedbackReviewGrantedAt) {
+            if (typeof onResult === 'function') onResult({ skipped: true, reason: 'permission-off' });
+            return false;
+        }
+        var endpoint = _resolveFeedbackReviewEndpoint();
+        if (!endpoint) {
+            if (typeof onResult === 'function') onResult({ skipped: true, reason: 'endpoint-missing' });
+            return false;
+        }
+        var payload = _feedbackReviewPayload(detail);
+        var fingerprint = _feedbackReviewFingerprint(payload);
+        var answerIndex = typeof detail.answerIndex === 'number' ? detail.answerIndex : null;
+        var active = _getActiveFeedbackReview(answerIndex);
+        if (active && active.endpoint && active.endpoint !== endpoint) {
+            _forgetActiveFeedbackReview(answerIndex);
+            active = null;
+        }
+        if (active && active.fingerprint === fingerprint) {
+            if (typeof onResult === 'function') onResult({
+                skipped: true, reason: 'unchanged', reviewUpdate: 'unchanged',
+                receiptId: active.receiptId, reviewRevision: active.reviewRevision,
+                reviewProvider: active.reviewProvider, reviewId: active.reviewId, reviewPath: active.reviewPath
+            });
+            return true;
+        }
+        function _success(res) {
+            res = res && typeof res === 'object' ? res : {};
+            var remembered = _rememberActiveFeedbackReview(res, endpoint, answerIndex, fingerprint);
+            if (remembered) {
+                res.deleteToken = remembered.deleteToken;
+                res.receiptId = remembered.receiptId;
+            }
+            if (typeof onResult === 'function') onResult(res);
+            try {
+                _dispatchAssistantEvent(new CustomEvent('ai-assistant-feedback-review-change', {
+                    detail: { answerIndex: answerIndex, status: res.status || 'in_review', reviewRevision: res.reviewRevision || 1 }
+                }));
+            } catch (_) {}
+        }
+        function _error(err) {
+            if (err && (err.status === 404 || err.status === 409 || err.status === 410)) {
+                _forgetActiveFeedbackReview(answerIndex);
+            }
+            if (typeof onResult === 'function') onResult({ error: true, status: err && err.status, message: err && err.message });
+        }
+        if (active && active.receiptId && active.deleteToken) {
+            _remotePost(endpoint.replace(/\/$/, '') + '/' + encodeURIComponent(active.receiptId), '', payload, {
+                method: 'PUT', keepalive: false,
+                headers: { 'X-Feedback-Review-Token': active.deleteToken },
+                onSuccess: function (res) {
+                    res = res && typeof res === 'object' ? res : {};
+                    if (!res.deleteToken) res.deleteToken = active.deleteToken;
+                    if (!res.receiptId) res.receiptId = active.receiptId;
+                    _success(res);
+                },
+                onError: _error
+            });
+            return true;
+        }
+        _newOperationEnvelope().then(function (envelope) {
+            _remotePost(endpoint, '', payload, {
+                keepalive: false, headers: _operationHeaders(envelope),
+                onSuccess: function (res) {
+                    res = res && typeof res === 'object' ? res : {};
+                    if (envelope && envelope.managementToken && !res.deleteToken) res.deleteToken = envelope.managementToken;
+                    if (envelope && envelope.resourceId && !res.receiptId) res.receiptId = envelope.resourceId;
+                    _success(res);
+                },
+                onError: _error
+            });
+        }).catch(function () { _error({ status: 0, message: 'Could not prepare feedback review capability.' }); });
+        return true;
+    }
+
+    function _feedbackReviewStatus(answerIndex, onResult) {
+        var active = _getActiveFeedbackReview(answerIndex);
+        var endpoint = _resolveFeedbackReviewEndpoint();
+        if (!(active && endpoint && active.receiptId && active.deleteToken)) {
+            if (typeof onResult === 'function') onResult({ status: 'local' });
+            return false;
+        }
+        _remotePost(endpoint.replace(/\/$/, '') + '/' + encodeURIComponent(active.receiptId), '', {}, {
+            method: 'GET', keepalive: false, headers: { 'X-Feedback-Review-Token': active.deleteToken },
+            onSuccess: function (res) {
+                res = res && typeof res === 'object' ? res : {};
+                if (res.status === 'withdrawn' || res.status === 'rejected' || res.status === 'deleted' || res.status === 'expired') {
+                    _forgetActiveFeedbackReview(answerIndex);
+                } else {
+                    res.deleteToken = active.deleteToken; res.receiptId = active.receiptId;
+                    _rememberActiveFeedbackReview(res, endpoint, answerIndex, active.fingerprint);
+                }
+                if (typeof onResult === 'function') onResult(res);
+            },
+            onError: function (err) { if (typeof onResult === 'function') onResult({ error: true, status: err && err.status }); }
+        });
+        return true;
+    }
+
+    function _withdrawFeedbackReview(answerIndex, onResult) {
+        var active = _getActiveFeedbackReview(answerIndex);
+        var endpoint = _resolveFeedbackReviewEndpoint();
+        if (!(active && endpoint && active.receiptId && active.deleteToken)) {
+            if (typeof onResult === 'function') onResult({ error: true, status: 0, message: 'No active feedback review.' });
+            return false;
+        }
+        _remotePost(endpoint.replace(/\/$/, '') + '/' + encodeURIComponent(active.receiptId), '', {}, {
+            method: 'DELETE', keepalive: false, headers: { 'X-Feedback-Review-Token': active.deleteToken },
+            onSuccess: function (res) {
+                _forgetActiveFeedbackReview(answerIndex);
+                if (typeof onResult === 'function') onResult(res || { status: 'withdrawn' });
+                try { _dispatchAssistantEvent(new CustomEvent('ai-assistant-feedback-review-change', { detail: { answerIndex: answerIndex, status: 'withdrawn' } })); } catch (_) {}
+            },
+            onError: function (err) { if (typeof onResult === 'function') onResult({ error: true, status: err && err.status, message: err && err.message }); }
+        });
+        return true;
     }
 
     var _CONTRIBUTION_SCHEMA_VERSION = 4;
@@ -12496,6 +12936,9 @@
             btn.className = 'ai-assistant-fbk-quick-btn';
             btn.setAttribute('data-sentiment', opt.sentiment);
             btn.setAttribute('data-value', String(opt.value));
+            btn.setAttribute('data-feedback-answer-index', String(answerIndex));
+            btn.setAttribute('data-feedback-rating-value', String(opt.value));
+            btn.setAttribute('data-feedback-mode', 'quick');
             btn.setAttribute('aria-pressed', 'false');
             var _btnLabel = opt.title + ' (' + (opt.value > 0 ? '+' : '') + String(opt.value) + ')';
             btn.setAttribute('aria-label', _btnLabel);
@@ -12625,6 +13068,8 @@
                     ratingLabel:    opt.slug,
                     ratingTitle:    opt.title,
                     ratingMode:     'quick',
+                    ratingScaleMin: -1,
+                    ratingScaleMax: 1,
                     rating:         opt.slug,   // @deprecated: alias of ratingLabel
                     // prevFeedbackId / editCount: edit-chain linkage (see top of
                     // this handler).  null / 0 for a first-time rating.
@@ -12673,6 +13118,8 @@
                     ratingLabel:    opt.slug,       // canonical slug (matches detail.ratingLabel)
                     ratingTitle:    opt.title,       // human display string for dashboards
                     ratingMode:     'quick',
+                    ratingScaleMin: -1,
+                    ratingScaleMax: 1,
                     // Edit-chain linkage — forwarded into tRecords by
                     // /v1/contribute so contributions can also carry the
                     // supersession chain (see _priorQEntry above).
@@ -12687,6 +13134,8 @@
                     conversationId: detail.conversationId,
                     page:           detail.page,
                 };
+                _syncFeedbackRatingControls(answerIndex);
+                _queueFeedbackReview(detail, answerIndex, answerText, questionText, cfg);
 
                 // Update the detailed feedback block: show thank-you + Edit button
                 // so the user can correct this submission at any time.
@@ -12747,7 +13196,7 @@
 
         var persistLabel = document.createElement('span');
         persistLabel.className = 'ai-assistant-fbk-popup-label';
-        persistLabel.textContent = 'Send rating telemetry';
+        persistLabel.textContent = 'Anonymous rating telemetry';
 
         var miniPill = document.createElement('button');
         miniPill.type = 'button';
@@ -12773,13 +13222,96 @@
         persistHint.textContent = _feedbackTelemetryStatusText();
         popup.appendChild(persistHint);
 
+        var reviewShareRow = document.createElement('div');
+        reviewShareRow.className = 'ai-assistant-fbk-popup-row';
+        var reviewShareIcon = document.createElement('span');
+        reviewShareIcon.className = 'ai-assistant-fbk-popup-icon';
+        reviewShareIcon.textContent = 'Review';
+        reviewShareIcon.setAttribute('aria-hidden', 'true');
+        var reviewShareLabel = document.createElement('span');
+        reviewShareLabel.className = 'ai-assistant-fbk-popup-label';
+        reviewShareLabel.textContent = 'Share feedback for review & model improvement';
+        var reviewSharePill = document.createElement('button');
+        reviewSharePill.type = 'button';
+        reviewSharePill.className = 'ai-assistant-fbk-popup-mini-pill';
+        reviewSharePill.setAttribute('role', 'switch');
+        reviewSharePill.setAttribute('data-feedback-review-toggle', 'true');
+        reviewSharePill.setAttribute('aria-checked', _feedbackReviewEnabled ? 'true' : 'false');
+        reviewSharePill.setAttribute('aria-label', 'Share feedback for review & model improvement');
+        var reviewShareThumb = document.createElement('span');
+        reviewShareThumb.className = 'ai-assistant-fbk-popup-mini-pill-thumb';
+        reviewSharePill.appendChild(reviewShareThumb);
+        reviewSharePill.addEventListener('click', function () {
+            _setFeedbackReviewMode(!_feedbackReviewEnabled);
+            reviewShareHint.textContent = _feedbackReviewStatusText() +
+                ((_feedbackReviewEnabled && _feedbackStore[answerIndex])
+                    ? ' Existing local feedback is not uploaded retroactively; open Feedback & review to share it explicitly.'
+                    : '');
+            _schedulePinnedFeedbackPopupPosition();
+        });
+        reviewShareRow.appendChild(reviewShareIcon);
+        reviewShareRow.appendChild(reviewShareLabel);
+        reviewShareRow.appendChild(reviewSharePill);
+        popup.appendChild(reviewShareRow);
+
+        var reviewShareHint = document.createElement('p');
+        reviewShareHint.className = 'ai-assistant-fbk-popup-hint';
+        reviewShareHint.setAttribute('data-feedback-review-status', 'true');
+        reviewShareHint.textContent = _feedbackReviewStatusText() +
+            ((_feedbackReviewEnabled && _feedbackStore[answerIndex])
+                ? ' Existing local feedback is not uploaded retroactively; open Feedback & review to share it explicitly.'
+                : '');
+        popup.appendChild(reviewShareHint);
+
         var popSep1 = document.createElement('div');
         popSep1.className = 'ai-assistant-fbk-popup-sep';
         popSep1.setAttribute('aria-hidden', 'true');
         popup.appendChild(popSep1);
 
-        // Row 2: Explicit content contribution. This is intentionally separate
-        // from the telemetry toggle above and opens the canonical contribution sheet.
+        // Row 2: Feedback management. Opens the shared workspace on the
+        // Feedback tab; this never grants dataset-contribution authority.
+        var feedbackCenterRow = document.createElement('div');
+        feedbackCenterRow.className = 'ai-assistant-fbk-popup-row';
+        feedbackCenterRow.style.cursor = 'pointer';
+        feedbackCenterRow.setAttribute('role', 'button');
+        feedbackCenterRow.setAttribute('tabindex', '0');
+        feedbackCenterRow.setAttribute('aria-label', 'Open feedback review and management');
+        var feedbackCenterIcon = document.createElement('span');
+        feedbackCenterIcon.className = 'ai-assistant-fbk-popup-icon';
+        feedbackCenterIcon.textContent = 'Feedback';
+        feedbackCenterIcon.setAttribute('aria-hidden', 'true');
+        var feedbackCenterLabel = document.createElement('span');
+        feedbackCenterLabel.className = 'ai-assistant-fbk-popup-label';
+        feedbackCenterLabel.textContent = 'Feedback & review...';
+        feedbackCenterRow.appendChild(feedbackCenterIcon);
+        feedbackCenterRow.appendChild(feedbackCenterLabel);
+        function _openFeedbackCenter() {
+            popup.setAttribute('data-pinned', 'false');
+            expBtn.setAttribute('aria-expanded', 'false');
+            wrapper.setAttribute('data-active', 'false');
+            try {
+                _dispatchAssistantEvent(new CustomEvent('ai-assistant-open-feedback-center', {
+                    detail: {
+                        tab: 'feedback', answerIndex: answerIndex,
+                        answerText: typeof answerText === 'string' ? answerText : '',
+                        questionText: typeof questionText === 'string' ? questionText : ''
+                    }
+                }));
+            } catch (_) {}
+        }
+        feedbackCenterRow.addEventListener('click', _openFeedbackCenter);
+        feedbackCenterRow.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _openFeedbackCenter(); }
+        });
+        popup.appendChild(feedbackCenterRow);
+
+        var popSepFeedback = document.createElement('div');
+        popSepFeedback.className = 'ai-assistant-fbk-popup-sep';
+        popSepFeedback.setAttribute('aria-hidden', 'true');
+        popup.appendChild(popSepFeedback);
+
+        // Row 3: Explicit content contribution. This is intentionally separate
+        // from telemetry and feedback review, and opens the Contribution tab.
         var contributeRow = document.createElement('div');
         contributeRow.className = 'ai-assistant-fbk-popup-row';
         contributeRow.style.cursor = 'pointer';
@@ -12801,7 +13333,7 @@
             wrapper.setAttribute('data-active', 'false');
             try {
                 _dispatchAssistantEvent(new CustomEvent('ai-assistant-open-contribution', {
-                    detail: { scope: 'qa', answerIndex: answerIndex }
+                    detail: { scope: 'qa', answerIndex: answerIndex, tab: 'contribution' }
                 }));
             } catch (_) {}
         }
@@ -12984,6 +13516,9 @@
             b.title = tip;
             b.setAttribute('aria-label', tip);
             b.setAttribute('data-value', String(num));
+            b.setAttribute('data-feedback-answer-index', String(answerIndex));
+            b.setAttribute('data-feedback-rating-value', String(num));
+            b.setAttribute('data-feedback-mode', 'panel');
             b.setAttribute('aria-pressed', 'false');
 
             b.addEventListener('click', function () {
@@ -13019,6 +13554,10 @@
         submit.textContent = (typeof cfg.panelFeedbackSubmit === 'string' &&
             cfg.panelFeedbackSubmit) || 'Send feedback';
         submit.addEventListener('click', function () {
+            if (chosen.value === null || chosen.value === undefined) {
+                showNotification('Choose a rating before saving feedback.', true);
+                return;
+            }
             // Compute a stable session-scoped idempotency key.  We use the
             // built-in crypto.randomUUID when available (modern browsers);
             // a deterministic fallback keyed on page + ts + answerIndex is
@@ -13078,6 +13617,8 @@
                 ratingLabel:    chosen.label,        // snake_case slug
                 ratingTitle:    chosen.title,        // human display string
                 ratingMode:     'panel',
+                ratingScaleMin: Math.min.apply(null, scale),
+                ratingScaleMax: Math.max.apply(null, scale),
                 rating:         chosen.label,        // legacy alias (back-compat)
                 // prevFeedbackId / editCount: edit-chain linkage (see above).
                 prevFeedbackId: _supersededFeedbackId,
@@ -13160,6 +13701,8 @@
                 ratingLabel:    chosen.label,   // snake_case slug ("mostly_positive")
                 ratingTitle:    chosen.title,   // human display string ("Mostly yes")
                 ratingMode:     'panel',
+                ratingScaleMin: Math.min.apply(null, scale),
+                ratingScaleMax: Math.max.apply(null, scale),
                 // Edit-chain linkage — forwarded into tRecords by
                 // /v1/contribute (see _supersededFeedbackId above).
                 prevFeedbackId: detail.prevFeedbackId,
@@ -13177,6 +13720,8 @@
                 conversationId: detail.conversationId,
                 page:           detail.page,
             };
+            _syncFeedbackRatingControls(answerIndex);
+            _queueFeedbackReview(detail, answerIndex, answerText, questionText, cfg);
             // Delegate thank-you rendering to _showFeedbackThanks so the
             // "Edit feedback" button is appended automatically.  This replaces
             // the old bare paragraph that had no way to re-open the form.
@@ -15240,15 +15785,15 @@
 
         // THE missing DOM element — _setFeedbackPersistMode() targets this id.
         var persistToggle = _buildExtToggleRow(
-            'Send rating telemetry',
-            'Opt in to sending privacy-minimal rating telemetry to the configured feedback endpoint. ' +
+            'Send anonymous rating telemetry',
+            'Opt in to sending privacy-minimal rating mechanics to the configured feedback endpoint. ' +
             'This permission is remembered in this browser only for the current telemetry-consent version; stale or malformed stored state fails closed to Off. ' +
-            'The optional written feedback note stays local unless you explicitly contribute the rated answer. ' +
+            'Question text, answer text, written notes, model identity, page URL and conversation identifiers are excluded from telemetry. ' +
             'Server persistence is independently controlled by the operator and cannot be enabled by this browser toggle.',
             _feedbackPersistEnabled,
             'ai-assistant-feedback-persist-toggle'
         );
-        persistToggle.pill.setAttribute('aria-label', 'Send rating telemetry');
+        persistToggle.pill.setAttribute('aria-label', 'Send anonymous rating telemetry');
         persistToggle.pill.addEventListener('click', function () {
             _setFeedbackPersistMode(!_feedbackPersistEnabled);
             // aria-checked is synced inside _setFeedbackPersistMode
@@ -15260,6 +15805,25 @@
         telemetryStatus.className = 'ai-assistant-panel-ep-hint ai-assistant-feedback-telemetry-status';
         telemetryStatus.textContent = _feedbackTelemetryStatusText();
         fbkSub.appendChild(telemetryStatus);
+
+        var reviewToggle = _buildExtToggleRow(
+            'Share feedback for review & model improvement',
+            'Separate from anonymous telemetry and whole-conversation contribution. A merge approves this single Q&A + normalized quality signal for training. When enabled, a quick rating or saved detailed feedback may create or update one provider-native review containing exactly this Q&A, the rating, and the optional written note. Repeated unchanged feedback is a no-op; changed feedback updates the same review. Feedback records never become training-eligible.',
+            _feedbackReviewEnabled,
+            null
+        );
+        reviewToggle.pill.setAttribute('data-feedback-review-toggle', 'true');
+        reviewToggle.pill.setAttribute('aria-label', 'Share feedback for review & model improvement');
+        reviewToggle.pill.addEventListener('click', function () {
+            _setFeedbackReviewMode(!_feedbackReviewEnabled);
+        });
+        fbkSub.appendChild(reviewToggle.row);
+
+        var reviewStatus = document.createElement('p');
+        reviewStatus.className = 'ai-assistant-panel-ep-hint ai-assistant-feedback-review-status';
+        reviewStatus.setAttribute('data-feedback-review-status', 'true');
+        reviewStatus.textContent = _feedbackReviewStatusText();
+        fbkSub.appendChild(reviewStatus);
 
         var domToggle = _buildExtToggleRow(
             'Allow page integration events',
@@ -15362,14 +15926,30 @@
                 _fbkServerRow.textContent = 'Service telemetry contract: unavailable. Local ratings still work; network telemetry remains subject to the server gate.';
                 return;
             }
+            _feedbackReviewServerInfo = {
+                ready: !!info.feedbackReviewReady,
+                mode: info.feedbackReviewMode || 'disabled',
+                consentVersion: info.feedbackReviewConsentVersion || null,
+                trainingConsentVersion: info.feedbackTrainingConsentVersion || null,
+                telemetryPersistEnabled: !!info.feedbackPersistEnabled,
+                telemetryCompatible: info.feedbackTelemetrySchemaVersion === 4 &&
+                    info.feedbackTelemetryConsentVersion === _FEEDBACK_TELEMETRY_CONSENT_VERSION
+            };
+            document.querySelectorAll('[data-feedback-review-status]').forEach(function (el) {
+                el.textContent = _feedbackReviewStatusText();
+            });
             var compatible = info.feedbackTelemetrySchemaVersion === 4 &&
                 info.feedbackTelemetryConsentVersion === _FEEDBACK_TELEMETRY_CONSENT_VERSION;
             if (!compatible) {
-                _fbkServerRow.textContent = 'Service telemetry contract: incompatible or legacy. Keep telemetry Off until the deployed service advertises schema 4 / consent 1.0.0.';
+                _fbkServerRow.textContent = 'Anonymous telemetry: incompatible or legacy; keep it Off. Maintainer review: ' +
+                    (info.feedbackReviewReady ? ('Ready · ' + (info.feedbackReviewMode || 'provider review')) : 'Not ready') +
+                    '. These are independent service contracts.';
                 return;
             }
-            _fbkServerRow.textContent = 'Service telemetry contract: compatible · schema 4 · consent 1.0.0 · server persistence ' +
-                (info.feedbackPersistEnabled ? 'enabled' : 'disabled') + '. Browser permission is still required either way.';
+            _fbkServerRow.textContent = 'Telemetry: compatible · schema 4 · consent 1.0.0 · persistence ' +
+                (info.feedbackPersistEnabled ? 'On' : 'Off') + '. Maintainer review: ' +
+                (info.feedbackReviewReady ? ('Ready · ' + (info.feedbackReviewMode || 'provider review')) : 'Not ready') +
+                '. Browser permissions remain separate for telemetry and review sharing.';
         }
 
         /**
@@ -15404,6 +15984,8 @@
                      feedbackPersistEnabled: false,
                      feedbackTelemetrySchemaVersion: null,
                      feedbackTelemetryConsentVersion: null,
+                     feedbackReviewMode: null, feedbackReviewReady: false,
+                     feedbackReviewConsentVersion: null, feedbackTrainingConsentVersion: null,
                      tokenType: null,
                      writeTokenType: null, leastPrivilege: false, storage: null,
                      error: errStr });
@@ -15436,6 +16018,12 @@
                             ? tr.feedback_telemetry_schema_version : null,
                         feedbackTelemetryConsentVersion: typeof tr.feedback_telemetry_consent_version === 'string'
                             ? tr.feedback_telemetry_consent_version : null,
+                        feedbackReviewMode: typeof tr.feedback_review_mode === 'string' ? tr.feedback_review_mode : null,
+                        feedbackReviewReady: !!tr.feedback_review_ready,
+                        feedbackReviewConsentVersion: typeof tr.feedback_review_consent_version === 'string'
+                            ? tr.feedback_review_consent_version : null,
+                        feedbackTrainingConsentVersion: typeof tr.feedback_training_consent_version === 'string'
+                            ? tr.feedback_training_consent_version : null,
                         tokenType:              tk.hf_token_type || null,
                         writeTokenType:         tk.hf_dataset_token_type || tk.hf_write_token_type || null,
                         leastPrivilege:         !!tk.least_privilege_mode,
@@ -23196,8 +23784,8 @@
         var head = document.createElement('div');
         head.className = 'ai-assistant-panel-privacy-head';
         var hStrong = document.createElement('strong');
-        hStrong.textContent = 'Contribute to dataset';
-        var hClose = _createIconBtn('contribution-close', 'Close Contribute to dataset', ICONS.close);
+        hStrong.textContent = 'Feedback & contribution';
+        var hClose = _createIconBtn('contribution-close', 'Close Feedback & contribution', ICONS.close);
         hClose.addEventListener('click', function () { sheet.setAttribute('data-open', 'false'); });
         var ham = _buildSheetHamburgerBtn(sheet, 'contribution');
         if (ham) head.appendChild(ham);
@@ -23255,7 +23843,7 @@
         scopeGroup.setAttribute('aria-label', 'Contribution scope');
         scopeSection.appendChild(scopeGroup);
 
-        var context = { answerIndex: null };
+        var context = { answerIndex: null, answerText: '', questionText: '' };
         var selectedScope = 'conversation';
         var preparedPayload = null;
         var pendingContributionOperation = null;
@@ -23343,15 +23931,49 @@
         );
         body.appendChild(inspectSection);
 
+        function _contributionActionButton(label, extraClass, tone) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ai-assistant-panel-ep-io-btn ai-assistant-panel-contribution-action-btn' +
+                (extraClass ? ' ' + extraClass : '') +
+                (tone === 'danger' ? ' ai-assistant-panel-ep-io-btn--danger' : '');
+            btn.textContent = label;
+            return btn;
+        }
+
+        function _contributionActionGroup(label, help, kind) {
+            var group = document.createElement('div');
+            group.className = 'ai-assistant-panel-contribution-action-group';
+            if (kind) group.dataset.kind = kind;
+            var head = document.createElement('div');
+            head.className = 'ai-assistant-panel-contribution-action-group-head';
+            var title = document.createElement('strong');
+            title.textContent = label;
+            head.appendChild(title);
+            if (help) {
+                var hint = document.createElement('span');
+                hint.textContent = help;
+                head.appendChild(hint);
+            }
+            var row = document.createElement('div');
+            row.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-action-row';
+            group.appendChild(head);
+            group.appendChild(row);
+            return { root: group, row: row };
+        }
+
         var inspectRow = document.createElement('div');
-        inspectRow.className = 'ai-assistant-panel-contribution-inspect-row';
-        var inspectBtn = document.createElement('button');
-        inspectBtn.type = 'button';
-        inspectBtn.className = 'ai-assistant-conv-share-action-btn ai-assistant-panel-contribution-inspect-btn';
-        inspectBtn.textContent = 'Inspect JSON';
+        inspectRow.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-inspect-row';
+        var inspectBtn = _contributionActionButton('Inspect JSON', 'ai-assistant-panel-contribution-inspect-btn');
+        inspectBtn.setAttribute('aria-expanded', 'false');
+        var copyPayloadBtn = _contributionActionButton('⎘ Copy JSON to clipboard', 'ai-assistant-panel-contribution-copy-json');
+        var downloadPayloadBtn = _contributionActionButton('↓ Download JSON file', 'ai-assistant-panel-contribution-download-json');
         var sizeLabel = document.createElement('span');
         sizeLabel.className = 'ai-assistant-panel-contribution-size';
-        inspectRow.appendChild(inspectBtn); inspectRow.appendChild(sizeLabel);
+        inspectRow.appendChild(inspectBtn);
+        inspectRow.appendChild(copyPayloadBtn);
+        inspectRow.appendChild(downloadPayloadBtn);
+        inspectRow.appendChild(sizeLabel);
         inspectSection.appendChild(inspectRow);
 
         var inspectHint = document.createElement('p');
@@ -23361,10 +23983,12 @@
 
         var preview = document.createElement('pre');
         preview.className = 'ai-assistant-panel-contribution-preview';
+        preview.id = 'ai-assistant-panel-contribution-preview-json';
         preview.hidden = true;
         preview.setAttribute('aria-label', 'Contribution JSON preview');
         preview.setAttribute('tabindex', '0');
         preview.dataset.size = 'compact';
+        inspectBtn.setAttribute('aria-controls', preview.id);
         inspectSection.appendChild(preview);
 
         var submitSection = _contributionSection(
@@ -23417,21 +24041,17 @@
         recoveryCode.autocomplete = 'off';
         recoveryCode.spellcheck = false;
         recoveryCode.maxLength = 8192;
-        recoveryCode.className = 'ai-assistant-panel-contribution-recovery-code';
+        recoveryCode.className = 'ai-assistant-panel-ep-input ai-assistant-panel-contribution-recovery-code';
         recoveryCode.placeholder = 'Paste private withdrawal code';
         recoveryCode.setAttribute('aria-label', 'Private contribution withdrawal code');
         recovery.appendChild(recoveryCode);
         var recoveryActions = document.createElement('div');
-        recoveryActions.className = 'ai-assistant-panel-contribution-recovery-actions';
-        var loadRecoveryCode = document.createElement('button');
-        loadRecoveryCode.type = 'button';
-        loadRecoveryCode.className = 'ai-assistant-conv-share-action-btn';
-        loadRecoveryCode.textContent = 'Load private code';
+        recoveryActions.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-recovery-actions';
+        recoveryActions.setAttribute('role', 'group');
+        recoveryActions.setAttribute('aria-label', 'Recover contribution management access');
+        var loadRecoveryCode = _contributionActionButton('Load private code', 'ai-assistant-panel-contribution-load-code');
         recoveryActions.appendChild(loadRecoveryCode);
-        var importReceipt = document.createElement('button');
-        importReceipt.type = 'button';
-        importReceipt.className = 'ai-assistant-conv-share-action-btn ai-assistant-panel-contribution-import';
-        importReceipt.textContent = 'Import private receipt';
+        var importReceipt = _contributionActionButton('↑ Import private receipt', 'ai-assistant-panel-contribution-import');
         recoveryActions.appendChild(importReceipt);
         recovery.appendChild(recoveryActions);
         var importReceiptFile = document.createElement('input');
@@ -23441,7 +24061,304 @@
         recovery.appendChild(importReceiptFile);
         submitSection.appendChild(recovery);
 
-        sheet.appendChild(body);
+        // One presentation shell, three independent control planes. Feedback
+        // review consent never grants telemetry or dataset-contribution consent.
+        var workspaceTabs = document.createElement('div');
+        workspaceTabs.className = 'ai-assistant-conv-share-format-switcher ai-assistant-panel-feedback-workspace-tabs';
+        workspaceTabs.setAttribute('role', 'tablist');
+        workspaceTabs.setAttribute('aria-label', 'Feedback and contribution workspace');
+        var workspaceButtons = Object.create(null);
+        var workspacePanes = Object.create(null);
+        var activeWorkspaceTab = 'contribution';
+
+        function _workspaceButton(key, label) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ai-assistant-conv-share-format-btn';
+            btn.setAttribute('role', 'tab');
+            btn.dataset.workspaceTab = key;
+            btn.textContent = label;
+            btn.addEventListener('click', function () { _setWorkspaceTab(key); });
+            workspaceButtons[key] = btn;
+            workspaceTabs.appendChild(btn);
+            return btn;
+        }
+        _workspaceButton('feedback', 'Feedback');
+        _workspaceButton('contribution', 'Dataset contribution');
+        _workspaceButton('activity', 'Activity');
+        sheet.appendChild(workspaceTabs);
+
+        function _workspacePane(key) {
+            var pane = document.createElement('div');
+            pane.className = 'ai-assistant-panel-feedback-workspace-pane';
+            pane.dataset.workspacePane = key;
+            pane.setAttribute('role', 'tabpanel');
+            workspacePanes[key] = pane;
+            sheet.appendChild(pane);
+            return pane;
+        }
+
+        var feedbackPane = _workspacePane('feedback');
+        var contributionPane = _workspacePane('contribution');
+        var activityPane = _workspacePane('activity');
+        contributionPane.appendChild(body);
+
+        function _feedbackWorkspaceButton(label, extra, tone) {
+            return _contributionActionButton(label, 'ai-assistant-panel-feedback-workspace-action' + (extra ? ' ' + extra : ''), tone);
+        }
+
+        function _feedbackWorkspaceQualityPercent(entry) {
+            if (!entry) return null;
+            var value = Number(entry.ratingValue);
+            var min = Number(entry.ratingScaleMin);
+            var max = Number(entry.ratingScaleMax);
+            if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max) || min >= max) return null;
+            var score = Math.max(0, Math.min(1, (value - min) / (max - min)));
+            return Math.round(score * 10000) / 100;
+        }
+
+        function _feedbackWorkspaceRatingLabel(entry) {
+            if (!entry) return 'No rating selected yet';
+            var title = entry.ratingTitle || entry.ratingLabel || 'Rated';
+            var value = Number(entry.ratingValue);
+            var quality = _feedbackWorkspaceQualityPercent(entry);
+            return title +
+                (Number.isFinite(value) ? ' · ' + (value > 0 ? '+' : '') + value : '') +
+                (quality != null ? ' · quality ' + quality + '%' : '');
+        }
+
+        function _refreshFeedbackWorkspace() {
+            feedbackPane.textContent = '';
+            var wrap = document.createElement('div');
+            wrap.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-feedback-workspace-body';
+            feedbackPane.appendChild(wrap);
+
+            var intro = document.createElement('p');
+            intro.className = 'ai-assistant-panel-contribution-intro';
+            intro.textContent = 'Feedback is exactly one Q&A. Rating locally requires no network permission. Review & model-improvement sharing is a separate opt-in: the Q&A + rating quality signal becomes training-eligible only if a maintainer merges its repository review.';
+            wrap.appendChild(intro);
+
+            var channelGroup = _contributionSection('Privacy channels', 'These controls are independent. Enabling one never enables the other.');
+            wrap.appendChild(channelGroup);
+            var channelGrid = document.createElement('div');
+            channelGrid.className = 'ai-assistant-panel-feedback-channel-grid';
+            var telemetryCard = document.createElement('div');
+            telemetryCard.className = 'ai-assistant-panel-feedback-channel-card';
+            var telemetryTitle = document.createElement('strong');
+            telemetryTitle.textContent = 'Anonymous rating telemetry';
+            var telemetryState = document.createElement('span');
+            telemetryState.textContent = 'Browser permission: ' + (_feedbackPersistEnabled ? 'On' : 'Off');
+            var telemetryPersist = document.createElement('small');
+            telemetryPersist.textContent = _feedbackReviewServerInfo === null
+                ? 'Server persistence: unknown until service discovery completes.'
+                : ('Server persistence: ' + (_feedbackReviewServerInfo.telemetryPersistEnabled ? 'On' : 'Off') +
+                    (_feedbackReviewServerInfo.telemetryCompatible ? ' · contract compatible' : ' · contract incompatible/unknown'));
+            telemetryCard.appendChild(telemetryTitle); telemetryCard.appendChild(telemetryState); telemetryCard.appendChild(telemetryPersist);
+            var reviewCard = document.createElement('div');
+            reviewCard.className = 'ai-assistant-panel-feedback-channel-card';
+            var reviewTitle = document.createElement('strong');
+            reviewTitle.textContent = 'Maintainer feedback review';
+            var reviewPermissionState = document.createElement('span');
+            reviewPermissionState.textContent = 'Browser permission: ' + (_feedbackReviewEnabled ? 'On' : 'Off');
+            var reviewReady = document.createElement('small');
+            reviewReady.textContent = _feedbackReviewServerInfo === null
+                ? 'Service readiness: unknown until discovery completes.'
+                : ('Service readiness: ' + (_feedbackReviewServerInfo.ready ? 'Ready' : 'Not ready') + ' · ' + (_feedbackReviewServerInfo.mode || 'disabled'));
+            reviewCard.appendChild(reviewTitle); reviewCard.appendChild(reviewPermissionState); reviewCard.appendChild(reviewReady);
+            channelGrid.appendChild(telemetryCard); channelGrid.appendChild(reviewCard);
+            channelGroup.appendChild(channelGrid);
+
+            var shareGroup = _contributionSection('Share with maintainers', 'One logical feedback item keeps one provider review. Repeated unchanged feedback is a no-op; changed quick or detailed feedback updates the same review.');
+            wrap.appendChild(shareGroup);
+            var toggleRow = document.createElement('div');
+            toggleRow.className = 'ai-assistant-panel-feedback-review-toggle-row';
+            var toggleText = document.createElement('div');
+            var toggleStrong = document.createElement('strong');
+            toggleStrong.textContent = 'Share feedback for review & model improvement';
+            var toggleHint = document.createElement('small');
+            toggleHint.textContent = 'Separate from anonymous telemetry and whole-conversation contribution. A merge approves this single Q&A + normalized quality signal for training.';
+            toggleText.appendChild(toggleStrong); toggleText.appendChild(toggleHint);
+            var toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'ai-assistant-panel-ep-ext-pill';
+            toggle.setAttribute('role', 'switch');
+            toggle.setAttribute('data-feedback-review-toggle', 'true');
+            toggle.setAttribute('aria-label', 'Share feedback for review & model improvement');
+            toggle.setAttribute('aria-checked', _feedbackReviewEnabled ? 'true' : 'false');
+            var thumb = document.createElement('span');
+            thumb.className = 'ai-assistant-panel-ep-ext-pill-thumb';
+            toggle.appendChild(thumb);
+            toggle.addEventListener('click', function () {
+                _setFeedbackReviewMode(!_feedbackReviewEnabled);
+                _refreshFeedbackWorkspace();
+            });
+            toggleRow.appendChild(toggleText); toggleRow.appendChild(toggle);
+            shareGroup.appendChild(toggleRow);
+            var status = document.createElement('p');
+            status.className = 'ai-assistant-panel-ep-hint ai-assistant-panel-feedback-review-status';
+            status.setAttribute('data-feedback-review-status', 'true');
+            status.textContent = _feedbackReviewStatusText();
+            shareGroup.appendChild(status);
+
+            var qaGroup = _contributionSection('Current Q&A', 'Quick and detailed rating controls are synchronized views of the same local feedback state.');
+            wrap.appendChild(qaGroup);
+            if (!Number.isInteger(context.answerIndex)) {
+                var none = document.createElement('p');
+                none.className = 'ai-assistant-panel-ep-hint';
+                none.textContent = 'Open Feedback from an answer to manage that Q&A. Activity below can still manage reviews remembered in this tab.';
+                qaGroup.appendChild(none);
+                return;
+            }
+            var entry = _feedbackStore[context.answerIndex] || null;
+            var summaryCard = document.createElement('div');
+            summaryCard.className = 'ai-assistant-panel-feedback-current-card';
+            var rating = document.createElement('strong');
+            rating.textContent = _feedbackWorkspaceRatingLabel(entry);
+            var mode = document.createElement('span');
+            mode.textContent = entry ? (' · ' + (entry.ratingMode === 'quick' ? 'Quick rating' : 'Detailed feedback')) : '';
+            var note = document.createElement('small');
+            note.textContent = entry && entry.message ? ('Note: ' + entry.message) : 'No written note.';
+            summaryCard.appendChild(rating); summaryCard.appendChild(mode); summaryCard.appendChild(note);
+            qaGroup.appendChild(summaryCard);
+
+            var qaActions = document.createElement('div');
+            qaActions.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-feedback-workspace-actions';
+            var edit = _feedbackWorkspaceButton('Edit detailed feedback');
+            edit.addEventListener('click', function () {
+                var block = document.querySelector('.ai-assistant-panel-feedback[data-answer-index="' + context.answerIndex + '"]');
+                if (block) {
+                    _rebuildFeedbackFormIn(block, context.answerIndex, context.answerText || (entry && entry.answer) || '', context.questionText || (entry && entry.query) || '');
+                    block.classList.add('ai-assistant-panel-feedback--revealed');
+                    sheet.setAttribute('data-open', 'false');
+                    try { block.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+                } else {
+                    _notify('Detailed feedback is available beside the original answer.', 'info');
+                }
+            });
+            qaActions.appendChild(edit);
+            var share = _feedbackWorkspaceButton(_getActiveFeedbackReview(context.answerIndex) ? 'Update maintainer review' : 'Share current feedback');
+            share.disabled = !entry || !_feedbackReviewEnabled;
+            share.addEventListener('click', function () {
+                var current = _feedbackStore[context.answerIndex] || null;
+                if (!current) return;
+                _queueFeedbackReview(current, context.answerIndex, context.answerText || current.answer || '', context.questionText || current.query || '', _cfg());
+                setTimeout(_refreshFeedbackWorkspace, 0);
+            });
+            qaActions.appendChild(share);
+            qaGroup.appendChild(qaActions);
+
+            var review = _getActiveFeedbackReview(context.answerIndex);
+            if (review) {
+                var manage = _contributionSection('Review lifecycle', 'This tab remembers the private management capability. Merge/close happens in the provider review UI; withdrawal remains a separate participant authority.');
+                wrap.appendChild(manage);
+                var reviewLine = document.createElement('p');
+                reviewLine.className = 'ai-assistant-panel-feedback-review-line';
+                reviewLine.textContent = 'IN REVIEW · revision ' + Math.max(1, Number(review.reviewRevision) || 1) +
+                    (review.reviewProvider ? ' · ' + review.reviewProvider : '') +
+                    (review.reviewId ? ' #' + review.reviewId : '');
+                manage.appendChild(reviewLine);
+                var manageActions = document.createElement('div');
+                manageActions.className = 'ai-assistant-panel-ep-io-row';
+                var check = _feedbackWorkspaceButton('↻ Check status');
+                check.addEventListener('click', function () {
+                    _feedbackReviewStatus(review, function (res) {
+                        if (res && res.status) review.status = res.status;
+                        if (res && res.reviewRevision) review.reviewRevision = res.reviewRevision;
+                        _refreshFeedbackWorkspace();
+                    }, function () { _notify('Feedback review status could not be refreshed.', 'error'); });
+                });
+                var withdraw = _feedbackWorkspaceButton('Withdraw feedback', '', 'danger');
+                withdraw.addEventListener('click', function () {
+                    _withdrawFeedbackReview(context.answerIndex, function () {
+                        _clearFeedbackAfterWithdrawal(context.answerIndex, context.answerText || '', context.questionText || '');
+                        _refreshFeedbackWorkspace();
+                        _refreshActivityWorkspace();
+                    }, function () { _notify('Feedback could not be withdrawn.', 'error'); });
+                });
+                manageActions.appendChild(check); manageActions.appendChild(withdraw);
+                manage.appendChild(manageActions);
+            }
+        }
+
+        function _activityCard(kind, item, slot) {
+            var card = document.createElement('div');
+            card.className = 'ai-assistant-panel-feedback-activity-card';
+            var title = document.createElement('strong');
+            title.textContent = kind;
+            var meta = document.createElement('span');
+            meta.textContent = (item.reviewProvider || 'provider') + (item.reviewId ? ' #' + item.reviewId : '') + ' · revision ' + Math.max(1, Number(item.reviewRevision) || 1);
+            var path = document.createElement('small');
+            path.textContent = item.reviewPath || 'Private management receipt remembered in this tab';
+            card.appendChild(title); card.appendChild(meta); card.appendChild(path);
+            var actions = document.createElement('div');
+            actions.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-feedback-activity-actions';
+            var manage = _feedbackWorkspaceButton('Manage');
+            manage.addEventListener('click', function () {
+                var prefix = _getConversationId() + '|';
+                if (String(slot).indexOf(prefix) !== 0) {
+                    showNotification('This receipt belongs to an earlier conversation in this tab. Use its saved management receipt or support reference if needed.', false);
+                    return;
+                }
+                var suffix = String(slot).slice(prefix.length);
+                if (kind === 'Feedback') {
+                    var parts = suffix.split('|');
+                    var ai = Number(parts[1]);
+                    if (parts[0] !== 'feedback' || !Number.isInteger(ai)) return;
+                    context.answerIndex = ai;
+                    var current = _feedbackStore[ai] || null;
+                    context.answerText = current && current.answer ? current.answer : '';
+                    context.questionText = current && current.query ? current.query : '';
+                    _setWorkspaceTab('feedback');
+                    return;
+                }
+                var cparts = suffix.split('|');
+                selectedScope = cparts[0] === 'qa' || cparts[0] === 'rated' ? cparts[0] : 'conversation';
+                var cai = Number(cparts[1]);
+                context.answerIndex = Number.isInteger(cai) && cai >= 0 ? cai : null;
+                preparedPayload = null;
+                _refresh(true);
+                _setWorkspaceTab('contribution');
+            });
+            actions.appendChild(manage);
+            card.appendChild(actions);
+            return card;
+        }
+
+        function _refreshActivityWorkspace() {
+            activityPane.textContent = '';
+            var wrap = document.createElement('div');
+            wrap.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-feedback-activity-body';
+            activityPane.appendChild(wrap);
+            var intro = document.createElement('p');
+            intro.className = 'ai-assistant-panel-contribution-intro';
+            intro.textContent = 'Tab-local activity keeps feedback reviews and dataset contributions visibly separate. Provider merge/close state can be refreshed from each management view.';
+            wrap.appendChild(intro);
+            var fbSec = _contributionSection('Feedback reviews', 'Never training-eligible. One Q&A per feedback lifecycle.');
+            wrap.appendChild(fbSec);
+            var fbs = _readActiveFeedbackReviews();
+            var fbKeys = Object.keys(fbs);
+            if (!fbKeys.length) { var fbe = document.createElement('p'); fbe.className='ai-assistant-panel-ep-hint'; fbe.textContent='No active feedback reviews remembered in this tab.'; fbSec.appendChild(fbe); }
+            fbKeys.forEach(function (key) { fbSec.appendChild(_activityCard('Feedback', fbs[key], key)); });
+            var cSec = _contributionSection('Dataset contributions', 'Only merged/authorized contribution records may become training-eligible.');
+            wrap.appendChild(cSec);
+            var cs = _readActiveContributionReviews();
+            var cKeys = Object.keys(cs);
+            if (!cKeys.length) { var ce = document.createElement('p'); ce.className='ai-assistant-panel-ep-hint'; ce.textContent='No active dataset contribution reviews remembered in this tab.'; cSec.appendChild(ce); }
+            cKeys.forEach(function (key) { cSec.appendChild(_activityCard('Dataset contribution', cs[key], key)); });
+        }
+
+        function _setWorkspaceTab(key) {
+            if (!workspacePanes[key]) key = 'contribution';
+            activeWorkspaceTab = key;
+            Object.keys(workspaceButtons).forEach(function (name) {
+                var selected = name === key;
+                workspaceButtons[name].setAttribute('aria-selected', selected ? 'true' : 'false');
+                workspaceButtons[name].setAttribute('tabindex', selected ? '0' : '-1');
+                workspacePanes[name].hidden = !selected;
+            });
+            if (key === 'feedback') _refreshFeedbackWorkspace();
+            if (key === 'activity') _refreshActivityWorkspace();
+        }
 
         function _ratedCount() { return _buildRatedContributionRecords().length; }
 
@@ -23528,6 +24445,9 @@
                 delete summary.dataset.error;
             }
             submit.disabled = !consentCheck.checked || !payload || !endpoint || tooLarge || !!validationError;
+            inspectBtn.disabled = !payload;
+            copyPayloadBtn.disabled = !payload;
+            downloadPayloadBtn.disabled = !payload;
             if (!preview.hidden) {
                 preview.textContent = payload ? JSON.stringify(payload, null, 2) : '';
                 _syncContributionPreviewDensity();
@@ -23554,8 +24474,21 @@
             var payload = _currentPayload();
             preview.hidden = !preview.hidden;
             inspectBtn.textContent = preview.hidden ? 'Inspect JSON' : 'Hide JSON';
+            inspectBtn.setAttribute('aria-expanded', preview.hidden ? 'false' : 'true');
             preview.textContent = (!preview.hidden && payload) ? JSON.stringify(payload, null, 2) : '';
             _syncContributionPreviewDensity();
+        });
+        copyPayloadBtn.addEventListener('click', function () {
+            var payload = _currentPayload();
+            if (!payload) return;
+            _copyContributionText(JSON.stringify(payload, null, 2), 'Contribution JSON copied locally. Nothing was submitted.');
+        });
+        downloadPayloadBtn.addEventListener('click', function () {
+            var payload = _currentPayload();
+            if (!payload) return;
+            _downloadBlob(JSON.stringify(payload, null, 2), 'application/json',
+                'ai-contribution-review-payload-' + _isoFileStamp() + '.json');
+            showNotification('Contribution JSON file saved locally. Nothing was submitted.', false);
         });
         noteInput.addEventListener('input', function () {
             noteCounter.textContent = noteInput.value.length + ' / ' + _CONTRIBUTION_NOTE_MAX_CHARS;
@@ -23734,41 +24667,59 @@
             supportRef.appendChild(supportHelp);
             result.appendChild(supportRef);
 
-            var save = document.createElement('button');
-            save.type = 'button'; save.className = 'ai-assistant-conv-share-action-btn';
-            save.textContent = 'Save private receipt';
-            save.addEventListener('click', function () { _saveManagementReceipt(res, endpoint); });
-            result.appendChild(save);
+            var privateActions = _contributionActionGroup(
+                'Private recovery',
+                'Keep at least one private option somewhere only you control.',
+                'private'
+            );
+            privateActions.root.setAttribute('aria-label', 'Private contribution recovery actions');
+            result.appendChild(privateActions.root);
 
-            var copyPrivate = document.createElement('button');
-            copyPrivate.type = 'button'; copyPrivate.className = 'ai-assistant-conv-share-action-btn';
-            copyPrivate.textContent = 'Copy private withdrawal code';
+            var save = _contributionActionButton('↓ Save private receipt', 'ai-assistant-panel-contribution-save-receipt');
+            save.addEventListener('click', function () { _saveManagementReceipt(res, endpoint); });
+            privateActions.row.appendChild(save);
+
+            var copyPrivate = _contributionActionButton('⎘ Copy private withdrawal code', 'ai-assistant-panel-contribution-copy-private');
             copyPrivate.addEventListener('click', function () {
                 var receipt = _managementReceiptObject(res, endpoint);
                 var code = receipt ? _encodeManagementCode(receipt) : '';
                 if (!code) { showNotification('Could not create a private withdrawal code.', true); return; }
                 _copyContributionText(code, 'Private withdrawal code copied. Store it securely and do not publish it.');
             });
-            result.appendChild(copyPrivate);
+            privateActions.row.appendChild(copyPrivate);
 
-            var copySupport = document.createElement('button');
-            copySupport.type = 'button'; copySupport.className = 'ai-assistant-conv-share-action-btn';
-            copySupport.textContent = 'Copy support reference';
+            var supportActions = _contributionActionGroup(
+                'Maintainer support',
+                'Safe to share: these references contain no withdrawal capability.',
+                'support'
+            );
+            supportActions.root.setAttribute('aria-label', 'Maintainer support actions');
+            result.appendChild(supportActions.root);
+
+            var copySupport = _contributionActionButton('⎘ Copy support reference', 'ai-assistant-panel-contribution-copy-support');
             copySupport.addEventListener('click', function () {
                 _copyContributionText(_supportReferenceText(res), 'Non-secret support reference copied.');
             });
-            result.appendChild(copySupport);
+            supportActions.row.appendChild(copySupport);
 
-            var copyRequest = document.createElement('button');
-            copyRequest.type = 'button'; copyRequest.className = 'ai-assistant-conv-share-action-btn';
-            copyRequest.textContent = 'Copy maintainer removal request';
+            var copyRequest = _contributionActionButton('⎘ Copy removal request', 'ai-assistant-panel-contribution-copy-removal');
+            copyRequest.title = 'Copy a ready-to-send maintainer removal request';
+            copyRequest.setAttribute('aria-label', 'Copy maintainer removal request');
             copyRequest.addEventListener('click', function () {
                 _copyContributionText(_maintainerWithdrawalRequestText(res), 'Maintainer removal request copied.');
             });
-            result.appendChild(copyRequest);
+            supportActions.row.appendChild(copyRequest);
 
-            var check = document.createElement('button');
-            check.type = 'button'; check.className = 'ai-assistant-conv-share-action-btn'; check.textContent = 'Check status';
+            var lifecycleActions = _contributionActionGroup(
+                'Review lifecycle',
+                'Refresh the provider state or exercise your withdrawal authority.',
+                'lifecycle'
+            );
+            lifecycleActions.root.setAttribute('aria-label', 'Contribution review lifecycle actions');
+            result.appendChild(lifecycleActions.root);
+
+            var check = _contributionActionButton('↻ Check status', 'ai-assistant-panel-contribution-check-status');
+            check.setAttribute('aria-label', 'Check contribution status');
             check.addEventListener('click', function () {
                 check.disabled = true;
                 _remotePost(endpoint.replace(/\/$/, '') + '/' + encodeURIComponent(res.receiptId), '', {}, {
@@ -23806,11 +24757,13 @@
                     }
                 });
             });
-            result.appendChild(check);
+            lifecycleActions.row.appendChild(check);
 
-            var manage = document.createElement('button');
-            manage.type = 'button'; manage.className = 'ai-assistant-conv-share-action-btn';
-            manage.textContent = 'Delete pending / withdraw training use';
+            var manage = _contributionActionButton(
+                'Delete pending / withdraw training use',
+                'ai-assistant-panel-contribution-withdraw',
+                'danger'
+            );
             manage.addEventListener('click', function () {
                 manage.disabled = true;
                 _remotePost(endpoint.replace(/\/$/, '') + '/' + encodeURIComponent(res.receiptId), '', {}, {
@@ -23844,7 +24797,7 @@
                     }
                 });
             });
-            result.appendChild(manage);
+            lifecycleActions.row.appendChild(manage);
         }
 
         loadRecoveryCode.addEventListener('click', function () {
@@ -23933,7 +24886,7 @@
                             consentVersion: _CONTRIBUTION_CONSENT_VERSION
                         }, endpoint);
                         var retry = document.createElement('button');
-                        retry.type = 'button'; retry.className = 'ai-assistant-conv-share-action-btn'; retry.textContent = 'Retry same operation safely';
+                        retry.type = 'button'; retry.className = 'ai-assistant-panel-ep-io-btn ai-assistant-panel-contribution-action-btn'; retry.textContent = 'Retry same operation safely';
                         retry.addEventListener('click', function () {
                             if (!pendingContributionOperation) return;
                             _sendReviewedContribution(endpoint, pendingContributionOperation.payload, pendingContributionOperation.envelope);
@@ -23986,6 +24939,8 @@
         sheet._setContext = function (detail) {
             var d = detail && typeof detail === 'object' ? detail : {};
             context.answerIndex = Number.isInteger(d.answerIndex) ? d.answerIndex : null;
+            context.answerText = typeof d.answerText === 'string' ? d.answerText : '';
+            context.questionText = typeof d.questionText === 'string' ? d.questionText : '';
             preparedPayload = null;
             selectedScope = d.scope === 'qa' && context.answerIndex != null ? 'qa'
                 : d.scope === 'rated' ? 'rated' : 'conversation';
@@ -23994,10 +24949,15 @@
             preview.hidden = true;
             preview.textContent = '';
             inspectBtn.textContent = 'Inspect JSON';
+            inspectBtn.setAttribute('aria-expanded', 'false');
             _refresh(true);
+            _setWorkspaceTab(d.tab === 'feedback' ? 'feedback' : d.tab === 'activity' ? 'activity' : 'contribution');
         };
+        sheet._setWorkspaceTab = _setWorkspaceTab;
+        sheet._refreshFeedbackWorkspace = _refreshFeedbackWorkspace;
+        sheet._refreshActivityWorkspace = _refreshActivityWorkspace;
         sheet._refreshContribution = function () { preparedPayload = null; _refresh(true); };
-        sheet._setContext({ scope: 'conversation' });
+        sheet._setContext({ scope: 'conversation', tab: 'contribution' });
         return sheet;
     }
 
@@ -28200,6 +29160,13 @@
         (typeof _assistantEvents !== 'undefined' ? _assistantEvents : document).addEventListener('ai-assistant-open-contribution', function (event) {
             if (!contributionSheet) return;
             contributionSheet._setContext((event && event.detail) || { scope: 'conversation' });
+            _openSheet(contributionSheet, document.activeElement);
+        });
+        (typeof _assistantEvents !== 'undefined' ? _assistantEvents : document).addEventListener('ai-assistant-open-feedback-center', function (event) {
+            if (!contributionSheet) return;
+            var detail = Object.assign({ scope: 'conversation', tab: 'feedback' }, (event && event.detail) || {});
+            detail.tab = 'feedback';
+            contributionSheet._setContext(detail);
             _openSheet(contributionSheet, document.activeElement);
         });
 

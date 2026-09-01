@@ -75,6 +75,7 @@ on the same proxy without interfering.
 | `security/` | Offline lock/SBOM verifier, policy, CycloneDX Python SBOM, and networked release gates |
 | `docker-compose.hardened.reference.yml` | Operator reference for read-only/rootless/capability-dropped deployment |
 | `README.md` | This file — HF Space metadata + full documentation |
+| `../FEEDBACK_REVIEW_GUIDE.md` | Local ratings, anonymous telemetry, maintainer feedback review, update/withdraw semantics, and reviewer operations |
 | `../DATASET_CONTRIBUTION_GUIDE.md` | Reader + maintainer contribution lifecycle, native review, receipt management, and scenario guide |
 | `DATASET_COLLECTION_GUIDANCE.md` | Deep multi-store operations, provider topology, migration, deduplication, and training-data assembly |
 
@@ -95,6 +96,10 @@ on the same proxy without interfering.
 | `POST` | `/`                    | Backward-compat alias for `/v1/chat/completions` | Identical behaviour |
 | `POST` | `/v1/chat/completions` | Primary proxy — routes to Path 1 / 2 / 3 | Negotiates SSE vs JSON; never relabels JSON as SSE |
 | `POST` | `/v1/feedback`         | Receive 👍/👎 rating; optionally persist the canonical record through the configured Primary + Mirrors | Rate-limited: 30/IP/hour |
+| `POST` | `/v1/feedback/review` | Open one explicit content-bearing feedback review for exactly one Q&A | Separate versioned review + training consent; provider-native PR/MR; merge makes the Q&A + quality signal eligible |
+| `PUT` | `/v1/feedback/review/{receipt}` | Update the same open feedback review | Requires `X-Feedback-Review-Token`; identical content is a no-op |
+| `GET` | `/v1/feedback/review/{receipt}` | Read content-free feedback review status | Requires `X-Feedback-Review-Token`; detects manual provider merge |
+| `DELETE` | `/v1/feedback/review/{receipt}` | Withdraw pending or merged maintainer feedback | Requires `X-Feedback-Review-Token`; closes pending review or removes current canonical feedback view |
 | `POST` | `/v1/share`            | Validate/store a structured snapshot; returns a fixed-path fragment URL and supports recoverable create-once semantics | Server owns representation/MIME; storage is `memory`, `sqlite`, or `redis` according to deployment policy |
 | `GET`  | `/v1/share`            | Serve the fixed Share viewer shell | Public locator stays in `#share=...`; fragment is browser-local |
 | `POST` | `/v1/share/read`       | Resolve/render a public read-only snapshot | Locator is JSON body data, never request-path data |
@@ -108,10 +113,11 @@ on the same proxy without interfering.
 | `DELETE` | `/v1/contribute/{receipt}` | Delete still-pending intake or withdraw an already-promoted contribution from training use | Requires `X-Contribution-Delete-Token`; never claims repository-history erasure |
 | `POST` | `/v1/contribute/{receipt}/promote` | Optional API-driven merge/promotion | Requires `CONTRIBUTION_REVIEW_TOKEN`; in `provider-pr` mode it merges the native PR/MR instead of creating a second direct commit |
 
-> **Dataset operators:** start with [`../DATASET_CONTRIBUTION_GUIDE.md`](../DATASET_CONTRIBUTION_GUIDE.md)
-> for the reader/maintainer workflow and scenario guide. Use
-> [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md) for deep
-> provider-storage, migration, deduplication, and multi-store operations.
+> **Feedback operators:** start with [`../FEEDBACK_REVIEW_GUIDE.md`](../FEEDBACK_REVIEW_GUIDE.md)
+> for local ratings, telemetry, one-Q&A maintainer review, revisions, and withdrawal.
+> **Dataset operators:** continue with [`../DATASET_CONTRIBUTION_GUIDE.md`](../DATASET_CONTRIBUTION_GUIDE.md)
+> for the contribution lifecycle. Use [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md)
+> for deep provider-storage, migration, deduplication, and multi-store operations.
 
 ### Global Share security contract
 
@@ -357,7 +363,8 @@ server-to-server clients without an `Origin` header still rely on their own toke
 | `CONTRIBUTION_REVIEW_TOKEN` | Optional | API-driven review/promotion capability. Not required when maintainers review entirely through provider-native PR/MR UI. |
 | `RATE_LIMIT_IDENTITY_SECRET` | Redis rate limiting | HMAC key used to pseudonymize shared rate-limit identities. |
 | `CONTRIBUTION_LEDGER_KEY_SECRET` | Redis contribution ledger | HMAC key used to pseudonymize receipt identifiers. |
-| Redis URLs containing credentials | When Redis is used | Keep `RATE_LIMIT_REDIS_URL`, `SHARE_STORE_REDIS_URL`, and `CONTRIBUTION_LEDGER_REDIS_URL` private when they contain usernames/passwords/tokens. |
+| `FEEDBACK_REVIEW_LEDGER_KEY_SECRET` | Redis feedback-review ledger | Optional dedicated HMAC key for feedback-review receipt identifiers; inherits the contribution ledger key secret when omitted. |
+| Redis URLs containing credentials | When Redis is used | Keep `RATE_LIMIT_REDIS_URL`, `SHARE_STORE_REDIS_URL`, `CONTRIBUTION_LEDGER_REDIS_URL`, and `FEEDBACK_REVIEW_LEDGER_REDIS_URL` private when they contain usernames/passwords/tokens. |
 
 A practical Scikit-plots Space layout is therefore:
 
@@ -366,6 +373,8 @@ A practical Scikit-plots Space layout is therefore:
 RECORD_STORAGE_TARGETS=<provider-neutral JSON topology>
 ALLOWED_MODELS=openai/gpt-oss-20b,Qwen/Qwen2.5-Coder-7B-Instruct,Qwen/Qwen2.5-Coder-32B-Instruct,scikit-plots/gpt-oss-20b,scikit-plots/Qwen2.5-Coder-7B-Instruct,scikit-plots/Qwen2.5-Coder-32B-Instruct
 HF_SPACES_MODEL_NAMESPACES=scikit-plots
+FEEDBACK_REVIEW_MODE=provider-pr
+CONTRIBUTION_REVIEW_MODE=provider-pr
 ALLOWED_ORIGINS_MODE=additive
 # ALLOWED_ORIGINS may remain empty because both current Scikit-plots sites are built in.
 
@@ -382,7 +391,7 @@ The proxy never reads provider token values from `RECORD_STORAGE_TARGETS`; it re
 configured `token_env` name and then resolves that environment variable server-side. Keep token
 values out of `conf.py`, generated Sphinx HTML, JavaScript, logs, repository URLs, and commit metadata.
 
-Start with [../DATASET_CONTRIBUTION_GUIDE.md](../DATASET_CONTRIBUTION_GUIDE.md) for contribution review and lifecycle behavior. Then use [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for exact HF/GitHub/GitLab/Bitbucket storage, Primary+Mirror, migration, testing, and deduplication recipes.
+Start with [../FEEDBACK_REVIEW_GUIDE.md](../FEEDBACK_REVIEW_GUIDE.md) for local ratings, telemetry, and maintainer feedback review. Continue with [../DATASET_CONTRIBUTION_GUIDE.md](../DATASET_CONTRIBUTION_GUIDE.md) for contribution review and lifecycle behavior. Then use [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for exact HF/GitHub/GitLab/Bitbucket storage, Primary+Mirror, migration, testing, and deduplication recipes.
 
 ### Tokens
 
@@ -482,7 +491,13 @@ Effort / Thinking fields and opens a per-model in-memory fallback circuit.
 |---|---|---:|---|
 | `RECORD_STORAGE_TARGETS` | Variable | New multi-store mode | Provider-neutral JSON topology with exactly one Primary and optional Mirrors. Contains token environment-variable **names**, never token values. |
 | `TRAINING_DATASET_REPO` | Variable | Legacy HF mode only | Backward-compatible HF Dataset repo ID. When `RECORD_STORAGE_TARGETS` is present, the explicit target topology is authoritative; this value may remain for rollback/older discovery consumers. |
-| `FEEDBACK_PERSIST_ENABLED` | Variable | No | Server-side persistence permission for privacy-minimal `/v1/feedback` telemetry. Default is `false`; it cannot override the browser user-consent gate, and feedback is never training-eligible. |
+| `FEEDBACK_PERSIST_ENABLED` | Variable | No | Server-side persistence permission for privacy-minimal `/v1/feedback` telemetry. Default is `false`; it cannot override the browser user-consent gate. Telemetry remains non-training even when reviewed feedback is eligible. |
+| `FEEDBACK_REVIEW_MODE` | Variable | No | `provider-pr` (default) enables explicit one-Q&A maintainer review; `disabled` turns the content-bearing review workflow off. This permission is separate from telemetry and contribution. |
+| `FEEDBACK_REVIEW_TTL_SECONDS` | Variable | No | Feedback-review receipt lifetime; default 7 days, bounded to 1 hour–30 days. |
+| `FEEDBACK_REVIEW_LEDGER_BACKEND` | Variable | No | Feedback management-receipt authority: inherits `CONTRIBUTION_LEDGER_BACKEND` unless explicitly set. Supports `memory`, `sqlite`, or `redis`. |
+| `FEEDBACK_REVIEW_LEDGER_SQLITE_PATH` | Variable | SQLite only | Restart-durable local feedback-review receipt database path. |
+| `FEEDBACK_REVIEW_REQUIRE_DURABLE` | Variable | No | Inherits the contribution durable requirement by default; when true, feedback-review intake fails closed without durable receipt storage. |
+| `FEEDBACK_REVIEW_REQUIRE_SHARED` | Variable | No | Inherits the contribution shared requirement by default; use for multi-replica deployments that require one authoritative receipt domain. |
 | `CONTRIBUTION_REVIEW_MODE` | Variable | `ledger` | `ledger` keeps the historical local/DB quarantine. `provider-pr` creates a native provider review ref immediately after consent; only merge to the canonical branch makes it eligible. |
 | `CONTRIBUTION_REVIEW_TOKEN` | Secret | Optional | Operator-only token for API-driven merge/promotion. In `provider-pr` mode maintainers may instead merge/close directly in the provider UI. |
 | `CONTRIBUTION_LEDGER_BACKEND` | Variable | No | `memory` (default), `sqlite` (local transactional/restart-durable), or `redis` (shared transactional authority across replicas in one Redis consistency domain). Redis persistence durability is deployment-conditional and is not inferred by the proxy. |
@@ -538,6 +553,7 @@ All values are in seconds.  Non-integer values silently fall back to the default
 | `CHAT_RATE_LIMIT_PER_HOUR` | `30` | Chat requests per resolved client identity. Enforced by the selected local or Redis backend. |
 | `SHARE_RATE_LIMIT_PER_HOUR` | `10` | Global Share creates/updates per resolved client identity. Enforced by the selected backend. |
 | `FEEDBACK_RATE_LIMIT_PER_HOUR` | `30` | Feedback writes, including retractions, per resolved client identity. |
+| `FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR` | `20` | Content-bearing maintainer-feedback review creates/updates per resolved client identity. Separate from anonymous telemetry. |
 | `CONTRIBUTION_RATE_LIMIT_PER_HOUR` | `5` | Contribution writes per resolved client identity. |
 | `RATE_LIMIT_BACKEND` | `local` | `local` keeps the bounded per-process abuse gate; `redis` uses one shared atomic fixed-window consistency domain across replicas. |
 | `RATE_LIMIT_REDIS_URL` | empty | Redis connection URL used only with `RATE_LIMIT_BACKEND=redis`. Treat it as a secret. `DEPLOYMENT_PROFILE=strict` requires `rediss://` with certificate and hostname verification. |
@@ -851,7 +867,7 @@ BASE=https://scikit-plots-ai.hf.space
 
 # 1. Liveness probe
 curl $BASE/health
-# {"status":"ok","version":"7.3.0"}
+# {"status":"ok","version":"7.4.0"}
 
 # Optional deterministic stub rig status
 curl -s $BASE/health | python3 -m json.tool
@@ -1021,6 +1037,38 @@ the custom ZeroGPU Space that actually has the weights loaded.  This is why
 ### Provider control-response boundary (Run 25 / B44)
 
 Record-storage provider control responses are bounded independently from intentional model/dataset downloads. The default ceiling is **4 MiB** and `AI_RECORD_STORAGE_CONTROL_RESPONSE_MAX_BYTES` is clamped to **16 MiB**. Provider mutations that do not require response content are streamed and closed without buffering a body; metadata JSON is byte-counted before parsing. Custom `api_base` is supported only for GitLab and must be HTTPS with a valid host and no userinfo, query, fragment, control characters, or traversal.
+
+### Native maintainer feedback review (`FEEDBACK_REVIEW_MODE=provider-pr`)
+
+This is a separate content-bearing workflow from anonymous `/v1/feedback` telemetry.
+The browser must hold the current versioned **Share feedback with maintainers**
+permission before it sends one Q&A + rating + optional note to `/v1/feedback/review`.
+Telemetry consent never authorizes this endpoint.
+
+The Primary storage provider owns one stable feedback review per participant
+management receipt:
+
+```text
+first quick/detailed share -> feedback PR/MR #27 · revision 1
+identical share again      -> no-op
+changed rating/note        -> feedback PR/MR #27 · revision 2
+maintainer merge           -> accepted maintainer feedback
+maintainer close/decline   -> rejected
+participant withdrawal     -> close pending review or remove current canonical feedback view
+```
+
+Feedback files use the target's configured `feedback/` folder and an opaque
+`fb_<review-key>.jsonl` filename. User text is not placed in branch names or review
+titles. A merged feedback row remains `_source=feedback` and
+the review ref carries `trainingStatus=eligible`, but the API remains `trainingEligible=false` until a maintainer merge. After merge the canonical Q&A is eligible and includes server-derived `qualityScore`/`qualityPercent` plus the raw rating scale.
+
+The feedback-review receipt ledger is separate from the contribution receipt ledger
+so the two authorities cannot be confused. By default its backend/durability policy
+inherits the contribution ledger configuration, but it may be configured
+independently. Redis URLs and feedback ledger key secrets belong in Space Secrets.
+
+Read [FEEDBACK_REVIEW_GUIDE.md](../FEEDBACK_REVIEW_GUIDE.md) for the browser UX,
+reviewer workflow, telemetry explanation, update/no-op semantics, and troubleshooting.
 
 ### Native provider review quarantine (`CONTRIBUTION_REVIEW_MODE=provider-pr`)
 

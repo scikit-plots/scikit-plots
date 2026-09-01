@@ -13,11 +13,23 @@ const endpoint = section('var extSection = _buildSheetSection', '// ════
 const usage = section('function _buildUsagePolicySheet()', 'function _buildDatasetContributionSheet()');
 
 t('dedicated contribution sheet exists', contribution.includes("sheet.id = 'ai-assistant-panel-contribution-sheet'"));
-t('sheet title is explicit', contribution.includes("hStrong.textContent = 'Contribute to dataset'"));
+t('shared workspace title is explicit', contribution.includes("hStrong.textContent = 'Feedback & contribution'"));
 t('This Q&A scope exists', contribution.includes("_scopeButton('qa', 'This Q&A'"));
 t('Rated answers scope exists', contribution.includes("_scopeButton('rated', 'Rated answers'"));
 t('Whole conversation scope exists', contribution.includes("_scopeButton('conversation', 'Whole conversation'"));
 t('exact JSON inspection exists', contribution.includes("inspectBtn.textContent = 'Inspect JSON'"));
+t('contribution actions reuse Endpoint Configuration I/O primitives',
+  contribution.includes("ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-inspect-row") &&
+  contribution.includes("ai-assistant-panel-ep-io-btn ai-assistant-panel-contribution-action-btn"));
+t('payload tools include local copy and download without submission',
+  contribution.includes('⎘ Copy JSON to clipboard') &&
+  contribution.includes('↓ Download JSON file') &&
+  contribution.includes('Nothing was submitted.'));
+t('receipt actions are grouped by authority and lifecycle',
+  contribution.includes("'Private recovery'") && contribution.includes("'Maintainer support'") &&
+  contribution.includes("'Review lifecycle'") && contribution.includes("tone === 'danger'"));
+t('recovery actions use shared endpoint I/O button style',
+  contribution.includes("recoveryActions.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-recovery-actions'"));
 t('contribution uses human-readable section framing',
   contribution.includes("'Choose content'") && contribution.includes("'Review details'") &&
   contribution.includes("'Inspect payload'") && contribution.includes("'Consent & manage'"));
@@ -41,7 +53,7 @@ t('Share has no contribution button', !share.includes('Contribute rated answers'
 t('Share has no contribution controller', !share.includes('_postTrainingContribution'));
 t('Share has no contribution delete capability', !share.includes('X-Contribution-Delete-Token'));
 
-t('feedback popup says Send rating telemetry', feedbackPopup.includes("persistLabel.textContent = 'Send rating telemetry'"));
+t('feedback popup labels anonymous telemetry clearly', feedbackPopup.includes("persistLabel.textContent = 'Anonymous rating telemetry'"));
 t('feedback popup exposes explicit Q&A contribution', feedbackPopup.includes('Contribute this Q&A'));
 t('Q&A shortcut dispatches contribution event', feedbackPopup.includes("'ai-assistant-open-contribution'"));
 t('telemetry toggle and contribution shortcut are separate rows', feedbackPopup.includes('popSepContribution'));

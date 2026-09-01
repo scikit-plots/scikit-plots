@@ -483,3 +483,23 @@ Permissions-Policy denial. Proxy deployment version ratcheted to **7.0.0**.
 - Mirrored the origin-composition contract in the Cloudflare Worker.
 - Preserved privacy-minimal health diagnostics while adding default-origin count/coverage facts.
 - Expanded the HF Space README with a clean Variables-vs-Secrets guide, current Scikit-plots examples, custom-site recipes, and explicit classification of `TRAINING_DATASET_REPO` as non-secret configuration.
+
+## Run 44 / B63 — contribution action-group UX
+
+- Reused Endpoint Configuration I/O button primitives throughout the dataset contribution sheet.
+- Grouped management controls into Payload, Private recovery, Maintainer support, Review lifecycle, and recovery-import surfaces instead of a flat undifferentiated button list.
+- Added local Copy JSON and Download JSON actions alongside Inspect JSON; neither action submits content.
+- Applied the existing danger-button treatment to delete/withdraw and added responsive stacking plus ARIA preview state.
+- Retargeted the existing withdrawal mutation anchor to the shared action-button constructor without weakening the privacy/lifecycle mutation.
+- Working-tree boundary: Node **51/51**, focused contribution/provider/privacy **54/54**, runnable non-Sphinx **849 passed, 3 skipped**.
+
+## Run 45 / B64 — feedback review, training eligibility and quality signal
+
+- Added the shared **Feedback | Dataset contribution | Activity** workspace while keeping local rating, anonymous telemetry, reviewed feedback, and dataset contribution as separate authorities.
+- Added provider-native one-Q&A feedback review with stable PR/MR identity, unchanged no-op, revision updates, status, withdrawal, and direct provider-review lookup.
+- Ratcheted feedback review consent to **2.0.0** and added an independently versioned training-consent marker; historical review-only browser consent fails closed.
+- A maintainer merge now makes explicitly consented feedback Q&A records training-eligible; close/decline never does.
+- Added server-derived `qualityScore` (`0..1`) and `qualityPercent` (`0..100`) while retaining the raw signed rating and scale bounds.
+- Training builder now admits eligible `feedback` as well as eligible `contribution`, while privacy-minimal rating telemetry remains excluded.
+- Proxy public API version ratcheted to **7.4.0**.
+- Runnable non-Sphinx working-tree boundary: **864 passed, 3 skipped**.

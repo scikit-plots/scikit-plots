@@ -1010,8 +1010,8 @@ MUTANTS: list[dict[str, str]] = [
             "withdraw training use; reverting the control to pending-only strands "
             "the lifecycle capability at the point durable copies may exist."
         ),
-        "find": "            manage.textContent = 'Delete pending / withdraw training use';",
-        "replace": "            manage.textContent = 'Delete pending data';",
+        "find": "                'Delete pending / withdraw training use',",
+        "replace": "                'Delete pending data',",
         "harness": "test_feedback_contribution_privacy.mjs",
     },
     {

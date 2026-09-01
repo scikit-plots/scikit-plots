@@ -12,6 +12,7 @@ Choose the path that matches what you are trying to do:
 | Open ChatGPT/Claude/Gemini with documentation context | [AI provider configuration](#configuration) | No |
 | Run the in-page assistant with stub models | [AI Assistant Panel](#ai-assistant-panel) | No |
 | Run real models securely | [Endpoint profiles](#endpoint-profiles--one-service-flexible-routes) + proxy README | Yes |
+| Let readers share one-Q&A feedback with maintainers | [Feedback and maintainer review](#feedback-and-maintainer-review) | Yes |
 | Let readers submit reviewed dataset content | [Dataset contribution and review](#dataset-contribution-and-review) | Yes |
 | Configure HF/GitHub/GitLab/Bitbucket storage | [`DATASET_CONTRIBUTION_GUIDE.md`](./DATASET_CONTRIBUTION_GUIDE.md) | Yes |
 | Deploy the bundled Hugging Face Space proxy | [`_hf_spaces_proxy/README.md`](./_hf_spaces_proxy/README.md) | Yes |
@@ -32,7 +33,11 @@ Level 2  Live model proxy
          Browser -> your proxy -> model provider
          provider credentials remain server-side
 
-Level 3  Dataset contribution
+Level 3  Reviewed feedback + model improvement
+         one Q&A -> explicit review/training consent -> provider PR/MR
+         merge -> eligible Q&A + normalized quality signal
+
+Level 4  Dataset contribution
          explicit content consent -> quarantine/review -> approved canonical dataset
 ```
 
@@ -91,11 +96,15 @@ the server-side proxy's secret store.
   page reload
 - **Export as txt**: download the whole conversation as a plain-text file
 - **Copy this answer**: per-answer copy button under each assistant reply
-- **Feedback**: configurable local rating UI plus an optional note. Network
-  rating telemetry is a separate explicit permission and never contains Q&A,
-  note, model, page URL, or stable conversation identity. Host-page lifecycle
-  events use another explicit permission; internal assistant coordination stays
-  on a private bus and public events are bounded projections only
+- **Feedback**: configurable quick + detailed local rating UI with synchronized
+  controls and an optional note. Anonymous rating telemetry is a separate
+  explicit permission and never contains Q&A, note, model, page URL, or stable
+  conversation identity. A second explicit **Share feedback for review & model
+  improvement** permission can place exactly one Q&A into an updatable
+  provider-native feedback review; a maintainer merge makes that Q&A
+  training-eligible together with a normalized quality score/percentage.
+  Host-page lifecycle
+  events remain independently permissioned.
 - **Keyboard shortcut**: toggle the panel with a configurable chord
   (`ai_assistant_panel_shortcut`, default `Alt+Shift+A`; a modifier is
   required, a bare key is rejected)
@@ -184,6 +193,45 @@ ai_assistant_endpoint_default_profile = "hf"
 Absolute provider-specific endpoints are also supported and are used verbatim,
 so heterogeneous deployments can override only the routes that need a different
 host or path. Legacy host-only feature values remain compatible.
+
+## Feedback and maintainer review
+
+Feedback is intentionally separate from anonymous telemetry and dataset contribution.
+The **Feedback & contribution** workspace exposes three tabs:
+
+```text
+[ Feedback ] [ Dataset contribution ] [ Activity ]
+```
+
+A quick or detailed rating always updates local state first. With **Share feedback
+for review & model improvement** Off, no Q&A is uploaded for repository review or
+training use. After the reader explicitly enables that permission, the same logical
+feedback item keeps one native provider review:
+
+```text
+first rating              -> feedback PR/MR #27 · revision 1
+same rating/note again    -> no-op
+changed quick rating      -> feedback PR/MR #27 · revision 2
+saved detailed note       -> feedback PR/MR #27 · revision 3
+withdraw                  -> close/remove according to lifecycle state
+```
+
+Feedback lives under the Primary target's `feedback/` path. The open PR/MR is
+not training-eligible, but it carries future canonical `_source=feedback`,
+`trainingStatus=eligible` bytes. On maintainer merge, the Q&A becomes eligible and
+retains both the raw rating and server-derived `qualityScore` (`0..1`) /
+`qualityPercent` (`0..100`). Quick and detailed buttons are synchronized, and
+withdrawal removes the active canonical feedback view and clears the local rating
+state so old button selections do not remain visible.
+
+The existing **Send anonymous rating telemetry** switch still controls only
+privacy-minimal `/v1/feedback` metadata. `FEEDBACK_PERSIST_ENABLED=false` can make
+that telemetry intentionally non-persistent even while the browser permission is On.
+It does not disable `/v1/feedback/review`, and telemetry consent never authorizes
+content-bearing review.
+
+For provider setup, reviewer behavior, update/no-op rules, withdrawal, persistence,
+and troubleshooting, read [`FEEDBACK_REVIEW_GUIDE.md`](./FEEDBACK_REVIEW_GUIDE.md).
 
 ## Dataset contribution and review
 
