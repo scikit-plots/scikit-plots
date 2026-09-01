@@ -329,7 +329,7 @@ repos:
 
   # 5. Type checker
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+    rev: v2.3.1
     hooks:
       # pre-commit run mypy --all-files --verbose
       - id: mypy
