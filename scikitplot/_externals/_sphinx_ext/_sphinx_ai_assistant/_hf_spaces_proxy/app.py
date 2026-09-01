@@ -204,6 +204,7 @@ try:
         MAX_CONTRIBUTION_NOTE_CHARS,
         MAX_CONVERSATION_MESSAGE_CHARS,
         MAX_CONVERSATION_MESSAGES,
+        MAX_FEEDBACK_LINEAGE_IDS,
         RESERVED_CONSENT_VERSION,
         normalize_contribution_record,
         normalize_contribution_withdrawal_record,
@@ -218,6 +219,7 @@ except Exception:  # noqa: BLE001
         MAX_CONTRIBUTION_NOTE_CHARS,
         MAX_CONVERSATION_MESSAGE_CHARS,
         MAX_CONVERSATION_MESSAGES,
+        MAX_FEEDBACK_LINEAGE_IDS,
         RESERVED_CONSENT_VERSION,
         normalize_contribution_record,
         normalize_contribution_withdrawal_record,
@@ -3511,6 +3513,118 @@ async def _sync_provider_review_merge(
         raise _contribution_ledger_http_error(exc) from exc
 
 
+def _validate_feedback_lineage_fields(  # ruff: ignore[too-many-branches]
+    container: dict[str, Any],
+    *,
+    label: str,
+) -> None:
+    """Validate the current schema-v5 feedback ancestry contract.
+
+    A lineage-bearing record is self-contained: current writers must provide
+    the stable root ``feedbackChainId``, immediate ``prevFeedbackId``, ordered
+    ``prevFeedbackIds`` ancestry vector, and matching ``editCount``. Retired
+    scalar-only/alias forms are rejected rather than silently upgraded.
+    """
+    if "sessionId" in container or "prevSessionId" in container:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{label} uses retired feedback lineage aliases; use feedbackId/prevFeedbackId.",
+        )
+
+    feedback_id = container.get("feedbackId")
+    chain_id = container.get("feedbackChainId")
+    prev_id = container.get("prevFeedbackId")
+    prev_ids = container.get("prevFeedbackIds")
+    edit_count = container.get("editCount", 0)
+
+    for field, value in (
+        ("feedbackId", feedback_id),
+        ("feedbackChainId", chain_id),
+        ("prevFeedbackId", prev_id),
+    ):
+        if value is not None and (
+            not isinstance(value, str) or not value or _is_above_thr(value, 256)
+        ):
+            raise HTTPException(status_code=422, detail=f"{label}.{field} is invalid.")
+    if (
+        not isinstance(edit_count, int)
+        or isinstance(edit_count, bool)
+        or edit_count < 0
+        or edit_count > MAX_FEEDBACK_LINEAGE_IDS
+    ):
+        raise HTTPException(status_code=422, detail=f"{label}.editCount is invalid.")
+
+    # A record with no rating lineage at all is valid for contribution content
+    # whose Ratings & feedback option is disabled. Once feedbackId is present,
+    # the complete current lineage shape is mandatory.
+    if feedback_id is None:
+        if (
+            chain_id is not None
+            or prev_id is not None
+            or prev_ids not in (None, [])
+            or edit_count != 0
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail=f"{label} has lineage metadata without feedbackId.",
+            )
+        return
+
+    if not isinstance(prev_ids, list) or len(prev_ids) > MAX_FEEDBACK_LINEAGE_IDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{label}.prevFeedbackIds is required and must be a bounded list.",
+        )
+    if chain_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{label}.feedbackChainId is required when feedbackId is present.",
+        )
+    if any(
+        not isinstance(item, str) or not item or _is_above_thr(item, 256)
+        for item in prev_ids
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{label}.prevFeedbackIds contains an invalid identifier.",
+        )
+    if len(set(prev_ids)) != len(prev_ids):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{label}.prevFeedbackIds contains a duplicate/cycle.",
+        )
+    if feedback_id in prev_ids:
+        raise HTTPException(
+            status_code=422, detail=f"{label}.feedbackId appears in its own ancestry."
+        )
+    if prev_ids:
+        if prev_id != prev_ids[-1]:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{label}.prevFeedbackId must match the newest ancestry entry.",
+            )
+        if chain_id != prev_ids[0]:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{label}.feedbackChainId must match the oldest ancestry entry.",
+            )
+        if edit_count != len(prev_ids):
+            raise HTTPException(
+                status_code=422,
+                detail=f"{label}.editCount must match the ancestry length.",
+            )
+    else:
+        if prev_id is not None or edit_count != 0:
+            raise HTTPException(
+                status_code=422, detail=f"{label} first-rating lineage is inconsistent."
+            )
+        if chain_id != feedback_id:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{label}.feedbackChainId must equal feedbackId for the first rating.",
+            )
+
+
 def _strict_current_contribution_records(  # ruff: ignore[too-many-branches]
     records: list[Any],
 ) -> None:
@@ -3553,6 +3667,7 @@ def _strict_current_contribution_records(  # ruff: ignore[too-many-branches]
                 raise HTTPException(
                     status_code=422, detail=f"records[{index}] contains no Q&A content."
                 )
+            _validate_feedback_lineage_fields(rec, label=f"records[{index}]")
             continue
         messages = rec.get("messages")
         if not isinstance(messages, list) or not messages:
@@ -3605,6 +3720,10 @@ def _strict_current_contribution_records(  # ruff: ignore[too-many-branches]
                         status_code=422,
                         detail=f"records[{index}].messages[{msg_index}].feedback.note exceeds {MAX_CONTRIBUTION_NOTE_CHARS} characters.",
                     )
+                _validate_feedback_lineage_fields(
+                    feedback,
+                    label=f"records[{index}].messages[{msg_index}].feedback",
+                )
 
 
 def _contribution_replay_response(
@@ -5070,6 +5189,7 @@ def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
         raise HTTPException(
             status_code=403, detail="Explicit feedback training permission is required."
         )
+    _validate_feedback_lineage_fields(payload, label="feedbackReview")
     query = payload.get("query")
     answer = payload.get("answer")
     message = payload.get("message", "")
@@ -5708,14 +5828,16 @@ async def feedback(request: Request) -> JSONResponse:
             status_code=422, detail="Feedback telemetry consent timestamp is required."
         )
 
+    _validate_feedback_lineage_fields(payload, label="feedbackTelemetry")
+
     # ── Distinguish retraction tombstones from regular ratings ───────────────
     # Retractions are system-generated housekeeping records that invalidate a
-    # previous rating in the training dataset.  They carry action="retract" and
-    # prevSessionId (pointing to the original record) but NO ratingValue.
+    # previous rating in the training dataset. They carry action="retract" and
+    # canonical prevFeedbackId (pointing to the original record) but NO ratingValue.
     # Key behavioural differences vs regular feedback:
     #   1. Counted against the same bounded abuse gate as every feedback write;
     #      retractions must not create an unlimited write path.
-    #   2. Validated differently — prevSessionId is required; ratingValue is absent.
+    #   2. Validated differently — prevFeedbackId is required; ratingValue is absent.
     #   3. Logged with event "feedback.retract" so operators can distinguish
     #      retraction volume from new-rating volume in log dashboards.
     #   4. Committed with a distinct commit_message so the HF repo history is legible.
@@ -5740,10 +5862,10 @@ async def feedback(request: Request) -> JSONResponse:
         )
 
     if is_retract:
-        if not payload.get("prevSessionId"):
+        if not payload.get("prevFeedbackId"):
             raise HTTPException(
                 status_code=422,
-                detail="Retraction records must include a non-empty prevSessionId.",
+                detail="Retraction records must include a non-empty prevFeedbackId.",
             )
         logger.info(
             json.dumps(

@@ -85,7 +85,7 @@ def _reset_state() -> None:
     proxy_app._contrib_rl.clear()
 
 
-def test_schema_v4_conversation_is_one_ordered_record_with_per_message_evidence():
+def test_schema_v5_conversation_is_one_ordered_record_with_per_message_evidence():
     payload = _v4_conversation_payload()
     row = schema.normalize_contribution_record(
         payload["records"][0],
@@ -93,7 +93,7 @@ def test_schema_v4_conversation_is_one_ordered_record_with_per_message_evidence(
         server_ts_ms=100,
         submission_id="receipt",
     )
-    assert schema.SCHEMA_VERSION == 4
+    assert schema.SCHEMA_VERSION == 5
     assert schema.RESERVED_CONSENT_VERSION == "2.0.0"
     assert row["recordType"] == "conversation"
     assert row["_dedup_key"] == "receipt:conversation"

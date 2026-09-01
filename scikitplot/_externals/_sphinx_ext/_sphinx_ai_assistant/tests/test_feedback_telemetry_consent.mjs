@@ -6,8 +6,9 @@ function ok(cond,name){t(name,!!cond,true);}
 function slice(a,b){const i=src.indexOf(a);const j=src.indexOf(b,i+1);if(i<0||j<0)throw new Error(`missing slice ${a}`);return src.slice(i,j);}
 
 const init = slice("    var _FEEDBACK_TELEMETRY_CONSENT_VERSION = '1.0.0';", '    /**\n     * Selected microphone device ID.');
+const lineage = slice('    var _FEEDBACK_LINEAGE_MAX_IDS = 1000;', '    /**\n     * Unique session id');
 const telemetry = slice('    function _feedbackTelemetryPayload(detail) {', '    /**\n     * POST a content-free telemetry supersession marker.');
-const retract = slice('    function _postFeedbackRetract(url, token, prevSessionId, answerIndex, conversationId) {', '    /**\n     * Render the post-submission thank-you state');
+const retract = slice('    function _postFeedbackRetract(url, token, priorEntry, answerIndex) {', '    /**\n     * Render the post-submission thank-you state');
 const setter = slice('    function _setFeedbackPersistMode(enabled) {', '    // ══════════════════════════════════════════════════════════════════════════\n    // LEGACY LOCAL SHARE STORAGE');
 
 function runtime(seed={}) {
@@ -20,7 +21,7 @@ function runtime(seed={}) {
   const document = {getElementById(){return null;},querySelectorAll(){return [];}};
   const posts=[];
   function _remotePost(...args){posts.push(args);}
-  const fn = new Function('localStorage','document','_remotePost', `${init}\n${telemetry}\n${retract}\n${setter}\nreturn {enabled:()=>_feedbackPersistEnabled, grantedAt:()=>_feedbackTelemetryGrantedAt, set:_setFeedbackPersistMode, post:_postFeedback, retract:_postFeedbackRetract, event:_feedbackLocalEventPayload, payload:_feedbackTelemetryPayload};`);
+  const fn = new Function('localStorage','document','_remotePost', `${init}\n${lineage}\n${telemetry}\n${retract}\n${setter}\nreturn {enabled:()=>_feedbackPersistEnabled, grantedAt:()=>_feedbackTelemetryGrantedAt, set:_setFeedbackPersistMode, post:_postFeedback, retract:_postFeedbackRetract, event:_feedbackLocalEventPayload, payload:_feedbackTelemetryPayload};`);
   return {api:fn(localStorage,document,_remotePost),store,posts};
 }
 
@@ -42,7 +43,7 @@ r=runtime({'ai-assistant-feedback-telemetry-consent':JSON.stringify({enabled:tru
 t('current structured consent restores telemetry',r.api.enabled(),true);
 t('stored grant timestamp restored',r.api.grantedAt(),1700000000000);
 
-const detail={ratingValue:1,ratingLabel:'helpful',ratingTitle:'Helpful',ratingMode:'quick',answerIndex:2,query:'SECRET QUESTION',answer:'SECRET ANSWER',message:'SECRET NOTE',model:{id:'secret'},page:'https://private',conversationId:'stable',sessionId:'event-id',ts:123};
+const detail={ratingValue:1,ratingLabel:'helpful',ratingTitle:'Helpful',ratingMode:'quick',answerIndex:2,query:'SECRET QUESTION',answer:'SECRET ANSWER',message:'SECRET NOTE',model:{id:'secret'},page:'https://private',conversationId:'stable',feedbackId:'event-id',ts:123};
 const local=r.api.event(detail);
 for(const k of ['query','answer','message','model','page','conversationId','telemetryConsent','telemetryConsentVersion','telemetryConsentAt']) ok(!(k in local),`public event omits ${k}`);
 t('public event keeps rating',local.ratingValue,1);
@@ -58,11 +59,13 @@ for(const k of ['query','answer','message','model','page','conversationId']) ok(
 
 r.api.set(false);
 t('toggle off disables telemetry',r.api.enabled(),false);
-ok(!r.store.has('ai-assistant-feedback-telemetry-consent'),'toggle off removes consent record');
+const offStored=JSON.parse(r.store.get('ai-assistant-feedback-telemetry-consent'));
+t('toggle off persists explicit disabled state',offStored.enabled,false);
+t('toggle off keeps current consent version',offStored.version,'1.0.0');
 const before=r.posts.length;
 t('post stays blocked after opt-out',r.api.post('https://example/v1/feedback','token',detail),false);
 t('opt-out causes zero extra request',r.posts.length,before);
-t('retract also blocked after opt-out',r.api.retract('https://example/v1/feedback','token','old',2,'stable'),false);
+t('retract also blocked after opt-out',r.api.retract('https://example/v1/feedback','token',{feedbackId:'old',feedbackChainId:'old',prevFeedbackId:null,prevFeedbackIds:[],editCount:0},2),false);
 t('blocked retract causes zero extra request',r.posts.length,before);
 
 r.api.set(true);
@@ -71,8 +74,8 @@ const stored=JSON.parse(r.store.get('ai-assistant-feedback-telemetry-consent'));
 t('stored consent version',stored.version,'1.0.0');
 t('stored consent enabled',stored.enabled,true);
 ok(Number.isFinite(stored.grantedAt)&&stored.grantedAt>0,'stored consent has grant timestamp');
-ok(!r.store.has('ai-assistant-feedback-telemetry'),'legacy telemetry key removed');
-ok(!r.store.has('ai-assistant-feedback-persist'),'legacy persist key removed');
+ok(!src.includes("localStorage.getItem('ai-assistant-feedback-telemetry')"),'retired telemetry boolean is never read');
+ok(!src.includes("localStorage.getItem('ai-assistant-feedback-persist')"),'retired persist boolean is never read');
 
 console.log(`${passed} passed, ${failed} failed`);
 if(failed)process.exit(1);

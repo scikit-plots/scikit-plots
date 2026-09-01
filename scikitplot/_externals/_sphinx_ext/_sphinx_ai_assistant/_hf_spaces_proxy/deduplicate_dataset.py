@@ -78,12 +78,17 @@ conflict instead of silently selecting one provider's copy.
 
 Deduplication contract
 ----------------------
-* Schema versions 1 (legacy) and 2 (current) are normalised to canonical v2 when
+* Historical schema rows are normalized to the current canonical schema when
   ``_utils/_dataset_schema.py`` is importable.
-* ``contribution`` wins over ``feedback`` for the same ``_dedup_key``.
-* Ties within the same source use last-write-wins on server ``_ts``.
-* Retraction tombstones are considered during LWW but never emitted for
-  training.
+* Storage lifecycle is resolved first by ``_dedup_key``; ``contribution`` wins
+  over ``feedback`` for the same key and same-source ties use server ``_ts``.
+* Semantic rating lineage is resolved second by ``feedbackChainId`` /
+  ``prevFeedbackIds`` / ``editCount`` so the terminal rating wins even when
+  provider-review updates and contribution snapshots use different storage keys.
+* Forked or cyclic/inconsistent terminal lineages fail closed instead of using
+  timestamp order to guess which rating the reader intended.
+* Retraction/withdrawal tombstones are considered during storage LWW but never
+  emitted for training.
 * The output is idempotent for the same source snapshots.
 
 Security notes
@@ -190,6 +195,21 @@ class SourceLoadStats:
     files_loaded: int = 0
     mirrored_files_suppressed: int = 0
     exact_records_suppressed: int = 0
+
+
+@dataclass(slots=True)
+class FeedbackLineageStats:
+    """Audit counters from semantic terminal-rating resolution."""
+
+    chains_seen: int = 0
+    chains_collapsed: int = 0
+    superseded_records_removed: int = 0
+    forked_chains_excluded: int = 0
+    malformed_records_excluded: int = 0
+    unresolved_legacy_records: int = 0
+
+
+_LAST_LINEAGE_STATS = FeedbackLineageStats()
 
 
 def _priority(record: dict) -> int:
@@ -335,6 +355,276 @@ def load_sources_records(
     return records, stats
 
 
+def _semantic_feedback_candidate(record: dict[str, Any]) -> bool:
+    """Return whether *record* participates in top-level rating lineage."""
+    return (
+        record.get("recordType") == "qa"
+        and record.get("action") in {"rate", "review"}
+        and isinstance(record.get("feedbackId"), str)
+        and bool(record.get("feedbackId"))
+        and record.get("ratingValue") is not None
+    )
+
+
+def _lineage_edit_count(record: dict[str, Any]) -> int | None:
+    value = record.get("editCount")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+def _explicit_lineage_root(  # ruff: ignore[too-many-return-statements]
+    record: dict[str, Any],
+) -> tuple[str | None, bool]:
+    """Return ``(root, valid)`` for self-contained schema-v5 lineage evidence.
+
+    An empty ``prevFeedbackIds`` vector is valid for a first rating.  Historical
+    rows that have only ``prevFeedbackId`` are reported as unresolved here and
+    may be connected by the graph fallback in ``_resolve_terminal_feedback_lineages``.
+    """
+    fid = record.get("feedbackId")
+    chain = record.get("feedbackChainId")
+    prev = record.get("prevFeedbackId")
+    raw_prev_ids = record.get("prevFeedbackIds")
+    edit_count = _lineage_edit_count(record)
+    if edit_count is None:
+        return None, False
+    if raw_prev_ids is None:
+        return None, True
+    if not isinstance(raw_prev_ids, list):
+        return None, False
+    prev_ids = [item for item in raw_prev_ids if isinstance(item, str) and item]
+    if len(prev_ids) != len(raw_prev_ids) or len(set(prev_ids)) != len(prev_ids):
+        return None, False
+    if fid in prev_ids:
+        return None, False
+    if prev_ids:
+        if not isinstance(chain, str) or not chain or chain != prev_ids[0]:
+            return None, False
+        if prev != prev_ids[-1] or edit_count != len(prev_ids):
+            return None, False
+        return chain, True
+    if prev is None and edit_count == 0:
+        if chain is None:
+            return str(fid), True
+        return (str(chain), bool(chain == fid))
+    # ``[]`` plus a parent/editCount is a historical partial-normalization shape.
+    return None, True
+
+
+def _choose_same_terminal(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Choose one representation of the same terminal feedback event."""
+    best = records[0]
+    for rec in records[1:]:
+        new_pri = _priority(rec)
+        old_pri = _priority(best)
+        if new_pri < old_pri or (
+            new_pri == old_pri and rec.get("_ts", 0) > best.get("_ts", 0)
+        ):
+            best = rec
+    return best
+
+
+def _resolve_terminal_feedback_lineages(  # ruff: ignore[too-many-branches]
+    records: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], FeedbackLineageStats]:
+    """Collapse superseded Q&A rating records by semantic feedback lineage.
+
+    Storage keys intentionally describe receipts/provider lifecycle, not user
+    rating identity.  This second pass therefore resolves the terminal rating
+    using the self-contained v5 lineage first and a bounded legacy parent graph
+    second.  Same-revision forks are excluded rather than guessed by timestamps.
+    """
+    stats = FeedbackLineageStats()
+    candidates = [r for r in records if _semantic_feedback_candidate(r)]
+    passthrough = [r for r in records if not _semantic_feedback_candidate(r)]
+    if not candidates:
+        return records, stats
+
+    by_id: dict[str, list[dict[str, Any]]] = {}
+    for rec in candidates:
+        by_id.setdefault(str(rec.get("feedbackId")), []).append(rec)
+
+    root_cache: dict[str, str | None] = {}
+    invalid_ids: set[str] = set()
+    invalid_roots: set[str] = set()
+
+    # The same semantic feedback event can legitimately appear in both feedback
+    # review and contribution storage, but its ancestry must be identical.  A
+    # reused feedbackId with conflicting parents/root/revision is ambiguous
+    # identity evidence and must fail closed before source-priority resolution.
+    for fid, same_id_records in by_id.items():
+        signatures: set[tuple[Any, ...]] = set()
+        claimed_roots: set[str] = set()
+        for rec in same_id_records:
+            prev_ids = rec.get("prevFeedbackIds")
+            prev_tuple = (
+                tuple(prev_ids) if isinstance(prev_ids, list) else ("<not-a-list>",)
+            )
+            signatures.add(
+                (
+                    rec.get("feedbackChainId"),
+                    rec.get("prevFeedbackId"),
+                    prev_tuple,
+                    _lineage_edit_count(rec),
+                )
+            )
+            claimed = rec.get("feedbackChainId")
+            if isinstance(claimed, str) and claimed:
+                claimed_roots.add(claimed)
+        if len(signatures) > 1:
+            invalid_ids.add(fid)
+            invalid_roots.update(claimed_roots)
+
+    def root_for(  # ruff: ignore[too-many-branches, too-many-return-statements]
+        rec: dict[str, Any],
+        visiting: set[str] | None = None,
+    ) -> str | None:
+        fid = str(rec.get("feedbackId") or "")
+        if not fid:
+            return None
+        if fid in invalid_ids:
+            root_cache[fid] = None
+            return None
+        if fid in root_cache:
+            return root_cache[fid]
+        explicit, valid = _explicit_lineage_root(rec)
+        if not valid:
+            invalid_ids.add(fid)
+            claimed_root = rec.get("feedbackChainId")
+            if isinstance(claimed_root, str) and claimed_root:
+                invalid_roots.add(claimed_root)
+            root_cache[fid] = None
+            return None
+        if explicit:
+            root_cache[fid] = explicit
+            return explicit
+
+        prev = rec.get("prevFeedbackId")
+        edit_count = _lineage_edit_count(rec)
+        if not isinstance(prev, str) or not prev:
+            if edit_count == 0:
+                root_cache[fid] = fid
+                return fid
+            root_cache[fid] = None
+            return None
+        if visiting is None:
+            visiting = set()
+        if fid in visiting or prev == fid:
+            invalid_ids.add(fid)
+            claimed_root = rec.get("feedbackChainId")
+            if isinstance(claimed_root, str) and claimed_root:
+                invalid_roots.add(claimed_root)
+            root_cache[fid] = None
+            return None
+        visiting = set(visiting)
+        visiting.add(fid)
+        parents = by_id.get(prev, [])
+        if not parents:
+            # A single edit can still reveal its root directly from the parent ID.
+            if edit_count == 1:
+                root_cache[fid] = prev
+                return prev
+            root_cache[fid] = None
+            return None
+        parent_roots = {root_for(parent, visiting) for parent in parents}
+        parent_roots.discard(None)
+        if len(parent_roots) != 1:
+            invalid_ids.add(fid)
+            root_cache[fid] = None
+            return None
+        root = next(iter(parent_roots))
+        root_cache[fid] = root
+        return root
+
+    groups: dict[str, list[dict[str, Any]]] = {}
+    unresolved: list[dict[str, Any]] = []
+    for rec in candidates:
+        root = root_for(rec)
+        if root is None:
+            if str(rec.get("feedbackId") or "") in invalid_ids:
+                stats.malformed_records_excluded += 1
+            else:
+                unresolved.append(rec)
+                stats.unresolved_legacy_records += 1
+            continue
+        groups.setdefault(root, []).append(rec)
+
+    resolved: list[dict[str, Any]] = []
+    for _root, group in groups.items():
+        stats.chains_seen += 1
+        if _root in invalid_roots:
+            stats.malformed_records_excluded += len(group)
+            continue
+        counts = [(_lineage_edit_count(rec), rec) for rec in group]
+        if any(count is None for count, _rec in counts):
+            stats.malformed_records_excluded += len(group)
+            continue
+
+        # A fork at *any* observed revision depth poisons the chain, even if one
+        # branch later grows to a numerically larger editCount. Otherwise a
+        # concurrent f2a/f2b split followed by f3-from-f2b would silently make
+        # f3 look authoritative merely because it is deeper.
+        ids_by_revision: dict[int, set[str]] = {}
+        for count, rec in counts:
+            ids_by_revision.setdefault(int(count), set()).add(
+                str(rec.get("feedbackId") or "")
+            )
+        if any(len(ids) != 1 for ids in ids_by_revision.values()):
+            stats.forked_chains_excluded += 1
+            stats.malformed_records_excluded += len(group)
+            continue
+
+        # Validate every observed edge against every other known revision. Missing
+        # historical rows are allowed because v5 carries self-contained ancestry,
+        # but contradictory rows that *are* present are never ignored.
+        known_by_revision = {
+            depth: next(iter(ids)) for depth, ids in ids_by_revision.items()
+        }
+        inconsistent = False
+        for count, rec in counts:
+            depth = int(count)
+            if (  # ruff: ignore[collapsible-if]
+                depth > 0 and (depth - 1) in known_by_revision
+            ):
+                if rec.get("prevFeedbackId") != known_by_revision[depth - 1]:
+                    inconsistent = True
+                    break
+            prev_ids = rec.get("prevFeedbackIds")
+            if isinstance(prev_ids, list) and prev_ids:
+                for known_depth, known_id in known_by_revision.items():
+                    if known_depth >= depth:
+                        continue
+                    if (
+                        known_depth >= len(prev_ids)
+                        or prev_ids[known_depth] != known_id
+                    ):
+                        inconsistent = True
+                        break
+            if inconsistent:
+                break
+        if inconsistent:
+            stats.forked_chains_excluded += 1
+            stats.malformed_records_excluded += len(group)
+            continue
+
+        max_count = max(int(count) for count, _rec in counts)
+        terminal = [rec for count, rec in counts if count == max_count]
+        # Per-depth uniqueness above guarantees one semantic terminal ID; there
+        # may still be multiple storage representations of that same event.
+        winner = _choose_same_terminal(terminal)
+        resolved.append(winner)
+        removed = len(group) - 1
+        if removed:
+            stats.chains_collapsed += 1
+            stats.superseded_records_removed += removed
+
+    # Unresolved historical rows are retained rather than guessed. They do not
+    # gain semantic deduplication, preserving backward-compatible output while
+    # current v5 rows fail closed on explicit malformed/forked lineage.
+    return passthrough + unresolved + resolved, stats
+
+
 def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> list[dict]:
     """Build the training set from reviewed records, then deduplicate.
 
@@ -348,10 +638,15 @@ def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> lis
     ``include_unreviewed`` exists only for explicit audit/recovery workflows.
 
 
-    ``contribution`` beats ``feedback`` for the same key. Ties within the same
-    source are resolved by latest server ``_ts``. Retraction/withdrawal tombstones
-    participate in LWW and are then unconditionally excluded from output.
-    Records without ``_dedup_key`` are retained for legacy compatibility.
+    Storage lifecycle is resolved first: ``contribution`` beats ``feedback`` for
+    the same storage key and ties within one source use latest server ``_ts``.
+    Retraction/withdrawal tombstones participate in that LWW pass and are then
+    excluded.  A second semantic pass resolves the terminal Q&A rating by
+    feedback lineage, where ancestry/editCount outrank source priority; source
+    priority is used only for duplicate representations of the same terminal
+    feedbackId.  Malformed cycles, conflicting same-ID ancestry, and same-revision
+    forks fail closed. Records without ``_dedup_key`` remain for legacy
+    compatibility unless explicit malformed lineage makes them unsafe.
     """
     keyed: dict[str, dict] = {}
     no_key: list[dict] = []
@@ -395,7 +690,10 @@ def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> lis
     clean_keyed = [
         r for r in keyed.values() if r.get("action") not in {"retract", "withdraw"}
     ]
-    return clean_keyed + no_key
+    semantic, lineage_stats = _resolve_terminal_feedback_lineages(clean_keyed + no_key)
+    global _LAST_LINEAGE_STATS  # noqa: PLW0603
+    _LAST_LINEAGE_STATS = lineage_stats
+    return semantic
 
 
 def write_output(records: list[dict], output_path: Path) -> None:
@@ -413,6 +711,8 @@ def _report_stats(records: list[dict]) -> dict[str, Any]:
     by_schema: dict[Any, int] = {}
     with_feedback_id = 0
     with_prev_feedback = 0
+    with_feedback_chain = 0
+    with_feedback_history = 0
     tombstones = 0
 
     for r in records:
@@ -426,6 +726,10 @@ def _report_stats(records: list[dict]) -> dict[str, Any]:
             with_feedback_id += 1
         if r.get("prevFeedbackId"):
             with_prev_feedback += 1
+        if r.get("feedbackChainId"):
+            with_feedback_chain += 1
+        if isinstance(r.get("prevFeedbackIds"), list) and r.get("prevFeedbackIds"):
+            with_feedback_history += 1
         if act == "retract":
             tombstones += 1
 
@@ -436,6 +740,8 @@ def _report_stats(records: list[dict]) -> dict[str, Any]:
         "by_schema": by_schema,
         "with_feedback_id": with_feedback_id,
         "with_prev_feedback_id": with_prev_feedback,
+        "with_feedback_chain_id": with_feedback_chain,
+        "with_feedback_history": with_feedback_history,
         "tombstones": tombstones,
     }
 
@@ -783,6 +1089,8 @@ def _log_stats(records: list[dict]) -> dict[str, Any]:
         logger.info("    schemaVersion=%s: %d", sv, cnt)
     logger.info("  feedbackId populated:      %d", stats["with_feedback_id"])
     logger.info("  prevFeedbackId populated:  %d", stats["with_prev_feedback_id"])
+    logger.info("  feedbackChainId populated: %d", stats["with_feedback_chain_id"])
+    logger.info("  prevFeedbackIds populated: %d", stats["with_feedback_history"])
     if stats["tombstones"]:
         logger.info(
             "  %d retraction tombstone(s) in raw data (excluded from clean output)",
@@ -1042,8 +1350,27 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
         0, raw_stats["total"] - raw_stats["tombstones"] - excluded - len(clean)
     )
     logger.info(
-        "  %d duplicate(s) removed (priority rule applied)", max(0, duplicates_removed)
+        "  %d duplicate/superseded record(s) removed", max(0, duplicates_removed)
     )
+    lineage = _LAST_LINEAGE_STATS
+    if lineage.chains_seen or lineage.unresolved_legacy_records:
+        logger.info(
+            "  lineage: %d chain(s), %d collapsed, %d superseded removed",
+            lineage.chains_seen,
+            lineage.chains_collapsed,
+            lineage.superseded_records_removed,
+        )
+    if lineage.forked_chains_excluded or lineage.malformed_records_excluded:
+        logger.warning(
+            "Lineage safety excluded %d forked chain(s) / %d malformed record(s).",
+            lineage.forked_chains_excluded,
+            lineage.malformed_records_excluded,
+        )
+    if lineage.unresolved_legacy_records:
+        logger.info(
+            "  lineage: %d unresolved legacy record(s) retained without guessing",
+            lineage.unresolved_legacy_records,
+        )
     logger.info("  %d unique records retained", len(clean))
 
     output_path = Path(args.output)

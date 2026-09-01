@@ -20,9 +20,9 @@ dd = importlib.import_module("deduplicate_dataset")
 proxy_app = importlib.import_module("app")
 
 
-def _legacy_feedback_payload() -> dict:
+def _feedback_payload() -> dict:
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 4,
         "ratingValue": 1,
         "ratingLabel": "helpful",
         "ratingTitle": "Helpful",
@@ -34,13 +34,17 @@ def _legacy_feedback_payload() -> dict:
         "answerIndex": 4,
         "page": "https://example.test/private?token=secret",
         "ts": 123,
-        "sessionId": "feedback-event-id",
+        "feedbackId": "feedback-event-id",
+        "feedbackChainId": "feedback-event-id",
+        "prevFeedbackId": None,
+        "prevFeedbackIds": [],
+        "editCount": 0,
         "conversationId": "stable-chat-id",
     }
 
 
 def _telemetry_feedback_payload() -> dict:
-    payload = _legacy_feedback_payload()
+    payload = _feedback_payload()
     payload.update({
         "schemaVersion": schema.FEEDBACK_TELEMETRY_SCHEMA_VERSION,
         "telemetryConsent": True,
@@ -90,8 +94,8 @@ def _reset_collection_state(monkeypatch):
     proxy_app._feedback_rl.clear()
 
 
-def test_schema_v4_preserves_legacy_v3_consent_and_server_training_state():
-    assert schema.SCHEMA_VERSION == 4
+def test_schema_v5_preserves_legacy_v3_consent_and_server_training_state():
+    assert schema.SCHEMA_VERSION == 5
     assert schema.CONSENT_VERSION_ENABLED is True
     assert schema.RESERVED_CONSENT_VERSION == "2.0.0"
     assert "1.0.0" in schema.LEGACY_CONSENT_VERSIONS
@@ -109,8 +113,8 @@ def test_schema_v4_preserves_legacy_v3_consent_and_server_training_state():
     assert row["consentVersion"] == "1.0.0"
 
 
-def test_feedback_normalizer_discards_content_identity_and_model_even_from_legacy_direct_caller():
-    row = schema.normalize_feedback_record(_legacy_feedback_payload(), server_ts_ms=1000)
+def test_feedback_normalizer_discards_content_identity_and_model_from_current_caller():
+    row = schema.normalize_feedback_record(_feedback_payload(), server_ts_ms=1000)
     assert row["trainingStatus"] == "telemetry"
     assert row["query"] == ""
     assert row["answer"] == ""
@@ -133,7 +137,7 @@ def test_training_builder_fails_closed_for_feedback_quarantine_and_legacy_rows()
     )
     quarantined = dict(eligible, trainingStatus="quarantined", _dedup_key="q:0")
     legacy = dict(eligible, trainingStatus="legacy_unreviewed", _dedup_key="l:0")
-    feedback = schema.normalize_feedback_record(_legacy_feedback_payload(), server_ts_ms=1000)
+    feedback = schema.normalize_feedback_record(_feedback_payload(), server_ts_ms=1000)
     clean = dd.deduplicate([feedback, quarantined, legacy, eligible])
     assert [r["trainingStatus"] for r in clean] == ["eligible"]
     audit = dd.deduplicate([feedback, quarantined, legacy, eligible], include_unreviewed=True)
@@ -225,7 +229,7 @@ def test_contribution_rejects_stale_consent_version():
 
 def test_feedback_endpoint_requires_explicit_versioned_telemetry_permission_before_rate_limit():
     with TestClient(proxy_app.app) as client:
-        missing = client.post("/v1/feedback", json=_legacy_feedback_payload())
+        missing = client.post("/v1/feedback", json=_feedback_payload())
         stale = _telemetry_feedback_payload()
         stale["telemetryConsentVersion"] = "0.9.0"
         stale_response = client.post("/v1/feedback", json=stale)

@@ -883,6 +883,7 @@ ai_assistant_panel_page_help = True
 #   the browser via the platform's built-in speech engine.
 #   The mic button inside the input group is also hidden when False.
 ai_assistant_panel_speak_banner = True
+ai_assistant_panel_mic_space_shortcut = True  # hold Space inside panel to push-to-talk
 
 # Type:    str
 # Default: "Ask AI"
@@ -1608,11 +1609,22 @@ ai_assistant_panel_api_models = [
 # The dedicated sheet button in the sub-bar remains available regardless.
 ai_assistant_panel_inline_model_picker = True
 
+# ── Reader-facing privacy/runtime initial values ──────────────────────────────
+# These are initial states only. Once a reader changes a control, the browser
+# stores both explicit ON and explicit OFF and that choice wins over the site
+# default on later page loads.
+ai_assistant_panel_feedback_telemetry_default = False  # privacy-first
+ai_assistant_panel_feedback_review_default = True      # False is useful for local-only/dev checks
+ai_assistant_panel_page_integration_default = False    # keep lifecycle events private by default
+ai_assistant_panel_streaming_default = True            # initial Streaming responses preference
+ai_assistant_panel_remember_conversation = True        # same-tab sessionStorage only
+
 # ── ai_assistant_panel_api_streaming ─────────────────────────────────────────
 # Type:    bool
 # Default: True
 #
-# Master switch for SSE (Server-Sent Events) streaming in API mode.
+# Hard capability/master switch for SSE (Server-Sent Events) streaming in API mode.
+# The reader-facing initial preference is ai_assistant_panel_streaming_default.
 #
 #   True  (default)
 #       The JS requests ``stream: true`` for every OpenAI-compat provider

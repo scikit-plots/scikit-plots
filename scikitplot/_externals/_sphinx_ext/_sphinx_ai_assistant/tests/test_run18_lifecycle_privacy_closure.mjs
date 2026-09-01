@@ -62,7 +62,7 @@ function domRuntime(seed={}) {
 
 const detail={ratingValue:1,ratingLabel:'helpful',ratingTitle:'Helpful',ratingMode:'quick',answerIndex:2,
   query:'SECRET QUESTION',answer:'SECRET ANSWER',message:'SECRET NOTE',model:{id:'secret'},
-  page:'https://private.example/x?token=secret',conversationId:'stable',sessionId:'event-id',ts:123};
+  page:'https://private.example/x?token=secret',conversationId:'stable',feedbackId:'event-id',ts:123};
 
 let r=domRuntime();
 t('page integration absent consent defaults off', r.api.enabled(), false);
@@ -87,7 +87,8 @@ t('public event keeps answer index', r.events[0].detail.answerIndex, 2);
 
 r.api.set(false);
 t('explicit page integration opt-out disables', r.api.enabled(), false);
-ok(!r.store.has('ai-assistant-page-integration-consent'),'opt-out deletes integration consent record');
+const offIntegration=JSON.parse(r.store.get('ai-assistant-page-integration-consent'));
+t('page integration opt-out persists explicit disabled state',offIntegration.enabled,false);
 const beforeEvents=r.events.length;
 t('dispatch blocked after opt-out',r.api.dispatch(detail),false);
 t('no event after opt-out',r.events.length,beforeEvents);
@@ -96,7 +97,7 @@ t('explicit page integration opt-in enables',r.api.enabled(),true);
 const saved=JSON.parse(r.store.get('ai-assistant-page-integration-consent'));
 t('integration consent version',saved.version,'2.0.0');
 t('integration consent enabled marker',saved.enabled,true);
-ok(Number.isFinite(saved.grantedAt)&&saved.grantedAt>0,'integration consent timestamp exists');
+ok(Number.isFinite(saved.changedAt)&&saved.changedAt>0,'integration preference change timestamp exists');
 
 // Source-level capability and recovery invariants.
 const headersFn=extract('_operationHeaders');

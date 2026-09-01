@@ -44,9 +44,11 @@ const t = (name, got, want) => {
 // ── the registry ───────────────────────────────────────────────────────────
 t('every requested item is present', _MENU_ITEMS.length >= 9, true);
 t('registry order matches primary then More reading order',
-  _MENU_ITEMS.map((m) => m.key).join(''), 'MCSDLUPTK');
+  _MENU_ITEMS.map((m) => m.key).join(''), 'MESCDOLUPTK');
 t('primary order is configuration then conversation',
-  _MENU_ITEMS.filter((m) => m.group === 'primary').map((m) => m.key).join(''), 'MCSD');
+  _MENU_ITEMS.filter((m) => m.group === 'primary').map((m) => m.key).join(''), 'MESCD');
+t('More disclosure uses the collision-safe O mnemonic',
+  _MENU_ITEMS.filter((m) => m.group === 'disclosure').map((m) => m.key).join(''), 'O');
 t('More order is links, policy group, shortcuts',
   _MENU_ITEMS.filter((m) => m.group === 'more').map((m) => m.key).join(''), 'LUPTK');
 
@@ -61,15 +63,13 @@ t('More order is links, policy group, shortcuts',
   t('accelerators are uppercase',
     keys.every((k) => k === k.toUpperCase()), true);
 
-  // Guessable, not memorised: the key is the first letter of the label
-  // wherever the label allows it.
+  // Guessable, not memorised: prefer the first/word-initial letter, but a
+  // collision may use another visible letter from the same label (More → O).
   let mnemonic = 0;
   for (const m of _MENU_ITEMS) {
-    if (m.label.toUpperCase().split(/[^A-Z]+/).some((w) => w.startsWith(m.key))) {
-      mnemonic++;
-    }
+    if (m.label.toUpperCase().includes(m.key)) mnemonic++;
   }
-  t('every accelerator is a letter from its own label',
+  t('every accelerator comes from its own visible label',
     mnemonic, _MENU_ITEMS.length);
 
   let complete = 0;
@@ -83,20 +83,23 @@ t('More order is links, policy group, shortcuts',
 
 // ── reserved surface shortcuts ─────────────────────────────────────────────
 {
-  t('E is reserved for Exit rather than a menu destination',
-    _MENU_ITEMS.some((m) => m.key === 'E'), false);
+  t('Endpoint owns E as the obvious first-letter mnemonic',
+    _MENU_ITEMS.some((m) => m.label === 'Endpoint Configuration' && m.key === 'E'), true);
   const menu = extract('_buildHamburgerMenu');
-  t('Exit is published through the same accelerator map',
-    /accelerators\.E = hooks\.onExit/.test(menu), true);
-  t('footer renders E as the Exit keycap',
-    /kbdExit[\s\S]*?_createShortcutCaps\(\['E'\]\)/.test(menu), true);
+  t('Exit is published separately from bare-letter accelerators',
+    /pop\._exit = \(hooks && typeof hooks\.onExit === 'function'\)/.test(menu), true);
+  t('footer renders Escape as the Exit keycap',
+    /kbdExit[\s\S]*?_createShortcutCaps\(\['Escape'\]\)/.test(menu), true);
+  t('Exit no longer steals E from Endpoint', /accelerators\.E = hooks\.onExit/.test(menu), false);
 }
 
 // ── the requested items, by name ───────────────────────────────────────────
 for (const [label, key] of [
   ['Model Configuration', 'M'],
-  ['Endpoint Configuration', 'C'],
+  ['Endpoint Configuration', 'E'],
   ['Share', 'S'],
+  ['Contribute', 'C'],
+  ['More', 'O'],
   ['Project Links', 'L'],
   ['Usage Policy', 'U'],
   ['Privacy & Responsibility', 'P'],
@@ -106,6 +109,16 @@ for (const [label, key] of [
   const found = _MENU_ITEMS.find((m) => m.label === label);
   t('item exists: ' + label, !!found, true);
   t('accelerator for ' + label, found && found.key, key);
+}
+
+// ── left and right hamburger buttons share the same shortcut registry ───────
+{
+  t('hamburger menu is built once and reused by both anchors',
+    (src.match(/_buildHamburgerMenu\(\{/g) || []).length, 1);
+  t('left trigger selects the left anchor',
+    /hamburgerMenuEl\.setAttribute\('data-anchor', 'left'\)/.test(src), true);
+  t('right trigger selects the right anchor',
+    /hamburgerMenuEl\.setAttribute\('data-anchor', 'right'\)/.test(src), true);
 }
 
 // ── the destructive item ───────────────────────────────────────────────────
@@ -130,6 +143,10 @@ for (const [label, key] of [
     /accelerators\[spec\.key\.toUpperCase\(\)\] = activate/.test(menu), true);
   t('the map is published for the panel-level binder',
     /pop\._accelerators = accelerators/.test(menu), true);
+  t('More publishes its O accelerator through the same map',
+    /accelerators\[moreSpec\.key\.toUpperCase\(\)\] = activateMore/.test(menu), true);
+  t('More O reveals the hamburger before opening an otherwise invisible submenu',
+    /pop\.getAttribute\('data-open'\) !== 'true'[\s\S]*?pop\.setAttribute\('data-open', 'true'\)[\s\S]*?setMoreOpen\(true, true\)/.test(menu), true);
 
   // Click and key must run the SAME function, or the confirmation can be
   // skipped by whichever path forgot it.
@@ -174,6 +191,16 @@ for (const [label, key] of [
   t('already-handled events are left alone',
     /e\.defaultPrevented/.test(bind), true);
   t('text entry is skipped', /_isTextEntryTarget\(e\.target\)/.test(bind), true);
+}
+
+// ── Escape is context-sensitive without stealing a menu letter ─────────────
+{
+  t('Escape first attempts to stop a live response',
+    /if \(_stopActivePanelResponse\(\)\)[\s\S]*?preventDefault\(\)[\s\S]*?return;/.test(src), true);
+  t('Escape otherwise routes to the menu/sheet exit helper',
+    /hamburgerMenuEl && typeof hamburgerMenuEl\._exit === 'function'[\s\S]*?hamburgerMenuEl\._exit\(\)/.test(src), true);
+  t('Escape only exits when a menu or sheet is actually open',
+    /if \(hasMenu \|\| hasSheet\)/.test(src), true);
 }
 
 // ── the text-entry guard is what makes panel-wide letters safe ─────────────

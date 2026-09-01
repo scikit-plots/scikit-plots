@@ -1079,7 +1079,11 @@ export default {
         telemetryConsentAt: Number.isFinite(fb.telemetryConsentAt) ? fb.telemetryConsentAt : null,
         action: fb.action === 'retract' ? 'retract' : 'rate',
         feedbackId: typeof fb.feedbackId === 'string' ? fb.feedbackId.slice(0, 128) : null,
+        feedbackChainId: typeof fb.feedbackChainId === 'string' ? fb.feedbackChainId.slice(0, 128) : null,
         prevFeedbackId: typeof fb.prevFeedbackId === 'string' ? fb.prevFeedbackId.slice(0, 128) : null,
+        prevFeedbackIds: Array.isArray(fb.prevFeedbackIds)
+          ? fb.prevFeedbackIds.filter((id) => typeof id === 'string' && id).slice(0, 1000).map((id) => id.slice(0, 128))
+          : [],
         answerIndex: Number.isInteger(fb.answerIndex) ? fb.answerIndex : null,
         editCount: Number.isInteger(fb.editCount) ? Math.max(0, Math.min(1000, fb.editCount)) : 0,
         ratingValue: typeof fb.ratingValue === 'number' ? fb.ratingValue : null,

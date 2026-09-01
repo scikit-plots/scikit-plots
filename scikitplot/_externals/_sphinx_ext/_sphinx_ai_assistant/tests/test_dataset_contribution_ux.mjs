@@ -17,13 +17,13 @@ t('shared workspace title is explicit', contribution.includes("hStrong.textConte
 t('This Q&A scope exists', contribution.includes("_scopeButton('qa', 'This Q&A'"));
 t('Rated answers scope exists', contribution.includes("_scopeButton('rated', 'Rated answers'"));
 t('Whole conversation scope exists', contribution.includes("_scopeButton('conversation', 'Whole conversation'"));
-t('exact JSON inspection exists', contribution.includes("inspectBtn.textContent = 'Inspect JSON'"));
+t('JSON and JSONL are explicit format tabs', contribution.includes("_contributionActionButton('JSON'") && contribution.includes("_contributionActionButton('JSONL'"));
 t('contribution actions reuse Endpoint Configuration I/O primitives',
-  contribution.includes("ai-assistant-panel-ep-io-row ai-assistant-panel-contribution-inspect-row") &&
+  contribution.includes("ai-assistant-panel-payload-inspector-toolbar ai-assistant-panel-contribution-inspect-row") &&
   contribution.includes("ai-assistant-panel-ep-io-btn ai-assistant-panel-contribution-action-btn"));
 t('payload tools include local copy and download without submission',
-  contribution.includes('⎘ Copy JSON to clipboard') &&
-  contribution.includes('↓ Download JSON file') &&
+  contribution.includes("'⎘ Copy JSON'") && contribution.includes("'⎘ Copy JSONL'") &&
+  contribution.includes("'↓ Download JSON'") && contribution.includes("'↓ Download JSONL'") &&
   contribution.includes('Nothing was submitted.'));
 t('receipt actions are grouped by authority and lifecycle',
   contribution.includes("'Private recovery'") && contribution.includes("'Maintainer support'") &&
@@ -38,8 +38,8 @@ t('JSON preview is keyboard focusable and context-sized',
   contribution.includes("preview.dataset.size = lines <= 14 ? 'compact' : (lines <= 32 ? 'medium' : 'large')"));
 t('optional reviewer note exposes live character count',
   contribution.includes("noteCounter.textContent = noteInput.value.length + ' / ' + _CONTRIBUTION_NOTE_MAX_CHARS"));
-t('preview uses current payload object', contribution.includes('JSON.stringify(payload, null, 2)'));
-t('inspect copy explains redaction boundary', contribution.includes('exact payload entering privacy review') && contribution.includes('only the reviewed/redacted copy is sent'));
+t('request JSON remains separately inspectable', contribution.includes("savedStructureBtn = _contributionActionButton('JSON'") && contribution.includes("savedStructureStrong.textContent = 'Request JSON'") && contribution.includes('JSON.stringify(payload, null, 2)'));
+t('inspect copy explains request/storage boundary', contribution.includes('JSON shows the exact browser request envelope') && contribution.includes('provider review/future main'));
 t('privacy review receives payload', contribution.includes('_privacyPreflightReview(payload'));
 t('submission uses reviewed value', contribution.includes('_sendReviewedContribution(endpoint, review.value, envelope)'));
 t('quarantine copy exists', contribution.includes('not training-eligible until an authorized review promotes it'));
@@ -53,10 +53,10 @@ t('Share has no contribution button', !share.includes('Contribute rated answers'
 t('Share has no contribution controller', !share.includes('_postTrainingContribution'));
 t('Share has no contribution delete capability', !share.includes('X-Contribution-Delete-Token'));
 
-t('feedback popup labels anonymous telemetry clearly', feedbackPopup.includes("persistLabel.textContent = 'Anonymous rating telemetry'"));
+t('feedback workspace owns anonymous telemetry control', contribution.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && !feedbackPopup.includes("persistLabel.textContent = 'Anonymous rating telemetry'"));
 t('feedback popup exposes explicit Q&A contribution', feedbackPopup.includes('Contribute this Q&A'));
 t('Q&A shortcut dispatches contribution event', feedbackPopup.includes("'ai-assistant-open-contribution'"));
-t('telemetry toggle and contribution shortcut are separate rows', feedbackPopup.includes('popSepContribution'));
+t('feedback management and contribution shortcut are separate rows', feedbackPopup.includes('popSepContribution'));
 
 t('schema v4 constant exists', src.includes('var _CONTRIBUTION_SCHEMA_VERSION = 4;'));
 t('consent v2 constant exists', src.includes("var _CONTRIBUTION_CONSENT_VERSION = '2.0.0';"));
@@ -76,7 +76,7 @@ t('canonical sheet registry includes contribution', /key:\s*'contribution'[\s\S]
 t('private event opens canonical contribution sheet', src.includes("addEventListener('ai-assistant-open-contribution'") && src.includes("_assistantEvents !== 'undefined'"));
 
 t('Endpoint Configuration renamed Runtime & Data', endpoint.includes("_buildSheetSection('Runtime & Data')"));
-t('Endpoint has Feedback telemetry block', endpoint.includes("_buildExtSub('Feedback telemetry')"));
+t('Endpoint does not duplicate Feedback permissions', !endpoint.includes("_buildExtSub('Feedback telemetry')") && endpoint.includes("_buildExtSub('Page integration events')"));
 t('Endpoint has Dataset contributions block', endpoint.includes("_buildExtSub('Dataset contributions')"));
 t('Endpoint can open contribution sheet', endpoint.includes("openContribution.textContent = 'Open contribution sheet'"));
 t('user-facing endpoint label is dataset contribution', src.includes("label: 'Dataset contribution endpoint'"));

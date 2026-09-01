@@ -62,12 +62,17 @@ review is not training-eligible. If the reader granted the current explicit
 review/model-improvement consent and a maintainer merges the PR/MR, that single
 Q&A becomes training-eligible together with its quality signal.
 
-The Feedback tab includes **Inspect feedback payload**, with local-only **Inspect JSON**,
-**Copy JSON to clipboard**, and **Download JSON file** actions. This preview is the
-exact client review payload. It includes the Q&A, rating/quality inputs, optional note,
-and the model attribution belonging to the assistant turn that actually produced the
-answer. Inspect/copy/download never submit anything. If originating model attribution
-is unavailable, review sharing fails closed instead of creating an ambiguous training row.
+The Feedback tab includes a centralized **Inspect payload** surface with separate
+**JSON** and **JSONL** format tabs. **JSON** shows the exact browser review-request
+envelope. **JSONL** shows the canonical feedback repository row in an expanded readable
+view; Copy/Download still emits strict one-object-per-line NDJSON. The active format is
+named directly in the size badge and Copy/Download actions. The tabs support pointer,
+Arrow-key, Home, and End navigation with a single keyboard focus target. Long content wraps
+inside the local inspector, and syntax emphasis is created only with inert text nodes.
+When anonymous rating telemetry is enabled, its privacy-minimal JSONL row appears as a
+nested, separately labeled record because it is not the maintainer-review payload.
+Inspect/copy/download never submit anything. If originating model attribution is
+unavailable, review sharing fails closed instead of creating an ambiguous training row.
 
 ### Dataset contribution
 
@@ -83,9 +88,18 @@ through the configured review lifecycle.
 
 ### Activity
 
-Activity shows the review receipts remembered by the current tab while keeping
-feedback and dataset contribution visibly separate. Use **Manage** to return to
-the appropriate control plane.
+Activity is a bounded, tab-local management ledger for feedback reviews and dataset
+contributions. Entries are shown newest-first. Use **Manage** to return to the
+appropriate control plane, **Forget** to discard one private in-tab management
+receipt, or **Forget all** at the section header to clear that tracked family.
+Forget actions never delete, close, merge, withdraw, or otherwise alter remote data.
+Because forgetting may discard the only in-tab withdrawal capability, both actions
+require a second confirming click.
+
+Terminal reviews are not kept as permanent history. When a status check reports a
+review as merged/reviewed, closed/rejected, deleted, withdrawn, expired, or the
+receipt/provider review is no longer available (404/410), its tab-local tracking
+entry is removed automatically. Activity performs no background polling.
 
 ## Quick feedback
 
@@ -105,7 +119,9 @@ click causes no feedback network request at all.
 
 ### Review sharing On
 
-After the reader explicitly enables **Share feedback for review & model improvement**:
+When **Maintainer feedback review** / **Share with maintainers** is On (built-in
+initial value **True**, configurable with
+``ai_assistant_panel_feedback_review_default`` and overridable by the reader):
 
 ```text
 first quick rating
@@ -123,8 +139,65 @@ change quick rating
 ```
 
 Turning review sharing On does **not** retroactively upload a rating that was
-already local. The Feedback tab exposes **Share current feedback** for that
-explicit transition.
+already local. The next explicit quick or detailed feedback save is the operation
+that creates or updates the maintainer review. Merely changing a workspace setting
+or typing in the optional note does not submit content.
+
+
+### Browser initial defaults
+
+The documentation build can set the initial state of reader-facing controls without
+overriding a choice already stored in the browser:
+
+| Setting | Built-in initial value | Sphinx config |
+|---|---:|---|
+| Anonymous rating telemetry | Off | ``ai_assistant_panel_feedback_telemetry_default`` |
+| Maintainer feedback review | On | ``ai_assistant_panel_feedback_review_default`` |
+| Page integration events | Off | ``ai_assistant_panel_page_integration_default`` |
+| Streaming responses | On | ``ai_assistant_panel_streaming_default`` |
+| Remember conversation in this tab | On | ``ai_assistant_panel_remember_conversation`` |
+
+``ai_assistant_panel_api_streaming`` is separate: it is the hard SSE capability
+ceiling. If it is False, the reader cannot enable streaming even when their
+Streaming responses preference is On. Explicit browser ON/OFF values are retained
+so a configured default cannot silently resurrect a setting the reader turned off.
+
+## Feedback revision lineage
+
+Canonical dataset schema v5 keeps storage identity separate from semantic rating
+identity. Every current rating revision carries a bounded, self-contained lineage:
+
+```text
+feedbackId       = current rating/revision event
+feedbackChainId  = stable root feedbackId for this answer
+prevFeedbackId   = immediate predecessor (backward-compatible scalar)
+prevFeedbackIds  = complete ordered ancestry, oldest -> newest
+editCount        = revision depth; normally len(prevFeedbackIds)
+```
+
+Example:
+
+```text
+f1  chain=f1  prev=null  history=[]       edit=0
+ |
+f2  chain=f1  prev=f1    history=[f1]     edit=1
+ |
+f3  chain=f1  prev=f2    history=[f1,f2]  edit=2
+```
+
+`prevFeedbackId` intentionally remains a scalar so historical readers do not break;
+`prevFeedbackIds[]` supplies the retrospective chain. The browser keeps the bounded
+lineage companion state in same-tab `sessionStorage` only when **Remember conversation
+in this tab** is enabled, so a restored transcript does not silently forget rating
+ancestry. Turning that setting Off clears both transcript and lineage restoration
+state.
+
+The deduplication tool resolves storage lifecycle first and semantic rating lineage
+second. A later semantic revision wins even when an older representation comes from
+a higher-priority source. Source priority applies only when feedback and contribution
+contain the same terminal `feedbackId`. Same-revision forks, cycles, duplicate IDs with
+conflicting ancestry, and other explicit malformed v5 lineage fail closed instead of
+being guessed from timestamps.
 
 ## Detailed feedback
 
@@ -311,8 +384,9 @@ then a consented `/v1/feedback` request can be validated and accepted while the
 operator intentionally stores no telemetry row. This does not affect
 `/v1/feedback/review`.
 
-The Feedback workspace and Endpoint Configuration surface both states so users
-can distinguish:
+The Feedback workspace is the single visible owner for telemetry and maintainer-review
+permissions. Endpoint Configuration no longer duplicates those consent switches; it keeps
+runtime/endpoint and optional page-integration controls. The Feedback workspace distinguishes:
 
 ```text
 Browser telemetry permission: On/Off
@@ -399,7 +473,7 @@ feedback row schema.
 
 Check all of these:
 
-1. **Share feedback for review & model improvement** is On.
+1. **Maintainer feedback review** / **Share with maintainers** is On.
 2. The feedback workspace reports review service **Ready**.
 3. `FEEDBACK_REVIEW_MODE=provider-pr` is active.
 4. `RECORD_STORAGE_TARGETS` has a writable Primary.
@@ -443,7 +517,7 @@ The implementation should continue to enforce all of the following:
 - provider credentials stay server-side;
 - one active feedback lifecycle updates one review instead of opening duplicates;
 - unchanged content produces no provider commit;
-- feedback records never become training-eligible;
+- feedback review records become training-eligible only while review-sharing permission is active and after authorized maintainer merge; anonymous telemetry never becomes training-eligible;
 - withdrawal authority is distinct from maintainer merge/close authority;
 - Mirrors never become independent review authorities;
 - logs do not contain Q&A bodies, provider tokens, or participant management capabilities.

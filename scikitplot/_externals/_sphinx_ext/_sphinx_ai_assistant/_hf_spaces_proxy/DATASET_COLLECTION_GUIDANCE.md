@@ -1010,19 +1010,25 @@ retract A
 rate B
 ```
 
-Relevant v2 fields include:
+Current canonical schema-v5 lineage fields are:
 
 ```text
-feedbackId
-prevFeedbackId
-editCount
+feedbackId       current event
+feedbackChainId  stable root event
+prevFeedbackId   immediate predecessor
+prevFeedbackIds  ordered full ancestry, oldest -> newest
+editCount        revision depth
 action
-_ts
+_ts              server write time; fallback/storage ordering only
 ```
 
-Retraction tombstones participate in last-write-wins so an explicitly removed
-rating can suppress an older rating. A tombstone is then **always removed** from
-the clean training output.
+Historical scalar-only `prevFeedbackId` rows remain readable. Current rows are
+self-contained so terminal-rating resolution does not depend on network arrival
+order. Retraction tombstones first participate in storage-key last-write-wins so an
+explicitly removed rating suppresses its target, then tombstones are **always removed**
+from clean training output. The semantic lineage pass then selects the terminal valid
+rating. Same-revision forks, cycles, or conflicting ancestry for one `feedbackId` fail
+closed rather than using `_ts` as a guess.
 
 If a retraction reaches the server but the replacement rating never arrives,
 no training example is emitted for that key. This is safer than resurrecting a
@@ -1684,7 +1690,7 @@ conflict resolution could hide corruption or unauthorized modification.
 - exact legacy duplicate records across mirrors suppressed;
 - same canonical record ID + different bytes fails closed;
 - guarded remote archive extraction;
-- historical schema normalization to current schema v4 when `_utils/_dataset_schema.py` is available;
+- historical schema normalization to current canonical schema v5 when `_utils/_dataset_schema.py` is available;
 - default exclusion of feedback telemetry/quarantined/legacy-unreviewed records;
 - training acceptance only for `trainingStatus="eligible"` contributions;
 - tombstone/retraction handling where applicable;

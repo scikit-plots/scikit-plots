@@ -5,9 +5,9 @@ function ok(cond, name) { if (cond) { passed++; } else { failed++; console.error
 function section(a, b) { const i=src.indexOf(a); const j=src.indexOf(b, i+1); return i>=0 && j>i ? src.slice(i,j) : ''; }
 
 ok(src.includes("var _FEEDBACK_TELEMETRY_PREF_KEY = 'ai-assistant-feedback-telemetry-consent';"), 'rating telemetry uses a dedicated consent record');
-ok(src.includes("saved.enabled !== true"), 'telemetry consent defaults fail closed');
+ok(src.includes("panelFeedbackTelemetryDefault === true"), 'telemetry uses configurable privacy-first site default');
 ok(src.includes("saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION"), 'stale telemetry consent is rejected');
-ok(src.includes("localStorage.removeItem('ai-assistant-feedback-telemetry')"), 'legacy boolean telemetry preference is revoked');
+ok(!src.includes("localStorage.getItem('ai-assistant-feedback-telemetry')"), 'retired boolean telemetry key has no read authority');
 ok(src.includes('return false;'), 'feedback telemetry storage failure defaults off');
 const telemetry = section('function _feedbackTelemetryPayload(detail)', 'function _postFeedback(url');
 ok(telemetry.includes('schemaVersion: 4'), 'network feedback uses consent-aware schema v4');
@@ -25,8 +25,8 @@ for (const forbidden of ['query:', 'answer:', 'message:', 'model:', 'page:', 'co
 }
 ok(src.includes("detail: _feedbackLocalEventPayload(detail || {})") || src.includes("return _feedbackLocalEventPayload(detail);"), 'public feedback event uses privacy-minimal detail');
 ok(src.includes("if (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) { return false; }"), 'network helper self-gates on consent');
-ok(src.includes("'Send anonymous rating telemetry'"), 'settings name is truthful');
-ok(src.includes('Question text, answer text, written notes, model identity, page URL and conversation identifiers are excluded from telemetry'), 'settings explain excluded sensitive fields');
+ok(src.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'"), 'feedback workspace names telemetry truthfully');
+ok(src.includes('no Q&A, note, model, page, consent version, or conversation identifier'), 'feedback workspace explains excluded sensitive fields');
 ok(src.includes("var _CONTRIBUTION_CONSENT_VERSION = '2.0.0';"), 'new contribution uses consent v2');
 ok(src.includes('var _CONTRIBUTION_SCHEMA_VERSION = 4;'), 'new contribution uses schema v4');
 const builder = section('function _buildDatasetContributionPayload(', 'function _datasetContributionPayloadBytes(');
@@ -41,7 +41,7 @@ ok(contribution.includes("lifecycle.status === 'withdrawn'"), 'UI recognizes pos
 ok(contribution.includes('versioned provider history is not claimed physically erased'), 'UI does not overclaim provider-history erasure');
 ok(contribution.includes('does not claim forensic deletion from database pages, backups, or infrastructure snapshots'), 'UI does not overclaim pending forensic erasure');
 ok(contribution.includes('not training-eligible until an authorized review promotes it'), 'UI does not claim immediate training ingestion');
-ok(src.includes("persistLabel.textContent = 'Anonymous rating telemetry'"), 'feedback popup labels telemetry without implying dataset save');
+ok(contribution.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && !src.includes("persistLabel.textContent = 'Anonymous rating telemetry'"), 'feedback workspace owns telemetry without duplicating it in the popup');
 ok(src.includes("contributeLabel.textContent = 'Contribute this Q&A"), 'feedback popup has explicit Q&A contribution shortcut');
 
 console.log(`${passed} passed, ${failed} failed`);

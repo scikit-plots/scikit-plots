@@ -34,8 +34,8 @@ ok(sheet.includes("_workspaceButton('contribution', 'Dataset contribution')"),'w
 ok(sheet.includes("_workspaceButton('activity', 'Activity')"),'workspace has Activity tab');
 ok(sheet.includes('Feedback is exactly one Q&A'),'feedback tab explains one-Q&A scope');
 ok(sheet.includes('training-eligible only if a maintainer merges') || sheet.includes('merge required for training eligibility'),'workspace states merge-gated training invariant');
-ok(src.includes("'Share feedback for review & model improvement'"),'settings expose explicit review/training permission');
-ok(src.includes("'Send anonymous rating telemetry'"),'telemetry remains separately named and permissioned');
+ok(src.includes("reviewTitle.textContent = 'Maintainer feedback review'") && src.includes("reviewToggle.setAttribute('aria-label', 'Share feedback with maintainers')"),'Feedback workspace exposes explicit review/training permission');
+ok(src.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && src.includes("data-feedback-telemetry-toggle"),'telemetry remains separately named and permissioned');
 
 // Execute the consent primitive so this is not only a source-layout contract.
 function consentRuntime(seed={}){
@@ -51,8 +51,12 @@ function consentRuntime(seed={}){
 let legacy=consentRuntime({'ai-assistant-feedback-review-consent':JSON.stringify({enabled:true,version:'1.0.0',grantedAt:123})});
 eq(legacy.api.enabled(),false,'legacy review-only consent fails closed after training semantics change');
 let r=consentRuntime();
-eq(r.api.enabled(),false,'review sharing defaults off');
-ok(r.api.status().startsWith('Local only'),'off state explains local-only content');
+eq(r.api.enabled(),true,'review sharing uses built-in default on when no reader choice exists');
+ok(Number.isFinite(r.api.granted()) && r.api.granted() > 0,'default-on review has an activation timestamp');
+r.api.set(false);
+eq(r.api.enabled(),false,'explicit review opt-out overrides default on');
+const disabled=JSON.parse(r.store.get('ai-assistant-feedback-review-consent'));
+eq(disabled.enabled,false,'review opt-out persists explicit disabled state');
 r.api.set(true);
 eq(r.api.enabled(),true,'explicit review-sharing opt-in enables permission');
 const saved=JSON.parse(r.store.get('ai-assistant-feedback-review-consent'));
@@ -61,7 +65,8 @@ eq(saved.enabled,true,'review consent stores enabled flag');
 ok(!r.store.has('ai-assistant-feedback-telemetry-consent'),'review opt-in does not create telemetry consent');
 r.api.set(false);
 eq(r.api.enabled(),false,'review opt-out disables future repository sharing');
-ok(!r.store.has('ai-assistant-feedback-review-consent'),'review opt-out removes its own consent record');
+const disabledAgain=JSON.parse(r.store.get('ai-assistant-feedback-review-consent'));
+eq(disabledAgain.enabled,false,'review opt-out remains stored so site default cannot resurrect it');
 
 console.log(`${passed} passed, ${failed} failed`);
 if(failed)process.exit(1);

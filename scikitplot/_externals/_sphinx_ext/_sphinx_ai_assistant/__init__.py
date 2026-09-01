@@ -6369,6 +6369,11 @@ def add_ai_assistant_context(
         "panelSpeakBanner": _cfg_bool(
             app.config, "ai_assistant_panel_speak_banner", True
         ),
+        # Hold-Space push-to-talk inside the assistant panel. The shortcut
+        # never claims Space while typing or outside the panel.
+        "panelMicSpaceShortcut": _cfg_bool(
+            app.config, "ai_assistant_panel_mic_space_shortcut", True
+        ),
         # Trigger pill label (the floating "Ask AI" button shown when minimized).
         "panelTriggerLabel": (
             _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask AI"
@@ -6445,6 +6450,17 @@ def add_ai_assistant_context(
         "panelRememberConversation": _cfg_bool(
             app.config, "ai_assistant_panel_remember_conversation", True
         ),
+        # Reader-facing privacy/runtime initial values. These are site defaults
+        # only: a stored reader choice wins on subsequent page loads.
+        "panelFeedbackTelemetryDefault": _cfg_bool(
+            app.config, "ai_assistant_panel_feedback_telemetry_default", False
+        ),
+        "panelFeedbackReviewDefault": _cfg_bool(
+            app.config, "ai_assistant_panel_feedback_review_default", True
+        ),
+        "panelPageIntegrationDefault": _cfg_bool(
+            app.config, "ai_assistant_panel_page_integration_default", False
+        ),
         # R7: keyboard shortcut chord (str; "" disables).
         "panelShortcut": (
             _cfg_str(app.config, "ai_assistant_panel_shortcut")
@@ -6481,6 +6497,11 @@ def add_ai_assistant_context(
         # JS read: var streamingEnabled = (cfg.panelApiStreaming !== false)
         "panelApiStreaming": _cfg_bool(
             app.config, "ai_assistant_panel_api_streaming", True
+        ),
+        # Initial state of the reader-facing Streaming responses preference.
+        # panelApiStreaming remains the hard site capability/master ceiling.
+        "panelStreamingDefault": _cfg_bool(
+            app.config, "ai_assistant_panel_streaming_default", True
         ),
         # Inline picker beside mic + send (Claude-style bar).
         "panelInlineModelPicker": _cfg_bool(
@@ -7106,6 +7127,11 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
     app.add_config_value("ai_assistant_panel_page_help", True, "html")
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
+    # ``ai_assistant_panel_mic_space_shortcut`` (bool, default True)
+    #     Enable hold-Space push-to-talk while focus/interaction is inside the
+    #     assistant panel. Text entry, IME composition, menus/sheets, and the
+    #     surrounding documentation page keep normal Space behavior.
+    app.add_config_value("ai_assistant_panel_mic_space_shortcut", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_label", "Ask AI", "html")
     app.add_config_value("ai_assistant_panel_start_minimized", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_toggle", True, "html")
@@ -7141,6 +7167,24 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     until the tab is closed.  No transcript is sent over the network by
     #     this setting.
     app.add_config_value("ai_assistant_panel_remember_conversation", True, "html")
+
+    # ``ai_assistant_panel_feedback_telemetry_default`` (bool, default False)
+    #     Initial browser state for anonymous rating telemetry when this origin
+    #     has no explicit reader choice yet. False is the privacy-first built-in
+    #     default. A reader's explicit ON or OFF choice is persisted separately
+    #     and wins over this site default.
+    app.add_config_value("ai_assistant_panel_feedback_telemetry_default", False, "html")
+
+    # ``ai_assistant_panel_feedback_review_default`` (bool, default True)
+    #     Initial state for maintainer feedback review / model-improvement
+    #     sharing when no explicit reader choice exists. Set False for local-only
+    #     development/tests or deployments that require manual opt-in first.
+    app.add_config_value("ai_assistant_panel_feedback_review_default", True, "html")
+
+    # ``ai_assistant_panel_page_integration_default`` (bool, default False)
+    #     Initial state for bounded same-origin page integration events. False
+    #     keeps assistant lifecycle events on the private bus by default.
+    app.add_config_value("ai_assistant_panel_page_integration_default", False, "html")
 
     # ``ai_assistant_panel_shortcut`` (str, default "Alt+Shift+A")
     #     Keyboard chord that toggles the panel.  MUST contain at least one
@@ -7193,6 +7237,12 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     regardless of this flag because their SSE format differs from the
     #     OpenAI-compat spec that the streaming loop expects.
     app.add_config_value("ai_assistant_panel_api_streaming", True, "html")
+
+    # ``ai_assistant_panel_streaming_default`` (bool, default True)
+    #     Initial reader preference for Streaming responses. The explicit
+    #     browser preference wins after the reader changes it. The master
+    #     ai_assistant_panel_api_streaming=False setting always disables SSE.
+    app.add_config_value("ai_assistant_panel_streaming_default", True, "html")
 
     # ``ai_assistant_panel_inline_model_picker`` (bool, default True)
     #     When True and panelApiModels is non-empty the panel footer renders

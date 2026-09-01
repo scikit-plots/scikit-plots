@@ -295,10 +295,12 @@ const t = (name, got, want) => {
 {
   t('one shared export action icon resolver exists',
     (src.match(/function _exportActionModeIcon\(/g) || []).length, 1);
-  t('share-link trigger uses the dedicated local Octicon glyph',
+  t('share-link trigger uses the dedicated local classic share glyph',
     /return linkMode \? ICONS\.linkMode : ICONS\.exportTxt/.test(src), true);
-  t('link-mode uses the supplied Octicon share geometry',
-    /class="octicon octicon-share"[\s\S]*M3\.75 6\.5a\.25\.25 0 0 0-\.25\.25/.test(src), true);
+  t('link-mode uses the classic Octicon share geometry',
+    /linkMode: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3\.75 6\.5a\.25\.25/.test(src), true);
+  t('upload tray geometry is not reused for link mode',
+    /linkMode:[^\n]*M2\.75 14A1\.75 1\.75/.test(src), false);
   t('link-mode has no external sprite dependency',
     /sprites-core-ceb34a6c/.test(src), false);
   t('both trigger surfaces subscribe their icon to shared export state',

@@ -34,7 +34,7 @@ Level 2  Live model proxy
          provider credentials remain server-side
 
 Level 3  Reviewed feedback + model improvement
-         one Q&A -> explicit review/training consent -> provider PR/MR
+         one Q&A -> review-sharing permission -> provider PR/MR
          merge -> eligible Q&A + normalized quality signal
 
 Level 4  Dataset contribution
@@ -98,13 +98,20 @@ the server-side proxy's secret store.
 - **Copy this answer**: per-answer copy button under each assistant reply
 - **Feedback**: configurable quick + detailed local rating UI with synchronized
   controls and an optional note. Anonymous rating telemetry is a separate
-  explicit permission and never contains Q&A, note, model, page URL, or stable
-  conversation identity. A second explicit **Share feedback for review & model
-  improvement** permission can place exactly one Q&A into an updatable
-  provider-native feedback review; the Feedback tab can inspect/copy/download
-  the exact review JSON locally before sharing, and originating model attribution
+  browser preference whose built-in initial value is **False** and which never
+  contains Q&A, note, model, page URL, or stable conversation identity.
+  **Maintainer feedback review** (**Share with maintainers**) has an independently
+  configurable initial value (**True** by default) and can place exactly one Q&A
+  into an updatable provider-native feedback review. Explicit reader ON/OFF choices
+  override both site defaults. The Feedback tab owns both feedback permissions and
+  exposes separate keyboard-accessible **JSON** request and readable **JSONL** repository views before review;
+  Endpoint Configuration does not duplicate those consent switches. Originating model attribution
   is required so the reviewed Q&A remains useful and auditable. A maintainer merge
   makes that Q&A training-eligible together with a normalized quality score/percentage.
+  Canonical schema-v5 saved rows also retain a bounded rating lineage
+  (`feedbackChainId`, scalar `prevFeedbackId`, ordered `prevFeedbackIds[]`, and
+  `editCount`) so repeated rating changes can be resolved to the terminal valid
+  revision without relying on network arrival order.
   Host-page lifecycle
   events remain independently permissioned.
 - **Keyboard shortcut**: toggle the panel with a configurable chord
@@ -205,8 +212,15 @@ The **Feedback & contribution** workspace exposes three tabs:
 [ Feedback ] [ Dataset contribution ] [ Activity ]
 ```
 
-A quick or detailed rating always updates local state first. With **Share feedback
-for review & model improvement** Off, no Q&A is uploaded for repository review or
+The **Activity** tab is deliberately a management ledger, not an audit archive. It
+keeps only bounded tab-local private receipts that may still be useful. Each tracked
+review can be **Forgotten** locally, and each Feedback/Dataset section provides a
+two-click **Forget all** action. Forgetting never changes remote provider or dataset
+state. Terminal or missing reviews are removed automatically when their status is
+checked; the UI does not poll providers in the background.
+
+A quick or detailed rating always updates local state first. With **Maintainer feedback
+review / Share with maintainers** Off, no Q&A is uploaded for repository review or
 training use. After the reader explicitly enables that permission, the same logical
 feedback item keeps one native provider review:
 
@@ -508,6 +522,14 @@ ai_assistant_panel_api_enabled = False
 ai_assistant_panel_persist = True
 ai_assistant_panel_remember_conversation = True
 
+# Reader-facing privacy/runtime initial values. A stored reader choice wins.
+ai_assistant_panel_feedback_telemetry_default = False  # privacy-first
+ai_assistant_panel_feedback_review_default = True      # set False for local-only/dev checks
+ai_assistant_panel_page_integration_default = False    # private event bus by default
+ai_assistant_panel_streaming_default = True            # reader preference
+# Hard SSE capability ceiling; False disables streaming regardless of preference.
+ai_assistant_panel_api_streaming = True
+
 # Build-time markdown generation from topics
 ai_assistant_generate_markdown = True
 
@@ -745,3 +767,19 @@ This adapted copy contains MIT-origin upstream code and BSD-3-Clause scikit-plot
 - Uses [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/) and [markdownify](https://github.com/matthewwithanm/python-markdownify) for build-time conversion
 - Designed to work seamlessly with the [Furo](https://github.com/pradyunsg/furo) Sphinx theme
 - Inspired by the need to make documentation more AI-friendly
+
+
+### Microphone input selection and push-to-talk
+
+Microphone rows are a real radio group. The dynamically refreshed device list uses one stable delegated interaction handler (`closest(.ai-assistant-mic-device-item)`) so clicks on nested labels/icons remain selectable across enumeration refreshes, and the non-interactive capability status cannot intercept the last row. Choosing a row commits the routing preference immediately so the checkmark and keyboard state follow the user's click without waiting on a temporary capture stream. The selected source is acquired and verified with exact `getUserMedia` constraints only when recording starts; failed or disconnected devices do not silently fall back to another physical microphone. Opening the microphone picker only enumerates devices and never prompts for capture. Permission is requested only from an explicit user action. `ai_assistant_panel_mic_space_shortcut=True` enables hold-Space push-to-talk while interaction is inside the assistant panel; text entry, IME composition, menus/sheets, and page scrolling retain normal Space behavior. Where supported, the selected live `MediaStreamTrack` is passed directly to `SpeechRecognition.start(track)`; older engines are labeled as potentially using the browser system-default speech input.
+
+### Composer file attachments
+
+The footer `+` button opens an upward, panel-bounded **Upload** menu. **Add files or photos** and the panel-scoped `Alt+U` shortcut open the same native multi-file picker. Files may also be dragged from the operating system into the assistant panel; a body-bounded drop overlay appears only for real file drags. Picker, shortcut, and drop all delegate to the same local staging pipeline. Up to eight files can be staged at once. On iPhone/iPad WebKit browsers, the native file input stays rendered but visually clipped (not `hidden`), the platform `showPicker()` API is preferred when available, and selected `File` objects are snapshotted before the input value is reset; this prevents WebKit from emptying a live `FileList` before the composer can render its attachment cards. Staged items render as compact 120px attachment cards: text/notebook files show a filename, line/size metadata and extension badge; images use a local object-URL thumbnail. Clicking a card opens a draggable viewport-level preview appended to `document.body`, so it can expand beyond a narrow assistant panel on desktop, tablet, or mobile while remaining local-only. Safe text/notebook content up to the local preview cap is rendered with inert `textContent`; images are shown with `object-fit: contain`; oversized or unsupported files show a local **Download** fallback instead of being rejected. Removing/clearing an item revokes any object URL.
+
+Only bounded safe text (256 KiB/file, 48,000 outbound attachment characters total) may enter the model request, and it still passes through the normal privacy preflight only when the reader sends the message. Attachment staging is asynchronous and explicit: while selected/dropped text files are still being prepared, the composer shows **Preparing attachments…** and Send is temporarily gated so a FileReader race cannot omit a just-added file from the turn. Retry/Edit of an attachment-backed turn reuses the prior bounded attachment context as a separate visible/removable composer state rather than flattening hidden file text into the textarea or subjecting it to the 4,000-character question limit. The larger local preview cap (512 KiB) and image previews do **not** widen transport authority: oversized text/notebooks, arbitrary binaries, and all image bytes remain local on the current text-only chat transport. Merely choosing, previewing, dragging, or downloading a file performs no network upload. The canonical user turn retains only the bounded attachment reference text that was actually eligible for the request so Retry, Feedback review, Dataset Contribution, Share, and persisted same-tab history preserve the context that produced the answer, while the visible bubble uses a concise filename projection. The former `ai-assistant-attach` page-integration event remains available as a separate **Page attachment hook** action and still requires the independent page-integration permission.
+
+
+### Panel Escape shortcut
+
+`Escape` is panel-scoped and mirrors the header close button when no lighter transient surface owns the key. Active microphone capture or model generation is stopped first; open popups/menus/sheets close before the panel itself. The close button advertises `aria-keyshortcuts="Escape"`.

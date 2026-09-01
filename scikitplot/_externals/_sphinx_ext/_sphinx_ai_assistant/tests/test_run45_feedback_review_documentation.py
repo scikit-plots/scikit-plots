@@ -12,8 +12,8 @@ DATASET_GUIDE = ROOT / "DATASET_CONTRIBUTION_GUIDE.md"
 def test_feedback_review_guide_covers_independent_control_planes_and_lifecycle():
     text = GUIDE.read_text(encoding="utf-8")
     required = (
-        "Send anonymous rating telemetry",
-        "Share feedback for review & model improvement",
+        "Anonymous rating telemetry",
+        "Share with maintainers",
         "POST /v1/feedback",
         "/v1/feedback/review",
         "FEEDBACK_REVIEW_MODE=provider-pr",
@@ -49,6 +49,7 @@ def test_feedback_docs_explain_why_telemetry_can_look_like_noop():
     assert "Browser telemetry permission and server telemetry persistence are separate" in text
     assert "Server telemetry persistence" in text
     assert "Maintainer review readiness" in text
+    assert "Endpoint Configuration no longer duplicates" in text
 
 
 def test_proxy_readme_advertises_feedback_review_routes_and_config():

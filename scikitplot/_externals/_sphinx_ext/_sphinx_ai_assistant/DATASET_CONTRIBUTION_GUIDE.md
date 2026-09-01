@@ -84,6 +84,12 @@ The shared **Feedback & contribution** workspace has separate **Feedback**, **Da
 - **Whole conversation** — one ordered `recordType="conversation"` record with
   `messages[]`; it is not fragmented into unrelated turns.
 
+When **Ratings and feedback** is included, Q&A contribution rows and rated assistant
+messages carry the same bounded schema-v5 feedback lineage used by the Feedback
+control plane (`feedbackId`, `feedbackChainId`, `prevFeedbackId`,
+`prevFeedbackIds[]`, `editCount`). Disabling **Ratings and feedback** removes both the
+rating signal and those lineage identifiers, avoiding a hidden cross-link.
+
 Before submission the reader can:
 
 1. choose the scope;

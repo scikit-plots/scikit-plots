@@ -7,7 +7,8 @@
 
 """Canonical schema and normalization for collection records.
 
-Schema v4 separates telemetry from two explicit contribution record families:
+Schema v5 adds explicit feedback revision lineage while preserving the v4
+telemetry/contribution separation:
 
 * ``feedback`` is privacy-minimal rating telemetry.  Content, model, page and
   conversation identity are discarded even when legacy/direct callers submit them;
@@ -19,7 +20,7 @@ Schema v4 separates telemetry from two explicit contribution record families:
   array. Both carry versioned consent, enter ``quarantined`` state, and are
   training-eligible only after an authorised review promotes them.
 
-Historical v1/v2/v3 rows remain readable through :func:`normalize_record`, but old
+Historical v1/v2/v3/v4 rows remain readable through :func:`normalize_record`, but old
 contributions become ``legacy_unreviewed`` rather than silently entering training.
 Client IP addresses are never dataset fields.  See ``DATASET_COLLECTION_GUIDANCE.md``
 for lifecycle and retention policy.
@@ -44,7 +45,7 @@ logger = logging.getLogger(__name__)
 #: changes (new optional columns, wider population of existing columns) bump
 #: this too so consumers can branch on ``schemaVersion`` to know which fields
 #: to expect.  See the module docstring and collection guidance for version semantics.
-SCHEMA_VERSION: int = 4
+SCHEMA_VERSION: int = 5
 
 #: Ordered list of canonical column names.  Every stored JSONL row and every
 #: row in the pandas DataFrame will have these columns in exactly this order.
@@ -57,12 +58,14 @@ CANONICAL_COLUMNS: list[str] = [
     "_dedup_key",  # server event/receipt scoped key; never a stable user identity
     # ── Event identity ────────────────────────────────────────────────────────
     "conversationId",  # legacy field; v3 feedback/contribution normalization writes None
-    "feedbackId",  # feedback event id only; contributions write None
+    "feedbackId",  # current feedback/rating event id when rating lineage is present
+    "feedbackChainId",  # stable root feedbackId for one answer's revision lineage
     # ── Record descriptor ─────────────────────────────────────────────────────
     "recordType",  # "qa" | "conversation" (telemetry writes None; reviewed feedback writes "qa")
     "answerIndex",  # 0-based position of answer in the conversation
     "action",  # "rate" | "retract" | "review" | "withdraw"
-    "prevFeedbackId",  # feedbackId of the record this one supersedes/invalidates.
+    "prevFeedbackId",  # immediate feedbackId this record supersedes/invalidates.
+    "prevFeedbackIds",  # ordered oldest→newest ancestor feedbackIds; v5 current writers populate the full bounded chain
     # action="rate":    set when this rating replaces an earlier
     #                   one for the same answerIndex (an edit).
     # action="retract": set to the feedbackId being retracted.
@@ -121,7 +124,7 @@ MODEL_KEYS: list[str] = [
 CONSENT_VERSION_ENABLED: bool = True
 RESERVED_CONSENT_VERSION: str = "2.0.0"
 FEEDBACK_TELEMETRY_CONSENT_VERSION: str = "1.0.0"
-FEEDBACK_TELEMETRY_SCHEMA_VERSION: int = 4
+FEEDBACK_TELEMETRY_SCHEMA_VERSION: int = 5
 LEGACY_CONSENT_VERSIONS: frozenset[str] = frozenset({"1.0.0"})
 
 
@@ -174,6 +177,12 @@ def _resolve_consent_version(raw: Any) -> str | None:
 #: malicious client sends an oversized string.
 _MAX_ID_LEN: int = 256
 
+#: Hard upper bound for one feedback revision ancestry vector.  This matches the
+#: browser/server edit-count clamp and prevents a malicious client from turning a
+#: single rating into an unbounded JSON row.  The stable ``feedbackChainId`` means
+#: grouping remains possible even if a future migration deliberately lowers this cap.
+MAX_FEEDBACK_LINEAGE_IDS: int = 1000
+
 
 def _safe_id(value: Any) -> str | None:
     """Coerce a client-supplied identifier to a bounded ``str`` or ``None``.
@@ -216,6 +225,28 @@ def _safe_id(value: Any) -> str | None:
     if not isinstance(value, str) or not value:
         return None
     return value[:_MAX_ID_LEN]
+
+
+def _safe_id_list(value: Any) -> list[str]:
+    """Return a bounded, ordered, duplicate-free feedback ancestry list.
+
+    Current schema-v5 clients send ``prevFeedbackIds`` oldest→newest.  Invalid
+    elements are dropped defensively; duplicate IDs are collapsed at their first
+    occurrence so malformed rows cannot manufacture cycles through repetition.
+    Strict current-request validators reject malformed lineage before this
+    normalizer is reached; this helper exists primarily for legacy/import safety.
+    """
+    if not isinstance(value, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in value[:MAX_FEEDBACK_LINEAGE_IDS]:
+        item = _safe_id(raw)
+        if item is None or item in seen:
+            continue
+        seen.add(item)
+        out.append(item)
+    return out
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
@@ -544,10 +575,17 @@ def normalize_feedback_record(
     Only bounded rating mechanics are retained.
     """
     is_retract = payload.get("action") == "retract"
-    feedback_id = _safe_id(payload.get("feedbackId") or payload.get("sessionId"))
-    prev_feedback_id = _safe_id(
-        payload.get("prevFeedbackId") or payload.get("prevSessionId")
-    )
+    feedback_id = _safe_id(payload.get("feedbackId"))
+    prev_feedback_id = _safe_id(payload.get("prevFeedbackId"))
+    prev_feedback_ids = _safe_id_list(payload.get("prevFeedbackIds"))
+    feedback_chain_id = _safe_id(payload.get("feedbackChainId"))
+    if feedback_chain_id is None:
+        if prev_feedback_ids:
+            feedback_chain_id = prev_feedback_ids[0]
+        elif feedback_id and not prev_feedback_id:
+            feedback_chain_id = feedback_id
+        elif prev_feedback_id and _safe_int(payload.get("editCount"), default=0) <= 1:
+            feedback_chain_id = prev_feedback_id
     answer_index = payload.get("answerIndex")
     try:
         answer_index = int(answer_index) if answer_index is not None else None
@@ -567,7 +605,8 @@ def normalize_feedback_record(
 
     # Deliberately avoid a conversation/session linkage key.  A persisted rating
     # is telemetry only and is never eligible for the training builder.
-    dedup = f"feedback:{feedback_id}" if feedback_id else None
+    dedup_id = prev_feedback_id if is_retract else feedback_id
+    dedup = f"{dedup_id}:feedback" if dedup_id else None
     return _ordered(
         {
             "schemaVersion": SCHEMA_VERSION,
@@ -576,10 +615,12 @@ def normalize_feedback_record(
             "_dedup_key": dedup,
             "conversationId": None,
             "feedbackId": feedback_id,
+            "feedbackChainId": feedback_chain_id,
             "recordType": None,
             "answerIndex": answer_index,
             "action": "retract" if is_retract else "rate",
             "prevFeedbackId": prev_feedback_id,
+            "prevFeedbackIds": prev_feedback_ids,
             "editCount": (
                 None if is_retract else _safe_int(payload.get("editCount"), default=0)
             ),
@@ -639,18 +680,27 @@ def normalize_feedback_review_record(
     model = payload.get("model")
     if not isinstance(model, dict):
         model = None
+    prev_feedback_ids = _safe_id_list(payload.get("prevFeedbackIds"))
+    feedback_chain_id = _safe_id(payload.get("feedbackChainId"))
+    if feedback_chain_id is None:
+        if prev_feedback_ids:
+            feedback_chain_id = prev_feedback_ids[0]
+        elif feedback_id and not _safe_id(payload.get("prevFeedbackId")):
+            feedback_chain_id = feedback_id
     return _ordered(
         {
             "schemaVersion": SCHEMA_VERSION,
             "_source": "feedback",
             "_ts": server_ts_ms,
-            "_dedup_key": f"feedback-review:{receipt_id}" if receipt_id else None,
+            "_dedup_key": f"{receipt_id}:feedback" if receipt_id else None,
             "conversationId": None,
             "feedbackId": feedback_id,
+            "feedbackChainId": feedback_chain_id,
             "recordType": "qa",
             "answerIndex": answer_index,
             "action": "review",
             "prevFeedbackId": _safe_id(payload.get("prevFeedbackId")),
+            "prevFeedbackIds": prev_feedback_ids,
             "editCount": _safe_int(payload.get("editCount"), default=0),
             "status": "active",
             "trainingStatus": "eligible",
@@ -689,7 +739,7 @@ _MAX_CONVERSATION_MESSAGES: int = 100
 _MAX_CONVERSATION_MESSAGE_CHARS: int = 100_000
 _MAX_CONTRIBUTION_NOTE_CHARS: int = 2_000
 # Public contract aliases used by browser/server parity validation.  The
-# normalizer keeps defensive bounds for legacy rows, while current schema-v4
+# normalizer keeps defensive bounds for legacy rows, while current schema-v5
 # intake rejects over-limit reviewed content instead of silently truncating it.
 MAX_CONVERSATION_MESSAGES: int = _MAX_CONVERSATION_MESSAGES
 MAX_CONVERSATION_MESSAGE_CHARS: int = _MAX_CONVERSATION_MESSAGE_CHARS
@@ -749,6 +799,13 @@ def normalize_conversation_messages(value: Any) -> list[dict[str, Any]]:
                     feedback_id=None,
                 )
                 item["feedback"] = {
+                    "feedbackId": _safe_id(raw_feedback.get("feedbackId")),
+                    "feedbackChainId": _safe_id(raw_feedback.get("feedbackChainId")),
+                    "prevFeedbackId": _safe_id(raw_feedback.get("prevFeedbackId")),
+                    "prevFeedbackIds": _safe_id_list(
+                        raw_feedback.get("prevFeedbackIds")
+                    ),
+                    "editCount": _safe_int(raw_feedback.get("editCount"), default=0),
                     "ratingValue": raw_feedback.get("ratingValue"),
                     "ratingSlug": rating["ratingSlug"],
                     "ratingTitle": rating["ratingTitle"],
@@ -788,10 +845,12 @@ def normalize_contribution_record(
                 "_dedup_key": f"{dedup_base}:conversation",
                 "conversationId": None,
                 "feedbackId": None,
+                "feedbackChainId": None,
                 "recordType": "conversation",
                 "answerIndex": None,
                 "action": "rate",
                 "prevFeedbackId": None,
+                "prevFeedbackIds": [],
                 "editCount": 0,
                 "status": "active",
                 "trainingStatus": training_status,
@@ -835,6 +894,33 @@ def normalize_contribution_record(
         rating_title=rec.get("ratingTitle"),
         feedback_id=None,
     )
+    # Lineage identifiers were not part of the legacy contribution contract.
+    # Ignore attacker-supplied cross-link fields on pre-v4 envelopes while
+    # preserving them for current, explicitly validated contribution requests.
+    try:
+        envelope_schema_version = int(envelope.get("schemaVersion") or 0)
+    except (TypeError, ValueError):
+        envelope_schema_version = 0
+    lineage_enabled = (
+        envelope_schema_version >= 4  # ruff: ignore[magic-value-comparison]
+    )
+    contribution_feedback_id = (
+        _safe_id(rec.get("feedbackId")) if lineage_enabled else None
+    )
+    contribution_prev_id = (
+        _safe_id(rec.get("prevFeedbackId")) if lineage_enabled else None
+    )
+    contribution_prev_ids = (
+        _safe_id_list(rec.get("prevFeedbackIds")) if lineage_enabled else []
+    )
+    contribution_chain_id = (
+        _safe_id(rec.get("feedbackChainId")) if lineage_enabled else None
+    )
+    if contribution_chain_id is None:
+        if contribution_prev_ids:
+            contribution_chain_id = contribution_prev_ids[0]
+        elif contribution_feedback_id and not contribution_prev_id:
+            contribution_chain_id = contribution_feedback_id
     return _ordered(
         {
             "schemaVersion": SCHEMA_VERSION,
@@ -842,12 +928,16 @@ def normalize_contribution_record(
             "_ts": server_ts_ms,
             "_dedup_key": f"{dedup_base}:{answer_index}",
             "conversationId": None,
-            "feedbackId": None,
+            "feedbackId": contribution_feedback_id,
+            "feedbackChainId": contribution_chain_id,
             "recordType": "qa",
             "answerIndex": answer_index,
             "action": "rate",
-            "prevFeedbackId": None,
-            "editCount": 0,
+            "prevFeedbackId": contribution_prev_id,
+            "prevFeedbackIds": contribution_prev_ids,
+            "editCount": (
+                _safe_int(rec.get("editCount"), default=0) if lineage_enabled else 0
+            ),
             "status": "active",
             "trainingStatus": training_status,
             "ratingValue": rec.get("ratingValue"),
@@ -902,10 +992,12 @@ def normalize_contribution_withdrawal_record(
             "_dedup_key": key,
             "conversationId": None,
             "feedbackId": None,
+            "feedbackChainId": None,
             "recordType": None,
             "answerIndex": answer_index,
             "action": "withdraw",
             "prevFeedbackId": None,
+            "prevFeedbackIds": [],
             "editCount": 0,
             "status": "withdrawn",
             "trainingStatus": "withdrawn",
@@ -987,31 +1079,25 @@ def normalize_record(raw: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912
     elif "_consentVersion" in out:
         out.pop("_consentVersion")
 
-    # ── Map legacy feedback field names → canonical ───────────────────────────
-    # sessionId in feedback was the per-submission idempotency key (now feedbackId).
-    # Do NOT rename for contribution records (contributions have no sessionId field).
+    # ── Drop retired feedback-lineage aliases ─────────────────────────────────
+    # Current writers/readers use feedbackId / prevFeedbackId only. Historical
+    # sessionId / prevSessionId aliases are intentionally not migrated forward.
     if source == "feedback":
-        if "sessionId" in out and "feedbackId" not in out:
-            out["feedbackId"] = out.pop("sessionId")
-        elif "sessionId" in out:
-            out.pop("sessionId")
+        out.pop("sessionId", None)
+        out.pop("prevSessionId", None)
 
-        # prevSessionId in retract records → prevFeedbackId.
-        if "prevSessionId" in out and "prevFeedbackId" not in out:
-            out["prevFeedbackId"] = out.pop("prevSessionId")
-        elif "prevSessionId" in out:
-            out.pop("prevSessionId")
-
-    # ── Drop legacy aliases ───────────────────────────────────────────────────
+    # ── Drop other legacy aliases ─────────────────────────────────────────────
     # ``rating`` was always == ``ratingLabel``; it provides no additional info.
     out.pop("rating", None)
 
     # ── Back-fill missing canonical fields (schemaVersion: 1 → 2) ─────────────
     out["schemaVersion"] = SCHEMA_VERSION
     out.setdefault("feedbackId", None)
+    out.setdefault("feedbackChainId", None)
     out.setdefault("recordType", "qa" if source == "contribution" else None)
     out.setdefault("action", "rate")
     out.setdefault("prevFeedbackId", None)
+    out.setdefault("prevFeedbackIds", [])
     # editCount: None for retraction tombstones (not applicable), 0 for any
     # pre-v2 "rate" record that predates this column.
     out.setdefault("editCount", None if out.get("action") == "retract" else 0)
@@ -1035,7 +1121,16 @@ def normalize_record(raw: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912
     # data (e.g. non-string IDs) reaching the DataFrame.
     out["conversationId"] = _safe_id(out.get("conversationId"))
     out["feedbackId"] = _safe_id(out.get("feedbackId"))
+    out["feedbackChainId"] = _safe_id(out.get("feedbackChainId"))
     out["prevFeedbackId"] = _safe_id(out.get("prevFeedbackId"))
+    out["prevFeedbackIds"] = _safe_id_list(out.get("prevFeedbackIds"))
+    if not out["feedbackChainId"]:
+        if out["prevFeedbackIds"]:
+            out["feedbackChainId"] = out["prevFeedbackIds"][0]
+        elif out["feedbackId"] and not out["prevFeedbackId"]:
+            out["feedbackChainId"] = out["feedbackId"]
+        elif out["prevFeedbackId"] and _safe_int(out.get("editCount"), default=0) <= 1:
+            out["feedbackChainId"] = out["prevFeedbackId"]
     if out.get("action") != "retract":
         out["editCount"] = _safe_int(out.get("editCount"), default=0)
 

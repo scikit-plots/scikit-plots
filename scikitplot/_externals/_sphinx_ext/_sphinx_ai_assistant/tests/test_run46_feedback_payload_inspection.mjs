@@ -11,16 +11,18 @@ const popup = section('    function _buildFbkFloat(answerIndex, answerText, ques
 ok(review.includes('var qa = answerIndex != null ? _contributionQaAtIndex(answerIndex) : null;'), 'feedback review resolves the rated transcript Q&A');
 ok(review.includes("? qa.model"), 'originating assistant-turn model wins attribution');
 ok(review.includes("return 'Originating model attribution is unavailable"), 'missing model fails client preflight');
-ok(review.includes('modelProvider: payload.model && payload.model.provider'), 'model identity participates in no-op fingerprint');
-ok(sheet.includes("'Inspect feedback payload'"), 'Feedback tab has inspect section');
-ok(sheet.includes("'Inspect JSON'"), 'Feedback inspect section can toggle JSON');
-ok(sheet.includes("'⎘ Copy JSON to clipboard'"), 'Feedback inspect section can copy JSON');
-ok(sheet.includes("'↓ Download JSON file'"), 'Feedback inspect section can download JSON');
-ok(sheet.includes("'Feedback review JSON copied locally. Nothing was submitted.'"), 'copy explicitly stays local');
-ok(sheet.includes("'ai-feedback-review-payload-' + _isoFileStamp() + '.json'"), 'download has feedback-specific filename');
+ok(review.includes('delete stable.consentAt;') && review.includes('return JSON.stringify(stable);'), 'saved feedback semantics participate in no-op fingerprint while volatile consentAt does not');
+ok(sheet.includes("'Inspect payload'"), 'Feedback tab uses the shared inspect-section label');
+ok(sheet.includes("_feedbackWorkspaceButton('JSONL'") && sheet.includes("feedbackPreviewStrong.textContent = 'Saved JSONL'"), 'Feedback inspect section exposes canonical saved JSONL tab');
+ok(sheet.includes("'⎘ Copy JSON'") && sheet.includes("'⎘ Copy JSONL'") && sheet.includes("feedbackInspectFormat === 'json'"), 'Feedback inspector has one format-aware copy action');
+ok(sheet.includes("'↓ Download JSON'") && sheet.includes("'↓ Download JSONL'") && sheet.includes("application/x-ndjson"), 'Feedback inspector has one format-aware download action');
+ok(sheet.includes("'Projected feedback-review JSONL copied locally. Nothing was submitted.'"), 'copy explicitly stays local');
+ok(sheet.includes("'ai-feedback-review-saved-projection-' + _isoFileStamp() + '.jsonl'"), 'download has feedback-specific JSONL filename');
 ok(sheet.includes("'Originating model'"), 'Feedback tab visibly identifies originating model evidence');
-ok(sheet.includes('share.disabled = !entry || !_feedbackReviewEnabled || !!reviewPayloadIssue;'), 'share is disabled when model/Q&A preflight fails');
-ok(popup.includes('reviewShareIcon.innerHTML = ICONS.commentDiscussion'), 'review permission uses comment-discussion icon');
+ok(sheet.includes("'Request JSON'"), 'Feedback transport envelope remains separately inspectable');
+ok(sheet.includes("'Anonymous telemetry JSONL · separate privacy-minimal row'"), 'Feedback telemetry row is separately inspectable inside JSONL view');
+ok(sheet.includes("idleText.textContent = reviewPayloadIssue") && !sheet.includes('share.disabled = !entry'), 'invalid review payload is surfaced without a duplicate share button');
+ok(!popup.includes('data-feedback-review-toggle'), 'quick popup no longer duplicates maintainer-review permission');
 ok(popup.includes('feedbackCenterIcon.innerHTML = ICONS.pulse'), 'feedback center uses pulse icon');
 ok(src.includes("pulse: '<svg viewBox=\"0 0 16 16\""), 'pulse icon is shipped in shared ICONS map');
 

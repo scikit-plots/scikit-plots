@@ -777,8 +777,8 @@ MUTANTS: list[dict[str, str]] = [
     {
         "id": "feedback-telemetry-consent-fails-open",
         "why": "Network rating telemetry must require an explicit current structured consent record; missing enabled=true must never inherit authority.",
-        "find": "            if (!saved || saved.enabled !== true ||\n                    saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION) {",
-        "replace": "            if (!saved || saved.enabled === false ||\n                    saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION) {",
+        "find": "            if (!saved || saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION ||\n                    typeof saved.enabled !== 'boolean') {",
+        "replace": "            if (!saved || saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION ||\n                    saved.enabled === false) {",
         "harness": "test_feedback_telemetry_consent.mjs",
     },
     {
@@ -798,8 +798,8 @@ MUTANTS: list[dict[str, str]] = [
     {
         "id": "feedback-retract-ignores-opt-out",
         "why": "Turning telemetry off must stop all future feedback network traffic, including hidden retraction housekeeping requests.",
-        "find": "        if (!url || !prevSessionId || !_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) {",
-        "replace": "        if (!url || !prevSessionId) {",
+        "find": "        if (!url || !lineage || !_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) {",
+        "replace": "        if (!url || !lineage) {",
         "harness": "test_feedback_telemetry_consent.mjs",
     },
     {'id': 'contribution-consent-version-disabled',
