@@ -355,7 +355,7 @@ repos:
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie
-    rev: 2026.06.18
+    rev: 2026.08.14
     hooks:
       # pre-commit run sp-repo-review --all-files --verbose
       - id: sp-repo-review
