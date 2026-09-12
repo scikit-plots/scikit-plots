@@ -7,6 +7,15 @@ const workerPath = path.join(runtimeRoot, '_cf_worker', 'index.js');
 const worker = (await importCfWorkerForNode(workerPath, 'run13')).default;
 let passed=0, failed=0;
 function ok(v,n){ if(v){passed++;console.log('PASS',n)}else{failed++;console.log('FAIL',n)} }
+function yamlJsonScalar(text,key){
+  const prefix=`${JSON.stringify(key)}: `;
+  for(const rawLine of String(text||'').split('\n')){
+    const line=rawLine.trimStart();
+    if(!line.startsWith(prefix))continue;
+    try{return JSON.parse(line.slice(prefix.length))}catch(_e){return undefined}
+  }
+  return undefined;
+}
 
 const store = new Map();
 const env = {
@@ -46,6 +55,7 @@ ok(read.status===200 && r.format==='html' && r.snapshot.records[1].text==='a','f
 ok(r.filename==='ai-conversation-global-share-html.html','fixed read names HTML artifact by Global Share provenance');
 ok(r.snapshot.schema_version==='2.1','fixed read canonicalizes current schema 2.1');
 ok(r.snapshot.records[0].resources.items[0].sourceUrl==='https://docs.example.test/resource/','fixed read retains sanitized resource provenance');
+const canonicalResourceUrl=r.snapshot.records[0].resources.items[0].sourceUrl;
 ok(r.snapshot.turns[0].user.resources.items[0].name==='Docs','fixed read rebuilds turn resource provenance server-side');
 
 const denied=await worker.fetch(req('/v1/share/update',{shareId:c.uuid,snapshot:{...snapshot,records:[...snapshot.records.slice(0,1),{...snapshot.records[1],text:'b'}]},format:'txt'},{'X-Share-Edit-Token':'wrong'}),env);
@@ -79,7 +89,7 @@ for(const fmt of ['json','html','txt','yaml','toml']){
     ok(downloadText===String(mr.content||''),'Global '+fmt+' download bytes match canonical read representation');
     if(fmt==='json')ok(JSON.parse(mr.content).schema_version==='2.1','Global json output is canonical 2.1');
     if(fmt==='txt')ok(mr.content.includes('Schema: 2.1')&&mr.content.includes('Rating: helpful'),'Global txt output includes schema and rating metadata');
-    if(fmt==='yaml')ok(mr.content.includes('\"schema_version\": \"2.1\"')&&mr.content.includes('https://docs.example.test/resource/'),'Global yaml output preserves canonical resource metadata');
+    if(fmt==='yaml')ok(yamlJsonScalar(mr.content,'schema_version')==='2.1'&&yamlJsonScalar(mr.content,'sourceUrl')===canonicalResourceUrl,'Global yaml output preserves canonical resource metadata');
     if(fmt==='toml')ok(mr.content.includes('schema_version = \"2.1\"')&&mr.content.includes('[[records.resources.items]]'),'Global toml output preserves canonical resource metadata');
   }
 }

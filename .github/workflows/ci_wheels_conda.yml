@@ -444,7 +444,7 @@ jobs:
 
       - name: 🛠️ Windows ARM64 Setup (flang-new/clang-cl ← LLVM) (pkgconf ← MSVC Toolchain vcvarsall)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
-        uses: ./.github/windows_arm64_steps
+        uses: $/.github/windows_arm64_steps  # zizmor use '$/...' instead of './...'
 
       # GITHUB_ENV (so the CI runner knows)
       # CIBW_ENVIRONMENT (so cibuildwheel's docker/venv sees it)

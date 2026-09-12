@@ -15,7 +15,7 @@ import contextlib as _contextlib
 import re as _re
 import sys as _sys
 
-from .. import logging as _logging
+from ..logging import _logging as _logging
 from ..environment_variables import SKPLT_LOGGING_LEVEL
 
 # Logging format example:
