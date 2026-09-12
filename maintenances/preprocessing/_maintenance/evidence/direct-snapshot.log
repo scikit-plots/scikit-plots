@@ -1,0 +1,4 @@
+Direct command from supplied accumulated archive: pytest -q scikitplot/preprocessing/tests
+Result: collection ERROR in all three test modules before encoder assertions.
+Cause: the snapshot has no scikitplot/__init__.py; _encoders.py imports `from scikitplot import __version__` and `scikitplot.externals._packaging.version.parse`.
+Classification: complete-package evidence UNAVAILABLE in this partial archive, not an encoder assertion failure.

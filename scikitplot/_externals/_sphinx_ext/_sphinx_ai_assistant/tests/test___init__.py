@@ -29,28 +29,27 @@ Coverage targets
 * 16 — html_to_markdown / strip_tags coercion.
 * 17 — _write_progress_bar (in __all__).
 * 18 — _resolve_icon (backup SVG fallback).
-* 19 — _static subpackage — SVG constants & _PROVIDER_META.
-* 20 — Theme selector presets (_THEME_SELECTOR_PRESETS ≥ 20 themes).
-* 21 — _resolve_content_selectors.
-* 22 — _DEFAULT_CONTENT_SELECTORS.
-* 23 — _process_html_file_worker (6-tuple, separate output dir).
-* 24 — _process_single_html_file (5-tuple wrapper).
-* 25 — process_html_directory (all branches).
-* 26 — generate_llms_txt_standalone (all branches).
-* 27 — generate_markdown_files (Sphinx hook).
-* 28 — generate_llms_txt (Sphinx hook).
-* 29 — add_ai_assistant_context (all branches, icon resolution).
-* 30 — setup() — metadata, config values, events, static path.
-* 31 — _OLLAMA_RECOMMENDED_MODELS.
-* 32 — _DEFAULT_MCP_TOOLS (all 5 tools).
-* 33 — _validate_mcp_tool.
-* 34 — _cfg_str / _cfg_bool helpers.
-* 35 — Extended provider registry (deepseek, huggingface, custom).
-* 36 — setup() extended config values.
-* 37 — add_ai_assistant_context extended fields.
-* 38 — Ollama local provider support.
-* 39 — Full provider round-trip (filter → context → JSON).
-* 40 — Edge cases and invariants.
+* 19 — Theme selector presets (_THEME_SELECTOR_PRESETS ≥ 20 themes).
+* 19 — _resolve_content_selectors.
+* 19 — _DEFAULT_CONTENT_SELECTORS.
+* 19 — _process_html_file_worker (6-tuple, separate output dir).
+* 19 — _process_single_html_file (5-tuple wrapper).
+* 19 — process_html_directory (all branches).
+* 19 — generate_llms_txt_standalone (all branches).
+* 19 — generate_markdown_files (Sphinx hook).
+* 19 — generate_llms_txt (Sphinx hook).
+* 19 — add_ai_assistant_context (all branches, icon resolution).
+* 19 — setup() — metadata, config values, events, static path.
+* 19 — _OLLAMA_RECOMMENDED_MODELS.
+* 19 — _DEFAULT_MCP_TOOLS (all 5 tools).
+* 19 — _validate_mcp_tool.
+* 19 — _cfg_str / _cfg_bool helpers.
+* 19 — Extended provider registry (deepseek, huggingface, custom).
+* 19 — setup() extended config values.
+* 19 — add_ai_assistant_context extended fields.
+* 19 — Ollama local provider support.
+* 19 — Full provider round-trip (filter → context → JSON).
+* 19 — Edge cases and invariants.
 """
 from __future__ import annotations
 
@@ -923,95 +922,7 @@ class TestResolveIcon:
 
 
 # ===========================================================================
-# 19. _static subpackage — SVG constants & _PROVIDER_META
-# ===========================================================================
-
-class TestStaticSubpackage:
-    """Tests for _static/__init__.py SVG constants and _PROVIDER_META."""
-
-    @pytest.fixture(autouse=True)
-    def _import_static(self):
-        self._static = importlib.import_module(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._static"
-        )
-
-    # --- SVG constants ---
-
-    def test_svg_copy_is_data_uri(self):
-        assert self._static._SVG_COPY.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_markdown_is_data_uri(self):
-        assert self._static._SVG_MARKDOWN.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_claude_is_data_uri(self):
-        assert self._static._SVG_CLAUDE.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_chatgpt_is_data_uri(self):
-        assert self._static._SVG_CHATGPT.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_gemini_is_data_uri(self):
-        assert self._static._SVG_GEMINI.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_ollama_is_data_uri(self):
-        assert self._static._SVG_OLLAMA.startswith("data:image/svg+xml;base64,")
-
-    def test_svg_default_is_data_uri(self):
-        assert self._static._SVG_DEFAULT.startswith("data:image/svg+xml;base64,")
-
-    def test_all_svg_constants_non_empty(self):
-        for name in ("_SVG_COPY", "_SVG_MARKDOWN", "_SVG_CLAUDE",
-                     "_SVG_CHATGPT", "_SVG_GEMINI", "_SVG_OLLAMA", "_SVG_DEFAULT"):
-            val = getattr(self._static, name)
-            assert val and len(val) > 50, f"{name} too short or empty"
-
-    def test_svg_constants_all_unique(self):
-        vals = [
-            self._static._SVG_CLAUDE, self._static._SVG_CHATGPT,
-            self._static._SVG_GEMINI, self._static._SVG_OLLAMA,
-        ]
-        # Named provider icons should be distinct
-        assert len(set(vals)) == len(vals), "Provider SVG constants are not all unique"
-
-    # --- _PROVIDER_META ---
-
-    def test_provider_meta_is_dict(self):
-        assert isinstance(self._static._PROVIDER_META, dict)
-
-    def test_provider_meta_non_empty(self):
-        assert len(self._static._PROVIDER_META) >= 12
-
-    def test_required_providers_present(self):
-        required = {"claude", "chatgpt", "gemini", "ollama", "mistral",
-                    "perplexity", "copilot", "groq", "you", "deepseek",
-                    "huggingface", "custom"}
-        for name in required:
-            assert name in self._static._PROVIDER_META, f"Missing: {name!r}"
-
-    def test_all_entries_have_icon_and_desc(self):
-        for name, meta in self._static._PROVIDER_META.items():
-            assert "icon" in meta and "desc" in meta, f"{name!r} incomplete"
-            assert meta["icon"].startswith("data:image/svg+xml;base64,"), (
-                f"{name!r} icon is not a data URI"
-            )
-            assert meta["desc"], f"{name!r} desc is empty"
-
-    def test_mcp_tool_keys_present(self):
-        for key in ("vscode", "claude_desktop", "cursor", "windsurf", "generic"):
-            assert key in self._static._PROVIDER_META, f"MCP key {key!r} missing"
-
-    def test_claude_icon_is_svg_claude(self):
-        assert self._static._PROVIDER_META["claude"]["icon"] == self._static._SVG_CLAUDE
-
-    def test_chatgpt_icon_is_svg_chatgpt(self):
-        assert self._static._PROVIDER_META["chatgpt"]["icon"] == self._static._SVG_CHATGPT
-
-    def test_all_in_all_list(self):
-        for name in ("_SVG_COPY", "_SVG_DEFAULT", "_PROVIDER_META"):
-            assert name in self._static.__all__
-
-
-# ===========================================================================
-# 20. Theme selector presets
+# 19. Theme selector presets
 # ===========================================================================
 
 class TestThemeSelectorPresets:
@@ -1046,7 +957,7 @@ class TestThemeSelectorPresets:
 
 
 # ===========================================================================
-# 21. _resolve_content_selectors
+# 19. _resolve_content_selectors
 # ===========================================================================
 
 class TestResolveContentSelectors:
@@ -1092,7 +1003,7 @@ class TestResolveContentSelectors:
 
 
 # ===========================================================================
-# 22. _DEFAULT_CONTENT_SELECTORS
+# 19. _DEFAULT_CONTENT_SELECTORS
 # ===========================================================================
 
 class TestDefaultContentSelectors:
@@ -1113,7 +1024,7 @@ class TestDefaultContentSelectors:
 
 
 # ===========================================================================
-# 23. _process_html_file_worker (6-tuple)
+# 19. _process_html_file_worker (6-tuple)
 # ===========================================================================
 
 class TestProcessHtmlFileWorker:
@@ -1259,7 +1170,7 @@ class TestProcessHtmlFileWorker:
 
 
 # ===========================================================================
-# 24. _process_single_html_file (5-tuple wrapper)
+# 19. _process_single_html_file (5-tuple wrapper)
 # ===========================================================================
 
 class TestProcessSingleHtmlFile:
@@ -1323,7 +1234,7 @@ class TestProcessSingleHtmlFile:
 
 
 # ===========================================================================
-# 25. process_html_directory
+# 19. process_html_directory
 # ===========================================================================
 
 class TestProcessHtmlDirectory:
@@ -1435,7 +1346,7 @@ class TestProcessHtmlDirectory:
 
 
 # ===========================================================================
-# 26. generate_llms_txt_standalone
+# 19. generate_llms_txt_standalone
 # ===========================================================================
 
 class TestGenerateLlmsTxtStandalone:
@@ -1508,7 +1419,7 @@ class TestGenerateLlmsTxtStandalone:
 
 
 # ===========================================================================
-# 27. generate_markdown_files (Sphinx hook)
+# 19. generate_markdown_files (Sphinx hook)
 # ===========================================================================
 
 class TestGenerateMarkdownFiles:
@@ -1580,7 +1491,7 @@ class TestGenerateMarkdownFiles:
 
 
 # ===========================================================================
-# 28. generate_llms_txt (Sphinx hook)
+# 19. generate_llms_txt (Sphinx hook)
 # ===========================================================================
 
 class TestGenerateLlmsTxt:
@@ -1722,7 +1633,7 @@ class TestGenerateLlmsTxt:
 
 
 # ===========================================================================
-# 29. add_ai_assistant_context
+# 19. add_ai_assistant_context
 # ===========================================================================
 
 class TestAddAiAssistantContext:
@@ -1879,7 +1790,7 @@ class TestAddAiAssistantContext:
 
 
 # ===========================================================================
-# 30. setup()
+# 19. setup()
 # ===========================================================================
 
 class TestSetup:
@@ -1998,7 +1909,7 @@ class TestSetup:
 
 
 # ===========================================================================
-# 31. _OLLAMA_RECOMMENDED_MODELS
+# 19. _OLLAMA_RECOMMENDED_MODELS
 # ===========================================================================
 
 class TestOllamaRecommendedModels:
@@ -2043,7 +1954,7 @@ class TestOllamaRecommendedModels:
 
 
 # ===========================================================================
-# 32. _DEFAULT_MCP_TOOLS
+# 19. _DEFAULT_MCP_TOOLS
 # ===========================================================================
 
 class TestDefaultMcpTools:
@@ -2090,7 +2001,7 @@ class TestDefaultMcpTools:
 
 
 # ===========================================================================
-# 33. _validate_mcp_tool
+# 19. _validate_mcp_tool
 # ===========================================================================
 
 class TestValidateMcpTool:
@@ -2144,7 +2055,7 @@ class TestValidateMcpTool:
 
 
 # ===========================================================================
-# 34. _cfg_str and _cfg_bool
+# 19. _cfg_str and _cfg_bool
 # ===========================================================================
 
 class TestCfgHelpers:
@@ -2203,7 +2114,7 @@ class TestCfgHelpers:
 
 
 # ===========================================================================
-# 35. Extended provider registry
+# 19. Extended provider registry
 # ===========================================================================
 
 class TestExtendedProviderRegistry:
@@ -2251,7 +2162,7 @@ class TestExtendedProviderRegistry:
 
 
 # ===========================================================================
-# 36. setup() extended config values
+# 19. setup() extended config values
 # ===========================================================================
 
 class TestSetupExtended:
@@ -2311,7 +2222,7 @@ class TestSetupExtended:
 
 
 # ===========================================================================
-# 37. Ollama local provider
+# 19. Ollama local provider
 # ===========================================================================
 
 class TestOllamaLocalSupport:
@@ -2344,7 +2255,7 @@ class TestOllamaLocalSupport:
 
 
 # ===========================================================================
-# 38. Full provider round-trip
+# 19. Full provider round-trip
 # ===========================================================================
 
 class TestProviderRoundTrip:
@@ -2368,7 +2279,7 @@ class TestProviderRoundTrip:
 
 
 # ===========================================================================
-# 39. Edge cases and invariants
+# 19. Edge cases and invariants
 # ===========================================================================
 
 class TestEdgeCases:
@@ -3655,8 +3566,11 @@ class TestStubModelInjection:
         ids = [e["id"] for e in out]
         assert ids[0] == "real"
         assert "stub-echo" in ids
-        assert "stub-qa" in ids
+        assert "stub-mirror" in ids
+        assert "stub-error" in ids
         assert "stub-hostile" in ids
+        assert "stub-qa" in ids
+        assert "stub-slow" in ids
 
     def test_stub_entries_come_last(self):
         """Appending, not prepending: order decides the fallback active model."""
@@ -3692,6 +3606,12 @@ class TestStubModelInjection:
         echo = next(e for e in out if e["id"] == "stub-echo")
         assert echo["reasoning"] is True
 
+    def test_mirror_entry_declares_reasoning_support(self):
+        out = _mod._with_stub_models([], True, _EP_URL)
+        mirror = next(e for e in out if e["id"] == "stub-mirror")
+        assert mirror["model"] == "stub/mirror"
+        assert mirror["reasoning"] is True
+
     def test_qa_entry_does_not_declare_it(self):
         """So the two request shapes can be compared in one session."""
         out = _mod._with_stub_models([], True, _EP_URL)
@@ -3701,5 +3621,14 @@ class TestStubModelInjection:
     def test_entries_survive_the_real_validator(self):
         """They pass through _filter_panel_models like any other entry."""
         out = _mod._filter_panel_models(_mod._with_stub_models([], True, _EP_URL))
-        assert len(out) == 3
-        assert {e["id"] for e in out} == {"stub-echo", "stub-qa", "stub-hostile"}
+        assert len(out) == 6
+        assert {e["id"] for e in out} == {
+            "stub-echo", "stub-mirror", "stub-error",
+            "stub-hostile", "stub-qa", "stub-slow"
+        }
+
+# Large-contract case fragments are collected only through this canonical owner.
+from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._case_loader import export_case_tests as _export_case_tests
+
+_export_case_tests(globals(), package=__package__, case_package='_cases.root_init', cases=('conversion_rules', 'llms_txt'))
+del _export_case_tests

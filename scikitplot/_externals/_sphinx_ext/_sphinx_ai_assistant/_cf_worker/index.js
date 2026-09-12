@@ -97,7 +97,7 @@ function _opaqueShareRequestMode(request) {
       method = String(request.headers.get('Access-Control-Request-Method') || '').trim().toUpperCase();
     }
     if (path === '/v1/share' && (method === 'GET' || method === 'HEAD')) return 'read';
-    if (path === '/v1/share/read' && method === 'POST') return 'read';
+    if ((path === '/v1/share/read' || path === '/v1/share/download') && method === 'POST') return 'read';
     if (path.startsWith('/v1/share/') && (method === 'GET' || method === 'HEAD')) return 'read';
     return 'write';
   } catch { return 'none'; }
@@ -434,8 +434,13 @@ const SHARE_MAX_BODY_BYTES_DEFAULT = 512000;
 const SHARE_TRANSPORT_VERSION = 2;
 const SHARE_MAX_ENTRIES_DEFAULT = 256;
 const SHARE_MAX_TOTAL_BYTES_DEFAULT = 16 * 1024 * 1024;
+const SHARE_SCHEMA_VERSION = '2.1';
+const SHARE_ACCEPTED_SCHEMA_VERSIONS = new Set(['2.0', '2.1']);
 const SHARE_MAX_RECORDS = 1000;
 const SHARE_MAX_TEXT_CHARS = 200000;
+const SHARE_MAX_RESOURCES_PER_MESSAGE = 512;
+const SHARE_MAX_RESOURCES_TOTAL = 4096;
+const SHARE_MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 const CHAT_MAX_BODY_BYTES_DEFAULT = 10 * 1024 * 1024;
 const CHAT_MAX_BODY_BYTES_HARD = 16 * 1024 * 1024;
 const CHAT_MAX_RESPONSE_BYTES_DEFAULT = 8 * 1024 * 1024;
@@ -580,12 +585,110 @@ function _shareScalar(value, field) {
   throw new Error(`${field} must be a finite primitive value`);
 }
 
+const SHARE_RESOURCE_KINDS = new Set(['text','image','vector_image','audio','video','data','file','replay','page','pdf','archive']);
+const SHARE_RESOURCE_DELIVERIES = new Set(['context','raw','not_sent']);
+const SHARE_RESOURCE_INTENTS = new Set(['','auto','raw','extract','context']);
+
+function _shareResourceCount(value, field, maximum = SHARE_MAX_RESOURCES_PER_MESSAGE) {
+  if (!Number.isInteger(value) || value < 0 || value > maximum) throw new Error(`${field} must be an integer between 0 and ${maximum}`);
+  return value;
+}
+function _shareResourceBool(value, field) {
+  if (typeof value !== 'boolean') throw new Error(`${field} must be a boolean`);
+  return value;
+}
+function _shareSafeRelativePath(value, field) {
+  const text = _shareString(value, 1024, field) || '';
+  if (!text) return '';
+  const clean = text.replace(/\\/g, '/');
+  if (clean.startsWith('/') || /^[A-Za-z]:/.test(clean)) return '';
+  const parts = clean.split('/').filter(p => p && p !== '.');
+  if (parts.some(p => p === '..' || /[\x00-\x1f]/.test(p))) return '';
+  return parts.join('/');
+}
+function _shareSafeResourceName(value, field, limit = 512) {
+  const text = _shareString(value, limit, field, false) || '';
+  return text.replace(/[\x00-\x1f]/g, '').replace(/[\\/]/g, '_').slice(0, limit);
+}
+function _canonicalShareResourceItem(raw, ri, ii, allowSourceUrls) {
+  const prefix = `records[${ri}].resources.items[${ii}]`;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${prefix} must be an object`);
+  const kind = _shareString(raw.kind, 32, `${prefix}.kind`, false);
+  if (!SHARE_RESOURCE_KINDS.has(kind)) throw new Error(`${prefix}.kind is not allowed`);
+  const delivery = _shareString(raw.delivery, 32, `${prefix}.delivery`, false);
+  if (!SHARE_RESOURCE_DELIVERIES.has(delivery)) throw new Error(`${prefix}.delivery is not allowed`);
+  const intent = _shareString(raw.intent, 32, `${prefix}.intent`) || '';
+  if (!SHARE_RESOURCE_INTENTS.has(intent)) throw new Error(`${prefix}.intent is not allowed`);
+  const size = _shareInt(raw.size, `${prefix}.size`, false);
+  const lineCount = _shareInt(raw.lineCount, `${prefix}.lineCount`, false);
+  if (size < 0 || size > SHARE_MAX_SAFE_INTEGER) throw new Error(`${prefix}.size is out of range`);
+  if (lineCount < 0 || lineCount > 1000000) throw new Error(`${prefix}.lineCount is out of range`);
+  let badge = _shareString(raw.badge, 12, `${prefix}.badge`, false).replace(/[^A-Za-z0-9+._-]/g, '').toUpperCase().slice(0,12) || 'FILE';
+  let modality = (_shareString(raw.modality, 32, `${prefix}.modality`) || kind).replace(/[^A-Za-z0-9_-]/g, '').slice(0,32);
+  let sourceKind = (_shareString(raw.sourceKind, 24, `${prefix}.sourceKind`) || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0,24);
+  let archiveName = _shareString(raw.archiveName, 512, `${prefix}.archiveName`) || '';
+  if (archiveName) archiveName = _shareSafeResourceName(archiveName, `${prefix}.archiveName`);
+  const item = {
+    name: _shareSafeResourceName(raw.name, `${prefix}.name`), badge, kind, size, lineCount,
+    included: _shareResourceBool(raw.included, `${prefix}.included`),
+    localOnly: _shareResourceBool(raw.localOnly, `${prefix}.localOnly`),
+    delivery, modality, intent,
+    replay: _shareResourceBool(raw.replay, `${prefix}.replay`),
+    boundedExcerpt: _shareResourceBool(raw.boundedExcerpt, `${prefix}.boundedExcerpt`),
+    status: _shareString(raw.status, 96, `${prefix}.status`) || '',
+    type: _shareString(raw.type, 120, `${prefix}.type`) || '',
+    relativePath: _shareSafeRelativePath(raw.relativePath, `${prefix}.relativePath`),
+    sourceKind, archiveName,
+  };
+  if (kind === 'page') {
+    const role = _shareString(raw.contextRole, 16, `${prefix}.contextRole`) || 'pinned';
+    item.contextRole = role === 'current' ? 'current' : 'pinned';
+    item.sourceUrl = allowSourceUrls ? _sanitizeSharePageUrl(raw.sourceUrl) : '';
+  }
+  return item;
+}
+function _shareResourceAggregates(items) {
+  return {
+    includedCount: items.filter(x=>x.included).length,
+    localOnlyCount: items.filter(x=>x.localOnly).length,
+    contextCount: items.filter(x=>x.delivery==='context').length,
+    rawCount: items.filter(x=>x.delivery==='raw').length,
+    notSentCount: items.filter(x=>x.delivery==='not_sent').length,
+    pageCount: items.filter(x=>x.kind==='page').length,
+    replayCount: items.filter(x=>x.kind==='replay'||x.replay).length,
+    totalBytes: Math.min(SHARE_MAX_SAFE_INTEGER, items.reduce((n,x)=>n+x.size,0)),
+  };
+}
+function _canonicalShareResources(raw, ri, allowSourceUrls) {
+  const prefix = `records[${ri}].resources`;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${prefix} must be an object`);
+  if (!Array.isArray(raw.items)) throw new Error(`${prefix}.items must be an array`);
+  if (raw.items.length > SHARE_MAX_RESOURCES_PER_MESSAGE) throw new Error(`${prefix}.items contains too many resources`);
+  const items = raw.items.map((x,i)=>_canonicalShareResourceItem(x,ri,i,allowSourceUrls));
+  const d = _shareResourceAggregates(items);
+  const total = _shareResourceCount(raw.totalCount ?? items.length, `${prefix}.totalCount`);
+  if (total < items.length) throw new Error(`${prefix}.totalCount cannot be smaller than items`);
+  const merged = name => Math.max(d[name], Math.min(total, _shareResourceCount(raw[name] ?? d[name], `${prefix}.${name}`)));
+  const totalBytes = _shareInt(raw.totalBytes ?? d.totalBytes, `${prefix}.totalBytes`, false);
+  if (totalBytes < 0 || totalBytes > SHARE_MAX_SAFE_INTEGER) throw new Error(`${prefix}.totalBytes is out of range`);
+  let omitted = _shareResourceCount(raw.omittedCount ?? Math.max(0,total-items.length), `${prefix}.omittedCount`);
+  omitted = Math.max(omitted,total-items.length);
+  if (typeof raw.complete !== 'boolean') throw new Error(`${prefix}.complete must be a boolean`);
+  if (_shareResourceCount(raw.version ?? 2, `${prefix}.version`, 2) !== 2) throw new Error(`${prefix}.version must be 2`);
+  return {
+    version:2,totalCount:total,includedCount:merged('includedCount'),localOnlyCount:merged('localOnlyCount'),
+    contextCount:merged('contextCount'),rawCount:merged('rawCount'),notSentCount:merged('notSentCount'),
+    pageCount:merged('pageCount'),replayCount:merged('replayCount'),totalBytes:Math.max(d.totalBytes,totalBytes),
+    itemCount:items.length,omittedCount:omitted,complete:raw.complete && omitted===0 && total===items.length,items,
+  };
+}
+
 function _buildShareTurns(records) {
   const turns = [];
   let current = null;
   for (const row of records) {
     if (row.role === 'user') {
-      current = { turn_index: row.turn_index, user: { text: row.text, ts: row.ts, ts_iso: row.ts_iso }, assistant: null };
+      current = { turn_index: row.turn_index, user: { text: row.text, ts: row.ts, ts_iso: row.ts_iso, resources: row.resources }, assistant: null };
       turns.push(current);
     } else if (row.role === 'assistant' && current && current.assistant === null) {
       current.assistant = {
@@ -602,15 +705,15 @@ function _buildShareTurns(records) {
 
 function _canonicalShareSnapshot(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('snapshot must be an object');
-  if (raw.schema_version !== '2.0') throw new Error("snapshot.schema_version must be '2.0'");
+  if (!SHARE_ACCEPTED_SCHEMA_VERSIONS.has(raw.schema_version)) throw new Error("snapshot.schema_version must be one of: '2.0', '2.1'");
   const rs = raw.session;
   if (!rs || typeof rs !== 'object' || Array.isArray(rs)) throw new Error('snapshot.session must be an object');
-  const sessionId = _shareString(rs.id, 256, 'session.id') || '';
-  const safePage = _sanitizeSharePageUrl(rs.page_url);
+  const sessionId = _shareString(rs.id, 256, 'session.id');
+  const safePage = _sanitizeSharePageUrl(rs.page_url) || null;
   const session = {
     id: sessionId,
     page_url: safePage,
-    page_title: _shareString(rs.page_title, 2048, 'session.page_title') || '',
+    page_title: _shareString(rs.page_title, 2048, 'session.page_title'),
     assistant_name: _shareString(rs.assistant_name, 256, 'session.assistant_name') || 'AI Assistant',
     exported_at: _shareInt(rs.exported_at, 'session.exported_at'),
     exported_at_iso: _shareString(rs.exported_at_iso, 128, 'session.exported_at_iso'),
@@ -620,6 +723,7 @@ function _canonicalShareSnapshot(raw) {
   const records = raw.records.map((r, i) => {
     if (!r || typeof r !== 'object' || Array.isArray(r)) throw new Error(`records[${i}] must be an object`);
     if (!['user', 'assistant', 'error'].includes(r.role)) throw new Error(`records[${i}].role is not allowed`);
+    if (r.resources != null && r.role !== 'user') throw new Error(`records[${i}].resources is allowed only for user messages`);
     return {
       turn_index: _shareInt(r.turn_index, `records[${i}].turn_index`, false),
       message_index: _shareInt(r.message_index, `records[${i}].message_index`, false),
@@ -633,11 +737,13 @@ function _canonicalShareSnapshot(raw) {
       feedback_rating_value: _shareScalar(r.feedback_rating_value, `records[${i}].feedback_rating_value`),
       feedback_rating_label: _shareString(r.feedback_rating_label, 2048, `records[${i}].feedback_rating_label`),
       feedback_message: _shareString(r.feedback_message, SHARE_MAX_TEXT_CHARS, `records[${i}].feedback_message`),
+      resources: r.resources != null ? _canonicalShareResources(r.resources, i, !!safePage) : null,
       session_id: sessionId,
       page_url: safePage,
     };
   });
-  return { schema_version: '2.0', session, turns: _buildShareTurns(records), records };
+  if (records.reduce((n,r)=>n+((r.resources&&r.resources.itemCount)||0),0) > SHARE_MAX_RESOURCES_TOTAL) throw new Error('snapshot.records contains too many resource metadata rows');
+  return { schema_version: SHARE_SCHEMA_VERSION, session, turns: _buildShareTurns(records), records };
 }
 
 function _shareFormat(value) {
@@ -645,6 +751,11 @@ function _shareFormat(value) {
     throw new Error('format must be one of: html, json, txt, yaml, toml');
   }
   return value;
+}
+
+function _shareArtifactFilename(fmt) {
+  const normalized = _shareFormat(fmt);
+  return `ai-conversation-global-share-${normalized}${SHARE_FORMATS[normalized].ext}`;
 }
 
 
@@ -681,6 +792,24 @@ function _shareYamlValue(value, indent = 0) {
   return pad + _shareYamlScalar(value);
 }
 
+function _shareResourceSummary(m) {
+  if (!m || !m.totalCount) return '';
+  return `Resources used for this question: ${m.totalCount} · context ${m.contextCount} · raw ${m.rawCount} · not-sent ${m.notSentCount}`;
+}
+function _shareResourceTextLines(m) {
+  if (!m || !m.totalCount) return [];
+  const lines=[`[${_shareResourceSummary(m)}]`];
+  for (const item of m.items||[]) lines.push(`- [${item.badge||'FILE'}] ${item.name||'file'}${item.status?' — '+item.status:''}`);
+  if (m.omittedCount) lines.push(`- … ${m.omittedCount} resource metadata row${m.omittedCount===1?'':'s'} omitted from restored state`);
+  return lines;
+}
+function _shareResourceHtml(m) {
+  if (!m || !m.totalCount) return '';
+  let rows=(m.items||[]).map(item=>`<li class="resource-card"><span class="resource-badge">${_escapeShareHtml(item.badge||'FILE')}</span><span class="resource-name">${_escapeShareHtml(item.name||'file')}</span>${item.status?`<span class="resource-status">${_escapeShareHtml(item.status)}</span>`:''}</li>`).join('');
+  if (m.omittedCount) rows+=`<li class="resource-card omitted">… ${m.omittedCount} resource metadata row${m.omittedCount===1?'':'s'} omitted</li>`;
+  return `<section class="resources"><div class="resource-summary">${_escapeShareHtml(_shareResourceSummary(m))}</div><ul class="resource-list">${rows}</ul></section>`;
+}
+
 function _shareTomlScalar(value) {
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'boolean') return value ? 'true' : 'false';
@@ -688,8 +817,9 @@ function _shareTomlScalar(value) {
   return null;
 }
 
-function _shareTomlFields(lines, obj) {
+function _shareTomlFields(lines, obj, omit = new Set()) {
   for (const key of Object.keys(obj || {})) {
+    if (omit.has(key)) continue;
     const value = obj[key];
     if (value == null) continue;
     const rendered = _shareTomlScalar(value);
@@ -699,23 +829,31 @@ function _shareTomlFields(lines, obj) {
 
 function _renderShareYaml(snapshot) { return _shareYamlValue(snapshot, 0) + '\n'; }
 
+function _shareTomlResources(lines, table, manifest) {
+  if (!manifest || !manifest.totalCount) return;
+  lines.push(`[${table}]`);
+  _shareTomlFields(lines, manifest, new Set(['items']));
+  for (const item of manifest.items || []) { lines.push(`[[${table}.items]]`); _shareTomlFields(lines, item); }
+}
+
 function _renderShareToml(snapshot) {
   const lines = [
     '# AI Assistant conversation export',
-    '# schema v2 semantics: omitted optional values represent null',
-    `schema_version = ${JSON.stringify(String(snapshot.schema_version || '2.0'))}`,
+    '# schema v2.1 semantics: omitted optional values represent null',
+    `schema_version = ${JSON.stringify(String(snapshot.schema_version || SHARE_SCHEMA_VERSION))}`,
     '', '[session]'
   ];
   _shareTomlFields(lines, snapshot.session || {});
   for (const turn of snapshot.turns || []) {
     lines.push('', '[[turns]]');
     if (turn.turn_index != null) lines.push(`turn_index = ${turn.turn_index}`);
-    if (turn.user) { lines.push('[turns.user]'); _shareTomlFields(lines, turn.user); }
+    if (turn.user) { lines.push('[turns.user]'); _shareTomlFields(lines, turn.user, new Set(['resources'])); _shareTomlResources(lines, 'turns.user.resources', turn.user.resources); }
     if (turn.assistant) { lines.push('[turns.assistant]'); _shareTomlFields(lines, turn.assistant); }
   }
   for (const record of snapshot.records || []) {
     lines.push('', '[[records]]');
-    _shareTomlFields(lines, record);
+    _shareTomlFields(lines, record, new Set(['resources']));
+    _shareTomlResources(lines, 'records.resources', record.resources);
   }
   return lines.join('\n') + '\n';
 }
@@ -726,13 +864,23 @@ function _renderShare(snapshot, fmt) {
   if (fmt === 'yaml') return { content: _renderShareYaml(snapshot), ...meta };
   if (fmt === 'toml') return { content: _renderShareToml(snapshot), ...meta };
   if (fmt === 'txt') {
-    const lines = [`${snapshot.session.assistant_name || 'AI Assistant'} — Shared conversation`];
-    if (snapshot.session.page_title) lines.push(snapshot.session.page_title);
+    const lines = [`${snapshot.session.assistant_name || 'AI Assistant'} — Shared conversation`, `Schema: ${snapshot.schema_version || SHARE_SCHEMA_VERSION}`];
+    if (snapshot.session.page_title) lines.push(`Page title: ${snapshot.session.page_title}`);
     if (snapshot.session.page_url) lines.push(`Source: ${snapshot.session.page_url}`);
+    if (snapshot.session.exported_at_iso) lines.push(`Exported: ${snapshot.session.exported_at_iso}`);
     lines.push('');
     for (const row of snapshot.records) {
       const label = row.role === 'user' ? 'USER' : (row.role === 'error' ? 'ERROR' : 'ASSISTANT');
-      lines.push(`[${label}]`, String(row.text || ''), '');
+      const meta=[]; if (row.ts_iso) meta.push(row.ts_iso);
+      if (row.role !== 'user' && (row.model_name || row.model_id)) meta.push(`${row.model_name||row.model_id}${row.model_provider?' · '+row.model_provider:''}`);
+      lines.push(`[${label}]${meta.length?'  ['+meta.join(' · ')+']':''}`);
+      if (row.role === 'user') lines.push(..._shareResourceTextLines(row.resources));
+      if (row.role !== 'user' && (row.feedback_rating_label || row.feedback_rating_value != null)) {
+        const bits=[]; if (row.feedback_rating_label) bits.push(String(row.feedback_rating_label)); if (row.feedback_rating_value != null) bits.push(String(row.feedback_rating_value));
+        lines.push(`[Rating: ${bits.join(' · ')}]`);
+      }
+      if (row.role !== 'user' && row.feedback_message) lines.push(`[Feedback: ${row.feedback_message}]`);
+      lines.push(String(row.text || ''), '');
     }
     return { content: lines.join('\n').replace(/\n+$/, '') + '\n', ...meta };
   }
@@ -741,14 +889,18 @@ function _renderShare(snapshot, fmt) {
   const msgs = snapshot.records.map(row => {
     const label = row.role === 'user' ? 'You' : (row.role === 'error' ? 'Error' : snapshot.session.assistant_name);
     const cls = row.role === 'user' ? 'user' : (row.role === 'error' ? 'error' : 'assistant');
-    return `<article class="msg ${cls}"><div class="role">${_escapeShareHtml(label)}</div><pre>${_escapeShareHtml(row.text)}</pre></article>`;
+    const meta=[]; if (row.ts_iso) meta.push(row.ts_iso); if (row.model_name) meta.push(row.model_name); if (row.model_provider) meta.push(row.model_provider);
+    if (row.feedback_rating_label || row.feedback_rating_value != null) meta.push(`Rating: ${row.feedback_rating_label||row.feedback_rating_value}${row.feedback_rating_label&&row.feedback_rating_value!=null?' ('+row.feedback_rating_value+')':''}`);
+    if (row.feedback_message) meta.push(`Feedback: ${row.feedback_message}`);
+    const resources=row.role==='user'?_shareResourceHtml(row.resources):'';
+    return `<article class="msg ${cls}"><div class="role">${_escapeShareHtml(label)}</div>${resources}<pre>${_escapeShareHtml(row.text)}</pre>${meta.length?`<div class="meta">${meta.map(_escapeShareHtml).join(' · ')}</div>`:''}</article>`;
   }).join('');
-  const content = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><title>Shared AI conversation</title><style>:root{font-family:system-ui,sans-serif;color-scheme:light dark}body{margin:0;background:Canvas;color:CanvasText}.wrap{max-width:850px;margin:auto;padding:24px}.head{border-bottom:1px solid currentColor;padding-bottom:16px}.source{overflow-wrap:anywhere}.source a{color:inherit}.msg{margin:18px 0;padding:14px;border:1px solid currentColor;border-radius:12px}.msg.user{margin-left:10%}.msg.error{border-style:dashed}.role{font-weight:700;margin-bottom:8px}.msg pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:0}</style></head><body><main class="wrap"><header class="head"><h1>${_escapeShareHtml(snapshot.session.assistant_name)} — Shared conversation</h1><p>${_escapeShareHtml(snapshot.session.page_title)}</p>${source}</header>${msgs}</main></body></html>`;
+  const content = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><title>Shared AI conversation</title><style>:root{font-family:system-ui,sans-serif;color-scheme:light dark}body{margin:0;background:Canvas;color:CanvasText}.wrap{max-width:850px;margin:auto;padding:24px}.head{border-bottom:1px solid currentColor;padding-bottom:16px}.source{overflow-wrap:anywhere}.source a{color:inherit}.msg{margin:18px 0;padding:14px;border:1px solid currentColor;border-radius:12px}.msg.user{margin-left:10%}.msg.error{border-style:dashed}.role{font-weight:700;margin-bottom:8px}.resources{margin:0 0 10px}.resource-summary{font-size:.78rem;opacity:.7}.resource-list{list-style:none;padding:0;margin:6px 0;display:grid;gap:4px}.resource-card{display:flex;gap:6px;flex-wrap:wrap;font-size:.78rem}.resource-badge{font-weight:700}.resource-status{opacity:.65}.msg pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:0}.meta{opacity:.65;font-size:.8rem;margin-top:8px}</style></head><body><main class="wrap"><header class="head"><h1>${_escapeShareHtml(snapshot.session.assistant_name)} — Shared conversation</h1><p>${_escapeShareHtml(snapshot.session.page_title)}</p>${source}</header>${msgs}</main></body></html>`;
   return { content, ...meta };
 }
 
 function _shareViewerHtml() {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Shared AI conversation</title><style>:root{font-family:system-ui,sans-serif;color-scheme:light dark}body{margin:0;background:Canvas;color:CanvasText}.wrap{max-width:850px;margin:auto;padding:24px}.head{border-bottom:1px solid currentColor;padding-bottom:16px}.source{overflow-wrap:anywhere}.source a{color:inherit}.msg{margin:18px 0;padding:14px;border:1px solid currentColor;border-radius:12px}.msg.user{margin-left:10%}.msg.error{border-style:dashed}.role{font-weight:700;margin-bottom:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:0}.error-note{border:1px dashed currentColor;padding:14px;border-radius:12px}</style></head><body><main id="app" class="wrap"><p>Loading shared conversation…</p></main><script>(()=>{'use strict';const app=document.getElementById('app');const fail=(m)=>{app.replaceChildren();const p=document.createElement('p');p.className='error-note';p.textContent=m;app.appendChild(p);};let raw=(location.hash||'').slice(1);if(raw.startsWith('share='))raw=raw.slice(6);try{raw=decodeURIComponent(raw)}catch(_e){}if(!/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(raw)){fail('This Share link is invalid or incomplete.');return;}const readJson=async(r)=>{const max=4*1024*1024;const h=r.headers&&r.headers.get?r.headers.get('content-length'):null;if(h!=null&&String(h).trim()!==''){if(!/^\d+$/.test(String(h).trim())||Number(h)>max)throw new Error('Share response is too large.');}if(!r.body||typeof r.body.getReader!=='function'||typeof TextDecoder!=='function')throw new Error('Bounded Share reader unavailable.');const rd=r.body.getReader(),dec=new TextDecoder(),parts=[];let n=0;try{for(;;){const x=await rd.read();if(x.done)break;const v=x.value||new Uint8Array(0);n+=Number(v.byteLength||v.length||0);if(n>max)throw new Error('Share response is too large.');parts.push(dec.decode(v,{stream:true}));}parts.push(dec.decode());}catch(e){try{await rd.cancel()}catch(_e){}throw e;}finally{try{rd.releaseLock()}catch(_e){}}return JSON.parse(parts.join(''));};fetch('/v1/share/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shareId:raw}),cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'}).then(async r=>{if(!r.ok){throw new Error(r.status===410?'This Share has expired.':r.status===404?'This Share is unavailable.':'Could not load this Share.');}return await readJson(r);}).then(data=>{app.replaceChildren();if(data.format==='html'&&data.snapshot&&data.snapshot.session&&Array.isArray(data.snapshot.records)){const snap=data.snapshot;const h=document.createElement('header');h.className='head';const h1=document.createElement('h1');h1.textContent=(snap.session.assistant_name||'AI Assistant')+' — Shared conversation';h.appendChild(h1);if(snap.session.page_title){const p=document.createElement('p');p.textContent=snap.session.page_title;h.appendChild(p);}if(snap.session.page_url){const p=document.createElement('p');p.className='source';p.append('Source: ');const a=document.createElement('a');a.href=snap.session.page_url;a.rel='noopener noreferrer';a.referrerPolicy='no-referrer';a.textContent=snap.session.page_url;p.appendChild(a);h.appendChild(p);}app.appendChild(h);for(const row of snap.records){const article=document.createElement('article');article.className='msg '+(row.role==='user'?'user':row.role==='error'?'error':'assistant');const role=document.createElement('div');role.className='role';role.textContent=row.role==='user'?'You':row.role==='error'?'Error':(snap.session.assistant_name||'AI Assistant');const pre=document.createElement('pre');pre.textContent=String(row.text||'');article.append(role,pre);app.appendChild(article);}return;}const pre=document.createElement('pre');pre.textContent=String(data.content||'');app.appendChild(pre);}).catch(e=>fail(e&&e.message?e.message:'Could not load this Share.'));})();</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Shared AI conversation</title><style>:root{font-family:system-ui,sans-serif;color-scheme:light dark}body{margin:0;background:Canvas;color:CanvasText}.wrap{max-width:850px;margin:auto;padding:24px}.head{border-bottom:1px solid currentColor;padding-bottom:16px}.source{overflow-wrap:anywhere}.source a{color:inherit}.msg{margin:18px 0;padding:14px;border:1px solid currentColor;border-radius:12px}.msg.user{margin-left:10%}.msg.error{border-style:dashed}.role{font-weight:700;margin-bottom:8px}.meta{margin-top:8px;font-size:.82rem;opacity:.72;overflow-wrap:anywhere}.resources{margin:0 0 10px;padding:10px;border:1px solid color-mix(in srgb,currentColor 28%,transparent);border-radius:9px}.resource-summary{font-size:.8rem;opacity:.76;margin-bottom:6px}.resource-list{display:grid;gap:6px}.resource-card{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.82rem}.resource-badge{font-size:.7rem;font-weight:700;border:1px solid currentColor;border-radius:5px;padding:1px 5px}.resource-source{color:inherit}.feedback{margin-top:8px;padding:8px 10px;border-left:3px solid currentColor;white-space:pre-wrap;overflow-wrap:anywhere}.artifact{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 18px;padding:10px 12px;border:1px solid currentColor;border-radius:10px}.artifact-name{font-size:.82rem;opacity:.8;overflow-wrap:anywhere}.download{font:inherit;padding:7px 11px;border:1px solid currentColor;border-radius:8px;background:Canvas;color:CanvasText;cursor:pointer}.download[disabled]{opacity:.55;cursor:wait}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:0}.error-note{border:1px dashed currentColor;padding:14px;border-radius:12px}</style></head><body><main id="app" class="wrap"><p>Loading shared conversation…</p></main><script>(()=>{'use strict';const app=document.getElementById('app');const fail=(m)=>{app.replaceChildren();const p=document.createElement('p');p.className='error-note';p.textContent=m;app.appendChild(p);};let raw=(location.hash||'').slice(1);if(raw.startsWith('share='))raw=raw.slice(6);try{raw=decodeURIComponent(raw)}catch(_e){}if(!/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(raw)){fail('This Share link is invalid or incomplete.');return;}const readJson=async(r)=>{const max=4*1024*1024;const h=r.headers&&r.headers.get?r.headers.get('content-length'):null;if(h!=null&&String(h).trim()!==''){if(!/^\d+$/.test(String(h).trim())||Number(h)>max)throw new Error('Share response is too large.');}if(!r.body||typeof r.body.getReader!=='function'||typeof TextDecoder!=='function')throw new Error('Bounded Share reader unavailable.');const rd=r.body.getReader(),dec=new TextDecoder(),parts=[];let n=0;try{for(;;){const x=await rd.read();if(x.done)break;const v=x.value||new Uint8Array(0);n+=Number(v.byteLength||v.length||0);if(n>max)throw new Error('Share response is too large.');parts.push(dec.decode(v,{stream:true}));}parts.push(dec.decode());}catch(e){try{await rd.cancel()}catch(_e){}throw e;}finally{try{rd.releaseLock()}catch(_e){}}return JSON.parse(parts.join(''));};const readDownload=async(r)=>{const max=8*1024*1024;const h=r.headers&&r.headers.get?r.headers.get('content-length'):null;if(h!=null&&String(h).trim()!==''){if(!/^\d+$/.test(String(h).trim())||Number(h)>max)throw new Error('Shared artifact is too large to download.');}if(!r.body||typeof r.body.getReader!=='function'||typeof TextDecoder!=='function')throw new Error('Bounded Share download reader unavailable.');const rd=r.body.getReader(),dec=new TextDecoder(),parts=[];let n=0;try{for(;;){const x=await rd.read();if(x.done)break;const v=x.value||new Uint8Array(0);n+=Number(v.byteLength||v.length||0);if(n>max)throw new Error('Shared artifact is too large to download.');parts.push(dec.decode(v,{stream:true}));}parts.push(dec.decode());}catch(e){try{await rd.cancel()}catch(_e){}throw e;}finally{try{rd.releaseLock()}catch(_e){}}return parts.join('');};fetch('/v1/share/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shareId:raw}),cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'}).then(async r=>{if(!r.ok){throw new Error(r.status===410?'This Share has expired.':r.status===404?'This Share is unavailable.':'Could not load this Share.');}return await readJson(r);}).then(data=>{app.replaceChildren();const fmt=String(data.format||'txt').toLowerCase();const ext={json:'.json',html:'.html',txt:'.txt',yaml:'.yaml',toml:'.toml'}[fmt]||'.txt';const fallback='ai-conversation-global-share-'+fmt+ext;const requested=String(data.filename||'');const filename=/^ai-conversation-global-share-(?:json\.json|html\.html|txt\.txt|yaml\.yaml|toml\.toml)$/.test(requested)?requested:fallback;const bar=document.createElement('section');bar.className='artifact';bar.setAttribute('aria-label','Shared artifact');const artifactName=document.createElement('span');artifactName.className='artifact-name';artifactName.textContent='Global Share · '+fmt.toUpperCase()+' · '+filename;const download=document.createElement('button');download.type='button';download.className='download';download.textContent='Download '+fmt.toUpperCase();download.addEventListener('click',async()=>{if(download.disabled)return;download.disabled=true;const prior=download.textContent;download.textContent='Downloading…';try{const r=await fetch('/v1/share/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shareId:raw}),cache:'no-store',credentials:'omit',redirect:'error',referrerPolicy:'no-referrer'});if(!r.ok)throw new Error(r.status===410?'This Share has expired.':r.status===404?'This Share is unavailable.':'Could not download this Share.');const text=await readDownload(r);const type=String((r.headers&&r.headers.get&&r.headers.get('content-type'))||data.mimeType||'text/plain;charset=utf-8');const blob=new Blob([text],{type});const objectUrl=URL.createObjectURL(blob);try{const a=document.createElement('a');a.href=objectUrl;a.download=filename;a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();a.remove();}finally{setTimeout(()=>URL.revokeObjectURL(objectUrl),0);}}catch(e){fail(e&&e.message?e.message:'Could not download this Share.');return;}finally{download.disabled=false;download.textContent=prior;}});bar.append(artifactName,download);app.appendChild(bar);if(data.format==='html'&&data.snapshot&&data.snapshot.session&&Array.isArray(data.snapshot.records)){const snap=data.snapshot;const h=document.createElement('header');h.className='head';const h1=document.createElement('h1');h1.textContent=(snap.session.assistant_name||'AI Assistant')+' — Shared conversation';h.appendChild(h1);if(snap.session.page_title){const p=document.createElement('p');p.textContent=snap.session.page_title;h.appendChild(p);}if(snap.session.page_url){const p=document.createElement('p');p.className='source';p.append('Source: ');const a=document.createElement('a');a.href=snap.session.page_url;a.rel='noopener noreferrer';a.referrerPolicy='no-referrer';a.textContent=snap.session.page_url;p.appendChild(a);h.appendChild(p);}app.appendChild(h);const appendMeta=(article,row)=>{const bits=[];if(row.ts_iso)bits.push(String(row.ts_iso));const model=String(row.model_name||row.model_id||'');const provider=String(row.model_provider||'');if(model)bits.push(provider?model+' · '+provider:model);else if(provider)bits.push(provider);if(row.feedback_rating_label!=null||row.feedback_rating_value!=null){let rating='Rating: '+String(row.feedback_rating_label||'rated');if(row.feedback_rating_value!=null)rating+=' ('+String(row.feedback_rating_value)+')';bits.push(rating);}if(bits.length){const meta=document.createElement('div');meta.className='meta';meta.textContent=bits.join(' · ');article.appendChild(meta);}if(row.feedback_message){const note=document.createElement('div');note.className='feedback';note.textContent='Feedback: '+String(row.feedback_message);article.appendChild(note);}};const appendResources=(article,manifest)=>{if(!manifest||!Array.isArray(manifest.items)||Number(manifest.totalCount||0)<=0)return;const section=document.createElement('section');section.className='resources';section.setAttribute('aria-label','Resources used for this question');const summary=document.createElement('div');summary.className='resource-summary';summary.textContent='Resources: '+String(manifest.totalCount||manifest.items.length)+' · context '+String(manifest.contextCount||0)+' · raw '+String(manifest.rawCount||0)+' · not-sent '+String(manifest.notSentCount||0);section.appendChild(summary);const list=document.createElement('div');list.className='resource-list';for(const item of manifest.items){const card=document.createElement('div');card.className='resource-card';const badge=document.createElement('span');badge.className='resource-badge';badge.textContent=String(item.badge||'FILE');const label=document.createElement('span');label.textContent=String(item.name||'Resource')+(item.status?' — '+String(item.status):'');card.append(badge,label);const source=String(item.sourceUrl||'');if(/^https?:\/\//i.test(source)){const a=document.createElement('a');a.className='resource-source';a.href=source;a.rel='noopener noreferrer';a.referrerPolicy='no-referrer';a.textContent='Source';card.appendChild(a);}list.appendChild(card);}section.appendChild(list);article.appendChild(section);};for(const row of snap.records){const article=document.createElement('article');article.className='msg '+(row.role==='user'?'user':row.role==='error'?'error':'assistant');const role=document.createElement('div');role.className='role';role.textContent=row.role==='user'?'You':row.role==='error'?'Error':(snap.session.assistant_name||'AI Assistant');article.appendChild(role);if(row.role==='user')appendResources(article,row.resources);const pre=document.createElement('pre');pre.textContent=String(row.text||'');article.appendChild(pre);appendMeta(article,row);app.appendChild(article);}return;}const pre=document.createElement('pre');pre.textContent=String(data.content||'');app.appendChild(pre);}).catch(e=>fail(e&&e.message?e.message:'Could not load this Share.'));})();</script></body></html>`;
 }
 
 function _validShareId(value) {
@@ -1311,7 +1463,12 @@ export default {
         _log('error', 'share.corrupt_entry', {});
         return _fixedShareError(500, request, env);
       }
-      const out = { format: found.entry.format, expiresAt: found.entry.expiresAt };
+      const out = {
+        format: found.entry.format,
+        expiresAt: found.entry.expiresAt,
+        filename: _shareArtifactFilename(found.entry.format),
+        mimeType: rendered.mime,
+      };
       if (found.entry.format === 'html') out.snapshot = snapshot;
       else out.content = rendered.content;
       _log('info', 'share.read', { format: found.entry.format });
@@ -1321,6 +1478,39 @@ export default {
         'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
         'X-Robots-Tag': 'noindex, nofollow, noarchive', ...corsHeaders(request, env),
       }});
+    }
+
+    if (request.method === 'POST' && url.pathname === '/v1/share/download') {
+      const read = await _readLimitedText(request, 4096, env, 'Share locator');
+      if (read.response) return read.response;
+      let payload;
+      try { payload = JSON.parse(read.text); } catch {
+        return new Response(JSON.stringify({ error: 'Invalid JSON body.' }), {
+          status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
+        });
+      }
+      const found = await _fixedShareEntry(env, payload && payload.shareId);
+      if (found.status !== 200) return _fixedShareError(found.status, request, env);
+      let rendered;
+      try {
+        const snapshot = _canonicalShareSnapshot(found.entry.snapshot);
+        rendered = _renderShare(snapshot, _shareFormat(found.entry.format));
+      } catch {
+        _log('error', 'share.corrupt_entry', {});
+        return _fixedShareError(500, request, env);
+      }
+      const headers = {
+        'Content-Type': rendered.mime,
+        'Content-Disposition': `attachment; filename="${_shareArtifactFilename(found.entry.format)}"`,
+        'Cache-Control': 'private, no-store', 'Pragma': 'no-cache',
+        'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'no-referrer',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()',
+        'X-Robots-Tag': 'noindex, nofollow, noarchive', ...corsHeaders(request, env),
+      };
+      if (rendered.ext === '.html') headers['Content-Security-Policy'] = "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+      _log('info', 'share.download', { format: found.entry.format });
+      return new Response(rendered.content, { status: 200, headers });
     }
 
     if (request.method === 'POST' && url.pathname === '/v1/share/status') {
@@ -1581,7 +1771,7 @@ export default {
       }
       const secHeaders = {
         'Content-Type': rendered.mime,
-        'Content-Disposition': `inline; filename="ai-conversation${rendered.ext}"`,
+        'Content-Disposition': `inline; filename="${_shareArtifactFilename(entry.format)}"`,
         'Content-Security-Policy': rendered.ext === '.html'
           ? "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
           : "default-src 'none'; frame-ancestors 'none'",

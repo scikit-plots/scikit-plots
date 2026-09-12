@@ -1,0 +1,36 @@
+{
+  "lanes": [
+    {
+      "artifact": "evidence/maintenance-tests.log",
+      "id": "maintenance_contract",
+      "result": "18 passed",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/logo-tests.log",
+      "id": "logo_tests",
+      "result": "271 passed, 11 warnings",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "negative_probes",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/banner-live-figlet.log",
+      "id": "banner_live_figlet",
+      "reason": "figlet executable is not installed",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "artifact": "evidence/package-cli.log",
+      "id": "complete_package_cli",
+      "reason": "snapshot contains no scikitplot.logo module / complete installed package root",
+      "status": "UNAVAILABLE"
+    }
+  ],
+  "schema_version": 2,
+  "subsystem": "scikitplot._brand",
+  "updated_at": "2026-09-12"
+}

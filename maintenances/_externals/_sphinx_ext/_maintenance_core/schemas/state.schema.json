@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Subsystem maintenance state",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "subsystem",
+    "source_anchor",
+    "phase",
+    "active_checkpoint",
+    "checkpoints",
+    "verification_snapshot",
+    "next_actions"
+  ]
+}

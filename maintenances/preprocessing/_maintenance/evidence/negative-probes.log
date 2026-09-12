@@ -1,0 +1,20 @@
+PRE-DCE-001 duplicate category labels across features
+categories= {0: ['x', 'y'], 1: ['x', 'z']}
+feature_names= ['left_x', 'left_y', 'right_x', 'right_z']
+n_features_outs= [2, 2]
+transform_shape= (2, 3)
+transform= [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]
+inverse_error= ValueError Shape of the passed X data is not correct. Expected 4 columns, got 3.
+
+PRE-DCE-002 infrequent grouping
+categories= {0: ['a', 'b', 'c']}
+infrequent= [['b', 'c']]
+n_features_outs= [2]
+feature_names= ['tags_a', 'tags_infrequent_sklearn']
+transform_shape= (5, 3)
+transform= [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+PRE-GD-001 documented enum validation
+handle_unknown 'banana' accepted_as_non_error {'ta_a': [1.0], 'ta_b': [0], 'ta_c': [0]}
+handle_unknown None accepted_as_non_error {'ta_a': [1.0], 'ta_b': [0], 'ta_c': [0]}
+handle_unknown 123 accepted_as_non_error {'ta_a': [1.0], 'ta_b': [0], 'ta_c': [0]}

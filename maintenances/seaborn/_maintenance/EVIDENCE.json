@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.seaborn",
+  "updated_at": "2026-09-12",
+  "runtime_fingerprint": "462d1aeed322afdb951027cfb2ef3b91861c5c286c13c3502a1dd1bdb99f3772",
+  "gates": {
+    "snapshot": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/direct-snapshot.log",
+      "sha256": "1d722591a02cf1830255387fe70be32c9d505547daaa9b25f9bae268ca80c380",
+      "note": "Archive/runtime inventory recorded; missing root package and vendored seaborn are snapshot limitations."
+    },
+    "native_tests": {
+      "status": "RED",
+      "log": "maintenances/seaborn/_maintenance/evidence/native-tests.log",
+      "sha256": "c98011b6deab6559bea866c425c8bfd5c6ac33bd756fd6c81a444fbe684a24ac",
+      "note": "Minimal package-root harness against installed seaborn 0.13.2 / Matplotlib 3.10.8: 102 passed, 48 failed due default-color compatibility path."
+    },
+    "compatibility_harness": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/compatibility-harness.log",
+      "sha256": "6bc637694c4ce97b038df222e96356a2fab07cb87fe7dd46bf11be3713605d43",
+      "note": "Harness-only resolver isolates the color seam; all 150 focused tests pass. This is diagnostic, not a source fix."
+    },
+    "negative_probes": {
+      "status": "RED",
+      "log": "maintenances/seaborn/_maintenance/evidence/negative-probes.log",
+      "sha256": "843932b16b4dafa25073f28a7c6b2e2fe3751265e1b577a76c80fd240cc6874c",
+      "note": "Confirms private-color failure, ignored decile weights/palette, and ignored model estimator semantics."
+    },
+    "runtime_integrity": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/runtime-integrity.log",
+      "sha256": "9030df1bdbfbf71b679cbbbc4c2cd733e522b03ae1d6342775251e27e542a079",
+      "note": "The 10 original scikitplot/seaborn files are byte-for-byte unchanged."
+    },
+    "complete_package": {
+      "status": "UNAVAILABLE",
+      "note": "Supplied accumulated archive lacks scikitplot/__init__.py and scikitplot.externals._seaborn; complete installed/fallback package lanes were not available."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Owned runtime findings remain open and supported dependency/platform matrix evidence is unavailable."
+    },
+    "contract_review": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/contract-review.json",
+      "sha256": "bd1bfe6a9076380e386ef4396c4911eb0e703fcf599eb7c3622de28a2e5fcf21",
+      "note": "Static maintenance contract passes; runtime findings remain explicit."
+    },
+    "subsystem_review": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/review-subsystem.json",
+      "sha256": "627520c4ae19b784a58d6bc4ea5244965cc1e6957272bd37946d2b453420fa5f",
+      "note": "Reviewer reports maintenance PASS, runtime FAIL, integration UNAVAILABLE, release BLOCKED."
+    },
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/seaborn/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "1e16e57f7a94b92424fa685028b3d1f774784ad9138ecb7dff14d3f45fd8aa90",
+      "note": "22/22 maintenance mutation/regression tests pass, including a synthetically repaired runtime shape."
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.decile",
+  "runtime_root": "scikitplot/decile",
+  "maintenance_root": "maintenances/decile",
+  "skill": "skills/decile/SKILL.md",
+  "ownership": {
+    "owns": "Decile/ntile evaluation and business-value plotting APIs shipped under scikitplot.decile, including the current ModelPlotPy implementation, the legacy modelplotpy compatibility namespace, and the vendored KDS adapter surface.",
+    "does_not_own": "Generic sklearn estimator behavior, shared plotting decorators/validation/preprocessing utilities, matplotlib/pandas/numpy internals, or the upstream KDS/modelplotpy projects."
+  },
+  "tiers": {
+    "current": {
+      "modules": [
+        "__init__.py",
+        "_decile_modelplotpy.py"
+      ],
+      "description": "Top-level maintained ModelPlotPy/plot API."
+    },
+    "kds": {
+      "modules": [
+        "kds/__init__.py",
+        "kds/_kds.py"
+      ],
+      "description": "Legacy KDS-style decile table/lift/gain/KS adapter."
+    },
+    "legacy_modelplotpy": {
+      "modules": [
+        "modelplotpy/__init__.py",
+        "modelplotpy/_modelplotpy.py"
+      ],
+      "description": "Legacy ModelPlotPy compatibility namespace; behavior remains user-visible."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/decile/__init__.py",
+      "scikitplot/decile/_decile_modelplotpy.py",
+      "scikitplot/decile/kds/__init__.py",
+      "scikitplot/decile/kds/_kds.py",
+      "scikitplot/decile/kds/tests/__init__.py",
+      "scikitplot/decile/kds/tests/test__kds.py",
+      "scikitplot/decile/modelplotpy/__init__.py",
+      "scikitplot/decile/modelplotpy/_modelplotpy.py",
+      "scikitplot/decile/modelplotpy/tests/__init__.py",
+      "scikitplot/decile/modelplotpy/tests/test__modelplotpy.py",
+      "scikitplot/decile/tests/__init__.py",
+      "scikitplot/decile/tests/test__decile_modelplotpy.py"
+    ],
+    "required_symbols": {
+      "scikitplot/decile/_decile_modelplotpy.py": [
+        "ModelPlotPy",
+        "plot_response",
+        "plot_cumresponse",
+        "plot_cumlift",
+        "plot_cumgains",
+        "plot_all",
+        "plot_costsrevs",
+        "plot_profit",
+        "plot_roi",
+        "summarize_selection"
+      ],
+      "scikitplot/decile/modelplotpy/_modelplotpy.py": [
+        "ModelPlotPy",
+        "plot_response",
+        "plot_cumresponse",
+        "plot_cumlift",
+        "plot_cumgains",
+        "plot_all",
+        "plot_costsrevs",
+        "plot_profit",
+        "plot_roi"
+      ],
+      "scikitplot/decile/kds/_kds.py": [
+        "decile_table",
+        "plot_lift",
+        "plot_lift_decile_wise",
+        "plot_cumulative_gain",
+        "plot_ks_statistic",
+        "report"
+      ]
+    },
+    "test_files": [
+      "scikitplot/decile/tests/test__decile_modelplotpy.py",
+      "scikitplot/decile/modelplotpy/tests/test__modelplotpy.py",
+      "scikitplot/decile/kds/tests/test__kds.py"
+    ]
+  },
+  "boundary_contract": {
+    "current_owner": "scikitplot.decile._decile_modelplotpy",
+    "legacy_owner": "scikitplot.decile.modelplotpy",
+    "kds_owner": "scikitplot.decile.kds",
+    "support_dependencies": [
+      "scikitplot._docstrings",
+      "scikitplot._preprocess",
+      "scikitplot.api._utils.validation",
+      "scikitplot.utils._matplotlib",
+      "scikitplot._testing._pytesttester",
+      "scikitplot.externals._seaborn._compat"
+    ],
+    "kds_argument_rule": "KDS plot/report parameters pos_label and class_index must reach decile_table; report digits must reach the digits parameter rather than an ignored alias.",
+    "rng_rule": "Legacy compatibility APIs must not reseed or otherwise mutate the caller global NumPy RNG as an incidental implementation detail.",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ]
+  },
+  "read_order": [
+    "maintenances/decile/MAINTAINING.md",
+    "maintenances/decile/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/decile/_maintenance/STATE.json",
+    "maintenances/decile/_maintenance/FAMILY.md",
+    "maintenances/decile/_maintenance/VERIFICATION.md"
+  ]
+}

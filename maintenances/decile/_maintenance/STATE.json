@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.decile",
+  "reviewed_on": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "runtime_findings": [
+    "DEC-KDS-001 KDS class-selection and report precision arguments are silently dropped/renamed at internal calls",
+    "DEC-RNG-001 legacy ModelPlotPy mutates process-global NumPy RNG via np.random.seed"
+  ],
+  "snapshot_blockers": [
+    "scikitplot/__init__.py absent",
+    "scikitplot/_docstrings.py absent",
+    "scikitplot/_preprocess.py absent",
+    "scikitplot/_testing/_pytesttester.py absent",
+    "scikitplot/api/_utils/validation.py absent",
+    "scikitplot/externals/_seaborn/_compat.py absent",
+    "scikitplot/utils/_matplotlib.py absent"
+  ],
+  "evidence_summary": {
+    "current_harness": "139 passed",
+    "legacy_harness": "185 passed + 6 subtests",
+    "kds_harness": "12 passed with 9 sklearn convergence warnings",
+    "full_harness": "336 passed + 6 subtests",
+    "negative_probes": "KDS forwarding failed; legacy global RNG changed"
+  }
+}

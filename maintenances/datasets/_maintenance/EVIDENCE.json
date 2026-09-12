@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.datasets",
+  "updated_at": "2026-09-12",
+  "runtime_fingerprint": "ba77992cdae9ddf0135614a7f056be85a4be0eeab233b8351ef626d6abfa6423",
+  "lanes": [
+    {
+      "id": "maintenance_contract",
+      "status": "PASS",
+      "result": "24 passed",
+      "artifact": "evidence/maintenance-tests.log"
+    },
+    {
+      "id": "isolated_runtime",
+      "status": "PASS",
+      "result": "209 passed, 38 skipped, 19 subtests passed in package-root harness",
+      "artifact": "evidence/isolated-tests.log",
+      "sha256": "d20b3421cc231a6cdacfda79f7d0471793615b3f539c8cbbdf44bde08e09d02c"
+    },
+    {
+      "id": "data_loader_negative_probes",
+      "status": "FAIL",
+      "result": "owned loader defects reproduced",
+      "artifact": "evidence/negative-probes.log",
+      "sha256": "014ea0a6ee663df2feea2078b4d18d7349677f8766fbc9c4140b88b0055dc00d"
+    },
+    {
+      "id": "data_export_cli",
+      "status": "PASS",
+      "result": "tiny CSV hash export wrote dataset/profile/manifest",
+      "artifact": "evidence/export-cli.log",
+      "sha256": "9779945fcc970eb7d621452d086c154c9fdb303e2a41c6ee6bf630a6ce1fdecf"
+    },
+    {
+      "id": "parquet",
+      "status": "UNAVAILABLE",
+      "reason": "pyarrow/fastparquet not installed",
+      "artifact": "evidence/optional-backends.log",
+      "sha256": "287edfdede978b0be66d645e8a22a71831e8e417e9e55c1ab6f382f2c704c41b"
+    },
+    {
+      "id": "network_cache",
+      "status": "UNAVAILABLE",
+      "reason": "no live external network/cache campaign run",
+      "artifact": "evidence/optional-backends.log",
+      "sha256": "287edfdede978b0be66d645e8a22a71831e8e417e9e55c1ab6f382f2c704c41b"
+    },
+    {
+      "id": "complete_package",
+      "status": "UNAVAILABLE",
+      "reason": "snapshot has no root scikitplot/__init__.py or externals/_appdirs package",
+      "artifact": "evidence/optional-backends.log",
+      "sha256": "287edfdede978b0be66d645e8a22a71831e8e417e9e55c1ab6f382f2c704c41b"
+    },
+    {
+      "id": "runtime_integrity",
+      "status": "PASS",
+      "result": "10/10 original datasets files unchanged",
+      "artifact": "evidence/runtime-integrity.log",
+      "sha256": "ba4d2b149976df6b1e0e54b54b0048ef39eb2721e0ae15917ac96e3d27f61198"
+    }
+  ]
+}

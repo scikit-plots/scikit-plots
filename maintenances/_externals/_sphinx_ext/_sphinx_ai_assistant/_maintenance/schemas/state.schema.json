@@ -83,6 +83,18 @@
       "items": {
         "type": "string"
       }
+    },
+    "release_anchor": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "generated_date": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   }
 }

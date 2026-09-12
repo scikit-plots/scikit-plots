@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.visualkeras",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "api_surface",
+        "single_output_shapes",
+        "ellipsize_semantics",
+        "optional_backend",
+        "deprecation_semantics",
+        "test_matrix",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "isolated_runtime",
+      "checks": [
+        "keras_harness",
+        "negative_probes",
+        "rendering_dependencies"
+      ]
+    },
+    {
+      "name": "complete_package",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "VKR-GRAPH-001",
+      "severity": "high",
+      "summary": "graph_view(inout_as_tensor=False) indexes model.output_shape[i] for each model.outputs entry. A normal single-output model has output_shape=(None, units), so i=0 selects None and self_multiply(None) raises TypeError."
+    },
+    {
+      "id": "VKR-GRAPH-002",
+      "severity": "medium",
+      "summary": "graph_view chooses Ellipses whenever node index equals ellipsize_after-2, regardless of whether units exceed the threshold. With ellipsize_after=10, 9- and 10-unit layers falsely contain an ellipsis."
+    },
+    {
+      "id": "VKR-OPT-001",
+      "severity": "medium",
+      "summary": "SpacingDummyLayer receives None from _lazy_import_tensorflow when no backend Layer can be imported, then attempts class DynamicSpacingDummyLayer(None), yielding TypeError after a warning instead of a clear dependency exception."
+    },
+    {
+      "id": "VKR-LAY-001",
+      "severity": "low",
+      "summary": "layered_view defaults legend_text_spacing_offset=15 and warns whenever the value is nonzero, so every default call logs a deprecation warning even when the caller never supplied the deprecated parameter."
+    },
+    {
+      "id": "VKR-TEST-001",
+      "severity": "medium",
+      "summary": "The focused test bootstrap says TensorFlow or Keras is sufficient, but test_dummy_model and parametrization still schedule TensorFlow paths when TensorFlow is absent. Keras-only native matrix: 27 passed, 20 setup errors."
+    },
+    {
+      "id": "VKR-SNAPSHOT-001",
+      "severity": "informational",
+      "summary": "The accumulated archive lacks root scikitplot package helpers required by visualkeras and aggdraw is not installed. Keras-only behavior was isolated in a throwaway package-root/drawing harness; real aggdraw and TensorFlow lanes remain unavailable."
+    }
+  ]
+}

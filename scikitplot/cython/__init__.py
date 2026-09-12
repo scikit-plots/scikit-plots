@@ -18,6 +18,33 @@ low-level Cython packages and modules for immediate use and testing.
    * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
 """  # noqa: D205, D400
 
+#   caller-supplied Python / Cython source
+#                   |
+#                   v
+#           scikitplot.cython
+#                   |
+#         +----------+-----------+
+#         |                      |
+#   security validation     runtime/toolchain policy
+#         |                      |
+#         +----------+-----------+
+#                   |
+#           deterministic cache key
+#                   |
+#             per-key lock
+#                   |
+#             staging build
+#                   |
+#         Cython / setuptools
+#                   |
+#             C/C++ compiler
+#                   |
+#           validate artifact
+#                   |
+#             atomic publish
+#                   |
+#           transactional import
+
 # A small runtime Cython devkit with caching, pinning, GC, and templates.
 from __future__ import annotations
 

@@ -192,6 +192,36 @@ ast: astropy
 ## complex submodule: (c)externals
 ######################################################################
 
+# gallery_directive
+# v0.21.0 a52f5c9ebacdfc198cbe111e59dabd7cf83fc6f7
+# main    9e7ca857cd7c06ca71b202d08fc733b9312386a3
+pydata_sphinx:
+	@bash ./maint_tools/vendor_repo.sh \
+		--repo-url "https://github.com/pydata/pydata-sphinx-theme.git" \
+		--repo-ref "9e7ca857cd7c06ca71b202d08fc733b9312386a3" \
+		--target-dir "../third_party/pydata-sphinx-theme" \
+    	--move-to "../scikitplot/_externals/_sphinx_ext/_pydata_sphinx_theme" \
+		--nested-folder "docs/_extension" \
+		--src-subdir "docs/_extension" \
+		--ensure-init-py \
+		--future-annotations \
+		--readme-name "README.md"
+
+# 	@bash ./maint_tools/vendor_repo.sh \
+# 		--repo-url "https://github.com/pydata/pydata-sphinx-theme.git" \
+# 		--repo-ref "9e7ca857cd7c06ca71b202d08fc733b9312386a3" \
+# 		--target-dir "../third_party/pydata-sphinx-theme" \
+#     	--move-to "../tools/docs/_pydata_sphinx_theme" \
+# 		--nested-folder "docs/scripts" \
+# 		--src-subdir "docs/scripts" \
+# 		--ensure-init-py \
+# 		--future-annotations \
+# 		--readme-name "README.md"
+
+######################################################################
+## complex submodule: (c)externals
+######################################################################
+
 # v1.0.0 03d825b62d89c99f6213c430ca309ebadb13305b
 # main   2a971d7da6a5d7df81f7bff3612ee1822a060c17
 sphinx_llm:

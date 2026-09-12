@@ -24,15 +24,21 @@ triggers its own import chain.
 
 Submodules
 ----------
-_sphinx_ai_assistant
-    AI-assistant Sphinx extension (markdown export, llms.txt, AI chat
-    links).  Copied and adapted from ``mlazag/sphinx-ai-assistant``
-    (MIT licence).  Requires Sphinx ≥ 5 at *call time*, not at import
-    time.
-_sphinx_jinja_render
-    URL helper Sphinx extension.  Provides RST template preprocessing
-    (Jinja2 ``.rst.template`` → ``.rst``) and JupyterLite REPL URL
-    injection into HTML page contexts.
+_sphinx_gallery_grid
+    Theme-independent owner of the public ``gallery-grid`` directive.
+_sphinx_collection
+    Shared filtering, grouping, browser metadata and live-control engine used
+    by collection-style directives.
+_sphinx_youtube_core
+    Dependency-free YouTube URL grammar and player option primitives.
+_sphinx_youtube_gallery
+    Typed YouTube video/channel adapter that renders through ``gallery-grid``.
+_pydata_component_list
+    PyData Sphinx Theme-specific owner of the public ``component-list``
+    inventory directive.
+_sphinxcontrib_youtube
+    Vendored standalone YouTube/Vimeo/PeerTube player directives used by the
+    gallery adapter.
 
 Notes
 -----
@@ -40,24 +46,27 @@ Notes
 dotted path to ``extensions`` in ``conf.py``::
 
     extensions = [
-        "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
-        "scikitplot._externals._sphinx_ext._sphinx_jinja_render",
+        "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
     ]
 
-*Developers:* To add a new private Sphinx extension submodule, append
-its name to ``_PRIVATE_SUBMODULES``.  No other change is required for
-lazy loading.
+*Developers:* Add bundled extensions to ``_CORE_PRIVATE_SUBMODULES``.
+Known sibling extensions that are intentionally outside this replacement may
+be listed in ``_OPTIONAL_PRIVATE_SUBMODULES`` and are exposed only when they
+actually exist. ``__all__`` stays empty on purpose: star-importing a private
+extension namespace would eagerly load Sphinx-dependent children. ``dir()``
+still exposes the lazy registry for introspection.
 
 Examples
 --------
->>> # Safe: no Sphinx needed yet
->>> from scikitplot._externals import _sphinx_ext
->>> # Sphinx imported here, on demand:
->>> ai = _sphinx_ext._sphinx_ai_assistant
->>> jr = _sphinx_ext._sphinx_jinja_render
+>>> # Safe: no Sphinx needed yet.
+>>> import _sphinx_ext
+>>> sorted(name for name in _sphinx_ext._PRIVATE_SUBMODULES if name.startswith("_sphinx_"))[:2]
+['_sphinx_collection', '_sphinx_gallery_grid']
 """
 
 from __future__ import annotations
+
+from importlib.util import find_spec
 
 __all__: list[str] = []
 
@@ -65,14 +74,37 @@ __all__: list[str] = []
 # Lazy-load registry
 # ---------------------------------------------------------------------------
 
-#: Names of all private submodules supported by the lazy loader.
-#: Add new submodule names here to make them accessible via attribute access.
-_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
+#: Submodules shipped by this replacement.
+_CORE_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
     {
-        "_sphinx_ai_assistant",
-        "_sphinx_jinja_render",
+        "_sphinx_youtube_gallery",
+        "_sphinx_youtube_core",
+        "_sphinx_collection",
+        "_sphinxcontrib_youtube",
+        "_sphinx_gallery_grid",
+        "_pydata_component_list",
     }
 )
+
+#: Unrelated siblings known to exist in some complete scikit-plots trees.
+#: They are not bundled in this replacement, but remain lazily reachable when
+#: the archive is merged into a tree that actually contains them. This avoids
+#: either deleting unrelated functionality or advertising modules that are
+#: absent from a standalone extraction.
+_OPTIONAL_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
+    {"_sphinx_ai_assistant", "_sphinx_jinja_render"}
+)
+
+_PRIVATE_SUBMODULES: frozenset[str] = _CORE_PRIVATE_SUBMODULES | frozenset(
+    name
+    for name in _OPTIONAL_PRIVATE_SUBMODULES
+    if find_spec(f"{__name__}.{name}") is not None
+)
+
+
+def __dir__() -> list[str]:
+    """Return normal module attributes plus lazily available child modules."""
+    return sorted(set(globals()) | set(_PRIVATE_SUBMODULES))
 
 
 def __getattr__(name: str) -> object:
@@ -98,8 +130,9 @@ def __getattr__(name: str) -> object:
 
     Examples
     --------
-    >>> from scikitplot._externals import _sphinx_ext
-    >>> jinja_render = _sphinx_ext._sphinx_jinja_render  # triggers import on first access
+    >>> import _sphinx_ext
+    >>> "_sphinx_gallery_grid" in _sphinx_ext._PRIVATE_SUBMODULES
+    True
     """
     if name in _PRIVATE_SUBMODULES:
         import importlib

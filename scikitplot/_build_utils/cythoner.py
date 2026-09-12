@@ -13,6 +13,8 @@ Expects two arguments, infile and outfile.
 Other options passed through to cython command line parser.
 """
 
+from __future__ import annotations
+
 import os
 import subprocess
 import sys

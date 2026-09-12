@@ -1,0 +1,9 @@
+runtime_bytes_unchanged=True
+expected_files=7 current_files=7
+UNCHANGED scikitplot/preprocessing/__init__.py
+UNCHANGED scikitplot/preprocessing/_encoders.py
+UNCHANGED scikitplot/preprocessing/tests/__init__.py
+UNCHANGED scikitplot/preprocessing/tests/_helpers.py
+UNCHANGED scikitplot/preprocessing/tests/test_dummy_code_encoder.py
+UNCHANGED scikitplot/preprocessing/tests/test_encoders_advanced.py
+UNCHANGED scikitplot/preprocessing/tests/test_get_dummies.py

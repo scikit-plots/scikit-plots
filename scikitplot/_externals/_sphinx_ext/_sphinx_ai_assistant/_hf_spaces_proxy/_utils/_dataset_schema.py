@@ -416,6 +416,47 @@ def normalize_model(raw: dict[str, Any] | None) -> dict[str, Any] | None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def normalize_model_attribution(raw: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Return bounded privacy-minimal model attribution in canonical 8-key shape.
+
+    Contribution/review records need only stable model identity.  Non-string
+    values fail closed instead of being stringified (which could accidentally
+    serialize nested/private configuration from malformed historical clients).
+    """
+    if not isinstance(raw, dict):
+        return None
+    provider = raw.get("provider")
+    model_name = raw.get("model")
+    if not isinstance(provider, str) or not provider.strip():
+        return None
+    if not isinstance(model_name, str) or not model_name.strip():
+        return None
+    provider = provider.strip()[:128]
+    model_name = model_name.strip()[:512]
+    if any(
+        ord(ch) < 32 or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+        for ch in provider + model_name
+    ):
+        return None
+    raw_id = raw.get("id")
+    model_id = raw_id[:_MAX_ID_LEN] if isinstance(raw_id, str) and raw_id else None
+    if model_id is not None and any(
+        ord(ch) < 32 or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+        for ch in model_id
+    ):
+        model_id = None
+    return {
+        "id": model_id,
+        "provider": provider,
+        "model": model_name,
+        "label": None,
+        "endpoint": None,
+        "info_url": None,
+        "description": None,
+        "default": None,
+    }
+
+
 def normalize_rating(  # noqa: PLR0912
     rating_value: int | None,
     rating_label: str | None,
@@ -787,7 +828,9 @@ def normalize_conversation_messages(value: Any) -> list[dict[str, Any]]:
         if role == "assistant":
             raw_model = raw.get("model")
             item["model"] = (
-                normalize_model(raw_model) if isinstance(raw_model, dict) else None
+                normalize_model_attribution(raw_model)
+                if isinstance(raw_model, dict)
+                else None
             )
             raw_feedback = raw.get("feedback")
             if isinstance(raw_feedback, dict):
@@ -954,7 +997,7 @@ def normalize_contribution_record(
                 rec.get("answer"), limit=_MAX_CONVERSATION_MESSAGE_CHARS
             ),
             "messages": None,
-            "model": normalize_model(envelope.get("model")),
+            "model": normalize_model_attribution(envelope.get("model")),
             "modelEvidence": "client_reported" if envelope.get("model") else None,
             "page": envelope.get("page") or "",
             "consentVersion": _resolve_consent_version(envelope.get("consentVersion")),
@@ -1137,7 +1180,27 @@ def normalize_record(raw: dict[str, Any]) -> dict[str, Any]:  # noqa: PLR0912
     # ── Normalise model shape ─────────────────────────────────────────────────
     raw_model = out.get("model")
     if isinstance(raw_model, dict):
-        out["model"] = normalize_model(raw_model)
+        out["model"] = (
+            normalize_model_attribution(raw_model)
+            if source == "contribution"
+            else normalize_model(raw_model)
+        )
+
+    # Historical whole-conversation contribution rows may predate the
+    # attribution-only boundary.  Minimize per-assistant message models during
+    # read normalization as well so derived exports cannot revive old endpoint
+    # or descriptive metadata.
+    if source == "contribution" and isinstance(out.get("messages"), list):
+        normalized_messages: list[Any] = []
+        for message in out["messages"]:
+            if not isinstance(message, dict):
+                normalized_messages.append(message)
+                continue
+            item = dict(message)
+            if item.get("role") == "assistant" and isinstance(item.get("model"), dict):
+                item["model"] = normalize_model_attribution(item.get("model"))
+            normalized_messages.append(item)
+        out["messages"] = normalized_messages
 
     # ── Normalise rating fields ───────────────────────────────────────────────
     # For old records that don't yet have ratingSlug/ratingTitle/ratingMode.

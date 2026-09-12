@@ -1,0 +1,53 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.memmap",
+  "runtime_root": "scikitplot/memmap",
+  "maintenance_root": "maintenances/memmap",
+  "skill": "skills/memmap/SKILL.md",
+  "ownership": {
+    "owns": "MemoryMap Python API, Cython declarations/wrapper, typing, Meson extension definition, and memmap-specific tests.",
+    "does_not_own": "scikitplot/cexternals/_annoy/src/mman.h and the shared native Annoy source subsystem"
+  },
+  "upstream": {
+    "subsystem": "scikitplot.cexternals._annoy",
+    "maintenance": "maintenances/cexternals/_annoy",
+    "skill": "skills/cexternals/_annoy/SKILL.md",
+    "headers": [
+      {
+        "name": "mman.h",
+        "path": "scikitplot/cexternals/_annoy/src/mman.h",
+        "extern_sites": [
+          "scikitplot/memmap/_memmap/mem_map.pxd",
+          "scikitplot/memmap/_memmap/mem_map.pyx"
+        ]
+      }
+    ]
+  },
+  "public_contract": {
+    "implementation": "scikitplot/memmap/_memmap/mem_map.pyx",
+    "stub": "scikitplot/memmap/_memmap/mem_map.pyi",
+    "required_symbols": [
+      "MemoryMap",
+      "MMapError",
+      "MMapAllocationError",
+      "MMapInvalidParameterError",
+      "mmap_region"
+    ]
+  },
+  "build": {
+    "meson": "scikitplot/memmap/_memmap/meson.build",
+    "extension_name": "mem_map",
+    "language": "cpp",
+    "install_subdir": "scikitplot/memmap/_memmap"
+  },
+  "tests": [
+    "scikitplot/memmap/_memmap/tests/test_mman.py"
+  ],
+  "read_order": [
+    "maintenances/memmap/MAINTAINING.md",
+    "maintenances/memmap/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/memmap/_maintenance/STATE.json",
+    "maintenances/memmap/_maintenance/FAMILY.md",
+    "maintenances/memmap/_maintenance/VERIFICATION.md"
+  ]
+}

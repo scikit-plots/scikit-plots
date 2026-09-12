@@ -1,0 +1,27 @@
+{
+  "integration_status": "UNAVAILABLE",
+  "inventory": {
+    "documentation_files": 1,
+    "production_python_files": 5,
+    "stub_files": 1,
+    "test_python_files": 2,
+    "test_support_python_files": 1,
+    "tracked_files": 10
+  },
+  "maintenance_errors": [],
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "runtime_findings": [
+    "tips categorical day levels contain \"Their\" instead of \"Thur\"; valid Thursday source values are coerced to missing (DSET-TIPS-001)",
+    "ZIP branch discards get_file_from_zip(path) and falls through to reopen the archive container (DSET-ZIP-001)",
+    "upload_handler cleans query=None before loading, so default non-database uploads fail and are swallowed (DSET-UPL-001)",
+    "upload_handler can return tmp_path and then delete it when clean_tmp=True (DSET-UPL-002)",
+    "database loader dispatch calls clean_sql(query) when query defaults to None, making the documented default query unreachable (DSET-DB-001)",
+    "scikitplot/datasets/_autoscout24_tasks.py contains python -m example with a trailing .py module suffix (DSET-CLI-001)",
+    "focused datasets tests do not import _data_loader archive/upload/database dispatch (DSET-TEST-001)"
+  ],
+  "runtime_fingerprint": "ba77992cdae9ddf0135614a7f056be85a4be0eeab233b8351ef626d6abfa6423",
+  "runtime_status": "FAIL",
+  "schema_version": 1,
+  "subsystem": "scikitplot.datasets"
+}

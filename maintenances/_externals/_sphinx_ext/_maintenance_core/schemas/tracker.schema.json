@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Subsystem logical contract tracker",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "subsystem",
+    "logical_contracts"
+  ]
+}

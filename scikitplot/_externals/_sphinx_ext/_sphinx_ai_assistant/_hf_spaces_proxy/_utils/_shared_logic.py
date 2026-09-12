@@ -9,7 +9,7 @@
 #
 # Single source of truth for shared constants, pure helper functions, and
 # type aliases used by the deployed proxy (_hf_spaces_proxy/app.py) and the
-# local development proxy (dev_proxy.py).
+# local development proxy (maintenance dev proxy).
 #
 # Import discipline
 # -----------------
@@ -1212,7 +1212,7 @@ def _resolve_upstream_url(
 
     **Developer note** — All routing logic lives here.  To add a new backend
     type, add a new branch in this function.  Callers (``app.py``,
-    ``dev_proxy.py``) remain unchanged when they already unpack 3 values.
+    ``maintenance dev proxy``) remain unchanged when they already unpack 3 values.
 
     Examples
     --------

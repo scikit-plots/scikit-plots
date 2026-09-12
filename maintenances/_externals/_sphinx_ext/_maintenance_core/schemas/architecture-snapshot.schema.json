@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Generated Sphinx extension architecture snapshot",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "packages",
+    "observed_runtime_imports",
+    "declared_edges",
+    "capabilities",
+    "effective_runtime_graph",
+    "cycle"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "packages": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "observed_runtime_imports": {"type": "object"},
+    "declared_edges": {"type": "array"},
+    "capabilities": {"type": "array"},
+    "effective_runtime_graph": {"type": "object"},
+    "cycle": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "array", "items": {"type": "string"}, "minItems": 2}
+      ]
+    }
+  }
+}

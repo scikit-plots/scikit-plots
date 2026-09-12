@@ -1,0 +1,60 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.preprocessing",
+  "runtime_root": "scikitplot/preprocessing",
+  "maintenance_root": "maintenances/preprocessing",
+  "skill": "skills/preprocessing/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot multi-label dummy-encoding surface shipped as GetDummies and DummyCodeEncoder, including token expansion, category identity, unknown/infrequent/drop semantics, inverse transforms, sklearn estimator/output integration, feature naming, and focused regression tests.",
+    "does_not_own": "Generic pandas.get_dummies behavior, sklearn OneHotEncoder/private utility internals, NumPy/SciPy sparse semantics, or the root scikitplot packaging/version infrastructure."
+  },
+  "surfaces": {
+    "get_dummies": {
+      "symbol": "GetDummies",
+      "description": "Pandas-backed selective multi-label expansion with passthrough columns in dense mode and dummy-only sparse mode."
+    },
+    "dummy_code_encoder": {
+      "symbol": "DummyCodeEncoder",
+      "description": "Sklearn-style multi-label categorical encoder supporting dense/sparse output, manual categories, drop, unknown and infrequent-category policies, inverse transform, and set_output."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/preprocessing/__init__.py",
+      "scikitplot/preprocessing/_encoders.py",
+      "scikitplot/preprocessing/tests/__init__.py",
+      "scikitplot/preprocessing/tests/_helpers.py",
+      "scikitplot/preprocessing/tests/test_get_dummies.py",
+      "scikitplot/preprocessing/tests/test_dummy_code_encoder.py",
+      "scikitplot/preprocessing/tests/test_encoders_advanced.py"
+    ],
+    "required_symbols": {
+      "scikitplot/preprocessing/_encoders.py": [
+        "GetDummies",
+        "DummyCodeEncoder"
+      ]
+    },
+    "test_files": [
+      "scikitplot/preprocessing/tests/test_get_dummies.py",
+      "scikitplot/preprocessing/tests/test_dummy_code_encoder.py",
+      "scikitplot/preprocessing/tests/test_encoders_advanced.py"
+    ]
+  },
+  "boundary_contract": {
+    "feature_identity_rule": "DummyCodeEncoder output identity is feature-local: equal category values in different input columns must occupy distinct output columns and remain inverse-transformable.",
+    "infrequent_rule": "When min_frequency/max_categories are enabled, transformed width/data, _n_features_outs, get_feature_names_out, drop behavior, and inverse_transform must describe the same grouped representation.",
+    "parameter_rule": "Documented enum-like GetDummies parameters must reject unsupported values rather than silently selecting a fallback behavior.",
+    "sklearn_rule": "Estimator clone/get_params/set_output/feature_names contracts remain coherent with returned dense/sparse matrices.",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ]
+  },
+  "read_order": [
+    "maintenances/preprocessing/MAINTAINING.md",
+    "maintenances/preprocessing/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/preprocessing/_maintenance/STATE.json",
+    "maintenances/preprocessing/_maintenance/FAMILY.md",
+    "maintenances/preprocessing/_maintenance/VERIFICATION.md"
+  ]
+}

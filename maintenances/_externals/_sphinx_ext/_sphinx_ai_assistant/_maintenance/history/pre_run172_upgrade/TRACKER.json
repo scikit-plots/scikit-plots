@@ -1,0 +1,559 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+  "source_anchor": {
+    "archive": "scikitplot__sphinx_ai_assistant_b42_run23_hostile_parent_egress_boundary_overlay.zip",
+    "sha256": "0700fe3cdf84b8494ad86f045904514ec75e7ee8550f7b004fe6c15a93215df6",
+    "observed_date": "2026-08-30"
+  },
+  "physical": {
+    "baseline_files": [
+      {
+        "path": "__init__.py",
+        "lines": 7584,
+        "role": "sphinx extension/build/config/current representation"
+      },
+      {
+        "path": "_static/ai-assistant.js",
+        "lines": 32997,
+        "role": "browser runtime"
+      },
+      {
+        "path": "_static/ai-assistant.css",
+        "lines": 17444,
+        "role": "browser styles"
+      },
+      {
+        "path": "_hf_spaces_model/app.py",
+        "lines": 2480,
+        "role": "model service"
+      },
+      {
+        "path": "_hf_spaces_proxy/app.py",
+        "lines": 3719,
+        "role": "proxy API/routing"
+      },
+      {
+        "path": "_hf_spaces_proxy/_utils/_shared_logic.py",
+        "lines": 1489,
+        "role": "proxy shared logic"
+      },
+      {
+        "path": "_hf_spaces_proxy/_utils/_dataset_schema.py",
+        "lines": 1107,
+        "role": "dataset schema"
+      },
+      {
+        "path": "_cf_worker/index.js",
+        "lines": 1705,
+        "role": "edge relay"
+      },
+      {
+        "path": "dev_proxy.py",
+        "lines": 599,
+        "role": "dev relay"
+      },
+      {
+        "path": "_static/ai-assistant-isolation-host.js",
+        "lines": 489,
+        "role": "isolation host bridge"
+      },
+      {
+        "path": "_static/ai-assistant-isolated-frame.js",
+        "lines": 260,
+        "role": "isolated frame runtime"
+      }
+    ],
+    "sphinx_config_value_calls": 113,
+    "forbidden_runtime_dependencies": [
+      "_maintenance",
+      "_static/_backup"
+    ],
+    "representation_producer": "self: __init__.py generate_markdown_files/generate_llms_txt at build-finished",
+    "frozen_siblings": [
+      "scikitplot._externals._sphinx_ext._sphinx_llm"
+    ],
+    "proxy_python_layout": {
+      "root_entrypoints": [
+        "app.py",
+        "deduplicate_dataset.py"
+      ],
+      "private_helpers_package": "_hf_spaces_proxy/_utils",
+      "docker_copy": "COPY --chown=1000:1000 _utils ./_utils"
+    }
+  },
+  "logical_contracts": [
+    {
+      "id": "AIA-C01",
+      "name": "BuildConfiguration",
+      "owner": "__init__.py",
+      "status": "PARTIAL",
+      "invariant": "Sphinx config is validated, serializes only intended client-safe fields, and has explicit ownership.",
+      "verification": "config inventory + serialization tests"
+    },
+    {
+      "id": "AIA-C02",
+      "name": "ClientSafeSerialization",
+      "owner": "__init__.py + browser export/share serializers",
+      "status": "PARTIAL",
+      "invariant": "Generated client/export serialization excludes production secrets and never interprets untrusted conversation bytes as executable content; persistent browser storage excludes credentials.",
+      "verification": "Runs 1–2: secret stripping/storage migration + canonical sanitized snapshot + HTML raw-text isolation; Run 16.2 current self-contained output is reviewed inert base64 data HTML while c2 remains compatibility-only; server/log/prompt gates remain"
+    },
+    {
+      "id": "AIA-C03",
+      "name": "BrowserRuntime",
+      "owner": "_static/ai-assistant.js",
+      "status": "PARTIAL",
+      "invariant": "Browser owns presentation/state only; security decisions remain server-enforced.",
+      "verification": "browser/service bypass tests"
+    },
+    {
+      "id": "AIA-C04",
+      "name": "RepresentationProducer",
+      "owner": "__init__.py build layer (generate_markdown_files, generate_llms_txt)",
+      "status": "ACTIVE",
+      "invariant": "The assistant emits the canonical static representation at build-finished; the browser consumes it for VIEW and ASK AI, and never presents a browser conversion as canonical.",
+      "verification": "producer contract exit criteria; COPY(static) and ASK AI resolve to identical content"
+    },
+    {
+      "id": "AIA-C05",
+      "name": "PromptAuthority",
+      "owner": "model/proxy service",
+      "status": "HOLDS",
+      "invariant": "Server owns system policy; client/page content cannot set authoritative system role.",
+      "verification": "Run 4 typed-contract tests across HF proxy, Worker, dev proxy, and direct model service"
+    },
+    {
+      "id": "AIA-C06",
+      "name": "EndpointDiscovery",
+      "owner": "proxy GET / + browser client",
+      "status": "HOLDS",
+      "invariant": "Public discovery is schema-versioned, client/server drift-tested, and privacy-minimized to coarse capability/readiness signals rather than backend/storage/credential topology.",
+      "verification": "Run 5 discovery contract + browser/storage compatibility tests"
+    },
+    {
+      "id": "AIA-C07",
+      "name": "ProxyRouting",
+      "owner": "_hf_spaces_proxy",
+      "status": "HOLDS",
+      "invariant": "Server credentials are destination-bound to approved upstreams.",
+      "verification": "Run 4 Path 1/2/3 credential matrix + destination/redirect tests"
+    },
+    {
+      "id": "AIA-C08",
+      "name": "CorsOriginPolicy",
+      "owner": "proxy + model + worker + dev",
+      "status": "HOLDS",
+      "invariant": "Production CORS is explicit least privilege; parallel relays match policy.",
+      "verification": "Run 11 B27 exact-origin/default-deny browser matrix"
+    },
+    {
+      "id": "AIA-C09",
+      "name": "ShareAuthorization",
+      "owner": "proxy persistence/routes",
+      "status": "HOLDS",
+      "invariant": "Read ID/capability does not imply edit/delete authority.",
+      "verification": "Run 3 Global Share separate read/edit capability + PATCH/DELETE authorization tests"
+    },
+    {
+      "id": "AIA-C10",
+      "name": "ClientIdentity",
+      "owner": "proxy/worker",
+      "status": "HOLDS",
+      "invariant": "Forwarded identity is accepted only from trusted proxy boundary.",
+      "verification": "Run 11 B27 direct-peer default, explicit trusted-XFF opt-in, cross-route helper matrix"
+    },
+    {
+      "id": "AIA-C11",
+      "name": "RequestLimits",
+      "owner": "proxy/model/worker/dev",
+      "status": "HOLDS",
+      "invariant": "Body/resource limits prevent pre-validation memory exhaustion.",
+      "verification": "Run 11 B27 Content-Length precheck + incremental streaming ceilings + dev pre-read bound"
+    },
+    {
+      "id": "AIA-C12",
+      "name": "ModelServicePolicy",
+      "owner": "_hf_spaces_model",
+      "status": "HOLDS",
+      "invariant": "Direct model endpoint enforces role/policy invariants independently of UI.",
+      "verification": "test_model_service_authority.py + contract-copy parity"
+    },
+    {
+      "id": "AIA-C13",
+      "name": "FeedbackProvenance",
+      "owner": "proxy dataset logic",
+      "status": "HOLDS",
+      "invariant": "Persisted feedback/training data has consent/provenance and is never implicitly trusted.",
+      "verification": "Run 6: minimal telemetry + versioned consent + quarantine/delete/review + eligible-only dataset tests"
+    },
+    {
+      "id": "AIA-C14",
+      "name": "SettingsRegistry",
+      "owner": "browser settings",
+      "status": "PARTIAL",
+      "invariant": "Client settings have one validated schema/write path with explicit persistence and sensitivity.",
+      "verification": "Node registry tests + integration guard"
+    },
+    {
+      "id": "AIA-C15",
+      "name": "CorpusBoundary",
+      "owner": "cross-submodule",
+      "status": "PLANNED",
+      "invariant": "Corpus owns retrieval/evidence semantics; assistant consumes published retrieval contracts.",
+      "verification": "import/boundary tests"
+    },
+    {
+      "id": "AIA-C16",
+      "name": "MCPBoundary",
+      "owner": "cross-submodule",
+      "status": "PLANNED",
+      "invariant": "MCP owns protocol transport; assistant does not invent parallel MCP semantics.",
+      "verification": "integration boundary tests"
+    },
+    {
+      "id": "AIA-C17",
+      "name": "RuntimeHtmlFallback",
+      "owner": "browser/representation compatibility",
+      "status": "CURRENT_LEGACY",
+      "invariant": "DOM conversion remains observable fallback during staged static migration, not canonical target.",
+      "verification": "fallback-selection tests"
+    },
+    {
+      "id": "AIA-C18",
+      "name": "ServiceParity",
+      "owner": "proxy/model/worker/dev",
+      "status": "PARTIAL",
+      "invariant": "Alternative service paths cannot bypass auth/CORS/routing/model-policy/privacy controls.",
+      "verification": "Runs 4-5 + Run 11 B27 close bundled prompt/log/CORS/application-buffering parity; strict distributed limiter remains deployment residual SEC-P0-31"
+    },
+    {
+      "id": "AIA-C19",
+      "name": "ShareConversationUX",
+      "owner": "browser export/share state",
+      "status": "HOLDS",
+      "invariant": "Five live export formats share one shell, one canonical snapshot/serializer registry, sheet-level destination/content state, and stale-safe async result behavior.",
+      "verification": "B16 + B24 source/DOM/parser/mutation gates"
+    },
+    {
+      "id": "AIA-C20",
+      "name": "PrivacyDataLifecycle",
+      "owner": "browser + proxy + persistence + contribution pipeline",
+      "status": "PARTIAL",
+      "invariant": "User conversation/personal data is minimized, purpose-bound, retention-bounded, non-identifying by default, and deletion/withdrawal semantics are truthful.",
+      "verification": "Runs 5-7 + Run 12 B28 + Run 16 B32: privacy minimization, explicit consent/review, local durable receipt option, shared atomic receipt authority when required, uncertainty-safe promotion/withdrawal, training tombstones/current-view cleanup; provider-history/global erasure and external Redis persistence remain separate residuals"
+    },
+    {
+      "id": "AIA-C21",
+      "name": "SensitiveEgressPreflight",
+      "owner": "_static/ai-assistant.js browser privacy preflight",
+      "status": "HOLDS",
+      "invariant": "Actual browser-controlled inference, Share, and contribution egress is locally reviewed for likely secrets/sensitive data/invisible controls; findings retain no matching values and explicit redaction changes an outbound copy only.",
+      "verification": "B23: 45 privacy assertions + 17 DOM assertions + Share conversation race gate + Run 7 mutation positives"
+    },
+    {
+      "id": "AIA-C22",
+      "name": "ShareArtifactLifecycle",
+      "owner": "browser Share sheet + Global Share DELETE capability",
+      "status": "HOLDS",
+      "invariant": "Every assistant-managed Share artifact has truthful removal semantics; Global links additionally enter a bounded session-scoped public lifecycle ledger so links handed to the user remain trackable across new-chat/reload without persisting edit capability.",
+      "verification": "B24 + B25 source/DOM/server/mutation gates; Run 9 ledger/status/revoke-history tests"
+    },
+    {
+      "id": "AIA-C23",
+      "name": "GlobalShareLifecycleTracking",
+      "owner": "browser Share lifecycle + HF/Cloudflare HEAD status route",
+      "status": "HOLDS",
+      "invariant": "Every Global link handed to the user is tracked in a bounded session-scoped public ledger; mutation capability remains page-memory only; status checks are explicit and content-free; terminal lifecycle state is truthful.",
+      "verification": "B25: test_global_share_capability.mjs + test_share_conversation_dom.mjs + test_share_server_authority.py + Run 9 mutants"
+    },
+    {
+      "id": "AIA-C24",
+      "name": "GlobalShareRecoveryFailClosed",
+      "owner": "browser Global recovery + HF/Cloudflare lifecycle routes",
+      "status": "HOLDS",
+      "invariant": "Reload recovery never restores mutation authority or conversation-derived fields from Web Storage; reason-unknown 404 remains recheckable; unavailable/expired state is detached from implicit PATCH state; unavailable live artifacts preserve distinct Revoke/Forget semantics; confirmed expiry is consistent across lifecycle routes.",
+      "verification": "B26: 57 Global capability assertions + 64 lifecycle fake-DOM assertions + expired-delete server test + Run 10 mutants (final package counts in VERIFICATION.md)"
+    },
+    {
+      "id": "AIA-C25",
+      "name": "DistributedAbuseLimitSemantics",
+      "owner": "deployment ingress + proxy/worker",
+      "status": "HOLDS",
+      "invariant": "Local/process/KV counters are truthfully labeled soft abuse controls; shared/authoritative is claimed only when one configured atomic decision plane owns the stated consistency domain. No limiter is authenticated human identity or billing accounting.",
+      "verification": "B27 local/KV bounds + B31 Redis/Durable Object authority, truthful discovery, and fail-closed required-mode tests"
+    },
+    {
+      "id": "AIA-C26",
+      "name": "ContributionReceiptLifecycle",
+      "owner": "HF proxy contribution ledger + dataset withdrawal boundary",
+      "status": "HOLDS",
+      "invariant": "Contribution receipt authority is capability-hashed; SQLite provides local transactional/restart-durable lifecycle state, Redis provides shared atomic lifecycle authority when explicitly required, promotion ambiguity is non-promotable, withdrawal suppresses training output, and deletion wording never exceeds active-ledger/current-view evidence.",
+      "verification": "B28 Run 12 lifecycle/storage/dataset gates + B32 Run 16 cross-replica/uncertainty/fail-closed shared-authority gates"
+    },
+    {
+      "id": "AIA-C27",
+      "name": "ShareCapabilityTransport",
+      "owner": "browser Global Share transport + HF/Cloudflare fixed viewer/routes",
+      "status": "HOLDS",
+      "invariant": "Current generated Share URLs keep the public read locator in an exact fragment; current read/status/update/revoke use fixed request paths with bounded body locators and separate edit authority. Legacy capability-bearing paths are compatibility-only.",
+      "verification": "B29 fixed transport Python + Worker runtime + browser source/DOM + mutation gates"
+    },
+    {
+      "id": "AIA-C28",
+      "name": "LegacyShareCompatibilityDrain",
+      "owner": "HF/Cloudflare Share generation + legacy compatibility",
+      "status": "HOLDS",
+      "invariant": "Current-generation Share objects are ineligible for capability-bearing legacy paths; legacy PATCH cannot extend TTL; fixed update migrates pre-generation objects so the compatibility population only shrinks.",
+      "verification": "B30 HF/Worker runtime generation-gate, retired-PATCH, fixed-migration, deprecation/sunset tests"
+    },
+    {
+      "id": "AIA-C29",
+      "name": "DistributedRateLimitAuthority",
+      "owner": "HF proxy Redis authority + Cloudflare Worker Durable Object authority",
+      "status": "HOLDS_WHEN_AUTHORITATIVE_MODE_REQUIRED",
+      "invariant": "When distributed quota authority is required, every request in the claimed replica/PoP consistency domain consults one atomic per-identity/per-route-family decision plane; identity is HMAC-pseudonymized before shared state and backend failure cannot silently degrade to independent counters.",
+      "verification": "B31 Run 15 Python shared-Redis tests + Worker two-PoP Durable Object runtime + fail-closed deployment/config positive controls"
+    },
+    {
+      "id": "AIA-C30",
+      "name": "SharedContributionReceiptAuthority",
+      "owner": "HF proxy Redis contribution ledger + external-provider saga boundary",
+      "status": "HOLDS_WHEN_SHARED_MODE_REQUIRED",
+      "invariant": "When shared contribution authority is required, all participating replicas consult one atomic Redis receipt domain; receipt identifiers are HMAC-pseudonymized; shared-backend failure fails closed; expired/ambiguous promotion ownership becomes non-promotable reconciliation state rather than being reassigned across unfenced provider side effects.",
+      "verification": "B32 Run 16 two-replica semantic authority tests, Lua/source contract tests, shared-required HTTP gate, provider ambiguity/withdrawal recovery tests and positive-control mutants"
+    },
+    {
+      "id": "AIA-C31",
+      "name": "DatasetContributionPurposeSeparation",
+      "owner": "browser feedback/contribution surfaces + HF contribution schema/lifecycle",
+      "status": "HOLDS",
+      "invariant": "Rating telemetry, Share/export and content-bearing dataset contribution are distinct purposes/control planes; every contribution shortcut converges on one exact-payload privacy/consent controller; whole-conversation schema-v4 intake remains one ordered user/assistant record in the existing quarantine/review/delete/withdraw lifecycle.",
+      "verification": "B36 Run 17 source + mini-DOM + schema/lifecycle + positive-control mutation gates"
+    },
+    {
+      "id": "AIA-C32",
+      "name": "FeedbackTelemetryExplicitPermission",
+      "owner": "browser feedback telemetry controller + HF/Worker feedback gates",
+      "status": "HOLDS",
+      "invariant": "Local rating is not network consent; only current structured browser permission enables feedback telemetry, every official feedback request carries the current consent contract, server/Worker reject missing or malformed consent before persistence, opt-out stops all future feedback traffic including retractions, and the public feedback event is content-free.",
+      "verification": "B36 Run 17 feedback telemetry consent execution/source/server tests plus positive-control mutants"
+    },
+    {
+      "id": "AIA-C33",
+      "name": "RecoverableCreateManagementCapability",
+      "owner": "browser Share/contribution operation envelope + HF/Worker lifecycle endpoints",
+      "status": "HOLDS",
+      "invariant": "Current browser CREATE establishes operation/resource/management authority before transmission, sends only a one-way management-capability digest, binds replay to resource + operation + payload + capability digest, exposes ambiguous results as outcome_unknown, and retries the same envelope; explicit receipt export/import preserves contribution management agency without silent localStorage capability persistence.",
+      "verification": "B37 Run 18 Python lifecycle/privacy tests + executable browser/source operation-envelope tests"
+    },
+    {
+      "id": "AIA-C34",
+      "name": "BrowserOriginPrivacyResidue",
+      "owner": "browser feedback integration + transcript/device persistence + runtime endpoint diagnostics",
+      "status": "HOLDS_WITH_SAME_ORIGIN_TRUST_BOUNDARY",
+      "invariant": "Local rating, network telemetry and public DOM integration are separate states; page events require independent current permission and remain content-free, transcript restore is per-tab opt-in and bounded, device identifiers are session-scoped, and endpoint diagnostics exclude query/fragment/userinfo while secret-like query parameters are rejected. Arbitrary same-origin JavaScript remains a trust-boundary residual.",
+      "verification": "B37 Run 18 56-assertion browser harness + endpoint/logging/persistence compatibility tests"
+    },
+    {
+      "id": "AIA-C35",
+      "name": "GlobalShareStorageAuthority",
+      "owner": "HF ShareStore + Cloudflare Worker Share storage semantics",
+      "status": "HOLDS_WITH_TRUTHFUL_BACKEND_LIMITS",
+      "invariant": "Memory, SQLite, Redis and Worker KV storage claims reflect their actual durability/sharing/consistency semantics; required HF durable/shared modes fail closed, Redis lifecycle expiry cleanup is atomic, and deterministic Worker KV retry recovery is not mislabeled as linearizable global create-once authority.",
+      "verification": "B37 Run 18 ShareStore/Redis service tests + Worker/browser Share contracts and health/discovery assertions"
+    },
+    {
+      "id": "AIA-C36",
+      "name": "ReproducibleDependencyClosure",
+      "owner": "_hf_spaces_proxy requirements/Docker/security policy",
+      "status": "HOLDS_WITH_FRESH_RELEASE_SCAN_REQUIRED",
+      "invariant": "Production Python dependencies are exact and hash-locked for the declared platform; Docker consumes only the lock; Python SBOM exactly matches lock; immutable identity does not waive fresh vulnerability scanning.",
+      "verification": "Run 19 B38 supply-chain tests + offline verify_supply_chain.py; external scan/install evidence remains SEC-P1-38"
+    },
+    {
+      "id": "AIA-C37",
+      "name": "LeastPrivilegeDeploymentProfile",
+      "owner": "_hf_spaces_proxy Dockerfile + app strict startup + hardened reference deployment",
+      "status": "HOLDS_AT_APPLICATION_AND_REFERENCE_DEPLOYMENT_BOUNDARY",
+      "invariant": "Release image is platform-bound, builder/runtime separated and non-root; strict startup rejects root/unsafe origins; build context is deny-default and read-only least-privilege deployment is documented.",
+      "verification": "Run 19 B38 Docker/policy/strict-startup tests"
+    },
+    {
+      "id": "AIA-C38",
+      "name": "SharedRedisTransportAuthority",
+      "owner": "_hf_spaces_proxy/_utils/_redis_security.py + rate/share/contribution backends",
+      "status": "HOLDS_WITH_PRODUCTION_REDIS_OPERATIONS_EVIDENCE_REQUIRED",
+      "invariant": "Strict Redis uses rediss with certificate and hostname verification and rejects query downgrade options consistently across every shared authority plane.",
+      "verification": "Run 19 B38 three-plane Redis transport tests; ACL/persistence/replication remain deployment evidence"
+    },
+    {
+      "id": "AIA-C39",
+      "name": "ReleaseEvidenceSubjectBinding",
+      "owner": "_hf_spaces_proxy/security release evidence policy/verifiers",
+      "status": "HOLDS_WITH_EXTERNAL_EVIDENCE_REQUIRED",
+      "invariant": "Production promotion evidence is short-lived, content-addressed and bound to exact dependency lock, Python SBOM, deterministic runtime source, immutable base manifest, final OCI image and matching SLSA provenance; stale/path/symlink/hash/subject/risk-waiver substitution fails closed.",
+      "verification": "Run 20 B39 evidence tests + offline verify_supply_chain.py + release_subjects.py; external truth remains SEC-P1-38"
+    },
+    {
+      "id": "AIA-C40",
+      "name": "InfrastructureTelemetryNonBypass",
+      "owner": "release evidence logging posture + application logging/privacy boundary",
+      "status": "HOLDS_AT_RELEASE_POLICY_BOUNDARY",
+      "invariant": "Browser feedback consent never authorizes infrastructure request-body/header/query/WAF/APM capture or third-party telemetry export; hardened promotion requires those channels disabled.",
+      "verification": "Run 20 B39 logging/telemetry evidence negatives + existing logging/privacy mutation controls"
+    },
+    {
+      "id": "AIA-C41",
+      "name": "RedisOperationalEvidenceBoundary",
+      "owner": "B38 Redis transport policy + B39 sanitized probe/release evidence",
+      "status": "HOLDS_WITH_PRODUCTION_PROVIDER_EVIDENCE_REQUIRED",
+      "invariant": "Redis authority/topology values never enter evidence output; operational probe is explicit and coarse, while Share/Contribution production promotion separately requires least-privilege, persistence, replication and recent backup/restore evidence.",
+      "verification": "Run 20 B39 fake-client sanitization tests + B38 three-plane Redis TLS tests; provider/failover facts remain external SEC-P1-38 evidence"
+    },
+    {
+      "id": "AIA-C42",
+      "name": "PrivateLifecycleEventBoundary",
+      "owner": "_static/ai-assistant.js private event bus + page-integration projector",
+      "status": "HOLDS_WITH_SAME_ORIGIN_RESIDUAL",
+      "invariant": "Internal lifecycle coordination never requires public document events; optional public projections require current page-integration consent and omit sensitive/internal detail.",
+      "verification": "Run 21 B40 executable browser isolation + source assertions"
+    },
+    {
+      "id": "AIA-C43",
+      "name": "OpaqueOriginReadWriteSeparation",
+      "owner": "HF proxy + Cloudflare Worker Share CORS guards",
+      "status": "HOLDS",
+      "invariant": "Origin:null read compatibility and mutation authority are distinct; write requires a second opt-in and strict HF deployment refuses it.",
+      "verification": "Run 21 B40 HF/Worker route-method tests"
+    },
+    {
+      "id": "AIA-C44",
+      "name": "RuntimeBearerCompatibilityDefaultOff",
+      "owner": "Sphinx config + endpoint profile registry",
+      "status": "HOLDS_WITH_SAME_ORIGIN_RESIDUAL",
+      "invariant": "Browser bearer-token entry is default Off and centrally enforced; explicit compatibility tokens remain page-memory-only and never enter static HTML or Web Storage.",
+      "verification": "Run 21 B40 endpoint-registry executable tests + Python config assertions"
+    },
+    {
+      "id": "AIA-C45",
+      "name": "SeparateOriginRuntimeIsolation",
+      "owner": "_static B41 host/frame/main runtime",
+      "status": "HOLDS_WHEN_EXPLICITLY_ENABLED",
+      "invariant": "A configured distinct isolation origin suppresses the same-origin assistant and runs UI/transcript/runtime state behind SOP with no silent downgrade.",
+      "verification": "Run 22 B41 Python + executable host/frame tests"
+    },
+    {
+      "id": "AIA-C46",
+      "name": "CapabilityMessageChannelBoundary",
+      "owner": "B41 host/frame MessageChannel protocol",
+      "status": "HOLDS",
+      "invariant": "Bootstrap validates exact origin/source/version/channel then transfers one bounded monotonic capability MessagePort; unknown/replayed/oversized messages fail closed.",
+      "verification": "Run 22 B41 executable browser protocol tests"
+    },
+    {
+      "id": "AIA-C47",
+      "name": "IsolatedStorageTenantPartition",
+      "owner": "ai-assistant.js scoped Web Storage",
+      "status": "HOLDS_AT_BROWSER_STORAGE_KEY_BOUNDARY",
+      "invariant": "All isolated local/session storage keys are namespaced by validated parent origin plus normalized documentation root rather than relying on browser storage partitioning; separate projects under one parent origin remain distinct.",
+      "verification": "Run 22 B41 storage scope assertions + Run 23 B42 docs-root partition test"
+    },
+    {
+      "id": "AIA-C48",
+      "name": "HostPageContextCapabilityBoundary",
+      "owner": "B41 documentation-origin host adapter",
+      "status": "HOLDS_WITH_COMPROMISED_PARENT_RESIDUAL",
+      "invariant": "Frame receives bounded sanitized page snapshots/canonical Markdown, not arbitrary parent DOM access; hostile parent integrity remains SEC-P1-42.",
+      "verification": "Run 22 B41 host adapter + existing privacy/injection gates"
+    },
+    {
+      "id": "AIA-C49",
+      "name": "IsolatedPublicIntegrationProjection",
+      "owner": "B40 projector + B41 page.integration.emit host validation",
+      "status": "HOLDS",
+      "invariant": "Public lifecycle events in isolated mode still require B40 page-integration consent and are independently type/detail/size validated by the host.",
+      "verification": "Run 22 B41 + Run 21 B40 browser tests"
+    },
+    {
+      "id": "AIA-C50",
+      "name": "BootstrapSnapshotIntegrity",
+      "owner": "B41 documentation-origin host bootstrap + isolated frame config scrubber",
+      "status": "HOLDS_AFTER_HOST_BRIDGE_STARTUP",
+      "invariant": "Host snapshots and sanitizes config/endpoints/default before asynchronous HELLO; later page-global mutation cannot alter INIT, secret/prototype-pollution keys are rejected, and null-prototype maps prevent setter-based pollution. Compromise before host startup remains SEC-P1-42.",
+      "verification": "Run 22 B41 Python source assertions + executable late-mutation/prototype-pollution browser tests"
+    },
+    {
+      "id": "AIA-C51",
+      "name": "FrameGeneratedBootstrapAuthority",
+      "owner": "B42 isolated frame + host handshake",
+      "status": "HOLDS",
+      "invariant": "Protocol v2 generates the bootstrap channel in the isolated frame with WebCrypto after policy acceptance; capability is absent from iframe URL and insecure RNG fallback is forbidden.",
+      "verification": "Run 23 B42 Python + executable browser handshake tests"
+    },
+    {
+      "id": "AIA-C52",
+      "name": "IsolationNavigationContainment",
+      "owner": "B42 iframe sandbox + navigation guard",
+      "status": "HOLDS_AT_REPOSITORY_SANDBOX_BOUNDARY",
+      "invariant": "Isolated runtime cannot self-navigate onto the docs origin while retaining script authority; popup escape/top navigation are absent and HTTP(S) links leave through noopener/noreferrer external navigation.",
+      "verification": "Run 23 B42 source + executable click/navigation tests"
+    },
+    {
+      "id": "AIA-C53",
+      "name": "GeneratedParentOriginPolicy",
+      "owner": "Sphinx build generator + isolated frame policy loader",
+      "status": "HOLDS_WITH_DEPLOYMENT_HEADER_RESIDUAL",
+      "invariant": "Isolation parent authority is a closed-schema exact-origin build artifact with deny-all source default; missing/invalid policy fails before HELLO.",
+      "verification": "Run 23 B42 generator + frame policy tests; real headers remain SEC-P1-43"
+    },
+    {
+      "id": "AIA-C54",
+      "name": "AmbientCredentialEgressBoundary",
+      "owner": "browser central fetch transport + docs canonical adapter",
+      "status": "HOLDS",
+      "invariant": "Assistant-service fetches omit ambient credentials by default and explicit compatibility permits at most same-origin; canonical docs reads are a separately bounded same-origin capability.",
+      "verification": "Run 23 B42 executable fetch-wrapper + canonical-read assertions"
+    },
+    {
+      "id": "AIA-C55",
+      "name": "CrossOriginDeviceDelegationBoundary",
+      "owner": "Sphinx config + isolation host iframe allow policy",
+      "status": "HOLDS",
+      "invariant": "Cross-origin microphone delegation is independent and default Off; unavailable voice UI is suppressed rather than inheriting authority from speech/telemetry/integration settings.",
+      "verification": "Run 23 B42 source/config assertions"
+    },
+    {
+      "id": "AIA-C56",
+      "name": "BoundedCanonicalReadBoundary",
+      "owner": "B42 documentation-origin host adapter",
+      "status": "HOLDS_AT_BROWSER_ADAPTER_BOUNDARY",
+      "invariant": "Canonical reads are same-origin, docs-root bounded, redirect-blocked, cache-bypassed and streaming byte/character limited before complete buffering.",
+      "verification": "Run 23 B42 host source assertions + canonical representation tests"
+    },
+    {
+      "id": "AIA-C57",
+      "name": "PreBufferRemoteResponseCeiling",
+      "owner": "browser + HF/dev/Worker response readers",
+      "status": "ACTIVE",
+      "invariant": "Covered remote response paths reject malformed/declared oversize before parse and enforce actual streamed-byte ceilings before whole-body buffering.",
+      "verification": "Run 24 B43 Python + executable browser/Worker tests"
+    },
+    {
+      "id": "AIA-C58",
+      "name": "StreamCapabilityFailClosed",
+      "owner": "browser response adapters",
+      "status": "ACTIVE",
+      "invariant": "Security-sensitive browser readers do not fall back to whole-body text/json when a bounded stream reader is unavailable.",
+      "verification": "Run 24 B43 fail-closed browser tests + Run22/23 stream-capable compatibility fixtures"
+    },
+    {
+      "id": "AIA-C59",
+      "name": "UpstreamResponseParity",
+      "owner": "HF proxy + dev proxy + Cloudflare Worker",
+      "status": "ACTIVE",
+      "invariant": "Chat relay planes use an 8 MiB default / 32 MiB hard upstream response ceiling with predeclared and streamed-byte enforcement.",
+      "verification": "Run 24 B43 proxy/Worker tests and config assertions"
+    }
+  ]
+}

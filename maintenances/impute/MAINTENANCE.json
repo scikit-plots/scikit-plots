@@ -1,0 +1,88 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.impute",
+  "runtime_root": "scikitplot/impute",
+  "maintenance_root": "maintenances/impute",
+  "skill": "skills/impute/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot.impute public re-export/experimental gate, ANNImputer imputation semantics, backend selection policy, approximate-neighbor weighting/fallback behavior, index visibility/persistence policy, and impute-local compatibility code/tests.",
+    "does_not_own": "Annoy native/Cython implementation, Voyager implementation, generic path/timing utilities, scikitplot root package wiring, sklearn imputer semantics, or experimental namespace infrastructure outside the impute activation hook."
+  },
+  "tiers": {
+    "public": {
+      "modules": [
+        "__init__.py"
+      ],
+      "description": "Stable sklearn re-exports plus fail-closed experimental ANNImputer access."
+    },
+    "ann": {
+      "modules": [
+        "_ann.py"
+      ],
+      "description": "ANNImputer estimator, backend dispatch, fit/transform, metric/weighting and persistence integration."
+    },
+    "privacy": {
+      "modules": [
+        "_privacy.py"
+      ],
+      "description": "Index visibility and external storage policy; explicitly not a security boundary."
+    },
+    "compatibility_mirror": {
+      "modules": [
+        "_base.py"
+      ],
+      "description": "Sklearn-derived imputer implementation whose active ownership/use must remain explicit; currently not on the ANN/public path."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/impute/__init__.py",
+      "scikitplot/impute/_ann.py",
+      "scikitplot/impute/_base.py",
+      "scikitplot/impute/_privacy.py",
+      "scikitplot/impute/tests/test__ann.py",
+      "scikitplot/impute/tests/test__base.py",
+      "scikitplot/impute/tests/test__privacy.py",
+      "scikitplot/impute/tests/test_common.py"
+    ],
+    "required_symbols": {
+      "scikitplot/impute/_ann.py": [
+        "ANNImputer",
+        "VoyagerKNNImputer",
+        "AnnoyKNNImputer"
+      ],
+      "scikitplot/impute/_privacy.py": [
+        "PrivateIndexMixin",
+        "OutsourcedIndexMixin"
+      ],
+      "scikitplot/impute/_base.py": [
+        "_BaseImputer",
+        "SimpleImputer",
+        "MissingIndicator"
+      ]
+    },
+    "tests_root": "scikitplot/impute/tests"
+  },
+  "boundary_contract": {
+    "annoy_owner": "scikitplot.annoy._annoy",
+    "voyager_owner": "external voyager",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ],
+    "experimental_name": "ANNImputer",
+    "experimental_enable_import": "from scikitplot.experimental import enable_ann_imputer",
+    "index_modes": [
+      "public",
+      "private",
+      "external"
+    ]
+  },
+  "read_order": [
+    "maintenances/impute/MAINTAINING.md",
+    "maintenances/impute/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/impute/_maintenance/STATE.json",
+    "maintenances/impute/_maintenance/FAMILY.md",
+    "maintenances/impute/_maintenance/VERIFICATION.md"
+  ]
+}

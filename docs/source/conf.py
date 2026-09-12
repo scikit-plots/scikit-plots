@@ -310,11 +310,13 @@ extensions = [
     "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/community/topics/galleries.html
     # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
-    "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.gallery_directive",  # "_extension.gallery_directive",
-    "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.component_directive",  # "_extension.component_directive",
     "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
-    # "sphinxcontrib.youtube",
-    "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",
+    #
+    # https://github.com/scikit-plots/learn/blob/main/docs/source/conf.py
+    "scikitplot._externals._sphinx_ext._pydata_component_list",  # pydata_sphinx_theme # "_extension.component_directive",
+    "scikitplot._externals._sphinx_ext._sphinx_gallery_grid",  # pydata_sphinx_theme # "_extension.gallery_directive",
+    "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",  # "sphinxcontrib.youtube",
+    "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
     #
     # https://isolveit.github.io/sphinx-pdf-generate
@@ -1188,7 +1190,7 @@ for k, v in _html_secondary_sidebars.items():
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 # https://pydata-sphinx-theme.readthedocs.io/en/v0.8.1/user_guide/configuring.html#configure-project-logo
-html_logo = "_static/logos/scikit-plots-logo.svg"
+html_logo = "_static/logos/scikit-plots-logo.svg"  # default unless override html_theme_options
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

@@ -1,0 +1,21 @@
+# YouTube gallery maintenance todo
+
+- [x] Run common-core unit tests and family gate after maintenance-core changes.
+- [x] Run dependency-free gallery gates after provider-core/path changes.
+- [x] Prove `_sphinx_youtube_core` imports in standalone and wide namespace layouts.
+- [x] Keep standalone historical validation/SHA evidence byte-for-byte unchanged.
+- [x] Audit runtime→maintenance imports, JSON, caches and compiled residue before candidate packaging.
+- [x] Package the complete `scikit-plots` repository for wide-repo delivery, not an isolated `_sphinx_ext` tree.
+- [x] Replace ambiguous dependency arrays with typed schema-v2 dependency edges.
+- [x] Add family-wide unique capability ownership and edge-to-capability validation.
+- [x] Include dynamic source-reference edges in effective runtime cycle detection.
+- [x] Add deterministic text/JSON/Mermaid architecture diagnostics.
+- [x] Add negative architecture tests for fake evidence, ownership drift, and edge misclassification.
+- [x] Add manifest-v3 deterministic review profiles with registered checks only.
+- [x] Review AI + YouTube subsystems independently, including seven runtime package lanes, then reconcile.
+- [x] Distinguish PR readiness from release promotion and add release-strict CLI behavior.
+- [x] Add negative review tests for unsafe metadata, path escape, missing packages, plane leakage, and parallel determinism.
+- [x] Repair the AI skill fresh-chat sequence discovered by the independent review.
+- [ ] Run Sphinx layout/rendering integration in an environment with `sphinx`, `docutils`, `sphinx_design`, and `myst_parser`.
+- [ ] Run the jsdom-backed browser-control tests in a Node environment with `jsdom`.
+- [ ] Promote from candidate to release-closed only after those optional downstream layers are actually green.

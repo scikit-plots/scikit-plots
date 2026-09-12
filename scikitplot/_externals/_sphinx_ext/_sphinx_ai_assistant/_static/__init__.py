@@ -33,7 +33,7 @@ Notes
 3. Assign the result to a new ``_SVG_<NAME>`` constant below.
 4. Add an entry to ``_PROVIDER_META`` (for providers) or ``_ICON_META``
    (for panel action icons).
-5. Add a corresponding test in ``tests/test___init__.py``.
+5. Add a corresponding test in ``tests/_static/test___init__.py``.
 
 **Security note** — Icons are injected only as ``src`` attributes on
 ``<img>`` elements (via the Python extension) or as ``data:`` URIs

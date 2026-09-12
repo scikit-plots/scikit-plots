@@ -1,0 +1,100 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.datasets",
+  "runtime_root": "scikitplot/datasets",
+  "maintenance_root": "maintenances/datasets",
+  "skill": "skills/datasets/SKILL.md",
+  "ownership": {
+    "owns": "Curated example dataset discovery/cache/post-processing, reproducible subset export/provenance tooling, and the datasets general-purpose file/URL/database/upload loading helpers shipped under scikitplot.datasets.",
+    "does_not_own": "pandas/NumPy parser semantics, database engines/drivers, pyarrow/fastparquet, root logging/optional-dependency infrastructure, remote scikit-plots-data availability, or trustworthiness of caller-supplied pickle/SQL/network content."
+  },
+  "surfaces": {
+    "example_datasets": {
+      "files": [
+        "scikitplot/datasets/_load_dataset.py"
+      ],
+      "description": "Named remote CSV discovery, cache placement, download and dataset-specific post-processing."
+    },
+    "data_export": {
+      "files": [
+        "scikitplot/datasets/_data_export.py",
+        "scikitplot/datasets/_data_export.pyi"
+      ],
+      "description": "Deterministic hash/random/stratified subset export, streaming CSV selection, profiles and manifests."
+    },
+    "data_loader": {
+      "files": [
+        "scikitplot/datasets/_data_loader.py"
+      ],
+      "description": "General local/URL/archive/upload/database loader dispatch with optional backends."
+    },
+    "recipes": {
+      "files": [
+        "scikitplot/datasets/_autoscout24_tasks.py",
+        "scikitplot/datasets/data_export_recipes_autoscout24.md"
+      ],
+      "description": "Executable example recipes; not authority for core loader semantics."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/datasets/__init__.py",
+      "scikitplot/datasets/_load_dataset.py",
+      "scikitplot/datasets/_data_loader.py",
+      "scikitplot/datasets/_data_export.py",
+      "scikitplot/datasets/_data_export.pyi",
+      "scikitplot/datasets/_autoscout24_tasks.py",
+      "scikitplot/datasets/data_export_recipes_autoscout24.md",
+      "scikitplot/datasets/tests/__init__.py",
+      "scikitplot/datasets/tests/test__load_dataset.py",
+      "scikitplot/datasets/tests/test__data_export.py"
+    ],
+    "required_symbols": {
+      "scikitplot/datasets/_load_dataset.py": [
+        "get_data_home",
+        "get_dataset_names",
+        "load_dataset"
+      ],
+      "scikitplot/datasets/_data_loader.py": [
+        "detect_file_type",
+        "get_extension",
+        "get_file_data",
+        "upload_handler",
+        "load_data_meta",
+        "load_data"
+      ],
+      "scikitplot/datasets/_data_export.py": [
+        "stable_hash64",
+        "resolve_sizes",
+        "sample_hash_full",
+        "sample_stratified",
+        "sample_hash_csv_stream",
+        "write_manifest",
+        "main"
+      ]
+    },
+    "test_files": [
+      "scikitplot/datasets/tests/test__load_dataset.py",
+      "scikitplot/datasets/tests/test__data_export.py"
+    ]
+  },
+  "boundary_contract": {
+    "dataset_value_rule": "Dataset-specific normalization must preserve real source values. Categorical level declarations must not silently coerce a valid source level to missing.",
+    "archive_rule": "Archive loaders must return/read the selected archive member, not reopen the archive container as ordinary text/binary input.",
+    "upload_rule": "upload_handler must either return a live path or loaded data according to its flags; cleanup may not invalidate a path being returned.",
+    "query_rule": "An optional query documented/defaulted as None must remain optional. Database loaders should select their documented default query without calling a string-only cleaner on None.",
+    "trust_rule": "Pickle/joblib/cloudpickle, SQL and network inputs are trust boundaries. Maintenance docs/tests must never describe comment stripping or extension dispatch as making untrusted content safe.",
+    "cli_rule": "Python -m examples name importable modules without a trailing .py component.",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ]
+  },
+  "read_order": [
+    "maintenances/datasets/MAINTAINING.md",
+    "maintenances/datasets/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/datasets/_maintenance/STATE.json",
+    "maintenances/datasets/_maintenance/FAMILY.md",
+    "maintenances/datasets/_maintenance/VERIFICATION.md"
+  ]
+}

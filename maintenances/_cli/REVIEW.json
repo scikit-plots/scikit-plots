@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._cli",
+  "lanes": [
+    {"id": "runtime-architecture", "checks": ["runtime_presence", "contracts", "optionality", "parity", "io", "delegation", "planes"]},
+    {"id": "continuation", "checks": ["handoff", "inventory", "hygiene"]},
+    {"id": "verification", "checks": ["evidence"]}
+  ],
+  "release_gates": [
+    "maintenance_tests",
+    "core_cli_tests",
+    "full_cli_suite",
+    "frontend_parity_full",
+    "packaging_entrypoint",
+    "delegated_mcp_live"
+  ]
+}

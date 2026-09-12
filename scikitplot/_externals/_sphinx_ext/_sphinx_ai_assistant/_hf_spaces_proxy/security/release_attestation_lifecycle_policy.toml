@@ -1,0 +1,34 @@
+schema_version = 1
+bundle_schema_version = 1
+state_schema_version = 1
+receipt_schema_version = 1
+ca_set_schema_version = 1
+status_schema_version = 1
+vendor_claim_schema_version = 1
+predicate_type = "https://scikit-plots.org/attestations/release-attestation-lifecycle/v1"
+spec_version = "1.0.0"
+max_json_bytes = 16777216
+max_clock_skew_minutes = 10
+max_ca_set_lifetime_days = 825
+min_ca_set_remaining_minutes = 60
+max_status_lifetime_hours = 48
+min_status_remaining_minutes = 15
+max_ca_roots = 16
+max_status_keys = 32
+min_status_keys = 3
+min_status_threshold = 2
+min_status_operators = 2
+min_root_signer_operators = 2
+max_status_entries = 8192
+max_lifecycle_events = 4096
+vendor_claim_extension_oid = "1.3.6.1.4.1.57264.158.1"
+require_status_operator_disjoint_from_release_root = true
+require_status_key_disjoint_from_release_root = true
+require_all_attestation_certificates_covered = true
+require_all_active_attestations_good = true
+
+[required_profile_by_device_class]
+hsm = "hsm-x509-v1"
+kms-hsm = "kms-hsm-x509-v1"
+tpm = "tpm-x509-v1"
+secure-element = "secure-element-x509-v1"

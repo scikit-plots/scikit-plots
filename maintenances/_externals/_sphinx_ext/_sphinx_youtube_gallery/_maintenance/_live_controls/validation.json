@@ -1,0 +1,185 @@
+{
+  "namespace_checks": 21,
+  "prior_regression_methods": 7,
+  "resource_bound_checks": [
+    "YAML bytes, aliases, nesting, nodes, scalar text, and item count",
+    "bounded regular-expression subset",
+    "streamed thumbnail size and partial-file cleanup",
+    "responsive default and customized players"
+  ],
+  "dom_checks": 21,
+  "build_checks": [
+    "RST/MyST metadata and nesting",
+    "inline list and videos wrapper",
+    "file-backed YAML",
+    "column alias conflict",
+    "nested grid/card/player options",
+    "privacy true and false",
+    "percentage height",
+    "invalid option errors"
+  ],
+  "scale_fixture_cards": 1000,
+  "browser_visual_verification": "Playwright/Chromium checks passed at 320, 768, and 1440 CSS px for the unified gallery controls/options pane. Current in-memory runtime suites passed 30 latest-source assertions plus 21 direct/post assertions, typed export, four-root gallery parity, and resolver timeout recovery. External YouTube playback/network was intentionally not exercised.",
+  "live_playback_verified": false,
+  "documentation_check": "README sections/examples and 14 dependency-free public docstrings passed; Sphinx-dependent directive docstrings were skipped because docutils/Sphinx are unavailable.",
+  "package_readme": "_sphinx_youtube_gallery/README.md",
+  "compact_ui": "Rounded grid search; metadata-driven suggestions; removable active chips; outside-click/Escape panel dismissal; container-relative layout; channel galleries hide section radios while video galleries expose Videos/Shorts/Streams/Courses; video add pane includes source prefill examples, live readiness guidance, and a collapsed same-origin resolver stub.",
+  "visitor_additions": "Channel-gallery additions remain title-only and whole-card clickable. Direct exact video, Short, live, and watch URLs render the published video_wrapper + iframe immediately and require no API key. Watch URLs with list= still use their explicit v= ID. Recognized HTTP and scheme-less YouTube URLs are canonicalized to HTTPS. In video galleries, channel sections, playlists, and YouTube posts must resolve to one exact video ID before the same single-video renderer is used; unresolved sources create no cosmetic card.",
+  "revert_checks": "Original DOM identity/order, reset keeps additions, duplicates, literal metadata, invalid URLs, gallery isolation",
+  "saved_addition_export_chip_checks": 24,
+  "export_validation": "Current Chromium typed export passed and exported videos:/channels: YAML round-tripped through normalize_gallery_catalog. Prior RST/MyST Sphinx export-build coverage was not rerun because Sphinx/MyST are unavailable in this runtime.",
+  "saved_view": "Separate opt-in stores validated filters and sorting only; search text is excluded; stale-tab and storage-failure recovery preserve the visible gallery",
+  "chromium_checks": [
+    "channel gallery retained zero section radios and title-only stretched-link additions",
+    "video gallery retained Videos/Shorts/Streams/Courses radios",
+    "direct video hm8NzEd5io0 rendered synchronously as the exact /embed/<id> iframe card shape",
+    "async @handle/videos resolution created no placeholder while pending and then one normal video card",
+    "site resolver received normalized handle and section",
+    "saved latest source retained @handle/videos URL instead of freezing the resolved video ID",
+    "resolver-generated title was not persisted as a custom title",
+    "simulated reload re-resolved the source and refreshed the video ID/title pair together",
+    "explicit playlist API path selected greatest contentDetails.videoPublishedAt rather than array position",
+    "built-in @handle path used channels.list(forHandle) before resolving the derived Videos section playlist",
+    "API-key section path selected a dated playlist item rather than peeking at iframe item zero",
+    "zero-key canonical UC Shorts path used UUSH compatibility playlist through the iframe player",
+    "Courses without a site resolver produced form feedback and no fake card",
+    "plain channel display name was treated as ambiguous rather than guessed",
+    "direct http://youtube.com/watch URL was upgraded and rendered wGA27zJEnaU inline",
+    "direct Shorts URL rendered 2TxRkGcPL-o inline without resolver/API access",
+    "direct watch/live sample rendered cdPyuLr_rI0 inline",
+    "watch URL carrying podcast playlist context still rendered exact P8ggfb67ODs video",
+    "watch URL carrying playlist context still rendered exact 9rqQgOERpDo video",
+    "video pane exposed Video, Short, Live, Watch + list, Channel latest, Playlist latest, and Post prefill examples",
+    "source readiness hint marked exact direct sources as zero-API ready",
+    "unresolved YouTube post created no cosmetic card and explained the attached-video limitation",
+    "post readiness hint explained optional site resolver requirement",
+    "post resolver received kind=post, postId, and canonical HTTPS source URL with share query removed",
+    "resolved post rendered only the normal single-video iframe card with no extra card chrome",
+    "optional site setup disclosure contained a same-origin server-resolver stub",
+    "channel gallery retained title-only @youtube card and no channel-section buttons",
+    "options pane guidance and example controls stayed within the gallery at 320 CSS px",
+    "options pane guidance and example controls stayed within the gallery at 768 CSS px",
+    "options pane guidance and example controls stayed within the gallery at 1440 CSS px",
+    "resolver code sample scrolled internally at narrow width instead of widening the panel"
+  ],
+  "latest_playable_sources": {
+    "accepted": [
+      "exact video ID",
+      "watch URL (including watch URLs with list= context)",
+      "Short URL",
+      "live/embed/youtu.be video URL",
+      "plain channel name",
+      "channel ID",
+      "@handle/videos",
+      "@handle/shorts",
+      "@handle/streams",
+      "@handle/courses",
+      "playlist URL",
+      "YouTube post URL (resolver source, not a video identity)",
+      "recognized HTTP or scheme-less YouTube URL, upgraded to HTTPS"
+    ],
+    "rendering": {
+      "channel": "title-only visible Sphinx card with published-style invisible stretched link; no visible badge, note, source text, or play button",
+      "video": "published-style video_wrapper with immediate https://www.youtube.com/embed/<video-id> iframe",
+      "channel_section_or_playlist": "resolve to an exact video id first, then use the identical single-video renderer; no placeholder card"
+    },
+    "channel_section_selector": {
+      "channel_gallery": [],
+      "video_gallery": [
+        "Videos",
+        "Shorts",
+        "Streams",
+        "Courses"
+      ]
+    },
+    "saved_compatibility": "older saved mode fields are accepted and ignored; latest-source records store the original URL and only a visitor-supplied custom title, so resolver-generated title and video ID refresh together on restoration",
+    "resolution": {
+      "direct_video": "no lookup; exact id renders immediately",
+      "site_hook": "window.skCollectionResolveYouTubeLatest(source) -> {videoId,title?}",
+      "handle": "window.skCollectionYouTubeDataApiKey enables official channels.list(forHandle) to obtain canonical UC id; plain display names remain resolver-only because they are ambiguous",
+      "videos_shorts_streams": "after canonical channel resolution, UULF/UUSH/UULV compatibility playlist IDs are derived. With an API key, playlistItems publication timestamps select the newest exact video; without a key, an already-known UC id can use iframe-player item zero as a best-effort fallback. Site hook remains preferred because these prefixes are not a published Data API contract",
+      "courses": "site resolver required; built-in logic refuses to guess",
+      "playlist": "API-key path scans bounded playlistItems pages and selects greatest contentDetails.videoPublishedAt",
+      "post": "custom site resolver required to map the post to one exact attached video ID; without it the form asks for the direct video/Short URL and creates no card",
+      "direct_url_normalization": "recognized youtube.com/youtu.be/youtube-nocookie HTTP and scheme-less forms are canonicalized to HTTPS; tracking/share query is not retained for post sources"
+    }
+  },
+  "latest_resolution_browser_checks": 30,
+  "direct_post_browser_checks": 21,
+  "responsive_panel_checks": {
+    "widths_css_px": [
+      320,
+      768,
+      1440
+    ],
+    "outer_overflow": false,
+    "resolver_stub_internal_scroll_at_320": true
+  },
+  "prior_full_sphinx_baseline_versions": {
+    "Sphinx": "9.1.0",
+    "sphinx_design": "0.7.0",
+    "MyST": "5.1.0"
+  },
+  "current_runtime": {
+    "Python": "3.13.5",
+    "Node.js": "22.16.0",
+    "Chromium": "144.0.7559.96",
+    "Sphinx": "not installed",
+    "docutils": "not installed",
+    "sphinx-design": "not installed",
+    "MyST": "not installed",
+    "Playwright Chromium": "available"
+  },
+  "youtube_gallery_capabilities_v10": {
+    "module_ownership": {
+      "gallery-grid": "_sphinx_gallery_grid",
+      "component-list": "_pydata_component_list",
+      "obsolete": "_pydata_sphinx_theme removed"
+    },
+    "single_engine": "youtube-gallery delegates cards, grouping/pagination, and reader controls to gallery-grid; there is one sk-collection root",
+    "catalogs": [
+      "homogeneous videos:",
+      "homogeneous channels:"
+    ],
+    "channel_exploration": ":view: channels projects selected video records after YouTube predicates, then performs channel-level sort/group/pagination",
+    "derived_channel_metadata": [
+      "video_count",
+      "newest known published timestamp",
+      "unioned tags"
+    ],
+    "custom_metadata": "validated fields: mappings expose safe custom/dotted paths to the shared group/filter/sort/search vocabulary without overwriting identity or card presentation",
+    "export": "video additions -> videos: exact rendered IDs; channel additions -> channels: canonical HTTPS root URLs; no redundant format selector",
+    "dependency_boundary": "root/model/shared selection imports stay usable without loading Sphinx/docutils",
+    "channel_identity": "stable channel_id is dedup identity; newest unambiguous authored handle/display label is the friendly projection; native contradictory identities fail closed",
+    "sync_pipeline": "author handle/tags/fields survive provider refresh; --check compares normalized YAML; writes are atomic; unmatched records are preserved unless explicit keyed --prune; partial RSS preserves provider fields it cannot observe",
+    "acquisition_bounds": "sync acquisition enforces the same 5,000-record catalog ceiling before oversized provider results can accumulate",
+    "typed_search": "default search excludes generated accessibility boilerplate and adds only explicitly configured metadata fields"
+  },
+  "current_v10_browser_checks": {
+    "parity_roots": 4,
+    "latest_resolution": 30,
+    "direct_post": 21,
+    "typed_export": 1,
+    "responsive_widths": [
+      320,
+      768,
+      1440
+    ],
+    "resolver_timeout_recovery": "passed",
+    "typed_search_corpus": "dependency-free metadata check passed"
+  },
+  "youtube_gallery_parity_v10": {
+    "status": "passed in final clean-tree matrix",
+    "architecture": "youtube-gallery is a typed adapter over one _sphinx_gallery_grid collection root",
+    "visible_card_parity": "video = title + player; channel = title + stretched link; no sd-card-text/Watch prose",
+    "browser_parity_roots": 4,
+    "typed_search_corpus": "title by default plus explicit filter/search fields; accessibility-only YouTube link prose excluded",
+    "show_count": "explicit :show-count: forwarded unchanged; no wrapper-only automatic count rule",
+    "leaf_player_options": "standalone youtube and generated youtube-gallery players share the same validators; privacy false is false and true emits canonical valueless syntax",
+    "asset_sha256": {
+      "js": "934728e9d87fa84e3493516bd1702358bf4249c4d565f7c61b278c2e6b222842",
+      "css": "ab49f910c8a9a6c1b148c311ee8bbb7b6dd3cdf0060c3a9548d2adb33ec88f22"
+    }
+  },
+  "clean_tree_after_tests": "passed: zero __pycache__ and bytecode files after final matrix"
+}

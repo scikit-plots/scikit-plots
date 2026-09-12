@@ -1,0 +1,3 @@
+Meson generator availability check — 2026-09-12
+16:  meson.current_source_dir() + '/../../_build_utils/tempita.py',
+MISSING

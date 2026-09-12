@@ -7,6 +7,8 @@
 Detect bitness (32 or 64) of Mingw-w64 gcc build target on Windows.
 """
 
+from __future__ import annotations
+
 import re
 import subprocess
 

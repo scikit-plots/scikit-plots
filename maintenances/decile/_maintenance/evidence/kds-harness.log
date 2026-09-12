@@ -1,0 +1,23 @@
+............                                                             [100%]
+=============================== warnings summary ===============================
+scikitplot/decile/kds/tests/test__kds.py::TestPlotLift::test_ax
+scikitplot/decile/kds/tests/test__kds.py::TestPlotLift::test_multi_classes
+scikitplot/decile/kds/tests/test__kds.py::TestPlotLift::test_string_classes
+scikitplot/decile/kds/tests/test__kds.py::TestPlotCumulativeGain::test_ax
+scikitplot/decile/kds/tests/test__kds.py::TestPlotCumulativeGain::test_multi_classes
+scikitplot/decile/kds/tests/test__kds.py::TestPlotCumulativeGain::test_string_classes
+scikitplot/decile/kds/tests/test__kds.py::TestPlotKSStatistic::test_ax
+scikitplot/decile/kds/tests/test__kds.py::TestPlotKSStatistic::test_multi_classes
+scikitplot/decile/kds/tests/test__kds.py::TestPlotKSStatistic::test_string_classes
+  /opt/pyvenv/lib/python3.13/site-packages/sklearn/linear_model/_logistic.py:406: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):
+  STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+  Increase the number of iterations to improve the convergence (max_iter=100).
+  You might also want to scale the data as shown in:
+      https://scikit-learn.org/stable/modules/preprocessing.html
+  Please also refer to the documentation for alternative solver options:
+      https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+    n_iter_i = _check_optimize_result(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 9 warnings in 1.75s

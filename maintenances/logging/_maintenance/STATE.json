@@ -1,0 +1,22 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.logging",
+  "updated_at": "2026-09-13",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "test_evidence": {
+    "focused_runtime_tests_native": "COLLECTION ERROR (stale pre-move import)",
+    "focused_runtime_tests_harness": "171 passed after harness-only import correction",
+    "direct_behavior_probe": "FAIL on package facade plus previous owned contracts",
+    "maintenance_contract": "22 passed"
+  },
+  "next_actions": [
+    "Fix focused test import for the new package layout",
+    "Decide/preserve public stdlib compatibility on the package facade",
+    "Replace tests that codify defective behavior with desired regressions",
+    "Then address error_log, env policy, stream switching, CLI deduplication, caller metadata, private __getattr__, and formatter totality",
+    "Run full package alias/process/platform evidence before release"
+  ]
+}

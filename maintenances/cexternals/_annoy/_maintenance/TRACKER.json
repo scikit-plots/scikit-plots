@@ -1,77 +1,279 @@
 {
-  "schema_version": 1,
-  "module": "scikitplot.cexternals._annoy",
-  "role": "the shared C++ source of truth",
-  "family": "annoy (cexternals/_annoy + annoy + memmap + random)",
-  "shared_source": "scikitplot/cexternals/_annoy/src/",
-  "generated_from": "live source tree",
   "physical": {
+    "digest": "acb2ce2c690ec2911fa324d2e5b9f210aa874f971047cab513f1cb91032a0b49",
+    "files": [
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/.gitignore",
+        "sha256": "1811bb7f0b1f7308324557ab57fc47ab863bc1739aa0bcbc04883d47c9e011fb",
+        "size": 178
+      },
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/LICENSE",
+        "sha256": "57d48dc5d1db768bf5606301138a9d5d6216afff57c51f9e672b4750106804b2",
+        "size": 11362
+      },
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/PATTERN_COMPARISON.md",
+        "sha256": "a452179195ea8d13d1eebb0ac8e42a88bf3120649d6657c5ef1969d2440e70ed",
+        "size": 11362
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/__init__.py",
+        "sha256": "c286d7c15a7e140ad296e38b20c96f37015d0bc8601dc8e896d70990bdbf2295",
+        "size": 3076
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/__init__.pyi",
+        "sha256": "71f7b64aaadbfb3a6b714a2ae6178e7fde4d5d70d8c82e876a18f872cf284ba0",
+        "size": 565
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/_annoy_test.py",
+        "sha256": "8c67f105efea408def63705d39604c0a8c532059a8fb85fec158be346cafd3b9",
+        "size": 4555
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/_plotting.py",
+        "sha256": "9b02d25e6af9ebdba793a40e0cac7f8e7b0c52efbeb27af9b68cdc9329a02adc",
+        "size": 45552
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/_plotting.pyi",
+        "sha256": "a21c9b86d0361c3715927f6dddcf6b0782393cf1c11365b2a798544249b0756d",
+        "size": 5741
+      },
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/annoy-dev-1.rockspec",
+        "sha256": "abdaf5ab4ef1b32cb353f3b928b29ebf8cb5cc2292978966c7d651649bb31a93",
+        "size": 1712
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/annoy/__init__.py",
+        "sha256": "5ef546aef7eb05356ae3344f6ffc9928c49863a86836d6cc37ff3887ee747913",
+        "size": 2807
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/annoy/__init__.pyi",
+        "sha256": "525a8e3de1fbbb95ad81b75cb4187fda73f17f0506d14bb9d2287be157712b8e",
+        "size": 455
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/annoy/annoylib.pyi",
+        "sha256": "0b9b2788b3b379b79f9fcad7a2367ff2b10eb6bd2a8ea7ff097bb79bc43cea2e",
+        "size": 20633
+      },
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/annoy/py.typed",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/annoylib.pyi",
+        "sha256": "74adbf07f04f5e086fe4ce667cb135d14eb399b2ac17969d84a83fb5fec14926",
+        "size": 79728
+      },
+      {
+        "kind": "asset",
+        "path": "scikitplot/cexternals/_annoy/cpp_common_abbreviations.md",
+        "sha256": "0d5c9f7b24b3e74e2bf13a3eb60c4c4a0a5db91501184816188702dfaf1b35ab",
+        "size": 6193
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/meson.build",
+        "sha256": "e2aed3c0971e146f0a11cafeba67ef8b67c15fa017ec2567ca900737fd643bbf",
+        "size": 8741
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoy_int_cmp.h",
+        "sha256": "83058cbdb9146b4994a1ac863da25ef943860b7ed34d77b5fa8d430d7ecdcbbb",
+        "size": 2394
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoy_pyconv.h",
+        "sha256": "ae419444aa7c4b87a6a66f2ff29b0345f9436987207dca36ef6bd64566d4e6fa",
+        "size": 1270
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoy_type_support.h",
+        "sha256": "edfdbbd189e38bc3a549e9704e84addb379af67080649d8ca119fec8d56eaa63",
+        "size": 7591
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoygomodule.h",
+        "sha256": "daf9171bffe2c1b917892f15af6f6eb6b87ac79a6f4d871fbf13c12e536ab37e",
+        "size": 5230
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoygomodule.i",
+        "sha256": "52d4656c542d833964f39cb53a62868ec6f3774bed2cc67b4f7de9df53aeb294",
+        "size": 3074
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoylib.h",
+        "sha256": "6f1411b4640198c12284ab22bd96a4a443af5833ea64ce7b0257d9c3e7b43d78",
+        "size": 206295
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoyluamodule.cc",
+        "sha256": "5a3b5166b93dc6e8455509bcf7acf68f35f01ff701f9123cdefd848837c7b4b9",
+        "size": 9309
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoymodule.cc",
+        "sha256": "e930dbeea7375e48739470adee47b1a0e7f05420e95592aaf22a5ef4dffabfd7",
+        "size": 401441
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/annoymodule.cu",
+        "sha256": "34d946fe88246caf6bb095917eda3275a971b8bbd9298f8e26f25b8f3fa92065",
+        "size": 23491
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/kissrandom.h",
+        "sha256": "0613e8c24817b578196f31c9b2b6c0b412a0a7b9d9ccc113fc85657b6240e15f",
+        "size": 6683
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/mman.h",
+        "sha256": "7b8ce75992accd3c3ac5a293bedf275bf7cc6a9f029db4444ad130ed28895e6e",
+        "size": 8743
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/mman_ftruncate_win.h",
+        "sha256": "68b1acd600383f13a3f6518048b32cb28ecb67728ea15a6c916b7a9a62fdbd46",
+        "size": 2395
+      },
+      {
+        "kind": "source",
+        "path": "scikitplot/cexternals/_annoy/src/typenames.h",
+        "sha256": "6f59b1bffb9cb408870abfabd46b26caa21ec0af8330ad45b1e0b3f0757a19e7",
+        "size": 16639
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/check_no_cpu_feature_reloc.sh",
+        "sha256": "a1c6e44383b2e90c3fc8f29feac64ef73a927854c0f441b2cfa3d65c81ef3aca",
+        "size": 1540
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_annoy_int_cmp.cpp",
+        "sha256": "97c965f31973c7d2ef50612c74c2a226eed7fa1a9f9eba1d2456fa3b70a4eb08",
+        "size": 4269
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_annoy_pyconv.cpp",
+        "sha256": "de30de28de2f7c2049bd382d2edf2c1b1fc0839619393e5481cb03c8104b2d5f",
+        "size": 2129
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_dealloc_noexcept.cpp",
+        "sha256": "c20362aec3e276b1aa5c59eb54e9bf5830b957645ac61ca6ae86f601dfba28e9",
+        "size": 1736
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_fd_sentinel.py",
+        "sha256": "80847cb93fa30f4f2ffef9272014dff1683c463047b23232f55bb7c0bc830329",
+        "size": 2617
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_float16_portable_fallback.cpp",
+        "sha256": "e0687dc5f493f6276da6f98d7ac1d95d87e5c599cb6e39633a91a9b46e1c06a6",
+        "size": 3624
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_float16_scalar_matches_hardware.cpp",
+        "sha256": "5dff1389d5cf766ffebac8c716c0bd38b92e617eefa4b7534acf5bdbd7c34bc9",
+        "size": 3494
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_float_capability_report.cpp",
+        "sha256": "177c3002b0478f866bc7a853681179e06c93edfafc93e55fef26bc902f2fbd6c",
+        "size": 2875
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_mman_ftruncate.cpp",
+        "sha256": "73daa57894da6d71564cfdd04ba0aff115a922e7bddf9f740dd8d71b78e46a04",
+        "size": 3750
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_on_disk_finalize.py",
+        "sha256": "191f37bc6ddb6533b7f25760998f47428fece531c0b581e95586d53c5083f234",
+        "size": 1867
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_portable_blob.py",
+        "sha256": "0261b5a1338d6fe955b8b9521c712a8c2590c77f1b0bf1ba88c9a550d22948fc",
+        "size": 1899
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_save_atomicity.py",
+        "sha256": "5d6340eee3fdb62846ba02168f968c8c1fbd3609a3c13b6e53c326fe6d1ca461",
+        "size": 2756
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_type_support.cpp",
+        "sha256": "edcb825fbe1e3f1658a85519b7b4b57090a25125e32779a5b8485625e31fe02a",
+        "size": 3291
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_w_bridge_errors.cpp",
+        "sha256": "f5ca8996ee6eab5d3dfd72d8405a07b7f0c88e8e83a7d9baadc4a6bf4f0f6583",
+        "size": 2608
+      },
+      {
+        "kind": "test",
+        "path": "scikitplot/cexternals/_annoy/tests/test_warning_budget.cpp",
+        "sha256": "ddf1cc837bf7f63b47e899b14465565073c10c32f26b176b73473a535a7dc5b4",
+        "size": 2340
+      }
+    ],
     "totals": {
-      "source_files": 29,
-      "source_loc": 23846,
-      "test_files": 14,
-      "test_loc": 1001,
-      "markdown_files": 5
-    },
-    "subpackages": {
-      "(root)": {
-        "src": 1,
-        "src_loc": 33,
-        "test": 0,
-        "test_loc": 0
-      },
-      "_annoy": {
-        "src": 28,
-        "src_loc": 23813,
-        "test": 14,
-        "test_loc": 1001
-      }
-    },
-    "largest_source": [
-      {
-        "loc": 11520,
-        "path": "_annoy/src/annoymodule.cc"
-      },
-      {
-        "loc": 5132,
-        "path": "_annoy/src/annoylib.h"
-      },
-      {
-        "loc": 1597,
-        "path": "_annoy/_backup/src/annoylib.h"
-      },
-      {
-        "loc": 1361,
-        "path": "_annoy/_plotting.py"
-      },
-      {
-        "loc": 685,
-        "path": "_annoy/_backup/src/annoymodule.cc"
-      },
-      {
-        "loc": 434,
-        "path": "_annoy/_backup/fastannoy/annoymodule.cpp"
-      },
-      {
-        "loc": 346,
-        "path": "_annoy/src/annoyluamodule.cc"
-      },
-      {
-        "loc": 321,
-        "path": "_annoy/_backup/src/annoyluamodule.cc"
-      },
-      {
-        "loc": 311,
-        "path": "_annoy/src/mman.h"
-      },
-      {
-        "loc": 242,
-        "path": "_annoy/_backup/src/mman.h"
-      }
-    ]
+      "asset": 6,
+      "source": 22,
+      "test": 16
+    }
   },
-  "source": {
-    "archive": "scikit-plots.zip",
-    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
-  }
+  "runtime_root": "scikitplot/cexternals/_annoy",
+  "schema_version": 2,
+  "subsystem": "scikitplot.cexternals._annoy"
 }

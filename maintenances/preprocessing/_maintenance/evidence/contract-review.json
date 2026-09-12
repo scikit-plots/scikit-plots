@@ -1,0 +1,20 @@
+{
+  "subsystem": "scikitplot.preprocessing",
+  "maintenance_status": "FAIL",
+  "runtime_status": "FAIL",
+  "maintenance_errors": [
+    "evidence log hash mismatch for static_contract_review"
+  ],
+  "runtime_findings": [
+    "DummyCodeEncoder _build_cache keys the global encoding map by raw category only; feature-local identity can collapse across columns",
+    "DummyCodeEncoder _transform has no live infrequent-category mapping/application call; fitted grouping metadata can diverge from the returned matrix",
+    "GetDummies has no fit-time/sklearn-style validation for documented handle_unknown values; unsupported modes can silently behave like ignore"
+  ],
+  "inventory": {
+    "tracked_files": 7,
+    "production_python_files": 2,
+    "test_python_files": 3,
+    "test_support_python_files": 2
+  },
+  "runtime_fingerprint": "652b96efffa6424d454239552bbec7cfb99d8c9e3c3988d5c3187fdd97baaa36"
+}

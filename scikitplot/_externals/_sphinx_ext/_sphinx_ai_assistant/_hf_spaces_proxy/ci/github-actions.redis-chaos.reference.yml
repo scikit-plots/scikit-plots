@@ -1,0 +1,81 @@
+# Reference job. Merge into the parent repository workflow rather than running this file directly.
+name: redis-chaos-reference
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  provider-artifact-redis-chaos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - redis_major: 7
+            redis_image: redis:7.4.11-bookworm@sha256:71da9275c5f3fcb97d0fa0c8c5b36cc995327265420f17a04bfd544f458059f7
+          - redis_major: 8
+            redis_image: redis:8.2.9-bookworm@sha256:7d1e4ce8b9395088377ab382d1f6cfdbd13b3690795198a0399ab8d683064d6d
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build isolated digest-pinned Redis chaos image
+        run: |
+          docker build \
+            -f scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/ci/redis-chaos.Dockerfile \
+            --build-arg REDIS_IMAGE='${{ matrix.redis_image }}' \
+            -t scikitplot-redis-chaos:ci .
+      - name: Run standalone + cluster live-Lua chaos gate and emit canonical evidence
+        run: |
+          mkdir -p "$RUNNER_TEMP/redis-chaos-evidence"
+          docker run --rm \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,noexec,size=256m \
+            --tmpfs /var/tmp:rw,nosuid,nodev,noexec,size=256m \
+            --mount "type=bind,src=$RUNNER_TEMP/redis-chaos-evidence,dst=/evidence" \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            scikitplot-redis-chaos:ci \
+            --mode all \
+            --attestation-dir /evidence \
+            --source-revision '${{ github.sha }}' \
+            --redis-image '${{ matrix.redis_image }}'
+      - name: Cryptographically attest canonical Redis chaos evidence
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: '${{ runner.temp }}/redis-chaos-evidence/*.json'
+      - name: Verify signatures and emit sanitized release records
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          signer_workflow="${GITHUB_WORKFLOW_REF%@*}"
+          test -n "$signer_workflow"
+          for attestation in "$RUNNER_TEMP"/redis-chaos-evidence/redis-chaos-redis${{ matrix.redis_major }}-*.json; do
+            gh attestation verify "$attestation" \
+              -R "$GITHUB_REPOSITORY" \
+              --source-digest "$GITHUB_SHA" \
+              --source-ref "$GITHUB_REF" \
+              --signer-workflow "$signer_workflow" \
+              --signer-digest "$GITHUB_SHA" \
+              --deny-self-hosted-runners \
+              --format json >/dev/null
+            stem="${attestation%.json}"
+            python scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/ci/redis_chaos_attestation.py \
+              signature-record \
+              --attestation "$attestation" \
+              --output "${stem}.signature-verification.json" \
+              --source-revision '${{ github.sha }}'
+          done
+      - name: Upload signed Redis chaos release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: redis-chaos-evidence-${{ matrix.redis_major }}
+          path: '${{ runner.temp }}/redis-chaos-evidence/'
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.annoy",
+  "lanes": [
+    {
+      "id": "compiled-architecture",
+      "checks": [
+        "dependencies",
+        "generation",
+        "public_surface",
+        "build",
+        "planes"
+      ]
+    },
+    {
+      "id": "continuation",
+      "checks": [
+        "handoff",
+        "inventory",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "verification",
+      "checks": [
+        "evidence"
+      ]
+    }
+  ],
+  "release_gates": [
+    "maintenance_tests",
+    "template_generation",
+    "cython_extension",
+    "native_backend_compat",
+    "module_tests",
+    "cross_platform"
+  ]
+}

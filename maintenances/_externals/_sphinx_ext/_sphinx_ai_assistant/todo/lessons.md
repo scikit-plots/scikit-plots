@@ -334,7 +334,7 @@ wrong everywhere the user actually goes.
 - **Then:** Open the upstream before downstream success, preserve JSON as JSON,
   preserve SSE as SSE, never retry after visible output, and make terminal
   stream failures explicit.
-- **Verified by:** `tests/test_proxy_streaming_state.py` plus the deterministic
+- **Verified by:** `tests/_hf_spaces_proxy/test_app__streaming_state.py` plus the deterministic
   `stub/qa` curl in `_maintenance/APP_STREAMING_RUNBOOK.md`.
 - **Added:** 2026-08-28
 
@@ -551,3 +551,754 @@ A storage serializer that no longer writes a secret is not enough if its loader 
 - A response-size check after `.json()` is not a memory boundary; the stream must be bounded before parsing.
 - Successful mutation status does not justify buffering a response body that the application never uses.
 - Detached clones are serialization material, not visibility authorities; style and geometry must be measured on the live rendered DOM first.
+
+---
+
+## 2026-09-06: Run 169–172 continuation rules
+
+### Rule: distinguish release bytes from developer-workspace bytes
+
+A developer workspace can contain maintenance, skills, caches, and local test
+artifacts that are intentionally absent from the deployable ZIP. Record both
+anchors separately. Never infer deployable identity from a workspace filename.
+
+### Rule: move dev-only helpers by contract, not appearance
+
+Before moving a Python file out of runtime, search imports, tests, docs, and
+entry-point instructions. If the file is development-only, move it to the
+maintenance mirror and update tests to load the new explicit path. Do not leave
+a runtime import contract for a file that is no longer a runtime module.
+
+### Rule: a moved checker must check from its new location
+
+Moving `check_trackers.py` into `_maintenance/tools/` changed the meaning of
+`Path(__file__).parent`. The first drift run caught the stale assumption. Any
+maintenance-tool move must be followed immediately by its own positive run.
+
+### Rule: latest-state authority must include failed revisions
+
+For generated files, a newer oversized, invalid, unavailable, evicted, or
+removed revision advances latest state even when it has no preview bytes. Old
+links must report the newest unavailable state, never silently resurrect older
+content.
+
+### Rule: cancellation authority cannot depend on visualization
+
+Run 172 uses a headless per-turn request token as authority; the activity UI is
+only a view. Turning off activity visualization must not weaken cancellation,
+stream ownership, reasoning fallback suppression, or late-result rejection.
+
+### Rule: isolate heavy cryptographic tests by completed summaries
+
+Runs 163–168 can accumulate process/fixture state. Split by exact node IDs when
+needed. Avoid `pytest | tee` for these runs because inherited pipe descriptors
+can keep the shell waiting after pytest has already completed.
+
+### Rule: scope historical source assertions to their owner
+
+A test that bans a token globally can become stale when another feature starts
+using that token legitimately. Run 58's microphone ARIA check was corrected to
+inspect the microphone picker rather than the entire JS bundle.
+
+### Rule: release hygiene includes untracked and generated files
+
+`git diff` omits untracked new files unless they are deliberately included.
+Cache, bytecode, backup, and temporary files can also contaminate package
+membership after tests. Fresh-patch and package identity must compare explicit
+file membership, hashes, and modes, not just a diff summary.
+
+## 2026-09-07: Test filenames are architecture, not chronology
+
+**Context:** Run-number and feature-suffixed tests had accumulated in one flat
+folder, making ownership ambiguous and moves fragile.
+
+**Rule:** Every Python runtime module has one collected test owner with the exact
+mechanical name `test_<module>.py`; `__init__.py` maps to `test___init__.py`. Large
+contracts split only into hidden non-collected `_cases/<module>/` fragments.
+Run provenance belongs in maintenance/checkpoints or test function names, not the
+canonical test filename.
+
+**Verification:** `tests/_architecture/test_test_layout.py` must fail on a second
+collected owner, stale Run filename, direct-collectable case fragment, parent-depth
+path discovery, missing mirror, or stale migration target.
+
+## 2026-09-07: Structural test moves must preserve fixture scope and path authority
+
+Moving a test changes `__file__`, `__package__`, fixture discovery, and any
+test-to-test imports. A green rename requires collection plus execution, not just
+a filesystem move. Pytest 9 exposes fixtures as `FixtureFunctionDefinition`, so
+custom loaders must detect `_fixture_function_marker`; imported classes such as
+`TestClient` must not be collected unless defined by the case module.
+
+
+
+## 2026-09-07: Hermetic PATH and `env` shebangs test different contracts
+
+**Context:** The local Python 3.11/micromamba full suite stopped at the Run 170
+secret-isolation probe. Production correctly gave the publisher child only
+`PATH=os.defpath`, but the test script used `#!/usr/bin/env python3`. The child
+exited 127 before reading the canary because the micromamba interpreter was not
+under `/bin:/usr/bin`. The failure also exposed an unclosed stdout pipe warning.
+
+**Classification:** Environment/isolation test defect plus production resource
+cleanup defect. No parent secret crossed the process boundary.
+
+**Prevention rule:**
+- When a test is proving that a child receives a secret-free allowlisted
+  environment, pass its interpreter explicitly (`sys.executable`). Do not make
+  the same test depend on PATH-based shebang discovery.
+- When production opens subprocess pipes, close/reap them on success, nonzero
+  exit, timeout, overflow and drain failure. Focused adapter tests should run
+  with `ResourceWarning` promoted to an error.
+
+**Verification:** Exact local-failure node 1/1; Run 170 hermeticity owner 10/10;
+`test_publish_release.py` 17/17 including explicit failed-child pipe-closure
+assertions; combined 27/27 with `-W error::ResourceWarning`.
+
+
+## 2026-09-07: Fixture-generated trust identifiers are part of the test contract
+
+**Context:** The Run 163 bootstrap test failed before anchor verification because
+its shared Run 162 fixture generated `with-key-*` while every witness consumer
+requested `wit-key-*`.
+
+**Rule:** Cryptographic fixtures must generate identities, key IDs, operators, and
+selected signer IDs from one canonical namespace. A fixture typo is not a reason
+to make production verifiers accept aliases or multiple spellings.
+
+**Verification:** Re-run the exact consumer, then the fixture owner and downstream
+trust-chain owners. For heavy Runs 163–168, completed exact-node batch summaries
+are valid evidence; progress dots without a summary are not.
+
+
+## 2026-09-07: Reader completion precedes subprocess outcome classification
+
+**Context:** Run 163's bounded-output adapter correctly rejected oversized child output but leaked both parent reader pipes. A warning-strict sweep found the same copied lifecycle defect in adjacent release adapters. During repair, Run 160 also exposed an ordering race when overflow state was checked before the reader threads had completed.
+
+**Rule:** A command adapter owns its child process and every pipe it opens. On success, nonzero exit, timeout, overflow, parse failure, or drain failure it must reap the child and close its pipe endpoints. When overflow is detected by reader threads, join/drain completion must happen before the main thread decides whether the response is oversized or parseable.
+
+**Verification:** Promote `ResourceWarning` to an error and make bounded-output regressions inspect the actual `Popen` object for `poll() is not None` plus closed stdin/stdout/stderr as applicable.
+
+
+## 2026-09-07: Hermetic subprocess fixtures must make interpreter identity explicit
+
+**Context:** After the pipe-ownership repair, the local suite reached Run 160 and a bounded-output fixture exited 127 because its `#!/usr/bin/env python3` shebang could not resolve micromamba Python inside the intentionally restricted child PATH.
+
+**Rule:** A test for output bounds, protocol parsing, or process cleanup must not accidentally test PATH-based interpreter discovery. For command APIs that accept argv, pass `sys.executable` explicitly. For a deliberately path-only executable contract, use an absolute interpreter shebang (or a true standalone executable). Keep the child environment hermetic.
+
+**Verification:** Force the adapter's effective `os.defpath` to an empty directory in focused regressions. The fixture must still execute through its explicit interpreter identity, reach the intended protocol behavior, and remain warning-strict.
+
+## 2026-09-07: Verify tuple return ownership before mutating fixture consumers
+
+**Context:** The Run 161 auditor/operator-overlap test discarded `_setup()`'s
+membership-path slot and then treated the following `targets` list as though it
+owned a `membership_path` attribute. The production path was never reached.
+
+**Rule:** For shared test helpers that return positional tuples, inspect the
+helper's return order before changing either tests or production. Bind the
+authoritative path/state value explicitly and preserve the neighboring adapter
+collection's real type. A consumer destructuring typo is not a reason to invent
+new attributes or relax runtime interfaces.
+
+**Verification:** Re-run the exact consumer, the canonical owner, and the
+adjacent producer/consumer trust-chain owners.
+
+## 2026-09-07: Docker COPY and deny-by-default `.dockerignore` form one contract
+
+**Context:** The proxy Dockerfile copied `_providers/`, but the build context used
+`*` as a default deny rule and only re-included `_utils/`. BuildKit therefore
+failed during checksum calculation before any Python/runtime stage ran.
+
+**Rule:** When `.dockerignore` is deny-by-default, every local Dockerfile `COPY`
+source must both exist in the chosen build-context root and be explicitly
+re-included. Directory sources should re-include the directory and descendants,
+then re-exclude caches/bytecode. A Dockerfile COPY assertion alone is
+insufficient because Docker never sees paths removed from the context.
+
+**Verification:** Derive local COPY sources from the Dockerfile, assert the exact
+source set, assert file/directory existence, and assert matching allowlist rules.
+Independently evaluate representative files through the ignore patterns; `_providers`
+must be visible while cache/bytecode remains excluded.
+
+
+
+## 2026-09-07: Transition tests must reuse authoritative setup outputs
+
+**Context:** The Run 158 status-version-gap test discarded `_initialized()`'s
+returned lifecycle directory and substituted `tmp/out`, a path the fixture never
+created. The production API correctly rejected the invalid previous directory before
+it could evaluate version continuity.
+
+**Rule:** When a setup helper creates and returns the authoritative prior state or
+output directory, transition tests must pass that exact returned object/path. Do not
+replace it with a guessed sibling name. Prerequisite validation should remain strict
+and ordered before deeper transition invariants.
+
+**Verification:** Re-run the exact transition, its canonical owner, and the immediate
+producer/consumer neighbor owners. The intended deeper error must be reached without
+weakening prerequisite validation.
+
+
+## 2026-09-07: Canonical module singleton mutations must be teardown-scoped
+
+**Context:** A hostile-parent integration test imported the canonical AI-assistant package and
+replaced its cached logger with a warning-only stub using direct assignment. The test passed, but
+the same module object was reused later by the Markdown-generation owner, where `.info()` was
+legitimately required.
+
+**Rule:** If a test mutates global state on a canonical imported module, use pytest `monkeypatch`
+or `try/finally` to restore the prior value. Never rely on later tests to reset a logger/cache/
+registry singleton. Private modules loaded with `spec_from_file_location` are separate instances
+and should not be confused with canonical package state.
+
+**Verification:** Reproduce the original test order explicitly, then rerun the mutating owner, the
+consumer owner, and the combined order-sensitive surface. Do not add production fallbacks merely
+to tolerate an incomplete leaked test double.
+
+## 2026-09-07: Schema migration must preserve semantics, not only version labels
+
+**Context:** The browser conversation export had advanced to schema 2.1 with resource manifests while both Global Share backends still required 2.0. Simply accepting the new label would have allowed saves while older server canonicalization could silently drop 2.1 provenance.
+
+**Rule:** When an export/share schema advances, define one canonical current output version and explicit accepted-input migration versions. Rebuild redundant projections (such as `turns`) from validated authoritative records, and verify every supported serialization format after server canonicalization. A version compatibility fix is incomplete if fields introduced by the newer schema disappear in transport.
+
+**Privacy corollary:** Local artifact provenance and server-backed Share provenance may have different URL policies. Apply the stricter portable boundary independently on the server; never trust the browser alone to remove credentials, queries, fragments, filesystem paths, or custom schemes.
+
+## 2026-09-07: Human-facing filenames are provenance, not authority
+
+**Rule:** User-facing artifact filenames should encode lifecycle role and representation (`local-save`, `global-share`, `request-json`, `cloud-projection-jsonl`, etc.) so files remain understandable outside the UI. Never encode secrets, edit tokens, read capabilities, session identifiers, or opaque storage keys into those names. Internal object keys may remain opaque.
+
+**Cloud corollary:** A downloadable cloud representation should use a fixed endpoint with the capability in a bounded body/authorized channel, while the server owns the filename, MIME, and serialization. The filename helps humans trace provenance; the server record and receipt remain the actual authority.
+
+## R173T2B — derived merged artifacts must not become write authority
+
+A human-friendly merged JSONL is useful for analysis, but one mutable monolith is a poor lifecycle authority for review revisions, concurrent submissions, withdrawal, and deletion. Keep individual provider records authoritative, derive the merged view through the same dedup/lineage resolver, bind it with a manifest hash, and explicitly prevent derived exports from being re-ingested as source records.
+
+
+## 2026-09-07: Derived cloud views need cryptographic self-identification and atomic publication
+
+**Context:** Contribution cloud merging introduced a human-friendly JSONL analysis artifact. Default filename exclusion prevented obvious self-ingestion, but a custom-renamed merged export could later look like source authority. A sidecar alone was not enough because a stale or hostile manifest could otherwise hide an unrelated JSONL.
+
+**Rule:** Derived merged artifacts never become lifecycle/write authority. Recognize a custom-named derived artifact only when a bounded sidecar declares the expected artifact family/lifecycle role, names the exact file, and its SHA-256 matches the exact current bytes. Publish merged data and its manifest through temporary files with flush + `fsync` + atomic `os.replace`, preserving any prior valid artifact on replacement failure.
+
+**Privacy corollary:** Re-run canonical privacy minimization while deriving views from historical rows; a merged/export path must not resurrect endpoint, credential, URL-query, or descriptive metadata that current submission boundaries no longer accept.
+
+## 2026-09-07: SQLite transaction context does not close the connection
+
+**Context:** Python 3.13 warning-strict tests exposed an unclosed test inspection connection written as `with sqlite3.connect(path) as conn:`. SQLite's context manager commits or rolls back the transaction but does not close the connection.
+
+**Rule:** The creator of a SQLite connection owns its close. Tests that only inspect a database must explicitly close the connection (for example `contextlib.closing(sqlite3.connect(...))` or `try/finally`). Do not change production resource ownership when the leak belongs to a test fixture.
+
+## 2026-09-07: Control flow is not evidence for parser behaviour
+
+**Context:** Reviewing the AI panel before Run 173 T4, I asserted that a broken
+pipe promoted truncated file bytes to an authoritative revision.
+
+**Issue:** The claim was wrong. An unterminated fence never renders as a `<pre>`,
+so an interrupted stream registers nothing. Meanwhile the real defect — the
+three-backtick fence regex truncating any generated file that itself contains a
+fence — sat one line away and was not found by reading control flow at all.
+
+**Root cause:** The reasoning traced call sites (`_appendArtifactCards` →
+`_registerGeneratedArtifact`) and never asked what the *parser* produced as input
+to that chain. Call-graph reading answers "what runs"; only execution answers
+"with what data".
+
+**Prevention rule:**
+- When: any claim about generated-artifact integrity that depends on how Markdown,
+  a fence, or any other text format is parsed.
+- Then: execute the shipped regex or function against a fixture that includes the
+  interrupted case, the nested-delimiter case and the multi-block case, and quote
+  the measured output in the finding.
+- Verified by: the finding cites observed values, not line numbers alone.
+
+## 2026-09-07: A derived name must reserve room for its own disambiguator
+
+**Context:** Replacing `snippet-N.ext` with contextually derived filenames.
+
+**Issue:** `(base + suffix).slice(0, MAX)` truncated the suffix away whenever the
+base already filled the budget, so every unnamed block in an answer to a long
+question resolved to one identical filename — reintroducing the silent-overwrite
+collision the resolver existed to prevent.
+
+**Root cause:** Truncation was applied to the joined string rather than to the
+part that is allowed to shrink.
+
+**Prevention rule:**
+- When: composing a bounded identifier from a variable base plus a required suffix.
+- Then: subtract the suffix length from the budget before slicing the base, and
+  assert in the harness that N > 1 inputs produce N distinct outputs at the
+  maximum base length.
+- Verified by: a harness case using a base longer than the budget.
+
+## 2026-09-07: A format gate must exercise the real consumer
+
+**Context:** Shipping `git am`-compatible patch export from the panel.
+
+**Issue:** The first hunk assembler emitted overlapping hunks — the second hunk
+began on a line the first had already claimed. Every structural assertion I had
+written passed: the mailbox headers were right, the `diff --git` line was right,
+the `@@` ranges were internally consistent. Real `git am` rejected the patch
+outright with "patch does not apply".
+
+**Root cause:** Line numbers were derived while emitting hunks, so trailing
+context counted into one hunk was walked over again as the next hunk's leading
+context. Structural assertions could not see it because each hunk was valid in
+isolation; only the relationship between hunks was wrong.
+
+**Prevention rule:**
+- When: emitting any interchange format that an external tool consumes
+  (git patches, ZIP archives, JSONL for ingestion, mailbox text).
+- Then: the gate must invoke the real consumer on the produced bytes and assert
+  the resulting state, not just the syntax of the output. Where the tool may be
+  absent, keep the structural assertions and skip only the invocation, printing
+  a note.
+- Verified by: the harness shells out to the consumer and compares the applied
+  result byte-for-byte against the source revision.
+
+**Related:** 2026-09-07 "Control flow is not evidence for parser behaviour" —
+same failure shape, one layer up: reasoning about a format instead of running it.
+
+## 2026-09-07: A source-wide substring search is not a UI assertion
+
+**Context:** Asserting that the retry control no longer claims an "as-is" resend.
+
+**Issue:** `!src.includes('resend this question as-is')` failed against correct
+code. The only remaining occurrences were my own explanatory comments, which
+quote the old label in order to explain why it was replaced.
+
+**Root cause:** The assertion searched the whole file for a phrase when the
+contract concerned only strings the reader can see. Comments and user-facing
+labels are different populations; conflating them makes the test fail on
+documentation and, worse, would let it pass if the phrase moved into a variable.
+
+**Prevention rule:**
+- When: asserting that a user-facing string is present or absent.
+- Then: extract the assignment sites first (`setAttribute('aria-label'|'title', …)`,
+  `.title =`, `.textContent =`) and assert against that extract, never against
+  the raw source.
+- Verified by: the harness builds an explicit `uiStrings` extract, and a mutant
+  that restores the old label in an assignment is caught.
+
+**Related:** 2026-09-07 "A format gate must exercise the real consumer" — both
+are the same error: asserting on a proxy for the thing instead of the thing.
+
+## 2026-09-07: A mutant that cannot fail proves nothing
+
+**Context:** Guarding that file-preview collapsing runs once at finalization
+rather than on every streamed chunk.
+
+**Issue:** The mutant duplicated the finalization call and was not caught. That
+was correct behaviour: the `data-ai-file-disclosure` guard makes a second call
+a genuine no-op. The mutant encoded a harm the code had already made
+impossible, and its paired assertion guarded a function that was never at risk.
+
+**Root cause:** The mutation was written from the shape of the code (a call I
+could easily duplicate) instead of from the hazard (the call migrating into the
+per-chunk streaming path). Convenient to express is not the same as dangerous.
+
+**Prevention rule:**
+- When: adding a mutant.
+- Then: state the failure mode in one sentence first, then write the smallest
+  edit that actually produces *that* failure. If the mutation survives, decide
+  whether the guard makes it harmless — and if so, delete or retarget the
+  mutant rather than loosening the code to make it fail.
+- Verified by: every mutant's `why` names an observable wrong behaviour, and
+  the mutant is confirmed caught before the run is packaged.
+
+## 2026-09-07: Source-level assertions cannot prove a chain runs
+
+**Context:** R173T15 added activity-timeline persistence. R173T17 found it had
+never stored anything.
+
+**Issue:** `_recordMessage('assistant', text, modelInfo)` was called with no
+`turnMeta`, so `turnMeta.activity` was always undefined and the whole feature
+was inert. Three assertions covered the chain — the recorder writes
+`entry.activity`, the loader calls `_activityRestoreSummary`, the replay passes
+`restoredActivity` — and all three passed, because each checked that a line
+existed in the source. None checked that anything reached it.
+
+**Root cause:** The harness verified the author's intent rather than the
+product's behaviour. Greping for a line is evidence about the code as text, not
+about the code as a running thing.
+
+**Prevention rule:**
+- When: a feature's value depends on a chain of calls (produce → persist →
+  restore → render).
+- Then: at least one gate must construct the real functions and execute the
+  chain end to end with real inputs, asserting the observable result — plus the
+  negative case, where the input is absent and nothing is produced.
+- Verified by: a mutant that removes the caller's argument is caught.
+
+**Related:** 2026-09-07 "A format gate must exercise the real consumer" — the
+same error one layer up. This one was committed in the run that wrote that rule.
+
+## 2026-09-08: Assert the contract where it lives, not where it was implemented
+
+**Context:** Extracting one segmented artifact control used by both the snippet
+cards and the Presented files section.
+
+**Issue:** `!src.includes('card.appendChild(dlBtn)')` guarded "download is never
+nested inside preview" using one call site's variable names. When the
+construction moved into a shared builder, a mutation that nested the segments
+for every surface at once left that string untouched — the assertion passed and
+the mutant survived.
+
+**Root cause:** The assertion described an implementation detail of one caller
+rather than the rule. Refactoring is exactly when such an assertion stops
+covering anything, and exactly when it looks like it still does.
+
+**Prevention rule:**
+- When: a behaviour moves into a shared helper.
+- Then: re-express its assertions against the helper, and retarget every mutant
+  whose anchor lived at the old call site. Keep a call-site check only as a
+  narrower addition, never as the only one.
+- Verified by: the mutant is re-run and confirmed caught after the retarget.
+
+**Related:** the same shape as the T17 lesson (source-level assertions cannot
+prove a chain runs) and the T16 one (a mutant that cannot fail proves nothing).
+
+## 2026-09-08: Assert the guard, not just the call
+
+**Context:** Guarding that Stop unstages the attachment Continue created.
+
+**Issue:** `stopFn.includes('_unstageContinuationAttachment(entry.path);')`
+passed while its mutant survived. The mutant had wrapped the call in
+`if (false)`, so the substring was still present in a line that could never run.
+
+**Root cause:** A substring assertion tests that text exists, not that it
+executes. Mutations that disable code rather than delete it are invisible to it.
+
+**Prevention rule:**
+- When: asserting that a call happens.
+- Then: include enough of its guard in the matched text that disabling the
+  branch changes the match, or drive the function and assert the observable
+  effect.
+- Verified by: a mutant that replaces the guard's condition with a constant
+  false is caught.
+
+**Related:** the T17 lesson (source-level assertions cannot prove a chain runs)
+is the same failure with the whole chain missing rather than one branch.
+
+## 2026-09-08: A redraw that is a caller's responsibility will be forgotten
+
+**Context:** "Remove all attached files" emptied the registry and left every
+composer chip on screen.
+
+**Issue:** `_removeComposerResourceItem` mutates state without redrawing. Its
+two original callers each redrew afterwards, so the redraw was an unwritten
+convention. The third caller, added two checkpoints later, did not know it.
+
+**Root cause:** The obligation lived in the callers rather than in the function
+that created it. Nothing in the signature, the name or a gate said a redraw was
+owed, so the only way to learn it was to have read the other call sites.
+
+**Prevention rule:**
+- When: a function mutates state that any rendered surface reads.
+- Then: it either redraws, or every mutation routes through one refresh entry
+  point that does — never left to the caller to remember.
+- Verified by: a mutant that removes the redraw is caught, and adding a new
+  caller cannot pass the gates without going through that entry point.
+
+**Related:** this is the third staleness bug in three checkpoints (T27 menu
+label, T29 button label, T30 chips). All three were one surface refreshed from
+whichever call site the author had in front of them.
+
+## 2026-09-08: Strip comments before asserting against raw source
+
+**Context:** Three separate assertions this run failed against correct code
+because they matched the source's own comments: the TOML export's note that
+omitted values represent null, the comment quoting retry's old "as-is" label,
+and a CSS comment explaining why `display:none` is not used.
+
+**Root cause:** A comment that explains why something is absent necessarily
+contains the thing it is absent of. An assertion searching raw source for that
+thing finds the explanation and reports the absence as a presence.
+
+**Prevention rule:**
+- When: asserting the presence or absence of a token in source or stylesheet
+  text.
+- Then: strip comments first (`/* */`, `//`, `#` as the language requires), or
+  scope the match to the construct that matters — an assignment, a declaration,
+  a UI string extract.
+- Verified by: the assertion still passes after adding a comment that mentions
+  the token.
+
+## 2026-09-08: Never assume which element is the containing block
+
+**Context:** Two positioning bugs in six checkpoints. R173T57 positioned a pill
+against the footer, which was not its ancestor, and it left the panel. R173T62
+wrote viewport coordinates as `position: fixed`, and a transformed ancestor
+made them resolve elsewhere.
+
+**Root cause:** Both were assumptions about layout, written confidently in
+comments, never measured. A containing block is decided by ancestors that may
+be several subtrees away and may acquire a `transform` for reasons unrelated to
+the element being positioned.
+
+**Prevention rule:**
+- When: writing coordinates into `style.left` / `style.top`.
+- Then: measure the element's own origin first — pin it at `(0,0)`, read its
+  rect, and subtract that from viewport-space coordinates. Never name the
+  presumed containing block in a comment as justification.
+- Verified by: the routine is driven twice with the origin at `(0,0)` and at an
+  offset, and must produce the same on-screen position both times.
+
+
+## 2026-09-10: Equal-specificity rules can make a visually correct declaration dead
+
+**Context:** The PDF switch declared a larger checked-thumb transform, but the
+shared Mic checked rule appeared later with equal specificity. The browser used
+the later 12px rule, while the Panel switch looked correct because its specific
+rule happened to be declared later.
+
+**Root cause:** Static tests proved that the desired declaration existed, not
+that it won the cascade. A later equal-specificity declaration silently became
+the computed-style authority.
+
+**Prevention rule:**
+- When: variants share a base CSS behavior but need different numeric geometry.
+- Then: keep one behavioral declaration and feed it a per-control custom-property
+  token with a safe base fallback; do not stack competing transforms.
+- Verified by: assert the shared rule consumes the token, variants define the
+  token, and no variant-specific transform authority remains.
+
+## 2026-09-10: A shared class is not a shared computed style when it inherits context
+
+**Context:** The Feedback/Contribution/Activity workspace tabs and the
+Conversation JSON format tab used the same button class, but the workspace tabs
+still looked different.
+
+**Root cause:** The button owned font size and weight but inherited line-height.
+The JSON tab lived inside a body that sets `line-height: 1.55`; the workspace
+ tablist was a direct sheet child. A second workspace-only selected underline
+also introduced a colour authority not present on the reference button.
+
+**Prevention rule:**
+- When: one visual component is intentionally reused across different container
+  depths/surfaces.
+- Then: the component must own the typography metrics and visual state tokens
+  that define its appearance; surface-specific rules may alter layout only.
+- Verified by: assert an explicit canonical line-height, assert the workspace
+  override contains no font/colour/background/border/box-shadow/opacity state,
+  and kill a mutant that restores inherited line-height.
+
+
+## 2026-09-10: Flex wrapping cannot repair a missing layout group
+
+**Context:** Managed Share artifact rows had readable text plus three or four lifecycle buttons. Wide rows were fine; narrow panel widths squeezed metadata before buttons moved below.
+
+**Root cause:** A later `flex:1` reset the intended metadata basis to `0%`, and each action was an independent sibling of the metadata. The browser therefore optimized individual flex items rather than the semantic groups the UI actually contains.
+
+**Prevention rule:**
+- When: a responsive row has primary content plus a variable set of actions.
+- Then: represent content and actions as explicit sibling groups, give primary content one flex authority, and adapt from the actual component container rather than the viewport.
+- Verified by: one metadata flex rule, an explicit actions wrapper, container-query stacking, a four-action 2x2 tight layout, DOM lifecycle replay, and mutation controls that restore each failure mode.
+
+
+## 2026-09-11: A popup belongs to its trigger, not to the content row that happens to contain it
+
+**Context:** The mobile model `⋮` trigger stayed at the top-right of each card,
+but its Edit/Delete/Reset popup was absolutely positioned from the full model
+row. Rows with descriptions and metadata therefore created a large visual gap.
+
+**Root cause:** The DOM shared behavior across breakpoints but did not share a
+local positioning owner. `top:100%` was mathematically correct for the row and
+visually wrong for the trigger.
+
+**Prevention rule:**
+- When: a disclosure control owns a floating menu/popover.
+- Then: put trigger and popup in one small positioned host (or use an equivalent
+  measured anchor), and bound/flip against the nearest visible scroll surface.
+  Do not derive trigger distance from unrelated content height.
+- Verified by: structural host assertions, below/right placement, measured
+  flip-above logic, neighbor model-management tests, and mutations that restore
+  each failure mode.
+
+- R173T89: for touch-visible icon controls, hover cannot be part of the
+  visibility contract. Also test the effective CSS cascade: a later
+  `background` shorthand can silently erase an earlier `background-color` even
+  when a naive source assertion remains green.
+
+
+## 2026-09-11: Responsive thresholds should follow content competition, not device labels
+
+**Context:** Per-file artifact Download text collapsed correctly in a narrow
+desktop panel but could remain visible on a wider full-width mobile surface,
+leaving too little room for a long filename.
+
+**Root cause:** One `22rem` container threshold governed both per-file controls
+that compete with filenames and bulk footer actions that do not. The responsive
+primitive was correct; the policy grouped unlike layout pressures.
+
+**Prevention rule:**
+- When: two controls share styling but consume space in different content
+  contexts.
+- Then: share the primitive, not necessarily the breakpoint. Base compaction on
+  the nearest component container and on what information is competing for
+  width.
+- Verified by: distinct 26rem/22rem named-container thresholds, clipping rather
+  than removal, and mutations that regress the threshold or container authority.
+
+## 2026-09-11: Mobile hover can be a post-click state, not a desktop-only state
+
+**Context:** The speak disclosure looked correct at rest after R173T89, but a
+rare mobile tap could leave the button clickable with an apparently transparent
+chevron in either expanded or collapsed state.
+
+**Root cause:** A touch browser may retain `:hover` after tapping. The hover
+selector had greater specificity than the coarse-pointer resting rule and used
+`color: inherit`, so it could replace the known readable foreground with a
+host/container colour close to the surface.
+
+**Prevention rule:**
+- When: an icon control must remain visible on touch and has hover/focus/active
+  styling.
+- Then: treat hover as part of the mobile tap lifecycle; interaction states must
+  preserve an explicit contrast-safe foreground and should not fall back to
+  inherited colour.
+- Verified by: an explicit sticky-hover regression, no colour/background state
+  fork under `aria-expanded`, and mutations that restore inheritance, remove
+  the active state, or return the icon to an unverified accent token.
+
+## 2026-09-11: Disclosure discoverability must exist before hover
+
+**Context:** Collapsible answer sections were technically native `<details>`
+controls, but an open section looked like a bold heading with a small chevron.
+New users and touch users could easily miss that the row was interactive.
+
+**Root cause:** Interaction identity was delegated to hover and a muted glyph.
+Because sections default open, content beneath the heading reinforced the static
+heading interpretation. The chevron direction also did not follow the common
+right-closed/down-open convention.
+
+**Prevention rule:**
+- When: content is collapsible but is presented inline with normal prose.
+- Then: preserve native disclosure semantics and add persistent, low-noise
+  interaction cues that survive touch/no-hover environments: a distinct surface,
+  conventional state geometry, and concise action copy.
+- Verified by: persistent theme-aware summary background/border, right/down
+  chevron states, CSS `[open]`-derived Show/Hide hint, forced-colors/reduced-motion
+  coverage, and mutants that erase each cue independently.
+
+## 2026-09-11: Scroll ownership follows the reading surface, not component reuse
+
+**Context:** Numbered code snippets in ordinary assistant answers reused the
+same outer sheet class as bounded file previews. On some mouse/touch paths,
+vertical scrolling felt trapped while the pointer was over the code.
+
+**Root cause:** R173T69 removed accidental vertical overflow from the inner
+`<pre>`, but the snippet wrapper still inherited the file sheet's vertical
+scroll/overscroll-containment contract. A contradictory `overflow:hidden`
+shorthand also overrode the generic sheet's earlier axis-specific declaration.
+
+**Prevention rule:**
+- When: one visual component is reused inside both a document viewport and
+  ordinary reading flow.
+- Then: assign vertical scroll ownership by surface semantics. Inline prose must
+  yield vertical wheel/touch movement to its parent; only explicit document
+  viewports may contain overscroll. Keep horizontal code pan independent.
+- Verified by: T93 static scroll-ownership assertions, the existing numbered
+  preview contract, full canonical static Node replay, and four mutation
+  controls that restore each trap independently.
+
+## 2026-09-11: Shared markup still fails when legacy geometry remains authoritative
+
+**Context:** Presented files already called the same segmented-control builder
+as normal artifact cards, but the divider/content composition could still look
+wrong while the reference card looked correct.
+
+**Root cause:** Several superseded Presented-file grid generations remained in
+the stylesheet and the tests required more than one of them. The DOM had been
+centralized, but CSS geometry had not. Presented-file Download also omitted the
+base Download visual class, preserving a parallel styling path.
+
+**Prevention rule:**
+- When: two surfaces claim to be the same UI component.
+- Then: centralize both DOM order and geometry; behavior-specific classes may
+  add state but must not own parallel layout. Delete superseded selectors rather
+  than relying on a later override.
+- Verified by: one primary-row selector, shared Preview/Download base classes,
+  explicit Preview → separator → Download builder order, and mutants that
+  restore each old split authority.
+
+
+## 2026-09-11: Responsive rules must migrate with component ownership
+
+**Context:** Presented files were structurally unified in R173T94, but the row
+still broke near the old 560px mobile breakpoint.
+
+**Root cause:** A responsive rule written when Download occupied its own row
+remained after Download moved inside a segmented control. `width:100%` changed
+from a useful standalone-button rule into a destructive flex-segment rule.
+
+**Prevention rule:**
+- When: a control moves into a new layout owner (grid/flex/segmented group).
+- Then: audit every responsive selector for that control, not only its base
+  selector; prefer component/container queries for resizable panel surfaces.
+- Verified by: T95's 560px/full-width mutant, viewport-vs-container mutant,
+  min-content trap mutants, and the complete Node/mutation planes.
+
+## 2026-09-11: Hit-testing success does not prove mobile paint stability
+
+**Context:** The speak disclosure stayed clickable on some real phones while its
+chevron appeared transparent/invisible. Desktop and responsive emulation could
+look correct.
+
+**Root cause:** The floating hint used a zero-height flex row with transformed
+children, while the SVG itself was transformed for state. That created a valid
+interaction box but a fragile off-box compositing path. The icon also used a
+more generic text/currentColor chain than necessary for a control explicitly
+painted on PyData's surface token.
+
+**Prevention rule:**
+- When: a floating mobile control can be hit but its paint is unreliable.
+- Then: inspect layout/compositor ownership as well as color. Prefer a positive
+  paint box with flow cancellation over transformed children outside a
+  zero-height ancestor; pair a surface with its semantic on-surface ink; and
+  match dark-mode fallbacks to the host framework's actual DOM attributes.
+- Verified by: T96's positive-paint-box/no-translate assertions, explicit
+  `--pst-color-on-surface` SVG stroke, real PyData `data-theme/data-mode`
+  selectors, full Node replay, and mutants that independently restore each
+  fragile assumption.
+
+## 2026-09-11: Shared menu chrome is not shared workflow
+
+**Context:** snippet and Presented-file `⋮` menus already used one popup builder,
+but the first offered only Save/Download while the second offered a complete
+inspect/save/patch/continue workflow.
+
+**Root cause:** interaction mechanics were centralized while action vocabulary
+and state progression remained caller-owned. Promotion also did not return an
+identity to the menu, so the original snippet trigger could not graduate to the
+tracked-file capabilities it had just unlocked.
+
+**Prevention rule:**
+- When: multiple surfaces share one menu/disclosure component.
+- Then: centralize equivalent action ordering/labels as well as popup mechanics;
+  keep invalid capabilities hidden until their preconditions exist, and let the
+  same control resolve richer actions as state changes.
+- Verified by: T97's shared `_fileOverflowItems`, promotion return contract,
+  post-promotion menu graduation and six targeted mutation checks.
+
+
+## 2026-09-11: Component-local CSS tokens are not global theme tokens
+
+**Context:** The top toolbar dropdown remained interactive and correctly
+stacked but could render with a transparent background. Live DevTools showed a
+malformed two-color declaration, while the current source used a speak-toggle
+surface token on the unrelated toolbar menu.
+
+**Root cause:** Two failure modes converged on the same CSS error recovery. A
+`background-color` with two color values is invalid at parse time; a custom
+property that is undefined in the element's inheritance chain makes the
+property invalid at computed-value time. In both cases the initial transparent
+background wins.
+
+**Prevention rule:**
+- When: a component needs a themed surface.
+- Then: let that component own a semantic surface token/fallback or use a
+  framework-global token directly; never borrow a custom property scoped to an
+  unrelated component. Keep one color value per `background-color`.
+- Verified by: T98's exact surface-value assertion, PyData dark-selector
+  coverage, and mutants that restore speak-token coupling or concatenate a
+  second color.

@@ -653,7 +653,7 @@ dev: clean
 ## If using bash/zsh and want cleaner syntax (|& = stdout + stderr)
 # python -m pip install --no-build-isolation --no-cache-dir -e . -v |& tee build.log
 ## Append instead of overwrite
-# python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee -a build.log
+# python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee -a pytest.log
 ## Keep colored output (optional)
 # PYTHONUNBUFFERED=1 python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log
 build:

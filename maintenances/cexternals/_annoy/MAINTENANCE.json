@@ -1,0 +1,89 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.cexternals._annoy",
+  "runtime_root": "scikitplot/cexternals/_annoy",
+  "maintenance_root": "maintenances/cexternals/_annoy",
+  "skill": "skills/cexternals/_annoy/SKILL.md",
+  "consumers": [
+    {
+      "name": "annoy",
+      "root": "scikitplot/annoy",
+      "kind": "direct_source_and_native_api",
+      "headers": [
+        "annoylib.h",
+        "kissrandom.h",
+        "annoy_type_support.h"
+      ],
+      "required_imports": [
+        "scikitplot.cexternals._annoy.Annoy",
+        "scikitplot.cexternals._annoy.AnnoyIndex",
+        "scikitplot.cexternals._annoy._plotting"
+      ],
+      "via": null
+    },
+    {
+      "name": "random",
+      "root": "scikitplot/random",
+      "kind": "direct_source",
+      "headers": [
+        "kissrandom.h"
+      ],
+      "required_imports": [],
+      "via": null
+    },
+    {
+      "name": "memmap",
+      "root": "scikitplot/memmap",
+      "kind": "direct_source",
+      "headers": [
+        "mman.h"
+      ],
+      "required_imports": [],
+      "via": null
+    },
+    {
+      "name": "impute",
+      "root": "scikitplot/impute",
+      "kind": "compiled_index",
+      "headers": [],
+      "required_imports": [
+        "scikitplot.annoy._annoy.Index"
+      ],
+      "via": null
+    },
+    {
+      "name": "corpus",
+      "root": "scikitplot/corpus",
+      "kind": "selectable_index",
+      "headers": [],
+      "required_imports": [
+        "scikitplot.annoy.Index",
+        "scikitplot.annoy._annoy.Index"
+      ],
+      "via": null
+    },
+    {
+      "name": "mcp",
+      "root": "scikitplot/mcp",
+      "kind": "transitive_index",
+      "headers": [],
+      "required_imports": [
+        "scikitplot.corpus.RetrievalIndex"
+      ],
+      "via": "corpus"
+    }
+  ],
+  "read_order": [
+    "maintenances/cexternals/_annoy/MAINTAINING.md",
+    "maintenances/cexternals/_annoy/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/cexternals/_annoy/_maintenance/STATE.json",
+    "maintenances/cexternals/_annoy/_maintenance/FAMILY.md",
+    "maintenances/cexternals/_annoy/_maintenance/VERIFICATION.md"
+  ],
+  "public_references": [
+    "https://scikit-plots.github.io/dev/apis/index.md",
+    "https://scikit-plots.github.io/dev/apis/scikitplot.annoy.md",
+    "https://scikit-plots.github.io/dev/apis/scikitplot.random.md",
+    "https://scikit-plots.github.io/dev/apis/scikitplot.memmap.md"
+  ]
+}

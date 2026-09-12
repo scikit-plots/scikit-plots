@@ -1,0 +1,77 @@
+{
+  "current_runtime": {
+    "python": "3.13.5",
+    "sphinx": "not installed",
+    "docutils": "not installed",
+    "sphinx_design": "not installed",
+    "myst_parser": "not installed",
+    "playwright_chromium": "144.0.7559.96"
+  },
+  "prior_full_sphinx_baseline": {
+    "Sphinx": "9.1.0",
+    "sphinx_design": "0.7.0",
+    "MyST": "5.1.0",
+    "namespace_checks_passed": 21,
+    "regression_test_methods_passed": 7,
+    "note": "Historical full-build baseline retained for context; not rerun after the v10 namespace/capability refactor in this runtime."
+  },
+  "current_v10_checks": {
+    "python_files_compiled": 43,
+    "dependency_free_doctests": 67,
+    "youtube_gallery_parity_static": "passed",
+    "youtube_gallery_capability_model": "passed",
+    "latest_source_static_regression": "passed",
+    "browser_parity_roots": 4,
+    "browser_latest_resolution_checks": 30,
+    "browser_direct_post_checks": 21,
+    "browser_typed_export": "passed",
+    "typed_export_model_roundtrip": [
+      "videos -> VideoRecord",
+      "channels -> ChannelRecord"
+    ],
+    "responsive_widths_css_px": [
+      320,
+      768,
+      1440
+    ],
+    "javascript_syntax": "passed",
+    "json_syntax": "passed",
+    "lazy_import_without_sphinx_docutils": "passed",
+    "youtube_gallery_sync_pipeline": "passed",
+    "sync_pipeline_guarantees": [
+      "author handle/tags/fields survive provider refresh by video id",
+      "same-id metadata drift fails --check",
+      "unchanged normalized output is idempotent and writes are atomic",
+      "no-key partial RSS preserves unmatched history and unobserved richer provider fields",
+      "ordinary keyed sync preserves unmatched records; removal requires explicit --prune",
+      "--prune is rejected without YOUTUBE_API_KEY",
+      "provider acquisition is bounded by the 5,000-record catalog ceiling",
+      "channel-playlist overlap deduplication is deterministic"
+    ],
+    "browser_resolver_timeout_recovery": "passed",
+    "typed_search_corpus": "passed",
+    "documentation_static": "passed: README/examples + 14 dependency-free public docstrings; Sphinx-dependent portion skipped",
+    "strict_latest_source_static": "passed",
+    "browser_search_corpus": "passed",
+    "clean_tree_after_tests": "passed: 0 __pycache__, 0 .pyc/.pyo"
+  },
+  "v10_architecture": {
+    "gallery_grid_owner": "_sphinx_gallery_grid",
+    "pydata_component_owner": "_pydata_component_list",
+    "obsolete_bucket": "_pydata_sphinx_theme removed",
+    "youtube_gallery_role": "typed video/channel adapter over one gallery-grid root",
+    "channel_projection": ":view: channels derives a deterministic offline channel index from video catalogs with stable channel identity",
+    "custom_metadata": "fields: exposes validated presentation-neutral metadata to shared group/filter/sort/search paths",
+    "typed_export": "video collections export videos: exact IDs; channel collections export channels: canonical HTTPS roots; no format selector",
+    "channel_identity": "video records separate human-facing channel from optional linkable handle/channel_id",
+    "sync_ownership": "YouTube refreshes provider metadata; authored handle/tags/fields survive by video id; partial RSS is non-pruning",
+    "typed_search": "accessible link prose remains accessible but is excluded from default typed search corpus",
+    "show_count": "youtube-gallery forwards the same explicit :show-count: contract as gallery-grid",
+    "leaf_player_options": "standalone youtube and generated gallery players share validators and privacy semantics"
+  },
+  "limitations": [
+    "Full Sphinx/docutils/sphinx-design/MyST integration builds were not rerun because those packages are not installed and package-index access is unavailable in the current execution environment.",
+    "Sphinx-dependent resource/input fixtures were therefore not rerun; dependency-free bounds/model/sync checks and real Chromium DOM/runtime checks were rerun.",
+    "Live YouTube network/playback and cross-theme device testing were not performed; browser tests intentionally exercised local DOM/runtime behavior without relying on provider availability."
+  ]
+}

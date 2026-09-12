@@ -1,0 +1,100 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.visualkeras",
+  "runtime_root": "scikitplot/visualkeras",
+  "maintenance_root": "maintenances/visualkeras",
+  "skill": "skills/visualkeras/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot.visualkeras model-architecture visualization API: graph_view, layered_view, layer graph discovery helpers, SpacingDummyLayer, drawing/color utilities, Keras/TensorFlow compatibility behavior, focused tests, and optional rendering-dependency behavior.",
+    "does_not_own": "TensorFlow/Keras internals, Pillow, aggdraw, matplotlib display behavior, root scikitplot image-saving infrastructure, external visualkeras upstream, or backend/framework packaging outside this submodule."
+  },
+  "surfaces": {
+    "graph": {
+      "symbol": "graph_view",
+      "description": "Graph/DAG architecture rendering and neuron/node truncation."
+    },
+    "layered": {
+      "symbol": "layered_view",
+      "description": "Layered/volumetric architecture rendering, labels, legends, and spacing."
+    },
+    "layer_graph": {
+      "symbol": "model_to_adj_matrix",
+      "description": "Keras/TensorFlow layer connectivity normalization and hierarchy discovery."
+    },
+    "spacing": {
+      "symbol": "SpacingDummyLayer",
+      "description": "Public lazy-backend spacing layer factory."
+    },
+    "drawing": {
+      "symbol": "get_rgba_tuple",
+      "description": "Pillow/aggdraw-oriented shape, color, and image composition helpers."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/visualkeras/__init__.py",
+      "scikitplot/visualkeras/_graph.py",
+      "scikitplot/visualkeras/_layer_utils.py",
+      "scikitplot/visualkeras/_layered.py",
+      "scikitplot/visualkeras/_utils.py",
+      "scikitplot/visualkeras/tests/__init__.py",
+      "scikitplot/visualkeras/tests/conftest.py",
+      "scikitplot/visualkeras/tests/test_graph.py",
+      "scikitplot/visualkeras/tests/test_layer_utils.py",
+      "scikitplot/visualkeras/tests/test_layered.py",
+      "scikitplot/visualkeras/tests/test_utils.py"
+    ],
+    "required_symbols": {
+      "scikitplot/visualkeras/_graph.py": [
+        "graph_view",
+        "_draw_connector"
+      ],
+      "scikitplot/visualkeras/_layered.py": [
+        "layered_view"
+      ],
+      "scikitplot/visualkeras/_layer_utils.py": [
+        "SpacingDummyLayer",
+        "model_to_adj_matrix",
+        "model_to_hierarchy_lists",
+        "get_incoming_layers",
+        "get_outgoing_layers",
+        "find_input_layers",
+        "find_output_layers",
+        "default_text_callable"
+      ],
+      "scikitplot/visualkeras/_utils.py": [
+        "Box",
+        "Circle",
+        "Ellipses",
+        "ColorWheel",
+        "get_rgba_tuple",
+        "linear_layout",
+        "vertical_image_concat"
+      ]
+    },
+    "test_files": [
+      "scikitplot/visualkeras/tests/test_graph.py",
+      "scikitplot/visualkeras/tests/test_layer_utils.py",
+      "scikitplot/visualkeras/tests/test_layered.py",
+      "scikitplot/visualkeras/tests/test_utils.py"
+    ]
+  },
+  "boundary_contract": {
+    "single_output_rule": "graph_view(inout_as_tensor=False) must normalize single-output and multi-output model.output_shape consistently before multiplying dimensions.",
+    "ellipsize_rule": "Ellipsis nodes may appear only when the represented layer actually exceeds ellipsize_after; exact/below-threshold layers must render their true units.",
+    "optional_backend_rule": "SpacingDummyLayer must fail with an explicit dependency error when no supported Keras/TensorFlow Layer class is importable; warning-then-TypeError is not acceptable.",
+    "deprecation_rule": "Default layered_view invocation must not emit a deprecation warning for legend_text_spacing_offset merely because the default value is nonzero.",
+    "test_matrix_rule": "Focused tests that claim TensorFlow-or-Keras support must schedule only frameworks that are actually importable; a Keras-only environment cannot unconditionally schedule TensorFlow fixtures.",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ]
+  },
+  "read_order": [
+    "maintenances/visualkeras/MAINTAINING.md",
+    "maintenances/visualkeras/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/visualkeras/_maintenance/STATE.json",
+    "maintenances/visualkeras/_maintenance/FAMILY.md",
+    "maintenances/visualkeras/_maintenance/VERIFICATION.md"
+  ]
+}

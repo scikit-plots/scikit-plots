@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.cython",
+  "runtime_fingerprint": "fbf1f551516a627d7907e6d10a3686c175633b868995c13d329c10d3a4d22ef8",
+  "gates": {
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "cea6df3c417b0ac9dca5714e7b6b4aabb1a1d221126948b2886e4c8e9b340df4",
+      "note": "Live maintenance contract regression suite: 19 passed."
+    },
+    "actual_snapshot_suite": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/cython/_maintenance/evidence/actual-snapshot-suite.log",
+      "sha256": "3f83bcfe81ca15d649ba0f930e867f5c459614d7ea6b0b60e4e1c5b90c571347",
+      "note": "Direct pytest collection from the uploaded partial snapshot fails because scikitplot/__init__.py is absent; tests are imported as top-level cython.tests. This is a snapshot/package-root limitation, not a runtime failure verdict."
+    },
+    "package_root_harness_suite": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/package-root-harness-suite.log",
+      "sha256": "fa3dc1dd162b6c5b85ea6c3f28fb29403c1ad7be67227ccbb0e638fed23b222f",
+      "note": "Throwaway package-root harness: 1240 passed, 8 skipped. Five skips are platform/version lanes; three explicitly cite CYTHON-CON-002 suite-order setuptools/distutils pollution."
+    },
+    "direct_compile_smoke": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/direct-compile-smoke.log",
+      "sha256": "c39032163ce1ef781a8af945bf46b78dc929faf0b1b84b5a110ac08c30bac2d9",
+      "note": "Actual uploaded namespace package can import scikitplot.cython and compile/load a real Cython extension; add(4,9)=13."
+    },
+    "isolated_real_compile_regressions": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/isolated-real-compile-regressions.log",
+      "sha256": "f11ef81d11943ffc1914cb76a63821463e214bf3d69dc23d3c18595274473a01",
+      "note": "The three full-suite CYTHON-CON-002 compile skips each pass when executed in a fresh Python process: 1/1 + 1/1 + 1/1."
+    },
+    "probe_battery": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/cython/_maintenance/evidence/probe-battery-unavailable.log",
+      "sha256": "90f982a1494cc0998f0ac6dcd9ab6948821cb7fad89ff15d2c18b709102e3155",
+      "note": "Representative probe subset is green, but the entire shipped probe directory was not completed as one bounded release run."
+    },
+    "packaging_source_hygiene": {
+      "status": "RED",
+      "log": "maintenances/cython/_maintenance/evidence/source-hygiene-contract.log",
+      "sha256": "0cc55bf200f087d7212bf4ff302e83dadb38ff9d30936a5474ef9027cf7c4769",
+      "note": "Runtime contract fails closed because the source archive contains scikitplot/cython/__pycache__/_lock.cpython-311.pyc."
+    },
+    "cross_platform_toolchains": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/cython/_maintenance/evidence/cross-platform-unavailable.log",
+      "sha256": "c64b16ba612369e2fbfcc99a818f875052295f043a1a385d5ac351ac1a6397a0",
+      "note": "Only Linux toolchains were exercised; Windows/MSVC and browser/WASM release execution remain unavailable."
+    }
+  },
+  "supplemental_evidence": {
+    "probe_subset": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/probe-subset.log",
+      "sha256": "b23f51621bd0edb78ef44e7c9112cd124d452ab3747352c7d5a401892ba4c714",
+      "note": "Ten high-value standalone probes pass: real compile/cache reuse, lock exclusivity, concurrent same-key build, GC coordination, security strictness, fingerprint/toolchain, template validation, thread-safety, and runtime ABI lifecycle."
+    },
+    "toolchain_environment": {
+      "status": "GREEN",
+      "log": "maintenances/cython/_maintenance/evidence/toolchain-environment.log",
+      "sha256": "a372f2aac525662938be02ed7e0532149c26a07485a0843b3e49e7c7068ac801",
+      "note": "Environment inventory: Cython/setuptools/NumPy present; GCC/G++ and Clang/Clang++ present; pybind11 and MSVC unavailable."
+    }
+  }
+}

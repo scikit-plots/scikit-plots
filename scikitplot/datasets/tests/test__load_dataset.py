@@ -212,9 +212,9 @@ class TestLoadDataset(unittest.TestCase):
         self.assertIsInstance(df, pd.DataFrame)
 
     def test_tips_day_categorical_order(self):
-        """Tips 'day' must have categories ordered [Their, Fri, Sat, Sun]."""
+        """Tips 'day' must have categories ordered [Thur, Fri, Sat, Sun]."""
         csv = "day,total_bill,tip,sex,smoker,time\n"
-        for day in ["Their", "Fri", "Sat", "Sun"]:
+        for day in ["Thur", "Fri", "Sat", "Sun"]:
             csv += f"{day},10.0,1.5,Male,No,Lunch\n"
 
         with mock.patch(
@@ -223,7 +223,7 @@ class TestLoadDataset(unittest.TestCase):
         ):
             df = load_dataset("tips", cache=False)
 
-        self.assertEqual(list(df["day"].cat.categories), ["Their", "Fri", "Sat", "Sun"])
+        self.assertEqual(list(df["day"].cat.categories), ["Thur", "Fri", "Sat", "Sun"])
 
     def test_tips_sex_categorical(self):
         csv = "day,total_bill,tip,sex,smoker,time\nThur,10.0,1.5,Male,No,Lunch\n"

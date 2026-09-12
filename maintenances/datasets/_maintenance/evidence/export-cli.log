@@ -1,0 +1,13 @@
+GOOD MODULE:
+2026-09-12 20:53:23,775 | INFO | data_export | Loading source=/tmp/datasets_export_evidence/in.csv format=csv
+2026-09-12 20:53:23,780 | INFO | data_export | Prepared dataset rows=4 cols=3
+2026-09-12 20:53:23,790 | INFO | data_export | Wrote ExportSpec(size=2, strategy='hash') rows=2 -> /tmp/datasets_export_evidence/out/subset_hash_2.csv
+2026-09-12 20:53:23,790 | INFO | data_export | Done.
+FILES:
+prepared.profile.json
+subset_hash_2.csv
+subset_hash_2.manifest.json
+subset_hash_2.profile.json
+BAD DOCUMENTED MODULE:
+/opt/pyvenv/bin/python: Error while finding module specification for 'scikitplot.datasets._data_export.py' (ModuleNotFoundError: __path__ attribute not found on 'scikitplot.datasets._data_export' while trying to find 'scikitplot.datasets._data_export.py'). Try using 'scikitplot.datasets._data_export' instead of 'scikitplot.datasets._data_export.py' as the module name.
+bad_module_rc=1

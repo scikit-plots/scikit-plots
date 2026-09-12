@@ -48,6 +48,8 @@ SystemExit
     Exit code 1 on any error (file not found, template error, IO error).
 """
 
+from __future__ import annotations
+
 import os
 import sys
 

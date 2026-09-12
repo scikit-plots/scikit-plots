@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.seaborn",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "api_surface",
+        "seaborn_compat",
+        "model_semantics",
+        "decile_weights",
+        "hue_mapping",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "isolated_runtime",
+      "checks": [
+        "native_tests",
+        "compatibility_harness",
+        "negative_probes"
+      ]
+    },
+    {
+      "name": "complete_package",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "SBN-COMPAT-001",
+      "severity": "high",
+      "summary": "The submodule calls seaborn.utils._default_color directly. With seaborn 0.13.2 + Matplotlib 3.10.8, Axes.plot.__name__ is wrapper, _default_color returns None, and high-level plotting fails at to_rgba(None). Native package-root harness: 102 passed / 48 failed; a harness-only compatibility resolver restores 150/150."
+    },
+    {
+      "id": "SBN-MODEL-001",
+      "severity": "critical",
+      "summary": "modelplot advertises feature_importances and x_estimator but never consumes x_estimator. Estimator-only calls render nothing; with x/y supplied, different estimator feature_importances produce the same confusion-matrix image."
+    },
+    {
+      "id": "SBN-DEC-001",
+      "severity": "high",
+      "summary": "decileplot accepts and validates weights, but plot_decileplot discards the extracted _sw and calls compute_decile_table without weights. Weighted and unweighted decile tables are identical."
+    },
+    {
+      "id": "SBN-DEC-002",
+      "severity": "medium",
+      "summary": "decileplot exposes hue_order, hue_norm, and palette but calls p.map_hue() without forwarding any of them, so caller semantic mapping configuration is silently ignored."
+    },
+    {
+      "id": "SBN-SNAPSHOT-001",
+      "severity": "informational",
+      "summary": "The supplied accumulated archive lacks scikitplot/__init__.py and scikitplot.externals._seaborn. Direct pytest therefore imports this submodule as top-level seaborn and shadows the installed dependency; package-root harness evidence is required for this snapshot."
+    }
+  ]
+}

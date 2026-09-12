@@ -1,0 +1,21 @@
+test_corpus_module_scope_leak_fails (test_contract.MCPContractTests.test_corpus_module_scope_leak_fails) ... ok
+test_current_maintenance_plane_passes (test_contract.MCPContractTests.test_current_maintenance_plane_passes) ... ok
+test_current_runtime_structure_passes (test_contract.MCPContractTests.test_current_runtime_structure_passes) ... ok
+test_empty_skill_fails_maintenance (test_contract.MCPContractTests.test_empty_skill_fails_maintenance) ... ok
+test_foreign_cwd_cli (test_contract.MCPContractTests.test_foreign_cwd_cli) ... ok
+test_handrolled_protocol_fallback_fails (test_contract.MCPContractTests.test_handrolled_protocol_fallback_fails) ... ok
+test_inventory_drift_fails_maintenance (test_contract.MCPContractTests.test_inventory_drift_fails_maintenance) ... ok
+test_mcp_sdk_module_scope_leak_fails (test_contract.MCPContractTests.test_mcp_sdk_module_scope_leak_fails) ... ok
+test_missing_required_runtime_file_fails (test_contract.MCPContractTests.test_missing_required_runtime_file_fails) ... ok
+test_missing_required_symbol_fails (test_contract.MCPContractTests.test_missing_required_symbol_fails) ... ok
+test_open_wire_model_fails (test_contract.MCPContractTests.test_open_wire_model_fails) ... ok
+test_pydantic_module_scope_leak_fails (test_contract.MCPContractTests.test_pydantic_module_scope_leak_fails) ... ok
+test_refresh_refuses_broken_runtime_contract (test_contract.MCPContractTests.test_refresh_refuses_broken_runtime_contract) ... ok
+test_release_is_blocked_without_all_live_evidence (test_contract.MCPContractTests.test_release_is_blocked_without_all_live_evidence) ... ok
+test_review_metadata_is_not_command_surface (test_contract.MCPContractTests.test_review_metadata_is_not_command_surface) ... ok
+test_runtime_cannot_import_maintenance (test_contract.MCPContractTests.test_runtime_cannot_import_maintenance) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 1.603s
+
+OK

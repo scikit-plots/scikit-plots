@@ -1,0 +1,39 @@
+
+==================================== ERRORS ====================================
+____________ ERROR collecting scikitplot/impute/tests/test__ann.py _____________
+ImportError while importing test module '/mnt/data/sp4/scikitplot/impute/tests/test__ann.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/impute/tests/test__ann.py:102: in <module>
+    from scikitplot.impute._ann import ANNImputer, AnnoyKNNImputer, VoyagerKNNImputer
+scikitplot/impute/_ann.py:71: in <module>
+    from ..utils._path import PathNamer, make_path, make_temp_path, normalize_directory_path
+scikitplot/utils/__init__.py:30: in <module>
+    from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+__________ ERROR collecting scikitplot/impute/tests/test__privacy.py ___________
+ImportError while importing test module '/mnt/data/sp4/scikitplot/impute/tests/test__privacy.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/impute/tests/test__privacy.py:44: in <module>
+    from scikitplot.impute._privacy import OutsourcedIndexMixin, PrivateIndexMixin
+scikitplot/impute/_privacy.py:18: in <module>
+    from ..utils._path import PathNamer, make_path
+scikitplot/utils/__init__.py:30: in <module>
+    from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+=========================== short test summary info ============================
+ERROR scikitplot/impute/tests/test__ann.py
+ERROR scikitplot/impute/tests/test__privacy.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+2 errors in 0.91s
+
+exit_code=2

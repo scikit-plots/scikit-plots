@@ -1,0 +1,76 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.mcp",
+  "runtime_root": "scikitplot/mcp",
+  "maintenance_root": "maintenances/mcp",
+  "skill": "skills/mcp/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot.mcp protocol adapter, SDK-free retrieval contracts local to MCP, official MCP SDK wire adapter, stdio/Streamable HTTP CLI wiring, runtime capability reporting, client plugin manifests, and MCP-specific integration adapters/tests.",
+    "does_not_own": "Corpus ingestion/retrieval semantics, Annoy index/native mechanics, the project-wide CLI dispatcher, or the external MCP Python SDK. Those are upstream/downstream contracts consumed through narrow seams."
+  },
+  "tiers": {
+    "legacy_retrieval": {
+      "description": "SDK-free import/search coordination surface; must not require mcp or pydantic at package import time.",
+      "modules": ["__init__.py", "_core.py", "_outcome.py", "_capabilities.py", "_demo.py", "_hybrid.py", "_corpus_annoy.py"]
+    },
+    "server": {
+      "description": "Wire/model tier. pydantic is allowed at module scope only in _server.py; the MCP SDK itself remains a lazy call-time import.",
+      "modules": ["_server.py", "__main__.py"]
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/mcp/__init__.py",
+      "scikitplot/mcp/__main__.py",
+      "scikitplot/mcp/_capabilities.py",
+      "scikitplot/mcp/_core.py",
+      "scikitplot/mcp/_outcome.py",
+      "scikitplot/mcp/_demo.py",
+      "scikitplot/mcp/_hybrid.py",
+      "scikitplot/mcp/_corpus_annoy.py",
+      "scikitplot/mcp/_server.py",
+      "scikitplot/mcp/_version.py"
+    ],
+    "required_symbols": {
+      "scikitplot/mcp/_core.py": ["DocsRetriever", "RetrievedChunk", "SearchCoordinator", "build_search_docs_result"],
+      "scikitplot/mcp/_outcome.py": ["RetrievalOutcome", "LegRecord"],
+      "scikitplot/mcp/_capabilities.py": ["server_capabilities", "effective_server_capabilities", "server_runtime_status"],
+      "scikitplot/mcp/_corpus_annoy.py": ["CorpusAnnoyRetriever", "Embedder", "VectorIndex"],
+      "scikitplot/mcp/_server.py": ["CitationOutput", "SearchDocsOutput", "SearchService", "create_server"],
+      "scikitplot/mcp/__main__.py": ["RuntimeConfig", "main"],
+      "scikitplot/mcp/_version.py": ["__version__"]
+    },
+    "tests_root": "scikitplot/mcp/tests",
+    "plugins_root": "scikitplot/mcp/_plugins",
+    "integrations_root": "scikitplot/mcp/_integrations"
+  },
+  "boundary_contract": {
+    "module_scope_pydantic_allow": ["_server.py"],
+    "module_scope_mcp_allow": [],
+    "forbid_module_scope_roots": ["scikitplot.corpus", "scikitplot.annoy", "annoy", "maintenances", "skills"],
+    "official_sdk_import_owner": "_server.py",
+    "corpus_annoy_adapter": "_corpus_annoy.py",
+    "single_protocol_test": "scikitplot/mcp/tests/test_mcp_single_protocol.py"
+  },
+  "wire_contract": {
+    "tool": "search_docs",
+    "resource_template": "docs://chunk/{doc_id}",
+    "transports": ["stdio", "streamable-http"],
+    "effect_class": "read_only",
+    "strict_model_marker": "ConfigDict(extra=\"forbid\")",
+    "untrusted_content_marker": "untrusted_content",
+    "remote_bind_ack_marker": "allow_unauthenticated_remote"
+  },
+  "upstream_boundaries": [
+    {"subsystem": "scikitplot.corpus", "role": "retrieval semantics and neutral status vocabulary", "rule": "call-time/injected only"},
+    {"subsystem": "scikitplot.annoy", "role": "optional dense backend reached through Corpus", "rule": "call-time only"},
+    {"subsystem": "external mcp SDK", "role": "wire protocol implementation", "rule": "official SDK only; no hand-rolled MCP JSON-RPC fallback"}
+  ],
+  "read_order": [
+    "maintenances/mcp/MAINTAINING.md",
+    "maintenances/mcp/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/mcp/_maintenance/STATE.json",
+    "maintenances/mcp/_maintenance/FAMILY.md",
+    "maintenances/mcp/_maintenance/VERIFICATION.md"
+  ]
+}

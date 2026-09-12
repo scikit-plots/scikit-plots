@@ -1,0 +1,174 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.corpus",
+  "runtime_root": "scikitplot/corpus",
+  "maintenance_root": "maintenances/corpus",
+  "skill": "skills/corpus/SKILL.md",
+  "ownership": {
+    "owns": "Protocol-neutral corpus ingestion/transformation, evidence identity, retrieval outcome contracts, local retrieval abstractions, graph/agent budgets, configuration UX, and corpus-specific tests/examples.",
+    "does_not_own": "MCP wire protocol/adapters, Annoy native index mechanics, CLI presentation policy, or maintenance/skill runtime behavior."
+  },
+  "runtime_contract": {
+    "required_contracts": [
+      {
+        "name": "ErrorRecord",
+        "path": "scikitplot/corpus/_diagnostics.py",
+        "symbols": [
+          "ErrorRecord"
+        ]
+      },
+      {
+        "name": "ErrorPolicy",
+        "path": "scikitplot/corpus/_schema.py",
+        "symbols": [
+          "ErrorPolicy"
+        ]
+      },
+      {
+        "name": "RetrievalResponse",
+        "path": "scikitplot/corpus/_retrieval.py",
+        "symbols": [
+          "RetrievalResponse",
+          "RetrievalStatus",
+          "LegOutcome"
+        ]
+      },
+      {
+        "name": "EmbeddingManifest",
+        "path": "scikitplot/corpus/_embedding_manifest.py",
+        "symbols": [
+          "EmbeddingManifest"
+        ]
+      },
+      {
+        "name": "IndexGeneration",
+        "path": "scikitplot/corpus/_generation.py",
+        "symbols": [
+          "IndexGeneration"
+        ]
+      },
+      {
+        "name": "ANNIndexArtifact",
+        "path": "scikitplot/corpus/_artifact.py",
+        "symbols": [
+          "ANNIndexArtifact"
+        ]
+      },
+      {
+        "name": "VectorIndexBackend",
+        "path": "scikitplot/corpus/_similarity/_backends.py",
+        "symbols": [
+          "VectorIndexBackend"
+        ]
+      },
+      {
+        "name": "FilterSupport",
+        "path": "scikitplot/corpus/_storage/_storage.py",
+        "symbols": [
+          "FilterSupport"
+        ]
+      },
+      {
+        "name": "Filter AST",
+        "path": "scikitplot/corpus/_filters.py",
+        "symbols": []
+      },
+      {
+        "name": "RetrievalHit",
+        "path": "scikitplot/corpus/_similarity/_similarity.py",
+        "symbols": [
+          "RetrievalHit"
+        ]
+      },
+      {
+        "name": "ComponentCatalog",
+        "path": "scikitplot/corpus/_catalog.py",
+        "symbols": [
+          "ComponentCatalog"
+        ]
+      },
+      {
+        "name": "CapabilityStatus",
+        "path": "scikitplot/corpus/_capabilities.py",
+        "symbols": [
+          "CapabilityStatus"
+        ]
+      },
+      {
+        "name": "CorpusPlan/FluentCorpus",
+        "path": "scikitplot/corpus/_plan.py",
+        "symbols": [
+          "CorpusPlan",
+          "FluentCorpus"
+        ]
+      },
+      {
+        "name": "DerivedGraph",
+        "path": "scikitplot/corpus/_graph.py",
+        "symbols": [
+          "GraphNode",
+          "GraphEdge",
+          "GraphQuery",
+          "GraphResponse"
+        ]
+      },
+      {
+        "name": "Hierarchy",
+        "path": "scikitplot/corpus/_hierarchy.py",
+        "symbols": []
+      },
+      {
+        "name": "Retriever legs",
+        "path": "scikitplot/corpus/_retrievers.py",
+        "symbols": [
+          "LexicalRetriever",
+          "DenseRetriever",
+          "GraphRetriever"
+        ]
+      },
+      {
+        "name": "Agentic A1/A2",
+        "path": "scikitplot/corpus/_agentic.py",
+        "symbols": [
+          "BudgetPolicy",
+          "AgenticRetrievalSession"
+        ]
+      }
+    ],
+    "minimum_source_files": 17,
+    "minimum_test_files": 1,
+    "historical_baseline": {
+      "source_files": 78,
+      "source_loc": 55787,
+      "test_files": 78,
+      "test_loc": 30809,
+      "status": "HISTORICAL_ONLY",
+      "note": "Counts came from the superseded tracker and must never be treated as current evidence without a matching runtime snapshot."
+    }
+  },
+  "cross_module_boundaries": [
+    {
+      "consumer": "scikitplot.mcp",
+      "contract": "RetrievalResponse/RetrievalStatus",
+      "rule": "MCP adapts neutral retrieval outcomes; Corpus does not absorb wire concerns."
+    },
+    {
+      "consumer": "scikitplot.annoy",
+      "contract": "VectorIndexBackend",
+      "rule": "Corpus owns identity/generation contracts; Annoy owns native index mechanics."
+    },
+    {
+      "consumer": "scikitplot._cli",
+      "contract": "CapabilityReport/CapabilityStatus",
+      "rule": "CLI presents capability truth; it does not redefine or re-probe Corpus truth."
+    }
+  ],
+  "read_order": [
+    "maintenances/corpus/MAINTAINING.md",
+    "maintenances/corpus/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/corpus/_maintenance/STATE.json",
+    "maintenances/corpus/MAINTENANCE.json",
+    "maintenances/corpus/_maintenance/FAMILY.md",
+    "maintenances/corpus/_maintenance/VERIFICATION.md"
+  ]
+}

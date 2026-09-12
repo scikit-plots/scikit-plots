@@ -1,0 +1,5 @@
+incoming logging files: 5
+changed: 0
+added: 0
+tree fingerprint: eb82e468a72cfbd4d71fee9f434f263864cb5c45dce8abaeb84f953e693af867
+result: PASS (scikitplot/logging tree byte-for-byte unchanged)

@@ -1,0 +1,19 @@
+{
+  "subsystem": "scikitplot.seaborn",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "maintenance_errors": [],
+  "runtime_findings": [
+    "direct seaborn private _default_color calls remain without a project-owned compatibility resolver in _auc.py, _confusion_matrix.py, _decile.py, _model.py; current seaborn 0.13.2 / Matplotlib 3.10 path returns None for decorated Axes.plot",
+    "modelplot advertises feature_importances but does not consume x_estimator.feature_importances_; the current implementation renders x/y confusion-matrix data instead",
+    "decileplot validates/extracts weights but does not forward them into decile aggregation; observation weights are silently ignored",
+    "decileplot exposes palette/hue_order/hue_norm but does not forward them to map_hue; caller semantic mapping is silently ignored"
+  ],
+  "inventory": {
+    "tracked_files": 10,
+    "production_python_files": 5,
+    "test_python_files": 4,
+    "test_support_python_files": 1
+  },
+  "runtime_fingerprint": "462d1aeed322afdb951027cfb2ef3b91861c5c286c13c3502a1dd1bdb99f3772"
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
+  "runtime_dir": "_sphinx_youtube_gallery",
+  "state": "_maintenance/STATE.json",
+  "tracker": "_maintenance/TRACKER.json",
+  "handoff": "_maintenance/FRESH_CHAT_HANDOFF.md",
+  "checkpoint_dir": "_maintenance/checkpoints",
+  "skill_root": "skills/_externals/_sphinx_ext/_sphinx_youtube_gallery",
+  "notes": "Typed dependency edges distinguish runtime requirements from family relationships. Capability ownership is maintenance metadata only and never imported by runtime code.",
+  "dependency_edges": [
+    {
+      "target": "_sphinx_youtube_core",
+      "kind": "runtime_required",
+      "evidence": "python_import",
+      "capabilities": [
+        "youtube.reference-grammar",
+        "youtube.player-options"
+      ],
+      "rationale": "Provider reference parsing and player-option validation have one dependency-free owner."
+    },
+    {
+      "target": "_sphinx_collection",
+      "kind": "runtime_required",
+      "evidence": "python_import",
+      "capabilities": [
+        "sphinx.collection-controls"
+      ],
+      "rationale": "Shared bounded collection parsing, selection metadata, and browser-control primitives."
+    },
+    {
+      "target": "_sphinx_gallery_grid",
+      "kind": "runtime_required",
+      "evidence": "python_import",
+      "capabilities": [
+        "sphinx.gallery-grid-presentation"
+      ],
+      "rationale": "Card/grid source formatting and presentation stay in the shared grid layer."
+    },
+    {
+      "target": "_sphinxcontrib_youtube",
+      "kind": "runtime_required",
+      "evidence": "source_reference",
+      "capabilities": [
+        "youtube.iframe-player"
+      ],
+      "rationale": "The gallery resolves the leaf player extension dynamically instead of importing it eagerly."
+    },
+    {
+      "target": "_pydata_component_list",
+      "kind": "family_related",
+      "evidence": "architectural_relation",
+      "capabilities": [
+        "sphinx.pydata-component-inventory"
+      ],
+      "rationale": "Relevant UI-family inventory without a gallery runtime dependency."
+    }
+  ],
+  "capability_ownership": [
+    {
+      "id": "youtube.reference-grammar",
+      "owner": "_sphinx_youtube_core",
+      "description": "Canonical YouTube video/channel/playlist reference parsing and validation.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "youtube.player-options",
+      "owner": "_sphinx_youtube_core",
+      "description": "Canonical validation and normalization for leaf YouTube player options.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "youtube.catalog-query-sync",
+      "owner": "_sphinx_youtube_gallery",
+      "description": "YouTube catalog schema, query adaptation, explicit synchronization, and gallery orchestration.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "sphinx.collection-controls",
+      "owner": "_sphinx_collection",
+      "description": "Bounded collection loading, selection metadata, search/filter controls, and shared collection behavior.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "sphinx.gallery-grid-presentation",
+      "owner": "_sphinx_gallery_grid",
+      "description": "Shared card/grid presentation and source-format delegation.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "youtube.iframe-player",
+      "owner": "_sphinxcontrib_youtube",
+      "description": "Leaf iframe/player rendering and player-local thumbnail fallback behavior.",
+      "stability": "compatibility"
+    },
+    {
+      "id": "sphinx.pydata-component-inventory",
+      "owner": "_pydata_component_list",
+      "description": "PyData component inventory for the wider Sphinx UI-extension family.",
+      "stability": "internal"
+    }
+  ],
+  "review_profile": "_maintenance/REVIEW.json"
+}

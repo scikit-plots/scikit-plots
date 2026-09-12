@@ -1,151 +1,59 @@
 {
-  "schema_version": 1,
-  "module": "scikitplot.memmap",
-  "role": "memory-mapping over the shared `mman.h` shim",
-  "family": {
-    "members": [
-      "scikitplot/cexternals/_annoy",
-      "scikitplot/annoy",
-      "scikitplot/memmap",
-      "scikitplot/random"
-    ],
-    "shared_source": "scikitplot/cexternals/_annoy/src/",
-    "upstream": "cexternals/_annoy",
-    "contract": "FAMILY.md (identical in all four _maintenance/ folders)"
-  },
+  "schema_version": 2,
+  "subsystem": "scikitplot.memmap",
   "source": {
-    "archive": "scikit-plots.zip",
-    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+    "archive": "memmap-random-related.zip",
+    "sha256": "bc3a61f695f82d323b57c50b3b9d900e95073601454e84b4c066047fdc55bc81"
   },
-  "maintenance_set": {
-    "version": "LIVE_V1",
-    "mirrors": "scikitplot/corpus/_maintenance and scikitplot/mcp/_maintenance",
-    "gate": "python scikitplot/memmap/_maintenance/check_trackers.py",
-    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
-  },
-  "physical_totals": {
-    "source_files": 4,
-    "source_loc": 2140,
-    "test_files": 2,
-    "test_loc": 710,
-    "markdown_files": 2
-  },
-  "campaign": {
-    "name": "annoy family deep review",
-    "guide": "ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md",
-    "runs": {
-      "A00": {
-        "status": "READY"
-      },
-      "A01": {
-        "status": "NOT_STARTED"
-      },
-      "A02": {
-        "status": "NOT_STARTED"
-      },
-      "A03": {
-        "status": "NOT_STARTED"
-      },
-      "A04": {
-        "status": "NOT_STARTED"
-      },
-      "A05": {
-        "status": "NOT_STARTED"
-      },
-      "A06": {
-        "status": "NOT_STARTED"
-      },
-      "A07": {
-        "status": "NOT_STARTED"
-      },
-      "A08": {
-        "status": "NOT_STARTED"
-      },
-      "A09": {
-        "status": "NOT_STARTED"
-      },
-      "A10": {
-        "status": "NOT_STARTED"
-      },
-      "A11": {
-        "status": "NOT_STARTED"
-      },
-      "A12": {
-        "status": "NOT_STARTED"
-      },
-      "A13": {
-        "status": "NOT_STARTED"
-      },
-      "A14": {
-        "status": "NOT_STARTED"
-      },
-      "A15": {
-        "status": "NOT_STARTED"
-      },
-      "A16": {
-        "status": "NOT_STARTED"
-      },
-      "A17": {
-        "status": "NOT_STARTED"
-      },
-      "A18": {
-        "status": "NOT_STARTED"
-      },
-      "A19": {
-        "status": "NOT_STARTED"
-      },
-      "A20": {
-        "status": "NOT_STARTED"
-      },
-      "A21": {
-        "status": "NOT_STARTED"
-      }
-    },
-    "active_run": "A00",
-    "production_code_modified": false,
-    "note": "One guide covers the family. Runs A07 (memmap), A10 (all three) and A11 (random) have a stake outside scikitplot.annoy."
-  },
-  "open_findings": [
+  "scope": [
+    "maintenances/memmap",
+    "skills/memmap"
+  ],
+  "runtime_fingerprint": "6c8678a1e76a2437da88e4035a5fc4fc68c65bbc6946e7d4d0d27231a9c1b5cd",
+  "status": "maintenance_verified",
+  "next_action": "Use the new skill/handoff for future work. Before any runtime or release claim, perform a clean native build, module tests, and relevant cross-platform checks; keep UNAVAILABLE evidence explicit.",
+  "findings": [
     {
-      "id": "AF-A00-M1",
-      "severity": "P3",
-      "title": "`MMAN.md` sits beside the source, not in `_maintenance/`",
-      "evidence": "a fresh session reading _maintenance/ will not find it",
-      "fix": "move"
+      "id": "MM-001",
+      "status": "resolved",
+      "summary": "Legacy checker resolved the maintenance directory as the runtime tree and searched / for shared headers.",
+      "evidence_or_action": "Replaced with repository-root-aware maintenance tooling under maintenances/memmap/_maintenance/tools/."
     },
     {
-      "id": "AF-A00-M2",
-      "severity": "P2",
-      "title": "Depends on `mman.h` by relative path with `'src'` commented out of its include dirs",
-      "evidence": "2 cdef extern sites",
-      "fix": "see AF-A00-C2"
+      "id": "MM-002",
+      "status": "resolved",
+      "summary": "Maintenance documentation pointed to scikitplot/memmap/_maintenance/check_trackers.py, which does not exist in this layout.",
+      "evidence_or_action": "Canonical command now uses maintenances/memmap/_maintenance/check_trackers.py."
     },
     {
-      "id": "AF-A00-M3",
-      "severity": "P3",
-      "title": "No resource-lifetime test suite recorded",
-      "evidence": "an unclosed mapping does not raise where it happened",
-      "fix": "add one; A07"
+      "id": "MM-003",
+      "status": "resolved",
+      "summary": "skills/memmap existed but had no maintainer entry point.",
+      "evidence_or_action": "skills/memmap/SKILL.md now defines ownership, read order, boundaries and verification."
+    },
+    {
+      "id": "MM-004",
+      "status": "deferred",
+      "summary": "The runtime package docstring still contains a stale example importing scikitplot.cexternals._annoy._mman.mman.",
+      "evidence_or_action": "Runtime is intentionally read-only in this maintenance/skill slice; repair the example in an authorized runtime change."
+    },
+    {
+      "id": "MM-005",
+      "status": "deferred",
+      "summary": "Native behavior differs by Windows/POSIX and cannot be established by static maintenance checks.",
+      "evidence_or_action": "Require clean extension build plus platform-specific mmap tests before a runtime/release claim."
+    },
+    {
+      "id": "MM-006",
+      "status": "deferred",
+      "summary": "The .pyi header says it mirrors mman.pyx although the implementation is mem_map.pyx.",
+      "evidence_or_action": "Fix together with the next authorized public-doc/stub cleanup and verify stub/runtime parity."
+    },
+    {
+      "id": "MM-007",
+      "status": "deferred",
+      "summary": "The mem_map.pyi constant surface is stale: it declares PROT_*/MAP_*/MS_* while runtime exports PY_PROT_*/PY_MAP_*/PY_MS_* via __all__.",
+      "evidence_or_action": "Treat the current compiled/runtime tests as authority; align the stub in an authorized runtime/stub change and add an exact export-parity test."
     }
-  ],
-  "corpus_contracts_relevant": {
-    "VectorIndexBackend": "renamed from ANNBackend; declares 11 capability members Annoy's backend must answer truthfully",
-    "ANNIndexArtifact": "BUILT AND TESTED: index dir + versioned ordinal->doc_id sidecar + embedding manifest. Unblocks A15.",
-    "supports_persistence": "Corpus currently declares True. If Annoy's native save/load does not round-trip, that declaration is wrong."
-  },
-  "fresh_chat_read_order": [
-    "_maintenance/FAMILY.md",
-    "_maintenance/MAINTENANCE_MODEL.md",
-    "_maintenance/TRACKER_LOGICAL.md",
-    "_maintenance/TRACKER_PHYSICAL.md",
-    "_maintenance/SUBMODULE_STRUCTURE.md",
-    "_maintenance/VERIFICATION.md"
-  ],
-  "next_exact_action": "Start run A00 (clean-room source/build baseline) per ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md section 4. Do NOT begin implementation: establish the big picture across A00-A21 first, as Corpus and MCP did. The findings in open_findings are A00 INPUT - revalidate each against the tree with evidence rather than accepting it. A00 requires a CLEAN-ROOM build: this family compiles, so a tracker check on an unbuilt tree is necessary but not sufficient. Project sequence after ANNOY: CLI.",
-  "project_sequence": {
-    "corpus": "COMPLETE (R00-R16 review, IMPL-01-18 implementation)",
-    "mcp": "maintenance set ready; run M00 pending",
-    "annoy_family": "maintenance set ready; run A00 NEXT",
-    "cli": "AFTER ANNOY"
-  }
+  ]
 }

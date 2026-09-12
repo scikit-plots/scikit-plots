@@ -1,5 +1,5 @@
 schema_version = 1
-evidence_schema_version = 1
+evidence_schema_version = 2
 target_platform = "linux/amd64"
 max_age_hours = 72
 max_clock_skew_minutes = 10
@@ -22,7 +22,14 @@ share_require_persistence = true
 share_require_replication = true
 contribution_require_persistence = true
 contribution_require_replication = true
+provider_artifact_lifecycle_require_replication = true
 backup_restore_max_age_days = 90
+
+[redis_chaos]
+require_signed_evidence = true
+max_age_hours = 72
+redis7_image = "redis:7.4.11-bookworm@sha256:71da9275c5f3fcb97d0fa0c8c5b36cc995327265420f17a04bfd544f458059f7"
+redis8_image = "redis:8.2.9-bookworm@sha256:7d1e4ce8b9395088377ab382d1f6cfdbd13b3690795198a0399ab8d683064d6d"
 
 [logging]
 request_body_logging = false

@@ -2092,6 +2092,13 @@ async def chat_completions(  # noqa: PLR0911
             raw_body,
             allowed_models=(MODEL_ID,),
         )
+        if chat_req.resources:
+            return _error_response(
+                message="Raw resources require the model resource adapter.",
+                error_type="invalid_request_error",
+                code="resource_transport_required",
+                status_code=400,
+            )
         trusted = build_upstream_payload(chat_req)
         messages = _validate_messages(trusted["messages"])
         max_new_tokens = _clamp_max_tokens(trusted["max_tokens"])

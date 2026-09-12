@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.impute",
+  "reviewed_on": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "release_status": "BLOCKED",
+  "runtime_findings": [
+    "IMP-ANN-001 broad Exception fallback from in-tree Annoy to external annoy",
+    "IMP-OPT-001 unused module-scope pandas import hardens an otherwise optional dependency",
+    "IMP-BASE-001 local sklearn-derived _base.py is not exercised by its nominal tests/public path"
+  ],
+  "snapshot_blockers": [
+    "scikitplot/__init__.py absent",
+    "scikitplot/utils/_path.py absent",
+    "scikitplot/utils/_time.py absent",
+    "scikitplot/externals/_packaging/version.py absent",
+    "scikitplot.experimental enable_ann_imputer hook absent",
+    "built scikitplot.annoy._annoy.annoylib extension absent"
+  ],
+  "evidence_summary": {
+    "direct_base_common": "46 passed",
+    "harness_privacy": "51 passed",
+    "harness_ann": "158 passed + 32 subtests",
+    "harness_full": "255 passed + 32 subtests",
+    "direct_full_snapshot": "collection blocked by missing package-shell utilities"
+  }
+}

@@ -1,0 +1,24 @@
+........................................................................ [ 26%]
+........................................................................ [ 53%]
+........................................................................ [ 79%]
+.......................................................                  [100%]
+=============================== warnings summary ===============================
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_returns_figure
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_all_variants[primary]
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_all_variants[small]
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_all_variants[metrics]
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_all_variants[knn]
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_block_none
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_block_false
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_block_true
+scikitplot/_brand/tests/test__logo.py::TestShow::test_show_dark_theme
+  /mnt/data/brand_work/scikitplot/_brand/_logo.py:698: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show(block=block)
+
+scikitplot/_brand/tests/test__logo.py::TestWordmark::test_show_returns_figure
+scikitplot/_brand/tests/test__logo.py::TestWordmark::test_show_passes_kwargs_to_create
+  /mnt/data/brand_work/scikitplot/_brand/_logo.py:1180: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+271 passed, 11 warnings in 30.99s

@@ -46,6 +46,8 @@ Security
 * Output is written atomically to the same directory as the template.
 """
 
+from __future__ import annotations
+
 import sys
 import os
 from pathlib import Path

@@ -1,0 +1,10 @@
+DSET-TIPS-001
+value= nan categories= ['Their', 'Fri', 'Sat', 'Sun']
+DSET-UPL-001
+return_file_false= None
+DSET-UPL-002
+returned_path= /tmp/tmp44gxotew.csv exists= False
+DSET-DB-001
+TypeError Query must be a string.
+DSET-ZIP-001
+RuntimeError Failed to load file with extension .zip: expected str, bytes or os.PathLike object, not BufferedReader

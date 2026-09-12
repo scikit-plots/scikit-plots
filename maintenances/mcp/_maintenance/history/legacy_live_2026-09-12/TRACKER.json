@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.mcp",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 18,
+      "source_loc": 4686,
+      "test_files": 16,
+      "test_loc": 2656
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 10,
+        "src_loc": 3839,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_maintenance": {
+        "src": 3,
+        "src_loc": 658,
+        "test": 0,
+        "test_loc": 0
+      },
+      "integrations": {
+        "src": 5,
+        "src_loc": 189,
+        "test": 0,
+        "test_loc": 0
+      },
+      "tests": {
+        "src": 0,
+        "src_loc": 0,
+        "test": 16,
+        "test_loc": 2656
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 765,
+        "path": "__main__.py"
+      },
+      {
+        "loc": 543,
+        "path": "_core.py"
+      },
+      {
+        "loc": 482,
+        "path": "_corpus_annoy.py"
+      },
+      {
+        "loc": 466,
+        "path": "_hybrid.py"
+      },
+      {
+        "loc": 427,
+        "path": "_server.py"
+      },
+      {
+        "loc": 359,
+        "path": "_outcome.py"
+      },
+      {
+        "loc": 356,
+        "path": "_capabilities.py"
+      },
+      {
+        "loc": 354,
+        "path": "_demo.py"
+      },
+      {
+        "loc": 344,
+        "path": "_maintenance/check_trackers.py"
+      },
+      {
+        "loc": 166,
+        "path": "_maintenance/history/update_artifact_manifest.py"
+      },
+      {
+        "loc": 148,
+        "path": "_maintenance/history/stale_lifecycle.py"
+      },
+      {
+        "loc": 90,
+        "path": "integrations/agno/docs_toolkit.py"
+      }
+    ],
+    "markdown_files": 31,
+    "drift_check": "python scikitplot/mcp/_maintenance/check_trackers.py",
+    "known_exceptions": {
+      "integrations": "Thin framework adapters (176 LOC / 5 files), each a shim over the public API. Tracked in SUBMODULE_STRUCTURE.md as debt, not a blocker; remove this exception when a real adapter is added."
+    }
+  },
+  "logical": {
+    "contracts": {
+      "SearchService": {
+        "module": "_server.py",
+        "invariant": "Server-tier WIRE ADAPTER. Returns pydantic models (SearchDocsOutput). Delegates all validation, concurrency bounding and result shaping to SearchCoordinator; reimplements none of it. Corrected in M05 (was wrongly recorded as _core.py / protocol-neutral).",
+        "owns": "retrieval seam"
+      },
+      "DocsRetriever": {
+        "module": "_core.py",
+        "invariant": "a Protocol, not a base class; implementations are injected, never imported",
+        "owns": "retrieval abstraction"
+      },
+      "HybridRetriever": {
+        "module": "_hybrid.py",
+        "invariant": "Reciprocal Rank Fusion only; no score-space fusion across metrics",
+        "owns": "multi-source fusion"
+      },
+      "CorpusAnnoyRetriever": {
+        "module": "_corpus_annoy.py",
+        "invariant": "wires corpus+annoy behind the DocsRetriever Protocol; corpus is NOT imported at module scope",
+        "owns": "the real wiring"
+      },
+      "server_capabilities": {
+        "module": "_capabilities.py",
+        "invariant": "reports what this build can do; never claims an unprobed capability",
+        "owns": "capability truth"
+      },
+      "_server transport": {
+        "module": "_server.py",
+        "invariant": "the ONLY module permitted to import the MCP SDK",
+        "owns": "wire protocol"
+      },
+      "version guard": {
+        "module": "_version.py",
+        "invariant": "single wire-protocol rule; SDK absence degrades, never crashes import",
+        "owns": "SDK tier"
+      },
+      "SearchCoordinator": {
+        "module": "_core.py",
+        "invariant": "Tier-L (Python 3.8+, no pydantic, no MCP SDK). Validated, concurrency-bounded orchestration returning neutral dictionaries. This is the protocol-neutral service layer; integrations and the CLI self-test depend on it, never on _server."
+      }
+    }
+  }
+}

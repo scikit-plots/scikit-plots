@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.mcp",
+  "lanes": [
+    {"id": "runtime-architecture", "checks": ["runtime_presence", "contracts", "optionality", "protocol", "security", "planes"]},
+    {"id": "continuation", "checks": ["handoff", "inventory", "hygiene"]},
+    {"id": "verification", "checks": ["evidence"]}
+  ],
+  "release_gates": [
+    "maintenance_tests",
+    "tier_l_tests",
+    "server_model_tests",
+    "sdk_in_memory",
+    "stdio_live",
+    "http_live",
+    "corpus_annoy_integration",
+    "packaging_extra"
+  ]
+}

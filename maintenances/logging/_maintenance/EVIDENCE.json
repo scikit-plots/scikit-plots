@@ -1,0 +1,48 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.logging",
+  "updated_at": "2026-09-13",
+  "runtime_tree_fingerprint": "eb82e468a72cfbd4d71fee9f434f263864cb5c45dce8abaeb84f953e693af867",
+  "lanes": [
+    {
+      "id": "maintenance_contract",
+      "status": "PASS",
+      "artifact": "evidence/maintenance-tests.log",
+      "result": "22 passed"
+    },
+    {
+      "id": "focused_runtime_tests_native",
+      "status": "FAIL",
+      "result": "collection error: from .. import logging as splog no longer resolves after move",
+      "artifact": "evidence/focused-native.log"
+    },
+    {
+      "id": "focused_runtime_tests_harness",
+      "status": "PASS",
+      "result": "171 passed with harness-only import correction to _logging",
+      "artifact": "evidence/focused-harness.log"
+    },
+    {
+      "id": "direct_runtime_probe",
+      "status": "FAIL",
+      "result": "public stdlib fallback missing; error/env/stream/CLI/caller/attr/formatter findings reproduced",
+      "artifact": "evidence/runtime-probes.log"
+    },
+    {
+      "id": "complete_package",
+      "status": "UNAVAILABLE",
+      "reason": "snapshot still lacks root scikitplot/__init__.py, so root logger alias/export integration cannot be verified natively"
+    },
+    {
+      "id": "process_platform",
+      "status": "UNAVAILABLE",
+      "reason": "no spawn/fork/notebook or multi-platform campaign run"
+    },
+    {
+      "id": "runtime_integrity",
+      "status": "PASS",
+      "result": "scikitplot/logging runtime/test tree unchanged during maintenance refresh",
+      "artifact": "evidence/runtime-integrity.log"
+    }
+  ]
+}

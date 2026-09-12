@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.corpus",
+  "lanes": [
+    {
+      "id": "runtime",
+      "checks": [
+        "runtime_presence",
+        "contracts",
+        "planes"
+      ]
+    },
+    {
+      "id": "continuation",
+      "checks": [
+        "handoff",
+        "inventory",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "verification",
+      "checks": [
+        "evidence"
+      ]
+    }
+  ],
+  "release_gates": [
+    "maintenance_contract",
+    "runtime_source",
+    "module_tests",
+    "gallery_examples",
+    "cross_module"
+  ]
+}

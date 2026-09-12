@@ -1,0 +1,29 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.visualkeras",
+  "updated_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "keras_native_matrix_status": "FAIL",
+  "keras_isolation_harness_status": "PASS",
+  "rendering_integration_status": "UNAVAILABLE",
+  "tensorflow_status": "UNAVAILABLE",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "open_findings": [
+    "VKR-GRAPH-001",
+    "VKR-GRAPH-002",
+    "VKR-OPT-001",
+    "VKR-LAY-001",
+    "VKR-TEST-001",
+    "VKR-SNAPSHOT-001"
+  ],
+  "runtime_fingerprint": "43f03fcdb6c34ac276464b83630245bd00a5cdd28d625194c1158b43c9cb980b",
+  "notes": [
+    "Runtime/test source unchanged by maintenance onboarding.",
+    "Keras 3.13.2 with Torch backend is available; TensorFlow and real aggdraw are unavailable.",
+    "Original Keras-only test matrix reaches 27 passed / 20 setup errors because unavailable TensorFlow variants are still scheduled.",
+    "Harness-only availability correction plus fake aggdraw reaches 27 passed / 1 skipped.",
+    "Negative probes reproduce single-output shape, false ellipsis, missing-backend TypeError, and default deprecation-warning findings."
+  ]
+}

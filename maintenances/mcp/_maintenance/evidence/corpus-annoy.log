@@ -1,0 +1,54 @@
+2026-09-12 11:16:01,537 INFO scikitplot.corpus._readers._text: TextReader: read README.md (9913 chars, encoding='utf-8').
+2026-09-12 11:16:01,564 INFO scikitplot.corpus._base: README.md: yielded 53 documents, omitted 11 (filter/empty).
+2026-09-12 11:16:01,564 INFO scikitplot.corpus._readers._text: TextReader: read README.md (798 chars, encoding='utf-8').
+2026-09-12 11:16:01,566 INFO scikitplot.corpus._base: README.md: yielded 5 documents, omitted 0 (filter/empty).
+2026-09-12 11:16:01,566 INFO scikitplot.corpus._readers._text: TextReader: read README.md (528 chars, encoding='utf-8').
+2026-09-12 11:16:01,568 INFO scikitplot.corpus._base: README.md: yielded 5 documents, omitted 0 (filter/empty).
+2026-09-12 11:16:01,568 INFO scikitplot.corpus._readers._text: TextReader: read README.md (1015 chars, encoding='utf-8').
+2026-09-12 11:16:01,570 INFO scikitplot.corpus._base: README.md: yielded 4 documents, omitted 0 (filter/empty).
+2026-09-12 11:16:01,570 INFO scikitplot.corpus._readers._text: TextReader: read README.md (209 chars, encoding='utf-8').
+2026-09-12 11:16:01,571 INFO scikitplot.corpus._base: README.md: yielded 1 documents, omitted 1 (filter/empty).
+2026-09-12 11:16:01,571 INFO scikitplot.corpus._readers._text: TextReader: read README.md (145 chars, encoding='utf-8').
+2026-09-12 11:16:01,571 INFO scikitplot.corpus._base: README.md: yielded 1 documents, omitted 1 (filter/empty).
+2026-09-12 11:16:01,571 INFO scikitplot.corpus._readers._text: TextReader: read README.md (175 chars, encoding='utf-8').
+2026-09-12 11:16:01,572 INFO scikitplot.corpus._base: README.md: yielded 1 documents, omitted 1 (filter/empty).
+2026-09-12 11:16:01,575 INFO scikitplot.corpus._corpus_builder: CorpusBuilder result:
+  Sources:    7
+  Raw chunks: 70
+  Filtered:   14
+  Documents:  70
+  Normalised: 70
+  Enriched:   0
+  Embedded:   0
+  Index:      none
+  Errors:     0
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/mnt/data/mcp_work/scikitplot/mcp/__main__.py", line 768, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/mnt/data/mcp_work/scikitplot/mcp/__main__.py", line 669, in main
+    retriever = _load_retriever(config)
+  File "/mnt/data/mcp_work/scikitplot/mcp/__main__.py", line 627, in _load_retriever
+    return _build_corpus_annoy_retriever(config)
+  File "/mnt/data/mcp_work/scikitplot/mcp/__main__.py", line 621, in _build_corpus_annoy_retriever
+    return CorpusAnnoyRetriever.from_corpus_annoy(str(docs_path), **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/data/mcp_work/scikitplot/mcp/_corpus_annoy.py", line 458, in from_corpus_annoy
+    index.build(documents)
+    ~~~~~~~~~~~^^^^^^^^^^^
+  File "/mnt/data/mcp_work/scikitplot/corpus/_similarity/_similarity.py", line 535, in build
+    self._build_ann_backend(self._embeddings)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/mnt/data/mcp_work/scikitplot/corpus/_similarity/_similarity.py", line 678, in _build_ann_backend
+    backend = select_backend(
+        cfg.backend,
+        index_kwargs=cfg.index_kwargs,
+        **cfg._legacy_annoy_selector_kwargs(),
+    )
+  File "/mnt/data/mcp_work/scikitplot/corpus/_similarity/_backends.py", line 789, in select_backend
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: backend 'annoy' is not available in this environment. Install the corresponding package or use backend='auto'.

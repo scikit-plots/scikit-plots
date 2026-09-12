@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.impute",
+  "runtime_fingerprint": "3e848b873766c0b6173e438d99d3c1ef96ad9e4c777f76dc869d8fe313fb681c",
+  "gates": {
+    "structural_runtime": {
+      "status": "RED",
+      "log": "maintenances/impute/_maintenance/evidence/contract-review.json",
+      "sha256": "d40cdd3b5fee953d01145b7d36cb6d0280297c2d97c13ad3a4de26decc77504b",
+      "note": "Maintenance plane is healthy; runtime structural review has two owned findings."
+    },
+    "maintenance_regressions": {
+      "status": "GREEN",
+      "log": "maintenances/impute/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "8927e3581b0eecc0cda7707c250cfe2e2e5ae83fecbaecd6d583488eb90822e1",
+      "note": "18 mutation/regression tests passed."
+    },
+    "direct_base_common": {
+      "status": "GREEN",
+      "log": "maintenances/impute/_maintenance/evidence/direct-base-common.log",
+      "sha256": "30e7f9359e06fde7525bd4814495b0ba041390f3409ecedb717e12334e3b3422",
+      "note": "46 tests passed; these tests exercise sklearn classes and therefore do not validate the local _base.py mirror."
+    },
+    "harness_privacy": {
+      "status": "GREEN",
+      "log": "maintenances/impute/_maintenance/evidence/harness-privacy.log",
+      "sha256": "fa034b251c61c3b9aafd90e0e02d9f0069a11e73dec79b45f52591b878e50308",
+      "note": "51 privacy/persistence tests passed with only missing package-shell utilities stubbed."
+    },
+    "harness_ann": {
+      "status": "GREEN",
+      "log": "maintenances/impute/_maintenance/evidence/harness-ann.log",
+      "sha256": "10f0ffba6c13c68eeabab8a036bfe12694471303f24b6f75189de82bed92c657",
+      "note": "158 ANN tests plus 32 unittest subtests passed against an Annoy-compatible test double; not native integration evidence."
+    },
+    "harness_full": {
+      "status": "GREEN",
+      "log": "maintenances/impute/_maintenance/evidence/harness-full.log",
+      "sha256": "8812891ac0ed4a673e825967ec6a92bf0a7c3fd90fcab6d374b0dc04319b5bd4",
+      "note": "255 tests plus 32 subtests passed in the throwaway isolation harness."
+    },
+    "direct_full_snapshot": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/impute/_maintenance/evidence/direct-full-snapshot.log",
+      "sha256": "23f1e39a6979dd8ecfa3a543e840b960f35f99edb51ed75667cfea7eed6aa688",
+      "note": "Collection is blocked by missing surrounding package-root/utils integration in this partial snapshot."
+    },
+    "snapshot_dependencies": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/impute/_maintenance/evidence/snapshot-integration-blockers.log",
+      "sha256": "ff1333ce86ef65b6740b38c82e785a8a6b1d0f8817ab2ea3366ac7a7e580da78",
+      "note": "Required surrounding package pieces and built Annoy extension are absent from this review archive."
+    },
+    "real_integration": {
+      "status": "UNAVAILABLE",
+      "note": "No complete package root + real compiled scikitplot.annoy._annoy backend in this snapshot."
+    },
+    "voyager_integration": {
+      "status": "UNAVAILABLE",
+      "note": "voyager is not installed in this environment."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Needs structural-finding disposition, complete-package tests, real backend integration, packaging and supported-platform evidence."
+    },
+    "ownership_audit": {
+      "status": "RED",
+      "log": "maintenances/impute/_maintenance/evidence/ownership-audit.log",
+      "sha256": "2fe5040237e19c593d63f2697fcc01eccc1242f20d9167c80360d2f3ab7b038e",
+      "note": "Confirms broad Annoy fallback, unused pandas import, and the unexercised local _base.py mirror."
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.impute",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "public_api",
+        "backend_boundary",
+        "privacy",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "runtime_tests",
+      "checks": [
+        "tests"
+      ]
+    },
+    {
+      "name": "integration",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "IMP-ANN-001",
+      "severity": "high",
+      "summary": "In-tree Annoy import catches Exception and silently falls back to external annoy, which can mask defects in the owned backend boundary."
+    },
+    {
+      "id": "IMP-OPT-001",
+      "severity": "medium",
+      "summary": "_ann.py imports pandas at module scope but has no runtime pd usage; the tests themselves treat pandas as optional."
+    },
+    {
+      "id": "IMP-BASE-001",
+      "severity": "medium",
+      "summary": "_base.py is a large sklearn-derived mirror, but __init__.py/_ann.py use sklearn directly and test__base/test_common exercise sklearn rather than this local mirror. Its active role is ambiguous and drift is not detected by the runtime suite."
+    }
+  ]
+}

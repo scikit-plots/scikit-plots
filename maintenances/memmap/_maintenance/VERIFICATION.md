@@ -1,44 +1,19 @@
 # Verification — `scikitplot.memmap`
 
-## 1. The commands
+Run structural maintenance checks from the wide repository:
 
-```console
-$ python scikitplot/memmap/_maintenance/check_trackers.py
-$ <build>                     # meson/ninja per the project's build docs
-$ python -m pytest scikitplot/memmap -q -p no:cacheprovider
+```sh
+python -B maintenances/memmap/_maintenance/check_trackers.py --json
+python -B maintenances/memmap/_maintenance/review_subsystem.py --json
+python -B maintenances/memmap/_maintenance/tests/test_contract.py
 ```
 
-Expected from the gate:
+The contract checks the upstream header edge, required public symbols in implementation/stub, C++ Cython build intent, runtime/maintenance plane separation, fresh-chat files, inventory fingerprint and evidence hashes. It never imports `scikitplot`. Metadata is declarative; no command from JSON is executed.
 
-```text
-scikitplot.memmap: tracker matches the tree (4 source / 2 test files, ...)
+For a runtime change, also perform a clean Meson/Cython build and run:
+
+```sh
+python -m pytest scikitplot/memmap/_memmap/tests/test_mman.py -q -p no:cacheprovider
 ```
 
-## 2. What the gate checks
-
-| Check | Fails when |
-|---|---|
-| DRIFT | recorded inventory differs from the tree by more than 10% |
-| SHARED-SOURCE | a `cdef extern` names a header absent from `cexternals/_annoy/src/` |
-| FAMILY | `cexternals` imports a Python layer built on top of it |
-
-**This submodule requires a compiled build.** Unlike Corpus, a green gate does
-not imply a working module — the extension must be built. A tracker check on an
-unbuilt tree is necessary, not sufficient.
-
-## 3. Evidence standard
-
-Inherited unchanged from the Corpus and MCP campaigns:
-
-- **"I tested it" is insufficient.** Paste the command and its output.
-- A finding is marked resolved **with evidence**, never deleted.
-- A test is never weakened to make a change pass.
-- A capability claim requires a probe, not an assumption.
-
-After a deliberate structural change:
-
-```console
-$ python scikitplot/memmap/_maintenance/check_trackers.py --update
-```
-
-then regenerate `TRACKER_PHYSICAL.md` to match.
+For `mman.h` changes, use the `cexternals/_annoy` maintenance owner and verify all affected consumers. For release claims, `review_subsystem.py --release` requires every gate named in `REVIEW.json` to be current `GREEN`; missing toolchains, unbuilt extensions and untested platforms are `UNAVAILABLE`, not `PASS`.

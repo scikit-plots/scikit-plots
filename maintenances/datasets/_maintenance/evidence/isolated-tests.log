@@ -1,0 +1,44 @@
+..............................................................ssssss [ 27%]
+s....................................................................... [ 56%]
+.sssssssssssssssssssss..................................ssssssssss...... [ 85%]
+...................................                       [100%]
+=========================== short test summary info ============================
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:449: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:453: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:443: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:446: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:462: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:467: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:457: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:916: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:891: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:903: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:912: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:908: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:920: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:932: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:899: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:895: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:928: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:963: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:968: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:951: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:957: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1027: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1013: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1004: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1032: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1022: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1017: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1008: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1341: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1300: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1295: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1290: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1325: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1330: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1306: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1311: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1336: pyarrow or fastparquet required for Parquet I/O tests
+SKIPPED [1] scikitplot/datasets/tests/test__data_export.py:1317: pyarrow or fastparquet required for Parquet I/O tests
+209 passed, 38 skipped, 19 subtests passed in 0.53s

@@ -1,0 +1,50 @@
+{
+  "checks": [
+    "runtime_presence",
+    "api_surface",
+    "export_hygiene",
+    "cli_surface",
+    "module_execution",
+    "banner_failure_semantics",
+    "determinism",
+    "external_tool_boundary",
+    "planes",
+    "handoff",
+    "inventory",
+    "evidence",
+    "release"
+  ],
+  "findings": [
+    {
+      "id": "BRD-EXP-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "_brand star-imports _logo without _logo.__all__, leaking implementation/dependency names; package __all__ simultaneously omits the logo API."
+    },
+    {
+      "id": "BRD-CLI-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "Logo CLI docs/prog advertise python -m scikitplot.logo, but no scikitplot.logo module exists."
+    },
+    {
+      "id": "BRD-RUN-001",
+      "severity": "medium",
+      "status": "open",
+      "summary": "Eager package imports preload executable _banner/_logo modules, producing runpy already-in-sys.modules warnings on direct module execution."
+    },
+    {
+      "id": "BRD-BAN-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "Banner batch generation can skip every generation failure and return an empty mapping; main still returns success for that zero-output batch."
+    }
+  ],
+  "integration_status": "UNAVAILABLE",
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "reviewed_at": "2026-09-12",
+  "runtime_status": "FAIL",
+  "schema_version": 2,
+  "subsystem": "scikitplot._brand"
+}

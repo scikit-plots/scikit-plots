@@ -1,0 +1,37 @@
+/* Exercise visitor additions and reversion without network or provider playback. */
+const {JSDOM}=require('jsdom');
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+const dir=process.argv[2];
+const dom=new JSDOM(fs.readFileSync(path.join(dir,'index.html'),'utf8'),{runScripts:'outside-only',url:'https://docs.example/'});
+dom.window.eval(fs.readFileSync(path.join(dir,'_static/sk-collection.js'),'utf8'));
+dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+const roots=Array.from(dom.window.document.querySelectorAll('.sk-collection-searchable'));
+const root=roots[1], panel=root.querySelector('.sk-collection-panel'), toggle=root.querySelector('.sk-collection-overflow');
+const baseline=Array.from(root.querySelectorAll('.sd-card'));
+assert(panel.hidden);toggle.click();assert(!panel.hidden);assert.equal(toggle.getAttribute('aria-expanded'),'true');
+panel.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+assert(panel.hidden);assert.equal(dom.window.document.activeElement,toggle);
+toggle.click();
+const form=root.querySelector('.sk-collection-add'), fields=form.querySelectorAll('input');
+function add(url,title='Added test'){fields[0].value=url;fields[1].value=title;form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));}
+add('javascript:alert(1)');assert.equal(root.querySelectorAll('.sd-card').length,baseline.length);
+add('abcdefghijk','<script>literal title</script>');assert.equal(root.querySelectorAll('.sd-card').length,baseline.length+1);
+assert(!root.querySelector('.sd-card script'));
+add('https://youtu.be/abcdefghijk');assert.equal(root.querySelectorAll('.sd-card').length,baseline.length+1);
+assert.match(form.textContent,/already/);
+const search=root.querySelector('input[type=search]');search.value='literal title';search.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+assert.equal(root.querySelector('.sk-collection-status').textContent,'1 of 14 cards');
+root.querySelector('.sk-collection-reset').click();assert.equal(root.querySelectorAll('.sd-card').length,baseline.length+1);
+add('lmnopqrstuv','Example video');
+assert.equal(root.querySelectorAll('.sd-card').length,baseline.length+2);
+const sort=root.querySelector('select[aria-label="Sort within categories"]');sort.value='title:desc';sort.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+root.querySelector('.sk-collection-revert').click();
+assert.deepEqual(Array.from(root.querySelectorAll('.sd-card')),baseline);
+assert.equal(root.querySelector('.sk-collection-status').textContent,'13 of 13 cards');
+assert.equal(sort.value,'');assert.equal(search.value,'');assert(panel.hidden);
+assert(root.querySelector('.sk-collection-revert').disabled);
+assert.equal(roots[0].querySelector('.sk-collection-status').textContent,'8 of 8 cards');
+toggle.click();add('abcdefghijk');assert.equal(root.querySelectorAll('.sd-card').length,baseline.length+1);
+root.querySelector('.sk-collection-revert').click();
+assert.deepEqual(Array.from(root.querySelectorAll('.sd-card')),baseline);
+console.log('Disclosure, safe additions, duplicate prevention, Reset retention, repeated Revert identity/order and isolation passed');

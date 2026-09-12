@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.preprocessing",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "api_surface",
+        "feature_identity",
+        "infrequent_semantics",
+        "parameter_validation",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "isolated_runtime",
+      "checks": [
+        "tests",
+        "negative_probes"
+      ]
+    },
+    {
+      "name": "complete_package",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "PRE-DCE-001",
+      "severity": "critical",
+      "summary": "DummyCodeEncoder builds one global category->column dictionary keyed only by category value. Equal labels in different input features collapse into one output column, causing transform width/feature-name disagreement and inverse_transform failure."
+    },
+    {
+      "id": "PRE-DCE-002",
+      "severity": "high",
+      "summary": "DummyCodeEncoder computes infrequent-category mappings and reports grouped _n_features_outs/get_feature_names_out, but its custom _transform never applies the infrequent mapping. Returned matrices retain separate infrequent columns."
+    },
+    {
+      "id": "PRE-GD-001",
+      "severity": "medium",
+      "summary": "GetDummies documents handle_unknown as {error, ignore}, but fit performs no enum validation; arbitrary values are accepted and act like ignore when unseen categories occur."
+    },
+    {
+      "id": "PRE-TEST-001",
+      "severity": "low",
+      "summary": "Focused test modules claim direct standalone execution/isolation, but the stub/bootstrap code is commented out and direct script execution fails on relative imports. The isolation helper exists but is not activated."
+    }
+  ]
+}

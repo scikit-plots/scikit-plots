@@ -484,11 +484,16 @@ doc = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
 
   ## sphinx
+  ## https://www.sphinx-doc.org/en/master/usage/extensions/#third-party-extensions
   "sphinx[testing]>=5.0.0,<100.0.0",        # Documentation generator include legacy "pytest-sphinx"
   "sphinx-copybutton",                      # Copy button for code blocks
-  "sphinx-togglebutton",                    # You can collapse admonitions (notes, warnings, etc) so that their content is hidden until users click the admonition title.
-  "sphinx-design",                          # Modern design elements
+
+  # You can collapse admonitions (notes, warnings, etc) so that their content is hidden until users click the admonition title.
+  # "sphinx-toolbox",                         # Box of handy tools for Sphinx 🧰 📔, 'sphinx_toolbox.collapse',
+  "sphinx-togglebutton",                    # Turning existing standard admonitions into toggles easily, provides :class: dropdown option.
+  "sphinx-design",                          # Modern Sphinx projects, built-in styling, grid support, dropdown directive also provides :class: dropdown option.
   "sphinx-gallery",                         # Gallery examples
+
   "sphinx-prompt",                          # Shell prompts can be created using a prompt directive:
   "sphinx-remove-toctrees",                 # Customize toctrees
   "sphinx-rtd-theme",                       # ReadTheDocs theme
@@ -884,6 +889,7 @@ exclude = [
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
+  "skills/**",
   "third_party/**",
   "tools/**",
   "**tests",
@@ -933,6 +939,7 @@ exclude = [
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
+  "skills/**",
   "third_party/**",
   "tools/**",
   "**tests",
@@ -986,24 +993,31 @@ extend-select = [
   "B",        # flake8-bugbear
   "B006",     # multiple-argument-default
   "B015",     # useless-comparison
+  # "BLE",      # flake8-blind-except
   # "CPY001",
   "C4",       # flake8-comprehensions
   "D",        # pydocstyle (docstring enforcement)
   "D209",     # new-line-after-last-paragraph
   "D411",     # no-blank-line-before-section
   "D417",     # undocumented-param
-  "E",        # pycodestyle (formatting errors)
+  # "DTZ",    # flake8-datetimez
+  "E",        # Standard Flake8/pycodestyle (formatting errors)
   "EM",       # flake8-errmsg
   "EXE",      # flake8-executable
-  "F",        # Pyflakes (logical errors)
+  "F",        # Standard Flake8/pycodestyle Pyflakes (logical errors)
+  "FA",       # flake8-future-annotations
+  # "FLY",      # flynt
   "FURB",     # refurb
   "G",        # flake8-logging-format
   "I",        # isort
   "ICN",      # flake8-import-conventions
+  # "ISC",    # flake8-implicit-str-concat
   "ISC001",   # single-line-implicit-string-concatenation
+  # "LOG",      # flake8-logging
   "NPY",      # NumPy specific rules
   "N804",     # invalid-first-argument-name-for-class-method
   "PD",       # pandas-vet
+  "PERF",     # Perflint (Performance)
   "PGH",      # pygrep-hooks
   "PIE",      # flake8-pie
   "PIE790",   # unnecessary-placeholder
@@ -1030,8 +1044,10 @@ extend-select = [
   "PT027",    # pytest-unittest-raises-assertion
   # "PTH",      # flake8-use-pathlib
   "PYI",      # flake8-pyi
+  # "Q",      # flake8-quotes
   "RET",      # flake8-return
   "RET504",   # unnecessary-assign
+  # "RSE",      # flake8-raise
   "RUF",      # Ruff-specific
   "RUF003",   # ambiguous-unicode-character-comment
   "RUF010",   # explicit-f-string-type-conversion
@@ -1047,9 +1063,13 @@ extend-select = [
   "SIM115",   # open-file-with-context-handler
   "SIM210",   # if-expr-with-true-false
   "SIM910",   # dict-get-with-none-default
+  # "SLOT",     # flake8-slots
+  # "T10",      # flake8-debugger
   "T20",      # flake8-print
+  # "TC",       # flake8-type-checking
   "TID251",   # banned-api
   # "TID252",   # relative-improt
+  # "TRY",      # tryceratops
   "TRY203",   # useless-try-except
   "UP",       # pyupgrade
   "UP004",    # useless-object-inheritance
@@ -1063,7 +1083,7 @@ extend-select = [
   "UP034",    # extraneous-parenthesis
   "YTT",      # flake8-2020
   "N",        # pep8-naming (naming conventions)
-  "W",        # warning
+  "W",        # Standard Flake8/pycodestyle warning
 ]
 ignore = [
   "ARG001", "ARG002", "ARG005",             # Unused method argument
@@ -1189,6 +1209,7 @@ extend-exclude = '''
   |docs/source
   |galleries
   |maintenances
+  |skills
   |third_party
   |tools
   |tests

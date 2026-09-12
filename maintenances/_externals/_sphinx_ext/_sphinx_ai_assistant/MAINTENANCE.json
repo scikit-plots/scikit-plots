@@ -1,0 +1,33 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+  "runtime_dir": "_sphinx_ai_assistant",
+  "state": "_maintenance/STATE.json",
+  "tracker": "_maintenance/TRACKER.json",
+  "handoff": "_maintenance/FRESH_CHAT_HANDOFF.md",
+  "checkpoint_dir": "_maintenance/checkpoints",
+  "skill_root": "skills/_externals/_sphinx_ext/_sphinx_ai_assistant",
+  "notes": "AI-specific security/test ownership remains in its local checker; common family invariants and capability ownership are composed first.",
+  "dependency_edges": [],
+  "capability_ownership": [
+    {
+      "id": "ai.assistant.browser-server-authority",
+      "owner": "_sphinx_ai_assistant",
+      "description": "Browser presentation remains subordinate to server-side credentials, routing, persistence, and security policy.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "ai.assistant.canonical-representation",
+      "owner": "_sphinx_ai_assistant",
+      "description": "Build-time canonical page representation and its controlled runtime consumption boundary.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "ai.assistant.turn-lifecycle",
+      "owner": "_sphinx_ai_assistant",
+      "description": "Turn-owned cancellation, generation binding, and stale-work suppression.",
+      "stability": "internal-stable"
+    }
+  ],
+  "review_profile": "_maintenance/REVIEW.json"
+}

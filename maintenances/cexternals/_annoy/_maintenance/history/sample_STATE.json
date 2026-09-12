@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "module": "scikitplot.cexternals._annoy",
+  "role": "shared native source upstream with typed consumer evidence",
+  "active_checkpoint": "CANN01_TYPED_CONSUMER_CONTROL_PLANE",
+  "source": {
+    "archive": "scikit-plots(2).zip",
+    "sha256": "e92a111bbffa7a2dcb467a8fde537fb8cc3c40e4e69ee6a7051d0fa9e443d6a6"
+  },
+  "ownership": {
+    "runtime": "scikitplot/cexternals/_annoy",
+    "maintenance": "maintenances/cexternals/_annoy",
+    "skill": "skills/cexternals/_annoy"
+  },
+  "consumer_edges": {
+    "direct_source": [
+      "annoy",
+      "random",
+      "memmap"
+    ],
+    "compiled_index": [
+      "impute"
+    ],
+    "selectable_compiled_index": [
+      "corpus"
+    ],
+    "transitive_compiled_index": [
+      "mcp"
+    ]
+  },
+  "verification": {
+    "static_contract": "GREEN_7_OF_7_CHECKS",
+    "review": "PR_READY_STATIC_ELIGIBLE_NATIVE_EVIDENCE_GREEN_CONSUMER_RUNTIME_PARTIAL",
+    "native_build": "UNAVAILABLE_NOT_RUN_YET",
+    "consumer_runtime": "UNAVAILABLE_NOT_RUN_YET",
+    "maintenance_negative_tests": "GREEN_11_OF_11",
+    "native": "GREEN_11_ENTRIES",
+    "annoy_consumer": "STATIC_GREEN_6_OF_6_RUNTIME_UNAVAILABLE_NO_COMPILED_EXTENSION",
+    "random_consumer": "STATIC_GREEN_RUNTIME_UNAVAILABLE_NO_COMPILED_WRAPPER",
+    "memmap_consumer": "STATIC_GREEN_RUNTIME_UNAVAILABLE_NO_COMPILED_WRAPPER",
+    "impute_consumer": "STATIC_GREEN_RUNTIME_UNAVAILABLE_INCOMPLETE_SOURCE_SNAPSHOT",
+    "corpus_consumer": "GREEN_38_OF_38",
+    "mcp_consumer": "GREEN_29_OF_29"
+  },
+  "next_actions": [
+    "Preserve the typed _annoy consumer manifest and run check_contract.py before native-source changes.",
+    "For future _annoy/src changes, select only affected consumer lanes from MAINTENANCE.json and run them independently.",
+    "Onboard the next user-selected sibling module independently; do not absorb its maintenance ownership into _annoy.",
+    "When a full buildable repository snapshot is available, add compiled Annoy/Random/Memmap/Impute runtime evidence without replacing current UNAVAILABLE records."
+  ],
+  "legacy_campaign": {
+    "status": "HISTORICAL_CONTEXT_NOT_CURRENT_AUTHORITY",
+    "note": "A00-A21 documents remain for rationale; MAINTENANCE.json + STATE.json + FRESH_CHAT_HANDOFF.md are current authority."
+  }
+}

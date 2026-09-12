@@ -1,0 +1,68 @@
+# Reference CircleCI job fragment. Merge under the parent repository's jobs/workflows keys.
+# The jobs emit canonical Run 148 attestations. Before production promotion, an
+# organization-approved cryptographic signer/verifier MUST create the paired
+# *.signature-verification.json records consumed by verify_release_evidence.py.
+version: 2.1
+
+jobs:
+  provider_artifact_redis_chaos_7:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Redis 7.4.11 standalone + cluster live-Lua chaos gate
+          command: |
+            REDIS_IMAGE='redis:7.4.11-bookworm@sha256:71da9275c5f3fcb97d0fa0c8c5b36cc995327265420f17a04bfd544f458059f7'
+            mkdir -p /tmp/redis-chaos-evidence
+            docker build \
+              -f scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/ci/redis-chaos.Dockerfile \
+              --build-arg REDIS_IMAGE="$REDIS_IMAGE" \
+              -t scikitplot-redis-chaos:7 .
+            docker run --rm --read-only \
+              --tmpfs /tmp:rw,nosuid,nodev,noexec,size=256m \
+              --tmpfs /var/tmp:rw,nosuid,nodev,noexec,size=256m \
+              --mount type=bind,src=/tmp/redis-chaos-evidence,dst=/evidence \
+              --cap-drop ALL --security-opt no-new-privileges \
+              scikitplot-redis-chaos:7 --mode all \
+              --attestation-dir /evidence \
+              --source-revision "$CIRCLE_SHA1" \
+              --redis-image "$REDIS_IMAGE"
+      - store_artifacts:
+          path: /tmp/redis-chaos-evidence
+          destination: redis-chaos-evidence-7
+
+  provider_artifact_redis_chaos_8:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Redis 8.2.9 standalone + cluster live-Lua chaos gate
+          command: |
+            REDIS_IMAGE='redis:8.2.9-bookworm@sha256:7d1e4ce8b9395088377ab382d1f6cfdbd13b3690795198a0399ab8d683064d6d'
+            mkdir -p /tmp/redis-chaos-evidence
+            docker build \
+              -f scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/ci/redis-chaos.Dockerfile \
+              --build-arg REDIS_IMAGE="$REDIS_IMAGE" \
+              -t scikitplot-redis-chaos:8 .
+            docker run --rm --read-only \
+              --tmpfs /tmp:rw,nosuid,nodev,noexec,size=256m \
+              --tmpfs /var/tmp:rw,nosuid,nodev,noexec,size=256m \
+              --mount type=bind,src=/tmp/redis-chaos-evidence,dst=/evidence \
+              --cap-drop ALL --security-opt no-new-privileges \
+              scikitplot-redis-chaos:8 --mode all \
+              --attestation-dir /evidence \
+              --source-revision "$CIRCLE_SHA1" \
+              --redis-image "$REDIS_IMAGE"
+      - store_artifacts:
+          path: /tmp/redis-chaos-evidence
+          destination: redis-chaos-evidence-8
+
+workflows:
+  redis_chaos_reference:
+    jobs:
+      - provider_artifact_redis_chaos_7
+      - provider_artifact_redis_chaos_8

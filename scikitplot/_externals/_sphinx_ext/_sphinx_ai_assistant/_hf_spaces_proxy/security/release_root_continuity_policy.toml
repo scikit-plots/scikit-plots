@@ -1,0 +1,17 @@
+schema_version = 1
+bundle_schema_version = 1
+state_schema_version = 1
+receipt_schema_version = 1
+attestation_schema_version = 1
+predicate_type = "https://scikit-plots.org/attestations/release-root-continuity/v1"
+spec_version = "1.0.0"
+max_json_bytes = 16777216
+max_continuity_epochs = 4096
+max_attestation_chain_length = 8
+max_clock_skew_minutes = 10
+max_attestation_lifetime_days = 825
+min_attestation_remaining_minutes = 60
+min_attestation_roots = 1
+require_all_active_root_keys_attested = true
+allowed_device_classes = ["hsm", "kms-hsm", "tpm", "secure-element"]
+allowed_leaf_key_algorithms = ["ed25519", "ecdsa-p256"]

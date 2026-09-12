@@ -5,6 +5,8 @@
 
 """Extract version number from __init__.py file."""
 
+from __future__ import annotations
+
 import os
 
 try:

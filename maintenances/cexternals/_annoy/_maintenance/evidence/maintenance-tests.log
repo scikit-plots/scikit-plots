@@ -1,0 +1,40 @@
+Command: python -B -m unittest discover -s maintenances/cexternals/_annoy/_maintenance/tests -v
+
+test_01_read_only_foreign_cwd (test_contract.ContractTests.test_01_read_only_foreign_cwd) ... ok
+test_02_sample_compatibility (test_contract.ContractTests.test_02_sample_compatibility) ... ok
+test_03_six_distinct_edges (test_contract.ContractTests.test_03_six_distinct_edges) ... ok
+test_04_wrong_relative_path_same_basename (test_contract.ContractTests.test_04_wrong_relative_path_same_basename) ... ok
+test_05_missing_header (test_contract.ContractTests.test_05_missing_header) ... ok
+test_06_comments_and_docstrings (test_contract.ContractTests.test_06_comments_and_docstrings) ... ok
+test_07_single_quoted_continuation (test_contract.ContractTests.test_07_single_quoted_continuation) ... ok
+test_08_undeclared_consumers (test_contract.ContractTests.test_08_undeclared_consumers) ... ok
+test_09_nested_relative_upward_import (test_contract.ContractTests.test_09_nested_relative_upward_import) ... ok
+test_10_upward_cpp_and_fork (test_contract.ContractTests.test_10_upward_cpp_and_fork) ... ok
+test_11_runtime_imports_tooling (test_contract.ContractTests.test_11_runtime_imports_tooling) ... ok
+test_12_mcp_alias_and_dynamic_bypass (test_contract.ContractTests.test_12_mcp_alias_and_dynamic_bypass) ... ok
+test_13_compiled_contracts_required (test_contract.ContractTests.test_13_compiled_contracts_required) ... ok
+test_14_syntax_errors_fail_closed (test_contract.ContractTests.test_14_syntax_errors_fail_closed) ... ok
+test_15_unsafe_paths_and_links (test_contract.ContractTests.test_15_unsafe_paths_and_links) ... ok
+test_16_required_review_lanes (test_contract.ContractTests.test_16_required_review_lanes) ... ok
+test_17_profile_execution_and_release_disabling (test_contract.ContractTests.test_17_profile_execution_and_release_disabling) ... ok
+test_18_duplicate_consumer (test_contract.ContractTests.test_18_duplicate_consumer) ... ok
+test_19_duplicate_json_keys (test_contract.ContractTests.test_19_duplicate_json_keys) ... ok
+test_20_drift_invalidates_evidence (test_contract.ContractTests.test_20_drift_invalidates_evidence) ... ok
+test_21_refresh_cannot_bless_architecture (test_contract.ContractTests.test_21_refresh_cannot_bless_architecture) ... ok
+test_22_refresh_preserves_provenance (test_contract.ContractTests.test_22_refresh_preserves_provenance) ... ok
+test_23_malformed_evidence_prevents_refresh (test_contract.ContractTests.test_23_malformed_evidence_prevents_refresh) ... ok
+test_24_missing_and_tampered_evidence (test_contract.ContractTests.test_24_missing_and_tampered_evidence) ... ok
+test_25_unavailable_is_not_release_pass (test_contract.ContractTests.test_25_unavailable_is_not_release_pass) ... ok
+test_26_skill_and_handoff_and_residue (test_contract.ContractTests.test_26_skill_and_handoff_and_residue) ... ok
+test_27_closed_pipe (test_contract.ContractTests.test_27_closed_pipe) ... ok
+test_missing_executable_has_diagnostic (test_contract.NativeToolTests.test_missing_executable_has_diagnostic) ... ok
+test_missing_or_compile_only_is_not_pass (test_contract.NativeToolTests.test_missing_or_compile_only_is_not_pass) ... ok
+test_no_shell_and_failed_probe (test_contract.NativeToolTests.test_no_shell_and_failed_probe) ... ok
+test_timeout_is_failure (test_contract.NativeToolTests.test_timeout_is_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 1.505s
+
+OK
+
+Exit code: 0

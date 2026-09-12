@@ -1,0 +1,86 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.seaborn",
+  "runtime_root": "scikitplot/seaborn",
+  "maintenance_root": "maintenances/seaborn",
+  "skill": "skills/seaborn/SKILL.md",
+  "ownership": {
+    "owns": "The high-level seaborn-style plotting API in scikitplot.seaborn: aucplot, evalplot, decileplot, modelplot, print_labels, their plotter classes, semantic mapping glue, focused tests, and compatibility behavior against supported seaborn/matplotlib/sklearn/pandas versions.",
+    "does_not_own": "Upstream seaborn private APIs, matplotlib internals, sklearn metric semantics, the vendored scikitplot.externals._seaborn implementation, decile package APIs outside this submodule, or root scikitplot packaging."
+  },
+  "surfaces": {
+    "auc": {
+      "symbol": "aucplot",
+      "description": "ROC/PR plotting with sklearn metrics and seaborn-like vector semantics."
+    },
+    "evaluation": {
+      "symbol": "evalplot",
+      "description": "Confusion-matrix/classification-report rendering."
+    },
+    "decile": {
+      "symbol": "decileplot",
+      "description": "Decile table and lift/gain/KS visualizations."
+    },
+    "model": {
+      "symbol": "modelplot",
+      "description": "Advertised estimator/model-attribute visualization surface."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/seaborn/__init__.py",
+      "scikitplot/seaborn/_auc.py",
+      "scikitplot/seaborn/_confusion_matrix.py",
+      "scikitplot/seaborn/_decile.py",
+      "scikitplot/seaborn/_model.py",
+      "scikitplot/seaborn/tests/__init__.py",
+      "scikitplot/seaborn/tests/test__auc.py",
+      "scikitplot/seaborn/tests/test__confusion_matrix.py",
+      "scikitplot/seaborn/tests/test__decile.py",
+      "scikitplot/seaborn/tests/test__model.py"
+    ],
+    "required_symbols": {
+      "scikitplot/seaborn/_auc.py": [
+        "aucplot",
+        "_AucPlotter"
+      ],
+      "scikitplot/seaborn/_confusion_matrix.py": [
+        "evalplot",
+        "_ConfusionMatrixPlotter"
+      ],
+      "scikitplot/seaborn/_decile.py": [
+        "decileplot",
+        "print_labels",
+        "get_feature_infos",
+        "_DecilePlotter"
+      ],
+      "scikitplot/seaborn/_model.py": [
+        "modelplot",
+        "_ModelPlotter"
+      ]
+    },
+    "test_files": [
+      "scikitplot/seaborn/tests/test__auc.py",
+      "scikitplot/seaborn/tests/test__confusion_matrix.py",
+      "scikitplot/seaborn/tests/test__decile.py",
+      "scikitplot/seaborn/tests/test__model.py"
+    ]
+  },
+  "boundary_contract": {
+    "compatibility_rule": "Do not rely directly on unstable seaborn private color-resolution behavior without a local compatibility seam tested against supported Matplotlib versions.",
+    "model_rule": "modelplot(kind=feature_importances) must actually derive the visualization from x_estimator model attributes; x_estimator cannot be decorative metadata.",
+    "weight_rule": "decileplot weights must affect decile aggregation or be rejected/removed; validated weights may not be silently discarded.",
+    "semantic_mapping_rule": "Public hue_order/hue_norm/palette arguments must be forwarded to hue mapping consistently with aucplot/evalplot/modelplot.",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ]
+  },
+  "read_order": [
+    "maintenances/seaborn/MAINTAINING.md",
+    "maintenances/seaborn/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/seaborn/_maintenance/STATE.json",
+    "maintenances/seaborn/_maintenance/FAMILY.md",
+    "maintenances/seaborn/_maintenance/VERIFICATION.md"
+  ]
+}

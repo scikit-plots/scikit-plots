@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.cython",
+  "lanes": [
+    {
+      "id": "runtime-architecture",
+      "checks": [
+        "runtime_presence",
+        "contracts",
+        "optionality",
+        "security",
+        "cache",
+        "locking",
+        "templates",
+        "planes",
+        "independence"
+      ]
+    },
+    {
+      "id": "continuation",
+      "checks": [
+        "handoff",
+        "inventory",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "verification",
+      "checks": [
+        "evidence"
+      ]
+    }
+  ],
+  "release_gates": [
+    "maintenance_tests",
+    "actual_snapshot_suite",
+    "package_root_harness_suite",
+    "direct_compile_smoke",
+    "isolated_real_compile_regressions",
+    "probe_battery",
+    "packaging_source_hygiene",
+    "cross_platform_toolchains"
+  ]
+}

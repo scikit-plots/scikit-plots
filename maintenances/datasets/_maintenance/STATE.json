@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.datasets",
+  "updated_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "test_evidence": {
+    "package_root_harness": "209 passed, 38 skipped, 19 subtests passed",
+    "parquet": "UNAVAILABLE (pyarrow/fastparquet absent)",
+    "data_export_cli": "PASS (CSV hash export + profile + manifest)",
+    "data_loader_negative_probes": "FAIL (owned defects reproduced)",
+    "maintenance_contract": "24 passed"
+  },
+  "next_actions": [
+    "Fix the tips Thur categorical level and add a value-preservation regression",
+    "Repair ZIP member loading and add focused _data_loader tests",
+    "Make upload/query defaults and cleanup lifecycle coherent",
+    "Correct -m examples that include .py",
+    "Run Parquet, network/cache and real database-backend integration in a complete package checkout"
+  ]
+}

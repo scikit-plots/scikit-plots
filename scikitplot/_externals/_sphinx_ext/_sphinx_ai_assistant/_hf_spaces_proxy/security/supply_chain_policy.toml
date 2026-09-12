@@ -1,5 +1,5 @@
 schema_version = 1
-reviewed_at = "2026-08-30"
+reviewed_at = "2026-09-04"
 target_python = "3.11.16"
 target_platform = "linux/amd64"
 lock_file = "requirements.lock"

@@ -26,6 +26,8 @@ python -m shutil:
 * shutil.copyfile(src, dst)
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import re

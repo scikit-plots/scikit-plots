@@ -46,6 +46,10 @@ The policy is intentionally public: security does not depend on hiding the
 system prompt.  The service reconstructs the authoritative system role from
 its own code, so direct callers cannot replace it.
 
+### Resource boundary
+
+Raw browser resources terminate at the proxy Resource Transport Plane, not at this model endpoint. The shared `scikitplot-chat-v1` parser understands resource descriptors so contract validation stays identical across both Spaces, but this self-hosted model service currently rejects direct requests containing `resources`. Run 127 therefore advertises the bundled Qwen service as a `self_hosted` **plan-only, text-context** capability; a future `SelfHostedAdapter` executor must inspect the actual model/processor before enabling native image/audio/video/document bytes. Otherwise the proxy must use an explicitly supported bounded extraction/context route. This keeps ZIP/media/document parsing out of a text-only model service and prevents silently dropping an uploaded file.
+
 ## Other endpoints
 
 | Method | Path | Purpose | Link |

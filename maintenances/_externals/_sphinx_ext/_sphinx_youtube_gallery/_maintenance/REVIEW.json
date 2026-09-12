@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
+  "mode": "independent_then_reconcile",
+  "package_targets": [
+    "_sphinx_youtube_gallery",
+    "_sphinx_youtube_core",
+    "_sphinx_collection",
+    "_sphinx_gallery_grid",
+    "_sphinxcontrib_youtube",
+    "_pydata_component_list"
+  ],
+  "lenses": [
+    {
+      "id": "architecture-ownership",
+      "title": "Architecture and capability ownership",
+      "required": true,
+      "focus": "Detect reverse dependencies, undeclared edges, ownership drift, compatibility-boundary erosion, and runtime/maintenance plane leakage.",
+      "checks": [
+        "common-maintenance",
+        "architecture-consistency",
+        "runtime-syntax"
+      ]
+    },
+    {
+      "id": "fresh-chat-skill",
+      "title": "Fresh-chat skill and authority",
+      "required": true,
+      "focus": "Ensure a new maintainer or review agent reads the same canonical state and routes fixes to the capability owner before editing.",
+      "checks": [
+        "fresh-chat-parity",
+        "skill-capability-coverage",
+        "profile-safety"
+      ]
+    },
+    {
+      "id": "state-evidence",
+      "title": "State and evidence consistency",
+      "required": true,
+      "focus": "Detect stale checkpoints, mismatched tracker identity, pending placeholders, and unavailable layers that are accidentally treated as verified.",
+      "checks": [
+        "state-tracker-consistency",
+        "verification-state"
+      ]
+    }
+  ],
+  "pr_policy": {
+    "blocking_severities": [
+      "ERROR"
+    ],
+    "require_required_lenses": true,
+    "unavailable_release_gate_blocks_promotion": true
+  }
+}

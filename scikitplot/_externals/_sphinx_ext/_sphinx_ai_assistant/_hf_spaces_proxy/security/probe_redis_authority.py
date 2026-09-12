@@ -48,7 +48,7 @@ def collect(  # ruff: ignore[too-many-branches, undocumented-public-function]
     url_env: str,
     client: Any | None = None,
 ) -> dict[str, Any]:
-    if plane not in {"rateLimit", "share", "contribution"}:
+    if plane not in {"rateLimit", "share", "contribution", "providerArtifactLifecycle"}:
         raise RuntimeError("PLANE_INVALID")
     if not url_env or any(
         ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for ch in url_env
@@ -128,7 +128,9 @@ def main(argv: list[str] | None = None) -> int:
     """Run."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--plane", required=True, choices=("rateLimit", "share", "contribution")
+        "--plane",
+        required=True,
+        choices=("rateLimit", "share", "contribution", "providerArtifactLifecycle"),
     )
     parser.add_argument(
         "--url-env",

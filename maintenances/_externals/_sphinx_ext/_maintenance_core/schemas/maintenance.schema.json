@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sphinx extension maintenance manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "subsystem",
+    "runtime_dir",
+    "state",
+    "tracker",
+    "handoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "subsystem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tracker": {
+      "type": "string",
+      "minLength": 1
+    },
+    "handoff": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime_requires": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "family_related": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "dependency_edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependencyEdge"
+      }
+    },
+    "capability_ownership": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/capabilityOwner"
+      }
+    },
+    "review_profile": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "schema_version": {
+          "const": 1
+        }
+      },
+      "required": [
+        "runtime_requires",
+        "family_related"
+      ]
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": 2
+        }
+      },
+      "required": [
+        "dependency_edges",
+        "capability_ownership"
+      ]
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "minimum": 3
+        }
+      },
+      "required": [
+        "dependency_edges",
+        "capability_ownership",
+        "review_profile"
+      ]
+    }
+  ],
+  "$defs": {
+    "dependencyEdge": {
+      "type": "object",
+      "required": [
+        "target",
+        "kind",
+        "evidence",
+        "capabilities"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "runtime_required",
+            "runtime_optional",
+            "test_only",
+            "maintenance_only",
+            "family_related"
+          ]
+        },
+        "evidence": {
+          "enum": [
+            "python_import",
+            "source_reference",
+            "architectural_relation",
+            "test_import",
+            "maintenance_reference"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "uniqueItems": true
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilityOwner": {
+      "type": "object",
+      "required": [
+        "id",
+        "owner",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{2,127}$"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stability": {
+          "enum": [
+            "internal",
+            "internal-stable",
+            "compatibility",
+            "public"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

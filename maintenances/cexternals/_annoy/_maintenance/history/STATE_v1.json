@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.cexternals._annoy",
+  "role": "the shared C++ source of truth",
+  "family": {
+    "members": [
+      "scikitplot/cexternals/_annoy",
+      "scikitplot/annoy",
+      "scikitplot/memmap",
+      "scikitplot/random"
+    ],
+    "shared_source": "scikitplot/cexternals/_annoy/src/",
+    "upstream": "cexternals/_annoy",
+    "contract": "FAMILY.md (identical in all four _maintenance/ folders)"
+  },
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
+  },
+  "maintenance_set": {
+    "version": "LIVE_V1",
+    "mirrors": "scikitplot/corpus/_maintenance and scikitplot/mcp/_maintenance",
+    "gate": "python scikitplot/cexternals/_maintenance/check_trackers.py",
+    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
+  },
+  "physical_totals": {
+    "source_files": 29,
+    "source_loc": 23846,
+    "test_files": 14,
+    "test_loc": 1001,
+    "markdown_files": 5
+  },
+  "campaign": {
+    "name": "annoy family deep review",
+    "guide": "ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md",
+    "runs": {
+      "A00": {
+        "status": "READY"
+      },
+      "A01": {
+        "status": "NOT_STARTED"
+      },
+      "A02": {
+        "status": "NOT_STARTED"
+      },
+      "A03": {
+        "status": "NOT_STARTED"
+      },
+      "A04": {
+        "status": "NOT_STARTED"
+      },
+      "A05": {
+        "status": "NOT_STARTED"
+      },
+      "A06": {
+        "status": "NOT_STARTED"
+      },
+      "A07": {
+        "status": "NOT_STARTED"
+      },
+      "A08": {
+        "status": "NOT_STARTED"
+      },
+      "A09": {
+        "status": "NOT_STARTED"
+      },
+      "A10": {
+        "status": "NOT_STARTED"
+      },
+      "A11": {
+        "status": "NOT_STARTED"
+      },
+      "A12": {
+        "status": "NOT_STARTED"
+      },
+      "A13": {
+        "status": "NOT_STARTED"
+      },
+      "A14": {
+        "status": "NOT_STARTED"
+      },
+      "A15": {
+        "status": "NOT_STARTED"
+      },
+      "A16": {
+        "status": "NOT_STARTED"
+      },
+      "A17": {
+        "status": "NOT_STARTED"
+      },
+      "A18": {
+        "status": "NOT_STARTED"
+      },
+      "A19": {
+        "status": "NOT_STARTED"
+      },
+      "A20": {
+        "status": "NOT_STARTED"
+      },
+      "A21": {
+        "status": "NOT_STARTED"
+      }
+    },
+    "active_run": "A00",
+    "production_code_modified": false,
+    "note": "One guide covers the family. Runs A07 (memmap), A10 (all three) and A11 (random) have a stake outside scikitplot.annoy."
+  },
+  "open_findings": [
+    {
+      "id": "AF-A00-C1",
+      "severity": "P2",
+      "title": "`_backup/` ships a full unbuilt vendored tree inside an installed package",
+      "evidence": "CMakeLists, debian/, rockspec, Go+Lua bindings, a second annoy/ package. Duplicated in annoy/_annoy/_backup/.",
+      "fix": "archive out of the installed package"
+    },
+    {
+      "id": "AF-A00-C2",
+      "severity": "P2",
+      "title": "Downstream coupling is a relative path in Cython source, not an include dir",
+      "evidence": "3 submodules, 9 `cdef extern` sites; `'src'` is commented out of memmap's and random's include dirs",
+      "fix": "add `src` to include_directories; drop the relative paths (coordinated 3-submodule change)"
+    },
+    {
+      "id": "AF-A00-C3",
+      "severity": "P3",
+      "title": "`annoymodule.cu` present, unbuilt, unreferenced, untested",
+      "evidence": "not in meson.build",
+      "fix": "wire with a capability declaration, or archive"
+    }
+  ],
+  "corpus_contracts_relevant": {
+    "VectorIndexBackend": "renamed from ANNBackend; declares 11 capability members Annoy's backend must answer truthfully",
+    "ANNIndexArtifact": "BUILT AND TESTED: index dir + versioned ordinal->doc_id sidecar + embedding manifest. Unblocks A15.",
+    "supports_persistence": "Corpus currently declares True. If Annoy's native save/load does not round-trip, that declaration is wrong."
+  },
+  "fresh_chat_read_order": [
+    "_maintenance/FAMILY.md",
+    "_maintenance/MAINTENANCE_MODEL.md",
+    "_maintenance/TRACKER_LOGICAL.md",
+    "_maintenance/TRACKER_PHYSICAL.md",
+    "_maintenance/SUBMODULE_STRUCTURE.md",
+    "_maintenance/VERIFICATION.md"
+  ],
+  "next_exact_action": "Start run A00 (clean-room source/build baseline) per ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md section 4. Do NOT begin implementation: establish the big picture across A00-A21 first, as Corpus and MCP did. The findings in open_findings are A00 INPUT - revalidate each against the tree with evidence rather than accepting it. A00 requires a CLEAN-ROOM build: this family compiles, so a tracker check on an unbuilt tree is necessary but not sufficient. Project sequence after ANNOY: CLI.",
+  "project_sequence": {
+    "corpus": "COMPLETE (R00-R16 review, IMPL-01-18 implementation)",
+    "mcp": "maintenance set ready; run M00 pending",
+    "annoy_family": "maintenance set ready; run A00 NEXT",
+    "cli": "AFTER ANNOY"
+  }
+}

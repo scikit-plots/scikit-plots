@@ -1,0 +1,51 @@
+{
+  "inventory": {
+    "baseline_sha256": "178a8d79294682a72032add3a76d41ae29663346791cd4ce8da90bab2d826247",
+    "paths": [
+      "__init__.py",
+      "_meson_features/__init__.py",
+      "_meson_features/decorators.py",
+      "_meson_features/feature.py",
+      "_meson_features/module.py",
+      "_meson_features/utils.py",
+      "conv_template.py",
+      "copyfiles.py",
+      "cython_generate.py",
+      "cythoner.py",
+      "fix_submodule_import.py",
+      "fix_submodule_import_v2.py",
+      "gcc_build_bitness.py",
+      "gitversion.py",
+      "install_meson_features.py",
+      "link-version-pyinit.map",
+      "process_src_template.py",
+      "system_info.py",
+      "tempita.py",
+      "tests/__init__.py",
+      "tests/test_fix_submodule_import_v2.py",
+      "tests/test_gitversion.py",
+      "version.py"
+    ],
+    "production_python_files": 19,
+    "test_python_files": 2,
+    "test_support_python_files": 1,
+    "tracked_files": 23
+  },
+  "maintenance_errors": [],
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "runtime_errors": [
+    "cython_generate validates generated files with raw doubled-brace substring checks; legitimate CSS/JavaScript braces are false positives",
+    "cython_generate documentation promises atomic output but generator writes directly without atomic replacement",
+    "add_safe_directory ValueError/error fallback references e outside its exception scope and can raise UnboundLocalError",
+    "git safe-directory recovery mutates persistent --global Git configuration",
+    "git_version marks the _build_utils working subdirectory safe instead of resolving the Git repository top level",
+    "git_version triggers safe-directory mutation for every return code 128 rather than a verified dubious-ownership diagnostic",
+    "_needs_update uses mtimes rather than content identity, so a newer but different destination can be accepted",
+    "_needs_update does not detect destination-only stale files removed from the source feature package",
+    "copy_file creates os.path.dirname(dest) unconditionally; a bare destination filename yields os.makedirs(\"\")",
+    "test_gitversion imports production version APIs but never calls them; simulated tests do not exercise real error paths"
+  ],
+  "runtime_status": "FAIL",
+  "subsystem": "scikitplot._build_utils"
+}

@@ -50,6 +50,7 @@ ENV PATH=/opt/venv/bin:$PATH \
 
 WORKDIR /home/user/app
 COPY --chown=1000:1000 _utils ./_utils
+COPY --chown=1000:1000 _providers ./_providers
 COPY --chown=1000:1000 app.py deduplicate_dataset.py ./
 
 USER 1000:1000

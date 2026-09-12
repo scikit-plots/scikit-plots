@@ -1,3 +1,9 @@
+# Historical comparison (not active instructions)
+
+This pre-onboarding analysis is preserved for rationale. Its paths, counts,
+campaign sequence and status claims are superseded by MAINTAINING.md, STATE.json
+and EVIDENCE.json.
+
 # Pattern Comparison: kissrandom → mman
 
 ## File Structure (Identical Pattern)

@@ -1,0 +1,25 @@
+{
+  "integration_status": "UNAVAILABLE",
+  "maintenance_status": "PASS",
+  "next_actions": [
+    "Repair package export/lazy-import contract",
+    "Provide a real documented logo CLI path",
+    "Make zero-output banner batches fail closed",
+    "Add focused _banner tests and a live figlet integration lane"
+  ],
+  "release_status": "BLOCKED",
+  "runtime_integrity": {
+    "baseline_sha256": "691761c9d290cc20d8c1701554db00d9443e83091a1be892d18e907577ddc598",
+    "expected_tracked_files": 5,
+    "runtime_modified_by_campaign": false
+  },
+  "runtime_status": "FAIL",
+  "schema_version": 2,
+  "subsystem": "scikitplot._brand",
+  "test_evidence": {
+    "banner_external_figlet": "UNAVAILABLE (figlet not installed)",
+    "logo_suite": "271 passed, 11 warnings",
+    "negative_probes": "PASS (findings reproduced)"
+  },
+  "updated_at": "2026-09-12"
+}

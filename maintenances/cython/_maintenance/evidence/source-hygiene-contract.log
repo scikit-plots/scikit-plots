@@ -1,0 +1,20 @@
+{
+  "subsystem": "scikitplot.cython",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "runtime_fingerprint": "fbf1f551516a627d7907e6d10a3686c175633b868995c13d329c10d3a4d22ef8",
+  "inventory": {
+    "tracked_files": 367,
+    "production_python_files": 17,
+    "test_python_files": 43,
+    "template_files": 306,
+    "template_sources": 168,
+    "template_metadata": 105,
+    "markdown_files": 29
+  },
+  "maintenance_errors": [],
+  "runtime_errors": [
+    "runtime source contains interpreter bytecode/cache artifacts: scikitplot/cython/__pycache__, scikitplot/cython/__pycache__/_lock.cpython-311.pyc"
+  ]
+}
+exit=1

@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.annoy",
+  "runtime_fingerprint": "b114e5026268cd6931eefc3a09a9f9281b3a9e4389ece20132e86cbb7d03bf0e",
+  "recorded_on": "2026-09-12",
+  "gates": {
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/annoy/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "994aa5d5c506c756f454524ff2aaa59f3eb7a1ebd588f7ed6c99eebc716dae49",
+      "note": "18 contract regression tests pass."
+    },
+    "template_generation": {
+      "status": "RED",
+      "log": "maintenances/annoy/_maintenance/evidence/missing-generator.log",
+      "sha256": "7354aaf72510f7eb76028f660a886ce52a9d2eb1d9c13f179572838e023391d9",
+      "note": "Official Meson generation helper is missing; clean project generation remains blocked."
+    },
+    "cython_extension": {
+      "status": "UNAVAILABLE",
+      "log": null,
+      "sha256": null,
+      "note": "clean Cython extension build not performed"
+    },
+    "native_backend_compat": {
+      "status": "UNAVAILABLE",
+      "log": null,
+      "sha256": null,
+      "note": "paired cexternals/_annoy + Annoy integration build/runtime not performed"
+    },
+    "module_tests": {
+      "status": "UNAVAILABLE",
+      "log": null,
+      "sha256": null,
+      "note": "runtime tests not claimed from historical logs"
+    },
+    "cross_platform": {
+      "status": "UNAVAILABLE",
+      "log": null,
+      "sha256": null,
+      "note": "Windows/macOS/Linux matrix not performed in this review"
+    },
+    "manual_template_cython_probe": {
+      "status": "GREEN",
+      "log": "maintenances/annoy/_maintenance/evidence/generation-probe.log",
+      "sha256": "eb83cb7d8f8c2e967fbc97c6324ca1684016124274e2b7d6e302e5e80aee3971",
+      "note": "Read-only probe rendered both templates with Cython.Tempita, Cython-generated C++, and g++ C++17 syntax compile passed; this does not replace the missing official Meson helper or a linked extension build."
+    }
+  }
+}

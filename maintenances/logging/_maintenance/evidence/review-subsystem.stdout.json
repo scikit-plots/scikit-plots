@@ -1,0 +1,27 @@
+{
+  "integration_status": "UNAVAILABLE",
+  "inventory": {
+    "focused_runtime_test_files": 1,
+    "runtime_files": 5
+  },
+  "maintenance_errors": [],
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "runtime_findings": [
+    "LOG-PKG-001: package facade does not forward the former stdlib logging __getattr__/__dir__ compatibility surface",
+    "LOG-ERR-001: error_log does not emit the supplied message",
+    "LOG-ENV-001: get_logger does not apply documented SKPLT logging environment level policy",
+    "LOG-ENV-001: SKPLT_LOGGING_AUTO_CONFIG references a configure() path that does not exist",
+    "LOG-HDL-001: AlwaysStdErrHandler stream setter cannot switch to the requested valid stream",
+    "LOG-CLI-001: shared logger creation can stack a second handler after CLI logging configuration",
+    "LOG-CALL-001: custom findCaller ignores stacklevel and breaks documented direct Logger call-sites",
+    "LOG-ATTR-001: private core __getattr__ initializes project logging on missing stdlib attributes",
+    "LOG-FMT-001: unknown formatter selections can fall through and return None",
+    "LOG-TEST-001: focused tests still import the pre-move module shape and fail collection",
+    "LOG-TEST-002: focused tests explicitly preserve known defective behavior"
+  ],
+  "runtime_status": "FAIL",
+  "runtime_tree_fingerprint": "eb82e468a72cfbd4d71fee9f434f263864cb5c45dce8abaeb84f953e693af867",
+  "schema_version": 1,
+  "subsystem": "scikitplot.logging"
+}

@@ -57,6 +57,8 @@
 #                       Default: scikit-plots
 #   BACKEND_URL         Path 1 override (server-constructed requests go here).
 #   BACKEND_AUTH_TOKEN  Optional bearer token bound only to BACKEND_URL.
+#   PROVIDER_ARTIFACT_OPENAI_TOKEN Separate server-only OpenAI token for binary artifact output.
+#                       Never inferred/reused from BACKEND_AUTH_TOKEN; unset disables OpenAI output.
 #   HF_SPACES_AUTH_TOKEN Optional bearer token bound only to HF_SPACES_MODEL_URL.
 #   ALLOWED_MODELS      Comma-separated exact provider model IDs accepted by chat.
 #                       Default matches the public models in _example_conf.py.
@@ -94,7 +96,25 @@
 #                       Credentials are referenced only through env names with
 #                       prefix AI_RECORD_STORAGE_TOKEN_. When absent, legacy
 #                       TRAINING_DATASET_REPO + HF_* token settings are used.
-#   MAX_BODY_BYTES      Maximum accepted body size.  Default: 10485760.
+#   MAX_BODY_BYTES      Maximum accepted JSON-only chat body size. Default: 10485760.
+#   BACKEND_RESOURCE_ADAPTER Provider identity for Path-1 BACKEND_URL raw-resource routing.
+#                       One of openai/anthropic/gemini/huggingface/self_hosted/custom.
+#                       Never inferred from model names; default: custom.
+#   RESOURCE_MAX_FILE_BYTES Maximum one raw chat resource. Default: 512 MiB.
+#   RESOURCE_MAX_TOTAL_BYTES Aggregate raw resources per request. Default: 1 GiB.
+#   RESOURCE_MAX_REQUEST_BYTES Entire multipart request ceiling. Default: resource total + 2 MiB.
+#   ZIP_EDIT_RATE_LIMIT_PER_HOUR Per-IP ZIP edit artifact operations. Default: 20.
+#   PROVIDER_ARTIFACT_RATE_LIMIT_PER_HOUR Per-IP provider binary generation operations. Default: 10.
+#   PROVIDER_ARTIFACT_OUTPUT_ADAPTERS Comma-separated explicit production binary-output adapters.
+#                       Currently: openai. Default: empty (production output disabled).
+#   PROVIDER_ARTIFACT_LIFECYCLE_BACKEND memory (default) or redis. Redis is the shared
+#                       atomic lifecycle authority for multi-worker/multi-replica output + ZIP correlation.
+#   PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL Redis/rediss URL used only when lifecycle backend=redis.
+#   PROVIDER_ARTIFACT_LIFECYCLE_KEY_PREFIX Shared Redis namespace. Default: sphinx-ai-assistant.
+#   PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY standalone (default) or cluster. Cluster mode
+#                       uses redis.asyncio.cluster.RedisCluster and requires database 0.
+#   PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED Fail provider-output/ZIP provenance closed unless the
+#                       lifecycle backend is initialized shared+authoritative.
 #   MAX_UPSTREAM_RESPONSE_BYTES Maximum decoded upstream response bytes. Default: 8388608.
 #   SHARE_MAX_BODY_BYTES Global Share request/canonical snapshot limit. Default: 512000.
 #   SHARE_MAX_ENTRIES   Maximum live in-memory Global Share entries. Default: 256.
@@ -191,7 +211,7 @@ from dataclasses import replace
 from typing import Any
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
@@ -283,14 +303,30 @@ except ImportError:  # standalone HF Space deployment
 try:
     from ._utils._chat_contract import (  # type: ignore[import]
         CHAT_CONTRACT,
+        MAX_HISTORY_TOTAL_CHARS,
+        MAX_HISTORY_TURN_CHARS,
+        MAX_HISTORY_TURNS,
+        MAX_WORKING_FILE_CHARS,
+        MAX_WORKING_FILE_TOTAL_CHARS,
+        MAX_WORKING_FILES,
+        SUPPORTED_CHAT_CONTRACTS,
         ChatContractError,
+        build_upstream_payload,
         encode_upstream_payload,
         parse_chat_request,
     )
 except Exception:  # noqa: BLE001
     from _utils._chat_contract import (  # type: ignore[import]
         CHAT_CONTRACT,
+        MAX_HISTORY_TOTAL_CHARS,
+        MAX_HISTORY_TURN_CHARS,
+        MAX_HISTORY_TURNS,
+        MAX_WORKING_FILE_CHARS,
+        MAX_WORKING_FILE_TOTAL_CHARS,
+        MAX_WORKING_FILES,
+        SUPPORTED_CHAT_CONTRACTS,
         ChatContractError,
+        build_upstream_payload,
         encode_upstream_payload,
         parse_chat_request,
     )
@@ -304,6 +340,7 @@ try:
         render_share,
         render_share_viewer_shell,
         sanitize_share_page_url,
+        share_artifact_filename,
         valid_share_id,
         validate_share_format,
         verify_edit_token,
@@ -317,12 +354,22 @@ except Exception:  # noqa: BLE001
         render_share,
         render_share_viewer_shell,
         sanitize_share_page_url,
+        share_artifact_filename,
         valid_share_id,
         validate_share_format,
         verify_edit_token,
     )
 
 try:
+    from ._utils._resource_contract import resource_summary  # type: ignore[import]
+    from ._utils._resource_transport import (  # type: ignore[import]
+        DEFAULT_MAX_MULTIPART_BYTES,
+        DEFAULT_MAX_RESOURCE_FILE_BYTES,
+        DEFAULT_MAX_RESOURCE_TOTAL_BYTES,
+        ResourceTransportError,
+        ResourceUpload,
+        parse_resource_chat_request,
+    )
     from ._utils._shared_logic import (  # type: ignore[import]
         DEFAULT_HF_BASE,
         DEFAULT_HF_PROVIDER_MODELS,
@@ -353,6 +400,15 @@ try:
         stub_sse_frames,
     )
 except Exception:  # noqa: BLE001
+    from _utils._resource_contract import resource_summary  # type: ignore[import]
+    from _utils._resource_transport import (  # type: ignore[import]
+        DEFAULT_MAX_MULTIPART_BYTES,
+        DEFAULT_MAX_RESOURCE_FILE_BYTES,
+        DEFAULT_MAX_RESOURCE_TOTAL_BYTES,
+        ResourceTransportError,
+        ResourceUpload,
+        parse_resource_chat_request,
+    )
     from _utils._shared_logic import (  # type: ignore[import]
         DEFAULT_HF_BASE,
         DEFAULT_HF_PROVIDER_MODELS,
@@ -381,6 +437,130 @@ except Exception:  # noqa: BLE001
         stub_modes,
         stub_payload,
         stub_sse_frames,
+    )
+
+try:
+    from ._utils._zip_artifact import (  # type: ignore[import]
+        ZIP_EDIT_CONTRACT,
+        ZIP_EDIT_MAX_ENTRY_BYTES,
+        ZIP_EDIT_MAX_REPLACEMENT_TOTAL_BYTES,
+        ZIP_EDIT_MAX_REQUEST_BYTES,
+        ZIP_EDIT_MAX_SOURCE_BYTES,
+        ZIP_EDIT_RECEIPT_CONTRACT,
+        ZipArtifactError,
+        build_zip_edit_artifact,
+        encode_zip_edit_receipt_header,
+        parse_zip_edit_request,
+    )
+except Exception:  # noqa: BLE001
+    from _utils._zip_artifact import (  # type: ignore[import]
+        ZIP_EDIT_CONTRACT,
+        ZIP_EDIT_MAX_ENTRY_BYTES,
+        ZIP_EDIT_MAX_REPLACEMENT_TOTAL_BYTES,
+        ZIP_EDIT_MAX_REQUEST_BYTES,
+        ZIP_EDIT_MAX_SOURCE_BYTES,
+        ZIP_EDIT_RECEIPT_CONTRACT,
+        ZipArtifactError,
+        build_zip_edit_artifact,
+        encode_zip_edit_receipt_header,
+        parse_zip_edit_request,
+    )
+
+try:
+    from ._utils._provider_artifact import (  # type: ignore[import]
+        PROVIDER_ARTIFACT_CONTRACT,
+        PROVIDER_ARTIFACT_MAX_OUTPUT_BYTES,
+        PROVIDER_ARTIFACT_MAX_PROMPT_CHARS,
+        PROVIDER_ARTIFACT_MAX_REQUEST_BYTES,
+        PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
+        ProviderArtifactError,
+        encode_provider_artifact_receipt_header,
+        parse_provider_artifact_request,
+    )
+except Exception:  # noqa: BLE001
+    from _utils._provider_artifact import (  # type: ignore[import]
+        PROVIDER_ARTIFACT_CONTRACT,
+        PROVIDER_ARTIFACT_MAX_OUTPUT_BYTES,
+        PROVIDER_ARTIFACT_MAX_PROMPT_CHARS,
+        PROVIDER_ARTIFACT_MAX_REQUEST_BYTES,
+        PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
+        ProviderArtifactError,
+        encode_provider_artifact_receipt_header,
+        parse_provider_artifact_request,
+    )
+
+try:
+    from ._utils._provider_artifact_lifecycle import (  # type: ignore[import]
+        PROVIDER_ARTIFACT_CANCEL_CONTRACT,
+        PROVIDER_ARTIFACT_CANDIDATE_TTL_SECONDS,
+        PROVIDER_ARTIFACT_DUPLICATE_WINDOW_SECONDS,
+        PROVIDER_ARTIFACT_LIFECYCLE_CONTRACT,
+        build_provider_artifact_lifecycle_registry,
+    )
+except Exception:  # noqa: BLE001
+    from _utils._provider_artifact_lifecycle import (  # type: ignore[import]
+        PROVIDER_ARTIFACT_CANCEL_CONTRACT,
+        PROVIDER_ARTIFACT_CANDIDATE_TTL_SECONDS,
+        PROVIDER_ARTIFACT_DUPLICATE_WINDOW_SECONDS,
+        PROVIDER_ARTIFACT_LIFECYCLE_CONTRACT,
+        build_provider_artifact_lifecycle_registry,
+    )
+
+try:
+    from ._providers import (  # type: ignore[import]
+        AnthropicResourceExecutor,
+        GeminiResourceExecutor,
+        HuggingFaceResourceExecutor,
+        OpenAIProviderArtifactOutputExecutor,
+        OpenAIResourceExecutor,
+        ProviderArtifactOutputRegistry,
+        ProviderExecutorRegistry,
+        ProviderRegistry,
+        ResourceExecutionError,
+        ResourceExecutionSession,
+        StubProviderArtifactOutputExecutor,
+    )
+    from ._providers.anthropic import (  # type: ignore[import]
+        official_anthropic_messages_backend,
+    )
+    from ._providers.gemini import (  # type: ignore[import]
+        official_gemini_interactions_backend,
+    )
+    from ._providers.huggingface import (  # type: ignore[import]
+        official_huggingface_router_base,
+    )
+    from ._providers.openai import official_openai_chat_backend  # type: ignore[import]
+    from ._providers.policy import (  # type: ignore[import]
+        ModelResourceOverride,
+        provider_names,
+    )
+except Exception:  # noqa: BLE001
+    from _providers import (  # type: ignore[import]
+        AnthropicResourceExecutor,
+        GeminiResourceExecutor,
+        HuggingFaceResourceExecutor,
+        OpenAIProviderArtifactOutputExecutor,
+        OpenAIResourceExecutor,
+        ProviderArtifactOutputRegistry,
+        ProviderExecutorRegistry,
+        ProviderRegistry,
+        ResourceExecutionError,
+        ResourceExecutionSession,
+        StubProviderArtifactOutputExecutor,
+    )
+    from _providers.anthropic import (  # type: ignore[import]
+        official_anthropic_messages_backend,
+    )
+    from _providers.gemini import (  # type: ignore[import]
+        official_gemini_interactions_backend,
+    )
+    from _providers.huggingface import (  # type: ignore[import]
+        official_huggingface_router_base,
+    )
+    from _providers.openai import official_openai_chat_backend  # type: ignore[import]
+    from _providers.policy import (  # type: ignore[import]
+        ModelResourceOverride,
+        provider_names,
     )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -438,7 +618,7 @@ def _opaque_share_request_mode(request: Request) -> str:
         )
     if path == "/v1/share" and method in {"GET", "HEAD"}:
         return "read"
-    if path == "/v1/share/read" and method == "POST":
+    if path in {"/v1/share/read", "/v1/share/download"} and method == "POST":
         return "read"
     if path.startswith("/v1/share/") and method in {"GET", "HEAD"}:
         return "read"
@@ -701,8 +881,74 @@ logger = logging.getLogger(__name__)
 #: Explicit custom backend URL (Path 1).
 BACKEND_URL: str = os.environ.get("BACKEND_URL", "").strip()
 
+#: Resource adapter used only when Path 1 (BACKEND_URL) wins. Provider identity
+#: must come from the configured upstream path, never from the model namespace.
+BACKEND_RESOURCE_ADAPTER: str = (
+    os.environ.get("BACKEND_RESOURCE_ADAPTER", "custom").strip().lower() or "custom"
+)
+if BACKEND_RESOURCE_ADAPTER not in set(provider_names()):
+    raise RuntimeError("BACKEND_RESOURCE_ADAPTER is not a supported resource adapter")
+
+
+_raw_provider_artifact_output_adapters = tuple(
+    dict.fromkeys(
+        row.strip().lower()
+        for row in os.environ.get("PROVIDER_ARTIFACT_OUTPUT_ADAPTERS", "").split(",")
+        if row.strip()
+    )
+)
+_unsupported_provider_artifact_output_adapters = set(
+    _raw_provider_artifact_output_adapters
+) - {"openai"}
+if _unsupported_provider_artifact_output_adapters:
+    raise RuntimeError(
+        "PROVIDER_ARTIFACT_OUTPUT_ADAPTERS contains an unsupported output adapter"
+    )
+PROVIDER_ARTIFACT_OUTPUT_ADAPTERS: tuple[str, ...] = (
+    _raw_provider_artifact_output_adapters
+)
+
 #: Dedicated Path-1 bearer token. Never reuse HF_TOKEN for custom backends.
 BACKEND_AUTH_TOKEN: str = os.environ.get("BACKEND_AUTH_TOKEN", "").strip()
+PROVIDER_ARTIFACT_OPENAI_TOKEN: str = os.environ.get(
+    "PROVIDER_ARTIFACT_OPENAI_TOKEN", ""
+).strip()
+
+PROVIDER_ARTIFACT_LIFECYCLE_BACKEND: str = (
+    os.environ.get("PROVIDER_ARTIFACT_LIFECYCLE_BACKEND", "memory").strip().lower()
+    or "memory"
+)
+PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL: str = os.environ.get(
+    "PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL", ""
+).strip()
+PROVIDER_ARTIFACT_LIFECYCLE_KEY_PREFIX: str = (
+    os.environ.get(
+        "PROVIDER_ARTIFACT_LIFECYCLE_KEY_PREFIX", "sphinx-ai-assistant"
+    ).strip()
+    or "sphinx-ai-assistant"
+)
+try:
+    _raw_provider_artifact_lifecycle_redis_timeout = float(
+        os.environ.get("PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TIMEOUT_SECONDS", "2") or 2
+    )
+except (TypeError, ValueError):
+    _raw_provider_artifact_lifecycle_redis_timeout = 2.0
+PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TIMEOUT_SECONDS: float = max(
+    0.25, min(10.0, _raw_provider_artifact_lifecycle_redis_timeout)
+)
+PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED: bool = os.environ.get(
+    "PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED", "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY: str = (
+    os.environ.get("PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY", "standalone")
+    .strip()
+    .lower()
+    or "standalone"
+)
+if PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY not in {"standalone", "cluster"}:
+    raise RuntimeError(
+        "PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY must be standalone or cluster"
+    )
 
 #: Dedicated Path-2 bearer token bound to HF_SPACES_MODEL_URL.
 HF_SPACES_AUTH_TOKEN: str = os.environ.get("HF_SPACES_AUTH_TOKEN", "").strip()
@@ -801,6 +1047,24 @@ HF_DATASET_TOKEN_TYPE: str = (
 #: HF Serverless Inference API base URL (no trailing slash).
 HF_BASE: str = os.environ.get("HF_BASE", DEFAULT_HF_BASE).rstrip("/")
 
+#: Exact additional Path-3 Chat Completion VLMs allowed to receive raw raster
+#: images through the reviewed HF VLM executor.  This is an exact allowlist;
+#: provider/model-name heuristics never grant image authority.
+HF_RESOURCE_VLM_MODELS: tuple[str, ...] = tuple(
+    row.strip()
+    for row in os.environ.get("HF_RESOURCE_VLM_MODELS", "").split(",")
+    if row.strip()
+)
+HF_RESOURCE_ASR_MODELS: tuple[str, ...] = tuple(
+    row.strip()
+    for row in os.environ.get("HF_RESOURCE_ASR_MODELS", "").split(",")
+    if row.strip()
+)
+if set(HF_RESOURCE_VLM_MODELS) & set(HF_RESOURCE_ASR_MODELS):
+    raise RuntimeError(
+        "HF_RESOURCE_VLM_MODELS and HF_RESOURCE_ASR_MODELS must not overlap"
+    )
+
 #: Fallback model when request body omits ``model``.
 DEFAULT_MODEL = os.environ.get("DEFAULT_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL
 
@@ -840,6 +1104,320 @@ MAX_BODY_BYTES: int = max(
         16 * 1024 * 1024,
     ),
 )
+
+#: First-class resource transport limits. Uploads are streamed/spooled; these
+#: ceilings protect disk/network/process resources independently of the small
+#: JSON-only chat envelope. Deployments may narrow but never widen the hard caps.
+RESOURCE_MAX_FILE_BYTES: int = max(
+    1024 * 1024,
+    min(
+        _safe_int(
+            os.environ.get("RESOURCE_MAX_FILE_BYTES"), DEFAULT_MAX_RESOURCE_FILE_BYTES
+        ),
+        2 * 1024 * 1024 * 1024,
+    ),
+)
+RESOURCE_MAX_TOTAL_BYTES: int = max(
+    RESOURCE_MAX_FILE_BYTES,
+    min(
+        _safe_int(
+            os.environ.get("RESOURCE_MAX_TOTAL_BYTES"), DEFAULT_MAX_RESOURCE_TOTAL_BYTES
+        ),
+        4 * 1024 * 1024 * 1024,
+    ),
+)
+RESOURCE_MAX_REQUEST_BYTES: int = max(
+    RESOURCE_MAX_TOTAL_BYTES + 64 * 1024,
+    min(
+        _safe_int(
+            os.environ.get("RESOURCE_MAX_REQUEST_BYTES"), DEFAULT_MAX_MULTIPART_BYTES
+        ),
+        4 * 1024 * 1024 * 1024 + 2 * 1024 * 1024,
+    ),
+)
+
+_HF_RESOURCE_OVERRIDES = {
+    model: ModelResourceOverride(
+        adapter="huggingface", routes={"text": ("context",), "image": ("native",)}
+    )
+    for model in HF_RESOURCE_VLM_MODELS
+}
+_HF_RESOURCE_OVERRIDES.update(
+    {
+        model: ModelResourceOverride(
+            adapter="huggingface", routes={"audio": ("native",)}
+        )
+        for model in HF_RESOURCE_ASR_MODELS
+    }
+)
+_RESOURCE_PROVIDER_REGISTRY = ProviderRegistry(
+    overrides=_HF_RESOURCE_OVERRIDES,
+    max_files=256,
+    max_file_bytes=RESOURCE_MAX_FILE_BYTES,
+    max_total_bytes=RESOURCE_MAX_TOTAL_BYTES,
+)
+
+# Planning and execution are intentionally separate authorities. Adding a
+# provider capability never enables provider I/O by itself. Credential-bearing
+# executors register explicitly only when deployment authority enables a verified implementation.
+_RESOURCE_EXECUTOR_REGISTRY = ProviderExecutorRegistry(provider_names())
+# Binary output generation is a separate authority from chat/resource input.
+_PROVIDER_ARTIFACT_OUTPUT_REGISTRY = ProviderArtifactOutputRegistry()
+_PROVIDER_ARTIFACT_LIFECYCLE = None  # configured after Redis transport policy is known
+
+
+def _openai_resource_executor_configured() -> bool:
+    """Return whether this deployment grants the official OpenAI resource executor."""
+    return bool(
+        BACKEND_RESOURCE_ADAPTER == "openai"
+        and BACKEND_AUTH_TOKEN
+        and official_openai_chat_backend(BACKEND_URL)
+    )
+
+
+def _openai_provider_artifact_output_configured() -> bool:
+    """Return whether this deployment explicitly enables OpenAI binary output."""
+    return bool(
+        "openai" in PROVIDER_ARTIFACT_OUTPUT_ADAPTERS
+        and BACKEND_RESOURCE_ADAPTER == "openai"
+        and official_openai_chat_backend(BACKEND_URL)
+        and PROVIDER_ARTIFACT_OPENAI_TOKEN
+    )
+
+
+def _anthropic_resource_executor_configured() -> bool:
+    """Return whether this deployment grants the official Anthropic executor."""
+    return bool(
+        BACKEND_RESOURCE_ADAPTER == "anthropic"
+        and BACKEND_AUTH_TOKEN
+        and official_anthropic_messages_backend(BACKEND_URL)
+    )
+
+
+def _gemini_resource_executor_configured() -> bool:
+    """Return whether this deployment grants the official Gemini executor."""
+    return bool(
+        BACKEND_RESOURCE_ADAPTER == "gemini"
+        and BACKEND_AUTH_TOKEN
+        and official_gemini_interactions_backend(BACKEND_URL)
+    )
+
+
+def _huggingface_resource_executor_configured() -> bool:
+    """Return whether Path-3 grants the official HF Chat/VLM executor."""
+    return bool(
+        not BACKEND_URL and HF_TOKEN and official_huggingface_router_base(HF_BASE)
+    )
+
+
+def _configure_resource_executors(client: httpx.AsyncClient) -> None:
+    """Register credential-bearing executors from explicit deployment authority only."""
+    _RESOURCE_EXECUTOR_REGISTRY.unregister("openai")
+    _RESOURCE_EXECUTOR_REGISTRY.unregister("anthropic")
+    _RESOURCE_EXECUTOR_REGISTRY.unregister("gemini")
+    _RESOURCE_EXECUTOR_REGISTRY.unregister("huggingface")
+    if _openai_resource_executor_configured():
+        _RESOURCE_EXECUTOR_REGISTRY.register(
+            "openai",
+            OpenAIResourceExecutor(
+                api_key=BACKEND_AUTH_TOKEN,
+                client=client,
+                response_timeout_seconds=_proxy_timeout_secs,
+            ),
+        )
+    if _anthropic_resource_executor_configured():
+        _RESOURCE_EXECUTOR_REGISTRY.register(
+            "anthropic",
+            AnthropicResourceExecutor(
+                api_key=BACKEND_AUTH_TOKEN,
+                client=client,
+                response_timeout_seconds=_proxy_timeout_secs,
+            ),
+        )
+    if _gemini_resource_executor_configured():
+        _RESOURCE_EXECUTOR_REGISTRY.register(
+            "gemini",
+            GeminiResourceExecutor(
+                api_key=BACKEND_AUTH_TOKEN,
+                client=client,
+                response_timeout_seconds=_proxy_timeout_secs,
+            ),
+        )
+    if _huggingface_resource_executor_configured():
+        _RESOURCE_EXECUTOR_REGISTRY.register(
+            "huggingface",
+            HuggingFaceResourceExecutor(
+                api_key=HF_TOKEN,
+                client=client,
+                base_url=HF_BASE,
+                response_timeout_seconds=_path3_timeout_secs,
+                vlm_models=HF_RESOURCE_VLM_MODELS,
+                asr_models=HF_RESOURCE_ASR_MODELS,
+            ),
+        )
+
+
+def _configure_provider_artifact_outputs(client: httpx.AsyncClient) -> None:
+    """Register only explicitly authorized binary-output generators."""
+    _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.clear()
+    if STUB_ENABLED:
+        _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.register(
+            StubProviderArtifactOutputExecutor()
+        )
+    # Production generation requires a second, explicit output-plane opt-in in
+    # addition to exact provider/backend/credential authority. Configuring chat
+    # or raw-resource input must never silently enable a paid binary generator.
+    if _openai_provider_artifact_output_configured():
+        _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.register(
+            OpenAIProviderArtifactOutputExecutor(
+                api_key=PROVIDER_ARTIFACT_OPENAI_TOKEN,
+                client=client,
+                timeout_seconds=_proxy_timeout_secs,
+            )
+        )
+
+
+def _resource_adapter_name_for_model(model: str) -> str:
+    """Return the resource adapter matching the actual upstream routing path."""
+    if BACKEND_URL:
+        return BACKEND_RESOURCE_ADAPTER
+    owner = str(model or "").split("/", 1)[0]
+    if HF_SPACES_MODEL_URL and owner in set(HF_SPACES_MODEL_NAMESPACES):
+        return "self_hosted"
+    return "huggingface"
+
+
+def _sanitize_public_route_constraint(spec: object) -> dict[str, Any]:
+    """Return the tiny non-secret subset allowed in browser route constraints.
+
+    Executor objects are trusted server code, but capability documents are a
+    public boundary.  Future adapters must therefore be unable to leak opaque
+    provider IDs, credentials, URLs, or arbitrary metadata merely by adding a
+    field to ``route_constraints()``.
+    """
+    if not isinstance(spec, dict):
+        return {}
+    out: dict[str, Any] = {}
+    value = spec.get("max_files")
+    if value is not None:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            number = 0
+        if 1 <= number <= 256:  # ruff: ignore[magic-value-comparison]
+            out["max_files"] = number
+    value = spec.get("max_file_bytes")
+    if value is not None:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            number = 0
+        if 1 <= number <= 2 * 1024 * 1024 * 1024:
+            out["max_file_bytes"] = number
+    raw_mimes = spec.get("mime_types")
+    if isinstance(raw_mimes, (list, tuple)):
+        safe: list[str] = []
+        allowed = frozenset(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&^_.+*-/"
+        )
+        for raw in raw_mimes[:64]:
+            mime = str(raw or "").strip().lower()
+            if (
+                3 <= len(mime) <= 161  # ruff: ignore[magic-value-comparison]
+                and mime.count("/") == 1
+                and not mime.startswith("/")
+                and not mime.endswith("/")
+                and all(ch in allowed for ch in mime)
+                and mime not in safe
+            ):
+                safe.append(mime)
+        if safe:
+            out["mime_types"] = safe
+    return out
+
+
+def _resource_capability_doc(model: str) -> dict[str, Any]:
+    """Return non-secret resource routes for one already-authorized model id."""
+    if model == "stub/mirror" and STUB_ENABLED:
+        # Mirror terminates at this proxy and can inspect every verified resource
+        # without forwarding provider bytes, so its diagnostic executor is real.
+        return {
+            "adapter": "stub-mirror",
+            "execution": "enabled",
+            "routes": {
+                modality: ["tool"]
+                for modality in (
+                    "text",
+                    "image",
+                    "animated_image",
+                    "vector_image",
+                    "audio",
+                    "video",
+                    "document",
+                    "archive",
+                    "data",
+                    "binary",
+                )
+            },
+        }
+    adapter_name = _resource_adapter_name_for_model(model)
+    caps = _RESOURCE_PROVIDER_REGISTRY.get(adapter_name).capabilities(model)
+    execution = _RESOURCE_EXECUTOR_REGISTRY.execution_state(adapter_name)
+    routes = {k: list(v) for k, v in sorted(caps.modality_routes.items())}
+    route_constraints: dict[str, Any] = {}
+    if execution == "enabled":
+        executor = _RESOURCE_EXECUTOR_REGISTRY.get(adapter_name)
+        executable = (
+            executor.executable_routes(model)
+            if callable(getattr(executor, "executable_routes", None))
+            else {}
+        )
+        filtered: dict[str, list[str]] = {}
+        for modality, planned in routes.items():
+            allowed = set(executable.get(modality, ()))
+            # ``context`` is a browser/proxy text-plane capability and does not
+            # require provider raw-file execution.  Extract/tool/native do.
+            kept = [
+                route for route in planned if route == "context" or route in allowed
+            ]
+            filtered[modality] = kept or ["unsupported"]
+        routes = filtered
+        constraint_fn = getattr(executor, "route_constraints", None)
+        if callable(constraint_fn):
+            raw_constraints = constraint_fn(model)
+            if isinstance(raw_constraints, dict):
+                # Executor-generated, non-secret data. Keep only constraints for
+                # routes that survived the execution intersection so health
+                # cannot advertise limits for an unavailable facility.
+                for modality, route_rows in raw_constraints.items():
+                    if modality not in routes or not isinstance(route_rows, dict):
+                        continue
+                    kept_rows = {}
+                    for route_name, spec in route_rows.items():
+                        if route_name in routes.get(modality, ()):
+                            public_spec = _sanitize_public_route_constraint(spec)
+                            if public_spec:
+                                kept_rows[route_name] = public_spec
+                    if kept_rows:
+                        route_constraints[modality] = kept_rows
+    return {
+        "adapter": adapter_name,
+        "execution": execution,
+        "routes": routes,
+        "route_constraints": route_constraints,
+    }
+
+
+def _resource_model_allowed(model: str) -> bool:
+    if not model or len(model) > 256:  # ruff: ignore[magic-value-comparison]
+        return False
+    if model == "stub/mirror" and STUB_ENABLED:
+        return True
+    if model in ALLOWED_MODELS:
+        return True
+    owner = model.split("/", 1)[0] if "/" in model else ""
+    return bool(owner and owner in set(HF_SPACES_MODEL_NAMESPACES))
+
 
 #: Maximum decoded upstream response bytes accepted before the proxy aborts the
 #: provider stream. This is independent from request-body limits because a
@@ -1317,6 +1895,13 @@ RATE_LIMIT_REDIS_TIMEOUT_SECONDS: float = max(0.25, min(10.0, _raw_rate_limit_ti
 CHAT_RATE_LIMIT_PER_HOUR: int = max(
     1, min(_safe_int(os.environ.get("CHAT_RATE_LIMIT_PER_HOUR"), 30), 10_000)
 )
+ZIP_EDIT_RATE_LIMIT_PER_HOUR: int = max(
+    1, min(_safe_int(os.environ.get("ZIP_EDIT_RATE_LIMIT_PER_HOUR"), 20), 10_000)
+)
+PROVIDER_ARTIFACT_RATE_LIMIT_PER_HOUR: int = max(
+    1,
+    min(_safe_int(os.environ.get("PROVIDER_ARTIFACT_RATE_LIMIT_PER_HOUR"), 10), 10_000),
+)
 SHARE_RATE_LIMIT_PER_HOUR: int = max(
     1, min(_safe_int(os.environ.get("SHARE_RATE_LIMIT_PER_HOUR"), 10), 10_000)
 )
@@ -1357,17 +1942,17 @@ CONTRIBUTION_RATE_LIMIT_PER_HOUR: int = max(
 #: HF Spaces -> Settings -> Variables -> add
 #: ``STUB_ENABLED`` = ``true``
 #:
-#: **Operator note** -- Default ``false``.  The stub never forwards upstream and
-#: never reads a credential, but it does report what a request contained, and an
-#: endpoint that describes incoming requests is not something to leave reachable
-#: without a decision.  Every stub request is logged.
+#: **Operator note** -- Default ``true`` so the documentation panel's built-in
+#: diagnostics work out of the box. The stub never forwards upstream and never
+#: reads a credential. Set ``STUB_ENABLED=false`` for deployments that do not
+#: want the reserved diagnostic namespace reachable. Every stub request is logged.
 #:
 #: **Developer note** -- ``stub/*`` is a reserved fail-closed namespace. With
 #: this off, the proxy returns a local HTTP 503 ``stub_disabled`` response and
 #: never forwards the diagnostic request to a real inference provider.
 STUB_ENABLED: bool = os.environ.get(
     "STUB_ENABLED",
-    "true",  # "false"
+    "true",
 ).strip().lower() in ("true", "1", "yes")
 
 REASONING_ENABLED: bool = os.environ.get(
@@ -1441,6 +2026,10 @@ _MAX_RL_ENTRIES: int = max(
 #: application logs receive only the existing masked representation.
 _chat_rl: dict[str, tuple[int, float]] = {}
 _chat_rl_lock = asyncio.Lock()
+_zip_edit_rl: dict[str, tuple[int, float]] = {}
+_zip_edit_rl_lock = asyncio.Lock()
+_provider_artifact_rl: dict[str, tuple[int, float]] = {}
+_provider_artifact_rl_lock = asyncio.Lock()
 _contrib_rl: dict[str, tuple[int, float]] = {}
 _contrib_rl_lock = asyncio.Lock()
 _feedback_review_rl: dict[str, tuple[int, float]] = {}
@@ -1563,6 +2152,23 @@ except ShareStoreError as _share_store_exc:
     )
 _share_store: dict[str, dict[str, Any]] = getattr(_SHARE_STORE, "entries", {})
 _share_store_lock = asyncio.Lock()  # compatibility-only test/debug symbol
+
+#: Provider-generated artifact lifecycle authority. Memory is compatibility-only
+#: and process-local. Redis is the shared atomic cross-replica authority.
+_PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR: str = ""
+_PROVIDER_ARTIFACT_LIFECYCLE_READY: bool = False
+try:
+    _PROVIDER_ARTIFACT_LIFECYCLE = build_provider_artifact_lifecycle_registry(
+        PROVIDER_ARTIFACT_LIFECYCLE_BACKEND,
+        redis_url=PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL,
+        redis_key_prefix=PROVIDER_ARTIFACT_LIFECYCLE_KEY_PREFIX,
+        redis_timeout_seconds=PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TIMEOUT_SECONDS,
+        require_redis_tls=REDIS_REQUIRE_TLS,
+        redis_cluster_mode=PROVIDER_ARTIFACT_LIFECYCLE_REDIS_TOPOLOGY == "cluster",
+    )
+except ProviderArtifactError as _provider_artifact_lifecycle_exc:
+    _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR = _provider_artifact_lifecycle_exc.code
+    _PROVIDER_ARTIFACT_LIFECYCLE = build_provider_artifact_lifecycle_registry("memory")
 
 #: In-memory per-IP rate-limit store for feedback endpoint.
 _feedback_rl: dict[str, tuple[int, float]] = {}
@@ -1762,7 +2368,7 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
     This allows concurrent Path 2 requests (600 s) and Path 3 requests
     (120 s) to coexist on the same client without either blocking the other.
     """
-    global _http_client, _SHARED_RATE_LIMITER_READY, _CONTRIBUTION_LEDGER_READY, _FEEDBACK_REVIEW_LEDGER_READY, _SHARE_STORE_READY  # noqa: PLW0603
+    global _http_client, _SHARED_RATE_LIMITER_READY, _CONTRIBUTION_LEDGER_READY, _FEEDBACK_REVIEW_LEDGER_READY, _SHARE_STORE_READY, _PROVIDER_ARTIFACT_LIFECYCLE_READY  # noqa: PLW0603
     _deployment_error = _deployment_policy_error()
     if _deployment_error:
         logger.critical(
@@ -1771,6 +2377,34 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
         raise RuntimeError(_deployment_error)
     _http_client = httpx.AsyncClient(follow_redirects=False)
     _STORAGE.set_client(_http_client)
+    # Provider capability planning does not grant I/O authority.  Enable only
+    # executors explicitly authorized by the deployment's pinned upstream.
+    _configure_resource_executors(_http_client)
+    try:
+        await _PROVIDER_ARTIFACT_LIFECYCLE.initialize()
+        _PROVIDER_ARTIFACT_LIFECYCLE_READY = True
+    except ProviderArtifactError as exc:
+        _PROVIDER_ARTIFACT_LIFECYCLE_READY = False
+        logger.error(
+            "Provider artifact lifecycle backend unavailable: code=%s", exc.code
+        )
+    _configure_provider_artifact_outputs(_http_client)
+    if _RESOURCE_EXECUTOR_REGISTRY.execution_state("openai") == "enabled":
+        logger.info(
+            "OpenAI first-class resource executor enabled for the pinned official backend."
+        )
+    if _RESOURCE_EXECUTOR_REGISTRY.execution_state("anthropic") == "enabled":
+        logger.info(
+            "Anthropic first-class resource executor enabled for the pinned official backend."
+        )
+    if _RESOURCE_EXECUTOR_REGISTRY.execution_state("gemini") == "enabled":
+        logger.info(
+            "Gemini first-class resource executor enabled for the pinned official backend."
+        )
+    if _RESOURCE_EXECUTOR_REGISTRY.execution_state("huggingface") == "enabled":
+        logger.info(
+            "Hugging Face task-aware Chat/VLM executor enabled for the official router."
+        )
     if (
         RATE_LIMIT_BACKEND == "redis"
         and _SHARED_RATE_LIMITER is not None
@@ -1891,6 +2525,26 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
         _share_manifest.get("durability"),
         bool(_share_manifest.get("shared")),
     )
+    _artifact_lifecycle_manifest = _PROVIDER_ARTIFACT_LIFECYCLE.manifest()
+    if _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR:
+        logger.error(
+            "Provider artifact lifecycle backend invalid: code=%s",
+            _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR,
+        )
+    if PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED and not (
+        bool(_artifact_lifecycle_manifest.get("shared"))
+        and bool(_artifact_lifecycle_manifest.get("authoritative"))
+        and _PROVIDER_ARTIFACT_LIFECYCLE_READY
+    ):
+        logger.error(
+            "Provider artifact output requires shared lifecycle authority but it is unavailable."
+        )
+    logger.info(
+        "Provider artifact lifecycle ready: backend=%s shared=%s authoritative=%s",
+        _artifact_lifecycle_manifest.get("backend"),
+        bool(_artifact_lifecycle_manifest.get("shared")),
+        bool(_artifact_lifecycle_manifest.get("authoritative")),
+    )
     _rl_manifest = (
         _SHARED_RATE_LIMITER.manifest()
         if _SHARED_RATE_LIMITER is not None
@@ -1959,6 +2613,13 @@ async def _lifespan(  # ruff: ignore[too-many-branches]
         if _SHARED_RATE_LIMITER is not None:
             await _SHARED_RATE_LIMITER.close()
         _SHARED_RATE_LIMITER_READY = False
+        _RESOURCE_EXECUTOR_REGISTRY.unregister("openai")
+        _RESOURCE_EXECUTOR_REGISTRY.unregister("anthropic")
+        _RESOURCE_EXECUTOR_REGISTRY.unregister("gemini")
+        _RESOURCE_EXECUTOR_REGISTRY.unregister("huggingface")
+        _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.clear()
+        await _PROVIDER_ARTIFACT_LIFECYCLE.close()
+        _PROVIDER_ARTIFACT_LIFECYCLE_READY = False
         await _http_client.aclose()
         _STORAGE.set_client(None)
         _http_client = None
@@ -2002,6 +2663,12 @@ app.add_middleware(
         "X-AI-Resource-Id",
         "X-AI-Management-Token-Hash",
         "X-AI-Operation-Created-At",
+    ],
+    expose_headers=[
+        "Content-Disposition",
+        "X-AI-Artifact-Contract",
+        "X-AI-Artifact-Receipt",
+        "X-AI-Artifact-SHA256",
     ],
     allow_credentials=False,
 )
@@ -2155,7 +2822,60 @@ def _local_protocol_reason(exc: BaseException) -> str:
     return "unspecified"
 
 
-async def _stub_intercept(body: bytes, headers: Any) -> Response | None:
+def _stub_mirror_context(body: bytes) -> dict[str, Any]:
+    """Return raw-wire identity plus the server-derived effective AI payload.
+
+    ``stub/mirror`` is a chain-of-custody inspector.  The raw body proves what
+    crossed browser→proxy.  For ``scikitplot-chat-v1`` we additionally run the
+    *same* trusted contract transformation used by real requests and expose the
+    resulting provider payload to the stub renderer, but we stop before any
+    upstream HTTP call.  This lets maintainers inspect both boundaries without
+    granting client data system/developer authority.
+    """
+    context: dict[str, Any] = {
+        "wire_body_bytes": len(body),
+        "wire_body_sha256": hashlib.sha256(body).hexdigest(),
+    }
+    try:
+        raw = json.loads(body)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return context
+    if not isinstance(raw, dict) or raw.get("contract") not in SUPPORTED_CHAT_CONTRACTS:
+        return context
+    try:
+        req = parse_chat_request(
+            body,
+            allowed_models=(*tuple(ALLOWED_MODELS), "stub/mirror"),
+            allowed_namespaces=HF_SPACES_MODEL_NAMESPACES,
+        )
+        effective = build_upstream_payload(
+            req,
+            reasoning_enabled=REASONING_ENABLED,
+            effort_param=REASONING_EFFORT_PARAM if REASONING_ENABLED else "",
+            thinking_param=REASONING_THINKING_PARAM if REASONING_ENABLED else "",
+            thinking_mode=REASONING_THINKING_MODE,
+            budget_min=REASONING_BUDGET_MIN,
+            budget_max=REASONING_BUDGET_MAX,
+        )
+    except ChatContractError as exc:
+        context["effective_payload_error"] = _chat_contract_error_code(exc)
+        return context
+    context["effective_upstream_payload"] = effective
+    encoded = json.dumps(effective, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    context["effective_upstream_bytes"] = len(encoded)
+    context["effective_upstream_sha256"] = hashlib.sha256(encoded).hexdigest()
+    return context
+
+
+async def _stub_intercept(
+    body: bytes,
+    headers: Any,
+    *,
+    resources: list[dict[str, Any]] | None = None,
+    wire_stats: dict[str, Any] | None = None,
+) -> Response | None:
     """Answer a reserved ``stub/*`` request locally, or return ``None``.
 
     ``stub/*`` is a fail-closed namespace: once a request selects it, the
@@ -2196,12 +2916,44 @@ async def _stub_intercept(body: bytes, headers: Any) -> Response | None:
     # body size is sufficient for diagnostics without exposing user content.
     logger.info("stub request: mode=%s bytes=%d", mode, len(body))
 
+    mode_context: dict[str, Any] | None = None
+    if mode == "mirror":
+        mode_context = _stub_mirror_context(body)
+        if wire_stats:
+            mode_context.update(
+                {
+                    "wire_body_bytes": int(
+                        wire_stats.get("wire_body_bytes") or len(body)
+                    ),
+                    "wire_body_sha256": str(
+                        wire_stats.get("wire_body_sha256")
+                        or hashlib.sha256(body).hexdigest()
+                    ),
+                    "wire_multipart": bool(wire_stats.get("multipart")),
+                }
+            )
+        if resources:
+            mode_context["resources"] = resources
+
     delay_ms = stub_delay_ms(model)
     if delay_ms:
         await asyncio.sleep(delay_ms / 1000.0)
 
+    # Error mode exists specifically to exercise the browser's HTTP failure
+    # path. A requested SSE transport must not accidentally turn that into a
+    # successful 200 stream.
+    if mode == "error":
+        status, doc = stub_payload(
+            model,
+            payload,
+            headers,
+            created=int(_time.time()),
+            mode_context=mode_context,
+        )
+        return JSONResponse(doc, status_code=status, headers={"X-Stub-Model": "true"})
+
     if payload.get("stream"):
-        frames = stub_sse_frames(model, payload, headers)
+        frames = stub_sse_frames(model, payload, headers, mode_context=mode_context)
 
         async def _gen() -> AsyncGenerator[bytes, None]:
             for frame in frames:
@@ -2217,7 +2969,9 @@ async def _stub_intercept(body: bytes, headers: Any) -> Response | None:
             },
         )
 
-    status, doc = stub_payload(model, payload, headers, created=int(_time.time()))
+    status, doc = stub_payload(
+        model, payload, headers, created=int(_time.time()), mode_context=mode_context
+    )
     return JSONResponse(doc, status_code=status, headers={"X-Stub-Model": "true"})
 
 
@@ -2903,7 +3657,7 @@ async def root() -> JSONResponse:
             "service": "sphinx-ai-assistant proxy",
             "version": PROXY_VERSION,
             "deployment": _deployment_public_status(),
-            "capabilities": _reasoning_capability(),
+            "capabilities": _public_capabilities(),
             "training": {
                 "dataset_repo": None,
                 "contribute_ready": _contribution_pipeline_ready(),
@@ -2994,7 +3748,7 @@ def _reasoning_capability() -> dict:
     if not REASONING_ENABLED:
         return {
             "reasoning": {"enabled": False},
-            "chat_request": {"contract": CHAT_CONTRACT},
+            "chat_request": _chat_request_capability(),
             "stub": _stub_capability(),
         }
 
@@ -3019,9 +3773,128 @@ def _reasoning_capability() -> dict:
         caps["thinking_mode"] = REASONING_THINKING_MODE
     return {
         "reasoning": caps,
-        "chat_request": {"contract": CHAT_CONTRACT},
+        "chat_request": _chat_request_capability(),
         "stub": _stub_capability(),
     }
+
+
+def _chat_request_capability() -> dict:
+    """Advertise every accepted chat contract plus the history bounds.
+
+    ``contract`` keeps naming the *baseline* v1 envelope so a browser built
+    before history existed reads the same value it always read.  Newer clients
+    read ``contracts`` and negotiate upward.  The bounds are published because
+    a client that cannot see them can only discover them by having a request
+    rejected, and a planner that has to guess its own budget will guess wrong.
+    """
+    return {
+        "contract": CHAT_CONTRACT,
+        "contracts": list(SUPPORTED_CHAT_CONTRACTS),
+        "history": {
+            "max_turns": MAX_HISTORY_TURNS,
+            "max_turn_chars": MAX_HISTORY_TURN_CHARS,
+            "max_total_chars": MAX_HISTORY_TOTAL_CHARS,
+            "roles": ["user", "assistant"],
+        },
+        "working_files": {
+            "max_files": MAX_WORKING_FILES,
+            "max_file_chars": MAX_WORKING_FILE_CHARS,
+            "max_total_chars": MAX_WORKING_FILE_TOTAL_CHARS,
+            "digest": "sha256",
+        },
+    }
+
+
+def _public_capabilities() -> dict:
+    """Return browser-visible proxy capabilities with no provider credentials."""
+    caps = dict(_reasoning_capability())
+    model_routes = {
+        model: _resource_capability_doc(model) for model in ALLOWED_MODELS[:32]
+    }
+    if STUB_ENABLED:
+        model_routes["stub/mirror"] = _resource_capability_doc("stub/mirror")
+    caps["resource_transport"] = {
+        "version": 3,
+        "multipart": True,
+        "max_files": 256,
+        "max_file_bytes": RESOURCE_MAX_FILE_BYTES,
+        "max_total_bytes": RESOURCE_MAX_TOTAL_BYTES,
+        "modalities": [
+            "text",
+            "image",
+            "animated_image",
+            "vector_image",
+            "audio",
+            "video",
+            "document",
+            "archive",
+            "data",
+            "binary",
+        ],
+        "intents": ["auto", "raw", "extract", "context"],
+        "routing": "server-adapter",
+        "execution": "enabled",
+        "model_capability_endpoint": "/v1/resource-capabilities",
+        "models": model_routes,
+    }
+    _artifact_lifecycle_manifest = _PROVIDER_ARTIFACT_LIFECYCLE.manifest()
+    _artifact_lifecycle_usable = (
+        not _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR
+        and bool(_PROVIDER_ARTIFACT_LIFECYCLE_READY)
+        and (
+            not PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED
+            or (
+                bool(_artifact_lifecycle_manifest.get("shared"))
+                and bool(_artifact_lifecycle_manifest.get("authoritative"))
+            )
+        )
+    )
+    generators = (
+        [
+            spec.as_public_dict()
+            for spec in _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.public_specs()
+        ]
+        if _artifact_lifecycle_usable
+        else []
+    )
+    caps["provider_artifact_output"] = {
+        "version": 2,
+        "contract": PROVIDER_ARTIFACT_CONTRACT,
+        "receipt_contract": PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
+        "endpoint": "/v1/artifacts/provider-output",
+        "max_request_bytes": PROVIDER_ARTIFACT_MAX_REQUEST_BYTES,
+        "max_prompt_chars": PROVIDER_ARTIFACT_MAX_PROMPT_CHARS,
+        "max_output_bytes": PROVIDER_ARTIFACT_MAX_OUTPUT_BYTES,
+        "lifecycle_contract": PROVIDER_ARTIFACT_LIFECYCLE_CONTRACT,
+        "cancel_contract": PROVIDER_ARTIFACT_CANCEL_CONTRACT,
+        "cancel_endpoint": "/v1/artifacts/provider-output/cancel",
+        "candidate_ttl_seconds": PROVIDER_ARTIFACT_CANDIDATE_TTL_SECONDS,
+        "duplicate_window_seconds": PROVIDER_ARTIFACT_DUPLICATE_WINDOW_SECONDS,
+        "lifecycle_authority": {
+            "backend": _artifact_lifecycle_manifest.get("backend"),
+            "shared": bool(_artifact_lifecycle_manifest.get("shared")),
+            "authoritative": bool(_artifact_lifecycle_manifest.get("authoritative")),
+            "ready": bool(_artifact_lifecycle_usable),
+        },
+        "generators": generators,
+        "chat_text_is_output_authority": False,
+        "resource_input_is_output_authority": False,
+    }
+    caps["zip_edit_artifact"] = {
+        "version": 1,
+        "contract": ZIP_EDIT_CONTRACT,
+        "receipt_contract": ZIP_EDIT_RECEIPT_CONTRACT,
+        "endpoint": "/v1/artifacts/zip-edit",
+        "multipart": True,
+        "max_request_bytes": ZIP_EDIT_MAX_REQUEST_BYTES,
+        "max_source_bytes": ZIP_EDIT_MAX_SOURCE_BYTES,
+        "max_entry_bytes": ZIP_EDIT_MAX_ENTRY_BYTES,
+        "max_replacement_total_bytes": ZIP_EDIT_MAX_REPLACEMENT_TOTAL_BYTES,
+        "max_authorized_paths": 4096,
+        "max_replacements": 256,
+        "tree_authority": "source-archive",
+    }
+    return caps
 
 
 def _stub_capability() -> dict:
@@ -3059,7 +3932,7 @@ async def health() -> JSONResponse:
             "status": "ok",
             "version": PROXY_VERSION,
             "deployment": _deployment_public_status(),
-            "capabilities": _reasoning_capability(),
+            "capabilities": _public_capabilities(),
             "share": _share_store_public_status(),
             "rate_limit": {
                 "backend": RATE_LIMIT_BACKEND,
@@ -3132,6 +4005,8 @@ def _server_owned_chat_body(body: bytes) -> bytes:
         allowed_models=ALLOWED_MODELS,
         allowed_namespaces=HF_SPACES_MODEL_NAMESPACES,
     )
+    if req.resources:
+        raise ChatContractError("resources require multipart/form-data transport")
     return encode_upstream_payload(
         req,
         reasoning_enabled=REASONING_ENABLED,
@@ -3143,9 +4018,782 @@ def _server_owned_chat_body(body: bytes) -> bytes:
     )
 
 
+def _resource_transport_error_response(exc: ResourceTransportError) -> JSONResponse:
+    """Map multipart/resource failures to a bounded public response."""
+    text = str(exc).lower()
+    status = (
+        413 if ("limit" in text or "too large" in text or "exceeded" in text) else 400
+    )
+    code = (
+        "PROXY_RESOURCE_TOO_LARGE"
+        if status == 413  # ruff: ignore[magic-value-comparison]
+        else "PROXY_RESOURCE_INVALID"
+    )
+    logger.warning("AI proxy [%s]: resource request rejected locally.", code)
+    return JSONResponse(
+        status_code=status,
+        content={
+            "code": code,
+            "error": {
+                "type": "proxy_request_rejected",
+                "code": code,
+                "message": "The AI proxy rejected a resource before provider routing.",
+            },
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+async def _chat_request_transport(
+    request: Request,
+) -> tuple[bytes, Any, tuple[ResourceUpload, ...], dict[str, Any]]:
+    """Read JSON-only or multipart ``scikitplot-chat-v1`` without flattening files."""
+    content_type = request.headers.get("content-type", "").lower()
+    if content_type.startswith("multipart/form-data"):
+        body, chat, uploads, stats = await parse_resource_chat_request(
+            request,
+            allowed_models=tuple(ALLOWED_MODELS)
+            + tuple("stub/" + mode for mode in stub_modes()),
+            allowed_namespaces=HF_SPACES_MODEL_NAMESPACES,
+            max_request_bytes=RESOURCE_MAX_REQUEST_BYTES,
+            max_file_bytes=RESOURCE_MAX_FILE_BYTES,
+            max_resource_bytes=RESOURCE_MAX_TOTAL_BYTES,
+        )
+        return body, chat, uploads, stats
+
+    body = await _validated_body(request)
+    chat = parse_chat_request(
+        body,
+        allowed_models=tuple(ALLOWED_MODELS)
+        + tuple("stub/" + mode for mode in stub_modes()),
+        allowed_namespaces=HF_SPACES_MODEL_NAMESPACES,
+    )
+    if chat.resources:
+        raise ResourceTransportError("declared resources require multipart/form-data")
+    return (
+        body,
+        chat,
+        (),
+        {
+            "multipart": False,
+            "wire_body_bytes": len(body),
+            "wire_body_sha256": hashlib.sha256(body).hexdigest(),
+        },
+    )
+
+
+async def _close_resource_uploads(uploads: tuple[ResourceUpload, ...]) -> None:
+    for row in uploads:
+        try:  # ruff: ignore[suppressible-exception]
+            await row.close()
+        except Exception:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
+            pass
+
+
+def _resource_route_doc(routes: tuple[Any, ...]) -> list[dict[str, Any]]:
+    """Return bounded provider-neutral route diagnostics without private handles."""
+    return [
+        {
+            "resource_id": row.resource_id,
+            "route": row.route,
+            "reason": row.reason,
+            "metadata": row.metadata,
+        }
+        for row in routes
+    ]
+
+
+def _resource_execution_error_response(
+    exc: ResourceExecutionError,
+    *,
+    adapter_name: str,
+    routes: tuple[Any, ...],
+) -> JSONResponse:
+    """Map provider-resource execution failures to a bounded public vocabulary."""
+    text = str(exc).lower()
+    if "not enabled" in text:
+        status = 501
+        code = "PROXY_RESOURCE_EXECUTOR_PENDING"
+        public_type = "resource_executor_pending"
+        message = (
+            "Resource routing is planned but this provider executor is not enabled yet."
+        )
+    elif (
+        "50 mib" in text or "limit" in text or "too large" in text or "exceeded" in text
+    ):
+        status = 413
+        code = "PROXY_RESOURCE_TOO_LARGE"
+        public_type = "proxy_request_rejected"
+        message = "The resource request exceeds the selected provider route limit."
+    elif "route" in text or "modality" in text or "unsupported" in text:
+        status = 400
+        code = "PROXY_RESOURCE_ROUTE_UNSUPPORTED"
+        public_type = "proxy_request_rejected"
+        message = "The selected provider cannot execute one or more requested resource routes."
+    else:
+        status = 502
+        code = "UPSTREAM_RESOURCE_EXECUTION_FAILED"
+        public_type = "upstream_error"
+        message = "The upstream AI provider could not execute the resource request."
+    logger.warning(
+        "AI proxy [%s]: resource execution failed adapter=%s.", code, adapter_name
+    )
+    return JSONResponse(
+        status_code=status,
+        content={
+            "code": code,
+            "error": {"type": public_type, "code": code, "message": message},
+            "resource_adapter": adapter_name,
+            "resource_routes": _resource_route_doc(routes),
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _enforce_executor_route_constraints(
+    *,
+    executor: Any,
+    model: str,
+    routes: tuple[Any, ...],
+    uploads: tuple[ResourceUpload, ...],
+) -> None:
+    """Enforce executor route limits before provider preparation/I/O."""
+    fn = getattr(executor, "route_constraints", None)
+    raw = fn(model) if callable(fn) else {}
+    if not isinstance(raw, dict):
+        return
+    by_id = {row.verified.id: row for row in uploads}
+    counts: dict[tuple[str, str], int] = {}
+    for route in routes:
+        upload = by_id.get(route.resource_id)
+        if upload is None:
+            raise ResourceExecutionError("resource route/upload identity mismatch")
+        modality = str(
+            route.metadata.get("modality", upload.verified.detected_modality)
+        )
+        rows = raw.get(modality)
+        spec = rows.get(route.route) if isinstance(rows, dict) else None
+        if not isinstance(spec, dict):
+            continue
+        max_bytes = spec.get("max_file_bytes")
+        if max_bytes is not None and int(upload.verified.actual_size) > int(max_bytes):
+            raise ResourceExecutionError("selected provider route file limit exceeded")
+        mimes = spec.get("mime_types")
+        if isinstance(mimes, (list, tuple)) and mimes:
+            allowed = {str(row).strip().lower() for row in mimes}
+            if str(upload.verified.detected_mime or "").lower() not in allowed:
+                raise ResourceExecutionError(
+                    "selected provider route MIME is unsupported"
+                )
+        max_files = spec.get("max_files")
+        if max_files is not None:
+            key = (modality, route.route)
+            counts[key] = counts.get(key, 0) + 1
+            if counts[key] > int(max_files):
+                raise ResourceExecutionError(
+                    "selected provider route file-count limit exceeded"
+                )
+
+
+async def _execute_resource_chat(  # ruff: ignore[too-many-return-statements]
+    *,
+    chat_req: Any,
+    uploads: tuple[ResourceUpload, ...],
+) -> Response:
+    """Plan, prepare, execute and clean one first-class provider resource chat."""
+    adapter_name = _resource_adapter_name_for_model(chat_req.model)
+    adapter = _RESOURCE_PROVIDER_REGISTRY.get(adapter_name)
+    routes = tuple(await adapter.route_resources(chat_req.model, uploads))
+    executor = _RESOURCE_EXECUTOR_REGISTRY.get(adapter_name)
+    if not bool(getattr(executor, "enabled", False)):
+        return _resource_execution_error_response(
+            ResourceExecutionError(f"{adapter_name} resource executor is not enabled"),
+            adapter_name=adapter_name,
+            routes=routes,
+        )
+    if not all(
+        hasattr(executor, name)
+        for name in ("open_chat", "buffered_chat_response", "chat_sse")
+    ):
+        return _resource_execution_error_response(
+            ResourceExecutionError(
+                "provider resource executor has no chat execution boundary"
+            ),
+            adapter_name=adapter_name,
+            routes=routes,
+        )
+    executable = (
+        executor.executable_routes(chat_req.model)
+        if callable(getattr(executor, "executable_routes", None))
+        else {}
+    )
+    for route in routes:
+        modality = str(route.metadata.get("modality", ""))
+        if route.route not in set(executable.get(modality, ())):
+            return _resource_execution_error_response(
+                ResourceExecutionError(
+                    "selected provider executor cannot perform the planned resource route"
+                ),
+                adapter_name=adapter_name,
+                routes=routes,
+            )
+
+    _enforce_executor_route_constraints(
+        executor=executor, model=chat_req.model, routes=routes, uploads=uploads
+    )
+
+    chat_executor = executor  # runtime-checked ProviderChatExecutor protocol shape
+    session = ResourceExecutionSession(
+        provider=adapter_name,
+        model=chat_req.model,
+        executor=executor,
+        routes=routes,
+    )
+    upstream: httpx.Response | None = None
+    stream_handed_off = False
+    try:
+        await session.prepare(uploads)
+        upstream = await chat_executor.open_chat(
+            chat=chat_req,
+            handles=session.private_handles,
+        )
+        if (
+            upstream.status_code < 200  # ruff: ignore[magic-value-comparison]
+            or upstream.status_code >= 300  # ruff: ignore[magic-value-comparison]
+        ):
+            status = upstream.status_code
+            await upstream.aclose()
+            upstream = None
+            logger.warning(
+                "AI proxy [UPSTREAM_STATUS]: resource provider rejected request status=%d adapter=%s",
+                status,
+                adapter_name,
+            )
+            code = _upstream_public_error_code(status)
+            return JSONResponse(
+                status_code=status,
+                content={
+                    "code": code,
+                    "error": {
+                        "type": "upstream_error",
+                        "code": code,
+                        "message": (
+                            "The upstream AI provider rejected the resource request."
+                        ),
+                    },
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
+        if (
+            bool(chat_req.stream)
+            and "text/event-stream"
+            in (upstream.headers.get("content-type") or "").lower()
+        ):
+
+            async def _stream() -> AsyncGenerator[bytes, None]:
+                bridge = chat_executor.chat_sse(
+                    upstream, maximum=MAX_UPSTREAM_RESPONSE_BYTES
+                )
+                try:
+                    async for frame in bridge:
+                        yield frame
+                finally:
+                    # Explicitly close the provider bridge first.  An ``async for``
+                    # interrupted by downstream cancellation does not otherwise
+                    # guarantee the inner async generator's ``finally`` finishes
+                    # before provider-file cleanup begins.
+                    aclose = getattr(bridge, "aclose", None)
+                    if callable(aclose):
+                        await aclose()
+                    try:
+                        if not upstream.is_closed:
+                            await upstream.aclose()
+                    finally:
+                        await session.close_shielded()
+
+            stream_handed_off = True
+            return StreamingResponse(
+                _stream(),
+                status_code=200,
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-store"},
+            )
+
+        payload = await chat_executor.buffered_chat_response(
+            upstream, maximum=MAX_UPSTREAM_RESPONSE_BYTES
+        )
+        return JSONResponse(
+            status_code=200,
+            content=payload,
+            headers={"Cache-Control": "no-store"},
+        )
+    except ResourceExecutionError as exc:
+        return _resource_execution_error_response(
+            exc, adapter_name=adapter_name, routes=routes
+        )
+    finally:
+        # A StreamingResponse owns provider cleanup until its body terminates or
+        # downstream cancellation closes the generator.  All other paths release
+        # provider files before returning to the browser.
+        if not stream_handed_off:
+            if upstream is not None and not upstream.is_closed:
+                await upstream.aclose()
+            await session.close_shielded()
+
+
+def _provider_artifact_error_response(  # ruff: ignore[too-many-branches]
+    exc: ProviderArtifactError,
+) -> JSONResponse:
+    """Map generated-artifact failures to bounded public semantics."""
+    code = exc.code
+    if code == "PROVIDER_ARTIFACT_REQUEST_TOO_LARGE":
+        status, public = (
+            413,
+            "The binary artifact generation request exceeds the configured limit.",
+        )
+    elif code == "PROVIDER_ARTIFACT_GENERATOR_UNAVAILABLE":
+        status, public = (
+            404,
+            "The requested binary artifact generator is not available on this proxy.",
+        )
+    elif code == "PROVIDER_ARTIFACT_DUPLICATE":
+        status, public = (
+            409,
+            "An equivalent binary artifact generation is already active or was generated recently; use explicit regeneration to request another candidate.",
+        )
+    elif code == "PROVIDER_ARTIFACT_REGENERATION_INVALID":
+        status, public = (
+            409,
+            "The requested regeneration lifecycle is unavailable, expired, or incompatible with this generator.",
+        )
+    elif code in {"PROVIDER_ARTIFACT_CANCELLED", "PROVIDER_ARTIFACT_CANCEL_INVALID"}:
+        status, public = (
+            409,
+            "The binary artifact generation was cancelled or its cancellation capability is no longer valid.",
+        )
+    elif code == "PROVIDER_ARTIFACT_PROVENANCE_INVALID":
+        status, public = (
+            409,
+            "The provider artifact lifecycle is expired or does not match the replacement bytes.",
+        )
+    elif code == "PROVIDER_ARTIFACT_LIFECYCLE_BUSY":
+        status, public = (
+            503,
+            "The ephemeral artifact lifecycle registry is temporarily at capacity; retry later.",
+        )
+    elif code in {
+        "PROVIDER_ARTIFACT_LIFECYCLE_UNAVAILABLE",
+        "PROVIDER_ARTIFACT_REDIS_UNAVAILABLE",
+        "PROVIDER_ARTIFACT_REDIS_OPERATION_FAILED",
+        "PROVIDER_ARTIFACT_REDIS_NOT_INITIALIZED",
+    }:
+        status, public = (
+            503,
+            "The provider artifact lifecycle authority is temporarily unavailable.",
+        )
+    elif code in {
+        "PROVIDER_ARTIFACT_KIND_UNSUPPORTED",
+        "PROVIDER_ARTIFACT_MIME_UNSUPPORTED",
+        "PROVIDER_ARTIFACT_CAPABILITY_MISMATCH",
+        "PROVIDER_ARTIFACT_REQUEST_INVALID",
+    }:
+        status, public = (
+            422,
+            "The binary artifact generation request is outside the advertised generator contract.",
+        )
+    elif code in {
+        "PROVIDER_ARTIFACT_OUTPUT_TOO_LARGE",
+        "PROVIDER_ARTIFACT_UPSTREAM_TOO_LARGE",
+    }:
+        status, public = (
+            502,
+            "The generated artifact exceeded the proxy output safety limit.",
+        )
+    elif code in {
+        "PROVIDER_ARTIFACT_OUTPUT_INVALID",
+        "PROVIDER_ARTIFACT_OUTPUT_TYPE_MISMATCH",
+        "PROVIDER_ARTIFACT_RECEIPT_INVALID",
+    }:
+        status, public = (
+            502,
+            "The generated artifact failed the proxy verification boundary.",
+        )
+    elif code == "PROVIDER_ARTIFACT_UPSTREAM_REJECTED":
+        status, public = 502, "The configured artifact generator rejected the request."
+    elif code == "PROVIDER_ARTIFACT_UPSTREAM_UNAVAILABLE":
+        status, public = (
+            502,
+            "The configured artifact generator is temporarily unavailable.",
+        )
+    else:
+        status, public = 400, "The binary artifact generation request is invalid."
+    logger.warning("AI proxy [%s]: provider artifact output rejected.", code)
+    return JSONResponse(
+        status_code=status,
+        content={
+            "code": code,
+            "error": {
+                "type": "provider_artifact_output_error",
+                "code": code,
+                "message": public,
+            },
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/v1/artifacts/provider-output")
+async def provider_artifact_output(request: Request) -> Response:
+    """Generate one bounded ephemeral binary candidate without ZIP authority."""
+    client_ip = _client_ip(request)
+    allowed, _count = await _consume_rate_limit(
+        _provider_artifact_rl,
+        _provider_artifact_rl_lock,
+        client_ip,
+        limit=PROVIDER_ARTIFACT_RATE_LIMIT_PER_HOUR,
+        scope="provider-artifact-output",
+    )
+    if not allowed:
+        logger.warning(
+            json.dumps(
+                {"event": "provider_artifact.ratelimit", "ip": _mask_ip(client_ip)}
+            )
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded for provider artifact generation.",
+            headers={"Retry-After": "3600"},
+        )
+    if (
+        _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR
+        or not _PROVIDER_ARTIFACT_LIFECYCLE_READY
+        or (
+            PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED
+            and not bool(_PROVIDER_ARTIFACT_LIFECYCLE.manifest().get("shared"))
+        )
+    ):
+        return _provider_artifact_error_response(
+            ProviderArtifactError("PROVIDER_ARTIFACT_LIFECYCLE_UNAVAILABLE")
+        )
+    artifact = None
+    lifecycle_id = ""
+    generation_task: asyncio.Task | None = None
+    try:
+        body = await _read_limited_body(
+            request, PROVIDER_ARTIFACT_MAX_REQUEST_BYTES, "Provider artifact request"
+        )
+        parsed = parse_provider_artifact_request(body)
+        spec = _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.spec(parsed.generator_id)
+        if spec is None:
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_GENERATOR_UNAVAILABLE")
+        lifecycle_id = await _PROVIDER_ARTIFACT_LIFECYCLE.begin(
+            parsed, provider=spec.provider, model=spec.model
+        )
+        generation_task = asyncio.create_task(
+            _PROVIDER_ARTIFACT_OUTPUT_REGISTRY.generate(parsed)
+        )
+        await _PROVIDER_ARTIFACT_LIFECYCLE.attach_task(lifecycle_id, generation_task)
+        try:
+            artifact = await generation_task
+        except asyncio.CancelledError as exc:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.fail(lifecycle_id, cancelled=True)
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_CANCELLED") from exc
+        artifact.file.seek(0, os.SEEK_END)
+        output_size = artifact.file.tell()
+        artifact.file.seek(0)
+        if output_size != artifact.receipt.output_size:
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_OUTPUT_INVALID")
+        artifact.receipt = await _PROVIDER_ARTIFACT_LIFECYCLE.complete(
+            lifecycle_id, artifact.receipt
+        )
+        receipt_header = encode_provider_artifact_receipt_header(artifact.receipt)
+    except ProviderArtifactError as exc:
+        if lifecycle_id:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.fail(
+                lifecycle_id, cancelled=exc.code == "PROVIDER_ARTIFACT_CANCELLED"
+            )
+        if generation_task is not None and not generation_task.done():
+            generation_task.cancel()
+        if artifact is not None:
+            artifact.close()
+        return _provider_artifact_error_response(exc)
+
+    assert artifact is not None  # ruff: ignore[assert]
+    delivered = False
+
+    async def _stream_generated() -> AsyncGenerator[bytes, None]:
+        nonlocal delivered
+        try:
+            while True:
+                chunk = await asyncio.to_thread(artifact.file.read, 1024 * 1024)
+                if not chunk:
+                    delivered = True
+                    break
+                yield chunk
+        finally:
+            artifact.close()
+            if delivered and lifecycle_id:
+                await _PROVIDER_ARTIFACT_LIFECYCLE.mark_delivered(lifecycle_id)
+
+    return StreamingResponse(
+        _stream_generated(),
+        status_code=200,
+        media_type=artifact.receipt.mime_type,
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'attachment; filename="{artifact.filename}"',
+            "Content-Length": str(artifact.receipt.output_size),
+            "X-Content-Type-Options": "nosniff",
+            "X-AI-Artifact-Contract": PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
+            "X-AI-Artifact-Receipt": receipt_header,
+            "X-AI-Artifact-SHA256": artifact.receipt.output_sha256,
+        },
+    )
+
+
+@app.post("/v1/artifacts/provider-output/cancel")
+async def provider_artifact_output_cancel(request: Request) -> Response:
+    """Cancel one in-flight generation using an ephemeral browser-held capability."""
+    if (
+        _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR
+        or not _PROVIDER_ARTIFACT_LIFECYCLE_READY
+    ):
+        return _provider_artifact_error_response(
+            ProviderArtifactError("PROVIDER_ARTIFACT_LIFECYCLE_UNAVAILABLE")
+        )
+    try:
+        body = await _read_limited_body(request, 2048, "Provider artifact cancellation")
+        try:
+            doc = json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_CANCEL_INVALID") from exc
+        if (
+            not isinstance(doc, dict)
+            or set(doc) != {"contract", "cancel_token"}
+            or doc.get("contract") != PROVIDER_ARTIFACT_CANCEL_CONTRACT
+            or not isinstance(doc.get("cancel_token"), str)
+        ):
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_CANCEL_INVALID")
+        status = await _PROVIDER_ARTIFACT_LIFECYCLE.cancel(
+            doc["cancel_token"].strip().lower()
+        )
+        return JSONResponse(
+            status_code=200, content=dict(status), headers={"Cache-Control": "no-store"}
+        )
+    except ProviderArtifactError as exc:
+        return _provider_artifact_error_response(exc)
+
+
+def _zip_artifact_error_response(exc: ZipArtifactError) -> JSONResponse:
+    """Map ZIP artifact failures to bounded public semantics without file data."""
+    code = exc.code
+    if code in {"ZIP_EDIT_TOO_LARGE", "ZIP_EDIT_MANIFEST_TOO_LARGE"}:
+        status = 413
+        public = "ZIP edit request exceeds the configured artifact limits."
+    elif code == "ZIP_EDIT_NOT_AUTHORIZED":
+        status = 403
+        public = "A proposed replacement path was not explicitly authorized."
+    elif code == "ZIP_EDIT_SOURCE_MISMATCH":
+        status = 409
+        public = "The source archive generation no longer matches the edit manifest."
+    elif code == "ZIP_EDIT_REPLACEMENT_MISMATCH":
+        status = 422
+        public = (
+            "One or more replacement byte generations do not match the edit manifest."
+        )
+    elif code == "ZIP_EDIT_WORKSPACE_REJECTED":
+        status = 400
+        public = "The source archive or requested rewrite is outside the safe ZIP workspace contract."
+    elif code == "ZIP_EDIT_VERIFICATION_FAILED":
+        status = 500
+        public = "The modified ZIP failed the server verification boundary."
+    elif code == "ZIP_EDIT_MANIFEST_INVALID":
+        status = 422
+        public = "The ZIP edit authorization manifest is invalid."
+    else:
+        status = 400
+        public = "The ZIP edit artifact request is invalid."
+    logger.warning("AI proxy [%s]: ZIP edit artifact rejected locally.", code)
+    return JSONResponse(
+        status_code=status,
+        content={
+            "code": code,
+            "error": {
+                "type": "zip_edit_artifact_error",
+                "code": code,
+                "message": public,
+            },
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/v1/artifacts/zip-edit")
+async def zip_edit_artifact(  # ruff: ignore[too-many-branches]
+    request: Request,
+) -> Response:
+    """Apply explicitly authorized existing-file replacements to a complete ZIP.
+
+    Provider/model output is never an archive authority. The client supplies a
+    strict manifest separating authorization paths from proposed replacements;
+    the proxy independently binds source/replacement byte generations and then
+    delegates the complete-tree rewrite to the server-owned ZIP workspace.
+    """
+    client_ip = _client_ip(request)
+    allowed, _count = await _consume_rate_limit(
+        _zip_edit_rl,
+        _zip_edit_rl_lock,
+        client_ip,
+        limit=ZIP_EDIT_RATE_LIMIT_PER_HOUR,
+        scope="zip-edit",
+    )
+    if not allowed:
+        logger.warning(
+            json.dumps({"event": "zip_edit.ratelimit", "ip": _mask_ip(client_ip)})
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Rate limit exceeded for ZIP edit artifact requests.",
+            headers={"Retry-After": "3600"},
+        )
+
+    parsed = None
+    artifact = None
+    provider_artifact_ids: tuple[str, ...] = ()
+    provider_reservation_id = ""
+    try:
+        parsed = await parse_zip_edit_request(request)
+        correlations = tuple(
+            (replacement.provider_artifact_id, replacement.sha256, replacement.size)
+            for replacement in parsed.manifest.replacements
+            if replacement.provider_artifact_id
+        )
+        if correlations and (
+            _PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR
+            or not _PROVIDER_ARTIFACT_LIFECYCLE_READY
+            or (
+                PROVIDER_ARTIFACT_LIFECYCLE_REQUIRE_SHARED
+                and not bool(_PROVIDER_ARTIFACT_LIFECYCLE.manifest().get("shared"))
+            )
+        ):
+            raise ProviderArtifactError("PROVIDER_ARTIFACT_LIFECYCLE_UNAVAILABLE")
+        (
+            provider_reservation_id,
+            provider_artifact_ids,
+        ) = await _PROVIDER_ARTIFACT_LIFECYCLE.reserve_zip_correlations(correlations)
+        # ZIP validation, CRC verification and compression are blocking work.
+        # Keep them off the async request loop while preserving server-owned
+        # spooled file generations.
+        artifact = await asyncio.to_thread(build_zip_edit_artifact, parsed)
+        if provider_artifact_ids:
+            artifact.receipt = replace(
+                artifact.receipt,
+                provider_artifact_ids=provider_artifact_ids,
+            )
+    except ProviderArtifactError as exc:
+        if provider_reservation_id:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.release_zip_reservation(
+                provider_artifact_ids, provider_reservation_id
+            )
+        return _provider_artifact_error_response(exc)
+    except ZipArtifactError as exc:
+        if provider_reservation_id:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.release_zip_reservation(
+                provider_artifact_ids, provider_reservation_id
+            )
+        return _zip_artifact_error_response(exc)
+    except Exception:
+        if provider_reservation_id:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.release_zip_reservation(
+                provider_artifact_ids, provider_reservation_id
+            )
+        raise
+    finally:
+        if parsed is not None:
+            await parsed.close()
+
+    assert artifact is not None  # ruff: ignore[assert]
+    try:
+        artifact.file.seek(0, os.SEEK_END)
+        output_size = artifact.file.tell()
+        artifact.file.seek(0)
+        receipt_header = encode_zip_edit_receipt_header(artifact.receipt)
+    except Exception:
+        artifact.close()
+        if provider_reservation_id:
+            await _PROVIDER_ARTIFACT_LIFECYCLE.release_zip_reservation(
+                provider_artifact_ids, provider_reservation_id
+            )
+        raise
+
+    zip_delivered = False
+
+    async def _stream_zip() -> AsyncGenerator[bytes, None]:
+        nonlocal zip_delivered
+        try:
+            while True:
+                chunk = await asyncio.to_thread(artifact.file.read, 1024 * 1024)
+                if not chunk:
+                    zip_delivered = True
+                    break
+                yield chunk
+        finally:
+            artifact.close()
+            # A candidate becomes terminal only after the correlated ZIP body
+            # actually reaches the end of the server stream.  Interrupted
+            # downloads therefore do not consume provenance authority forever.
+            if provider_reservation_id:
+                if zip_delivered:
+                    await _PROVIDER_ARTIFACT_LIFECYCLE.mark_applied(
+                        provider_artifact_ids, provider_reservation_id
+                    )
+                else:
+                    await _PROVIDER_ARTIFACT_LIFECYCLE.release_zip_reservation(
+                        provider_artifact_ids, provider_reservation_id
+                    )
+
+    return StreamingResponse(
+        _stream_zip(),
+        status_code=200,
+        media_type="application/zip",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'attachment; filename="{artifact.filename}"',
+            "Content-Length": str(output_size),
+            "X-Content-Type-Options": "nosniff",
+            "X-AI-Artifact-Contract": ZIP_EDIT_RECEIPT_CONTRACT,
+            "X-AI-Artifact-Receipt": receipt_header,
+            "X-AI-Artifact-SHA256": artifact.receipt.output_sha256,
+        },
+    )
+
+
+@app.get("/v1/resource-capabilities")
+async def resource_capabilities(request: Request) -> Response:
+    """Return bounded, credential-free resource capability data for one model.
+
+    The endpoint avoids making ``/health`` scale linearly with arbitrarily large
+    ALLOWED_MODELS deployments.  It exposes only route names and adapter identity;
+    no provider token, provider file id, upstream URL, or credential state is
+    included.
+    """
+    model = str(request.query_params.get("model", "")).strip()
+    if not _resource_model_allowed(model):
+        return JSONResponse(
+            status_code=404,
+            content={"code": "RESOURCE_MODEL_NOT_AVAILABLE"},
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        content={"model": model, "capability": _resource_capability_doc(model)},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(  # ruff: ignore[undocumented-param]
-    request: Request, body: bytes = Depends(_validated_body)
+    request: Request,
 ) -> Response:
     """
     Primary proxy endpoint using the ``scikitplot-chat-v1`` client contract.
@@ -3194,19 +4842,42 @@ async def chat_completions(  # ruff: ignore[undocumented-param]
             detail="Rate limit exceeded for chat requests.",
             headers={"Retry-After": "3600"},
         )
-    stubbed = await _stub_intercept(body, request.headers)
-    if stubbed is not None:
-        return stubbed
+    uploads: tuple[ResourceUpload, ...] = ()
     try:
-        upstream_body = _server_owned_chat_body(body)
+        body, chat_req, uploads, wire_stats = await _chat_request_transport(request)
+        summaries = resource_summary(row.verified for row in uploads)
+        stubbed = await _stub_intercept(
+            body, request.headers, resources=summaries, wire_stats=wire_stats
+        )
+        if stubbed is not None:
+            return stubbed
+        adapter_name = _resource_adapter_name_for_model(chat_req.model)
+        if (
+            uploads
+            or _RESOURCE_EXECUTOR_REGISTRY.execution_state(adapter_name) == "enabled"
+        ):
+            return await _execute_resource_chat(chat_req=chat_req, uploads=uploads)
+        upstream_body = encode_upstream_payload(
+            chat_req,
+            reasoning_enabled=REASONING_ENABLED,
+            effort_param=REASONING_EFFORT_PARAM if REASONING_ENABLED else "",
+            thinking_param=REASONING_THINKING_PARAM if REASONING_ENABLED else "",
+            thinking_mode=REASONING_THINKING_MODE,
+            budget_min=REASONING_BUDGET_MIN,
+            budget_max=REASONING_BUDGET_MAX,
+        )
+        return await _forward(upstream_body, structured_body=body)
+    except ResourceTransportError as exc:
+        return _resource_transport_error_response(exc)
     except ChatContractError as exc:
         return _chat_contract_error_response(exc)
-    return await _forward(upstream_body, structured_body=body)
+    finally:
+        await _close_resource_uploads(uploads)
 
 
 @app.post("/")
 async def chat_completions_alias(  # ruff: ignore[undocumented-param]
-    request: Request, body: bytes = Depends(_validated_body)
+    request: Request,
 ) -> Response:
     """
     Path-agnostic alias: ``POST /`` → identical to ``POST /v1/chat/completions``.
@@ -3244,14 +4915,37 @@ async def chat_completions_alias(  # ruff: ignore[undocumented-param]
             detail="Rate limit exceeded for chat requests.",
             headers={"Retry-After": "3600"},
         )
-    stubbed = await _stub_intercept(body, request.headers)
-    if stubbed is not None:
-        return stubbed
+    uploads: tuple[ResourceUpload, ...] = ()
     try:
-        upstream_body = _server_owned_chat_body(body)
+        body, chat_req, uploads, wire_stats = await _chat_request_transport(request)
+        summaries = resource_summary(row.verified for row in uploads)
+        stubbed = await _stub_intercept(
+            body, request.headers, resources=summaries, wire_stats=wire_stats
+        )
+        if stubbed is not None:
+            return stubbed
+        adapter_name = _resource_adapter_name_for_model(chat_req.model)
+        if (
+            uploads
+            or _RESOURCE_EXECUTOR_REGISTRY.execution_state(adapter_name) == "enabled"
+        ):
+            return await _execute_resource_chat(chat_req=chat_req, uploads=uploads)
+        upstream_body = encode_upstream_payload(
+            chat_req,
+            reasoning_enabled=REASONING_ENABLED,
+            effort_param=REASONING_EFFORT_PARAM if REASONING_ENABLED else "",
+            thinking_param=REASONING_THINKING_PARAM if REASONING_ENABLED else "",
+            thinking_mode=REASONING_THINKING_MODE,
+            budget_min=REASONING_BUDGET_MIN,
+            budget_max=REASONING_BUDGET_MAX,
+        )
+        return await _forward(upstream_body, structured_body=body)
+    except ResourceTransportError as exc:
+        return _resource_transport_error_response(exc)
     except ChatContractError as exc:
         return _chat_contract_error_response(exc)
-    return await _forward(upstream_body, structured_body=body)
+    finally:
+        await _close_resource_uploads(uploads)
 
 
 def _contribution_ledger_http_error(  # ruff: ignore[too-many-return-statements]
@@ -3625,6 +5319,78 @@ def _validate_feedback_lineage_fields(  # ruff: ignore[too-many-branches]
             )
 
 
+def _contribution_model_attribution(raw: Any) -> dict[str, Any] | None:
+    """Return only the model identity needed by contribution review.
+
+    Transport endpoints, info links, descriptions, labels and default/custom UI
+    state are deliberately not contribution content.  This prevents a custom
+    model configuration from becoming an accidental metadata-exfiltration lane.
+    """
+    if not isinstance(raw, dict):
+        return None
+    provider = raw.get("provider")
+    model = raw.get("model")
+    if (
+        not isinstance(provider, str)  # lint
+        or not provider.strip()  # lint
+        or len(provider) > 128  # ruff: ignore[magic-value-comparison]
+    ):
+        return None
+    if (
+        not isinstance(model, str)  # lint
+        or not model.strip()  # lint
+        or len(model) > 512  # ruff: ignore[magic-value-comparison]
+    ):
+        return None
+    if any(
+        ord(ch) < 32  # ruff: ignore[magic-value-comparison]
+        or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+        for ch in provider + model
+    ):
+        return None
+    raw_id = raw.get("id")
+    model_id = raw_id[:256] if isinstance(raw_id, str) and raw_id else None
+    if model_id is not None and any(
+        ord(ch) < 32  # ruff: ignore[magic-value-comparison]
+        or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+        for ch in model_id
+    ):
+        model_id = None
+    return {
+        "id": model_id,
+        "provider": provider.strip(),
+        "model": model.strip(),
+    }
+
+
+def _canonicalize_contribution_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Minimize contribution metadata before digesting or normalizing it.
+
+    Current browser payloads already apply this boundary.  The server repeats it
+    so legacy or hostile clients cannot smuggle model transport configuration or
+    URL credentials/query/fragment data into provider review records.
+    """
+    clean = json.loads(json.dumps(payload))
+    page = clean.get("page", "")
+    if page is not None and not isinstance(page, str):
+        raise HTTPException(status_code=422, detail="Contribution page is invalid.")
+    clean["page"] = sanitize_share_page_url(page or "")
+    clean["model"] = _contribution_model_attribution(clean.get("model"))
+    records = clean.get("records")
+    if isinstance(records, list):
+        for rec in records:
+            if not isinstance(rec, dict) or rec.get("recordType") != "conversation":
+                continue
+            messages = rec.get("messages")
+            if not isinstance(messages, list):
+                continue
+            for message in messages:
+                if not isinstance(message, dict) or message.get("role") != "assistant":
+                    continue
+                message["model"] = _contribution_model_attribution(message.get("model"))
+    return clean
+
+
 def _strict_current_contribution_records(  # ruff: ignore[too-many-branches]
     records: list[Any],
 ) -> None:
@@ -3840,6 +5606,9 @@ async def contribute(  # ruff: ignore[too-many-branches]
         )
     if schema_version == 4:  # ruff: ignore[magic-value-comparison]
         _strict_current_contribution_records(records)
+
+    payload = _canonicalize_contribution_payload(payload)
+    records = payload["records"]
 
     envelope = _operation_envelope(
         request,
@@ -4109,6 +5878,8 @@ async def update_pending_contribution(
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="Invalid JSON body.") from exc
     records = _validate_contribution_update_payload(payload)
+    payload = _canonicalize_contribution_payload(payload)
+    records = payload["records"]
     payload_digest = _canonical_payload_digest(payload)
     operation = (
         entry.get("operation") if isinstance(entry.get("operation"), dict) else {}
@@ -4875,6 +6646,8 @@ async def share_read_fixed(request: Request) -> JSONResponse:
     payload: dict[str, Any] = {
         "format": entry["format"],
         "expiresAt": entry["expiresAt"],
+        "filename": share_artifact_filename(entry["format"]),
+        "mimeType": _mime_type,
     }
     if entry["format"] == "html":
         payload["snapshot"] = entry["snapshot"]
@@ -4889,6 +6662,46 @@ async def share_read_fixed(request: Request) -> JSONResponse:
             "Referrer-Policy": "no-referrer",
             "X-Robots-Tag": "noindex, nofollow, noarchive",
         },
+    )
+
+
+@app.post("/v1/share/download")
+async def share_download_fixed(request: Request) -> Response:
+    """Download one canonical Global Share artifact from the fixed capability-safe path."""
+    raw = await _read_limited_body(request, _SHARE_LOCATOR_BODY_BYTES, "Share locator")
+    share_id = _parse_share_locator_payload(raw)
+    try:
+        entry = await _share_lookup_live(share_id)
+    except HTTPException as exc:
+        if exc.status_code == 404:  # ruff: ignore[magic-value-comparison]
+            logger.info(json.dumps({"event": "share.miss"}))
+        raise
+    try:
+        content, mime_type, ext = render_share(entry["snapshot"], entry["format"])
+    except ShareValidationError as exc:
+        logger.error(json.dumps({"event": "share.corrupt_entry"}))
+        raise HTTPException(status_code=500, detail="Stored share is invalid.") from exc
+    filename = share_artifact_filename(entry["format"])
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "private, no-store",
+        "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+        "Permissions-Policy": (
+            "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
+        ),
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+    }
+    if ext == ".html":
+        headers["Content-Security-Policy"] = (
+            "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+            "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        )
+    logger.info(json.dumps({"event": "share.download", "format": entry["format"]}))
+    return Response(
+        content=content, status_code=200, media_type=mime_type, headers=headers
     )
 
 
@@ -5064,13 +6877,15 @@ async def share_get(share_id: str) -> Response:
     _require_legacy_share_entry(entry)
 
     try:
-        content, mime_type, ext = render_share(entry["snapshot"], entry["format"])
+        content, mime_type, _ext = render_share(entry["snapshot"], entry["format"])
     except ShareValidationError as exc:
         logger.error(json.dumps({"event": "share.corrupt_entry"}))
         raise HTTPException(status_code=500, detail="Stored share is invalid.") from exc
 
     headers = {
-        "Content-Disposition": f'inline; filename="ai-conversation{ext}"',
+        "Content-Disposition": (
+            f'inline; filename="{share_artifact_filename(entry["format"])}"'
+        ),
         "Cache-Control": "private, no-store",
         "Pragma": "no-cache",
         "X-Content-Type-Options": "nosniff",
@@ -5267,7 +7082,23 @@ def _validate_feedback_review_payload(  # ruff: ignore[too-many-branches]
         raise HTTPException(
             status_code=422, detail="Feedback review ratingTitle is invalid."
         )
-    return payload
+
+    # The feedback-review contract requires model attribution, not the model's
+    # transport configuration.  Canonicalize to the minimum attribution shape
+    # so custom endpoint URLs, provider descriptions, or auxiliary links cannot
+    # become an accidental content-exfiltration channel.  This also makes the
+    # browser JSON tab and the cloud JSONL projection deterministic.
+    clean = dict(payload)
+    clean["model"] = {
+        "id": str(model.get("id") or "")[:256] or None,
+        "provider": str(model_provider).strip(),
+        "model": str(model_name).strip(),
+    }
+    page = payload.get("page", "")
+    if page is not None and not isinstance(page, str):
+        raise HTTPException(status_code=422, detail="Feedback review page is invalid.")
+    clean["page"] = sanitize_share_page_url(page or "")
+    return clean
 
 
 def _feedback_review_reference(

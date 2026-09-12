@@ -18,6 +18,8 @@ Features:
 - Optionally replaces unquoted type hints like `Quantity` with quoted versions
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import re

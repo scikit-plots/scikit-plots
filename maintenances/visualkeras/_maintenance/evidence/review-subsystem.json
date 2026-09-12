@@ -1,0 +1,36 @@
+{
+  "subsystem": "scikitplot.visualkeras",
+  "maintenance_status": "FAIL",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "findings": [
+    "graph_view assumes model.output_shape is always a per-output sequence; single-output inout_as_tensor=False selects None instead of the output shape",
+    "graph_view ellipsis placement is index-only; layers at or below ellipsize_after can be falsely rendered as truncated",
+    "SpacingDummyLayer does not guard a missing backend Layer before dynamic subclass construction; missing Keras/TensorFlow degrades to TypeError",
+    "layered_view emits the legend_text_spacing_offset deprecation warning on default invocation because the default is 15 and the warning condition is nonzero",
+    "visualkeras tests claim TensorFlow-or-Keras support but test_dummy_model unconditionally references tf",
+    "visualkeras tests schedule TensorFlow fixture variants even when HAS_TF is false; Keras-only environments error instead of skipping unavailable lanes"
+  ],
+  "evidence": {
+    "snapshot": "GREEN",
+    "keras_native_matrix": "RED",
+    "keras_isolation_harness": "GREEN",
+    "negative_probes": "RED",
+    "runtime_integrity": "GREEN",
+    "real_aggdraw": "UNAVAILABLE",
+    "tensorflow": "UNAVAILABLE",
+    "complete_package": "UNAVAILABLE",
+    "release_matrix": "BLOCKED",
+    "contract_review": "GREEN",
+    "subsystem_review": "GREEN",
+    "maintenance_tests": "GREEN"
+  },
+  "inventory": {
+    "tracked_files": 11,
+    "production_python_files": 5,
+    "test_python_files": 4,
+    "test_support_python_files": 2
+  },
+  "runtime_fingerprint": "43f03fcdb6c34ac276464b83630245bd00a5cdd28d625194c1158b43c9cb980b"
+}

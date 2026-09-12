@@ -1,0 +1,125 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.annoy",
+  "runtime_root": "scikitplot/annoy",
+  "maintenance_root": "maintenances/annoy",
+  "skill": "skills/annoy/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot.annoy Python facade, mixins and typing; the separate Cython scikitplot.annoy._annoy extension templates/declarations; Annoy-specific Meson generation/build wiring; and Annoy-specific tests.",
+    "does_not_own": "The shared/native C++ implementation and headers in scikitplot/cexternals/_annoy. Those remain owned by the independent cexternals/_annoy subsystem."
+  },
+  "compiled_layers": {
+    "native_backend": {
+      "owner": "scikitplot.cexternals._annoy",
+      "python_types": [
+        "scikitplot.cexternals._annoy.Annoy",
+        "scikitplot.cexternals._annoy.AnnoyIndex"
+      ],
+      "consumer_sites": [
+        "scikitplot/annoy/__init__.py",
+        "scikitplot/annoy/_base.py"
+      ],
+      "role": "The public high-level scikitplot.annoy.Index inherits from this separately compiled C++/pybind11 backend."
+    },
+    "cython_backend": {
+      "owner": "scikitplot.annoy",
+      "extension": "scikitplot.annoy._annoy.annoylib",
+      "python_type": "scikitplot.annoy._annoy.Index",
+      "templates": [
+        "scikitplot/annoy/_annoy/annoylib.pyx.in",
+        "scikitplot/annoy/_annoy/annoylib.pxd.in"
+      ],
+      "role": "A separate Cython-generated C++ extension compiled directly against selected shared cexternals/_annoy headers."
+    }
+  },
+  "upstream": {
+    "subsystem": "scikitplot.cexternals._annoy",
+    "maintenance": "maintenances/cexternals/_annoy",
+    "skill": "skills/cexternals/_annoy/SKILL.md",
+    "headers": [
+      {
+        "name": "annoylib.h",
+        "path": "scikitplot/cexternals/_annoy/src/annoylib.h",
+        "extern_sites": [
+          "scikitplot/annoy/_annoy/annoylib.pxd.in"
+        ]
+      },
+      {
+        "name": "kissrandom.h",
+        "path": "scikitplot/cexternals/_annoy/src/kissrandom.h",
+        "extern_sites": [
+          "scikitplot/annoy/_annoy/annoylib.pxd.in"
+        ]
+      },
+      {
+        "name": "annoy_type_support.h",
+        "path": "scikitplot/cexternals/_annoy/src/annoy_type_support.h",
+        "extern_sites": [
+          "scikitplot/annoy/_annoy/annoylib.pyx.in"
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "meson": "scikitplot/annoy/_annoy/meson.build",
+    "template_tool": "scikitplot/_build_utils/tempita.py",
+    "templates": [
+      {
+        "input": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+        "output": "annoylib.pxd",
+        "kind": "build_generated_and_installed"
+      },
+      {
+        "input": "scikitplot/annoy/_annoy/annoylib.pyx.in",
+        "output": "annoylib.pyx",
+        "kind": "build_generated"
+      }
+    ],
+    "cython_generated_cpp": "build-directory output; not an authoritative checked-in source",
+    "legacy_inactive_cpp": "scikitplot/annoy/_annoy/annoymodule.cpp"
+  },
+  "public_contract": {
+    "entrypoint": "scikitplot/annoy/__init__.py",
+    "stub": "scikitplot/annoy/__init__.pyi",
+    "high_level_index": "scikitplot/annoy/_base.py",
+    "required_exports": [
+      "Annoy",
+      "AnnoyIndex",
+      "Index",
+      "IndexIOMixin",
+      "MetaMixin",
+      "NDArrayMixin",
+      "PickleMixin",
+      "PlottingMixin",
+      "VectorOpsMixin"
+    ],
+    "cython_template": "scikitplot/annoy/_annoy/annoylib.pyx.in",
+    "required_cython_symbols": [
+      "FloatType",
+      "supported_dtypes",
+      "BaseIndex",
+      "Index"
+    ]
+  },
+  "build": {
+    "package_meson": "scikitplot/annoy/meson.build",
+    "extension_meson": "scikitplot/annoy/_annoy/meson.build",
+    "extension_name": "annoylib",
+    "language": "cpp",
+    "install_subdir": "scikitplot/annoy/_annoy",
+    "test_roots": [
+      "scikitplot/annoy/_annoy/tests",
+      "scikitplot/annoy/_mixins/tests",
+      "scikitplot/annoy/tests"
+    ],
+    "project_meson": "meson.build",
+    "minimum_cpp_standard": "c++17"
+  },
+  "read_order": [
+    "maintenances/annoy/MAINTAINING.md",
+    "maintenances/annoy/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/annoy/_maintenance/STATE.json",
+    "maintenances/annoy/_maintenance/FAMILY.md",
+    "maintenances/annoy/_maintenance/VERIFICATION.md"
+  ]
+}

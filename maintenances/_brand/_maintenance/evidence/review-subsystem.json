@@ -1,0 +1,30 @@
+{
+  "declared_release_status": "BLOCKED",
+  "integration_status": "UNAVAILABLE",
+  "inventory": {
+    "paths": [
+      "__init__.py",
+      "_banner.py",
+      "_logo.py",
+      "tests/__init__.py",
+      "tests/test__logo.py"
+    ],
+    "production_python_files": 3,
+    "test_python_files": 1,
+    "test_support_python_files": 1,
+    "tracked_files": 5
+  },
+  "maintenance_errors": [],
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "runtime_errors": [
+    "_brand star-imports _logo but _logo defines no __all__; dependency/helper names leak into package namespace",
+    "_brand package __all__ does not include the logo surface imported into the package namespace",
+    "logo CLI advertises python -m scikitplot.logo but scikitplot/logo.py does not exist",
+    "_brand eagerly imports executable _banner; python -m scikitplot._brand._banner is preloaded before runpy execution",
+    "_brand eagerly imports executable _logo; direct python -m execution is preloaded before runpy execution",
+    "banner main has no zero-result failure guard even though generate_all skips per-banner generation failures"
+  ],
+  "runtime_status": "FAIL",
+  "subsystem": "scikitplot._brand"
+}

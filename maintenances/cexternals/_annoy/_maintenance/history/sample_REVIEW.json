@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "subsystem": "cexternals/_annoy",
+  "profile": "native-source-upstream",
+  "registered_checks": [
+    "manifest",
+    "runtime_inventory",
+    "source_headers",
+    "consumer_edges",
+    "no_upward_imports",
+    "fresh_chat_skill",
+    "residue"
+  ],
+  "release_policy": {
+    "static_contracts_required": true,
+    "native_build_evidence": "separate; unavailable is not failure",
+    "runtime_consumer_evidence": "separate; unavailable is not failure"
+  }
+}

@@ -1,0 +1,215 @@
+$ python -B maintenances/corpus/_maintenance/tests/test_contract.py
+F..F........
+======================================================================
+FAIL: test_current_maintenance_plane_passes (__main__.CorpusContractTests.test_current_maintenance_plane_passes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/corpus_work/maintenances/corpus/_maintenance/tests/test_contract.py", line 26, in test_current_maintenance_plane_passes
+    def test_current_maintenance_plane_passes(self): self.assertEqual(self.inspect()['maintenance_status'],'PASS')
+                                                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'FAIL' != 'PASS'
+- FAIL
++ PASS
+
+
+======================================================================
+FAIL: test_foreign_cwd_cli (__main__.CorpusContractTests.test_foreign_cwd_cli)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/data/corpus_work/maintenances/corpus/_maintenance/tests/test_contract.py", line 31, in test_foreign_cwd_cli
+    self.assertEqual(r.returncode,0,r.stderr+r.stdout); self.assertEqual(json.loads(r.stdout)['runtime_status'],'FAIL')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : {
+  "subsystem": "scikitplot.corpus",
+  "maintenance_status": "FAIL",
+  "runtime_status": "FAIL",
+  "release_status": "BLOCKED",
+  "runtime_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "inventory": {
+    "runtime_files": 0,
+    "runtime_bytes": 0,
+    "source_files": 0,
+    "source_loc": 0,
+    "test_files": 0,
+    "test_loc": 0
+  },
+  "lanes": [
+    {
+      "id": "runtime",
+      "checks": {
+        "runtime_presence": [
+          "runtime source incomplete: 0 source files < required floor 17",
+          "runtime tests incomplete: 0 test files < required floor 1",
+          "missing contract module ErrorRecord: scikitplot/corpus/_diagnostics.py",
+          "missing contract module ErrorPolicy: scikitplot/corpus/_schema.py",
+          "missing contract module RetrievalResponse: scikitplot/corpus/_retrieval.py",
+          "missing contract module EmbeddingManifest: scikitplot/corpus/_embedding_manifest.py",
+          "missing contract module IndexGeneration: scikitplot/corpus/_generation.py",
+          "missing contract module ANNIndexArtifact: scikitplot/corpus/_artifact.py",
+          "missing contract module VectorIndexBackend: scikitplot/corpus/_similarity/_backends.py",
+          "missing contract module FilterSupport: scikitplot/corpus/_storage/_storage.py",
+          "missing contract module Filter AST: scikitplot/corpus/_filters.py",
+          "missing contract module RetrievalHit: scikitplot/corpus/_similarity/_similarity.py",
+          "missing contract module ComponentCatalog: scikitplot/corpus/_catalog.py",
+          "missing contract module CapabilityStatus: scikitplot/corpus/_capabilities.py",
+          "missing contract module CorpusPlan/FluentCorpus: scikitplot/corpus/_plan.py",
+          "missing contract module DerivedGraph: scikitplot/corpus/_graph.py",
+          "missing contract module Hierarchy: scikitplot/corpus/_hierarchy.py",
+          "missing contract module Retriever legs: scikitplot/corpus/_retrievers.py",
+          "missing contract module Agentic A1/A2: scikitplot/corpus/_agentic.py"
+        ],
+        "contracts": [],
+        "planes": []
+      }
+    },
+    {
+      "id": "continuation",
+      "checks": {
+        "handoff": [],
+        "inventory": [],
+        "hygiene": []
+      }
+    },
+    {
+      "id": "verification",
+      "checks": {
+        "evidence": [
+          "evidence gate maintenance_contract: log hash mismatch"
+        ]
+      }
+    }
+  ],
+  "errors": {
+    "manifest": [],
+    "runtime_presence": [
+      "runtime source incomplete: 0 source files < required floor 17",
+      "runtime tests incomplete: 0 test files < required floor 1",
+      "missing contract module ErrorRecord: scikitplot/corpus/_diagnostics.py",
+      "missing contract module ErrorPolicy: scikitplot/corpus/_schema.py",
+      "missing contract module RetrievalResponse: scikitplot/corpus/_retrieval.py",
+      "missing contract module EmbeddingManifest: scikitplot/corpus/_embedding_manifest.py",
+      "missing contract module IndexGeneration: scikitplot/corpus/_generation.py",
+      "missing contract module ANNIndexArtifact: scikitplot/corpus/_artifact.py",
+      "missing contract module VectorIndexBackend: scikitplot/corpus/_similarity/_backends.py",
+      "missing contract module FilterSupport: scikitplot/corpus/_storage/_storage.py",
+      "missing contract module Filter AST: scikitplot/corpus/_filters.py",
+      "missing contract module RetrievalHit: scikitplot/corpus/_similarity/_similarity.py",
+      "missing contract module ComponentCatalog: scikitplot/corpus/_catalog.py",
+      "missing contract module CapabilityStatus: scikitplot/corpus/_capabilities.py",
+      "missing contract module CorpusPlan/FluentCorpus: scikitplot/corpus/_plan.py",
+      "missing contract module DerivedGraph: scikitplot/corpus/_graph.py",
+      "missing contract module Hierarchy: scikitplot/corpus/_hierarchy.py",
+      "missing contract module Retriever legs: scikitplot/corpus/_retrievers.py",
+      "missing contract module Agentic A1/A2: scikitplot/corpus/_agentic.py"
+    ],
+    "contracts": [],
+    "planes": [],
+    "handoff": [],
+    "hygiene": [],
+    "evidence": [
+      "evidence gate maintenance_contract: log hash mismatch"
+    ],
+    "inventory": []
+  }
+}
+
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.661s
+
+FAILED (failures=2)
+
+$ python -B maintenances/corpus/_maintenance/check_trackers.py --json
+{
+  "subsystem": "scikitplot.corpus",
+  "maintenance_status": "FAIL",
+  "runtime_status": "FAIL",
+  "release_status": "BLOCKED",
+  "runtime_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "inventory": {
+    "runtime_files": 0,
+    "runtime_bytes": 0,
+    "source_files": 0,
+    "source_loc": 0,
+    "test_files": 0,
+    "test_loc": 0
+  },
+  "lanes": [
+    {
+      "id": "runtime",
+      "checks": {
+        "runtime_presence": [
+          "runtime source incomplete: 0 source files < required floor 17",
+          "runtime tests incomplete: 0 test files < required floor 1",
+          "missing contract module ErrorRecord: scikitplot/corpus/_diagnostics.py",
+          "missing contract module ErrorPolicy: scikitplot/corpus/_schema.py",
+          "missing contract module RetrievalResponse: scikitplot/corpus/_retrieval.py",
+          "missing contract module EmbeddingManifest: scikitplot/corpus/_embedding_manifest.py",
+          "missing contract module IndexGeneration: scikitplot/corpus/_generation.py",
+          "missing contract module ANNIndexArtifact: scikitplot/corpus/_artifact.py",
+          "missing contract module VectorIndexBackend: scikitplot/corpus/_similarity/_backends.py",
+          "missing contract module FilterSupport: scikitplot/corpus/_storage/_storage.py",
+          "missing contract module Filter AST: scikitplot/corpus/_filters.py",
+          "missing contract module RetrievalHit: scikitplot/corpus/_similarity/_similarity.py",
+          "missing contract module ComponentCatalog: scikitplot/corpus/_catalog.py",
+          "missing contract module CapabilityStatus: scikitplot/corpus/_capabilities.py",
+          "missing contract module CorpusPlan/FluentCorpus: scikitplot/corpus/_plan.py",
+          "missing contract module DerivedGraph: scikitplot/corpus/_graph.py",
+          "missing contract module Hierarchy: scikitplot/corpus/_hierarchy.py",
+          "missing contract module Retriever legs: scikitplot/corpus/_retrievers.py",
+          "missing contract module Agentic A1/A2: scikitplot/corpus/_agentic.py"
+        ],
+        "contracts": [],
+        "planes": []
+      }
+    },
+    {
+      "id": "continuation",
+      "checks": {
+        "handoff": [],
+        "inventory": [],
+        "hygiene": []
+      }
+    },
+    {
+      "id": "verification",
+      "checks": {
+        "evidence": [
+          "evidence gate maintenance_contract: log hash mismatch"
+        ]
+      }
+    }
+  ],
+  "errors": {
+    "manifest": [],
+    "runtime_presence": [
+      "runtime source incomplete: 0 source files < required floor 17",
+      "runtime tests incomplete: 0 test files < required floor 1",
+      "missing contract module ErrorRecord: scikitplot/corpus/_diagnostics.py",
+      "missing contract module ErrorPolicy: scikitplot/corpus/_schema.py",
+      "missing contract module RetrievalResponse: scikitplot/corpus/_retrieval.py",
+      "missing contract module EmbeddingManifest: scikitplot/corpus/_embedding_manifest.py",
+      "missing contract module IndexGeneration: scikitplot/corpus/_generation.py",
+      "missing contract module ANNIndexArtifact: scikitplot/corpus/_artifact.py",
+      "missing contract module VectorIndexBackend: scikitplot/corpus/_similarity/_backends.py",
+      "missing contract module FilterSupport: scikitplot/corpus/_storage/_storage.py",
+      "missing contract module Filter AST: scikitplot/corpus/_filters.py",
+      "missing contract module RetrievalHit: scikitplot/corpus/_similarity/_similarity.py",
+      "missing contract module ComponentCatalog: scikitplot/corpus/_catalog.py",
+      "missing contract module CapabilityStatus: scikitplot/corpus/_capabilities.py",
+      "missing contract module CorpusPlan/FluentCorpus: scikitplot/corpus/_plan.py",
+      "missing contract module DerivedGraph: scikitplot/corpus/_graph.py",
+      "missing contract module Hierarchy: scikitplot/corpus/_hierarchy.py",
+      "missing contract module Retriever legs: scikitplot/corpus/_retrievers.py",
+      "missing contract module Agentic A1/A2: scikitplot/corpus/_agentic.py"
+    ],
+    "contracts": [],
+    "planes": [],
+    "handoff": [],
+    "hygiene": [],
+    "evidence": [
+      "evidence gate maintenance_contract: log hash mismatch"
+    ],
+    "inventory": []
+  }
+}

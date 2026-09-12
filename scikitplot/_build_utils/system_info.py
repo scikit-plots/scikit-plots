@@ -5,6 +5,8 @@
 
 """Numpy distutils style library configuration dictionaries."""
 
+from __future__ import annotations
+
 
 def combine_dict(*dicts, **kwargs):
     """Combine Numpy distutils style library configuration dictionaries.

@@ -1,0 +1,9 @@
+pyarrow: UNAVAILABLE
+fastparquet: UNAVAILABLE
+duckdb: UNAVAILABLE
+sqlalchemy: AVAILABLE
+openpyxl: AVAILABLE
+pyarrow.feather: UNAVAILABLE
+root_scikitplot_init: False
+externals_appdirs: False
+live_network_campaign: NOT_RUN

@@ -1,0 +1,181 @@
+{
+  "graph": {
+    "_cli": {
+      "config": {
+        "deferred": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "_cli/_commands/show_config.py"
+          ]
+        }
+      },
+      "utils": {
+        "deferred": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "_cli/_commands/show_versions.py"
+          ]
+        }
+      }
+    },
+    "_compat": {
+      "cexternals": {
+        "module-scope": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "_compat/numpycompat.py"
+          ]
+        }
+      }
+    },
+    "annoy": {
+      "cexternals": {
+        "module-scope": {
+          "code": 2,
+          "test": 0,
+          "files": [
+            "annoy/__init__.py",
+            "annoy/_base.py"
+          ]
+        },
+        "deferred": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "annoy/_mixins/_plotting.py"
+          ]
+        },
+        "cython-extern": {
+          "code": 6,
+          "test": 0,
+          "files": [
+            "annoy/_annoy/annoylib.pxd.in",
+            "annoy/_annoy/annoylib.pyx.in"
+          ]
+        }
+      },
+      "config": {
+        "deferred": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "annoy/_maintenance/gate.py"
+          ]
+        }
+      }
+    },
+    "config": {
+      "_testing": {
+        "module-scope": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "config/__init__.py"
+          ]
+        }
+      }
+    },
+    "corpus": {
+      "annoy": {
+        "deferred": {
+          "code": 4,
+          "test": 0,
+          "files": [
+            "corpus/_similarity/_backends.py"
+          ]
+        }
+      }
+    },
+    "mcp": {
+      "corpus": {
+        "deferred": {
+          "code": 5,
+          "test": 0,
+          "files": [
+            "mcp/_capabilities.py",
+            "mcp/_corpus_annoy.py",
+            "mcp/_hybrid.py"
+          ]
+        }
+      }
+    },
+    "memmap": {
+      "cexternals": {
+        "cython-extern": {
+          "code": 2,
+          "test": 0,
+          "files": [
+            "memmap/_memmap/mem_map.pxd",
+            "memmap/_memmap/mem_map.pyx"
+          ]
+        }
+      }
+    },
+    "random": {
+      "cexternals": {
+        "cython-extern": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "random/_kiss/kiss_random.pxd"
+          ]
+        }
+      }
+    },
+    "utils": {
+      "_compat": {
+        "module-scope": {
+          "code": 1,
+          "test": 0,
+          "files": [
+            "utils/_streamlit.py"
+          ]
+        }
+      },
+      "_testing": {
+        "module-scope": {
+          "code": 0,
+          "test": 5,
+          "files": []
+        }
+      }
+    }
+  },
+  "family": [
+    "cexternals",
+    "annoy",
+    "memmap",
+    "random"
+  ],
+  "review_order": [
+    "corpus",
+    "mcp",
+    "cexternals",
+    "random|memmap",
+    "annoy",
+    "_cli"
+  ],
+  "status": {
+    "corpus": "COMPLETE (R00-R16 review, IMPL-01-18 implementation)",
+    "mcp": "maintenance set ready; run M00 pending",
+    "cexternals": "maintenance set ready; A00 next",
+    "annoy": "maintenance set ready; A00 next",
+    "memmap": "maintenance set ready; A00 next",
+    "random": "maintenance set ready; A00 next",
+    "_cli": "maintenance set NOT YET BUILT; after ANNOY"
+  },
+  "no_cycles": true,
+  "critical_deferred_edges": [
+    {
+      "edge": "corpus->annoy",
+      "sites": 4
+    },
+    {
+      "edge": "mcp->corpus",
+      "sites": 5
+    }
+  ]
+}

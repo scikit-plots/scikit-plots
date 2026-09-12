@@ -1,0 +1,67 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot._build_utils",
+  "updated_at": "2026-09-12",
+  "lanes": [
+    {
+      "id": "maintenance_contract",
+      "status": "PASS",
+      "artifact": "evidence/maintenance-tests.log",
+      "result": "22 passed"
+    },
+    {
+      "id": "focused_runtime_tests",
+      "status": "PASS",
+      "result": "25 passed",
+      "artifact": "evidence/runtime-tests.log"
+    },
+    {
+      "id": "tempita_annoy_generation",
+      "status": "PASS",
+      "result": "active Meson Tempita helper rendered annoylib.pxd.in",
+      "artifact": "evidence/generation-probes.log"
+    },
+    {
+      "id": "cython_generate_validation",
+      "status": "FAIL",
+      "reason": "legitimate doubled braces in generated Annoy CSS/JavaScript are classified as unprocessed template markers",
+      "artifact": "evidence/generation-probes.log"
+    },
+    {
+      "id": "negative_contract_probes",
+      "status": "PASS",
+      "result": "owned defects reproduced",
+      "artifact": "evidence/negative-probes.log"
+    },
+    {
+      "id": "meson_live_integration",
+      "status": "UNAVAILABLE",
+      "reason": "mesonbuild/meson executable is not installed in this environment",
+      "artifact": "evidence/toolchain.log"
+    },
+    {
+      "id": "version_source_integration",
+      "status": "UNAVAILABLE",
+      "reason": "snapshot has no root scikitplot/__init__.py or pyproject.toml source version metadata",
+      "artifact": "evidence/toolchain.log"
+    },
+    {
+      "id": "package_shaped_cythoner",
+      "status": "PASS",
+      "result": "generated real Annoy pyx compiled by Cython to 69,869-line C++ translation unit",
+      "artifact": "evidence/cythoner-probe.log"
+    },
+    {
+      "id": "src_template_engine",
+      "status": "PASS",
+      "result": "legacy .src repeat template generated expected v1/v2 output",
+      "artifact": "evidence/src-template-probe.log"
+    },
+    {
+      "id": "runtime_integrity",
+      "status": "PASS",
+      "result": "23/23 original _build_utils files unchanged",
+      "artifact": "evidence/runtime-integrity.log"
+    }
+  ]
+}

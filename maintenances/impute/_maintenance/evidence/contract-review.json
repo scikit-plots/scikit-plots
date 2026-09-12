@@ -1,0 +1,16 @@
+{
+  "subsystem": "scikitplot.impute",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "runtime_fingerprint": "3e848b873766c0b6173e438d99d3c1ef96ad9e4c777f76dc869d8fe313fb681c",
+  "inventory": {
+    "tracked_files": 9,
+    "production_python_files": 4,
+    "test_python_files": 5
+  },
+  "maintenance_errors": [],
+  "runtime_errors": [
+    "in-tree Annoy import catches Exception and can silently fall back to external annoy",
+    "_ann.py imports pandas as pd at module scope but has no runtime pd usage"
+  ]
+}

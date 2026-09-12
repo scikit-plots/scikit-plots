@@ -1,0 +1,13 @@
+spec_version = "1.0.0"
+predicate_type = "https://scikit-plots.org/attestations/release-archive-merkle-authority-rebridge/v1"
+transition_schema_version = 1
+handoff_schema_version = 1
+bundle_schema_version = 1
+state_schema_version = 1
+active_schema_version = 1
+receipt_schema_version = 1
+max_clock_skew_minutes = 5
+max_transition_freshness_minutes = 30
+max_active_authority_age_days = 365
+max_active_epoch_age_days = 31
+max_json_bytes = 8388608

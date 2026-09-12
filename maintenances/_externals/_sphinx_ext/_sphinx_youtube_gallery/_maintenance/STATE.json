@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
+  "generated_date": "2026-09-10",
+  "source_anchor": {
+    "archive": "scikit-plots.zip",
+    "sha256": "a43b3bdfb8217c1ea9129bd0e33809e35be6afd3ba8a44d8872c65eeaf2c660b",
+    "kind": "user-wide-repository-input"
+  },
+  "governing_rule": "Current workspace and executable evidence outrank historical standalone validation artifacts.",
+  "phase": "INDEPENDENT_REVIEW_AND_PR_RECONCILIATION_VERIFIED",
+  "active_checkpoint": "YTG-M003",
+  "production_code_modified": true,
+  "checkpoints": {
+    "YTG-M001": {
+      "status": "AVAILABLE_GATES_VERIFIED",
+      "summary": "Central family maintenance, portable fresh-chat state, and dependency-free provider-core extraction are verified in all locally available layers; Sphinx/jsdom layers remain explicitly unavailable."
+    },
+    "YTG-M002": {
+      "status": "AVAILABLE_GATES_VERIFIED",
+      "summary": "Typed dependency edges, effective runtime DAG synthesis, and family-wide capability ownership are executable and verified; optional Sphinx/jsdom closure remains unchanged."
+    },
+    "YTG-M003": {
+      "status": "AVAILABLE_GATES_VERIFIED",
+      "summary": "Manifest-v3 deterministic review profiles, independent package/lens review, safe parallel reconciliation, and PR-vs-release status semantics are verified; optional Sphinx/jsdom release layers remain unavailable."
+    }
+  },
+  "verification_snapshot": {
+    "maintenance_core_tests": "GREEN_35_OF_35",
+    "maintenance_family_gate": "GREEN_2_SUBSYSTEMS",
+    "youtube_specific_maintenance": "GREEN",
+    "ai_assistant_composed_maintenance": "GREEN_REPOSITORY",
+    "youtube_core_identity": "GREEN",
+    "youtube_core_namespace_smoke": "GREEN_2_LAYOUTS",
+    "dependency_free_doctests": "GREEN_67_OF_67",
+    "youtube_capability": "GREEN",
+    "youtube_sync_pipeline": "GREEN",
+    "youtube_gallery_parity_static": "GREEN",
+    "youtube_latest_source": "GREEN",
+    "documentation_dependency_free": "GREEN_14_PUBLIC_DOCSTRINGS",
+    "javascript_syntax": "GREEN_3_FILES",
+    "sphinx_extension_layouts": "UNAVAILABLE_MISSING_sphinx_docutils_sphinx_design",
+    "sphinx_rendering": "UNAVAILABLE_MISSING_sphinx_docutils_sphinx_design_myst_parser",
+    "sphinx_dependent_live_controls": "UNAVAILABLE_MISSING_sphinx_or_docutils",
+    "browser_dom_controls": "UNAVAILABLE_MISSING_jsdom",
+    "historical_v10_artifacts": "UNCHANGED_4_PRINCIPAL_HISTORICAL_EVIDENCE_FILES",
+    "typed_dependency_edges": "GREEN_V3_MANIFESTS_AI_AND_YOUTUBE_RETAIN_V2_ARCHITECTURE_MODEL",
+    "effective_runtime_graph": "GREEN_7_PACKAGES_NO_CYCLE_DYNAMIC_EDGES_INCLUDED",
+    "capability_ownership": "GREEN_10_UNIQUE_CAPABILITIES",
+    "architecture_report": "GREEN_TEXT_JSON_MERMAID_GENERATED_FROM_MANIFESTS_AND_AST",
+    "repository_python_ast": "GREEN_299_FILES",
+    "repository_json_parse": "GREEN_31_FILES",
+    "candidate_residue": "GREEN_ZERO_CACHE_OR_COMPILED",
+    "architecture_slice_diff": "GREEN_6_ADDED_14_MODIFIED_0_DELETED",
+    "architecture_slice_runtime_bytes": "GREEN_ZERO_RUNTIME_CHANGES",
+    "review_profiles": "GREEN_V3_2_SUBSYSTEMS_REGISTERED_CHECKS_ONLY",
+    "independent_subsystem_review": "GREEN_PR_READY_2_OF_2",
+    "independent_runtime_package_review": "GREEN_7_PACKAGE_LANES",
+    "review_reconciliation": "GREEN_0_ERROR_0_WARNING_4_UNAVAILABLE",
+    "review_parallel_determinism": "GREEN_SERIAL_EQUALS_PARALLEL",
+    "review_profile_safety": "GREEN_NO_EXECUTABLE_METADATA",
+    "skill_authority_parity": "GREEN_AI_TRACKER_ROUTING_REPAIRED",
+    "review_release_status": "BLOCKED_YOUTUBE_OPTIONAL_SPHINX_JSDOM_LAYERS_ONLY",
+    "review_slice_diff": "GREEN_10_ADDED_16_MODIFIED_0_DELETED",
+    "review_slice_runtime_bytes": "GREEN_ZERO_RUNTIME_CHANGES"
+  },
+  "blockers": [
+    "Full release closure still requires the Sphinx/docutils/sphinx-design/myst-parser integration layer in an environment that provides those optional dependencies.",
+    "Browser DOM behavior tests require jsdom; this workspace can verify JavaScript syntax only."
+  ],
+  "next_actions": [
+    "Run verify_extension_layouts.py and verify_gallery_rendering.py in a Sphinx-enabled downstream environment.",
+    "Run the jsdom-backed live-control browser tests in a Node workspace that provides jsdom.",
+    "Use review_subsystem.py for isolated package/lens review or review_all.py for independent family reconciliation before a pull request.",
+    "When a GitHub integration is connected, use the generated PR review report as evidence rather than treating agent prose as authority.",
+    "Promote from candidate only after unavailable optional layers are actually green; do not rewrite historical standalone-v10 evidence."
+  ],
+  "workspace_output": {
+    "status": "WIDE_REPOSITORY_CANDIDATE",
+    "scope": "complete_scikit_plots_repository",
+    "artifact_digest_policy": "Report the delivered ZIP digest outside the repository to avoid self-reference."
+  },
+  "open_decisions": []
+}

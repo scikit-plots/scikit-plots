@@ -59,6 +59,7 @@ proxy is handling a request.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -109,7 +110,7 @@ except ImportError:  # pragma: no cover
 
 #: Whether the stub responder answers.  Off unless explicitly enabled, matching
 #: the HF Space proxy so the two behave identically by default.
-STUB_ENABLED: bool = os.environ.get("STUB_ENABLED", "false").strip().lower() in (
+STUB_ENABLED: bool = os.environ.get("STUB_ENABLED", "true").strip().lower() in (
     "true",
     "1",
     "yes",
@@ -474,10 +475,58 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if isinstance(payload, dict) and is_stub_model(payload.get("model")):
                 mode, _arg = parse_stub_mode(payload.get("model"))
                 _LOG.info("stub request: mode=%s bytes=%d", mode, len(body))
+                mode_context = None
+                if mode == "mirror":
+                    mode_context = {
+                        "wire_body_bytes": len(body),
+                        "wire_body_sha256": hashlib.sha256(body).hexdigest(),
+                    }
+                    try:
+                        raw_contract = payload.get("contract")
+                        if raw_contract == CHAT_CONTRACT:
+                            mirror_req = parse_chat_request(
+                                body,
+                                allowed_models=(*tuple(ALLOWED_MODELS), "stub/mirror"),
+                            )
+                            effective_bytes = encode_upstream_payload(mirror_req)
+                            mode_context["effective_upstream_payload"] = json.loads(
+                                effective_bytes.decode("utf-8")
+                            )
+                            mode_context["effective_upstream_bytes"] = len(
+                                effective_bytes
+                            )
+                            mode_context["effective_upstream_sha256"] = hashlib.sha256(
+                                effective_bytes
+                            ).hexdigest()
+                    except (
+                        ChatContractError,
+                        ValueError,
+                        TypeError,
+                        json.JSONDecodeError,
+                    ):
+                        mode_context["effective_payload_error"] = (
+                            "CHAT_CONTRACT_REJECTED"
+                        )
                 # Shared clamp — see _stub_model.stub_delay_ms().
                 delay_ms = stub_delay_ms(payload.get("model"))
                 if delay_ms:
                     time.sleep(delay_ms / 1000.0)
+                if mode == "error":
+                    status, doc = stub_payload(
+                        payload.get("model"),
+                        payload,
+                        self.headers,
+                        created=int(time.time()),
+                        mode_context=mode_context,
+                    )
+                    out = json.dumps(doc).encode()
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("X-Stub-Model", "true")
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self._write_bytes(out)
+                    return
                 if payload.get("stream"):
                     self.send_response(200)
                     self.send_header("Content-Type", "text/event-stream")
@@ -486,7 +535,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     self._send_cors_headers()
                     self.end_headers()
                     for frame in stub_sse_frames(
-                        payload.get("model"), payload, self.headers
+                        payload.get("model"),
+                        payload,
+                        self.headers,
+                        mode_context=mode_context,
                     ):
                         if not self._write_bytes(frame.encode(), flush=True):
                             return
@@ -496,6 +548,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     payload,
                     self.headers,
                     created=int(time.time()),
+                    mode_context=mode_context,
                 )
                 out = json.dumps(doc).encode()
                 self.send_response(status)

@@ -1,0 +1,52 @@
+=== compile_probe.py rc=0 sec=1.81 ===
+compile entrypoints: ['compile_and_load', 'compile_and_load_result']
+add(2,3) = 5
+first used_cache=False  second used_cache=True
+VERDICT: OK
+=== probe_test001_exclusivity.py rc=0 sec=3.50 ===
+while-held: timeout (want timeout)
+after-release: acquired (want acquired)
+VERDICT: OK
+=== probe_cache001_concurrency.py rc=0 sec=2.75 ===
+('ok', '715916e9649a9a610b36682605bfffea3eec7a730812fed44c762650f165b33f', False, 5)
+   ('ok', '715916e9649a9a610b36682605bfffea3eec7a730812fed44c762650f165b33f', True, 5)
+keys={'715916e9649a9a610b36682605bfffea3eec7a730812fed44c762650f165b33f'} values={5} used_cache=[False, True]
+published entries=1 staging_leftovers=0
+VERDICT: OK
+=== probe_gc001_race.py rc=0 sec=2.13 ===
+deleted=()
+skipped_active=('cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',)
+entry survived = True
+VERDICT: OK
+=== probe_sec002_strict.py rc=0 sec=0.72 ===
+strict=True restrictive + rejects: OK
+strict=False permissive + permits: OK
+explicit per-flag override wins: OK
+VERDICT: OK
+=== probe_cache003_fingerprint.py rc=0 sec=0.71 ===
+fingerprint toolchain/ABI-complete: OK
+compiler change re-keys cache: OK
+VERDICT: OK
+=== probe_port001_toolchain.py rc=0 sec=0.74 ===
+resolved compiler reported: OK (type='unix', cc='x86_64-linux-gnu-gcc')
+fingerprint includes resolved compiler: OK
+different compiler → different key: OK
+VERDICT: OK
+=== probe_tpl002_validation.py rc=0 sec=0.66 ===
+unknown schema rejected: OK
+wrong-typed entry rejected: OK
+uncontained reference rejected: OK
+clean metadata passes: OK
+VERDICT: OK
+=== probe_con002_threadsafety.py rc=0 sec=0.73 ===
+setuptools exactly-once init under contention: OK
+registry concurrent ops without corruption: OK
+VERDICT: OK
+=== probe_abi001_runtime.py rc=0 sec=0.70 ===
+contract declared (unload=False): OK
+free-threaded rejected + opt-in: OK
+subinterpreter rejected + opt-in: OK
+VERDICT: OK
+VERDICT: OK
+
+exit=0

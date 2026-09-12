@@ -1,0 +1,5 @@
+Negative probes, Keras 3.13.2 / Torch backend / fake aggdraw harness:
+1. single-output model output_shape=(None, 2), outputs=1: graph_view(default) PASS; graph_view(inout_as_tensor=False) -> TypeError: 'NoneType' object is not iterable.
+2. ellipsize_after=10: Dense(8) ellipses=0; Dense(9) ellipses=1; Dense(10) ellipses=1; Dense(11) ellipses=1. Ellipsis appears falsely for 9 and 10.
+3. forced backend import failure: SpacingDummyLayer() warns, then TypeError: NoneType takes no arguments.
+4. default layered_view(model) emits logger WARNING: The legend_text_spacing_offset parameter is deprecated... even though caller omitted it.

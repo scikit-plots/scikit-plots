@@ -1,0 +1,82 @@
+usage: - [-h] [--transport {stdio,streamable-http}] [--docker]
+         [--docs-jsonl DOCS_JSONL] [--corpus-annoy PATH]
+         [--corpus-embedding-model CORPUS_EMBEDDING_MODEL]
+         [--hash-dimension HASH_DIMENSION] [--annoy-metric ANNOY_METRIC]
+         [--annoy-n-trees ANNOY_N_TREES] [--host HOST] [--port PORT]
+         [--path PATH] [--health-path HEALTH_PATH] [--no-health-endpoint]
+         [--max-concurrency MAX_CONCURRENCY]
+         [--max-request-body MAX_REQUEST_BODY] [--stateful-http]
+         [--allow-unauthenticated-remote] [--probe]
+         [--probe-timeout PROBE_TIMEOUT] [--print-effective-config]
+         [--list-capabilities] [--self-test]
+         [--self-test-query SELF_TEST_QUERY] [--self-test-require-match]
+         [--self-test-expected-doc-id SELF_TEST_EXPECTED_DOC_ID]
+         [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+
+Run or probe the scikitplot documentation MCP server
+
+options:
+  -h, --help            show this help message and exit
+  --transport {stdio,streamable-http}
+                        MCP transport; defaults to streamable-http with
+                        --docker, otherwise stdio (default: None)
+  --docker              Use container defaults: streamable-http, host 0.0.0.0,
+                        and an enabled health route. This explicitly permits
+                        the container-network bind but does not add
+                        authentication. (default: False)
+  --docs-jsonl DOCS_JSONL
+                        Optional bounded JSONL corpus; built-in demo is the
+                        default (default: None)
+  --corpus-annoy PATH   Build a local scikitplot.corpus retriever from PATH
+                        and force the Annoy vector backend. Uses the
+                        deterministic HashEmbedder unless --corpus-embedding-
+                        model is supplied. (default: None)
+  --corpus-embedding-model CORPUS_EMBEDDING_MODEL
+                        Optional model-backed embedding name for --corpus-
+                        annoy. Omit for the deterministic offline
+                        HashEmbedder. (default: None)
+  --hash-dimension HASH_DIMENSION
+                        HashEmbedder dimension used by --corpus-annoy when no
+                        model is selected (default: None)
+  --annoy-metric ANNOY_METRIC
+                        Annoy metric used by --corpus-annoy (default: None)
+  --annoy-n-trees ANNOY_N_TREES
+                        Annoy tree count used by --corpus-annoy (default:
+                        None)
+  --host HOST           HTTP bind host (default: None)
+  --port PORT           HTTP bind port (default: None)
+  --path PATH           Streamable HTTP endpoint path (default: None)
+  --health-path HEALTH_PATH
+                        Unauthenticated HTTP health route; ignored by stdio
+                        (default: None)
+  --no-health-endpoint  Disable the HTTP health route (default: False)
+  --max-concurrency MAX_CONCURRENCY
+  --max-request-body MAX_REQUEST_BODY
+  --stateful-http       Keep HTTP sessions; stateless is default (default:
+                        False)
+  --allow-unauthenticated-remote
+                        Explicitly permit a non-local bind without
+                        authentication (default: False)
+  --probe               GET the configured health endpoint and exit instead of
+                        starting a server (default: False)
+  --probe-timeout PROBE_TIMEOUT
+                        Health-probe timeout in seconds (default: None)
+  --print-effective-config
+                        Print validated effective configuration as JSON and
+                        exit (default: False)
+  --list-capabilities   Print the read-only tool/resource inventory as JSON
+                        and exit (does not import the MCP SDK or start a
+                        server) (default: False)
+  --self-test           Load the configured backend, run one deterministic
+                        read-only search, validate the output contract, print
+                        JSON, and exit (default: False)
+  --self-test-query SELF_TEST_QUERY
+                        Query used by --self-test (default: None)
+  --self-test-require-match
+                        Fail --self-test when the query returns zero passages
+                        (default: False)
+  --self-test-expected-doc-id SELF_TEST_EXPECTED_DOC_ID
+                        Fail --self-test unless this exact citation doc_id is
+                        returned (default: None)
+  --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+delegate_exit=0

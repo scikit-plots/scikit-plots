@@ -1,0 +1,124 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot._build_utils",
+  "runtime_root": "scikitplot/_build_utils",
+  "maintenance_root": "maintenances/_build_utils/_maintenance",
+  "skill": "skills/_build_utils/SKILL.md",
+  "owned_findings": [
+    "BLD-CYG-001",
+    "BLD-CYG-002",
+    "BLD-GIT-001",
+    "BLD-GIT-002",
+    "BLD-MESON-001",
+    "BLD-COPY-001",
+    "BLD-TEST-001"
+  ],
+  "read_order": [
+    "maintenances/_build_utils/MAINTAINING.md",
+    "maintenances/_build_utils/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/_build_utils/_maintenance/STATE.json",
+    "maintenances/_build_utils/_maintenance/FAMILY.md",
+    "maintenances/_build_utils/_maintenance/VERIFICATION.md",
+    "skills/_build_utils/SKILL.md"
+  ],
+  "runtime_contract": {
+    "inventory": {
+      "baseline_sha256": "178a8d79294682a72032add3a76d41ae29663346791cd4ce8da90bab2d826247",
+      "tracked_files": 23,
+      "production_python_files": 19,
+      "test_python_files": 2,
+      "test_support_python_files": 1,
+      "paths": [
+        "__init__.py",
+        "_meson_features/__init__.py",
+        "_meson_features/decorators.py",
+        "_meson_features/feature.py",
+        "_meson_features/module.py",
+        "_meson_features/utils.py",
+        "conv_template.py",
+        "copyfiles.py",
+        "cython_generate.py",
+        "cythoner.py",
+        "fix_submodule_import.py",
+        "fix_submodule_import_v2.py",
+        "gcc_build_bitness.py",
+        "gitversion.py",
+        "install_meson_features.py",
+        "link-version-pyinit.map",
+        "process_src_template.py",
+        "system_info.py",
+        "tempita.py",
+        "tests/__init__.py",
+        "tests/test_fix_submodule_import_v2.py",
+        "tests/test_gitversion.py",
+        "version.py"
+      ]
+    },
+    "required_files": [
+      "scikitplot/_build_utils/__init__.py",
+      "scikitplot/_build_utils/_meson_features/__init__.py",
+      "scikitplot/_build_utils/_meson_features/decorators.py",
+      "scikitplot/_build_utils/_meson_features/feature.py",
+      "scikitplot/_build_utils/_meson_features/module.py",
+      "scikitplot/_build_utils/_meson_features/utils.py",
+      "scikitplot/_build_utils/conv_template.py",
+      "scikitplot/_build_utils/copyfiles.py",
+      "scikitplot/_build_utils/cython_generate.py",
+      "scikitplot/_build_utils/cythoner.py",
+      "scikitplot/_build_utils/fix_submodule_import.py",
+      "scikitplot/_build_utils/fix_submodule_import_v2.py",
+      "scikitplot/_build_utils/gcc_build_bitness.py",
+      "scikitplot/_build_utils/gitversion.py",
+      "scikitplot/_build_utils/install_meson_features.py",
+      "scikitplot/_build_utils/link-version-pyinit.map",
+      "scikitplot/_build_utils/process_src_template.py",
+      "scikitplot/_build_utils/system_info.py",
+      "scikitplot/_build_utils/tempita.py",
+      "scikitplot/_build_utils/tests/__init__.py",
+      "scikitplot/_build_utils/tests/test_fix_submodule_import_v2.py",
+      "scikitplot/_build_utils/tests/test_gitversion.py",
+      "scikitplot/_build_utils/version.py"
+    ],
+    "required_symbols": {
+      "scikitplot/_build_utils/tempita.py": [
+        "process_tempita",
+        "main"
+      ],
+      "scikitplot/_build_utils/cython_generate.py": [
+        "validate_template_content",
+        "process_template",
+        "generate_all",
+        "validate_generated_files",
+        "main"
+      ],
+      "scikitplot/_build_utils/process_src_template.py": [
+        "get_processor",
+        "process_and_write_file",
+        "main"
+      ],
+      "scikitplot/_build_utils/gitversion.py": [
+        "GitVersionInfo",
+        "add_safe_directory",
+        "init_version",
+        "git_version",
+        "git_remote_version",
+        "generate_version_template"
+      ],
+      "scikitplot/_build_utils/install_meson_features.py": [
+        "_needs_update",
+        "main"
+      ],
+      "scikitplot/_build_utils/copyfiles.py": [
+        "copy_file",
+        "copy_directory",
+        "copy_items",
+        "main"
+      ],
+      "scikitplot/_build_utils/fix_submodule_import_v2.py": [
+        "ImportTransformer",
+        "TransformConfig",
+        "process_file"
+      ]
+    }
+  }
+}

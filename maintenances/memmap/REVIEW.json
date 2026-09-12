@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.memmap",
+  "lanes": [
+    {
+      "id": "architecture",
+      "checks": [
+        "dependencies",
+        "public_surface",
+        "build",
+        "planes"
+      ]
+    },
+    {
+      "id": "continuation",
+      "checks": [
+        "handoff",
+        "inventory",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "verification",
+      "checks": [
+        "evidence"
+      ]
+    }
+  ],
+  "release_gates": [
+    "maintenance_contract",
+    "native_build",
+    "module_tests",
+    "cross_platform"
+  ]
+}

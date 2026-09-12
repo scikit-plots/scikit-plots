@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot._build_utils",
+  "updated_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "runtime_integrity": {
+    "baseline_sha256": "178a8d79294682a72032add3a76d41ae29663346791cd4ce8da90bab2d826247",
+    "expected_tracked_files": 23,
+    "runtime_modified_by_campaign": false
+  },
+  "test_evidence": {
+    "focused_suite": "25 passed",
+    "active_tempita_annoy_probe": "PASS (annoylib.pxd.in rendered to 1513 lines)",
+    "src_template_probe": "PASS",
+    "cython_generate_validate": "FAIL (false-positive doubled-brace markers)",
+    "meson_live": "UNAVAILABLE (mesonbuild not installed)",
+    "maintenance_contract": "22 passed",
+    "cythoner_real_annoy": "PASS (69,869-line C++ generated from package-shaped Annoy pyx)"
+  },
+  "next_actions": [
+    "Repair Cython generation validation and make the documented atomic-output guarantee real (or remove the guarantee explicitly)",
+    "Fix gitversion error handling and safe.directory scope/side effects",
+    "Make Meson feature installation freshness content-aware and stale-file aware",
+    "Fix bare-filename copy_file destination handling",
+    "Replace simulated gitversion tests with production-API tests",
+    "Run live Meson feature import/build verification on supported Meson versions/platforms"
+  ]
+}

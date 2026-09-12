@@ -1,0 +1,49 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.decile",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "api_surface",
+        "kds_argument_contract",
+        "legacy_rng_contract",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "isolated_runtime",
+      "checks": [
+        "tests"
+      ]
+    },
+    {
+      "name": "complete_package",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "DEC-KDS-001",
+      "severity": "high",
+      "summary": "KDS plotting/report APIs expose pos_label/class_index but do not forward them to decile_table; report also passes digits as ignored round_decimal, so caller selections/precision can be silently ignored."
+    },
+    {
+      "id": "DEC-RNG-001",
+      "severity": "medium",
+      "summary": "Legacy modelplotpy.ModelPlotPy.prepare_scores_and_ntiles calls np.random.seed(self.seed), mutating process-global NumPy RNG state as an incidental side effect."
+    }
+  ]
+}

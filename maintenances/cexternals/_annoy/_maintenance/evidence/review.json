@@ -1,0 +1,353 @@
+{
+  "subsystem": "scikitplot.cexternals._annoy",
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "input_digest": "13ceba04a4a0a132dbc8455637df6bc0bf5ea5f0b37247c91e634613a143ce37",
+  "lanes": [
+    {
+      "id": "source-and-consumers",
+      "status": "PASS",
+      "checks": {
+        "dependencies": [],
+        "planes": []
+      }
+    },
+    {
+      "id": "fresh-chat-and-inventory",
+      "status": "PASS",
+      "checks": {
+        "handoff": [],
+        "inventory": [],
+        "hygiene": []
+      }
+    },
+    {
+      "id": "verification",
+      "status": "PASS",
+      "checks": {
+        "evidence": []
+      }
+    }
+  ],
+  "gates": {
+    "consumer_build": "UNAVAILABLE",
+    "downstream_runtime": "UNAVAILABLE",
+    "maintenance_tests": "PASS",
+    "native_cpp": "UNAVAILABLE",
+    "native_extension": "UNAVAILABLE",
+    "windows_runtime": "UNAVAILABLE"
+  },
+  "graph": {
+    "schema_version": 1,
+    "subsystem": "scikitplot.cexternals._annoy",
+    "consumers": [
+      {
+        "name": "annoy",
+        "kind": "direct_source_and_native_api",
+        "via": null,
+        "headers": [
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+            "line": 135,
+            "target": "scikitplot/cexternals/_annoy/src/kissrandom.h"
+          },
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+            "line": 186,
+            "target": "scikitplot/cexternals/_annoy/src/annoylib.h"
+          },
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+            "line": 211,
+            "target": "scikitplot/cexternals/_annoy/src/annoylib.h"
+          },
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+            "line": 403,
+            "target": "scikitplot/cexternals/_annoy/src/annoylib.h"
+          },
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pxd.in",
+            "line": 586,
+            "target": "scikitplot/cexternals/_annoy/src/annoylib.h"
+          },
+          {
+            "path": "scikitplot/annoy/_annoy/annoylib.pyx.in",
+            "line": 279,
+            "target": "scikitplot/cexternals/_annoy/src/annoy_type_support.h"
+          }
+        ],
+        "imports": [
+          {
+            "path": "scikitplot/annoy/__init__.py",
+            "line": 87,
+            "target": "scikitplot.cexternals._annoy.Annoy"
+          },
+          {
+            "path": "scikitplot/annoy/__init__.py",
+            "line": 87,
+            "target": "scikitplot.cexternals._annoy.AnnoyIndex"
+          },
+          {
+            "path": "scikitplot/annoy/__init__.py",
+            "line": 87,
+            "target": "scikitplot.cexternals._annoy.annoylib"
+          },
+          {
+            "path": "scikitplot/annoy/__init__.pyi",
+            "line": 10,
+            "target": "scikitplot.cexternals._annoy.Annoy"
+          },
+          {
+            "path": "scikitplot/annoy/__init__.pyi",
+            "line": 10,
+            "target": "scikitplot.cexternals._annoy.AnnoyIndex"
+          },
+          {
+            "path": "scikitplot/annoy/__init__.pyi",
+            "line": 10,
+            "target": "scikitplot.cexternals._annoy.annoylib"
+          },
+          {
+            "path": "scikitplot/annoy/_base.py",
+            "line": 48,
+            "target": "scikitplot.cexternals._annoy.Annoy"
+          },
+          {
+            "path": "scikitplot/annoy/_base.pyi",
+            "line": 7,
+            "target": "scikitplot.cexternals._annoy.Annoy"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.py",
+            "line": 66,
+            "target": "scikitplot.cexternals._annoy._plotting"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.AnnoyKNNLike"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.AnnoyVectorsLike"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.NDArray"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.annoy_index_to_array"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.calculate_cpm"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.evaluate_embedding"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.l2_normalize_rows"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.log_normalize"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.maxabs_scale_dense"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.pca"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.pca_project_2d"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.plot"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.plot_annoy_index"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.plot_annoy_knn_edges"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.project_to_2d"
+          },
+          {
+            "path": "scikitplot/annoy/_mixins/_plotting.pyi",
+            "line": 34,
+            "target": "scikitplot.cexternals._annoy._plotting.select_genes"
+          }
+        ]
+      },
+      {
+        "name": "corpus",
+        "kind": "selectable_index",
+        "via": null,
+        "headers": [],
+        "imports": [
+          {
+            "path": "scikitplot/corpus/_similarity/_backends.py",
+            "line": 159,
+            "target": "scikitplot.annoy.Index"
+          },
+          {
+            "path": "scikitplot/corpus/_similarity/_backends.py",
+            "line": 167,
+            "target": "scikitplot.annoy.Index"
+          },
+          {
+            "path": "scikitplot/corpus/_similarity/_backends.py",
+            "line": 155,
+            "target": "scikitplot.annoy._annoy.Index"
+          },
+          {
+            "path": "scikitplot/corpus/_similarity/_backends.py",
+            "line": 171,
+            "target": "scikitplot.annoy._annoy.Index"
+          }
+        ]
+      },
+      {
+        "name": "impute",
+        "kind": "compiled_index",
+        "via": null,
+        "headers": [],
+        "imports": [
+          {
+            "path": "scikitplot/impute/_ann.py",
+            "line": 77,
+            "target": "scikitplot.annoy._annoy.Index"
+          }
+        ]
+      },
+      {
+        "name": "mcp",
+        "kind": "transitive_index",
+        "via": "corpus",
+        "headers": [],
+        "imports": [
+          {
+            "path": "scikitplot/mcp/__main__.py",
+            "line": 615,
+            "target": "scikitplot.corpus.HashEmbedder"
+          },
+          {
+            "path": "scikitplot/mcp/_capabilities.py",
+            "line": 152,
+            "target": "scikitplot.corpus.CapabilityStatus"
+          },
+          {
+            "path": "scikitplot/mcp/_corpus_annoy.py",
+            "line": 357,
+            "target": "scikitplot.corpus.BuilderConfig"
+          },
+          {
+            "path": "scikitplot/mcp/_corpus_annoy.py",
+            "line": 357,
+            "target": "scikitplot.corpus.CorpusBuilder"
+          },
+          {
+            "path": "scikitplot/mcp/_corpus_annoy.py",
+            "line": 357,
+            "target": "scikitplot.corpus.EmbeddingEngine"
+          },
+          {
+            "path": "scikitplot/mcp/_corpus_annoy.py",
+            "line": 413,
+            "target": "scikitplot.corpus.RetrievalConfig"
+          },
+          {
+            "path": "scikitplot/mcp/_corpus_annoy.py",
+            "line": 413,
+            "target": "scikitplot.corpus.RetrievalIndex"
+          },
+          {
+            "path": "scikitplot/mcp/_hybrid.py",
+            "line": 425,
+            "target": "scikitplot.corpus.SQLiteStorage"
+          },
+          {
+            "path": "scikitplot/mcp/_hybrid.py",
+            "line": 425,
+            "target": "scikitplot.corpus.StorageQuery"
+          },
+          {
+            "path": "scikitplot/mcp/_outcome.py",
+            "line": 326,
+            "target": "scikitplot.corpus.RetrievalStatus"
+          },
+          {
+            "path": "scikitplot/mcp/_outcome.py",
+            "line": 356,
+            "target": "scikitplot.corpus.RetrievalStatus"
+          }
+        ]
+      },
+      {
+        "name": "memmap",
+        "kind": "direct_source",
+        "via": null,
+        "headers": [
+          {
+            "path": "scikitplot/memmap/_memmap/mem_map.pxd",
+            "line": 73,
+            "target": "scikitplot/cexternals/_annoy/src/mman.h"
+          },
+          {
+            "path": "scikitplot/memmap/_memmap/mem_map.pyx",
+            "line": 204,
+            "target": "scikitplot/cexternals/_annoy/src/mman.h"
+          }
+        ],
+        "imports": []
+      },
+      {
+        "name": "random",
+        "kind": "direct_source",
+        "via": null,
+        "headers": [
+          {
+            "path": "scikitplot/random/_kiss/kiss_random.pxd",
+            "line": 77,
+            "target": "scikitplot/cexternals/_annoy/src/kissrandom.h"
+          }
+        ],
+        "imports": []
+      }
+    ]
+  },
+  "runtime_inventory": {
+    "digest": "acb2ce2c690ec2911fa324d2e5b9f210aa874f971047cab513f1cb91032a0b49",
+    "totals": {
+      "source": 22,
+      "test": 16,
+      "asset": 6
+    }
+  }
+}

@@ -64,6 +64,28 @@ Read a specific mirror instead of the primary::
         --target-id github-mirror \\
         --output clean_dataset.jsonl
 
+Generate the deterministic derived cloud feedback-review view while keeping individual
+provider records authoritative::
+
+    python deduplicate_dataset.py \
+        --from-storage-config \
+        --feedback-review-cloud-merged
+
+This writes ``ai-feedback-review-cloud-merged-jsonl-<UTC timestamp>.jsonl`` plus an
+integrity/authority ``.manifest.json`` sidecar.
+
+Generate the deterministic derived cloud contribution view while keeping individual
+provider contribution records authoritative::
+
+    python deduplicate_dataset.py \
+        --from-storage-config \
+        --contribution-cloud-merged
+
+This writes ``ai-contribution-cloud-merged-jsonl-<UTC timestamp>.jsonl`` plus an
+integrity/authority ``.manifest.json`` sidecar with Q&A/conversation counts and
+source-identity fields. Derived merged artifacts are never re-ingested as source
+authority.
+
 Audit/recovery union across all configured targets::
 
     python deduplicate_dataset.py \\
@@ -113,7 +135,9 @@ import re
 import sys
 import tarfile
 import tempfile
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote
@@ -133,18 +157,58 @@ except (ImportError, ValueError):
 # Optional: normalize records from v1 to v2 schema when _dataset_schema is
 # available alongside this script (standard _hf_spaces_proxy/ deployment).
 try:
-    from ._utils._dataset_schema import normalize_record as _normalize_record
+    from ._utils._dataset_schema import (
+        normalize_model_attribution as _normalize_model_attribution,
+    )
+    from ._utils._dataset_schema import (
+        normalize_record as _normalize_record,
+    )
+    from ._utils._share_contract import (
+        sanitize_share_page_url as _sanitize_dataset_page,
+    )
 
     _SCHEMA_AVAILABLE = True
 except (ImportError, ValueError):
     try:
-        from _utils._dataset_schema import normalize_record as _normalize_record
+        from _utils._dataset_schema import (
+            normalize_model_attribution as _normalize_model_attribution,
+        )
+        from _utils._dataset_schema import (
+            normalize_record as _normalize_record,
+        )
+        from _utils._share_contract import (
+            sanitize_share_page_url as _sanitize_dataset_page,
+        )
 
         _SCHEMA_AVAILABLE = True
     except ImportError:
 
         def _normalize_record(raw: dict) -> dict:
             return raw
+
+        def _normalize_model_attribution(raw: Any) -> dict[str, Any] | None:
+            if not isinstance(raw, dict):
+                return None
+            provider = raw.get("provider")
+            model = raw.get("model")
+            if not isinstance(provider, str) or not provider.strip():
+                return None
+            if not isinstance(model, str) or not model.strip():
+                return None
+            raw_id = raw.get("id")
+            return {
+                "id": raw_id[:256] if isinstance(raw_id, str) and raw_id else None,
+                "provider": provider.strip()[:128],
+                "model": model.strip()[:512],
+                "label": None,
+                "endpoint": None,
+                "info_url": None,
+                "description": None,
+                "default": None,
+            }
+
+        def _sanitize_dataset_page(_value: Any) -> str:
+            return ""
 
         _SCHEMA_AVAILABLE = False
 
@@ -241,15 +305,72 @@ def _parse_jsonl_bytes(data: bytes, *, display_path: str) -> list[dict]:
     return records
 
 
-def load_all_records(local_dir: Path) -> list[dict]:
-    """Read every ``*.jsonl`` file under *local_dir* into a flat list.
+def _has_bound_derived_manifest(  # ruff: ignore[too-many-return-statements]
+    path: Path,
+) -> bool:
+    """Return whether a sidecar cryptographically identifies *path* as derived.
 
-    This public helper intentionally preserves the legacy behavior: every JSONL
-    file below the supplied directory is read recursively.  New provider-aware
-    CLI paths use the configured feedback/contribution folders instead.
+    This recognizes renamed/custom-output merged artifacts without trusting an
+    unbound sidecar.  A manifest can suppress ingestion only when it names the
+    exact file and its SHA-256 matches the current bytes.
+    """
+    manifest_path = path.with_name(path.name + ".manifest.json")
+    try:
+        if not manifest_path.is_file() or manifest_path.stat().st_size > 64 * 1024:
+            return False
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            return False
+        if (
+            manifest.get("derived") is not True
+            or manifest.get("authoritative") is not False
+        ):
+            return False
+        if (
+            manifest.get("lifecycleRole") != "cloud-merged"
+            or manifest.get("representation") != "jsonl"
+        ):
+            return False
+        if manifest.get("artifactFamily") not in {
+            "ai-feedback-review",
+            "ai-contribution",
+        }:
+            return False
+        if manifest.get("filename") != path.name:
+            return False
+        digest = manifest.get("contentSha256")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            return False
+        return hashlib.sha256(path.read_bytes()).hexdigest() == digest
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+
+
+def _is_derived_cloud_merged_path(path: Path) -> bool:
+    """Return whether *path* is a non-authoritative derived merged export."""
+    name = path.name
+    patterns = (
+        r"ai-feedback-review-cloud-merged-jsonl-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}\.jsonl",
+        r"ai-contribution-cloud-merged-jsonl-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}\.jsonl",
+    )
+    return any(
+        re.fullmatch(pattern, name) for pattern in patterns
+    ) or _has_bound_derived_manifest(path)
+
+
+def load_all_records(local_dir: Path) -> list[dict]:
+    """Read authoritative ``*.jsonl`` files under *local_dir* into a flat list.
+
+    Legacy local snapshots are still scanned recursively, but human-facing
+    ``cloud-merged-jsonl`` exports are derived views rather than source records
+    and are therefore skipped if a previous export sits inside the snapshot.
+    New provider-aware CLI paths use only configured feedback/contribution folders.
     """
     records: list[dict] = []
     for jsonl_path in sorted(local_dir.rglob("*.jsonl")):
+        if _is_derived_cloud_merged_path(jsonl_path):
+            logger.info("Skipping derived merged dataset artifact: %s", jsonl_path.name)
+            continue
         try:
             data = jsonl_path.read_bytes()
         except OSError:
@@ -270,6 +391,9 @@ def _iter_source_files(root: Path, source: DatasetSource) -> Iterable[tuple[str,
         if not base.is_dir():
             continue
         for path in sorted(base.rglob("*.jsonl")):
+            if _is_derived_cloud_merged_path(path):
+                logger.info("Skipping derived merged dataset artifact: %s", path.name)
+                continue
             resolved = path.resolve()
             if resolved in seen:
                 continue
@@ -696,12 +820,250 @@ def deduplicate(records: list[dict], *, include_unreviewed: bool = False) -> lis
     return semantic
 
 
+def _jsonl_bytes(records: list[dict]) -> bytes:
+    """Return deterministic UTF-8 NDJSON bytes for *records*."""
+    return (
+        "".join(
+            json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n"
+            for rec in records
+        )
+    ).encode("utf-8")
+
+
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Atomically replace one derived artifact without exposing partial bytes."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent)
+    )
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        try:  # ruff: ignore[suppressible-exception]
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    _atomic_write_bytes(path, text.encode("utf-8"))
+
+
 def write_output(records: list[dict], output_path: Path) -> None:
     """Write records to *output_path* as deterministic newline-delimited JSON."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as fh:
-        for rec in records:
-            fh.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
+    _atomic_write_bytes(output_path, _jsonl_bytes(records))
+
+
+def _feedback_review_merged_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    """Stable ordering key for the derived cloud feedback review view."""
+    canonical = json.dumps(
+        record, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return (
+        int(record.get("_ts") or record.get("ts") or 0),
+        str(record.get("feedbackChainId") or ""),
+        int(record.get("editCount") or 0),
+        int(record.get("answerIndex") if record.get("answerIndex") is not None else -1),
+        str(record.get("feedbackId") or ""),
+        hashlib.sha256(canonical).hexdigest(),
+    )
+
+
+def feedback_review_cloud_merged(records: list[dict]) -> list[dict]:
+    """Return the deterministic derived view of eligible reviewed feedback.
+
+    Individual provider feedback files remain the lifecycle/write authority.
+    This helper deliberately emits only the current canonical reviewed-feedback
+    rows after the normal deduplication + lineage resolver has run.
+    """
+    clean = deduplicate(records, include_unreviewed=False)
+    feedback = [
+        row
+        for row in clean
+        if row.get("_source") == "feedback"
+        and row.get("feedbackReview") is True
+        and row.get("recordType") == "qa"
+        and row.get("trainingStatus") == "eligible"
+        and row.get("action") not in {"retract", "withdraw"}
+    ]
+    return sorted(feedback, key=_feedback_review_merged_sort_key)
+
+
+def _feedback_review_cloud_merged_filename(now: float | None = None) -> str:
+    """Human-facing filename for one generated cloud merged feedback export."""
+    stamp = datetime.fromtimestamp(now or time.time(), tz=timezone.utc).strftime(
+        "%Y-%m-%d-%H-%M-%S"
+    )
+    return f"ai-feedback-review-cloud-merged-jsonl-{stamp}.jsonl"
+
+
+def write_feedback_review_cloud_merged(
+    records: list[dict],
+    output_path: Path,
+    *,
+    source_description: str,
+) -> dict[str, Any]:
+    """Write merged feedback JSONL plus a non-authoritative integrity manifest."""
+    merged = feedback_review_cloud_merged(records)
+    data = _jsonl_bytes(merged)
+    _atomic_write_bytes(output_path, data)
+    digest = hashlib.sha256(data).hexdigest()
+    manifest = {
+        "schemaVersion": 1,
+        "artifactFamily": "ai-feedback-review",
+        "lifecycleRole": "cloud-merged",
+        "representation": "jsonl",
+        "derived": True,
+        "authoritative": False,
+        "authority": "individual canonical provider feedback records",
+        "source": source_description[:512],
+        "filename": output_path.name,
+        "recordCount": len(merged),
+        "contentBytes": len(data),
+        "contentSha256": digest,
+        "lineageFields": [
+            "feedbackId",
+            "feedbackChainId",
+            "prevFeedbackId",
+            "prevFeedbackIds",
+            "editCount",
+            "_dedup_key",
+        ],
+    }
+    manifest_path = output_path.with_name(output_path.name + ".manifest.json")
+    _atomic_write_text(
+        manifest_path,
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    )
+    return {
+        "records": merged,
+        "manifest": manifest,
+        "manifestPath": manifest_path,
+    }
+
+
+def _privacy_minimize_contribution_row_for_export(
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Return a derived-view copy with current contribution privacy boundaries.
+
+    Historical provider rows may predate model-attribution and page sanitization.
+    A merged export must not revive those retired transport/source details.
+    """
+    row = json.loads(json.dumps(record))
+    row["page"] = _sanitize_dataset_page(row.get("page") or "")
+    row["model"] = _normalize_model_attribution(row.get("model"))
+    messages = row.get("messages")
+    if isinstance(messages, list):
+        for message in messages:
+            if not isinstance(message, dict) or message.get("role") != "assistant":
+                continue
+            message["model"] = _normalize_model_attribution(message.get("model"))
+    return row
+
+
+def _contribution_merged_sort_key(record: dict[str, Any]) -> tuple[Any, ...]:
+    """Stable ordering key for the derived cloud contribution view."""
+    canonical = json.dumps(
+        record, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return (
+        int(record.get("_ts") or record.get("ts") or 0),
+        str(record.get("recordType") or ""),
+        int(record.get("answerIndex") if record.get("answerIndex") is not None else -1),
+        str(record.get("feedbackChainId") or ""),
+        int(record.get("editCount") or 0),
+        str(record.get("_dedup_key") or ""),
+        hashlib.sha256(canonical).hexdigest(),
+    )
+
+
+def contribution_cloud_merged(records: list[dict]) -> list[dict]:
+    """Return the deterministic derived view of eligible contributions.
+
+    Individual provider contribution records remain the lifecycle/write
+    authority.  This view includes only current eligible Q&A/conversation rows
+    after normal deduplication, withdrawal suppression and feedback-lineage
+    resolution have completed.
+    """
+    clean = deduplicate(records, include_unreviewed=False)
+    contributions = [
+        _privacy_minimize_contribution_row_for_export(row)
+        for row in clean
+        if row.get("_source") == "contribution"
+        and row.get("recordType") in {"qa", "conversation"}
+        and row.get("trainingStatus") == "eligible"
+        and row.get("action") not in {"retract", "withdraw"}
+    ]
+    return sorted(contributions, key=_contribution_merged_sort_key)
+
+
+def _contribution_cloud_merged_filename(now: float | None = None) -> str:
+    """Human-facing filename for one generated cloud merged contribution export."""
+    stamp = datetime.fromtimestamp(now or time.time(), tz=timezone.utc).strftime(
+        "%Y-%m-%d-%H-%M-%S"
+    )
+    return f"ai-contribution-cloud-merged-jsonl-{stamp}.jsonl"
+
+
+def write_contribution_cloud_merged(
+    records: list[dict],
+    output_path: Path,
+    *,
+    source_description: str,
+) -> dict[str, Any]:
+    """Write merged contribution JSONL plus a non-authoritative manifest."""
+    merged = contribution_cloud_merged(records)
+    data = _jsonl_bytes(merged)
+    _atomic_write_bytes(output_path, data)
+    digest = hashlib.sha256(data).hexdigest()
+    qa_count = sum(1 for row in merged if row.get("recordType") == "qa")
+    conversation_count = sum(
+        1 for row in merged if row.get("recordType") == "conversation"
+    )
+    manifest = {
+        "schemaVersion": 1,
+        "artifactFamily": "ai-contribution",
+        "lifecycleRole": "cloud-merged",
+        "representation": "jsonl",
+        "derived": True,
+        "authoritative": False,
+        "authority": "individual canonical provider contribution records",
+        "source": source_description[:512],
+        "filename": output_path.name,
+        "recordCount": len(merged),
+        "qaRecordCount": qa_count,
+        "conversationRecordCount": conversation_count,
+        "contentBytes": len(data),
+        "contentSha256": digest,
+        "sourceIdentityFields": [
+            "_dedup_key",
+            "recordType",
+            "conversationId",
+            "answerIndex",
+            "feedbackId",
+            "feedbackChainId",
+            "prevFeedbackId",
+            "prevFeedbackIds",
+            "editCount",
+        ],
+    }
+    manifest_path = output_path.with_name(output_path.name + ".manifest.json")
+    _atomic_write_text(
+        manifest_path,
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+    )
+    return {
+        "records": merged,
+        "manifest": manifest,
+        "manifestPath": manifest_path,
+    }
 
 
 def _report_stats(records: list[dict]) -> dict[str, Any]:
@@ -1209,6 +1571,24 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--feedback-review-cloud-merged",
+        action="store_true",
+        help=(
+            "Export only the deterministic current view of eligible maintainer feedback "
+            "reviews. Individual cloud feedback files remain authoritative; a .manifest.json "
+            "sidecar binds the derived JSONL bytes and record count."
+        ),
+    )
+    parser.add_argument(
+        "--contribution-cloud-merged",
+        action="store_true",
+        help=(
+            "Export only the deterministic current view of eligible dataset contributions. "
+            "Individual cloud contribution files remain authoritative; a .manifest.json "
+            "sidecar binds the derived JSONL bytes, record counts, and source identity fields."
+        ),
+    )
+    parser.add_argument(
         "--stats-only",
         action="store_true",
         help="Print dataset statistics without writing an output file.",
@@ -1221,7 +1601,13 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
 ) -> int:
     """Run the dataset reader/deduplicator CLI."""
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    raw_argv = list(argv) if argv is not None else list(sys.argv[1:])
+    args = parser.parse_args(raw_argv)
+    output_explicit = any(
+        token == "--output"  # ruff: ignore[hardcoded-password-string]
+        or token.startswith("--output=")
+        for token in raw_argv
+    )
     _configure_logging()
 
     if not _SCHEMA_AVAILABLE:
@@ -1246,6 +1632,12 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
     if args.from_storage_config and args.targets_file:
         parser.error("use either --from-storage-config or --targets-file, not both")
 
+    if args.feedback_review_cloud_merged and args.contribution_cloud_merged:
+        parser.error(
+            "--feedback-review-cloud-merged and --contribution-cloud-merged are mutually exclusive"
+        )
+
+    source_description = ""
     if args.local_dir:
         local_dir = Path(args.local_dir).expanduser()
         if not local_dir.is_dir():
@@ -1254,6 +1646,7 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
             )
             return 1
         logger.info("Reading records from local snapshot ...")
+        source_description = f"local snapshot:{local_dir.name}"
         all_records = load_all_records(local_dir)
     else:
         sources: list[DatasetSource]
@@ -1282,6 +1675,9 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
             logger.error("Dataset source configuration failed: code=%s", exc.code)
             return 1
 
+        source_description = ",".join(
+            f"{source.provider}:{source.id}" for source in sources
+        )[:512]
         logger.info("Resolved %d dataset source(s).", len(sources))
         for source in sources:
             logger.info("  source=%s provider=%s", source.id, source.provider)
@@ -1332,6 +1728,46 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
 
     raw_stats = _log_stats(all_records)
     if args.stats_only:
+        return 0
+
+    if args.feedback_review_cloud_merged:
+        if args.include_unreviewed:
+            parser.error(
+                "--feedback-review-cloud-merged cannot be combined with --include-unreviewed"
+            )
+        output_path = Path(args.output)
+        if not output_explicit:
+            output_path = Path(_feedback_review_cloud_merged_filename())
+        result = write_feedback_review_cloud_merged(
+            all_records, output_path, source_description=source_description
+        )
+        logger.info(
+            "Merged feedback review view written to %s (%d records, sha256=%s)",
+            output_path,
+            len(result["records"]),
+            result["manifest"]["contentSha256"],
+        )
+        logger.info("Integrity manifest written to %s", result["manifestPath"])
+        return 0
+
+    if args.contribution_cloud_merged:
+        if args.include_unreviewed:
+            parser.error(
+                "--contribution-cloud-merged cannot be combined with --include-unreviewed"
+            )
+        output_path = Path(args.output)
+        if not output_explicit:
+            output_path = Path(_contribution_cloud_merged_filename())
+        result = write_contribution_cloud_merged(
+            all_records, output_path, source_description=source_description
+        )
+        logger.info(
+            "Merged contribution view written to %s (%d records, sha256=%s)",
+            output_path,
+            len(result["records"]),
+            result["manifest"]["contentSha256"],
+        )
+        logger.info("Integrity manifest written to %s", result["manifestPath"])
         return 0
 
     clean = deduplicate(all_records, include_unreviewed=args.include_unreviewed)

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.cexternals._annoy",
+  "lanes": [
+    {
+      "id": "source-and-consumers",
+      "checks": [
+        "dependencies",
+        "planes"
+      ]
+    },
+    {
+      "id": "fresh-chat-and-inventory",
+      "checks": [
+        "handoff",
+        "inventory",
+        "hygiene"
+      ]
+    },
+    {
+      "id": "verification",
+      "checks": [
+        "evidence"
+      ]
+    }
+  ],
+  "release_gates": [
+    "maintenance_tests",
+    "native_cpp",
+    "native_extension",
+    "consumer_build",
+    "downstream_runtime",
+    "windows_runtime"
+  ]
+}

@@ -1,0 +1,16 @@
+
+==================================== ERRORS ====================================
+____________ ERROR collecting scikitplot/cython/tests/test__init.py ____________
+ImportError while importing test module '/mnt/data/cython_work/scikitplot/cython/tests/test__init.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/cython/tests/test__init.py:21: in <module>
+    from ... import cython as pkg  # scikitplot.cython
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: attempted relative import beyond top-level package
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.79s
+exit=2

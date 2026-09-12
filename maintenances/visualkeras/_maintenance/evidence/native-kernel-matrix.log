@@ -1,0 +1,4 @@
+Keras-only focused test matrix using package-root helpers and fake aggdraw, but ORIGINAL conftest availability logic:
+27 passed, 20 errors in 0.57s.
+All 20 errors are unavailable TensorFlow fixture paths: tf is undefined or tensorflow.python cannot import.
+This is RED test-matrix evidence, not a Keras runtime-rendering failure.

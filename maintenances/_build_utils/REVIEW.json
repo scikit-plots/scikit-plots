@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot._build_utils",
+  "reviewed_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "checks": [
+    "runtime_presence",
+    "api_surface",
+    "build_only_boundary",
+    "cython_validation",
+    "git_error_contract",
+    "git_safe_directory",
+    "meson_freshness",
+    "copy_semantics",
+    "test_fidelity",
+    "planes",
+    "handoff",
+    "inventory",
+    "evidence",
+    "release"
+  ],
+  "findings": [
+    {
+      "id": "BLD-CYG-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "cython_generate --validate rejects the repository's generated Annoy Cython source because legitimate doubled braces in CSS/JavaScript are mistaken for unprocessed Tempita markers."
+    },
+    {
+      "id": "BLD-CYG-002",
+      "severity": "medium",
+      "status": "open",
+      "summary": "cython_generate documents atomic output, but process_template writes the final file directly with Path.write_text rather than staging and replacing it."
+    },
+    {
+      "id": "BLD-GIT-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "gitversion.add_safe_directory error paths reference exception variable e after its except scope (and from a ValueError handler that binds ve), causing UnboundLocalError instead of the documented fallback result."
+    },
+    {
+      "id": "BLD-GIT-002",
+      "severity": "high",
+      "status": "open",
+      "summary": "git_version retries any git return code 128 by globally adding the _build_utils subdirectory as safe.directory; this is persistent user Git configuration and is not the repository root."
+    },
+    {
+      "id": "BLD-MESON-001",
+      "severity": "high",
+      "status": "open",
+      "summary": "install_meson_features._needs_update relies on source-vs-destination mtimes and source names only, so content drift with newer destination timestamps and stale destination-only files can be accepted as up to date."
+    },
+    {
+      "id": "BLD-COPY-001",
+      "severity": "medium",
+      "status": "open",
+      "summary": "copy_file fails for an ordinary destination filename in the current directory because os.path.dirname(dest) is empty and os.makedirs(\"\") raises FileNotFoundError."
+    },
+    {
+      "id": "BLD-TEST-001",
+      "severity": "medium",
+      "status": "open",
+      "summary": "test_gitversion imports the production git-version APIs but never calls them; its green tests mostly re-simulate expected behavior and therefore miss the real error-path defects."
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.preprocessing",
+  "recorded_at": "2026-09-12",
+  "runtime_fingerprint": "652b96efffa6424d454239552bbec7cfb99d8c9e3c3988d5c3187fdd97baaa36",
+  "gates": {
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/preprocessing/_maintenance/evidence/maintenance-tests.log",
+      "note": "Executable mutation/regression suite for maintainer contract.",
+      "sha256": "e8dde50bf4fddb855542f57e347187c01cea38ab09b2dd614a28c068b97ba19d"
+    },
+    "isolated_runtime": {
+      "status": "GREEN",
+      "log": "maintenances/preprocessing/_maintenance/evidence/isolated-tests.log",
+      "note": "180 focused tests pass in package-root isolation harness.",
+      "sha256": "9574ab11623bacfd1ae5f3b4d4116fb28339fb7394d4bcb22d1451b5b6ad7968"
+    },
+    "negative_semantic_probes": {
+      "status": "RED",
+      "log": "maintenances/preprocessing/_maintenance/evidence/negative-probes.log",
+      "note": "Reproduces cross-feature category collapse, infrequent grouping/data-width divergence, and invalid GetDummies handle_unknown acceptance.",
+      "sha256": "a2b903395f472af5e3df4c798b00acc6504209eba5647d85b5ca99d80ac240e1"
+    },
+    "standalone_test_claim": {
+      "status": "RED",
+      "log": "maintenances/preprocessing/_maintenance/evidence/standalone-test-probe.log",
+      "note": "Direct script execution claimed by test docstrings fails; bootstrap/path code is commented.",
+      "sha256": "e07bef916f2c0ac90e89edb31dcccfd29dc61051c4073621fc21bb9476247bad"
+    },
+    "direct_full_snapshot": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/preprocessing/_maintenance/evidence/direct-snapshot.log",
+      "note": "Partial archive lacks root package and vendored packaging path.",
+      "sha256": "447cb4d11be2567a8e5a8500c6e0020f19df9bffc3f7d378938c1a62188a6b38"
+    },
+    "complete_package": {
+      "status": "UNAVAILABLE",
+      "note": "Installed/full-root import, docs examples, supported dependency-version matrix, and optional container adapters not available from this archive."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Blocked by PRE-DCE-001, PRE-DCE-002, PRE-GD-001 and missing complete-package/dependency/platform evidence."
+    },
+    "static_contract_review": {
+      "status": "RED",
+      "log": "maintenances/preprocessing/_maintenance/evidence/contract-review.json",
+      "sha256": "56bb18b050ad63944dc6df5b2e94a796524c4b1cb140a56b2a9e6b4fb761754d",
+      "note": "Static checker: maintenance PASS, runtime FAIL on three owned findings."
+    },
+    "subsystem_review": {
+      "status": "RED",
+      "log": "maintenances/preprocessing/_maintenance/evidence/review-subsystem.json",
+      "sha256": "091ddd90de8c5badf9d8a2d61c6f9504e5047cc7a1852ec9fdbaf845a6a9a984",
+      "note": "Three-plane review: maintenance PASS, runtime FAIL, integration UNAVAILABLE, release BLOCKED."
+    },
+    "runtime_integrity": {
+      "status": "GREEN",
+      "log": "maintenances/preprocessing/_maintenance/evidence/runtime-integrity.log",
+      "sha256": "0d48506549102d6914d2facd4cff4db389da20fc218693304190b4e58b019259",
+      "note": "Byte comparison of scikitplot/preprocessing runtime/test files against the accumulated input archive."
+    }
+  }
+}

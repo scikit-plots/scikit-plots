@@ -1,3 +1,117 @@
+# Current verification — 2026-09-07
+
+## R172T8 — user-local full-suite acceptance
+
+- behavioral verification anchor: `scikitplot__sphinx_ai_assistant_run172_fix7_proxy_docker_context_fix1.zip`;
+- anchor SHA-256: `53381d32540402dac5c96a4b2eff75c02f94fc188a27f360120fbc6e36852b71`;
+- user Sphinx-enabled pytest collection: **2322**;
+- completed full suite: **2318 passed, 4 skipped in 3000.17s (0:50:00)**;
+- completion reached **100%** with no failed/error summary;
+- four skips are the known Redis live/chaos gates with `redis-server unavailable`;
+- all seven Run 172 local first-failure classes are closed;
+- R172P1 proxy Docker build-context repair remains retained;
+- R172T8 changes maintenance evidence only and does not modify runtime/test behavior after the clean user run.
+
+Run 172 local failure repair R172T7 (canonical logger test isolation):
+
+- user local suite reached **1935 passed + 4 skipped** before first failure;
+- failing node: `test___init__.py::TestGenerateMarkdownFiles::test_disabled_by_config_no_md`;
+- classification: cross-test canonical-module logger leakage; production logging remains unchanged;
+- untouched Fix 6 ordered reproducer: **1 passed, 1 failed** with the same `_Log.info` error;
+- repaired ordered reproducer: **2/2 passed**;
+- hostile-parent integration owner: **11/11 passed**;
+- `TestGenerateMarkdownFiles`: **10/10 passed**;
+- hostile-parent owner + canonical `test___init__.py`: **633 passed, 3 skipped**;
+- complete `_integration/` plane: **182/182 passed**;
+- test-layout architecture: **9/9 passed**;
+- full collection: **2322 tests, zero collection errors**;
+- extracted Fix 7 candidate bytes: **ordered pair 2/2, retained Docker-context regression 1/1, layout 9/9, 2322/0 collection, maintenance GREEN, ZIP integrity GREEN**.
+
+Run 172 local failure repair R172T6 (Run 158 previous-dir fixture ownership):
+
+- user local suite reached **1291 passed + 4 skipped** before first failure;
+- failing node: `test_verify_attestation_lifecycle.py::test_run158_status_versions_cannot_skip`;
+- classification: canonical test fixture/path-ownership typo; production validation order remains unchanged;
+- exact reported node: **1/1 passed**;
+- Run 158 canonical owner: **32/32 passed** with `ResourceWarning` as error;
+- Run 157 predecessor: **22/22 passed** with `ResourceWarning` as error;
+- Run 159 successor: **33/33 passed** with `ResourceWarning` as error.
+- test-layout architecture: **9/9 passed**;
+- full collection: **2322 tests, zero collection errors**;
+- repository maintenance drift checker: **GREEN**.
+- extracted Fix 6 candidate bytes: **Run158 32/32, layout 9/9, 2322/0 collection, maintenance GREEN, ZIP integrity GREEN**.
+
+Parallel proxy Docker-context repair (R172P1):
+
+- observed BuildKit failure: `_providers` missing from build context while Dockerfile copies it;
+- root cause: deny-by-default `.dockerignore` re-included `_utils/**` but not `_providers/**`;
+- repaired context allowlist: `!_providers/` + `!_providers/**`, with provider cache/bytecode exclusions;
+- focused proxy deployment/supply-chain owners: **15/15 passed**;
+- adjacent chat-authority + logging-privacy integration owners: **51/51 passed** with `ResourceWarning` as error;
+- independent ignore-pattern simulation: Fix 5 `_providers/*.py` **ignored**, repaired tree **included**;
+- production Python implementation changes: **none**;
+- combined repaired/neighbor surface: **66/66 passed** with `ResourceWarning` as error;
+- test-layout architecture: **9/9 passed**;
+- full collection after adding the context regression: **2322 tests, zero collection errors**;
+- repository maintenance drift checker: **GREEN**;
+- real container-engine replay here: **ENVIRONMENT_BLOCKED** (no Docker/Podman/Buildah binary).
+- extracted candidate packaged bytes: **15/15 focused, 9/9 layout, 2322/0 collection, maintenance GREEN, `_providers` visible and cache files ignored**.
+- final packaged-byte replay before ledger freeze: **15/15 focused, 9/9 layout, 2322/0 collection, maintenance GREEN, context simulation GREEN, archive contamination 0**.
+
+
+Canonical test-ownership restructure on the latest user workspace:
+
+- exact Python owner naming: **GREEN** (`foo.py -> test_foo.py`, `__init__.py -> test___init__.py`);
+- hidden large-contract case fragments: **GREEN**, non-collected via `_case_loader.py`;
+- pytest collection after Fix 3: **2321 tests, zero collection errors**;
+- layout architecture after Fix 3: **9/9 passed**;
+- canonicalized owner slice: **361 passed, 2 skipped**;
+- broad non-security mirrored suite: **1166 passed, 4 skipped**;
+- release/attestation path-sensitive slice: **34/34 passed**;
+- browser wrapper: **140/140 passed**;
+- mutation + logging/privacy mutation: **224/224 passed**;
+- user-reported missing config defaults: **all six present in `tests/conftest.py`**;
+- exact Sphinx fixture rerun here: **ENVIRONMENT_BLOCKED (`ModuleNotFoundError: sphinx`)**;
+- user's first local full-suite stop: **CLOSED** at Run 170 command-adapter hermeticity;
+- Run 170 process-hermeticity owner after Fix 1: **10/10 passed**;
+- canonical `publish_release.py` owner after Fix 1: **17/17 passed**;
+- combined focused adapter gate with `ResourceWarning` as error: **27/27 passed**;
+- user's second local full-suite stop: **CLOSED** at Run 163 witness fixture namespace drift;
+- exact Run 163 failure after Fix 2: **1/1 passed**;
+- Run 162 witness owner: **32/32 passed**;
+- Run 163 anchor owner: **22/22 passed**;
+- Run 164 archive-Merkle transparency owner: **21/21 passed**;
+- Run 166 continuation-authority owner: **16/16 passed**;
+- Run 167 rebridge owner: **20/20 passed**, executed as four 5-node fresh-process batches;
+- user's third local full-suite stop: **CLOSED** at Run 163 command-adapter pipe ownership;
+- bounded-output adapter family after Fix 3 with `ResourceWarning` as error: **7/7 passed**;
+- Run 151 `finalize_publication.py` owner after Fix 3: **14/14 passed**;
+- Run 159 native-status owner after Fix 3: **33/33 passed**;
+- Run 160 native-archive owner after Fix 3: **34/34 passed**;
+- Run 162 witness owner after Fix 3: **32/32 passed** in exact-node batches;
+- Run 163 anchor owner after Fix 3: **22/22 passed** in exact-node batches;
+- Run 164 archive-Merkle owner after Fix 3: **21/21 passed** in exact-node batches;
+- Run 166 continuation owner after Fix 3: **16/16 passed**;
+- pytest collection after Fix 3: **2321 tests, zero collection errors**;
+- layout architecture after Fix 3: **9/9 passed**;
+- maintenance drift checker after Fix 3: **GREEN (repository)**;
+- user's fourth local full-suite stop: **CLOSED** at Run 160 hermetic Python fixture interpreter lookup;
+- exact reported Run 160 node after Fix 4: **1/1 passed**;
+- empty-child-PATH hermetic Python fixture probes after Fix 4: **3/3 passed** with `ResourceWarning` as error;
+- Run 151 `finalize_publication.py` owner after Fix 4: **14/14 passed**;
+- Run 159 native-status owner after Fix 4: **33/33 passed**;
+- Run 160 native-archive owner after Fix 4: **34/34 passed**;
+- pytest collection after Fix 4: **2321 tests, zero collection errors**;
+- layout architecture after Fix 4: **9/9 passed**;
+- maintenance drift checker after Fix 4: **GREEN (repository)**;
+- independently extracted Fix 4 candidate: **4/4 focused portability, 9/9 layout, 2321/0 collection, maintenance GREEN**;
+- user's local Sphinx-enabled rerun from the Fix 4 workspace: **NEXT AUTHORITY**.
+
+Do not infer full-suite green from these partial gates. The user should run the
+whole submodule locally, then re-upload the first failure.
+
+---
+
 # `_sphinx_ai_assistant` verification contract
 
 ## Status vocabulary
@@ -43,7 +157,7 @@ clean tree has not proved it can detect maintenance leakage.
 From repository root:
 
 ```console
-python maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/check_trackers.py
+python maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/tools/check_trackers.py
 node --check scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_static/ai-assistant.js
 node --check scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_cf_worker/index.js
 python -m py_compile \
@@ -1229,3 +1343,216 @@ Source freeze before packaging: **308 files**, exact `scikitplot/` + `maintenanc
 - proxy public API remains **7.4.0** (no new endpoint or consent-version ratchet in Run 46).
 - release subjects after Run 46 freeze: proxy **7.4.0**, runtime-source SHA-256 `50835b65e8013c52023da2c055add024dd0a8a3aeab751c82cf9fd451a3f8fbd`;
 - supply-chain verifier: GREEN.
+## R172T5 — Run 161 retention fixture path ownership local repair
+
+- exact reported `test_run161_rejects_archive_auditor_operator_overlap`: **1/1**;
+- canonical `test_audit_archive_retention.py`: **40/40** with `ResourceWarning` promoted to error;
+- neighboring Run 160 native-archive owner: **34/34** warning-strict;
+- neighboring Run 162 witness owner: **32/32** warning-strict;
+- repair is test-only: `_setup()` membership `Path` is bound to `mp`; `targets` remains the adapter tuple list;
+- production retention/auditor/archive-health implementation: **unchanged**.
+- test-layout architecture: **9/9**; full collection: **2321 / 0 errors**; maintenance drift: **GREEN**.
+- Fix 5 deterministic candidate packaged-byte replay: Run161 **40/40** warning-strict; layout **9/9**; collection **2321 / 0 errors**; maintenance **GREEN**; packaged cache/bytecode **0**.
+
+
+## Run 173 / T1 — local Save + Global Share schema parity
+
+- canonical current conversation schema: **2.1**;
+- accepted migration input: **2.0 + 2.1**; canonical output: **2.1**;
+- five-format Global round trip: **JSON / HTML / TXT / YAML / TOML GREEN**;
+- canonical Python Share owner: **34/34**, `ResourceWarning` promoted to error;
+- registered Node architecture plane: **140/140**;
+- proxy Share/CORS/protocol neighbors: **16/16**, warning-strict;
+- Global HTML viewer remains DOM/`textContent` based with no `innerHTML` trust path;
+- test-layout architecture: **9/9**;
+- full collection: **2330 / 0 errors**;
+- maintenance drift: **GREEN** before package freeze.
+## Run 173 / T2A — feedback artifact identity + privacy boundary
+
+- JSON request filename: `ai-feedback-review-request-json-<timestamp>.json`;
+- JSONL pre-save cloud projection filename: `ai-feedback-review-cloud-projection-jsonl-<timestamp>.jsonl`;
+- feedback request model attribution minimized to `id` / `provider` / `model`;
+- model endpoint/info/description/label transport metadata excluded client-side and stripped server-side;
+- page evidence canonicalized to HTTP(S) origin + path on browser and server boundaries;
+- proxy app owner: **46/46**; feedback/privacy docs: **17/17**; dataset schema: **26/26**;
+- Node architecture: **140/140**; layout: **9/9**; collection: **2332 / 0 errors**; maintenance: **GREEN**.
+
+
+## Run 173 / T2A1 — conversation artifact provenance naming
+
+- local Save filename matrix: `local-save` + format + timestamp for JSON/HTML/TXT/YAML/TOML;
+- Global Share filename matrix: `global-share` + format, with no Share UUID/capability;
+- fixed `POST /v1/share/download` provides server-canonical downloads for all five formats;
+- fixed read response exposes server-owned filename/MIME for viewer/source-reference parity;
+- HTML downloads retain sandbox CSP; all downloads are `no-store` + `nosniff`;
+- optional opaque-origin read compatibility includes download but does not widen write authority;
+- Python Share owner: **34/34**; proxy app: **46/46**; Node architecture: **140/140**;
+- layout: **9/9**; collection: **2332 / 0 errors**.
+
+## R173T2B — Cloud merged feedback view
+
+- derived cloud feedback JSONL filter/order/manifest tests: **GREEN**;
+- feedback/dataset/lifecycle warning-strict slice: **106/106**;
+- Node architecture: **140/140**;
+- test-layout architecture: **9/9**;
+- full collection: **2340 / 0 errors**;
+- merged export self-ingestion guard: **GREEN**;
+- merged artifact authority: **derived/non-authoritative; individual canonical provider feedback records remain authoritative**;
+- maintenance drift checker: **GREEN** after metadata freeze.
+
+
+## R173T3 — Contribution provenance, privacy, and cloud-merged hardening
+
+- contribution scopes: single pair / rated answers / whole conversation all use scope-aware request/projection filenames;
+- local JSONL projection is explicitly pre-save and non-authoritative; provider `ct_<opaque>.jsonl` records remain authority;
+- contribution model transport metadata is removed client-side and independently server-side; canonical contribution model shape keeps only attribution and nulls transport/UI fields;
+- page evidence is canonicalized to portable HTTP(S) origin + path before digest/idempotency/normalization;
+- historical contribution rows are re-minimized before derived cloud merge;
+- deterministic `ai-contribution-cloud-merged-jsonl-<timestamp>.jsonl` + integrity/authority manifest: GREEN;
+- default and manifest-bound custom merged artifacts cannot re-enter local input authority; stale/tampered sidecars cannot suppress unrelated JSONL;
+- merged JSONL/manifest atomic-write failure preservation: GREEN;
+- SQLite ResourceWarning classification: CLOSED test fixture connection ownership; production ledger not implicated;
+- warning-strict dataset/dedup/privacy/docs: **77/77**;
+- contribution ledger warning-strict fresh process: **45/45**;
+- proxy app warning-strict fresh process: **46/46**;
+- Node architecture: **140/140**; layout: **9/9**; collection: **2359 / 0 errors**;
+- Python syntax: **7/7**; JavaScript/MJS syntax: **4/4**; maintenance drift before metadata freeze: **GREEN**;
+- exact candidate packaged-byte replay: **GREEN** — 77/77 focused warning-strict, 45/45 ledger warning-strict, 46/46 proxy app warning-strict, 140/140 Node, 9/9 layout, 2359 collection, maintenance GREEN;
+- immutable final delivery is rebuilt after this evidence freeze; final archive SHA-256 remains external to avoid self-reference.
+
+
+## R173T3A — Post-T3 maintenance consistency closure
+
+- immutable R173T3 SHA-256: `7f1998bb6d81476f5a08bdf3905cedfab70e42c063a3641e891c7a2807b4e942`;
+- final immutable R173T3 replay: **77/77** focused warning-strict, **45/45** contribution ledger warning-strict, **46/46** proxy app warning-strict, **140/140** Node architecture, **9/9** layout, **2359 / 0 errors** collection, maintenance **GREEN**;
+- R173T3A changes maintenance metadata/checkpoint only; `scikitplot/` and `skills/` remain byte-identical to R173T3;
+- stale R173T2/T3 next-action references closed; unrelated CSS dark-mode TODO remains optional.
+
+
+## R173T88 — mobile model action menu placement
+
+- `test_ai_assistant__model_responsive_actions.mjs`: **38/38**
+- model override/edit neighbor: **125/125**
+- model remove/revert neighbor: **23/23**
+- quick-model neighbor: **91/91**
+- registered Node/UI harness plane: **161/161**
+- mutation catalogue: **473/473**
+- `_maintenance_core`: **35/35**
+- family maintenance: **2/2 GREEN**
+- AI maintenance: **GREEN (repository)**
+- AI review: **PR_READY / release ELIGIBLE**
+
+The popup is now anchored to `.ai-assistant-panel-model-action-host`, not the
+variable-height model row, and flips above when the visible scroll boundary
+cannot fit it below.
+
+## R173T89 — mobile speak-toggle resting visibility
+
+- `test_ai_assistant__speak_toggle_mobile_visibility.mjs`: **14/14**
+- speak-hint collapse/expand neighbor: **37/37**
+- registered Node/UI harness plane: **162/162**
+- mutation catalogue: **479/479**
+- JavaScript syntax: **GREEN**
+
+The toggle no longer erases its own resting background with a shorthand reset.
+Hoverless/coarse-pointer devices receive an explicit base-text contrast color,
+and the SVG stroke is explicitly tied to `currentColor`.
+
+
+## R173T90 — artifact Download mobile compaction threshold
+
+- per-file Download compact threshold: **26rem artifact-surface width**;
+- bulk Download-all / patch-series compact threshold: **22rem artifact-surface width**;
+- activity/latest-file artifact contract: **198/198 GREEN**;
+- Node/UI harness plane: **160/160 GREEN**;
+- mutation catalogue structure/anchors: **243/243 GREEN**;
+- mutation execution: **240/240 mutants caught**;
+- targeted threshold/clipping mutation slice: **8/8 GREEN**;
+- runtime behavior change: CSS only; no download JavaScript changed;
+- JavaScript syntax: **GREEN**;
+- maintenance core: **35/35**;
+- family maintenance: **2/2 GREEN**;
+- AI maintenance drift: **GREEN (repository)**;
+- AI independent review: **PR_READY / release ELIGIBLE**.
+
+## R173T91 — speak-toggle sticky-hover contrast
+
+- `test_ai_assistant__speak_toggle_sticky_hover_visibility.mjs`: **19/19**;
+- T89 mobile-resting visibility neighbor: **14/14**;
+- speak collapse/expand neighbor: **37/37**;
+- registered Node/UI harness plane: **161/161 GREEN**;
+- mutation catalogue structure/anchors: **246/246 GREEN**;
+- mutation execution: **243/243 mutants caught**;
+- combined mutation plane: **489/489 GREEN**;
+- JavaScript syntax: **GREEN**;
+- production behavior change: CSS only; no speak JavaScript state logic changed.
+- maintenance core: **35/35**;
+- family maintenance: **2/2 GREEN**;
+- AI maintenance drift: **GREEN (repository)**;
+- AI independent review: **PR_READY / release ELIGIBLE**.
+
+## R173T94 — Presented-file segmented-control parity
+
+Observed in the wide repository on 2026-09-11:
+
+- focused Presented-file parity harness: `18/18` GREEN;
+- activity/latest-file preview neighbor: `202/202` GREEN;
+- artifact diff-stat neighbor: `35/35` GREEN;
+- working-file binding neighbor: `143/143` GREEN;
+- raw-body dedup neighbor: `21/21` GREEN;
+- registered Node/UI harness plane: `164/164` GREEN;
+- mutation catalogue metadata + unique anchors: `259/259` GREEN;
+- mutation execution: `256/256` mutants caught;
+- new T94 mutation slice: `10/10` GREEN;
+- `node --check ai-assistant.js`: GREEN.
+
+The key architecture assertion is negative as well as positive: exactly one
+`.ai-assistant-panel-changed-file-primary` CSS rule exists, and no obsolete
+three-column Presented-file primary grid or Presented-only segment geometry is
+allowed to coexist with the shared artifact-group contract.
+
+## R173T96 — speak-toggle real-device paint stability
+
+Observed in the wide repository on 2026-09-11:
+
+- focused hardware-paint contract: **21/21 GREEN**;
+- T89 mobile visibility neighbor: **16/16 GREEN**;
+- T91 sticky-hover/state neighbor: **20/20 GREEN**;
+- speak collapse/expand neighbor: **41/41 GREEN**;
+- registered Node/UI harness plane: **166/166 GREEN**;
+- mutation catalogue metadata + unique anchors: **267/267 GREEN**;
+- mutation execution: **264/264 mutants caught**;
+- targeted T96 hardware/mobile mutants: **4/4 caught**;
+- `node --check ai-assistant.js`: **GREEN**.
+
+The production captures use `data-theme="dark"` / `data-mode="dark"` and show
+the collapsed `aria-expanded="false"` speak control. T96 no longer relies on a
+zero-height transformed row for that floating control and pairs
+`--pst-color-surface` directly with `--pst-color-on-surface`.
+- maintenance core: **35/35**;
+- family maintenance: **2/2 GREEN**;
+- AI maintenance drift: **GREEN (repository)**;
+- independent AI review: **PR_READY / release ELIGIBLE**.
+
+## R173T97 — snippet / Presented-file menu workflow parity
+
+Observed in the wide repository on 2026-09-11:
+
+- focused snippet/tracked-file menu parity: **16/16 GREEN**;
+- activity/latest-file preview neighbor: **203/203 GREEN**;
+- working-file binding neighbor: **144/144 GREEN**;
+- registered Node/UI harness plane: **169/169 GREEN**;
+- mutation catalogue metadata + unique anchors: **272/272 GREEN**;
+- bounded parallel mutation execution: **269/269 mutants caught**;
+- targeted T97 mutation slice: **12/12 GREEN**;
+- `node --check ai-assistant.js`: **GREEN**;
+- maintenance core: **35/35**;
+- family maintenance: **2/2 GREEN**;
+- AI maintenance drift: **GREEN (repository)**;
+- independent AI review: **PR_READY / release ELIGIBLE**.
+
+The snippet and Presented-file menus now share one workflow grammar as well as
+one popup shell. Anonymous snippets expose inspect/save/track/continue; after
+tracking, the same trigger resolves the canonical tracked-file action list and
+gains patch export plus live Continue/Stop state. Patch export remains hidden
+until stable path/revision identity exists.

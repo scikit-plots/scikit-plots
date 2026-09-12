@@ -1,0 +1,12 @@
+=== scikitplot/cython/tests/test__cache_schema.py::TestReuseGating::test_incompatible_entry_is_rebuilt ===
+.                                                                        [100%]
+1 passed in 1.68s
+exit=0
+=== scikitplot/cython/tests/test__cache_schema.py::TestReuseGating::test_compatible_entry_is_reused ===
+.                                                                        [100%]
+1 passed in 1.06s
+exit=0
+=== scikitplot/cython/tests/test__public_import_pyx.py::TestDefaultPolicyAcceptsNormalPyx::test_absolute_pyx_path_real_compile ===
+.                                                                        [100%]
+1 passed in 1.07s
+exit=0

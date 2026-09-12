@@ -1,0 +1,72 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.visualkeras",
+  "updated_at": "2026-09-12",
+  "runtime_fingerprint": "43f03fcdb6c34ac276464b83630245bd00a5cdd28d625194c1158b43c9cb980b",
+  "gates": {
+    "snapshot": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/direct-snapshot.log",
+      "sha256": "9a67828aed3bdc443f40b8c5617f575d66eaaf29394e5eebd1a4d2cb09785704",
+      "note": "Runtime inventory and partial-snapshot dependency availability recorded."
+    },
+    "keras_native_matrix": {
+      "status": "RED",
+      "log": "maintenances/visualkeras/_maintenance/evidence/native-kernel-matrix.log",
+      "sha256": "9aae0ca960dabf024f1c6e36af347f134339677b7790474d15a2ab579cb2b4bc",
+      "note": "Original tests in a Keras-only environment schedule unavailable TensorFlow variants: 27 passed, 20 errors."
+    },
+    "keras_isolation_harness": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/keras-isolation-harness.log",
+      "sha256": "0385471001056ba591c9f9443f3a273b9a87d4fdc6a909fbafe6e44c748cb6ae",
+      "note": "Availability-corrected diagnostic harness with fake aggdraw: 27 passed, 1 skipped."
+    },
+    "negative_probes": {
+      "status": "RED",
+      "log": "maintenances/visualkeras/_maintenance/evidence/negative-probes.log",
+      "sha256": "e37f31d8f0c3b487f7cce07ff69c0a68ad76436d5738c4abe4cbbbc43a7c8453",
+      "note": "Reproduces graph output-shape, false ellipsis, missing-backend TypeError, and default deprecation-warning defects."
+    },
+    "runtime_integrity": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/runtime-integrity.log",
+      "sha256": "9bfe3fe216b67fcece0c45f82f6d940662c90a91c1b4870793c4178b0ce2718a",
+      "note": "All 11 original runtime/test files remain byte-for-byte unchanged."
+    },
+    "real_aggdraw": {
+      "status": "UNAVAILABLE",
+      "note": "aggdraw is not installed in this environment; real rendering integration was not claimed."
+    },
+    "tensorflow": {
+      "status": "UNAVAILABLE",
+      "note": "TensorFlow is not installed; TensorFlow-specific traversal/internal-node lanes were not executed."
+    },
+    "complete_package": {
+      "status": "UNAVAILABLE",
+      "note": "Accumulated archive omits root scikitplot helpers required for native package import and root image-save/display integration."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Owned runtime/test findings remain open and complete TensorFlow/real-aggdraw/platform evidence is unavailable."
+    },
+    "contract_review": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/contract-review.json",
+      "sha256": "be11d857c0e77eeef6c0f1d0764305b89b3507d6e7fe2a5bccff9bc04f3ace48",
+      "note": "Static maintenance contract passes; runtime findings remain explicit."
+    },
+    "subsystem_review": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/review-subsystem.json",
+      "sha256": "e315d8c6b7bc8d7480acd7a56108be8935bf7d48cafbd1144c449a274ff24e5e",
+      "note": "Reviewer reports maintenance PASS, runtime FAIL, integration UNAVAILABLE, release BLOCKED."
+    },
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/visualkeras/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "a9f1f4c1373cd6247356a881e860ad1b02eb51e37d21e5756d084a9f3a462003",
+      "note": "24/24 mutation/regression tests pass, including a synthetically repaired runtime shape."
+    }
+  }
+}

@@ -7,7 +7,13 @@
 !deduplicate_dataset.py
 !_utils/
 !_utils/**
+!_providers/
+!_providers/**
 _utils/__pycache__/
 _utils/**/__pycache__/
 _utils/**/*.pyc
 _utils/**/*.pyo
+_providers/__pycache__/
+_providers/**/__pycache__/
+_providers/**/*.pyc
+_providers/**/*.pyo

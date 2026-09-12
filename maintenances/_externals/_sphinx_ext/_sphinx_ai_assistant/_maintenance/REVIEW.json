@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+  "mode": "independent_then_reconcile",
+  "package_targets": [
+    "_sphinx_ai_assistant"
+  ],
+  "lenses": [
+    {
+      "id": "security-architecture",
+      "title": "Security architecture and authority",
+      "required": true,
+      "focus": "Preserve browser/server authority, secret boundaries, turn ownership, capability routing, runtime isolation, and the local AI-specific maintenance gate.",
+      "checks": [
+        "common-maintenance",
+        "architecture-consistency",
+        "runtime-syntax"
+      ]
+    },
+    {
+      "id": "fresh-chat-skill",
+      "title": "Fresh-chat skill and authority",
+      "required": true,
+      "focus": "Ensure independent reviewers start from current repository state rather than inherited chat history or an obsolete release checkpoint.",
+      "checks": [
+        "fresh-chat-parity",
+        "skill-capability-coverage",
+        "profile-safety"
+      ]
+    },
+    {
+      "id": "state-evidence",
+      "title": "State and evidence consistency",
+      "required": true,
+      "focus": "Cross-check active checkpoint, logical contracts, verification state, and unavailable evidence without converting environmental gaps into false GREEN claims.",
+      "checks": [
+        "state-tracker-consistency",
+        "verification-state"
+      ]
+    }
+  ],
+  "pr_policy": {
+    "blocking_severities": [
+      "ERROR"
+    ],
+    "require_required_lenses": true,
+    "unavailable_release_gate_blocks_promotion": true
+  }
+}

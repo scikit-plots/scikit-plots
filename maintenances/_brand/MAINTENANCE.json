@@ -1,0 +1,66 @@
+{
+  "maintenance_root": "maintenances/_brand/_maintenance",
+  "owned_findings": [
+    "BRD-EXP-001",
+    "BRD-CLI-001",
+    "BRD-RUN-001",
+    "BRD-BAN-001"
+  ],
+  "read_order": [
+    "maintenances/_brand/MAINTAINING.md",
+    "maintenances/_brand/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/_brand/_maintenance/STATE.json",
+    "maintenances/_brand/_maintenance/FAMILY.md",
+    "maintenances/_brand/_maintenance/VERIFICATION.md",
+    "skills/_brand/SKILL.md"
+  ],
+  "runtime_contract": {
+    "inventory": {
+      "baseline_sha256": "691761c9d290cc20d8c1701554db00d9443e83091a1be892d18e907577ddc598",
+      "paths": [
+        "__init__.py",
+        "_banner.py",
+        "_logo.py",
+        "tests/__init__.py",
+        "tests/test__logo.py"
+      ],
+      "production_python_files": 3,
+      "test_python_files": 1,
+      "test_support_python_files": 1,
+      "tracked_files": 5
+    },
+    "required_files": [
+      "scikitplot/_brand/__init__.py",
+      "scikitplot/_brand/_logo.py",
+      "scikitplot/_brand/_banner.py",
+      "scikitplot/_brand/tests/__init__.py",
+      "scikitplot/_brand/tests/test__logo.py"
+    ],
+    "required_symbols": {
+      "scikitplot/_brand/_banner.py": [
+        "BannerSpec",
+        "figlet",
+        "generate_banner",
+        "generate_all",
+        "parse_args",
+        "main",
+        "CASE_TRANSFORMS",
+        "BANNER_SPECS"
+      ],
+      "scikitplot/_brand/_logo.py": [
+        "draw",
+        "create",
+        "show",
+        "save",
+        "wordmark",
+        "list_variants",
+        "list_size_presets",
+        "main"
+      ]
+    }
+  },
+  "runtime_root": "scikitplot/_brand",
+  "schema_version": 4,
+  "skill": "skills/_brand/SKILL.md",
+  "subsystem": "scikitplot._brand"
+}

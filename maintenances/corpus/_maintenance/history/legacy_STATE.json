@@ -1,0 +1,207 @@
+{
+  "schema_version": 2,
+  "module": "scikitplot.corpus",
+  "source": {
+    "archive": "scikit-plots.zip",
+    "sha256": "c8c0a17538a4d3f90d75ef7182b79b7755f12b50bdbf4ecf338f922256ef921f"
+  },
+  "campaigns": {
+    "review": {
+      "runs": "R00-R16",
+      "status": "COMPLETE",
+      "confirmed_findings": 55,
+      "severity": {
+        "P1": 4,
+        "P2": 39,
+        "P3": 12
+      },
+      "disproofs": 23,
+      "proposals": 56,
+      "decisions": 159
+    },
+    "implementation": {
+      "increments": "IMPL-01-IMPL-18",
+      "waves": "I0-I6",
+      "status": "COMPLETE",
+      "historical_final_suite": {
+        "passed": 3206,
+        "skipped": 27,
+        "xfailed": 4
+      }
+    }
+  },
+  "current_contracts": [
+    "ErrorRecord",
+    "RetrievalResponse",
+    "RetrievalStatus",
+    "EmbeddingManifest",
+    "ANNIndexArtifact",
+    "VectorIndexBackend",
+    "ComponentCatalog",
+    "CorpusPlan",
+    "FluentCorpus",
+    "GraphNode/GraphEdge/GraphQuery/GraphResponse",
+    "LexicalRetriever/DenseRetriever/GraphRetriever",
+    "BudgetPolicy",
+    "AgenticRetrievalSession"
+  ],
+  "tracked_defects": [
+    {
+      "id": "HIGH-04",
+      "status": "XFAIL_TRACKED",
+      "count": 4,
+      "scope": "chunking/script/language contracts"
+    }
+  ],
+  "deferred": [
+    {
+      "id": "O-31",
+      "status": "DEFERRED",
+      "item": "producer-side parent_doc_id population"
+    },
+    {
+      "id": "U-5",
+      "status": "ENVIRONMENT_BLOCKED",
+      "item": "HTTP adversarial cases"
+    },
+    {
+      "id": "U-6",
+      "status": "ENVIRONMENT_BLOCKED",
+      "item": "media parser adversarial cases"
+    },
+    {
+      "id": "U-7",
+      "status": "ENVIRONMENT_BLOCKED",
+      "item": "real I/O fault injection"
+    },
+    {
+      "id": "U-8",
+      "status": "ENVIRONMENT_BLOCKED",
+      "item": "multimodal cache-key verification"
+    },
+    {
+      "id": "U-9",
+      "status": "ENVIRONMENT_BLOCKED",
+      "item": "native ANN recall/performance"
+    }
+  ],
+  "historical_artifacts": {
+    "review_bundle": {
+      "archive": "CORPUS_R.zip",
+      "sha256": "6177c7d69b5eccf5089f2b00b87af731fa9599dc08f3585c34e702d7de9483bf"
+    },
+    "implementation_log_bundle": {
+      "archive": "CORPUS_IMPL.zip",
+      "sha256": "42c0e721e8e1a6cfdd6678bb486857ffc8ea64ec34cc2a9c19a1e4ed74d75027"
+    }
+  },
+  "next_project_sequence": [
+    "scikitplot.mcp",
+    "scikitplot.annoy",
+    "scikitplot._cli"
+  ],
+  "corpus_mode": "NORMAL_MAINTENANCE",
+  "next_exact_action": "Corpus review and implementation are COMPLETE and this maintenance set is self-contained: a fresh session needs no chat history. Next project step is the MCP review campaign (run M00) in a NEW chat, using the MCP unified guide. Before starting it, read _maintenance/REGISTRY.md cross-module boundaries: the contracts MCP must map against (RetrievalResponse with per-leg status, ToolCallInput/ToolCallResult as protocol-NEUTRAL payload shapes, the CapabilityStatus model) are built and tested, not merely designed. Do NOT move wire concerns into Corpus.",
+  "cross_module_boundaries": [
+    {
+      "producer": "scikitplot.corpus",
+      "contract": "RetrievalResponse/RetrievalStatus",
+      "consumer": "scikitplot.mcp",
+      "relationship": "consumed_and_adapted",
+      "rule": "MCP maps neutral retrieval outcomes; it does not redefine retrieval truth"
+    },
+    {
+      "producer": "scikitplot.corpus",
+      "contract": "VectorIndexBackend",
+      "consumer": "scikitplot.annoy",
+      "relationship": "implemented_by_backend_adapter",
+      "rule": "Corpus owns stable IDs/generation; Annoy owns native index mechanics"
+    },
+    {
+      "producer": "scikitplot.corpus",
+      "contract": "CapabilityReport",
+      "consumer": "scikitplot._cli",
+      "relationship": "consumed_for_presentation",
+      "rule": "CLI renders capability truth; it does not re-probe/redefine it"
+    }
+  ],
+  "project_sequence": [
+    {
+      "module": "scikitplot.corpus",
+      "status": "COMPLETE_MAINTENANCE"
+    },
+    {
+      "module": "scikitplot.mcp",
+      "start_run": "M00",
+      "goal": "deferred issue revalidation and closure"
+    },
+    {
+      "module": "scikitplot.annoy",
+      "start_run": "A00",
+      "goal": "clean native/type/lifecycle/mmap review"
+    },
+    {
+      "module": "scikitplot._cli",
+      "start_run": "C00",
+      "goal": "bootstrap baseline and final UX/integration review"
+    },
+    {
+      "module": "cross-module",
+      "goal": "contract compatibility verification"
+    }
+  ],
+  "fresh_chat_read_order": [
+    "_maintenance/MAINTENANCE_MODEL.md",
+    "_maintenance/RULESET.md",
+    "_maintenance/TRACKER_LOGICAL.md",
+    "_maintenance/TRACKER_PHYSICAL.md",
+    "_maintenance/SUBMODULE_STRUCTURE.md",
+    "_maintenance/REGISTRY.md",
+    "_maintenance/VERIFICATION.md"
+  ],
+  "historical_read_only_if_needed": [
+    "scikitplot/corpus/_maintenance/HISTORY.md",
+    "CORPUS_R.zip",
+    "CORPUS_IMPL.zip"
+  ],
+  "maintenance_set": {
+    "version": "LIVE_V2",
+    "adds": [
+      "MAINTENANCE_MODEL.md",
+      "TRACKER_LOGICAL.md",
+      "TRACKER_PHYSICAL.md",
+      "SUBMODULE_STRUCTURE.md",
+      "TRACKER.json",
+      "check_trackers.py"
+    ],
+    "gate": "python scikitplot/corpus/_maintenance/check_trackers.py",
+    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
+  },
+  "governing_rule": "Never let an operation succeed on partial evidence. If it can partially fail it returns a status and an ErrorRecord; if it cannot express that, it raises. An unverified claim is worse than a narrow one.",
+  "tripwires": {
+    "max_module_loc": 3500,
+    "max_root_loc_share": 0.45,
+    "min_test_source_ratio": 0.4,
+    "max_registries": 4,
+    "code_subpackages_without_tests": 0
+  },
+  "structural_debt": [
+    {
+      "item": "_base.py holds four component categories",
+      "loc": 3167,
+      "fix_when": "a fifth category, or >3500 lines"
+    },
+    {
+      "item": "_writing_system.py reaches into _custom_tokenizer's private registry",
+      "fix_when": "a third module needs it"
+    },
+    {
+      "item": "root level is 39% of source LOC",
+      "fix_when": "the 45% tripwire fires"
+    },
+    {
+      "item": "four registries in three shapes",
+      "fix_when": "a fifth shape is proposed"
+    }
+  ]
+}

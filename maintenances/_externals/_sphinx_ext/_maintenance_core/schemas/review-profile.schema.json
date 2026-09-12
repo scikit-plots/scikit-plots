@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sphinx extension deterministic review profile",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "subsystem",
+    "mode",
+    "package_targets",
+    "lenses",
+    "pr_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "subsystem": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "const": "independent_then_reconcile"
+    },
+    "lenses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/lens"
+      }
+    },
+    "pr_policy": {
+      "type": "object",
+      "required": [
+        "blocking_severities",
+        "require_required_lenses",
+        "unavailable_release_gate_blocks_promotion"
+      ],
+      "properties": {
+        "blocking_severities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "ERROR",
+              "WARNING"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "require_required_lenses": {
+          "type": "boolean"
+        },
+        "unavailable_release_gate_blocks_promotion": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "package_targets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^_[A-Za-z0-9_]+$"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "lens": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "required",
+        "focus",
+        "checks"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{2,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "focus": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

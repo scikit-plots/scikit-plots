@@ -1,0 +1,6 @@
+scikitplot module: scikitplot.cython
+external lowercase cython: /opt/pyvenv/lib/python3.13/site-packages/cython.py
+add(4,9)= 13
+artifact suffix: .so
+VERDICT: OK
+exit=0

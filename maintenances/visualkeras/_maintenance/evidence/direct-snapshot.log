@@ -1,0 +1,8 @@
+VisualKeras snapshot review 2026-09-12
+Runtime root: scikitplot/visualkeras
+Tracked runtime/test files: 11
+Production Python: 5
+Focused tests: 4
+Test support: 2
+Missing from accumulated archive: scikitplot/__init__.py, scikitplot/_testing, scikitplot/_compat, scikitplot/_docstrings, scikitplot/utils/_pil.py.
+Environment: Pillow available; matplotlib available; Keras 3.13.2 available with KERAS_BACKEND=torch; TensorFlow unavailable; aggdraw unavailable.

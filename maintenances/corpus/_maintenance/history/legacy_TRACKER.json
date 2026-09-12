@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "module": "scikitplot.corpus",
+  "generated_from": "live source tree",
+  "physical": {
+    "totals": {
+      "source_files": 78,
+      "source_loc": 55787,
+      "test_files": 78,
+      "test_loc": 30809
+    },
+    "subpackages": {
+      "(root)": {
+        "src": 26,
+        "src_loc": 21650,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_chunkers": {
+        "src": 11,
+        "src_loc": 10820,
+        "test": 11,
+        "test_loc": 5577
+      },
+      "_downloader": {
+        "src": 7,
+        "src_loc": 2384,
+        "test": 2,
+        "test_loc": 1358
+      },
+      "_embeddings": {
+        "src": 3,
+        "src_loc": 2954,
+        "test": 3,
+        "test_loc": 2546
+      },
+      "_enrichers": {
+        "src": 2,
+        "src_loc": 1444,
+        "test": 3,
+        "test_loc": 2043
+      },
+      "_export": {
+        "src": 2,
+        "src_loc": 1120,
+        "test": 3,
+        "test_loc": 749
+      },
+      "_maintenance": {
+        "src": 1,
+        "src_loc": 0,
+        "test": 0,
+        "test_loc": 0
+      },
+      "_metadata": {
+        "src": 2,
+        "src_loc": 611,
+        "test": 2,
+        "test_loc": 243
+      },
+      "_normalizers": {
+        "src": 3,
+        "src_loc": 1416,
+        "test": 3,
+        "test_loc": 999
+      },
+      "_readers": {
+        "src": 12,
+        "src_loc": 8914,
+        "test": 10,
+        "test_loc": 5027
+      },
+      "_registry": {
+        "src": 2,
+        "src_loc": 785,
+        "test": 2,
+        "test_loc": 341
+      },
+      "_similarity": {
+        "src": 3,
+        "src_loc": 1926,
+        "test": 6,
+        "test_loc": 1599
+      },
+      "_sources": {
+        "src": 2,
+        "src_loc": 636,
+        "test": 2,
+        "test_loc": 195
+      },
+      "_storage": {
+        "src": 2,
+        "src_loc": 1127,
+        "test": 2,
+        "test_loc": 466
+      },
+      "tests": {
+        "src": 0,
+        "src_loc": 0,
+        "test": 29,
+        "test_loc": 9666
+      }
+    },
+    "largest_source": [
+      {
+        "loc": 3167,
+        "path": "_base.py"
+      },
+      {
+        "loc": 2877,
+        "path": "_schema.py"
+      },
+      {
+        "loc": 2099,
+        "path": "_embeddings/_multimodal_embedding.py"
+      },
+      {
+        "loc": 1894,
+        "path": "_corpus_builder.py"
+      },
+      {
+        "loc": 1879,
+        "path": "_custom_hooks.py"
+      },
+      {
+        "loc": 1875,
+        "path": "_chunkers/_custom_tokenizer.py"
+      },
+      {
+        "loc": 1821,
+        "path": "_url_handler.py"
+      },
+      {
+        "loc": 1709,
+        "path": "_types.py"
+      },
+      {
+        "loc": 1637,
+        "path": "_chunkers/_writing_system.py"
+      },
+      {
+        "loc": 1620,
+        "path": "_chunkers/_word.py"
+      },
+      {
+        "loc": 1550,
+        "path": "_readers/_audio.py"
+      },
+      {
+        "loc": 1433,
+        "path": "_enrichers/_nlp_enricher.py"
+      }
+    ],
+    "drift_check": "python _maintenance/check_trackers.py"
+  },
+  "logical": {
+    "contracts": {
+      "ErrorRecord": {
+        "module": "_diagnostics.py",
+        "closes": [
+          "F-R02-03",
+          "F-R11-02"
+        ],
+        "depends_on": [],
+        "invariant": "never retains a live exception object"
+      },
+      "ErrorPolicy": {
+        "module": "_schema.py",
+        "closes": [
+          "F-R02-01"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "behaviour only; logging is orthogonal; no LOG member"
+      },
+      "RetrievalResponse": {
+        "module": "_retrieval.py",
+        "closes": [
+          "F-R02-02",
+          "F-R09-01"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "status is DERIVED; EMPTY requires every requested leg ran"
+      },
+      "LegOutcome": {
+        "module": "_retrieval.py",
+        "closes": [
+          "F-R09-01"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "DEGRADED/FAILED without an ErrorRecord is unconstructible"
+      },
+      "EmbeddingManifest": {
+        "module": "_embedding_manifest.py",
+        "closes": [
+          "F-R05-01"
+        ],
+        "depends_on": [],
+        "invariant": "imports no embedding library; compatibility is fingerprint equality"
+      },
+      "IndexGeneration": {
+        "module": "_generation.py",
+        "closes": [
+          "F-R01-06",
+          "F-R04-01"
+        ],
+        "depends_on": [
+          "EmbeddingManifest"
+        ],
+        "invariant": "content-derived; fingerprint IS embedding_model_id"
+      },
+      "ANNIndexArtifact": {
+        "module": "_artifact.py",
+        "closes": [
+          "F-R01-07",
+          "F-R06-03",
+          "F-R06-04"
+        ],
+        "depends_on": [
+          "EmbeddingManifest",
+          "IndexGeneration"
+        ],
+        "invariant": "ordinal->doc_id sidecar is data, never positional coincidence"
+      },
+      "VectorIndexBackend": {
+        "module": "_similarity/_backends.py",
+        "closes": [
+          "F-R06-01",
+          "F-R06-02",
+          "F-R06-05"
+        ],
+        "depends_on": [],
+        "invariant": "declares metric and score_semantics; registry keyed by canonical identity"
+      },
+      "FilterSupport": {
+        "module": "_storage/_storage.py",
+        "closes": [
+          "F-R07-01"
+        ],
+        "depends_on": [],
+        "invariant": "SUPPORTED/EMULATED/REJECTED; silently ignoring is unreachable"
+      },
+      "Filter AST": {
+        "module": "_filters.py",
+        "closes": [
+          "F-R07-02"
+        ],
+        "depends_on": [
+          "FilterSupport"
+        ],
+        "invariant": "undeclared operators default to REJECTED"
+      },
+      "RetrievalHit": {
+        "module": "_similarity/_similarity.py",
+        "closes": [
+          "F-R07-03"
+        ],
+        "depends_on": [
+          "IndexGeneration"
+        ],
+        "invariant": "a fused hit has native_score=None; provenance excluded from equality"
+      },
+      "ComponentCatalog": {
+        "module": "_catalog.py",
+        "closes": [
+          "F-R13-01",
+          "F-R13-03",
+          "O-4"
+        ],
+        "depends_on": [
+          "CapabilityStatus"
+        ],
+        "invariant": "read-only view; unprobed is UNKNOWN, never AVAILABLE"
+      },
+      "CapabilityStatus": {
+        "module": "_capabilities.py",
+        "closes": [
+          "F-R02-05",
+          "F-R02-06"
+        ],
+        "depends_on": [],
+        "invariant": "BROKEN != ABSENT; available is derived from status"
+      },
+      "CorpusPlan/FluentCorpus": {
+        "module": "_plan.py",
+        "closes": [
+          "ADR-C21",
+          "ADR-C22"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "independent fragments commute; conflict is an error; call order != stage order"
+      },
+      "DerivedGraph": {
+        "module": "_graph.py",
+        "closes": [
+          "F-R08-01"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "derived never stored; every edge carries provenance; no generic relation"
+      },
+      "Hierarchy": {
+        "module": "_hierarchy.py",
+        "closes": [
+          "F-R08-02"
+        ],
+        "depends_on": [
+          "ErrorRecord"
+        ],
+        "invariant": "traversal terminates on cyclic data validation would reject"
+      },
+      "Retriever legs": {
+        "module": "_retrievers.py",
+        "closes": [
+          "F-R09-02",
+          "F-R09-03"
+        ],
+        "depends_on": [
+          "RetrievalResponse"
+        ],
+        "invariant": "fusion keys on doc_id; fused score recomputable from contributions"
+      },
+      "Agentic A1/A2": {
+        "module": "_agentic.py",
+        "closes": [
+          "F-R10-01",
+          "F-R10-02"
+        ],
+        "depends_on": [
+          "RetrievalResponse",
+          "Retriever legs"
+        ],
+        "invariant": "budget policy is sole authority; a StopReason is always present"
+      },
+      "schema_version": {
+        "module": "_schema.py",
+        "closes": [
+          "F-R01-04"
+        ],
+        "depends_on": [],
+        "invariant": "version-less payloads are refused, never assumed current"
+      }
+    }
+  },
+  "review_cadence": [
+    "scikitplot.mcp",
+    "scikitplot.annoy",
+    "scikitplot._cli"
+  ]
+}

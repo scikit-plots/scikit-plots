@@ -6,7 +6,7 @@
 > training input, cross-source feedback/contribution joins, unversioned consent,
 > immediate contribution persistence, or review-token-only promotion, this section
 > supersedes them. For the human workflow first read
-> [`../DATASET_CONTRIBUTION_GUIDE.md`](../DATASET_CONTRIBUTION_GUIDE.md).
+> [`./DATASET_CONTRIBUTION_GUIDE.md`](./DATASET_CONTRIBUTION_GUIDE.md).
 
 - Ordinary `/v1/feedback` is rating telemetry only. Query, answer, note, model,
   page and conversation identity are discarded server-side; durable feedback is
@@ -786,6 +786,22 @@ For a provider-native smoke test:
 
 If you close/decline instead, the contribution remains training-ineligible and the
 browser renders the provider review state as **NOT ACCEPTED**.
+
+### Generate a derived merged contribution view
+
+For analysis/export across canonical provider contribution rows, use:
+
+```bash
+python deduplicate_dataset.py \
+  --from-storage-config \
+  --contribution-cloud-merged
+```
+
+This emits `ai-contribution-cloud-merged-jsonl-<UTC timestamp>.jsonl` plus a manifest.
+It is a derived view only: individual `ct_<recordId>.jsonl` files retain lifecycle,
+withdrawal, deduplication, and concurrency authority. The merged command accepts only
+current eligible rows, rejects `--include-unreviewed`, suppresses withdrawn rows, and
+will not re-ingest an earlier merged artifact as source input.
 
 ### Mirror expectations
 

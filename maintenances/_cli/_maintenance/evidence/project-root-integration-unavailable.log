@@ -1,0 +1,17 @@
+Review date: 2026-09-12
+Snapshot update: scikitplot.config and scikitplot.utils are now present.
+
+The surrounding top-level package is still incomplete in this archive:
+- scikitplot/__init__.py is absent.
+- scikitplot/_testing is absent, while scikitplot.config imports .._testing._pytesttester.
+- root-level scikitplot.logger is absent, while scikitplot.utils imports it.
+- root-level scikitplot.show_config is absent, while CLI text-mode show-config expects the project API.
+- scikitplot.exceptions is absent, while scikitplot.utils._toml imports ScikitplotException.
+
+Optional writer environment:
+- click: available
+- yaml: available
+- toml: unavailable
+- tomli_w: unavailable
+
+Therefore config/utils presence is confirmed, but complete project-root integration and TOML write lanes remain unavailable in this supplied snapshot. These gaps are release-evidence limitations; they are not evidence that _cli should absorb config/utils/root-package ownership.

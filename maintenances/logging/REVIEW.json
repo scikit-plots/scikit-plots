@@ -1,0 +1,78 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.logging",
+  "updated_at": "2026-09-13",
+  "status": "OPEN",
+  "findings": [
+    {
+      "id": "LOG-PKG-001",
+      "severity": "high",
+      "status": "open",
+      "title": "package move dropped public stdlib compatibility forwarding",
+      "detail": "After moving logging.py to logging/_logging.py, the public scikitplot.logging package re-exports __all__ but not _logging.__getattr__ or __dir__. Former calls such as scikitplot.logging.getLevelName/getLogger and dir() compatibility no longer work, while tests/shell probes still expect them."
+    },
+    {
+      "id": "LOG-TEST-001",
+      "severity": "high",
+      "status": "open",
+      "title": "focused test module uses the pre-move import shape",
+      "detail": "logging/tests/test__logging.py uses 'from .. import logging as splog'; under scikitplot.logging.tests this asks for scikitplot.logging.logging and fails collection. A harness-only change to 'from .. import _logging as splog' yields 171/171 passing."
+    },
+    {
+      "id": "LOG-TEST-002",
+      "severity": "medium",
+      "status": "open",
+      "title": "focused tests preserve known defective behavior",
+      "detail": "The focused suite explicitly asserts that error_log is a no-op and that unknown formatter names return None, so 171/171 after import correction cannot be treated as semantic release evidence."
+    },
+    {
+      "id": "LOG-ERR-001",
+      "severity": "high",
+      "status": "open",
+      "title": "error_log is still a no-op",
+      "detail": "_logging.error_log deletes all arguments and emits nothing."
+    },
+    {
+      "id": "LOG-ENV-001",
+      "severity": "high",
+      "status": "open",
+      "title": "documented environment policy is still not applied",
+      "detail": "_logging.get_logger does not call _default_logging_level; SKPLT_LOGGING_LEVEL/SKPLT_VERBOSE do not configure the shared logger. SKPLT_LOGGING_AUTO_CONFIG still names no implementation."
+    },
+    {
+      "id": "LOG-HDL-001",
+      "severity": "high",
+      "status": "open",
+      "title": "AlwaysStdErrHandler still cannot switch streams",
+      "detail": "The stream setter does not assign valid stdout/stderr values; setStream(sys.stdout) reports the old stream but remains on stderr."
+    },
+    {
+      "id": "LOG-CLI-001",
+      "severity": "high",
+      "status": "open",
+      "title": "CLI/shared initialization still stacks handlers",
+      "detail": "_cli.logging.configure() installs one handler; subsequent _logging.get_logger() installs another on the same named logger, duplicating output."
+    },
+    {
+      "id": "LOG-CALL-001",
+      "severity": "medium",
+      "status": "open",
+      "title": "direct Logger call sites still lose metadata",
+      "detail": "The custom findCaller uses a fixed _get_caller(4) and ignores stacklevel; a direct get_logger().info call resolves to unknown file/line."
+    },
+    {
+      "id": "LOG-ATTR-001",
+      "severity": "medium",
+      "status": "open",
+      "title": "private compatibility lookup still configures logging",
+      "detail": "_logging.__getattr__ says it has no side effects, but a missing stdlib attribute calls get_logger() and installs the project handler."
+    },
+    {
+      "id": "LOG-FMT-001",
+      "severity": "medium",
+      "status": "open",
+      "title": "unknown formatter still returns None",
+      "detail": "_make_default_formatter falls through for unknown strings/None instead of rejecting or returning a defined fallback."
+    }
+  ]
+}

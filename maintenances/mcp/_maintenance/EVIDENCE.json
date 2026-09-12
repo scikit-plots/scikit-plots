@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.mcp",
+  "runtime_fingerprint": "78bea1addbab7853d587c1248f1af9a34b626d48869463543f58fd24ec6e1524",
+  "gates": {
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/mcp/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "59459f73b3bdc2551bf7ec295bc570f910c8f9b03cfbf55c12f8b714f6f37691",
+      "note": "16/16 contract regression tests pass."
+    },
+    "tier_l_tests": {
+      "status": "GREEN",
+      "log": "maintenances/mcp/_maintenance/evidence/tier-l-tests.log",
+      "sha256": "c50e2493ac26c7e9b15babc5fea32161fee04ea64c9dab4cdca6f378f23b6d05",
+      "note": "94 passed, 1 skipped across SDK-free/import/protocol-boundary/plugin/integration tests."
+    },
+    "server_model_tests": {
+      "status": "GREEN",
+      "log": "maintenances/mcp/_maintenance/evidence/server-model-tests.log",
+      "sha256": "3484d510469573a10dfa4591e38dca9aa3b97322d8ab24d844f45209d34afa45",
+      "note": "69 passed across pydantic wire models, hardening, runtime status, version guard, and CLI tests."
+    },
+    "cli_self_test": {
+      "status": "GREEN",
+      "log": "maintenances/mcp/_maintenance/evidence/cli-self-test.log",
+      "sha256": "2fe94a69a41cfce22043d2d4844846957f8a4fd5b5211a5f425d93e54a5cda44",
+      "note": "Built-in read-only self-test completed with bounded source-cited untrusted output."
+    },
+    "sdk_in_memory": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/mcp/_maintenance/evidence/sdk-unavailable.log",
+      "sha256": "818785507ab1e4d4ddb62645b5ffae4a878404f75240bc5daf4f272d47a29e16",
+      "note": "External mcp distribution is not installed in the review environment."
+    },
+    "stdio_live": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/mcp/_maintenance/evidence/sdk-unavailable.log",
+      "sha256": "818785507ab1e4d4ddb62645b5ffae4a878404f75240bc5daf4f272d47a29e16",
+      "note": "Requires the external MCP SDK."
+    },
+    "http_live": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/mcp/_maintenance/evidence/sdk-unavailable.log",
+      "sha256": "818785507ab1e4d4ddb62645b5ffae4a878404f75240bc5daf4f272d47a29e16",
+      "note": "Requires the external MCP SDK."
+    },
+    "corpus_annoy_integration": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/mcp/_maintenance/evidence/corpus-annoy.log",
+      "sha256": "39d49034a14107d15d7b21989459ce132e4aeff1d990faf215f72847ac61b1f4",
+      "note": "Corpus ingestion ran, but the explicitly requested Annoy backend is unavailable in this environment; no fallback was accepted."
+    },
+    "packaging_extra": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/mcp/_maintenance/evidence/packaging-unavailable.log",
+      "sha256": "7b1b16727e8642038c6263476f4a69b6a0b329ceae6228aaa1827f5a8f8e50e5",
+      "note": "The supplied archive omits root packaging metadata."
+    }
+  }
+}

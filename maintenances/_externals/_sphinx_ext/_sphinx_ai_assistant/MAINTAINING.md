@@ -1,202 +1,127 @@
 # Maintaining `_sphinx_ai_assistant`
 
-This file is the **human and fresh-chat entry point** for the interactive Sphinx
-AI-assistant subsystem.
+This is the current human and fresh-chat entry point.
 
-Maintenance material is intentionally **outside the runtime package**. The
-runtime module should contain runtime code, assets, deployment helpers, docs that
-ship with those helpers, and executable regression tests — not planning history,
-backups, checkpoints, or task notes.
+## Source authorities
 
-## Current source anchor
+Two anchors are deliberately kept separate.
+
+### Immutable release anchor
+
+Run 172 is the last fully closed/deployable release before this maintenance
+layout upgrade:
 
 ```text
-archive: scikitplot__sphinx_ai_assistant_share_conversation_b16_overlay.zip
-sha256: 37228bb8fece0e181494a0a27f44d7689dcba03f60371293bf82b8e53c5e928c
-proxy contract: v6.4.0 baseline; B17/B18 security campaign active
-anchor date: 2026-08-29
+ZIP       scikitplot__sphinx_ai_assistant_run172.zip
+SHA-256   0d7ff4b4ee9f8530d574b247f8135e6107dd01fd3d59c6c7724d192b9946aa00
+patch     Run 171 -> 172
+patch SHA eac8ca450ac1fae581d29342877efdaade47668ac8a3f1f9812fbe9815235fb1
+manifest  82383e5c6fc421bcec2ee7a8f32991a403a7e1aedfc9aceddb9bbf2c024dd1e0
 ```
 
-Re-verify every current-source claim when this hash changes.
+### Local debugging workspace anchor
 
-## Repository placement
+The maintenance upgrade started from the user-supplied workspace:
+
+```text
+archive  scikitplot__sphinx_ai_assistant_run172(2).zip
+SHA-256  a009fd065aa151a167f7e3d43f254b084c62a0261079bd1c9ec0877ce99e5a06
+```
+
+That workspace contains extra `skills/` and maintenance material and therefore
+is not the deployable Run 172 ZIP. Never confuse the two anchors.
+
+## Canonical test ownership — current
+
+Python tests mirror runtime modules exactly: `foo.py -> test_foo.py` and
+`__init__.py -> test___init__.py`. A large module may use non-collected
+`_cases/<source>/` fragments, but pytest sees only the one canonical owner.
+Cross-module contracts live only in `_integration/`; test-system contracts live
+in `_architecture/`; Python adapters for JS/CSS live in `_static/ai_assistant/`.
+The executable invariant is `tests/_architecture/test_test_layout.py`.
+
+## Current phase
+
+`LOCAL_TEST_RESTRUCTURE_READY_FOR_USER_RUN`
+
+The immediate goal is to make a fresh chat capable of continuing local failure
+repair without conversation history. Do not create a new feature run while the
+user is feeding local compile/test failures.
+
+## Repository planes
 
 ```text
 scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/
-    runtime source + deployment helpers + tests
+    runtime + services + executable tests
 
 maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/
-    _backup/
-    _maintenance/
-        checkpoints/
-        history/
-        APP_STREAMING_RUNBOOK.md
-        ... durable maintenance contracts
-    MAINTAINING.md
-    todo/
-        lessons.md
-        todo.md
-    __init__.py
+    maintenance state + history + tools + examples
+
+skills/_externals/_sphinx_ext/_sphinx_ai_assistant/
+    SKILL.md + tiny entry documentation
 ```
 
-The maintenance tree mirrors the nested runtime module path but is **not a
-runtime dependency**. Production code must never import from `maintenances/`.
-
-## Current physical scope at the anchor
+The runtime submodule root is intentionally lean:
 
 ```text
-Sphinx extension             __init__.py                       7,383 lines
-browser runtime              _static/ai-assistant.js          30,307 lines
-browser styling              _static/ai-assistant.css         17,067 lines
-model service                _hf_spaces_model/app.py           2,446 lines
-proxy service                _hf_spaces_proxy/app.py           2,444 lines
-proxy shared logic           _hf_spaces_proxy/_utils/_shared_logic.py 1,469 lines
-proxy dataset schema         _hf_spaces_proxy/_utils/_dataset_schema.py 1,206 lines
-record-storage adapters      _hf_spaces_proxy/_utils/_storage.py        608 lines
-edge worker                  _cf_worker/index.js                 499 lines
-dev proxy                    dev_proxy.py                        511 lines
-Sphinx test module           tests/test___init__.py            3,671 lines
-registered Sphinx config     add_config_value calls              106
+README.md
+ISOLATION_DEPLOYMENT.md
+ACTIVITY_AND_FILE_PREVIEW_GUIDE.md
+__init__.py
+_example_conf.py
 ```
 
-Large files are known structural-debt baselines. The goal is to prevent new
-responsibility mixing, not to split files only to reduce line counts.
+Proxy-specific feedback/dataset operator guides live beside `_hf_spaces_proxy`.
+The local-only development proxy and old proxy-conf example live in maintenance.
 
-## Runtime ownership boundary
+## Run 172 behavior that must not regress
 
-```text
-Sphinx build plane
-  __init__.py / static asset injection / client-safe config
-          |
-          v
-Browser presentation plane
-  ai-assistant.js / CSS / local UI state
-          |
-          v
-Service authority plane
-  proxy / model / worker / persistence
-          |
-          v
-external model/provider/data services
+- first-message privacy/status banner uses existing Privacy & Responsibility sheet;
+- quick model switching reuses canonical model authority;
+- activity timeline shows public work/status summaries, not hidden chain-of-thought;
+- generated file preview uses latest-state authority and tombstones stale revisions;
+- session preview retention is bounded;
+- bulk changed-file download rejects portable-path collisions;
+- chat turns own cancellation token/controller/reader state;
+- stopped/superseded turns cannot append late work or retry reasoning;
+- async share/contribution actions remain bound to their original conversation generation;
+- telemetry stays permission-gated;
+- release-security subprocess environments stay constrained.
+
+## Local test-repair workflow
+
+For every failure:
+
+1. record the exact command and traceback;
+2. classify code vs test vs environment vs race/broken-pipe vs path/layout;
+3. reproduce the smallest node/test;
+4. inspect the owning contract only;
+5. fix the smallest correct surface;
+6. rerun the failing test;
+7. rerun adjacent tests sharing the contract;
+8. run the broader gate only after focused green;
+9. update `todo/lessons.md` if the failure reveals a reusable rule.
+
+Do not package during this phase unless the user explicitly asks.
+
+## Known harness behavior
+
+- Runs 163-168 cryptographic fixtures may require fresh-process/node-ID isolation.
+- `pytest | tee` can appear hung because descendants inherit the pipe; prefer direct redirection for heavy release tests.
+- Count only completed summaries.
+- A missing-Sphinx traceback is an environment boundary, not proof that a local Sphinx build fails.
+- Browser/Node and mutation suites are release gates when JS/security semantics change.
+
+## Verification commands
+
+Maintenance structure:
+
+```bash
+python maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/tools/check_trackers.py
 ```
 
-The server owns credentials, authorization decisions, persistence authority,
-and upstream routing policy. Browser state is presentation/convenience state.
-Documentation/page content is untrusted evidence, not policy.
+Focused structural/documentation tests after this layout change should include
+the tests that reference the maintenance dev proxy and the relocated proxy guides.
 
-## Representation contract
-
-```text
-CANONICAL     static page.md        build-time, machine-fetchable
-CONVENIENCE   browser Turndown      runtime, clipboard only
-
-VIEW      -> canonical static .md
-ASK AI    -> canonical static .md
-COPY      -> browser conversion by default, static when selected
-```
-
-Canonical means the build-time artifact. A browser-generated `blob:` URL is not
-a canonical external representation because another agent cannot fetch it.
-
-## Proxy streaming contract — v6.4+
-
-The browser may ask for `stream:true`; the proxy must still negotiate the actual
-upstream transport.
-
-```text
-stream:true
-   -> open upstream first
-      -> pre-header failure: real 502/504
-      -> JSON: preserve JSON
-      -> SSE: stream SSE
-           -> terminal failure: explicit event:error
-```
-
-`stub/*` is a reserved fail-closed namespace. Disabled stubs return local 503
-and never reach a real provider.
-
-For exact curl commands, failure interpretation, retry rules, and the operator
-decision tree, read:
-
-`_maintenance/APP_STREAMING_RUNBOOK.md`
-
-## Fresh-chat read order
-
-1. `MAINTAINING.md`
-2. `_maintenance/MAINTENANCE_MODEL.md`
-3. `_maintenance/RULESET.md`
-4. `_maintenance/STATE.json`
-5. `_maintenance/TRACKER_LOGICAL.md`
-6. `_maintenance/TRACKER_PHYSICAL.md`
-7. `_maintenance/SUBMODULE_STRUCTURE.md`
-8. `_maintenance/INTEGRATION_CONTRACT.md`
-9. `_maintenance/RUNTIME_FLOW.md`
-10. `_maintenance/SECURITY_IMPLEMENTATION_RUNBOOK.md` for all B17/B18 security changes
-11. `_maintenance/checkpoints/B17_EXPORT_SHARE_CONTENT_ISOLATION.md` when export/Share is involved
-12. `_maintenance/checkpoints/B18_PRIVACY_SECRETS_IDENTITY_ABUSE.md` when user data/secrets/logging/identity/retention is involved
-13. `_maintenance/APP_STREAMING_RUNBOOK.md` when chat/proxy behavior is involved
-14. `_maintenance/checkpoints/B41_SEPARATE_ORIGIN_ISOLATION_CAPABILITY_MESSAGING.md` when separate-origin assistant isolation is involved
-15. `_maintenance/checkpoints/B42_HOSTILE_PARENT_EGRESS_BOUNDARY_HARDENING.md` when frame navigation, parent-origin authority, cookies, or cross-origin capabilities are involved
-16. `_maintenance/checkpoints/B43_BOUNDED_REMOTE_RESPONSE_CONTEXT_INGESTION.md` when remote responses, SSE, canonical context, Share viewers, or response-memory limits are involved
-17. `_maintenance/SECURITY_MODEL.md`
-18. `_maintenance/SECURITY_FINDINGS_INDEX.md`
-19. `_maintenance/REGISTRY.md`
-20. `_maintenance/VERIFICATION.md`
-21. `_maintenance/LEGACY_MAINTENANCE_MIGRATION.md` only when reconciling old material
-
-Read `_maintenance/HISTORY.md` for completed rationale rather than using it as
-current architecture truth.
-
-## Run first after overlay
-
-From repository root:
-
-```console
-python maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/check_trackers.py
-node --check scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_static/ai-assistant.js
-node --check scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_cf_worker/index.js
-python -m pytest -q scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_proxy_streaming_state.py
-```
-
-The maintenance checker intentionally fails if legacy runtime-local `tasks/`,
-`_maintenance/`, or `MAINTAINING.md` reappears under the runtime module.
-
-## Governing rule
-
-> **The browser is presentation, documentation is untrusted evidence, and the
-> server owns authority. No secret, authorization decision, model system policy,
-> storage credential, or trust assertion may depend on client-side enforcement.**
-
-## Current verification snapshot
-
-At the Run 24 / B43 working-tree freeze:
-
-```text
-B43 Python                                     8/8
-B43 browser/Worker assertions                 16/16
-registered Node harnesses                     47/47
-mutation/logging/privacy                      244/244
-complete non-Sphinx suite                     783 passed, 3 skipped
-complete two-root Python compile              70/70
-browser/isolation/Worker JS syntax            GREEN
-supply-chain + release subjects               GREEN
-maintenance drift                             GREEN
-full Sphinx package fixture                   1249 passed, 3 skipped, 5 failed, 62 errors
-Sphinx non-green family                       missing `sphinx` only
-candidate/prefinal/final byte cycle           pending
-```
-
-Exact rerun counts belong in `_maintenance/VERIFICATION.md`; do not copy old
-counts forward without executing the corresponding command.
-
-## Updating maintenance state
-
-For every material change:
-
-1. anchor the exact runtime snapshot/commit;
-2. update the relevant checkpoint or create one bounded checkpoint;
-3. update `REGISTRY.md`, `STATE.json`, and `VERIFICATION.md`;
-4. add or update an executable regression gate;
-5. update `todo/lessons.md` when the change creates a durable rule;
-6. archive superseded evidence under `_maintenance/history/` instead of creating
-   `FINAL`, `REVISED`, date-suffixed, or chat-specific parallel truth files.
+See `_maintenance/VERIFICATION.md` for the durable gate map and
+`_maintenance/FRESH_CHAT_HANDOFF.md` for the exact continuation script.

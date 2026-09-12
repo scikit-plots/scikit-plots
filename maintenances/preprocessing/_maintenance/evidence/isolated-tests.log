@@ -1,0 +1,9 @@
+Isolation harness copied `scikitplot/preprocessing/**` byte-for-byte under a throwaway scikitplot package root. Only the missing root __version__ and scikitplot.externals._packaging.version.parse path were supplied by the harness.
+Command: python -B -m pytest scikitplot/preprocessing/tests -q
+Result: 180 passed in 1.20s.
+Breakdown:
+- test_get_dummies.py: 55 passed
+- test_dummy_code_encoder.py: 68 passed
+- test_encoders_advanced.py: 57 passed
+Environment: Python 3.13, NumPy 2.3.5, SciPy 1.17.0, scikit-learn 1.8.0, pandas 2.2.3. polars and pyarrow unavailable.
+Classification: strong isolated encoder behavior evidence, not complete-package/import/dependency-matrix evidence.

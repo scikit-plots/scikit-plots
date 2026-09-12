@@ -1,0 +1,20 @@
+dependency namespace leaks:
+dataclass True
+Path True
+Literal True
+Sequence True
+plt True
+np True
+mcolors True
+Line2D True
+Circle True
+Rectangle True
+create True
+save True
+wordmark True
+package __all__ has logo create/save/wordmark: [False, False, False]
+python -m scikitplot.logo exit: 1
+stderr: /opt/pyvenv/bin/python: No module named scikitplot.logo
+python -m scikitplot._brand._logo exit: 0
+runpy warning present: True
+banner main empty-result exit: 0

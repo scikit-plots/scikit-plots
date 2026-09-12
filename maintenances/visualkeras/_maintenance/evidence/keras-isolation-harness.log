@@ -1,0 +1,5 @@
+Harness-only availability-aware conftest + package-root helpers + fake aggdraw.
+KERAS_BACKEND=torch, Keras 3.13.2.
+Result: 27 passed, 1 skipped in 0.34s.
+The skip is the TensorFlow-internal-only lane.
+Fake aggdraw adapts calls to Pillow ImageDraw and is diagnostic only; it is not real aggdraw release evidence.

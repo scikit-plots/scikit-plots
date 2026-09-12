@@ -1,58 +1,24 @@
-# Submodule Structure — `scikitplot.random`
-
-> **Read `FAMILY.md` first** if the change touches `cexternals/_annoy/src/`.
-
----
-
-## 1. Role
-
-**KISS RNG over the shared `kissrandom.h`.**
-
-## 2. Where does a new thing go?
-
-| You are adding | Put it |
-|---|---|
-| A C++ header or template | `cexternals/_annoy/src/` — **and check all three consumers** |
-| A Cython binding | the consuming submodule's `_<name>/` directory |
-| Python-level convenience over the C type | `annoy`'s mixins, never `annoymodule.cc` |
-| A dtype or specialization | `annoy`'s support matrix + a test |
-| Anything importing a Python layer from `cexternals` | **nowhere** — it must stay standalone |
-
-## 3. Structural debt and disposition
-
-### Three overlapping markdown files
-
-| Verdict | File | Why |
-|---|---|---|
-| **FOLD** → `_maintenance/TRACKER_LOGICAL.md` | `_kiss/KISSRANDOM_NUMPY_COMPATIBLE_FINAL.md` | Describes the NumPy-compatible contract — that is a contract, not a note |
-| **MOVE** → `_maintenance/` | `_kiss/KISSRANDOM.md` | Reference material |
-| **FOLD** → `README` | `_kiss/README_KISSRANDOM.md` | Overlaps the above two |
-
-### The missing contract
-
-**No file records whether a seeded stream is stable across releases.** For an
-RNG that is the primary contract: a stream that changes is not a crash and not a
-wrong answer, it is a silently different experiment, and nothing downstream can
-detect it.
-
-Recorded as a finding for run **A11**.
-
-## 4. Review checklist
+# Submodule structure — `scikitplot.random`
 
 ```text
-[ ] Does the change touch cexternals/_annoy/src/?   -> all 3 consumers rebuilt
-[ ] Does it edit a generated .pyx/.pxd?             -> edit the template instead
-[ ] Does it add a cdef extern?                      -> record the ABI it mirrors
-[ ] Does cexternals import anything above it?       -> reject
-[ ] Does every new public surface have a test?
-[ ] python _maintenance/check_trackers.py           -> exit 0
-[ ] Clean build from a fresh checkout               -> green
+scikitplot/random/
+  runtime package, Cython implementation/declarations/stubs, Meson build, tests
+
+maintenances/random/
+  MAINTAINING.md
+  MAINTENANCE.json
+  REVIEW.json
+  _maintenance/
+    FRESH_CHAT_HANDOFF.md
+    STATE.json / TRACKER.json / EVIDENCE.json
+    FAMILY.md / VERIFICATION.md / MAINTENANCE_MODEL.md
+    tools/       deterministic dev-only checks
+    tests/       maintenance-tool regression tests
+    evidence/    hashed logs used by EVIDENCE.json
+    history/     historical rationale and archived legacy tooling
+
+skills/random/
+  SKILL.md       fresh-chat routing and maintainer operating rules
 ```
 
-## 5. Directions, with prerequisites
-
-| Direction | Needs first | Value |
-|---|---|---|
-| Document the stream-stability guarantee | a decision, not code | The primary RNG contract, currently absent |
-| Add a golden-stream regression test | the decision above | Makes stability checkable rather than assumed |
-| Consolidate the three markdown files | nothing | One contract, one file |
+Do not add generated source, build products, `__pycache__`, chat transcripts or parallel `FINAL`/date-suffixed copies to the live maintenance plane. Put obsolete maintenance tooling in `history/` as inert text when provenance matters.

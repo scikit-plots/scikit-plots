@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+"""Run the fixed, declarative review profile for cexternals/_annoy."""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import pathlib
+import sys
+
+ALLOWED_CHECKS = {
+    "manifest",
+    "runtime_inventory",
+    "source_headers",
+    "consumer_edges",
+    "no_upward_imports",
+    "fresh_chat_skill",
+    "residue",
+}
+
+
+def _load_checker(path: pathlib.Path):
+    spec = importlib.util.spec_from_file_location("annoy_contract_checker", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load checker: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", type=pathlib.Path, default=None)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+    checker_path = pathlib.Path(__file__).with_name("check_contract.py")
+    checker = _load_checker(checker_path)
+    repo = (args.repo or checker.find_repo_root()).resolve()
+    profile_path = repo / "maintenances/cexternals/_annoy/REVIEW.json"
+    try:
+        profile = json.loads(profile_path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ERROR: cannot read REVIEW.json: {exc}", file=sys.stderr)
+        return 2
+    registered = profile.get("registered_checks")
+    if not isinstance(registered, list) or not registered:
+        print("ERROR: REVIEW.json registered_checks must be a non-empty list", file=sys.stderr)
+        return 2
+    unknown = sorted(set(registered) - ALLOWED_CHECKS)
+    if unknown:
+        print(f"ERROR: unregistered/unsafe review checks: {unknown}", file=sys.stderr)
+        return 2
+    results, manifest = checker.run_checks(repo)
+    selected = {name: results.get(name, ["registered check did not return a result"]) for name in registered}
+    static_ok = all(not items for items in selected.values())
+    state_path = repo / "maintenances/cexternals/_annoy/_maintenance/STATE.json"
+    state_problems: list[str] = []
+    try:
+        state = json.loads(state_path.read_text())
+        if state.get("schema_version") != 2:
+            state_problems.append("STATE.json schema_version must be 2")
+        if state.get("active_checkpoint") != "CANN01_TYPED_CONSUMER_CONTROL_PLANE":
+            state_problems.append("STATE.json active_checkpoint is not the current onboarding checkpoint")
+    except (OSError, json.JSONDecodeError) as exc:
+        state_problems.append(f"cannot read STATE.json: {exc}")
+    selected["state_evidence"] = state_problems
+    static_ok = static_ok and not state_problems
+    payload = {
+        "subsystem": "cexternals/_annoy",
+        "pr_readiness": "PR_READY" if static_ok else "BLOCKED",
+        "release_readiness": "STATIC_ELIGIBLE_NATIVE_EVIDENCE_SEPARATE" if static_ok else "BLOCKED",
+        "checks": selected,
+        "native_build": "UNAVAILABLE_NOT_RUN_BY_STATIC_REVIEW",
+        "consumer_runtime": "UNAVAILABLE_NOT_RUN_BY_STATIC_REVIEW",
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"cexternals/_annoy: {payload['pr_readiness']} / {payload['release_readiness']}")
+        for name, items in selected.items():
+            print(f"  {'GREEN' if not items else 'RED'} {name}")
+            for item in items:
+                print(f"    - {item}")
+        print("  UNAVAILABLE native-build (not executed by static reviewer)")
+        print("  UNAVAILABLE consumer-runtime (not executed by static reviewer)")
+    return 0 if static_ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

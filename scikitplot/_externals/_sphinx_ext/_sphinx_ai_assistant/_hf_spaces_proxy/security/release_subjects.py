@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 import verify_release_evidence  # noqa: E402
 from _utils._shared_logic import PROXY_VERSION  # noqa: E402
+from source_tree import EXTENSION_ROOT, source_tree_sha256  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ def subjects() -> dict[str, object]:  # ruff: ignore[undocumented-public-functio
             hashlib.sha256((ROOT / supply["sbom_file"]).read_bytes()).hexdigest()
         ),
         "runtime_source_sha256": verify_release_evidence._runtime_source_sha256(),
+        "source_tree_sha256": source_tree_sha256(EXTENSION_ROOT),
         "base_image_index_digest": supply["base_image"]["index_digest"],
     }
 

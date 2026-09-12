@@ -1,69 +1,46 @@
 # Maintaining `scikitplot.annoy`
 
-Entry point for future maintenance. **Self-contained**: a fresh session needs no
-chat history to continue from here.
+This is the current entry point for the **Annoy Cython/Python submodule**. It is
+not the maintenance entry point for `scikitplot.cexternals._annoy`.
+
+## Two different Annoy compiled domains
 
 ```text
-archive: scikit-plots.zip
-sha256:  a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f
+cexternals/_annoy
+    shared C/C++ headers + separately compiled native/pybind11 Annoy backend
+             |                         |
+             | direct header ABI       | Python inheritance/import
+             v                         v
+annoy/_annoy (Cython)           annoy.Index (high-level Python facade)
+Tempita -> .pyx/.pxd -> Cython       subclasses cexternals._annoy.Annoy
+-> generated C++ -> extension
 ```
 
-## This submodule is part of a family
+`scikitplot.annoy` therefore has **two compiled relationships** with the
+independent native subsystem:
 
-`cexternals/_annoy` (C++ source) → `annoy`, `memmap`, `random` (consumers).
-**This one is a consumer of `cexternals/_annoy/src/`.**
+1. its private Cython extension compiles directly against
+   `cexternals/_annoy/src/{annoylib.h,kissrandom.h,annoy_type_support.h}`;
+2. its public high-level `Index` inherits from the separately compiled
+   `scikitplot.cexternals._annoy.Annoy` Python type.
 
-Read `_maintenance/FAMILY.md` before changing anything under
-`cexternals/_annoy/src/`. A change there is never local.
+Do not collapse those into one owner and do not copy native headers into
+`scikitplot/annoy`.
 
-## Read order for a fresh chat
+## Start here
 
-1. `_maintenance/FAMILY.md` — the four-submodule contract
-2. `_maintenance/MAINTENANCE_MODEL.md` — why / when / where / which / how many / how much
-3. `_maintenance/TRACKER_LOGICAL.md` — what this submodule promises
-4. `_maintenance/TRACKER_PHYSICAL.md` — what is on disk; tripwires
-5. `_maintenance/SUBMODULE_STRUCTURE.md` — where things go; debt disposition
-6. `_maintenance/VERIFICATION.md` — how to prove the tree is healthy
-
-`_maintenance/HISTORY.md` only when historical rationale is needed.
-Machine-readable: `_maintenance/STATE.json`, `_maintenance/TRACKER.json`.
-
-Do not create new parallel files named `FINAL`, `REVISED`, `EXPANDED`,
-date-suffixed, or chat-specific variants inside the source tree.
-
-## Run this first
-
-```console
-$ python scikitplot/annoy/_maintenance/check_trackers.py
+```sh
+python -B maintenances/annoy/_maintenance/check_trackers.py --json
+python -B maintenances/annoy/_maintenance/review_subsystem.py --json
+python -B maintenances/annoy/_maintenance/tests/test_contract.py
 ```
 
-Then a **clean build**. Unlike Corpus, this family compiles — a green tracker
-check on an unbuilt tree is necessary, not sufficient.
+The supplied snapshot currently has a maintenance framework that can be green,
+but the runtime/build structural lane is expected to fail because
+`scikitplot/annoy/_annoy/meson.build` names
+`scikitplot/_build_utils/tempita.py` and that generator is absent. Do not turn
+that into PASS by changing evidence or inventory metadata.
 
-## Current state
-
-```text
-source files   17   source LOC   13535
-test files     46   test LOC      6134
-markdown       48
-open findings   5   (A00 input — revalidate, do not accept)
-
-Corpus   review + implementation COMPLETE
-MCP      maintenance set ready; M00 pending
-ANNOY    maintenance set ready; run A00 NEXT
-CLI      after ANNOY
-```
-
-**Do not begin implementation.** Establish the big picture across A00–A21 first,
-exactly as Corpus and MCP did. The Corpus campaign's value came from 55 findings
-and **23 disproofs** before any code — which is why 18 implementation increments
-ran without a red suite.
-
-## The one rule
-
-> `cexternals/_annoy` is upstream of three submodules. The coupling is a
-> **relative path written into Cython source**, not an `include_directories`
-> entry — invisible to anything reading `meson.build` alone.
-
-`check_trackers.py` verifies every such reference resolves, and that `cexternals`
-never imports a Python layer built on top of it.
+Read `_maintenance/FRESH_CHAT_HANDOFF.md` next. Historical A00-A21 campaign
+notes remain under `_maintenance/history/`; they are evidence/provenance, not
+current authority.

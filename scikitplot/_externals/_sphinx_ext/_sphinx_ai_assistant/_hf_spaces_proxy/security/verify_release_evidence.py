@@ -26,6 +26,10 @@ import tomllib
 logger = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from source_tree import EXTENSION_ROOT, source_tree_sha256  # noqa: E402
+
 ROOT = HERE.parent
 POLICY = tomllib.loads((HERE / "release_evidence_policy.toml").read_text())
 SUPPLY = tomllib.loads((HERE / "supply_chain_policy.toml").read_text())
@@ -33,6 +37,10 @@ HEX64 = re.compile(r"^[0-9a-f]{64}$")
 DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 SLSA_PREDICATE = "https://slsa.dev/provenance/v1"
 RELEASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$")
+SOURCE_REVISION = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+REDIS_CHAOS_PREDICATE = (
+    "https://scikit-plots.org/attestations/provider-artifact-redis-chaos/v1"
+)
 RUNTIME_SOURCE_FILES = (
     "Dockerfile",
     ".dockerignore",
@@ -298,8 +306,12 @@ def _verify_provenance(
 def _verify_redis(doc: dict[str, Any], now: datetime) -> None:
     redis_policy = POLICY["redis"]
     planes = _mapping(doc.get("redis"), "REDIS_EVIDENCE_MISSING")
-    _exact_keys(planes, {"rateLimit", "share", "contribution"}, "REDIS_SCHEMA_INVALID")
-    for name in ("rateLimit", "share", "contribution"):
+    _exact_keys(
+        planes,
+        {"rateLimit", "share", "contribution", "providerArtifactLifecycle"},
+        "REDIS_SCHEMA_INVALID",
+    )
+    for name in ("rateLimit", "share", "contribution", "providerArtifactLifecycle"):
         item = _mapping(planes.get(name), f"REDIS_{name.upper()}_MISSING")
         _exact_keys(
             item,
@@ -327,6 +339,12 @@ def _verify_redis(doc: dict[str, Any], now: datetime) -> None:
                 True,
                 f"REDIS_{name.upper()}_ACL_UNREVIEWED",
             )
+    if redis_policy["provider_artifact_lifecycle_require_replication"]:
+        _bool(
+            planes["providerArtifactLifecycle"].get("replicationVerified"),
+            True,
+            "REDIS_PROVIDERARTIFACTLIFECYCLE_REPLICATION_UNVERIFIED",
+        )
     for name, prefix in (("share", "share"), ("contribution", "contribution")):
         item = planes[name]
         if redis_policy[f"{prefix}_require_persistence"]:
@@ -351,6 +369,189 @@ def _verify_redis(doc: dict[str, Any], now: datetime) -> None:
             days=int(redis_policy["backup_restore_max_age_days"])
         ):
             _fail(f"REDIS_{name.upper()}_BACKUP_RESTORE_STALE")
+
+
+def _verify_redis_chaos_entry(  # ruff: ignore[too-many-branches]
+    evidence_dir: Path,
+    entry: Any,
+    *,
+    redis_major: int,
+    mode: str,
+    source_revision: str,
+    source_tree_sha: str,
+    now: datetime,
+) -> None:
+    label = f"redis{redis_major}_{mode}"
+    item = _mapping(entry, f"REDIS_CHAOS_{label.upper()}_MISSING")
+    _exact_keys(
+        item,
+        {"attestation", "signatureVerification"},
+        f"REDIS_CHAOS_{label.upper()}_SCHEMA_INVALID",
+    )
+    subject = "sha256:" + source_tree_sha
+    attestation = _mapping(
+        item.get("attestation"), f"REDIS_CHAOS_{label.upper()}_ATTESTATION_INVALID"
+    )
+    attestation_path = _verify_artifact(
+        evidence_dir,
+        attestation,
+        f"redis_chaos_{label}_attestation",
+        subject=subject,
+    )
+    try:
+        payload = json.loads(attestation_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise EvidenceError(
+            f"REDIS_CHAOS_{label.upper()}_ATTESTATION_JSON_INVALID"
+        ) from exc
+    payload = _mapping(payload, f"REDIS_CHAOS_{label.upper()}_ATTESTATION_ROOT_INVALID")
+    _exact_keys(
+        payload,
+        {
+            "schemaVersion",
+            "predicateType",
+            "generatedAt",
+            "subject",
+            "redis",
+            "result",
+            "tool",
+        },
+        f"REDIS_CHAOS_{label.upper()}_ATTESTATION_SCHEMA_INVALID",
+    )
+    if payload.get("schemaVersion") != 1:
+        _fail(f"REDIS_CHAOS_{label.upper()}_ATTESTATION_VERSION_UNSUPPORTED")
+    if payload.get("predicateType") != REDIS_CHAOS_PREDICATE:
+        _fail(f"REDIS_CHAOS_{label.upper()}_PREDICATE_MISMATCH")
+    generated = _parse_time(
+        payload.get("generatedAt"), f"REDIS_CHAOS_{label.upper()}_TIME_INVALID"
+    )
+    skew = timedelta(minutes=int(POLICY["max_clock_skew_minutes"]))
+    if generated > now + skew:
+        _fail(f"REDIS_CHAOS_{label.upper()}_FROM_FUTURE")
+    if now - generated > timedelta(hours=int(POLICY["redis_chaos"]["max_age_hours"])):
+        _fail(f"REDIS_CHAOS_{label.upper()}_STALE")
+    payload_subject = _mapping(
+        payload.get("subject"), f"REDIS_CHAOS_{label.upper()}_SUBJECT_INVALID"
+    )
+    _exact_keys(
+        payload_subject,
+        {"sourceRevision", "sourceTreeSha256"},
+        f"REDIS_CHAOS_{label.upper()}_SUBJECT_SCHEMA_INVALID",
+    )
+    if payload_subject.get("sourceRevision") != source_revision:
+        _fail(f"REDIS_CHAOS_{label.upper()}_REVISION_MISMATCH")
+    if payload_subject.get("sourceTreeSha256") != source_tree_sha:
+        _fail(f"REDIS_CHAOS_{label.upper()}_TREE_MISMATCH")
+    redis = _mapping(payload.get("redis"), f"REDIS_CHAOS_{label.upper()}_REDIS_INVALID")
+    _exact_keys(
+        redis,
+        {"major", "image", "mode"},
+        f"REDIS_CHAOS_{label.upper()}_REDIS_SCHEMA_INVALID",
+    )
+    if redis.get("major") != redis_major:
+        _fail(f"REDIS_CHAOS_{label.upper()}_MAJOR_MISMATCH")
+    if redis.get("mode") != mode:
+        _fail(f"REDIS_CHAOS_{label.upper()}_MODE_MISMATCH")
+    expected_image = POLICY["redis_chaos"][f"redis{redis_major}_image"]
+    if redis.get("image") != expected_image:
+        _fail(f"REDIS_CHAOS_{label.upper()}_IMAGE_MISMATCH")
+    result = _mapping(
+        payload.get("result"), f"REDIS_CHAOS_{label.upper()}_RESULT_INVALID"
+    )
+    _exact_keys(
+        result, {"status"}, f"REDIS_CHAOS_{label.upper()}_RESULT_SCHEMA_INVALID"
+    )
+    if result.get("status") != "pass":
+        _fail(f"REDIS_CHAOS_{label.upper()}_NOT_PASS")
+    _tool(payload.get("tool"), f"REDIS_CHAOS_{label.upper()}_TOOL_INVALID")
+
+    attestation_sha = _sha256(attestation_path)
+    sig = _mapping(
+        item.get("signatureVerification"),
+        f"REDIS_CHAOS_{label.upper()}_SIGNATURE_INVALID",
+    )
+    sig_path = _verify_artifact(
+        evidence_dir,
+        sig,
+        f"redis_chaos_{label}_signature",
+        subject="sha256:" + attestation_sha,
+    )
+    try:
+        verification = json.loads(sig_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise EvidenceError(
+            f"REDIS_CHAOS_{label.upper()}_SIGNATURE_JSON_INVALID"
+        ) from exc
+    verification = _mapping(
+        verification, f"REDIS_CHAOS_{label.upper()}_SIGNATURE_ROOT_INVALID"
+    )
+    _exact_keys(
+        verification,
+        {
+            "schemaVersion",
+            "verified",
+            "verifiedAt",
+            "attestationSha256",
+            "sourceRevision",
+            "signerIdentityVerified",
+        },
+        f"REDIS_CHAOS_{label.upper()}_SIGNATURE_SCHEMA_INVALID",
+    )
+    if verification.get("schemaVersion") != 1:
+        _fail(f"REDIS_CHAOS_{label.upper()}_SIGNATURE_VERSION_UNSUPPORTED")
+    _bool(
+        verification.get("verified"),
+        True,
+        f"REDIS_CHAOS_{label.upper()}_SIGNATURE_UNVERIFIED",
+    )
+    _bool(
+        verification.get("signerIdentityVerified"),
+        True,
+        f"REDIS_CHAOS_{label.upper()}_SIGNER_IDENTITY_UNVERIFIED",
+    )
+    if verification.get("attestationSha256") != attestation_sha:
+        _fail(f"REDIS_CHAOS_{label.upper()}_SIGNATURE_SUBJECT_MISMATCH")
+    if verification.get("sourceRevision") != source_revision:
+        _fail(f"REDIS_CHAOS_{label.upper()}_SIGNATURE_REVISION_MISMATCH")
+    verified_at = _parse_time(
+        verification.get("verifiedAt"),
+        f"REDIS_CHAOS_{label.upper()}_SIGNATURE_TIME_INVALID",
+    )
+    if verified_at > now + skew:
+        _fail(f"REDIS_CHAOS_{label.upper()}_SIGNATURE_FROM_FUTURE")
+    if now - verified_at > timedelta(hours=int(POLICY["redis_chaos"]["max_age_hours"])):
+        _fail(f"REDIS_CHAOS_{label.upper()}_SIGNATURE_STALE")
+
+
+def _verify_redis_chaos(
+    doc: dict[str, Any],
+    *,
+    evidence_dir: Path,
+    source_revision: str,
+    source_tree_sha: str,
+    now: datetime,
+) -> None:
+    chaos = _mapping(doc.get("redisChaos"), "REDIS_CHAOS_EVIDENCE_MISSING")
+    _exact_keys(chaos, {"redis7", "redis8"}, "REDIS_CHAOS_SCHEMA_INVALID")
+    for major in (7, 8):
+        family = _mapping(
+            chaos.get(f"redis{major}"), f"REDIS_CHAOS_REDIS{major}_MISSING"
+        )
+        _exact_keys(
+            family,
+            {"standalone", "cluster"},
+            f"REDIS_CHAOS_REDIS{major}_SCHEMA_INVALID",
+        )
+        for mode in ("standalone", "cluster"):
+            _verify_redis_chaos_entry(
+                evidence_dir,
+                family.get(mode),
+                redis_major=major,
+                mode=mode,
+                source_revision=source_revision,
+                source_tree_sha=source_tree_sha,
+                now=now,
+            )
 
 
 def _verify_logging(doc: dict[str, Any], now: datetime) -> None:
@@ -418,6 +619,7 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
             "image",
             "artifacts",
             "redis",
+            "redisChaos",
             "logging",
             "riskExceptions",
         },
@@ -460,6 +662,8 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
             "requirementsLockSha256",
             "pythonSbomSha256",
             "runtimeSourceSha256",
+            "sourceTreeSha256",
+            "sourceRevision",
             "baseImageIndexDigest",
             "baseImageManifestDigest",
         },
@@ -476,6 +680,15 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
     )
     if runtime_sha != _runtime_source_sha256():
         _fail("RUNTIME_SOURCE_EVIDENCE_MISMATCH")
+    source_tree_sha = _hex(source.get("sourceTreeSha256"), "SOURCE_TREE_SHA256_INVALID")
+    if source_tree_sha != source_tree_sha256(EXTENSION_ROOT):
+        _fail("SOURCE_TREE_EVIDENCE_MISMATCH")
+    source_revision = source.get("sourceRevision")
+    if (
+        not isinstance(source_revision, str)
+        or SOURCE_REVISION.fullmatch(source_revision) is None
+    ):
+        _fail("SOURCE_REVISION_INVALID")
     if source.get("baseImageIndexDigest") != SUPPLY["base_image"]["index_digest"]:
         _fail("BASE_IMAGE_INDEX_MISMATCH")
     base_manifest_digest = _digest(
@@ -559,6 +772,14 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
         )
 
     _verify_redis(doc, current)
+    if POLICY["redis_chaos"]["require_signed_evidence"]:
+        _verify_redis_chaos(
+            doc,
+            evidence_dir=evidence_file.parent,
+            source_revision=source_revision,
+            source_tree_sha=source_tree_sha,
+            now=current,
+        )
     if POLICY["require_log_privacy_attestation"]:
         _verify_logging(doc, current)
     exceptions = doc.get("riskExceptions")
@@ -575,9 +796,17 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
         "target_platform": release["targetPlatform"],
         "image_digest": image_digest,
         "runtime_source_sha256": runtime_sha,
+        "source_tree_sha256": source_tree_sha,
+        "source_revision": source_revision,
+        "redis_chaos": "signed-and-bound",
         "evidence_sha256": _sha256(evidence_file),
         "evidence_expires_at": release["expiresAt"],
-        "redis_planes": ["rateLimit", "share", "contribution"],
+        "redis_planes": [
+            "rateLimit",
+            "share",
+            "contribution",
+            "providerArtifactLifecycle",
+        ],
         "logging_privacy": "verified",
     }
 

@@ -1,0 +1,47 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.logging",
+  "runtime_path": "scikitplot/logging",
+  "core_path": "scikitplot/logging/_logging.py",
+  "facade_path": "scikitplot/logging/__init__.py",
+  "tests_path": "scikitplot/logging/tests",
+  "maintenance_path": "maintenances/logging",
+  "skill_path": "skills/logging/SKILL.md",
+  "updated_at": "2026-09-13",
+  "ownership": {
+    "owns": [
+      "public scikitplot.logging package facade",
+      "private _logging implementation core",
+      "shared scikitplot logger singleton and wrapper API",
+      "formatter and handler helpers",
+      "logging environment policy",
+      "rate-limited logging helpers",
+      "stdlib logging compatibility surface"
+    ],
+    "does_not_own": [
+      "CLI -v/-q parsing semantics",
+      "downstream modules' semantic logging policy",
+      "stdlib logging internals"
+    ]
+  },
+  "required_symbols": [
+    "AlwaysStdErrHandler",
+    "GoogleLogFormatter",
+    "error_log",
+    "get_logger",
+    "log_every_n",
+    "log_first_n",
+    "sanitize_log_message",
+    "setLevel",
+    "set_verbosity"
+  ],
+  "release_requirements": [
+    "runtime structural PASS",
+    "focused tests collect without harness edits",
+    "focused tests assert desired rather than defective behavior",
+    "public facade compatibility evidence",
+    "CLI/shared logger interoperability",
+    "thread and process lifecycle evidence",
+    "complete package alias/platform evidence"
+  ]
+}

@@ -62,6 +62,38 @@ generation of low-level Cython packages and modules for immediate use and testin
   m = compile_and_load("def f(int n):\n    return n*n")
   m.f(10)
 
+
+.. rubric:: The new ownership model is:
+
+::
+
+  caller-supplied Python / Cython source
+                  |
+                  v
+          scikitplot.cython
+                  |
+        +----------+-----------+
+        |                      |
+  security validation     runtime/toolchain policy
+        |                      |
+        +----------+-----------+
+                  |
+          deterministic cache key
+                  |
+            per-key lock
+                  |
+            staging build
+                  |
+        Cython / setuptools
+                  |
+            C/C++ compiler
+                  |
+          validate artifact
+                  |
+            atomic publish
+                  |
+          transactional import
+
 ..
   # https://mermaid.js.org/community/contributing.html
   # https://www.mermaideditor.io/
@@ -174,3 +206,5 @@ generation of low-level Cython packages and modules for immediate use and testin
       :maxdepth: 2
 
       _templates/templates_index.rst
+
+.. youtube:: rxy_9I8967Q

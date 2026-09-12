@@ -1,18 +1,17 @@
-# Maintenance workspace
+# `_sphinx_ai_assistant` maintenance plane
 
-`maintenances/` is the repository-level maintenance control plane. It mirrors
-runtime module nesting without becoming a runtime dependency of the library.
+This directory mirrors the runtime module path without becoming a runtime
+dependency.
 
-For this subsystem:
+Start with [`MAINTAINING.md`](./MAINTAINING.md). A fresh chat should then read
+`_maintenance/FRESH_CHAT_HANDOFF.md` and `_maintenance/STATE.json`.
 
 ```text
-runtime:
-  scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/
-
-maintenance:
-  maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/
+_backup/                 maintenance-only retained backups
+_maintenance/            current contracts, schemas, checkpoints, tools, history
+MAINTAINING.md            human/fresh-chat entry point
+README.md                 this index
+todo/                     current work + reusable lessons
 ```
 
-Keep production/runtime files in the runtime tree, executable regression tests
-in the runtime/test tree, and maintenance plans, checkpoints, history, backups,
-runbooks, and lessons in the matching `maintenances/` tree.
+Production code must never import this tree.

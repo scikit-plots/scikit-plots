@@ -1,0 +1,2 @@
+UNAVAILABLE in supplied archive.
+No project packaging metadata (pyproject.toml/setup.cfg/setup.py/meson root) is present in this review snapshot, so an installed console-script/wheel entry-point smoke test cannot be attributed or reproduced here.

@@ -27,7 +27,6 @@ log() {
 # read -r ACTUAL_MODE ACTUAL_HASH < <(compute_tree_hash "$TARGET_DIR")
 compute_tree_hash() {
     # Excludes vendor.lock.json, README.md, and .gitignore for reproducibility.
-    local excludes="( -name vendor.lock.json -o -name $README_NAME -o -name .gitignore ) -prune -o"
     local EXCLUDES=("vendor.lock.json" "$README_NAME" ".gitignore")
     local exclude_expr=()
     for f in "${EXCLUDES[@]}"; do
@@ -37,10 +36,8 @@ compute_tree_hash() {
     local dir="$1"
 
     # Try Bash + sha256sum pipeline first
-    # ACTUAL_HASH=$(git -C "$TARGET_DIR" rev-parse HEAD 2>/dev/null || echo "none")
-    # ACTUAL_HASH=$(find "$TARGET_DIR" -type f -exec sha256sum {} \; | sort | sha256sum | awk '{print $1}')
     if command -v sha256sum >/dev/null 2>&1 && command -v find >/dev/null 2>&1; then
-        local mode="bash-sha256sum"
+        mode="bash-sha256sum"
         echo "⚙️  Using $mode mode for tree hash..." >&2
         # Portable find + sort + sha256sum hash deterministically pipeline (to skip excluded files)
         hash=$(
@@ -53,11 +50,9 @@ compute_tree_hash() {
         )
         echo "$mode $hash"
     else
-        # Fallback Compute SHA256 of all files for integrity verification
-        local mode="python-hashlib"
+        # Fallback: compute SHA256 of all files for integrity verification
+        mode="python-hashlib"
         echo "⚙️  Falling back to $mode mode for tree hash..." >&2
-        local hash
-        # hash=$(python - "$dir" <<'EOF'
         hash=$(python - << EOF "$dir"
 import hashlib, os, sys
 root = sys.argv[1]
@@ -88,9 +83,49 @@ EOF
 # Notice: no quotes around the space-separated paths.
 # Each path becomes a separate item in the SRC_SUBDIRS array.
 function usage() {
-    echo "Usage: $0 --repo-url REPO_URL --repo-ref TAG --target-dir PATH [--src-subdir SUBDIR] [--readme-name NAME] [--check]"
+    cat <<'USAGE'
+Usage:
+  Full vendoring (clone + copy + hash + README):
+    vendor_repo.sh --repo-url URL --repo-ref REF --target-dir PATH
+                   [--src-subdir "SUBDIR ..."] [--src-subdirs SUBDIR [SUBDIR ...]]
+                   [--move-to PATH] [--nested-folder NAME] [--readme-name NAME]
+                   [--ensure-init-py|-i] [--future-annotations|-A]
+                   [--scope-src-subdirs|-S] [--dry-run|-n]
+
+  Verify only (read-only, exits 2 on drift):
+    vendor_repo.sh --target-dir PATH --check
+
+  Refresh only the tree hash (no re-clone):
+    vendor_repo.sh --target-dir PATH --update-hash [--ensure-init-py|-i] [--future-annotations|-A]
+
+  Maintenance only on an already-vendored tree (no re-clone):
+    vendor_repo.sh --target-dir PATH [--ensure-init-py|-i] [--future-annotations|-A] [--dry-run|-n]
+
+Maintenance flags (usable in the full flow, --update-hash, or standalone):
+  -i, --ensure-init-py       Create a missing __init__.py (empty) in every nested
+                              folder under --target-dir. Never modifies or
+                              recreates one that already exists. Ignored (with a
+                              warning) under --check, which stays read-only.
+  -A, --future-annotations   Insert 'from __future__ import annotations' as the
+                              first statement after any shebang/leading comments/
+                              module docstring in every .py file under
+                              --target-dir. Skipped for empty files, files with no
+                              import statement, files that already have it, and
+                              files that don't parse as valid Python. Ignored
+                              (with a warning) under --check.
+  -S, --scope-src-subdirs    Narrow -i/-A to only the paths named in
+                              --src-subdirs (resolved to their actual on-disk
+                              location, even after --nested-folder/--move-to),
+                              instead of walking the whole --target-dir.
+                              Optional; default is the whole target (unchanged
+                              behavior). Only has an effect when --src-subdirs
+                              was also given in this invocation; otherwise -i/-A
+                              fall back to the whole target with a note.
+  -n, --dry-run              Report what --ensure-init-py / --future-annotations
+                              would change, without writing anything.
+USAGE
 }
-MODE="${REPO_URL:-"update"}"      # default
+MODE="${MODE:-"update"}"          # default (was mistakenly keyed off REPO_URL before)
 REPO_URL="${REPO_URL:-""}"        # Remote Git repo URL
 REPO_REF="${REPO_REF:-""}"        # Ref Branch, Tag, or Commit SHA
 TARGET_DIR="${TARGET_DIR:-""}"    # Directory to clone into
@@ -100,7 +135,11 @@ README_NAME="README.md"           # README.md
 MOVE_TO=""                        # optional move, default: do not move
 # Optional nested folder name inside target to move
 # --nested-folder "astropy" means only move $TARGET_DIR/astropy → MOVE_TO
-NESTED_FOLDER=""  # optional nested folder to move
+NESTED_FOLDER=""                          # optional nested folder to move
+ENSURE_INIT_PY="${ENSURE_INIT_PY:-false}"         # --ensure-init-py / -i
+FUTURE_ANNOTATIONS="${FUTURE_ANNOTATIONS:-false}" # --future-annotations / -A
+SCOPE_SRC_SUBDIRS="${SCOPE_SRC_SUBDIRS:-false}"    # --scope-src-subdirs / -S (default: whole target)
+DRY_RUN="${DRY_RUN:-false}"                       # --dry-run / -n
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -132,11 +171,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         --readme-name) README_NAME="$2"; shift 2 ;;
         --check) MODE="check"; shift ;;
-        --update-hash) MODE="update_hash"; shift ;;   # 👈 NEW
-        --help|-h)
-            # echo "Usage: $0 --repo-url REPO_URL --repo-ref TAG --target-dir PATH [--src-subdir SUBDIR] [--readme-name NAME] [--check]"
-            usage;
-            exit 0 ;;
+        --update-hash) MODE="update_hash"; shift ;;
+        --ensure-init-py|-i) ENSURE_INIT_PY="true"; shift ;;
+        --future-annotations|-A) FUTURE_ANNOTATIONS="true"; shift ;;
+        --scope-src-subdirs|-S) SCOPE_SRC_SUBDIRS="true"; shift ;;
+        --dry-run|-n) DRY_RUN="true"; shift ;;
+        --help|-h) usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -145,7 +185,6 @@ done
 # VALIDATE INPUTS
 #######################################
 [[ -z "$TARGET_DIR" ]] && { echo "❌ --target-dir required."; exit 1; }
-# TARGET_DIR=$(basename "$REPO_URL" .git)
 TARGET_DIR=$(realpath "$TARGET_DIR")
 LOCK_FILE="$TARGET_DIR/vendor.lock.json"
 README_FILE="$TARGET_DIR/$README_NAME"
@@ -163,8 +202,6 @@ copy_src_paths() {
 
     if [[ ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
         echo "📦  Copying entire repository..."
-        # cp -a "$tmp_dir"/. "$target_dir/"
-        # cp -a --preserve=all "$src" "$target_dir/$relpath"
         cp -a --preserve=timestamps,mode "$tmp_dir"/. "$target_dir/"
         return
     fi
@@ -185,7 +222,6 @@ copy_src_paths() {
         for src in "${matches[@]}"; do
             relpath="${src#$tmp_dir/}"
             mkdir -p "$target_dir/$(dirname "$relpath")"
-            # cp -a "$src" "$target_dir/$relpath"
             # ✅ Preserve timestamps & permissions
             cp -a --preserve=timestamps,mode "$src" "$target_dir/$relpath"
             echo "   - Copied: $relpath"
@@ -193,13 +229,264 @@ copy_src_paths() {
     done
 }
 
+# ---------------------------------------------------------------------
+# SCOPING: resolve which paths --ensure-init-py/--future-annotations
+# should actually walk, honoring --scope-src-subdirs.
+# ---------------------------------------------------------------------
+# Default (SCOPE_SRC_SUBDIRS=false, or no --src-subdirs given this run):
+# the whole $FINAL_TARGET, i.e. today's existing behavior - unchanged.
+#
+# With --scope-src-subdirs and a non-empty SRC_SUBDIRS: each requested
+# entry is re-resolved against the *actual, current* $FINAL_TARGET (not
+# replayed from copy-time bookkeeping), so it stays correct regardless of
+# --nested-folder/--move-to having relocated things:
+#   - entry == NESTED_FOLDER            -> whole $FINAL_TARGET
+#   - entry starts with "NESTED_FOLDER/" -> that prefix is stripped, since
+#                                           the move already stripped it
+#                                           on disk
+#   - otherwise (no --nested-folder, or entry wasn't under it)
+#                                        -> matched as-is via the same
+#                                           glob-aware find used at copy
+#                                           time, so patterns still work
+# Entries that resolve to nothing are reported and simply contribute no
+# root (rather than failing the whole run).
+# ---------------------------------------------------------------------
+compute_scope_roots() {
+    local final_target="$1"
+
+    if [[ "$SCOPE_SRC_SUBDIRS" != "true" || ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
+        if [[ "$SCOPE_SRC_SUBDIRS" == "true" ]]; then
+            echo "ℹ️   --scope-src-subdirs had no --src-subdirs to work from in this invocation; using the whole target." >&2
+        fi
+        printf '%s\0' "$final_target"
+        return
+    fi
+
+    local roots=()
+    for sub in "${SRC_SUBDIRS[@]}"; do
+        local effective_sub="$sub"
+        if [[ -n "$NESTED_FOLDER" ]]; then
+            if [[ "$sub" == "$NESTED_FOLDER" ]]; then
+                roots+=("$final_target")
+                continue
+            elif [[ "$sub" == "$NESTED_FOLDER"/* ]]; then
+                effective_sub="${sub#"$NESTED_FOLDER"/}"
+            fi
+            # else: this entry wasn't under --nested-folder, so it did not
+            # move to $final_target with it; fall through and try matching
+            # it as-is (covers the "no move happened" / mixed-use cases).
+        fi
+
+        local matched=0
+        while IFS= read -r -d '' path; do
+            roots+=("$path")
+            matched=1
+        done < <(find "$final_target" -path "$final_target/$effective_sub" -print0 2>/dev/null || true)
+        if [[ "$matched" -eq 0 ]]; then
+            echo "⚠️   --scope-src-subdirs: '$sub' has no match under $final_target; skipping it for scoping." >&2
+        fi
+    done
+
+    if [[ ${#roots[@]} -eq 0 ]]; then
+        echo "⚠️   --scope-src-subdirs matched nothing at all; falling back to the whole target." >&2
+        printf '%s\0' "$final_target"
+    else
+        printf '%s\0' "${roots[@]}"
+    fi
+}
+
+# ---------------------------------------------------------------------
+# MAINTENANCE: Ensure every nested folder has an __init__.py
+# ---------------------------------------------------------------------
+# Never modifies or recreates an existing __init__.py (even an empty one
+# that already exists is left untouched) - only creates it when missing.
+# Hidden directories (.git, .tmp, ...) and __pycache__ are skipped so we
+# never write into VCS/cache internals. Accepts one or more root paths
+# (see compute_scope_roots above for how those are chosen).
+# ---------------------------------------------------------------------
+ensure_init_py() {
+    local created=0
+    local present=0
+
+    log "INFO" "🧩  Ensuring __init__.py under: $*"
+
+    for root in "$@"; do
+        [[ -d "$root" ]] || continue
+        while IFS= read -r -d '' dir; do
+            local init_file="$dir/__init__.py"
+            if [[ -e "$init_file" ]]; then
+                present=$((present + 1))
+                continue
+            fi
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo "   + [dry-run] Would create: ${init_file#$root/}"
+            else
+                : > "$init_file"
+                echo "   + Created: ${init_file#$root/}"
+            fi
+            created=$((created + 1))
+        done < <(find "$root" \
+                    -type d \( -name '.git' -o -name '.tmp' -o -name '__pycache__' -o -name '.*' \) -prune \
+                    -o -type d -print0)
+    done
+
+    log "INFO" "✅  __init__.py check complete (created: $created, already present: $present)."
+}
+
+# ---------------------------------------------------------------------
+# MAINTENANCE: Ensure `from __future__ import annotations` is present
+# ---------------------------------------------------------------------
+#   - Skipped entirely for empty files, and for files with no import
+#     statement anywhere in them (nothing to future-annotate).
+#   - Skipped (left untouched) if the import is already present anywhere
+#     in the file - inserted at most once, ever.
+#   - Skipped (left untouched, reported) if the file does not parse as
+#     valid Python - never guess at a syntax fix.
+#   - Inserted as the first statement after any shebang / leading
+#     comments / module docstring, which is also the only syntactically
+#     legal place for a `__future__` import in Python - so it can never
+#     land inside a class, function, or method body.
+#   - Surrounded by exactly one blank line on each side; pre-existing
+#     blank lines at the insertion point are collapsed first so re-runs
+#     stay idempotent (no growing whitespace on repeated invocations).
+# Accepts one or more root paths (see compute_scope_roots above for how
+# those are chosen when --scope-src-subdirs narrows the walk).
+# ---------------------------------------------------------------------
+ensure_future_annotations() {
+    log "INFO" "🧬  Ensuring 'from __future__ import annotations' under: $*"
+    python - "$DRY_RUN" "$@" <<'PYEOF'
+import ast
+import os
+import re
+import sys
+
+DRY_RUN, ROOTS = sys.argv[1] == "true", sys.argv[2:]
+SKIP_DIRS = {".git", ".tmp", "__pycache__", ".hg", ".svn"}
+FUTURE_RE = re.compile(r"^[ \t]*from[ \t]+__future__[ \t]+import[ \t]+.*\bannotations\b")
+
+
+def has_future_annotations(source: str) -> bool:
+    return any(FUTURE_RE.match(line) for line in source.splitlines())
+
+
+def has_any_import(tree: ast.Module) -> bool:
+    return any(isinstance(n, (ast.Import, ast.ImportFrom)) for n in ast.walk(tree))
+
+
+def insertion_row(tree: ast.Module) -> int:
+    """0-indexed line count of the module preamble. Shebang and comments
+    are not part of the AST at all; only a leading docstring (the sole
+    statement Python allows before a __future__ import) extends it."""
+    if not tree.body:
+        return 0
+    first = tree.body[0]
+    is_docstring = (
+        isinstance(first, ast.Expr)
+        and isinstance(getattr(first, "value", None), ast.Constant)
+        and isinstance(first.value.value, str)
+    )
+    return first.end_lineno if is_docstring else first.lineno - 1
+
+
+def process(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            source = fh.read()
+        encoding = "utf-8"
+    except UnicodeDecodeError:
+        with open(path, "r", encoding="latin-1") as fh:
+            source = fh.read()
+        encoding = "latin-1"
+
+    if not source.strip():
+        return "empty"
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return "syntax-error"
+    if not has_any_import(tree):
+        return "no-import"
+    if has_future_annotations(source):
+        return "already-present"
+
+    lines = source.splitlines()
+    row = insertion_row(tree)
+    prefix, suffix = lines[:row], lines[row:]
+    while prefix and prefix[-1].strip() == "":
+        prefix.pop()
+    while suffix and suffix[0].strip() == "":
+        suffix.pop(0)
+    new_source = "\n".join(prefix + ["", "from __future__ import annotations", ""] + suffix)
+    if not new_source.endswith("\n"):
+        new_source += "\n"
+
+    if not DRY_RUN:
+        with open(path, "w", encoding=encoding, newline="") as fh:
+            fh.write(new_source)
+    return "updated"
+
+
+def iter_py_files(root: str):
+    """Yield .py file paths under `root` (or `root` itself if it already
+    names a .py file - a --src-subdirs entry can be a single file)."""
+    if os.path.isfile(root):
+        if root.endswith(".py"):
+            yield root
+        return
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        for name in filenames:
+            if name.endswith(".py"):
+                yield os.path.join(dirpath, name)
+
+
+def main() -> int:
+    counts = {}
+    seen = set()  # de-dup in case scope roots overlap/nest
+    for root in ROOTS:
+        display_base = root if os.path.isdir(root) else (os.path.dirname(root) or ".")
+        for full in iter_py_files(root):
+            full = os.path.realpath(full)
+            if full in seen:
+                continue
+            seen.add(full)
+            rel = os.path.relpath(full, display_base)
+            try:
+                status = process(full)
+            except Exception as exc:  # one bad file must never abort the whole tree
+                status = "error"
+                print(f"   ! Skipped ({exc.__class__.__name__}: {exc}): {rel}", file=sys.stderr)
+            counts[status] = counts.get(status, 0) + 1
+            if status == "updated":
+                tag = "[dry-run] Would update" if DRY_RUN else "Updated"
+                print(f"   + {tag}: {rel}")
+            elif status == "syntax-error":
+                print(f"   ! Skipped (does not parse, left untouched): {rel}", file=sys.stderr)
+
+    print(
+        "[INFO] future-annotations summary: "
+        f"updated={counts.get('updated', 0)} "
+        f"already_present={counts.get('already-present', 0)} "
+        f"no_import={counts.get('no-import', 0)} "
+        f"empty={counts.get('empty', 0)} "
+        f"syntax_error={counts.get('syntax-error', 0)} "
+        f"error={counts.get('error', 0)}"
+    )
+    return 0
+
+
+sys.exit(main())
+PYEOF
+}
+
 #######################################
 # Integrity check mode
 #######################################
-# echo "$MODE"
 if [[ "$MODE" == "check" ]]; then
+    if [[ "$ENSURE_INIT_PY" == "true" || "$FUTURE_ANNOTATIONS" == "true" ]]; then
+        echo "⚠️  --ensure-init-py/--future-annotations are ignored under --check (check stays read-only)." >&2
+    fi
     echo "🔍  Running integrity check on $TARGET_DIR..."
-    # [[ -f "$LOCK_FILE" ]] || { echo "❌ No vendor.lock.json found; cannot verify."; exit 1; }
     if [[ ! -f "$LOCK_FILE" ]]; then
         echo "❌  No vendor.lock.json found; cannot verify."
         exit 1
@@ -207,21 +494,17 @@ if [[ "$MODE" == "check" ]]; then
 
     # robust extraction
     if command -v jq >/dev/null 2>&1; then
-        # EXPECTED_HASH=$(jq -r '.commit_hash' "$LOCK_FILE")
         EXPECTED_HASH=$(jq -r '.tree_hash' "$LOCK_FILE")
     else
         echo "⚠  jq not found, using fallback JSON parser or python"
-        # EXPECTED_HASH=$(grep -o '"commit_hash": *"[^"]*"' "$LOCK_FILE" | sed -E 's/.*"commit_hash": *"([^"]*)".*/\1/')
         EXPECTED_HASH=$(python -c "import json,sys; print(json.load(open('$LOCK_FILE'))['tree_hash'])")
     fi
 
     # Compute actual tree hash (mode + hash)
-    # read -r ACTUAL_MODE ACTUAL_HASH < <(compute_tree_hash "$TARGET_DIR")
     read -r ACTUAL_MODE ACTUAL_HASH <<<"$(compute_tree_hash "$TARGET_DIR")"
 
     echo "🔍 Verification mode: $ACTUAL_MODE"
     if [[ "$EXPECTED_HASH" == "$ACTUAL_HASH" ]]; then
-        # echo "✅  Verified: Commit hash matches ($EXPECTED_HASH)"
         echo "✅  Verified: Tree hash matches ($EXPECTED_HASH)"
         exit 0
     else
@@ -245,31 +528,31 @@ sed_repl_escape() {
   printf '%s' "$1" | sed 's/[\/&]/\\&/g';
 }
 
-if [ "$MODE" = "update_hash" ]; then
-    echo "🔁  Recomputing tree hash for $TARGET_DIR..."
-
-    # [[ -f "$LOCK_FILE" ]] || { echo "❌ No vendor.lock.json found; cannot update hash."; exit 1; }
-    if [ ! -f "$LOCK_FILE" ]; then
-        echo "❌  No vendor.lock.json found; cannot update hash."
-        exit 1
-    fi
-
-    read -r NEW_MODE NEW_HASH <<<"$(compute_tree_hash "$TARGET_DIR")"
-    echo "🔐  New Tree Hash: $NEW_HASH ($NEW_MODE)"
+# ---------------------------------------------------------------------
+# Write recomputed tree_mode/tree_hash (+ timestamp) into vendor.lock.json
+# and README.md. Shared by --update-hash and standalone maintenance mode
+# so the two never drift apart.
+# ---------------------------------------------------------------------
+update_lock_and_readme_hash() {
+    local new_mode="$1"
+    local new_hash="$2"
+    local now
+    now="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
     if command -v jq >/dev/null 2>&1; then
+        local tmpfile
         tmpfile=$(mktemp)
-        jq --arg mode "$NEW_MODE" --arg hash "$NEW_HASH" \
-           '.tree_mode=$mode | .tree_hash=$hash | .generated_utc="'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'"' \
+        jq --arg mode "$new_mode" --arg hash "$new_hash" --arg now "$now" \
+           '.tree_mode=$mode | .tree_hash=$hash | .generated_utc=$now' \
            "$LOCK_FILE" >"$tmpfile" && mv "$tmpfile" "$LOCK_FILE"
     else
-        python - "$LOCK_FILE" "$NEW_MODE" "$NEW_HASH" <<'EOF'
+        python - "$LOCK_FILE" "$new_mode" "$new_hash" <<'EOF'
 import json, sys, datetime, tempfile, os
 path, mode, h = sys.argv[1:4]
 data = json.load(open(path))
 data["tree_mode"] = mode
 data["tree_hash"] = h
-data["generated_utc"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")  # '%Y-%m-%dT%H:%M:%SZ'
+data["generated_utc"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 tmp = tempfile.NamedTemporaryFile('w', delete=False)
 json.dump(data, tmp, indent=2)
 tmp.close()
@@ -277,50 +560,88 @@ os.replace(tmp.name, path)
 EOF
     fi
 
-    # Update README.md if exists
-    # if [ -f "$README_FILE" ]; then
-    #     sed -i.bak -E \
-    #         -e "s/^(- Tree Mode:).*/\1  $NEW_MODE/" \
-    #         -e "s/^(- Tree Hash:).*/\1  $NEW_HASH/" \
-    #         -e "s/^(- Retrieved:).*/\1  $(date -u +'%Y-%m-%dT%H:%M:%SZ')/" \
-    #         "$README_FILE" && rm -f "$README_FILE.bak"
-    #     echo "📘 Updated $README_FILE with new hash."
-    # fi
-
-    # Update README.md if exists
+    # Update README.md if it exists
     if [ -f "$README_FILE" ]; then
-      NEW_MODE_ESC="$(sed_repl_escape "$NEW_MODE")"
-      NEW_HASH_ESC="$(sed_repl_escape "$NEW_HASH")"
-      NOW="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-      NOW_ESC="$(sed_repl_escape "$NOW")"
+      local new_mode_esc new_hash_esc now_esc
+      new_mode_esc="$(sed_repl_escape "$new_mode")"
+      new_hash_esc="$(sed_repl_escape "$new_hash")"
+      now_esc="$(sed_repl_escape "$now")"
 
       # --- New table format ---
       # --- Legacy bullet format (if still present) ---
       sed -i.bak -E \
         \
-        -e "s/^(\|[[:space:]]*Tree Mode[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NEW_MODE_ESC \2/" \
-        -e "s/^(\|[[:space:]]*Tree Hash[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NEW_HASH_ESC \2/" \
-        -e "s/^(\|[[:space:]]*Retrieved[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $NOW_ESC \2/" \
+        -e "s/^(\|[[:space:]]*Tree Mode[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $new_mode_esc \2/" \
+        -e "s/^(\|[[:space:]]*Tree Hash[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $new_hash_esc \2/" \
+        -e "s/^(\|[[:space:]]*Retrieved[^|]*\|)[[:space:]]*[^|]*(\|\|[[:space:]]*)$/\1 $now_esc \2/" \
         \
-        -e "s/^(- Tree Mode:).*/\1  $NEW_MODE_ESC/" \
-        -e "s/^(- Tree Hash:).*/\1  $NEW_HASH_ESC/" \
-        -e "s/^(- Retrieved:).*/\1  $NOW_ESC/" \
+        -e "s/^(- Tree Mode:).*/\1  $new_mode_esc/" \
+        -e "s/^(- Tree Hash:).*/\1  $new_hash_esc/" \
+        -e "s/^(- Retrieved:).*/\1  $now_esc/" \
         \
         "$README_FILE" && rm -f "$README_FILE.bak"
 
       echo "📘 Updated README.md with new hash."
     fi
+}
+
+if [ "$MODE" = "update_hash" ]; then
+    echo "🔁  Recomputing tree hash for $TARGET_DIR..."
+
+    if [ ! -f "$LOCK_FILE" ]; then
+        echo "❌  No vendor.lock.json found; cannot update hash."
+        exit 1
+    fi
+
+    if [[ "$ENSURE_INIT_PY" == "true" || "$FUTURE_ANNOTATIONS" == "true" ]]; then
+        mapfile -d '' -t scope_roots < <(compute_scope_roots "$TARGET_DIR")
+        [[ "$ENSURE_INIT_PY" == "true" ]] && ensure_init_py "${scope_roots[@]}"
+        [[ "$FUTURE_ANNOTATIONS" == "true" ]] && ensure_future_annotations "${scope_roots[@]}"
+    fi
+
+    read -r NEW_MODE NEW_HASH <<<"$(compute_tree_hash "$TARGET_DIR")"
+    echo "🔐  New Tree Hash: $NEW_HASH ($NEW_MODE)"
+
+    update_lock_and_readme_hash "$NEW_MODE" "$NEW_HASH"
 
     echo "✅  Updated vendor.lock.json and $README_NAME with recomputed hash."
     exit 0
 fi
 
+#######################################
+# Maintenance-only mode (no clone): apply --ensure-init-py / --future-annotations
+# to an already-vendored tree, then refresh the lock file + README if present.
+#######################################
+if [[ "$MODE" == "update" && -z "$REPO_URL" && -z "$REPO_REF" \
+      && ( "$ENSURE_INIT_PY" == "true" || "$FUTURE_ANNOTATIONS" == "true" ) ]]; then
+    echo "🛠️   Maintenance mode (no clone) on $TARGET_DIR..."
+
+    mapfile -d '' -t scope_roots < <(compute_scope_roots "$TARGET_DIR")
+    [[ "$ENSURE_INIT_PY" == "true" ]] && ensure_init_py "${scope_roots[@]}"
+    [[ "$FUTURE_ANNOTATIONS" == "true" ]] && ensure_future_annotations "${scope_roots[@]}"
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "ℹ️   Dry run: no files were written; lock file/README left untouched."
+        exit 0
+    fi
+
+    if [[ -f "$LOCK_FILE" ]]; then
+        echo "🔁  Refreshing tree hash after maintenance..."
+        read -r NEW_MODE NEW_HASH <<<"$(compute_tree_hash "$TARGET_DIR")"
+        echo "🔐  New Tree Hash: $NEW_HASH ($NEW_MODE)"
+        update_lock_and_readme_hash "$NEW_MODE" "$NEW_HASH"
+    else
+        echo "ℹ️   No vendor.lock.json found under $TARGET_DIR; skipping hash refresh."
+    fi
+
+    echo "✅  Maintenance complete."
+    exit 0
+fi
 
 #######################################
 # Update (vendoring) mode
 #######################################
 # --- Step 1: Validate Inputs ---
-# [[ -z "$REPO_URL" || -z "$REPO_REF" ]] && { echo "❌ --repo-url and --repo-ref required for update mode."; exit 1; }
 [[ -z "$REPO_URL" ]] && { echo "❌  --repo-url required."; exit 1; }
 [[ -z "$REPO_REF" ]] && { echo "❌  --repo-ref required."; exit 1; }
 
@@ -368,12 +689,7 @@ clone_default_branch() {
 clone_specific_commit() {
   log "INFO" "Cloning specific commit: $REPO_REF"
   # Initialize repo with main as default branch
-  # git init "$TMP_DIR"
   git init -b main "$TMP_DIR"
-  # git -C "$TMP_DIR" remote add origin "$REPO_URL"
-  # git -C "$TMP_DIR" fetch --depth 1 origin "$REPO_REF"
-  # git -C "$TMP_DIR" checkout "$REPO_REF" || { echo "❌ Commit $REPO_REF not found."; exit 1; }
-  # cd "$TMP_DIR"
   pushd "$TMP_DIR" >/dev/null
   git remote add origin "$REPO_URL"
   # the entire repository contents as they were at that commit.
@@ -392,11 +708,6 @@ clone_branch_or_tag() {
   # entire tree at that point
   git clone --depth 1 --branch "$REPO_REF" "$REPO_URL" "$TMP_DIR"
 }
-
-# --- Step 2: Clone and get exact commit hash ---
-# --depth 1 → shallow clone (faster, minimal history)
-# --branch tag_or_branch -> only supports branch names or tags — not commit hashes.
-# git clone --depth 1 --branch "$REPO_REF" "$REPO_URL" "$TMP_DIR"
 
 # ---------------------------------------------------------------------
 # STEP 2: Execute appropriate clone mode
@@ -424,38 +735,21 @@ log "SUCCESS" "Repository successfully checked out to: $TMP_DIR"
 echo "📦  Checked out commit $HASH from $REPO_URL"
 
 # --- Step 3: Move or Copy files exactly-deterministically ---
-# if [[ -n "$SRC_SUBDIR" && ! -d "$TMP/$SRC_SUBDIR" ]]; then
-# if [[ ! -f "$TMP/LICENSE" && ! -f "$TMP/LICENSE.txt" ]]; then
-# SRC_PATH="${SRC_SUBDIR:+$TMP_DIR/$SRC_SUBDIR}"
-# # Verify required files exist
-# [[ -d "${SRC_PATH:-}" ]] || { echo "❌ Subdir '$SRC_SUBDIR' not found."; exit 1; }
-# cp -a "$SRC_PATH"/. "$TARGET_DIR/"
 if [[ ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
     echo "📦  Copying entire repository..."
     cp -a --preserve=timestamps,mode "$TMP_DIR"/. "$TARGET_DIR/"
 else
-    # Verify all requested paths exist before copying
+    # Verify all requested paths exist before copying. Uses the same
+    # pattern-aware `find -path` matching as copy_src_paths below, so a
+    # legitimate glob entry can never fail here while still matching there.
     for sub in "${SRC_SUBDIRS[@]}"; do
-        local_path="$TMP_DIR/$sub"
-        [[ -e "$local_path" ]] || { echo "❌ Path '$sub' not found in repo."; exit 1; }
+        if ! find "$TMP_DIR" -path "$TMP_DIR/$sub" -print -quit 2>/dev/null | grep -q .; then
+            echo "❌  Path '$sub' not found in repo." >&2
+            exit 1
+        fi
     done
-    # Copy all requested paths at once
-    # cp -a "$local_path" "$TARGET_DIR/$sub"
     copy_src_paths "$TMP_DIR" "$TARGET_DIR"
 fi
-
-sync_source_tree() {
-    local tmp_dir="$1"
-    local target_dir="$2"
-    if [[ ${#SRC_SUBDIRS[@]} -eq 0 ]]; then
-        log INFO "Copying entire repository..."
-        rsync -a --no-perms --no-owner --no-group "$tmp_dir"/. "$target_dir"
-    else
-        log INFO "Copying selective paths: ${SRC_SUBDIRS[*]}"
-        copy_src_paths "$tmp_dir" "$target_dir"
-    fi
-}
-
 
 # Copy LICENSE files, under ifdef NESTED_FOLDER
 if [[ -n "$NESTED_FOLDER" ]]; then
@@ -501,12 +795,17 @@ if [[ -n "${MOVE_TO:-}" ]]; then
     FINAL_TARGET="$MOVE_TO"  # after possible move
 fi
 
-# --- # Step 4: Compute SHA256 fingerprint-hash of the vendored tree ---
-# read -r TREE_MODE TREE_HASH < <(compute_tree_hash "$TARGET_DIR")
+# --- Step 3c: Maintenance passes on the final vendored tree (optional) ---
+if [[ "$ENSURE_INIT_PY" == "true" || "$FUTURE_ANNOTATIONS" == "true" ]]; then
+    mapfile -d '' -t scope_roots < <(compute_scope_roots "$FINAL_TARGET")
+    [[ "$ENSURE_INIT_PY" == "true" ]] && ensure_init_py "${scope_roots[@]}"
+    [[ "$FUTURE_ANNOTATIONS" == "true" ]] && ensure_future_annotations "${scope_roots[@]}"
+fi
+
+# --- Step 4: Compute SHA256 fingerprint-hash of the vendored tree ---
 read -r TREE_MODE TREE_HASH <<<"$(compute_tree_hash "$FINAL_TARGET")"
 
 # --- Step 5: Save-Write metadata lockfile ---
-# cat >"$LOCK_FILE" <<EOF
 cat <<EOF > "$LOCK_FILE"
 {
   "repository": "$REPO_URL",
@@ -528,13 +827,28 @@ code_block_p() {
 }
 
 # --- Step 5: Record provenance exactly README.md ---
-# quote the delimiter (e.g., <<'EOF', <<"EOF", or <<\EOF).
-# Single quotes	              <<'EOF'	No expansion; simplest and most common.
-# Double quotes	              <<"EOF"	No expansion (same as single quotes here).
-# Escaping the delimiter      <<\EOF	No expansion (backslash is stripped).
-# here-doc uses leading tabs  <<-'EOF'  Hyphen strips leading tabs
-# {echo "Vendored repository information"} > "$TARGET_DIR/README.md"
-# cat >"$TARGET_DIR/README.md" <<EOF
+# Build the "how to reproduce" command, only including flags actually in use
+# (an unconditional --move-to/--nested-folder/--src-subdirs with an empty
+# value produced misleading copy-paste instructions before).
+EXTRA_FLAGS=""
+[[ "$ENSURE_INIT_PY" == "true" ]] && EXTRA_FLAGS+=" --ensure-init-py"
+[[ "$FUTURE_ANNOTATIONS" == "true" ]] && EXTRA_FLAGS+=" --future-annotations"
+[[ "$SCOPE_SRC_SUBDIRS" == "true" ]] && EXTRA_FLAGS+=" --scope-src-subdirs"
+
+REPRO_CMD="bash ./tools/maint_tools/vendor_repo.sh \\
+  --repo-url $REPO_URL \\
+  --repo-ref $REPO_REF \\
+  --target-dir $TARGET_DIR"
+[[ -n "$MOVE_TO" ]] && REPRO_CMD+=" \\
+  --move-to $MOVE_TO"
+[[ -n "$NESTED_FOLDER" ]] && REPRO_CMD+=" \\
+  --nested-folder $NESTED_FOLDER"
+if [[ ${#SRC_SUBDIRS[@]} -gt 0 ]]; then
+  REPRO_CMD+=" \\
+  --src-subdirs ${SRC_SUBDIRS[*]}"
+fi
+REPRO_CMD+=" \\
+  --readme-name $README_NAME${EXTRA_FLAGS}"
 
 cat <<EOF > "$README_FILE"
 Vendored repository information
@@ -551,20 +865,20 @@ Vendored repository information
 
 To update (git clone), run:
 
-$(code_block_p "bash ./tools/maint_tools/vendor_repo.sh \\
-  --repo-url $REPO_URL \\
-  --repo-ref $REPO_REF \\
-  --target-dir $TARGET_DIR \\
-  --move-to $MOVE_TO \\
-  --nested-folder $NESTED_FOLDER \\
-  --src-subdirs ${SRC_SUBDIRS[*]} \\
-  --readme-name $README_NAME")
+$(code_block_p "$REPRO_CMD")
 
 To update only the tree hash (no git clone):
 
 $(code_block_p "bash ./tools/maint_tools/vendor_repo.sh \\
   --target-dir $FINAL_TARGET \\
   --update-hash")
+
+To add missing __init__.py files and/or future-annotations imports without re-cloning:
+
+$(code_block_p "bash ./tools/maint_tools/vendor_repo.sh \\
+  --target-dir $FINAL_TARGET \\
+  --ensure-init-py \\
+  --future-annotations")
 
 To verify in CI:
 

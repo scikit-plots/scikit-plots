@@ -61,6 +61,8 @@ The Z is not preceded by a % (or a colon) - so it is not a format directive; it 
 This is also fully compliant and works on macOS (BSD) and Linux.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import subprocess

@@ -1,0 +1,11 @@
+schema_version = 1
+statement_schema_version = 1
+signature_record_schema_version = 1
+receipt_schema_version = 1
+max_patch_bytes = 16777216
+max_baseline_zip_bytes = 67108864
+max_source_files = 10000
+max_source_total_bytes = 268435456
+max_signature_age_hours = 72
+archive_prefix = "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant"
+predicate_type = "https://scikit-plots.org/attestations/release-promotion/v1"

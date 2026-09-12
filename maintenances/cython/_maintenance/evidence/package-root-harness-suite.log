@@ -1,0 +1,40 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+.s.....................................................................s [ 17%]
+sss..................................................................... [ 23%]
+...............................................ss....................... [ 28%]
+........................................................................ [ 34%]
+........................................................................ [ 40%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 63%]
+...............................s........................................ [ 69%]
+........................................................................ [ 75%]
+........................................................................ [ 80%]
+........................................................................ [ 86%]
+........................................................................ [ 92%]
+........................................................................ [ 98%]
+........................                                                 [100%]
+=============================== warnings summary ===============================
+scikitplot/cython/tests/test__builder.py::TestImportSetuptools::test_env_var_not_overwritten_if_already_set
+  /opt/pyvenv/lib/python3.13/site-packages/_distutils_hack/__init__.py:53: UserWarning: Reliance on distutils from stdlib is deprecated. Users must rely on setuptools to provide the distutils module. Avoid importing distutils or import setuptools first, and avoid setting SETUPTOOLS_USE_DISTUTILS=stdlib. Register concerns at https://github.com/pypa/setuptools/issues/new?template=distutils-deprecation.yml
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] scikitplot/cython/tests/test__builder.py:955: Python < 3.12 only
+SKIPPED [1] scikitplot/cython/tests/test__cache.py:155: Windows-only path logic
+SKIPPED [1] scikitplot/cython/tests/test__cache.py:161: Windows-only path logic
+SKIPPED [1] scikitplot/cython/tests/test__cache.py:172: Windows-only path logic
+SKIPPED [1] scikitplot/cython/tests/test__cache.py:181: Windows-only path logic
+SKIPPED [1] scikitplot/cython/tests/test__cache_schema.py:114: toolchain global-state polluted (CYTHON-CON-002): Cythonize failed for module 'sch_a'.
+Source: /tmp/tmpjelvs71q/.staging-5e01175430dce7b3-hon764hx/sch_a.pyx
+Hint: rerun with verbose=1 to see full compiler/Cython output.
+SKIPPED [1] scikitplot/cython/tests/test__cache_schema.py:114: toolchain global-state polluted (CYTHON-CON-002): Cythonize failed for module 'sch_b'.
+Source: /tmp/tmpawr2u_8n/.staging-c09a818a3079b7e6-s6mfets9/sch_b.pyx
+Hint: rerun with verbose=1 to see full compiler/Cython output.
+SKIPPED [1] scikitplot/cython/tests/test__public_import_pyx.py:100: toolchain global-state polluted (CYTHON-CON-002): Compilation failed for module 'scikitplot_cython_ae0cebc83c5ef01c': each element of 'ext_modules' option must be an Extension instance or 2-tuple
+Build prerequisites: a working C/C++ compiler toolchain and Python development headers (e.g., python3-dev on Debian/Ubuntu).
+1240 passed, 8 skipped, 1 warning in 10.92s
+exit=0

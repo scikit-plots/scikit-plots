@@ -1,69 +1,17 @@
 # Maintaining `scikitplot.random`
 
-Entry point for future maintenance. **Self-contained**: a fresh session needs no
-chat history to continue from here.
+This directory owns maintenance state for `scikitplot/random`. The runtime code stays under `scikitplot/`; project-local onboarding stays under `skills/random/`. A fresh session should not need chat history.
 
-```text
-archive: scikit-plots.zip
-sha256:  a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f
+**Ownership:** KISS seed/bit-generator/generator/state APIs, Cython wrapper/declarations/helpers, typing, Meson extension definition, and random-specific tests. It consumes `kissrandom.h` from `scikitplot/cexternals/_annoy/src/`; that shared header is owned by the separate `cexternals/_annoy` subsystem. Do not patch or vendor the header here to make this consumer pass.
+
+Read `_maintenance/FRESH_CHAT_HANDOFF.md`, then `_maintenance/STATE.json`, `_maintenance/FAMILY.md`, and `_maintenance/VERIFICATION.md`. Machine-readable contracts are `MAINTENANCE.json` and `REVIEW.json`; the skill entry point is `/skills/random/SKILL.md`.
+
+From the repository root:
+
+```sh
+python -B maintenances/random/_maintenance/check_trackers.py
+python -B maintenances/random/_maintenance/review_subsystem.py --json
+python -B maintenances/random/_maintenance/tests/test_contract.py
 ```
 
-## This submodule is part of a family
-
-`cexternals/_annoy` (C++ source) → `annoy`, `memmap`, `random` (consumers).
-**This one is a consumer of `cexternals/_annoy/src/`.**
-
-Read `_maintenance/FAMILY.md` before changing anything under
-`cexternals/_annoy/src/`. A change there is never local.
-
-## Read order for a fresh chat
-
-1. `_maintenance/FAMILY.md` — the four-submodule contract
-2. `_maintenance/MAINTENANCE_MODEL.md` — why / when / where / which / how many / how much
-3. `_maintenance/TRACKER_LOGICAL.md` — what this submodule promises
-4. `_maintenance/TRACKER_PHYSICAL.md` — what is on disk; tripwires
-5. `_maintenance/SUBMODULE_STRUCTURE.md` — where things go; debt disposition
-6. `_maintenance/VERIFICATION.md` — how to prove the tree is healthy
-
-`_maintenance/HISTORY.md` only when historical rationale is needed.
-Machine-readable: `_maintenance/STATE.json`, `_maintenance/TRACKER.json`.
-
-Do not create new parallel files named `FINAL`, `REVISED`, `EXPANDED`,
-date-suffixed, or chat-specific variants inside the source tree.
-
-## Run this first
-
-```console
-$ python scikitplot/random/_maintenance/check_trackers.py
-```
-
-Then a **clean build**. Unlike Corpus, this family compiles — a green tracker
-check on an unbuilt tree is necessary, not sufficient.
-
-## Current state
-
-```text
-source files    5   source LOC    4555
-test files      4   test LOC      1435
-markdown        4
-open findings   3   (A00 input — revalidate, do not accept)
-
-Corpus   review + implementation COMPLETE
-MCP      maintenance set ready; M00 pending
-ANNOY    maintenance set ready; run A00 NEXT
-CLI      after ANNOY
-```
-
-**Do not begin implementation.** Establish the big picture across A00–A21 first,
-exactly as Corpus and MCP did. The Corpus campaign's value came from 55 findings
-and **23 disproofs** before any code — which is why 18 implementation increments
-ran without a red suite.
-
-## The one rule
-
-> `cexternals/_annoy` is upstream of three submodules. The coupling is a
-> **relative path written into Cython source**, not an `include_directories`
-> entry — invisible to anything reading `meson.build` alone.
-
-`check_trackers.py` verifies every such reference resolves, and that `cexternals`
-never imports a Python layer built on top of it.
+The maintenance gate is structural evidence only. A runtime or release claim additionally requires a clean native build, the module test suite, and appropriate platform evidence. `UNAVAILABLE` is never promoted to `PASS`. After an intentional runtime structural change, review the diff and use `check_trackers.py --update`; refresh refuses to bless broken dependency/build/plane contracts.

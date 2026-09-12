@@ -1,165 +1,68 @@
 {
-  "schema_version": 1,
-  "module": "scikitplot.annoy",
-  "role": "the Cython + Python layer over the shared C++ source",
-  "family": {
-    "members": [
-      "scikitplot/cexternals/_annoy",
-      "scikitplot/annoy",
-      "scikitplot/memmap",
-      "scikitplot/random"
-    ],
-    "shared_source": "scikitplot/cexternals/_annoy/src/",
-    "upstream": "cexternals/_annoy",
-    "contract": "FAMILY.md (identical in all four _maintenance/ folders)"
+  "schema_version": 2,
+  "subsystem": "scikitplot.annoy",
+  "reviewed_on": "2026-09-12",
+  "maintenance_status": "PASS_EXPECTED",
+  "runtime_status": "FAIL_EXPECTED",
+  "release_status": "BLOCKED_EXPECTED",
+  "architecture": {
+    "native_owner": "scikitplot.cexternals._annoy",
+    "native_backend": "scikitplot.cexternals._annoy.Annoy",
+    "public_high_level": "scikitplot.annoy.Index",
+    "cython_backend": "scikitplot.annoy._annoy.Index",
+    "cython_extension": "scikitplot.annoy._annoy.annoylib",
+    "source_chain": "Tempita templates -> generated pyx/pxd -> Cython-generated C++ -> compiled extension"
   },
-  "source": {
-    "archive": "scikit-plots.zip",
-    "sha256": "a7941cb07e34fb8225061ad0fa1d7f08b66e75afffb1ba3707380d255e37bd9f"
-  },
-  "maintenance_set": {
-    "version": "LIVE_V1",
-    "mirrors": "scikitplot/corpus/_maintenance and scikitplot/mcp/_maintenance",
-    "gate": "python scikitplot/annoy/_maintenance/check_trackers.py",
-    "principle": "A document that describes what a script can check should be replaced by the script; one that records why cannot be."
-  },
-  "physical_totals": {
-    "source_files": 17,
-    "source_loc": 13535,
-    "test_files": 46,
-    "test_loc": 6134,
-    "markdown_files": 48
-  },
-  "campaign": {
-    "name": "annoy family deep review",
-    "guide": "ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md",
-    "runs": {
-      "A00": {
-        "status": "READY"
-      },
-      "A01": {
-        "status": "NOT_STARTED"
-      },
-      "A02": {
-        "status": "NOT_STARTED"
-      },
-      "A03": {
-        "status": "NOT_STARTED"
-      },
-      "A04": {
-        "status": "NOT_STARTED"
-      },
-      "A05": {
-        "status": "NOT_STARTED"
-      },
-      "A06": {
-        "status": "NOT_STARTED"
-      },
-      "A07": {
-        "status": "NOT_STARTED"
-      },
-      "A08": {
-        "status": "NOT_STARTED"
-      },
-      "A09": {
-        "status": "NOT_STARTED"
-      },
-      "A10": {
-        "status": "NOT_STARTED"
-      },
-      "A11": {
-        "status": "NOT_STARTED"
-      },
-      "A12": {
-        "status": "NOT_STARTED"
-      },
-      "A13": {
-        "status": "NOT_STARTED"
-      },
-      "A14": {
-        "status": "NOT_STARTED"
-      },
-      "A15": {
-        "status": "NOT_STARTED"
-      },
-      "A16": {
-        "status": "NOT_STARTED"
-      },
-      "A17": {
-        "status": "NOT_STARTED"
-      },
-      "A18": {
-        "status": "NOT_STARTED"
-      },
-      "A19": {
-        "status": "NOT_STARTED"
-      },
-      "A20": {
-        "status": "NOT_STARTED"
-      },
-      "A21": {
-        "status": "NOT_STARTED"
-      }
-    },
-    "active_run": "A00",
-    "production_code_modified": false,
-    "note": "One guide covers the family. Runs A07 (memmap), A10 (all three) and A11 (random) have a stake outside scikitplot.annoy."
-  },
-  "open_findings": [
+  "findings": [
     {
-      "id": "AF-A00-A1",
+      "id": "AN-RR-001",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "Annoy Cython Meson generator is missing",
+      "evidence": "scikitplot/annoy/_annoy/meson.build requires ../../_build_utils/tempita.py, but scikitplot/_build_utils/tempita.py is absent in the supplied snapshot.",
+      "effect": "A clean Cython build cannot establish generation reproducibility."
+    },
+    {
+      "id": "AN-RR-002",
       "severity": "P2",
-      "title": "48 markdown files, ~35 finished per-run checkpoints in `_maintenance/`",
-      "evidence": "RUN0*-RUN25*, RUN_CY0*, plus BURNDOWN/CONTINUATION/CAMPAIGN_SUMMARY",
-      "fix": "archive to history/; 48 -> ~12"
+      "status": "OPEN",
+      "title": "Inactive checked-in annoymodule.cpp can be mistaken for generated authority",
+      "evidence": "scikitplot/annoy/_annoy/annoymodule.cpp is a fastannoy/pybind11 source and is not referenced by the current Annoy Meson target.",
+      "effect": "Maintainers can edit or review the wrong C++ file; it is not the Cython-generated translation unit."
     },
     {
-      "id": "AF-A00-A2",
+      "id": "AN-RR-003",
+      "severity": "P1",
+      "status": "VERIFICATION_GAP",
+      "title": "Cython declaration/header path parity is not ABI parity",
+      "evidence": "annoylib.pxd.in mirrors C++ classes/templates/signatures from cexternals/_annoy headers.",
+      "effect": "Static maintenance checks can prove ownership/path wiring, but only a clean Cython/C++ compile and focused runtime tests can validate declarations."
+    },
+    {
+      "id": "AN-RR-004",
       "severity": "P2",
-      "title": "`cdef extern` blocks mirror C++ signatures with no shape check",
-      "evidence": "6 sites against cexternals; check_trackers verifies existence only",
-      "fix": "compile-time static assert or a parser"
+      "status": "DOCUMENTED",
+      "title": "Two separately compiled Annoy types coexist",
+      "evidence": "Public scikitplot.annoy.Index inherits cexternals._annoy.Annoy, while scikitplot.annoy._annoy.Index is a separate Cython extension type.",
+      "effect": "Tests and maintenance must name which backend/type is under review."
     },
     {
-      "id": "AF-A00-A3",
-      "severity": "P3",
-      "title": "`_annoy/_backup/` duplicates `cexternals/_annoy/_backup/`",
-      "evidence": "two copies of the same vendored provenance",
-      "fix": "keep at most one, in cexternals"
-    },
-    {
-      "id": "AF-A00-A4",
-      "severity": "P3",
-      "title": "Three separate documents describe one dtype contract",
-      "evidence": "SUPPORTED_DTYPES_AND_MULTIPRECISION, FLOAT80_DTYPE, FLOAT_TYPE_ANALYSIS_AND_DESIGN",
-      "fix": "fold into TRACKER_LOGICAL.md"
-    },
-    {
-      "id": "AF-A00-A5",
+      "id": "AN-RR-005",
       "severity": "P2",
-      "title": "Corpus declares `supports_persistence=True` on the strength of ANNIndexArtifact",
-      "evidence": "IMPL-13 flipped it when the artifact format landed; Annoy's native save/load is not yet wired to write_native/open_native",
-      "fix": "A15: wire it, or the Corpus declaration outruns the implementation"
+      "status": "OPEN",
+      "title": "Cython template standalone instructions still advertise C++14",
+      "evidence": "scikitplot/annoy/_annoy/annoylib.pxd.in contains -std=c++14 distutils/manual compile comments, while root meson.build sets cpp_std=c++17 and cexternals/_annoy/src/annoylib.h rejects pre-C++17 builds.",
+      "effect": "The active Meson build is C++17, but maintainers following the template-local standalone instructions hit a deterministic compile failure."
     }
   ],
-  "corpus_contracts_relevant": {
-    "VectorIndexBackend": "renamed from ANNBackend; declares 11 capability members Annoy's backend must answer truthfully",
-    "ANNIndexArtifact": "BUILT AND TESTED: index dir + versioned ordinal->doc_id sidecar + embedding manifest. Unblocks A15.",
-    "supports_persistence": "Corpus currently declares True. If Annoy's native save/load does not round-trip, that declaration is wrong."
-  },
-  "fresh_chat_read_order": [
-    "_maintenance/FAMILY.md",
-    "_maintenance/MAINTENANCE_MODEL.md",
-    "_maintenance/TRACKER_LOGICAL.md",
-    "_maintenance/TRACKER_PHYSICAL.md",
-    "_maintenance/SUBMODULE_STRUCTURE.md",
-    "_maintenance/VERIFICATION.md"
-  ],
-  "next_exact_action": "Start run A00 (clean-room source/build baseline) per ANNOY_UNIFIED_DEEP_REVIEW_EVOLUTION_GUIDE.md section 4. Do NOT begin implementation: establish the big picture across A00-A21 first, as Corpus and MCP did. The findings in open_findings are A00 INPUT - revalidate each against the tree with evidence rather than accepting it. A00 requires a CLEAN-ROOM build: this family compiles, so a tracker check on an unbuilt tree is necessary but not sufficient. Project sequence after ANNOY: CLI.",
-  "project_sequence": {
-    "corpus": "COMPLETE (R00-R16 review, IMPL-01-18 implementation)",
-    "mcp": "maintenance set ready; run M00 pending",
-    "annoy_family": "maintenance set ready; run A00 NEXT",
-    "cli": "AFTER ANNOY"
+  "next_exact_action": "Restore or replace the declared Tempita generation program in runtime/build scope, then perform a clean generation + Cython/C++ build before promoting runtime or release status.",
+  "runtime_fingerprint": "b114e5026268cd6931eefc3a09a9f9281b3a9e4389ece20132e86cbb7d03bf0e",
+  "inventory": {
+    "runtime_files": 89,
+    "runtime_bytes": 2398654,
+    "source_files": 23,
+    "source_loc": 10182,
+    "test_files": 46,
+    "test_loc": 6134
   }
 }

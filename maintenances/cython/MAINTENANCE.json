@@ -1,0 +1,162 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.cython",
+  "runtime_root": "scikitplot/cython",
+  "maintenance_root": "maintenances/cython",
+  "skill": "skills/cython/SKILL.md",
+  "ownership": {
+    "owns": "Runtime compilation/loading of caller-supplied Python/Cython extension source, build security validation, compiler/toolchain adaptation, content-addressed cache and metadata, build locks, pins/GC, transactional publication/import, runtime capability contracts, and the shipped template/probe corpus.",
+    "does_not_own": "Project build-time Cython generation for other submodules (for example scikitplot.annoy), Meson project configuration, sibling subsystem semantics, external Cython/setuptools/compiler implementations, or the platform C/C++ ABI itself."
+  },
+  "tiers": {
+    "facade": {
+      "modules": [
+        "__init__.py",
+        "_public.py",
+        "_api.py",
+        "_result.py"
+      ],
+      "description": "Supported runtime-facing compile/import facade and API stability registry."
+    },
+    "trust_boundary": {
+      "modules": [
+        "_security.py",
+        "_budget.py",
+        "_profiles.py"
+      ],
+      "description": "Input validation, bounded execution/diagnostics, and runtime/toolchain capability policy."
+    },
+    "build_engine": {
+      "modules": [
+        "_builder.py",
+        "_custom_compiler.py",
+        "_loader.py"
+      ],
+      "description": "Effectful compilation, custom compiler adapters, artifact loading, and atomic publication."
+    },
+    "state": {
+      "modules": [
+        "_cache.py",
+        "_lock.py",
+        "_pins.py",
+        "_gc.py"
+      ],
+      "description": "Cache identity, interprocess exclusion, pin registry, and garbage collection."
+    },
+    "templates": {
+      "root": "scikitplot/cython/_templates",
+      "description": "Shipped executable/template inputs and standalone invariant probes; they are code/data, not merely docs."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/cython/__init__.py",
+      "scikitplot/cython/__init__.pyi",
+      "scikitplot/cython/_public.py",
+      "scikitplot/cython/_api.py",
+      "scikitplot/cython/_builder.py",
+      "scikitplot/cython/_security.py",
+      "scikitplot/cython/_cache.py",
+      "scikitplot/cython/_lock.py",
+      "scikitplot/cython/_pins.py",
+      "scikitplot/cython/_gc.py",
+      "scikitplot/cython/_loader.py",
+      "scikitplot/cython/_custom_compiler.py",
+      "scikitplot/cython/_profiles.py",
+      "scikitplot/cython/_templates_api.py",
+      "scikitplot/cython/_budget.py",
+      "scikitplot/cython/tests/test__builder.py",
+      "scikitplot/cython/tests/test__security_strict.py",
+      "scikitplot/cython/tests/test__interprocess_exclusivity.py",
+      "scikitplot/cython/_templates/probe/README.md"
+    ],
+    "required_symbols": {
+      "scikitplot/cython/_public.py": [
+        "_validate_build_security",
+        "compile_and_load",
+        "compile_and_load_result",
+        "cython_import",
+        "build_package_from_code_result",
+        "build_package_from_paths_result"
+      ],
+      "scikitplot/cython/_security.py": [
+        "SecurityPolicy",
+        "SecurityError",
+        "DEFAULT_SECURITY_POLICY",
+        "validate_build_inputs",
+        "is_safe_compiler_arg",
+        "is_safe_path"
+      ],
+      "scikitplot/cython/_builder.py": [
+        "build_extension_module_result",
+        "_import_setuptools",
+        "_publish_atomically"
+      ],
+      "scikitplot/cython/_cache.py": [
+        "CACHE_SCHEMA_VERSION",
+        "runtime_fingerprint",
+        "make_cache_key",
+        "write_meta",
+        "read_meta"
+      ],
+      "scikitplot/cython/_lock.py": [
+        "build_lock"
+      ],
+      "scikitplot/cython/_pins.py": [
+        "PinRegistryError",
+        "pin",
+        "unpin",
+        "resolve_pinned_key"
+      ],
+      "scikitplot/cython/_loader.py": [
+        "import_extension",
+        "import_extension_from_path",
+        "import_extension_from_bytes"
+      ],
+      "scikitplot/cython/_templates_api.py": [
+        "TEMPLATE_SCHEMA_VERSION",
+        "validate_template_info",
+        "verify_template_assets"
+      ],
+      "scikitplot/cython/_profiles.py": [
+        "PlatformCapabilities",
+        "RuntimeCapabilities",
+        "resolved_toolchain",
+        "runtime_capabilities"
+      ],
+      "scikitplot/cython/_custom_compiler.py": [
+        "CompilerCapabilities",
+        "compiler_capabilities",
+        "register_compiler",
+        "get_compiler"
+      ]
+    },
+    "tests_root": "scikitplot/cython/tests",
+    "templates_root": "scikitplot/cython/_templates"
+  },
+  "boundary_contract": {
+    "forbid_module_scope_optional": [
+      "Cython",
+      "setuptools",
+      "numpy",
+      "pybind11"
+    ],
+    "forbid_sibling_scikitplot_imports": true,
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ],
+    "security_choke_point": "scikitplot/cython/_public.py:_validate_build_security",
+    "lazy_toolchain_owner": "scikitplot/cython/_builder.py",
+    "cache_fingerprint_owner": "scikitplot/cython/_cache.py:runtime_fingerprint",
+    "lock_owner": "scikitplot/cython/_lock.py:build_lock",
+    "template_validator": "scikitplot/cython/_templates_api.py:validate_template_info"
+  },
+  "read_order": [
+    "maintenances/cython/MAINTAINING.md",
+    "maintenances/cython/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/cython/_maintenance/STATE.json",
+    "maintenances/cython/_maintenance/FAMILY.md",
+    "maintenances/cython/_maintenance/VERIFICATION.md"
+  ]
+}

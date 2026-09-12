@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.decile",
+  "runtime_fingerprint": "822f55f0ac66bf556e5637b94ef1b34f44b464153e7c79b16810166c9740c759",
+  "gates": {
+    "structural_runtime": {
+      "status": "RED",
+      "log": "maintenances/decile/_maintenance/evidence/contract-review.json",
+      "note": "Maintenance plane is healthy; runtime has two owned contract findings.",
+      "sha256": "3e682fa72cc3ca4d159f714ce1ab1d3df267191754fdf8059ec65b04c4a3cbb1"
+    },
+    "maintenance_regressions": {
+      "status": "GREEN",
+      "log": "maintenances/decile/_maintenance/evidence/maintenance-tests.log",
+      "note": "Mutation/regression contract tests.",
+      "sha256": "27bc2122b8e16bed944437133b97d764a80a44b0ecb9dc5506cb713122f536a9"
+    },
+    "current_modelplotpy_harness": {
+      "status": "GREEN",
+      "log": "maintenances/decile/_maintenance/evidence/current-harness.log",
+      "note": "139 tests passed with decile source copied unchanged and only missing package-shell helpers stubbed.",
+      "sha256": "d40e5d60f6af644ae9c5bed55492e6574324588b4a9fcf5bb25d2505e5b52e7b"
+    },
+    "legacy_modelplotpy_harness": {
+      "status": "GREEN",
+      "log": "maintenances/decile/_maintenance/evidence/legacy-harness.log",
+      "note": "185 tests + 6 subtests passed in isolation harness; does not negate the explicit global-RNG negative probe.",
+      "sha256": "c4b0e4cefdc3f015917ad0c58dccb6529f92f9e59c2d3c8854a18ca67195950a"
+    },
+    "kds_harness": {
+      "status": "GREEN",
+      "log": "maintenances/decile/_maintenance/evidence/kds-harness.log",
+      "note": "12 tests passed using minimal stand-ins for missing shared validation/preprocess/plotting helpers; not complete-package KDS evidence.",
+      "sha256": "8794f0adcc74c8938e3ce42a4634c95b5ddb41842d448785ecc06bcc8680a501"
+    },
+    "full_harness": {
+      "status": "GREEN",
+      "log": "maintenances/decile/_maintenance/evidence/full-harness.log",
+      "note": "336 tests + 6 subtests passed across all three surfaces in the isolation harness.",
+      "sha256": "4e43c9bec6db5ef9b44e8bdc561da5bc29a3ecee9364bb3403ce3b0d6d578cf9"
+    },
+    "negative_contract_probes": {
+      "status": "RED",
+      "log": "maintenances/decile/_maintenance/evidence/negative-probes.log",
+      "note": "Reproduces dropped KDS kwargs/precision and legacy global RNG mutation.",
+      "sha256": "85cd265c3b34b9fab8e7eb00c5d166552cf336db3feffacdb1edc5f48fd162f0"
+    },
+    "direct_full_snapshot": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/decile/_maintenance/evidence/direct-snapshot.log",
+      "note": "Direct collection fails before decile tests because the archive omits the scikitplot package root/shared support modules.",
+      "sha256": "1d61ff1c8a9309bd0252145b43d94ddfd6a5d2ec862b49a4d912d8db1fbf1bf9"
+    },
+    "complete_package": {
+      "status": "UNAVAILABLE",
+      "note": "Real shared preprocess/validation/save/docstring/testing compatibility modules are absent from this archive."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Needs runtime findings resolved/dispositioned plus complete-package, installed-package/docs, dependency and supported-platform evidence."
+    }
+  }
+}

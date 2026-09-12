@@ -1,0 +1,13 @@
+scikitplot_root_init False
+vendored_seaborn_root False
+seaborn_runtime_files
+ - scikitplot/seaborn/__init__.py
+ - scikitplot/seaborn/_auc.py
+ - scikitplot/seaborn/_confusion_matrix.py
+ - scikitplot/seaborn/_decile.py
+ - scikitplot/seaborn/_model.py
+ - scikitplot/seaborn/tests/__init__.py
+ - scikitplot/seaborn/tests/test__auc.py
+ - scikitplot/seaborn/tests/test__confusion_matrix.py
+ - scikitplot/seaborn/tests/test__decile.py
+ - scikitplot/seaborn/tests/test__model.py

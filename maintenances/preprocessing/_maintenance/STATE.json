@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.preprocessing",
+  "updated_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "isolated_runtime_status": "PASS",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "open_findings": [
+    "PRE-DCE-001",
+    "PRE-DCE-002",
+    "PRE-GD-001",
+    "PRE-TEST-001"
+  ],
+  "runtime_fingerprint": "652b96efffa6424d454239552bbec7cfb99d8c9e3c3988d5c3187fdd97baaa36",
+  "notes": [
+    "Runtime/test source unchanged by maintenance onboarding.",
+    "180 focused tests pass in a minimal package-root harness.",
+    "Negative probes expose behavior not covered by that green suite."
+  ]
+}

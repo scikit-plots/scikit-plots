@@ -1,0 +1,20 @@
+ValueError: The path '/definitely/not/here' is not a valid directory.
+Git command failed: fatal: detected dubious ownership
+BLD-GIT-001 invalid path
+raised UnboundLocalError cannot access local variable 'e' where it is not associated with a value
+
+BLD-GIT-002 recovery target
+safe_directory_arg ['/mnt/data/buildutils_work/scikitplot/_build_utils']
+
+BLD-COPY-001 bare destination
+raised FileNotFoundError [Errno 2] No such file or directory: ''
+
+BLD-MESON-001 freshness
+different content, destination newer -> False
+destination-only stale file -> False
+
+BLD-TEST-001 call fidelity
+git_version call_count 0
+GitVersionInfo call_count 0
+generate_version_template call_count 0
+add_safe_directory call_count 0

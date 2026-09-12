@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.cexternals._annoy",
+  "input_digest": "13ceba04a4a0a132dbc8455637df6bc0bf5ea5f0b37247c91e634613a143ce37",
+  "gates": {
+    "consumer_build": {
+      "status": "UNAVAILABLE",
+      "detail": "Not run: native/runtime work is outside this maintenance-and-skill-only scope.",
+      "log": null,
+      "sha256": null
+    },
+    "downstream_runtime": {
+      "status": "UNAVAILABLE",
+      "detail": "Not run: native/runtime work is outside this maintenance-and-skill-only scope.",
+      "log": null,
+      "sha256": null
+    },
+    "maintenance_tests": {
+      "status": "PASS",
+      "detail": "31 isolated maintenance behavior tests pass; runtime source is not imported or modified.",
+      "log": "maintenances/cexternals/_annoy/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "8f6e4e46bafc245628448841ffd28308d974aa519559f29d47a0133ec89a3b55"
+    },
+    "native_cpp": {
+      "status": "UNAVAILABLE",
+      "detail": "Not run: native/runtime work is outside this maintenance-and-skill-only scope.",
+      "log": null,
+      "sha256": null
+    },
+    "native_extension": {
+      "status": "UNAVAILABLE",
+      "detail": "Not run: native/runtime work is outside this maintenance-and-skill-only scope.",
+      "log": null,
+      "sha256": null
+    },
+    "windows_runtime": {
+      "status": "UNAVAILABLE",
+      "detail": "Not run: native/runtime work is outside this maintenance-and-skill-only scope.",
+      "log": null,
+      "sha256": null
+    }
+  }
+}

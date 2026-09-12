@@ -152,3 +152,53 @@ bootstrap, clickjack/remove the frame, monkeypatch browser primitives before
 they are snapshotted, or deny service. Real `frame-ancestors`, CORS, CSP,
 Permissions-Policy, and deployed-origin truth also remain production evidence,
 not claims that static source can prove.
+
+### Run 158 attestation-status isolation
+
+When Run 158 is enabled, operate release-root signing and attestation-status signing in
+separate credential domains. Status authority keys/operators must not overlap the active
+release-root role. Mirror accepted CA-set/status lifecycle bundles into release evidence so
+historical verification does not require live access to the vendor CA, OCSP/CRL service,
+HSM fleet, or KMS control plane. A live status showing an active attestation certificate as
+revoked is a fail-closed release-signing condition.
+
+## Run 162 archive-health witness isolation
+
+Keep archive-health witnesses operationally separate from archive providers, Run 161
+auditors, and retention-governance operators. Keep the retention-recovery root on a
+separate trust plane and retain both witness/recovery root SHA-256 pins out of band. A
+recovery ceremony must never carry archive-retirement authorization.
+
+### Run 163 external archive-health anchoring
+
+Run 163 keeps external anchor-channel writers, read-only observers, and witness-root recovery authorities in separate trust planes. Deployment should place those principals in separate credentials/process identities where practical. A channel/observer disagreement is a release-blocking split view; witness-root recovery is bound to the already anchored consensus head and cannot rewrite prior anchored epochs.
+
+### Run 164 Merkle-transparency isolation
+
+Keep Merkle transparency-root signers, log checkpoint signers, and gossip observers in
+separate operational/credential domains, and separate all three from Run 162 witnesses
+and Run 163 channel/observer identities. The transparency-root SHA-256 pin must be retained
+outside the log providers. A valid Merkle proof from one log does not resolve a conflicting
+view from another log or gossip observer; any observed split view is release-blocking.
+
+### Run 165 log-authority isolation
+
+Keep Run 165 governance-root signers, compromise-recovery signers, Run 164 transparency
+root signers, Merkle-log operators, and gossip observers in separate credential/operator
+domains. The recovery root must be pinned outside the log service and must not share keys
+or operators with the governance plane. Scheduled rotation requires old + new checkpoint
+handoff signatures; compromise recovery permanently revokes the replaced key pair.
+
+## Run 166 Merkle authority handoff
+
+Deploy the Run 166 continuity verifier only after Run 164 Merkle evidence and Run 165 log-authority state are independently preserved. Log and gossip adapters must be separately configured with the **active Run 165 keys**; do not retain retired keys merely to satisfy post-handoff appends. The verifier rejects authority overlap with the witness/anchor planes and rehashes all authority inputs before commit.
+
+### Run 167 recursive Merkle authority re-bridge
+Deploy `rebridge_archive_merkle_authority.py` only in the release-security control plane. Keep governance/recovery signing identities separate from log/gossip, witness, and anchor operators; provider adapters receive only the canonical re-bridge/append request and never root private keys.
+
+## Run 168 recovery isolation
+
+Store Run 168 recovery checkpoints in at least three independent archive failure domains.
+Keep the checkpoint/head rollback pins outside those archive providers. Archive-writer and
+read-only-verifier identities/operators must remain separate, and any observed recovery
+copy disagreement must fail closed rather than be resolved by majority vote.

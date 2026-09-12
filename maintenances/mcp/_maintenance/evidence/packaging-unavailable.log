@@ -1,0 +1,3 @@
+The supplied mcp.zip is a repository slice containing scikitplot/, maintenances/, and skills/ only.
+No root pyproject.toml or equivalent packaging metadata is present, so the [mcp] extra and resolver behavior cannot be revalidated from this artifact.
+Result: packaging_extra = UNAVAILABLE.

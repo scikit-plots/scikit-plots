@@ -88,11 +88,13 @@ Example:
 
 """
 
-__all__ = ['process_str', 'process_file']
+from __future__ import annotations
 
 import os
 import re
 import sys
+
+__all__ = ['process_str', 'process_file']
 
 # names for replacement that are already global.
 global_names = {}

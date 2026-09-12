@@ -1,0 +1,73 @@
+ACTIVE TEMPITA HELPER AGAINST ANNOY
+  1513 /tmp/tmp.WCuvoryYXV/annoylib.pxd
+  8393 /tmp/tmp.WCuvoryYXV/annoylib.pyx
+  9906 total
+
+CYTHON_GENERATE --VALIDATE AGAINST COPIED REAL TEMPLATES
+  ✗  annoylib.pyx: contains unprocessed template markers
+      line 8171: #{repr_id} .annoy-box{{border:1px solid #d0d7de;border-radius:6px;display:inline-block;min-width:280px;}}
+      line 8172: #{repr_id} details{{margin:0;padding:0;}}
+      line 8173: #{repr_id} summary{{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:8px 10px;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}}
+      line 8174: #{repr_id} summary::-webkit-details-marker{{display:none;}}
+      line 8175: #{repr_id} .annoy-title{{font-weight:600;}}
+      line 8176: #{repr_id} .annoy-links{{margin-left:auto;display:flex;align-items:center;gap:8px;}}
+      line 8177: #{repr_id} .annoy-links a{{color:#0969da;text-decoration:none;}}
+      line 8178: #{repr_id} .annoy-links a:hover{{text-decoration:underline; background-color: lightgreen;}}
+      line 8179: #{repr_id} .annoy-sep{{color:#57606a;}}
+      line 8180: #{repr_id} .annoy-subtitle{{font-weight:600;}}
+      line 8181: #{repr_id} .annoy-arrow::before{{content:'\\25B6';display:inline-block;width:14px;}}
+      line 8182: #{repr_id} details[open] > summary .annoy-arrow::before{{content:'\\25BC';}}
+      line 8183: #{repr_id} .annoy-body{{padding:0 10px 10px 10px;}}
+      line 8184: #{repr_id} .annoy-table{{border-collapse:collapse;width:100%;font:12px/1.35 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}}
+      line 8185: #{repr_id} .annoy-table th,.annoy-table td{{border-top:1px solid #eaeef2;padding:6px 6px;text-align:left;vertical-align:top;}}
+      line 8186: #{repr_id} .annoy-table th{{font-weight:600;}}
+      line 8187: #{repr_id} .annoy-td-btn{{width:72px;}}
+      line 8188: #{repr_id} .annoy-copy{{font:11px/1 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;border:1px solid #d0d7de;border-radius:6px;padding:3px 6px;background:#f6f8fa;cursor:pointer;}}
+      line 8189: #{repr_id} .annoy-copy:active{{transform:translateY(1px);}}
+      line 8190: #{repr_id} .annoy-key{{white-space:nowrap;}}
+      line 8191: #{repr_id} .annoy-value{{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;}}
+      line 8264: (function(){{
+      line 8268:   for(var i=0;i<btns.length;i++){{
+      line 8269:     btns[i].addEventListener('click',function(e){{
+      line 8275:       function done(btn){{
+      line 8278:         setTimeout(function(){{btn.textContent=old;}},800);
+      line 8279:       }}
+      line 8281:       if(navigator.clipboard && navigator.clipboard.writeText){{
+      line 8282:         navigator.clipboard.writeText(txt).then(done.bind(null,this),function(){{done(this);}}.bind(this));
+      line 8283:       }} else {{
+      line 8290:         try{{document.execCommand('copy');}}catch(_e){{}}
+      line 8293:       }}
+      line 8294:     }});
+      line 8295:   }}
+      line 8296: }})();
+
+  ✗  Validation failed!
+
+======================================================================
+Annoy Cython Template Generator  (engine: Cython.Tempita)
+======================================================================
+Source dir : /tmp/tmp.WCuvoryYXV/gen
+Templates  : 2 found
+
+  Processing : /tmp/tmp.WCuvoryYXV/gen/annoylib.pxd.in
+  Output     : /tmp/tmp.WCuvoryYXV/gen/annoylib.pxd
+  Lines      : 604 → 1,513 (expansion 2.5x)
+  ✓  annoylib.pxd  (1,513 lines)
+  Processing : /tmp/tmp.WCuvoryYXV/gen/annoylib.pyx.in
+  Output     : /tmp/tmp.WCuvoryYXV/gen/annoylib.pyx
+  Lines      : 4,208 → 8,393 (expansion 2.0x)
+  ✓  annoylib.pyx  (8,393 lines)
+
+======================================================================
+Summary
+======================================================================
+  Processed  : 2/2 templates
+  Template ↑ : 4,812 lines
+  Generated ↓: 9,906 lines
+  Expansion  : 2.1x  (51% less hand-written code)
+
+Validating generated files...
+  ✓  annoylib.pxd
+cython_generate_validate_rc=1
+
+PACKAGE-SHAPED CYTHONER PROBE

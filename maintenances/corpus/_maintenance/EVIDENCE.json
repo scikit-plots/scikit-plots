@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.corpus",
+  "runtime_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "gates": {
+    "maintenance_contract": {
+      "status": "GREEN",
+      "detail": "Corpus maintenance regression suite passed; structural checker correctly reports maintenance PASS, runtime FAIL, release BLOCKED for the supplied partial snapshot.",
+      "log": "maintenances/corpus/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "b0bc342a28123249c5bf349518bd9672b656aee8d593f955b2e4f87d90647a38"
+    },
+    "runtime_source": {
+      "status": "RED",
+      "detail": "Supplied scikitplot/corpus runtime directory is empty; required source contracts are absent.",
+      "log": null,
+      "sha256": null
+    },
+    "module_tests": {
+      "status": "UNAVAILABLE",
+      "detail": "Cannot run Corpus module tests because the runtime/tests are absent from the supplied snapshot.",
+      "log": null,
+      "sha256": null
+    },
+    "gallery_examples": {
+      "status": "UNAVAILABLE",
+      "detail": "Corpus examples/gallery cannot be verified from the supplied snapshot.",
+      "log": null,
+      "sha256": null
+    },
+    "cross_module": {
+      "status": "UNAVAILABLE",
+      "detail": "MCP/Annoy/CLI consumer compatibility was not established by this partial Corpus archive.",
+      "log": null,
+      "sha256": null
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.datasets",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "api_surface",
+        "dataset_postprocess",
+        "archive_loading",
+        "upload_lifecycle",
+        "database_defaults",
+        "cli_examples",
+        "loader_test_coverage",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "isolated_runtime",
+      "checks": [
+        "tests",
+        "negative_probes",
+        "export_cli"
+      ]
+    },
+    {
+      "name": "optional_backends",
+      "checks": [
+        "parquet",
+        "network",
+        "database_backends"
+      ]
+    },
+    {
+      "name": "complete_package",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "DSET-TIPS-001",
+      "severity": "high",
+      "summary": "The tips categorical day levels contain \"Their\" instead of \"Thur\". A real Thur source value is converted to NaN during post-processing."
+    },
+    {
+      "id": "DSET-ZIP-001",
+      "severity": "high",
+      "summary": "get_file_data calls get_file_from_zip for .zip inputs but discards the returned member and then reopens the archive container. load_file_from_path on a ZIP CSV fails."
+    },
+    {
+      "id": "DSET-UPL-001",
+      "severity": "high",
+      "summary": "upload_handler(return_file=False) calls clean_sql(query) even when query is the documented default None; ordinary CSV uploads therefore return None through the broad exception handler."
+    },
+    {
+      "id": "DSET-UPL-002",
+      "severity": "medium",
+      "summary": "upload_handler(return_file=True, clean_tmp=True) returns tmp_path and then deletes it in finally, yielding a path that does not exist."
+    },
+    {
+      "id": "DSET-DB-001",
+      "severity": "high",
+      "summary": "load_data/load_data_meta on .db/.sqlite/.duckdb with the documented query=None default call clean_sql(None), so the default SELECT 1 behavior is unreachable."
+    },
+    {
+      "id": "DSET-CLI-001",
+      "severity": "low",
+      "summary": "Executable recipe/doc examples use python -m scikitplot.datasets._data_export.py or _autoscout24_tasks.py; trailing .py is not an importable module name."
+    },
+    {
+      "id": "DSET-TEST-001",
+      "severity": "medium",
+      "summary": "The focused datasets suite does not import or exercise _data_loader.py, leaving archive/upload/database dispatch regressions invisible to the nominal green suite."
+    }
+  ]
+}

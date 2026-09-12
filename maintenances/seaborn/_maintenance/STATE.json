@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.seaborn",
+  "updated_at": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "native_harness_status": "FAIL",
+  "compatibility_harness_status": "PASS",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "open_findings": [
+    "SBN-COMPAT-001",
+    "SBN-MODEL-001",
+    "SBN-DEC-001",
+    "SBN-DEC-002",
+    "SBN-SNAPSHOT-001"
+  ],
+  "runtime_fingerprint": "462d1aeed322afdb951027cfb2ef3b91861c5c286c13c3502a1dd1bdb99f3772",
+  "notes": [
+    "Runtime/test source unchanged by maintenance onboarding.",
+    "A minimal package-root harness avoids the snapshot top-level seaborn shadowing problem.",
+    "Native dependency behavior yields 102 passed / 48 failed; a harness-only color compatibility resolver yields 150/150.",
+    "Negative probes independently confirm model estimator, decile weight, and hue semantic-mapping contract failures.",
+    "Maintenance mutation/regression contract passes 22/22."
+  ]
+}

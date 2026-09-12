@@ -1,0 +1,11 @@
+3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]
+Cython OK 3.2.4
+setuptools OK 82.0.1
+numpy OK 2.3.5
+pybind11 UNAVAILABLE ModuleNotFoundError("No module named 'pybind11'")
+cc /usr/bin/cc
+gcc /usr/bin/gcc
+g++ /usr/bin/g++
+clang /usr/local/swift/usr/bin/clang
+clang++ /usr/local/swift/usr/bin/clang++
+cl None

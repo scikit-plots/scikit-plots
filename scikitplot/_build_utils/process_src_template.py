@@ -8,6 +8,8 @@
 # mypy: ignore-errors
 # type: ignore
 
+from __future__ import annotations
+
 import argparse
 import importlib.util
 import os

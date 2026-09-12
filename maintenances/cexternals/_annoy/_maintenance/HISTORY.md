@@ -50,3 +50,15 @@ persistence does not round-trip, **that declaration is wrong** and must change.
 Hence `check_trackers.py`, which turned the family's defining coupling — nine
 relative-path references into another submodule's headers — from an undocumented
 convention into a checked rule.
+
+## 2026-09-11: independent _annoy maintenance onboarding
+
+Adopted the complete 122125 upload (identity in STATE.json). Replaced broken
+ancestor discovery, backup-based counts, stale continuation paths and missing
+skill routing. Added six typed edges, fixed review lanes, exact runtime hashes,
+negative tests and separate native release evidence. Preserved legacy scripts,
+state and rationale under history/. Preserved all runtime bytes after the maintenance-only scope clarification.
+Sibling maintenance/skill directories and runtime source are unchanged.
+
+The supplied annoy-related.zip sample is identified in STATE.json; its original
+state, evidence, skill and tools are preserved under history/sample_*.

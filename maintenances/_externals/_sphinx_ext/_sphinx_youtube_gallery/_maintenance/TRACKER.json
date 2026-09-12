@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
+  "physical": {
+    "runtime_root": "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_gallery",
+    "provider_core": "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_core",
+    "maintenance_root": "maintenances/_externals/_sphinx_ext/_sphinx_youtube_gallery",
+    "skill_root": "skills/_externals/_sphinx_ext/_sphinx_youtube_gallery",
+    "architecture_reporter": "maintenances/_externals/_sphinx_ext/_maintenance_core/tools/report_architecture.py"
+  },
+  "logical_contracts": [
+    {
+      "id": "YTG-C001",
+      "name": "fresh-chat-authority",
+      "owner": "maintenance",
+      "status": "ACTIVE",
+      "invariant": "A fresh chat reads skill, MAINTAINING, handoff, STATE, TRACKER, todo/lessons, then current code/evidence; prior chat history is not authoritative.",
+      "verification": "common maintenance gate + handoff review"
+    },
+    {
+      "id": "YTG-C002",
+      "name": "provider-core-ownership",
+      "owner": "_sphinx_youtube_core",
+      "status": "ACTIVE",
+      "invariant": "YouTube reference grammar and leaf player option validation have one dependency-free owner shared by gallery and player.",
+      "verification": "import identity + dependency-free doctests"
+    },
+    {
+      "id": "YTG-C003",
+      "name": "acyclic-extension-graph",
+      "owner": "family architecture",
+      "status": "ACTIVE",
+      "invariant": "_sphinxcontrib_youtube never imports _sphinx_youtube_gallery; gallery and leaf player may depend on _sphinx_youtube_core.",
+      "verification": "common effective runtime graph gate (AST imports + declared dynamic runtime edges)"
+    },
+    {
+      "id": "YTG-C004",
+      "name": "offline-build-determinism",
+      "owner": "_sphinx_youtube_gallery",
+      "status": "ACTIVE",
+      "invariant": "Normal gallery rendering performs no network acquisition; sync/acquisition remains explicit tooling.",
+      "verification": "gallery capability/sync/rendering tests"
+    },
+    {
+      "id": "YTG-C005",
+      "name": "shared-collection-engine",
+      "owner": "_sphinx_collection/_sphinx_gallery_grid",
+      "status": "ACTIVE",
+      "invariant": "Gallery filtering/browser metadata and card/grid presentation stay delegated to shared engines rather than duplicated in YouTube adapter.",
+      "verification": "parity static gate + integration rendering"
+    },
+    {
+      "id": "YTG-C006",
+      "name": "bounded-inputs-and-network",
+      "owner": "collection/player",
+      "status": "ACTIVE",
+      "invariant": "YAML, query fields, thumbnail fetches, query parameters, and dynamic resolver paths stay bounded and fail closed with useful diagnostics.",
+      "verification": "resource-bound and player validation suites"
+    },
+    {
+      "id": "YTG-C007",
+      "name": "namespace-portability",
+      "owner": "maintenance/bootstrap",
+      "status": "ACTIVE",
+      "invariant": "The subsystem can be verified in standalone _sphinx_ext and scikitplot._externals._sphinx_ext layouts without hard-coded parent counts.",
+      "verification": "path tests + extension layout verifier"
+    },
+    {
+      "id": "YTG-C008",
+      "name": "evidence-authority",
+      "owner": "maintenance",
+      "status": "ACTIVE",
+      "invariant": "Historical standalone validation JSON/SHA files are immutable provenance, not silently refreshed as current wide-repository evidence.",
+      "verification": "STATE + VERIFICATION documentation"
+    },
+    {
+      "id": "YTG-C009",
+      "name": "typed-dependency-classification",
+      "owner": "maintenance family core",
+      "status": "ACTIVE",
+      "invariant": "Every gallery-family relationship is classified once as runtime-required/optional, test-only, maintenance-only, or family-related, with executable evidence rather than an ambiguous dependency list.",
+      "verification": "MAINTENANCE.json v2 + architecture negative tests"
+    },
+    {
+      "id": "YTG-C010",
+      "name": "capability-single-ownership",
+      "owner": "maintenance family core",
+      "status": "ACTIVE",
+      "invariant": "Each shared capability has one family-wide owner, and every dependency edge cites capabilities owned by its target so fixes route to the correct package instead of duplicating logic.",
+      "verification": "family capability registry + architecture report + negative ownership tests"
+    }
+  ]
+}

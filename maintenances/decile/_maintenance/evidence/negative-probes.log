@@ -1,0 +1,11 @@
+KDS forwarding probe (runtime source unchanged):
+plot_lift(..., class_index=0, pos_label=0) -> internal decile_table kwargs: {}
+report(..., class_index=0, pos_label=0, digits=2) -> internal decile_table kwargs: {'round_decimal': 2, 'feature_infos': True}
+Therefore class_index/pos_label are dropped and report precision is silently sent under an ignored keyword.
+
+Legacy RNG probe:
+Seed caller RNG with 12345. Expected next 3 values without interference:
+[0.9296160928171479, 0.3163755545817859, 0.18391881167709445]
+After legacy ModelPlotPy(..., seed=7).prepare_scores_and_ntiles(), next 3 values:
+[0.16550140046578743, 0.414901772573252, 0.44812065750272334]
+global_rng_unchanged: False

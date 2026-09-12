@@ -1,0 +1,14 @@
+Annoy generation/compile probe — 2026-09-12
+Official Meson generator path: scikitplot/_build_utils/tempita.py
+official generator: MISSING
+
+Independent read-only probe:
+scikitplot/annoy/_annoy/annoylib.pxd.in: Tempita render OK; bytes=104083 lines=1514
+scikitplot/annoy/_annoy/annoylib.pyx.in: Tempita render OK; bytes=435400 lines=8394
+cython --cplus: previously executed successfully against rendered fixture
+generated C++ includes:
+1155:#include "../../cexternals/_annoy/src/kissrandom.h"
+1156:#include "../../cexternals/_annoy/src/annoylib.h"
+1160:#include "../../cexternals/_annoy/src/annoy_type_support.h"
+g++ -std=c++17 -fsyntax-only: PASS (no diagnostics)
+g++ -std=c++14 -fsyntax-only: FAIL as expected because vendored annoylib.h requires C++17

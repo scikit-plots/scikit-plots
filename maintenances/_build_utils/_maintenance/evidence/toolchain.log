@@ -1,0 +1,17 @@
+TOOLCHAIN
+Python 3.13.5
+Cython AVAILABLE 3.2.4
+tqdm AVAILABLE 4.67.3
+mesonbuild UNAVAILABLE ModuleNotFoundError No module named 'mesonbuild'
+tempita UNAVAILABLE ModuleNotFoundError No module named 'tempita'
+cython: /opt/pyvenv/bin/cython
+gcc: /usr/bin/gcc
+g++: /usr/bin/g++
+ninja: /usr/bin/ninja
+meson: git: /usr/bin/git
+Cython version 3.2.4
+gcc (Debian 14.2.0-19) 14.2.0
+1.12.1
+git version 2.47.3
+root scikitplot/__init__.py ABSENT
+pyproject.toml ABSENT

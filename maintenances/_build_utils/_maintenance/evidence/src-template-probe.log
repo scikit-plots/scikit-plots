@@ -1,0 +1,3 @@
+LEGACY .src TEMPLATE PROBE
+int v1 = 1;
+int v2 = 2;

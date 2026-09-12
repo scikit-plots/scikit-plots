@@ -1,0 +1,10 @@
+VERSIONS {'seaborn': '0.13.2', 'matplotlib': '3.10.8', 'sklearn': '1.8.0', 'pandas': '2.2.3', 'numpy': '2.3.5'}
+AXES_PLOT_NAME wrapper
+PRIVATE_DEFAULT_COLOR_RESULT None
+DECILE_WEIGHTED_EQUALS_UNWEIGHTED True
+DECILE_COUNTS_UNWEIGHTED [{'cnt_resp_true': 3.0, 'cnt_resp_total': 5.0}, {'cnt_resp_true': 0.0, 'cnt_resp_total': 5.0}]
+DECILE_COUNTS_WEIGHTED [{'cnt_resp_true': 3.0, 'cnt_resp_total': 5.0}, {'cnt_resp_true': 0.0, 'cnt_resp_total': 5.0}]
+MODEL_ESTIMATOR_ONLY_ARTISTS {'images': 0, 'lines': 0, 'collections': 0, 'patches': 0}
+MODEL_DIFFERENT_IMPORTANCES_SAME_IMAGE True
+MODEL_RENDERED_IMAGE [[1, 1], [0, 2]]
+DECILE_LINE_COLORS ['(0.12156862745098039, 0.4666666666666667, 0.7058823529411765, 1.0)', 'k', 'c', '(1.0, 0.4980392156862745, 0.054901960784313725, 1.0)', 'k', 'c']

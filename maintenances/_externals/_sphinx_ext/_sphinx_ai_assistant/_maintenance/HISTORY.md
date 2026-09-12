@@ -513,3 +513,109 @@ Permissions-Policy denial. Proxy deployment version ratcheted to **7.0.0**.
 - Replaced text-filled feedback popup icon slots with Octicon `comment-discussion` and `pulse` SVGs.
 - Corrected `ratingTitle` validation to measure the title rather than the rating label.
 - Runnable non-Sphinx boundary: **869 passed, 3 skipped**.
+
+## 2026-09-06 — Run 172 maintenance + skill normalization
+
+- Established Run 172 as the immutable release anchor and the user-supplied
+  `run172(2)` archive as a separate local-debugging workspace anchor.
+- Moved the maintenance corpus out of `skills/` into the repository-level
+  `maintenances/.../_sphinx_ai_assistant` mirror described by the existing
+  architecture documents.
+- Added a focused `SKILL.md` that makes fresh-chat continuation independent of
+  conversation history and defaults the next phase to local test-first repair.
+- Moved maintenance-only `check_trackers.py`, `dev_proxy.py`, and the old proxy
+  configuration example into `_maintenance/tools/` / `_maintenance/examples/`.
+- Moved feedback/dataset operator guides beside `_hf_spaces_proxy` and reduced
+  the runtime submodule root to three Markdown guides.
+- Archived superseded fresh-chat handoffs under `_maintenance/history/fresh_chat/`.
+- Removed generated cache/bytecode/backup debris.
+- Relocation-focused regression set: 70/70 passed after correcting one stale
+  test that still imported `dev_proxy` as a runtime package module.
+- Maintenance drift checker: GREEN in repository mode.
+
+
+## 2026-09-11 — R173T88 mobile model action menu trigger anchor
+
+Closed a mobile placement defect where model actions were positioned from the
+variable-height model row instead of the `⋮` disclosure trigger. Added a local
+action host, below/above edge-aware placement, CSS-target-aware responsive
+harness plumbing, and three mutation controls. Verification: model responsive
+38/38, override 125/125, remove/revert 23/23, quick model 91/91, Node/UI
+161/161, mutation 473/473, maintenance core 35/35, family 2/2 GREEN.
+
+## 2026-09-11 — R173T89 mobile speak-toggle resting visibility
+
+Fixed the speak-hint disclosure chevron becoming visually lost on touch/mobile.
+The base rule had a self-cancelling `background-color` / `background: transparent`
+sequence and depended too much on desktop hover for contrast. The toggle now
+keeps its intended resting surface, resets native appearance, binds the SVG
+stroke to `currentColor`, and owns a stronger touch resting color with dark and
+forced-colors fallbacks. Verification: focused 14/14, speak neighbor 37/37,
+Node/UI 162/162, mutation 479/479.
+
+
+## 2026-09-11 — R173T90 artifact Download mobile compaction
+
+Split the old one-size-fits-all `22rem` artifact icon-only threshold. Per-file
+Download controls now compact at `26rem` because they directly compete with long
+filenames; bulk footer labels retain text until `22rem`. The named container
+query remains the authority, so resized/docked panels still respond to actual
+surface width rather than viewport width. Verification: artifact contract
+198/198, Node/UI 160/160, mutation anchors/catalogue 243/243 and 240/240 mutants
+caught.
+
+## 2026-09-11 — R173T91 speak-toggle sticky-hover contrast
+
+Closed the rare post-tap case where the speak disclosure remained clickable
+but its SVG appeared transparent. Touch browsers may retain `:hover`; the
+higher-specificity interaction rule used `color: inherit`, overriding T89's
+explicit coarse-pointer resting colour. Hover/focus/active now retain an
+explicit base-text foreground, the controls use a real surface token, and the
+speak icon no longer assumes a host accent always contrasts. Verification:
+T91 19/19, T89 neighbor 14/14, speak lifecycle 37/37, Node/UI 161/161,
+mutation structure 246/246 and 243/243 mutants caught.
+
+## 2026-09-11 — R173T93 inline snippet scroll handoff
+
+Closed the rare case where numbered code embedded in a normal answer could
+capture vertical mouse/touch scrolling. R173T69 had fixed the inner `<pre>`, but
+snippet wrappers still inherited file-preview vertical ownership and overscroll
+containment. Real file sheets now keep explicit axis ownership, while inline
+snippets are non-scrolling wrappers and only their code cell owns horizontal
+pan. No JavaScript wheel interception was added. Verification: T93 20/20,
+numbered-preview neighbor 200/200, canonical static Node 154/154, mutation
+structure 254/254 and 251/251 mutants caught.
+
+## 2026-09-11 — R173T94 Presented-file segmented-control parity
+
+Closed a real Presented-files composition drift where runtime DOM already used
+the shared artifact segment builder but old preview/download/save-as/patch grid
+rules remained in the cascade. Presented-file Download now reuses the normal
+`ai-md-artifact-download-label` visual class, the shared group owns segment
+geometry, and the Presented row has one two-column authority: artifact group +
+overflow. Dead pre-overflow CSS and contradictory regression expectations were
+removed. Verification: T94 18/18, latest-preview 202/202, diff 35/35,
+working-file 143/143, raw-body 21/21, Node/UI 164/164, mutation structure
+259/259 and 256/256 mutants caught.
+
+
+## 2026-09-11 — R173T95 Presented-file responsive segment continuity
+
+Closed the device-mode continuation of T94 at 560px and small-phone widths. A
+legacy `@media (max-width:560px)` declaration still set the in-group Download
+segment to `width:100%`, collapsing the flexible Preview segment and making the
+divider/content appear reordered. Removed that obsolete authority, made the
+Presented list/card/primary grid explicitly shrinkable, and moved heading
+stacking to the component's named container. Verification: T95 21/21, T94
+neighbor 18/18, latest-preview 202/202, diff 35/35, working-file 143/143,
+Node/UI 165/165, mutation anchors 260/260 and 260/260 mutants caught.
+
+## 2026-09-11 — R173T97 snippet / Presented-file menu workflow parity
+
+Unified the two file overflow workflows without lying about capabilities.
+Anonymous snippets now follow inspect → save → track → continue, then graduate
+to the canonical tracked-file action list after promotion; Presented files keep
+inspect → save → patch → continue. Promotion now returns the registered ledger
+entry so Continue editing can stage the exact tracked revision. Verification:
+T97 16/16, latest-preview 203/203, working-file 144/144, Node/UI 169/169,
+mutation anchors 272/272 and 269/269 mutants caught.

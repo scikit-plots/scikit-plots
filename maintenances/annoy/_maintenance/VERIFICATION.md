@@ -1,44 +1,27 @@
-# Verification — `scikitplot.annoy`
+# Verification
 
-## 1. The commands
+Run the maintenance contract first:
 
-```console
-$ python scikitplot/annoy/_maintenance/check_trackers.py
-$ <build>                     # meson/ninja per the project's build docs
-$ python -m pytest scikitplot/annoy -q -p no:cacheprovider
+```sh
+python -B maintenances/annoy/_maintenance/check_trackers.py --json
+python -B maintenances/annoy/_maintenance/review_subsystem.py --json
+python -B maintenances/annoy/_maintenance/tests/test_contract.py
 ```
 
-Expected from the gate:
+Interpret the three statuses independently:
 
-```text
-scikitplot.annoy: tracker matches the tree (17 source / 46 test files, ...)
-```
+- `maintenance_status`: whether the maintainer metadata/tools/handoff are sound.
+- `runtime_status`: whether current static runtime/build contracts are intact.
+- `release_status`: whether current compile/test/platform evidence is complete.
 
-## 2. What the gate checks
+For the supplied snapshot, runtime is expected to fail on the missing Tempita
+helper. Once that is repaired, regenerate from both templates in a clean build,
+compile `scikitplot.annoy._annoy.annoylib`, build the independent
+`scikitplot.cexternals._annoy` extension, and run focused tests for dtype,
+persistence/error ownership, RNG/concurrency and the public high-level wrapper.
 
-| Check | Fails when |
-|---|---|
-| DRIFT | recorded inventory differs from the tree by more than 10% |
-| SHARED-SOURCE | a `cdef extern` names a header absent from `cexternals/_annoy/src/` |
-| FAMILY | `cexternals` imports a Python layer built on top of it |
+A static declaration-path check is not ABI proof. A green release requires fresh
+compiled evidence.
 
-**This submodule requires a compiled build.** Unlike Corpus, a green gate does
-not imply a working module — the extension must be built. A tracker check on an
-unbuilt tree is necessary, not sufficient.
 
-## 3. Evidence standard
-
-Inherited unchanged from the Corpus and MCP campaigns:
-
-- **"I tested it" is insufficient.** Paste the command and its output.
-- A finding is marked resolved **with evidence**, never deleted.
-- A test is never weakened to make a change pass.
-- A capability claim requires a probe, not an assumption.
-
-After a deliberate structural change:
-
-```console
-$ python scikitplot/annoy/_maintenance/check_trackers.py --update
-```
-
-then regenerate `TRACKER_PHYSICAL.md` to match.
+The active repository build requires **C++17**. Template-local C++14 comments/directives are historical/stale and must not be treated as the current compiler contract.

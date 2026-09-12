@@ -1,0 +1,4 @@
+Direct command: python -B -m pytest scikitplot/decile -q -p no:cacheprovider
+Result: collection ERROR before decile runtime tests.
+All three test modules failed while importing scikitplot/decile as top-level `decile`; relative imports reached beyond the top-level package because this archive has no scikitplot/__init__.py/package shell. Required shared modules are also absent: _docstrings, _preprocess, _testing._pytesttester, api._utils.validation, externals._seaborn._compat, utils._matplotlib.
+Classification: UNAVAILABLE complete-package evidence, not a decile assertion failure.

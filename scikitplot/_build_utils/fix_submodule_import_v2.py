@@ -36,6 +36,8 @@ Multi-pass transformation:
 6. Diff/Write: Output changes or write files
 """
 
+from __future__ import annotations
+
 import argparse
 import ast
 import difflib

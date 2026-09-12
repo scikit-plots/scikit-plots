@@ -1,0 +1,1623 @@
+.....................F...FFFFFFFFF...F...FFFFFF.....FF...FFFF..s........ [ 80%]
+.F........F....FFF                                                       [100%]
+=================================== FAILURES ===================================
+____________ test_command_supports_every_declared_format[info-toml] ____________
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+>           import toml  # noqa: PLC0415
+            ^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'toml'
+
+scikitplot/_cli/output.py:93: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+name = 'info', fmt = 'toml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead792d50>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/info.py:38: in run
+    emit(ctx, data)
+scikitplot/_cli/output.py:59: in emit
+    _emit_toml(ctx, data)
+scikitplot/_cli/output.py:75: in _emit_toml
+    writer, dumps = _toml_writer()
+                    ^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+            import toml  # noqa: PLC0415
+
+            return toml, lambda mod, obj: mod.dumps(obj)
+        except ImportError as exc:
+>           raise CapabilityMissingError(
+                "toml", install_hint="Install a TOML writer: pip install tomli-w"
+            ) from exc
+E           scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+
+scikitplot/_cli/output.py:97: CapabilityMissingError
+___________ test_command_supports_every_declared_format[doctor-toml] ___________
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+>           import toml  # noqa: PLC0415
+            ^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'toml'
+
+scikitplot/_cli/output.py:93: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+name = 'doctor', fmt = 'toml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead600ff0>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/doctor.py:79: in run
+    emit(ctx, data)
+scikitplot/_cli/output.py:59: in emit
+    _emit_toml(ctx, data)
+scikitplot/_cli/output.py:75: in _emit_toml
+    writer, dumps = _toml_writer()
+                    ^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+            import toml  # noqa: PLC0415
+
+            return toml, lambda mod, obj: mod.dumps(obj)
+        except ImportError as exc:
+>           raise CapabilityMissingError(
+                "toml", install_hint="Install a TOML writer: pip install tomli-w"
+            ) from exc
+E           scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+
+scikitplot/_cli/output.py:97: CapabilityMissingError
+_______ test_command_supports_every_declared_format[show-versions-text] ________
+
+name = 'show-versions', fmt = 'text'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead851760>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_______ test_command_supports_every_declared_format[show-versions-json] ________
+
+name = 'show-versions', fmt = 'json'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feeada64150>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_______ test_command_supports_every_declared_format[show-versions-yaml] ________
+
+name = 'show-versions', fmt = 'yaml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead622ed0>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_______ test_command_supports_every_declared_format[show-versions-toml] ________
+
+name = 'show-versions', fmt = 'toml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68a890>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+________ test_command_supports_every_declared_format[show-config-text] _________
+
+name = 'show-config', fmt = 'text'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68b540>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ctx = Context(stdout=<_io.StringIO object at 0x7feead790040>, stderr=<EncodedFile name="<_io.FileIO name=12 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>, fmt='text', color=True, verbosity=0)
+
+    def run(ctx: Context, *, mode: str = "stdout", fmt: str = "text") -> int:
+        """Render configuration per ``--mode``/``--format`` (see module docstring)."""
+        if fmt != "text":  # explicit serialization wins
+            emit(ctx, _config_dict())
+            return 0
+        if mode == "dicts":  # structured data as text
+            emit(ctx, _config_dict())
+            return 0
+        # lazy: library's human-readable printer
+        # mode == "stdout": library printer
+>       from ... import show_config  # ruff: ignore[import-outside-top-level]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+
+scikitplot/_cli/_commands/show_config.py:52: ImportError
+________ test_command_supports_every_declared_format[show-config-json] _________
+
+name = 'show-config', fmt = 'json'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68bb60>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+________ test_command_supports_every_declared_format[show-config-yaml] _________
+
+name = 'show-config', fmt = 'yaml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68a2e0>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+________ test_command_supports_every_declared_format[show-config-toml] _________
+
+name = 'show-config', fmt = 'toml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68aa50>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+__________ test_command_supports_every_declared_format[sysinfo-toml] ___________
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+>           import toml  # noqa: PLC0415
+            ^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'toml'
+
+scikitplot/_cli/output.py:93: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+name = 'sysinfo', fmt = 'toml'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feeada5cf30>
+
+    @pytest.mark.parametrize("name,fmt", _MATRIX)
+    def test_command_supports_every_declared_format(name, fmt, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+        buf = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", buf)
+>       code = _argparse.run([name, "--format", fmt])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_format_coverage.py:36:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/sysinfo.py:33: in run
+    emit(ctx, info)
+scikitplot/_cli/output.py:59: in emit
+    _emit_toml(ctx, data)
+scikitplot/_cli/output.py:75: in _emit_toml
+    writer, dumps = _toml_writer()
+                    ^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+            import toml  # noqa: PLC0415
+
+            return toml, lambda mod, obj: mod.dumps(obj)
+        except ImportError as exc:
+>           raise CapabilityMissingError(
+                "toml", install_hint="Install a TOML writer: pip install tomli-w"
+            ) from exc
+E           scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+
+scikitplot/_cli/output.py:97: CapabilityMissingError
+_________________________ test_frontend_parity[argv3] __________________________
+
+argv = ['show-config', '--format', 'json']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead68bcb0>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+_________________________ test_frontend_parity[argv4] __________________________
+
+argv = ['show-config', '--format', 'toml']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f4830>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+_________________________ test_frontend_parity[argv5] __________________________
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+>           import toml  # noqa: PLC0415
+            ^^^^^^^^^^^
+E           ModuleNotFoundError: No module named 'toml'
+
+scikitplot/_cli/output.py:93: ModuleNotFoundError
+
+The above exception was the direct cause of the following exception:
+
+argv = ['info', '--format', 'toml']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f57f0>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/info.py:38: in run
+    emit(ctx, data)
+scikitplot/_cli/output.py:59: in emit
+    _emit_toml(ctx, data)
+scikitplot/_cli/output.py:75: in _emit_toml
+    writer, dumps = _toml_writer()
+                    ^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _toml_writer():
+        """Return ``(module, dumps_callable)`` for the first available TOML writer.
+
+        Tries ``tomli_w`` then ``toml``. The standard-library ``tomllib`` is
+        read-only and cannot be used here.
+        """
+        try:
+            import tomli_w  # noqa: PLC0415
+
+            return tomli_w, lambda mod, obj: mod.dumps(obj)
+        except ImportError:
+            pass
+        try:
+            import toml  # noqa: PLC0415
+
+            return toml, lambda mod, obj: mod.dumps(obj)
+        except ImportError as exc:
+>           raise CapabilityMissingError(
+                "toml", install_hint="Install a TOML writer: pip install tomli-w"
+            ) from exc
+E           scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+
+scikitplot/_cli/output.py:97: CapabilityMissingError
+_________________________ test_frontend_parity[argv6] __________________________
+
+argv = ['show-versions', '--format', 'json']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f6040>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_________________________ test_frontend_parity[argv7] __________________________
+
+argv = ['show-versions', '--mode', 'dict', '--format', 'json']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f6350>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_________________________ test_frontend_parity[argv8] __________________________
+
+argv = ['show-config', '--mode', 'dicts', '--format', 'toml']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f6dd0>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+_________________________ test_frontend_parity[argv14] _________________________
+
+argv = ['show_config', '--format', 'json']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feeada5e350>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+_________________________ test_frontend_parity[argv15] _________________________
+
+argv = ['show_versions', '--format', 'json']
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f78c0>
+
+    @pytest.mark.parametrize("argv", MATRIX)
+    def test_frontend_parity(argv, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _argparse, _click
+>       code_a, out_a = _capture(_argparse.run, argv, monkeypatch)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_frontend_parity.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_frontend_parity.py:43: in _capture
+    code = run(argv)
+           ^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+______________________ test_mode_default_is_stdout_human _______________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead55b770>
+
+    def test_mode_default_is_stdout_human(monkeypatch):
+>       code, out = _run(["show-versions"], monkeypatch)          # mode=stdout default
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_mode.py:29:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_mode.py:24: in _run
+    code = _argparse.run(argv)
+           ^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_____________________________ test_mode_dict_text ______________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead6f5710>
+
+    def test_mode_dict_text(monkeypatch):
+>       code, out = _run(["show-versions", "--mode", "dict"], monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_mode.py:34:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_mode.py:24: in _run
+    code = _argparse.run(argv)
+           ^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_________________ test_explicit_format_overrides_default_mode __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead55a580>
+
+    def test_explicit_format_overrides_default_mode(monkeypatch):
+        # mode defaults to stdout, but an explicit structured --format still wins
+>       code, out = _run(["show-versions", "--format", "json"], monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_mode.py:43:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_mode.py:24: in _run
+    code = _argparse.run(argv)
+           ^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_versions.py:33: in run
+    from ...utils._show_versions import (  # ruff: ignore[import-outside-top-level]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+_________________________ test_mode_and_format_combine _________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead5594e0>
+
+    def test_mode_and_format_combine(monkeypatch):
+>       code, out = _run(["show-config", "--mode", "dicts", "--format", "json"], monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_mode.py:53:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_mode.py:24: in _run
+    code = _argparse.run(argv)
+           ^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:45: in run
+    emit(ctx, _config_dict())
+              ^^^^^^^^^^^^^^
+scikitplot/_cli/_commands/show_config.py:37: in _config_dict
+    from ...config.__config__ import CONFIG  # ruff: ignore[import-outside-top-level]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+_______________________ test_argparse_verbosity[argv8-1] _______________________
+
+argv = ['show-config', '-v'], expected = 1
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead89c3d0>
+
+    @pytest.mark.parametrize("argv,expected", CASES)
+    def test_argparse_verbosity(argv, expected, monkeypatch):
+        from scikitplot._cli._frontends import _argparse
+>       assert _verbosity_seen(_argparse.run, argv, monkeypatch) == expected
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_verbosity.py:60:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_verbosity.py:38: in _verbosity_seen
+    run(argv)
+scikitplot/_cli/_frontends/_argparse.py:235: in run
+    return dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ctx = _verbosity_seen.<locals>.Probe(stdout=<_io.StringIO object at 0x7feead5cfa00>, stderr=<EncodedFile name="<_io.FileIO name=12 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>, fmt='text', color=True, verbosity=1)
+
+    def run(ctx: Context, *, mode: str = "stdout", fmt: str = "text") -> int:
+        """Render configuration per ``--mode``/``--format`` (see module docstring)."""
+        if fmt != "text":  # explicit serialization wins
+            emit(ctx, _config_dict())
+            return 0
+        if mode == "dicts":  # structured data as text
+            emit(ctx, _config_dict())
+            return 0
+        # lazy: library's human-readable printer
+        # mode == "stdout": library printer
+>       from ... import show_config  # ruff: ignore[import-outside-top-level]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+
+scikitplot/_cli/_commands/show_config.py:52: ImportError
+_____________________ test_click_verbosity_parity[argv8-1] _____________________
+
+argv = ['show-config', '-v'], expected = 1
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead55bbd0>
+
+    @pytest.mark.parametrize("argv,expected", CASES)
+    def test_click_verbosity_parity(argv, expected, monkeypatch):
+        pytest.importorskip("click")
+        from scikitplot._cli._frontends import _click
+>       assert _verbosity_seen(_click.run, argv, monkeypatch) == expected
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_cli_verbosity.py:67:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_cli_verbosity.py:38: in _verbosity_seen
+    run(argv)
+scikitplot/_cli/_frontends/_click.py:200: in run
+    group.main(
+/opt/pyvenv/lib/python3.13/site-packages/click/core.py:1082: in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+/opt/pyvenv/lib/python3.13/site-packages/click/core.py:1697: in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/pyvenv/lib/python3.13/site-packages/click/core.py:1443: in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/pyvenv/lib/python3.13/site-packages/click/core.py:788: in invoke
+    return __callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/_frontends/_click.py:131: in callback
+    code = dispatch(spec, params, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scikitplot/_cli/loader.py:72: in dispatch
+    return int(handler(ctx, **params))
+               ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+ctx = _verbosity_seen.<locals>.Probe(stdout=<_io.StringIO object at 0x7feead436f80>, stderr=<EncodedFile name="<_io.FileIO name=12 mode='rb+' closefd=True>" mode='r+' encoding='utf-8'>, fmt='text', color=True, verbosity=1)
+
+    def run(ctx: Context, *, mode: str = "stdout", fmt: str = "text") -> int:
+        """Render configuration per ``--mode``/``--format`` (see module docstring)."""
+        if fmt != "text":  # explicit serialization wins
+            emit(ctx, _config_dict())
+            return 0
+        if mode == "dicts":  # structured data as text
+            emit(ctx, _config_dict())
+            return 0
+        # lazy: library's human-readable printer
+        # mode == "stdout": library printer
+>       from ... import show_config  # ruff: ignore[import-outside-top-level]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+
+scikitplot/_cli/_commands/show_config.py:52: ImportError
+________________________ test_show_versions_module_dict ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead4b15c0>
+
+    def test_show_versions_module_dict(monkeypatch):
+>       code, out = _call_main("scikitplot.utils._show_versions", ["-m", "dict"], monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_module_runners.py:20:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_module_runners.py:11: in _call_main
+    mod = importlib.import_module(module_name)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:1026: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # scikitplot/utils/__init__.py
+
+    """
+    Various utilities to help with development.
+    """
+
+    # scikitplot/
+    # │
+    # └── utils/                   ← 15 utility submodules
+    #     ├── __init__.py
+    #     ├── _missing.py          ← sklearn-adapted NaN helpers
+    #     ├── _file.py             ← humansize, humansize_vector
+    #     ├── _path.py             ← PathNamer, make_path, get_path, remove_path
+    #     ├── _time.py             ← Timer context manager
+    #     ├── _inspect.py          ← 3 signature-inspection helpers
+    #     ├── _serialize.py        ← Matplotlib→JSON serializers
+    #     ├── _toml.py             ← Multi-backend TOML read/write
+    #     ├── _show_versions.py    ← System/dep introspection
+    #     ├── _encode.py           ← sklearn _unique encoding (adapted)
+    #     ├── _fixes.py            ← sklearn compat shims
+    #     ├── _matplotlib.py       ← safe_tight_layout, save decorators
+    #     ├── _pil.py              ← PIL font/image helpers
+    #     ├── _dotenv.py           ← .env loader
+    #     ├── _env.py              ← env-var resolver
+    #     ├── _huggingface.py      ← HF Hub login helper
+    #     ├── _mlflow.py           ← MLflow gateway config loader
+    #     ├── _streamlit.py        ← Streamlit secrets helpers
+    #     └── tests/               ← 3 existing, 7 new created below
+
+>   from .. import logger  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+
+scikitplot/utils/__init__.py:30: ImportError
+___________________________ test_config_module_dicts ___________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead4a78c0>
+
+    def test_config_module_dicts(monkeypatch):
+>       code, out = _call_main("scikitplot.config.__config__", ["--mode", "dicts"], monkeypatch)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_module_runners.py:29:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_module_runners.py:11: in _call_main
+    mod = importlib.import_module(module_name)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:1026: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+________________________ test_module_default_mode_runs _________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7feead4a7000>
+
+    def test_module_default_mode_runs(monkeypatch):
+>       code, _ = _call_main("scikitplot.config.__config__", [], monkeypatch)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+scikitplot/_cli/tests/test_module_runners.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scikitplot/_cli/tests/test_module_runners.py:11: in _call_main
+    mod = importlib.import_module(module_name)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1331: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:935: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:1026: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    # Flake8: noqa: F401,F403,F405
+    # type: ignore[]
+    # pylint: disable=import-error,import-self,undefined-all-variable
+
+    # Authors: The scikit-plots developers
+    # SPDX-License-Identifier: BSD-3-Clause
+
+    """
+    Configuration module for the package.
+
+    This module consolidates configuration-related components.
+    """
+
+>   from .._testing._pytesttester import PytestTester  # Pytest testing
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'scikitplot._testing'
+
+scikitplot/config/__init__.py:14: ModuleNotFoundError
+=========================== short test summary info ============================
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[info-toml] - scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[doctor-toml] - scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-versions-text] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-versions-json] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-versions-yaml] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-versions-toml] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-config-text] - ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-config-json] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-config-yaml] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[show-config-toml] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_format_coverage.py::test_command_supports_every_declared_format[sysinfo-toml] - scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv3] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv4] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv5] - scikitplot._cli.errors.CapabilityMissingError: Required capability 'toml' is not available.
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv6] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv7] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv8] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv14] - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_frontend_parity.py::test_frontend_parity[argv15] - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_mode.py::test_mode_default_is_stdout_human - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_mode.py::test_mode_dict_text - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_mode.py::test_explicit_format_overrides_default_mode - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_mode.py::test_mode_and_format_combine - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_cli_verbosity.py::test_argparse_verbosity[argv8-1] - ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_cli_verbosity.py::test_click_verbosity_parity[argv8-1] - ImportError: cannot import name 'show_config' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_module_runners.py::test_show_versions_module_dict - ImportError: cannot import name 'logger' from 'scikitplot' (unknown location)
+FAILED scikitplot/_cli/tests/test_module_runners.py::test_config_module_dicts - ModuleNotFoundError: No module named 'scikitplot._testing'
+FAILED scikitplot/_cli/tests/test_module_runners.py::test_module_default_mode_runs - ModuleNotFoundError: No module named 'scikitplot._testing'
+28 failed, 61 passed, 1 skipped in 0.48s

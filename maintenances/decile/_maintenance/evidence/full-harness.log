@@ -1,0 +1,5 @@
+Isolation harness: copied scikitplot/decile/** byte-for-byte under a throwaway scikitplot package root and provided minimal stand-ins only for missing shared package-shell helpers.
+Command: PYTHONPATH=<harness> MPLBACKEND=Agg python -B -m pytest scikitplot/decile -q -p no:cacheprovider
+Result: 336 passed, 6 subtests passed, 9 warnings in 17.34s.
+Warnings: sklearn LogisticRegression convergence warnings in KDS tests.
+Interpretation: strong isolated decile behavior evidence; NOT complete-package validation of the real shared decorators/validation helpers.

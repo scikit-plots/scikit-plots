@@ -327,3 +327,31 @@ div.sk-text-image-grid-large {
     height: 130%;
   }
 }
+
+/** YouTube
+ * https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/extending.html#combining-all-three-customizations
+ * An admonition with a custom icon, color, and title (and also make it collapsible).
+ * Note that the multiple admonition class names are space-separated.
+ *
+ * .. admonition:: YouTube
+ *     :class: dropdown admonition-youtube
+ *
+ *     ..  youtube:: dQw4w9WgXcQ
+ *
+ * And add the following css to your custom.css file:
+ * <your static path>/custom.css
+ */
+
+div.admonition.admonition-youtube {
+  border-color: hsl(0deg 100% 50%); /* YouTube red */
+}
+
+div.admonition.admonition-youtube > .admonition-title {
+  background-color: hsl(0deg 99% 18%);
+  color: white;
+}
+
+div.admonition.admonition-youtube > .admonition-title::after {
+  color: hsl(0deg 100% 50%);
+  content: "\f26c"; /* fa-solid fa-tv */
+}

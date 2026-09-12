@@ -1,0 +1,1 @@
+UNAVAILABLE: review executed on Linux only. GCC/G++ and Clang/Clang++ are visible; MSVC/Windows was not executed. Browser/WASM behavior is covered structurally/unit-wise but no browser runtime or prebuilt artifact matrix was exercised. Cross-platform release claims remain blocked.

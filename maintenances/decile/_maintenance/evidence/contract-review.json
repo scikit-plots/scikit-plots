@@ -1,0 +1,26 @@
+{
+  "subsystem": "scikitplot.decile",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "runtime_fingerprint": "822f55f0ac66bf556e5637b94ef1b34f44b464153e7c79b16810166c9740c759",
+  "inventory": {
+    "tracked_files": 12,
+    "production_python_files": 6,
+    "test_python_files": 3,
+    "test_support_python_files": 3
+  },
+  "maintenance_errors": [],
+  "runtime_errors": [
+    "KDS plot_lift drops decile_table selection arguments: missing ['class_index', 'pos_label']",
+    "KDS plot_lift_decile_wise drops decile_table selection arguments: missing ['class_index', 'pos_label']",
+    "KDS plot_cumulative_gain drops decile_table selection arguments: missing ['class_index', 'pos_label']",
+    "KDS plot_ks_statistic drops decile_table selection arguments: missing ['class_index', 'pos_label']",
+    "KDS report drops/renames decile_table arguments: missing ['class_index', 'digits', 'pos_label']",
+    "KDS report passes digits as round_decimal, which decile_table does not consume",
+    "KDS report drops selection arguments when calling plot_lift: missing ['class_index', 'pos_label']",
+    "KDS report drops selection arguments when calling plot_lift_decile_wise: missing ['class_index', 'pos_label']",
+    "KDS report drops selection arguments when calling plot_cumulative_gain: missing ['class_index', 'pos_label']",
+    "KDS report drops selection arguments when calling plot_ks_statistic: missing ['class_index', 'pos_label']",
+    "legacy modelplotpy mutates process-global NumPy RNG via np.random.seed at line 372"
+  ]
+}

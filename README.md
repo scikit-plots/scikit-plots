@@ -1100,60 +1100,65 @@ Let’s start with a basic example where we use a Keras classifier to evaluate t
 
 ```python
 # Before tf {'0':'All', '1':'Warnings+', '2':'Errors+', '3':'Fatal Only'} if any
-import os; os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # Disable GPU and force TensorFlow to use CPU
-import os; os.environ['CUDA_VISIBLE_DEVICES'] = ''
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import tensorflow as tf
+
 # Set TensorFlow's logging level to Fatal
-import logging; tf.get_logger().setLevel(logging.CRITICAL)
+import logging
+
+tf.get_logger().setLevel(logging.CRITICAL)
 import numpy as np
 from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
 
 # Loading the dataset
 X, y = load_digits(
-  return_X_y=True,
+    return_X_y=True,
 )
 # Split the dataset into training and validation sets
-X_train, X_val, y_train, y_val = train_test_split(
-  X, y, test_size=0.33, random_state=0
-)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.33, random_state=0)
 # Convert labels to one-hot encoding
 Y_train = tf.keras.utils.to_categorical(y_train)
 Y_val = tf.keras.utils.to_categorical(y_val)
 # Define a simple TensorFlow model
 tf.keras.backend.clear_session()
-model = tf.keras.Sequential([
-    # tf.keras.layers.Input(shape=(X_train.shape[1],)),  # Input (Functional API)
-    tf.keras.layers.InputLayer(shape=(X_train.shape[1],)),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(10, activation='softmax')
-])
+model = tf.keras.Sequential(
+    [
+        # tf.keras.layers.Input(shape=(X_train.shape[1],)),  # Input (Functional API)
+        tf.keras.layers.InputLayer(shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(10, activation="softmax"),
+    ]
+)
 # Compile the model
 model.compile(
-  optimizer='adam',
-  loss='categorical_crossentropy',
-  metrics=['accuracy'],
+    optimizer="adam",
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],
 )
 # Train the model
 model.fit(
-    X_train, Y_train,
-    batch_size=32,
-    epochs=2,
-    validation_data=(X_val, Y_val),
-    verbose=0
+    X_train, Y_train, batch_size=32, epochs=2, validation_data=(X_val, Y_val), verbose=0
 )
 # Predict probabilities on the validation set
 y_probas = model.predict(X_val)
 # Plot the data
 import matplotlib.pyplot as plt
 import scikitplot as sp
+
 # sp.get_logger().setLevel(sp.logging.WARNING)  # sp.logging == sp.logger
 sp.logger.setLevel(sp.logger.INFO)  # default WARNING
 # Plot precision-recall curves
 sp.metrics.plot_precision_recall(
-  y_val, y_probas,
+    y_val,
+    y_probas,
 )
 ```
 
@@ -1270,7 +1275,37 @@ https://emojidb.org/
 ←→ ✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
 
 ֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥 📣  🔊
-
+────────────────────────────────────────────
+| ☰ |              Title              | 🔥·📤·−·⛶ | × |
+| ☰ |              Title                        | ⋮ | × |
+────────────────────────────────────────────
+| + | waveform | ● Qwen2.5-Coder… | High | ▾ | 🎤 | ➤ |
+| + | waveform | ▣ High | 🎤 | ︿ | ➤ |
+────────────────────────────────────────────
+💬  Detailed feedback
+🔖  Bookmark answer
+▣   Contribute this Q&A…
+〽  Feedback center…
+────────────────────────
+⋮   More                         ▾
+    ⌂  Home
+────────────────────────────────────────────
+| title …                           | ⎽  ▢  ✕ |
+| title …                       | ^ | ⎽  ▢  ✕ |
+| title …                       | ⌄ | ⎽  ▢  ✕ |
+────────────────────────────────────────────
+expanded    [ 🎤  Speak with your assistant   Space   ‹ ]
+collapsed   [ 🎤 › ]
+| …the answer continues to the end of this line.        [ 🎤 › ] |
+────────────────────────────────────────────
+| color · text · effort · ▾ | ⌄ |
+────────────────────────────────────────────
+wide enough
+[ document | suggested-enhancements-for-index-rst-3.rst | Download ] [ ⋮ ]
+crowded/mobile
+[ document | suggested-enhancements-for-index-rst-3.rst | ↓ ] [ ⋮ ]
+────────────────────────────────────────────
+────────────────────────────────────────────
 ────────────────────────────────────────────
 🗐 ⧉ 🗌 🗍 🗐 🗐 🗎 🗏 🗑 🗒 🗓 🗔 🗕 🗖 🗗 🗘 🗙 🗚 🗛 🗜 ⧉⇄⧉ ⧉⟷⧉ □▢ ⊞ ⊟ ⊠ ⊡ ⧈ 📋 📄 📃 📑 ▢▢ □□
 □ ▢ ▣ ▤ ▥ ▦ ▧ ▨ ▩ ▫ ▪ ◧ ◨ ◩ ◪
@@ -1281,7 +1316,7 @@ https://emojidb.org/
 ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⚰︎ ⚱︎ ☍ ⚰ ⚱ ⚕ ⚚ ⚖ ⚔ ⚒ ⚗ ⚙ ⚜
 ✖︎ ✗ ✘ ✕ ✖ ✚ ✛ ✜ ✢ ✣ ✦ ✧ ✩ ✪ ✫ ✬ ✭ ✮ ✯
 ☑︎ ✓ ✔︎ ✖︎ ✗ ✘ ☒ ⛌ ✖︎ ✗ ✘ ☒ ✍︎
-🗸 ✓ 🗹 ✔️ ✅  🏁  ▪ ▫ →
+🗸 ✓ 🗹 ✔️ ✅  🏁  ▪ ▫ → ▪️
 💚 ( ⟳ ⟲ ⭯ ↻ ↶ ⤿ ⤵ )
 ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⛔ ✖︎ ❗ ‼︎ ⚡ 🗑️❌🗑⛔🔥🧹 ✎
 🔜 ❌ 🆗 🟢 ❎ 🟩 📗 ⛌ ⛔ 🚫 📤 🆗 📦 🧊

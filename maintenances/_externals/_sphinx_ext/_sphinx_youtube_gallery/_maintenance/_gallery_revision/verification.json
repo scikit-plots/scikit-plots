@@ -1,0 +1,191 @@
+[
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_pydata_component_list"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube",
+      "_sphinx_gallery_grid",
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube",
+      "_sphinx_youtube_gallery",
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid",
+      "_sphinxcontrib_youtube",
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid",
+      "_sphinx_youtube_gallery",
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery",
+      "_sphinxcontrib_youtube",
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "_sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery",
+      "_sphinx_gallery_grid",
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_pydata_component_list"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube",
+      "_sphinx_gallery_grid",
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinxcontrib_youtube",
+      "_sphinx_youtube_gallery",
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid",
+      "_sphinxcontrib_youtube",
+      "_sphinx_youtube_gallery"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_gallery_grid",
+      "_sphinx_youtube_gallery",
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery",
+      "_sphinxcontrib_youtube",
+      "_sphinx_gallery_grid"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "namespace": "scikitplot._externals._sphinx_ext",
+    "extensions": [
+      "_sphinx_youtube_gallery",
+      "_sphinx_gallery_grid",
+      "_sphinxcontrib_youtube"
+    ],
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  },
+  {
+    "case": "mixed namespaces rejected before registration",
+    "previous_result": "pass",
+    "current_v10": "not rerun: Sphinx/docutils unavailable in this runtime"
+  }
+]

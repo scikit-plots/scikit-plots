@@ -1,0 +1,58 @@
+$ python -B maintenances/random/_maintenance/tests/test_contract.py
+...........
+----------------------------------------------------------------------
+Ran 11 tests in 0.713s
+
+OK
+
+$ python -B maintenances/random/_maintenance/check_trackers.py --json
+{
+  "subsystem": "scikitplot.random",
+  "maintenance_status": "PASS",
+  "release_status": "BLOCKED",
+  "runtime_fingerprint": "765eb8f81cbbbdaa777939bb9fe2254493536a5baac0d3d40b4b1752f74a881e",
+  "inventory": {
+    "runtime_files": 12,
+    "runtime_bytes": 201742,
+    "source_files": 6,
+    "source_loc": 5109,
+    "test_files": 4,
+    "test_loc": 1435
+  },
+  "lanes": [
+    {
+      "id": "architecture",
+      "checks": {
+        "dependencies": [],
+        "public_surface": [],
+        "build": [],
+        "planes": []
+      }
+    },
+    {
+      "id": "continuation",
+      "checks": {
+        "handoff": [],
+        "inventory": [],
+        "hygiene": []
+      }
+    },
+    {
+      "id": "verification",
+      "checks": {
+        "evidence": []
+      }
+    }
+  ],
+  "errors": {
+    "manifest": [],
+    "dependencies": [],
+    "public_surface": [],
+    "build": [],
+    "planes": [],
+    "handoff": [],
+    "hygiene": [],
+    "evidence": [],
+    "inventory": []
+  }
+}

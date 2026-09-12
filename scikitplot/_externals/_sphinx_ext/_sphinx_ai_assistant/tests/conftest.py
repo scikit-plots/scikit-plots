@@ -217,12 +217,21 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_model_editing = True
     cfg.ai_assistant_panel_persist = True
     cfg.ai_assistant_panel_remember_conversation = True
+    cfg.ai_assistant_panel_current_page_context = True
     cfg.ai_assistant_panel_shortcut = "Alt+Shift+A"
+    cfg.ai_assistant_panel_mic_space_shortcut = True
     cfg.ai_assistant_panel_api_url = ""
     cfg.ai_assistant_panel_api_model = ""
     cfg.ai_assistant_panel_api_models = []
     cfg.ai_assistant_panel_api_streaming = True
+    cfg.ai_assistant_panel_streaming_default = True
     cfg.ai_assistant_panel_inline_model_picker = True
+    cfg.ai_assistant_panel_chat_privacy_banner = True
+    cfg.ai_assistant_panel_chat_privacy_text = ""
+    cfg.ai_assistant_panel_chat_privacy_more_text = "More information"
+    cfg.ai_assistant_panel_activity_timeline = True
+    cfg.ai_assistant_panel_activity_auto_collapse = True
+    cfg.ai_assistant_panel_generated_file_preview = True
 
     cfg.ai_assistant_panel_usage_policy = True
     cfg.ai_assistant_panel_usage_policy_title = "Usage Policy"
@@ -234,6 +243,7 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_share = True
     cfg.ai_assistant_panel_share_label = "Share"
     cfg.ai_assistant_panel_share_targets = []
+    cfg.ai_assistant_panel_skill_generator = True
     cfg.ai_assistant_panel_links = True
     cfg.ai_assistant_panel_links_title = "Project Links"
     cfg.ai_assistant_panel_links_html = ""
@@ -265,6 +275,9 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
     cfg.ai_assistant_panel_feedback_log = False
     cfg.ai_assistant_panel_feedback_scale = "auto"
+    cfg.ai_assistant_panel_feedback_telemetry_default = False
+    cfg.ai_assistant_panel_feedback_review_default = True
+    cfg.ai_assistant_panel_page_integration_default = False
 
     cfg.ai_assistant_isolation_origin = ""
     cfg.ai_assistant_isolation_frame_path = "/ai-assistant-isolated.html"

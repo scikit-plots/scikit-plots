@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot._cli",
+  "runtime_fingerprint": "dc0914e4d6281db64f9e952f43e6d674cb335243c640910ed32be39c857737fe",
+  "gates": {
+    "maintenance_tests": {
+      "status": "GREEN",
+      "log": "maintenances/_cli/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "980fd1039755a4be2a8bb668d90027618f004c15dc605246a1a64e669874b844",
+      "note": "Dedicated maintenance contract regression suite re-run against the fuller snapshot: 18 passed."
+    },
+    "core_cli_tests": {
+      "status": "GREEN",
+      "log": "maintenances/_cli/_maintenance/evidence/core-cli-tests.log",
+      "sha256": "6d635d8eae06a064e6557f43f1ffb9dba659a519edffc5ab192f46b974cd6d03",
+      "note": "Backend-independent import/delegation/doctor/error/output contract tests re-run: 23 passed, 1 skipped."
+    },
+    "full_cli_suite": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/_cli/_maintenance/evidence/full-cli-suite.log",
+      "sha256": "a0a9074a023d6e6824d1f2588576e34a72a8f601f92a49c6e1e4bddb620fcc03",
+      "note": "scikitplot.config and scikitplot.utils are now present. Full suite is 61 passed, 28 failed, 1 skipped; remaining failures depend on missing top-level package integration (scikitplot._testing, root logger/show_config, scikitplot.exceptions) and absent TOML writer, so this is not a clean _cli verdict."
+    },
+    "frontend_parity_full": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/_cli/_maintenance/evidence/frontend-parity-full.log",
+      "sha256": "bebf9d6c8fe16382aa76005b0eeabcc59b7e8eacc4f79376fd95ac95eba8d9c6",
+      "note": "Click is available. Parity matrix is 8 passed / 8 failed; failures are attributable to incomplete top-level package integration around config/utils and missing TOML writer, not missing config/utils modules."
+    },
+    "packaging_entrypoint": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/_cli/_maintenance/evidence/packaging-entrypoint-unavailable.log",
+      "sha256": "02501e2b8ca59028ef947ee6e95c6520ae9c348b05fbb10c0ddba5baa36cff48",
+      "note": "No project packaging metadata in supplied snapshot; installed console-script/wheel behavior not provable."
+    },
+    "delegated_mcp_live": {
+      "status": "GREEN",
+      "log": "maintenances/_cli/_maintenance/evidence/delegated-mcp-live.log",
+      "sha256": "d1ab6ac20960fea1371cd115cc280a0508d1442add22e1eabf8f1921628e8b1f",
+      "note": "Argparse delegated mcp --help reached the MCP-owned parser and returned exit 0 with verbatim ownership handoff."
+    }
+  },
+  "supplemental_evidence": {
+    "project_root_integration": {
+      "status": "UNAVAILABLE",
+      "log": "maintenances/_cli/_maintenance/evidence/project-root-integration-unavailable.log",
+      "sha256": "0cf2c2728ef08fbbd52170dfd2aa90c5c4e62f499031b92120957b7d2fb8587a",
+      "note": "Confirms config/utils are present while the surrounding root-package exports/support modules needed by those APIs are absent in this snapshot."
+    }
+  }
+}

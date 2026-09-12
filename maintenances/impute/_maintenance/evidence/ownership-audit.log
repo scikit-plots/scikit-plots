@@ -1,0 +1,35 @@
+IMPUTE OWNERSHIP AUDIT
+scikitplot/impute/__init__.py present= True
+scikitplot/impute/_ann.py present= True
+scikitplot/impute/_base.py present= True
+scikitplot/impute/tests/test__base.py present= True
+scikitplot/impute/tests/test_common.py present= True
+
+Annoy fallback lines:
+77     from ..annoy._annoy import Index as AnnoyIndex  # cython based
+78 except Exception:  # pragma: no cover - fallback to external annoy  # noqa: BLE001
+79     from annoy import AnnoyIndex  # cpp based
+867         except Exception:  # pragma: no cover - fallback  # noqa: BLE001
+
+Pandas import/runtime-use audit:
+module imports [(39, 'pd')]
+pd attribute uses []
+
+_base ownership audit:
+scikitplot/impute/__init__.py mentions scikitplot.impute._base/local ._base = False
+  24 from sklearn.impute._base import MissingIndicator, SimpleImputer  # noqa: F401
+scikitplot/impute/_ann.py mentions scikitplot.impute._base/local ._base = False
+  50 from sklearn.impute._base import _BaseImputer
+  115     brute-force distances as in :class:`~sklearn.impute.KNNImputer`.
+  278         :class:`~sklearn.impute.SimpleImputer`:
+  346     indicator_ : :class:`~sklearn.impute.MissingIndicator`
+  428     sklearn.impute.KNNImputer : Multivariate imputer that estimates missing features using
+scikitplot/impute/tests/test__base.py mentions scikitplot.impute._base/local ._base = False
+  20 from sklearn.impute._base import _BaseImputer
+scikitplot/impute/tests/test_common.py mentions scikitplot.impute._base/local ._base = False
+  22 from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
+
+Local _base classes:
+_BaseImputer
+SimpleImputer
+MissingIndicator

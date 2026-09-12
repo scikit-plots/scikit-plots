@@ -8,6 +8,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 fastapi==0.141.1
+python-multipart==0.0.32
 uvicorn==0.48.0
 httpx==0.28.1
 huggingface_hub==1.16.1

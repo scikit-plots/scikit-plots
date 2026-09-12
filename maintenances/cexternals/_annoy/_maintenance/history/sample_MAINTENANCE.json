@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "subsystem": "cexternals/_annoy",
+  "module": "scikitplot.cexternals._annoy",
+  "runtime_root": "scikitplot/cexternals/_annoy",
+  "shared_source": "scikitplot/cexternals/_annoy/src",
+  "maintenance_root": "maintenances/cexternals/_annoy",
+  "skill_root": "skills/cexternals/_annoy",
+  "ownership": {
+    "runtime": "scikitplot/cexternals/_annoy",
+    "maintenance": "maintenances/cexternals/_annoy",
+    "fresh_chat": "skills/cexternals/_annoy",
+    "rule": "Maintenance and skill planes may inspect runtime; runtime must never import either plane."
+  },
+  "required_headers": [
+    "annoylib.h",
+    "kissrandom.h",
+    "annoy_type_support.h",
+    "mman.h"
+  ],
+  "consumer_edges": [
+    {
+      "consumer": "annoy",
+      "kind": "direct-source",
+      "runtime_root": "scikitplot/annoy",
+      "headers": {
+        "annoylib.h": 4,
+        "kissrandom.h": 1,
+        "annoy_type_support.h": 1
+      }
+    },
+    {
+      "consumer": "random",
+      "kind": "direct-source",
+      "runtime_root": "scikitplot/random",
+      "headers": {
+        "kissrandom.h": 1
+      }
+    },
+    {
+      "consumer": "memmap",
+      "kind": "direct-source",
+      "runtime_root": "scikitplot/memmap",
+      "headers": {
+        "mman.h": 2
+      }
+    },
+    {
+      "consumer": "impute",
+      "kind": "compiled-index",
+      "runtime_root": "scikitplot/impute",
+      "evidence_file": "scikitplot/impute/_ann.py",
+      "imports": ["scikitplot.annoy._annoy:Index"]
+    },
+    {
+      "consumer": "corpus",
+      "kind": "selectable-compiled-index",
+      "runtime_root": "scikitplot/corpus",
+      "evidence_file": "scikitplot/corpus/_similarity/_backends.py",
+      "imports": [
+        "scikitplot.annoy:Index",
+        "scikitplot.annoy._annoy:Index"
+      ]
+    },
+    {
+      "consumer": "mcp",
+      "kind": "transitive-compiled-index",
+      "runtime_root": "scikitplot/mcp",
+      "evidence_file": "scikitplot/mcp/_corpus_annoy.py",
+      "imports": ["scikitplot.corpus:RetrievalIndex"],
+      "forbid_direct_import_prefixes": [
+        "scikitplot.annoy",
+        "scikitplot.annoy._annoy"
+      ]
+    }
+  ],
+  "forbidden_upward_import_prefixes": [
+    "scikitplot.annoy",
+    "scikitplot.random",
+    "scikitplot.memmap",
+    "scikitplot.impute",
+    "scikitplot.corpus",
+    "scikitplot.mcp",
+    "maintenances",
+    "skills"
+  ],
+  "ignored_runtime_dirs": ["__pycache__"],
+  "security": {
+    "metadata_is_declarative": true,
+    "allow_shell_commands_in_metadata": false,
+    "paths_must_remain_inside_repository": true
+  }
+}

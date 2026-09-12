@@ -1069,7 +1069,7 @@ ai_assistant_panel_effort_default = ""
 # simulating it.
 #
 # Enable it on the proxy with ``STUB_ENABLED=true`` (HF Space Variable, or the
-# environment for ``dev_proxy.py``).  It is off by default.  ``stub/*`` is a
+# environment for ``maintenance dev proxy``).  It is off by default.  ``stub/*`` is a
 # reserved fail-closed namespace: when disabled the proxy returns HTTP 503
 # locally and never forwards the diagnostic id to a real model provider.
 #
@@ -1150,7 +1150,7 @@ ai_assistant_panel_injection_notice = True
 # On first use of the model sheet it fetches ``<chat-origin>/health`` once per
 # session and reads a ``capabilities.reasoning`` block if one is there.  The
 # bundled proxies publish it: set ``REASONING_ENABLED=true`` in the HF Space
-# secrets (or the environment for ``dev_proxy.py``) and no ``conf.py`` change
+# secrets (or the environment for ``maintenance dev proxy``) and no ``conf.py`` change
 # is needed at all.
 #
 # Precedence, highest first:
@@ -1539,7 +1539,7 @@ ai_assistant_panel_api_models = [
     #   AI_PROXY_BASE is the single knob that selects which free proxy to use.
     #   Set it as an environment variable or CI/CD secret:
     #
-    #   Local development (dev_proxy.py on port 8787):
+    #   Local development (maintenance dev proxy on port 8787):
     #       export AI_PROXY_BASE=http://localhost:8787
     #
     #   Staging / CI (HuggingFace Space — Option A, always free):
@@ -1792,11 +1792,11 @@ ai_assistant_panel_api_streaming = True
 # ]
 #
 #
-# ── Option C: Local dev_proxy.py (development only — never deploy) ────────────
+# ── Option C: Local maintenance dev proxy (development only — never deploy) ────────────
 #
 # Run alongside your local http.server / Live Server during development.
 #
-#   dev_proxy.py  ──────────────────────────────────────────────────────────
+#   maintenance dev proxy  ──────────────────────────────────────────────────────────
 #   import os, json, httpx
 #   from http.server import BaseHTTPRequestHandler, HTTPServer
 #   HF_TOKEN = os.environ["HF_TOKEN"]    # export HF_TOKEN=hf_xxxx in shell
@@ -1823,7 +1823,7 @@ ai_assistant_panel_api_streaming = True
 #
 # Usage:
 #   export HF_TOKEN=hf_xxxx...
-#   python dev_proxy.py &
+#   python maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/_maintenance/tools/dev_proxy.py &
 #
 # Then for local builds only:
 #   ai_assistant_panel_api_models = [
@@ -2203,6 +2203,41 @@ ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
 # Default: False
 # When True the JS also console.log()s each feedback submission (dev aid).
 ai_assistant_panel_feedback_log = False
+
+# ── Run 171: first-message privacy/status row ─────────────────────────────
+# Shown once the first real chat message replaces onboarding.  The compact
+# row links to the full Privacy & Responsibility sheet below.
+#
+# The built-in text is runtime-aware and intentionally conservative: local
+# stub replies say no model network request is made; API mode says retention
+# and training depend on the configured endpoint/provider.
+#
+# Use the text override ONLY when your deployed proxy/provider contract has
+# actually verified stronger guarantees.  It is rendered as plain text.
+ai_assistant_panel_chat_privacy_banner = True
+ai_assistant_panel_chat_privacy_text = ""
+ai_assistant_panel_chat_privacy_more_text = "More information"
+# Example for an operator-verified zero-retention deployment:
+# ai_assistant_panel_chat_privacy_text = (
+#     "Anonymized by Example Proxy. Zero data retention for this chat. "
+#     "No AI training."
+# )
+
+# ── Run 172: observable activity + latest generated-file previews ─────────
+# Public UX only: shows request/tool/verification/file activity and explicit
+# endpoint-supplied summaries. It never requests or exposes hidden model
+# chain-of-thought. Readers can expand the timeline and stop a live request.
+#
+# Complete generated files can be returned in Markdown fences such as:
+#     ```python file=src/example.py
+#     ...
+#     ```
+# Every historical file link resolves through a latest-revision ledger, so a
+# later update to the same path is what older preview buttons open too.
+# A deduplicated Changed files section is appended at the end of the answer.
+ai_assistant_panel_activity_timeline = True
+ai_assistant_panel_activity_auto_collapse = True
+ai_assistant_panel_generated_file_preview = True
 
 # ── R2: privacy / responsibility sheet ────────────────────────────────────
 # A slide-over inside the panel, opened from a small header link.  The

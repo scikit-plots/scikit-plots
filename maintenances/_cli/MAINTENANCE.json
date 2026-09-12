@@ -1,0 +1,174 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot._cli",
+  "runtime_root": "scikitplot/_cli",
+  "maintenance_root": "maintenances/_cli",
+  "skill": "skills/_cli/SKILL.md",
+  "ownership": {
+    "owns": "The project-wide command dispatcher, framework-neutral command/parameter IR, built-in command registry, argparse and optional click frontend projection, lazy native-handler loading, delegated-command pass-through, CLI output rendering, CLI logging/stream policy, semantic exit codes, and standalone module-runner glue.",
+    "does_not_own": "MCP protocol/server behavior, Corpus retrieval semantics, Annoy/native mechanics, or the implementation semantics of delegated subcommands and project APIs such as show_config/show_versions. _cli may expose or delegate those surfaces but must not absorb their business logic."
+  },
+  "tiers": {
+    "bootstrap": {
+      "description": "Stdlib-only or optional-dependency-neutral CLI bootstrap that must remain importable without click/yaml/toml/rich.",
+      "modules": [
+        "__init__.py",
+        "app.py",
+        "_spec.py",
+        "registry.py",
+        "context.py",
+        "errors.py",
+        "exit_codes.py",
+        "loader.py",
+        "logging.py",
+        "output.py"
+      ]
+    },
+    "frontends": {
+      "description": "Two projections of one neutral registry. argparse is deterministic/default; click is optional and selected lazily.",
+      "modules": [
+        "_frontends/_argparse.py",
+        "_frontends/_click.py",
+        "_frontends/__init__.py"
+      ]
+    },
+    "module_runner": {
+      "description": "Small stdlib argparse adapter for python -m <module> entry points; it reuses Param mapping but is not a second command registry.",
+      "modules": [
+        "_runner.py"
+      ]
+    },
+    "native_handlers": {
+      "description": "Thin CLI adapters around library APIs. Project-heavy imports remain inside handler calls.",
+      "modules": [
+        "_commands/info.py",
+        "_commands/doctor.py",
+        "_commands/show_versions.py",
+        "_commands/show_config.py",
+        "_commands/sysinfo.py",
+        "_commands/greet.py"
+      ]
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/_cli/__init__.py",
+      "scikitplot/_cli/__main__.py",
+      "scikitplot/_cli/app.py",
+      "scikitplot/_cli/cli.py",
+      "scikitplot/_cli/_spec.py",
+      "scikitplot/_cli/registry.py",
+      "scikitplot/_cli/loader.py",
+      "scikitplot/_cli/context.py",
+      "scikitplot/_cli/errors.py",
+      "scikitplot/_cli/exit_codes.py",
+      "scikitplot/_cli/logging.py",
+      "scikitplot/_cli/output.py",
+      "scikitplot/_cli/_runner.py",
+      "scikitplot/_cli/_frontends/__init__.py",
+      "scikitplot/_cli/_frontends/_argparse.py",
+      "scikitplot/_cli/_frontends/_click.py",
+      "scikitplot/_cli/_commands/doctor.py",
+      "scikitplot/_cli/tests/test_cli_frontend_parity.py",
+      "scikitplot/_cli/tests/test_cli_import_contract.py",
+      "scikitplot/_cli/tests/test_cli_delegation.py"
+    ],
+    "required_symbols": {
+      "scikitplot/_cli/app.py": [
+        "main",
+        "_select_frontend"
+      ],
+      "scikitplot/_cli/_spec.py": [
+        "Param",
+        "CommandSpec"
+      ],
+      "scikitplot/_cli/registry.py": [
+        "BUILTIN_COMMANDS",
+        "BY_NAME",
+        "BY_ALIAS",
+        "resolve"
+      ],
+      "scikitplot/_cli/loader.py": [
+        "load_handler",
+        "dispatch",
+        "run_delegate"
+      ],
+      "scikitplot/_cli/context.py": [
+        "Context"
+      ],
+      "scikitplot/_cli/output.py": [
+        "emit"
+      ],
+      "scikitplot/_cli/logging.py": [
+        "configure",
+        "resolve",
+        "level_for"
+      ],
+      "scikitplot/_cli/_runner.py": [
+        "run_module"
+      ],
+      "scikitplot/_cli/_frontends/_argparse.py": [
+        "add_param",
+        "build_parser",
+        "run"
+      ],
+      "scikitplot/_cli/_frontends/_click.py": [
+        "build_group",
+        "run"
+      ]
+    },
+    "tests_root": "scikitplot/_cli/tests"
+  },
+  "boundary_contract": {
+    "default_frontend": "argparse",
+    "optional_frontend": "click",
+    "frontend_env": "SCIKITPLOT_CLI_FRONTEND",
+    "module_scope_click_allow": [
+      "_frontends/_click.py"
+    ],
+    "forbid_module_scope_roots": [
+      "scikitplot.mcp",
+      "scikitplot.corpus",
+      "scikitplot.annoy",
+      "maintenances",
+      "skills"
+    ],
+    "structured_formats": [
+      "json",
+      "yaml",
+      "toml"
+    ],
+    "result_channel": "stdout",
+    "diagnostic_channel": "stderr",
+    "delegated_mcp_target": "scikitplot.mcp.__main__:main"
+  },
+  "upstream_boundaries": [
+    {
+      "subsystem": "scikitplot.mcp",
+      "role": "delegated subcommand implementation",
+      "rule": "verbatim argv pass-through; MCP owns parsing and semantics after delegation"
+    },
+    {
+      "subsystem": "scikitplot.corpus",
+      "role": "possible downstream command/backend behavior",
+      "rule": "no module-scope dependency and no retrieval semantics in _cli"
+    },
+    {
+      "subsystem": "scikitplot.annoy",
+      "role": "possible downstream native/vector behavior",
+      "rule": "no module-scope dependency and no backend mechanics in _cli"
+    },
+    {
+      "subsystem": "project config/utils",
+      "role": "show-config/show-versions library sources of truth",
+      "rule": "lazy handler import; _cli adapts output rather than copying implementation"
+    }
+  ],
+  "read_order": [
+    "maintenances/_cli/MAINTAINING.md",
+    "maintenances/_cli/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/_cli/_maintenance/STATE.json",
+    "maintenances/_cli/_maintenance/FAMILY.md",
+    "maintenances/_cli/_maintenance/VERIFICATION.md"
+  ]
+}

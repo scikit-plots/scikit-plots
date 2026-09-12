@@ -22,6 +22,8 @@ scikit-plots Releases (Next) (Docs).
     * https://semver.org/
 """
 
+from __future__ import annotations
+
 # Only imports when type checking
 from typing import TYPE_CHECKING
 

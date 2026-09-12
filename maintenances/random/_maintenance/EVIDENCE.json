@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.random",
+  "runtime_fingerprint": "765eb8f81cbbbdaa777939bb9fe2254493536a5baac0d3d40b4b1752f74a881e",
+  "gates": {
+    "maintenance_contract": {
+      "status": "GREEN",
+      "detail": "Maintenance contract regression suite and structural checker passed on the supplied workspace.",
+      "log": "maintenances/random/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "c3ded170bd27a3044114d2c6bba7a11f352c2ceace72bb4b32095c334e329585"
+    },
+    "native_build": {
+      "status": "UNAVAILABLE",
+      "detail": "No clean Meson/Cython native build executed in this maintenance-and-skill-only pass.",
+      "log": null,
+      "sha256": null
+    },
+    "module_tests": {
+      "status": "UNAVAILABLE",
+      "detail": "Runtime extension tests require a built extension and were not executed in this pass.",
+      "log": null,
+      "sha256": null
+    },
+    "cross_platform": {
+      "status": "UNAVAILABLE",
+      "detail": "No Windows/POSIX cross-platform matrix was executed in this pass.",
+      "log": null,
+      "sha256": null
+    }
+  }
+}

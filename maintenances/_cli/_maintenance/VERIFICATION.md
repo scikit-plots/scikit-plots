@@ -1,34 +1,20 @@
-# Verification — `scikitplot._cli`
+# Verification policy
 
-## Commands
+A release-quality `_cli` review needs all of the following lanes current for the
+same runtime fingerprint:
 
-```console
-$ python scikitplot/_cli/_maintenance/check_trackers.py
-$ python -m pytest scikitplot/_cli -q -p no:cacheprovider
-$ python -m scikitplot._cli --help          # must work with nothing else installed
-```
+1. Maintenance contract regression tests.
+2. SDK/backend-independent CLI core tests: import optionality, delegation, doctor,
+   error taxonomy, and stream/output contracts.
+3. Full `_cli` test suite in a complete project checkout where `scikitplot.config`
+   and `scikitplot.utils` are integrated through the real top-level package API
+   (`scikitplot.__init__`, logger/show_config exports, `_testing`, exceptions) and
+   declared test extras/writers are installed.
+4. Full argparse/click parity matrix when click is installed.
+5. Installed console-script and `python -m scikitplot._cli` smoke checks from a
+   built wheel/sdist environment.
+6. At least one live delegated command path (currently MCP), verifying verbatim
+   argv ownership and semantic exit propagation.
 
-The third is load-bearing. **`--help` must not require any delegated
-submodule** — that is the whole point of string delegation.
-
-## What the gate checks
-
-| Check | Fails when |
-|---|---|
-| DRIFT | inventory differs from the tree by more than 10% |
-| DELEGATION | a target's module is not importable, or its attribute is missing |
-| TRIPWIRE | `__pycache__` in the tree; test:source below 0.08 |
-
-## What is NOT verified today
-
-| Claim | Status |
-|---|---|
-| Every exit code is documented | **no table exists** |
-| `--help` works with no optional dependencies | tested by `test_cli_import_contract.py`; not asserted end-to-end |
-| The `mcp` delegation works end-to-end | **blocked** — MCP's suite does not collect without `[mcp]` (`MCP-M00-01`) |
-
-## Evidence standard
-
-- **"I tested it" is insufficient.** Paste the command and its output.
-- A finding is resolved **with evidence**, never deleted.
-- A test is never weakened to make a change pass.
+`UNAVAILABLE` means the lane could not be proven in this snapshot/environment. It
+must never be silently converted to GREEN.

@@ -1,4 +1,4 @@
-# scikitplot/_externals/_sphinx_ext/_sphinx_contrib/peertube.py
+# scikitplot/_externals/_sphinx_ext/_sphinxcontrib_youtube/peertube.py
 #
 # fmt: off
 # ruff: noqa

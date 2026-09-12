@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "checkpoint": "CANN01_TYPED_CONSUMER_CONTROL_PLANE",
+  "static_control_plane": {
+    "status": "GREEN",
+    "checks": 7,
+    "negative_tests": "11/11"
+  },
+  "native": {
+    "status": "GREEN",
+    "verifier": "maintenances/cexternals/_annoy/_maintenance/tools/verify_native.py",
+    "green_entries": 11,
+    "details": {
+      "int_cmp": "GREEN",
+      "dealloc_noexcept": "GREEN",
+      "float16_fallback": "GREEN",
+      "float_capability": "GREEN",
+      "mman_ftruncate": "GREEN",
+      "type_support": "GREEN",
+      "w_bridge_errors": "GREEN",
+      "warning_budget": "GREEN",
+      "pyconv": "GREEN",
+      "float16_hardware": "GREEN_COMPILE_ONLY",
+      "cpu_feature_reloc": "GREEN"
+    },
+    "python_extension_runtime": "UNAVAILABLE_SOURCE_SNAPSHOT_HAS_NO_COMPILED_ANNOYLIB"
+  },
+  "consumers": {
+    "annoy": {
+      "static_edge": "GREEN",
+      "structural_source_tests": "GREEN_6_OF_6",
+      "runtime": "UNAVAILABLE_SOURCE_SNAPSHOT_HAS_NO_COMPILED_ANNOYLIB"
+    },
+    "random": {
+      "static_edge": "GREEN_KISSRANDOM_H_X1",
+      "runtime": "UNAVAILABLE_SOURCE_SNAPSHOT_HAS_NO_COMPILED_KISS_WRAPPER"
+    },
+    "memmap": {
+      "static_edge": "GREEN_MMAN_H_X2",
+      "runtime": "UNAVAILABLE_SOURCE_SNAPSHOT_HAS_NO_COMPILED_MEM_MAP_WRAPPER"
+    },
+    "impute": {
+      "static_edge": "GREEN_SCITKITPLOT_ANNOY_CYTHON_INDEX_IMPORT",
+      "runtime": "UNAVAILABLE_SOURCE_SNAPSHOT_MISSING_SCIKITPLOT_UTILS_AND_COMPILED_ANNOY"
+    },
+    "corpus": {
+      "static_edge": "GREEN_SELECTABLE_HIGHLEVEL_AND_CYTHON_ANNOY",
+      "focused_runtime_tests": "GREEN_38_OF_38"
+    },
+    "mcp": {
+      "static_edge": "GREEN_TRANSITIVE_VIA_CORPUS_RETRIEVAL_INDEX",
+      "direct_annoy_import_guard": "GREEN_NONE_FOUND",
+      "focused_runtime_tests": "GREEN_29_OF_29"
+    }
+  },
+  "review": {
+    "status": "PR_READY",
+    "release": "STATIC_ELIGIBLE_NATIVE_EVIDENCE_GREEN_CONSUMER_RUNTIME_PARTIAL"
+  }
+}
