@@ -60,7 +60,7 @@ jobs:
 
       # label based on Issue title
       - name: label based on PR title
-        uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
         # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
