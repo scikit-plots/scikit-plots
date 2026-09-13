@@ -22,7 +22,7 @@ not pull in Sphinx, BeautifulSoup, markdownify, or any other heavy
 dependency.  Only the specific submodule that is accessed at runtime
 triggers its own import chain.
 
-Submodules
+Attributes
 ----------
 _sphinx_gallery_grid
     Theme-independent owner of the public ``gallery-grid`` directive.

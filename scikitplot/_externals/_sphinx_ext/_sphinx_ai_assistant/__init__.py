@@ -87,8 +87,8 @@ name the alternative; never substitute convenience output and report success.
 A reader who chose the published file and silently received a browser conversion
 has been given the wrong answer confidently, which is worse than an error.
 
-Surfaces
---------
+Surfaces:
+
 ::
 
     Control                   Reader gets              Source           Build
@@ -109,8 +109,8 @@ Configure the default and whether readers may change it::
     ai_assistant_copy_mode = "browser"  # or "static"
     ai_assistant_copy_mode_toggle = True  # False pins the mode, hides the switch
 
-Build pipeline
---------------
+Build pipeline:
+
 ::
 
     Sphinx
@@ -137,8 +137,8 @@ stack; this one has to understand HTML. That is the reason this extension needs
 no sibling producer, and the reason its dependency surface is: zero module-scope
 non-stdlib imports, with ``bs4``/``markdownify`` optional and ``find_spec``-gated.
 
-Directive fidelity (planned, not yet implemented)
--------------------------------------------------
+Directive fidelity (planned, not yet implemented):
+
 Conversion is currently generic HTML→Markdown. Better semantic fidelity is
 planned for the markup emitted by:
 

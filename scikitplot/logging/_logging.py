@@ -77,6 +77,7 @@ from logging import (
     INFO,
     NOTSET,
     WARNING,
+    Filter,
     Formatter,
     Handler,
     Logger,
@@ -120,6 +121,7 @@ __all__ = [  # noqa: RUF022
     "WARN",
     "WARNING",
     # Primary objects / entry points
+    "Filter",
     "Formatter",
     "Handler",
     "Logger",
