@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 158: preserve and verify hardware-attestation lifecycle status.
 

@@ -842,7 +842,7 @@ class StorageCoordinator:
                     await self._dispatch(target, logical_path, content, message)
                     self._mark_success(target)
                     return logical_path
-                except StorageWriteError as exc:
+                except StorageWriteError as exc:  # ruff: ignore[try-except-in-loop]
                     last = exc
                     if not exc.transient or attempt + 1 >= self._max_attempts:
                         break

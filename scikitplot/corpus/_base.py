@@ -2690,7 +2690,7 @@ class DummyReader(DocumentReader):
                         raise ValueError(f"Path is not a regular file: {p!r}")
                 ok.append(src)
                 logger.debug("DummyReader.check: OK %s", src)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.debug("DummyReader.check: FAIL %s — %s", src, exc)
                 if raise_on_first:
                     raise

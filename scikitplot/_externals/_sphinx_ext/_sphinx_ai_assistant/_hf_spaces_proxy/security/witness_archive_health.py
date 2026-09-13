@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 162: witness archive-health epochs and recover retention governance.
 

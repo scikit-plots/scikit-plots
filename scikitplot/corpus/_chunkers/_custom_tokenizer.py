@@ -1755,9 +1755,9 @@ class ScriptSegmenter:
         n_clusters = len(clusters)
 
         # Build a parallel script-key list — one entry per grapheme cluster.
-        cluster_scripts: list[str] = []
-        for cluster in clusters:
-            cluster_scripts.append(self._get_cluster_script(cluster))
+        cluster_scripts: list[str] = [
+            self._get_cluster_script(cluster) for cluster in clusters
+        ]
 
         # Resolve Common / Inherited: attach to adjacent known script.
         # Pass 1 — forward pass: attach to preceding.

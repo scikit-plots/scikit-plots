@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Offline structural verifier for the B38/B39 supply-chain policy.
 
@@ -39,9 +38,9 @@ def _version_tuple(text: str) -> tuple[int | str, ...]:
     # Floors in this policy are simple numeric PEP-440 releases. Keep this
     # parser intentionally narrow so unusual versions fail review rather than
     # gaining surprising ordering semantics.
-    out: list[int | str] = []
-    for part in re.split(r"[.-]", text):
-        out.append(int(part) if part.isdigit() else part)
+    out: list[int | str] = [
+        int(part) if part.isdigit() else part for part in re.split(r"[.-]", text)
+    ]
     return tuple(out)
 
 

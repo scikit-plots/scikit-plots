@@ -1095,7 +1095,7 @@ def build_package_from_paths_result(
                 .expanduser()
                 .read_text(encoding="utf-8")
             )
-        except OSError:
+        except OSError:  # ruff: ignore[try-except-in-loop]
             # Unreadable path: skip source-size check but still validate the
             # shared build inputs below via the None entry.
             _pkg_sources.append(None)
@@ -1314,7 +1314,8 @@ def cython_import_all_result(
     for index, f in enumerate(candidates):
         try:
             successes[f.stem] = cython_import_result(f, **kwargs)
-        except BaseException as exc:  # noqa: BLE001 - reported structurally
+        # reported structurally
+        except BaseException as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
             failures.append(
                 BatchFailure(
                     name=f.stem,

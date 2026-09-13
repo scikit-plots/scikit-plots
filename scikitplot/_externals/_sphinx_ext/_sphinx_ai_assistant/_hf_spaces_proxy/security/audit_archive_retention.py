@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 161: cryptographically audit archive retention and durable-copy health.
 

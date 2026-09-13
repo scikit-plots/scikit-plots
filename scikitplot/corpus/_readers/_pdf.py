@@ -129,10 +129,11 @@ def _extract_page_text_pdfminer(pdf_path: Any, page_number: int) -> str | None:
     if not pages:
         return None
 
-    lines: list[str] = []
-    for element in pages[0]:
-        if isinstance(element, LTTextContainer):
-            lines.append(element.get_text())
+    lines: list[str] = [
+        element.get_text()
+        for element in pages[0]
+        if isinstance(element, LTTextContainer)
+    ]
 
     return "".join(lines)
 

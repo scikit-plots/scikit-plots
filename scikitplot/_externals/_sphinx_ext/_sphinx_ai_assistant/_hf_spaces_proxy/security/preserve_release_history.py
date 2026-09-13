@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Preserve witnessed releases in a quorum-gossiped, independently archived history chain."""
+"""
+Preserve witnessed releases in a quorum-gossiped, independently archived history chain.
+"""
 
 from __future__ import annotations
 

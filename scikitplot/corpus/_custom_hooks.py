@@ -1190,7 +1190,7 @@ class HookableCorpusPipeline:
         for src in input_files:
             try:
                 results.append(self.run(src, format=format))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 if stop_on_error:
                     raise
                 logger.warning(

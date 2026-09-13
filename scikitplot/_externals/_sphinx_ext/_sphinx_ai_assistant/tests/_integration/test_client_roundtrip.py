@@ -31,6 +31,12 @@ function extract(name) {
   }
   throw new Error('unbalanced ' + name);
 }
+function extractVar(name) {
+  const prefix = 'var ' + name + ' = ';
+  const i = src.indexOf(prefix); if (i < 0) throw new Error('missing ' + name);
+  const j = src.indexOf(';', i + prefix.length); if (j < 0) throw new Error('unterminated ' + name);
+  return src.slice(i + prefix.length, j).trim();
+}
 for (const name of [
   '_normalizeConversationContentOptions','_conversationContentPreset',
   '_sanitizeTurnAttachmentSummaries','_safeTurnResourceTotal',
@@ -43,7 +49,9 @@ for (const name of [
 // Run 111+: exported user rows always pass through the canonical resource
 // manifest sanitizer, even when the turn owns no resources. Keep this old
 // serializer-extraction test wired to that real helper chain rather than
-// stubbing it out.
+// stubbing it out. Keep module-scope serializer constants sourced from the
+// runtime file too, so schema-version changes cannot silently stale this harness.
+globalThis._CONVERSATION_SCHEMA_VERSION = (0,eval)(extractVar('_CONVERSATION_SCHEMA_VERSION'));
 globalThis._TURN_RESOURCE_LIVE_MAX_ITEMS = 512;
 
 globalThis.location = { href:'https://user:pass@docs.example.test/guide/?token=SECRET#frag' };

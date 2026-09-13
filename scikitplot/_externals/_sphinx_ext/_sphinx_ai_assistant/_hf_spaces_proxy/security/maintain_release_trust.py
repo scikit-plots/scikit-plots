@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 156: delegated freshness metadata and threshold root recovery.
 

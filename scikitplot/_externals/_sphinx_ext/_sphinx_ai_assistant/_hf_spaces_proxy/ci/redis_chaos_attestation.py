@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Canonical Redis chaos attestation payloads for Run 148 release evidence."""
+"""
+Canonical Redis chaos attestation payloads for Run 148 release evidence.
+"""
 
 from __future__ import annotations
 

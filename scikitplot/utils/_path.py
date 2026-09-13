@@ -978,6 +978,6 @@ def remove_path(
                 path_to_remove
             ):  # noqa: PTH110
                 shutil.rmtree(path_to_remove)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
             # Log the error silently or add specific logging if needed
             pass

@@ -521,7 +521,7 @@ async def async_load_sqlalchemy(
     db_type = db_type.lower()
 
     if db_type == "sqlite":
-        conn_str = f"sqlite+aiosqlite:///{Path(path).absolute()}"
+        conn_str = f"sqlite+aiosqlite:///{Path(path).absolute()!s}"  # ruff: ignore[blocking-path-method-in-async-function]
     elif db_type == "postgresql":
         conn_str = f"postgresql+asyncpg://{path}"
     elif db_type == "mysql":

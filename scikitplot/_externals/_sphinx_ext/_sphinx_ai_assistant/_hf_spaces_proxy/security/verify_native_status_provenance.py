@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 159: independently verify and preserve native certificate-status evidence.
 

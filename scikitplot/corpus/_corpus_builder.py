@@ -675,7 +675,9 @@ class CorpusBuilder:
                         collection_id=coll_id,
                     )
                     all_docs.extend(docs)
-                except Exception as exc:  # noqa: BLE001
+                except (  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
+                    Exception  # ruff: ignore[blind-except]
+                ) as exc:
                     logger.error("Failed to ingest %s: %s", src, exc)
                     result.errors.append(
                         ErrorRecord.from_exception(
@@ -1648,7 +1650,7 @@ class CorpusBuilder:
                     len(docs),
                     fp.name,
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning(
                     "Failed to ingest archive member %s: %s",
                     fp,

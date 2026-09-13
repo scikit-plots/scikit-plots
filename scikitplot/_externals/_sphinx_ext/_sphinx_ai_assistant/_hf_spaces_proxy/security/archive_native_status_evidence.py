@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 160: immutably replicate and recover exact Run 159 native-status evidence.
 

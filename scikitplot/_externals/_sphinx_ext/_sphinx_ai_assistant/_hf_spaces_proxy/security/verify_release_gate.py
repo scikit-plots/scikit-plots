@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""One fail-closed command for source policy plus production evidence binding."""
+"""
+One fail-closed command for source policy plus production evidence binding.
+"""
 
 from __future__ import annotations
 

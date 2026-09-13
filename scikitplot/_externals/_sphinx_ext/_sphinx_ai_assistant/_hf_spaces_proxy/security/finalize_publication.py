@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Independently attest, sign-verify, and bind a Run 150 publication to its final release record."""
+"""
+Independently attest, sign-verify, and bind a Run 150 publication to its final release record.
+"""
 
 from __future__ import annotations
 

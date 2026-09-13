@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Continue cryptographic release trust after an independently authorized root recovery.
 

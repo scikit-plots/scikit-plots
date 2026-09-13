@@ -781,7 +781,9 @@ class CorpusPipeline:
                             stop_on_error=stop_on_error,
                         )
                     )
-                except Exception as exc:  # noqa: BLE001
+                except (  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
+                    Exception  # ruff: ignore[blind-except]
+                ) as exc:
                     if stop_on_error:
                         raise
                     logger.error(

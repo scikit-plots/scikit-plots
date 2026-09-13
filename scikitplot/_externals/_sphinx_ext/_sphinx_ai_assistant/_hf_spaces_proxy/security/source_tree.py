@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Stable whole-extension source subject for release/CI evidence binding."""
+"""
+Stable whole-extension source subject for release/CI evidence binding.
+"""
 
 from __future__ import annotations
 

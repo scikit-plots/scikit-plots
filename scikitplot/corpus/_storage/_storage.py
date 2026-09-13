@@ -704,7 +704,7 @@ class JSONLStorage(StorageBase):
                 doc = _dict_to_doc(data)
                 if _matches_query(doc, q):
                     matching.append(doc)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning(
                     "JSONLStorage.query: skipping malformed record %r: %s.",
                     data.get("doc_id", "?"),
@@ -1062,7 +1062,7 @@ class SQLiteStorage(StorageBase):
         for row in rows:
             try:
                 docs.append(_dict_to_doc(json.loads(row["json_data"])))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning("SQLiteStorage.query: skipping malformed row: %s.", exc)
 
         return QueryResult(

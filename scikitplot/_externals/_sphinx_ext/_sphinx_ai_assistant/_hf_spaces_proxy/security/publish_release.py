@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Publish only Run 149 promotion-receipt objects and emit bounded transparency evidence."""
+"""
+Publish only Run 149 promotion-receipt objects and emit bounded transparency evidence.
+"""
 
 from __future__ import annotations
 

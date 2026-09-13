@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Threshold-govern release-history trust roots and recover them from immutable archives."""
+"""
+Threshold-govern release-history trust roots and recover them from immutable archives.
+"""
 
 from __future__ import annotations
 

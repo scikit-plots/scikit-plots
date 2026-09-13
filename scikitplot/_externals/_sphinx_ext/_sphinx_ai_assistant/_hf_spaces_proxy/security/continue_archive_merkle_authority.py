@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 166: continue RFC6962 Merkle epochs under Run 165 active authority.
 

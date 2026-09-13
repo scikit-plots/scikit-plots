@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Prepare and finalize one immutable, evidence-bound extension release transaction."""
+"""
+Prepare and finalize one immutable, evidence-bound extension release transaction.
+"""
 
 from __future__ import annotations
 

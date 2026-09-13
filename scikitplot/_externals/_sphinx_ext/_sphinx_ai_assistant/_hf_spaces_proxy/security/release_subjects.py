@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Print canonical non-secret subjects that production release evidence must bind."""
+"""
+Print canonical non-secret subjects that production release evidence must bind.
+"""
 
 from __future__ import annotations
 

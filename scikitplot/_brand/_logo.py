@@ -794,16 +794,14 @@ def _resolve_output_names(
 
     # Template mode: "scikit-plots-{variant}.svg"
     if "{variant}" in base_str:
-        for v in variants:
-            out.append((v, base_str.format(variant=v), fmt))
+        out.extend((v, base_str.format(variant=v), fmt) for v in variants)
         return out
 
     # Multiple variants: append "-{variant}"
     if len(variants) > 1:
         stem = str(base.with_suffix(""))
         suffix = base.suffix or f".{fmt}"
-        for v in variants:
-            out.append((v, f"{stem}-{v}{suffix}", fmt))
+        out.extend((v, f"{stem}-{v}{suffix}", fmt) for v in variants)
         return out
 
     return [(variants[0], base_str, fmt)]

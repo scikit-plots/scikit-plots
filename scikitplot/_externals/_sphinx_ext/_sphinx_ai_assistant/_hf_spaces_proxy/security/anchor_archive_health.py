@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 163: externally anchor Run 162 archive-health witness history.
 

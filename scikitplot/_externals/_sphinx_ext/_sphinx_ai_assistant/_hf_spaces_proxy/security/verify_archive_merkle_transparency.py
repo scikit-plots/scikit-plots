@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 164: verify Merkle transparency for externally anchored archive health.
 

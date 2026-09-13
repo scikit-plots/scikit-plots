@@ -1000,8 +1000,7 @@ class MultimodalEmbeddingEngine:
                         for d in text_docs
                     ]
                     text_vecs = self._maybe_project(self.embed_texts(texts))
-                    for orig_idx, vec in zip(text_indices, text_vecs):
-                        results[orig_idx] = vec
+                    results.update(dict(zip(text_indices, text_vecs)))
                 if not with_media:
                     continue
                 active_indices, media_docs = zip(*with_media)
@@ -1027,8 +1026,7 @@ class MultimodalEmbeddingEngine:
             # Apply projection if needed
             vecs = self._maybe_project(vecs)
 
-            for orig_idx, vec in zip(active_indices, vecs):
-                results[orig_idx] = vec
+            results.update(dict(zip(active_indices, vecs)))
 
         # Rebuild list preserving order
         return [

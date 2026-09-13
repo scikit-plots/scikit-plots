@@ -253,10 +253,7 @@ class XeusAddon(FederatedExtensionAddon):
         env_name = yaml_content["name"]
         env_prefix = root_prefix / "envs" / env_name
         dependencies = yaml_content.get("dependencies", [])
-        conda_packages = []
-        for item in dependencies:
-            if isinstance(item, str):
-                conda_packages.append(item)
+        conda_packages = [item for item in dependencies if isinstance(item, str)]
         self.specs[env_name] = conda_packages
         self.channels[env_name] = yaml_content.get("channels", self.default_channels)
 

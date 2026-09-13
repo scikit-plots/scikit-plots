@@ -221,10 +221,7 @@ def _as_tuple_str(x: Any) -> tuple[str, ...]:
     if x is None:
         return ()
     if isinstance(x, (list, tuple)):
-        out: list[str] = []
-        for v in x:
-            if isinstance(v, str):
-                out.append(v)
+        out: list[str] = [v for v in x if isinstance(v, str)]
         return tuple(out)
     return ()
 
@@ -234,10 +231,7 @@ def _as_tuple_demo_calls(x: Any) -> tuple[dict[str, Any], ...]:
         return ()
     if not isinstance(x, (list, tuple)):
         return ()
-    out: list[dict[str, Any]] = []
-    for v in x:
-        if isinstance(v, dict):
-            out.append(dict(v))
+    out: list[dict[str, Any]] = [dict(v) for v in x if isinstance(v, dict)]
     return tuple(out)
 
 
@@ -550,9 +544,11 @@ def get_template_path(  # noqa: PLR0912
         [_TEMPLATE_EXT_BY_KIND[kind]] if kind else list(_TEMPLATE_EXT_BY_KIND.values())
     )
     for ext in exts:
-        for file in _iter_template_files(ext=ext):
-            if file.stem == template_id and "workflow" not in file.parts:
-                hits.append(file)
+        hits.extend(
+            file
+            for file in _iter_template_files(ext=ext)
+            if file.stem == template_id and "workflow" not in file.parts
+        )
     hits = sorted(set(hits))
     if not hits:
         raise FileNotFoundError(f"No template named {template_id!r}")
@@ -817,10 +813,11 @@ def list_workflows() -> list[str]:
     """
     if not _WORKFLOW_ROOT.exists():
         return []
-    out: list[str] = []
-    for child in sorted(_WORKFLOW_ROOT.iterdir()):
-        if child.is_dir() and not child.name.startswith("_"):
-            out.append(child.name)
+    out: list[str] = [
+        child.name
+        for child in sorted(_WORKFLOW_ROOT.iterdir())
+        if child.is_dir() and not child.name.startswith("_")
+    ]
     return out
 
 
@@ -917,10 +914,11 @@ def list_package_examples() -> list[str]:
     """
     if not _PACKAGE_EXAMPLES_ROOT.exists():
         return []
-    out: list[str] = []
-    for child in sorted(_PACKAGE_EXAMPLES_ROOT.iterdir()):
-        if child.is_dir() and not child.name.startswith("_"):
-            out.append(child.name)
+    out: list[str] = [
+        child.name
+        for child in sorted(_PACKAGE_EXAMPLES_ROOT.iterdir())
+        if child.is_dir() and not child.name.startswith("_")
+    ]
     return out
 
 
@@ -1043,16 +1041,16 @@ def build_package_example_result(
     support_paths: list[Path] = []
     sp = meta.get("support_paths")
     if isinstance(sp, list):
-        for item in sp:
-            if isinstance(item, str) and item:
-                support_paths.append((root / item).resolve())
+        support_paths.extend(
+            (root / item).resolve() for item in sp if isinstance(item, str) and item
+        )
 
     extra_sources: list[Path] = []
     es = meta.get("extra_sources")
     if isinstance(es, list):
-        for item in es:
-            if isinstance(item, str) and item:
-                extra_sources.append((root / item).resolve())
+        extra_sources.extend(
+            (root / item).resolve() for item in es if isinstance(item, str) and item
+        )
 
     inc = list(include_dirs or [])
     inc.append(root)

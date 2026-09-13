@@ -211,7 +211,7 @@ def render_rst_templates(
         try:
             out = _render_one(tmpl, resolved_context, encoding=encoding)
             output_paths.append(out)
-        except Exception as exc:
+        except Exception as exc:  # ruff: ignore[try-except-in-loop]
             if strict:
                 raise RuntimeError(f"Failed rendering template: {tmpl}") from exc
             errors.append((tmpl, exc))

@@ -115,15 +115,14 @@ def _read_registry(root: Path) -> dict[str, str]:
             f"pin registry {p} is corrupt (expected a JSON object, "
             f"got {type(data).__name__})"
         )
-    out: dict[str, str] = {}
-    for k, v in data.items():
-        if (
-            isinstance(k, str)
-            and isinstance(v, str)
-            and _ALIAS_RE.fullmatch(k)
-            and is_valid_key(v)
-        ):
-            out[k] = v
+    out: dict[str, str] = {
+        k: v
+        for k, v in data.items()
+        if isinstance(k, str)
+        and isinstance(v, str)
+        and _ALIAS_RE.fullmatch(k)
+        and is_valid_key(v)
+    }
     return out
 
 

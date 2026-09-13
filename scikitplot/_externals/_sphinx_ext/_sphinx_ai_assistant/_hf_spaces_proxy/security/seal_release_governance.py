@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Cryptographically seal release-governance candidates with threshold Ed25519 roots.
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """
 Run 168: durably preserve and recover complete Run 167 recursive Merkle authority state.
 

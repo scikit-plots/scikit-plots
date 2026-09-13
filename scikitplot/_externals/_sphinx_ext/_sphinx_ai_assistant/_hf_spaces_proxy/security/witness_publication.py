@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-"""Anchor a Run 151 final release record in append-only transparency and require a witness quorum."""
+"""
+Anchor a Run 151 final release record in append-only transparency and require a witness quorum.
+"""
 
 from __future__ import annotations
 

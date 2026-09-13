@@ -1060,8 +1060,7 @@ class PybindCompiler:
             )
 
         incs: list[str] = [str(pb_inc)]
-        for d in include_dirs or []:
-            incs.append(str(d))
+        incs.extend(str(d) for d in include_dirs or [])
 
         cargs: list[str] = ["-std=c++17"]
         for a in extra_compile_args or []:
@@ -1223,8 +1222,7 @@ class CApiCompiler:
             )
 
         incs: list[str] = [str(np_inc)]
-        for d in include_dirs or []:
-            incs.append(str(d))
+        incs.extend(str(d) for d in include_dirs or [])
 
         # Delegate to the main public builder.
         from ._public import compile_and_load_result  # noqa: PLC0415

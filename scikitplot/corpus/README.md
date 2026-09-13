@@ -78,9 +78,9 @@ Each setter returns a new builder.
 from scikitplot.corpus import FluentCorpus
 
 base = (
-    FluentCorpus()
-    .chunker("paragraph")
-    .storage("memory")
+    FluentCorpus()  # initialize immutable
+    .chunker("paragraph")  # setter
+    .storage("memory")  # setter
 )
 
 print(base.plan().configured)
@@ -112,10 +112,10 @@ It does **not** read the configured source. Source processing starts only when
 from scikitplot.corpus import RuntimePolicy
 
 fluent = (
-    FluentCorpus()
-    .source("article.txt")
-    .chunker("paragraph")
-    .storage("memory")
+    FluentCorpus()  # initialize immutable
+    .source("article.txt")  # setter
+    .chunker("paragraph")  # setter
+    .storage("memory")  # setter
 )
 
 with fluent.materialize(
@@ -195,13 +195,10 @@ enricher = SimpleFrequencyEnricher(
 For declarative Fluent configuration, use `SimpleEnricherSpec` directly:
 
 ```python
-fluent = (
-    FluentCorpus()
-    .enricher(
-        SimpleEnricherSpec(
-            min_token_length=3,
-            max_keywords=8,
-        )
+fluent = FluentCorpus().enricher(  # initialize immutable  # setter
+    SimpleEnricherSpec(
+        min_token_length=3,
+        max_keywords=8,
     )
 )
 ```

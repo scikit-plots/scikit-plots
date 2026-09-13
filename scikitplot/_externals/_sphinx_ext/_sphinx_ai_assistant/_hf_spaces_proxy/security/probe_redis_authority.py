@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Collect sanitized Redis operational evidence for one control plane.
 

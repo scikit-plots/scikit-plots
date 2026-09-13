@@ -52,7 +52,8 @@ Check programmatically:
 
 ```python
 from scikitplot.mcp import server_runtime_status
-status = server_runtime_status()          # never imports the SDK
+
+status = server_runtime_status()  # never imports the SDK
 # {'retrieval_available': True, 'server_available': ..., 'reason': ...}
 ```
 
@@ -60,7 +61,10 @@ Enumerate the (read-only) surface programmatically — also SDK-free:
 
 ```python
 from scikitplot.mcp import server_capabilities
-caps = server_capabilities()   # {'effect_class': 'read_only', 'tools': [...], 'resources': [...]}
+
+caps = (
+    server_capabilities()
+)  # {'effect_class': 'read_only', 'tools': [...], 'resources': [...]}
 ```
 
 ---
