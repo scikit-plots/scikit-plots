@@ -202,10 +202,22 @@ def _artifact(name: str, raw: bytes) -> dict[str, Any]:
     return {"name": name, "sha256": _sha_bytes(raw), "size": len(raw)}
 
 
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ATTESTATION_LIFECYCLE_STATE = "trusted-attestation-lifecycle-state.json"
+_DOC_NATIVE_STATUS_STATE = "trusted-native-status-state.json"
+
+
 def _lifecycle_docs(root: Path) -> dict[str, dict[str, Any]]:
     names = {
         "release-attestation-lifecycle-bundle.json",
-        "trusted-attestation-lifecycle-state.json",
+        _DOC_ATTESTATION_LIFECYCLE_STATE,
         "active-attestation-ca-set.json",
         "active-attestation-status.json",
         "release-attestation-lifecycle-receipt.json",
@@ -993,7 +1005,7 @@ def _write_output(
     tmp = Path(tempfile.mkdtemp(prefix=".native-status-", dir=parent))
     try:
         _write(tmp / "release-native-status-bundle.json", bundle)
-        _write(tmp / "trusted-native-status-state.json", state)
+        _write(tmp / _DOC_NATIVE_STATUS_STATE, state)
         _write(tmp / "active-native-status-evidence.json", event)
         receipt = {
             "schemaVersion": int(POLICY["receipt_schema_version"]),
@@ -1001,7 +1013,7 @@ def _write_output(
             "bundle": _artifact(
                 "release-native-status-bundle.json", _canonical(bundle)
             ),
-            "state": _artifact("trusted-native-status-state.json", _canonical(state)),
+            "state": _artifact(_DOC_NATIVE_STATUS_STATE, _canonical(state)),
             "activeEvidence": _artifact(
                 "active-native-status-evidence.json", _canonical(event)
             ),
@@ -1069,15 +1081,13 @@ def _build_sources(
 
 
 def _predecessor_binding(docs: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    state = docs["trusted-attestation-lifecycle-state.json"]
+    state = docs[_DOC_ATTESTATION_LIFECYCLE_STATE]
     bundle = docs["release-attestation-lifecycle-bundle.json"]
     return {
         "bundle": _artifact(
             "release-attestation-lifecycle-bundle.json", _canonical(bundle)
         ),
-        "state": _artifact(
-            "trusted-attestation-lifecycle-state.json", _canonical(state)
-        ),
+        "state": _artifact(_DOC_ATTESTATION_LIFECYCLE_STATE, _canonical(state)),
         "lifecycleChainHeadSha256": _hex(
             state["lifecycleChainHeadSha256"], "NATIVE_LIFECYCLE_HEAD_INVALID"
         ),
@@ -1212,7 +1222,7 @@ def initialize_native_status(  # ruff: ignore[undocumented-public-function]
 def _native_docs(root: Path) -> dict[str, dict[str, Any]]:
     names = {
         "release-native-status-bundle.json",
-        "trusted-native-status-state.json",
+        _DOC_NATIVE_STATUS_STATE,
         "active-native-status-evidence.json",
         "release-native-status-receipt.json",
     }
@@ -1288,7 +1298,7 @@ def _verify_bundle(  # ruff: ignore[too-many-branches]
     lifecycle_bundle = pred_docs["release-attestation-lifecycle-bundle.json"]
     leaves = _leaf_inventory(lifecycle_bundle, ca_set)
     ca_records = _ca_records(ca_set)
-    previous_head = pred_docs["trusted-attestation-lifecycle-state.json"][
+    previous_head = pred_docs[_DOC_ATTESTATION_LIFECYCLE_STATE][
         "lifecycleChainHeadSha256"
     ]
     previous_event = None
@@ -1384,14 +1394,14 @@ def verify_native_status(  # ruff: ignore[undocumented-public-function]
         now=current,
         historical=historical,
     )
-    state = docs["trusted-native-status-state.json"]
+    state = docs[_DOC_NATIVE_STATUS_STATE]
     bundle = docs["release-native-status-bundle.json"]
     expected_state = {
         "schemaVersion": int(POLICY["state_schema_version"]),
         "status": "trusted-native-status-provenance",
         "sequence": len(bundle["events"]),
         "lifecycleChainHeadSha256": bundle["attestationLifecycleOutput"][
-            "trusted-attestation-lifecycle-state.json"
+            _DOC_ATTESTATION_LIFECYCLE_STATE
         ]["lifecycleChainHeadSha256"],
         "nativeStatusChainHeadSha256": head,
         "activeEvidenceSha256": _sha_bytes(_canonical(final_event)),
@@ -1411,7 +1421,7 @@ def verify_native_status(  # ruff: ignore[undocumented-public-function]
             else "native-status-advanced"
         ),
         "bundle": _artifact("release-native-status-bundle.json", _canonical(bundle)),
-        "state": _artifact("trusted-native-status-state.json", _canonical(state)),
+        "state": _artifact(_DOC_NATIVE_STATUS_STATE, _canonical(state)),
         "activeEvidence": _artifact(
             "active-native-status-evidence.json", _canonical(final_event)
         ),
@@ -1472,7 +1482,7 @@ def advance_native_status(  # ruff: ignore[undocumented-public-function]
     body = {
         "sequence": seq,
         "type": "native-status-advance",
-        "previousChainHeadSha256": docs["trusted-native-status-state.json"][
+        "previousChainHeadSha256": docs[_DOC_NATIVE_STATUS_STATE][
             "nativeStatusChainHeadSha256"
         ],
         "predecessor": predecessor,

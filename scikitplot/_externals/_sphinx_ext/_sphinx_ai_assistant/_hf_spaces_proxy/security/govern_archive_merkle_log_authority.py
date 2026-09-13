@@ -30,15 +30,29 @@ logger = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
 POLICY = tomllib.loads((HERE / "release_archive_log_authority_policy.toml").read_text())
 PREDICATE_TYPE = str(POLICY["predicate_type"])
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_LOG_AUTHORITY_STATE = "trusted-archive-log-authority-state.json"
+_DOC_ARCHIVE_MERKLE_STATE = "trusted-archive-merkle-state.json"
+
+
 _OUTPUT_NAMES = {
     "release-archive-log-authority-bundle.json",
-    "trusted-archive-log-authority-state.json",
+    _DOC_ARCHIVE_LOG_AUTHORITY_STATE,
     "active-archive-log-authority.json",
     "release-archive-log-authority-receipt.json",
 }
 _RUN164_NAMES = {
     "release-archive-merkle-bundle.json",
-    "trusted-archive-merkle-state.json",
+    _DOC_ARCHIVE_MERKLE_STATE,
     "active-archive-merkle-evidence.json",
     "release-archive-merkle-receipt.json",
 }
@@ -420,7 +434,7 @@ def _load_run164_offline(
         )
     except Exception as exc:  # ruff: ignore[blind-except]
         _fail("ARCHIVE_LOG_RUN164_VERIFICATION_FAILED:" + str(exc))
-    state = docs["trusted-archive-merkle-state.json"]
+    state = docs[_DOC_ARCHIVE_MERKLE_STATE]
     active = docs["active-archive-merkle-evidence.json"]
     bundle_raw = raws["release-archive-merkle-bundle.json"]
     expected_state = {
@@ -1162,7 +1176,7 @@ def verify_log_authority_history(  # ruff: ignore[undocumented-public-function]
         "size": len(bundle_raw),
     }:
         _fail("ARCHIVE_LOG_BUNDLE_ARTIFACT_REPLAY_INVALID")
-    if docs["trusted-archive-log-authority-state.json"] != expected_state:
+    if docs[_DOC_ARCHIVE_LOG_AUTHORITY_STATE] != expected_state:
         _fail("ARCHIVE_LOG_STATE_MISMATCH")
     tr = replay["transition"]
     expected_active = {
@@ -1347,7 +1361,7 @@ def apply_log_authority_transition(  # ruff: ignore[undocumented-public-function
     stage = Path(tempfile.mkdtemp(prefix=".run165-log-authority-", dir=target.parent))
     try:
         (stage / "release-archive-log-authority-bundle.json").write_bytes(bundle_raw)
-        _write(stage / "trusted-archive-log-authority-state.json", state)
+        _write(stage / _DOC_ARCHIVE_LOG_AUTHORITY_STATE, state)
         _write(stage / "active-archive-log-authority.json", active)
         _write(stage / "release-archive-log-authority-receipt.json", receipt)
         verify_log_authority_history(

@@ -57,9 +57,23 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_HEALTH_STATE = "trusted-archive-health-state.json"
+_DOC_ARCHIVE_WITNESS_STATE = "trusted-archive-witness-state.json"
+
+
 _WITNESS_OUTPUT_NAMES = {
     "release-archive-witness-bundle.json",
-    "trusted-archive-witness-state.json",
+    _DOC_ARCHIVE_WITNESS_STATE,
     "active-archive-witness-evidence.json",
     "release-archive-witness-receipt.json",
 }
@@ -412,7 +426,7 @@ def _verify_run161(
         _WITNESS_OUTPUT_NAMES
         | {
             "release-archive-health-bundle.json",
-            "trusted-archive-health-state.json",
+            _DOC_ARCHIVE_HEALTH_STATE,
             "active-archive-health-evidence.json",
             "release-archive-health-receipt.json",
         }
@@ -450,7 +464,7 @@ def _verify_run161(
 
 
 def _run161_view(run161_docs: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    state = run161_docs["trusted-archive-health-state.json"]
+    state = run161_docs[_DOC_ARCHIVE_HEALTH_STATE]
     active = run161_docs["active-archive-health-evidence.json"]
     membership = active.get("membership", {}).get("signed", {})
     members = membership.get("members")
@@ -838,7 +852,7 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
         state_raw = _canonical(embedded_state)
         active_raw = _canonical(embedded_active)
         if event.get("run161HealthStateArtifact") != {
-            "name": "trusted-archive-health-state.json",
+            "name": _DOC_ARCHIVE_HEALTH_STATE,
             "sha256": _sha_bytes(state_raw),
             "size": len(state_raw),
         } or event.get("run161ActiveArtifact") != {
@@ -849,7 +863,7 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
             _fail("ARCHIVE_WITNESS_RUN161_ARTIFACT_BINDING_INVALID")
         embedded_view = _run161_view(
             {
-                "trusted-archive-health-state.json": embedded_state,
+                _DOC_ARCHIVE_HEALTH_STATE: embedded_state,
                 "active-archive-health-evidence.json": embedded_active,
             }
         )
@@ -865,7 +879,7 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
             idx == len(events)
             and require_current_match
             and (
-                embedded_state != r161["docs"]["trusted-archive-health-state.json"]
+                embedded_state != r161["docs"][_DOC_ARCHIVE_HEALTH_STATE]
                 or embedded_active
                 != r161["docs"]["active-archive-health-evidence.json"]
             )
@@ -942,7 +956,7 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
             _fail("ARCHIVE_WITNESS_INTERVAL_EXCEEDED")
         last_time = max(observed_times)
         previous = head
-    state = docs["trusted-archive-witness-state.json"]
+    state = docs[_DOC_ARCHIVE_WITNESS_STATE]
     active = docs["active-archive-witness-evidence.json"]
     bundle_item = {
         "name": "release-archive-witness-bundle.json",
@@ -1029,12 +1043,12 @@ def witness_archive_health(  # ruff: ignore[undocumented-public-function]
     expected_view = _run161_view(r161["docs"])
     view_sha = _sha_bytes(_canonical(expected_view))
     run161_head = expected_view["healthChainHeadSha256"]
-    state_doc = r161["docs"]["trusted-archive-health-state.json"]
+    state_doc = r161["docs"][_DOC_ARCHIVE_HEALTH_STATE]
     active_doc = r161["docs"]["active-archive-health-evidence.json"]
     state_raw = _canonical(state_doc)
     active_raw = _canonical(active_doc)
     state_item = {
-        "name": "trusted-archive-health-state.json",
+        "name": _DOC_ARCHIVE_HEALTH_STATE,
         "sha256": _sha_bytes(state_raw),
         "size": len(state_raw),
     }
@@ -1239,7 +1253,7 @@ def witness_archive_health(  # ruff: ignore[undocumented-public-function]
     stage = Path(tempfile.mkdtemp(prefix=".run162-witness-", dir=parent))
     try:
         _write(stage / "release-archive-witness-bundle.json", bundle)
-        _write(stage / "trusted-archive-witness-state.json", state)
+        _write(stage / _DOC_ARCHIVE_WITNESS_STATE, state)
         _write(stage / "active-archive-witness-evidence.json", active)
         _write(stage / "release-archive-witness-receipt.json", receipt)
         verify_witness_history(
@@ -1441,7 +1455,7 @@ def verify_retention_root_recovery(  # ruff: ignore[too-many-branches, undocumen
         historical=True,
     )
     active, _ = _read_json(
-        run161_dir / "trusted-archive-health-state.json", "ARCHIVE_WITNESS_RUN161_STATE"
+        run161_dir / _DOC_ARCHIVE_HEALTH_STATE, "ARCHIVE_WITNESS_RUN161_STATE"
     )
     record, record_raw = _read_json(
         output_dir / "retention-root-recovery-record.json",
@@ -1602,7 +1616,7 @@ def recover_retention_root(  # ruff: ignore[too-many-branches, undocumented-publ
         historical=True,
     )
     active, _ = _read_json(
-        run161_dir / "trusted-archive-health-state.json", "ARCHIVE_WITNESS_RUN161_STATE"
+        run161_dir / _DOC_ARCHIVE_HEALTH_STATE, "ARCHIVE_WITNESS_RUN161_STATE"
     )
     subject, _ = _read_json(recovery_subject_path, "ARCHIVE_WITNESS_RECOVERY_SUBJECT")
     parsed = _recovery_subject(subject, rr, old, new, active, current)

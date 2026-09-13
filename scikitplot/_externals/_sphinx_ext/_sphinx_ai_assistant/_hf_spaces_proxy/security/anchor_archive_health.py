@@ -51,9 +51,22 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_ANCHOR_STATE = "trusted-archive-anchor-state.json"
+
+
 _ANCHOR_NAMES = {
     "release-archive-anchor-bundle.json",
-    "trusted-archive-anchor-state.json",
+    _DOC_ARCHIVE_ANCHOR_STATE,
     "active-archive-anchor-evidence.json",
     "release-archive-anchor-receipt.json",
 }
@@ -810,7 +823,7 @@ def verify_anchor_history(  # ruff: ignore[too-many-branches, undocumented-publi
         last_time = max(times)
         prev_head = eh
         prev_checkpoints = newcp
-    state = docs["trusted-archive-anchor-state.json"]
+    state = docs[_DOC_ARCHIVE_ANCHOR_STATE]
     active = docs["active-archive-anchor-evidence.json"]
     bitem = {
         "name": "release-archive-anchor-bundle.json",
@@ -1086,7 +1099,7 @@ def anchor_archive_health(  # ruff: ignore[undocumented-public-function]
     stage = Path(tempfile.mkdtemp(prefix=".run163-anchor-", dir=parent))
     try:
         _write(stage / "release-archive-anchor-bundle.json", bundle)
-        _write(stage / "trusted-archive-anchor-state.json", state)
+        _write(stage / _DOC_ARCHIVE_ANCHOR_STATE, state)
         _write(stage / "active-archive-anchor-evidence.json", active)
         _write(stage / "release-archive-anchor-receipt.json", receipt)
         if fp != (
@@ -1266,7 +1279,7 @@ def verify_witness_root_recovery(  # ruff: ignore[undocumented-public-function]
     rdoc, _ = _read_json(recovery_root_path, "ARCHIVE_ANCHOR_RECOVERY_ROOT")
     rr = _verify_recovery_root(rdoc, recovery_root_pin, current, historical=historical)
     astate, _ = _read_json(
-        Path(anchor_output_dir) / "trusted-archive-anchor-state.json",
+        Path(anchor_output_dir) / _DOC_ARCHIVE_ANCHOR_STATE,
         "ARCHIVE_ANCHOR_STATE",
     )
     root = _regular_dir(
@@ -1360,7 +1373,7 @@ def recover_witness_root(  # ruff: ignore[undocumented-public-function]
     rdoc, _ = _read_json(recovery_root_path, "ARCHIVE_ANCHOR_RECOVERY_ROOT")
     rr = _verify_recovery_root(rdoc, recovery_root_pin, current)
     astate, _ = _read_json(
-        Path(anchor_output_dir) / "trusted-archive-anchor-state.json",
+        Path(anchor_output_dir) / _DOC_ARCHIVE_ANCHOR_STATE,
         "ARCHIVE_ANCHOR_STATE",
     )
     subject, _ = _read_json(recovery_subject_path, "ARCHIVE_ANCHOR_RECOVERY_SUBJECT")

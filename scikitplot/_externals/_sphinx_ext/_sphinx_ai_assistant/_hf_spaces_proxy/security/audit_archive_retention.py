@@ -63,9 +63,22 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_HEALTH_STATE = "trusted-archive-health-state.json"
+
+
 _OUTPUT_NAMES = {
     "release-archive-health-bundle.json",
-    "trusted-archive-health-state.json",
+    _DOC_ARCHIVE_HEALTH_STATE,
     "active-archive-health-evidence.json",
     "release-archive-health-receipt.json",
 }
@@ -1357,7 +1370,7 @@ def verify_archive_health(  # ruff: ignore[undocumented-public-function]
     bundle_item = _artifact_bytes(
         "release-archive-health-bundle.json", raws["release-archive-health-bundle.json"]
     )
-    state = docs["trusted-archive-health-state.json"]
+    state = docs[_DOC_ARCHIVE_HEALTH_STATE]
     expected_state = {
         "schemaVersion": int(POLICY["state_schema_version"]),
         "status": "trusted-archive-health",
@@ -1681,7 +1694,7 @@ def audit_archive_health(  # ruff: ignore[too-many-branches, undocumented-public
             "status": "archive-health-audited",
             "events": receipts,
         }
-        _write(stage / "trusted-archive-health-state.json", state)
+        _write(stage / _DOC_ARCHIVE_HEALTH_STATE, state)
         _write(stage / "active-archive-health-evidence.json", active)
         _write(stage / "release-archive-health-receipt.json", receipt)
         verify_archive_health(

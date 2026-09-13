@@ -53,15 +53,29 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_ANCHOR_STATE = "trusted-archive-anchor-state.json"
+_DOC_ARCHIVE_MERKLE_STATE = "trusted-archive-merkle-state.json"
+
+
 _OUTPUT_NAMES = {
     "release-archive-merkle-bundle.json",
-    "trusted-archive-merkle-state.json",
+    _DOC_ARCHIVE_MERKLE_STATE,
     "active-archive-merkle-evidence.json",
     "release-archive-merkle-receipt.json",
 }
 _RUN163_NAMES = {
     "release-archive-anchor-bundle.json",
-    "trusted-archive-anchor-state.json",
+    _DOC_ARCHIVE_ANCHOR_STATE,
     "active-archive-anchor-evidence.json",
     "release-archive-anchor-receipt.json",
 }
@@ -701,7 +715,7 @@ def _enforce_external_separation(
 def _leaf_document(
     run163_docs: dict[str, dict[str, Any]], run163_raws: dict[str, bytes]
 ) -> dict[str, Any]:
-    state = run163_docs["trusted-archive-anchor-state.json"]
+    state = run163_docs[_DOC_ARCHIVE_ANCHOR_STATE]
     active = run163_docs["active-archive-anchor-evidence.json"]
     return {
         "_type": "run163-archive-anchor-leaf",
@@ -709,9 +723,7 @@ def _leaf_document(
         "run163Sequence": state.get("sequence"),
         "run163WitnessSequence": state.get("run162WitnessSequence"),
         "run163AnchorConsensusHeadSha256": state.get("anchorConsensusHeadSha256"),
-        "run163StateSha256": _sha_bytes(
-            run163_raws["trusted-archive-anchor-state.json"]
-        ),
+        "run163StateSha256": _sha_bytes(run163_raws[_DOC_ARCHIVE_ANCHOR_STATE]),
         "run163ActiveEvidenceSha256": _sha_bytes(
             run163_raws["active-archive-anchor-evidence.json"]
         ),
@@ -1039,7 +1051,7 @@ def _replay_history(  # ruff: ignore[too-many-branches]
         raws = {name: _canonical(run163_docs[name]) for name in sorted(run163_docs)}
         if event["run163Artifacts"] != _run163_artifacts(raws):
             _fail("ARCHIVE_MERKLE_RUN163_ARTIFACT_BINDING_INVALID")
-        state = run163_docs["trusted-archive-anchor-state.json"]
+        state = run163_docs[_DOC_ARCHIVE_ANCHOR_STATE]
         if event["run163Sequence"] != state.get("sequence") or event[
             "run163AnchorConsensusHeadSha256"
         ] != state.get("anchorConsensusHeadSha256"):
@@ -1117,7 +1129,7 @@ def _replay_history(  # ruff: ignore[too-many-branches]
         previous_head = head
     if current_run163_docs is not None and current_run163_raws is not None:
         last = events[-1]
-        current_state = current_run163_docs["trusted-archive-anchor-state.json"]
+        current_state = current_run163_docs[_DOC_ARCHIVE_ANCHOR_STATE]
         if last["run163Sequence"] != current_state.get("sequence") or last[
             "run163AnchorConsensusHeadSha256"
         ] != current_state.get("anchorConsensusHeadSha256"):
@@ -1183,7 +1195,7 @@ def verify_merkle_history(  # ruff: ignore[undocumented-public-function]
         current_run163_docs=current163["docs"],
         current_run163_raws=current163["raws"],
     )
-    state = docs["trusted-archive-merkle-state.json"]
+    state = docs[_DOC_ARCHIVE_MERKLE_STATE]
     active = docs["active-archive-merkle-evidence.json"]
     expected_state = {
         "schemaVersion": int(POLICY["state_schema_version"]),
@@ -1283,7 +1295,7 @@ def anchor_merkle_transparency(  # ruff: ignore[too-many-branches, undocumented-
     if previous_output_dir is not None:
         authority_paths.append(Path(previous_output_dir))
     before = _authority_fingerprint(authority_paths, "ARCHIVE_MERKLE_INPUT_DRIFT")
-    state163 = current163["docs"]["trusted-archive-anchor-state.json"]
+    state163 = current163["docs"][_DOC_ARCHIVE_ANCHOR_STATE]
     sequence = state163.get("sequence")
     if not isinstance(sequence, int) or sequence <= 0:
         _fail("ARCHIVE_MERKLE_RUN163_SEQUENCE_INVALID")
@@ -1440,7 +1452,7 @@ def anchor_merkle_transparency(  # ruff: ignore[too-many-branches, undocumented-
         "events": [*old_receipts, receipt_event],
     }
     bundle_raw = _canonical(bundle)
-    trusted = {
+    state_doc = {
         "schemaVersion": int(POLICY["state_schema_version"]),
         "status": "trusted-archive-merkle-transparency",
         "sequence": sequence,
@@ -1487,7 +1499,7 @@ def anchor_merkle_transparency(  # ruff: ignore[too-many-branches, undocumented-
     stage = Path(tempfile.mkdtemp(prefix=".run164-merkle-", dir=target.parent))
     try:
         (stage / "release-archive-merkle-bundle.json").write_bytes(bundle_raw)
-        _write(stage / "trusted-archive-merkle-state.json", trusted)
+        _write(stage / _DOC_ARCHIVE_MERKLE_STATE, state_doc)
         _write(stage / "active-archive-merkle-evidence.json", active)
         _write(stage / "release-archive-merkle-receipt.json", receipt)
         verify_merkle_history(

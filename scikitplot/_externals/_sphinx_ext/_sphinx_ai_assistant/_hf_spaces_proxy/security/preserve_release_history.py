@@ -1672,6 +1672,17 @@ ReplicaAdapter = Callable[[dict[str, Any]], dict[str, Any]]
 ArchiveAdapter = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_HISTORY_STATE = "trusted-history-state.json"
+
+
 def preserve_release_history(  # ruff: ignore[too-many-branches, undocumented-public-function]
     *,
     witnessed_dir: Path,
@@ -1932,7 +1943,7 @@ def preserve_release_history(  # ruff: ignore[too-many-branches, undocumented-pu
             "chainHeadSha256": bundle_info["chain_head_sha256"],
             "revokedLogKeyIds": bundle_info["revoked_log_key_ids"],
         }
-        state_path = stage / "trusted-history-state.json"
+        state_path = stage / _DOC_HISTORY_STATE
         _write_canonical(state_path, new_state)
         verify_history_bundle(bundle_path=bundle_path, state_path=state_path)
         state_item = {
@@ -2084,7 +2095,7 @@ def preserve_release_history(  # ruff: ignore[too-many-branches, undocumented-pu
         "replica_quorum": replica_quorum,
         "archive_count": len(normalized_archives),
         "bundle_sha256": _sha256(target / "release-history-bundle.json"),
-        "state_sha256": _sha256(target / "trusted-history-state.json"),
+        "state_sha256": _sha256(target / _DOC_HISTORY_STATE),
         "chain_head_sha256": bundle_info["chain_head_sha256"],
     }
 

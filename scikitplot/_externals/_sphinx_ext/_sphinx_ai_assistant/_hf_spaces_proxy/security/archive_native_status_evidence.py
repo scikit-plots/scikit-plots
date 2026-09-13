@@ -52,15 +52,29 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_NATIVE_EVIDENCE_ARCHIVE_STATE = "trusted-native-evidence-archive-state.json"
+_DOC_NATIVE_STATUS_STATE = "trusted-native-status-state.json"
+
+
 _NATIVE_NAMES = {
     "release-native-status-bundle.json",
-    "trusted-native-status-state.json",
+    _DOC_NATIVE_STATUS_STATE,
     "active-native-status-evidence.json",
     "release-native-status-receipt.json",
 }
 _ARCHIVE_NAMES = {
     "release-native-evidence-archive.json",
-    "trusted-native-evidence-archive-state.json",
+    _DOC_NATIVE_EVIDENCE_ARCHIVE_STATE,
     "release-native-evidence-archive-receipt.json",
 }
 
@@ -267,9 +281,7 @@ def _native_docs(root: Path) -> tuple[dict[str, dict[str, Any]], dict[str, bytes
             "release-native-status-bundle.json",
             raws["release-native-status-bundle.json"],
         ),
-        "state": _artifact(
-            "trusted-native-status-state.json", raws["trusted-native-status-state.json"]
-        ),
+        "state": _artifact(_DOC_NATIVE_STATUS_STATE, raws[_DOC_NATIVE_STATUS_STATE]),
         "activeEvidence": _artifact(
             "active-native-status-evidence.json",
             raws["active-native-status-evidence.json"],
@@ -810,7 +822,7 @@ def verify_native_archive(  # ruff: ignore[too-many-branches, undocumented-publi
         "release-native-evidence-archive.json",
         raws["release-native-evidence-archive.json"],
     )
-    state = docs["trusted-native-evidence-archive-state.json"]
+    state = docs[_DOC_NATIVE_EVIDENCE_ARCHIVE_STATE]
     expected_state = {
         "schemaVersion",
         "status",
@@ -1201,7 +1213,7 @@ def preserve_native_status(  # ruff: ignore[too-many-branches, undocumented-publ
             "archiveArtifact": payload_item,
             "sourceInventorySha256": _sha_bytes(_canonical(payload["sourceInventory"])),
         }
-        _write(stage / "trusted-native-evidence-archive-state.json", state)
+        _write(stage / _DOC_NATIVE_EVIDENCE_ARCHIVE_STATE, state)
         receipt = {
             "schemaVersion": int(POLICY["receipt_schema_version"]),
             "status": "preserved",

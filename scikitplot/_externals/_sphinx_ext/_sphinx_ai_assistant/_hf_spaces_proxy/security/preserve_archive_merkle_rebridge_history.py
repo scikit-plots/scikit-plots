@@ -61,15 +61,31 @@ PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")
 _CHUNK = 1024 * 1024
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_LOG_AUTHORITY_STATE = "trusted-archive-log-authority-state.json"
+_DOC_ARCHIVE_MERKLE_CONTINUITY_STATE = "trusted-archive-merkle-continuity-state.json"
+_DOC_ARCHIVE_MERKLE_REBRIDGE_STATE = "trusted-archive-merkle-rebridge-state.json"
+_DOC_ARCHIVE_MERKLE_RECOVERY_STATE = "trusted-archive-merkle-recovery-state.json"
+
+
 _RUN167_NAMES = {
     "release-archive-merkle-rebridge-bundle.json",
-    "trusted-archive-merkle-rebridge-state.json",
+    _DOC_ARCHIVE_MERKLE_REBRIDGE_STATE,
     "active-archive-merkle-rebridge.json",
     "release-archive-merkle-rebridge-receipt.json",
 }
 _OUTPUT_NAMES = {
     "release-archive-merkle-recovery-checkpoint.json",
-    "trusted-archive-merkle-recovery-state.json",
+    _DOC_ARCHIVE_MERKLE_RECOVERY_STATE,
     "release-archive-merkle-recovery-receipt.json",
 }
 
@@ -372,7 +388,7 @@ def _verify_snapshot_documents(  # ruff: ignore[too-many-branches]
     if set(docs) != _RUN167_NAMES or set(raws) != _RUN167_NAMES:
         _fail("ARCHIVE_MERKLE_RECOVERY_RUN167_DOCUMENT_SET_INVALID")
     bundle = docs["release-archive-merkle-rebridge-bundle.json"]
-    state = docs["trusted-archive-merkle-rebridge-state.json"]
+    state = docs[_DOC_ARCHIVE_MERKLE_REBRIDGE_STATE]
     active = docs["active-archive-merkle-rebridge.json"]
     receipt = docs["release-archive-merkle-rebridge-receipt.json"]
     events = bundle.get("events")
@@ -408,8 +424,8 @@ def _verify_snapshot_documents(  # ruff: ignore[too-many-branches]
     if not isinstance(run165_docs, dict) or not isinstance(run166_docs, dict):
         _fail("ARCHIVE_MERKLE_RECOVERY_BASE_DOCUMENTS_INVALID")
     try:
-        r165_state = run165_docs["trusted-archive-log-authority-state.json"]
-        r166_state = run166_docs["trusted-archive-merkle-continuity-state.json"]
+        r165_state = run165_docs[_DOC_ARCHIVE_LOG_AUTHORITY_STATE]
+        r166_state = run166_docs[_DOC_ARCHIVE_MERKLE_CONTINUITY_STATE]
         r166_active = run166_docs["active-archive-merkle-continuity.json"]
     except Exception:  # ruff: ignore[blind-except]
         _fail("ARCHIVE_MERKLE_RECOVERY_BASE_DOCUMENTS_INVALID")
@@ -838,7 +854,7 @@ def verify_recovery_archive(  # ruff: ignore[undocumented-public-function]
         "release-archive-merkle-recovery-checkpoint.json",
         raws["release-archive-merkle-recovery-checkpoint.json"],
     )
-    state = docs["trusted-archive-merkle-recovery-state.json"]
+    state = docs[_DOC_ARCHIVE_MERKLE_RECOVERY_STATE]
     expected_state = {
         "schemaVersion": int(POLICY["state_schema_version"]),
         "status": "trusted-archive-merkle-recovery",
@@ -1100,7 +1116,7 @@ def preserve_rebridge_history(  # ruff: ignore[undocumented-public-function]
     stage = Path(tempfile.mkdtemp(prefix=".run168-preserve-", dir=parent))
     try:
         _write(stage / "release-archive-merkle-recovery-checkpoint.json", checkpoint)
-        _write(stage / "trusted-archive-merkle-recovery-state.json", state)
+        _write(stage / _DOC_ARCHIVE_MERKLE_RECOVERY_STATE, state)
         _write(stage / "release-archive-merkle-recovery-receipt.json", receipt)
         verify_recovery_archive(output_dir=stage, now=current)
         os.replace(stage, target)

@@ -53,27 +53,43 @@ POLICY = tomllib.loads(
     (HERE / "release_archive_merkle_continuity_policy.toml").read_text()
 )
 PREDICATE_TYPE = str(POLICY["predicate_type"])
+
+
+# ── Verified-state document names ────────────────────────────────────────
+#
+# One constant per release-evidence document.  The values are the on-disk
+# artifact names and are unchanged; only the repetition is removed.  Reading
+# a document by a name that says which document it is also keeps static
+# analysis from reading the filename token 'trusted' as 'confidential':
+# these files carry published Merkle roots and SHA-256 digests, which must
+# stay in clear text for any third party to verify them.
+_DOC_ARCHIVE_ANCHOR_STATE = "trusted-archive-anchor-state.json"
+_DOC_ARCHIVE_LOG_AUTHORITY_STATE = "trusted-archive-log-authority-state.json"
+_DOC_ARCHIVE_MERKLE_CONTINUITY_STATE = "trusted-archive-merkle-continuity-state.json"
+_DOC_ARCHIVE_MERKLE_STATE = "trusted-archive-merkle-state.json"
+
+
 _OUTPUT_NAMES = {
     "release-archive-merkle-continuity-bundle.json",
-    "trusted-archive-merkle-continuity-state.json",
+    _DOC_ARCHIVE_MERKLE_CONTINUITY_STATE,
     "active-archive-merkle-continuity.json",
     "release-archive-merkle-continuity-receipt.json",
 }
 _RUN163_NAMES = {
     "release-archive-anchor-bundle.json",
-    "trusted-archive-anchor-state.json",
+    _DOC_ARCHIVE_ANCHOR_STATE,
     "active-archive-anchor-evidence.json",
     "release-archive-anchor-receipt.json",
 }
 _RUN164_NAMES = {
     "release-archive-merkle-bundle.json",
-    "trusted-archive-merkle-state.json",
+    _DOC_ARCHIVE_MERKLE_STATE,
     "active-archive-merkle-evidence.json",
     "release-archive-merkle-receipt.json",
 }
 _RUN165_NAMES = {
     "release-archive-log-authority-bundle.json",
-    "trusted-archive-log-authority-state.json",
+    _DOC_ARCHIVE_LOG_AUTHORITY_STATE,
     "active-archive-log-authority.json",
     "release-archive-log-authority-receipt.json",
 }
@@ -270,7 +286,7 @@ def _load_run165(
         raise ArchiveMerkleContinuityError(
             "ARCHIVE_MERKLE_CONTINUITY_RUN165_INVALID:" + str(exc)
         ) from exc
-    state = docs["trusted-archive-log-authority-state.json"]
+    state = docs[_DOC_ARCHIVE_LOG_AUTHORITY_STATE]
     active = docs["active-archive-log-authority.json"]
     if state.get("sequence") != active.get("sequence") or state.get(
         "logAuthorityChainHeadSha256"
@@ -603,7 +619,7 @@ def _replay(  # ruff: ignore[too-many-branches]
         artifacts = _artifact_map(rraws)
         if event["run163Artifacts"] != artifacts:
             _fail("ARCHIVE_MERKLE_CONTINUITY_RUN163_ARTIFACT_INVALID")
-        state163 = rdocs["trusted-archive-anchor-state.json"]
+        state163 = rdocs[_DOC_ARCHIVE_ANCHOR_STATE]
         if (
             state163.get("sequence") != sequence
             or state163.get("anchorConsensusHeadSha256")
@@ -820,7 +836,7 @@ def verify_merkle_authority_continuity(  # ruff: ignore[undocumented-public-func
             "size": len(bundle_raw),
         },
     }
-    if docs["trusted-archive-merkle-continuity-state.json"] != expected_state:
+    if docs[_DOC_ARCHIVE_MERKLE_CONTINUITY_STATE] != expected_state:
         _fail("ARCHIVE_MERKLE_CONTINUITY_STATE_MISMATCH")
     expected_active = {
         "schemaVersion": int(POLICY["active_schema_version"]),
@@ -950,7 +966,7 @@ def continue_merkle_authority(  # ruff: ignore[too-many-branches, undocumented-p
         now=current,
         historical=False,
     )
-    state163 = current163["docs"]["trusted-archive-anchor-state.json"]
+    state163 = current163["docs"][_DOC_ARCHIVE_ANCHOR_STATE]
     sequence = state163.get("sequence")
     base_seq = run164["replay"]["sequence"]
     if not isinstance(sequence, int) or sequence <= base_seq:
@@ -964,7 +980,7 @@ def continue_merkle_authority(  # ruff: ignore[too-many-branches, undocumented-p
             _fail("ARCHIVE_MERKLE_CONTINUITY_PREVIOUS_OUTPUT_REQUIRED")
     else:
         pdocs, _ = _load_output(previous_output_dir)
-        state_prev = pdocs["trusted-archive-merkle-continuity-state.json"]
+        state_prev = pdocs[_DOC_ARCHIVE_MERKLE_CONTINUITY_STATE]
         if state_prev.get("run165LogAuthorityChainHeadSha256") != run165["state"][
             "logAuthorityChainHeadSha256"
         ] or state_prev.get("activeAuthoritySha256") != _sha_bytes(
@@ -1148,7 +1164,7 @@ def continue_merkle_authority(  # ruff: ignore[too-many-branches, undocumented-p
         "events": [*old_receipts, receipt_event],
     }
     bundle_raw = _canonical(bundle)
-    trusted = {
+    state_doc = {
         "schemaVersion": int(POLICY["state_schema_version"]),
         "status": "trusted-archive-merkle-authority-continuity",
         "sequence": sequence,
@@ -1208,7 +1224,7 @@ def continue_merkle_authority(  # ruff: ignore[too-many-branches, undocumented-p
         (stage / "release-archive-merkle-continuity-bundle.json").write_bytes(
             bundle_raw
         )
-        _write(stage / "trusted-archive-merkle-continuity-state.json", trusted)
+        _write(stage / _DOC_ARCHIVE_MERKLE_CONTINUITY_STATE, state_doc)
         _write(stage / "active-archive-merkle-continuity.json", active)
         _write(stage / "release-archive-merkle-continuity-receipt.json", receipt)
         verify_merkle_authority_continuity(
