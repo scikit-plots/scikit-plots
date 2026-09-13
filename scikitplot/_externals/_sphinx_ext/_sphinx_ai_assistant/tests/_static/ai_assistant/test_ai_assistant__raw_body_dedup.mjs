@@ -75,15 +75,40 @@ ledger['docs/index.rst'] = { content: bigBody };
 ok(api.hydrate({ getAttribute: () => elided }, '') === answer,'rehydrating from the ledger reproduces the answer byte for byte');
 
 // Ledger gone: fall back to the rendered pre still in the bubble.
+//
+// The stub models the DOM as data, because the accessor now compares the
+// artifact path against each block's data-artifact-path attribute instead of
+// interpolating it into a CSS selector.  A selector built by concatenation
+// cannot be escaped correctly -- a trailing backslash in the path escapes the
+// escape and re-opens the quoted attribute value -- and a malformed selector
+// throws SyntaxError, aborting the export rather than falling back.
 delete ledger['docs/index.rst'];
-const bubble = {
-  getAttribute: () => elided,
-  querySelector: sel => sel.includes('docs/index.rst') ? { querySelector: () => ({ textContent: bigBody }) } : null
-};
-ok(api.hydrate(bubble, '') === answer,'a missing ledger entry falls back to the rendered block');
+const preFor = (path, body) => ({
+  getAttribute: name => name === 'data-artifact-path' ? path : null,
+  querySelector: () => ({ textContent: body })
+});
+const bubbleFor = (raw, ...blocks) => ({
+  getAttribute: () => raw,
+  querySelectorAll: () => blocks
+});
+const bubbleWith = (...blocks) => bubbleFor(elided, ...blocks);
+ok(api.hydrate(bubbleWith(preFor('docs/index.rst', bigBody)), '') === answer,'a missing ledger entry falls back to the rendered block');
+
+// Exact match, never a prefix or a selector-shaped coincidence: a block for a
+// different path must not satisfy the marker.
+ok(api.hydrate(bubbleWith(preFor('docs/index.rst.bak', bigBody)), '').includes('\u27e6ai-assistant:file-body'),'a block for a different path is not accepted for this marker');
+ok(api.hydrate(bubbleWith(preFor('other.rst', 'wrong'), preFor('docs/index.rst', bigBody)), '') === answer,'the matching block is found among several rendered blocks');
+
+// A path carrying selector metacharacters resolves by value, so no escaping of
+// any kind is involved and the previous quote-only escape cannot be bypassed.
+const oddPath = 'docs/we"ird\\.rst';
+const oddAnswer = 'x\n\n```rst file=' + oddPath + '\n' + bigBody + '```\n';
+const oddElided = api.elide(oddAnswer);
+ok(oddElided.includes('\u27e6ai-assistant:file-body ' + oddPath + '\u27e7'),'a path with quote and backslash still produces a marker');
+ok(api.hydrate(bubbleFor(oddElided, preFor(oddPath, bigBody)), '') === oddAnswer,'a path with quote and backslash rehydrates by exact value');
 
 // Neither available: leave the marker visible rather than shipping an empty file.
-ok(api.hydrate({ getAttribute: () => elided, querySelector: () => null }, '').includes('\u27e6ai-assistant:file-body'),'an unresolvable marker stays visible rather than exporting an empty file');
+ok(api.hydrate({ getAttribute: () => elided, querySelectorAll: () => [] }, '').includes('\u27e6ai-assistant:file-body'),'an unresolvable marker stays visible rather than exporting an empty file');
 
 // Snippets and small files are left exactly as they are.
 const snippet = 'Try this:\n\n```python\nprint(1)\n```\n';

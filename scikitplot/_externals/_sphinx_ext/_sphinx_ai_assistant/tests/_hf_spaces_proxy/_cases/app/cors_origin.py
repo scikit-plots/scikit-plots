@@ -7,6 +7,7 @@ import importlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -169,8 +170,16 @@ def test_worker_cors_matches_default_and_replace_semantics():
 
 def test_readme_documents_builtin_and_downstream_origin_workflows():
     text = README.read_text(encoding="utf-8")
-    assert "https://scikit-plots.github.io" in text
-    assert "https://scikit-plots-learn.readthedocs.io" in text
+    # Extract whole origins and compare exactly.  A substring test also passes
+    # for `https://scikit-plots.github.io.evil.example`, so it cannot show that
+    # the documented origin is the one the operator would copy.
+    documented_origins = set(re.findall(r"https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?", text))
+    assert documented_origins.issuperset(
+        {
+            "https://scikit-plots.github.io",
+            "https://scikit-plots-learn.readthedocs.io",
+        }
+    )
     assert "ALLOWED_ORIGINS_MODE=replace" in text
     assert "ALLOWED_ORIGINS_MODE=additive" in text
     assert "TRAINING_DATASET_REPO" in text

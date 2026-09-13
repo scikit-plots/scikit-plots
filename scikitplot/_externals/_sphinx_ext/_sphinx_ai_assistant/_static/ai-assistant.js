@@ -13750,7 +13750,19 @@
             media.addEventListener('loadedmetadata',onMeta,{once:true});
             media.addEventListener('error',onError,{once:true});
             timer=setTimeout(function(){finish(new Error('ZIP_EDIT_BINARY_PREVIEW_TIMEOUT'));},_ZIP_EDIT_MEDIA_METADATA_TIMEOUT_MS);
-            media.src=url;
+            // Pin the assigned value to the UA-minted object-URL grammar before it
+            // reaches a `src` sink.  `URL.createObjectURL()` always returns
+            // `blob:<origin>/<uuid>`, so every character outside the RFC 3986
+            // unreserved/sub-delims set -- quotes, angle brackets, whitespace,
+            // control characters -- is by construction absent.  Stripping them and
+            // then requiring the `blob:` scheme means no future refactor can route
+            // an author-influenced string (a file name, a server-returned href)
+            // into this assignment and have it resolve as `javascript:` or escape
+            // an attribute context.  A `src` write is a live navigation sink; it
+            // must never accept an unvalidated string.
+            var probeUrl=String(url).replace(/[^A-Za-z0-9:/?#\[\]@!$&()*+,;=._~%-]/g,'');
+            if (probeUrl.indexOf('blob:')!==0) { finish(new Error('ZIP_EDIT_BINARY_PREVIEW_UNAVAILABLE')); return; }
+            media.src=probeUrl;
         });
     }
 
@@ -19379,11 +19391,21 @@
             function (marker, path) {
                 var entry = _generatedArtifactLedger[path];
                 if (entry && typeof entry.content === 'string') return entry.content;
-                if (bubbleEl && typeof bubbleEl.querySelector === 'function') {
-                    var pre = bubbleEl.querySelector(
-                        'pre.ai-md-pre[data-artifact-path="' + String(path).replace(/"/g, '\\"') + '"]');
-                    var code = pre && pre.querySelector('code');
-                    if (code) return code.textContent || '';
+                if (bubbleEl && typeof bubbleEl.querySelectorAll === 'function') {
+                    // Compare the artifact path as *data*, never as a CSS selector.
+                    // Concatenating a path into an attribute selector cannot be
+                    // escaped correctly (a trailing backslash in the path escapes
+                    // the escape and re-opens the quoted value), and a malformed
+                    // selector raises SyntaxError, which would abort the whole
+                    // export rather than fall back to the marker.
+                    var wanted = String(path);
+                    var candidates = bubbleEl.querySelectorAll('pre.ai-md-pre[data-artifact-path]');
+                    for (var ci = 0; ci < candidates.length; ci++) {
+                        if (candidates[ci].getAttribute('data-artifact-path') !== wanted) continue;
+                        var code = candidates[ci].querySelector('code');
+                        if (code) return code.textContent || '';
+                        break;
+                    }
                 }
                 return marker;
             });
@@ -35940,18 +35962,137 @@
         } catch (_e) { return ''; }
     }
 
-    /** Remove generated navigation and inert JSON script from portable HTML. */
+    /**
+     * Remove generated navigation and the inert JSON island from portable HTML.
+     *
+     * Parameters
+     * ----------
+     * html : string
+     *     A complete HTML document produced by ``_buildConvHtmlString()``.
+     *
+     * Returns
+     * -------
+     * string
+     *     The same document with anchors unwrapped, the ``export-data`` script
+     *     and footer hint removed, and the share-transport marker declared.
+     *     Empty string when the document cannot be parsed.
+     *
+     * Notes
+     * -----
+     * User: the returned document has no links and no embedded JSON, so it can
+     *   be pasted into an address bar or archived without carrying navigation.
+     *
+     * Developer: this used to strip the elements with regular expressions.  A
+     *   single non-global ``replace`` over HTML is not a sanitizer -- removing
+     *   one ``<script>...</script>`` span can splice two partial tags back into
+     *   a live one (``<scr<script>ipt>``), and ``<a\b[^>]*>`` terminates on a
+     *   ``>`` inside an attribute value.  Parsing the document and removing
+     *   nodes structurally is exact and has no re-emergence case.
+     *   ``DOMParser.parseFromString(_, 'text/html')`` yields a document with no
+     *   browsing context: scripts never execute and no subresource is fetched.
+     */
+    /**
+     * Iteration cap for the DOM-less inerting fallback.
+     *
+     * The loop below reaches a fixpoint in one or two passes for any document
+     * this file generates.  The cap only bounds a pathological input; it is
+     * never the reason the loop stops in practice.
+     */
+    var _PORTABLE_INERT_MAX_PASSES = 32;
+
+    /**
+     * Inert a portable HTML document without a DOM, by repeated replacement.
+     *
+     * Parameters
+     * ----------
+     * html : string
+     *     A complete HTML document produced by ``_buildConvHtmlString()``.
+     *
+     * Returns
+     * -------
+     * string
+     *     The document with anchors, the ``export-data`` script and the footer
+     *     hint removed.
+     *
+     * Notes
+     * -----
+     * Developer: only reached where ``DOMParser`` is absent -- currently the
+     *   Node test harness.  Every pattern is applied **repeatedly until the
+     *   string stops changing**, which is what makes this correct where the
+     *   original single-pass version was not: removing one ``<script>…</script>``
+     *   span out of ``<scr<script>…</script>ipt>`` splices a live tag back
+     *   together, and only re-running until a fixpoint removes it.  Returning
+     *   after one pass here would reintroduce exactly the defect the DOM path
+     *   was written to close.
+     */
+    function _portableInertByFixpoint(html) {
+        var patterns = [
+            /<a\b[^>]*>/gi,
+            /<\/a\s*>/gi,
+            // Attribute values are matched without anchoring on a quote
+            // character: an unbalanced quote inside a regex literal defeats
+            // naive source extractors, and the surrounding [^>]* already
+            // confines each match to a single tag.
+            /<script\b[^>]*\bid=[^>]*export-data[^>]*>[\s\S]*?<\/script\s*>/gi,
+            /<p\b[^>]*\bclass=[^>]*chat-footer-hint[^>]*>[\s\S]*?<\/p\s*>/gi
+        ];
+        var out = html, previous, passes = 0;
+        do {
+            previous = out;
+            for (var pi = 0; pi < patterns.length; pi++) out = out.replace(patterns[pi], '');
+            passes++;
+        } while (out !== previous && passes < _PORTABLE_INERT_MAX_PASSES);
+        if (out.indexOf('name="share-transport"') !== -1) return out;
+        var generator = '<meta name="generator" content="ai-assistant-export/2.1">';
+        var transport = '<meta name="share-transport" content="portable-data-url-v1">';
+        if (out.indexOf(generator) !== -1) return out.replace(generator, generator + '\n' + transport);
+        return out.replace(/<head\b[^>]*>/i, function (tag) { return tag + transport; });
+    }
+
     function _makePortableHtmlInert(html) {
         if (typeof html !== 'string' || !html) return '';
-        var out = html
-            .replace(/<a\b[^>]*>/gi, '')
-            .replace(/<\/a>/gi, '')
-            .replace(/<script\s+type=["']application\/json["']\s+id=["']export-data["'][^>]*>[\s\S]*?<\/script>\s*/i, '')
-            .replace(/<p class=["']chat-footer-hint["']>[\s\S]*?<\/p>\s*/i, '');
-        return out.replace(
-            '<meta name="generator" content="ai-assistant-export/2.1">',
-            '<meta name="generator" content="ai-assistant-export/2.1">\n<meta name="share-transport" content="portable-data-url-v1">'
-        );
+        // Browsers take the exact structural path.  Anywhere without a DOM --
+        // the Node harness -- takes the fixpoint fallback rather than returning
+        // nothing, so an absent DOMParser degrades the method used, never the
+        // guarantee, and never silently produces an empty share payload.
+        if (typeof DOMParser !== 'function') return _portableInertByFixpoint(html);
+        var doc = null;
+        try { doc = new DOMParser().parseFromString(html, 'text/html'); } catch (_e) { doc = null; }
+        if (!doc || !doc.documentElement || doc.querySelector('parsererror')) {
+            return _portableInertByFixpoint(html);
+        }
+
+        // Unwrap every anchor: keep the link text, drop the navigable element.
+        // Iterate backwards so nested anchors are unwrapped innermost-first.
+        var anchors = doc.querySelectorAll('a');
+        for (var ai = anchors.length - 1; ai >= 0; ai--) {
+            var anchor = anchors[ai], holder = anchor.parentNode;
+            if (!holder) continue;
+            while (anchor.firstChild) holder.insertBefore(anchor.firstChild, anchor);
+            holder.removeChild(anchor);
+        }
+
+        // Drop the inert JSON island and the generated footer hint.
+        var dropped = doc.querySelectorAll('script#export-data, p.chat-footer-hint');
+        for (var di = 0; di < dropped.length; di++) {
+            if (dropped[di].parentNode) dropped[di].parentNode.removeChild(dropped[di]);
+        }
+
+        // Declare the transport immediately after the generator marker.
+        if (!doc.querySelector('meta[name="share-transport"]')) {
+            var marker = doc.createElement('meta');
+            marker.setAttribute('name', 'share-transport');
+            marker.setAttribute('content', 'portable-data-url-v1');
+            var generator = doc.querySelector('meta[name="generator"]');
+            if (generator && generator.parentNode) {
+                generator.parentNode.insertBefore(marker, generator.nextSibling);
+            } else if (doc.head) {
+                doc.head.appendChild(marker);
+            } else {
+                doc.documentElement.insertBefore(marker, doc.documentElement.firstChild);
+            }
+        }
+        return '<!doctype html>\n' + doc.documentElement.outerHTML;
     }
 
     /** Build a zero-network HTML envelope for any implemented export format. */
@@ -37879,6 +38020,34 @@
         return src && src.explicitCurrent ? 'primary' : (src && src.contextRole === 'pinned' ? 'guide' : 'reference');
     }
 
+    /**
+     * Escape one value for a GitHub-Flavoured Markdown table cell.
+     *
+     * Parameters
+     * ----------
+     * value : *
+     *     Any value; ``null``/``undefined`` render as an empty cell.
+     *
+     * Returns
+     * -------
+     * string
+     *     A value that cannot terminate its cell or its row.
+     *
+     * Notes
+     * -----
+     * Developer: the backslash is escaped *first*.  Escaping only ``|`` turns
+     *   an input ending in ``\\`` into ``\\\\|`` -- the backslash consumes the
+     *   escape and the pipe stays live, silently splitting the row into extra
+     *   columns.  Line terminators are folded to spaces for the same reason: a
+     *   table row cannot span lines, so an embedded newline truncates the table.
+     */
+    function _mdTableCell(value) {
+        return String(value === null || value === undefined ? '' : value)
+            .replace(/\\/g, '\\\\')
+            .replace(/\|/g, '\\|')
+            .replace(/\r\n|[\r\n\u2028\u2029]/g, ' ');
+    }
+
     function _skillRoleMeta(role) {
         var map = {
             primary: { dir: 'references', label: 'Primary', when: 'Start here for the canonical scope and terminology.' },
@@ -38153,7 +38322,7 @@
                 indexPath = _skillUniqueBundlePath(name + '/references/INDEX.md', usedPaths);
                 var indexRows = ['# Reference index', '', '| Reference | Role | Read when |', '|---|---|---|'];
                 refs.forEach(function (r) {
-                    indexRows.push('| [`' + r.path.split('/').pop() + '`](' + r.path.split('/').pop() + ') | ' + _skillRoleMeta(r.role).label + ' | ' + r.when.replace(/\|/g, '\\|') + ' |');
+                    indexRows.push('| [`' + r.path.split('/').pop() + '`](' + r.path.split('/').pop() + ') | ' + _skillRoleMeta(r.role).label + ' | ' + _mdTableCell(r.when) + ' |');
                 });
                 files.push({ name: indexPath, content: indexRows.join('\n') + '\n' });
                 body.push('- Read [`' + indexPath.slice(name.length + 1) + '`](' + indexPath.slice(name.length + 1) + ') when you need to choose among the bundled documentation references.');
@@ -38164,7 +38333,7 @@
             } else if (refs.length) {
                 body.push('| Reference | Role | Read when |', '|---|---|---|');
                 refs.forEach(function (r) {
-                    body.push('| [`' + r.path + '`](' + r.path + ') | ' + _skillRoleMeta(r.role).label + ' | ' + r.when.replace(/\|/g, '\\|') + ' |');
+                    body.push('| [`' + r.path + '`](' + r.path + ') | ' + _skillRoleMeta(r.role).label + ' | ' + _mdTableCell(r.when) + ' |');
                 });
                 body.push('');
             }

@@ -69,6 +69,7 @@ import traceback
 
 # ---- explicit re-exports (stable API) ----
 from logging import (
+    BASIC_FORMAT,
     CRITICAL,
     DEBUG,
     ERROR,
@@ -76,6 +77,14 @@ from logging import (
     INFO,
     NOTSET,
     WARNING,
+    Formatter,
+    Handler,
+    Logger,
+    LogRecord,
+    NullHandler,
+    StreamHandler,
+    getLevelName,
+    getLogger,
 )
 from typing import TYPE_CHECKING, Iterable
 
@@ -100,6 +109,7 @@ WARN = WARNING  # logging WARN deprecated
 UTC = getattr(datetime, "UTC", datetime.timezone.utc)
 
 __all__ = [  # noqa: RUF022
+    "BASIC_FORMAT",
     # Levels / constants
     "CRITICAL",
     "DEBUG",
@@ -110,6 +120,14 @@ __all__ = [  # noqa: RUF022
     "WARN",
     "WARNING",
     # Primary objects / entry points
+    "Formatter",
+    "Handler",
+    "Logger",
+    "LogRecord",
+    "NullHandler",
+    "StreamHandler",
+    "getLevelName",
+    "getLogger",
     "get_logger",  # func based
     # Compatibility + helpers
     "AlwaysStdErrHandler",
@@ -678,7 +696,7 @@ _log_prefix = google2_log_prefix
 ######################################################################
 
 
-class GoogleLogFormatter(_logging.Formatter):
+class GoogleLogFormatter(Formatter):
     """
     A custom logging formatter inherited from :py:class:`~logging.Formatter`.
 
@@ -758,7 +776,7 @@ class GoogleLogFormatter(_logging.Formatter):
 
     def formatTime(  # noqa: N802
         self,
-        record: _logging.LogRecord,
+        record: LogRecord,
         datefmt: str | None = None,
     ) -> str:
         """
@@ -777,7 +795,7 @@ class GoogleLogFormatter(_logging.Formatter):
         dt = datetime.datetime.fromtimestamp(record.created, tz=tz)
         return dt.strftime(datefmt or self.datefmt)
 
-    def format(self, record: _logging.LogRecord) -> str:
+    def format(self, record: LogRecord) -> str:
         """
         Format the log record into a JSON string or a pretty-printed dictionary.
 
@@ -825,10 +843,10 @@ class GoogleLogFormatter(_logging.Formatter):
 
 
 def _make_default_formatter(
-    formatter: _logging.Formatter | str | None = "GOOGLE_FORMAT",
+    formatter: Formatter | str | None = "GOOGLE_FORMAT",
     time_format: str | None = None,
     use_datetime: bool | None = True,
-) -> _logging.Formatter:
+) -> Formatter:
     """
     Create and return a default logging Formatter instance based on the provided formatter type.
 
@@ -856,11 +874,11 @@ def _make_default_formatter(
     # Configure time format (default if none is provided)
     time_format = time_format or "%Y-%m-%d %H:%M:%S"
     try:
-        if isinstance(formatter, _logging.Formatter):
+        if isinstance(formatter, Formatter):
             return formatter
         if formatter == "BASIC_FORMAT":
-            return _logging.Formatter(
-                fmt=_logging.BASIC_FORMAT,
+            return Formatter(
+                fmt=BASIC_FORMAT,
                 datefmt=None,
             )
         if formatter == "GOOGLE_FORMAT":
@@ -888,15 +906,15 @@ def _make_default_formatter(
                 # '%(pathname)s '
                 "%(message)s "
             )
-            return _logging.Formatter(
+            return Formatter(
                 fmt=custom,
                 datefmt=time_format,
             )
     except Exception:  # noqa: BLE001
         # sys.stderr.write(e)
         # Fallback to basic formatter if other formatters are not available
-        return _logging.Formatter(
-            fmt=_logging.BASIC_FORMAT,
+        return Formatter(
+            fmt=BASIC_FORMAT,
             datefmt=None,
         )
 
@@ -906,7 +924,7 @@ def _make_default_formatter(
 ######################################################################
 
 
-def _ensure_null_handler(logger_obj: _logging.Logger) -> None:
+def _ensure_null_handler(logger_obj: Logger) -> None:
     """
     Ensure a NullHandler is present to keep library usage quiet-by-default.
 
@@ -916,14 +934,14 @@ def _ensure_null_handler(logger_obj: _logging.Logger) -> None:
         The logger to protect.
     """
     for h in logger_obj.handlers:
-        if isinstance(h, _logging.NullHandler) and getattr(h, _HANDLER_MARKER, False):
+        if isinstance(h, NullHandler) and getattr(h, _HANDLER_MARKER, False):
             return
-    h = _logging.NullHandler()
+    h = NullHandler()
     setattr(h, _HANDLER_MARKER, True)
     logger_obj.addHandler(h)
 
 
-class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
+class AlwaysStdErrHandler(StreamHandler):  # type: ignore[type-arg]
     """
     A custom logging handler inherited from :py:class:`~logging.StreamHandler`.
 
@@ -961,8 +979,8 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
     """
 
     # Add a docstring to the inherited 'name' property if it doesn't already have one
-    if not _logging.StreamHandler.name.__doc__:
-        _logging.StreamHandler.name.__doc__ = textwrap.dedent("""
+    if not StreamHandler.name.__doc__:
+        StreamHandler.name.__doc__ = textwrap.dedent("""
             This is the name property for StreamHandler.
 
             Returns
@@ -1053,10 +1071,10 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 
 
 def _make_default_handler(
-    handler: _logging.Handler | None = None,
-    formatter: _logging.Formatter | None = None,
+    handler: Handler | None = None,
+    formatter: Formatter | None = None,
     _fallback_cls: type = AlwaysStdErrHandler,
-) -> _logging.Handler:
+) -> Handler:
     """
     Create and return a default logging Handler.
 
@@ -1091,7 +1109,7 @@ def _make_default_handler(
     # Configure formatter (default if none is provided)
     formatter = formatter or _make_default_formatter()
     try:
-        if isinstance(handler, _logging.Handler):
+        if isinstance(handler, Handler):
             pass
         elif handler is None:
             handler = _fallback_cls()
@@ -1131,7 +1149,7 @@ def _make_default_handler(
 
 
 # Expose the logger to other modules.
-def get_logger() -> _logging.Logger:
+def get_logger() -> Logger:
     """
     Return SP (scikitplot) logger instance.
 

@@ -45,8 +45,15 @@ t('c2 compatibility still transports structured snapshot', extract('_buildSelfCo
 t('c2 compatibility canonicalizes decoded snapshot', extract('_decodeSelfContainedEnvelope').includes('_normalizeShareSnapshot(env.snapshot)'));
 t('current self-contained builder is data URL transport', src.includes('function _buildPortableSelfContainedDataUrl('));
 t('current data link requires exact base64 html prefix', extract('_buildPortableSelfContainedDataUrl').includes("data:text/html;charset=utf-8;base64,"));
-t('portable HTML strips generated anchors', extract('_makePortableHtmlInert').includes('.replace(/<a\\b[^>]*>/gi'));
-t('portable HTML strips all script elements it generates', extract('_makePortableHtmlInert').includes('application\\/json'));
+// Contract, restated after the regex implementation was replaced.  Inerting is
+// now structural (DOMParser) with a fixpoint fallback where no DOM exists; a
+// single non-global replace over HTML is not a sanitizer, because removing one
+// <script>...</script> span can splice a live tag back together.
+t('portable HTML inerting parses rather than pattern-matching', extract('_makePortableHtmlInert').includes('DOMParser'));
+t('portable HTML inerting removes the export-data island as a node', extract('_makePortableHtmlInert').includes("script#export-data"));
+t('portable HTML inerting unwraps anchors as nodes, keeping their text', extract('_makePortableHtmlInert').includes("querySelectorAll('a')"));
+t('DOM-less fallback repeats until a fixpoint instead of one pass', extract('_portableInertByFixpoint').includes('while (out !== previous'));
+t('DOM-less fallback bounds its own iteration', extract('_portableInertByFixpoint').includes('_PORTABLE_INERT_MAX_PASSES'));
 t('legacy c1 still recognized only for inert compatibility', hashSrc.includes("/^#ai-share-c1\\.(json|html|txt)"));
 t('legacy c1 never assigns text/html MIME', /legacyMime[\s\S]*text\/html/.test(hashSrc), false);
 t('legacy IDB HTML never assigns text/html MIME', /Legacy same-browser IndexedDB[\s\S]*text\/html/.test(hashSrc), false);
@@ -145,6 +152,11 @@ t('legacy c2 file origin refuses hash rather than leaking local path', globalThi
 // The HTML is generated only from the normalized snapshot, then stripped of
 // navigation and inert JSON script blocks.  No arbitrary caller HTML is used.
 globalThis._buildBase64DataUri = (0, eval)('(' + extract('_buildBase64DataUri') + ')');
+// Node has no DOMParser, so this harness exercises the DOM-less fallback path.
+// Both are wired up so the assertions below run against shipped source, not a
+// re-implementation.
+globalThis._PORTABLE_INERT_MAX_PASSES = 32;
+globalThis._portableInertByFixpoint = (0, eval)('(' + extract('_portableInertByFixpoint') + ')');
 globalThis._makePortableHtmlInert = (0, eval)('(' + extract('_makePortableHtmlInert') + ')');
 globalThis._utf8ByteLength = (0, eval)('(' + extract('_utf8ByteLength') + ')');
 globalThis._buildConvHtmlString = () => '<!doctype html><html><head><meta name="generator" content="ai-assistant-export/2.1"></head><body><a href="https://leak.example.test/?secret=1">visible link</a><script type="application/json" id="export-data">{"x":"data"}</script><p class="chat-footer-hint">extract</p><p>&lt;script&gt;PWNED&lt;/script&gt;</p></body></html>';

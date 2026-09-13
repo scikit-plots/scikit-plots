@@ -342,6 +342,7 @@ This is a simple “retrieve top matches” approach. For production RAG, you wo
 Fix by running a quick schema check:
 ```python
 import pandas as pd
+
 df = pd.read_csv("autoscout24_dataset_20251108.csv", nrows=5)
 print(df.columns.tolist())
 ```

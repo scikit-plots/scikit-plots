@@ -7,6 +7,7 @@ import importlib
 import json
 import pathlib
 import sys
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -115,7 +116,12 @@ def test_path1_never_receives_hf_token() -> None:
         hf_token="hf-super-secret",
         backend_auth_token="backend-only-token",
     )
-    assert url.startswith("https://backend.example")
+    # Compare the parsed origin, not a string prefix: `startswith` also accepts
+    # `https://backend.example.evil.com/...`, so the assertion would pass on
+    # exactly the misrouting it exists to rule out.
+    parsed = urlsplit(url)
+    assert (parsed.scheme, parsed.netloc) == ("https", "backend.example")
+    assert parsed.path == "/v1/chat/completions"
     assert headers["Authorization"] == "Bearer backend-only-token"
     assert "hf-super-secret" not in repr(headers)
 

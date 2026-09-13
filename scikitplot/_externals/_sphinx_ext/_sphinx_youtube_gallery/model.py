@@ -776,6 +776,7 @@ def derive_channel_records(  # ruff: ignore[too-many-branches]
     from .._sphinx_youtube_core.reference import (  # ruff: ignore[import-outside-top-level]
         CHANNEL,
         ReferenceError,
+        is_reference_url,
         parse_reference,
     )
 
@@ -785,14 +786,17 @@ def derive_channel_records(  # ruff: ignore[too-many-branches]
         value = record.channel.strip()
         if value.startswith("@") and len(value) > 1:
             return value[1:]
-        try:
-            if "youtube.com/" in value:
+        # Ask "is this written as a URL?" here and let ``parse_reference``
+        # be the only place that judges the host.  A ``"youtube.com/" in
+        # value`` test both accepted the allowed host at an arbitrary
+        # position and missed ``youtu.be``, ``music.youtube.com`` and every
+        # country domain, which then skipped validation entirely.
+        if is_reference_url(value):
+            try:
                 ref = parse_reference(value)
-                return (
-                    ref.handle.lstrip("@") if ref.kind == CHANNEL and ref.handle else ""
-                )
-        except ReferenceError:
-            pass
+            except ReferenceError:
+                return ""
+            return ref.handle.lstrip("@") if ref.kind == CHANNEL and ref.handle else ""
         return ""
 
     # Learn identity aliases before projection.  A historical handle may be
@@ -841,7 +845,12 @@ def derive_channel_records(  # ruff: ignore[too-many-branches]
             return ""
         if value.startswith("@"):
             return value
-        if "youtube.com/" in value:
+        # Anything written as a URL must survive host validation before it
+        # can be shown.  The previous substring gate let a non-YouTube link
+        # fall through to the ``return value`` below, so an unvalidated URL
+        # was rendered verbatim as a channel label -- exactly what this
+        # function's contract forbids.
+        if is_reference_url(value):
             try:
                 ref = parse_reference(value)
             except ReferenceError:
@@ -907,7 +916,7 @@ def derive_channel_records(  # ruff: ignore[too-many-branches]
                 ref = parse_reference(effective_channel_id)
             elif handle:
                 ref = parse_reference(f"@{handle}")
-            elif record.channel.startswith("@") or "youtube.com/" in record.channel:
+            elif record.channel.startswith("@") or is_reference_url(record.channel):
                 ref = parse_reference(record.channel)
             else:
                 # A display name alone is intentionally not resolvable offline.

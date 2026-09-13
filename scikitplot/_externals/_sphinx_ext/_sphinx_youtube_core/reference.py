@@ -73,6 +73,7 @@ __all__ = [
     "VIDEO",
     "ReferenceError",
     "YouTubeReference",
+    "is_reference_url",
     "parse_reference",
     "parse_video_reference",
     "validate_channel_id",
@@ -627,6 +628,87 @@ class YouTubeReference:
             suffix = "" if self.tab_known else " (tab not recognised by this build)"
             return f"the {self.tab!r} tab of channel {target}{suffix}"
         return f"the channel {target}"
+
+
+# -- shape classification -----------------------------------------------------
+
+
+#: A value is treated as a URL when it carries an explicit scheme separator,
+#: is protocol-relative, or is rooted at a dotted host followed by a path.
+#: Everything else -- ``CS50``, ``@handle``, ``UC…``, a plain display name, or
+#: a name that merely contains a slash ("Foo / Bar") -- is not URL-shaped.
+_URL_SHAPED_RE = re.compile(
+    r"""^(?:
+          //                              # protocol-relative
+        | [a-z][a-z0-9+.\-]*://           # explicit scheme with authority
+        | [a-z][a-z0-9+.\-]*:[^\s]*/      # scheme URI carrying a path
+        | [\w\-]+(?:\.[\w\-]+)+/         # schemeless dotted host, rooted
+        )""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def is_reference_url(value: Any) -> bool:
+    """
+    Test whether a value is *shaped* like a URL, without judging its host.
+
+    Parameters
+    ----------
+    value : Any
+        Any candidate reference: a URL, a handle, a bare id, or a plain
+        display name.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``value`` is written as a URL and must therefore be
+        validated by :func:`parse_reference` before being trusted or shown.
+
+    See Also
+    --------
+    parse_reference : Validates the host and extracts the identifiers.
+
+    Notes
+    -----
+    User: this answers "did the author paste a link here?" -- not "is this
+    link a YouTube link?".  Only :func:`parse_reference` answers the second
+    question, and it is the single place where a host is judged.
+
+    Developer: exists so that no call site re-implements host detection with
+    a substring test such as ``"youtube.com/" in value``.  A substring test
+    is wrong in both directions.  It accepts
+    ``https://evil.example/youtube.com/x`` -- the allowed host appears at an
+    arbitrary position -- and it rejects ``https://youtu.be/ID``,
+    ``https://music.youtube.com/watch?v=ID`` and every country domain, which
+    then bypass validation entirely and are handled as if they were plain
+    display text.  Splitting the decision in two -- *is it a URL* here, *is
+    it a YouTube URL* in :func:`parse_reference` -- keeps the host allowlist
+    in exactly one place.
+
+    Examples
+    --------
+    >>> is_reference_url("https://www.youtube.com/@cs50")
+    True
+    >>> is_reference_url("www.youtube.com/@cs50")
+    True
+    >>> is_reference_url("//youtu.be/hKpAHgT9VxM")
+    True
+    >>> is_reference_url("https://evil.example/youtube.com/x")
+    True
+    >>> is_reference_url("javascript:alert(1)//x.y/")
+    True
+    >>> is_reference_url("@cs50")
+    False
+    >>> is_reference_url("CS50")
+    False
+    >>> is_reference_url("Foo / Bar")
+    False
+    >>> is_reference_url("CS50: Introduction to Computer Science")
+    False
+    """
+    if not isinstance(value, str):
+        return False
+    return bool(_URL_SHAPED_RE.search(value.strip()))
 
 
 # -- normalisation ------------------------------------------------------------

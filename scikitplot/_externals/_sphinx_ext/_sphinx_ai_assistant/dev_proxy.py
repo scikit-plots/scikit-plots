@@ -64,6 +64,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import sys
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -249,25 +250,112 @@ def _parse_model(body: bytes) -> str:
         return DEFAULT_MODEL
 
 
+#: Longest browser ``Origin`` this proxy will even parse.  A serialized origin
+#: is ``scheme://host[:port]`` and cannot legitimately approach this length;
+#: the bound keeps a pathological header out of the regex engine.
+MAX_ORIGIN_CHARS = 253 + len("https://") + len(":65535")
+
+#: A serialized origin, per the HTML standard: scheme, ``://``, host, optional
+#: port -- and nothing else.  ``\A``/``\Z`` (never ``^``/``$``, which also match
+#: at a line break) make an embedded CR or LF unrepresentable, so a value that
+#: passes this test cannot terminate a header or inject another one.
+_SERIALIZED_ORIGIN_RE = re.compile(
+    r"\A[a-z][a-z0-9+.\-]*://[A-Za-z0-9._~%\-]+(?::[0-9]{1,5})?\Z",
+    re.ASCII,
+)
+
+
+def _normalize_origin(origin: str) -> str:
+    """
+    Return a syntactically valid serialized origin, or ``""``.
+
+    Parameters
+    ----------
+    origin : str
+        The raw ``Origin`` request header, exactly as received.
+
+    Returns
+    -------
+    str
+        The trimmed origin when it is a well-formed serialized origin;
+        otherwise the empty string.
+
+    Notes
+    -----
+    Developer: shape is checked *before* the allowlist so that a malformed
+    value is rejected on one code path only, and so that no caller can reach
+    a comparison holding a control character.
+    """
+    candidate = (origin or "").strip().rstrip("/")
+    if not candidate or len(candidate) > MAX_ORIGIN_CHARS:
+        return ""
+    if candidate == "null":
+        # The serialization of an opaque origin -- sent by sandboxed iframes and
+        # by `file://` documents.  Kept so the wildcard dev mode still answers a
+        # page opened straight off disk.  It is a constant, so allowing it adds
+        # no request-controlled bytes to any header.
+        return candidate
+    return candidate if _SERIALIZED_ORIGIN_RE.match(candidate) else ""
+
+
+def _allowed_origin_match(origin: str) -> str:
+    """
+    Return the *configured* allowlist entry matching ``origin``, or ``""``.
+
+    Parameters
+    ----------
+    origin : str
+        The raw ``Origin`` request header.
+
+    Returns
+    -------
+    str
+        The matching element of :data:`ALLOWED_ORIGINS`, or the empty string
+        when the origin is malformed or not allowed.
+
+    Notes
+    -----
+    Developer: the return value is deliberately the *configured* string and
+    never the request string, even though the two compare equal.  Echoing a
+    request-supplied value into a response header is how response splitting
+    happens; returning the configuration entry means no byte of the request
+    can reach ``send_header`` at all, which holds even if the comparison is
+    later relaxed to case-insensitive or suffix matching.
+    """
+    candidate = _normalize_origin(origin)
+    if not candidate:
+        return ""
+    for allowed in ALLOWED_ORIGINS:
+        if allowed == candidate:
+            return allowed
+    return ""
+
+
 def _origin_allowed(origin: str) -> bool:
     """Return whether a browser Origin is allowed to call the loopback proxy."""
-    origin = (origin or "").strip().rstrip("/")
-    return not origin or ALLOWED_ORIGINS == ("*",) or origin in ALLOWED_ORIGINS
+    if not (origin or "").strip():
+        # No Origin header: a same-origin or non-browser caller, not a CORS
+        # request. Preserved from the original contract.
+        return True
+    if ALLOWED_ORIGINS == ("*",):
+        return bool(_normalize_origin(origin))
+    return bool(_allowed_origin_match(origin))
 
 
 def _build_cors_headers(origin: str = "") -> dict[str, str]:
     """Return CORS headers only for an explicitly allowed browser origin."""
-    origin = (origin or "").strip().rstrip("/")
     headers = {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     }
-    if origin and _origin_allowed(origin):
-        headers["Access-Control-Allow-Origin"] = (
-            "*" if ALLOWED_ORIGINS == ("*",) else origin
-        )
-        if ALLOWED_ORIGINS != ("*",):
-            headers["Vary"] = "Origin"
+    if ALLOWED_ORIGINS == ("*",):
+        if _normalize_origin(origin):
+            headers["Access-Control-Allow-Origin"] = "*"
+        return headers
+    matched = _allowed_origin_match(origin)
+    if matched:
+        headers["Access-Control-Allow-Origin"] = matched
+        headers["Vary"] = "Origin"
     return headers
 
 
