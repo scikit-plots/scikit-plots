@@ -119,9 +119,10 @@ def _nat_sort_key(name: str) -> list[int | str]:
     >>> _nat_sort_key("0010.xml")
     ['', 10, '.xml']
     """
-    parts: list[int | str] = []
-    for token in _NAT_SORT_RE.split(name):
-        parts.append(int(token) if token.isdigit() else token.lower())
+    parts: list[int | str] = [
+        int(token) if token.isdigit() else token.lower()
+        for token in _NAT_SORT_RE.split(name)
+    ]
     return parts
 
 
