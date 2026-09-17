@@ -90,7 +90,12 @@ class TestCompatibility:
     """Compatibility is fingerprint equality, deliberately."""
 
     def test_identical_manifests_are_compatible(self) -> None:
-        assert _manifest().is_compatible(_manifest())
+        # Corrected contract (C05/D10): two manifests with no resolved revision
+        # are no longer reported as compatible by default, because equal names
+        # are not evidence that the same weights produced both. The caller opts
+        # into the unverified space explicitly.
+        assert _manifest().is_compatible(_manifest(),
+                                         assume_unpinned_match=True)
 
     def test_different_models_are_not(self) -> None:
         assert not _manifest("A").is_compatible(_manifest("B"))
@@ -214,7 +219,7 @@ class TestMixedGenerationGate:
             "from scikitplot.corpus import EmbeddingManifest\n"
             "a = EmbeddingManifest(provider='p', model='m', dimension=8)\n"
             "b = EmbeddingManifest.from_dict(json.loads(json.dumps(a.to_dict())))\n"
-            "assert a.is_compatible(b)\n"
+            "assert a.is_compatible(b, assume_unpinned_match=True)\n"
             "watched = ('torch', 'sentence_transformers', 'transformers', 'tensorflow')\n"
             "print(','.join(m for m in watched if m in sys.modules))\n"
         )

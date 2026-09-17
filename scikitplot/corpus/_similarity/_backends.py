@@ -451,8 +451,17 @@ class AnnoyBackend(VectorIndexBackend):
             return index_cls(self._dim, self._metric, **kwargs)
         except TypeError:
             if kwargs:
-                logger.debug(
-                    "annoy impl %r does not accept %s; constructing without them",
+                # The caller asked for a precision and is about to get another.
+                # At debug level this was invisible: an index built at the
+                # default dtype is not the index that was requested, and nothing
+                # downstream could tell. Warning plus a readable record is the
+                # narrow fix; carrying it as a backend capability outcome is the
+                # correct one and needs a result type this backend lacks.
+                self._discarded_kwargs = dict(kwargs)
+                logger.warning(
+                    "annoy impl %r does not accept %s; building without them, so "
+                    "the requested precision is not what you get. See "
+                    "discarded_options.",
                     self._resolved_impl,
                     sorted(kwargs),
                 )
@@ -492,6 +501,19 @@ class AnnoyBackend(VectorIndexBackend):
             return get(vec, k, self._search_k, include_distances=True)
         except TypeError:  # variant without a positional search_k
             return get(vec, k, include_distances=True)
+
+    @property
+    def discarded_options(self) -> dict[str, Any]:
+        """Options this backend requested and the index class refused.
+
+        Returns
+        -------
+        dict
+            Empty when everything requested was honoured. A non-empty result
+            means the index is not built the way the caller asked, which an
+            index object alone could never tell them.
+        """
+        return dict(getattr(self, "_discarded_kwargs", {}) or {})
 
     def _distance_to_score(self, d: float) -> float:
         """Convert an Annoy distance to the unified cosine score in [-1, 1]."""

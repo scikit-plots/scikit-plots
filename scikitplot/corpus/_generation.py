@@ -65,23 +65,50 @@ __all__: list[str] = [
 ]
 
 _FIELD_SEP = "\x1f"
-_GENERATION_SCHEMA = "gen1"
+_GENERATION_SCHEMA = "gen2"  # S-5: the digest binds content and row order
 
 
-def _document_digest(doc_ids: Iterable[str]) -> str:
-    """Return an order-independent digest of a ``doc_id`` set.
+def _document_digest(documents: Iterable[Any]) -> str:
+    """Return a digest of the rows a build actually published.
+
+    Parameters
+    ----------
+    documents : iterable
+        Documents **in row order**, as published.
+
+    Returns
+    -------
+    str
+        ``"<row count>-<digest>"``, where the digest covers each row's identity
+        and its content, in the order given.
 
     Notes
     -----
-    **Developer.**  Sorted before hashing, so the *same documents supplied in a
-    different order* produce the same digest.  Document order is not part of an
-    index's identity -- two builds over the same corpus are the same index --
-    whereas a different *set* of documents genuinely is a different index.
+    **Developer.** This previously hashed ``sorted(set(doc_ids))``, which
+    recorded *which* documents were indexed and nothing else. Two things went
+    wrong with that. A caller who supplies a stable ``doc_id`` and changes the
+    text got the same generation for different content, so a rebuild looked
+    unnecessary. And a duplicate identifier collapsed under ``set()``, so the
+    recorded count fell below the number of rows in the sidecar and the writer
+    produced an artifact its own reader refused.
+
+    Order is included because the sidecar maps a row position to an identity:
+    the same documents published in a different order are a different artifact,
+    whatever they are as a set. The digest therefore describes the publication,
+    not the corpus.
     """
-    ordered = sorted(set(doc_ids))
-    joined = _FIELD_SEP.join(f"{len(d)}:{d}" for d in ordered)
-    body = hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
-    return f"{len(ordered)}-{body}"
+    rows = list(documents)
+    parts = []
+    for position, document in enumerate(rows):
+        doc_id = str(getattr(document, "doc_id", "") or "")
+        content = getattr(document, "content_digest", None)
+        if content is None:
+            text = str(getattr(document, "text", "") or "")
+            content = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        parts.append(f"{position}:{len(doc_id)}:{doc_id}:{content}")
+    joined = _FIELD_SEP.join(parts)
+    body = hashlib.sha256(joined.encode("utf-8")).hexdigest()
+    return f"{len(rows)}-{body}"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -96,7 +123,9 @@ class IndexGeneration:
         Fingerprint of the embedding generation, or ``None`` for an index with
         no vectors.
     document_digest : str
-        Order-independent digest of the indexed ``doc_id`` set.
+        Digest of the published rows: each row's identity and content, in the
+        order written. Not a set digest -- order and content are what the
+        sidecar records, so both belong to the identity.
     backend : str or None
         Name of the index backend, or ``None`` when no dense index was built.
 
@@ -221,6 +250,6 @@ def derive_generation(
     return IndexGeneration(
         schema_version=schema_version or _SCHEMA_VERSION,
         embedding_manifest_id=next(iter(manifests), None),
-        document_digest=_document_digest(getattr(doc, "doc_id", "") for doc in docs),
+        document_digest=_document_digest(docs),
         backend=backend,
     )

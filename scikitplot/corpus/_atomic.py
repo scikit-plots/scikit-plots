@@ -36,43 +36,117 @@ therefore never pass a temp dir; the temp always lives beside the target.
 
 from __future__ import annotations
 
+import errno
+import logging
 import os
 import pathlib
+import shutil
 import tempfile
 from typing import Callable, Union
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["atomic_write_bytes", "atomic_write_path"]
 
 StrPath = Union[str, "os.PathLike[str]"]
 
 
-def _fsync_file(path: pathlib.Path) -> None:
-    """``fsync`` a file by path (best-effort; ignores platforms that can't)."""
+#: ``errno`` values meaning "this platform cannot sync this object", as opposed
+#: to "the sync was attempted and failed". Windows cannot sync a directory
+#: handle at all, and some filesystems reject ``fsync`` on a directory with
+#: ``EINVAL``. Anything outside this set is a real I/O failure and is reported.
+_UNSUPPORTED_SYNC_ERRNOS: frozenset[int] = frozenset(
+    code
+    for code in (
+        getattr(errno, name, None)
+        for name in ("EINVAL", "ENOTSUP", "EOPNOTSUPP", "ENOSYS", "EBADF")
+    )
+    if code is not None
+)
+
+#: Additional ``errno`` values accepted when syncing a *directory*: opening a
+#: directory for reading is refused outright on Windows.
+_UNSUPPORTED_DIR_SYNC_ERRNOS: frozenset[int] = _UNSUPPORTED_SYNC_ERRNOS | frozenset(
+    code
+    for code in (getattr(errno, name, None) for name in ("EACCES", "EPERM", "EISDIR"))
+    if code is not None
+)
+
+
+def _describe(exc: OSError) -> str:
+    """Return the symbolic ``errno`` name for ``exc``, or its numeric value."""
+    return errno.errorcode.get(exc.errno, str(exc.errno))
+
+
+def _sync(path: pathlib.Path, *, tolerated: frozenset[int], kind: str) -> None:
+    """``fsync`` *path*, propagating a real failure and reporting a downgrade.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        File or directory to sync.
+    tolerated : frozenset of int
+        ``errno`` values that mean the platform cannot perform this sync.
+    kind : str
+        ``"file"`` or ``"directory"``, used in the downgrade message.
+
+    Raises
+    ------
+    OSError
+        If the sync was attempted and failed for any reason outside
+        ``tolerated`` — the payload may not be on stable storage, and a caller
+        that was told the write succeeded would be wrong.
+
+    Notes
+    -----
+    **Developer.** The previous form caught every :class:`OSError` and returned,
+    so ``EIO`` from a failing disk and ``EINVAL`` from a platform that cannot
+    sync a directory produced identical behaviour and publication still reported
+    success. Only the second is a platform limitation; it is downgraded and
+    logged with its ``errno`` named, because a weaker durability guarantee that
+    nobody is told about is indistinguishable from the strong one.
+
+    Carrying the downgrade in the return value rather than the log belongs to
+    the publication-sequence slice, which changes this function's contract.
+    """
     try:
         fd = os.open(str(path), os.O_RDONLY)
-    except OSError:
-        return
+    except OSError as exc:
+        if exc.errno in tolerated:
+            logger.warning(
+                "durability downgraded: cannot open %s %s to sync (%s); "
+                "the write is published but not known to be on stable storage.",
+                kind,
+                path,
+                _describe(exc),
+            )
+            return
+        raise
     try:
         os.fsync(fd)
-    except OSError:
-        pass
+    except OSError as exc:
+        if exc.errno in tolerated:
+            logger.warning(
+                "durability downgraded: this platform cannot sync %s %s (%s); "
+                "the write is published but not known to be on stable storage.",
+                kind,
+                path,
+                _describe(exc),
+            )
+            return
+        raise
     finally:
         os.close(fd)
+
+
+def _fsync_file(path: pathlib.Path) -> None:
+    """``fsync`` a file by path; a real I/O failure is raised, not swallowed."""
+    _sync(path, tolerated=_UNSUPPORTED_SYNC_ERRNOS, kind="file")
 
 
 def _fsync_dir(path: pathlib.Path) -> None:
-    """``fsync`` a directory so the rename is durable (no-op on Windows)."""
-    try:
-        fd = os.open(str(path), os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        os.fsync(fd)
-    except OSError:
-        # Directories cannot be fsync-ed on some platforms (e.g. Windows).
-        pass
-    finally:
-        os.close(fd)
+    """``fsync`` a directory so the rename is durable, where the platform can."""
+    _sync(path, tolerated=_UNSUPPORTED_DIR_SYNC_ERRNOS, kind="directory")
 
 
 def atomic_write_path(
@@ -120,8 +194,16 @@ def atomic_write_path(
         _fsync_file(tmp_path)
         os.replace(tmp_path, target)
     except BaseException:
+        # The staging path may be a directory: a writer is free to replace the
+        # empty staging file with a populated directory, which the artifact
+        # writer does. unlink() cannot remove one, so the failure was swallowed
+        # here and the staging directory was left beside the target after every
+        # failed publication.
         try:  # ruff: ignore[suppressible-exception]
-            tmp_path.unlink()
+            if tmp_path.is_dir():
+                shutil.rmtree(tmp_path, ignore_errors=True)
+            else:
+                tmp_path.unlink(missing_ok=True)
         except OSError:
             pass
         raise

@@ -183,43 +183,90 @@ class EmbeddingManifest:
     def is_compatible(
         self,
         other: EmbeddingManifest,
+        *,
+        assume_unpinned_match: bool = False,
     ) -> bool:
         """Whether vectors from ``self`` and ``other`` may share an index.
 
         Parameters
         ----------
         other : EmbeddingManifest
-            EmbeddingManifest
+            Manifest to compare against.
+        assume_unpinned_match : bool, optional
+            Accept two manifests that agree on every field but have no resolved
+            ``revision``. Default ``False``: an unresolved revision is an
+            unverified space, and this is the caller opting into it explicitly.
 
         Returns
         -------
         bool
+            ``True`` when the two manifests describe the same embedding space.
 
         Notes
         -----
-        **Developer.**  Compatibility is fingerprint equality, deliberately.
-        A looser rule -- "same dimension and model" -- would readmit the exact
+        **User.** If this returns ``False`` for two manifests you believe are the
+        same model, check whether ``revision`` is set on both. Without it there
+        is nothing recording that the same weights produced both sets of
+        vectors; pin the revision, or pass ``assume_unpinned_match=True`` to say
+        you accept that.
+
+        **Developer.** Compatibility is fingerprint equality, deliberately. A
+        looser rule -- "same dimension and model" -- would readmit the exact
         defect: two generations of one model with different normalization
         produce same-shaped vectors whose distances mean different things.
-        Equality is the only rule that cannot be argued into unsoundness.
-        """
-        return self.fingerprint == other.fingerprint
 
-    def require_compatible(self, other: EmbeddingManifest) -> None:
+        Fingerprint equality alone was not enough, though: two manifests with
+        ``revision=None`` have equal fingerprints and so compared compatible,
+        which reported as *verified* something nothing had verified. An
+        unresolved revision now fails the check unless the caller opts in, so
+        the unverified case is a decision someone made rather than an answer the
+        code gave by default.
+        """
+        if self.fingerprint != other.fingerprint:
+            return False
+        if self.revision is not None:
+            return True
+        return bool(assume_unpinned_match)
+
+    def require_compatible(
+        self,
+        other: EmbeddingManifest,
+        *,
+        assume_unpinned_match: bool = False,
+    ) -> None:
         """Raise unless ``other`` is compatible with ``self``.
+
+        Parameters
+        ----------
+        other : EmbeddingManifest
+            Manifest to compare against.
+        assume_unpinned_match : bool, optional
+            Forwarded to :meth:`is_compatible`.
 
         Raises
         ------
         IncompatibleEmbeddingsError
-            Naming both generations and the fields that differ.
+            Naming both generations and either the fields that differ or, when
+            the fields agree, the unresolved revision that prevents the match
+            from being verified. The two cases are distinguished because they
+            need different fixes: one is a genuine mismatch, the other is
+            missing provenance.
         """
-        if self.is_compatible(other):
+        if self.is_compatible(other, assume_unpinned_match=assume_unpinned_match):
             return
         differing = sorted(
             field.name
             for field in dataclasses.fields(self)
             if getattr(self, field.name) != getattr(other, field.name)
         )
+        if not differing:
+            raise IncompatibleEmbeddingsError(
+                f"embeddings from generation {self.describe()} cannot be "
+                f"combined with {other.describe()}: every field agrees, but "
+                "neither manifest has a resolved revision, so nothing records "
+                "that the same weights produced both. Pin the revision, or pass "
+                "assume_unpinned_match=True to accept an unverified match."
+            )
         raise IncompatibleEmbeddingsError(
             f"embeddings from generation {self.describe()} cannot be combined "
             f"with {other.describe()}; differing fields: {differing}. "

@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import contextlib  # noqa: F401
 import os
+import pathlib
 import shutil  # noqa: F401
 import tempfile  # noqa: F401
+import uuid
 
 # from typing import Callable
 from collections.abc import Callable  # noqa: F401
@@ -163,101 +165,137 @@ class IndexIOMixin:
     # --------
     def save_bundle(
         self,
+        directory: str | os.PathLike[str],
+        *,
         manifest_filename: str = "manifest.json",
         index_filename: str = "index.ann",
-        *,
         prefault: bool | None = None,
     ) -> list[str]:
         """
-        Save a *directory bundle* containing metadata + the index file.
-
-        The bundle contains:
-        - ``manifest.json``: metadata payload produced by :py:meth:`to_json`
-        - ``index.ann``: Annoy index produced by :py:meth:`save_index`
+        Publish a *directory bundle* holding the metadata and the index.
 
         Parameters
         ----------
-        manifest_filename
-            Filename for the metadata manifest inside the directory.
-        index_filename
-            Filename for the Annoy index inside the directory.
-        prefault
+        directory : str or path-like
+            Bundle directory. Created if absent, replaced if present.
+        manifest_filename, index_filename : str, optional
+            Member names *inside* the bundle. They are never resolved against
+            the process working directory.
+        prefault : bool or None, optional
             Forwarded to :py:meth:`save_index`.
+
+        Returns
+        -------
+        list of str
+            Absolute paths of the published members, manifest first.
 
         Raises
         ------
-        TypeError
-            If :py:meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         OSError
-            On filesystem failures.
+            If the bundle could not be written. Nothing is published in that
+            case: a failed save leaves any previous bundle exactly as it was.
+
+        Notes
+        -----
+        **User.** A bundle is self-contained and relocatable: move it, copy it,
+        or publish it, and :py:meth:`load_bundle` reads it from wherever it is.
+
+        **Developer.** This previously took two filenames and no directory, so
+        the defaults resolved against the process working directory and two
+        callers using them overwrote each other. It also wrote the index and
+        then the manifest in place, so a failure between the two left an index
+        no loader could find. Both are fixed the same way the corpus artifact
+        fixes them: build a candidate, then swap, so nothing is destroyed before
+        a complete replacement exists.
         """
-        # `MetaMixin` provides `to_json()`; keep the dependency explicit.
-        to_json = getattr(self, "to_json", None)
-        if not callable(to_json):
-            raise TypeError("save_bundle requires to_json() (compose with MetaMixin).")
+        target = pathlib.Path(os.fspath(directory)).resolve()
+        candidate = target.parent / f".{target.name}.candidate-{uuid.uuid4().hex}"
+        superseded = target.parent / f".{target.name}.superseded-{uuid.uuid4().hex}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        candidate.mkdir(parents=True)
+        try:
+            index_path = candidate / index_filename
+            manifest_path = candidate / manifest_filename
+            self.save_index(os.fspath(index_path), prefault=prefault)
+            self.to_json(os.fspath(manifest_path))
+        except BaseException:
+            shutil.rmtree(candidate, ignore_errors=True)
+            raise
 
-        manifest_path: str | PathLike[str] = os.fspath(manifest_filename)
-        index_path: str | PathLike[str] = os.fspath(index_filename)
-
-        lock = lock_for(self)
-        with lock:
-            self.save_index(index_path, prefault=prefault)
-            # Must after save index
-            to_json(manifest_path)
-            return [manifest_path, index_path]
+        had_previous = target.exists()
+        try:
+            if had_previous:
+                os.replace(target, superseded)
+            try:
+                os.replace(candidate, target)
+            except BaseException:
+                if had_previous and superseded.exists():
+                    os.replace(superseded, target)
+                raise
+        except BaseException:
+            shutil.rmtree(candidate, ignore_errors=True)
+            raise
+        if had_previous:
+            shutil.rmtree(superseded, ignore_errors=True)
+        return [
+            os.fspath(target / manifest_filename),
+            os.fspath(target / index_filename),
+        ]
 
     @classmethod
     def load_bundle(
         cls: type[Self],
-        manifest_filename: str = "manifest.json",
-        index_filename: str = "index.ann",  # noqa: ARG003
+        directory: str | os.PathLike[str],
         *,
-        prefault: bool | None = None,  # noqa: ARG003
+        manifest_filename: str = "manifest.json",
+        index_filename: str = "index.ann",
+        prefault: bool | None = None,
     ) -> Self:
         """
-        Load a directory bundle created by :py:meth:`save_bundle`.
+        Load a bundle published by :py:meth:`save_bundle`.
 
         Parameters
         ----------
-        manifest_filename
-            Filename for the metadata manifest inside the directory.
-        index_filename
-            Filename for the Annoy index inside the directory.
-        prefault
+        directory : str or path-like
+            Bundle directory.
+        manifest_filename, index_filename : str, optional
+            Member names inside the bundle.
+        prefault : bool or None, optional
             Forwarded to :py:meth:`load_index`.
 
         Returns
         -------
-        index
-            Newly constructed index.
+        Self
+            An index with its vectors loaded and ready to query.
 
         Raises
         ------
-        TypeError
-            If :py:meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
-        TypeError
-            If :py:meth:`from_json` returns an unexpected type.
         OSError
-            On filesystem failures.
+            If a member is missing or unreadable.
+
+        Notes
+        -----
+        **Developer.** This previously did not load the index at all: the
+        ``load_index`` call was commented out and both ``index_filename`` and
+        ``prefault`` were marked unused, so the vectors arrived only as a side
+        effect of the manifest carrying an absolute path recorded at save time.
+        A bundle that had been moved therefore failed, and naming a different
+        index file had no effect whatsoever. Members are now resolved relative
+        to the bundle, which is what makes it relocatable, and the index is
+        loaded here rather than by accident.
         """
-        from_json = getattr(cls, "from_json", None)
-        if not callable(from_json):
-            raise TypeError(
-                "load_bundle requires from_json() (compose with MetaMixin)."
-            )
+        root = pathlib.Path(os.fspath(directory)).resolve()
+        # The manifest states the shape of the index; the index file supplies
+        # its contents. load=False keeps from_json from chasing the absolute
+        # path it recorded at save time, which is what made a moved bundle fail.
+        described = cls.from_json(os.fspath(root / manifest_filename), load=False)
+        return cls.load_index(
+            described.f,
+            described.metric,
+            os.fspath(root / index_filename),
+            prefault=prefault,
+        )
 
-        manifest_path: str | PathLike[str] = os.fspath(manifest_filename)
-        obj = from_json(manifest_path, load=True)
-        if not isinstance(obj, cls):
-            raise TypeError("from_json() returned an unexpected type")
-
-        index_path: str | PathLike[str]  # = os.fspath(index_filename)  # noqa: F842
-        # obj.load_index(index_path, f=obj.f, metric=obj.metric, prefault=prefault)
-        return obj
-
-    # --------
-    # Bytes I/O (serialize/deserialize)
-    # --------
     def to_bytes(
         self,
         format=None,

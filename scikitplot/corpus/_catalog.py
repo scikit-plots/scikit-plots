@@ -46,6 +46,7 @@ scikitplot.corpus._capabilities.capability_snapshot : the lightweight dependency
 from __future__ import annotations
 
 import dataclasses
+import enum
 from typing import Any
 
 from ._capabilities import CapabilityStatus, probe_backend
@@ -53,8 +54,51 @@ from ._capabilities import CapabilityStatus, probe_backend
 __all__: list[str] = [
     "ComponentCatalog",
     "ComponentSpec",
+    "DiscoveryOutcome",
+    "DiscoveryStatus",
     "component_catalog",
 ]
+
+
+class DiscoveryStatus(str, enum.Enum):
+    """Terminal outcome of asking one source what components it has.
+
+    A bare ``except Exception`` that returned ``[]`` made three of these one
+    value, so a caller could not distinguish a category with nothing in it from
+    a module that failed to import. The second is a bug someone needs to see,
+    and the difference is what this vocabulary exists to preserve.
+    """
+
+    #: The source ran and contributed components.
+    OK = "ok"
+    #: The source ran and has nothing to contribute. A real, usable answer.
+    EMPTY = "empty"
+    #: The source could not be consulted. Not an answer about components at all.
+    BROKEN = "broken"
+
+
+@dataclasses.dataclass(frozen=True)
+class DiscoveryOutcome:
+    """What happened when one source was asked for its components.
+
+    Parameters
+    ----------
+    source : str
+        Import path of the source consulted.
+    status : DiscoveryStatus
+        Terminal outcome.
+    count : int
+        Components contributed. Always ``0`` unless the status is ``OK``.
+    reason : str or None
+        Why a ``BROKEN`` source could not be consulted, as the exception type
+        and message. ``None`` for the other statuses, because there is nothing
+        to explain about a source that worked.
+    """
+
+    source: str
+    status: DiscoveryStatus
+    count: int = 0
+    reason: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -139,8 +183,27 @@ class ComponentCatalog:
     :func:`component_catalog` again after registering something new.
     """
 
-    def __init__(self, specs: Any = ()) -> None:
+    def __init__(self, specs: Any = (), *, outcomes: Any = ()) -> None:
         self._specs: tuple[ComponentSpec, ...] = tuple(specs)
+        self._outcomes: tuple[DiscoveryOutcome, ...] = tuple(outcomes)
+
+    @property
+    def outcomes(self) -> tuple[DiscoveryOutcome, ...]:
+        """What happened when each source was consulted."""
+        return self._outcomes
+
+    def discovery_failures(self) -> list[DiscoveryOutcome]:
+        """
+        Sources that could not be consulted.
+
+        Returns
+        -------
+        list of DiscoveryOutcome
+            Empty when every source answered. A non-empty result means the
+            catalog is incomplete for a reason worth acting on, which an empty
+            category alone could never tell you.
+        """  # ruff: ignore[non-imperative-mood]
+        return [o for o in self._outcomes if o.status is DiscoveryStatus.BROKEN]
 
     def __len__(self) -> int:
         """Return the number of registered components."""
@@ -191,15 +254,27 @@ def _fqcn(cls: Any) -> str:
     return f"{module}.{name}"
 
 
-def _index_specs() -> list[ComponentSpec]:
-    """Collect vector-index backends, which do expose an availability probe."""
+def _index_specs() -> tuple[list[ComponentSpec], DiscoveryOutcome]:
+    """Collect vector-index backends, which do expose an availability probe.
+
+    Returns
+    -------
+    tuple of (list of ComponentSpec, DiscoveryOutcome)
+        The components found, and what happened while looking. The outcome is
+        returned rather than logged so the caller can act on a broken source.
+    """
+    source = "scikitplot.corpus._similarity._backends"
     try:
         from ._similarity._backends import (  # noqa: PLC0415
             _BACKENDS,
             backend_aliases,
         )
-    except Exception:  # noqa: BLE001 - the catalog must never fail on imports
-        return []
+    except Exception as exc:  # noqa: BLE001 - the catalog must never fail on imports
+        return [], DiscoveryOutcome(
+            source=source,
+            status=DiscoveryStatus.BROKEN,
+            reason=f"{type(exc).__name__}: {exc}",
+        )
 
     specs = []
     for name, cls in sorted(_BACKENDS.items()):
@@ -221,11 +296,22 @@ def _index_specs() -> list[ComponentSpec]:
                 capabilities=capabilities,
             )
         )
-    return specs
+    outcome = DiscoveryOutcome(
+        source=source,
+        status=DiscoveryStatus.OK if specs else DiscoveryStatus.EMPTY,
+        count=len(specs),
+    )
+    return specs, outcome
 
 
-def _registry_specs() -> list[ComponentSpec]:
-    """Collect chunkers, filters, readers and normalizers.
+def _registry_specs() -> tuple[list[ComponentSpec], DiscoveryOutcome]:
+    """
+    Collect chunkers, filters, readers and normalizers.
+
+    Returns
+    -------
+    tuple of (list of ComponentSpec, DiscoveryOutcome)
+        The components found, and what happened while looking.
 
     Notes
     -----
@@ -234,10 +320,15 @@ def _registry_specs() -> list[ComponentSpec]:
     which is not the same as *usable* -- it may still need an optional
     dependency at construction time.
     """
+    source = "scikitplot.corpus._registry"
     try:
         from ._registry._registry import registry  # noqa: PLC0415
-    except Exception:  # noqa: BLE001
-        return []
+    except Exception as exc:  # noqa: BLE001
+        return [], DiscoveryOutcome(
+            source=source,
+            status=DiscoveryStatus.BROKEN,
+            reason=f"{type(exc).__name__}: {exc}",
+        )
 
     specs = []
     stores = (
@@ -257,7 +348,12 @@ def _registry_specs() -> list[ComponentSpec]:
                     reason_code="not_probed",
                 )
             )
-    return specs
+    outcome = DiscoveryOutcome(
+        source=source,
+        status=DiscoveryStatus.OK if specs else DiscoveryStatus.EMPTY,
+        count=len(specs),
+    )
+    return specs, outcome
 
 
 def component_catalog() -> ComponentCatalog:
@@ -271,7 +367,9 @@ def component_catalog() -> ComponentCatalog:
     -----
     Never raises.  A registry that cannot be imported contributes nothing rather
     than failing the whole catalog, so a partially-installed environment can
-    still ask what it has.
+    still ask what it has -- but it is recorded as broken rather than as empty,
+    and :meth:`ComponentCatalog.discovery_failures` returns it. A source that
+    could not be consulted is not an answer about components.
 
     Examples
     --------
@@ -279,4 +377,9 @@ def component_catalog() -> ComponentCatalog:
     >>> "index" in catalog.categories()
     True
     """
-    return ComponentCatalog([*_index_specs(), *_registry_specs()])
+    index_specs, index_outcome = _index_specs()
+    registry_specs, registry_outcome = _registry_specs()
+    return ComponentCatalog(
+        [*index_specs, *registry_specs],
+        outcomes=(index_outcome, registry_outcome),
+    )

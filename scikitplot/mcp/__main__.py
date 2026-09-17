@@ -23,7 +23,6 @@ import argparse
 import json
 import logging
 import os
-import re
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -35,7 +34,7 @@ from ._capabilities import (  # SDK-free (no pydantic)
     server_capabilities,
     server_runtime_status,
 )
-from ._core import SearchCoordinator  # SDK-free (no pydantic)
+from ._core import DOC_ID_RE, SearchCoordinator  # SDK-free (no pydantic)
 from ._demo import InMemoryBm25Retriever, builtin_demo_retriever
 
 
@@ -68,7 +67,7 @@ def create_server(*args, **kwargs):
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _REMOTE_BIND_HOSTS = {"0.0.0.0", "::"}  # ruff: ignore[hardcoded-bind-all-interfaces]
-_DOC_ID_RE = re.compile(r"\A[A-Za-z0-9._:-]{1,200}\Z")
+_DOC_ID_RE = DOC_ID_RE
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -391,11 +390,13 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         if args.probe_timeout is not None
         else _env_float(env, "SCIKITPLOT_MCP_PROBE_TIMEOUT", 2.0)
     )
-    allow_remote = bool(
-        args.allow_unauthenticated_remote
-        or docker
-        or _env_bool(env, "SCIKITPLOT_MCP_ALLOW_UNAUTHENTICATED_REMOTE", False)
-    )
+    # An unauthenticated non-local bind widens exposure, so the grant comes from
+    # the invocation and nowhere else. An inherited environment may still select
+    # docker mode and its transport; it may not open the port on the operator's
+    # behalf, because a privilege granted where nobody sees it is granted by
+    # accident. SCIKITPLOT_MCP_ALLOW_UNAUTHENTICATED_REMOTE and
+    # SCIKITPLOT_MCP_DOCKER therefore no longer authorise; --docker still does.
+    allow_remote = bool(args.allow_unauthenticated_remote or args.docker)
     log_level = (
         args.log_level or _env_value(env, "SCIKITPLOT_MCP_LOG_LEVEL", "INFO").upper()
     )
@@ -478,9 +479,11 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         )
     if transport == "streamable-http" and host not in _LOCAL_HOSTS and not allow_remote:
         raise SystemExit(
-            "refusing unauthenticated non-local bind; use localhost, add production auth, "
-            "pass --docker for an isolated container network, or explicitly pass "
-            "--allow-unauthenticated-remote"
+            f"refusing unauthenticated non-local bind to {host}; use localhost, add "
+            "production auth, or grant it at the invocation with --docker for an "
+            "isolated container network or --allow-unauthenticated-remote. An "
+            "environment variable cannot grant this: set the flag on the command "
+            "line where the decision is visible."
         )
 
     return RuntimeConfig(

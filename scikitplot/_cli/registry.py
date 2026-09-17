@@ -60,11 +60,25 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
         handler="scikitplot._cli._commands.doctor:run",
         params=(
             Param(
+                dest="reveal_env_values",
+                flags=("--show-env-values",),
+                kind="flag",
+                default=False,
+                help=(
+                    "Print collected environment variable values in clear. "
+                    "They are redacted by default."
+                ),
+            ),
+            Param(
                 dest="mask_envs",
                 flags=("--mask-envs",),
                 kind="flag",
                 default=False,
-                help="Mask sensitive environment variable values.",
+                help=(
+                    "Redact environment variable values. Already the default; "
+                    "retained so existing invocations keep working, and it "
+                    "wins over --show-env-values."
+                ),
             ),
             FORMAT,
         ),

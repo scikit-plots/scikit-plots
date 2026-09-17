@@ -60,14 +60,18 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import logging
+import os
 import pathlib
 import shutil
 import tempfile
+import uuid
 from typing import Any, Iterable, Sequence
 
-from ._atomic import atomic_write_path
+from ._atomic import atomic_write_bytes, atomic_write_path
 from ._embedding_manifest import EmbeddingManifest
 from ._generation import IndexGeneration, derive_generation
+from ._validation import require_index
 
 __all__: list[str] = [
     "ANNIndexArtifact",
@@ -79,8 +83,17 @@ __all__: list[str] = [
 SIDECAR_SCHEMA = "1"
 
 _MANIFEST_NAME = "manifest.json"
+_POINTER_NAME = "current.json"
+_POINTER_SCHEMA = "pointer1"
+#: Generations retained behind the pointer: the current one, and the one it
+#: replaced. A reader that opened a generation keeps reading it until it is
+#: pruned; keeping every build instead would grow without bound.
+_RETAINED_GENERATIONS = 2
 _SIDECAR_NAME = "sidecar.json"
 _VECTORS_NAME = "vectors.npy"
+
+
+logger = logging.getLogger(__name__)
 
 
 class ArtifactError(ValueError):
@@ -134,17 +147,30 @@ class ANNIndexArtifact:
         Raises
         ------
         IndexError
-            If ``ordinal`` is outside the sidecar, which means the index and
-            the sidecar disagree -- a corrupt artifact rather than a bad query.
+            If ``ordinal`` is negative or outside the sidecar. Out of range
+            means the index and the sidecar disagree -- a corrupt artifact
+            rather than a bad query.
+        TypeError
+            If ``ordinal`` is not an integer. ``bool`` is rejected explicitly:
+            it is an ``int`` subclass, so ``True`` would otherwise resolve to
+            row 1.
+
+        Notes
+        -----
+        **Developer.** The domain comes from
+        :func:`scikitplot._utils._indexing.require_index`, so this boundary and
+        the lexical index answer the same question the same way. Direct tuple
+        indexing used to accept ``-1`` and resolve it to the last row, which
+        turned a caller's off-by-one into a plausible wrong document.
         """
         try:
-            return self.doc_ids[ordinal]
-        except IndexError:
+            position = require_index(ordinal, len(self.doc_ids), name="ordinal")
+        except IndexError as exc:
             raise IndexError(
-                f"ordinal {ordinal} is outside this artifact's sidecar of "
-                f"{len(self.doc_ids)} rows; the native index and its sidecar "
-                "disagree, so the artifact is corrupt."
+                f"{exc}; the native index and its sidecar disagree, so the "
+                "artifact is corrupt."
             ) from None
+        return self.doc_ids[position]
 
     def resolve(self, hits: Iterable[tuple[int, float]]) -> list[tuple[str, float]]:
         """Map ``(ordinal, score)`` pairs to ``(doc_id, score)`` pairs."""
@@ -188,7 +214,24 @@ class ANNIndexArtifact:
         artifact describes these documents and no others.
         """
         if manifest is not None:
-            self.manifest.require_compatible(manifest)
+            # The strict default of EmbeddingManifest.require_compatible refuses
+            # two unpinned manifests, because equal names are not evidence that
+            # the same weights produced both sets of vectors. Refusing here would
+            # make every artifact built without a pinned revision unopenable,
+            # which is a usability break rather than the safety C05 asked for.
+            # So this caller opts in explicitly and says so: the artifact is
+            # usable, and the caller is told the match is unverified rather than
+            # being left to assume it was checked.
+            unverified = self.manifest.revision is None and manifest.revision is None
+            self.manifest.require_compatible(manifest, assume_unpinned_match=unverified)
+            if unverified:
+                logger.warning(
+                    "embedding compatibility for %s is unverified: neither the "
+                    "artifact's manifest nor the supplied one has a resolved "
+                    "revision, so nothing records that the same weights produced "
+                    "both. Pin the revision to make this a real check.",
+                    self.manifest.describe(),
+                )
 
         if documents is not None:
             supplied = {getattr(doc, "doc_id", None) for doc in documents}
@@ -255,6 +298,15 @@ class ANNIndexArtifact:
                 "every document must have a doc_id; the sidecar cannot record "
                 "an unidentified row."
             )
+        seen: set[str] = set()
+        repeated = sorted({d for d in doc_ids if d in seen or seen.add(d)})
+        if repeated:
+            raise ArtifactError(
+                f"doc_id(s) {repeated} appear on more than one row of "
+                f"{len(doc_ids)} supplied; a sidecar cannot map one identity to "
+                "several rows, and the generation would record fewer documents "
+                "than the sidecar holds. Deduplicate before publishing."
+            )
 
         gen = generation or derive_generation(documents, backend=backend)
 
@@ -293,12 +345,38 @@ class ANNIndexArtifact:
                 shutil.rmtree(staging, ignore_errors=True)
                 raise
 
-        if target.exists():
-            shutil.rmtree(target)
-        atomic_write_path(target, _writer)
+        # A generation is an immutable directory and publication updates a
+        # small pointer beside it. Replacing in place overwrote the payload a
+        # reader already had open: the handle kept an in-memory mapping whose
+        # vectors on disk had become a different build's. Writing a new
+        # directory and moving the pointer leaves the held generation readable.
+        root = target
+        root.mkdir(parents=True, exist_ok=True)
+        generation_dir = root / f"generation-{gen.fingerprint}"
+        if not generation_dir.is_dir():
+            candidate = root / f".candidate-{uuid.uuid4().hex}"
+            try:
+                atomic_write_path(candidate, _writer)
+                # Verification is what makes the pointer move safe: pointing at
+                # an unread directory would publish an assumption.
+                cls.open_generation(candidate)
+                os.replace(candidate, generation_dir)
+            except BaseException:
+                shutil.rmtree(candidate, ignore_errors=True)
+                raise
+
+        previous = cls._current_generation_name(root)
+        atomic_write_bytes(
+            root / _POINTER_NAME,
+            json.dumps(
+                {"pointer_schema": _POINTER_SCHEMA, "generation": generation_dir.name},
+                indent=2,
+            ).encode("utf-8"),
+        )
+        cls._prune_generations(root, keep={generation_dir.name, previous})
 
         return cls(
-            path=target,
+            path=generation_dir,
             manifest=manifest,
             generation=gen,
             doc_ids=doc_ids,
@@ -306,7 +384,96 @@ class ANNIndexArtifact:
         )
 
     @classmethod
+    def _current_generation_name(cls, root: pathlib.Path) -> str | None:
+        """Return the generation the pointer names, or ``None`` if unset."""
+        pointer = root / _POINTER_NAME
+        if not pointer.is_file():
+            return None
+        try:
+            return str(json.loads(pointer.read_text(encoding="utf-8"))["generation"])
+        except (ValueError, KeyError):
+            return None
+
+    @classmethod
+    def _prune_generations(cls, root: pathlib.Path, keep: set) -> None:
+        """Remove retained generations other than ``keep``."""
+        wanted = {name for name in keep if name}
+        for child in root.iterdir():
+            if child.is_dir() and child.name.startswith(  # ruff: ignore[collapsible-if]
+                "generation-",
+            ):
+                if child.name not in wanted:
+                    shutil.rmtree(child, ignore_errors=True)
+
+    @classmethod
+    def generations(cls, path: str | pathlib.Path) -> list[pathlib.Path]:
+        """Return the generation directories retained under ``path``.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Artifact root.
+
+        Returns
+        -------
+        list of pathlib.Path
+            Retained generations, sorted by name. A reader holding one of these
+            keeps reading it until it is pruned.
+        """
+        root = pathlib.Path(path)
+        if not root.is_dir():
+            return []
+        return sorted(
+            child
+            for child in root.iterdir()
+            if child.is_dir() and child.name.startswith("generation-")
+        )
+
+    @classmethod
     def open(cls, path: str | pathlib.Path) -> ANNIndexArtifact:
+        """Open the generation the artifact's pointer currently names.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Artifact root, or a generation directory, which is opened directly.
+
+        Returns
+        -------
+        ANNIndexArtifact
+
+        Raises
+        ------
+        ArtifactError
+            If the root has no readable pointer, or the generation it names is
+            absent. A directory with no pointer is refused rather than guessed
+            at: picking a generation by name would make the choice silently.
+        """
+        root = pathlib.Path(path)
+        if (root / _MANIFEST_NAME).is_file() or (root / _SIDECAR_NAME).is_file():
+            # A generation directory, opened directly. This is what a held
+            # handle keeps working with after the pointer has moved on. A
+            # directory holding one member but not the other is a damaged
+            # generation, not a root, so it is routed here to be refused with a
+            # message about the member it is missing rather than about a
+            # pointer it was never supposed to have.
+            return cls.open_generation(root)
+        name = cls._current_generation_name(root)
+        if name is None:
+            raise ArtifactError(
+                f"artifact at {root} has no readable {_POINTER_NAME}; without it "
+                "there is no way to know which generation is current."
+            )
+        generation_dir = root / name
+        if not generation_dir.is_dir():
+            raise ArtifactError(
+                f"artifact at {root} points at generation {name}, which is not "
+                "present; it may have been pruned while this pointer was stale."
+            )
+        return cls.open_generation(generation_dir)
+
+    @classmethod
+    def open_generation(cls, path: str | pathlib.Path) -> ANNIndexArtifact:
         """Load an artifact, validating its internal consistency.
 
         Raises

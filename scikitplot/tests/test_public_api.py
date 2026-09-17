@@ -79,6 +79,7 @@ PUBLIC_MODULES = [
         "neighbors",
         "preprocessing",
         "random",
+        "rank_bm25",
         "seaborn",
         "stats",
         "utils",

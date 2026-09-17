@@ -140,11 +140,38 @@ class PipelineResult:
     n_omitted: int
     n_embedded: int
     elapsed_seconds: float
+    stage_errors: tuple[tuple[str, str], ...] = ()
+    """Stages that raised, as ``(stage, reason)`` pairs. Empty on a clean run.
+
+    Catching a stage failure so the run continues is deliberate: one bad
+    normalizer should not abort a whole ingest. Being unable to tell afterwards
+    is not. Without this the result of a clean run and of a run whose normalizer
+    raised were identical, so a caller could not distinguish a corpus that was
+    normalized from one where normalization failed and the text passed through
+    untouched.
+    """
 
     @property
     def n_documents(self) -> int:
         """Number of documents in the result."""
         return len(self.documents)
+
+    @property
+    def status(self) -> str:
+        """``"success"`` or ``"degraded"``.
+
+        Notes
+        -----
+        **User.** Check this before trusting the documents. ``degraded`` means a
+        stage raised and its work did not happen: the documents are real but
+        incomplete, and :attr:`stage_errors` says which stage and why.
+
+        **Developer.** The words are the ones ``corpus._retrieval`` already uses
+        rather than a second vocabulary invented here. A run that lost a stage is
+        degraded, not empty -- emptiness would claim everything requested ran and
+        found nothing.
+        """
+        return "degraded" if self.stage_errors else "success"
 
     def __repr__(self) -> str:
         return (
@@ -585,6 +612,10 @@ class CorpusPipeline:
         Both routes call the same ``DocumentReader.create()`` factory so
         any future factory changes apply automatically here.
         """
+        # Stage failures are caught below so one bad stage does not abort the
+        # run; they are collected here so the caller can still see that a stage
+        # did not happen.
+        stage_failures: list[tuple[str, str]] = []
         # MEDIUM-01b: `re` is now imported at module level; no deferred import needed.
         is_url = _is_url(input_path)
         start = timer()
@@ -626,6 +657,7 @@ class CorpusPipeline:
                 # (RuntimeError, OSError, LookupError, …) must be caught here so
                 # a single failing normalizer does not abort the whole pipeline.
                 # Documents are left unchanged and processing continues.
+                stage_failures.append(("normalizer", f"{type(exc).__name__}: {exc}"))
                 logger.warning(
                     "CorpusPipeline: normalizer raised %s: %s — documents unchanged.",
                     type(exc).__name__,
@@ -642,6 +674,7 @@ class CorpusPipeline:
             except Exception as exc:  # noqa: BLE001
                 # Broad catch: same reasoning as normalizer above — enricher
                 # wraps NLP libraries whose exception hierarchy is unpredictable.
+                stage_failures.append(("enricher", f"{type(exc).__name__}: {exc}"))
                 logger.warning(
                     "CorpusPipeline: enricher raised %s: %s — documents unchanged.",
                     type(exc).__name__,
@@ -683,6 +716,7 @@ class CorpusPipeline:
             n_omitted=n_omitted,
             n_embedded=n_embedded,
             elapsed_seconds=round(elapsed, 3),
+            stage_errors=tuple(stage_failures),
         )
 
     def run_url(

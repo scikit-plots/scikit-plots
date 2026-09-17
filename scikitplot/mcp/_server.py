@@ -14,7 +14,6 @@ Thin MCP SDK v2 server shell over the SDK-independent retrieval core.
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable
 from typing import Annotated, Any
 
@@ -26,7 +25,9 @@ from ._capabilities import (
     server_runtime_status,
 )
 from ._core import (
+    DOC_ID_RE,
     MAX_QUERY_CHARS,
+    MAX_RESOURCE_CHARS,
     MAX_RESULTS,
     DocsRetriever,
     RetrievedChunk,
@@ -47,13 +48,10 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-#: Document identifiers accepted by the ``docs://chunk/{doc_id}`` resource.
-#: ``/`` is excluded so traversal cannot be expressed, and the negative
-#: lookahead rejects the bare ``.`` and ``..`` forms (M06-02): those are
-#: directory references, not document identifiers, and ``document_reader`` is
-#: caller-supplied code that should never have to defend against them.
-_DOC_ID_RE = re.compile(r"\A(?!\.{1,2}\Z)(?!:)[A-Za-z0-9._:-]{1,200}\Z")
-_MAX_RESOURCE_CHARS = 20_000
+#: Re-exported from the SDK-free tier so the server and the command-line entry
+#: point apply one rule and one bound, not copies that can drift apart.
+_DOC_ID_RE = DOC_ID_RE
+_MAX_RESOURCE_CHARS = MAX_RESOURCE_CHARS
 
 
 class _ClosedModel(BaseModel):
@@ -247,8 +245,26 @@ def _read_resource(
         raise FileNotFoundError("documentation resource was not found")
     raw = build_search_docs_result("resource", [chunk], max_results=1)
     text = raw["content"][0]["text"]
+    # The resource is rendered from a tool result, which reports every bound it
+    # applied. The chunk cap fires long before the resource cap can, so the
+    # truncation a reader needs to know about is the one that already happened
+    # upstream: passing it through is what makes the note true rather than
+    # decorative.
+    for applied in raw["structuredContent"].get("truncations", ()):
+        text += (
+            f"\n\n> Truncated: cut to the {applied['limit']}-character "
+            f"{applied['applied_to']} limit."
+        )
     if len(text) > _MAX_RESOURCE_CHARS:
-        text = text[:_MAX_RESOURCE_CHARS].rstrip() + "…"
+        # An ellipsis alone cannot be read as a signal: a document may end in
+        # one. The bound that was applied is stated, so a reader knows the text
+        # is partial and by what rule.
+        text = (
+            text[:_MAX_RESOURCE_CHARS].rstrip()
+            + "…\n\n> Truncated: cut to the "
+            + str(_MAX_RESOURCE_CHARS)
+            + "-character resource limit."
+        )
     return text
 
 

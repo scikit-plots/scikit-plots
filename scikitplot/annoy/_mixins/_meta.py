@@ -345,6 +345,15 @@ class MetaMixin:
                         "Missing set_params(**params) on instance/backend"
                     )
 
+                # on_disk_path is a location, not a parameter: handing it to
+                # set_params makes the backend open that exact path, which is
+                # the absolute path recorded when the metadata was written. With
+                # load=False the caller has said it will supply the index
+                # itself -- a relocated bundle does exactly that -- so chasing
+                # the recorded path here turns "describe this index" into "open
+                # the file it used to live in" and fails.
+                if not load:
+                    rest = {k: v for k, v in rest.items() if k != "on_disk_path"}
                 set_params(**rest)
 
             # Apply optional persistence knobs when supported by the instance.

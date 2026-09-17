@@ -58,8 +58,9 @@ scikitplot.corpus._diagnostics.ErrorRecord : what validation returns.
 from __future__ import annotations
 
 import dataclasses
-import hashlib
 from typing import TYPE_CHECKING, Any
+
+from ._canonical import canonical_digest
 
 if TYPE_CHECKING:
     from ._registry import ComponentRegistry
@@ -89,6 +90,28 @@ CONFIG_DOMAINS = (
     "export",
 )
 
+#: Domains whose configuration decides *what gets built*. A change to any of
+#: them invalidates a built index, so an artifact binds this scope.
+INGEST_DOMAINS = (
+    "source",
+    "reader",
+    "normalizer",
+    "chunker",
+    "enricher",
+    "embedder",
+    "storage",
+    "index",
+)
+
+#: Domains whose configuration decides *how a build is queried*. A change here
+#: cannot invalidate an artifact, which is the whole point of the split: one
+#: fingerprint over every domain meant a retrieval budget change was
+#: indistinguishable from a change that required a rebuild.
+QUERY_DOMAINS = (
+    "retrieval",
+    "export",
+)
+
 #: Canonical pipeline stage order.  Architectural, and deliberately *not*
 #: derived from the order in which configuration methods were called.
 DEFAULT_STAGES = (
@@ -102,7 +125,7 @@ DEFAULT_STAGES = (
 )
 
 _FIELD_SEP = "\x1f"
-_PLAN_SCHEMA = "plan1"
+_PLAN_SCHEMA = "plan2"  # encoding changed in S-6; see _utils._canonical
 
 
 class ConfigConflictError(ValueError):
@@ -187,17 +210,96 @@ class CorpusPlan:
         **Developer.**  Two plans built by different call orders share a
         fingerprint; two plans differing in any fragment do not.  A config change
         that moves this value is exactly a change that should invalidate a built
-        index, which is why the derivation mirrors
-        :class:`~scikitplot.corpus.EmbeddingManifest` rather than inventing a
-        second hashing scheme.
+        index.
+
+        The derivation is :func:`scikitplot._utils._canonical.canonical_digest`,
+        the one encoding every identity in this package uses, so a plan, an
+        embedding generation and a build generation cannot disagree about what
+        two equal configurations are. It replaced a ``repr``-based derivation
+        that was not stable across interpreters: a fragment holding a plain
+        object or a set of strings fingerprinted differently in a second
+        process, which makes a persisted cache key unsound.
+
+        The full SHA-256 is returned. Use :attr:`short_fingerprint` for display.
+
+        Raises
+        ------
+        scikitplot._utils._canonical.CanonicalError
+            If a fragment holds a value with no deterministic encoding. The
+            message names the fragment and the field.
         """
-        parts = [_PLAN_SCHEMA]
-        for domain in self.configured:
-            parts.extend((domain, _describe(self.fragments[domain])))
-        parts.append("stages")
-        parts.extend(self.effective_stages)
-        raw = _FIELD_SEP.join(f"{len(p)}:{p}" for p in parts)
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+        return canonical_digest(
+            {
+                "schema": _PLAN_SCHEMA,
+                "fragments": {d: self.fragments[d] for d in self.configured},
+                "stages": list(self.effective_stages),
+            }
+        )
+
+    def _scope_digest(self, domains: tuple[str, ...], label: str) -> str:
+        """Return the canonical digest of one identity scope.
+
+        Parameters
+        ----------
+        domains : tuple of str
+            Domains belonging to the scope, in canonical order.
+        label : str
+            Scope name, mixed into the digest so one scope's identity can never
+            equal another's for the same fragments.
+
+        Returns
+        -------
+        str
+            Full SHA-256 hex digest.
+        """
+        configured = tuple(d for d in domains if d in self.fragments)
+        payload = {
+            "schema": _PLAN_SCHEMA,
+            "scope": label,
+            "fragments": {d: self.fragments[d] for d in configured},
+        }
+        if label == "ingest":
+            payload["stages"] = list(self.effective_stages)
+        return canonical_digest(payload)
+
+    @property
+    def ingest_fingerprint(self) -> str:
+        """Identity of everything that decides what this plan builds.
+
+        Notes
+        -----
+        **User.** This is the value an artifact binds. If it is unchanged, a
+        previously built index is still valid for this plan, however the
+        retrieval configuration has moved.
+
+        **Developer.** Covers :data:`INGEST_DOMAINS` and the effective stage
+        order, which changes what is produced rather than how it is read.
+        """
+        return self._scope_digest(INGEST_DOMAINS, "ingest")
+
+    @property
+    def query_fingerprint(self) -> str:
+        """Identity of everything that decides how a build is queried.
+
+        Notes
+        -----
+        **Developer.** Covers :data:`QUERY_DOMAINS`. A change here never
+        invalidates an artifact; it is separated so that a cache keyed on the
+        build cannot be discarded by a query-time edit.
+        """
+        return self._scope_digest(QUERY_DOMAINS, "query")
+
+    @property
+    def short_fingerprint(self) -> str:
+        """First 16 characters of :attr:`fingerprint`, for display only.
+
+        Notes
+        -----
+        **Developer.** Never persist this or use it as a key. The full digest is
+        the identity; a prefix narrows the collision bound for no benefit the
+        storage layer needs.
+        """
+        return self.fingerprint[:16]
 
     def get(self, domain: str) -> Any:
         """Return the fragment for ``domain``, or ``None``."""
@@ -221,14 +323,27 @@ class CorpusPlan:
         """
         problems: list[ErrorRecord] = []
 
-        if "index" in self.fragments and "embedder" not in self.fragments:
+        # The question is whether the configured index needs vectors, not
+        # whether an index is configured at all: a lexical index needs none, and
+        # refusing it meant a purely lexical corpus could not be expressed. A
+        # fragment that does not say what it needs is treated as needing them,
+        # so silence keeps the safe answer.
+        index_fragment = self.fragments.get("index")
+        needs_vectors = bool(getattr(index_fragment, "requires_vectors", True))
+        if (
+            "index" in self.fragments
+            and needs_vectors
+            and "embedder" not in self.fragments
+        ):
             problems.append(
                 ErrorRecord(
                     code="PLAN_INDEX_WITHOUT_EMBEDDER",
                     category=ErrorCategory.VALIDATION,
                     message=(
                         "a vector index is configured but no embedder is; the "
-                        "index would have no vectors to build from"
+                        "index would have no vectors to build from. If this "
+                        "index is lexical, declare requires_vectors=False on "
+                        "the fragment."
                     ),
                     stage="plan",
                 )

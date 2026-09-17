@@ -99,6 +99,7 @@ def test_remote_bind_requires_explicit_acknowledgement():
 
 def test_environment_config_is_supported():
     config = _parse(
+        "--host", "127.0.0.1",
         environ={
             "SCIKITPLOT_MCP_DOCKER": "true",
             "SCIKITPLOT_MCP_PORT": "8123",
@@ -112,6 +113,11 @@ def test_environment_config_is_supported():
     assert config.path == "/rpc"
     assert config.health_path == "/live"
     assert config.log_level == "WARNING"
+    # The environment configures docker mode and its transport, but it does not
+    # authorise an unauthenticated non-local bind: that grant comes from the
+    # invocation, where it can be seen. Passing --docker still grants it.
+    assert config.allow_unauthenticated_remote is False
+    assert _parse("--docker").allow_unauthenticated_remote is True
 
 
 @pytest.mark.parametrize("bad_path", ["mcp", "/mcp?x=1", "/mcp#frag", "/mcp\\x", "/mcp//x"])

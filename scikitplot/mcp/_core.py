@@ -47,15 +47,20 @@ from urllib.parse import (  # ruff: ignore[unused-import]
 )
 
 from ._outcome import DEGRADED, FAILED, status_of
+from ._validation import require_count
 
 __all__ = [
+    "DOC_ID_RE",
     "MAX_CHUNK_CHARS",
     "MAX_QUERY_CHARS",
+    "MAX_RESOURCE_CHARS",
     "MAX_RESULTS",
+    "RESOURCE_METADATA_ALLOWANCE",
     "DocsRetriever",
     "RetrievedChunk",
     "SearchCoordinator",
     "build_search_docs_result",
+    "is_valid_doc_id",
 ]
 
 #: Hard cap on the characters of any single chunk placed into a tool result.
@@ -63,7 +68,48 @@ __all__ = [
 #: user-contributed); capping bounds prompt-stuffing and keeps responses within
 #: client context limits.
 MAX_CHUNK_CHARS: int = 4000
+
+#: Characters a rendered resource may add beyond the chunk text itself: the
+#: citation header, title, URI and anchor. Measured at roughly 160 characters
+#: for a single chunk; the allowance is generous so the bound stays reachable
+#: rather than decorative.
+RESOURCE_METADATA_ALLOWANCE: int = 1000
+
+#: Hard cap on one rendered resource, derived from the bound it sits behind.
+#: A standalone larger number here was unreachable: ``MAX_CHUNK_CHARS`` caps the
+#: text earlier in the same path, so the declared limit overstated the effective
+#: one roughly fivefold. One bound, derived, and it is the published one.
+MAX_RESOURCE_CHARS: int = MAX_CHUNK_CHARS + RESOURCE_METADATA_ALLOWANCE
 logger = logging.getLogger(__name__)
+
+#: The one rule for a document identifier, used by every module in this package.
+#: A bare ``.`` or ``..`` and a leading ``:`` are directory and scheme
+#: references, not identifiers, and ``document_reader`` is caller-supplied code
+#: that should never have to defend against them. Defined here, in the SDK-free
+#: tier, because both the server and the command-line entry point import it: one
+#: concept validated by two patterns means the hardening in one module is not
+#: the rule the package applies.
+DOC_ID_RE = re.compile(r"\A(?!\.{1,2}\Z)(?!:)[A-Za-z0-9._:-]{1,200}\Z")
+
+
+def is_valid_doc_id(value: object) -> bool:
+    """
+    Return whether ``value`` is an acceptable document identifier.
+
+    Parameters
+    ----------
+    value : object
+        Candidate identifier. A non-string is not an identifier and is
+        answered ``False`` rather than raised on, so a caller validating
+        untrusted input gets a decision instead of a traceback.
+
+    Returns
+    -------
+    bool
+        ``True`` when the value matches :data:`DOC_ID_RE`.
+    """
+    return isinstance(value, str) and DOC_ID_RE.fullmatch(value) is not None
+
 
 MAX_QUERY_CHARS: int = 1024
 
@@ -142,12 +188,26 @@ class DocsRetriever(Protocol):
 
 def _clean_text(text: str, limit: int = MAX_CHUNK_CHARS) -> str:
     """Strip control chars and truncate untrusted chunk text."""
+    return _clean_text_reported(text, limit)[0]
+
+
+def _clean_text_reported(text: str, limit: int = MAX_CHUNK_CHARS):
+    """
+    Return ``(cleaned, was_truncated)`` for untrusted text.
+
+    Notes
+    -----
+    **Developer.** The appended ellipsis was the only signal that text had been
+    cut, and a passage may legitimately end in one, so a consumer could not tell
+    the two apart. Whether truncation happened is now a value the caller gets
+    rather than a character it has to guess at.
+    """
     if not isinstance(text, str):
         text = str(text)
     text = _CONTROL_RE.sub("", text)
     if len(text) > limit:
-        text = text[:limit].rstrip() + "\u2026"
-    return text
+        return text[:limit].rstrip() + "\u2026", True
+    return text, False
 
 
 def _safe_uri(uri: str) -> str:  # ruff: ignore[too-many-return-statements]
@@ -253,8 +313,9 @@ def build_search_docs_result(
     chunks : list of RetrievedChunk
         Retrieval results, best first.
     max_results : int, optional
-        Upper bound on results actually emitted (also capped by
-        :data:`MAX_RESULTS`).
+        Upper bound on results actually emitted. Must be a non-negative
+        integer; zero is a request for no results. A value above
+        :data:`MAX_RESULTS` is clamped to it rather than refused.
 
     Returns
     -------
@@ -287,7 +348,21 @@ def build_search_docs_result(
     * Retrieved text is explicitly untrusted data: it is sanitised here, and the
       server layer marks it so the model treats it as context, not instructions.
     """
-    clean_query = _clean_text(query, MAX_QUERY_CHARS).strip()
+    # The public entry point validates its own arguments. Type and sign
+    # previously lived only in SearchCoordinator.validate, which a direct caller
+    # of this exported function bypasses, so max_results=-1 was accepted and
+    # silently produced nothing. The ceiling is deliberately not enforced here:
+    # clamping an over-cap request to MAX_RESULTS is this function's documented
+    # behaviour and has its own test, and MC04 was about values that are not
+    # counts at all, not about a caller asking for more than the module serves.
+    max_results = require_count(max_results, name="max_results")
+    # Every bound this function applies is reported, so a caller never has to
+    # infer from the text whether something was cut.
+    truncations: list[dict[str, Any]] = []
+    clean_query, query_cut = _clean_text_reported(query, MAX_QUERY_CHARS)
+    clean_query = clean_query.strip()
+    if query_cut:
+        truncations.append({"applied_to": "query_chars", "limit": MAX_QUERY_CHARS})
     limit = _normalise_limit(max_results)
 
     safe: list[dict[str, Any]] = []
@@ -296,13 +371,23 @@ def build_search_docs_result(
             continue
         uri = _safe_uri(chunk.source_uri)
         anchor = _clean_text(chunk.anchor, 200)
+        chunk_text, chunk_cut = _clean_text_reported(chunk.text, MAX_CHUNK_CHARS)
+        chunk_doc_id = _clean_text(chunk.doc_id, 200)
+        if chunk_cut:
+            truncations.append(
+                {
+                    "applied_to": "chunk_chars",
+                    "limit": MAX_CHUNK_CHARS,
+                    "doc_id": chunk_doc_id,
+                }
+            )
         safe.append(
             {
-                "text": _clean_text(chunk.text, MAX_CHUNK_CHARS),
+                "text": chunk_text,
                 "source_uri": _append_fragment(uri, anchor),
                 "title": _clean_text(chunk.title, 200),
                 "anchor": anchor,
-                "doc_id": _clean_text(chunk.doc_id, 200),
+                "doc_id": chunk_doc_id,
                 "score": _coerce_finite_score(chunk.score),
             }
         )
@@ -380,6 +465,13 @@ def build_search_docs_result(
     # that part of the evidence was missing.
     ok_status = status_of(chunks)
     ok_structured: dict[str, Any] = {
+        "truncated": bool(truncations),
+        "truncations": truncations,
+        "limits": {
+            "chunk_chars": MAX_CHUNK_CHARS,
+            "query_chars": MAX_QUERY_CHARS,
+            "results": MAX_RESULTS,
+        },
         "query": clean_query,
         "count": len(citations),
         "passages": passages,

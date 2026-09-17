@@ -4474,6 +4474,7 @@ def generate_llms_txt_standalone(
     output_file: str | Path | None = None,
     project_name: str = "Documentation",
     max_entries: int | None = None,
+    max_bytes: int | None = None,
     full_content: bool = False,
 ) -> Path:
     """Write ``llms.txt`` from an existing set of ``.md`` files.
@@ -4494,6 +4495,8 @@ def generate_llms_txt_standalone(
         Project name written in the file header.
     max_entries : int or None, optional
         Cap on the number of entries.  ``None`` means unlimited.
+    max_bytes : int or None, optional
+        ai_assistant_llms_txt_max_bytes.
     full_content : bool, optional
         When ``True``, embed each page's Markdown content inline.
 
@@ -4524,6 +4527,18 @@ def generate_llms_txt_standalone(
 
     validated_url = _validate_base_url(base_url)
 
+    # The same counters the Sphinx hook keeps. An earlier edit added the
+    # byte-bound and encoding blocks to this function without them, so this
+    # whole path raised NameError the moment full_content was used: the code
+    # was never executed here by any test, and a linter found what the suite
+    # could not.
+    written_bytes = 0
+    inlined = 0
+    byte_truncation: dict[str, object] | None = None
+    substitutions: list[str] = []
+    if max_bytes is not None:
+        max_bytes = max(0, int(max_bytes))
+
     md_files = sorted(root.rglob("*.md"))
     if max_entries is not None:
         cap = max(0, int(max_entries))
@@ -4545,10 +4560,49 @@ def generate_llms_txt_standalone(
             rel_posix = str(rel).replace(os.sep, "/")
             line = f"{validated_url}/{rel_posix}" if validated_url else rel_posix
             if full_content:
-                content = md_file.read_text(encoding="utf-8", errors="replace")
-                fh.write(f"\n---\n{line}\n\n{content}\n")
+                raw = md_file.read_bytes()
+                try:
+                    content = raw.decode("utf-8")
+                except UnicodeDecodeError:
+                    content = raw.decode("utf-8", errors="replace")
+                    substitutions.append(rel_posix)
+                chunk = f"\n---\n{line}\n\n{content}\n"
+                # Entry count does not bound a file that inlines whole pages:
+                # the catalog grew with the documentation set, and it is
+                # published and fetched whole. The byte limit is checked before
+                # writing so the bound holds rather than being overshot by one
+                # page.
+                if (
+                    max_bytes is not None
+                    and written_bytes + len(chunk.encode("utf-8")) > max_bytes
+                ):
+                    byte_truncation = {
+                        "limit": max_bytes,
+                        "applied_to": "bytes",
+                        "total": len(md_files),
+                        "written": inlined,
+                    }
+                    break
+                written_bytes += len(chunk.encode("utf-8"))
+                inlined += 1
+                fh.write(chunk)
             else:
                 fh.write(f"{line}\n")
+
+        if byte_truncation:
+            fh.write("\n" + _truncation_note(byte_truncation))
+        if substitutions:
+            listed = ", ".join(substitutions[:5])
+            more = (
+                ""
+                if len(substitutions) <= 5  # ruff: ignore[magic-value-comparison]
+                else f" and {len(substitutions) - 5} more"
+            )
+            fh.write(
+                f"\n> Encoding: {len(substitutions)} page(s) contained bytes that "
+                f"are not valid UTF-8 and were substituted: {listed}{more}. "
+                "Their text here differs from the source file.\n"
+            )
 
     return out_path
 
@@ -4798,7 +4852,71 @@ def plot_corpus_knowledge(  # noqa: PLR0912
 # ---------------------------------------------------------------------------
 
 
-def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
+#: Attribute on the Sphinx application holding the markdown pages this build
+#: produced. Set by :func:`generate_markdown_files` and read by
+#: :func:`generate_llms_txt`, so catalog membership is a record of production
+#: rather than an inference from whatever is on disk.
+_GENERATED_MARKDOWN_ATTR = "_scikitplot_ai_generated_markdown"
+
+
+def set_generated_markdown(app: Sphinx, relative_paths: list[str]) -> None:
+    """Record the markdown pages produced by this build.
+
+    Parameters
+    ----------
+    app : Sphinx
+        The application the build belongs to. The registry lives on the
+        application rather than in module state so two builds in one process
+        cannot read each other's pages.
+    relative_paths : list of str
+        Output-relative POSIX paths, one per page written.
+    """
+    setattr(app, _GENERATED_MARKDOWN_ATTR, sorted(set(relative_paths)))
+
+
+_CONVERSION_FAILURES_ATTR = "_scikitplot_ai_conversion_failures"
+
+
+def set_conversion_failures(app: Sphinx, failures) -> None:
+    """Record the pages that failed to convert in this build."""
+    setattr(app, _CONVERSION_FAILURES_ATTR, [tuple(item) for item in failures])
+
+
+def conversion_failures(app: Sphinx) -> list[tuple[str, str]]:
+    """Return ``(path, reason)`` for each page that failed to convert.
+
+    Returns
+    -------
+    list of tuple
+        Empty when every page converted. A non-empty result means the published
+        site has ``.md`` URLs that will return 404 and pages missing from the
+        catalog -- which an empty catalog alone could never tell you.
+    """
+    return list(getattr(app, _CONVERSION_FAILURES_ATTR, []))
+
+
+def get_generated_markdown(app: Sphinx) -> list[str] | None:
+    """Return the pages this build produced, or ``None`` if none were recorded.
+
+    Parameters
+    ----------
+    app : Sphinx
+        The application the build belongs to.
+
+    Returns
+    -------
+    list of str or None
+        Output-relative paths, or ``None`` when the markdown generator did not
+        run. ``None`` and ``[]`` are different answers: the first means nobody
+        recorded anything, the second means this build produced no pages.
+    """
+    return getattr(app, _GENERATED_MARKDOWN_ATTR, None)
+
+
+def generate_markdown_files(  # ruff: ignore[too-many-branches]
+    app: Sphinx,
+    exception: Exception | None,
+) -> None:
     """Post-build hook: generate ``.md`` companions for every ``.html`` file.
 
     Registered with Sphinx's ``build-finished`` event in :func:`setup`.
@@ -4874,7 +4992,31 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         getattr(app.config, "ai_assistant_strip_tags", ["script", "style"])
     )
 
-    html_files = list(outdir.rglob("*.html"))
+    # Membership comes from the documents Sphinx holds, not the files on disk.
+    # rglob returns every HTML file *present*, and Sphinx does not purge outdir:
+    # a page deleted from the source tree keeps its stale HTML, was converted
+    # again, and entered the registry as though this build had produced it. A
+    # real incremental build reproduces that in two runs, which is why the
+    # earlier claim that walking the output directory "covers incremental
+    # builds" did not survive being tested.
+    environment = getattr(app, "env", None)
+    # An environment that holds no documents is an answer -- this build produced
+    # nothing -- and is not the same as having no environment to ask. Treating
+    # them alike re-enabled the directory scan for the one project where it is
+    # most certainly wrong.
+    has_environment = hasattr(environment, "found_docs")
+    known_docs = set(getattr(environment, "found_docs", ()) or ())
+    html_files = []
+    for candidate in outdir.rglob("*.html"):
+        if not has_environment:
+            # No environment to consult (a stub application, or a builder that
+            # does not populate it). Fall back to the scan rather than silently
+            # producing nothing.
+            html_files.append(candidate)
+            continue
+        docname = candidate.relative_to(outdir).with_suffix("").as_posix()
+        if docname in known_docs:
+            html_files.append(candidate)
     log.info(f"AI Assistant: Generating Markdown for {len(html_files)} HTML files…")
 
     args_list = [
@@ -4883,6 +5025,8 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     ]
 
     generated = skipped = errors = 0
+    produced: list[str] = []
+    failures: list[tuple[str, str]] = []
     total_files = len(args_list)
     processed = 0
     t0 = time.monotonic()
@@ -4903,26 +5047,101 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
                 status, rel_path, message = future.result(timeout=120)
             except Exception as exc:  # noqa: BLE001
                 errors += 1
+                failures.append(("<worker>", f"{type(exc).__name__}: {exc}"))
                 log.warning(f"AI Assistant: Worker error: {exc}")
                 processed += 1
                 _write_progress_bar(processed, total_files, label="HTML→Markdown")
                 continue
             if status == "success":
                 generated += 1
+                produced.append(Path(rel_path).with_suffix(".md").as_posix())
             elif status == "skipped":
                 skipped += 1
                 if message:
                     log.debug(f"AI Assistant: Skipped {rel_path}: {message}")
             else:
                 errors += 1
+                failures.append((str(rel_path), str(message)))
                 log.warning(f"AI Assistant: Failed to convert {rel_path}: {message}")
             processed += 1
             _write_progress_bar(processed, total_files, label="HTML→Markdown")
+
+    set_generated_markdown(app, produced)
+    set_conversion_failures(app, failures)
+
+    # A page that failed to convert is a terminal outcome, not a log line. The
+    # published site serves 404 for its .md URL and the catalog omits it, so
+    # nothing downstream shows that anything is missing. Strict mode already
+    # escalates an absent dependency; a page that could not be written is the
+    # same class of problem and is escalated the same way.
+    if failures and _cfg_bool(app.config, "ai_assistant_strict", False):
+        from sphinx.errors import ExtensionError  # noqa: PLC0415
+
+        listed = ", ".join(f"{path} ({reason})" for path, reason in failures[:5])
+        more = (
+            ""
+            if len(failures) <= 5  # ruff: ignore[magic-value-comparison]
+            else f" and {len(failures) - 5} more"
+        )
+        raise ExtensionError(
+            f"AI Assistant: {len(failures)} page(s) failed to convert: "
+            f"{listed}{more}. Each .md URL will return 404 and the page will be "
+            "absent from llms.txt."
+        )
 
     elapsed = time.monotonic() - t0
     log.info(
         f"AI Assistant: {generated} generated, {skipped} skipped, "
         f"{errors} errors — {elapsed:.1f}s ({resolved_workers or 'auto'} workers)"
+    )
+
+
+def _entry_points_first(md_files, outdir):
+    """Return ``md_files`` with documented entry points first.
+
+    Parameters
+    ----------
+    md_files : sequence of pathlib.Path
+        Generated pages.
+    outdir : pathlib.Path
+        Output directory the paths are relative to.
+
+    Returns
+    -------
+    list of pathlib.Path
+        Entry points in their declared order, then everything else unchanged.
+    """
+
+    def key(md_file):
+        rel = str(md_file.relative_to(outdir)).replace(os.sep, "/")
+        if "/" not in rel and rel in LLMS_TXT_ROOT_FIRST:
+            return (0, LLMS_TXT_ROOT_FIRST.index(rel))
+        return (1, 0)
+
+    return sorted(md_files, key=key)
+
+
+def _truncation_note(truncation):
+    """Return the line a catalog carries when it is not complete.
+
+    Parameters
+    ----------
+    truncation : mapping or None
+        What was applied, as ``limit``, ``applied_to``, ``total`` and
+        ``written``.
+
+    Returns
+    -------
+    str
+        A line stating the limit and both counts, or ``""`` when nothing was
+        cut. An ellipsis is not a signal: a consumer cannot distinguish a
+        truncated document from one that legitimately ends in one.
+    """
+    if not truncation:
+        return ""
+    return (
+        "> Truncated: {written} of {total} {applied_to} written "
+        "(limit {limit}). This catalog is partial.\n\n".format(**truncation)
     )
 
 
@@ -4973,7 +5192,26 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
         log.warning(f"AI Assistant: llms.txt skipped — {exc}")
         return
 
-    md_files = sorted(outdir.rglob("*.md"))
+    # Membership is what this build produced, not what is on disk. Sphinx does
+    # not purge the output directory, so a scan would list pages deleted from
+    # the source tree, markdown copied in by html_extra_path, and anything
+    # shipped under _static or _sources. A registry cannot: those files were
+    # never converted, so they were never recorded.
+    registered = get_generated_markdown(app)
+    if registered is None:
+        log.warning(
+            "AI Assistant: skipping llms.txt — no page registry for this build. "
+            "The markdown generator records one as it converts; enable "
+            "ai_assistant_generate_markdown, or call set_generated_markdown "
+            "if you produce the pages yourself."
+        )
+        return
+    md_files = sorted(
+        path for path in (outdir / name for name in registered) if path.is_file()
+    )
+    if not md_files:
+        log.info("AI Assistant: no generated pages to list; skipping llms.txt")
+        return
     if not md_files:
         log.debug("AI Assistant: No .md files found; skipping llms.txt")
         return
@@ -4981,9 +5219,22 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
     max_entries: int | None = getattr(
         app.config, "ai_assistant_llms_txt_max_entries", None
     )
+    total_available = len(md_files)
+    truncation: dict[str, object] | None = None
     if max_entries is not None:
         cap = max(0, int(max_entries))
-        md_files = md_files[:cap]
+        # Order first, then cap. Slicing a path-sorted list before the
+        # entry-point reordering meant whether index.md survived depended on the
+        # alphabetical position of unrelated pages: the reordering exists to put
+        # entry points first, and cutting before it runs defeats that.
+        md_files = _entry_points_first(md_files, outdir)[:cap]
+        if len(md_files) < total_available:
+            truncation = {
+                "limit": cap,
+                "applied_to": "entries",
+                "total": total_available,
+                "written": len(md_files),
+            }
         if not md_files:
             # warn (not debug): cap=0 means llms.txt will be empty.
             # This is almost always a conf.py mistake (e.g. a stale 0 left
@@ -4999,6 +5250,9 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
     full_content: bool = bool(
         getattr(app.config, "ai_assistant_llms_txt_full_content", False)
     )
+    max_bytes: int | None = getattr(app.config, "ai_assistant_llms_txt_max_bytes", None)
+    if max_bytes is not None:
+        max_bytes = max(0, int(max_bytes))
     project_name: str = getattr(app.config, "project", "Documentation")
 
     # Read through the _cfg_* guards: an unset value, or a mock under test, is
@@ -5015,14 +5269,12 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
     sections_map = _cfg_dict(app.config, "ai_assistant_llms_txt_sections")
     summary = _cfg_str(app.config, "ai_assistant_llms_txt_summary")
 
-    # Entry points first, then everything else in generated (toctree) order.
-    def _root_first(md_file):
-        rel = str(md_file.relative_to(outdir)).replace(os.sep, "/")
-        if "/" not in rel and rel in LLMS_TXT_ROOT_FIRST:
-            return (0, LLMS_TXT_ROOT_FIRST.index(rel))
-        return (1, 0)
+    md_files = _entry_points_first(md_files, outdir)
 
-    md_files = sorted(md_files, key=_root_first)
+    written_bytes = 0
+    inlined = 0
+    substitutions: list[str] = []
+    byte_truncation: dict[str, object] | None = None
 
     llms_txt = outdir / "llms.txt"
     with llms_txt.open("w", encoding="utf-8") as fh:
@@ -5035,13 +5287,42 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
                 "in Markdown format.\n"
                 "Generated by scikitplot._externals._sphinx_ext._sphinx_ai_assistant.\n\n"
             )
+            fh.write(_truncation_note(truncation))
             for md_file in md_files:
                 rel = md_file.relative_to(outdir)
                 rel_posix = str(rel).replace(os.sep, "/")
                 line = f"{base_url}/{rel_posix}" if base_url else rel_posix
                 if full_content:
-                    content = md_file.read_text(encoding="utf-8", errors="replace")
-                    fh.write(f"\n---\n{line}\n\n{content}\n")
+                    raw = md_file.read_bytes()
+                    try:
+                        content = raw.decode("utf-8")
+                    except UnicodeDecodeError:
+                        # errors="replace" published content that silently
+                        # differed from the file on disk. The substitution is
+                        # still made -- refusing the whole catalog over one page
+                        # would be worse -- but it is recorded, so a reader knows
+                        # the text is not what the source holds.
+                        content = raw.decode("utf-8", errors="replace")
+                        substitutions.append(
+                            str(md_file.relative_to(outdir)).replace(os.sep, "/")
+                        )
+                    chunk = f"\n---\n{line}\n\n{content}\n"
+                    # Entry count does not bound a file that inlines whole
+                    # pages: the catalog grew with the documentation set, and it
+                    # is published and fetched whole. Checked before writing, so
+                    # the bound holds rather than being overshot by one page.
+                    size = len(chunk.encode("utf-8"))
+                    if max_bytes is not None and written_bytes + size > max_bytes:
+                        byte_truncation = {
+                            "limit": max_bytes,
+                            "applied_to": "bytes",
+                            "total": len(md_files),
+                            "written": inlined,
+                        }
+                        break
+                    written_bytes += size
+                    inlined += 1
+                    fh.write(chunk)
                 else:
                     fh.write(f"{line}\n")
         else:
@@ -5070,6 +5351,21 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
                     }
                 )
             fh.write(_render_llms_txt(project_name, summary, entries))
+
+        if byte_truncation:
+            fh.write("\n" + _truncation_note(byte_truncation))
+        if substitutions:
+            listed = ", ".join(substitutions[:5])
+            more = (
+                ""
+                if len(substitutions) <= 5  # ruff: ignore[magic-value-comparison]
+                else f" and {len(substitutions) - 5} more"
+            )
+            fh.write(
+                f"\n> Encoding: {len(substitutions)} page(s) contained bytes that "
+                f"are not valid UTF-8 and were substituted: {listed}{more}. "
+                "Their text here differs from the source file.\n"
+            )
 
     log.info(f"AI Assistant: llms.txt written with {len(md_files)} entries")
 
