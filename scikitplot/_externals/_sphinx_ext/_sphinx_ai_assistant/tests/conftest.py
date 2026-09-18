@@ -402,6 +402,156 @@ def tmp_html_tree(tmp_path: Path) -> Path:
     return outdir
 
 
+# ---------------------------------------------------------------------------
+# Catalog-membership helpers (generate_markdown_files / generate_llms_txt)
+# ---------------------------------------------------------------------------
+#
+# These live here rather than in a test module because three test classes need
+# them and a second copy is how two copies of one rule drift apart. Tune the
+# stub configuration in one place: ``_AI_APP_DEFAULTS``.
+
+
+class _AiConfig(types.SimpleNamespace):
+    """
+    Stand-in for ``app.config``; an unset option reads as ``None``.
+
+    Notes
+    -----
+    A ``MagicMock`` config cannot be used for these tests: every attribute is
+    truthy and iterable, so a hook that asks whether the environment holds any
+    documents reads a mock as "present, and empty".
+    """
+
+    def __getattr__(self, name: str) -> None:
+        return None
+
+
+#: One place to tune the stub build configuration.
+_AI_APP_DEFAULTS: dict[str, Any] = {
+    "ai_assistant_generate_markdown": True,
+    "ai_assistant_generate_llms_txt": True,
+    "ai_assistant_base_url": "https://example.invalid/docs",
+    "html_baseurl": "",
+    "project": "Probe",
+    "ai_assistant_llms_txt_format": "flat",
+    "ai_assistant_llms_txt_full_content": False,
+    "ai_assistant_llms_txt_max_entries": None,
+    "ai_assistant_markdown_exclude_patterns": [],
+    "ai_assistant_content_selectors": [],
+    "ai_assistant_max_workers": 1,
+    # Sphinx supplies a default for this; the stub must too, or the hook fails
+    # on the stub rather than on whatever it is being tested for.
+    "ai_assistant_strip_tags": ["script", "style"],
+}
+
+
+def _make_ai_app(outdir: Any, **options: Any) -> Any:
+    """
+    Return a stub application with a real ``StandaloneHTMLBuilder``.
+
+    Parameters
+    ----------
+    outdir : path-like
+        Build output directory.
+    **options : Any
+        Overrides applied over :data:`_AI_APP_DEFAULTS`.
+    """
+    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: PLC0415
+
+    builder = object.__new__(StandaloneHTMLBuilder)
+    builder.outdir = str(outdir)
+    config = dict(_AI_APP_DEFAULTS)
+    config.update(options)
+    return types.SimpleNamespace(builder=builder, config=_AiConfig(**config))
+
+
+def register_generated_markdown(mod: Any, app: Any, names: Any = None) -> list[str]:
+    """
+    Record the pages a build produced, as the markdown hook would.
+
+    Parameters
+    ----------
+    mod : module
+        The extension module under test.
+    app : object
+        Application whose registry to populate.
+    names : sequence of str or None, optional
+        Page names to register. ``None`` registers every ``.md`` file present
+        in the build output directory.
+
+    Returns
+    -------
+    list of str
+        The registered names.
+
+    Notes
+    -----
+    The catalog lists what a build produced, not what is on disk, so a test
+    that writes markdown and then calls the catalog hook has to say which of it
+    this build produced. Before that rule existed the two were the same thing.
+    """
+    outdir = Path(app.builder.outdir)
+    if names is None:
+        names = sorted(
+            path.relative_to(outdir).as_posix() for path in outdir.rglob("*.md")
+        )
+    mod.set_generated_markdown(app, list(names))
+    return list(names)
+
+
+def _seed_catalog(mod: Any, outdir: Any, generated: Any = (), foreign: Any = ()) -> Any:
+    """
+    Write markdown and return an app whose registry lists ``generated``.
+
+    Parameters
+    ----------
+    mod : module
+        The extension module under test.
+    outdir : path-like
+        Build output directory.
+    generated : sequence of str, optional
+        Pages this build produced; these enter the registry.
+    foreign : sequence of str, optional
+        Markdown present in the output directory that this build did not
+        produce -- copied by ``html_extra_path``, shipped under ``_static``, or
+        left behind by an earlier build. Written to disk, never registered.
+    """
+    for name in list(generated) + list(foreign):
+        target = Path(outdir) / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(f"# {name}\n\nbody\n", encoding="utf-8")
+    app = _make_ai_app(outdir)
+    mod.set_generated_markdown(app, list(generated))
+    return app
+
+
+def _read_catalog(outdir: Any) -> Any:
+    """Return the written ``llms.txt`` text, or ``None`` if none was written."""
+    path = Path(outdir) / "llms.txt"
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def _catalog_entries(text: Any) -> list[str]:
+    """Return the markdown paths a catalog lists."""
+    return [
+        line.strip()
+        for line in (text or "").splitlines()
+        if line.strip().endswith(".md")
+    ]
+
+
+@pytest.fixture()
+def ai_app():
+    """Return the :func:`_make_ai_app` factory."""
+    return _make_ai_app
+
+
+@pytest.fixture()
+def failed_build():
+    """Return an exception standing for a build that did not succeed."""
+    return RuntimeError("build failed")
+
+
 @pytest.fixture()
 def sphinx_app(tmp_html_tree: Path) -> MagicMock:
     """Mock Sphinx app wired to the ``tmp_html_tree`` output directory."""
@@ -414,4 +564,9 @@ __all__ = [
     "_make_config",
     "_make_builder",
     "_make_app",
+    "_make_ai_app",
+    "_seed_catalog",
+    "_read_catalog",
+    "_catalog_entries",
+    "register_generated_markdown",
 ]

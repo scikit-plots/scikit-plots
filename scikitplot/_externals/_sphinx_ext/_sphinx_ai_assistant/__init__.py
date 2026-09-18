@@ -5004,8 +5004,13 @@ def generate_markdown_files(  # ruff: ignore[too-many-branches]
     # nothing -- and is not the same as having no environment to ask. Treating
     # them alike re-enabled the directory scan for the one project where it is
     # most certainly wrong.
-    has_environment = hasattr(environment, "found_docs")
-    known_docs = set(getattr(environment, "found_docs", ()) or ())
+    # Authoritative only when found_docs is a real collection. hasattr() is
+    # true for any mock attribute, so a test double was read as "environment
+    # present, zero documents" and filtered every page out. A mock is not an
+    # environment; an empty *set* still is, and stays authoritative.
+    found = getattr(environment, "found_docs", None)
+    has_environment = isinstance(found, (set, frozenset, list, tuple))
+    known_docs = set(found) if has_environment else set()
     html_files = []
     for candidate in outdir.rglob("*.html"):
         if not has_environment:
@@ -5250,9 +5255,15 @@ def generate_llms_txt(  # noqa: PLR0911  # ruff: ignore[too-many-branches]
     full_content: bool = bool(
         getattr(app.config, "ai_assistant_llms_txt_full_content", False)
     )
-    max_bytes: int | None = getattr(app.config, "ai_assistant_llms_txt_max_bytes", None)
-    if max_bytes is not None:
-        max_bytes = max(0, int(max_bytes))
+    max_bytes = getattr(app.config, "ai_assistant_llms_txt_max_bytes", None)
+    # Only a real integer is a limit. int() accepts anything with __int__,
+    # including a mock configuration attribute, which coerced an unset option
+    # into a one-byte cap and silently truncated the whole catalog. An option
+    # that is not a number is not a number.
+    if isinstance(max_bytes, bool) or not isinstance(max_bytes, int):
+        max_bytes = None
+    else:
+        max_bytes = max(0, max_bytes)
     project_name: str = getattr(app.config, "project", "Documentation")
 
     # Read through the _cfg_* guards: an unset value, or a mock under test, is

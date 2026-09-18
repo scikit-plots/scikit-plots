@@ -66,6 +66,14 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+
+from .conftest import (
+    _catalog_entries,
+    _make_ai_app,
+    _read_catalog,
+    _seed_catalog,
+    register_generated_markdown,
+)
 from bs4 import BeautifulSoup
 
 # conftest._bootstrap_submodule() has already run before this import;
@@ -1489,6 +1497,88 @@ class TestGenerateMarkdownFiles:
         _mod.generate_markdown_files(sphinx_app, exception=None)
         assert list(empty.rglob("*.md")) == []
 
+    # -- catalog membership: what this build produced ----------------------
+
+    def test_the_markdown_hook_records_what_it_produced(self, tmp_path):
+        """The generator writes the registry, so the two hooks share one truth."""
+        app = _make_ai_app(tmp_path)
+        _mod.generate_markdown_files(app, None)
+        assert _mod.get_generated_markdown(app) == []
+
+    def test_conversion_failures_are_recorded_as_an_outcome(self, tmp_path):
+        """A page that failed to convert is visible, not only logged."""
+        app = _make_ai_app(tmp_path)
+        _mod.set_conversion_failures(app, [("guide/x.html", "no main content")])
+        failures = _mod.conversion_failures(app)
+        assert failures == [("guide/x.html", "no main content")]
+
+    def test_a_build_with_no_failures_reports_none(self, tmp_path):
+        """The ordinary build reports an empty list, not an absent attribute."""
+        app = _make_ai_app(tmp_path)
+        _mod.generate_markdown_files(app, None)
+        assert _mod.conversion_failures(app) == []
+
+    def test_strict_mode_escalates_a_conversion_failure(self, tmp_path, monkeypatch):
+        """Strict already escalates a missing dependency; a 404 page is the same class."""
+        from sphinx.errors import ExtensionError
+
+        app = _make_ai_app(tmp_path)
+        app.config.ai_assistant_strict = True
+        monkeypatch.setattr(_mod, "_process_html_file_worker",
+                            lambda *a, **k: ("error", "guide/x.html", "injected"))
+        (tmp_path / "guide").mkdir()
+        (tmp_path / "guide" / "x.html").write_text("<html><body>x</body></html>",
+                                                   encoding="utf-8")
+        with pytest.raises(ExtensionError) as excinfo:
+            _mod.generate_markdown_files(app, None)
+        assert "404" in str(excinfo.value)
+
+    def test_only_documents_sphinx_holds_are_converted(self, tmp_path):
+        """
+        A stale HTML file left in the output directory is not a member.
+
+        Notes
+        -----
+        Sphinx does not purge ``outdir``, so a page deleted from the source tree
+        keeps its rendered HTML. Walking the directory converted it again and
+        entered it in the registry as though this build had produced it; a real
+        incremental build reproduces that, and it is what the Run 07 reasoning
+        missed.
+        """
+        for name in ("alpha.html", "stale.html"):
+            (tmp_path / name).write_text(
+                "<html><body><main><h1>x</h1><p>body</p></main></body></html>",
+                encoding="utf-8",
+            )
+        app = _make_ai_app(tmp_path)
+        app.env = types.SimpleNamespace(found_docs={"alpha"})
+        _mod.generate_markdown_files(app, None)
+        assert _mod.get_generated_markdown(app) == ["alpha.md"]
+
+    def test_an_application_without_an_environment_falls_back_to_the_scan(self, tmp_path):
+        """A stub or an unusual builder must not silently produce nothing."""
+        (tmp_path / "alpha.html").write_text(
+            "<html><body><main><h1>x</h1><p>body</p></main></body></html>",
+            encoding="utf-8",
+        )
+        app = _make_ai_app(tmp_path)
+        _mod.generate_markdown_files(app, None)
+        assert _mod.get_generated_markdown(app) == ["alpha.md"]
+
+    def test_nested_documents_are_matched_by_docname(self, tmp_path):
+        """A docname is a path without its suffix, not a bare file name."""
+        nested = tmp_path / "guide"
+        nested.mkdir()
+        (nested / "install.html").write_text(
+            "<html><body><main><h1>x</h1><p>body</p></main></body></html>",
+            encoding="utf-8",
+        )
+        app = _make_ai_app(tmp_path)
+        app.env = types.SimpleNamespace(found_docs={"guide/install"})
+        _mod.generate_markdown_files(app, None)
+        assert _mod.get_generated_markdown(app) == ["guide/install.md"]
+
+
 
 # ===========================================================================
 # 19. generate_llms_txt (Sphinx hook)
@@ -1522,6 +1612,7 @@ class TestGenerateLlmsTxt:
     def test_writes_with_base_url(self, sphinx_app, tmp_html_tree):
         (tmp_html_tree / "index.md").write_text("# Index\n", encoding="utf-8")
         sphinx_app.builder.outdir = str(tmp_html_tree)
+        register_generated_markdown(_mod, sphinx_app)
         sphinx_app.config.html_baseurl = "https://docs.example.com"
         sphinx_app.config.ai_assistant_base_url = ""
         _mod.generate_llms_txt(sphinx_app, exception=None)
@@ -1532,6 +1623,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.builder.outdir = str(tmp_html_tree)
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = ""
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         llms = (tmp_html_tree / "llms.txt").read_text()
         assert "page.md" in llms and "https://" not in llms
@@ -1541,6 +1633,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.builder.outdir = str(tmp_html_tree)
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = "javascript:evil()"
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         assert not (tmp_html_tree / "llms.txt").exists()
 
@@ -1548,6 +1641,7 @@ class TestGenerateLlmsTxt:
         (tmp_html_tree / "doc.md").write_text("# Doc\n", encoding="utf-8")
         sphinx_app.builder.outdir = str(tmp_html_tree)
         sphinx_app.config.project = "MyLib"
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         assert "MyLib" in (tmp_html_tree / "llms.txt").read_text()
 
@@ -1558,6 +1652,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_max_entries = 2
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         # The structured layout emits "- [Title](url)" entries. The previous
         # assertion counted lines ending in ".md", which was the flat format's
@@ -1576,6 +1671,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_max_entries = 2
         sphinx_app.config.ai_assistant_llms_txt_format = "flat"
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         lines = [l for l in (tmp_html_tree / "llms.txt").read_text().splitlines()
                  if l.endswith(".md")]
@@ -1593,6 +1689,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = ""
         with caplog.at_level("WARNING"):
+            register_generated_markdown(_mod, sphinx_app)
             _mod.generate_llms_txt(sphinx_app, exception=None)
         noise = [r.getMessage() for r in caplog.records
                  if "llms_txt_format" in r.getMessage()
@@ -1607,6 +1704,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_format = "nonsense"
         with caplog.at_level("WARNING"):
+            register_generated_markdown(_mod, sphinx_app)
             _mod.generate_llms_txt(sphinx_app, exception=None)
         assert any("llms_txt_format" in r.getMessage() for r in caplog.records)
         # …and it falls back rather than raising.
@@ -1618,6 +1716,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_max_entries = 0
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         assert not (tmp_html_tree / "llms.txt").exists()
 
@@ -1627,10 +1726,134 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.html_baseurl = ""
         sphinx_app.config.ai_assistant_base_url = ""
         sphinx_app.config.ai_assistant_llms_txt_full_content = True
+        register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
         llms = (tmp_html_tree / "llms.txt").read_text()
         assert "# Hello" in llms and "World" in llms
 
+
+
+    # -- catalog membership, bounds and reported degradation ---------------
+
+    def test_only_this_builds_pages_are_listed(self, tmp_path):
+        """Stale, vendored and source-copy markdown are not members."""
+        app = _seed_catalog(_mod, tmp_path,
+            generated=["index.md", "guide/install.md"],
+            foreign=["stale/removed-page.md", "_static/vendor/CHANGELOG.md",
+                     "_sources/raw.md"],
+        )
+        _mod.generate_llms_txt(app, None)
+        entries = _catalog_entries(_read_catalog(tmp_path))
+        assert len(entries) == 2
+        assert not any("removed-page" in e for e in entries)
+        assert not any("CHANGELOG" in e for e in entries)
+        assert not any("_sources" in e for e in entries)
+
+    def test_a_registered_page_missing_on_disk_is_not_listed(self, tmp_path):
+        """The registry is a claim about what was produced, still checked against disk."""
+        app = _seed_catalog(_mod, tmp_path, generated=["index.md"])
+        _mod.set_generated_markdown(app, ["index.md", "never-written.md"])
+        _mod.generate_llms_txt(app, None)
+        entries = _catalog_entries(_read_catalog(tmp_path))
+        assert len(entries) == 1
+        assert "never-written" not in "".join(entries)
+
+    def test_no_registry_means_no_read_catalog(self, tmp_path):
+        """Without a registry the hook declines rather than falling back to a scan."""
+        (tmp_path / "leftover.md").write_text("# leftover\n", encoding="utf-8")
+        app = _make_ai_app(tmp_path)
+        _mod.generate_llms_txt(app, None)
+        assert _read_catalog(tmp_path) is None
+
+    def test_an_empty_registry_produces_no_read_catalog(self, tmp_path):
+        """A build that generated nothing advertises nothing."""
+        (tmp_path / "leftover.md").write_text("# leftover\n", encoding="utf-8")
+        app = _seed_catalog(_mod, tmp_path, generated=[], foreign=["leftover.md"])
+        _mod.generate_llms_txt(app, None)
+        assert _read_catalog(tmp_path) is None
+
+    def test_entry_point_ordering_is_preserved(self, tmp_path):
+        """Registered pages keep the entry-point-first ordering."""
+        app = _seed_catalog(_mod, tmp_path, generated=["zzz.md", "index.md", "aaa.md"])
+        _mod.generate_llms_txt(app, None)
+        entries = _catalog_entries(_read_catalog(tmp_path))
+        assert entries[0].endswith("index.md")
+
+
+    @pytest.mark.parametrize("failed_build", [RuntimeError("build failed")])
+
+    def test_a_failed_build_publishes_no_read_catalog(self, tmp_path, failed_build):
+        """A build that raised does not get a catalog written for it."""
+        app = _seed_catalog(_mod, tmp_path, generated=["index.md"])
+        _mod.generate_llms_txt(app, failed_build)
+        assert _read_catalog(tmp_path) is None
+
+    def test_the_cap_is_applied_after_ordering(self, tmp_path):
+        """
+        An entry point survives a small cap whatever unrelated pages are named.
+
+        Notes
+        -----
+        The cap previously sliced a path-sorted list before the entry-point
+        reordering ran, so whether ``index.md`` appeared depended on the
+        alphabetical position of pages that have nothing to do with it.
+        """
+        app = _seed_catalog(_mod, tmp_path, generated=["aaa.md", "bbb.md", "ccc.md", "ddd.md",
+                                         "index.md"])
+        app.config.ai_assistant_llms_txt_max_entries = 2
+        _mod.generate_llms_txt(app, None)
+        entries = _catalog_entries(_read_catalog(tmp_path))
+        assert len(entries) == 2
+        assert any(entry.endswith("index.md") for entry in entries)
+
+    def test_a_capped_catalog_declares_itself_partial(self, tmp_path):
+        """A consumer can tell a capped catalog from a complete one."""
+        app = _seed_catalog(_mod, tmp_path, generated=["a.md", "b.md", "c.md"])
+        app.config.ai_assistant_llms_txt_max_entries = 1
+        _mod.generate_llms_txt(app, None)
+        text = _read_catalog(tmp_path)
+        assert "1" in text and "3" in text
+        assert "truncate" in text.lower() or "partial" in text.lower()
+
+    def test_an_uncapped_catalog_does_not_claim_truncation(self, tmp_path):
+        """The marker states a fact, so it must be absent when nothing was cut."""
+        app = _seed_catalog(_mod, tmp_path, generated=["a.md", "b.md"])
+        _mod.generate_llms_txt(app, None)
+        text = _read_catalog(tmp_path)
+        assert "truncate" not in text.lower()
+
+    def test_an_inlined_catalog_is_bounded_in_bytes(self, tmp_path):
+        """Entry count alone does not bound a file that inlines whole pages."""
+        pages = [f"page{n:02d}.md" for n in range(30)]
+        for name in pages:
+            (tmp_path / name).write_text("# x\n\n" + "y" * 20000, encoding="utf-8")
+        app = _make_ai_app(tmp_path)
+        _mod.set_generated_markdown(app, pages)
+        app.config.ai_assistant_llms_txt_full_content = True
+        app.config.ai_assistant_llms_txt_max_bytes = 50_000
+        _mod.generate_llms_txt(app, None)
+        text = _read_catalog(tmp_path)
+        assert len(text.encode("utf-8")) <= 60_000
+        assert "truncate" in text.lower()
+
+    def test_an_undecodable_page_is_reported_not_silently_substituted(self, tmp_path):
+        """Published text that differs from the source says so."""
+        app = _seed_catalog(_mod, tmp_path, generated=["good.md"])
+        (tmp_path / "broken.md").write_bytes(b"# broken\n\n\xff\xfe raw\n")
+        _mod.set_generated_markdown(app, ["good.md", "broken.md"])
+        app.config.ai_assistant_llms_txt_full_content = True
+        _mod.generate_llms_txt(app, None)
+        text = _read_catalog(tmp_path)
+        assert "broken.md" in text
+        assert "not valid UTF-8" in text
+        assert "differs from the source" in text
+
+    def test_a_clean_catalog_makes_no_encoding_claim(self, tmp_path):
+        """The note states a fact, so it is absent when nothing was substituted."""
+        app = _seed_catalog(_mod, tmp_path, generated=["a.md"])
+        app.config.ai_assistant_llms_txt_full_content = True
+        _mod.generate_llms_txt(app, None)
+        assert "not valid UTF-8" not in _read_catalog(tmp_path)
 
 # ===========================================================================
 # 19. add_ai_assistant_context
@@ -3526,7 +3749,7 @@ _EP_URL = "https://proxy.example.org/v1/chat/completions"
 class TestStubModelInjection:
     """`ai_assistant_panel_stub_models` appends test entries, safely."""
 
-    def test_no_endpoint_means_no_stub_entries(self):
+    def test_no_endpoint_means_no_stub_catalog_entries(self):
         """A stub entry pointing nowhere turns a diagnostic into a second
         thing to diagnose."""
         models = [{"id": "real", "model": "m", "provider": "custom"}]
@@ -3548,7 +3771,7 @@ class TestStubModelInjection:
         models = [{"id": "a", "model": "m"}, {"id": "b", "endpoint": _EP_URL}]
         assert _mod._stub_endpoint(models, "") == _EP_URL
 
-    def test_endpoint_resolution_survives_junk_entries(self):
+    def test_endpoint_resolution_survives_junk_catalog_entries(self):
         assert _mod._stub_endpoint(["nope", None, 7], "") == ""
         assert _mod._stub_endpoint(None, "") == ""
 
@@ -3560,7 +3783,7 @@ class TestStubModelInjection:
         models = [{"id": "real", "model": "m", "provider": "custom"}]
         assert _mod._with_stub_models(models, False) is models
 
-    def test_enabled_appends_the_stub_entries(self):
+    def test_enabled_appends_the_stub_catalog_entries(self):
         models = [{"id": "real", "model": "m", "provider": "custom"}]
         out = _mod._with_stub_models(models, True, _EP_URL)
         ids = [e["id"] for e in out]
