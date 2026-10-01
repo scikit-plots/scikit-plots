@@ -320,7 +320,7 @@ repos:
   # 4. Check-only linters
   # Code Quality: Formatter PyCQA flake8 vs ruff-format can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
-    rev: 7.3.0
+    rev: 7.4.1
     hooks:
       # pre-commit run flake8 --all-files --verbose
       - id: flake8
