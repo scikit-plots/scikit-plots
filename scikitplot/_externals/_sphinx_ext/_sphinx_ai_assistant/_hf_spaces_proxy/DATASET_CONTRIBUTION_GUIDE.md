@@ -8,7 +8,7 @@ maps to Hugging Face, GitHub, GitLab, and Bitbucket Cloud.
 Use this guide when you see **Contribute to dataset**, **Submit for review**,
 `Status: QUARANTINED`, or `Status: IN REVIEW` in the assistant UI.
 
-For local ratings, anonymous telemetry, and one-Q&A maintainer feedback review, see [`FEEDBACK_REVIEW_GUIDE.md`](./FEEDBACK_REVIEW_GUIDE.md). For low-level storage topology, deduplication, migration, and provider API details, see [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md).
+For local ratings, generic page feedback, and one-Q&A maintainer feedback review, see [`FEEDBACK_REVIEW_GUIDE.md`](./FEEDBACK_REVIEW_GUIDE.md). For low-level storage topology, deduplication, migration, and provider API details, see [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md).
 
 ---
 
@@ -67,7 +67,6 @@ The assistant deliberately separates three kinds of user action:
 | Control plane | Contains conversation content? | Network by default? | Training eligible? |
 |---|---:|---:|---:|
 | Share/export | only when the reader explicitly shares/exports | depends on chosen share mode | No |
-| Anonymous rating telemetry | No Q&A content in telemetry | Off until explicit telemetry permission | No |
 | Maintainer feedback review | Exactly one Q&A + rating + optional note | Off until separate review-sharing permission | Never |
 | Dataset contribution | Yes, exact reviewed content | Only after explicit contribution consent | Only after review approval |
 
@@ -361,7 +360,12 @@ legacy/recovery fallback for receipts created before review locators were stored
 
 ## 7. Primary and Mirrors
 
-`RECORD_STORAGE_TARGETS` may configure one Primary and several Mirrors.
+`RECORD_STORAGE_TARGETS` may override the record authority with one Primary and
+several Mirrors. When that variable and legacy `TRAINING_DATASET_REPO` are both
+unset, the proxy uses its bundled `DEFAULT_RECORD_STORAGE_TARGETS` projection
+(HF Primary + GitHub Mirror) from `DEFAULT_TARGET_REGISTRY`. The registry's
+separate `github-learn-ai` publication Primary never receives contribution
+records.
 Exactly one target must have:
 
 ```json
@@ -853,7 +857,7 @@ These are architecture requirements, not optional UX preferences:
 2. `main` (or the configured canonical branch) is the eligibility authority.
 3. An open PR/MR is never training eligible.
 4. Mirrors never independently decide eligibility.
-5. Feedback telemetry cannot silently become training content.
+5. Generic page feedback and local Assistant ratings cannot silently become training content.
 6. Dataset content requires explicit, versioned contribution consent.
 7. The reader sees the exact JSON before submission.
 8. Receipt/delete capability is separate from reviewer authority.
@@ -877,4 +881,4 @@ These are architecture requirements, not optional UX preferences:
 Dataset contribution behavior is unchanged by Run 162. Release-native evidence archives
 may be covered by the independent archive-health witness/recovery gate described in
 `_hf_spaces_proxy/security/RELEASE_ARCHIVE_WITNESS_GUIDE.md`; no contribution payload or
-telemetry permission is widened by that release-security tooling.
+generic page-feedback authority is widened by that release-security tooling.

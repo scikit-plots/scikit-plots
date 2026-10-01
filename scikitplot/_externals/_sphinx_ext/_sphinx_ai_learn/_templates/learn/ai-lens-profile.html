@@ -1,0 +1,78 @@
+{# Shared multi-select lens profile for record creation, page overview, and section generation. #}
+{% set is_record = lens_variant == 'record' %}
+{% set is_section = lens_variant == 'section' %}
+{% set is_overview = lens_variant == 'overview' %}
+{% set is_media = lens_variant == 'media' %}
+<div class="learn-ai-lens-profile" data-ai-lens-profile="{{ lens_scope|e }}">
+  <div class="learn-ai-lens-profile-summary" data-ai-lens-profile-summary>
+    <span class="learn-ai-lens-profile-count" data-ai-lens-profile-count>4 selections</span>
+    <span data-ai-lens-profile-detail>Across 4 lens groups</span>
+  </div>
+  <div class="learn-ai-multi-profile">
+    <fieldset data-ai-lens-group="audience" data-ai-lens-required="true">
+      <legend>Audience <small>Select one or more</small></legend>
+      <div class="learn-ai-choice-summary" data-ai-choice-summary role="status" aria-live="polite" aria-atomic="true">
+        <span class="learn-ai-choice-count" data-ai-choice-count>1 selected</span>
+        <span class="learn-ai-choice-preview" data-ai-choice-preview>General</span>
+      </div>
+      <div class="learn-ai-choice-grid">
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="general" checked> General</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="young-learner"> Young learner</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="beginner"> Beginner</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="student"> Student</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="practitioner"> Practitioner</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="decision-maker"> Decision maker</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="educator"> Educator</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="researcher"> Researcher</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-audience="expert"> Expert</label>
+      </div>
+    </fieldset>
+
+    <fieldset data-ai-lens-group="purpose" data-ai-lens-required="true">
+      <legend>Purpose <small>Select one or more</small></legend>
+      <div class="learn-ai-choice-summary" data-ai-choice-summary role="status" aria-live="polite" aria-atomic="true">
+        <span class="learn-ai-choice-count" data-ai-choice-count>1 selected</span>
+        <span class="learn-ai-choice-preview" data-ai-choice-preview>Understand</span>
+      </div>
+      <div class="learn-ai-choice-grid">
+        <label><input type="checkbox" data-{{ lens_scope|e }}-purpose="understand" checked> Understand</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-purpose="apply"> {{ 'Apply at work' if is_section else 'Apply' }}</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-purpose="teach"> Teach</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-purpose="compare"> {{ 'Compare / decide' if is_section else 'Compare' }}</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-purpose="research"> Research / review</label>
+      </div>
+    </fieldset>
+
+    <fieldset data-ai-lens-group="skills">
+      <legend>Supporting skills{% if is_overview %} <small>Instructional lenses, not separate model calls</small>{% elif is_section %} <small>Combined with the canonical section skill</small>{% elif is_media %} <small>Combined into the media instructions</small>{% endif %}</legend>
+      <div class="learn-ai-choice-summary" data-ai-choice-summary role="status" aria-live="polite" aria-atomic="true">
+        <span class="learn-ai-choice-count" data-ai-choice-count>1 selected</span>
+        <span class="learn-ai-choice-preview" data-ai-choice-preview>Explain</span>
+      </div>
+      <div class="learn-ai-choice-grid">
+        <label><input type="checkbox" data-{{ lens_scope|e }}-skill="explain" checked> Explain</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-skill="evidence-audit"> Evidence audit</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-skill="compare"> Compare</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-skill="applications"> Applications</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-skill="gaps"> Knowledge gaps</label>
+        {% if is_record %}<label><input type="checkbox" data-{{ lens_scope|e }}-skill="structure"> Structure</label>{% endif %}
+      </div>
+    </fieldset>
+
+    <fieldset data-ai-lens-group="roles">
+      <legend>Role lenses{% if is_record %} <small>Not separate autonomous agents</small>{% elif is_overview %} <small>Combined in one bounded request</small>{% elif is_section %} <small>One model request, not separate autonomous agents</small>{% elif is_media %} <small>One request, not separate autonomous agents</small>{% endif %}</legend>
+      <div class="learn-ai-choice-summary" data-ai-choice-summary role="status" aria-live="polite" aria-atomic="true">
+        <span class="learn-ai-choice-count" data-ai-choice-count>1 selected</span>
+        <span class="learn-ai-choice-preview" data-ai-choice-preview>Explainer</span>
+      </div>
+      <div class="learn-ai-choice-grid">
+        <label><input type="checkbox" data-{{ lens_scope|e }}-role="explainer" checked> Explainer</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-role="analyst"> Analyst</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-role="skeptic"> Skeptical reviewer</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-role="practitioner"> Practitioner</label>
+        <label><input type="checkbox" data-{{ lens_scope|e }}-role="educator"> Educator</label>
+        {% if not is_overview %}<label><input type="checkbox" data-{{ lens_scope|e }}-role="research-scout"> Research scout</label>{% endif %}
+      </div>
+    </fieldset>
+  </div>
+</div>

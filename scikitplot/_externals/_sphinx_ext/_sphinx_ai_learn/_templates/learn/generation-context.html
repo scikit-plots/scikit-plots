@@ -1,0 +1,86 @@
+{# Shared AI Learn context chooser. Policies:
+   - composable: Topics/Sources/URL/Prompt can be combined; catalog records are multi-select.
+   - exclusive: one active context type; Topic/Source record pickers are single-select.
+#}
+{% set context_scope = context_scope|default(generation_kind|default('generation')) %}
+{% set context_policy = context_policy|default('exclusive') %}
+{% set context_topics = context_topics|default(topics|default([])) %}
+{% set context_sources = context_sources|default(sources|default([])) %}
+{% set context_default_tab = context_default_tab|default('topic') %}
+{% set context_url_label = context_url_label|default('Public reference URL') %}
+{% set context_url_help = context_url_help|default('The URL is treated as untrusted reference context. This page does not fetch it.') %}
+{% set context_url_placeholder = context_url_placeholder|default('https://example.org/resource') %}
+{% set context_prompt_label = context_prompt_label|default('Prompt') %}
+{% set context_prompt_help = context_prompt_help|default('Use Prompt when you want to provide your own context.') %}
+{% set context_prompt_placeholder = context_prompt_placeholder|default('Describe what you want to create.') %}
+{% set context_prompt_rows = context_prompt_rows|default(5) %}
+{% set context_input_type = 'checkbox' if context_policy == 'composable' else 'radio' %}
+{% set context_record_name = context_scope ~ '-context-record' %}
+<div class="learn-generation-context-picker"
+     data-generation-context-picker
+     data-generation-context-scope="{{ context_scope|e }}"
+     data-generation-context-policy="{{ context_policy|e }}"
+     data-generation-context-default="{{ context_default_tab|e }}"
+     {% if context_url_required|default(false) %}data-generation-context-url-required="true"{% endif %}
+     {% if context_prompt_required|default(false) %}data-generation-context-prompt-required="true"{% endif %}>
+  <div class="learn-generation-context-tabs" role="tablist" aria-label="Context type">
+    {% for key, label in [('topic','Topic'),('source','Source'),('url','URL'),('prompt','Prompt')] %}
+    <button type="button" role="tab" id="learn-context-{{ context_scope|e }}-{{ key }}-tab" aria-controls="learn-context-{{ context_scope|e }}-{{ key }}-panel" data-generation-context-tab="{{ key }}" aria-selected="{{ 'true' if key == context_default_tab else 'false' }}" tabindex="{{ '0' if key == context_default_tab else '-1' }}">
+      <span>{{ label }}</span><span class="learn-generation-context-tab-count" data-generation-context-tab-count="{{ key }}" hidden></span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="learn-generation-context-summary" data-generation-context-summary role="status" aria-live="polite">
+    <span class="learn-generation-context-summary-count" data-generation-context-summary-count>0</span>
+    <span data-generation-context-summary-text>{{ 'Combine one or more context items.' if context_policy == 'composable' else 'Choose one context type.' }}</span>
+  </div>
+
+  <div class="learn-generation-context" data-generation-context-panels>
+    <section id="learn-context-{{ context_scope|e }}-topic-panel" aria-labelledby="learn-context-{{ context_scope|e }}-topic-tab" data-generation-context-panel="topic" role="tabpanel">
+      <label class="learn-generation-field">Learn Topic
+        <input type="search" data-generation-context-filter="topic" autocomplete="off" placeholder="Filter topics" aria-label="Filter Learn Topics">
+        <small>{{ context_topic_help|default('Choose trusted Learn Topic context.')|e }}</small>
+      </label>
+      <div class="learn-generation-context-list" data-generation-context-list="topic" {% if context_policy == 'composable' %}aria-label="Learn Topics; multiple selections allowed"{% else %}aria-label="Learn Topics; choose one"{% endif %}>
+        {% for row in context_topics %}
+        <label data-generation-context-row data-context-kind="topic" data-search="{{ (row.title ~ ' ' ~ row.summary ~ ' ' ~ row.domains|default([])|join(' '))|lower|e }}">
+          <input type="{{ context_input_type }}" name="{{ context_record_name|e }}" value="{{ row.id|e }}" data-generation-context-record data-context-kind="topic">
+          <span><strong>{{ row.title|e }}</strong>{% if row.summary %}<small>{{ row.summary[:150]|e }}</small>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="learn-generation-context-empty" data-generation-context-empty="topic" hidden>No matching Topics.</p>
+    </section>
+
+    <section id="learn-context-{{ context_scope|e }}-source-panel" aria-labelledby="learn-context-{{ context_scope|e }}-source-tab" data-generation-context-panel="source" role="tabpanel" hidden>
+      <label class="learn-generation-field">Learn Source
+        <input type="search" data-generation-context-filter="source" autocomplete="off" placeholder="Filter sources" aria-label="Filter Learn Sources">
+        <small>{{ context_source_help|default('Choose canonical Source context when provenance matters.')|e }}</small>
+      </label>
+      <div class="learn-generation-context-list" data-generation-context-list="source" {% if context_policy == 'composable' %}aria-label="Learn Sources; multiple selections allowed"{% else %}aria-label="Learn Sources; choose one"{% endif %}>
+        {% for row in context_sources %}
+        <label data-generation-context-row data-context-kind="source" data-search="{{ (row.title ~ ' ' ~ row.summary ~ ' ' ~ row.domains|default([])|join(' '))|lower|e }}">
+          <input type="{{ context_input_type }}" name="{{ context_record_name|e }}" value="{{ row.id|e }}" data-generation-context-record data-context-kind="source">
+          <span><strong>{{ row.title|e }}</strong>{% if row.summary %}<small>{{ row.summary[:150]|e }}</small>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <p class="learn-generation-context-empty" data-generation-context-empty="source" hidden>No matching Sources.</p>
+    </section>
+
+    <section id="learn-context-{{ context_scope|e }}-url-panel" aria-labelledby="learn-context-{{ context_scope|e }}-url-tab" data-generation-context-panel="url" role="tabpanel" hidden>
+      <label class="learn-generation-field">{{ context_url_label|e }}{% if context_url_required|default(false) %} <span class="learn-generation-required">Required</span>{% endif %}
+        <input type="url" data-generation-context-url inputmode="url" autocomplete="url" maxlength="2048" placeholder="{{ context_url_placeholder|e }}" {% if context_url_required|default(false) %}aria-required="true"{% endif %}>
+        <small>{{ context_url_help|e }}</small>
+      </label>
+    </section>
+
+    <section id="learn-context-{{ context_scope|e }}-prompt-panel" aria-labelledby="learn-context-{{ context_scope|e }}-prompt-tab" data-generation-context-panel="prompt" role="tabpanel" hidden>
+      <label class="learn-generation-field">{{ context_prompt_label|e }}{% if context_prompt_required|default(false) %} <span class="learn-generation-required">Required</span>{% endif %}
+        <textarea data-generation-context-prompt rows="{{ context_prompt_rows }}" maxlength="12000" placeholder="{{ context_prompt_placeholder|e }}" {% if context_prompt_required|default(false) %}aria-required="true"{% endif %}></textarea>
+        <small>{{ context_prompt_help|e }}</small>
+      </label>
+    </section>
+  </div>
+</div>

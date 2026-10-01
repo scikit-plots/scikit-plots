@@ -1,0 +1,10 @@
+name: vcard
+version: 1
+summary: vCard address books (.vcf, Google Contacts export) - properties as fields.
+extensions: [.vcf, .vcard]
+splitter: keyvalue
+round_trip: true
+options:
+  separators: [":"]
+  comments: []
+packs: [addressbook, personal]

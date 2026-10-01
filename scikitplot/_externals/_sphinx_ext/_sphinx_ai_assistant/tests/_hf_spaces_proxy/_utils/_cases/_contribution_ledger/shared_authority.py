@@ -502,6 +502,8 @@ def test_transient_promotion_write_becomes_uncertain_and_user_can_withdraw(monke
     monkeypatch.setattr(proxy_app, "_CONTRIBUTION_LEDGER_CONFIG_ERROR", "")
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REQUIRE_SHARED", False)
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REQUIRE_DURABLE", False)
+    # This case exercises the explicit historical ledger promotion path.
+    monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_MODE", "ledger")
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_TOKEN", "review-secret")
 
     calls = {"count": 0}

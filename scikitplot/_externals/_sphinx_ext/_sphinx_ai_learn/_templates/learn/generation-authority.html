@@ -1,0 +1,63 @@
+{% set authority_menu_id = 'learn-' ~ (authority_id|default(generation_kind)) ~ '-authority-menu' %}
+{% macro authority_body() -%}
+  <div class="learn-generation-authority-picker"
+       data-generation-authority-picker
+       data-generation-authority-kind="{{ authority_kind|e }}"
+       data-generation-authority-managed="{{ authority_managed|e }}">
+    <button type="button"
+            class="learn-generation-authority-main"
+            data-generation-authority-open
+            aria-haspopup="{% if authority_kind == 'assistant' %}dialog{% else %}menu{% endif %}"
+            aria-expanded="false"
+            aria-label="{{ authority_open_label|e }}"
+            title="{{ authority_open_title|e }}">
+      <span class="learn-generation-authority-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="2" x2="9" y2="4"></line><line x1="15" y1="2" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="22"></line><line x1="15" y1="20" x2="15" y2="22"></line><line x1="2" y1="9" x2="4" y2="9"></line><line x1="2" y1="15" x2="4" y2="15"></line><line x1="20" y1="9" x2="22" y2="9"></line><line x1="20" y1="15" x2="22" y2="15"></line></svg>
+      </span>
+      <span class="learn-generation-authority-label" data-generation-authority-label>{{ authority_initial_label|e }}</span>
+      <span class="learn-generation-authority-badge" data-generation-authority-badge>{{ authority_initial_badge|e }}</span>
+      <span class="learn-generation-authority-chevron" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </span>
+    </button>
+    <button type="button"
+            class="learn-generation-authority-more"
+            data-generation-authority-more
+            aria-label="{{ authority_more_label|e }}"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-controls="{{ authority_menu_id|e }}"
+            title="{{ authority_more_title|e }}">
+      <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div id="{{ authority_menu_id|e }}"
+         class="learn-generation-authority-menu"
+         data-generation-authority-menu
+         role="menu"
+         aria-label="{{ authority_more_label|e }}"
+         hidden></div>
+  </div>
+  <div class="learn-generation-model-readout" aria-live="polite">
+    <span>{{ authority_runtime_label|e }}</span>
+    <strong data-generation-runtime-authority
+            {% if generation_kind == 'video' %}data-video-runtime-authority{% elif generation_kind == 'audio' %}data-audio-generator-label{% elif generation_kind == 'document' %}data-document-runtime-authority{% elif generation_kind == 'whiteboard' %}data-whiteboard-runtime-authority{% endif %}>{{ authority_runtime_initial|e }}</strong>
+  </div>
+  <p class="learn-meta learn-generation-authority-status"
+     data-generation-authority-status
+     data-generation-authority-context="{{ authority_context|default('')|e }}">{{ authority_status|e }}</p>
+{%- endmacro %}
+
+{% if authority_embedded|default(false) %}
+<section class="learn-generation-authority learn-generation-authority--embedded" data-generation-authority-scope>
+  <div class="learn-generation-authority-heading">
+    <strong>{{ authority_title|e }}</strong>
+    <small>{{ authority_help|e }}</small>
+  </div>
+  {{ authority_body() }}
+</section>
+{% else %}
+<fieldset class="learn-generation-card learn-generation-authority" data-generation-authority-scope>
+  <legend class="learn-generation-legend learn-generation-legend--utility"><span>{{ authority_title|e }}<small>{{ authority_help|e }}</small></span></legend>
+  {{ authority_body() }}
+</fieldset>
+{% endif %}

@@ -1,0 +1,45 @@
+{# One behavior/controller, two presentation variants. Only an explicit 'classic' opts out of the pill-overflow default. #}
+{% set use_overflow = search_control_variant|default('pill-overflow', true) != 'classic' %}
+<div class="learn-search-primary-row{% if use_overflow %} learn-search-primary-row--pill-overflow{% else %} learn-search-primary-row--classic{% endif %}"
+     data-explorer-search-variant="{{ 'pill-overflow' if use_overflow else 'classic' }}">
+  <div class="learn-trending-search">
+    <label class="learn-visually-hidden" for="{{ search_input_id|e }}">Search</label>
+    <div class="learn-search-field{% if use_overflow %} learn-search-field--pill{% endif %}">
+      <input id="{{ search_input_id|e }}"
+             class="learn-search-input"
+             type="search"
+             name="q"
+             placeholder="{{ search_placeholder|e }}"
+             autocomplete="off"
+             maxlength="1024">
+      <button type="submit"
+              class="learn-search-submit"
+              data-explorer-search
+              aria-label="Search"
+              title="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm5.5 10 5.2 5.2-1.4 1.4-5.2-5.2Z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <button type="button"
+          class="learn-filter-disclosure {{ 'learn-filter-disclosure--overflow' if use_overflow else 'learn-filter-disclosure--chevron' }}"
+          data-explorer-filter-toggle
+          aria-label="More search options"
+          aria-expanded="false"
+          aria-controls="{{ filter_panel_id|e }}"
+          title="More options">
+    {% if use_overflow %}
+    <svg class="learn-filter-overflow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="5" r="1.8"></circle>
+      <circle cx="12" cy="12" r="1.8"></circle>
+      <circle cx="12" cy="19" r="1.8"></circle>
+    </svg>
+    {% else %}
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+    {% endif %}
+  </button>
+</div>

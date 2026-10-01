@@ -1,0 +1,24 @@
+=== SERVER BANNER ===
+
+CleanPrompt web interface
+  http://127.0.0.1:5097
+  Reachable only from this machine.
+  12 structural detectors are active. Names, organisations and places are NOT being detected.
+  ! Names, organisations, places and other named entities
+     fix: pip install "spacy>=3.4,<5", then: python -m spacy download en_core_web_lg
+  This is Flask's development server: local use only.
+
+
+=== LIVE HTTP ===
+  /healthz    -> {'sessions': 0, 'status': 'ok'}
+  /api/doctor -> healthy=False blind_spots=3
+  GET /       -> 4707 bytes, degraded banner=True
+  /_static/style.css       -> 200
+  /_static/app.js          -> 200
+
+  POST / (the reported scenario, now with structural PII too):
+    banner level      : warning
+    suggestion chips  : ['Mustafa Kemal Atatürk', 'Republic', 'Turkey', 'Mail']
+    redacted output   : Mustafa Kemal Atatürk (c. 1881 - 1938) founded the Republic of Turkey. Mail [EMAIL-1] or call [P ...
+    secret in output  : False
+    CSRF rejected w/o token: True

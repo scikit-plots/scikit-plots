@@ -1,0 +1,86 @@
+{% if generation_kind == 'video' %}
+  {% set shape_title = 'Shape the explanation' %}
+  {% set shape_help = 'Add audience, emphasis, examples, constraints, or evidence limits.' %}
+  {% set shape_label = 'Generation instructions' %}
+  {% set shape_target = '#learn-video-instructions' %}
+  {% set shape_rows = 6 %}
+  {% set shape_maxlength = 4000 %}
+  {% set shape_default = '' %}
+  {% set shape_placeholder = 'Add emphasis, audience, examples, constraints, or other guidance.' %}
+  {% set shape_meta = 'Optional guidance is combined with the selected context.' %}
+  {% set shape_presets = [
+    ('Beginner-friendly', 'Beginner-friendly'),
+    ('Technical', 'Technical and precise'),
+    ('Examples', 'Focus on concrete examples'),
+    ('Intuition', 'Focus on intuition and mechanisms'),
+    ('Compare', 'Compare relevant alternatives and trade-offs'),
+    ('Limitations', 'Include assumptions, limitations, and uncertainty')
+  ] %}
+{% elif generation_kind == 'audio' %}
+  {% set shape_title = 'Shape the explanation' %}
+  {% set shape_help = 'Add audience, emphasis, examples, delivery guidance, or evidence limits.' %}
+  {% set shape_label = 'Generation instructions' %}
+  {% set shape_target = '#learn-audio-instructions' %}
+  {% set shape_rows = 6 %}
+  {% set shape_maxlength = 12000 %}
+  {% set shape_default = 'Create a concise, source-grounded spoken explanation. Preserve important uncertainty and avoid unsupported claims.' %}
+  {% set shape_placeholder = 'Add audience, tone, examples, pronunciation guidance, or constraints.' %}
+  {% set shape_meta = 'Guidance is folded into the narration request; provider credentials remain server-side.' %}
+  {% set shape_presets = [
+    ('Beginner-friendly', 'Beginner-friendly and conversational'),
+    ('Technical', 'Technical and precise'),
+    ('Examples', 'Focus on concrete spoken examples'),
+    ('Intuition', 'Explain intuition before implementation detail'),
+    ('Compare', 'Compare relevant alternatives and trade-offs aloud'),
+    ('Limitations', 'Preserve assumptions, limitations, and uncertainty')
+  ] %}
+{% elif generation_kind == 'document' %}
+  {% set shape_title = 'Shape the explanation' %}
+  {% set shape_help = 'Add audience, structure, examples, comparison goals, or evidence limits.' %}
+  {% set shape_label = 'Generation instructions' %}
+  {% set shape_target = '#learn-document-instructions' %}
+  {% set shape_rows = 6 %}
+  {% set shape_maxlength = 12000 %}
+  {% set shape_default = 'Create a concise, source-grounded learning document with clear headings, key ideas, evidence limits, and useful next questions.' %}
+  {% set shape_placeholder = 'Add structure, depth, examples, comparison goals, or review constraints.' %}
+  {% set shape_meta = 'Generated text remains reviewable and downloadable before any publish step.' %}
+  {% set shape_presets = [
+    ('Beginner-friendly', 'Write for a beginner while preserving technical accuracy'),
+    ('Technical', 'Use precise technical language and explicit assumptions'),
+    ('Examples', 'Include concrete examples and practical applications'),
+    ('Intuition', 'Explain intuition before formal detail'),
+    ('Compare', 'Compare relevant alternatives and trade-offs'),
+    ('Limitations', 'State evidence limits, uncertainty, and open questions')
+  ] %}
+{% elif generation_kind == 'whiteboard' %}
+  {% set shape_title = 'Shape the explanation' %}
+  {% set shape_help = 'Add teaching structure, examples, comparison goals, or evidence boundaries.' %}
+  {% set shape_label = 'Generation instructions' %}
+  {% set shape_target = '#learn-whiteboard-instructions' %}
+  {% set shape_rows = 6 %}
+  {% set shape_maxlength = 12000 %}
+  {% set shape_default = 'Create a clean educational whiteboard. Make relationships, sequence, uncertainty, and evidence boundaries visible. Use concise labels and avoid decorative clutter.' %}
+  {% set shape_placeholder = 'Add hierarchy, examples, comparisons, annotations, or evidence constraints.' %}
+  {% set shape_meta = 'Prefer readable teaching structure and restrained annotation over decorative clutter.' %}
+  {% set shape_presets = [
+    ('Beginner-friendly', 'Use beginner-friendly labels and an obvious reading order'),
+    ('Technical', 'Use precise technical labels and explicit relationships'),
+    ('Examples', 'Use concrete examples with concise labels'),
+    ('Intuition', 'Make the core intuition visually obvious before detail'),
+    ('Compare', 'Compare relevant alternatives side by side'),
+    ('Limitations', 'Make assumptions, uncertainty, and evidence boundaries visible')
+  ] %}
+{% endif %}
+
+<fieldset class="learn-generation-card learn-generation-shaping" data-generation-shaping="{{ generation_kind|e }}">
+  <legend class="learn-generation-legend"><span class="learn-generation-step-index">2</span><span>{{ shape_title|e }}<small>{{ shape_help|e }}</small></span></legend>
+  <div class="learn-generation-prompt-chips" aria-label="{{ generation_kind|capitalize }} guidance presets">
+    {% for label, phrase in shape_presets %}<button type="button" data-generation-chip="{{ phrase|e }}" data-generation-target="{{ shape_target|e }}">{{ label|e }}</button>{% endfor %}
+  </div>
+  <label class="learn-generation-field" for="learn-{{ generation_kind|e }}-instructions">{{ shape_label|e }}
+    <textarea id="learn-{{ generation_kind|e }}-instructions"
+      {% if generation_kind == 'video' %}name="instructions" data-video-prompt{% elif generation_kind == 'audio' %}data-audio-prompt{% elif generation_kind == 'document' %}data-document-prompt{% elif generation_kind == 'whiteboard' %}data-whiteboard-prompt{% endif %}
+      data-generation-countable rows="{{ shape_rows }}" maxlength="{{ shape_maxlength }}"{% if generation_kind != 'video' %} required{% endif %} placeholder="{{ shape_placeholder|e }}">{{ shape_default|e }}</textarea>
+  </label>
+  <div class="learn-generation-field-meta"><span>{{ shape_meta|e }}</span><span data-generation-counter aria-live="polite"></span></div>
+</fieldset>

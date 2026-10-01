@@ -1054,58 +1054,13 @@
         return internalResult;
     }
 
-    /**
-     * Feedback telemetry permission is a versioned browser-side preference.
-     * Local ratings never require it. Network telemetry does. The Sphinx site
-     * config supplies only the initial state when no valid reader choice exists.
-     *
-     * Security / precedence rules:
-     *   - valid stored reader ON/OFF wins over the site default;
-     *   - absent state uses the configured site default (built-in: OFF);
-     *   - malformed, stale-version, or storage-inaccessible state fails OFF;
-     *   - historical boolean keys are deliberately ignored;
-     *   - the server independently requires the matching consent marker on
-     *     every /v1/feedback request, so client-side gating is not the sole
-     *     enforcement boundary.
-     *
-     * Turning telemetry off stops future network sends. It does not claim to
-     * erase telemetry that was already accepted by a remote provider.
-     */
-    var _FEEDBACK_TELEMETRY_CONSENT_VERSION = '1.0.0';
-    var _FEEDBACK_TELEMETRY_PREF_KEY = 'ai-assistant-feedback-telemetry-consent';
-    var _feedbackTelemetryGrantedAt = null;
+    // Assistant ratings are local UI state. Network rating telemetry was removed;
+    // explicit page feedback is owned by _sphinx_feedback and reviewed Q&A feedback
+    // remains a separate opt-in workflow under /v1/feedback/review.
 
-    function _readFeedbackTelemetryConsent() {
-        var configuredDefault = (typeof _cfg === 'function' && _cfg().panelFeedbackTelemetryDefault === true);
-        try {
-            var raw = localStorage.getItem(_FEEDBACK_TELEMETRY_PREF_KEY);
-            if (!raw) {
-                _feedbackTelemetryGrantedAt = configuredDefault ? Date.now() : null;
-                return configuredDefault;
-            }
-            var saved = JSON.parse(raw);
-            if (!saved || saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION ||
-                    typeof saved.enabled !== 'boolean') {
-                return false;
-            }
-            if (saved.enabled === false) {
-                _feedbackTelemetryGrantedAt = null;
-                return false;
-            }
-            var grantedAt = Number(saved.grantedAt);
-            if (!Number.isFinite(grantedAt) || grantedAt <= 0) { return false; }
-            _feedbackTelemetryGrantedAt = grantedAt;
-            return true;
-        } catch (_) {
-            return false;
-        }
-    }
-
-    var _feedbackPersistEnabled = _readFeedbackTelemetryConsent();
-
-    // Public same-origin DOM integration is a separate egress boundary from
-    // network telemetry. It is OFF by default and requires its own versioned
-    // permission; enabling telemetry never enables page-script observation.
+    // Public same-origin DOM integration is a separate egress boundary. It is
+    // OFF by default and requires its own versioned permission. Local ratings and
+    // maintainer review do not enable page-script observation.
     var _FEEDBACK_DOM_CONSENT_VERSION = '2.0.0';
     var _FEEDBACK_DOM_PREF_KEY = 'ai-assistant-page-integration-consent';
     function _readFeedbackDomConsent() {
@@ -1150,29 +1105,15 @@
             : 'Page integration off — assistant lifecycle events stay on the private internal event bus.';
     }
 
-    function _feedbackTelemetryStatusText() {
-        return _feedbackPersistEnabled
-            ? 'Permission active — rating metadata may be sent to the configured feedback endpoint.'
-            : 'Local only — no network telemetry. Ratings stay in this browser unless you explicitly contribute content.';
-    }
-
-
-    function _feedbackTelemetryServerStateText() {
-        return _feedbackReviewServerInfo === null
-            ? 'Server persistence: unknown until service discovery completes.'
-            : ('Server persistence: ' + (_feedbackReviewServerInfo.telemetryPersistEnabled ? 'On' : 'Off') +
-                (_feedbackReviewServerInfo.telemetryCompatible ? ' · contract compatible' : ' · contract incompatible/unknown'));
-    }
-
     function _feedbackReviewServerStateText() {
         return _feedbackReviewServerInfo === null
             ? 'Service readiness: unknown until discovery completes.'
             : ('Service readiness: ' + (_feedbackReviewServerInfo.ready ? 'Ready' : 'Not ready') + ' · ' + (_feedbackReviewServerInfo.mode || 'disabled'));
     }
 
-    // Content-bearing maintainer feedback is a separate authority from rating
-    // telemetry. Enabling telemetry never enables this permission and vice
-    // versa. The Sphinx config supplies only the initial review state; a valid
+    // Content-bearing maintainer feedback is an explicit authority separate from
+    // local rating state and generic page feedback. The Sphinx config supplies
+    // only the initial review state; a valid
     // stored reader ON/OFF preference wins thereafter. The review permission
     // authorizes one Q&A + rating + optional
     // note to enter the configured repository review workflow. In consent
@@ -1701,10 +1642,19 @@
         mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
         send:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
-        // GitHub Octicon "comment-discussion" — additive and not wired to a control yet.
-        // Mirrors comment-discussion.svg / _SVG_COMMENT_DISCUSSION in _static/__init__.py.
+        // GitHub Octicon "comment-discussion" — the established generic discussion
+        // glyph used by the Feedback workspace and retained as a compatibility fallback.
+        // Do not repurpose its path for action-specific artwork; add a semantic icon key
+        // instead so existing consumers keep their visual identity. Mirrors
+        // comment-discussion.svg / _SVG_COMMENT_DISCUSSION in _static/__init__.py.
         commentDiscussion: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"/></svg>',
-        // GitHub Octicon "pulse" — feedback/telemetry activity.
+        // Detailed-feedback action glyph (20x20, filled). Keep this separate from
+        // `commentDiscussion`: that existing icon is a broader discussion/workspace
+        // symbol used by other controls. A dedicated registry key lets this row
+        // evolve independently without silently changing those established surfaces.
+        // Mirrors feedback-detail.svg / _SVG_FEEDBACK_DETAIL in _static/__init__.py.
+        feedbackDetail: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" class="icon-xs"><path d="M15.3702 10.3242C15.3702 9.87178 15.3673 9.66262 15.3516 9.53418L15.3311 9.42676C15.2387 9.08236 14.9921 8.8037 14.668 8.66894L14.5255 8.62012C14.4065 8.58823 14.4058 8.58912 14.378 8.58691L13.9171 8.58203L13.7823 8.56836C13.4795 8.50629 13.2522 8.23813 13.252 7.91699C13.252 7.54972 13.5498 7.25195 13.9171 7.25195H15.5538C16.0484 7.25195 16.4596 7.251 16.794 7.27832C17.1361 7.30627 17.4565 7.36647 17.7589 7.52051L17.9288 7.61621C18.3159 7.85359 18.6317 8.19374 18.8389 8.60058L18.8917 8.71484C19.0069 8.98349 19.0567 9.26596 19.0811 9.56543C19.1085 9.89987 19.1075 10.311 19.1075 10.8057V12.4941C19.1053 12.7802 19.095 13.0234 19.0528 13.2422L19.0235 13.3711C18.8093 14.1702 18.211 14.8058 17.4347 15.0703L17.2764 15.1182C16.941 15.208 16.5519 15.2021 16.0352 15.2021C15.9352 15.2022 15.8414 15.2426 15.7725 15.3115L15.712 15.3896L13.6036 19.0801C13.4704 19.3131 13.2098 19.4434 12.9434 19.4102L12.671 19.376C11.1472 19.1855 10.1637 17.665 10.6153 16.1973L10.922 15.2021H10.0001C9.63284 15.2021 9.33508 14.9043 9.33504 14.5371C9.33504 14.1698 9.63281 13.8721 10.0001 13.8721H11.8223C12.0333 13.8721 12.2321 13.972 12.3575 14.1416C12.4828 14.3113 12.5201 14.5308 12.4581 14.7324L11.8868 16.5889C11.6947 17.2134 12.0658 17.8565 12.6759 18.0225L14.5577 14.7295L14.6173 14.6328C14.8037 14.3518 15.0671 14.1366 15.3702 14.0078V10.3242ZM7.07527 0.589843L7.34871 0.624023L7.48934 0.645507C8.8858 0.900505 9.78198 2.28694 9.44149 3.66504L9.4034 3.80273L9.09383 4.80469C9.26639 4.80872 9.42469 4.81491 9.56844 4.82617C9.93535 4.85495 10.2802 4.91643 10.5948 5.08203L10.8272 5.22168C11.3479 5.57355 11.7179 6.11326 11.8555 6.7334L11.88 6.86328C11.9248 7.16766 11.8933 7.4745 11.8331 7.79102C11.799 7.97017 11.7521 8.16961 11.6954 8.39062L11.4991 9.12207L11.2247 10.1299C11.0567 10.746 10.9317 11.2371 10.6895 11.627L10.5782 11.7881C10.3471 12.0873 10.051 12.329 9.71297 12.4951L9.56551 12.5615C9.0832 12.7605 8.52572 12.748 7.79598 12.748H4.46492C3.97039 12.748 3.55908 12.749 3.22469 12.7217C2.92525 12.6972 2.64273 12.6475 2.3741 12.5322L2.25985 12.4795C1.85303 12.2722 1.51283 11.9564 1.27547 11.5693L1.18074 11.3994C1.02663 11.0969 0.965541 10.7768 0.93758 10.4346C0.910255 10.1001 0.911213 9.68897 0.911213 9.19433V7.87012C0.911211 7.35335 0.905318 6.96434 0.995197 6.62891L1.04305 6.47168C1.30751 5.69506 1.9429 5.09604 2.74227 4.88184L2.87117 4.85254C3.17731 4.79349 3.53146 4.79785 3.98348 4.79785C4.11701 4.79785 4.24047 4.72629 4.30672 4.61035L6.41512 0.919921L6.47078 0.83789C6.61342 0.657078 6.84208 0.560753 7.07527 0.589843ZM16.7003 13.8623C16.811 13.8565 16.8768 13.848 16.9327 13.833L17.0763 13.7842C17.4 13.6492 17.6471 13.3706 17.7393 13.0264L17.7589 12.9189C17.7745 12.7905 17.7774 12.5815 17.7774 12.1299V10.8057C17.7774 10.2891 17.7778 9.94154 17.7559 9.67383C17.74 9.47878 17.7144 9.35924 17.6847 9.27637L17.6534 9.2041C17.5713 9.04316 17.4525 8.90503 17.3077 8.7998L17.1554 8.70605C17.0716 8.66338 16.9456 8.62573 16.6856 8.60449C16.6064 8.59802 16.5203 8.59311 16.4249 8.58984C16.505 8.74522 16.57 8.91021 16.6163 9.08301L16.6456 9.21094C16.6879 9.42971 16.6981 9.67298 16.7003 9.95898V13.8623ZM4.64852 9.67578C4.64852 10.2783 4.65443 10.4495 4.68758 10.5732L4.73641 10.7158C4.87123 11.04 5.14969 11.2876 5.49422 11.3799L5.60164 11.3994C5.73008 11.415 5.93904 11.418 6.3907 11.418H7.79598C8.64567 11.418 8.87848 11.4059 9.0577 11.332L9.19149 11.2666C9.32053 11.1924 9.43391 11.0932 9.52547 10.9746L9.56844 10.9131C9.6649 10.7567 9.74567 10.4973 9.94149 9.7793L10.2159 8.77148L10.4073 8.05957C10.4589 7.85882 10.4984 7.6904 10.5264 7.54297C10.568 7.3245 10.5755 7.19026 10.5684 7.09961L10.5577 7.02148C10.4941 6.73503 10.3227 6.48568 10.0821 6.32324L9.97469 6.25879C9.89449 6.2167 9.75934 6.17549 9.46395 6.15234C9.16443 6.12888 8.77153 6.12793 8.19637 6.12793C7.98563 6.12785 7.78753 6.0278 7.66219 5.8584C7.53687 5.68873 7.49869 5.4692 7.56063 5.26758L8.13192 3.41113L8.16317 3.28418C8.27278 2.70117 7.91206 2.13103 7.34285 1.97656L5.46102 5.27051C5.27333 5.59878 4.98538 5.84809 4.64852 5.99121V9.67578ZM2.24129 9.19433C2.24129 9.71091 2.24188 10.0585 2.26375 10.3262C2.28499 10.5861 2.32265 10.7122 2.36531 10.7959L2.45906 10.9482C2.56437 11.0932 2.70323 11.2119 2.86434 11.2939L2.9366 11.3252C3.0194 11.3548 3.13872 11.3796 3.33309 11.3955C3.41216 11.402 3.49855 11.4059 3.59383 11.4092C3.53863 11.3021 3.4897 11.1909 3.45027 11.0752L3.40242 10.917C3.31261 10.5816 3.31844 10.1925 3.31844 9.67578V6.13672C3.26922 6.13929 3.2289 6.1423 3.19442 6.14648L3.08699 6.16699C2.7426 6.25927 2.46406 6.50612 2.32918 6.83008L2.28035 6.97363C2.24726 7.09732 2.24129 7.26819 2.24129 7.87012V9.19433Z"></path></svg>',
+        // GitHub Octicon "pulse" — feedback activity.
         pulse: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"/></svg>',
         // GitHub Octicon "upload" — additive and not wired to a control yet.
         // Mirrors upload.svg / _SVG_UPLOAD in _static/__init__.py.
@@ -5032,7 +4982,7 @@
     //   * matching values never leave this function in a finding object;
     //   * findings contain category/count only (plus harmless Unicode codepoint
     //     names for invisible controls);
-    //   * no finding is logged or included in telemetry;
+    //   * no finding is logged or included in any outbound payload;
     //   * absence of a finding is never described as "safe" / "PII free";
     //   * redaction happens only after the reader explicitly chooses it;
     //   * the original transcript/composer object is never mutated by redaction.
@@ -6216,8 +6166,8 @@
      * V-07 ai-assistant:profile-changed is emitted on the private bus; an optional bounded public projection requires explicit page-integration permission.
      * V-09 _appendProfileCard now reads _EP.getProfile() instead of raw global.
      *
-     * PUBLIC API (backward-compatible; new additions marked +)
-     * ========================================================
+     * CURRENT PUBLIC API
+     * ==================
      * getActive()                     → string   (active profile key)
      * resolve(feature)                → string   (BASE URL, trailing / stripped)
      * resolveToken(tokenKey)          → string
@@ -6261,7 +6211,7 @@
         var _STORAGE_CUSTOM_KEY = 'ai-assistant-ep-custom';
 
         // ── Limits ───────────────────────────────────────────────────────────
-        var _SCHEMA_VER          = 3;    // v3: endpoint tokens are memory-only and scrubbed from persisted profiles
+        var _SCHEMA_VER          = 9;    // v9: retired Assistant feedback endpoint/profile fields removed
         var _MAX_CUSTOM_PROFILES = 20;   // hard cap on runtime-added profiles
         var _MAX_LABEL_LEN       = 80;   // max profile label length (display)
         var _MAX_URL_LEN         = 2048; // max absolute URL length per field
@@ -6270,16 +6220,19 @@
         var _MAX_QUERY_LEN       = 1024; // prevent pathological query payloads
         var _UNSAFE_URL_CHARS_RE = /[\\\x00-\x20\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
 
-        // Default route paths used only when a profile supplies a service base
-        // (or a legacy host-only feature value).  Explicit feature URLs that
-        // already contain a path are treated as COMPLETE endpoints and are
-        // never modified.  This keeps old base-style profiles compatible while
-        // allowing arbitrary provider/proxy routes.
+        // Default route paths used when a profile supplies a service base.
+        // Explicit feature values are either complete absolute endpoints or
+        // Base-relative routes; current profiles never reinterpret a feature
+        // endpoint as a second service base.
         var _FEATURE_ENDPOINT_SUFFIX = {
             chat:     '/v1/chat/completions',
             share:    '/v1/share',
-            feedback: '/v1/feedback',
             training: '/v1/contribute',
+            image:    '/v1/image',
+            video:    '/v1/video',
+            audio:    '/v1/audio',
+            document: '/v1/document',
+            publication: '/v1/learn',
         };
 
         // ── Profile key allowlist ─────────────────────────────────────────────
@@ -6296,6 +6249,10 @@
 
         // In-memory cache avoids repeated localStorage reads on hot paths.
         var _activeCache = null;
+        // Bounded, process-local UI audit only. It contains profile keys/times,
+        // never credentials, request bodies, or network identifiers.
+        var _profileAudit = [];
+        var _PROFILE_AUDIT_LIMIT = 32;
 
         // Build-time default key (injected by Python at page render time).
         var _defaultKey = (typeof window.AI_ASSISTANT_ENDPOINT_DEFAULT === 'string')
@@ -6565,10 +6522,10 @@
                 label: typeof profile.label === 'string' ? profile.label.slice(0, _MAX_LABEL_LEN) : '',
                 base: base.url,
                 datasetRepo: typeof profile.datasetRepo === 'string' ? profile.datasetRepo.trim().slice(0, 200) : '',
-                shareToken: '', feedbackToken: '',
+                shareToken: '',
                 ttlDays: (typeof profile.ttlDays === 'number' && profile.ttlDays > 0) ? Math.floor(profile.ttlDays) : 30,
             };
-            var fields = ['chat', 'share', 'feedback', 'training'];
+            var fields = ['chat', 'share', 'training', 'image', 'video', 'audio', 'document', 'publication'];
             for (var i = 0; i < fields.length; i++) {
                 var checked = _sanitizeRuntimeEndpoint(profile[fields[i]]);
                 if (!checked.ok) {
@@ -6583,7 +6540,7 @@
         // ── Profile shape validator for localStorage reads (V-03) ─────────────
         function _isValidProfileShape(obj) {
             if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
-            var url_keys = ['base', 'chat', 'share', 'feedback', 'training'];
+            var url_keys = ['base', 'chat', 'share', 'training', 'image', 'video', 'audio', 'document', 'publication'];
             for (var i = 0; i < url_keys.length; i++) {
                 var v = obj[url_keys[i]];
                 if (typeof v === 'string' && v) return true;
@@ -6612,6 +6569,7 @@
                 _metadata[k] = { isBuiltin: true, createdAt: null, lastActivated: null };
             }
         }());
+
 // =============================================================================
 // ██████╗  █████╗ ██████╗ ████████╗ ██████╗
 // ██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝ ██╔══██╗
@@ -6621,82 +6579,34 @@
 // ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝
 //
 
-        // ── Bootstrap: restore custom profiles from localStorage (V-03) ───────
+        // ── Bootstrap: restore current custom profiles from localStorage ───────
         (function _loadCustom() {
             var raw = null;
             try { raw = localStorage.getItem(_STORAGE_CUSTOM_KEY); } catch (_) { return; }
             if (!raw) return;
-
             var parsed;
             try { parsed = JSON.parse(raw); } catch (_) { return; }
-
-            // V-03: must be a plain non-array object.
-            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
-
-            // Schema version gate. v1/v2 are accepted only so they can be
-            // migrated into v3, which never persists bearer-token values.
-            var schemaVer = parsed._v;
-            var profilesObj, metaObj;
-            var needsRewrite = false;
-
-            if (typeof schemaVer === 'number' &&
-                    (schemaVer === 1 || schemaVer === 2 || schemaVer === _SCHEMA_VER)) {
-                profilesObj = parsed.profiles;
-                metaObj     = parsed.meta;
-                needsRewrite = schemaVer !== _SCHEMA_VER;
-            } else if (typeof schemaVer === 'undefined') {
-                // Backward-compat: old format was a flat { key: profile } object.
-                profilesObj = parsed;
-                metaObj     = {};
-                needsRewrite = true;
-            } else {
-                // Future schema version — do not attempt to read.
-                return;
-            }
-
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed._v !== _SCHEMA_VER) return;
+            var profilesObj = parsed.profiles;
+            var metaObj = parsed.meta;
             if (!profilesObj || typeof profilesObj !== 'object' || Array.isArray(profilesObj)) return;
-
             var keys = Object.keys(profilesObj);
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                if (!Object.prototype.hasOwnProperty.call(profilesObj, k)) continue;
-
-                // V-02: key safety.
-                if (!_SAFE_KEY_RE.test(k)) continue;
-
-                // Never overwrite build-time profiles with custom ones.
-                if (_builtin[k]) continue;
-
-                var p = profilesObj[k];
-                if (!_isValidProfileShape(p)) continue;
-                // v1/v2 accidentally persisted secret-bearing fields. Detect them
-                // before sanitising so the raw localStorage blob is rewritten and
-                // the stale secret copy is actually removed, not merely ignored.
-                if (Object.prototype.hasOwnProperty.call(p, 'shareToken') ||
-                        Object.prototype.hasOwnProperty.call(p, 'feedbackToken')) {
-                    needsRewrite = true;
-                }
-                var safeStored = _sanitizeStoredProfile(p);
+                if (!Object.prototype.hasOwnProperty.call(profilesObj, k) || !_SAFE_KEY_RE.test(k) || _builtin[k]) continue;
+                var rawProfile = profilesObj[k];
+                if (!_isValidProfileShape(rawProfile)) continue;
+                var safeStored = _sanitizeStoredProfile(rawProfile);
                 if (!safeStored) continue;
-
-                // V-05: cap custom profile count.
-                var customCount = _countCustomOwn();
-                if (customCount >= _MAX_CUSTOM_PROFILES) break;
-
+                if (_countCustomOwn() >= _MAX_CUSTOM_PROFILES) break;
                 _profiles[k] = safeStored;
                 var metaEntry = (metaObj && metaObj[k]) || {};
                 _metadata[k] = {
-                    isBuiltin:     false,
-                    createdAt:     typeof metaEntry.createdAt === 'number' ? metaEntry.createdAt : null,
-                    lastActivated: typeof metaEntry.lastActivated === 'number' ? metaEntry.lastActivated : null,
+                    isBuiltin: false,
+                    createdAt: typeof metaEntry.createdAt === 'number' ? metaEntry.createdAt : null,
+                    lastActivated: typeof metaEntry.lastActivated === 'number' ? metaEntry.lastActivated : null
                 };
             }
-
-            // Function declarations are hoisted within the registry closure, so
-            // this safely rewrites accepted legacy data using the v3 serializer.
-            // The rewrite is best-effort (private/quota storage can fail) but no
-            // token value is copied into the new payload.
-            if (needsRewrite) _persistCustom();
         }());
 
         // ── Internal helpers ──────────────────────────────────────────────────
@@ -6736,8 +6646,12 @@
                         base:        p.base        || '',
                         chat:        p.chat        || '',
                         share:       p.share       || '',
-                        feedback:    p.feedback    || '',
                         training:    p.training    || '',
+                        image:       p.image       || '',
+                        video:       p.video       || '',
+                        audio:       p.audio       || '',
+                        document:    p.document    || '',
+                        publication: p.publication || '',
                         datasetRepo: p.datasetRepo || '',
                         ttlDays:     p.ttlDays     || 30,
                     };
@@ -6809,37 +6723,14 @@
             return /^https?:\/\//i.test(String(value || '').trim());
         }
 
-        /**
-         * Decide whether an explicit feature URL is a legacy BASE value.
-         *
-         * Compatibility rule:
-         * - exact match with profile.base => base-style override
-         * - host root with no query/hash   => legacy base-style value
-         * - anything with a path/query    => complete endpoint URL
-         *
-         * The last rule is what enables non-standard providers and proxies: an
-         * explicit `https://host/custom/chat` is sent verbatim rather than
-         * receiving a hard-coded `/v1/chat/completions` suffix.
-         */
-        function _isLegacyFeatureBase(explicitUrl, profileBase) {
-            var value = String(explicitUrl || '').trim().replace(/\/+$/, '');
-            var base = String(profileBase || '').trim().replace(/\/+$/, '');
-            if (!value) return false;
-            if (base && value === base) return true;
-            try {
-                var parsed = new URL(value);
-                var path = String(parsed.pathname || '/').replace(/\/+$/, '') || '/';
-                return path === '/' && !parsed.search && !parsed.hash;
-            } catch (_) {
-                return false;
-            }
+        /** Return the configured current profile value, falling back to Base. */
+        function resolve(feature) {
+            return resolveFor(feature, getActive());
         }
 
-        /** Resolve the configured feature value (legacy compatibility API). */
-        function resolve(feature) {
-            var key = getActive();
-            if (!key) return '';
-            var profile = _profiles[key];
+        /** Resolve a configured value for an arbitrary profile without switching it. */
+        function resolveFor(feature, profileKey) {
+            var profile = _profiles[String(profileKey || '')];
             if (!profile) return '';
             var explicit = profile[feature];
             if (explicit !== undefined && explicit !== null && String(explicit).trim()) {
@@ -6848,31 +6739,32 @@
             return String(profile.base || '').trim().replace(/\/+$/, '');
         }
 
-        /**
-         * Resolve the COMPLETE request endpoint for a feature.
-         *
-         * Explicit path-bearing feature URLs win verbatim.  Blank feature URLs
-         * inherit `base` + the built-in default path.  Legacy host-only feature
-         * values are still interpreted as bases and receive that default path.
-         */
-        function resolveEndpoint(feature) {
-            var key = getActive();
-            if (!key) return '';
-            var profile = _profiles[key];
+        /** Resolve a complete request endpoint from current profile semantics. */
+        function _resolveEndpointFromProfile(profile, feature) {
             if (!profile) return '';
             var rawExplicit = profile[feature];
             var explicit = (rawExplicit === undefined || rawExplicit === null)
                 ? '' : String(rawExplicit).trim().replace(/\/+$/, '');
             var base = String(profile.base || '').trim().replace(/\/+$/, '');
             if (explicit) {
-                if (!_isAbsoluteHttpEndpoint(explicit)) {
-                    return base ? _joinRelativeEndpoint(base, explicit) : '';
-                }
-                return _isLegacyFeatureBase(explicit, base)
-                    ? _joinFeatureEndpoint(explicit, feature)
-                    : explicit;
+                if (_isAbsoluteHttpEndpoint(explicit)) return explicit;
+                return base ? _joinRelativeEndpoint(base, explicit) : '';
             }
             return base ? _joinFeatureEndpoint(base, feature) : '';
+        }
+
+        function resolveEndpoint(feature) {
+            return resolveEndpointFor(feature, getActive());
+        }
+
+        function resolveEndpointFor(feature, profileKey) {
+            return _resolveEndpointFromProfile(_profiles[String(profileKey || '')], feature);
+        }
+
+        /** Return the explicit service Base for a profile. */
+        function resolveBaseFor(profileKey) {
+            var profile = _profiles[String(profileKey || '')];
+            return profile ? String(profile.base || '').trim().replace(/\/+$/, '') : '';
         }
 
         // ── Public: resolveToken ──────────────────────────────────────────────
@@ -6906,11 +6798,17 @@
          */
         function setActive(profileKey) {
             if (!_profiles[profileKey]) return false;
+            var previous = getActive();
+            var now = Date.now();
             _activeCache = profileKey;
             try { localStorage.setItem(_STORAGE_KEY, profileKey); } catch (_) {}
             if (_metadata[profileKey]) {
-                _metadata[profileKey].lastActivated = Date.now();
+                _metadata[profileKey].lastActivated = now;
                 if (!_builtin[profileKey]) _persistCustom();
+            }
+            if (previous !== profileKey) {
+                _profileAudit.unshift({ ts: now, from: previous || '', to: profileKey });
+                if (_profileAudit.length > _PROFILE_AUDIT_LIMIT) _profileAudit.length = _PROFILE_AUDIT_LIMIT;
             }
             _dispatchProfileChange(profileKey);
             return true;
@@ -6967,11 +6865,14 @@
                 base:          p.base          !== undefined && p.base          !== null ? String(p.base)          : '',
                 chat:          p.chat          !== undefined && p.chat          !== null ? String(p.chat)          : '',
                 share:         p.share         !== undefined && p.share         !== null ? String(p.share)         : '',
-                feedback:      p.feedback      !== undefined && p.feedback      !== null ? String(p.feedback)      : '',
                 training:      p.training      !== undefined && p.training      !== null ? String(p.training)      : '',
+                image:         p.image         !== undefined && p.image         !== null ? String(p.image)         : '',
+                video:         p.video         !== undefined && p.video         !== null ? String(p.video)         : '',
+                audio:         p.audio         !== undefined && p.audio         !== null ? String(p.audio)         : '',
+                document:      p.document      !== undefined && p.document      !== null ? String(p.document)      : '',
+                publication:   p.publication   !== undefined && p.publication   !== null ? String(p.publication)   : '',
                 datasetRepo:   p.datasetRepo   !== undefined && p.datasetRepo   !== null ? String(p.datasetRepo)   : '',
                 shareToken:    _runtimeTokensAllowed() && p.shareToken    !== undefined && p.shareToken    !== null ? String(p.shareToken)    : '',
-                feedbackToken: _runtimeTokensAllowed() && p.feedbackToken !== undefined && p.feedbackToken !== null ? String(p.feedbackToken) : '',
                 ttlDays:       typeof p.ttlDays === 'number' ? p.ttlDays : 30,
                 source:        _builtin[key] ? 'build' : 'custom',
                 // _warn: build-time SSRF advisory list (array of field names).
@@ -7025,7 +6926,7 @@
             var baseResult = _sanitizeRuntimeUrl(profile.base, false);
             if (!baseResult.ok) { _endpointSecurityWarn(baseResult.code || 'BASE_REJECTED', 'base'); return { ok: false, error: 'base: ' + baseResult.error }; }
             sanitized.base = baseResult.url;
-            var endpointKeys = ['chat', 'share', 'feedback', 'training'];
+            var endpointKeys = ['chat', 'share', 'training', 'image', 'video', 'audio', 'document', 'publication'];
             for (var i = 0; i < endpointKeys.length; i++) {
                 var field  = endpointKeys[i];
                 var result = _sanitizeRuntimeEndpoint(profile[field]);
@@ -7033,7 +6934,7 @@
                 sanitized[field] = result.url;
             }
             // Token fields: strip control characters only; never validate URL.
-            var tok_keys = ['shareToken', 'feedbackToken'];
+            var tok_keys = ['shareToken'];
             for (var j = 0; j < tok_keys.length; j++) {
                 var tok = profile[tok_keys[j]];
                 sanitized[tok_keys[j]] = (_runtimeTokensAllowed() && typeof tok === 'string')
@@ -7075,16 +6976,54 @@
             return { ok: true };
         }
 
-        // ── Public: exportCustom ──────────────────────────────────────────────
-        /**
-         * Serialise all custom profiles to a JSON string for user download.
-         *
-         * Token values and token fields are OMITTED from the export.
-         * The exported object contains only non-secret routing/preferences and
-         * is suitable for sharing or adapting as static configuration.
-         *
-         * @returns {string}  Pretty-printed JSON.
-         */
+        // ── Current custom-profile helpers ─────────────────────────────────
+        function _keyFromLabel(label) {
+            var base = 'custom_' + String(label || 'profile')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '').slice(0, 50);
+            return /^[a-z]/.test(base) ? base : 'custom_' + base.replace(/^[^a-z]+/, '');
+        }
+
+        function addCustomProfile(profile) {
+            if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+                return { ok: false, error: 'Profile data must be a plain object.' };
+            }
+            var baseKey = _keyFromLabel(profile.label || 'profile');
+            var key = baseKey;
+            var suffix = 2;
+            while (_profiles[key] && suffix <= 9999) { key = (baseKey.slice(0, 58) + '_' + suffix++).slice(0, 64); }
+            if (_profiles[key]) return { ok: false, error: 'Unable to allocate a unique profile key.' };
+            var result = addProfile(key, profile);
+            return result && result.ok ? { ok: true, key: key } : result;
+        }
+
+        function deleteCustomProfile(key) {
+            var result = removeProfile(key);
+            return !!(result && result.ok);
+        }
+
+        function clearCustom() {
+            var rows = listCustom().slice();
+            var removed = 0;
+            for (var i = 0; i < rows.length; i++) {
+                var result = removeProfile(rows[i].key);
+                if (result && result.ok) removed++;
+            }
+            return removed;
+        }
+
+        function importProfile(key, profile) {
+            var result = addProfile(key, profile);
+            return result && result.ok ? { ok: true, key: key } : result;
+        }
+
+        function register(key, profile, active) {
+            var result = addProfile(key, profile);
+            if (!result || !result.ok) return null;
+            if (active) setActive(key);
+            return key;
+        }
+
         function exportCustom() {
             var out = {};
             var keys = Object.keys(_profiles);
@@ -7093,19 +7032,42 @@
                 if (_builtin[k]) continue;
                 var p = _profiles[k];
                 out[k] = {
-                    label:       p.label       || k,
-                    base:        p.base        || '',
-                    chat:        p.chat        || '',
-                    share:       p.share       || '',
-                    feedback:    p.feedback    || '',
-                    training:    p.training    || '',
-                    datasetRepo: p.datasetRepo || '',
-                    // Tokens intentionally excluded.
-                    ttlDays:     p.ttlDays     || 30,
+                    label: p.label || k, base: p.base || '', chat: p.chat || '',
+                    share: p.share || '', training: p.training || '', image: p.image || '',
+                    video: p.video || '', audio: p.audio || '', document: p.document || '',
+                    publication: p.publication || '', datasetRepo: p.datasetRepo || '',
+                    ttlDays: p.ttlDays || 30
                 };
             }
-            try { return JSON.stringify(out, null, 2); } catch (_) { return '{}'; }
+            return out;
         }
+
+        function exportCustomJson() {
+            try { return JSON.stringify(exportCustom(), null, 2); } catch (_) { return '{}'; }
+        }
+
+        function onChange(callback) {
+            if (typeof callback !== 'function') return function () {};
+            var previous = getActive();
+            var target = (typeof _assistantEvents !== 'undefined' && _assistantEvents) ? _assistantEvents : document;
+            var handler = function (event) {
+                var detail = (event && event.detail) || {};
+                var next = detail.activeKey || getActive();
+                var payload = { from: previous || '', to: next || '', profile: getProfile(next) };
+                previous = next || '';
+                try { callback(payload); } catch (_) {}
+            };
+            target.addEventListener('ai-assistant:profile-changed', handler);
+            return function () { try { target.removeEventListener('ai-assistant:profile-changed', handler); } catch (_) {} };
+        }
+
+        function auditLog() { return _profileAudit.slice(); }
+        function isKeyAvailable(key) { return typeof key === 'string' && _SAFE_KEY_RE.test(key) && !_profiles[key]; }
+        function isPrivateUrl(url) {
+            var result = validateUrl(url);
+            return !!(result && !result.ok && result.code === 'URL_PRIVATE_HOST');
+        }
+        function isHttpUrl(url) { return typeof url === 'string' && /^http:\/\//i.test(url.trim()); }
 
         // ── Public: countCustom ───────────────────────────────────────────────
         function countCustom() { return _countCustomOwn(); }
@@ -7118,7 +7080,10 @@
         return {
             getActive:           getActive,
             resolve:             resolve,
+            resolveFor:          resolveFor,
             resolveEndpoint:     resolveEndpoint,
+            resolveEndpointFor:  resolveEndpointFor,
+            resolveBaseFor:      resolveBaseFor,
             resolveToken:        resolveToken,
             resolveTtlDays:      resolveTtlDays,
             setActive:           setActive,
@@ -7129,443 +7094,66 @@
             getProfile:          getProfile,
             getMetadata:         getMetadata,
             addProfile:          addProfile,
+            addCustomProfile:    addCustomProfile,
             removeProfile:       removeProfile,
+            deleteCustomProfile: deleteCustomProfile,
+            clearCustom:         clearCustom,
+            importProfile:       importProfile,
+            register:            register,
             exportCustom:        exportCustom,
+            exportCustomJson:    exportCustomJson,
             countCustom:         countCustom,
+            onChange:            onChange,
+            auditLog:            auditLog,
+            isKeyAvailable:      isKeyAvailable,
+            isPrivateUrl:        isPrivateUrl,
+            isHttpUrl:           isHttpUrl,
             validateUrl:         validateUrl,
             validateEndpoint:    validateEndpoint,
             MAX_CUSTOM_PROFILES: _MAX_CUSTOM_PROFILES,
         };
     }());
 
-    /**
-     * Normalise a legacy flat endpoint setting into a complete request URL.
-     * Host-only values keep historical base semantics; path-bearing values are
-     * treated as complete endpoints.  This lets old flat conf.py keys opt into
-     * custom provider routes without a profile migration.
-     */
-    function _resolveFlatFeatureEndpoint(raw, defaultSuffix) {
-        var value = String(raw || '').trim().replace(/\/+$/, '');
-        if (!value) return '';
-        try {
-            var u = new URL(value);
-            var path = String(u.pathname || '/').replace(/\/+$/, '') || '/';
-            if (path === '/' && !u.search && !u.hash) {
-                return value + defaultSuffix;
-            }
-        } catch (_) {}
-        return value;
-    }
 
-// =============================================================================
-// _EP Compatibility Shim - bridges the _EP IIFE to the full profile API surface
-// =============================================================================
-//
-// Some callers use profile methods that older _EP IIFE variants did not define.
-// This shim provides them by delegating to the methods that ARE present
-// (addProfile, removeProfile, countCustom, etc.).
-//
-// Idempotent by construction: each method is added only if absent, so the shim
-// is safe even when a newer _EP IIFE already defines these methods.
-//
-// PUBLIC API ADDED
-// ----------------
-//   _EP.addCustomProfile(data)           → {ok, key} | {ok:false, error}
-//   _EP.deleteCustomProfile(key)         → boolean
-//   _EP.customCount()                    → number
-//   _EP.clearCustom()                    → number  (removed count)
-//   _EP.importProfile(key, data)         → {ok, key} | {ok:false, error}
-//   _EP.register(key, data, active)      → string | null
-//   _EP.exportCustom()          OVERRIDE → Object  (was string in older IIFEs)
-//   _EP.exportCustomJson()               → string  (preserves old behaviour)
-//   _EP.onChange(cb)                     → unsubscribe function
-//   _EP.auditLog()                       → Array  (stub; returns [])
-//   _EP.resolveFor(feature, profileKey)          → configured URL/base
-//   _EP.resolveEndpointFor(feature, profileKey)  → complete request URL
-//   _EP.isPrivateUrl(url)                → boolean
-//   _EP.isHttpUrl(url)                   → boolean
-//   _EP.isKeyAvailable(key)              → boolean
-//   _EP.VERSION                          → '2.0-compat'
-//   _EP.MAX_CUSTOM                       → 20 (or MAX_CUSTOM_PROFILES)
-// =============================================================================
-
-    /* jshint esversion:8 */   /* async/await used below (ES2017); not ES5 */
-    if (typeof _EP.resolve === 'function' &&
-            typeof _EP.addCustomProfile !== 'function') {
-
-        (function (_ep) {
-            'use strict';
-
-            // ── internal helpers ───────────────────────────────────────────
-
-            /** Convert a human label into a safe profile key string. */
-            function _keyFromLabel(label) {
-                var base = 'custom_' + String(label || 'profile')
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '')
-                    .slice(0, 50);
-                return (/^[a-z]/.test(base)) ? base
-                     : 'custom_' + base.replace(/^[^a-z]+/, '');
-            }
-
-            /**
-             * Snapshot of the last active key — used to synthesise the
-             * {from, to} payload that onChange callbacks expect.
-             */
-            var _prevKey = (typeof _ep.getActive === 'function')
-                ? (_ep.getActive() || '') : '';
-
-            // ── exportCustom / exportCustomJson ────────────────────────────
-
-            /**
-             * Preserve the original serialiser under a new name before
-             * overriding exportCustom to return an Object (v2.1 contract).
-             * The build sheet uses:
-             *   Object.keys(_ep.exportCustom()).length === 0   ← needs Object
-             *   JSON.stringify(_ep.exportCustomJson())         ← needs string
-             */
-            _ep.exportCustomJson = (typeof _ep.exportCustom === 'function')
-                ? _ep.exportCustom.bind(_ep)
-                : function () { return '{}'; };
-
-            _ep.exportCustom = function () {
-                var json = _ep.exportCustomJson();
-                try { return JSON.parse(json) || {}; } catch (_) { return {}; }
+    // Read-only routing bridge for sibling AI Learn runtimes. Generic page
+    // feedback is intentionally not an Assistant endpoint-profile feature.
+    // Token-bearing fields never cross this boundary.
+    try {
+        var _PUBLIC_ENDPOINT_FEATURES = new Set([
+            'chat', 'share', 'training', 'image', 'video', 'audio', 'document', 'publication'
+        ]);
+        function _publicEndpointProfile(key) {
+            var p = _EP.getProfile(String(key || ''));
+            if (!p) return null;
+            var out = {
+                label: p.label || '', base: p.base || '', chat: p.chat || '', share: p.share || '',
+                training: p.training || '', image: p.image || '', video: p.video || '', audio: p.audio || '',
+                document: p.document || '', publication: p.publication || '', datasetRepo: p.datasetRepo || '',
+                ttlDays: p.ttlDays || 30, source: p.source || ''
             };
-
-            // ── addCustomProfile ───────────────────────────────────────────
-
-            /**
-             * Add a new custom profile, auto-deriving a unique key from the
-             * profile's label field.
-             *
-             * Parameters
-             * ----------
-             * data : Object
-             *     Profile descriptor {label, chat, share, feedback, …}.
-             *
-             * Returns
-             * -------
-             * {ok: true, key: string} | {ok: false, error: string}
-             */
-            _ep.addCustomProfile = function (data) {
-                if (!data || typeof data !== 'object' || Array.isArray(data)) {
-                    return { ok: false, error: 'Profile data must be a plain object.' };
-                }
-                var key = _keyFromLabel(data.label || '');
-                var r = _ep.addProfile(key, data);
-                return (r && r.ok) ? { ok: true, key: key }
-                                   : (r || { ok: false, error: 'addProfile returned falsy.' });
-            };
-
-            // ── deleteCustomProfile ────────────────────────────────────────
-
-            /**
-             * Remove a custom profile by key.
-             *
-             * Parameters
-             * ----------
-             * key : string
-             *
-             * Returns
-             * -------
-             * boolean   true if removed, false if not found or built-in.
-             */
-            _ep.deleteCustomProfile = function (key) {
-                var r = _ep.removeProfile(key);
-                return !!(r && r.ok);
-            };
-
-            // ── customCount ────────────────────────────────────────────────
-
-            /**
-             * Return the count of currently registered custom profiles.
-             *
-             * Returns
-             * -------
-             * number
-             */
-            _ep.customCount = function () {
-                return (typeof _ep.countCustom === 'function') ? _ep.countCustom() : 0;
-            };
-
-            // ── clearCustom ────────────────────────────────────────────────
-
-            /**
-             * Remove all custom profiles from the registry and localStorage.
-             *
-             * Returns
-             * -------
-             * number   Count of profiles that were removed.
-             */
-            _ep.clearCustom = function () {
-                var list = (typeof _ep.listCustom === 'function') ? _ep.listCustom() : [];
-                var removed = 0;
-                for (var i = 0; i < list.length; i++) {
-                    var r = _ep.removeProfile(list[i].key);
-                    if (r && r.ok) { removed++; }
-                }
-                return removed;
-            };
-
-            // ── importProfile ──────────────────────────────────────────────
-
-            /**
-             * Import a profile under an explicit key (e.g. restored from JSON).
-             *
-             * Parameters
-             * ----------
-             * key  : string
-             * data : Object
-             *
-             * Returns
-             * -------
-             * {ok: true, key: string} | {ok: false, error: string}
-             */
-            _ep.importProfile = function (key, data) {
-                var r = _ep.addProfile(key, data);
-                return (r && r.ok) ? { ok: true, key: key }
-                                   : (r || { ok: false, error: 'addProfile returned falsy.' });
-            };
-
-            // ── register ──────────────────────────────────────────────────
-
-            /**
-             * Register a profile and optionally activate it immediately.
-             *
-             * Parameters
-             * ----------
-             * key    : string
-             * data   : Object
-             * active : boolean   If true, call setActive(key) on success.
-             *
-             * Returns
-             * -------
-             * string | null   The registered key on success; null on failure.
-             */
-            _ep.register = function (key, data, active) {
-                var r = _ep.addProfile(key, data);
-                if (!r || !r.ok) { return null; }
-                if (active) { _ep.setActive(key); }
-                return key;
-            };
-
-            // ── onChange ───────────────────────────────────────────────────
-
-            /**
-             * Subscribe to profile-switch events.
-             *
-             * The callback receives a payload:
-             *   { from: string, to: string, profile: Object|null }
-             *
-             * This matches the v2.1 IIFE _notify() contract.
-             *
-             * Parameters
-             * ----------
-             * cb : Function   Receives the payload object on each switch.
-             *
-             * Returns
-             * -------
-             * Function   Unsubscribe function — call it to detach the listener.
-             */
-            _ep.onChange = function (cb) {
-                if (typeof cb !== 'function') { return function () {}; }
-
-                var handler = function (evt) {
-                    var d      = (evt && evt.detail) || {};
-                    var newKey = d.activeKey ||
-                        (typeof _ep.getActive === 'function' ? _ep.getActive() : '');
-                    var payload = {
-                        from:    _prevKey,
-                        to:      newKey,
-                        profile: (typeof _ep.getProfile === 'function')
-                                 ? _ep.getProfile(newKey) : null,
-                    };
-                    _prevKey = newKey;
-                    try { cb(payload); } catch (_err) { /* isolate subscriber errors */ }
-                };
-
-                (typeof _assistantEvents !== 'undefined' ? _assistantEvents : document).addEventListener('ai-assistant:profile-changed', handler);
-                return function unsubscribe() {
-                    (typeof _assistantEvents !== 'undefined' ? _assistantEvents : document).removeEventListener('ai-assistant:profile-changed', handler);
-                };
-            };
-
-            // ── auditLog ───────────────────────────────────────────────────
-
-            /**
-             * Return the profile-switch audit log.
-             *
-             * This IIFE variant does not maintain a persistent audit log.
-             * Returns an empty array for forward compatibility with callers
-             * that render the log in the UI (§3 info card "Last switched").
-             *
-             * Returns
-             * -------
-             * Array<{ts: number, from: string, to: string, label: string}>
-             */
-            _ep.auditLog = function () { return []; };
-
-            // ── resolveFor ─────────────────────────────────────────────────
-
-            /**
-             * Resolve a feature URL for an arbitrary profile key without
-             * changing the currently active profile.
-             *
-             * Parameters
-             * ----------
-             * feature    : string   Feature key ('chat', 'share', 'feedback').
-             * profileKey : string   Target profile key.
-             *
-             * Returns
-             * -------
-             * string   URL with trailing slash removed, or '' if not found.
-             */
-            _ep.resolveFor = function (feature, profileKey) {
-                if (typeof _ep.getProfile !== 'function') { return ''; }
-                var profile = _ep.getProfile(profileKey);
-                if (!profile) { return ''; }
-                return String(profile[feature] || profile.base || '').replace(/\/+$/, '');
-            };
-
-            /** Resolve a COMPLETE request endpoint for an arbitrary profile. */
-            _ep.resolveEndpointFor = function (feature, profileKey) {
-                if (typeof _ep.getProfile !== 'function') { return ''; }
-                var profile = _ep.getProfile(profileKey);
-                if (!profile) { return ''; }
-                var rawExplicit = profile[feature];
-                var explicit = (rawExplicit === undefined || rawExplicit === null)
-                    ? '' : String(rawExplicit).trim().replace(/\/+$/, '');
-                var base = String(profile.base || '').trim().replace(/\/+$/, '');
-                var suffixes = {
-                    chat: '/v1/chat/completions', share: '/v1/share',
-                    feedback: '/v1/feedback', training: '/v1/contribute'
-                };
-                var suffix = suffixes[feature] || '';
-                function joinDefault(root) {
-                    root = String(root || '').trim().replace(/\/+$/, '');
-                    return root && suffix ? root + suffix : root;
-                }
-                function joinRelative(root, route) {
-                    root = String(root || '').trim().replace(/\/+$/, '');
-                    route = String(route || '').trim().replace(/^\/+/, '').replace(/\/+$/, '');
-                    return root && route ? root + '/' + route : '';
-                }
-                if (explicit) {
-                    if (!/^https?:\/\//i.test(explicit)) {
-                        return base ? joinRelative(base, explicit) : '';
-                    }
-                    if (base && explicit === base) return joinDefault(explicit);
-                    try {
-                        var parsed = new URL(explicit);
-                        var path = String(parsed.pathname || '/').replace(/\/+$/, '') || '/';
-                        if (path === '/' && !parsed.search && !parsed.hash) return joinDefault(explicit);
-                    } catch (_) {}
-                    return explicit;
-                }
-                return base ? joinDefault(base) : '';
-            };
-
-            /** Return the canonical one-service base for a profile. */
-            _ep.resolveBaseFor = function (profileKey) {
-                if (typeof _ep.getProfile !== 'function') { return ''; }
-                var profile = _ep.getProfile(profileKey);
-                if (!profile) { return ''; }
-                if (profile.base) { return String(profile.base).replace(/\/+$/, ''); }
-                // Legacy host-only profile: keep the old base.  If the first
-                // value is already a full standard endpoint, strip only the
-                // known default suffix; arbitrary custom routes cannot safely
-                // reveal a service base, so fall back to their origin.
-                var first = String(profile.chat || profile.share || profile.feedback || profile.training || '')
-                    .replace(/\/+$/, '');
-                if (!first) return '';
-                var known = ['/v1/chat/completions', '/v1/share', '/v1/feedback', '/v1/contribute'];
-                for (var i = 0; i < known.length; i++) {
-                    if (first.slice(-known[i].length) === known[i]) {
-                        return first.slice(0, -known[i].length).replace(/\/+$/, '');
-                    }
-                }
-                if (!/^https?:\/\//i.test(first)) return '';
-                try {
-                    var u = new URL(first);
-                    var p = String(u.pathname || '/').replace(/\/+$/, '') || '/';
-                    return p === '/' ? first : u.origin;
-                } catch (_) { return first; }
-            };
-
-            // ── isPrivateUrl ───────────────────────────────────────────────
-
-            /**
-             * Returns true if the URL would be blocked by the SSRF guard
-             * (loopback, RFC-1918, link-local, metadata endpoints, etc.).
-             *
-             * Parameters
-             * ----------
-             * url : string
-             *
-             * Returns
-             * -------
-             * boolean
-             */
-            _ep.isPrivateUrl = function (url) {
-                if (typeof _ep.validateUrl !== 'function') { return false; }
-                var r = _ep.validateUrl(url);
-                return !!(r && !r.ok && r.error &&
-                    /private|reserved|blocked|loopback|local|metadata|internal/i
-                        .test(r.error));
-            };
-
-            // ── isHttpUrl ──────────────────────────────────────────────────
-
-            /**
-             * Returns true if the URL uses the plain http: scheme.
-             * Used to render the SSRF-downgrade badge in the UI.
-             *
-             * Parameters
-             * ----------
-             * url : string
-             *
-             * Returns
-             * -------
-             * boolean
-             */
-            _ep.isHttpUrl = function (url) {
-                return typeof url === 'string' &&
-                       /^http:\/\//i.test(url.trim());
-            };
-
-            // ── isKeyAvailable ─────────────────────────────────────────────
-
-            /**
-             * Returns true if the given key is not yet registered in the
-             * profile registry (safe to use for a new addProfile call).
-             *
-             * Parameters
-             * ----------
-             * key : string
-             *
-             * Returns
-             * -------
-             * boolean
-             */
-            _ep.isKeyAvailable = function (key) {
-                if (typeof _ep.getProfile !== 'function') { return true; }
-                return _ep.getProfile(key) === null;
-            };
-
-            // ── VERSION / MAX_CUSTOM ───────────────────────────────────────
-
-            if (!_ep.VERSION) {
-                _ep.VERSION = '2.0-compat';
-            }
-            if (!_ep.MAX_CUSTOM) {
-                _ep.MAX_CUSTOM = _ep.MAX_CUSTOM_PROFILES || 20;
-            }
-
-        }(_EP));
-    }
-    // ── end _EP Compatibility Shim ─────────────────────────────────────────
+            try { Object.freeze(out); } catch (_) {}
+            return out;
+        }
+        var _endpointBridge = {
+            resolveEndpoint: function (feature) {
+                feature = String(feature || '');
+                return _PUBLIC_ENDPOINT_FEATURES.has(feature) ? _EP.resolveEndpoint(feature) : '';
+            },
+            getActiveProfile: function () { return _EP.getActive(); },
+            getProfile: function (key) { return _publicEndpointProfile(key); },
+            listProfiles: function () { return _EP.list(); },
+            onProfileChange: function (callback) {
+                if (typeof callback !== 'function') return function () {};
+                return _EP.onChange(function (payload) {
+                    try { callback({ from: payload.from || '', to: payload.to || '', profile: _publicEndpointProfile(payload.to) }); } catch (_) {}
+                });
+            },
+        };
+        Object.freeze(_endpointBridge);
+        Object.defineProperty(window, 'AI_ASSISTANT_ENDPOINT_API', {
+            value: _endpointBridge, configurable: false, enumerable: false, writable: false
+        });
+    } catch (_) {}
 
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -8537,28 +8125,13 @@
         }
     }
 
-    /**
-     * POST a single feedback record to the configured feedback endpoint.
-     *
-     * @param {string} url    Endpoint URL from cfg.panelFeedbackEndpoint.
-     * @param {string} token  Bearer token from cfg.panelFeedbackToken ('' for none).
-     * @param {Object} detail Local feedback detail object; network transmission is reduced to schemaVersion 4 telemetry.
-     * @returns {void}
-     *
-     * @remarks
-     * Developer: keepalive:true is intentional.  A user who rates the last
-     * answer then navigates away triggers page unload.  Without keepalive the
-     * fetch is cancelled and the rating is lost.  The detail payload is ~2 KB —
-     * well within the browser's keepalive body size limit (~64 KB).
-     */
-    function _feedbackTelemetryPayload(detail) {
+    function _feedbackLocalEventPayload(detail) {
+        // Public same-origin integration remains content-free. This projection is
+        // local-only: it is never POSTed by the Assistant runtime.
         detail = detail || {};
         return {
             schemaVersion: 4,
             action: 'rate',
-            telemetryConsent: true,
-            telemetryConsentVersion: _FEEDBACK_TELEMETRY_CONSENT_VERSION,
-            telemetryConsentAt: _feedbackTelemetryGrantedAt,
             feedbackId: detail.feedbackId || null,
             feedbackChainId: detail.feedbackChainId || null,
             prevFeedbackId: detail.prevFeedbackId || null,
@@ -8573,74 +8146,18 @@
         };
     }
 
-    function _feedbackLocalEventPayload(detail) {
-        // Public DOM hooks are intentionally content-free. Page scripts can
-        // observe the user's local rating interaction, but this extension never
-        // broadcasts the question, answer, note, model, page, or stable browser
-        // conversation identifier through the feedback event.
-        var out = _feedbackTelemetryPayload(detail);
-        delete out.telemetryConsent;
-        delete out.telemetryConsentVersion;
-        delete out.telemetryConsentAt;
-        return out;
-    }
-
     function _dispatchFeedbackIntegrationEvent(detail) {
         try {
             if (typeof _dispatchAssistantEvent === 'function') {
                 _dispatchAssistantEvent(new CustomEvent('ai-assistant-feedback', { detail: detail || {} }));
                 return _feedbackDomIntegrationEnabled;
             }
-            // Isolated helper-test fallback. The complete bundle never takes
-            // this branch because _dispatchAssistantEvent is defined globally.
             if (!_feedbackDomIntegrationEnabled) return false;
             document.dispatchEvent(new CustomEvent('ai-assistant-feedback', {
                 detail: _feedbackLocalEventPayload(detail || {})
             }));
             return true;
         } catch (_) { return false; }
-    }
-
-    function _postFeedback(url, token, detail) {
-        // Defence in depth: callers cannot accidentally bypass the UI consent
-        // gate by invoking this helper directly.
-        if (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) { return false; }
-        // Privacy boundary: query/answer/comment/model/page/conversation identifiers
-        // stay local unless the user separately chooses the contribution flow.
-        _remotePost(url, token, _feedbackTelemetryPayload(detail), { keepalive: true });
-        return true;
-    }
-
-    /**
-     * POST a content-free telemetry supersession marker.
-     *
-     * This is rating-mechanics telemetry only. It never carries Q&A text,
-     * written feedback, model/page data, or a stable conversation identifier.
-     * It is subject to the same explicit telemetry permission as a rating POST
-     * and stops immediately when that permission is disabled.
-     */
-    function _postFeedbackRetract(url, token, priorEntry, answerIndex) {
-        // Retraction is still a network telemetry operation. Never transmit it
-        // after permission has been turned off; stopping telemetry must be a
-        // true network stop, not a final hidden request.
-        var lineage = _feedbackRetractionLineage(priorEntry);
-        if (!url || !lineage || !_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) {
-            return false;
-        }
-        _remotePost(url, token, {
-            action:         'retract',
-            schemaVersion:  4,
-            telemetryConsent: true,
-            telemetryConsentVersion: _FEEDBACK_TELEMETRY_CONSENT_VERSION,
-            telemetryConsentAt: _feedbackTelemetryGrantedAt,
-            feedbackChainId: lineage.feedbackChainId,
-            prevFeedbackId:  lineage.prevFeedbackId,
-            prevFeedbackIds: lineage.prevFeedbackIds,
-            editCount:      lineage.prevFeedbackIds.length,
-            answerIndex:    answerIndex,
-            ts:             Date.now(),
-        }, { keepalive: true });
-        return true;
     }
 
     /**
@@ -8875,11 +8392,9 @@
      * Notes
      * -----
      * Developer: ``_feedbackStore[answerIndex]._pendingRetract`` is the
-     *   signal that this is an edit pass.  The submit handler reads the
-     *   stored ``sessionId``, fires ``_postFeedbackRetract``, clears the
-     *   flag, then fires ``_postFeedback`` with the new record.  The flag
-     *   is cleared immediately before both POSTs to prevent double-retraction
-     *   on rapid re-submit.
+     *   signal that this is an edit pass. The submit handler updates local
+     *   lineage/state first; only the independently authorized maintainer-review
+     *   workflow may send content through ``/v1/feedback/review``.
      * Developer: The ``chosen`` closure tracks the currently selected option
      *   across button clicks; it is pre-seeded when editing so the user can
      *   submit immediately without re-selecting if only the message changed.
@@ -9053,35 +8568,8 @@
             };
 
             // Optional page-integration event. This is a separate explicit
-            // permission from network telemetry and is Off by default.
+            // permission from maintainer review and is Off by default.
             _dispatchFeedbackIntegrationEvent(detail);
-
-            var _fbBase  = _EP.hasProfiles()
-                ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('feedback') : _EP.resolve('feedback'))
-                : _resolveFlatFeatureEndpoint(cfg.panelFeedbackEndpoint || '', '/v1/feedback');
-            var _fbToken = _EP.hasProfiles()
-                ? _EP.resolveToken('feedbackToken')
-                : (cfg.panelFeedbackToken || '');
-
-            if (_fbBase && _feedbackPersistEnabled) {
-                // Supersede the previous rating-mechanics event before posting
-                // the replacement. This never grants dataset/training authority.
-                // The _pendingRetract flag is set by the Edit button handler.
-                var _curEntry = _feedbackStore[answerIndex];
-                if (_curEntry && _curEntry._pendingRetract && _curEntry.feedbackId) {
-                    _postFeedbackRetract(
-                        _fbBase, _fbToken, _curEntry, answerIndex
-                    );
-                    // Clear immediately — defensive against rapid double-submit.
-                    _curEntry._pendingRetract = false;
-                }
-                _postFeedback(_fbBase, _fbToken, detail);
-            }
-
-            if (cfg.panelFeedbackLog) {
-                // eslint-disable-next-line no-console
-                _log('log', '[ai-assistant] feedback (via _rebuildFeedbackFormIn)', _redactPayloadForLog(detail));
-            }
 
             _feedbackGivenSet.add(answerIndex);
             _feedbackStore[answerIndex] = {
@@ -9119,8 +8607,8 @@
     /**
      * POST a share payload to the global share endpoint and await the UUID response.
      *
-     * @param {string}   url       cfg.panelGlobalShareEndpoint.
-     * @param {string}   token     cfg.panelGlobalShareToken ('' for none).
+     * @param {string}   url       resolved Share endpoint.
+     * @param {string}   token     optional runtime-only Share credential.
      * @param {Object}   entry     {snapshot, format, ttlDays}.
      * @param {Function} onSuccess Called with {uuid, url, expiresAt} on success.
      * @param {Function} onError   Called with {status, message} on failure.
@@ -9736,12 +9224,9 @@
 
     /** Resolve the active dataset-contribution endpoint without UI ownership. */
     function _resolveContributionEndpoint() {
-        var cfg = _cfg();
-        var profileUrl = _EP.hasProfiles()
+        return _EP.hasProfiles()
             ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('training') : _EP.resolve('training'))
             : '';
-        return profileUrl || _resolveFlatFeatureEndpoint(
-            cfg.panelTrainingEndpoint || '', '/v1/contribute');
     }
 
     /** Return one transcript Q&A by rendered answer index. Error entries count for alignment. */
@@ -10042,11 +9527,9 @@
     //     sufficient for server-side page attribution.
     //
     //   Layer 2 — Defence-in-depth redaction (_redactPayloadForLog)
-    //     Applied to every console.log of a feedback/contribution detail
-    //     object when cfg.panelFeedbackLog is on.  Catches tokens or PII
-    //     that future code might inadvertently surface in DevTools, without
-    //     blocking the log call itself.  Mirrors _RedactingFilter in Python:
-    //     always returns a value (never raises), never mutates the original.
+    //     Retained for explicit contribution/review diagnostics. It catches
+    //     tokens or PII that future code might inadvertently surface in
+    //     DevTools without mutating the original object.
     //
     // Scope: server-transmitted payloads only.  Export downloads and
     // clipboard copies are intentional user actions; data never leaves the
@@ -21359,9 +20842,8 @@
      * Renders as a right-anchored slide-in control on the action row:
      *   [👍]  [👎]  |  [⌃ expand popup]
      *
-     * Clicking 👍 or 👎 fires an immediate quick-rate without requiring the
-     * full feedback form.  Clicking ⌃ reveals a compact popup with a persist
-     * mini-toggle and a link to open the full inline feedback block.
+     * Clicking 👍 or 👎 records an immediate local quick-rate without requiring
+     * the full feedback form. Clicking ⌃ reveals the detailed local/review UI.
      *
      * Parameters
      * ----------
@@ -21383,8 +20865,6 @@
      * -----
      * Developer: The popup is appended to the float-wrapper (position:relative
      *   ancestor) so it floats above the action row without displacing layout.
-     * Developer: Mini persist toggle inside the popup mirrors the §6 main
-     *   toggle.  Both call ``_setFeedbackPersistMode()`` to stay in sync.
      * Developer: The full feedback form (``_buildFeedbackBlock``) is not
      *   duplicated — the expand button toggles
      *   ``.ai-assistant-panel-feedback--revealed`` on the existing block.
@@ -21983,7 +21463,7 @@
                 // already has a stored rating (quick re-toggle, or panel rating
                 // marked _pendingRetract via the Edit button), this click
                 // SUPERSEDES it.  the prior feedbackId becomes
-                // detail.prevFeedbackId (sent to /v1/feedback) and is forwarded
+                // detail.prevFeedbackId and is forwarded
                 // into _feedbackStore so /v1/contribute's tRecords can carry it
                 // too.  null on a first-time rating for this answer.
                 var _priorQEntry = _feedbackStore[answerIndex] || null;
@@ -21997,20 +21477,8 @@
                 if (_feedbackGivenSet.has(answerIndex)) {
                     if (btn.getAttribute('aria-pressed') === 'true') { return; }
 
-                    var _prevQEntry = _priorQEntry;
-                    var _fbBaseQ  = _EP.hasProfiles()
-                        ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('feedback') : _EP.resolve('feedback'))
-                        : _resolveFlatFeatureEndpoint(cfg.panelFeedbackEndpoint || '', '/v1/feedback');
-                    var _fbTokenQ = _EP.hasProfiles()
-                        ? _EP.resolveToken('feedbackToken')
-                        : (cfg.panelFeedbackToken || '');
-                    if (_fbBaseQ && _feedbackPersistEnabled &&
-                            _prevQEntry && _prevQEntry.feedbackId) {
-                        _postFeedbackRetract(
-                            _fbBaseQ, _fbTokenQ, _prevQEntry, answerIndex
-                        );
-                    }
-                    // Remove the guard so the normal submit block runs below.
+                    // Remove the guard so the corrected local rating can replace
+                    // the prior local state below. No network rating telemetry is emitted.
                     _feedbackGivenSet.delete(answerIndex);
                 }
 
@@ -22091,26 +21559,6 @@
                 // explicit permission and remains Off by default.
                 _dispatchFeedbackIntegrationEvent(detail);
 
-                var _fbBase = _EP.hasProfiles()
-                    ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('feedback') : _EP.resolve('feedback'))
-                    : _resolveFlatFeatureEndpoint(cfg.panelFeedbackEndpoint || '', '/v1/feedback');
-                var _fbToken = _EP.hasProfiles()
-                    ? _EP.resolveToken('feedbackToken')
-                    : (cfg.panelFeedbackToken || '');
-
-                if (_fbBase && _feedbackPersistEnabled) {
-                    // Also retract any pending entry set by the detailed-block's
-                    // Edit button (covers: quick → fbBlock Edit → click quick).
-                    var _pendQEntry = _feedbackStore[answerIndex];
-                    if (_pendQEntry && _pendQEntry._pendingRetract && _pendQEntry.feedbackId) {
-                        _postFeedbackRetract(
-                            _fbBase, _fbToken, _pendQEntry, answerIndex
-                        );
-                        _pendQEntry._pendingRetract = false;
-                    }
-                    _postFeedback(_fbBase, _fbToken, detail);
-                }
-
                 _feedbackGivenSet.add(answerIndex);
                 _feedbackStore[answerIndex] = {
                     ratingValue:    opt.value,
@@ -22189,7 +21637,7 @@
 
         // Privacy-sensitive permissions live only in the full Feedback workspace.
         // This compact surface is intentionally action/navigation-only: it does
-        // not duplicate consent, deletion, telemetry, or review authority.
+        // not duplicate consent, deletion, review authority.
         //
         // Information architecture: this popup owns feedback context only.
         //   1. Detailed feedback  — immediate answer-level feedback action.
@@ -22237,7 +21685,10 @@
         var feedbackDetailId = 'ai-assistant-panel-feedback-detail-' + answerIndex;
         var formAction = _makeFbkAction({
             label: 'Detailed feedback',
-            icon: ICONS.commentDiscussion || ICONS.chat,
+            // Prefer the dedicated detailed-feedback glyph. The fallbacks are
+            // intentionally retained for compatibility with older/custom runtimes
+            // that may provide only the pre-existing icon registry.
+            icon: ICONS.feedbackDetail || ICONS.commentDiscussion || ICONS.chat,
             ariaLabel: 'Show detailed feedback form',
             ariaExpanded: false,
             ariaControls: feedbackDetailId,
@@ -22278,7 +21729,7 @@
 
         // 2 — Feedback center stays in the primary feedback action group. It
         // navigates to the full feedback/privacy/review workspace but does not
-        // duplicate any consent, deletion, telemetry, or submission authority
+        // duplicate any consent, deletion, review, or submission authority
         // inside this compact answer-level popup.
         var feedbackCenterAction = _makeFbkAction({
             label: 'Feedback center\u2026',
@@ -22519,7 +21970,7 @@
             //   3. Null when neither is configured (stub-mode reply).
             //
             // modelInfo remains available to the local feedback/contribution UI.
-            // The network telemetry serializer intentionally omits it.
+            // Local rating state intentionally keeps it browser-side.
             var modelInfo = _buildModelInfo(cfg);
 
             // Edit-chain linkage.  Normally an edit goes through
@@ -22556,69 +22007,18 @@
                 answerIndex:    answerIndex,
                 page:           _sanitizePage(((typeof _pageUrl === 'function') ? _pageUrl() : ((typeof location !== 'undefined') ? location.href : ''))),
                 ts:             Date.now(),
-                // ``feedbackId`` is the canonical local/network edit-chain identity.
+                // ``feedbackId`` is the canonical local edit-chain identity.
                 feedbackId:     sid,
-                // Stable local conversation identity. It is never serialized by
-                // the schema-v4 network telemetry payload and does not link
-                // telemetry to dataset contributions.
+                // Stable local conversation identity. It remains browser-local unless
+                // the user explicitly enters the reviewed contribution workflow.
                 conversationId: _sessionId,
             };
 
             // Optional content-free page integration hook. It is independently
             // permission-gated and Off by default.
             _dispatchFeedbackIntegrationEvent(detail);
-            // HTTP telemetry is separately permission-gated.
-            // ── HTTP feedback persistence ─────────────────────────────────
-            // Profile-aware: _EP.resolve('feedback') wins when profiles are
-            // defined.  Falls back to legacy cfg.panelFeedbackEndpoint so
-            // deployments that have not migrated to profiles work unchanged.
-            var _fbBase  = _EP.hasProfiles()
-                ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('feedback') : _EP.resolve('feedback'))
-                : _resolveFlatFeatureEndpoint(cfg.panelFeedbackEndpoint || '', '/v1/feedback');
-            var _fbToken = _EP.hasProfiles()
-                ? _EP.resolveToken('feedbackToken')
-                : (cfg.panelFeedbackToken || '');
-            if (_fbBase) {
-                // Gate: only POST to the server when telemetry permission is
-                // active. Page-integration events are independently gated;
-                // the local _feedbackStore update below does not depend on
-                // either egress permission.
-                if (_feedbackPersistEnabled) {
-                    // Retract any earlier submission flagged by the Edit button
-                    // before writing the new record.  This path is reached when
-                    // a quick-rate click shows _showFeedbackThanks on this block,
-                    // the user clicks "Edit feedback", and then re-submits via
-                    // the form that _showFeedbackThanks re-renders with
-                    // _rebuildFeedbackFormIn — BUT in theory _buildFeedbackBlock
-                    // itself can also be re-entered if _feedbackGivenSet was
-                    // cleared and the original wrap element is still live.
-                    // Guard defensively so neither path double-posts.
-                    // _priorBfbEntry (computed above, before `detail`, for
-                    // prevFeedbackId/editCount) is the SAME entry — reuse it
-                    // rather than re-reading _feedbackStore[answerIndex].
-                    var _bfbEntry = _priorBfbEntry;
-                    if (_bfbEntry && _bfbEntry._pendingRetract && _bfbEntry.feedbackId) {
-                        _postFeedbackRetract(
-                            _fbBase, _fbToken, _bfbEntry, answerIndex
-                        );
-                        // Clear immediately — defensive against rapid double-submit.
-                        _bfbEntry._pendingRetract = false;
-                    }
-                    _postFeedback(
-                        _fbBase,
-                        _fbToken,
-                        detail
-                    );
-                }
-            }
-            if (cfg.panelFeedbackLog) {
-                // eslint-disable-next-line no-console
-                _log('log', '[ai-assistant] feedback', _feedbackLocalEventPayload(detail));
-            }
             _feedbackGivenSet.add(answerIndex);
             // Keep the full local tuple for UI/edit/share enrichment and explicit contribution.
-            // _postFeedback separately reduces network telemetry to rating metadata only.
-            // query/answer/model/sessionId/page were previously dropped here.
             _feedbackStore[answerIndex] = {
                 ratingValue:    chosen.value,
                 ratingLabel:    chosen.label,   // snake_case slug ("mostly_positive")
@@ -22640,7 +22040,7 @@
                 model:          detail.model,
                 feedbackId:     detail.feedbackId,
                 // Stable local conversation UUID used only by browser-side UI
-                // state. Schema-v4 feedback telemetry omits it, and the dataset
+                // state. Local feedback does not send it, and the dataset
                 // contribution controller does not export it as participant identity.
                 conversationId: detail.conversationId,
                 page:           detail.page,
@@ -22798,14 +22198,199 @@
         var _epSafe = (typeof _EP.resolve === 'function') ? _EP : null;
 
         // ── Shared constants ──────────────────────────────────────────────────
+        // One endpoint vocabulary drives every surface in this sheet:
+        // capability comparison, profile URL disclosure, active resolution,
+        // Advanced routing, generated snippets, and profile capability chips.
+        // Keep display metadata here so a future route addition cannot silently
+        // drift between multiple hand-maintained UI lists.
         var _FEATURE_DEFS = [
-            { key: 'chat',     label: 'Chat',     suffix: '/v1/chat/completions', priority: 'P0' },
-            { key: 'share',    label: 'Share',    suffix: '/v1/share',            priority: 'P1' },
-            { key: 'feedback', label: 'Feedback', suffix: '/v1/feedback',         priority: 'P3' },
-            { key: 'training', label: 'Dataset contribution', suffix: '/v1/contribute', priority: 'P2' },
+            { key: 'chat',        label: 'Chat',                 capLabel: 'Chat',  suffix: '/v1/chat/completions', priority: 'P0' },
+            { key: 'share',       label: 'Share',                capLabel: 'Share', suffix: '/v1/share',            priority: 'P1' },
+            { key: 'training',    label: 'Dataset contribution', capLabel: 'Data',  suffix: '/v1/contribute',       priority: 'P2' },
+            { key: 'image',       label: 'Image generation',     capLabel: 'Image', suffix: '/v1/image',            priority: 'P3' },
+            { key: 'video',       label: 'Video generation',     capLabel: 'Video', suffix: '/v1/video',            priority: 'P3' },
+            { key: 'audio',       label: 'Audio generation',     capLabel: 'Audio', suffix: '/v1/audio',            priority: 'P3' },
+            { key: 'document',    label: 'Document generation',  capLabel: 'Doc',   suffix: '/v1/document',         priority: 'P3' },
+            { key: 'publication', label: 'AI Learn publication', capLabel: 'Learn', suffix: '/v1/learn',            priority: 'P1' },
         ];
         var _MAX_LABEL   = 100;
         var _MAX_CUSTOM  = (_epSafe && _epSafe.MAX_CUSTOM_PROFILES) ? _epSafe.MAX_CUSTOM_PROFILES : 20;
+
+
+        function _resolveFeatureEndpoint(fd, profileKey) {
+            if (!_epSafe || !fd) { return ''; }
+            if (profileKey && typeof _epSafe.resolveEndpointFor === 'function') {
+                return _epSafe.resolveEndpointFor(fd.key, profileKey) || '';
+            }
+            if (typeof _epSafe.resolveEndpoint === 'function') {
+                return _epSafe.resolveEndpoint(fd.key) || '';
+            }
+            var base = profileKey && typeof _epSafe.resolveFor === 'function'
+                ? _epSafe.resolveFor(fd.key, profileKey)
+                : _epSafe.resolve(fd.key);
+            return base ? (String(base).replace(/\/+$/, '') + fd.suffix) : '';
+        }
+
+        function _makeEndpointValue(url, label, className) {
+            var value = String(url || '');
+            var el;
+            if (value && _isSafeHref(value)) {
+                el = document.createElement('a');
+                el.href = value;
+                el.target = '_blank';
+                el.rel = 'noopener noreferrer';
+                el.setAttribute('aria-label', label + ' endpoint, opens in a new tab: ' + value);
+            } else {
+                el = document.createElement('span');
+            }
+            el.className = className || 'ai-assistant-panel-ep-route-url';
+            el.textContent = value || 'Not configured';
+            if (value) { el.title = value; }
+            return el;
+        }
+
+        function _makeEndpointFeatureCell(fd, fallbackLabel, defaultSuffix) {
+            var cell = document.createElement('th');
+            cell.className = 'ai-assistant-panel-ep-route-feature';
+            cell.setAttribute('scope', 'row');
+            var label = document.createElement('span');
+            label.className = 'ai-assistant-panel-ep-route-feature-name';
+            label.textContent = fd ? fd.label : fallbackLabel;
+            cell.appendChild(label);
+            var meta = document.createElement('span');
+            meta.className = 'ai-assistant-panel-ep-route-feature-meta';
+            if (fd) {
+                meta.textContent = fd.priority + (defaultSuffix ? ' · Default ' + fd.suffix : '');
+            } else {
+                meta.textContent = defaultSuffix || '';
+            }
+            if (meta.textContent) { cell.appendChild(meta); }
+            return cell;
+        }
+
+        function _makeEndpointStatus(url, label) {
+            var configured = !!url;
+            var status = document.createElement('span');
+            status.className = 'ai-assistant-panel-ep-route-status ' +
+                (configured ? 'ai-assistant-panel-ep-route-status--on' : 'ai-assistant-panel-ep-route-status--off');
+            // Presence means the route is configured, not that a health check
+            // has proven it reachable. Keep topology and liveness semantics
+            // distinct so the sheet never overstates runtime readiness.
+            status.textContent = configured ? '\u2713 Configured' : '\u2014 Missing';
+            status.setAttribute('aria-label', label + ': ' + (configured ? 'configured' : 'not configured'));
+            return status;
+        }
+
+        function _setEndpointActionGroupEnabled(actions, enabled) {
+            if (!actions) { return; }
+            var buttons = actions.querySelectorAll('button');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = !enabled;
+                buttons[i].setAttribute('aria-disabled', enabled ? 'false' : 'true');
+            }
+        }
+
+        function _makeEndpointActionGroup(urlGetter, label, withHealth, healthHooks) {
+            var actions = document.createElement('div');
+            actions.className = 'ai-assistant-panel-ep-route-actions';
+            var copy = _makeCopyBtn(urlGetter);
+            copy.setAttribute('aria-label', 'Copy ' + label + ' endpoint');
+            copy.setAttribute('title', 'Copy endpoint');
+            var open = _makeOpenBtn(urlGetter);
+            open.setAttribute('aria-label', 'Open ' + label + ' endpoint in a new tab');
+            actions.appendChild(copy);
+            actions.appendChild(open);
+            if (withHealth) { actions.appendChild(_makeHealthBtn(urlGetter, label, healthHooks)); }
+            return actions;
+        }
+
+        function _makeEndpointTableShell(ariaLabel, modifier, columns) {
+            var scroll = document.createElement('div');
+            scroll.className = 'ai-assistant-panel-ep-route-scroll';
+            var table = document.createElement('table');
+            table.className = 'ai-assistant-panel-ep-route-table' + (modifier ? ' ' + modifier : '');
+            table.setAttribute('aria-label', ariaLabel);
+            var thead = document.createElement('thead');
+            var hrow = document.createElement('tr');
+            for (var i = 0; i < columns.length; i++) {
+                var th = document.createElement('th');
+                th.scope = 'col';
+                th.className = 'ai-assistant-panel-ep-route-th ai-assistant-panel-ep-route-th--' + columns[i].key;
+                th.textContent = columns[i].label;
+                hrow.appendChild(th);
+            }
+            thead.appendChild(hrow);
+            var tbody = document.createElement('tbody');
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            scroll.appendChild(table);
+            return { scroll: scroll, table: table, tbody: tbody };
+        }
+
+        function _buildEndpointResolutionTable(profileKey, ariaLabel, compact, healthController) {
+            var columns = [
+                { key: 'feature', label: 'Feature' },
+                { key: 'status', label: 'Configuration' },
+            ];
+            if (healthController) { columns.push({ key: 'health', label: 'Health' }); }
+            columns.push(
+                { key: 'endpoint', label: 'Endpoint' },
+                { key: 'actions', label: 'Actions' }
+            );
+            var shell = _makeEndpointTableShell(
+                ariaLabel,
+                'ai-assistant-panel-ep-route-table--resolution' +
+                    (compact ? ' ai-assistant-panel-ep-route-table--compact' : '') +
+                    (healthController ? ' ai-assistant-panel-ep-route-table--health' : ''),
+                columns
+            );
+            for (var i = 0; i < _FEATURE_DEFS.length; i++) {
+                (function (fd) {
+                    var url = _resolveFeatureEndpoint(fd, profileKey);
+                    var row = document.createElement('tr');
+                    row.className = 'ai-assistant-panel-ep-route-row' +
+                        (url ? ' ai-assistant-panel-ep-route-row--on' : ' ai-assistant-panel-ep-route-row--off');
+                    row.appendChild(_makeEndpointFeatureCell(fd, '', false));
+
+                    var statusCell = document.createElement('td');
+                    statusCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--status';
+                    statusCell.appendChild(_makeEndpointStatus(url, fd.label));
+                    row.appendChild(statusCell);
+
+                    if (healthController) {
+                        var healthCell = document.createElement('td');
+                        healthCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--health';
+                        healthCell.appendChild(healthController.makeStatus(url, fd.label));
+                        row.appendChild(healthCell);
+                    }
+
+                    var urlCell = document.createElement('td');
+                    urlCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--endpoint';
+                    urlCell.appendChild(_makeEndpointValue(url, fd.label, 'ai-assistant-panel-ep-route-url'));
+                    row.appendChild(urlCell);
+
+                    var actionsCell = document.createElement('td');
+                    actionsCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--actions';
+                    if (url) {
+                        actionsCell.appendChild(_makeEndpointActionGroup(
+                            function () { return url; },
+                            fd.label,
+                            !!healthController,
+                            healthController ? healthController.makeHooks(url, fd.label) : null
+                        ));
+                    } else {
+                        var none = document.createElement('span');
+                        none.className = 'ai-assistant-panel-ep-route-actions-empty';
+                        none.textContent = '\u2014';
+                        none.setAttribute('aria-hidden', 'true');
+                        actionsCell.appendChild(none);
+                    }
+                    row.appendChild(actionsCell);
+                    shell.tbody.appendChild(row);
+                }(_FEATURE_DEFS[i]));
+            }
+            return shell.scroll;
+        }
 
         // Endpoint disclosure launcher — same compact visual language as the
         // Model sheet's "Add model" control, while preserving the existing
@@ -22866,8 +22451,11 @@
         hTitle.textContent = 'Endpoint Configuration';
         var hClose = _createIconBtn('ep-sheet-close', 'Close Endpoint Configuration', ICONS.close);
         hClose.addEventListener('click', function () {
-            // Detach observer before closing so no callbacks fire on dead DOM
+            // Detach observer and abort diagnostic probes before closing so no
+            // callbacks continue against a hidden/dead Endpoint sheet.
             if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+            _cancelConnectionRun(true);
+            _cancelIndividualHealthProbes();
             if (typeof _closeSheet === 'function') { _closeSheet(sheet); }
             else { sheet.setAttribute('data-open', 'false'); }
         });
@@ -22916,11 +22504,30 @@
         var _simpleSaveBtn = null;
         var _simpleSaveStatus = null;
         var _simpleDiscoverySeq = 0;
-        var _advInputs  = {};  // key → HTMLInputElement (read-only, advanced mode)
+        var _advInputs  = {};  // key → HTMLInputElement (editable for runtime profiles)
+        var _advEffectiveCells = {}; // key → effective endpoint table cell
+        var _advActionGroups = {};   // key → draft action group kept in sync with validation
+        var _advBaseEffectiveCell = null;
+        var _advBaseActionGroup = null;
         var _urlDisplay = null;
         var _infoCard   = null;
         var _compareWrap = null;
         var _countBadge = null;
+
+        // Transport-health state is intentionally ephemeral and URL-keyed.
+        // It is never persisted or treated as endpoint capability authority.
+        // One probe may fan out to multiple feature rows that resolve to the
+        // same URL; table bindings are rebuilt whenever the active profile is
+        // refreshed, while recent results remain available for this sheet life.
+        var _connectionHealthCache = Object.create(null);
+        var _connectionHealthBindings = Object.create(null);
+        var _connectionRunSeq = 0;
+        var _connectionRunCancels = [];
+        var _connectionRunUrls = [];
+        var _connectionRunPrevious = Object.create(null);
+        var _individualHealthProbes = [];
+        var _connectionSummary = null;
+        var _testConnectionBtn = null;
 
         // ══════════════════════════════════════════════════════════════════════
         // §1  PROFILE SELECTOR
@@ -23020,7 +22627,7 @@
         var _simpleHint = document.createElement('p');
         _simpleHint.className   = 'ai-assistant-panel-ep-hint ai-assistant-panel-ep-simple-intro';
         _simpleHint.textContent =
-            'Configure one service endpoint. Chat, Share, Feedback and Training inherit it; ' +
+            'Configure one service endpoint. Chat, Share, generation, contribution, and AI Learn publication routes inherit it; ' +
             'the dataset is discovered automatically unless you override it.';
         _simpleWrap.appendChild(_simpleHint);
 
@@ -23166,10 +22773,9 @@
             var saved = _epSafe.addProfile(activeKey, {
                 label: current.label,
                 base: base,
-                chat: '', share: '', feedback: '', training: '',
+                chat: '', share: '', training: '', image: '', video: '', audio: '', document: '', publication: '',
                 datasetRepo: datasetRepo,
                 shareToken: current.shareToken || '',
-                feedbackToken: current.feedbackToken || '',
                 ttlDays: current.ttlDays || 30
             });
             if (!saved || !saved.ok) {
@@ -23181,46 +22787,90 @@
             setTimeout(function () { _simpleSaveStatus.textContent = ''; }, 1800);
         });
 
-        // Advanced mode: per-feature URL rows + copy btn + inline health btn
+        // Advanced routing uses the same semantic table vocabulary as the
+        // compare and resolved URL surfaces. Runtime profiles keep editable
+        // routing values; built-in profiles remain read-only. The Effective
+        // endpoint column previews inheritance immediately, before Save.
         var _advWrap = document.createElement('div');
-        _advWrap.className    = 'ai-assistant-panel-ep-adv-wrap';
+        _advWrap.className = 'ai-assistant-panel-ep-adv-wrap';
         _advWrap.style.display = 'none';
 
-        // Advanced starts with the canonical service base, then lets runtime
-        // profiles override each COMPLETE feature endpoint independently.
-        var _advBaseRow = document.createElement('div');
-        _advBaseRow.className = 'ai-assistant-panel-ep-url-row';
-        var _advBaseLbl = document.createElement('span');
-        _advBaseLbl.className = 'ai-assistant-panel-ep-url-label';
-        _advBaseLbl.textContent = 'Base endpoint';
-        var _advBaseHint = document.createElement('span');
-        _advBaseHint.className = 'ai-assistant-panel-ep-url-suffix';
-        _advBaseHint.textContent = 'Required fallback';
+        var _advHint = document.createElement('p');
+        _advHint.className = 'ai-assistant-panel-ep-hint ai-assistant-panel-ep-advanced-intro';
+        _advHint.textContent =
+            'Override only routes that differ from the service base. Effective endpoints update live; blank overrides inherit the canonical default route.';
+        _advWrap.appendChild(_advHint);
+
+        var _advTable = _makeEndpointTableShell(
+            'Advanced endpoint routing',
+            'ai-assistant-panel-ep-route-table--advanced',
+            [
+                { key: 'feature', label: 'Route' },
+                { key: 'value', label: 'Configured value' },
+                { key: 'endpoint', label: 'Effective endpoint' },
+                { key: 'actions', label: 'Actions' },
+            ]
+        );
+        _advWrap.appendChild(_advTable.scroll);
+
         var _advBaseInp = document.createElement('input');
         _advBaseInp.type = 'url';
-        _advBaseInp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy';
+        _advBaseInp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy ai-assistant-panel-ep-route-input';
         _advBaseInp.readOnly = true;
         _advBaseInp.setAttribute('aria-label', 'Base service endpoint');
-        var _advBaseActions = document.createElement('div');
-        _advBaseActions.className = 'ai-assistant-panel-ep-url-actions';
-        _advBaseActions.appendChild(_makeCopyBtn(_advBaseInp));
-        _advBaseActions.appendChild(_makeOpenBtn(_advBaseInp));
-        _advBaseActions.appendChild(_makeHealthBtn(_advBaseInp, 'Base'));
-        _advBaseRow.appendChild(_advBaseLbl);
-        _advBaseRow.appendChild(_advBaseHint);
-        _advBaseRow.appendChild(_advBaseInp);
-        _advBaseRow.appendChild(_advBaseActions);
-        _advWrap.appendChild(_advBaseRow);
+        _advBaseInp.setAttribute('aria-readonly', 'true');
+
+        function _resolveAdvancedBaseDraft() {
+            var base = _advBaseInp ? _advBaseInp.value.trim().replace(/\/+$/, '') : '';
+            if (!base) { return ''; }
+            // Read-only values originate from build-time or already-sanitized
+            // registry state. Editable runtime drafts must pass the public
+            // endpoint validator before Open/Health/Copy can consume them.
+            if (_advBaseInp && !_advBaseInp.readOnly && _epSafe && _epSafe.validateUrl) {
+                var checked = _epSafe.validateUrl(base);
+                return checked && checked.ok ? checked.url : '';
+            }
+            return base;
+        }
+
+        var _advBaseRow = document.createElement('tr');
+        _advBaseRow.className = 'ai-assistant-panel-ep-route-row ai-assistant-panel-ep-route-row--base';
+        _advBaseRow.appendChild(_makeEndpointFeatureCell(null, 'Base endpoint', 'Required fallback'));
+        var _advBaseValueCell = document.createElement('td');
+        _advBaseValueCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--value';
+        _advBaseValueCell.appendChild(_advBaseInp);
+        _advBaseRow.appendChild(_advBaseValueCell);
+        _advBaseEffectiveCell = document.createElement('td');
+        _advBaseEffectiveCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--endpoint';
+        _advBaseRow.appendChild(_advBaseEffectiveCell);
+        var _advBaseActionsCell = document.createElement('td');
+        _advBaseActionsCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--actions';
+        _advBaseActionGroup = _makeEndpointActionGroup(_resolveAdvancedBaseDraft, 'Base', true);
+        _advBaseActionsCell.appendChild(_advBaseActionGroup);
+        _advBaseRow.appendChild(_advBaseActionsCell);
+        _advTable.tbody.appendChild(_advBaseRow);
 
         function _resolveAdvancedDraftEndpoint(feature, rawValue) {
-            var base = _advBaseInp ? _advBaseInp.value.trim().replace(/\/+$/, '') : '';
+            var base = _resolveAdvancedBaseDraft();
             var raw = String(rawValue === undefined || rawValue === null ? '' : rawValue)
                 .trim().replace(/\/+$/, '');
+            var input = _advInputs[feature] || null;
             var suffix = '';
             for (var di = 0; di < _FEATURE_DEFS.length; di++) {
                 if (_FEATURE_DEFS[di].key === feature) { suffix = _FEATURE_DEFS[di].suffix; break; }
             }
             if (!raw) return base && suffix ? base + suffix : base;
+
+            // Runtime-editable drafts are authority-bearing because Open and
+            // Health can cause a browser request before Save. Validate them at
+            // use time, not only at persistence time, to preserve the SSRF
+            // boundary even for unsaved text.
+            if (input && !input.readOnly && _epSafe && _epSafe.validateEndpoint) {
+                var checked = _epSafe.validateEndpoint(raw);
+                if (!checked || !checked.ok) { return ''; }
+                raw = checked.url || '';
+            }
+            if (!raw) { return ''; }
             if (!/^https?:\/\//i.test(raw)) {
                 return base ? base + '/' + raw.replace(/^\/+/, '') : '';
             }
@@ -23233,44 +22883,103 @@
             return raw;
         }
 
+        function _advancedDraftValidation(featureKey) {
+            var input = featureKey === '__base' ? _advBaseInp : _advInputs[featureKey];
+            var raw = input ? input.value.trim() : '';
+            var invalid = false;
+            var reason = '';
+            if (raw && input && !input.readOnly && _epSafe) {
+                var check = featureKey === '__base'
+                    ? (_epSafe.validateUrl ? _epSafe.validateUrl(raw) : { ok: true })
+                    : (_epSafe.validateEndpoint ? _epSafe.validateEndpoint(raw) : { ok: true });
+                invalid = !check.ok;
+                reason = invalid ? String(check.error || check.reason || 'Invalid endpoint draft') : '';
+            }
+            // A valid relative route still cannot resolve while its editable
+            // Base draft is invalid.
+            if (!invalid && featureKey !== '__base' && _advBaseInp && !_advBaseInp.readOnly && _advBaseInp.value.trim()) {
+                var baseCheck = _epSafe && _epSafe.validateUrl ? _epSafe.validateUrl(_advBaseInp.value.trim()) : { ok: true };
+                if (!baseCheck.ok) {
+                    invalid = true;
+                    reason = String(baseCheck.error || baseCheck.reason || 'Invalid Base endpoint draft');
+                }
+            }
+            if (input) { input.setAttribute('aria-invalid', invalid ? 'true' : 'false'); }
+            return { invalid: invalid, reason: reason };
+        }
+
+        function _renderAdvancedEffectiveCell(featureKey) {
+            var cell = featureKey === '__base' ? _advBaseEffectiveCell : _advEffectiveCells[featureKey];
+            if (!cell) { return; }
+            while (cell.firstChild) { cell.removeChild(cell.firstChild); }
+            var validation = _advancedDraftValidation(featureKey);
+            var actions = featureKey === '__base' ? _advBaseActionGroup : _advActionGroups[featureKey];
+            if (validation.invalid) {
+                _setEndpointActionGroupEnabled(actions, false);
+                var bad = document.createElement('span');
+                bad.className = 'ai-assistant-panel-ep-route-invalid';
+                bad.textContent = 'Invalid draft';
+                if (validation.reason) { bad.title = validation.reason; }
+                bad.setAttribute('role', 'status');
+                cell.appendChild(bad);
+                return;
+            }
+            var url = featureKey === '__base'
+                ? _resolveAdvancedBaseDraft()
+                : _resolveAdvancedDraftEndpoint(featureKey, _advInputs[featureKey] ? _advInputs[featureKey].value : '');
+            _setEndpointActionGroupEnabled(actions, !!url);
+            var label = featureKey === '__base' ? 'Base' : featureKey;
+            for (var fi = 0; fi < _FEATURE_DEFS.length; fi++) {
+                if (_FEATURE_DEFS[fi].key === featureKey) { label = _FEATURE_DEFS[fi].label; break; }
+            }
+            cell.appendChild(_makeEndpointValue(url, label, 'ai-assistant-panel-ep-route-url'));
+        }
+
+        function _refreshAdvancedEffectiveEndpoints() {
+            _renderAdvancedEffectiveCell('__base');
+            for (var i = 0; i < _FEATURE_DEFS.length; i++) {
+                _renderAdvancedEffectiveCell(_FEATURE_DEFS[i].key);
+            }
+        }
+
         for (var _fi = 0; _fi < _FEATURE_DEFS.length; _fi++) {
             (function (fd) {
-                var row = document.createElement('div');
-                row.className = 'ai-assistant-panel-ep-url-row';
+                var row = document.createElement('tr');
+                row.className = 'ai-assistant-panel-ep-route-row';
+                row.appendChild(_makeEndpointFeatureCell(fd, '', true));
 
-                var rowLbl = document.createElement('span');
-                rowLbl.className   = 'ai-assistant-panel-ep-url-label';
-                rowLbl.textContent = fd.label + ' endpoint override';
-
-                var suffixSpan = document.createElement('span');
-                suffixSpan.className   = 'ai-assistant-panel-ep-url-suffix';
-                suffixSpan.textContent = 'Default ' + fd.suffix;
-                suffixSpan.setAttribute('aria-hidden', 'true');
-
+                var valueCell = document.createElement('td');
+                valueCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--value';
                 var inp = document.createElement('input');
-                inp.type      = 'text';
-                inp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy';
-                inp.readOnly  = true;
+                inp.type = 'text';
+                inp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy ai-assistant-panel-ep-route-input';
+                inp.readOnly = true;
                 inp.setAttribute('aria-label', fd.label + ' endpoint override — absolute URL or relative route');
                 inp.setAttribute('aria-readonly', 'true');
                 _advInputs[fd.key] = inp;
+                valueCell.appendChild(inp);
+                row.appendChild(valueCell);
 
-                var actions = document.createElement('div');
-                actions.className = 'ai-assistant-panel-ep-url-actions';
-                actions.appendChild(_makeCopyBtn(inp));
+                var effectiveCell = document.createElement('td');
+                effectiveCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--endpoint';
+                _advEffectiveCells[fd.key] = effectiveCell;
+                row.appendChild(effectiveCell);
+
+                var actionsCell = document.createElement('td');
+                actionsCell.className = 'ai-assistant-panel-ep-route-td ai-assistant-panel-ep-route-td--actions';
                 var resolvedDraft = function () {
                     return _resolveAdvancedDraftEndpoint(fd.key, inp.value);
                 };
-                actions.appendChild(_makeOpenBtn(resolvedDraft));
-                actions.appendChild(_makeHealthBtn(resolvedDraft, fd.label));
+                var actionGroup = _makeEndpointActionGroup(resolvedDraft, fd.label, true);
+                _advActionGroups[fd.key] = actionGroup;
+                actionsCell.appendChild(actionGroup);
+                row.appendChild(actionsCell);
+                _advTable.tbody.appendChild(row);
 
-                row.appendChild(rowLbl);
-                row.appendChild(suffixSpan);
-                row.appendChild(inp);
-                row.appendChild(actions);
-                _advWrap.appendChild(row);
+                inp.addEventListener('input', function () { _renderAdvancedEffectiveCell(fd.key); });
             }(_FEATURE_DEFS[_fi]));
         }
+        _advBaseInp.addEventListener('input', _refreshAdvancedEffectiveEndpoints);
 
         var _advSaveRow = document.createElement('div');
         _advSaveRow.className = 'ai-assistant-panel-ep-io-row ai-assistant-panel-ep-adv-save-row';
@@ -23308,7 +23017,6 @@
                 base: base,
                 datasetRepo: current.datasetRepo || '',
                 shareToken: current.shareToken || '',
-                feedbackToken: current.feedbackToken || '',
                 ttlDays: current.ttlDays || 30
             };
             for (var i = 0; i < _FEATURE_DEFS.length; i++) {
@@ -23336,77 +23044,355 @@
             setTimeout(function () { _advSaveStatus.textContent = ''; }, 1800);
         });
 
-        // Resolved URL display — colour-coded capability indicators
+        function _endpointHealthStateFromResult(result) {
+            if (result && result.ok) {
+                return { kind: 'ok', checkedAt: Date.now() };
+            }
+            return {
+                kind: result && result.status === 'timeout' ? 'timeout' : 'error',
+                checkedAt: Date.now()
+            };
+        }
+
+        function _renderEndpointHealthStatus(el, state, label, hasUrl) {
+            var kind = !hasUrl ? 'missing' : ((state && state.kind) || 'idle');
+            var text = 'Not tested';
+            if (kind === 'missing') { text = '\u2014 N/A'; }
+            else if (kind === 'checking') { text = 'Checking\u2026'; }
+            else if (kind === 'ok') { text = '\u2713 Reachable'; }
+            else if (kind === 'timeout') { text = '! Timeout'; }
+            else if (kind === 'error') { text = '\u00d7 Unreachable'; }
+            el.className = 'ai-assistant-panel-ep-route-health ai-assistant-panel-ep-route-health--' + kind;
+            el.textContent = text;
+            el.setAttribute('aria-label', label + ' health: ' + text.replace(/^[\u2713!\u00d7]\s*/, ''));
+            if (state && state.checkedAt && kind !== 'checking') {
+                try { el.title = 'Checked ' + new Date(state.checkedAt).toLocaleTimeString(); }
+                catch (_) { el.removeAttribute('title'); }
+            } else {
+                el.removeAttribute('title');
+            }
+        }
+
+        function _setEndpointHealthState(url, state) {
+            if (!url) { return; }
+            _connectionHealthCache[url] = state;
+            var bindings = _connectionHealthBindings[url] || [];
+            for (var i = 0; i < bindings.length; i++) {
+                _renderEndpointHealthStatus(bindings[i].el, state, bindings[i].label, true);
+            }
+        }
+
+        function _clearEndpointHealthState(url) {
+            if (!url) { return; }
+            delete _connectionHealthCache[url];
+            var bindings = _connectionHealthBindings[url] || [];
+            for (var i = 0; i < bindings.length; i++) {
+                _renderEndpointHealthStatus(bindings[i].el, null, bindings[i].label, true);
+            }
+        }
+
+        function _releaseIndividualHealthProbe(entry) {
+            var idx = _individualHealthProbes.indexOf(entry);
+            if (idx >= 0) { _individualHealthProbes.splice(idx, 1); }
+        }
+
+        function _cancelIndividualHealthProbes() {
+            var pending = _individualHealthProbes.slice();
+            _individualHealthProbes = [];
+            for (var i = 0; i < pending.length; i++) {
+                try { pending[i].cancel(); } catch (_) {}
+                try { pending[i].reset(); } catch (_) {}
+            }
+        }
+
+        function _cancelConnectionRun(restorePrevious) {
+            _connectionRunSeq++;
+            for (var i = 0; i < _connectionRunCancels.length; i++) {
+                try { _connectionRunCancels[i](); } catch (_) {}
+            }
+            if (restorePrevious) {
+                for (var j = 0; j < _connectionRunUrls.length; j++) {
+                    var url = _connectionRunUrls[j];
+                    var prev = _connectionRunPrevious[url];
+                    if (prev) { _setEndpointHealthState(url, prev); }
+                    else { _clearEndpointHealthState(url); }
+                }
+            }
+            _connectionRunCancels = [];
+            _connectionRunUrls = [];
+            _connectionRunPrevious = Object.create(null);
+            if (_testConnectionBtn) {
+                _testConnectionBtn.disabled = false;
+                _testConnectionBtn.setAttribute('aria-busy', 'false');
+            }
+            if (_urlDisplay) { _urlDisplay.setAttribute('aria-busy', 'false'); }
+        }
+
+        function _isEndpointUrlActive(url) {
+            if (!url || !_epSafe) { return false; }
+            for (var i = 0; i < _FEATURE_DEFS.length; i++) {
+                var current = _epSafe.resolveEndpoint
+                    ? _epSafe.resolveEndpoint(_FEATURE_DEFS[i].key)
+                    : _epSafe.resolve(_FEATURE_DEFS[i].key);
+                if (current === url) { return true; }
+            }
+            return false;
+        }
+
+        var _activeHealthController = {
+            makeStatus: function (url, label) {
+                var el = document.createElement('span');
+                if (!url) {
+                    _renderEndpointHealthStatus(el, null, label, false);
+                    return el;
+                }
+                if (!_connectionHealthBindings[url]) { _connectionHealthBindings[url] = []; }
+                _connectionHealthBindings[url].push({ el: el, label: label });
+                _renderEndpointHealthStatus(el, _connectionHealthCache[url] || null, label, true);
+                return el;
+            },
+            makeHooks: function (url, label) {
+                var previous = null;
+                return {
+                    canStart: function () {
+                        return !_testConnectionBtn || _testConnectionBtn.getAttribute('aria-busy') !== 'true';
+                    },
+                    onStart: function () {
+                        previous = _connectionHealthCache[url] || null;
+                        _setEndpointHealthState(url, { kind: 'checking', checkedAt: 0 });
+                        if (_connectionSummary && _isEndpointUrlActive(url)) {
+                            _connectionSummary.textContent = 'Checking ' + label + ' endpoint\u2026';
+                        }
+                    },
+                    onResult: function (result) {
+                        var state = _endpointHealthStateFromResult(result);
+                        previous = null;
+                        _setEndpointHealthState(url, state);
+                        if (_connectionSummary && _isEndpointUrlActive(url)) {
+                            _connectionSummary.textContent = label + ': ' +
+                                (state.kind === 'ok' ? 'reachable.' :
+                                    (state.kind === 'timeout' ? 'timed out after 5 seconds.' : 'unreachable.'));
+                        }
+                    },
+                    onCancel: function () {
+                        if (previous) { _setEndpointHealthState(url, previous); }
+                        else { _clearEndpointHealthState(url); }
+                        previous = null;
+                        if (_connectionSummary && _isEndpointUrlActive(url)) {
+                            _refreshConnectionSummaryForProfile(_epSafe.getActive ? _epSafe.getActive() : '');
+                        }
+                    }
+                };
+            }
+        };
+
+        function _refreshConnectionSummaryForProfile(profileKey) {
+            if (!_connectionSummary || !_testConnectionBtn) { return; }
+            var seen = Object.create(null);
+            var unique = [];
+            var configuredFeatures = 0;
+            for (var i = 0; i < _FEATURE_DEFS.length; i++) {
+                var url = _resolveFeatureEndpoint(_FEATURE_DEFS[i], profileKey);
+                if (!url) { continue; }
+                configuredFeatures++;
+                if (!seen[url]) {
+                    seen[url] = true;
+                    unique.push(url);
+                }
+            }
+            _testConnectionBtn.disabled = unique.length === 0;
+            _testConnectionBtn.setAttribute('aria-disabled', unique.length ? 'false' : 'true');
+            if (!unique.length) {
+                _connectionSummary.textContent = 'No endpoints configured for the active profile.';
+                return;
+            }
+            var okCount = 0, timeoutCount = 0, errorCount = 0, checkedCount = 0;
+            for (var j = 0; j < unique.length; j++) {
+                var state = _connectionHealthCache[unique[j]];
+                if (!state || state.kind === 'idle' || state.kind === 'checking') { continue; }
+                checkedCount++;
+                if (state.kind === 'ok') { okCount++; }
+                else if (state.kind === 'timeout') { timeoutCount++; }
+                else if (state.kind === 'error') { errorCount++; }
+            }
+            if (!checkedCount) {
+                _connectionSummary.textContent = 'Not tested · ' + unique.length + ' endpoint address' +
+                    (unique.length === 1 ? '' : 'es') + ' across ' + configuredFeatures + ' configured feature' +
+                    (configuredFeatures === 1 ? '' : 's') + '.';
+                return;
+            }
+            var parts = [okCount + ' reachable'];
+            if (timeoutCount) { parts.push(timeoutCount + ' timed out'); }
+            if (errorCount) { parts.push(errorCount + ' unreachable'); }
+            _connectionSummary.textContent = 'Latest checks · ' + parts.join(' · ') +
+                ' across ' + unique.length + ' endpoint address' + (unique.length === 1 ? '' : 'es') + '.';
+        }
+
+
+        // Resolved URL display and connection health share one semantic table.
+        // Configuration answers "is a route resolved?"; Health reports only the
+        // latest browser-level probe and never becomes API/capability authority.
         _urlDisplay = document.createElement('div');
+        _urlDisplay.id = 'ai-assistant-panel-ep-active-routes';
         _urlDisplay.className = 'ai-assistant-panel-ep-url-display';
+        _urlDisplay.setAttribute('aria-busy', 'false');
         detailSection.appendChild(_urlDisplay);
 
-        // "Test All Connectivity" button (pings every configured URL at once)
+        // Bulk connection probe controls the Health column in the resolved
+        // endpoint table. Results are never duplicated into a second list.
         var testRow = document.createElement('div');
-        testRow.className = 'ai-assistant-panel-ep-health-row';
+        testRow.className = 'ai-assistant-panel-ep-health-row ai-assistant-panel-ep-health-row--table-control';
         var testBtn = document.createElement('button');
         testBtn.type      = 'button';
         testBtn.className = 'ai-assistant-panel-ep-test-btn';
         testBtn.textContent = 'Test connection';
-        var testResultsEl = document.createElement('div');
-        testResultsEl.className    = 'ai-assistant-panel-ep-test-results';
-        testResultsEl.style.display = 'none';
+        testBtn.setAttribute('aria-busy', 'false');
+        testBtn.setAttribute('aria-controls', 'ai-assistant-panel-ep-active-routes');
+        testBtn.setAttribute('aria-describedby', 'ai-assistant-panel-ep-test-hint');
+        _testConnectionBtn = testBtn;
+        _connectionSummary = document.createElement('span');
+        _connectionSummary.className = 'ai-assistant-panel-ep-test-summary';
+        _connectionSummary.setAttribute('role', 'status');
+        _connectionSummary.setAttribute('aria-live', 'polite');
+        _connectionSummary.setAttribute('aria-atomic', 'true');
+        _connectionSummary.textContent = 'Not tested.';
+        var testHint = document.createElement('p');
+        testHint.id = 'ai-assistant-panel-ep-test-hint';
+        testHint.className = 'ai-assistant-panel-ep-hint ai-assistant-panel-ep-test-hint';
+        testHint.textContent = 'Connection checks browser-level reachability only; they do not verify API semantics, credentials, or model capability.';
         testRow.appendChild(testBtn);
-        testRow.appendChild(testResultsEl);
-        detailSection.appendChild(testRow);
+        testRow.appendChild(_connectionSummary);
+        testRow.appendChild(testHint);
+        detailSection.insertBefore(testRow, _urlDisplay);
 
-        testBtn.addEventListener('click', function () {
-            testResultsEl.style.display = '';
-            while (testResultsEl.firstChild) {
-                testResultsEl.removeChild(testResultsEl.firstChild);
-            }
-            var tested = 0;
-            var _seenTestUrls = Object.create(null);
-            for (var _ti = 0; _ti < _FEATURE_DEFS.length; _ti++) {
-                var _tfd = _FEATURE_DEFS[_ti];
-                var _turl = _epSafe ? (_epSafe.resolveEndpoint ? _epSafe.resolveEndpoint(_tfd.key) : _epSafe.resolve(_tfd.key)) : '';
-                if (!_turl || _seenTestUrls[_turl]) { continue; }
-                _seenTestUrls[_turl] = true;
-                tested++;
-                var _sameBaseCount = 0;
-                for (var _tc = 0; _tc < _FEATURE_DEFS.length; _tc++) {
-                    var _tcUrl = _epSafe.resolveEndpoint ? _epSafe.resolveEndpoint(_FEATURE_DEFS[_tc].key) : _epSafe.resolve(_FEATURE_DEFS[_tc].key);
-                    if (_tcUrl === _turl) { _sameBaseCount++; }
-                }
-                (function (label, url) {
-                    var rRow = document.createElement('div');
-                    rRow.className = 'ai-assistant-panel-ep-health-result';
-                    var rDot = document.createElement('span');
-                    rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--pending ai-assistant-panel-ep-profile-health-badge';
-                    rDot.setAttribute('aria-hidden', 'true');
-                    var rLbl = document.createElement('span');
-                    rLbl.className   = 'ai-assistant-panel-ep-resolved-label';
-                    rLbl.textContent = label;
-                    var rSt = document.createElement('span');
-                    rSt.className   = 'ai-assistant-panel-ep-health-status';
-                    rSt.textContent = 'Pinging…';
-                    rRow.appendChild(rDot);
-                    rRow.appendChild(rLbl);
-                    rRow.appendChild(rSt);
-                    testResultsEl.appendChild(rRow);
-                    _pingUrl(url, function (result) {
-                        if (result.ok) {
-                            rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--ok ai-assistant-panel-ep-profile-health-badge';
-                            rSt.textContent = 'Reachable';
-                        } else {
-                            rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--err ai-assistant-panel-ep-profile-health-badge';
-                            rSt.textContent = result.status === 'timeout' ? 'Timeout (5 s)' : 'Unreachable';
-                        }
-                    });
-                }(_sameBaseCount > 1 ? 'Service' : _tfd.label, _turl));
-            }
-            if (!tested) {
-                var noUrl = document.createElement('p');
-                noUrl.className   = 'ai-assistant-panel-ep-hint';
-                noUrl.textContent = 'No endpoints configured for the active profile.';
-                testResultsEl.appendChild(noUrl);
+        // Reviewed-publication transport diagnostic. Unlike generic connectivity
+        // probes, this POST exercises the proxy's fixed GitHub/stub policy but
+        // is guaranteed by the server contract to perform no repository write.
+        var publicationTestRow = document.createElement('div');
+        publicationTestRow.className = 'ai-assistant-panel-ep-health-row ai-assistant-panel-ep-publication-test-row';
+        var publicationTestBtn = document.createElement('button');
+        publicationTestBtn.type = 'button';
+        publicationTestBtn.className = 'ai-assistant-panel-ep-test-btn';
+        publicationTestBtn.textContent = 'Test AI Learn publication';
+        var publicationTestStatus = document.createElement('p');
+        publicationTestStatus.className = 'ai-assistant-panel-ep-hint';
+        publicationTestStatus.setAttribute('role', 'status');
+        publicationTestStatus.setAttribute('aria-live', 'polite');
+        publicationTestStatus.textContent = 'Checks disabled/stub/GitHub workflow policy without opening a pull request.';
+        publicationTestRow.appendChild(publicationTestBtn);
+        publicationTestRow.appendChild(publicationTestStatus);
+        detailSection.appendChild(publicationTestRow);
+
+        publicationTestBtn.addEventListener('click', async function () {
+            var endpoint = _epSafe ? (_epSafe.resolveEndpoint ? _epSafe.resolveEndpoint('publication') : _epSafe.resolve('publication')) : '';
+            if (!endpoint) { publicationTestStatus.textContent = 'AI Learn publication endpoint is not configured.'; return; }
+            publicationTestBtn.disabled = true;
+            publicationTestStatus.textContent = 'Testing publication policy…';
+            try {
+                var response = await _fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json','Accept':'application/json'},
+                    body: JSON.stringify({contract:'learn.publication-request.v1', action:'test'}),
+                    credentials: 'omit',
+                    cache: 'no-store',
+                    redirect: 'error'
+                });
+                var raw = await response.text();
+                if (raw.length > 65536) throw new Error('Oversized response');
+                var doc = raw ? JSON.parse(raw) : {};
+                if (!response.ok) throw new Error(String(doc.detail || doc.message || ('HTTP ' + response.status)));
+                var target = [doc.repository, doc.default_branch ? 'branch ' + doc.default_branch : '', doc.canonical_prefix].filter(Boolean).join(' · ');
+                publicationTestStatus.textContent = String(doc.message || doc.state || 'Publication policy reachable.') + (target ? ' Target: ' + target + '.' : '');
+            } catch (error) {
+                publicationTestStatus.textContent = 'Publication test failed: ' + String(error && error.message || error);
+            } finally {
+                publicationTestBtn.disabled = false;
             }
         });
+
+        testBtn.addEventListener('click', function () {
+            // A new run supersedes an older one. Abort outstanding requests,
+            // restore the previous stable states, then allocate a fresh run id.
+            _cancelIndividualHealthProbes();
+            _cancelConnectionRun(true);
+            var runId = _connectionRunSeq;
+            var seen = Object.create(null);
+            var urls = [];
+            var configuredFeatures = 0;
+            for (var i = 0; i < _FEATURE_DEFS.length; i++) {
+                var fd = _FEATURE_DEFS[i];
+                var url = _epSafe ? (_epSafe.resolveEndpoint ? _epSafe.resolveEndpoint(fd.key) : _epSafe.resolve(fd.key)) : '';
+                if (!url) { continue; }
+                configuredFeatures++;
+                if (!seen[url]) {
+                    seen[url] = true;
+                    urls.push(url);
+                }
+            }
+            if (!urls.length) {
+                _connectionSummary.textContent = 'No endpoints configured for the active profile.';
+                testBtn.disabled = true;
+                testBtn.setAttribute('aria-disabled', 'true');
+                return;
+            }
+
+            _connectionRunUrls = urls.slice();
+            _connectionRunPrevious = Object.create(null);
+            for (var u = 0; u < urls.length; u++) {
+                _connectionRunPrevious[urls[u]] = _connectionHealthCache[urls[u]] || null;
+                _setEndpointHealthState(urls[u], { kind: 'checking', checkedAt: 0 });
+            }
+            testBtn.disabled = true;
+            testBtn.setAttribute('aria-disabled', 'true');
+            testBtn.setAttribute('aria-busy', 'true');
+            _urlDisplay.setAttribute('aria-busy', 'true');
+            _connectionSummary.textContent = 'Checking ' + urls.length + ' endpoint address' +
+                (urls.length === 1 ? '' : 'es') + ' across ' + configuredFeatures + ' configured feature' +
+                (configuredFeatures === 1 ? '' : 's') + '\u2026';
+
+            var pending = urls.length;
+            var okCount = 0;
+            var timeoutCount = 0;
+            var errorCount = 0;
+
+            function finishOne(url, result) {
+                if (runId !== _connectionRunSeq) { return; }
+                var state = _endpointHealthStateFromResult(result);
+                _setEndpointHealthState(url, state);
+                if (state.kind === 'ok') { okCount++; }
+                else if (state.kind === 'timeout') { timeoutCount++; }
+                else { errorCount++; }
+                pending--;
+                if (pending > 0) { return; }
+
+                _connectionRunCancels = [];
+                _connectionRunUrls = [];
+                _connectionRunPrevious = Object.create(null);
+                testBtn.disabled = false;
+                testBtn.setAttribute('aria-disabled', 'false');
+                testBtn.setAttribute('aria-busy', 'false');
+                _urlDisplay.setAttribute('aria-busy', 'false');
+                var parts = [okCount + '/' + urls.length + ' endpoint address' +
+                    (urls.length === 1 ? '' : 'es') + ' reachable'];
+                if (timeoutCount) { parts.push(timeoutCount + ' timed out'); }
+                if (errorCount) { parts.push(errorCount + ' unreachable'); }
+                _connectionSummary.textContent = parts.join(' · ') + ' across ' +
+                    configuredFeatures + ' configured feature' + (configuredFeatures === 1 ? '' : 's') + '.';
+            }
+
+            for (var p = 0; p < urls.length; p++) {
+                (function (url) {
+                    var cancel = _pingUrl(url, function (result) { finishOne(url, result); });
+                    // _pingUrl can fail synchronously in hostile/partial browser
+                    // environments. Do not retain a stale cancel handle after a
+                    // run that has already completed in that path.
+                    if (runId === _connectionRunSeq && pending > 0 && typeof cancel === 'function') {
+                        _connectionRunCancels.push(cancel);
+                    }
+                }(urls[p]));
+            }
+        });
+
 
         // Mode toggle handlers
         _simpleModeBtn.addEventListener('click', function () {
@@ -23621,15 +23607,18 @@
         fAdvWrap.appendChild(fTokenNote);
 
         var _ADV_FIELDS = [
-            { key: 'base',          label: 'Base endpoint *', type: 'url',      ph: 'https://proxy.example.com' },
-            { key: 'chat',          label: 'Chat endpoint',   type: 'text',     ph: 'Absolute URL, relative v1/chat/completions, or blank to inherit' },
-            { key: 'share',         label: 'Share endpoint',  type: 'text',     ph: 'Absolute URL, relative v1/share, or blank to inherit' },
-            { key: 'feedback',      label: 'Feedback endpoint', type: 'text',   ph: 'Absolute URL, relative v1/feedback, or blank to inherit' },
-            { key: 'training',      label: 'Dataset contribution endpoint', type: 'text', ph: 'Absolute URL, relative v1/contribute, or blank to inherit' },
-            { key: 'datasetRepo',   label: 'Dataset override', type: 'text',    ph: 'Auto-discover, or owner/repo' },
-            { key: 'shareToken',    label: 'Share token',    type: 'password', ph: '(optional Bearer token)'   },
-            { key: 'feedbackToken', label: 'Feedback token', type: 'password', ph: '(optional Bearer token)'   },
-        ];
+            { key: 'base', label: 'Base endpoint *', type: 'url', ph: 'https://proxy.example.com' }
+        ].concat(_FEATURE_DEFS.map(function (fd) {
+            return {
+                key: fd.key,
+                label: fd.label + ' endpoint',
+                type: 'text',
+                ph: 'Absolute URL, relative ' + fd.suffix.replace(/^\//, '') + ', or blank to inherit'
+            };
+        })).concat([
+            { key: 'datasetRepo', label: 'Dataset override', type: 'text', ph: 'Auto-discover, or owner/repo' },
+            { key: 'shareToken', label: 'Share token', type: 'password', ph: '(optional Bearer token)' },
+        ]);
         var fAdvInputs = {};
 
         for (var _ai = 0; _ai < _ADV_FIELDS.length; _ai++) {
@@ -23755,16 +23744,20 @@
                 }
                 profileData = {
                     label: label, base: base,
-                    chat: '', share: '', feedback: '', training: '',
+                    chat: '', share: '', training: '', image: '', video: '', audio: '', document: '', publication: '',
                     datasetRepo: simpleDataset,
-                    shareToken: '', feedbackToken: '', ttlDays: 30,
+                    shareToken: '', ttlDays: 30,
                 };
             } else {
                 var aBase = fAdvInputs.base ? fAdvInputs.base.value.trim().replace(/\/+$/, '') : '';
                 var aC  = fAdvInputs.chat     ? fAdvInputs.chat.value.trim().replace(/\/+$/, '')     : '';
                 var aSh = fAdvInputs.share    ? fAdvInputs.share.value.trim().replace(/\/+$/, '')    : '';
-                var aFb = fAdvInputs.feedback ? fAdvInputs.feedback.value.trim().replace(/\/+$/, '') : '';
                 var aTr = fAdvInputs.training ? fAdvInputs.training.value.trim().replace(/\/+$/, '') : '';
+                var aIm = fAdvInputs.image ? fAdvInputs.image.value.trim().replace(/\/+$/, '') : '';
+                var aVi = fAdvInputs.video ? fAdvInputs.video.value.trim().replace(/\/+$/, '') : '';
+                var aAu = fAdvInputs.audio ? fAdvInputs.audio.value.trim().replace(/\/+$/, '') : '';
+                var aDoc = fAdvInputs.document ? fAdvInputs.document.value.trim().replace(/\/+$/, '') : '';
+                var aPub = fAdvInputs.publication ? fAdvInputs.publication.value.trim().replace(/\/+$/, '') : '';
                 var aDataset = fAdvInputs.datasetRepo ? fAdvInputs.datasetRepo.value.trim() : '';
                 if (!aBase) {
                     fError.textContent = 'Base endpoint is required. Use overrides only for exceptions.';
@@ -23779,7 +23772,7 @@
                     return;
                 }
                 var urlPairs = [
-                    ['base', aBase], ['chat', aC], ['share', aSh], ['feedback', aFb], ['training', aTr]
+                    ['base', aBase], ['chat', aC], ['share', aSh], ['training', aTr], ['image', aIm], ['video', aVi], ['audio', aAu], ['document', aDoc], ['publication', aPub]
                 ];
                 var urlErr = '';
                 for (var _vi = 0; _vi < urlPairs.length && !urlErr; _vi++) {
@@ -23805,10 +23798,9 @@
                 }
                 profileData = {
                     label: label, base: aBase,
-                    chat: aC, share: aSh, feedback: aFb, training: aTr,
+                    chat: aC, share: aSh, training: aTr, image: aIm, video: aVi, audio: aAu, document: aDoc, publication: aPub,
                     datasetRepo: aDataset,
                     shareToken:    fAdvInputs.shareToken    ? fAdvInputs.shareToken.value.trim()    : '',
-                    feedbackToken: fAdvInputs.feedbackToken ? fAdvInputs.feedbackToken.value.trim() : '',
                     ttlDays: 30,
                 };
             }
@@ -24404,9 +24396,9 @@
         /**
          * Build a safe conf.py block for the active profile.
          *
-         * Recommended mode canonicalises legacy four-URL profiles into the new
-         * one-base topology and emits only overrides that differ from base.
-         * Expanded mode emits every resolved feature URL for audit/migration.
+         * Recommended mode emits the current one-base topology plus only
+         * explicit feature overrides. Expanded mode emits every resolved
+         * feature URL for inspection.
          * Advanced mode emits an annotated, copy-ready developer template that
          * explains absolute, Base-relative, and inherited route forms.
          */
@@ -24421,7 +24413,7 @@
                 base = _snippetNormUrl(_epSafe.resolveBaseFor(key));
             }
             if (!base) {
-                base = _snippetNormUrl(prof.base || prof.chat || prof.share || prof.feedback || prof.training);
+                base = _snippetNormUrl(prof.base || prof.chat || prof.share || prof.training || prof.image || prof.video || prof.audio || prof.document || prof.publication);
             }
 
             var lines = [
@@ -24452,7 +24444,7 @@
                 lines.push('        "base": "' + _pyDqEscape(base) + '",');
             }
 
-            var urlFields = ['chat', 'share', 'feedback', 'training'];
+            var urlFields = ['chat', 'share', 'training', 'image', 'video', 'audio', 'document', 'publication'];
             for (var _si = 0; _si < urlFields.length; _si++) {
                 var _sf = urlFields[_si];
                 var _explicit = _snippetNormUrl(prof[_sf]);
@@ -24477,8 +24469,7 @@
                         lines.push('        # Inherit ' + _sf + ': None / "" / omitted → Base + default route');
                         lines.push('        "' + _sf + '": None,');
                     } else if (/^https?:\/\//i.test(_rawRoute)) {
-                        // Host-only legacy overrides are clearer in Advanced
-                        // when rendered as the exact endpoint they resolve to.
+                        // Absolute endpoints are rendered exactly as resolved.
                         var _advAbsolute = _resolved || _rawRoute;
                         lines.push('');
                         lines.push('        # Absolute endpoint — used as-is after whitespace cleanup');
@@ -24710,19 +24701,19 @@
         // of Endpoint Configuration avoids two visible controls for one state.
 
         // ── C: Page integration ────────────────────────────────────────────
-        // Feedback telemetry/review permissions intentionally live only in the
-        // Feedback workspace. Endpoint Configuration owns transport/runtime
-        // integration settings, not duplicate feedback consent controls.
+        // Feedback review permission intentionally lives only in the Feedback
+        // workspace. Endpoint Configuration owns transport/runtime integration
+        // settings, not duplicate review controls.
         var integrationSub = _buildExtSub('Page integration events');
         var integrationIntro = document.createElement('p');
         integrationIntro.className = 'ai-assistant-panel-ep-hint';
         integrationIntro.textContent =
-            'Feedback privacy and maintainer-review permissions are managed in the Feedback workspace so one setting has one visible owner. This section only controls optional same-origin page integration events.';
+            'Maintainer-review permission is managed in the Feedback workspace so one setting has one visible owner. This section only controls optional same-origin page integration events.';
         integrationSub.appendChild(integrationIntro);
 
         var domToggle = _buildExtToggleRow(
             'Allow page integration events',
-            ((_cfg().panelPageIntegrationDefault === true) ? 'ON' : 'OFF') + ' by site default. Optional same-origin integration hook for documentation authors. Internal assistant coordination stays on a private bus when disabled. When enabled, page scripts receive only bounded projections of selected lifecycle events; raw model objects, endpoint URLs, bearer tokens, provider model identifiers, Q&A text, notes and stable conversation identifiers are never exposed. This permission is separate from network telemetry.',
+            ((_cfg().panelPageIntegrationDefault === true) ? 'ON' : 'OFF') + ' by site default. Optional same-origin integration hook for documentation authors. Internal assistant coordination stays on a private bus when disabled. When enabled, page scripts receive only bounded projections of selected lifecycle events; raw model objects, endpoint URLs, bearer tokens, provider model identifiers, Q&A text, notes and stable conversation identifiers are never exposed. This permission is separate from maintainer review and generic page feedback.',
             _feedbackDomIntegrationEnabled,
             'ai-assistant-feedback-dom-toggle'
         );
@@ -24737,11 +24728,6 @@
         domStatus.textContent = _feedbackDomStatusText();
         integrationSub.appendChild(domStatus);
         extBody.appendChild(integrationSub);
-
-        // Kept as a nullable compatibility hook for discovery refresh. The
-        // server contract state is stored in _feedbackReviewServerInfo and is
-        // rendered by the Feedback workspace rather than duplicated here.
-        var _fbkServerRow = null;
 
         var contribSub = _buildExtSub('Dataset contributions');
         var contribIntro = document.createElement('p');
@@ -24814,53 +24800,26 @@
         var _HF_DATASET_ORIGIN = 'https://huggingface.co';
         var _HF_DATASET_PATH_PREFIX = '/datasets/';
 
-        function _renderFeedbackTelemetryServerInfo(info) {
+        function _renderFeedbackReviewServerInfo(info) {
             if (!info || info.error) {
                 _feedbackReviewServerInfo = null;
-                document.querySelectorAll('[data-feedback-telemetry-server-state]').forEach(function (el) {
-                    el.textContent = _feedbackTelemetryServerStateText();
-                });
                 document.querySelectorAll('[data-feedback-review-server-state]').forEach(function (el) {
                     el.textContent = _feedbackReviewServerStateText();
                 });
-                if (_fbkServerRow) {
-                    _fbkServerRow.className = 'ai-assistant-panel-ep-hint ai-assistant-feedback-telemetry-server';
-                    _fbkServerRow.textContent = 'Service telemetry contract: unavailable. Local ratings still work; network telemetry remains subject to the server gate.';
-                }
                 return;
             }
             _feedbackReviewServerInfo = {
                 ready: !!info.feedbackReviewReady,
                 mode: info.feedbackReviewMode || 'disabled',
                 consentVersion: info.feedbackReviewConsentVersion || null,
-                trainingConsentVersion: info.feedbackTrainingConsentVersion || null,
-                telemetryPersistEnabled: !!info.feedbackPersistEnabled,
-                telemetryCompatible: info.feedbackTelemetrySchemaVersion === 4 &&
-                    info.feedbackTelemetryConsentVersion === _FEEDBACK_TELEMETRY_CONSENT_VERSION
+                trainingConsentVersion: info.feedbackTrainingConsentVersion || null
             };
             document.querySelectorAll('[data-feedback-review-status]').forEach(function (el) {
                 el.textContent = _feedbackReviewStatusText();
             });
-            document.querySelectorAll('[data-feedback-telemetry-server-state]').forEach(function (el) {
-                el.textContent = _feedbackTelemetryServerStateText();
-            });
             document.querySelectorAll('[data-feedback-review-server-state]').forEach(function (el) {
                 el.textContent = _feedbackReviewServerStateText();
             });
-            if (!_fbkServerRow) { return; }
-            _fbkServerRow.className = 'ai-assistant-panel-ep-hint ai-assistant-feedback-telemetry-server';
-            var compatible = info.feedbackTelemetrySchemaVersion === 4 &&
-                info.feedbackTelemetryConsentVersion === _FEEDBACK_TELEMETRY_CONSENT_VERSION;
-            if (!compatible) {
-                _fbkServerRow.textContent = 'Anonymous telemetry: incompatible or legacy; keep it Off. Maintainer review: ' +
-                    (info.feedbackReviewReady ? ('Ready · ' + (info.feedbackReviewMode || 'provider review')) : 'Not ready') +
-                    '. These are independent service contracts.';
-                return;
-            }
-            _fbkServerRow.textContent = 'Telemetry: compatible · schema 4 · consent 1.0.0 · persistence ' +
-                (info.feedbackPersistEnabled ? 'On' : 'Off') + '. Maintainer review: ' +
-                (info.feedbackReviewReady ? ('Ready · ' + (info.feedbackReviewMode || 'provider review')) : 'Not ready') +
-                '. Browser permissions remain separate for telemetry and review sharing.';
         }
 
         /**
@@ -24872,7 +24831,7 @@
          *     Proxy root URL (no trailing slash, no path suffix).
          * cb : function(info)
          *     Called exactly once. info = {repoId, contributeReady,
-         *     feedbackPersistEnabled, tokenType, writeTokenType,
+         *     feedbackReviewReady, tokenType, writeTokenType,
          *     leastPrivilege, error}. On failure repoId is null and error is a
          *     string description.
          *
@@ -24892,9 +24851,6 @@
                 if (done) { return; }
                 done = true;
                 cb({ repoId: null, contributeReady: false,
-                     feedbackPersistEnabled: false,
-                     feedbackTelemetrySchemaVersion: null,
-                     feedbackTelemetryConsentVersion: null,
                      feedbackReviewMode: null, feedbackReviewReady: false,
                      feedbackReviewConsentVersion: null, feedbackTrainingConsentVersion: null,
                      tokenType: null,
@@ -24924,11 +24880,6 @@
                     cb({
                         repoId:                 tr.dataset_repo || null,
                         contributeReady:        !!tr.contribute_ready,
-                        feedbackPersistEnabled: !!tr.feedback_persist_enabled,
-                        feedbackTelemetrySchemaVersion: Number.isInteger(tr.feedback_telemetry_schema_version)
-                            ? tr.feedback_telemetry_schema_version : null,
-                        feedbackTelemetryConsentVersion: typeof tr.feedback_telemetry_consent_version === 'string'
-                            ? tr.feedback_telemetry_consent_version : null,
                         feedbackReviewMode: typeof tr.feedback_review_mode === 'string' ? tr.feedback_review_mode : null,
                         feedbackReviewReady: !!tr.feedback_review_ready,
                         feedbackReviewConsentVersion: typeof tr.feedback_review_consent_version === 'string'
@@ -25268,7 +25219,7 @@
             var proxyBase = _proxyBaseFromTrainingUrl(trainingUrl);
 
             if (effectiveRepo && !proxyBase) {
-                _renderFeedbackTelemetryServerInfo({ error: 'not-discoverable' });
+                _renderFeedbackReviewServerInfo({ error: 'not-discoverable' });
                 // Config/override only, nothing to discover.
                 _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
                 if (tokenRow) { tokenRow.textContent = ''; }
@@ -25276,7 +25227,7 @@
             }
 
             if (!effectiveRepo && !proxyBase) {
-                _renderFeedbackTelemetryServerInfo({ error: 'not-configured' });
+                _renderFeedbackReviewServerInfo({ error: 'not-configured' });
                 _renderDatasetLinks(statusRow, linksWrap, null, 'not-configured');
                 if (tokenRow) { tokenRow.textContent = ''; }
                 return;
@@ -25292,7 +25243,7 @@
             statusRow.appendChild(spinner); statusRow.appendChild(loadTxt);
 
             _fetchProxyDatasetInfo(proxyBase, function (info) {
-                _renderFeedbackTelemetryServerInfo(info);
+                _renderFeedbackReviewServerInfo(info);
                 // New provider-neutral manifest wins when available. It contains
                 // already-resolved public links for HF/GitHub/GitLab/Bitbucket.
                 if (info.storage && _renderStorageTargets(
@@ -25330,10 +25281,8 @@
             'dataset override above only when visitors should receive a public dataset link.';
         datasetSub.appendChild(datasetIntro);
 
-        // Browser-wide legacy dataset overrides remain readable by the
-        // resolver for backward compatibility, but are intentionally not
-        // exposed as a second editor. Dataset editing belongs to the active
-        // endpoint profile above.
+        // Dataset routing belongs to the active endpoint profile above; there
+        // is no second browser-wide dataset endpoint configuration surface.
 
         var datasetStatusRow = document.createElement('div');
         datasetStatusRow.className = 'ai-assistant-panel-ep-ext-dataset-status';
@@ -25414,6 +25363,24 @@
             });
         }
 
+        // Every close path (header ×, Escape, or switching sheets) mutates
+        // data-open. Observe the sheet itself so diagnostics are aborted even
+        // when the close did not originate from this sheet's own button.
+        var _openStateObserver = (typeof MutationObserver !== 'undefined')
+            ? new MutationObserver(function (muts) {
+                for (var _oi = 0; _oi < muts.length; _oi++) {
+                    if (muts[_oi].attributeName === 'data-open' &&
+                            sheet.getAttribute('data-open') !== 'true') {
+                        _cancelConnectionRun(true);
+                        _cancelIndividualHealthProbes();
+                        break;
+                    }
+                }
+            }) : null;
+        if (_openStateObserver) {
+            _openStateObserver.observe(sheet, { attributes: true, attributeFilter: ['data-open'] });
+        }
+
         // Automatic cleanup when the sheet is removed from the DOM — prevents
         // memory leaks when the sheet element is replaced by a new build
         var _domObserver = (typeof MutationObserver !== 'undefined')
@@ -25423,6 +25390,9 @@
                     for (var _ri = 0; _ri < _rn.length; _ri++) {
                         if (_rn[_ri] === sheet) {
                             if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+                            _cancelConnectionRun(true);
+                            _cancelIndividualHealthProbes();
+                            if (_openStateObserver) { _openStateObserver.disconnect(); }
                             _domObserver.disconnect();
                         }
                     }
@@ -25508,64 +25478,36 @@
          * Rebuild all URL display rows and read-only inputs from the active profile.
          */
         function _refreshUrls() {
+            // Rebuilding the active routing table invalidates any in-flight bulk
+            // run. Abort it and restore the last stable health snapshot before
+            // binding the new table rows.
+            _cancelConnectionRun(true);
+            _cancelIndividualHealthProbes();
+            _connectionHealthBindings = Object.create(null);
+            _urlDisplay.setAttribute('aria-busy', 'false');
             while (_urlDisplay.firstChild) { _urlDisplay.removeChild(_urlDisplay.firstChild); }
-            var chatBase = '';
             if (_advSaveStatus) { _advSaveStatus.textContent = ''; }
-            for (var _ri = 0; _ri < _FEATURE_DEFS.length; _ri++) {
-                var _rfd     = _FEATURE_DEFS[_ri];
-                var resolved = (_epSafe ? _epSafe.resolve(_rfd.key) : '') || '';
-                var fullUrl = (_epSafe && _epSafe.resolveEndpoint)
-                    ? _epSafe.resolveEndpoint(_rfd.key)
-                    : (resolved ? (resolved + _rfd.suffix) : '');
-                if (_rfd.key === 'chat') { chatBase = resolved; }
-
-                if (_advInputs[_rfd.key]) { _advInputs[_rfd.key].value = resolved; }
-
-                var row = document.createElement('div');
-                row.className = 'ai-assistant-panel-ep-resolved-row ' +
-                    (resolved ? 'ai-assistant-panel-ep-resolved-row--on'
-                              : 'ai-assistant-panel-ep-resolved-row--off');
-
-                var dot = document.createElement('span');
-                dot.className = 'ai-assistant-panel-ep-indicator ' +
-                    (resolved ? 'ai-assistant-panel-ep-indicator--on'
-                              : 'ai-assistant-panel-ep-indicator--off');
-                dot.setAttribute('aria-hidden', 'true');
-
-                var lbl = document.createElement('span');
-                lbl.className   = 'ai-assistant-panel-ep-resolved-label';
-                lbl.textContent = _rfd.label;
-
-                var urlTxt;
-                if (fullUrl) {
-                    urlTxt          = document.createElement('a');
-                    // Defense in depth: link only if the scheme is safe.
-                    if (_isSafeHref(fullUrl)) {
-                        urlTxt.href   = fullUrl;
-                        urlTxt.target = '_blank';
-                        urlTxt.rel    = 'noopener noreferrer';
-                    }
-                    urlTxt.setAttribute('title', fullUrl);
-                    urlTxt.textContent = fullUrl;
-                    urlTxt.appendChild(_makeCopyBtn(function (u) {
-                        return function () { return u; };
-                    }(fullUrl)));
-                } else {
-                    urlTxt             = document.createElement('span');
-                    urlTxt.textContent = 'Not configured';
-                }
-                urlTxt.className = 'ai-assistant-panel-ep-resolved-url';
-
-                row.appendChild(dot);
-                row.appendChild(lbl);
-                row.appendChild(urlTxt);
-                _urlDisplay.appendChild(row);
-            }
             var activeKey = (_epSafe && _epSafe.getActive) ? _epSafe.getActive() : '';
             var activeProfile = activeKey ? _epSafe.getProfile(activeKey) : null;
             var activeMeta = activeKey ? _epSafe.getMetadata(activeKey) : null;
+            var chatBase = (_epSafe && typeof _epSafe.resolve === 'function') ? (_epSafe.resolve('chat') || '') : '';
             var canonicalBase = (_epSafe && _epSafe.resolveBaseFor)
                 ? _epSafe.resolveBaseFor(activeKey) : chatBase;
+
+            if (activeProfile) {
+                _urlDisplay.appendChild(_buildEndpointResolutionTable(
+                    activeKey,
+                    'Resolved endpoints and connection health for ' + (activeProfile.label || activeKey || 'active profile'),
+                    false,
+                    _activeHealthController
+                ));
+            } else {
+                var noResolved = document.createElement('p');
+                noResolved.className = 'ai-assistant-panel-ep-hint';
+                noResolved.textContent = 'No resolved endpoints for the active profile.';
+                _urlDisplay.appendChild(noResolved);
+            }
+            _refreshConnectionSummaryForProfile(activeKey);
             _simpleInp.value       = canonicalBase || chatBase;
             _simpleInp.placeholder = canonicalBase ? '' : 'No endpoint configured';
             _advBaseInp.value = canonicalBase || '';
@@ -25596,6 +25538,7 @@
                     }
                 }
             }
+            _refreshAdvancedEffectiveEndpoints();
 
             // Dataset priority: per-profile override → conf.py override →
             // service discovery. Blank custom input intentionally means Auto.
@@ -25665,7 +25608,6 @@
 
             var table = document.createElement('table');
             table.className = 'ai-assistant-panel-ep-compare-grid';
-            table.setAttribute('role', 'grid');
             table.setAttribute('aria-label', 'Profile capability comparison');
 
             // Header row
@@ -25722,7 +25664,7 @@
                 var _gfd  = _FEATURE_DEFS[_gi];
                 var grow  = document.createElement('tr');
 
-                var ftd = document.createElement('td');
+                var ftd = document.createElement('th');
                 ftd.className = 'ai-assistant-panel-ep-grid-td ai-assistant-panel-ep-grid-feature';
                 ftd.setAttribute('scope', 'row');
                 var ftdLbl = document.createElement('span');
@@ -25736,9 +25678,7 @@
 
                 for (var _gp = 0; _gp < allProfiles.length; _gp++) {
                     var _gpk = allProfiles[_gp];
-                    var url  = _epSafe.resolveEndpointFor
-                        ? _epSafe.resolveEndpointFor(_gfd.key, _gpk.key)
-                        : _epSafe.resolveFor(_gfd.key, _gpk.key);
+                    var url  = _resolveFeatureEndpoint(_gfd, _gpk.key);
                     var td   = document.createElement('td');
                     td.className = 'ai-assistant-panel-ep-grid-td ai-assistant-panel-ep-grid-cell' +
                         (_gpk.key === activeKey ? ' ai-assistant-panel-ep-grid-td--active' : '');
@@ -25813,7 +25753,7 @@
             var isActive  = (key === currentActive);
             var isRuntime = (source === 'custom' || source === 'imported');
 
-            var card = document.createElement('label');
+            var card = document.createElement('div');
             card.className = 'ai-assistant-panel-ep-card' +
                 (isActive ? ' ai-assistant-panel-ep-card--active' : '');
             card.setAttribute('data-ep-key',        key);
@@ -25908,20 +25848,15 @@
             var capRow = document.createElement('div');
             capRow.className = 'ai-assistant-panel-ep-caps';
             var capData = (_epSafe ? _epSafe.getProfile(key) : null) || {};
-            var _capDefs = [
-                { key: 'chat',     label: 'Chat'     },
-                { key: 'share',    label: 'Share'    },
-                { key: 'feedback', label: 'Feedback' },
-                { key: 'training', label: 'Training' },
-            ];
-            for (var _ci = 0; _ci < _capDefs.length; _ci++) {
-                var _cd  = _capDefs[_ci];
-                var _has = !!(_epSafe && _epSafe.resolveFor ? _epSafe.resolveFor(_cd.key, key) : capData[_cd.key]);
+            for (var _ci = 0; _ci < _FEATURE_DEFS.length; _ci++) {
+                var _cd  = _FEATURE_DEFS[_ci];
+                var _has = !!_resolveFeatureEndpoint(_cd, key);
                 var cap  = document.createElement('span');
                 cap.className   = 'ai-assistant-panel-ep-cap ' +
                     (_has ? 'ai-assistant-panel-ep-cap--on' : 'ai-assistant-panel-ep-cap--off');
-                cap.textContent = _cd.label;
+                cap.textContent = _cd.capLabel || _cd.label;
                 cap.setAttribute('title', _cd.label + ': ' + (_has ? 'configured' : 'not configured'));
+                cap.setAttribute('aria-label', _cd.label + ': ' + (_has ? 'configured' : 'not configured'));
                 capRow.appendChild(cap);
             }
             content.appendChild(capRow);
@@ -25956,6 +25891,8 @@
 
             var detailWrap = document.createElement('div');
             detailWrap.className = 'ai-assistant-panel-ep-card-detail';
+            detailWrap.id = 'ai-assistant-panel-ep-card-detail-' + key;
+            detailToggle.setAttribute('aria-controls', detailWrap.id);
             // Visibility is controlled solely via the 'ep-open' class (see
             // .ai-assistant-panel-ep-card-detail.ep-open in the stylesheet).
             // Do not set an inline display style here: the base rule already
@@ -25970,74 +25907,11 @@
                 detailToggle.textContent = _isOpen ? 'Show URLs' : 'Hide URLs';
                 detailToggle.setAttribute('aria-expanded', _isOpen ? 'false' : 'true');
                 if (!_isOpen && !detailWrap.firstChild) {
-                    // Lazy-build detail rows on first expand
-                    for (var _dfi = 0; _dfi < _FEATURE_DEFS.length; _dfi++) {
-                        var _dfd = _FEATURE_DEFS[_dfi];
-                        var resolved = _epSafe ? _epSafe.resolveFor(_dfd.key, key) : '';
-                        var fullUrl = (_epSafe && _epSafe.resolveEndpointFor)
-                            ? _epSafe.resolveEndpointFor(_dfd.key, key)
-                            : (resolved ? (resolved + _dfd.suffix) : '');
-
-                        var dRow = document.createElement('div');
-                        dRow.className = 'ai-assistant-panel-ep-card-detail-row';
-
-                        var dLbl = document.createElement('span');
-                        dLbl.className   = 'ai-assistant-panel-ep-card-detail-label';
-                        dLbl.textContent = _dfd.label + ':';
-
-                        // Render the URL as a clickable link that opens in a
-                        // new tab when it resolves to a safe http(s)/relative
-                        // target (V-09-style guard, mirrors info_url handling
-                        // above); otherwise fall back to plain text exactly
-                        // as before (e.g. "Not configured").
-                        var dUrl;
-                        if (fullUrl && _isSafeHref(fullUrl)) {
-                            dUrl = document.createElement('a');
-                            dUrl.href        = fullUrl;
-                            dUrl.target      = '_blank';
-                            dUrl.rel         = 'noopener noreferrer';
-                            dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
-                            dUrl.textContent = fullUrl;
-                            dUrl.setAttribute('title', 'Open in a new tab: ' + fullUrl);
-                            dUrl.setAttribute(
-                                'aria-label',
-                                _dfd.label + ' endpoint URL, opens in a new tab: ' + fullUrl
-                            );
-
-                            var dArrow = document.createElement('span');
-                            dArrow.className = 'ai-assistant-panel-ep-card-detail-url-arrow';
-                            dArrow.setAttribute('aria-hidden', 'true');
-                            dArrow.textContent = '\u2197';
-                            dUrl.appendChild(dArrow);
-
-                            // Open via window.open() rather than relying on the
-                            // anchor's native navigation: this card is inside a
-                            // <label> wrapping a profile radio, and an
-                            // un-prevented click would also be forwarded to that
-                            // radio (silently switching the active profile).
-                            // e.currentTarget (not a loop-scoped var) keeps this
-                            // correct across all _FEATURE_DEFS iterations.
-                            dUrl.addEventListener('click', function (e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                window.open(e.currentTarget.href, '_blank', 'noopener,noreferrer');
-                            });
-                        } else {
-                            dUrl = document.createElement('span');
-                            dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
-                            dUrl.textContent = fullUrl || 'Not configured';
-                            if (fullUrl) { dUrl.setAttribute('title', fullUrl); }
-                        }
-
-                        dRow.appendChild(dLbl);
-                        dRow.appendChild(dUrl);
-                        if (fullUrl) {
-                            dRow.appendChild(_makeCopyBtn(function (u) {
-                                return function () { return u; };
-                            }(fullUrl)));
-                        }
-                        detailWrap.appendChild(dRow);
-                    }
+                    detailWrap.appendChild(_buildEndpointResolutionTable(
+                        key,
+                        'Endpoint URLs for ' + label,
+                        true
+                    ));
                 }
             });
             content.appendChild(detailToggle);
@@ -26046,6 +25920,19 @@
             card.appendChild(radio);
             card.appendChild(content);
             container.appendChild(card);
+
+            // Keep full-card selection ergonomics without using a <label>
+            // around nested buttons/links. Interactive descendants retain their
+            // own action; clicking non-interactive card chrome selects profile.
+            card.addEventListener('click', function (e) {
+                var target = e.target;
+                if (target && target.closest && target.closest('button, a, input, textarea, select')) { return; }
+                if (!radio.checked) {
+                    radio.checked = true;
+                    try { radio.dispatchEvent(new Event('change', { bubbles: true })); }
+                    catch (_) { radio.dispatchEvent(new Event('change')); }
+                }
+            });
 
             // Profile switch handler
             radio.addEventListener('change', function () {
@@ -26204,7 +26091,7 @@
          * -------
          * HTMLButtonElement
          */
-        function _makeHealthBtn(inp, fdLabel) {
+        function _makeHealthBtn(inp, fdLabel, hooks) {
             var btn = document.createElement('button');
             btn.type      = 'button';
             btn.className = 'ai-assistant-panel-ep-health-btn';
@@ -26212,24 +26099,36 @@
             btn.textContent = '⬤';
             btn.title       = 'Ping endpoint';
             var _busy = false;
+            var _resetTimer = null;
 
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (_busy) { return; }
+                if (hooks && typeof hooks.canStart === 'function' && !hooks.canStart()) { return; }
+                clearTimeout(_resetTimer);
+                _resetTimer = null;
                 var url = (typeof inp === 'function')
                     ? inp()
                     : (inp && typeof inp.value === 'string' ? inp.value : '');
                 if (!url) {
                     btn.className = 'ai-assistant-panel-ep-health-btn ai-assistant-panel-ep-health-btn--off';
                     btn.title     = 'No URL configured';
+                    btn.setAttribute('aria-label', fdLabel + ' endpoint is not configured');
                     return;
                 }
                 _busy = true;
+                btn.setAttribute('aria-busy', 'true');
                 btn.className = 'ai-assistant-panel-ep-health-btn ai-assistant-panel-ep-health-btn--checking';
                 btn.title     = 'Checking…';
+                btn.setAttribute('aria-label', 'Checking ' + fdLabel + ' endpoint health');
+                if (hooks && typeof hooks.onStart === 'function') {
+                    try { hooks.onStart(url); } catch (_) {}
+                }
 
-                _pingUrl(url, function (result) {
+                var probeEntry = null;
+                var cancelProbe = _pingUrl(url, function (result) {
+                    if (probeEntry) { _releaseIndividualHealthProbe(probeEntry); }
                     var ts = new Date().toLocaleTimeString();
                     btn.className = 'ai-assistant-panel-ep-health-btn ' +
                         (result.ok
@@ -26238,12 +26137,43 @@
                     btn.title = result.ok
                         ? 'Reachable (' + ts + ')'
                         : (result.status === 'timeout' ? 'Timeout (5 s)' : 'Unreachable');
+                    btn.setAttribute('aria-label', result.ok
+                        ? fdLabel + ' endpoint reachable. Check again'
+                        : (result.status === 'timeout'
+                            ? fdLabel + ' endpoint timed out. Check again'
+                            : fdLabel + ' endpoint unreachable. Check again'));
+                    if (hooks && typeof hooks.onResult === 'function') {
+                        try { hooks.onResult(result, url); } catch (_) {}
+                    }
                     _busy = false;
-                    setTimeout(function () {
+                    btn.setAttribute('aria-busy', 'false');
+                    _resetTimer = setTimeout(function () {
+                        if (_busy) { return; }
                         btn.className = 'ai-assistant-panel-ep-health-btn';
                         btn.title     = 'Ping endpoint';
+                        btn.setAttribute('aria-label', 'Check ' + fdLabel + ' endpoint health');
+                        _resetTimer = null;
                     }, 8000);
                 });
+                if (_busy && typeof cancelProbe === 'function') {
+                    probeEntry = {
+                        cancel: cancelProbe,
+                        reset: function () {
+                            if (!_busy) { return; }
+                            _busy = false;
+                            clearTimeout(_resetTimer);
+                            _resetTimer = null;
+                            btn.setAttribute('aria-busy', 'false');
+                            btn.className = 'ai-assistant-panel-ep-health-btn';
+                            btn.title = 'Ping endpoint';
+                            btn.setAttribute('aria-label', 'Check ' + fdLabel + ' endpoint health');
+                            if (hooks && typeof hooks.onCancel === 'function') {
+                                try { hooks.onCancel(url); } catch (_) {}
+                            }
+                        }
+                    };
+                    _individualHealthProbes.push(probeEntry);
+                }
             });
             return btn;
         }
@@ -26377,15 +26307,21 @@
         function _pingUrl(url, cb) {
             var done = false;
             var tid  = null;
+            var ac = (typeof AbortController !== 'undefined')
+                ? new AbortController() : null;
             function _finish(result) {
                 if (done) { return; }
                 done = true;
                 clearTimeout(tid);
                 cb(result);
             }
+            function _cancel() {
+                if (done) { return; }
+                done = true;
+                clearTimeout(tid);
+                if (ac) { try { ac.abort(); } catch (_) {} }
+            }
             try {
-                var ac = (typeof AbortController !== 'undefined')
-                    ? new AbortController() : null;
                 tid = setTimeout(function () {
                     if (ac) { try { ac.abort(); } catch (_) {} }
                     _finish({ ok: false, status: 'timeout' });
@@ -26405,6 +26341,7 @@
             } catch (e) {
                 _finish({ ok: false, status: 'error' });
             }
+            return _cancel;
         }
 
         /**
@@ -26708,7 +26645,7 @@
 
     /**
      * Build the canonical 8-key model-attribution object stored in
-     * ``detail.model`` (POST /v1/feedback) and the contribute envelope's
+     * ``detail.model`` in explicit review/contribution envelopes and the contribute envelope's
      * ``model`` (POST /v1/contribute).
      *
      * Single source of truth: previously, quick feedback, panel feedback (x2
@@ -30675,29 +30612,19 @@
                 row.appendChild(info);
             }
 
-            // ── Change handler (mirrors original _buildModelSheet logic) ──────
+            // ── Change handler ───────────────────────────────────────────────
+            // Every user-facing model selector goes through one transaction.
+            // This keeps persistence, the private model-change bus, effort/
+            // reasoning support, the sheet/footer surfaces, and sibling
+            // AI_ASSISTANT_MODEL_API consumers synchronized.
             row.addEventListener('change', function () {
                 if (!radio.checked) return;
                 var id = m.id;
-                _setActiveModelId(id);
-                try {
-                    var liveModels = _cfg().panelApiModels;
-                    var liveM = _findModel(
-                        Array.isArray(liveModels) ? liveModels : models, id
-                    );
-                    _dispatchAssistantEvent(new CustomEvent(
-                        'ai-assistant-model-change',
-                        { detail: liveM
-                            ? { id: liveM.id, provider: liveM.provider,
-                                model: liveM.model }
-                            : { id: id } }
-                    ));
-                } catch (_) {}
+                if (!_selectQuickModel(id)) return;
                 // Sync data-checked for :has() fallback (Issue 15).
                 sheet.querySelectorAll('.ai-assistant-panel-model-row[data-checked]')
                     .forEach(function (r) { r.removeAttribute('data-checked'); });
                 row.setAttribute('data-checked', 'true');
-                _syncInlinePickers(id);
             });
 
             // ── Edit affordance ───────────────────────────────────────────
@@ -33161,8 +33088,8 @@
                 '<li>Do not use the assistant to bypass access controls, permissions, rate limits, or provider safeguards.</li>' +
                 '<li>Do not treat generated output as authoritative when an error could cause harm; verify against primary documentation and project policy.</li>' +
                 '</ul>' +
-                '<h4>Feedback telemetry and dataset contribution are different</h4>' +
-                '<p>Rating telemetry can send only a bounded rating signal when you opt in. It does not send the question or answer. Dataset contribution is a separate explicit action that lets you inspect selected content, run the privacy review, and consent before submission.</p>' +
+                '<h4>Feedback review and dataset contribution are different</h4>' +
+                '<p>Assistant ratings stay local. Maintainer feedback review is an explicit action for one Q&A, while dataset contribution is a separate explicit action that lets you inspect selected content, run the privacy review, and consent before submission.</p>' +
                 '<p>Accepted contributions enter review quarantine first: contribution &rarr; quarantine &rarr; review &rarr; authorized promotion or native provider merge &rarr; possible training/evaluation use. Pending content can be deleted with its receipt capability; after promotion, withdrawal removes training eligibility and requests current-view removal without claiming physical erasure of provider history, backups, or caches.</p>' +
                 '<h4>Provider-specific rules still apply</h4>' +
                 '<p>When API mode is enabled, the selected endpoint or model provider may impose additional acceptable-use rules. The stricter applicable rule should be followed.</p>';
@@ -33233,46 +33160,6 @@
         }];
     }
 
-    function _feedbackTelemetrySavedJsonStructure(detail) {
-        var payload = _feedbackTelemetryPayload(detail || {});
-        var feedbackId = payload.feedbackId || null;
-        var ratingSlug = payload.ratingLabel || null;
-        return [{
-            schemaVersion: 5,
-            _source: 'feedback',
-            _ts: '<server-assigned>',
-            _dedup_key: feedbackId ? (String(feedbackId) + ':feedback') : null,
-            conversationId: null,
-            feedbackId: feedbackId,
-            feedbackChainId: payload.feedbackChainId || null,
-            recordType: null,
-            answerIndex: Number.isInteger(payload.answerIndex) ? payload.answerIndex : null,
-            action: 'rate',
-            prevFeedbackId: payload.prevFeedbackId || null,
-            prevFeedbackIds: Array.isArray(payload.prevFeedbackIds) ? payload.prevFeedbackIds.slice(0, _FEEDBACK_LINEAGE_MAX_IDS) : [],
-            editCount: Number.isFinite(Number(payload.editCount)) ? Number(payload.editCount) : 0,
-            status: 'active',
-            trainingStatus: 'telemetry',
-            ratingValue: payload.ratingValue,
-            ratingSlug: ratingSlug,
-            ratingTitle: payload.ratingTitle || null,
-            ratingMode: ratingSlug ? (payload.ratingMode || null) : null,
-            ratingScaleMin: null,
-            ratingScaleMax: null,
-            qualityScore: null,
-            qualityPercent: null,
-            message: '',
-            query: '',
-            answer: '',
-            messages: null,
-            model: null,
-            modelEvidence: null,
-            page: '',
-            consentVersion: null,
-            trainingConsentVersion: null,
-            ts: payload.ts == null ? null : payload.ts
-        }];
-    }
 
     function _jsonlPreview(rows) {
         return (Array.isArray(rows) ? rows : []).map(function (row) {
@@ -33952,7 +33839,7 @@
         submitSection.appendChild(recovery);
 
         // One presentation shell, three independent control planes. Feedback
-        // review consent never grants telemetry or dataset-contribution consent.
+        // review consent never grants dataset-contribution consent.
         var workspaceTabs = document.createElement('div');
         workspaceTabs.className = 'ai-assistant-conv-share-format-switcher ai-assistant-panel-feedback-workspace-tabs';
         workspaceTabs.setAttribute('role', 'tablist');
@@ -34064,7 +33951,7 @@
 
             var intro = document.createElement('p');
             intro.className = 'ai-assistant-panel-contribution-intro';
-            intro.textContent = 'Feedback is exactly one Q&A. Rating locally requires no network permission. Anonymous rating telemetry and maintainer review are separate opt-in channels, and neither one grants dataset-contribution authority. Review content is training-eligible only if a maintainer merges its provider review.';
+            intro.textContent = 'Feedback is exactly one Q&A. Rating locally requires no network permission. Maintainer review is an explicit opt-in channel and does not grant dataset-contribution authority. Review content is training-eligible only if a maintainer merges its provider review.';
             wrap.appendChild(intro);
 
             // 1) Choose-content parity with Dataset contribution: Feedback is
@@ -34119,57 +34006,13 @@
                 qaGroup.appendChild(qaActions);
             }
 
-            // 2) Review-details parity. The telemetry control that previously
-            // lived in every quick-rating popup now has one stable home here.
+            // 2) Explicit maintainer-review authority. Local ratings do not
+            // contact a server; this switch governs only the reviewed Q&A flow.
             var channelGroup = _contributionSection(
-                'Privacy channels',
-                'These controls are independent. Enabling one never enables the other, and neither enables dataset contribution.'
+                'Maintainer review',
+                'Share exactly one Q&A, its rating, and an optional note through the reviewed provider workflow. This permission does not enable dataset contribution.'
             );
             wrap.appendChild(channelGroup);
-            var channelGrid = document.createElement('div');
-            channelGrid.className = 'ai-assistant-panel-feedback-channel-grid';
-
-            var telemetryCard = document.createElement('div');
-            telemetryCard.className = 'ai-assistant-panel-feedback-channel-card';
-            telemetryCard.dataset.channel = 'telemetry';
-            var telemetryHead = document.createElement('div');
-            telemetryHead.className = 'ai-assistant-panel-feedback-channel-head';
-            var telemetryIdentity = document.createElement('div');
-            telemetryIdentity.className = 'ai-assistant-panel-feedback-channel-identity';
-            var telemetryIcon = document.createElement('span');
-            telemetryIcon.className = 'ai-assistant-panel-feedback-channel-icon';
-            telemetryIcon.textContent = '\uD83D\uDCBE';
-            telemetryIcon.setAttribute('aria-hidden', 'true');
-            var telemetryTitle = document.createElement('strong');
-            telemetryTitle.textContent = 'Anonymous rating telemetry';
-            telemetryIdentity.appendChild(telemetryIcon);
-            telemetryIdentity.appendChild(telemetryTitle);
-            var telemetryToggle = document.createElement('button');
-            telemetryToggle.type = 'button';
-            telemetryToggle.className = 'ai-assistant-panel-ep-ext-pill ai-assistant-panel-feedback-channel-toggle';
-            telemetryToggle.setAttribute('role', 'switch');
-            telemetryToggle.setAttribute('data-feedback-telemetry-toggle', 'true');
-            telemetryToggle.setAttribute('aria-checked', _feedbackPersistEnabled ? 'true' : 'false');
-            telemetryToggle.setAttribute('aria-label', 'Send privacy-minimal rating telemetry');
-            var telemetryThumb = document.createElement('span');
-            telemetryThumb.className = 'ai-assistant-panel-ep-ext-pill-thumb';
-            telemetryToggle.appendChild(telemetryThumb);
-            telemetryToggle.addEventListener('click', function () {
-                _setFeedbackPersistMode(!_feedbackPersistEnabled);
-                _refreshFeedbackWorkspace();
-            });
-            telemetryHead.appendChild(telemetryIdentity);
-            telemetryHead.appendChild(telemetryToggle);
-            telemetryCard.appendChild(telemetryHead);
-            var telemetryHint = document.createElement('p');
-            telemetryHint.className = 'ai-assistant-panel-feedback-channel-status';
-            telemetryHint.setAttribute('data-feedback-telemetry-status', 'true');
-            telemetryHint.textContent = _feedbackTelemetryStatusText();
-            telemetryCard.appendChild(telemetryHint);
-            var telemetryPersist = document.createElement('small');
-            telemetryPersist.setAttribute('data-feedback-telemetry-server-state', 'true');
-            telemetryPersist.textContent = _feedbackTelemetryServerStateText();
-            telemetryCard.appendChild(telemetryPersist);
 
             var reviewCard = document.createElement('div');
             reviewCard.className = 'ai-assistant-panel-feedback-channel-card';
@@ -34210,9 +34053,9 @@
             var reviewReady = document.createElement('small');
             reviewReady.setAttribute('data-feedback-review-server-state', 'true');
             reviewReady.textContent = _feedbackReviewServerStateText();
-            reviewCard.appendChild(reviewPermissionState); reviewCard.appendChild(reviewReady);
-            channelGrid.appendChild(telemetryCard); channelGrid.appendChild(reviewCard);
-            channelGroup.appendChild(channelGrid);
+            reviewCard.appendChild(reviewPermissionState);
+            reviewCard.appendChild(reviewReady);
+            channelGroup.appendChild(reviewCard);
 
             // Optional reviewer context mirrors Contribution's note treatment.
             var feedbackNoteWrap = document.createElement('label');
@@ -34310,7 +34153,7 @@
             // separate stable views instead of independent show/hide actions.
             var inspectGroup = _contributionSection(
                 'Inspect payload',
-                'JSON is the exact feedback-review request envelope. JSONL is the canonical repository record projection. Both stay synchronized with Content & privacy; anonymous telemetry is shown separately inside the JSONL view because it is a different privacy contract.'
+                'JSON is the exact feedback-review request envelope. JSONL is the canonical repository record projection. Both stay synchronized with Content & privacy.'
             );
             wrap.appendChild(inspectGroup);
 
@@ -34385,7 +34228,7 @@
             feedbackSavedStructurePanel.appendChild(feedbackSavedHead);
             var feedbackSavedStructureHint = document.createElement('p');
             feedbackSavedStructureHint.className = 'ai-assistant-panel-contribution-hint ai-assistant-panel-storage-preview-hint';
-            feedbackSavedStructureHint.textContent = 'Browser request envelope sent to /v1/feedback/review. It is content-bearing and intentionally differs from both the canonical review JSONL row and anonymous telemetry.';
+            feedbackSavedStructureHint.textContent = 'Browser request envelope sent to /v1/feedback/review. It is content-bearing and intentionally differs from the canonical review JSONL row.';
             feedbackSavedStructurePanel.appendChild(feedbackSavedStructureHint);
             var feedbackSavedStructurePreview = document.createElement('pre');
             feedbackSavedStructurePreview.className = 'ai-assistant-panel-contribution-preview ai-assistant-panel-storage-preview ai-assistant-panel-payload-code';
@@ -34428,26 +34271,6 @@
                 ? _readableJsonl(_feedbackSavedJsonStructure(reviewPayload)) : '');
             feedbackPreviewPanel.appendChild(feedbackPreview);
 
-            var telemetryDetails = document.createElement('details');
-            telemetryDetails.className = 'ai-assistant-panel-feedback-telemetry-details';
-            telemetryDetails.hidden = !entry || !_feedbackPersistEnabled;
-            var telemetrySummary = document.createElement('summary');
-            telemetrySummary.textContent = 'Anonymous telemetry JSONL · separate privacy-minimal row';
-            telemetryDetails.appendChild(telemetrySummary);
-            var telemetrySavedHint = document.createElement('p');
-            telemetrySavedHint.className = 'ai-assistant-panel-contribution-hint ai-assistant-panel-storage-preview-hint';
-            telemetrySavedHint.textContent = 'This is the separate /v1/feedback telemetry record. It intentionally contains rating mechanics only: no Q&A, note, model, page, consent version, or conversation identifier.';
-            telemetryDetails.appendChild(telemetrySavedHint);
-            var telemetrySavedPreview = document.createElement('pre');
-            telemetrySavedPreview.className = 'ai-assistant-panel-contribution-preview ai-assistant-panel-storage-preview ai-assistant-panel-feedback-telemetry-preview ai-assistant-panel-payload-code';
-            telemetrySavedPreview.id = 'ai-assistant-panel-feedback-telemetry-saved-structure';
-            telemetrySavedPreview.setAttribute('aria-label', 'Anonymous feedback telemetry JSONL readable preview');
-            telemetrySavedPreview.setAttribute('tabindex', '0');
-            telemetrySavedPreview.dataset.size = 'medium';
-            _renderPayloadCode(telemetrySavedPreview, entry && _feedbackPersistEnabled
-                ? _readableJsonl(_feedbackTelemetrySavedJsonStructure(entry)) : '');
-            telemetryDetails.appendChild(telemetrySavedPreview);
-            feedbackPreviewPanel.appendChild(telemetryDetails);
             feedbackPayloadViews.appendChild(feedbackPreviewPanel);
 
             var feedbackInspectActions = document.createElement('div');
@@ -35486,14 +35309,9 @@
                 '(\u2139 icon in the model picker) for the canonical link.</p>' +
 
                 '<h4>Feedback and dataset contribution</h4>' +
-                '<p>Ratings are local by default. If you explicitly enable ' +
-                'rating telemetry, only bounded rating/event metadata may be ' +
-                'sent to the configured feedback endpoint; your question, ' +
-                'answer, written feedback note, model details, page URL, and ' +
-                'conversation identity are not part of that telemetry. ' +
-                'Content leaves through the dataset contribution workflow only ' +
-                'after separate scope review, privacy preflight, and explicit ' +
-                'contribution consent.</p>';
+                '<p>Assistant ratings stay local. Content leaves only through an ' +
+                'explicit maintainer-feedback review or the separate dataset contribution ' +
+                'workflow, each with its own visible scope, privacy review, and consent.</p>';
         }
         sheet.appendChild(bodyEl);
         return sheet;
@@ -36362,11 +36180,9 @@
         var SELF_MAX_URL_CHARS = 384 * 1024;
 
         function _resolveGlobalConfig() {
-            var profileUrl = _EP.hasProfiles()
+            var base = _EP.hasProfiles()
                 ? (_EP.resolveEndpoint ? _EP.resolveEndpoint('share') : _EP.resolve('share')) : '';
-            var base = profileUrl || _resolveFlatFeatureEndpoint(
-                cfg.panelGlobalShareEndpoint || '', '/v1/share');
-            var token = _EP.hasProfiles() ? _EP.resolveToken('shareToken') : (cfg.panelGlobalShareToken || '');
+            var token = _EP.hasProfiles() ? _EP.resolveToken('shareToken') : '';
             var ttl = parseInt(cfg.panelGlobalShareTtlDays, 10);
             if (!Number.isFinite(ttl) || ttl < 1) ttl = 30;
             return { base: base, token: token, ttlDays: ttl };
@@ -38927,7 +38743,7 @@
                     ICONS.globe,
                     (typeof cfg.panelHfDatasetLabel === 'string' && cfg.panelHfDatasetLabel)
                         ? cfg.panelHfDatasetLabel : 'HuggingFace Dataset',
-                    'Feedback telemetry and dataset contributions from this panel',
+                    'Reviewed feedback and dataset contributions from this panel',
                     _hfDatasetUrl,
                     'var(--ai-hf-accent, #ff9d00)'
                 );
@@ -39664,13 +39480,148 @@
 
     // ── R8: standalone AI search-bar (opt-in, additive) ───────────────────────
 
+    // Theme-neutral safety rail.  Current PyData Sphinx Theme squeezes its
+    // desktop primary sidebar to 4rem; 96px also covers comparable icon rails
+    // without forcing normal compact nav/header hosts into icon-only mode.
+    var _SEARCH_BAR_ICON_ONLY_MAX_PX = 96;
+
     /**
-     * Build a self-contained mini search input that forwards its text into
-     * the AI panel as the first question.  The extension renders its OWN
-     * element and never touches the theme\u2019s search DOM, so PyData / Furo /
-     * RTD search keep working untouched.  Off by default.
+     * Return true when the configured search-bar host is currently acting as
+     * a collapsed/icon rail.
      *
-     * @param {boolean} mini  Compact inline variant when true.
+     * Resolution order intentionally separates site/theme knowledge from the
+     * extension's generic layout logic:
+     *   1. Optional author-supplied collapsed selector (host or ancestor).
+     *   2. Actual rendered host width as a portable fallback.
+     *
+     * Invalid custom selectors fail closed to width detection rather than
+     * breaking page initialisation.
+     */
+    function _searchBarHostIsCollapsed(host, cfg) {
+        if (!host) return false;
+        cfg = cfg || _cfg();
+
+        var collapsedSelector = (typeof cfg.searchBarCollapsedSelector === 'string')
+            ? cfg.searchBarCollapsedSelector.trim()
+            : '';
+        if (collapsedSelector) {
+            try {
+                if (typeof host.matches === 'function' && host.matches(collapsedSelector)) {
+                    return true;
+                }
+                if (typeof host.closest === 'function' && host.closest(collapsedSelector)) {
+                    return true;
+                }
+            } catch (_) {
+                // Invalid site-authored selector: keep the search control alive
+                // and continue with the measured-width fallback.
+            }
+        }
+
+        var width = 0;
+        if (typeof host.getBoundingClientRect === 'function') {
+            try {
+                var rect = host.getBoundingClientRect();
+                width = rect && isFinite(rect.width) ? Number(rect.width) : 0;
+            } catch (_) {}
+        }
+        if (!(width > 0) && typeof host.clientWidth === 'number') {
+            width = Number(host.clientWidth) || 0;
+        }
+        return width > 0 && width <= _SEARCH_BAR_ICON_ONLY_MAX_PX;
+    }
+
+    /** Apply full / compact-input / icon-only presentation without rebuilding. */
+    function _syncSearchBarPresentation(bar, host, cfg) {
+        if (!bar || !host) return 'full';
+        cfg = cfg || _cfg();
+
+        var adaptive = cfg.searchBarAdaptive !== false;
+        var iconOnly = adaptive && _searchBarHostIsCollapsed(host, cfg);
+        var baseMini = cfg.searchBarMini === true;
+        var mode = iconOnly ? 'icon' : (baseMini ? 'mini' : 'full');
+
+        if (bar.classList && typeof bar.classList.toggle === 'function') {
+            bar.classList.toggle('ai-assistant-searchbar--icon-only', iconOnly);
+        }
+        bar.setAttribute('data-presentation', mode);
+
+        var launcher = bar.querySelector('.ai-assistant-searchbar-launcher');
+        if (launcher) {
+            var label = iconOnly
+                ? 'Open AI Assistant and start typing'
+                : 'Ask AI';
+            launcher.setAttribute('aria-label', label);
+            launcher.setAttribute('title', label);
+        }
+        return mode;
+    }
+
+    /**
+     * Keep the search bar in sync with a host whose width/class can change at
+     * runtime (desktop sidebar squeeze/expand, responsive nav reflow, zoom).
+     * Observers are retained on the bar so repeated mounts do not leak them.
+     */
+    function _bindAdaptiveSearchBar(bar, host, cfg) {
+        if (!bar || !host) return;
+        cfg = cfg || _cfg();
+        _syncSearchBarPresentation(bar, host, cfg);
+        if (cfg.searchBarAdaptive === false) return;
+
+        var sync = function () { _syncSearchBarPresentation(bar, host, _cfg()); };
+
+        if (typeof ResizeObserver !== 'undefined') {
+            try {
+                bar._aiSearchResizeObserver = new ResizeObserver(sync);
+                bar._aiSearchResizeObserver.observe(host);
+            } catch (_) {}
+        }
+        if (typeof MutationObserver !== 'undefined') {
+            try {
+                bar._aiSearchMutationObserver = new MutationObserver(sync);
+                var observeNode = host;
+                while (observeNode && observeNode.nodeType === 1) {
+                    bar._aiSearchMutationObserver.observe(observeNode, {
+                        attributes: true,
+                        attributeFilter: ['class', 'style', 'open', 'aria-expanded']
+                    });
+                    observeNode = observeNode.parentElement;
+                }
+            } catch (_) {}
+        }
+
+        // ResizeObserver is the primary geometry source; the window listener is
+        // also the compatibility path for older engines/custom hosts.
+        if (typeof window !== 'undefined' && window.addEventListener) {
+            window.addEventListener('resize', sync, { passive: true });
+            bar._aiSearchWindowResize = sync;
+        }
+        if (host.addEventListener) {
+            host.addEventListener('transitionend', sync);
+        }
+    }
+
+    /** Open the panel and put keyboard focus in its composer. */
+    function _openSearchPanelForTyping() {
+        if (!_aiPanelEl) _aiPanelEl = createAIPanel();
+        _openAIPanel();
+        var panelInput = document.getElementById('ai-assistant-panel-input');
+        if (panelInput && typeof panelInput.focus === 'function') {
+            try { panelInput.focus({ preventScroll: true }); }
+            catch (_) { try { panelInput.focus(); } catch (_) {} }
+        }
+        return panelInput;
+    }
+
+    /**
+     * Build a self-contained AI search input.  The author-selected base state
+     * is full-width or compact-input; adaptive layout can later reduce the SAME
+     * DOM to an icon-only launcher when its host becomes an icon rail.
+     *
+     * The extension renders its OWN element and never touches the theme's
+     * search DOM, so PyData / Furo / RTD search keep working untouched.
+     *
+     * @param {boolean} mini  Compact input base variant when true.
      * @returns {HTMLElement}
      */
     function _buildSearchBar(mini) {
@@ -39681,19 +39632,26 @@
         var bar = document.createElement('div');
         bar.className = 'ai-assistant-searchbar' +
             (mini ? ' ai-assistant-searchbar--mini' : '');
+        bar.setAttribute('role', 'search');
+        bar.setAttribute('aria-label', 'AI Assistant search');
 
-        var icon = document.createElement('span');
-        icon.setAttribute('aria-hidden', 'true');
-        // Primary icon — searchSparkle (search + AI sparkle). searchAI
-        // (plain magnifying glass) stays defined above as a fallback for
-        // future use, not removed.
-        icon.innerHTML = ICONS.searchSparkle;   // ICONS constant — safe.
-        bar.appendChild(icon);
+        // The leading icon is an actual control rather than decorative chrome.
+        // In icon-only rail mode it becomes the entire interaction surface;
+        // when an input query exists it also acts as a submit affordance.
+        var launcher = document.createElement('button');
+        launcher.type = 'button';
+        launcher.className = 'ai-assistant-searchbar-launcher';
+        launcher.setAttribute('aria-label', 'Ask AI');
+        launcher.setAttribute('title', 'Ask AI');
+        launcher.innerHTML = ICONS.searchSparkle;   // ICONS constant — safe.
+        bar.appendChild(launcher);
 
         var inp = document.createElement('input');
-        inp.type = 'text';
+        inp.type = 'search';
+        inp.autocomplete = 'off';
         inp.setAttribute('aria-label', ph);
         inp.placeholder = ph;
+        inp.maxLength = 4096;
         bar.appendChild(inp);
 
         var kbdLabel = _shortcutLabel();
@@ -39715,15 +39673,15 @@
             });
             bar.appendChild(hint);
         } else {
-            bar.appendChild(document.createElement('span')); // spacer
+            var spacer = document.createElement('span');
+            spacer.className = 'ai-assistant-searchbar-kbd-hint';
+            bar.appendChild(spacer);
         }
 
         function _go() {
             var q = inp.value.trim();
+            var panelInput = _openSearchPanelForTyping();
             if (!q) return;
-            if (!_aiPanelEl) _aiPanelEl = createAIPanel();
-            _openAIPanel();
-            var panelInput = document.getElementById('ai-assistant-panel-input');
             if (panelInput) {
                 panelInput.value = q;
                 _updateSendBtnState();
@@ -39734,6 +39692,17 @@
         inp.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); _go(); }
         });
+        launcher.addEventListener('click', function () {
+            // A collapsed rail is a launcher, not a hidden-submit control.
+            // If the expanded input happened to contain an unsent draft before
+            // the host collapsed, do not submit that invisible text by surprise.
+            if (bar.classList &&
+                    bar.classList.contains('ai-assistant-searchbar--icon-only')) {
+                _openSearchPanelForTyping();
+                return;
+            }
+            _go();
+        });
         return bar;
     }
 
@@ -39743,9 +39712,9 @@
      * (safe no-op) so a missing element can never break the page.
      *
      * Position is controlled by cfg.searchBarPosition:
-     *   "top"    → insertBefore(bar, host.firstChild)  — prepend at sidebar top.
-     *   "bottom" → appendChild(bar)                    — append (default).
-     * Any value other than "top" falls back to "bottom" (pre-existing behaviour).
+     *   "top"    → insertBefore(bar, host.firstChild)  — prepend at host top.
+     *   "bottom" → appendChild(bar)                    — append.
+     * Any value other than "top" falls back to "bottom".
      */
     function _mountSearchBar() {
         var cfg = _cfg();
@@ -39753,19 +39722,17 @@
         var sel = (typeof cfg.searchBarSelector === 'string' &&
             cfg.searchBarSelector) || '';
         if (!sel) return;
-        var host = document.querySelector(sel);
+        var host = null;
+        try { host = document.querySelector(sel); } catch (_) { return; }
         if (!host) return;
         if (host.querySelector('.ai-assistant-searchbar')) return;  // idempotent
         var bar = _buildSearchBar(cfg.searchBarMini === true);
         if (cfg.searchBarPosition === 'top') {
-            // Prepend: place before the first existing child so the search bar
-            // appears at the very top of the sidebar — above navigation links.
-            // Default "top"
             host.insertBefore(bar, host.firstChild);
         } else {
-            // "bottom": append after all existing children.
             host.appendChild(bar);
         }
+        _bindAdaptiveSearchBar(bar, host, cfg);
     }
 
     // ── AI Panel ──────────────────────────────────────────────────────────────
@@ -41460,7 +41427,13 @@
                     return {
                         label: (m.id === currentId ? '\u2713 ' : '') + (m.label || m.id),
                         hint: m.id === currentId ? 'Current model' : (m.provider || ''),
-                        run: function () { _setActiveModelId(m.id); }
+                        // Route through the same canonical selection transaction used
+                        // by the full model sheet and the public sibling bridge.  Updating
+                        // only _setActiveModelId() changes persistence/memory but skips the
+                        // model-change event, effort reconciliation, sheet refresh, and
+                        // Learn's AI_ASSISTANT_MODEL_API subscribers -- the rare split-brain
+                        // state reported when this compact menu was used.
+                        run: function () { _selectQuickModel(m.id); }
                     };
                 });
             }, 'ai-assistant-panel-inline-picker-more', ICONS.chevronDown);
@@ -43899,31 +43872,6 @@
         _notifyExportState();
     }
 
-    /**
-     * Enable or disable consent-gated network feedback telemetry and keep all dependents in sync.
-     *
-     * This is the single source of truth for ``_feedbackPersistEnabled`` and its versioned browser consent record.
-     * Always call this function instead of mutating the variable directly so
-     * that localStorage, the privacy-sheet toggle's ``aria-pressed``, and the
-     * hint text all stay consistent.
-     *
-     * Parameters
-     * ----------
-     * enabled : boolean
-     *     ``true``  → future ratings may POST only through the consent-gated telemetry path.
-     *     ``false`` → ratings remain local and no feedback network helper may transmit.
-     *
-     * Notes
-     * -----
-     * Developer: Does NOT contact the server.  The server-side flag
-     *   (``FEEDBACK_PERSIST_ENABLED``) is authoritative at startup; this client
-     *   flag governs subsequent in-session behaviour and survives page reloads
-     *   via localStorage.
-     *
-     * Developer: localStorage access is always wrapped in try/catch because it
-     *   may throw in Safari private mode, cross-origin iframes, and when storage
-     *   quota is exceeded.
-     */
     function _setFeedbackDomIntegrationMode(enabled) {
         _feedbackDomIntegrationEnabled = !!enabled;
         try {
@@ -43939,38 +43887,6 @@
         if (status) status.textContent = _feedbackDomStatusText();
     }
 
-    function _setFeedbackPersistMode(enabled) {
-        _feedbackPersistEnabled = !!enabled;
-        _feedbackTelemetryGrantedAt = _feedbackPersistEnabled ? Date.now() : null;
-
-        // Persist both outcomes so an explicit OFF remains authoritative even
-        // when the documentation site's configured initial value is ON.
-        try {
-            localStorage.setItem(_FEEDBACK_TELEMETRY_PREF_KEY, JSON.stringify({
-                enabled: _feedbackPersistEnabled,
-                version: _FEEDBACK_TELEMETRY_CONSENT_VERSION,
-                grantedAt: _feedbackTelemetryGrantedAt
-            }));
-        } catch (_e) {
-            // Storage failure must never turn telemetry on. Keep an explicit
-            // in-session click effective, but it will not survive reload.
-        }
-
-        // Sync every telemetry control by semantic role. Do not target the
-        // generic popup pill class: the remaining popup pill controls the
-        // independent maintainer-review permission.
-        var telemetryToggles = document.querySelectorAll('[data-feedback-telemetry-toggle]');
-        for (var _ft = 0; _ft < telemetryToggles.length; _ft++) {
-            telemetryToggles[_ft].setAttribute(
-                'aria-checked',
-                _feedbackPersistEnabled ? 'true' : 'false'
-            );
-        }
-        var telemetryStatuses = document.querySelectorAll('[data-feedback-telemetry-status]');
-        for (var _fs = 0; _fs < telemetryStatuses.length; _fs++) {
-            telemetryStatuses[_fs].textContent = _feedbackTelemetryStatusText();
-        }
-    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // LEGACY LOCAL SHARE STORAGE — IndexedDB compatibility/quarantine module
@@ -52000,6 +51916,85 @@
         );
     }
 
+    // ── Public model-selection bridge for sibling extensions ────────────────
+    //
+    // _sphinx_ai_learn needs to present a compact model chooser for generation
+    // requests without duplicating the assistant's model registry, scraping the
+    // panel DOM, or reading private persistence keys.  This bridge intentionally
+    // exposes only non-secret model metadata plus the same selection action the
+    // assistant's own quick picker uses.  Endpoint URLs and bearer tokens stay
+    // private to the assistant/runtime boundary.
+    function _publicModelSnapshot(model) {
+        if (!model || typeof model !== 'object') return null;
+        return Object.freeze({
+            id: String(model.id || '').slice(0, 160),
+            label: String(model.label || model.id || 'Model').slice(0, 200),
+            provider: String(model.provider || 'custom').slice(0, 80),
+            model: String(model.model || model.id || '').slice(0, 240),
+            description: String(model.description || '').slice(0, 600),
+            info_url: (typeof model.info_url === 'string' && /^https?:\/\//i.test(model.info_url))
+                ? model.info_url.slice(0, 2048) : '',
+            is_custom: !!model._isCustom,
+        });
+    }
+
+    function _publicModelState() {
+        var cfg = _cfg();
+        var active = _getActiveModel(cfg);
+        var support = _reasoningSupport(active, cfg);
+        var effort = _effortById(_getEffortLevel());
+        return Object.freeze({
+            active: _publicModelSnapshot(active),
+            effort: Object.freeze({
+                id: support.effort ? effort.id : 'default',
+                label: support.effort ? effort.label : 'Default',
+                supported: !!support.effort,
+            }),
+        });
+    }
+
+    function _installPublicModelBridge() {
+        try {
+            if (window.AI_ASSISTANT_MODEL_API) return;
+            var bridge = {
+                listModels: function () {
+                    return _quickModelCandidates(_cfg()).map(_publicModelSnapshot).filter(Boolean);
+                },
+                getState: function () { return _publicModelState(); },
+                selectModel: function (id) { return _selectQuickModel(String(id || '')); },
+                openPicker: function (opener) {
+                    try {
+                        if (!_aiPanelEl) _aiPanelEl = createAIPanel();
+                        _openAIPanel();
+                        _dispatchAssistantEvent(new CustomEvent(
+                            'ai-assistant-open-model-configuration',
+                            { detail: { opener: opener || document.activeElement }, bubbles: false }
+                        ));
+                        return true;
+                    } catch (_) { return false; }
+                },
+                onChange: function (callback) {
+                    if (typeof callback !== 'function') return function () {};
+                    var bus = (typeof _assistantEvents !== 'undefined') ? _assistantEvents : document;
+                    var handler = function () {
+                        try { callback(_publicModelState()); } catch (_) {}
+                    };
+                    bus.addEventListener('ai-assistant-model-change', handler);
+                    bus.addEventListener('ai-assistant-effort-change', handler);
+                    return function () {
+                        bus.removeEventListener('ai-assistant-model-change', handler);
+                        bus.removeEventListener('ai-assistant-effort-change', handler);
+                    };
+                },
+            };
+            Object.freeze(bridge);
+            Object.defineProperty(window, 'AI_ASSISTANT_MODEL_API', {
+                value: bridge, configurable: false, enumerable: false, writable: false
+            });
+            try { window.dispatchEvent(new CustomEvent('ai-assistant-model-api-ready')); } catch (_) {}
+        } catch (_) {}
+    }
+
     // ── Shared surface: window.AI_ASSISTANT ──────────────────────────────────
     // A small, stable namespace exposing the symbols shared between the
     // lightweight toolbar buttons (copy / view-as-Markdown / ask-LLM / PDF) and
@@ -52082,6 +52077,9 @@
             _clearReasoningCircuit(_getActiveModel(_cfg()));
             _announceEffortScaleChange(activeId);
         };
+        // Sibling extensions consume model state through a separate frozen
+        // bridge so this broader namespace never becomes a secret-bearing API.
+        _installPublicModelBridge();
     }());
 
     // B41 diagnostic surface contains no secret/capability material.

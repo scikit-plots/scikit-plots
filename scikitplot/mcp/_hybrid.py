@@ -416,13 +416,23 @@ class Bm25Retriever(DocsRetriever):
         """
         Build from a corpus SQLite/FTS5 store (import-guarded).
 
-        Wires ``scikitplot.corpus.SQLiteStorage`` FTS5 search. Raises
-        :class:`RuntimeError` with an actionable message if corpus is absent.
-        The exact ``query``/``StorageQuery`` field access is corpus-version
-        specific — verify against the installed source (see DESIGN.md §Hybrid).
+        Wires :meth:`scikitplot.corpus.SQLiteStorage.search_text`: BM25-ranked
+        retrieval over free text. Raises :class:`RuntimeError` with an
+        actionable message if corpus is absent.
+
+        Notes
+        -----
+        **Developer.**  This leg used to pass the query to
+        ``StorageQuery.full_text``, which reached FTS5 ``MATCH`` verbatim as an
+        *expression* and required *every* word: ``roc_auc_score()``, ``C++``,
+        ``random-state`` and any pasted error message were FTS5 syntax errors,
+        and a plain question returned nothing, so hybrid search quietly ran on
+        its dense leg alone (finding CX-01). ``search_text`` never reads the
+        query as syntax, matches any word, and returns the BM25 score itself
+        rather than ``1 / rank``.
         """
         try:
-            from scikitplot.corpus import SQLiteStorage, StorageQuery  # noqa: PLC0415
+            from scikitplot.corpus import SQLiteStorage  # noqa: PLC0415
         except ImportError as exc:  # pragma: no cover - optional integration path
             raise RuntimeError(
                 "scikitplot.corpus is required for the BM25/FTS5 leg."
@@ -449,16 +459,15 @@ class Bm25Retriever(DocsRetriever):
             }
 
         def _fts(query: str, k: int) -> list[tuple[str, float]]:
-            result = store.query(StorageQuery(full_text=query, limit=k))
-            rows = getattr(result, "documents", result) or []
+            ranked = store.search_text(query, k)
             recent.clear()
             output: list[tuple[str, float]] = []
-            for rank, row in enumerate(rows, start=1):
+            for row, score in ranked:
                 doc_id = str(_row_value(row, "doc_id"))
                 if not doc_id:
                     continue
                 recent[doc_id] = _record(row)
-                output.append((doc_id, 1.0 / rank))
+                output.append((doc_id, score))
             return output
 
         def _lookup(doc_id: str) -> dict[str, Any]:

@@ -1,0 +1,69 @@
+# Clinical records: exports, research extracts, claim files.
+#
+# The identifiers here follow the HIPAA Safe Harbor list where it applies to
+# structured data. A diagnosis is hidden whole: a code is as identifying as the
+# words it stands for once it is joined to a date and a location.
+name: patient
+version: 1
+summary: Clinical identifiers, dates, diagnoses and medications in patient records.
+requires: [personal]
+
+fields:
+  - names: [mrn, medical_record_number, patient_id, patient_number, hospital_number, chart_number, encounter_id, visit_id]
+    kind: MRN
+    span: token
+    role: id
+  - names: [nhs_number, nhs_no, chi_number]
+    kind: NHS_NUMBER
+    span: clause
+    role: id
+  - names: [npi, provider_npi]
+    kind: NPI
+    span: token
+    role: id
+  - names: [insurance_id, insurer_id, member_id, policy_number, policy_id, subscriber_id, medicaid_id, medicare_id, group_number]
+    kind: INSURANCE_ID
+    span: clause
+    role: id
+  - names: [diagnosis, diagnoses, icd10, icd_10, icd_code, icd9, condition, conditions, problem, chief_complaint]
+    kind: DIAGNOSIS
+    role: category
+  - names: [medication, medications, drug, drugs, prescription, rx, dosage]
+    kind: MEDICATION
+    role: category
+  - names: [admission_date, admit_date, discharge_date, visit_date, encounter_date, procedure_date, death_date, date_of_death]
+    kind: CLINICAL_DATE
+    role: date
+  - names: [physician, doctor, provider, attending, clinician, nurse, referring_physician]
+    kind: CLINICIAN
+    role: text
+  - names: [allergies, allergy, blood_type, lab_result, test_result, genotype]
+    kind: CLINICAL
+    role: category
+
+patterns:
+  - kind: NHS_NUMBER
+    pattern: '\b\d{3}[ -]?\d{3}[ -]?\d{4}\b'
+    intent: A UK NHS number, accepted only when its mod-11 check digit is correct.
+    priority: 87
+    validate: nhs_mod11
+    examples_yes: ['943 476 5919', '9434765919']
+    examples_no: ['943 476 5918']
+  - kind: MRN
+    pattern: '(?i)\b(?:MRN|medical record(?: number)?|patient id)\s*[:#]?\s*(?P<value>[A-Z]{0,3}\d{4,12})\b'
+    intent: A medical record number written with its label.
+    priority: 86
+    examples_yes: ['MRN: 00412345', 'medical record number 8812345', 'patient ID #AB77123']
+    examples_no: ['MRN', 'MRN: abc']
+  - kind: ICD10
+    pattern: '\b[A-TV-Z]\d{2}\.[0-9A-TV-Z]{1,4}\b'
+    intent: An ICD-10 diagnosis code with its decimal point, which a version number or a bare code-like token does not have.
+    priority: 72
+    examples_yes: ['E11.9', 'J45.909', 'S72.001A']
+    examples_no: ['E11', 'U07.1x']
+  - kind: NPI
+    pattern: '(?i)\bNPI\s*[:#]?\s*(?P<value>\d{10})\b'
+    intent: A US National Provider Identifier written with its label.
+    priority: 85
+    examples_yes: ['NPI: 1234567893', 'NPI 1234567893']
+    examples_no: ['NPI']

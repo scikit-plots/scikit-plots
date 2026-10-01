@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
 
-from pathlib import Path
-
 ROOT = RUNTIME_ROOT
 GUIDE = ROOT / "_hf_spaces_proxy" / "FEEDBACK_REVIEW_GUIDE.md"
 README = ROOT / "README.md"
@@ -11,47 +9,45 @@ PROXY_README = ROOT / "_hf_spaces_proxy" / "README.md"
 DATASET_GUIDE = ROOT / "_hf_spaces_proxy" / "DATASET_CONTRIBUTION_GUIDE.md"
 
 
-def test_feedback_review_guide_covers_independent_control_planes_and_lifecycle():
+def test_feedback_review_guide_defines_current_feedback_authorities():
     text = GUIDE.read_text(encoding="utf-8")
     required = (
-        "Anonymous rating telemetry",
-        "Share with maintainers",
+        "AI Assistant local rating",
+        "Generic documentation page feedback",
         "POST /v1/feedback",
         "/v1/feedback/review",
-        "FEEDBACK_REVIEW_MODE=provider-pr",
-        "FEEDBACK_PERSIST_ENABLED=false",
+        "page.feedback-request.v1",
+        "FEEDBACK_REVIEW_MODE",
         "one Q&A",
-        "qualityScore",
-        "training-eligible",
-        "same review",
-        "no-op",
-        "Withdraw feedback",
+        "training eligibility",
         "Hugging Face",
         "GitHub",
         "GitLab",
-        "Bitbucket Cloud",
+        "Bitbucket",
     )
     for item in required:
         assert item in text
+    assert "FEEDBACK_PERSIST_ENABLED" not in text
+    assert "anonymous Assistant rating-telemetry transport" in text
 
 
-def test_feedback_docs_keep_telemetry_review_and_contribution_permissions_separate():
+def test_feedback_docs_keep_generic_review_and_contribution_authorities_separate():
     guide = GUIDE.read_text(encoding="utf-8")
     readme = README.read_text(encoding="utf-8")
     dataset = DATASET_GUIDE.read_text(encoding="utf-8")
-    assert "telemetry consent and feedback-review consent use different versioned keys" in guide
-    assert "telemetry consent never authorizes" in readme.lower()
+    assert "never falls through to `/v1/feedback`" in guide
+    assert "/v1/feedback/review" in readme
     assert "Maintainer feedback review" in dataset
     assert "Never" in dataset
+    assert "FEEDBACK_PERSIST_ENABLED" not in dataset
 
 
-def test_feedback_docs_explain_why_telemetry_can_look_like_noop():
+def test_feedback_docs_explain_local_rating_and_explicit_review():
     text = GUIDE.read_text(encoding="utf-8")
-    assert "Why the switch may appear to have no repository effect" in text
-    assert "Browser telemetry permission and server telemetry persistence are separate" in text
-    assert "Server telemetry persistence" in text
-    assert "Maintainer review readiness" in text
-    assert "Endpoint Configuration no longer duplicates" in text
+    assert "A local Assistant rating does not create a repository review" in text
+    assert "Local rating state is intentionally local" in text
+    assert "Share with" in text and "maintainers" in text
+    assert "no Assistant anonymous rating telemetry route" in text
 
 
 def test_proxy_readme_advertises_feedback_review_routes_and_config():
@@ -68,6 +64,7 @@ def test_proxy_readme_advertises_feedback_review_routes_and_config():
         "./FEEDBACK_REVIEW_GUIDE.md",
     ):
         assert item in text
+    assert "FEEDBACK_PERSIST_ENABLED" not in text
 
 
 def test_readme_exposes_shared_workspace_and_feedback_guide():
@@ -82,11 +79,9 @@ def test_readme_exposes_shared_workspace_and_feedback_guide():
 def test_feedback_docs_define_cloud_merged_as_derived_not_authoritative():
     text = GUIDE.read_text(encoding="utf-8")
     for item in (
-        "Cloud merged feedback view",
-        "--feedback-review-cloud-merged",
-        "ai-feedback-review-cloud-merged-jsonl-<UTC timestamp>.jsonl",
-        "derived, not",
-        "individual canonical provider feedback records",
-        "--include-unreviewed",
+        "provider-native review",
+        "merge",
+        "canonical branch",
+        "Generic page feedback",
     ):
         assert item in text

@@ -87,6 +87,48 @@ def test_token_env_is_restricted():
         load_storage_targets(raw)
 
 
+def test_token_env_accepts_ordered_fallback_list(monkeypatch):
+    monkeypatch.delenv("AI_RECORD_STORAGE_TOKEN_GH_PRIMARY", raising=False)
+    monkeypatch.setenv("AI_RECORD_STORAGE_TOKEN_GH_FALLBACK", "fallback-token")
+    raw = json.dumps(
+        [
+            {
+                "id": "github-primary",
+                "provider": "github",
+                "role": "primary",
+                "repo": "org/repo",
+                "token_env": [
+                    "AI_RECORD_STORAGE_TOKEN_GH_PRIMARY",
+                    "AI_RECORD_STORAGE_TOKEN_GH_FALLBACK",
+                ],
+            }
+        ]
+    )
+    target = load_storage_targets(raw)[0]
+    assert target.token == "fallback-token"
+    assert target.active_token_env == "AI_RECORD_STORAGE_TOKEN_GH_FALLBACK"
+
+    monkeypatch.setenv("AI_RECORD_STORAGE_TOKEN_GH_PRIMARY", "primary-token")
+    assert target.token == "primary-token"
+    assert target.active_token_env == "AI_RECORD_STORAGE_TOKEN_GH_PRIMARY"
+
+
+def test_token_env_fallback_list_rejects_unrelated_secret_names():
+    raw = json.dumps(
+        [
+            {
+                "id": "bad",
+                "provider": "github",
+                "role": "primary",
+                "repo": "org/repo",
+                "token_env": ["AI_RECORD_STORAGE_TOKEN_GH", "HOME"],
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        load_storage_targets(raw)
+
+
 def test_read_hf_token_is_blocked_before_dispatch(monkeypatch):
     monkeypatch.setenv("AI_RECORD_STORAGE_TOKEN_HF_READ", "hf_read")
     target = StorageTarget(

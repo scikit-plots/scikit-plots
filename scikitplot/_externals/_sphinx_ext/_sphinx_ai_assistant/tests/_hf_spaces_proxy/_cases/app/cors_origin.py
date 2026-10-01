@@ -83,6 +83,7 @@ def test_hf_health_exposes_privacy_safe_cors_deploy_diagnostics():
         ),
         "wildcard": wildcard,
         "allowed_origin_count": None if wildcard else len(proxy._allowed_origins),
+        "local_dev_origin_count": len(proxy._local_dev_origins),
         "env_semantics": proxy.ALLOWED_ORIGINS_MODE,
         "share_opaque_origin_allowed": proxy.SHARE_ALLOW_OPAQUE_ORIGIN,
         "share_opaque_origin_write_allowed": bool(
@@ -151,6 +152,101 @@ print(json.dumps(out))
     assert result['builtin'] == [403, None]
 
 
+def test_local_dev_origin_builder_is_loopback_only_and_exact():
+    assert proxy._build_local_dev_origins(
+        "http://127.0.0.1:8000,http://localhost:8000,http://[::1]:8000"
+    ) == [
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+        "http://[::1]:8000",
+    ]
+    assert proxy._build_local_dev_origins(
+        "https://docs.example.test,http://127.0.0.1.evil.example:8000,*,http://localhost:8000/path"
+    ) == []
+    assert proxy._merge_local_dev_origins(
+        proxy._build_allowed_origins(""),
+        proxy._build_local_dev_origins("http://127.0.0.1:8000"),
+    ) == [*proxy._DEFAULT_ALLOWED_ORIGINS, "http://127.0.0.1:8000"]
+    assert proxy._merge_local_dev_origins(
+        proxy._build_allowed_origins("https://docs.example.test", mode="replace"),
+        proxy._build_local_dev_origins("http://localhost:8000"),
+    ) == ["https://docs.example.test", "http://localhost:8000"]
+    assert proxy._merge_local_dev_origins(
+        ["*"], proxy._build_local_dev_origins("http://127.0.0.1:8000")
+    ) == ["*"]
+
+
+def test_local_dev_origin_allows_preflight_and_chat_post_without_wildcard():
+    script = r"""
+import json
+from fastapi.testclient import TestClient
+import app
+origin = 'http://127.0.0.1:8000'
+payload = {
+    'contract': 'scikitplot-chat-v1',
+    'model': 'stub/echo',
+    'user_message': 'local dev CORS smoke',
+    'context': {'page_text': '', 'page_descriptor': 'Local Learn'},
+    'max_tokens': 128,
+    'stream': False,
+}
+with TestClient(app.app) as client:
+    preflight = client.options('/v1/chat/completions', headers={
+        'Origin': origin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type',
+    })
+    posted = client.post('/v1/chat/completions', headers={'Origin': origin}, json=payload)
+    denied = client.get('/health', headers={'Origin': 'http://127.0.0.1.evil.example:8000'})
+    print(json.dumps({
+        'preflight': [preflight.status_code, preflight.headers.get('access-control-allow-origin')],
+        'posted': [posted.status_code, posted.headers.get('access-control-allow-origin'), posted.headers.get('x-stub-model')],
+        'denied': [denied.status_code, denied.headers.get('access-control-allow-origin')],
+        'cors': client.get('/health').json()['cors'],
+    }))
+"""
+    env = os.environ.copy()
+    env['LOCAL_DEV_ORIGINS'] = 'http://127.0.0.1:8000'
+    env['ALLOWED_ORIGINS_MODE'] = 'additive'
+    proc = subprocess.run(
+        [sys.executable, '-c', script], cwd=PROXY, env=env, text=True,
+        capture_output=True, check=True,
+    )
+    result = json.loads(proc.stdout.strip().splitlines()[-1])
+    assert result['preflight'] == [200, 'http://127.0.0.1:8000']
+    assert result['posted'] == [200, 'http://127.0.0.1:8000', 'true']
+    assert result['denied'] == [403, None]
+    assert result['cors']['wildcard'] is False
+    assert result['cors']['local_dev_origin_count'] == 1
+
+
+def test_strict_deployment_accepts_exact_loopback_local_dev_origins(monkeypatch):
+    monkeypatch.setattr(proxy, "_DEPLOYMENT_PROFILE_VALID", True)
+    monkeypatch.setattr(proxy, "REQUIRE_NON_ROOT", False)
+    monkeypatch.setattr(proxy, "DEPLOYMENT_STRICT", True)
+    monkeypatch.setattr(proxy, "SHARE_ALLOW_OPAQUE_ORIGIN_WRITE", False)
+    monkeypatch.setattr(
+        proxy,
+        "_allowed_origins",
+        proxy._merge_local_dev_origins(
+            proxy._build_allowed_origins(""),
+            proxy._build_local_dev_origins("http://127.0.0.1:8000"),
+        ),
+    )
+    assert proxy._deployment_policy_error() == ""
+
+
+def test_disallowed_origin_error_explains_narrow_local_dev_opt_in():
+    with TestClient(proxy.app) as client:
+        response = client.get('/health', headers={'Origin': 'http://127.0.0.1:8000'})
+    # Module import has no LOCAL_DEV_ORIGINS in the normal test environment.
+    assert response.status_code == 403
+    detail = response.json()['detail']
+    assert 'LOCAL_DEV_ORIGINS' in detail
+    assert 'http://127.0.0.1:8000' in detail
+    assert 'ALLOWED_ORIGINS' in detail
+
+
 def test_worker_cors_matches_default_and_replace_semantics():
     src = WORKER.read_text(encoding="utf-8")
     assert 'const DEFAULT_ALLOWED_ORIGINS = Object.freeze([' in src
@@ -161,6 +257,10 @@ def test_worker_cors_matches_default_and_replace_semantics():
     assert "ALLOWED_ORIGIN_MODES.includes(mode) ? mode : 'additive'" in allowed_fn
     assert "_allowedOriginsMode(env) === 'additive' ? [...DEFAULT_ALLOWED_ORIGINS] : []" in allowed_fn
     assert "env.ALLOWED_ORIGINS || ''" in allowed_fn
+    assert "env.LOCAL_DEV_ORIGINS || ''" in src
+    assert "function _normaliseLocalDevOrigin(value)" in src
+    assert "function _localDevOrigins(env)" in src
+    assert "local_dev_origin_count" in src
     assert "if (raw === '*') return ['*'];" in allowed_fn
     assert "default_allowed_origin_count" in src
     assert "default_allowed_origins_allowed" in src
@@ -187,6 +287,8 @@ def test_readme_documents_builtin_and_downstream_origin_workflows():
     assert "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR" in text
     assert "HF_TOKEN" in text
     assert "Never use `ALLOWED_ORIGINS=*` in production" in text
+    assert "LOCAL_DEV_ORIGINS=http://127.0.0.1:8000,http://localhost:8000" in text
+    assert "loopback-only" in text
 
 def test_proxy_patch_version_is_bumped_for_deploy_verification():
     assert tuple(int(part) for part in shared.PROXY_VERSION.split(".")) >= (6, 8, 0)

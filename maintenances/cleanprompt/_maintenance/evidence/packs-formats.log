@@ -1,0 +1,30 @@
+=== packs --check (round 22) ===
+problems: -
+compiled: matches the YAML
+status: ok
+
+=== CP-048: values left in the output, patterns only vs packs('auto') === (measured round 12; re-verified each round by negative probe CP-048)
+csv    sensitive=3  left before=2  left after=0  round trip=True
+json   sensitive=4  left before=4  left after=0  round trip=True
+shell  sensitive=3  left before=3  left after=0  round trip=True
+ini    sensitive=2  left before=2  left after=0  round trip=True
+
+=== every round-trip format, every pack mode: decode is byte-exact (re-run round 21) ===
+packs('auto'): 19/19 formats exact
+packs('all'): 19/19 formats exact
+packs('none'): 19/19 formats exact
+catalogue: 11 packs, 24 formats
+
+=== round 15: record files in pieces equal one pass (re-run round 21) ===
+csv   chunk_chars=1         pieces=301  equal=True decode_exact=True
+csv   chunk_chars=64        pieces=151  equal=True decode_exact=True
+csv   chunk_chars=1000      pieces=10   equal=True decode_exact=True
+csv   chunk_chars=10000000  pieces=1    equal=True decode_exact=True
+jsonl chunk_chars=1         pieces=300  equal=True decode_exact=True
+jsonl chunk_chars=64        pieces=300  equal=True decode_exact=True
+jsonl chunk_chars=1000      pieces=12   equal=True decode_exact=True
+jsonl chunk_chars=10000000  pieces=1    equal=True decode_exact=True
+
+=== round 13: remember and the gate === (measured round 13; re-verified by negative probes R13-*)
+later prose : Call [PERSON-1] on [PHONE-1].
+gate        : LeakError - refused to send: 1 removed value(s) of kind PERSON still occur in the outgoing text. Keep remember() on, or hide them with hide().

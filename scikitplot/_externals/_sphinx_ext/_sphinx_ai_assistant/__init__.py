@@ -274,7 +274,7 @@ __all__ = [
 # Version
 # ---------------------------------------------------------------------------
 
-_VERSION: str = "0.2.0"
+_VERSION: str = "0.5.1"
 
 # ---------------------------------------------------------------------------
 # Module-level cached singletons (lazy, private)
@@ -2545,7 +2545,7 @@ import ipaddress  # stdlib — safe to add to existing imports block
 #: Schema version emitted as ``_schemaV`` in every validated profile dict.
 #: Increment when the profile dict shape changes incompatibly so the JS
 #: registry can detect and discard stale localStorage caches.
-_PROFILE_SCHEMA_VERSION: int = 3
+_PROFILE_SCHEMA_VERSION: int = 9
 
 #: Maximum number of profiles before a Sphinx WARNING is emitted.
 #: More than this is unusual and may indicate a conf.py loop/bug.
@@ -5863,82 +5863,6 @@ def _cfg_int(config: Any, key: str, default: int = 0) -> int:
     return default
 
 
-def _cfg_endpoint_url(config: Any, key: str) -> str:
-    """Read and validate a remote endpoint URL config value.
-
-    Parameters
-    ----------
-    config : Any
-        Sphinx config object or mock.
-    key : str
-        Configuration key to read (must be an ``https://`` or local
-        ``http://`` URL when set).
-
-    Returns
-    -------
-    str
-        The raw URL string when present and valid.  Empty string ``""``
-        when the key is absent, empty, or fails URL validation.
-
-    Notes
-    -----
-    Developer: Returns ``""`` (not ``None``) so callers can use ``or ""``
-    without an additional ``None`` guard.  The JS widget treats ``""`` as
-    "feature disabled" consistently.
-
-    Developer: Emits a Sphinx WARNING (not an error) when the value is
-    set but invalid — the build still completes so operators are not
-    blocked, but the diagnostic is visible in the console and CI logs.
-
-    **SSRF warning**: When the URL targets a private IP range or a
-    reserved hostname (``localhost``, ``*.local``, ``127.*``,
-    ``10.*``, etc.), an additional WARNING is emitted to alert operators
-    that the endpoint is only reachable from the documentation server
-    itself, not from end-user browsers.  The URL is still returned so
-    that local-development Ollama / dev-proxy setups are not broken.
-
-    Accepted schemes: ``https://`` and ``http://`` (localhost is valid for
-    local development).  Rejected: ``javascript:``, ``data:``, ``ftp:``,
-    relative paths, and any other non-HTTP scheme.
-
-    Examples
-    --------
-    >>> class _Cfg:
-    ...     ai_assistant_panel_feedback_endpoint = (
-    ...         "https://proxy.example.com/v1/feedback"
-    ...     )
-    >>> _cfg_endpoint_url(_Cfg(), "ai_assistant_panel_feedback_endpoint")
-    'https://proxy.example.com/v1/feedback'
-    >>> class _Bad:
-    ...     ai_assistant_panel_feedback_endpoint = "javascript:alert(1)"
-    >>> _cfg_endpoint_url(_Bad(), "ai_assistant_panel_feedback_endpoint")
-    ''
-    """
-    raw = _cfg_str(config, key) or ""
-    if not raw:
-        return ""
-    stripped = raw.strip()
-    if not stripped:
-        return ""
-    normalized, code, is_private = _normalise_absolute_endpoint_url(
-        stripped, allow_query=True
-    )
-    if code:
-        _get_logger().warning(
-            "AI Assistant endpoint security: %s field=%s; configured value ignored.",
-            code,
-            key,
-        )
-        return ""
-    if is_private:
-        _get_logger().warning(
-            "AI Assistant endpoint security: PRIVATE_OR_RESERVED_HOST field=%s; "
-            "trusted conf.py value retained for local-development compatibility.",
-            key,
-        )
-    return normalized
-
-
 def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
     r"""Validate and normalise a single endpoint profile dict.
 
@@ -6013,8 +5937,18 @@ def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
     >>> _validate_profile({"chat": "https://ok.example.com"}, "__proto__")
     {}
     """
-    _URL_KEYS = ("base", "chat", "share", "feedback", "training")  # noqa: N806
-    _TOKEN_KEYS = ("shareToken", "feedbackToken")  # noqa: N806
+    _URL_KEYS = (  # ruff: ignore[non-lowercase-variable-in-function]
+        "base",
+        "chat",
+        "share",
+        "training",
+        "image",
+        "video",
+        "audio",
+        "document",
+        "publication",
+    )  # noqa: N806
+    _TOKEN_KEYS = ("shareToken",)  # noqa: N806
     _INT_KEYS = ("ttlDays",)  # noqa: N806
 
     # ── Prototype-pollution guard ─────────────────────────────────────────
@@ -6176,30 +6110,16 @@ def _serialize_endpoint_profiles(  # ruff: ignore[too-many-branches]
 
     Notes
     -----
-    Developer: This function has three code paths:
+    Developer: This function has two current code paths:
 
     **Path 1 — Explicit profiles** (``ai_assistant_endpoint_profiles`` set):
     Profiles are validated via :func:`_validate_profile` and the default
-    key is verified.  A mismatch warning is emitted when the configured
+    key is verified. A mismatch warning is emitted when the configured
     default does not match any key; the first profile is used instead.
 
-    **Path 2 — Auto-profile from legacy flat keys**:
-    When ``ai_assistant_endpoint_profiles`` is an empty dict or absent
-    *and* at least one legacy flat key is non-empty
-    (``ai_assistant_panel_feedback_endpoint`` /
-    ``ai_assistant_global_share_endpoint`` /
-    ``ai_assistant_training_endpoint``), this function synthesises a
-    ``"default"`` profile from those keys.
-
-    This ensures ``_EP.resolve(feature)`` always works in JavaScript
-    regardless of whether the operator has migrated to profiles.  The JS
-    widget never reads ``cfg.panelFeedbackEndpoint`` directly for
-    the live path — it always calls ``_EP.resolve('feedback')``.
-
-    **Path 3 — No configuration**: Returns ``({}, "")``.  The script
-    block is NOT injected into the page and the JS widget falls back to
-    ``cfg.panel*Endpoint`` reads (full backward compatibility with
-    deployments that will never use profiles).
+    **Path 2 — No configuration**: Returns ``({}, "")``. Network-backed
+    Assistant features then remain unavailable until a profile is configured.
+    Retired flat endpoint keys are intentionally not synthesized.
 
     **Security hardening (v2)**:
 
@@ -6228,7 +6148,7 @@ def _serialize_endpoint_profiles(  # ruff: ignore[too-many-branches]
     >>> default
     'cf'
     >>> profiles["_meta"]["schemaVersion"]
-    3
+    4
     """
     raw_dict = getattr(config, "ai_assistant_endpoint_profiles", None)
     default_key = _cfg_str(config, "ai_assistant_endpoint_default_profile") or ""
@@ -6302,52 +6222,7 @@ def _serialize_endpoint_profiles(  # ruff: ignore[too-many-branches]
         profiles["_meta"] = _meta
         return profiles, default_key
 
-    # ── Path 2: auto-profile from legacy flat keys ────────────────────────
-    fb_url = _cfg_endpoint_url(config, "ai_assistant_panel_feedback_endpoint") or ""
-    sh_url = _cfg_endpoint_url(config, "ai_assistant_global_share_endpoint") or ""
-    tr_url = _cfg_endpoint_url(config, "ai_assistant_training_endpoint") or ""
-    fb_tok_configured = bool(
-        _cfg_str(config, "ai_assistant_panel_feedback_token") or ""
-    )
-    sh_tok_configured = bool(_cfg_str(config, "ai_assistant_global_share_token") or "")
-    ttl = _cfg_int(config, "ai_assistant_global_share_ttl_days", 30)
-
-    for _secret_key, _configured in (
-        ("ai_assistant_panel_feedback_token", fb_tok_configured),
-        ("ai_assistant_global_share_token", sh_tok_configured),
-    ):
-        if _configured:
-            _get_logger().warning(
-                "AI Assistant secret boundary: %s is configured but will not "
-                "be serialized into generated HTML. Static documentation "
-                "cannot safely contain production bearer credentials.",
-                _secret_key,
-            )
-
-    if not (fb_url or sh_url or tr_url):
-        return {}, ""
-
-    # Derive a chat base from the first non-empty URL (strip known route suffix).
-    chat_base = sh_url or fb_url or tr_url
-    for suffix in ("/v1/share", "/v1/feedback", "/v1/contribute"):
-        if chat_base.endswith(suffix):
-            chat_base = chat_base[: -len(suffix)]
-            break
-
-    auto_profile: dict = {
-        "label": "Default",
-        "chat": chat_base,
-        "share": sh_url,
-        "feedback": fb_url,
-        "training": tr_url,
-        "shareToken": "",
-        "feedbackToken": "",
-        "ttlDays": ttl,
-        "_schemaV": _PROFILE_SCHEMA_VERSION,
-        "_warn": [],
-    }
-    result = {"default": auto_profile, "_meta": _meta}
-    return result, "default"
+    return {}, ""
 
 
 def _inspect_profiles(profiles: dict) -> dict:
@@ -6371,10 +6246,11 @@ def _inspect_profiles(profiles: dict) -> dict:
                 "caps": {
                     "chat": bool,
                     "share": bool,
-                    "feedback": bool,
                     "training": bool,
+                    "image": bool,
+                    "video": bool,
+                    "audio": bool,
                 },
-                "hasToken": {"share": bool, "feedback": bool},
                 "warns": list[str],  # URL fields with SSRF warnings
                 "schemaV": int,
             }
@@ -6399,10 +6275,8 @@ def _inspect_profiles(profiles: dict) -> dict:
     ...         "label": "CF",
     ...         "chat": "https://cf.example.com",
     ...         "share": "",
-    ...         "feedback": "",
     ...         "training": "",
     ...         "shareToken": "",
-    ...         "feedbackToken": "",
     ...         "_schemaV": 2,
     ...         "_warn": [],
     ...     },
@@ -6425,12 +6299,13 @@ def _inspect_profiles(profiles: dict) -> dict:
             "caps": {
                 "chat": bool(profile.get("chat", "")),
                 "share": bool(profile.get("share", "")),
-                "feedback": bool(profile.get("feedback", "")),
                 "training": bool(profile.get("training", "")),
+                "image": bool(profile.get("image", "")),
+                "video": bool(profile.get("video", "")),
+                "audio": bool(profile.get("audio", "")),
             },
             "hasToken": {
                 "share": bool(profile.get("shareToken", "")),
-                "feedback": bool(profile.get("feedbackToken", "")),
             },
             "warns": list(profile.get("_warn", [])),
             "schemaV": int(profile.get("_schemaV", 0)),
@@ -6796,9 +6671,6 @@ def add_ai_assistant_context(
         ),
         # Reader-facing privacy/runtime initial values. These are site defaults
         # only: a stored reader choice wins on subsequent page loads.
-        "panelFeedbackTelemetryDefault": _cfg_bool(
-            app.config, "ai_assistant_panel_feedback_telemetry_default", False
-        ),
         "panelFeedbackReviewDefault": _cfg_bool(
             app.config, "ai_assistant_panel_feedback_review_default", True
         ),
@@ -7004,9 +6876,6 @@ def add_ai_assistant_context(
             _cfg_str(app.config, "ai_assistant_panel_feedback_thanks")
             or "Thanks for your feedback!"
         ),
-        "panelFeedbackLog": _cfg_bool(
-            app.config, "ai_assistant_panel_feedback_log", False
-        ),
         # Run 171: compact first-message privacy/status row.  The optional
         # text override is plain text; use it only for guarantees the site
         # operator has actually verified (for example, a zero-retention proxy).
@@ -7048,6 +6917,17 @@ def add_ai_assistant_context(
             _cfg_str(app.config, "ai_assistant_search_bar_selector") or ""
         ),
         "searchBarMini": _cfg_bool(app.config, "ai_assistant_search_bar_mini", False),
+        # Responsive presentation is separate from the author-selected base
+        # size.  When adaptive mode is enabled the bar may degrade to a
+        # one-button launcher if its host collapses/narrows.  A site/theme can
+        # provide an explicit collapsed-state selector; width observation is
+        # the theme-neutral fallback.
+        "searchBarAdaptive": _cfg_bool(
+            app.config, "ai_assistant_search_bar_adaptive", True
+        ),
+        "searchBarCollapsedSelector": (
+            _cfg_str(app.config, "ai_assistant_search_bar_collapsed_selector") or ""
+        ),
         # Insertion point inside the host element: "top" → prepend (sidebar
         # top, above navigation links), "bottom" → append (default, current
         # behaviour).  Any value other than "top" is treated as "bottom" so
@@ -7059,16 +6939,9 @@ def add_ai_assistant_context(
             _cfg_str(app.config, "ai_assistant_panel_search_placeholder")
             or "Ask AI about these docs\u2026"
         ),
-        # ── Feedback POST endpoint (P1) ────────────────────────────────────
-        # Empty string "" disables the feature — zero behavior change for
-        # operators who have not configured an endpoint.
-        "panelFeedbackEndpoint": _cfg_endpoint_url(
-            app.config, "ai_assistant_panel_feedback_endpoint"
-        ),
         # SECURITY: static Sphinx output is client-visible. Keep this legacy
         # compatibility key empty even when conf.py sets a token; build-time
         # bearer credentials must never be serialized into generated HTML.
-        "panelFeedbackToken": "",
         # Browser-entered bearer credentials are a high-risk compatibility
         # surface because same-origin JavaScript can observe page memory.
         # Default OFF; production authorization belongs at the server boundary.
@@ -7081,19 +6954,10 @@ def add_ai_assistant_context(
         "allowCredentialedFetch": _cfg_bool(
             app.config, "ai_assistant_allow_credentialed_fetch", False
         ),
-        # ── Global share (P2) ─────────────────────────────────────────────
-        "panelGlobalShareEndpoint": _cfg_endpoint_url(
-            app.config, "ai_assistant_global_share_endpoint"
-        ),
-        # Same client-secret boundary as feedback: server authorization must
-        # not depend on a bearer credential baked into static documentation.
-        "panelGlobalShareToken": "",
+        # Share TTL remains a site preference; all service routes come from the
+        # active endpoint profile. Static conf.py never carries bearer tokens.
         "panelGlobalShareTtlDays": _cfg_int(
             app.config, "ai_assistant_global_share_ttl_days", 30
-        ),
-        # ── Training contribution (P3) ─────────────────────────────────────
-        "panelTrainingEndpoint": _cfg_endpoint_url(
-            app.config, "ai_assistant_training_endpoint"
         ),
     }
 
@@ -7145,7 +7009,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
         Sphinx extension metadata::
 
             {
-                "version": "0.2.0",
+                "version": "0.5.1",
                 "parallel_read_safe": True,
                 "parallel_write_safe": True,
             }
@@ -7557,13 +7421,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     persistence is enabled.
     app.add_config_value("ai_assistant_panel_current_page_context", True, "html")
 
-    # ``ai_assistant_panel_feedback_telemetry_default`` (bool, default False)
-    #     Initial browser state for anonymous rating telemetry when this origin
-    #     has no explicit reader choice yet. False is the privacy-first built-in
-    #     default. A reader's explicit ON or OFF choice is persisted separately
-    #     and wins over this site default.
-    app.add_config_value("ai_assistant_panel_feedback_telemetry_default", False, "html")
-
     # ``ai_assistant_panel_feedback_review_default`` (bool, default True)
     #     Initial state for maintainer feedback review / model-improvement
     #     sharing when no explicit reader choice exists. Set False for local-only
@@ -7765,7 +7622,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #
     # ``ai_assistant_panel_dataset_repo`` (str, default "")
     #     Explicit "org/repo-name" of the HuggingFace dataset that stores
-    #     feedback telemetry and dataset contributions (e.g.
+    #     explicit reviewed feedback and dataset contributions (e.g.
     #     "scikit-plots/ai-assistant-contributions"). When set, the Extended
     #     Settings → Dataset Endpoint section shows its links directly (P1).
     #     When empty, the panel auto-discovers it from the proxy's GET /
@@ -7845,13 +7702,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
         "html",
     )
 
-    # ``ai_assistant_panel_feedback_log`` (bool, default False)
-    #     When True the JS also emits privacy-scrubbed local diagnostics (dev aid).
-    #     Public ``ai-assistant-feedback`` page integration is NOT automatic:
-    #     B40/B42 require the reader's separate versioned page-integration
-    #     permission. Network telemetry is governed by an independent consent.
-    app.add_config_value("ai_assistant_panel_feedback_log", False, "html")
-
     # ``ai_assistant_panel_feedback_scale`` (str, default "auto")
     #     Controls the numeric values assigned to each emoji in the per-answer
     #     feedback row.  Why numeric and signed: the previous string values
@@ -7907,24 +7757,9 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # speech UI exists. Site owner must explicitly opt in.
     app.add_config_value("ai_assistant_isolation_allow_microphone", False, "html")
 
-    # ── Feedback POST endpoint ───────────────────────────────────────────────
-    # ``ai_assistant_panel_feedback_endpoint`` (str, default "")
-    #     URL of the remote endpoint that receives POST /v1/feedback requests.
-    #     When empty (default), feedback is dispatched as a CustomEvent only.
-    #     Read from os.environ — NEVER hardcode a URL in conf.py.
-    #     Example: os.environ.get("FEEDBACK_ENDPOINT", "")
-    app.add_config_value("ai_assistant_panel_feedback_endpoint", "", "html")
-
-    # ``ai_assistant_panel_feedback_token`` (str, default "")
-    #     DEPRECATED SECURITY COMPATIBILITY KEY. Non-empty values are ignored
-    #     and never serialized into generated HTML. Static documentation cannot
-    #     safely carry bearer credentials, even when conf.py read them from an
-    #     environment variable. Configure authorization at the server boundary.
-    app.add_config_value("ai_assistant_panel_feedback_token", "", "html")
-
     # ``ai_assistant_allow_runtime_tokens`` (bool, default False)
     #     Explicit site-owner compatibility opt-in for browser-entered
-    #     short-lived Share/Feedback bearer tokens.  Default False because
+    #     short-lived Share bearer tokens.  Default False because
     #     same-origin page JavaScript shares the browser memory trust boundary.
     #     Tokens are never serialized into static HTML or Web Storage.
     #     Production deployments should keep this False and authorize server-side.
@@ -7934,32 +7769,11 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # credentials="same-origin"; credentials="include" is never allowed.
     app.add_config_value("ai_assistant_allow_credentialed_fetch", False, "html")
 
-    # ── Global share endpoint ────────────────────────────────────────────────
-    # ``ai_assistant_global_share_endpoint`` (str, default "")
-    #     URL of the CF Worker endpoint for global share storage.
-    #     When empty (default), the global share tier is not rendered.
-    #     Example: os.environ.get("SHARE_ENDPOINT", "")
-    app.add_config_value("ai_assistant_global_share_endpoint", "", "html")
-
-    # ``ai_assistant_global_share_token`` (str, default "")
-    #     DEPRECATED SECURITY COMPATIBILITY KEY. Non-empty values are ignored
-    #     and never serialized into generated HTML. Share authorization belongs
-    #     on the server; browser/runtime tokens are disabled by default; a site owner must explicitly
-    #     enable ``ai_assistant_allow_runtime_tokens`` for short-lived self-hosted compatibility.
-    app.add_config_value("ai_assistant_global_share_token", "", "html")
-
+    # ── Global share preferences ───────────────────────────────────────────
     # ``ai_assistant_global_share_ttl_days`` (int, default 30)
     #     Number of days before a global share link expires (KV entry TTL).
     #     Minimum: 1.  Maximum: 365.  Enforced server-side.
     app.add_config_value("ai_assistant_global_share_ttl_days", 30, "html")
-
-    # ── Dataset contribution endpoint ────────────────────────────────────────
-    # ``ai_assistant_training_endpoint`` (str, default "")
-    #     URL of the HF Spaces proxy endpoint for explicit dataset contributions.
-    #     When empty (default), the contribution surface reports that no endpoint is configured.
-    #     No write token — the proxy validates using its own HF_TOKEN.
-    #     Example: os.environ.get("TRAINING_ENDPOINT", "")
-    app.add_config_value("ai_assistant_training_endpoint", "", "html")
 
     # ── Endpoint Profile Registry ────────────────────────────────────────────
     # ``ai_assistant_endpoint_profiles`` (dict[str, dict], default {})
@@ -7969,11 +7783,13 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #       base          (str)  — Preferred one-service BASE URL. Feature URLs inherit it.
     #       chat          (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
     #       share         (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
-    #       feedback      (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
     #       training      (str|None) — Absolute URL OR Base-relative route; blank/null derives default from base.
+    #       image         (str|None) — Absolute URL OR Base-relative route; blank/null derives /v1/image from base.
+    #       video         (str|None) — Absolute URL OR Base-relative route; blank/null derives /v1/video from base.
+    #       audio         (str|None) — Absolute URL OR Base-relative route; blank/null derives /v1/audio from base.
+    #       document      (str|None) — Absolute URL OR Base-relative route; blank/null derives /v1/document from base.
     #       datasetRepo   (str)  — Optional HuggingFace owner/repo override; otherwise auto-discovered.
     #       shareToken    (str)  — RESERVED/RUNTIME-ONLY; non-empty build-time value is ignored.
-    #       feedbackToken (str)  — RESERVED/RUNTIME-ONLY; non-empty build-time value is ignored.
     #       ttlDays       (int)  — Share TTL override (0 = use global setting).
     #     Feature endpoint forms are intentionally flexible:
     #       absolute: "https://proxy.example.com/v1/share"
@@ -7992,7 +7808,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #               "label": "Cloudflare Worker",
     #               "chat":         os.environ.get("CF_WORKER_URL", ""),
     #               "share":        os.environ.get("CF_WORKER_URL", ""),
-    #               "feedback":     os.environ.get("CF_WORKER_URL", ""),
     #               "training":     "",
     #               # Do not place bearer secrets here. All profiles are baked
     #               # into static HTML; authorization belongs at the server.
@@ -8076,8 +7891,25 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_search_bar_position", "top", "html")
 
     # ``ai_assistant_search_bar_mini`` (bool, default False)
-    #     Compact inline variant when True; full-width block when False.
+    #     Compact inline INPUT variant when True; full-width input when False.
+    #     This is the base author preference.  Adaptive icon-only collapse is
+    #     controlled independently below so an expanded sidebar can stay full
+    #     while a collapsed rail becomes a one-button launcher.
     app.add_config_value("ai_assistant_search_bar_mini", False, "html")
+
+    # ``ai_assistant_search_bar_adaptive`` (bool, default True)
+    #     When True, observe the host and switch to an icon-only launcher when
+    #     the host is explicitly in a configured collapsed state or is narrow
+    #     enough to behave as an icon rail.  The launcher opens the AI panel
+    #     and focuses its composer.  Set False to pin the base full/mini input.
+    app.add_config_value("ai_assistant_search_bar_adaptive", True, "html")
+
+    # ``ai_assistant_search_bar_collapsed_selector`` (str, default "")
+    #     Optional theme/site selector that matches the configured host (or an
+    #     ancestor) while it is collapsed.  Example for current PyData Sphinx
+    #     Theme: ".bd-sidebar-primary.pst-squeeze".  Empty remains portable:
+    #     ResizeObserver host-width detection still provides the fallback.
+    app.add_config_value("ai_assistant_search_bar_collapsed_selector", "", "html")
 
     # ``ai_assistant_panel_search_placeholder`` (str)
     #     Placeholder for the standalone search-bar input.

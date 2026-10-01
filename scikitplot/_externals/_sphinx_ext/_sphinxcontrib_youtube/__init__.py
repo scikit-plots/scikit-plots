@@ -14,6 +14,11 @@
 """
 Sphinx "youtube" extension.
 
+This package owns leaf video/player directives only. Gallery search, disclosure,
+filter, sort, add/export, and persistence controls are intentionally centralized
+in the sibling ``_sphinx_collection`` browser engine and are not duplicated
+here.
+
 ..seealso::
   * https://github.com/sphinx-contrib/youtube
   * https://github.com/sphinx-contrib/youtube/commit/5238c057730f953ed7c38316aad692a5231294f1
@@ -88,6 +93,12 @@ def setup(app):
     # scikit-plots local patch: see `_backfill_epub_handlers`. Connected to
     # `builder-inited` so it runs after every extension's `setup()` has
     # registered its nodes, whatever order they are listed in.
+    # Remote thumbnails are a legacy/compatibility path. The current LaTeX
+    # visitor renders a provider URL rather than the thumbnail, so downloads
+    # are opt-in and ordinary documentation builds remain network-free.
+    app.add_config_value(
+        "video_download_thumbnails", False, "env", types=[bool]
+    )
     # scikit-plots local patch: aggregate cap on latex thumbnail fetches.
     app.add_config_value(
         "video_download_limit", utils.DEFAULT_DOWNLOAD_LIMIT, "env", types=[int]
@@ -98,12 +109,21 @@ def setup(app):
         "env",
         types=[int],
     )
+    app.add_config_value(
+        "video_download_max_total_bytes",
+        utils.DEFAULT_DOWNLOAD_MAX_TOTAL_BYTES,
+        "env",
+        types=[int],
+    )
+    app.connect("config-inited", utils.validate_download_config)
     app.connect("builder-inited", _backfill_epub_handlers)
     app.connect("builder-inited", utils.configure_image_download)
+    app.connect("env-purge-doc", utils.purge_download_images)
     app.connect("env-merge-info", utils.merge_download_images)
     app.connect("env-updated", utils.download_images)
     return {
         "version": __version__,
+        "env_version": 2,
         "parallel_read_safe": True,
         "parallel_write_safe": True,
     }

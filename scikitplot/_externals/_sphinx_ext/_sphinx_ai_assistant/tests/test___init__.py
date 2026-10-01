@@ -3661,13 +3661,14 @@ class TestV03ConfigPlumbing:
         "panelFeedbackPlaceholder",
         "panelFeedbackSubmit",
         "panelFeedbackThanks",
-        "panelFeedbackLog",
         "panelPrivacyTitle",
         "panelPrivacyLinkText",
         "panelPrivacyHtml",
         "searchBar",
         "searchBarSelector",
         "searchBarMini",
+        "searchBarAdaptive",
+        "searchBarCollapsedSelector",
         "panelSearchPlaceholder",
         # trigger pill UX keys (v0.2/v0.3 boundary)
         "panelTriggerLabel",
@@ -3701,6 +3702,9 @@ class TestV03ConfigPlumbing:
         assert cfg["panelRememberConversation"] is True
         assert cfg["panelShortcut"] == "Alt+Shift+A"
         assert cfg["searchBar"] is False
+        assert cfg["searchBarMini"] is False
+        assert cfg["searchBarAdaptive"] is True
+        assert cfg["searchBarCollapsedSelector"] == ""
         assert cfg["panelApiUrl"] == ""
         # The trigger-pill visibility switch is offered by default, and its
         # build default keeps the pill on screen — an upgrade with no conf.py

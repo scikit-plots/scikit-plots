@@ -1,0 +1,15 @@
+# scikit-learn: where column lists appear in pipelines.
+#
+# `ColumnTransformer(transformers=[("num", scaler, ["age", "income"])])` and
+# `make_column_transformer((scaler, ["age"]), ...)` name their columns inside
+# tuples. _code.py reads a string list one level deep inside a tuple at every
+# site listed here; the bare string "num" beside it is a step name and is not
+# a list, so it is never taken for a column.
+name: sklearn
+version: 1
+summary: scikit-learn column lists in ColumnTransformer and friends, for notebooks and modules.
+
+code:
+  # ColumnTransformer: transformers; HistGradientBoosting*: categorical_features.
+  column_keywords: [transformers, categorical_features]
+  column_methods: [make_column_transformer]

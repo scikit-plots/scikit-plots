@@ -1,0 +1,27 @@
+==============================================================================
+1. Large CSV: chunked by the document limit vs one pass with it raised
+==============================================================================
+ 30000 rows,  1474396 chars,   2 pieces      PASS 1.65s
+ 60000 rows,  2971086 chars,   3 pieces      PASS 3.57s
+120000 rows,  6004486 chars,   7 pieces      PASS 8.37s
+120k/30k time ratio is linear (< 8, ideal 4) PASS 5.08
+
+==============================================================================
+2. Random cut sizes: pieces equal one pass (CSV and JSON Lines)
+==============================================================================
+300 random documents and cut sizes           PASS 0 differ
+
+==============================================================================
+3. Log scrubbing with many live holders (CP-065)
+==============================================================================
+create 5000 holders                          PASS 0.01s
+2000 records against 125997 held values      PASS 0.05s
+no held value reached the log                PASS
+
+==============================================================================
+4. Streamed decoding: a long surrogate reply in 5-character chunks
+==============================================================================
+29592 chars in 5-char chunks equals the whole PASS 0.44s
+streamed decode under 3 s (was 3.44 s in v18) PASS 0.44s
+
+TOTAL FAILURES: 0

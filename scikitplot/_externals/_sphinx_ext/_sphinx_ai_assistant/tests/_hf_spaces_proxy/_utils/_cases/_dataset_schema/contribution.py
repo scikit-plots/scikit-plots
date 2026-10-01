@@ -6,6 +6,7 @@ import importlib
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 HERE = Path(__file__).resolve().parent
@@ -16,6 +17,12 @@ if str(PROXY) not in sys.path:
 
 schema = importlib.import_module("_utils._dataset_schema")
 proxy_app = importlib.import_module("app")
+
+
+@pytest.fixture(autouse=True)
+def _dataset_schema_uses_ledger_review_mode(monkeypatch):
+    # These cases validate schema/intake behavior, not provider-native review.
+    monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_MODE", "ledger")
 
 
 def _v4_conversation_payload(*, consent: str = "2.0.0") -> dict:

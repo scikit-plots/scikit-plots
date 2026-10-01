@@ -11,13 +11,9 @@ Configuration module for the package.
 This module consolidates configuration-related components.
 """
 
-from .._testing._pytesttester import PytestTester  # Pytest testing
 from .__config__ import *
 from ._citation import *
 from ._config import *
-
-test = PytestTester(__name__)
-del PytestTester
 
 # __all__ = [s for s in dir() if not s.startswith("_")]  # Remove dunders.
 __all__ = [
@@ -32,3 +28,15 @@ __all__ = [
     "show_config",
     "test",
 ]
+
+try:
+    from .._testing._pytesttester import PytestTester  # Pytest testing
+
+    test = PytestTester(__name__)
+    del PytestTester
+
+    __all__ += [
+        "test",
+    ]
+except Exception:
+    pass

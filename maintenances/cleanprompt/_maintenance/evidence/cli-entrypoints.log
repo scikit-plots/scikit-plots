@@ -1,0 +1,31 @@
+=== CP-041: THE SPAN THAT CARRIED A BRACKET ===
+  PERSON  'Mustafa Kemal Atatürk'
+  GPE     'the Republic of Turkey'
+  prompt : [PERSON-1][e] (c. 1881[f]) founded [GPE-1].
+  vault  : {'[PERSON-1]': 'Mustafa Kemal Atatürk', '[GPE-1]': 'the Republic of Turkey'}
+  exact  : True
+
+=== CP-042: EVERY SHAPE A MODEL RETURNS A PLACEHOLDER IN ===
+  as issued     YES  I mailed ada@example.com.
+  lower-cased   YES  I mailed ada@example.com.
+  underscore    YES  I mailed ada@example.com.
+  space         YES  I mailed ada@example.com.
+  unicode dash  YES  I mailed ada@example.com.
+  escaped       YES  I mailed ada@example.com.
+  line-wrapped  YES  I mailed ada@example.com.
+  bold          YES  I mailed **ada@example.com**.
+  code span     YES  I mailed `ada@example.com`.
+  prose         --   untouched
+
+=== CP-043: SURROGATE STYLE, AND A BARE DECODE ===
+Marion Holt mailed marion.holt@example.invalid about Northwind Logistics.
+Her card is [CREDIT_CARD-1] and her host is [IPV4-1].
+  --- the model's answer, decoded with no arguments ---
+I wrote to Ada Lovelace at ada@example.com; the Analytical Society of London
+confirmed. Card 4242 4242 4242 4242 on host 192.168.1.10 is unchanged.
+restored 5 placeholder(s)
+
+=== FRONTEND PARITY ON THE NEW SURFACE ===
+  PASS  identical: encode --style surrogate -q mail ada@example.com
+  PASS  identical: decode -q see [EMAIL-1]
+  PASS  identical: inspect mail ada@example.com

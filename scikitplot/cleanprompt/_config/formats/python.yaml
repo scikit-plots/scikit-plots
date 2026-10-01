@@ -1,0 +1,7 @@
+name: python
+version: 1
+summary: Python modules - schema discovery, and literals bound to sensitive names.
+extensions: [.py, .pyi, .pyw]
+splitter: python
+round_trip: true
+packs: [secrets, pandas]

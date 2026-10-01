@@ -7,21 +7,15 @@
 
 """Canonical schema and normalization for collection records.
 
-Schema v5 adds explicit feedback revision lineage while preserving the v4
-telemetry/contribution separation:
+Schema v5 stores explicit reviewed-feedback lineage and contribution records:
 
-* ``feedback`` is privacy-minimal rating telemetry.  Content, model, page and
-  conversation identity are discarded even when legacy/direct callers submit them;
-  ``trainingStatus`` is ``telemetry`` for privacy-minimal rating telemetry.
-  Explicit content-bearing feedback review is a separate consented path and may
-  carry future ``eligible`` bytes that become canonical only after maintainer merge.
+* ``feedback`` means explicit content-bearing feedback review. It carries the
+  selected Q&A/rating only after the reader chooses the maintainer-review flow.
 * ``contribution`` is explicit-content intake. Q&A records retain the historical
   ``query``/``answer`` shape while conversation records carry one ordered ``messages``
   array. Both carry versioned consent, enter ``quarantined`` state, and are
   training-eligible only after an authorised review promotes them.
 
-Historical v1/v2/v3/v4 rows remain readable through :func:`normalize_record`, but old
-contributions become ``legacy_unreviewed`` rather than silently entering training.
 Client IP addresses are never dataset fields.  See ``DATASET_COLLECTION_GUIDANCE.md``
 for lifecycle and retention policy.
 """
@@ -61,7 +55,7 @@ CANONICAL_COLUMNS: list[str] = [
     "feedbackId",  # current feedback/rating event id when rating lineage is present
     "feedbackChainId",  # stable root feedbackId for one answer's revision lineage
     # ── Record descriptor ─────────────────────────────────────────────────────
-    "recordType",  # "qa" | "conversation" (telemetry writes None; reviewed feedback writes "qa")
+    "recordType",  # "qa" | "conversation"
     "answerIndex",  # 0-based position of answer in the conversation
     "action",  # "rate" | "retract" | "review" | "withdraw"
     "prevFeedbackId",  # immediate feedbackId this record supersedes/invalidates.
@@ -74,7 +68,7 @@ CANONICAL_COLUMNS: list[str] = [
     # edits/re-rates the same answer (mirrors prevFeedbackId
     # chain length without walking it). None for retracts.
     "status",  # "active" | "retracted"  (dedup pipeline manages)
-    "trainingStatus",  # "telemetry" | "reviewed" | "quarantined" | "eligible" | "withdrawn" | "legacy_unreviewed"
+    "trainingStatus",  # "reviewed" | "quarantined" | "eligible" | "withdrawn" | "legacy_unreviewed"
     # ── Rating ────────────────────────────────────────────────────────────────
     "ratingValue",  # int | None: numeric score (-5..+5 for panel; -1|+1 for quick)
     "ratingSlug",  # str | None: snake_case canonical slug ("helpful", "mostly_positive")
@@ -84,10 +78,10 @@ CANONICAL_COLUMNS: list[str] = [
     "ratingScaleMax",  # numeric upper bound used to normalize reviewed feedback quality
     "qualityScore",  # float | None: normalized answer quality in [0, 1]
     "qualityPercent",  # float | None: qualityScore * 100, rounded for dashboards
-    "message",  # contribution text only; feedback telemetry writes empty string
+    "message",  # contribution/review text when the current contract supplies it
     # ── Conversation content ──────────────────────────────────────────────────
-    "query",  # contribution user question; feedback telemetry writes empty string
-    "answer",  # Q&A contribution model response; feedback telemetry/conversations write empty string
+    "query",  # contribution/review user question
+    "answer",  # Q&A contribution/review model response; conversation records use messages
     "messages",  # conversation contribution ordered message list; otherwise None
     # ── Model ────────────────────────────────────────────────────────────────
     "model",  # dict | None: normalised 8-key model object (see MODEL_KEYS)
@@ -123,9 +117,6 @@ MODEL_KEYS: list[str] = [
 #: browser ``CONSENT_VERSION`` in the same run.
 CONSENT_VERSION_ENABLED: bool = True
 RESERVED_CONSENT_VERSION: str = "2.0.0"
-FEEDBACK_TELEMETRY_CONSENT_VERSION: str = "1.0.0"
-FEEDBACK_TELEMETRY_SCHEMA_VERSION: int = 5
-LEGACY_CONSENT_VERSIONS: frozenset[str] = frozenset({"1.0.0"})
 
 
 def _resolve_consent_version(raw: Any) -> str | None:
@@ -134,17 +125,13 @@ def _resolve_consent_version(raw: Any) -> str | None:
     Parameters
     ----------
     raw : Any
-        The raw ``consentVersion``-like value from the payload or a
-        previously stored record (feedback payloads never had one;
-        contribution envelopes/records may carry ``"v1.0"`` or ``null``).
+        The raw current ``consentVersion`` value from the reviewed payload.
 
     Returns
     -------
     str or None
-        the declared non-empty consent version while enforcement is enabled, else ``None`` (this function
-        never *invents* a consent version for a record that did not declare
-        one — :data:`RESERVED_CONSENT_VERSION` is purely documentation for
-        what the JS widget should send once re-enabled).
+        the current consent version while enforcement is enabled, else ``None``.
+        Non-current versions fail closed rather than being migrated.
 
     Notes
     -----
@@ -161,7 +148,7 @@ def _resolve_consent_version(raw: Any) -> str | None:
     """
     if not CONSENT_VERSION_ENABLED:
         return None
-    return raw if isinstance(raw, str) and raw else None
+    return RESERVED_CONSENT_VERSION if raw == RESERVED_CONSENT_VERSION else None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -603,87 +590,6 @@ def _ordered(fields: dict[str, Any]) -> dict[str, Any]:
     return ordered
 
 
-def normalize_feedback_record(
-    payload: dict[str, Any],
-    *,
-    server_ts_ms: int,
-) -> dict[str, Any]:
-    """Normalize ordinary feedback to privacy-minimal telemetry.
-
-    Feedback is not a training-data collection channel.  Direct/legacy callers
-    may still submit historical fields such as ``query``, ``answer``, ``message``,
-    ``model``, ``page`` or ``conversationId``; they are deliberately discarded.
-    Only bounded rating mechanics are retained.
-    """
-    is_retract = payload.get("action") == "retract"
-    feedback_id = _safe_id(payload.get("feedbackId"))
-    prev_feedback_id = _safe_id(payload.get("prevFeedbackId"))
-    prev_feedback_ids = _safe_id_list(payload.get("prevFeedbackIds"))
-    feedback_chain_id = _safe_id(payload.get("feedbackChainId"))
-    if feedback_chain_id is None:
-        if prev_feedback_ids:
-            feedback_chain_id = prev_feedback_ids[0]
-        elif feedback_id and not prev_feedback_id:
-            feedback_chain_id = feedback_id
-        elif prev_feedback_id and _safe_int(payload.get("editCount"), default=0) <= 1:
-            feedback_chain_id = prev_feedback_id
-    answer_index = payload.get("answerIndex")
-    try:
-        answer_index = int(answer_index) if answer_index is not None else None
-    except (TypeError, ValueError):
-        answer_index = None
-
-    if is_retract:
-        rating_fields = {"ratingSlug": None, "ratingTitle": None, "ratingMode": None}
-    else:
-        rating_fields = normalize_rating(
-            payload.get("ratingValue"),
-            payload.get("ratingLabel"),
-            rating_mode=payload.get("ratingMode"),
-            rating_title=payload.get("ratingTitle"),
-            feedback_id=feedback_id,
-        )
-
-    # Deliberately avoid a conversation/session linkage key.  A persisted rating
-    # is telemetry only and is never eligible for the training builder.
-    dedup_id = prev_feedback_id if is_retract else feedback_id
-    dedup = f"{dedup_id}:feedback" if dedup_id else None
-    return _ordered(
-        {
-            "schemaVersion": SCHEMA_VERSION,
-            "_source": "feedback",
-            "_ts": server_ts_ms,
-            "_dedup_key": dedup,
-            "conversationId": None,
-            "feedbackId": feedback_id,
-            "feedbackChainId": feedback_chain_id,
-            "recordType": None,
-            "answerIndex": answer_index,
-            "action": "retract" if is_retract else "rate",
-            "prevFeedbackId": prev_feedback_id,
-            "prevFeedbackIds": prev_feedback_ids,
-            "editCount": (
-                None if is_retract else _safe_int(payload.get("editCount"), default=0)
-            ),
-            "status": "active",
-            "trainingStatus": "telemetry",
-            "ratingValue": None if is_retract else payload.get("ratingValue"),
-            "ratingSlug": rating_fields["ratingSlug"],
-            "ratingTitle": rating_fields["ratingTitle"],
-            "ratingMode": rating_fields["ratingMode"],
-            "message": "",
-            "query": "",
-            "answer": "",
-            "messages": None,
-            "model": None,
-            "modelEvidence": None,
-            "page": "",
-            "consentVersion": None,
-            "ts": payload.get("ts"),
-        }
-    )
-
-
 def normalize_feedback_review_record(
     payload: dict[str, Any],
     *,
@@ -692,8 +598,7 @@ def normalize_feedback_review_record(
 ) -> dict[str, Any]:
     """Normalize explicitly consented Q&A feedback for provider review.
 
-    This is intentionally distinct from privacy-minimal feedback telemetry.  The
-    reader authorizes one Q&A, rating, optional note, and training use if a
+    The reader authorizes one Q&A, rating, optional note, and training use if a
     maintainer accepts the native PR/MR.  The review ref therefore carries the
     *future canonical* ``trainingStatus=eligible`` bytes, while the API/ledger
     continues to report ``trainingEligible=false`` until the provider review is

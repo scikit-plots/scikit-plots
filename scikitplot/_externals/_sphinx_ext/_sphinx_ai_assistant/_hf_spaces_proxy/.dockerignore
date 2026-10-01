@@ -9,6 +9,8 @@
 !_utils/**
 !_providers/
 !_providers/**
+!_page_feedback/
+!_page_feedback/**
 _utils/__pycache__/
 _utils/**/__pycache__/
 _utils/**/*.pyc
@@ -17,3 +19,8 @@ _providers/__pycache__/
 _providers/**/__pycache__/
 _providers/**/*.pyc
 _providers/**/*.pyo
+
+_page_feedback/__pycache__/
+_page_feedback/**/__pycache__/
+_page_feedback/**/*.pyc
+_page_feedback/**/*.pyo

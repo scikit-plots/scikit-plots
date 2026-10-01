@@ -19,7 +19,7 @@ ok(fingerprint(base)===fingerprint(reloaded),'volatile site-default consentAt ca
 ok(fingerprint(base)!==fingerprint({...base,message:'changed'}),'meaningful feedback content still changes review fingerprint');
 ok(fingerprint(base)!==fingerprint({...base,page:''}),'Content & privacy source-page changes still change review fingerprint');
 ok(fingerprint(base)!==fingerprint({...base,ts:null}),'Content & privacy timestamp changes still change review fingerprint');
-ok(src.includes('absent state uses the configured site default (built-in: OFF)'), 'telemetry precedence comment matches configurable default behavior');
+ok(src.includes('var configuredDefault = !(typeof _cfg') && src.includes('if (!raw) {') && src.includes('return configuredDefault;'), 'feedback-review preference honors configured site default when stored state is absent');
 ok(!src.includes('prevSessionId'), 'browser feedback contract contains no retired prevSessionId alias');
 console.log(`${passed} passed, ${failed} failed`);
 if(failed)process.exit(1);

@@ -1,0 +1,36 @@
+# CX-04 evidence — MCP Corpus+Annoy retrieval modes (2026-09-28)
+# Env: Python 3.11.15; Annoy extension from scikitplot/externals build;
+# scratch root shim supplies scikitplot.__version__/get_config (not shipped).
+# Docs: 5 small markdown files (metrics, build, errors, plots, split). Embedder: HashEmbedder(64).
+# HashEmbedder is near-lexical: this shows wiring and failure behaviour, NOT retrieval quality.
+$ python -B maintenances/mcp/_maintenance/evidence/probe_hybrid.py DOCS
+== mode=semantic type=CorpusAnnoyRetriever
+  'roc_auc_score'              top=metrics.md   n=3 legs=[('dense', 'success')]
+  'ValueError'                 top=errors.md    n=3 legs=[('dense', 'success')]
+  'train_test_split'           top=split.md     n=3 legs=[('dense', 'success')]
+  'how are errors reported'    top=build.md     n=3 legs=[('dense', 'success')]
+== mode=hybrid type=CorpusIndexRetriever
+  'roc_auc_score'              top=metrics.md   n=3 legs=[('dense', 'success'), ('lexical', 'success')]
+  'ValueError'                 top=errors.md    n=3 legs=[('dense', 'success'), ('lexical', 'success')]
+  'train_test_split'           top=split.md     n=3 legs=[('dense', 'success'), ('lexical', 'success')]
+  'how are errors reported'    top=build.md     n=3 legs=[('dense', 'success'), ('lexical', 'empty')]
+== mode=keyword type=CorpusIndexRetriever
+  'roc_auc_score'              top=metrics.md   n=1 legs=[('lexical', 'success')]
+  'ValueError'                 top=errors.md    n=1 legs=[('lexical', 'success')]
+  'train_test_split'           top=split.md     n=1 legs=[('lexical', 'success')]
+  'how are errors reported'    top=-            n=0 legs=[('lexical', 'empty')]
+== embedder failure at query time (strict=False)
+Dense retrieval failed: embedder offline (probe)
+  mode=semantic status=failed n=0 legs=[('dense', 'failed')]
+Query embedding failed: embedder offline (probe)
+  mode=hybrid   status=degraded n=1 legs=[('dense', 'failed'), ('lexical', 'success')]
+rc=0
+
+$ pytest scikitplot/mcp (standalone, excl. test_protocol_in_memory.py: needs mcp>=2)
+270 passed, 3 skipped in 2.23s
+$ pytest scikitplot/mcp/tests/test_corpus_index_retriever.py (with root shim, Annoy loads)
+14 passed in 1.10s
+
+# Negative controls (run earlier this round, source restored and cmp-verified):
+#  'if mode != "semantic"' -> 'if False'           : 1 failed (test_real_corpus_and_annoy_in_hybrid_mode)
+#  search(config=config) -> config=self._index.config: 2 failed (test_hybrid_asks_the_corpus_with_its_own_config, integration)

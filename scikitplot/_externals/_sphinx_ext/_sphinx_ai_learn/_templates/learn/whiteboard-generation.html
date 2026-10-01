@@ -1,0 +1,91 @@
+<section class="learn-generation-shell learn-generation-shell--whiteboard learn-whiteboard-generation" data-generation-kind="whiteboard" data-whiteboard-generation>
+  <script type="application/json" data-whiteboard-generation-payload>{{ payload|safe }}</script>
+
+  {% set generation_kind = 'whiteboard' %}
+  {% set studio_title = 'Create a Whiteboard' %}
+  {% set studio_description = 'Generate a private educational visual from a Learn Topic, canonical Source, public reference URL, or your own prompt through the configured image artifact runtime. Review the canvas before any separate publishing workflow.' %}
+  {% set studio_runtime = true %}
+  {% set studio_runtime_status = 'Checking the configured Image runtime…' %}
+  {% set studio_readiness_label = 'Whiteboard generation readiness' %}
+  {% include "learn/generation-studio-header.html" %}
+
+  <form class="learn-generation-form learn-whiteboard-generation-form" data-whiteboard-form novalidate>
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">1</span><span>Choose context<small>Choose one grounding mode for this Whiteboard request.</small></span></legend>
+      {% set context_scope = 'whiteboard' %}
+      {% set context_policy = 'exclusive' %}
+      {% set context_topics = topics %}
+      {% set context_sources = sources %}
+      {% set context_topic_help = 'Topic context helps the visual stay aligned with the learning page.' %}
+      {% set context_source_help = 'Source context can carry the canonical URL into the generation prompt.' %}
+      {% set context_url_help = 'The URL is passed as untrusted reference text. This page does not fetch it; image-runtime retrieval is not assumed.' %}
+      {% set context_prompt_placeholder = 'Describe the whiteboard or visual concept you want to create.' %}
+      {% set context_prompt_help = 'Use Prompt when no Topic, Source, or URL context should be attached.' %}
+      {% include "learn/generation-context.html" %}
+    </fieldset>
+
+    {% set generation_kind = 'whiteboard' %}
+    {% include "learn/generation-shaping.html" %}
+
+    {% include "learn/generation-lenses.html" %}
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">4</span><span>Output settings<small>Select a canvas that fits the intended learning surface.</small></span></legend>
+      <div class="learn-generation-options">
+        <label class="learn-generation-field">Canvas
+          <select data-whiteboard-size>
+            <option value="1536x1024" selected>Landscape · 3:2</option>
+            <option value="1024x1024">Square · 1:1</option>
+            <option value="1024x1536">Portrait · 2:3</option>
+          </select>
+        </label>
+      </div>
+    </fieldset>
+
+    {% set generation_kind = 'whiteboard' %}
+    {% include "learn/generation-advanced.html" %}
+
+    {% set generation_kind = 'whiteboard' %}
+    {% set authority_title = 'Generation authority' %}
+    {% set authority_help = 'The Assistant model selection is shared provenance context; the active Image runtime owns Whiteboard rendering and chooses its server-advertised renderer.' %}
+    {% set authority_kind = 'assistant' %}
+    {% set authority_managed = 'shared' %}
+    {% set authority_initial_label = 'Discovering…' %}
+    {% set authority_initial_badge = 'Default' %}
+    {% set authority_open_label = 'Model Configuration' %}
+    {% set authority_open_title = 'Open AI Assistant model configuration' %}
+    {% set authority_more_label = 'Try a different model' %}
+    {% set authority_more_title = 'More model options' %}
+    {% set authority_runtime_label = 'Image renderer' %}
+    {% set authority_runtime_initial = 'Discovering…' %}
+    {% set authority_status = 'Checking shared Assistant model context and server-owned Image rendering authority…' %}
+    {% include "learn/generation-authority.html" %}
+
+    {% set publication_credit_help = 'Optional public credit reserved for a later reviewed publication handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. It is stored only with this browser studio state and is never sent to the Image generation runtime.' %}
+    {% include "learn/publication-credit.html" %}
+    {% set generation_kind = 'whiteboard' %}
+    {% include "learn/generation-actions.html" %}
+    {% set status_initial_state = 'idle' %}
+    {% set status_initial_label = 'Ready' %}
+    {% set status_initial_message = 'Ready to create a whiteboard when the configured Image runtime is available.' %}
+    {% include "learn/generation-status.html" %}
+  </form>
+
+  <section class="learn-generation-result-card" data-whiteboard-result-card hidden aria-label="Generated whiteboard">
+    <div class="learn-generation-result-heading">
+      <div><p class="learn-kicker">Private result</p><strong>Whiteboard preview</strong></div>
+      <div class="learn-generation-result-actions learn-actions"><a class="learn-button" data-whiteboard-download download="whiteboard.png">Download PNG</a></div>
+    </div>
+    <img data-whiteboard-result alt="Generated whiteboard preview">
+    <p class="learn-meta" data-whiteboard-result-meta></p>
+  </section>
+
+  {% set generation_kind = 'whiteboard' %}
+  {% set library_title = 'Your Whiteboards' %}
+  {% set library_singular = 'whiteboard generation' %}
+  {% set library_plural = 'whiteboard generations' %}
+  {% set library_empty_title = 'No generated whiteboards are known to this browser yet.' %}
+  {% set library_empty_help = 'Successful Whiteboard images appear here as private browser-known receipts. Published Learn whiteboards remain separate from this library.' %}
+  {% set library_refresh_title = 'Whiteboard image generation currently returns completed artifacts directly and does not expose a receipt refresh API.' %}
+  {% include "learn/generation-library.html" %}
+</section>

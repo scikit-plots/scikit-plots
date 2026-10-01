@@ -10,9 +10,12 @@ import importlib
 UTILS = RUNTIME_ROOT / "_hf_spaces_proxy" / "_utils"
 EXPECTED_HELPERS = {
     "__init__.py",
+    "_audio_generation.py",
     "_chat_contract.py",
     "_contribution_ledger.py",
     "_dataset_schema.py",
+    "_document_generation.py",
+    "_learn_publication.py",
     "_rate_limit.py",
     "_provider_artifact.py",
     "_provider_artifact_lifecycle.py",
@@ -25,6 +28,7 @@ EXPECTED_HELPERS = {
     "_storage.py",
     "_stub_model.py",
     "_telemetry.py",
+    "_video_generation.py",
     "_zip_artifact.py",
     "_zip_workspace.py",
     "deduplicate_dataset_v1.py",

@@ -464,3 +464,98 @@ class TestJSONLDivergence:
             store.save_batch([self._doc(1, "ok"), self._doc(2, "bad", x=object())])
         assert store.get(self._doc(1, "ok").doc_id) is None
         assert store.get("keep000000000001") is not None
+
+
+# ===========================================================================
+# Free text is never FTS5 syntax (finding CX-01)
+# ===========================================================================
+
+_TECH_DOCS = [
+    "Use roc_auc_score() from sklearn.metrics to compute the area under the ROC curve.",
+    "The C++ extension annoylib is built with meson.",
+    "ValueError: Input contains NaN, infinity or a value too large for dtype('float64').",
+    "Set random-state=42 for reproducible splits.",
+    "roc and auc and score are mentioned separately, sklearn and metrics too.",
+]
+
+#: Queries whose best answer is decided by the query itself, not by corpus
+#: statistics: each names words only one document holds together.
+_TECH_QUERIES = [
+    ("roc_auc_score()", 0),
+    ("C++ extension", 1),
+    ('dtype("float64")', 2),
+    ("ValueError: Input contains NaN", 2),
+    ("random-state", 3),
+    ("NEAR(roc curve)", 0),
+    ("area under the curve?", 0),
+]
+
+#: Queries that used to be FTS5 syntax errors or empty results. They must run
+#: and find something; *which* document ranks first depends on IDF over the
+#: corpus (in five documents, "is" is rarer than "roc").
+_FORMERLY_BROKEN = [
+    "sklearn.metrics:roc_auc_score",
+    "what is roc auc",
+    "AND",
+    "NOT sklearn",
+    "roc*",
+]
+
+
+class TestFreeTextSearch:
+    def setup_method(self) -> None:
+        self.store = SQLiteStorage(":memory:")
+        self.docs = [CorpusDocument.create("t.md", i, t) for i, t in enumerate(_TECH_DOCS)]
+        self.store.save_batch(self.docs)
+
+    @pytest.mark.parametrize(("query", "best"), _TECH_QUERIES)
+    def test_search_text_ranks_the_answer_first(self, query, best) -> None:
+        ranked = self.store.search_text(query, 3)
+        assert ranked and ranked[0][0].doc_id == self.docs[best].doc_id
+        scores = [score for _, score in ranked]
+        assert scores == sorted(scores, reverse=True) and scores[0] > 0
+
+    def test_an_exact_identifier_outranks_its_scattered_parts(self) -> None:
+        ranked = [doc.doc_id for doc, _ in self.store.search_text("roc_auc_score()", 5)]
+        assert ranked.index(self.docs[0].doc_id) < ranked.index(self.docs[4].doc_id)
+
+    @pytest.mark.parametrize("query", _FORMERLY_BROKEN)
+    def test_formerly_broken_queries_run_and_find(self, query) -> None:
+        assert self.store.search_text(query, 5)
+
+    @pytest.mark.parametrize(
+        "query", [q for q, _ in _TECH_QUERIES] + _FORMERLY_BROKEN + ['"', "()", "*", "-x"]
+    )
+    def test_full_text_never_raises(self, query) -> None:
+        self.store.query(StorageQuery(full_text=query, limit=10))
+
+    @pytest.mark.parametrize("query", [q for q, _ in _TECH_QUERIES])
+    def test_full_text_finds_a_literal_occurrence(self, query) -> None:
+        """A document holding the query verbatim matches it as a phrase."""
+        doc = CorpusDocument.create("lit.md", 0, f"prefix {query} suffix")
+        self.store.save(doc)
+        found = self.store.query(StorageQuery(full_text=query, limit=50)).documents
+        assert doc.doc_id in {d.doc_id for d in found}
+
+    @pytest.mark.parametrize("query", ["", "   ", "()", "?!"])
+    def test_no_word_means_no_result(self, query) -> None:
+        assert self.store.search_text(query, 3) == []
+
+    @pytest.mark.parametrize(
+        ("kwargs", "error"),
+        [({"text": 1}, TypeError), ({"text": "x", "limit": 0}, ValueError), ({"text": "x", "limit": True}, TypeError)],
+    )
+    def test_arguments_are_validated(self, kwargs, error) -> None:
+        with pytest.raises(error):
+            self.store.search_text(**kwargs)
+
+    def test_collection_filter(self) -> None:
+        other = CorpusDocument.create("o.md", 0, "roc_auc_score() elsewhere", collection_id="other")
+        self.store.save(other)
+        ranked = self.store.search_text("roc_auc_score()", 10, collection_id="other")
+        assert [doc.doc_id for doc, _ in ranked] == [other.doc_id]
+
+    def test_without_fts5_it_says_so(self) -> None:
+        self.store._has_fts5 = False
+        with pytest.raises(RuntimeError, match="FTS5"):
+            self.store.search_text("x", 1)

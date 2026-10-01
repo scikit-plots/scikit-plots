@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>CleanPrompt</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="wrap">
+
+  <header class="head">
+    <div>
+      <h1>CleanPrompt</h1>
+      <p class="lede">
+        Replace sensitive values with placeholders before sending a prompt to a
+        language model, then put them back when the reply arrives. Nothing
+        leaves this machine: the page talks only to the local process that
+        served it.
+      </p>
+    </div>
+  </header>
+
+  {#
+    The capability strip. Rendered on every view, including the very first,
+    before anything has been pasted. This is the fix for the defect that
+    prompted the rewrite: a visitor pasted prose about a public figure, got it
+    back unchanged, and had no way to know that name detection was switched
+    off. "Nothing was found" and "nothing was looking" must never look alike.
+  #}
+  <section class="status {{ 'status-degraded' if blind_spots else 'status-ok' }}"
+           aria-live="polite">
+    <div class="status-line">
+      <span class="dot" aria-hidden="true"></span>
+      <strong>{{ diagnosis.headline() }}</strong>
+    </div>
+    <details class="status-detail">
+      <summary>What is being detected{% if blind_spots %} — and what is not{% endif %}</summary>
+      <div class="cols">
+        <div>
+          <h4>Active detectors ({{ diagnosis.active_kinds | length }})</h4>
+          <p class="kinds">
+            {% for kind in diagnosis.active_kinds %}<code>{{ kind }}</code>{% endfor %}
+          </p>
+        </div>
+        <div>
+          <h4>Entity engines</h4>
+          <ul class="tiers">
+            {% for name, engine in engines.engines.items() %}
+            <li>
+              <code>{{ name }}</code>
+              <span class="badge badge-{{ 'on' if engine.usable else 'off' }}">{{ engine.status }}</span>
+              <span class="muted">{{ engine.summary }}</span>
+            </li>
+            {% endfor %}
+            <li class="muted">
+              mode <code>{{ engines.mode }}</code> &rarr;
+              {% if engines.selected %}running <code>{{ engines.selected | join(', ') }}</code>
+              {% else %}nothing selected{% endif %}
+            </li>
+          </ul>
+          <h4>Language</h4>
+          <ul class="tiers">
+            <li>
+              <code>{{ language.requested }}</code>
+              <span class="badge badge-{{ 'on' if language.model_installed else 'off' }}">{{ 'installed' if language.model_installed else 'missing' }}</span>
+              <span class="muted">{{ language.model }}</span>
+            </li>
+            {% if language.resolution.fallback %}
+            <li class="muted">{{ language.resolution.reason }}</li>
+            {% endif %}
+            {% if not language.model_installed %}
+            <li class="muted">get it: <code>{{ language.install_hint }}</code></li>
+            {% endif %}
+          </ul>
+        </div>
+        <div>
+          <h4>Optional tiers</h4>
+          <ul class="tiers">
+            {% for name, tier in diagnosis.tiers.items() %}
+            <li>
+              <code>{{ name }}</code>
+              <span class="badge badge-{{ 'on' if tier.available else 'off' }}">{{ tier.status }}</span>
+              <span class="muted">{{ tier.purpose }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% for spot in diagnosis.blind_spots %}
+      <div class="spot spot-{{ spot.severity }}">
+        <strong>{{ spot.category }}</strong>
+        <p>{{ spot.reason }}.</p>
+        <p class="fix">Fix: <code>{{ spot.remedy }}</code></p>
+      </div>
+      {% endfor %}
+    </details>
+  </section>
+
+  {% if error %}<p class="banner error" role="alert">{{ error }}</p>{% endif %}
+
+  {% if outcome %}
+  <p class="banner outcome-{{ outcome.level }}"
+     role="{{ 'alert' if outcome.level == 'alert' else 'status' }}">
+    <strong>{{ outcome.headline }}</strong>
+    {% if outcome.detail %}<br>{{ outcome.detail }}{% endif %}
+    {% if outcome.actions %}
+    <span class="actions">
+      {% for action in outcome.actions %}<span class="action">{{ action }}</span>{% endfor %}
+    </span>
+    {% endif %}
+  </p>
+  {% endif %}
+
+  <section>
+    <h2><span class="step">1</span> Your text</h2>
+    <form action="{{ url_for('index') }}" method="post" id="redact-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <textarea id="text" name="text" rows="9" autocomplete="off"
+                spellcheck="false"
+                placeholder="Paste the prompt you want to send…">{{ original_text }}</textarea>
+
+      <label for="additional_words">
+        Also hide these <span class="hint">(comma separated, matched exactly)</span>
+      </label>
+      <textarea id="additional_words" name="additional_words" rows="2"
+                autocomplete="off" spellcheck="false">{{ additional_words }}</textarea>
+
+      <button type="submit" name="process_text" value="1">
+        Redact <kbd>Ctrl</kbd>+<kbd>Enter</kbd>
+      </button>
+    </form>
+  </section>
+
+  {% if suggestions %}
+  {#
+    The inspection surface. These are capitalised candidates the active
+    detectors did not claim. They are NEVER redacted automatically — guessing
+    that a capitalised word is a name is a heuristic and has no place in the
+    pipeline. Showing them and letting a person choose is not a guess.
+  #}
+  <section class="suggest">
+    <h2><span class="step">?</span> Did you mean to hide these?</h2>
+    <p class="hint">
+      Capitalised words still in the clear. Nothing here has been redacted.
+      Tick any that matter and redact again — they will then be matched exactly.
+    </p>
+    <div class="chips">
+      {% for item in suggestions %}
+      <button type="button" class="chip" data-term="{{ item.text }}"
+              title="{{ item.reason }}">
+        {{ item.text }}<span class="count">{{ item.count }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if entries %}
+  <section>
+    <h2>What was removed</h2>
+    <p class="hint">
+      Placeholders and categories only. The original values stay in this
+      process and are never rendered into the page.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Placeholder</th><th>Kind</th><th>Times</th><th>Detector</th></tr>
+      </thead>
+      <tbody>
+      {% for entry in entries %}
+        <tr>
+          <td><code>{{ entry.label }}</code></td>
+          <td>{{ entry.kind }}</td>
+          <td>{{ entry.count }}</td>
+          <td class="muted">{{ entry.detector }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  {% if processed_text %}
+  <section>
+    <h2><span class="step">2</span> Send this</h2>
+    <div class="field">
+      <textarea id="processed_text" rows="9" readonly>{{ processed_text }}</textarea>
+      <button type="button" class="copy" data-copy="processed_text">Copy</button>
+    </div>
+
+    <h2><span class="step">3</span> Paste the reply</h2>
+    <form action="{{ url_for('index') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="original_text" value="{{ original_text }}">
+      <input type="hidden" name="processed_text" value="{{ processed_text }}">
+      <textarea name="llm_response" id="llm_response" rows="9"
+                autocomplete="off" spellcheck="false"
+                placeholder="Paste what the model said…">{{ llm_response }}</textarea>
+      <button type="submit" name="revert_text" value="1">Restore my values</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if reverted_text %}
+  <section id="restored">
+    <h2><span class="step">4</span> Restored</h2>
+    <div class="field">
+      <textarea id="reverted_text" rows="9" readonly>{{ reverted_text }}</textarea>
+      <button type="button" class="copy" data-copy="reverted_text">Copy</button>
+    </div>
+  </section>
+  {% endif %}
+
+  <footer>
+    <form action="{{ url_for('reset') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="secondary">Discard this session</button>
+    </form>
+    <p class="hint">
+      The removed values are held in this process only, never in a cookie.
+      Discarding clears them. Machine-readable status:
+      <a href="{{ url_for('api_doctor') }}"><code>/api/doctor</code></a>
+    </p>
+  </footer>
+</main>
+<script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

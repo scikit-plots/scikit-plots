@@ -5,7 +5,7 @@ import json
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
 
 
-def test_feedback_telemetry_and_review_are_distinct_saved_row_families() -> None:
+def test_feedback_review_is_the_only_saved_feedback_row_family() -> None:
     detail = {
         "feedbackId": "fb-event",
         "answerIndex": 0,
@@ -24,18 +24,9 @@ def test_feedback_telemetry_and_review_are_distinct_saved_row_families() -> None
         "ratingScaleMax": 1,
         "ts": 123,
     }
-    telemetry = schema.normalize_feedback_record(detail, server_ts_ms=1000)
     review = schema.normalize_feedback_review_record(
         detail, server_ts_ms=1000, receipt_id="receipt"
     )
-
-    assert telemetry["_dedup_key"] == "fb-event:feedback"
-    assert telemetry["trainingStatus"] == "telemetry"
-    assert telemetry["query"] == telemetry["answer"] == telemetry["page"] == ""
-    assert telemetry["message"] == ""
-    assert telemetry["model"] is None
-    assert telemetry["consentVersion"] is None
-
     assert review["_dedup_key"] == "receipt:feedback"
     assert review["recordType"] == "qa"
     assert review["action"] == "review"

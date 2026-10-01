@@ -1,0 +1,62 @@
+<div class="learn-explorer learn-topic-explorer" data-learn-explorer data-trending-table data-kind="topic" data-item-label="topic" data-numeric-sort="citations youtube github reddit hackernews x">
+<script type="application/json" class="learn-section-registry">{{ section_registry }}</script>
+<p class="learn-meta">{{ total }} topics in this catalog snapshot · signal values appear only when catalog data is available.</p>
+{% set search_placeholder = "Topic or keyword" %}
+{% set filter_panel_id = "learn-topic-filter-options" %}
+{% set search_input_id = "learn-topic-search" %}
+{% include "learn/explorer-controls.html" %}
+<p class="learn-meta" data-explorer-status role="status"></p>
+<div class="learn-table-scroll" aria-label="Trending topics">
+<table class="learn-trending-table">
+  <colgroup>
+    <col class="learn-trending-col-topic">
+    <col class="learn-trending-col-category">
+    <col class="learn-trending-col-added">
+    <col class="learn-trending-col-signals">
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="learn-topic-main" scope="col"><button type="button" data-sort-key="title" aria-label="Sort by topic title">Topic</button></th>
+      <th scope="col">Category</th>
+      <th scope="col"><button type="button" data-sort-key="created" aria-label="Sort by added date">Added</button></th>
+      <th class="learn-signals-heading" scope="col">Signals <span class="learn-signals-heading-note">catalog snapshot</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in records %}
+    <tr class="learn-topic-row"
+        data-title="{{ item.title|lower|e }}"
+        data-categories="{{ item.domains|join(' ')|e }}"
+        data-created="{{ item.created_at|e }}"
+        data-citations="{{ item.metrics.citations }}"
+        data-youtube="{{ item.metrics.youtube }}"
+        data-github="{{ item.metrics.github }}"
+        data-reddit="{{ item.metrics.reddit }}"
+        data-hackernews="{{ item.metrics.hackernews }}"
+        data-x="{{ item.metrics.x }}">
+      <td class="learn-topic-main" data-cell="topic">
+        <a class="learn-topic-link" href="{{ item.href|e }}">{{ item.title|e }}</a>
+        {% if item.summary %}<p>{{ item.summary|e }}</p>{% endif %}
+        <span class="learn-meta">{{ item.source_count }} linked source{{ '' if item.source_count == 1 else 's' }}</span>
+      </td>
+      <td class="learn-topic-category" data-cell="category">{% if item.domains %}{% for tag in item.domains %}<span class="learn-table-tag">{{ tag|replace('-', ' ')|title|e }}</span>{% endfor %}{% else %}<span class="learn-empty-value">—</span>{% endif %}</td>
+      <td class="learn-topic-added" data-cell="added" data-value="{{ item.created_at|e }}"><span class="learn-cell-label">Added</span><time datetime="{{ item.created_at|e }}">{{ item.created_at[:10]|e }}</time></td>
+      <td class="learn-topic-signals" data-cell="signals">
+        <div class="learn-signal-grid" aria-label="Topic signals">
+          <span class="learn-signal" data-signal="citations"><span class="learn-signal-label">Citations</span><strong>{{ item.metrics.citations if item.metrics.citations else '—' }}</strong></span>
+          <span class="learn-signal" data-signal="youtube"><span class="learn-signal-label">YouTube</span><strong>{{ item.metrics.youtube if item.metrics.youtube else '—' }}</strong></span>
+          <span class="learn-signal" data-signal="github"><span class="learn-signal-label">GitHub</span><strong>{{ item.metrics.github if item.metrics.github else '—' }}</strong></span>
+          <span class="learn-signal" data-signal="reddit"><span class="learn-signal-label">Reddit</span><strong>{{ item.metrics.reddit if item.metrics.reddit else '—' }}</strong></span>
+          <span class="learn-signal" data-signal="hackernews"><span class="learn-signal-label">HN</span><strong>{{ item.metrics.hackernews if item.metrics.hackernews else '—' }}</strong></span>
+          <span class="learn-signal" data-signal="x"><span class="learn-signal-label">X</span><strong>{{ item.metrics.x if item.metrics.x else '—' }}</strong></span>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="learn-meta learn-trending-note">This is a static catalog view, not a live ranking service. Missing signal values are intentionally not estimated.</p>
+{% if previous %}<a href="{{ previous|e }}">← Previous page</a>{% endif %}
+{% if next %}<a class="learn-next" href="{{ next|e }}">Show More</a>{% endif %}
+</div>

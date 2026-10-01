@@ -1,0 +1,7 @@
+<article class="learn-prompt-card" id="{{ prompt.id|e }}">
+<div class="learn-prompt-card-heading"><div><h2><a class="learn-prompt-link" href="{{ prompt.href|e }}">{{ prompt.title|e }}</a></h2><p class="learn-meta">by {{ prompt.author|e }}</p></div>
+<label class="learn-switch" title="Show on topic pages">
+<input type="checkbox" data-prompt-toggle="{{ prompt.id|e }}" data-default="{{ 'true' if prompt.default_enabled else 'false' }}" aria-label="Show {{ prompt.title|e }} on topic pages">
+<span aria-hidden="true"><span>off</span><span>on</span></span>
+</label></div>
+<div class="learn-prompt-description">

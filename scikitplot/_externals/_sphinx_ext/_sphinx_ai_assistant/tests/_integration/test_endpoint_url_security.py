@@ -30,7 +30,6 @@ def test_buildtime_absolute_and_relative_endpoint_security():
             "base": "  https://EXAMPLE.com:443/api/  ",
             "chat": "v1/chat/completions",
             "share": "/v1/share",
-            "feedback": "https://feedback.example.com/hook?tenant=x",
             "training": None,
         },
         "secure",
@@ -38,7 +37,6 @@ def test_buildtime_absolute_and_relative_endpoint_security():
     assert p["base"] == "https://example.com/api"
     assert p["chat"] == "v1/chat/completions"
     assert p["share"] == "v1/share"
-    assert p["feedback"] == "https://feedback.example.com/hook?tenant=x"
     assert p["training"] == ""
 
 
@@ -48,7 +46,6 @@ def test_buildtime_rejects_ambiguous_and_malicious_url_forms():
             "base": "https://user:secret@example.com/api",
             "chat": "../admin",
             "share": "%2e%2e/admin",
-            "feedback": "https://good.example.com/%2e%2e/api",
             "training": "v1/%2Fadmin",
         },
         "bad",
@@ -56,7 +53,6 @@ def test_buildtime_rejects_ambiguous_and_malicious_url_forms():
     assert p["base"] == ""
     assert p["chat"] == ""
     assert p["share"] == ""
-    assert p["feedback"] == ""
     assert p["training"] == ""
 
 

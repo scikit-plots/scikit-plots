@@ -1274,7 +1274,7 @@ https://emojidb.org/
 🔻 To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
 ←→ ✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
 
-֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥 📣  🔊 ↗ ⎘
+֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥 📣  🔊 ↗ ⎘ 👎👍⌄
 ────────────────────────────────────────────
 | ☰ |              Title              | 🔥·📤·−·⛶ | × |
 | ☰ |              Title                        | ⋮ | × |
@@ -1305,7 +1305,14 @@ wide enough
 crowded/mobile
 [ document | suggested-enhancements-for-index-rst-3.rst | ↓ ] [ ⋮ ]
 ────────────────────────────────────────────
+[ search input                         | 🔍 ] [⌄]
+--------------------------------------------------
 ────────────────────────────────────────────
+[ 👎 | 0 ]   [ 👍 | 0 ]   [⌄]
+and selected state remains:
+[ 👎 | 0 ]   [ 👍 Helpful | 0 ]   [⌄]
+or:
+[ 👎 Not helpful | 0 ]   [ 👍 | 0 ]   [⌄]
 ────────────────────────────────────────────
 🗐 ⧉ 🗌 🗍 🗐 🗐 🗎 🗏 🗑 🗒 🗓 🗔 🗕 🗖 🗗 🗘 🗙 🗚 🗛 🗜 ⧉⇄⧉ ⧉⟷⧉ □▢ ⊞ ⊟ ⊠ ⊡ ⧈ 📋 📄 📃 📑 ▢▢ □□
 □ ▢ ▣ ▤ ▥ ▦ ▧ ▨ ▩ ▫ ▪ ◧ ◨ ◩ ◪

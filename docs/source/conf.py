@@ -919,7 +919,7 @@ master_doc = "index"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-source_suffix
 # If the value is a string or sequence of strings, Sphinx will consider that they are all 'restructuredtext' files.
 # Modern Sphinx usually auto-detects once MyST loaded, but explicit is cleaner:
-# source_suffix = '.rst'
+# source_suffix = '.rst'  # {'.rst': 'restructuredtext'}
 # source_suffix = ['.rst', '.md']
 source_suffix = {
     '.rst': 'restructuredtext',

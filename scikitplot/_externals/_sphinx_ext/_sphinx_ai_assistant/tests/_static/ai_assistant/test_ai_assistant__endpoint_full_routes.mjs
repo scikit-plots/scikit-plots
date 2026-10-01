@@ -35,13 +35,12 @@ const context = {
       default: {
         label: 'Default',
         base: 'https://proxy.example.com',
-        chat: 'https://proxy.example.com',           // legacy base-style explicit
+        chat: 'https://proxy.example.com',           // explicit absolute endpoint
         share: 'https://proxy.example.com/v1/share', // complete standard endpoint
-        feedback: 'https://feedback.example.com/custom/ingest', // arbitrary route
         training: '',
       },
       hostonly: {
-        label: 'Host only legacy',
+        label: 'Explicit host endpoint',
         chat: 'https://legacy.example.com',
       },
       prefixed: {
@@ -53,7 +52,6 @@ const context = {
         base: 'https://proxy.example.com',
         chat: 'v1/chat/completions',
         share: '/v1/share',
-        feedback: 'hooks/feedback',
         training: '/custom/contribute/',
       },
       inheritnull: {
@@ -61,7 +59,6 @@ const context = {
         base: 'https://proxy.example.com',
         chat: null,
         share: '',
-        feedback: null,
         training: '',
       },
       prefixedrelative: {
@@ -83,13 +80,12 @@ vm.runInContext(block, context);
 const EP = context._EP;
 
 ok(!!EP && typeof EP.resolveEndpoint === 'function', 'resolveEndpoint is executable');
-eq(EP.resolveEndpoint('chat'), 'https://proxy.example.com/v1/chat/completions', 'explicit value equal to base keeps legacy base semantics');
+eq(EP.resolveEndpoint('chat'), 'https://proxy.example.com', 'explicit absolute endpoint is used exactly as configured');
 eq(EP.resolveEndpoint('share'), 'https://proxy.example.com/v1/share', 'full standard Share endpoint is not double-suffixed');
-eq(EP.resolveEndpoint('feedback'), 'https://feedback.example.com/custom/ingest', 'arbitrary path-bearing endpoint is used verbatim');
 eq(EP.resolveEndpoint('training'), 'https://proxy.example.com/v1/contribute', 'blank route derives default endpoint from base');
 
 EP.setActive('hostonly');
-eq(EP.resolveEndpoint('chat'), 'https://legacy.example.com/v1/chat/completions', 'host-only legacy feature value still gains default route');
+eq(EP.resolveEndpoint('chat'), 'https://legacy.example.com', 'explicit host endpoint is not reinterpreted as a service base');
 
 EP.setActive('prefixed');
 eq(EP.resolveEndpoint('share'), 'https://proxy.example.com/api/v1/share', 'path-prefixed Base derives default route under prefix');
@@ -97,13 +93,11 @@ eq(EP.resolveEndpoint('share'), 'https://proxy.example.com/api/v1/share', 'path-
 EP.setActive('relative');
 eq(EP.resolveEndpoint('chat'), 'https://proxy.example.com/v1/chat/completions', 'relative route without slash joins Base');
 eq(EP.resolveEndpoint('share'), 'https://proxy.example.com/v1/share', 'relative route with slash joins Base identically');
-eq(EP.resolveEndpoint('feedback'), 'https://proxy.example.com/hooks/feedback', 'arbitrary relative provider route joins Base');
 eq(EP.resolveEndpoint('training'), 'https://proxy.example.com/custom/contribute', 'relative trailing slash is normalised at resolution');
 
 EP.setActive('inheritnull');
 eq(EP.resolveEndpoint('chat'), 'https://proxy.example.com/v1/chat/completions', 'null Chat inherits default route');
 eq(EP.resolveEndpoint('share'), 'https://proxy.example.com/v1/share', 'empty Share inherits default route');
-eq(EP.resolveEndpoint('feedback'), 'https://proxy.example.com/v1/feedback', 'null Feedback inherits default route');
 eq(EP.getProfile('inheritnull').chat, '', 'getProfile exposes null endpoint as empty string');
 
 EP.setActive('prefixedrelative');
@@ -121,22 +115,19 @@ ok(!EP.validateEndpoint('../escape').ok, 'runtime validator rejects parent trave
 let runtimeAdd = EP.addProfile('runtime_relative', {
   label: 'Runtime relative',
   base: '  https://runtime.example.com/base/  ',
-  chat: '/v2/generate/', share: 'v2/share', feedback: null, training: '', ttlDays: 30,
+  chat: '/v2/generate/', share: 'v2/share', training: '', ttlDays: 30,
 });
 ok(runtimeAdd.ok, 'runtime profile accepts absolute Base plus relative endpoint overrides');
 EP.setActive('runtime_relative');
 eq(EP.getProfile('runtime_relative').base, 'https://runtime.example.com/base', 'runtime Base whitespace/trailing slash normalised');
 eq(EP.getProfile('runtime_relative').chat, 'v2/generate', 'runtime relative route stored canonically');
 eq(EP.resolveEndpoint('chat'), 'https://runtime.example.com/base/v2/generate', 'runtime relative route resolves below path-prefixed Base');
-eq(EP.resolveEndpoint('feedback'), 'https://runtime.example.com/base/v1/feedback', 'runtime null endpoint inherits default route');
 
 // Network consumers must use complete endpoint resolution rather than append
 // their own fixed paths after the registry has resolved the route.
-ok(/_EP\.resolveEndpoint \? _EP\.resolveEndpoint\('feedback'\)/.test(src), 'feedback path uses complete endpoint resolver');
 ok(/_EP\.resolveEndpoint \? _EP\.resolveEndpoint\('share'\)/.test(src), 'share path uses complete endpoint resolver');
 ok(/_EP\.resolveEndpoint \? _EP\.resolveEndpoint\('training'\)/.test(src), 'training path uses complete endpoint resolver');
 ok(/var _epChatUrl = _EP\.hasProfiles\(\)[\s\S]{0,120}_EP\.resolveEndpoint/.test(src), 'chat path uses complete endpoint resolver');
-ok(!/_fbBase \+ '\/v1\/feedback'/.test(src), 'feedback endpoint is not double-suffixed');
 ok(!/base \+ '\/v1\/share'/.test(src), 'share collection endpoint is not double-suffixed');
 ok(!/_trBase\.replace\([^\n]+\) \+ '\/v1\/contribute'/.test(src), 'training endpoint is not double-suffixed');
 

@@ -1,0 +1,24 @@
+<section class="learn-generation-library" data-generation-library data-generation-library-kind="{{ generation_kind|e }}" data-generation-library-singular="{{ library_singular|e }}" data-generation-library-plural="{{ library_plural|e }}" aria-labelledby="learn-your-{{ generation_kind|e }}-title">
+  <div class="learn-generation-library-heading">
+    <div>
+      <p class="learn-kicker">{{ library_kicker|default('Private runtime library')|e }}</p>
+      <h2 id="learn-your-{{ generation_kind|e }}-title">{{ library_title|e }}</h2>
+    </div>
+    <div class="learn-generation-library-tools">
+      <label>Show
+        <select data-generation-library-filter data-{{ generation_kind|e }}-library-filter>
+          <option value="active" selected>Active</option>
+          <option value="archived">Archived</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+      <button type="button" class="learn-generation-secondary" data-generation-library-refresh data-{{ generation_kind|e }}-refresh disabled title="{{ library_refresh_title|e }}">Refresh</button>
+    </div>
+  </div>
+  <div class="learn-generation-library-grid" data-generation-library-grid data-{{ generation_kind|e }}-library-grid></div>
+  <div class="learn-library-empty learn-generation-library-empty" data-generation-library-empty data-{{ generation_kind|e }}-library-empty>
+    <p><strong>{{ library_empty_title|e }}</strong></p>
+    <p>{{ library_empty_help|e }}</p>
+  </div>
+  <p class="learn-meta learn-generation-library-status" data-generation-library-status data-{{ generation_kind|e }}-library-status role="status" aria-live="polite">0 {{ library_plural|e }} shown from this browser.</p>
+</section>

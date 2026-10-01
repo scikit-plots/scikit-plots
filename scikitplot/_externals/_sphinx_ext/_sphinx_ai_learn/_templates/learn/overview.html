@@ -1,0 +1,14 @@
+<div class="learn-overview" data-overview>
+<div class="learn-meta"><span>{{ subject.kind|capitalize|e }}</span>{% for tag in subject.domains %}<span class="learn-tag">#{{ tag|e }}</span>{% endfor %}</div>
+<p>{{ subject.summary|e }}</p>
+<div class="learn-meta"><span>{{ sources|length }} sources</span><span>Revision {{ revision|e }}</span><span>Review source evidence per section</span></div>
+{% include "learn/overview-actions.html" %}
+{% if subject.url|default('') %}<p><a href="{{ subject.url|default('')|e }}" rel="noopener noreferrer" target="_blank">{{ 'Open original source' if subject.kind == 'source' else 'Open resource' }} ↗</a></p>{% endif %}
+{% if subject.kind == 'video' %}<div class="learn-actions" data-enhanced hidden><button type="button" data-copy-url>Copy URL</button></div>{% endif %}
+{% if subject.authors|default([]) %}<details class="learn-authors"><summary>Authors · {{ subject.authors|default([])|length }}</summary><ul>{% for author in subject.authors|default([]) %}<li>{{ author|e }}</li>{% endfor %}</ul></details>{% endif %}
+{% if related %}<details><summary>Related Records · {{ related|length }}</summary><ul>{% for item in related %}<li><a href="{{ item.href|e }}">{{ item.title|e }}</a> <span class="learn-meta">{{ item.kind|e }}</span></li>{% endfor %}</ul></details>{% endif %}
+<details class="learn-reference-list"><summary>References · {{ sources|length }}</summary>
+{% if sources %}<ul>{% for source in sources %}<li><a href="{{ source.url|e }}" rel="noopener noreferrer" target="_blank">{{ source.title|e }}</a> <span class="learn-meta">{{ source.format|default('reference')|e }}{% if source.publisher|default('') %} · {{ source.publisher|e }}{% endif %}</span></li>{% endfor %}</ul>{% else %}<p>Add original documents, PDFs, books, or articles before generating a source-grounded explanation.</p>{% endif %}
+</details>
+<details class="learn-citation-search"><summary>Citations and scholarly search</summary><p><a href="{{ citation_search_url|e }}" rel="noopener noreferrer" target="_blank">Search this title on Semantic Scholar ↗</a></p><p class="learn-meta">This link opens a search; it does not claim a citation count.</p></details>
+</div>

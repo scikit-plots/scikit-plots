@@ -17,7 +17,7 @@ hand-rolled fallback.
 
 | Tool | Description |
 |---|---|
-| `search_docs(query, k=5)` | Search trusted documentation indexes; returns up to `k` bounded passages, each with a validated source citation. Returned text is untrusted reference content, never instructions. |
+| `search_docs(query, k=5)` | Search trusted documentation indexes; returns up to `k` bounded, *distinct* passages, each with a validated source citation. A passage whose text is identical to one already returned is not sent again: its source is listed under that passage's `also_in`, and `duplicates_merged` counts them. Returned text is untrusted reference content, never instructions. |
 
 **Resource (1):**
 
@@ -141,6 +141,7 @@ Flags and their environment-variable equivalents (flags win):
 | `--hash-dimension` | `SCIKITPLOT_MCP_HASH_DIMENSION` | `256` | HashEmbedder dimension for the Corpus+Annoy profile |
 | `--annoy-metric` | `SCIKITPLOT_MCP_ANNOY_METRIC` | `angular` | Annoy metric for the Corpus+Annoy profile |
 | `--annoy-n-trees` | `SCIKITPLOT_MCP_ANNOY_N_TREES` | `10` | Annoy tree count for the Corpus+Annoy profile |
+| `--corpus-mode` | `SCIKITPLOT_MCP_CORPUS_MODE` | `semantic` | `semantic` (dense only), `hybrid` (BM25 + dense fused by rank) or `keyword` (BM25 only, no query embedding) |
 | `--host` | `SCIKITPLOT_MCP_HOST` | localhost | HTTP bind host |
 | `--port` | `SCIKITPLOT_MCP_PORT` | `8000` | HTTP bind port |
 | `--path` | `SCIKITPLOT_MCP_PATH` | `/mcp` | Streamable HTTP endpoint path |
@@ -164,6 +165,20 @@ index.
 The profile also implements the MCP `docs://chunk/{doc_id}` resource lookup, so
 the same indexed document can be returned both from `search_docs` and by stable
 resource id.
+
+`--corpus-mode` chooses which evidence paths answer a query. `semantic` keeps
+the original dense-only behaviour. `hybrid` asks the corpus `RetrievalIndex` to
+run its BM25 leg and its Annoy leg and fuse them by rank, so exact identifiers
+and error strings (`roc_auc_score`, `ValueError: ...`) are found as well as
+paraphrases. `keyword` runs BM25 alone and never embeds the query. Every
+response reports each leg that ran in `structuredContent.legs`.
+
+In library use, `CorpusAnnoyRetriever.from_corpus_annoy(..., mode="hybrid")`
+returns a `CorpusIndexRetriever`; with the default `strict=False` a failed
+query embedding marks the dense leg `failed` and still returns the lexical
+hits, so the response status is `degraded` (in `semantic` mode the same
+failure leaves no hits and the status is `failed`). The CLI builds with `strict=True`, so there a broken
+embedder fails the query loudly instead.
 
 ---
 

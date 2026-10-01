@@ -1,69 +1,135 @@
+# scikitplot/_externals/_sphinx_ext/_sphinx_collection/assets.py
+#
+# flake8: noqa: D213
+# ruff: noqa: RUF001
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """Local, progressive search, faceting and sorting for rendered gallery cards."""
+
+from .contract import COLLECTION_UI_CONTRACT
 
 CONTAINER_CLASS = "sk-collection"
 SEARCHABLE_CLASS = "sk-collection-searchable"
+SEARCH_VARIANTS = ("pill-overflow", "classic")
 
-ASSET_CSS = r"""/* Compact gallery controls respond to the nearest gallery's available width. */
+ASSET_CSS = r"""/* Compact collection controls share one inline shell across gallery consumers. */
 .sk-collection-data,.sk-collection-label { display:none !important; }
 .sk-collection-searchable { container:sk-gallery / inline-size; min-inline-size:0; }
 .sk-collection-controls {
-  display:flex; align-items:center; gap:.375rem; margin:.75rem 0 .25rem;
-  padding:0; border:0; min-inline-size:0; max-inline-size:100%;
-  color:var(--pst-color-text-base,CanvasText);
+  --sk-collection-line:var(--pst-color-border,#888);
+  --sk-collection-accent:var(--pst-color-primary,Highlight);
+  --sk-collection-soft:var(--pst-color-surface,var(--pst-color-background,Canvas));
+  display:grid; grid-template-columns:minmax(0,1fr); gap:.58rem; margin:.75rem 0 .65rem;
+  padding:.8rem; border:1px solid var(--sk-collection-line); border-radius:10px;
+  min-inline-size:0; max-inline-size:100%; box-sizing:border-box;
+  color:var(--pst-color-text-base,CanvasText); background:var(--sk-collection-soft);
 }
-.sk-collection-control.sk-collection-search {
-  display:grid; grid-template-columns:minmax(0,1fr) 3rem; align-items:stretch;
-  flex:1 1 auto; inline-size:100%; max-inline-size:100%; min-inline-size:0; margin:0; gap:0;
+.sk-collection-status {
+  margin:0 0 .65rem; font-size:.8rem; line-height:1.45; overflow-wrap:anywhere;
+  color:var(--pst-color-text-muted,var(--pst-color-text-base,CanvasText));
+}
+.sk-collection-primary-row {
+  display:grid; grid-template-columns:minmax(0,1fr) 2.75rem; gap:.42rem; align-items:stretch; min-inline-size:0;
+}
+.sk-collection-primary-row--pill-overflow { grid-template-columns:minmax(0,1fr) 2.5rem; }
+.sk-collection-search { display:block; inline-size:100%; min-inline-size:0; margin:0; }
+.sk-collection-search-field {
+  display:grid; grid-template-columns:minmax(0,1fr) 2.7rem; min-inline-size:0; min-block-size:2.5rem;
+  overflow:hidden; border:1px solid var(--sk-collection-line); border-radius:8px;
+  background:var(--pst-color-background,Canvas); transition:border-color .16s ease,box-shadow .16s ease;
+}
+.sk-collection-search-field--pill { border-radius:999px; }
+.sk-collection-search-field:focus-within {
+  border-color:var(--sk-collection-accent);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--sk-collection-accent) 18%,transparent);
 }
 .sk-collection-search input,.sk-collection-submit,.sk-collection-panel :is(input,select,textarea,button),
 .sk-collection-chip {
-  box-sizing:border-box; min-inline-size:0; max-inline-size:100%; min-block-size:2.75rem;
-  border:1px solid var(--pst-color-border,#888); border-radius:.5rem; padding:.5rem .625rem;
+  box-sizing:border-box; min-inline-size:0; max-inline-size:100%; min-block-size:2.5rem;
+  border:1px solid var(--sk-collection-line); border-radius:.5rem; padding:.48rem .55rem;
   font:inherit; font-size:1rem; line-height:1.35;
   color:var(--pst-color-text-base,CanvasText); background:var(--pst-color-background,Canvas);
 }
-.sk-collection-search > input {
-  inline-size:100%; min-inline-size:0; max-inline-size:100%; border-radius:0; padding-inline-start:1rem;
-  border-start-start-radius:2rem; border-end-start-radius:2rem;
+.sk-collection-search input {
+  display:block; inline-size:100%; min-inline-size:0; max-inline-size:100%; margin:0; padding:.5rem .65rem;
+  border:0; border-radius:0; outline:0; background:transparent;
 }
 .sk-collection-submit {
-  inline-size:3rem; min-inline-size:3rem; max-inline-size:3rem; display:grid; place-items:center; border-radius:0;
-  border-start-end-radius:2rem; border-end-end-radius:2rem; border-inline-start:0;
-  background:var(--pst-color-surface,Canvas); cursor:pointer;
+  inline-size:2.7rem; min-inline-size:2.7rem; max-inline-size:2.7rem; display:grid; place-items:center;
+  margin:0; padding:.45rem; border:0; border-inline-start:1px solid var(--sk-collection-line); border-radius:0;
+  background:var(--sk-collection-soft); color:inherit; box-shadow:none; cursor:pointer;
 }
-.sk-collection-submit svg { inline-size:1.25rem; block-size:1.25rem; fill:currentColor; }
-.sk-collection-overflow {
-  flex:0 0 2.75rem; min-block-size:2.75rem; border:0; border-radius:50%; padding:0;
-  font:inherit; font-size:1.5rem; color:var(--pst-color-text-base,CanvasText);
-  background:var(--pst-color-surface,Canvas); cursor:pointer;
+.sk-collection-submit:hover {
+  background:color-mix(in srgb,var(--sk-collection-accent) 9%,var(--sk-collection-soft));
+  color:var(--sk-collection-accent);
 }
+.sk-collection-submit:focus-visible { position:relative; z-index:1; outline:2px solid var(--sk-collection-accent); outline-offset:-2px; }
+.sk-collection-submit svg { inline-size:1.12rem; block-size:1.12rem; fill:currentColor; }
+.sk-collection-disclosure {
+  inline-size:2.75rem; min-inline-size:2.75rem; min-block-size:2.5rem; display:inline-flex; align-items:center; justify-content:center;
+  padding:.4rem; border:1px solid var(--sk-collection-line); border-radius:8px;
+  font:inherit; color:inherit; background:var(--pst-color-background,Canvas); cursor:pointer;
+}
+.sk-collection-disclosure--overflow { inline-size:2.5rem; min-inline-size:2.5rem; border-radius:999px; }
+.sk-collection-disclosure:hover { border-color:var(--sk-collection-accent); color:var(--sk-collection-accent); }
+.sk-collection-disclosure:focus-visible { outline:2px solid var(--sk-collection-accent); outline-offset:2px; }
+.sk-collection-disclosure svg { inline-size:.9rem; block-size:.9rem; }
+.sk-collection-overflow-icon { fill:currentColor; stroke:none; }
 .sk-collection-panel {
-  display:flex; flex-wrap:wrap; gap:.625rem; padding:.75rem; margin-block:.5rem;
-  border:1px solid var(--pst-color-border,#888); border-radius:.875rem;
-  max-block-size:32rem; max-block-size:min(32rem,65dvh); overflow:auto; overscroll-behavior:contain;
-  scrollbar-gutter:stable; box-sizing:border-box;
-  color:var(--pst-color-text-base,CanvasText); background:var(--pst-color-surface,Canvas);
-  box-shadow:0 .5rem 1.5rem color-mix(in srgb, CanvasText 14%, transparent);
+  display:grid; gap:.75rem; padding-block-start:.72rem; margin-block-start:.08rem;
+  border-block-start:1px solid var(--sk-collection-line); max-block-size:min(34rem,70dvh); overflow:auto;
+  overscroll-behavior:contain; scrollbar-gutter:stable; box-sizing:border-box; min-inline-size:0;
 }
 .sk-collection-panel[hidden],.sk-collection-panel [hidden],.sk-collection-chips[hidden],
 .sk-collection-additions[hidden] { display:none !important; }
-.sk-collection-control { display:flex; flex:1 1 10rem; min-inline-size:0; margin:0; flex-direction:column; gap:.2rem; }
+.sk-collection-panel-section {
+  display:grid; gap:.6rem; min-inline-size:0; padding:.7rem;
+  border:1px solid color-mix(in srgb,var(--sk-collection-line) 78%,transparent); border-radius:.7rem;
+  background:color-mix(in srgb,var(--pst-color-background,Canvas) 72%,var(--sk-collection-soft));
+}
+.sk-collection-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:.75rem; min-inline-size:0; }
+.sk-collection-panel-title { margin:0; font-size:.78rem; font-weight:700; letter-spacing:.045em; text-transform:uppercase; color:var(--pst-color-text-muted,var(--pst-color-text-base,CanvasText)); }
+.sk-collection-view-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr)); gap:.65rem; align-items:end; min-inline-size:0;
+}
+.sk-collection-control { display:flex; min-inline-size:0; margin:0; flex-direction:column; gap:.2rem; }
 .sk-collection-control-label { font-size:.8rem; font-weight:600; overflow-wrap:anywhere; }
 .sk-collection-panel :is(select,input,textarea) { inline-size:100%; }
 .sk-collection-panel select { text-overflow:ellipsis; }
 .sk-collection-panel button,.sk-collection-chip { cursor:pointer; }
 .sk-collection-panel button:disabled { opacity:.55; cursor:default; }
-.sk-collection-reset,.sk-collection-revert { align-self:flex-end; }
-.sk-collection-panel :is(details,.sk-collection-storage) { flex:1 0 100%; min-inline-size:0; }
-.sk-collection-panel summary {
-  cursor:pointer; padding:.5rem .25rem; min-block-size:2.75rem; box-sizing:border-box;
-  font-size:.9rem; font-weight:600; overflow-wrap:anywhere;
+.sk-collection-panel-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem; min-inline-size:0; }
+.sk-collection-reset { margin-inline-start:auto; }
+.sk-collection-tools-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:.6rem; min-inline-size:0;
 }
-.sk-collection-panel details[open] > summary { margin-block-end:.375rem; }
+.sk-collection-tool {
+  min-inline-size:0; overflow:hidden; border:1px solid var(--sk-collection-line); border-radius:.65rem;
+  background:var(--pst-color-background,Canvas);
+}
+.sk-collection-tool[open] { grid-column:1 / -1; border-color:color-mix(in srgb,var(--sk-collection-accent) 48%,var(--sk-collection-line)); }
+.sk-collection-tool > summary {
+  display:flex; align-items:center; justify-content:space-between; gap:.7rem; min-block-size:2.75rem;
+  padding:.62rem .7rem; box-sizing:border-box; cursor:pointer; list-style:none;
+  font-size:.88rem; font-weight:650; line-height:1.35; overflow-wrap:anywhere;
+}
+.sk-collection-tool > summary::-webkit-details-marker { display:none; }
+.sk-collection-tool > summary::after {
+  content:''; flex:0 0 .48rem; inline-size:.48rem; block-size:.48rem;
+  border-inline-end:1.5px solid currentColor; border-block-end:1.5px solid currentColor;
+  transform:rotate(45deg); transition:transform .16s ease;
+}
+.sk-collection-tool[open] > summary { color:var(--sk-collection-accent); border-block-end:1px solid var(--sk-collection-line); }
+.sk-collection-tool[open] > summary::after { transform:rotate(225deg); }
+.sk-collection-tool-body { display:grid; gap:.55rem; min-inline-size:0; padding:.68rem .7rem .75rem; }
+.sk-collection-storage + .sk-collection-storage { padding-block-start:.6rem; border-block-start:1px solid var(--sk-collection-line); }
+.sk-collection-revert { color:var(--pst-color-text-muted,var(--pst-color-text-base,CanvasText)); }
 .sk-collection-add { display:grid; gap:.5rem; min-inline-size:0; }
 .sk-collection-add-guide {
   display:grid; gap:.375rem; margin:0 0 .25rem; padding:.625rem;
-  border:1px solid var(--pst-color-border,#888); border-radius:.625rem;
+  border:1px solid var(--sk-collection-line); border-radius:.625rem;
   background:var(--pst-color-background,Canvas); font-size:.8rem; line-height:1.45;
 }
 .sk-collection-add-guide p { margin:0; }
@@ -74,18 +140,18 @@ ASSET_CSS = r"""/* Compact gallery controls respond to the nearest gallery's ava
   font-size:.78rem !important;
 }
 .sk-collection-source-preview {
-  margin:0; padding:.4rem .5rem; border-inline-start:3px solid var(--pst-color-border,#888);
+  margin:0; padding:.4rem .5rem; border-inline-start:3px solid var(--sk-collection-line);
   border-radius:.25rem; font-size:.78rem; line-height:1.4; overflow-wrap:anywhere;
   background:color-mix(in srgb,var(--pst-color-background,Canvas) 82%,transparent);
 }
-.sk-collection-source-preview[data-state="ready"] { border-inline-start-color:var(--pst-color-success,var(--pst-color-primary,Highlight)); }
-.sk-collection-source-preview[data-state="needs-site"] { border-inline-start-color:var(--pst-color-warning,var(--pst-color-border,#888)); }
-.sk-collection-source-preview[data-state="invalid"] { border-inline-start-color:var(--pst-color-danger,var(--pst-color-border,#888)); }
+.sk-collection-source-preview[data-state="ready"] { border-inline-start-color:var(--pst-color-success,var(--sk-collection-accent)); }
+.sk-collection-source-preview[data-state="needs-site"] { border-inline-start-color:var(--pst-color-warning,var(--sk-collection-line)); }
+.sk-collection-source-preview[data-state="invalid"] { border-inline-start-color:var(--pst-color-danger,var(--sk-collection-line)); }
 .sk-collection-site-setup { margin-block-start:.125rem; }
 .sk-collection-site-setup > summary { min-block-size:auto !important; padding:.25rem 0 !important; font-size:.8rem !important; }
 .sk-collection-resolver-stub {
   max-inline-size:100%; overflow:auto; margin:.375rem 0 0; padding:.5rem;
-  border:1px solid var(--pst-color-border,#888); border-radius:.375rem;
+  border:1px solid var(--sk-collection-line); border-radius:.375rem;
   background:var(--pst-color-background,Canvas); font-size:.72rem; line-height:1.45; white-space:pre;
 }
 .sk-collection-resolver-player {
@@ -100,21 +166,20 @@ ASSET_CSS = r"""/* Compact gallery controls respond to the nearest gallery's ava
 .sk-collection-source-section-options input { position:absolute; inline-size:1px; block-size:1px; opacity:0; pointer-events:none; }
 .sk-collection-source-section-options span {
   display:inline-flex; align-items:center; min-block-size:2.25rem; padding:.35rem .65rem;
-  border:1px solid var(--pst-color-border,#888); border-radius:999px; cursor:pointer; font-size:.8rem;
+  border:1px solid var(--sk-collection-line); border-radius:999px; cursor:pointer; font-size:.8rem;
   color:var(--pst-color-text-base,CanvasText); background:var(--pst-color-surface,Canvas);
 }
 .sk-collection-source-section-options input:checked + span {
-  border-color:var(--pst-color-primary,Highlight); box-shadow:inset 0 0 0 1px var(--pst-color-primary,Highlight);
+  border-color:var(--sk-collection-accent); box-shadow:inset 0 0 0 1px var(--sk-collection-accent);
 }
-.sk-collection-source-section-options input:focus-visible + span { outline:2px solid var(--pst-color-primary,Highlight); outline-offset:2px; }
+.sk-collection-source-section-options input:focus-visible + span { outline:2px solid var(--sk-collection-accent); outline-offset:2px; }
 .sk-collection-panel .sk-collection-remember { display:flex; align-items:center; gap:.5rem; margin:0; font-size:.875rem; }
 .sk-collection-panel .sk-collection-remember input {
   appearance:auto; flex:0 0 1.125rem; inline-size:1.125rem; block-size:1.125rem; min-block-size:1.125rem;
-  margin:0; padding:0; accent-color:var(--pst-color-primary,Highlight);
+  margin:0; padding:0; accent-color:var(--sk-collection-accent);
 }
 .sk-collection-panel .sk-collection-export-preview { resize:vertical; min-block-size:6rem; font-family:monospace; font-size:.8rem; margin-block:.5rem; }
 .sk-collection-note { font-size:.8rem; line-height:1.5; margin:.25rem 0; flex-basis:100%; overflow-wrap:anywhere; }
-.sk-collection-status { margin:.25rem .125rem .5rem; font-size:.8rem; line-height:1.5; overflow-wrap:anywhere; }
 .sk-collection-chips { display:flex; flex-wrap:wrap; gap:.375rem; margin:0 0 .5rem; }
 .sk-collection-chip { border-radius:1.5rem; font-size:.8rem; overflow-wrap:anywhere; text-align:start; }
 .sk-collection-suggestions {
@@ -130,19 +195,24 @@ ASSET_CSS = r"""/* Compact gallery controls respond to the nearest gallery's ava
   color:var(--pst-color-text-base,CanvasText); background:var(--pst-color-surface,Canvas);
 }
 .sk-collection-suggestion-kind { opacity:.72; }
-.sk-collection-view-storage { border-block-start:1px solid var(--pst-color-border,#888); padding-block-start:.625rem; }
-.sk-collection-controls :is(input,button):focus-visible,.sk-collection-panel :is(input,select,textarea,button,summary):focus-visible,
-.sk-collection-chip:focus-visible,.sk-collection-suggestion:focus-visible { outline:2px solid var(--pst-color-primary,Highlight); outline-offset:2px; }
+.sk-collection-panel :is(input,select,textarea,button,summary):focus-visible,
+.sk-collection-chip:focus-visible,.sk-collection-suggestion:focus-visible { outline:2px solid var(--sk-collection-accent); outline-offset:2px; }
 @media (hover:hover) {
-  .sk-collection-controls button:hover,.sk-collection-panel button:not(:disabled):hover,
-  .sk-collection-chip:hover,.sk-collection-suggestion:hover { border-color:var(--pst-color-primary,Highlight); color:var(--pst-color-primary,Highlight); }
+  .sk-collection-panel button:not(:disabled):hover,.sk-collection-chip:hover,.sk-collection-suggestion:hover {
+    border-color:var(--sk-collection-accent); color:var(--sk-collection-accent);
+  }
+  .sk-collection-revert:not(:disabled):hover {
+    border-color:var(--pst-color-danger,var(--sk-collection-accent)); color:var(--pst-color-danger,var(--sk-collection-accent));
+  }
 }
 .sk-collection-empty { padding:.75rem; border-inline-start:3px solid var(--pst-color-border,#888); }
 .sk-collection-hidden,.sk-collection-section-hidden { display:none !important; }
 @container sk-gallery (max-width:22rem) {
-  .sk-collection-panel { padding:.5rem; }
-  .sk-collection-panel > .sk-collection-control { flex-basis:100%; }
+  .sk-collection-controls { padding:.65rem; }
+  .sk-collection-panel-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .sk-collection-panel-actions button { inline-size:100%; }
 }
+@media (prefers-reduced-motion:reduce) { .sk-collection-search-field,.sk-collection-tool > summary::after { transition:none; } }
 @media (forced-colors:active) { .sk-collection-panel button:disabled { color:GrayText; opacity:1; } }
 @media print {
   .sk-collection-searchable { container-type:normal; }
@@ -154,6 +224,7 @@ ASSET_CSS = r"""/* Compact gallery controls respond to the nearest gallery's ava
 
 ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions. */
 (function () {
+  var UI_CONTRACT='__SK_COLLECTION_UI_CONTRACT__';
   'use strict';
   function text(value) { return value == null ? '' : String(value); }
   function fold(value) { return text(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
@@ -182,12 +253,45 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
     var el = document.createElement(tag); if (cls) el.className = cls;
     if (content != null) el.textContent = content; return el;
   }
+  function stampUiContract(root) {
+    root.setAttribute('data-sk-collection-ui-contract',UI_CONTRACT);
+    root.setAttribute('data-sk-collection-status-placement','sibling');
+  }
+  function directStatus(root) {
+    return Array.from(root.children).find(function (el) { return el.classList.contains('sk-collection-status'); });
+  }
+  function repairLegacyStatus(root) {
+    var controls = Array.from(root.children).find(function (el) { return el.classList.contains('sk-collection-controls'); });
+    if (!controls) return directStatus(root);
+    var embedded = Array.from(controls.children).find(function (el) { return el.classList.contains('sk-collection-status'); });
+    var status = directStatus(root);
+    if (embedded) {
+      if (status && status !== embedded) embedded.remove();
+      else { status = embedded; }
+    }
+    if (status && status.parentElement !== root) root.insertBefore(status, controls.nextSibling);
+    if (status && status.previousElementSibling !== controls) controls.after(status);
+    return status;
+  }
+  function prepareStatus(root) {
+    var status = repairLegacyStatus(root) || directStatus(root);
+    if (!status) {
+      status = element('p','sk-collection-status');
+      status.setAttribute('data-sk-collection-status-source','runtime-fallback');
+    }
+    status.setAttribute('role','status');
+    status.setAttribute('aria-live','polite');
+    status.setAttribute('aria-atomic','true');
+    status.hidden=false;
+    return status;
+  }
   var instance=0;
   function run(root) {
     root.querySelectorAll('img:not([loading])').forEach(function (img) {
       img.loading = 'lazy'; img.decoding = 'async';
     });
-    if (!root.classList.contains('sk-collection-searchable') || root.hasAttribute('data-sk-enhanced')) return;
+    if (!root.classList.contains('sk-collection-searchable')) return;
+    if (root.hasAttribute('data-sk-enhanced')) { prepareStatus(root); stampUiContract(root); return; }
     var config = ownData(root), caches = new Map();
     var cards = Array.from(root.querySelectorAll('.sd-card')).filter(function (card) {
       if (card.closest('.sk-collection-searchable') !== root) return false;
@@ -206,17 +310,40 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
         owner:owner(root,card)};
     });
     if (!cards.length) return;
-    var bar = element('div','sk-collection-controls');
-    bar.setAttribute('role','group');
+    var status=prepareStatus(root);
+    var controls = element('div','sk-collection-controls');
+    controls.setAttribute('role','group');
     var carrier = Array.from(root.children).find(function (el) { return el.classList.contains('sk-collection-label'); });
     var searchLabel = carrier ? carrier.textContent.trim() : 'Search this gallery';
-    bar.setAttribute('aria-label', searchLabel + ' controls');
+    controls.setAttribute('aria-label', searchLabel + ' controls');
+    var searchVariant=config.searchVariant==='classic'?'classic':'pill-overflow';
+    var primary=element('div','sk-collection-primary-row sk-collection-primary-row--'+searchVariant);primary.dataset.searchVariant=searchVariant;
+    var panel=element('div','sk-collection-panel');panel.hidden=true;
+    do{panel.id='sk-gallery-options-'+(++instance);}while(document.getElementById(panel.id));
+    panel.setAttribute('role','group');panel.setAttribute('aria-label','More gallery options');
+    var viewSection=element('section','sk-collection-panel-section sk-collection-view-section');
+    var viewHeading=element('div','sk-collection-panel-heading');viewHeading.append(element('p','sk-collection-panel-title','View'));
+    var viewGrid=element('div','sk-collection-view-grid');
+    var viewActions=element('div','sk-collection-panel-actions sk-collection-view-actions');
+    viewSection.append(viewHeading,viewGrid,viewActions);panel.append(viewSection);
     function control(caption, el) {
       var wrap = element('label','sk-collection-control');
-      wrap.append(element('span','sk-collection-control-label',caption),el);bar.append(wrap);return el;
+      wrap.append(element('span','sk-collection-control-label',caption),el);viewGrid.append(wrap);return el;
     }
+    var searchWrap=element('form','sk-collection-search');searchWrap.setAttribute('role','search');searchWrap.setAttribute('aria-label',searchLabel);
+    var searchField=element('div','sk-collection-search-field'+(searchVariant==='pill-overflow'?' sk-collection-search-field--pill':''));
     var input = element('input');input.type='search';input.maxLength=1024;input.autocomplete='off';input.placeholder=searchLabel;
-    input.setAttribute('aria-label',searchLabel);control('Search',input);
+    input.setAttribute('aria-label',searchLabel);
+    var searchButton=element('button','sk-collection-submit','');searchButton.type='submit';searchButton.setAttribute('aria-label',searchLabel);searchButton.title='Search';
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+    var path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm5.5 10 5.2 5.2-1.4 1.4-5.2-5.2Z');svg.append(path);searchButton.append(svg);
+    searchField.append(input,searchButton);searchWrap.append(searchField);primary.append(searchWrap);
+    searchWrap.addEventListener('submit',function(event){event.preventDefault();apply();input.focus();});
+    var toggle=element('button','sk-collection-disclosure '+(searchVariant==='pill-overflow'?'sk-collection-disclosure--overflow':'sk-collection-disclosure--chevron'),'');toggle.type='button';
+    toggle.setAttribute('aria-label','More gallery options');toggle.setAttribute('aria-haspopup','true');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',panel.id);toggle.title='More options';
+    var toggleSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');toggleSvg.setAttribute('viewBox','0 0 24 24');toggleSvg.setAttribute('aria-hidden','true');toggleSvg.setAttribute('focusable','false');
+    var polyline=null;if(searchVariant==='pill-overflow'){toggleSvg.classList.add('sk-collection-overflow-icon');[5,12,19].forEach(function(y){var circle=document.createElementNS(toggleSvg.namespaceURI,'circle');circle.setAttribute('cx','12');circle.setAttribute('cy',String(y));circle.setAttribute('r','1.8');toggleSvg.append(circle);});}else{polyline=document.createElementNS(toggleSvg.namespaceURI,'polyline');polyline.setAttribute('points','6 9 12 15 18 9');polyline.setAttribute('fill','none');polyline.setAttribute('stroke','currentColor');polyline.setAttribute('stroke-width','2');polyline.setAttribute('stroke-linecap','round');polyline.setAttribute('stroke-linejoin','round');toggleSvg.append(polyline);}toggle.append(toggleSvg);primary.append(toggle);
+    controls.append(primary,panel);
     var facetControls=[];
     if (config.interactive) (config.facets || []).forEach(function (field) {
       var choices = Array.from(new Set(cards.flatMap(function (c) { return values(c,field); })));
@@ -244,34 +371,13 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       sort.title=buckets.size>1 ? 'Sort within each category' : 'Sort this gallery';
       control('Sort',sort);
     }
-    var reset=element('button','sk-collection-reset','Reset view');reset.type='button';bar.append(reset);
+    var reset=element('button','sk-collection-reset','Reset view');reset.type='button';viewActions.append(reset);
     var initialCards=cards.slice(), added=[];
-    var panel=element('div','sk-collection-panel');panel.hidden=true;
-    do{panel.id='sk-gallery-options-'+(++instance);}while(document.getElementById(panel.id));
-    var toggle=element('button','sk-collection-overflow','⋮');toggle.type='button';
-    toggle.setAttribute('aria-label','Gallery options');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',panel.id);
-    var oldSearchWrap=input.parentElement;
-    var searchWrap=element('form','sk-collection-control sk-collection-search');searchWrap.setAttribute('role','search');searchWrap.setAttribute('aria-label',searchLabel);
-    searchWrap.append(input);oldSearchWrap.replaceWith(searchWrap);
-    searchWrap.addEventListener('submit',function(event){event.preventDefault();apply();input.focus();});
-    var searchButton=element('button','sk-collection-submit','');searchButton.type='submit';searchButton.setAttribute('aria-label',searchLabel);
-    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
-    var path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm5.5 10 5.2 5.2-1.4 1.4-5.2-5.2Z');svg.append(path);searchButton.append(svg);
-    searchWrap.append(searchButton);
-    Array.from(bar.children).forEach(function(child){if(child!==searchWrap)panel.append(child);});
-    var close=element('button','sk-collection-close','Close options');close.type='button';
-    var revert=element('button','sk-collection-revert','Revert to initial gallery');revert.type='button';
-    revert.title='Restore the original cards and order; clear your added cards and their saved copy';
-    var note=element('p','sk-collection-note','Reset view clears search, filters and sorting. Revert also clears your additions and their saved copy.');
-    panel.append(revert,note,close);bar.append(toggle);
-    panel.setAttribute('role','group');panel.setAttribute('aria-label','Gallery options');
-    function showPanel(open){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));}
+    var revert=element('button','sk-collection-revert','Restore original gallery');revert.type='button';
+    revert.title='Restore the published cards and order, and clear saved additions and view preferences';
+    function showPanel(open){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(polyline)polyline.setAttribute('points',open?'6 15 12 9 18 15':'6 9 12 15 18 9');}
     toggle.addEventListener('click',function(){showPanel(panel.hidden);});
-    close.addEventListener('click',function(){showPanel(false);toggle.focus();});
     panel.addEventListener('keydown',function(event){if(event.key==='Escape'){event.stopPropagation();showPanel(false);toggle.focus();}});
-    document.addEventListener('pointerdown',function(event){
-      if(!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target))showPanel(false);
-    });
     var saveAdditions=function(){}, restoreAdditions=function(){}, forgetSaved=function(){}, refreshAdditions=function(){};
     var saveView=function(){}, restoreView=function(){}, forgetView=function(){}, rememberView=null,viewStorageDirty=false,viewForget=null;
     var storageDirty=false;
@@ -351,12 +457,20 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
     var youtubeGallery=initialYoutubeRefs.length>0;
     var channelAddingMode=youtubeGallery && initialYoutubeRefs.every(function(ref){return ref.kind==='channel';});
     var videoAddingMode=youtubeGallery && !channelAddingMode;
+    var preferencesDetails=null;
     if(youtubeGallery){
+      var toolsSection=element('section','sk-collection-panel-section sk-collection-tools-section');
+      var toolsHeading=element('div','sk-collection-panel-heading');toolsHeading.append(element('p','sk-collection-panel-title','Gallery tools'));
+      var toolsGrid=element('div','sk-collection-tools-grid');
+      var toolsActions=element('div','sk-collection-panel-actions sk-collection-tools-actions');
+      toolsSection.append(toolsHeading,toolsGrid,toolsActions);panel.append(toolsSection);
+      toolsActions.append(revert);
       var additionsSection=element('section','sk-collection-additions');additionsSection.hidden=true;
       additionsSection.append(element('h3',null,'Your additions'));
       var additionsRow=element('div',initialCards[0].node.parentElement.className);additionsRow.classList.remove('sd-flex-row-reverse');
       additionsSection.append(additionsRow);root.append(additionsSection);buckets.set(additionsRow,[]);
-      var addDetails=element('details','sk-collection-add-details');addDetails.append(element('summary',null,channelAddingMode?'Add channel':'Add video, channel section, playlist, or post'));
+      var addDetails=element('details','sk-collection-tool sk-collection-add-details');addDetails.append(element('summary',null,channelAddingMode?'Add channel':'Add video, channel section, playlist, or post'));
+      var addBody=element('div','sk-collection-tool-body');
       var addGuide=element('div','sk-collection-add-guide');
       if(channelAddingMode){
         addGuide.append(element('p',null,'Paste an @handle or channel URL. Added channel cards stay simple and open YouTube.'));
@@ -397,7 +511,7 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
         });
         addGuide.append(examples);
       }
-      addDetails.append(addGuide);
+      addBody.append(addGuide);
       var sectionField=null;
       if(videoAddingMode){
         sectionField=element('fieldset','sk-collection-source-sections');sectionField.append(element('legend',null,'Latest channel section'));
@@ -410,7 +524,7 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       var titleLabel=element('label',null,'Title (optional)');var titleInput=element('input');titleInput.type='text';titleInput.maxLength=200;titleInput.autocomplete='off';titleLabel.append(titleInput);
       var addButton=element('button',null,'Add card');addButton.type='submit';
       var feedback=element('p','sk-collection-note');feedback.setAttribute('role','status');
-      addForm.append(urlLabel,sourcePreview);if(sectionField)addForm.append(sectionField);addForm.append(titleLabel,addButton,feedback);addDetails.append(addForm);panel.insertBefore(addDetails,panel.firstChild);
+      addForm.append(urlLabel,sourcePreview);if(sectionField)addForm.append(sectionField);addForm.append(titleLabel,addButton,feedback);addBody.append(addForm);addDetails.append(addBody);toolsGrid.append(addDetails);
       function selectedSection(){if(!sectionField)return null;var picked=sectionField.querySelector('input:checked');return picked?picked.value:'videos';}
       function updateSourcePreview(){
         var raw=urlInput.value.trim();if(!raw){sourcePreview.dataset.state='neutral';sourcePreview.textContent=channelAddingMode?'Paste a channel source.':'Paste a source or choose an example above.';return;}
@@ -607,19 +721,21 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       var storageKey=scopeUnique?'sk-gallery-additions:v1:'+encodeURIComponent(location.pathname)+':'+scope:null;
       var remember=null,storageFeedback=null,forget=null,lastSaved=null;
       if(storageKey){
+        preferencesDetails=element('details','sk-collection-tool sk-collection-preferences');preferencesDetails.append(element('summary',null,'Browser preferences'));
+        var preferencesBody=element('div','sk-collection-tool-body');
         var storageControls=element('div','sk-collection-storage');
         var rememberLabel=element('label','sk-collection-remember');remember=element('input');remember.type='checkbox';
         rememberLabel.append(remember,element('span',null,'Remember my additions in this browser'));
         storageFeedback=element('p','sk-collection-note','Off. Additions last for this visit.');storageFeedback.setAttribute('role','status');
         forget=element('button',null,'Forget saved additions');forget.type='button';forget.hidden=true;
-        storageControls.append(rememberLabel,storageFeedback,forget);panel.insertBefore(storageControls,note);
+        storageControls.append(rememberLabel,storageFeedback,forget);preferencesBody.append(storageControls);
         var viewStorageKey='sk-gallery-view:v1:'+encodeURIComponent(location.pathname)+':'+scope;
         var viewControls=element('div','sk-collection-storage sk-collection-view-storage');
         var viewLabel=element('label','sk-collection-remember');rememberView=element('input');rememberView.type='checkbox';
         viewLabel.append(rememberView,element('span',null,'Remember my filters & sorting'));
         var viewFeedback=element('p','sk-collection-note','Off. Search text is never remembered.');viewFeedback.setAttribute('role','status');
         viewForget=element('button',null,'Forget saved view');viewForget.type='button';viewForget.hidden=true;
-        viewControls.append(viewLabel,viewFeedback,viewForget);panel.insertBefore(viewControls,note);
+        viewControls.append(viewLabel,viewFeedback,viewForget);preferencesBody.append(viewControls);preferencesDetails.append(preferencesBody);toolsGrid.append(preferencesDetails);
         var lastViewSaved=null;
         function viewFailed(message){rememberView.checked=false;viewStorageDirty=true;viewForget.hidden=false;viewFeedback.textContent=message;}
         function viewPayload(){var facets={};facetControls.forEach(function(f){if(f.select.value)facets[f.field]=f.select.value;});return {version:1,remember:true,facets:facets,sort:sort?sort.value:''};}
@@ -693,12 +809,16 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
           storageFeedback.textContent='Saving changed in another tab. Current cards remain for this visit; saving is off.';apply();
         });
       }
-      var exportDetails=element('details','sk-collection-export');exportDetails.append(element('summary',null,'Export additions'));
+      var exportDetails=element('details','sk-collection-tool sk-collection-export');exportDetails.append(element('summary',null,'Export additions'));
+      var exportBody=element('div','sk-collection-tool-body');
       var exportInfo=element('p','sk-collection-note');exportInfo.setAttribute('role','status');
       var preview=element('textarea','sk-collection-export-preview');preview.readOnly=true;preview.rows=8;preview.setAttribute('aria-label','YAML export preview');preview.spellcheck=false;
       var download=element('button',null,'Download YAML');download.type='button';
       var downloadStatus=element('p','sk-collection-note');downloadStatus.setAttribute('role','status');
-      exportDetails.append(exportInfo,preview,download,downloadStatus);panel.insertBefore(exportDetails,note);
+      exportBody.append(exportInfo,preview,download,downloadStatus);exportDetails.append(exportBody);toolsGrid.append(exportDetails);
+      Array.from(toolsGrid.children).filter(function(tool){return tool.tagName==='DETAILS';}).forEach(function(tool){
+        tool.addEventListener('toggle',function(){if(!tool.open)return;Array.from(toolsGrid.querySelectorAll('details[open]')).forEach(function(other){if(other!==tool&&other.parentElement===toolsGrid)other.open=false;});});
+      });
       function yamlScalar(value){return JSON.stringify(String(value));}
       function exportRecords(){
         return added.reduce(function(records,c){
@@ -749,7 +869,6 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
     }
 
 
-    var status=element('p','sk-collection-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.setAttribute('aria-atomic','true');
     var empty=element('p','sk-collection-empty','No matches. Try another search or reset the filters.');empty.hidden=true;
     var tokens=[];
     function matches(c, skip) {
@@ -819,7 +938,7 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
         button.onclick=function(){entry.clear();apply();var next=chips.querySelector('button');if(next)next.focus();else input.focus();};
       });
       chips.hidden=!active.length;
-      toggle.title=active.length?'Gallery options ('+active.length+' active settings)':'Gallery options';
+      var optionsLabel=active.length?'More gallery options, '+active.length+' active settings':'More gallery options';toggle.setAttribute('aria-label',optionsLabel);toggle.title=active.length?'More options ('+active.length+' active settings)':'More options';
     }
     function suggestionButton(kind,caption,action){
       var button=element('button','sk-collection-suggestion');button.type='button';button.title=kind+': '+caption;button.setAttribute('aria-label',kind+': '+caption);
@@ -852,14 +971,17 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       if(youtubeGallery){additionGeneration++;pendingSources.clear();}
       added.forEach(function(c){c.node.remove();});added=[];cards=initialCards.slice();
       buckets.forEach(function(bucket,parent){buckets.set(parent,bucket.filter(function(c){return initialCards.includes(c);}));});
-      if(youtubeGallery){urlInput.value='';titleInput.value='';feedback.textContent='Initial gallery restored.';updateSourcePreview();forgetSaved();forgetView();addDetails.open=false;exportDetails.open=false;}
+      if(youtubeGallery){urlInput.value='';titleInput.value='';feedback.textContent='Initial gallery restored.';updateSourcePreview();forgetSaved();forgetView();addDetails.open=false;exportDetails.open=false;if(preferencesDetails)preferencesDetails.open=false;}
       resetView();showPanel(storageDirty||viewStorageDirty);if(storageDirty && forget)forget.focus();else if(viewStorageDirty&&viewForget)viewForget.focus();
     });
     input.addEventListener('keydown',function(event){if(event.key==='Enter' && event.isComposing)event.preventDefault();});
-    root.insertBefore(bar,root.firstChild);bar.after(panel);panel.after(status);status.after(chips);chips.after(suggestions);root.append(empty);
-    root.setAttribute('data-sk-enhanced','true');restoreAdditions();restoreView();applySort();apply();
+    if(status.parentElement!==root){root.insertBefore(status,root.firstChild);}root.insertBefore(controls,status);status.after(chips);chips.after(suggestions);root.append(empty);
+    root.setAttribute('data-sk-enhanced','true');stampUiContract(root);restoreAdditions();restoreView();applySort();apply();
   }
   function start(){document.querySelectorAll('.sk-collection').forEach(function(root){try{run(root);}catch(error){console.warn('Gallery controls unavailable',error);}});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
-"""  # ruff: ignore[ambiguous-unicode-character-string]
+""".replace(
+    "__SK_COLLECTION_UI_CONTRACT__",
+    COLLECTION_UI_CONTRACT,
+)

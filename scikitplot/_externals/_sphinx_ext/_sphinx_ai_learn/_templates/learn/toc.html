@@ -1,0 +1,2 @@
+<nav class="learn-toc" aria-label="Topic content"><p class="learn-toc-title">Content</p><ul>{% for section in learn_sections %}<li class="{{ 'learn-toc-child' if section.level == 3 else '' }}"><a href="#{{ section.anchor|e }}" data-toc-section="{{ section.id|e }}">{{ section.title|e }}</a></li>{% endfor %}</ul></nav>
+{% if learn_related %}<div class="learn-related-desktop"><p class="learn-toc-title">Related {{ 'Videos' if learn_subject.kind == 'video' else 'Topics' }}</p>{% include "learn/related.html" %}</div>{% endif %}

@@ -1,0 +1,9 @@
+name: tsv
+version: 1
+summary: Tab-separated tables - each cell named by its column header.
+extensions: [.tsv, .tab]
+splitter: delimited
+round_trip: true
+options:
+  delimiter: "\t"
+packs: [personal, records, patient, finance, secrets]

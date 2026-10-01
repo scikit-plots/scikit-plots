@@ -38,7 +38,6 @@ compatibility_date = "2026-08-01"
 #   HF_TOKEN            — HuggingFace API token with "Inference" read permission.
 #   SHARE_WRITE_TOKEN   — Server-only create token for POST /v1/share (run: wrangler secret put SHARE_WRITE_TOKEN)
 #                         Fixed /update and /revoke POSTs use the per-share X-Share-Edit-Token; legacy PATCH is retired and pre-generation DELETE is migration-only.
-#   FEEDBACK_WRITE_TOKEN— Bearer token for POST /v1/feedback (run: wrangler secret put FEEDBACK_WRITE_TOKEN)
 #   RATE_LIMIT_IDENTITY_SECRET — >=32-byte random secret used to HMAC client identities before Durable Object routing.
 #                                Generate independently; do not reuse provider/API tokens.
 
@@ -84,7 +83,6 @@ storage = "sqlite"
 # MAX_RESPONSE_BYTES           = "8388608"  # decoded upstream bytes; hard-capped at 33554432
 # CHAT_RATE_LIMIT_PER_HOUR     = "30"
 # SHARE_RATE_LIMIT_PER_HOUR    = "10"
-# FEEDBACK_RATE_LIMIT_PER_HOUR = "30"
 # SHARE_MAX_BODY_BYTES         = "512000"
 # SHARE_MAX_ENTRIES            = "256"
 # SHARE_MAX_TOTAL_BYTES        = "16777216"

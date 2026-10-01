@@ -53,7 +53,7 @@ t('Share has no contribution button', !share.includes('Contribute rated answers'
 t('Share has no contribution controller', !share.includes('_postTrainingContribution'));
 t('Share has no contribution delete capability', !share.includes('X-Contribution-Delete-Token'));
 
-t('feedback workspace owns anonymous telemetry control', contribution.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && !feedbackPopup.includes("persistLabel.textContent = 'Anonymous rating telemetry'"));
+t('feedback workspace has no retired telemetry control', !contribution.includes('Anonymous rating telemetry') && !feedbackPopup.includes('Anonymous rating telemetry'));
 t('feedback popup exposes explicit Q&A contribution', feedbackPopup.includes('Contribute this Q&A'));
 t('Q&A shortcut dispatches contribution event', feedbackPopup.includes("'ai-assistant-open-contribution'"));
 t('feedback management and contribution shortcut remain separate actions', feedbackPopup.includes("className: 'ai-assistant-fbk-popup-row--contribute'") && feedbackPopup.includes("className: 'ai-assistant-fbk-popup-row--center'") && feedbackPopup.includes("popup.appendChild(feedbackCenterAction.row)"));
@@ -76,12 +76,12 @@ t('canonical sheet registry includes contribution', /key:\s*'contribution'[\s\S]
 t('private event opens canonical contribution sheet', src.includes("addEventListener('ai-assistant-open-contribution'") && src.includes("_assistantEvents !== 'undefined'"));
 
 t('Endpoint Configuration renamed Runtime & Data', endpoint.includes("_buildSheetSection('Runtime & Data')"));
-t('Endpoint does not duplicate Feedback permissions', !endpoint.includes("_buildExtSub('Feedback telemetry')") && endpoint.includes("_buildExtSub('Page integration events')"));
+t('Endpoint keeps page integration separate from feedback review', endpoint.includes("_buildExtSub('Page integration events')") && !endpoint.includes('Feedback telemetry'));
 t('Endpoint has Dataset contributions block', endpoint.includes("_buildExtSub('Dataset contributions')"));
 t('Endpoint can open contribution sheet', endpoint.includes("openContribution.textContent = 'Open contribution sheet'"));
-t('user-facing endpoint label is dataset contribution', src.includes("label: 'Dataset contribution endpoint'"));
+t('user-facing endpoint label is dataset contribution', src.includes("label: 'Dataset contribution'") && src.includes("label: fd.label + ' endpoint'"));
 
-t('Usage Policy distinguishes telemetry and contribution', usage.includes('Feedback telemetry and dataset contribution are different'));
+t('Usage Policy distinguishes local ratings and contribution', usage.includes('ratings') && usage.includes('contribution'));
 t('Usage Policy describes quarantine review promotion', usage.includes('contribution &rarr; quarantine &rarr; review &rarr; authorized promotion'));
 
 console.log(`${passed} passed, ${failed} failed`);

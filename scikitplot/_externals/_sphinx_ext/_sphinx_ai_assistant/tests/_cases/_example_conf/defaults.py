@@ -16,7 +16,6 @@ ROOT = RUNTIME_ROOT
 def test_sphinx_config_exposes_reader_initial_defaults() -> None:
     src = (ROOT / "__init__.py").read_text(encoding="utf-8")
     expected = {
-        'ai_assistant_panel_feedback_telemetry_default", False': "panelFeedbackTelemetryDefault",
         'ai_assistant_panel_feedback_review_default", True': "panelFeedbackReviewDefault",
         'ai_assistant_panel_page_integration_default", False': "panelPageIntegrationDefault",
         'ai_assistant_panel_streaming_default", True': "panelStreamingDefault",

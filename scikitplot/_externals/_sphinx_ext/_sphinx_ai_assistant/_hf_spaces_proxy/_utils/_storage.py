@@ -32,6 +32,11 @@ from urllib.parse import quote, urlencode, urlsplit
 
 import httpx
 
+try:
+    from ._shared_logic import _resolve_first_env_value
+except ImportError:  # standalone HF Space deployment
+    from _utils._shared_logic import _resolve_first_env_value
+
 Provider = Literal["huggingface", "github", "gitlab", "bitbucket"]
 Role = Literal["primary", "mirror"]
 
@@ -192,14 +197,19 @@ class StorageTarget:
     branch: str = "main"
     feedback_path: str = "feedback"
     contributions_path: str = "contributions"
-    token_env: str = ""
+    token_env: str | tuple[str, ...] = ""
     token_type: str = "unknown"  # ruff: ignore[hardcoded-password-string]
     expose_links: bool = True
     api_base: str = ""
 
     @property
     def token(self) -> str:
-        return os.environ.get(self.token_env, "").strip() if self.token_env else ""
+        return _resolve_first_env_value(self.token_env)[0]
+
+    @property
+    def active_token_env(self) -> str:
+        """Return the env name currently supplying the token, without its value."""
+        return _resolve_first_env_value(self.token_env)[1]
 
     def folder_for(self, kind: str) -> str:
         return self.feedback_path if kind == "feedback" else self.contributions_path
@@ -374,11 +384,37 @@ def _safe_folder(value: Any, default: str) -> str:
     return s
 
 
-def _safe_token_env(value: Any) -> str:
-    s = str(value or "").strip()
-    if not s or not _TOKEN_ENV_RE.fullmatch(s):
+def _safe_token_env(value: Any) -> str | tuple[str, ...]:
+    """Validate one token env name or an ordered fallback list.
+
+    All configurable record-storage credential aliases remain constrained to
+    ``AI_RECORD_STORAGE_TOKEN_*`` so a storage target cannot borrow unrelated
+    process secrets. Lists are bounded, de-duplicated, and preserve precedence.
+    """
+    if isinstance(value, str):
+        name = value.strip()
+        if not name or not _TOKEN_ENV_RE.fullmatch(name):
+            raise StorageConfigError("TARGET_TOKEN_ENV")
+        return name
+    if (
+        not isinstance(value, (list, tuple))  # lint
+        or not 1 <= len(value) <= 4  # ruff: ignore[magic-value-comparison]
+    ):
         raise StorageConfigError("TARGET_TOKEN_ENV")
-    return s
+    names: list[str] = []
+    seen: set[str] = set()
+    for raw_name in value:
+        if not isinstance(raw_name, str):
+            raise StorageConfigError("TARGET_TOKEN_ENV")
+        name = raw_name.strip()
+        if not name or not _TOKEN_ENV_RE.fullmatch(name):
+            raise StorageConfigError("TARGET_TOKEN_ENV")
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+    if not names:
+        raise StorageConfigError("TARGET_TOKEN_ENV")
+    return tuple(names)
 
 
 def _normalize_token_type(value: Any) -> str:
@@ -402,8 +438,12 @@ def _parse_target(raw: dict[str, Any], index: int) -> StorageTarget:
     label = str(raw.get("label") or target_id).strip()[:96] or target_id
     paths = raw.get("paths") if isinstance(raw.get("paths"), dict) else {}
     token_env = _safe_token_env(raw.get("token_env"))
+    _token_value, active_token_env = _resolve_first_env_value(token_env)
+    token_type_env = active_token_env
+    if not token_type_env:
+        token_type_env = token_env if isinstance(token_env, str) else token_env[0]
     token_type = _normalize_token_type(
-        raw.get("token_type") or os.environ.get(token_env + "_TYPE")
+        raw.get("token_type") or os.environ.get(token_type_env + "_TYPE")
     )
     raw_api_base = raw.get("api_base")
     if provider == "gitlab":

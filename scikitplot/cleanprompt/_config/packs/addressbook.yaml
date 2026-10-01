@@ -1,0 +1,43 @@
+# Contact lists: CSV exports, vCards, CRM dumps, Google Takeout contacts.
+name: addressbook
+version: 1
+summary: Contact entries - organisation, role, postal and web details, vCard properties.
+requires: [personal]
+
+fields:
+  - names: [company, organisation, organization, employer, org]
+    kind: ORG
+    role: category
+  - names: [job_title, position, department]
+    kind: JOB
+    role: category
+  # `title` is a job title in a contact list and a document title elsewhere.
+  - names: [title]
+    kind: JOB
+    role: category
+    suffix: false
+  # Generic words: exact only, so `loading_state` and `aws_region` stay put.
+  - names: [city, town, county, state, province, region, country, billing_city, shipping_city, home_city, billing_state, shipping_state, billing_country, shipping_country]
+    kind: LOCATION
+    role: category
+    suffix: false
+  - names: [website, homepage, url, linkedin, twitter, facebook, instagram, profile_url]
+    kind: PROFILE
+    role: text
+  - names: [notes, note, comment, comments]
+    kind: NOTE
+    role: text
+    suffix: false
+  # vCard property names (RFC 6350). Parameters after ';' are ignored when the
+  # key is matched, so TEL;TYPE=CELL is the field `tel`.
+  - names: [fn, n, adr, bday, nickname_vcard, impp]
+    kind: VCARD
+    role: text
+
+patterns:
+  - kind: UK_POSTCODE
+    pattern: '\b(?:[A-PR-UWYZ][A-HK-Y]?\d[A-HJKPSTUW\d]?) ?\d[ABD-HJLNP-UW-Z]{2}\b'
+    intent: A UK postcode in the Royal Mail format.
+    priority: 70
+    examples_yes: ['SW1A 1AA', 'M1 1AE', 'EC1A1BB']
+    examples_no: ['SW1A', 'ABCD 1234']

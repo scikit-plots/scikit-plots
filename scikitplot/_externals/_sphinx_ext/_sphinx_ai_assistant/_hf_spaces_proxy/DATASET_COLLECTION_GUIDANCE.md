@@ -1,68 +1,17 @@
 # Dataset Collection and Multi-Store Operations Guide
 
-## Schema v4 privacy and contribution lifecycle — authoritative
+## Current privacy and contribution lifecycle — authoritative
 
-> **Current policy:** where older historical sections below describe feedback as
-> training input, cross-source feedback/contribution joins, unversioned consent,
-> immediate contribution persistence, or review-token-only promotion, this section
-> supersedes them. For the human workflow first read
-> [`./DATASET_CONTRIBUTION_GUIDE.md`](./DATASET_CONTRIBUTION_GUIDE.md).
-
-- Ordinary `/v1/feedback` is rating telemetry only. Query, answer, note, model,
-  page and conversation identity are discarded server-side; durable feedback is
-  opt-in and marked `trainingStatus="telemetry"`.
-- Schema v4 keeps feedback telemetry and explicit content contribution
-  structurally separate. Contribution has two record families: `recordType="qa"`
-  and one ordered `recordType="conversation"` with `messages[]`. Whole-conversation
-  mode is not exploded into unrelated training rows.
-- **Contribute to dataset** is the only content-bearing contribution surface.
-  **This Q&A**, **Rated answers**, and **Whole conversation** converge on exact-JSON
-  inspection, privacy preflight, explicit versioned consent, quarantine/review,
-  private management receipt, pending delete, and post-approval withdrawal.
-- Schema v4 contribution consent is `2.0.0`. Legacy schema v2/v3 clients may use
-  historical consent `1.0.0` only for the legacy contract.
-- `/v1/contribute` always creates a lifecycle receipt first and starts at
-  `trainingStatus="quarantined"`; quarantined content is never ordinary training
-  input. The lifecycle backend may be `memory`, `sqlite`, or `redis`.
-- **Recommended human-review mode:** `CONTRIBUTION_REVIEW_MODE=provider-pr`. The
-  Primary storage target receives a native Hugging Face/GitHub/GitLab/Bitbucket
-  review object. The configured canonical branch (`main` by default) is the
-  eligibility boundary. Merge means eligible. Close/decline remains
-  training-ineligible and the browser renders it as **NOT ACCEPTED**.
-- **Compatibility mode:** `CONTRIBUTION_REVIEW_MODE=ledger`. Content stays in the
-  lifecycle ledger until the authenticated `/promote` endpoint, protected by
-  `CONTRIBUTION_REVIEW_TOKEN`, writes/promotes eligible bytes.
-- Only the **Primary** owns review authority. Mirrors do not independently approve
-  or reject the same contribution. An external Primary UI merge is detected on a
-  later status/management check and ratchets the receipt to `eligible`. Current
-  code does not synchronously fan that external merge out to mirrors.
-- The receipt has a separate delete/withdraw capability. Before approval, DELETE
-  closes the pending provider review when applicable and removes active receipt
-  content. After approval, the same capability records a privacy-minimal
-  withdrawal tombstone and attempts best-effort current-view removal.
-- Provider-review durability and receipt durability are different. A PR/MR can
-  survive a proxy restart while `CONTRIBUTION_LEDGER_BACKEND=memory` loses the
-  contributor-management authority. Use persistent SQLite for one instance or
-  shared Redis for replicas when long-lived receipt management matters.
-- `deduplicate_dataset.py` fails closed: ordinary training output accepts only
-  `trainingStatus="eligible"` and applies later withdrawal state.
-- Physical deletion from versioned repository history, database pages/WAL,
-  backups, CDN/provider logs, or infrastructure snapshots is **not guaranteed**.
-  Withdrawal is an enforceable training-exclusion/current-view operation, not a
-  claim of global forensic erasure.
-- `CONTRIBUTION_REQUIRE_DURABLE=true` can fail closed unless receipt storage is
-  restart-durable. `CONTRIBUTION_REQUIRE_SHARED=true` independently requires a
-  shared transactional receipt authority.
-
-
-**Component:** scikit-plots Sphinx AI Assistant proxy
-**Scope:** Feedback and consent-gated contribution records
-**Storage:** Hugging Face, GitHub, GitLab, Bitbucket Cloud, or a primary + mirrors
-**Guide version:** 4.0
-**Verified against implementation:** 2026-08-31
-**Audience:** first-time operator → maintainer → senior platform engineer
-
----
+- `POST /v1/feedback` belongs to `_sphinx_feedback` and accepts only
+  `page.feedback-request.v1`. It is not part of the training dataset pipeline.
+- AI Assistant ratings are local-only. Explicit one-Q&A maintainer review uses
+  `/v1/feedback/review` and its own consent/review lifecycle.
+- **Contribute to dataset** is the content-bearing contribution surface.
+  The current browser/server contract is `schemaVersion=4` with
+  `consentVersion="2.0.0"`; older contribution schemas are rejected at intake.
+- Accepted contribution content enters quarantine/review and is not training eligible
+  until the configured review authority promotes or merges it.
+- Browser clients never receive provider repository credentials.
 
 ## 0. Start here: the whole system in one picture
 
@@ -106,10 +55,12 @@ Recommended redundant setup
 Browser -> app.py -> Hugging Face PRIMARY -> GitHub MIRROR
 ```
 
-> **Important — one Primary only.**
-> A configuration may contain up to 8 storage targets, but exactly one must
-> have `"role": "primary"`. A record is accepted when the Primary succeeds.
-> Mirror failure does not undo a successful Primary write.
+> **Important — one record Primary only.**
+> The records authority may contain up to 8 storage targets, but exactly one must
+> have `"role": "primary"`. A record is accepted when that Primary succeeds.
+> Mirror failure does not undo a successful Primary write. The code-owned
+> `DEFAULT_TARGET_REGISTRY` also has a separate `learn-ai-publication` Primary;
+> it is projected out before record persistence and does not violate this rule.
 
 > **Attention — the browser does not choose HF vs GitHub.**
 > `conf.py` and the Endpoint Configuration panel choose **which proxy endpoint**
@@ -132,7 +83,8 @@ Browser -> app.py -> Hugging Face PRIMARY -> GitHub MIRROR
 | Sphinx `conf.py` / AI panel | Browser → proxy endpoint routing | **No** | docs maintainer |
 | Hugging Face Space **Variables** | Non-sensitive server configuration | No | operator |
 | Hugging Face Space **Secrets** | Tokens/API credentials | **Yes** | operator/security |
-| `RECORD_STORAGE_TARGETS` | Primary/mirror topology | Token **names**, never token values | operator |
+| code-owned `DEFAULT_TARGET_REGISTRY` | Bundled record + publication destinations, separated by `authority` | Token **names**, never token values | proxy source |
+| `RECORD_STORAGE_TARGETS` | Optional record Primary/mirror override | Token **names**, never token values | operator |
 
 ### 1.1 `conf.py` is not a storage credential store
 
@@ -178,7 +130,7 @@ are readable; Secret values are write-only in the settings interface.
 
 | Name | Put in | Required? | Why |
 |---|---|---:|---|
-| `RECORD_STORAGE_TARGETS` | **Variable** | New multi-store mode | Contains topology and env-var names, not tokens |
+| `RECORD_STORAGE_TARGETS` | **Variable** | Optional record-topology override | Contains topology and env-var names, not tokens; bundled record defaults apply when absent |
 | `AI_RECORD_STORAGE_TOKEN_HF_PRIMARY` | **Secret** | if HF target | Actual HF credential |
 | `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR` | **Secret** | if GitHub target | Actual GitHub credential |
 | `AI_RECORD_STORAGE_TOKEN_GITLAB_*` | **Secret** | if GitLab target | Actual GitLab credential |
@@ -186,7 +138,6 @@ are readable; Secret values are write-only in the settings interface.
 | `TRAINING_DATASET_REPO` | **Variable** | Legacy HF mode only | Repo ID is normally non-sensitive |
 | `HF_DATASET_TOKEN` | **Secret** | Legacy HF mode | Actual HF credential |
 | `HF_DATASET_TOKEN_TYPE` | **Variable** | Legacy HF mode | Classification only |
-| `FEEDBACK_PERSIST_ENABLED` | **Variable** | Recommended | Server persistence flag; never substitutes for reader telemetry consent |
 
 > **Attention — your existing `TRAINING_DATASET_REPO` Secret works, but it does
 > not normally need to be a Secret.**
@@ -226,9 +177,9 @@ configuration when they are meant to be visible to readers.
 
 ## 3. Current configuration precedence
 
-### 3.1 Provider-neutral mode is authoritative
+### 3.1 Explicit provider-neutral record mode is authoritative
 
-When this is non-empty:
+When this operator override is non-empty:
 
 ```text
 RECORD_STORAGE_TARGETS
@@ -243,6 +194,12 @@ replace the explicit targets in `RECORD_STORAGE_TARGETS`.
 The proxy has been hardened so keeping `TRAINING_DATASET_REPO` during migration
 does **not** trigger misleading legacy “missing HF dataset token” warnings while
 `RECORD_STORAGE_TARGETS` is active.
+
+If neither explicit record topology nor `TRAINING_DATASET_REPO` is set, the
+proxy activates `DEFAULT_RECORD_STORAGE_TARGETS`, which is derived from the
+`authority: "records"` entries in `DEFAULT_TARGET_REGISTRY`: HF Primary plus
+GitHub Mirror. The separate `github-learn-ai` publication Primary is not part of
+that projection.
 
 ### 3.2 Legacy mode
 
@@ -331,17 +288,6 @@ HF_DATASET_TOKEN=<hf-repo-write-token>
 HF_DATASET_TOKEN_TYPE=fine-grained
 ```
 
-**Optional telemetry Variable**:
-
-```text
-FEEDBACK_PERSIST_ENABLED=true
-```
-
-This opts the server into durable **rating telemetry only**. It does not store
-question/answer/comment/model/page/session content and does not make feedback
-training-eligible. Leave it unset/false unless durable rating telemetry is an
-explicit operational requirement.
-
 For explicit contribution review/promotion also configure the Secret:
 
 ```text
@@ -384,12 +330,6 @@ AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=<hf-repo-write-token>
 ```
 
 ### Variables
-
-Optional durable rating telemetry (still training-ineligible):
-
-```text
-FEEDBACK_PERSIST_ENABLED=true
-```
 
 Explicit contribution promotion additionally requires the Secret
 `CONTRIBUTION_REVIEW_TOKEN`; raw accepted contributions remain in mutable
@@ -455,7 +395,7 @@ scikit-plots/ai-assistant-records
 ```
 
 A private repository is usually appropriate for **reviewed, promoted** contribution
-records and any intentionally durable rating telemetry. Raw contribution intake
+records. Raw contribution intake
 must remain in the mutable quarantine/control-plane stage rather than being
 committed directly into repository history.
 
@@ -577,15 +517,6 @@ TRAINING_DATASET_REPO=scikit-plots/ai-assistant-contributions
 
 It is harmless while `RECORD_STORAGE_TARGETS` is active and useful for rollback
 or old discovery consumers. It no longer drives the active write topology.
-
-#### Optional rating-telemetry Variable
-
-```text
-FEEDBACK_PERSIST_ENABLED=true
-```
-
-This stores privacy-minimal rating telemetry only. It never enables Q&A/comment
-collection and never changes `trainingStatus` to `eligible`.
 
 ### 7.2 What you do **not** need
 
@@ -822,28 +753,11 @@ the same intake remains in the receipt ledger and no provider review is expected
 Only the separately authorized promotion path can write the eligible record.
 
 
-## 11. Test 3: rating telemetry and contribution quarantine
+## 11. Test 3: page-feedback boundary and contribution quarantine
 
-### Rating telemetry
+### Generic page-feedback boundary
 
-The browser does not send rating telemetry until the reader explicitly enables
-**Send rating telemetry**. The permission is versioned and stored as a structured
-browser consent record; missing, malformed, stale-version, or historical boolean
-preferences fail closed to **Off**. Every network telemetry request carries
-`telemetryConsent=true`, `telemetryConsentVersion="1.0.0"`, and the grant timestamp;
-the bundled proxy/Worker reject requests that omit the current consent contract.
-With that user permission active and `FEEDBACK_PERSIST_ENABLED=true`, a rating may produce:
-
-```text
-feedback/YYYY/MM/DD/fb_<recordId>.jsonl
-```
-
-Inspect the row and verify it contains rating/event mechanics only: no query,
-answer, note, model, page URL, or conversation identifier, and
-`trainingStatus="telemetry"`. Turning telemetry off must stop future rating and
-retraction network requests. Storage failure must not break the local rating UI.
-The public `ai-assistant-feedback` DOM event is content-free for the same reason:
-page listeners receive bounded rating mechanics, not the Q&A/note/model/page tuple.
+`POST /v1/feedback` accepts only `page.feedback-request.v1`; Assistant-local ratings are never sent to this route. Generic page feedback never becomes contribution/training data automatically.
 
 ### Contribution receipt lifecycle
 
@@ -985,17 +899,17 @@ empty segments, excessive depth, and unsafe names are rejected.
 
 ## 14. Contribution record identity and deduplication
 
-There are two intentionally separate collection paths:
+There are three intentionally separate feedback/contribution authorities:
 
-| Path | Endpoint | Typical folder | Content semantics |
+| Path | Endpoint | Storage authority | Content semantics |
 |---|---|---|---|
-| Rating telemetry | `POST /v1/feedback` | `feedback/` | bounded rating/event mechanics only; never training-eligible |
-| Reviewed Q&A feedback | `POST /v1/feedback/review` | `feedback/` | Q&A + rating + optional note; eligible only after explicit training consent and maintainer merge |
-| Explicit contribution | `POST /v1/contribute` | `contributions/` | user-reviewed Q&A or one ordered conversation record |
+| Generic page feedback | `POST /v1/feedback` | `_sphinx_feedback` storage targets | page reaction event only; never dataset contribution |
+| Reviewed Q&A feedback | `POST /v1/feedback/review` | reviewed feedback records | Q&A + rating + optional note; eligible only after explicit training consent and maintainer merge |
+| Explicit contribution | `POST /v1/contribute` | contribution records | user-reviewed Q&A or one ordered conversation record |
 
-Feedback telemetry no longer carries query/answer content, so it is **not** joined
-with contributions to form training examples. It remains `trainingStatus="telemetry"`
-and is excluded from ordinary training output.
+Generic page feedback is a separate event system and is never joined with dataset
+contributions. It uses the `page.feedback-request.v1` / `page.feedback-event.v1`
+contracts and its own storage coordinator.
 
 Contribution dedup keys are server-owned and receipt-scoped rather than stable
 browser conversation identifiers:
@@ -1638,7 +1552,6 @@ conflict resolution could hide corruption or unauthorized modification.
 - [ ] No raw token appears inside `RECORD_STORAGE_TARGETS`.
 - [ ] HF persistence token is Fine-grained with target Dataset write permission.
 - [ ] GitHub PAT is limited to selected repo + Contents read/write.
-- [ ] `FEEDBACK_PERSIST_ENABLED=true` only if durable privacy-minimal rating telemetry is intentionally required.
 - [ ] `CONTRIBUTION_REVIEW_TOKEN` is a separate operator capability when contribution promotion is enabled.
 - [ ] Public discovery exposes only coarse storage readiness, not private storage topology.
 - [ ] Synthetic contribution returns `status="quarantined"` and is not present in durable training storage.
@@ -1646,8 +1559,8 @@ conflict resolution could hide corruption or unauthorized modification.
 - [ ] Post-promotion DELETE returns `status="withdrawn"`, persists privacy-minimal withdrawal tombstones, and ordinary dataset output no longer contains that contribution.
 - [ ] Provider current-view removal is inspected separately from repository-history/backups; no global erasure claim is made.
 - [ ] Authorized promotion creates `trainingStatus="eligible"` rows in Primary/Mirrors.
-- [ ] Feedback persistence test, if enabled, creates only telemetry rows with no Q&A/comment/page/session content.
-- [ ] `deduplicate_dataset.py --from-storage-config --stats-only` succeeds and excludes telemetry/quarantined/unreviewed rows.
+- [ ] Generic page-feedback test writes only the current page-feedback event contract to its configured feedback authority.
+- [ ] `deduplicate_dataset.py --from-storage-config --stats-only` succeeds and excludes quarantined/unreviewed rows.
 - [ ] Raw/quarantined records are never used directly for training.
 
 ---
@@ -1673,10 +1586,12 @@ conflict resolution could hide corruption or unauthorized modification.
 
 ### `app.py` / `_utils/_storage.py`
 
-- provider-neutral target schema;
+- authority-scoped code-owned default target registry;
+- provider-neutral record target schema;
 - Hugging Face, GitHub, GitLab, Bitbucket Cloud write adapters;
-- exactly one Primary + optional Mirrors;
-- legacy HF synthesis when `RECORD_STORAGE_TARGETS` is absent;
+- exactly one record Primary + optional Mirrors;
+- bundled HF Primary + GitHub Mirror projection when no topology/legacy repo is set;
+- legacy HF synthesis when explicit topology is absent and `TRAINING_DATASET_REPO` is set;
 - Fine-grained / Read / Write HF token classification;
 - repo-write preflight with modern `huggingface_hub`;
 - Read-token write blocking;
@@ -1707,7 +1622,7 @@ conflict resolution could hide corruption or unauthorized modification.
 - same canonical record ID + different bytes fails closed;
 - guarded remote archive extraction;
 - historical schema normalization to current canonical schema v5 when `_utils/_dataset_schema.py` is available;
-- default exclusion of feedback telemetry/quarantined/legacy-unreviewed records;
+- default exclusion of generic page-feedback/quarantined/non-eligible records;
 - training acceptance only for `trainingStatus="eligible"` contributions;
 - tombstone/retraction handling where applicable;
 - deterministic NDJSON output.

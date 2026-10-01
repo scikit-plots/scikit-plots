@@ -42,6 +42,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import sqlite3
 import threading
 from dataclasses import dataclass, field  # noqa: F401
@@ -97,9 +98,11 @@ class StorageQuery:
         document hierarchy was recorded but unqueryable -- "give me the
         children of X" was inexpressible (finding F-R08-02). Default: ``None``.
     full_text : str or None, optional
-        Full-text search string. Supported by ``SQLiteStorage`` (FTS5)
-        only; ignored by ``InMemoryStorage`` and ``JSONLStorage``.
-        Default: ``None``.
+        Full-text search string, matched as a whole: native FTS5 phrase
+        matching on ``SQLiteStorage``, a case-insensitive substring scan
+        elsewhere (reported as ``EMULATED``). Never read as FTS5 syntax. For
+        ranked retrieval by any of the words, use
+        :meth:`SQLiteStorage.search_text`. Default: ``None``.
     limit : int, optional
         Maximum number of results to return. Default: ``100``.
     offset : int, optional
@@ -813,6 +816,83 @@ WHERE rowid NOT IN (
 """
 
 
+def _fts5_phrase(text: str) -> str:
+    """
+    Return ``text`` as one FTS5 phrase string, safe to pass to ``MATCH``.
+
+    Parameters
+    ----------
+    text : str
+        Free text as a person or an agent typed it.
+
+    Returns
+    -------
+    str
+        ``text`` in double quotes, inner quotes doubled — the FTS5 string
+        literal. FTS5 tokenises it with the table's tokenizer, so it matches
+        the same token sequence anywhere in a document.
+
+    Notes
+    -----
+    **Developer.**  ``StorageQuery.full_text`` is documented as a search
+    *string*, and the emulating backends treat it as a substring; passing it to
+    ``MATCH`` verbatim made it an FTS5 *expression*, where ``:`` names a column,
+    ``-`` and ``NOT`` are operators and ``(``, ``+``, ``?`` are syntax errors.
+    ``roc_auc_score()``, ``C++``, ``random-state`` and every pasted error
+    message failed (finding CX-01). A quoted phrase can never be a syntax
+    error, and a phrase with no token characters simply matches nothing.
+
+    Examples
+    --------
+    >>> _fts5_phrase('a "b" c')
+    '"a ""b"" c"'
+    """
+    return '"' + text.replace('"', '""') + '"'
+
+
+#: What FTS5's default ``unicode61`` tokenizer keeps as token characters:
+#: letters and digits. Everything else — ``_``, ``.``, ``:``, ``(`` — separates.
+_FTS5_TOKEN = re.compile(r"[^\W_]+")
+
+
+def _fts5_any(text: str) -> str | None:
+    """
+    Return an FTS5 expression matching any word of ``text``, ranked by BM25.
+
+    Parameters
+    ----------
+    text : str
+        Free text.
+
+    Returns
+    -------
+    str or None
+        Terms joined by ``OR``, each a quoted phrase: every whitespace-separated
+        word, and — for a compound word such as ``sklearn.metrics:auc`` — each
+        of its parts. A document need not contain every term; one containing
+        more, rarer terms scores higher, and one containing a compound in its
+        exact order also matches its phrase, so it outranks one holding the
+        parts elsewhere. ``None`` when ``text`` has no word.
+
+    Examples
+    --------
+    >>> _fts5_any("what is roc_auc_score()")
+    '"what" OR "is" OR "roc_auc_score()" OR "roc" OR "auc" OR "score"'
+    >>> _fts5_any("   ") is None
+    True
+    """
+    terms: list[str] = []
+    seen: set[str] = set()
+    for word in text.split():
+        parts = _FTS5_TOKEN.findall(word)
+        for term in ([word] if parts != [word] else []) + parts:
+            key = term.casefold()
+            if key not in seen:
+                seen.add(key)
+                terms.append(_fts5_phrase(term))
+    return " OR ".join(terms) if terms else None
+
+
 class SQLiteStorage(StorageBase):
     r"""
     SQLite-backed corpus store with FTS5 full-text search.
@@ -1005,6 +1085,94 @@ class SQLiteStorage(StorageBase):
             return None
         return _dict_to_doc(json.loads(row["json_data"]))
 
+    def search_text(
+        self,
+        text: str,
+        limit: int = 10,
+        *,
+        collection_id: str | None = None,
+    ) -> list[tuple[CorpusDocument, float]]:
+        """
+        Rank documents against free text with BM25, best first.
+
+        Parameters
+        ----------
+        text : str
+            Free text: a question, an identifier, an error message. Never
+            interpreted as FTS5 syntax.
+        limit : int, optional
+            Most results to return; must be a positive integer. Default ``10``.
+        collection_id : str or None, optional
+            Restrict to one collection. Default: ``None``.
+
+        Returns
+        -------
+        list of (CorpusDocument, float)
+            Each document with its BM25 score, higher meaning more relevant.
+            Empty when ``text`` has no word or nothing matches.
+
+        Raises
+        ------
+        TypeError
+            If ``text`` is not a string or ``limit`` is not an integer.
+        ValueError
+            If ``limit`` is below one.
+        RuntimeError
+            If this SQLite build has no FTS5, so no BM25 ranking exists.
+
+        Notes
+        -----
+        **User.**  Unlike ``StorageQuery.full_text`` — a filter that asks for
+        the whole string — this is ranked retrieval: a document containing
+        some of the words is returned, ordered by how strongly it matches.
+        That is what a lexical leg of hybrid search needs; ``what is
+        roc_auc_score()`` finds the document about ``roc_auc_score``.
+
+        **Developer.**  Built from :func:`_fts5_any`, so it is never an FTS5
+        syntax error (finding CX-01). The score is ``-bm25(corpus_fts)``:
+        SQLite reports stronger matches as more negative, and a leg that feeds
+        fusion or a reader should see "higher is better".
+        """
+        if not isinstance(text, str):
+            raise TypeError(f"text must be str, got {type(text).__name__}")
+        if isinstance(limit, bool) or not isinstance(limit, int):
+            raise TypeError(f"limit must be an int, got {type(limit).__name__}")
+        if limit < 1:
+            raise ValueError(f"limit must be >= 1, got {limit}")
+        if not self._has_fts5:
+            raise RuntimeError(
+                "this SQLite build has no FTS5, so BM25 search is unavailable; "
+                "use a Python whose sqlite3 is compiled with FTS5"
+            )
+        expression = _fts5_any(text)
+        if expression is None:
+            return []
+        sql = (
+            "SELECT docs.json_data, bm25(corpus_fts) AS rank "
+            "FROM corpus_documents AS docs "
+            "JOIN corpus_fts ON corpus_fts.doc_id = docs.doc_id "
+            "WHERE corpus_fts MATCH ?"
+            + (" AND docs.collection_id = ?" if collection_id else "")
+            + " ORDER BY rank, docs.rowid LIMIT ?;"
+        )
+        params: list[Any] = [expression]
+        if collection_id:
+            params.append(collection_id)
+        params.append(limit)
+        with self._lock:
+            rows = self._conn.execute(sql, params).fetchall()
+        ranked: list[tuple[CorpusDocument, float]] = []
+        for row in rows:
+            try:
+                document = _dict_to_doc(json.loads(row["json_data"]))
+            except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
+                logger.warning(
+                    "SQLiteStorage.search_text: skipping malformed row: %s.", exc
+                )
+                continue
+            ranked.append((document, -float(row["rank"])))
+        return ranked
+
     def query(self, q: StorageQuery) -> QueryResult:  # noqa: D417
         """
         Query documents with optional full-text search (FTS5).
@@ -1023,7 +1191,9 @@ class SQLiteStorage(StorageBase):
             # BM25 rank. SQLite FTS5 returns lower values for stronger matches.
             from_sql += " JOIN corpus_fts ON corpus_fts.doc_id = docs.doc_id"
             conditions.append("corpus_fts MATCH ?")
-            params.append(q.full_text)
+            params.append(
+                _fts5_phrase(q.full_text)
+            )  # a string, not an expression (CX-01)
             order_sql = "bm25(corpus_fts), docs.rowid"
         if q.input_path:
             conditions.append("docs.input_path = ?")

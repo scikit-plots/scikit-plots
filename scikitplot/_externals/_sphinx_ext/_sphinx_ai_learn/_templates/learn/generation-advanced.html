@@ -1,0 +1,75 @@
+<details class="learn-generation-advanced" data-generation-advanced="{{ generation_kind|e }}">
+  <summary><span>Advanced {{ advanced_record_label|default(generation_kind|capitalize)|e }} options</span><small>Optional · request-safe</small></summary>
+  <div class="learn-generation-advanced-body">
+  {% if generation_kind == 'video' %}
+    <div class="learn-generation-options learn-generation-advanced-grid">
+      <label class="learn-generation-field">Aspect ratio
+        <select name="aspect_ratio">
+          <option value="16:9" selected>16:9 · Landscape</option>
+          <option value="1:1">1:1 · Square</option>
+          <option value="9:16">9:16 · Portrait</option>
+        </select>
+      </label>
+      <label class="learn-generation-check"><input type="checkbox" name="captions" checked> <span>Generate captions</span></label>
+      <label class="learn-generation-check"><input type="checkbox" name="branding" checked> <span>Use project branding</span></label>
+    </div>
+    <p class="learn-meta">These fields are part of the Video request contract. Backend credentials and upload secrets never belong in this form.</p>
+  {% elif generation_kind == 'audio' %}
+    <div class="learn-generation-options learn-generation-advanced-grid">
+      <label class="learn-generation-field">Narration pacing
+        <select data-audio-pacing>
+          <option value="auto" selected>Runtime default</option>
+          <option value="deliberate">Deliberate · explain step by step</option>
+          <option value="concise">Concise · minimize repetition</option>
+        </select>
+      </label>
+      <label class="learn-generation-check"><input type="checkbox" data-audio-expand-acronyms> <span>Expand acronyms on first mention</span></label>
+      <label class="learn-generation-check"><input type="checkbox" data-audio-verbalize-uncertainty> <span>State uncertainty explicitly</span></label>
+    </div>
+    <p class="learn-meta">Audio v1 does not expose provider voice knobs. These provider-neutral choices are folded into narration guidance, so Copy request and Generate Now stay identical.</p>
+  {% elif generation_kind == 'document' %}
+    <div class="learn-generation-options learn-generation-advanced-grid">
+      <label class="learn-generation-field">Document structure
+        <select data-document-structure>
+          <option value="auto" selected>Adaptive</option>
+          <option value="outline">Outline-first</option>
+          <option value="study-guide">Study guide</option>
+          <option value="reference">Reference note</option>
+        </select>
+      </label>
+      <label class="learn-generation-check"><input type="checkbox" data-document-glossary> <span>Include a glossary when useful</span></label>
+      <label class="learn-generation-check"><input type="checkbox" data-document-applications> <span>Include practical applications</span></label>
+    </div>
+    <p class="learn-meta">Advanced structure choices are incorporated into the bounded Document prompt; publication remains a separate reviewed action.</p>
+  {% elif generation_kind == 'whiteboard' %}
+    <div class="learn-generation-options learn-generation-advanced-grid">
+      <label class="learn-generation-field">Image quality
+        <select data-whiteboard-quality>
+          <option value="auto" selected>Automatic</option>
+          <option value="low">Low · faster draft</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+      <label class="learn-generation-check"><input type="checkbox" data-whiteboard-legend> <span>Include a legend when useful</span></label>
+      <label class="learn-generation-check"><input type="checkbox" data-whiteboard-number-flow> <span>Number process steps</span></label>
+    </div>
+    <p class="learn-meta">Quality is a real Image provider-artifact option. Structural choices are folded into the visual prompt; generator credentials stay server-side.</p>
+
+  {% elif generation_kind == 'record' %}
+    <div class="learn-generation-options learn-generation-advanced-grid">
+      <label class="learn-generation-field">Draft strategy
+        <select data-record-advanced-strategy>
+          <option value="balanced" selected>Balanced · useful default</option>
+          <option value="structured">Structured · explicit progression</option>
+          <option value="exploratory">Exploratory · alternatives with uncertainty</option>
+          <option value="critical">Critical · assumptions and limitations first</option>
+        </select>
+      </label>
+      <label class="learn-generation-check"><input type="checkbox" data-record-advanced-evidence checked> <span>Surface evidence gaps and uncertainty</span></label>
+      <label class="learn-generation-check"><input type="checkbox" data-record-advanced-questions checked> <span>Include useful review / next-step questions</span></label>
+    </div>
+    <p class="learn-meta">These choices tune the private AI draft only. They are folded into the bounded text request, never into publication authority or source identity.</p>
+  {% endif %}
+  </div>
+</details>

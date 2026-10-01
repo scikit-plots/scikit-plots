@@ -87,6 +87,7 @@ class RuntimeConfig:
     hash_dimension: int
     annoy_metric: str
     annoy_n_trees: int
+    corpus_mode: str
     host: str
     port: int
     path: str
@@ -163,6 +164,17 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Annoy tree count used by --corpus-annoy",
+    )
+    parser.add_argument(
+        "--corpus-mode",
+        choices=("semantic", "hybrid", "keyword"),
+        default=None,
+        help=(
+            "Evidence paths --corpus-annoy searches: semantic (dense only, the "
+            "default), hybrid (BM25 + dense fused by rank, so identifiers and "
+            "error strings are found as well as paraphrases), or keyword "
+            "(BM25 only, no embedding at query time)"
+        ),
     )
     parser.add_argument("--host", default=None, help="HTTP bind host")
     parser.add_argument("--port", type=int, default=None, help="HTTP bind port")
@@ -344,6 +356,9 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         if args.annoy_n_trees is not None
         else _env_int(env, "SCIKITPLOT_MCP_ANNOY_N_TREES", 10)
     )
+    corpus_mode = (
+        args.corpus_mode or _env_value(env, "SCIKITPLOT_MCP_CORPUS_MODE", "semantic")
+    ).strip()
 
     default_host = (
         "0.0.0.0"  # ruff: ignore[hardcoded-bind-all-interfaces]
@@ -426,6 +441,12 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         raise SystemExit("--hash-dimension must be between 8 and 65536")
     if not 1 <= annoy_n_trees <= 10000:  # ruff: ignore[magic-value-comparison]
         raise SystemExit("--annoy-n-trees must be between 1 and 10000")
+    if corpus_mode not in ("semantic", "hybrid", "keyword"):
+        # The flag is checked by argparse; this guards the environment value.
+        raise SystemExit(
+            "--corpus-mode (or SCIKITPLOT_MCP_CORPUS_MODE) must be semantic, "
+            f"hybrid or keyword, got {corpus_mode!r}"
+        )
     if not annoy_metric or any(char.isspace() for char in annoy_metric):
         raise SystemExit(
             "--annoy-metric must be a non-empty metric name without whitespace"
@@ -494,6 +515,7 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         hash_dimension=hash_dimension,
         annoy_metric=annoy_metric,
         annoy_n_trees=annoy_n_trees,
+        corpus_mode=corpus_mode,
         host=host,
         port=port,
         path=path,
@@ -611,6 +633,7 @@ def _build_corpus_annoy_retriever(config: RuntimeConfig):
         "n_trees": config.annoy_n_trees,
         "backend": "annoy",
         "strict": True,
+        "mode": config.corpus_mode,
     }
     if config.corpus_embedding_model is not None:
         kwargs["embedding_model"] = config.corpus_embedding_model

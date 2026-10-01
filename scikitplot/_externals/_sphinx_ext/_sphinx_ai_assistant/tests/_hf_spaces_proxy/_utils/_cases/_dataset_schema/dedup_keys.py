@@ -31,22 +31,3 @@ def test_feedback_and_conversation_use_receipt_type_dedup_shape() -> None:
     assert feedback["_dedup_key"] == "receipt:feedback"
     assert conversation["_dedup_key"] == "receipt:conversation"
     assert feedback["_dedup_key"].split(":", 1)[0] == conversation["_dedup_key"].split(":", 1)[0]
-
-
-def test_ordinary_feedback_telemetry_uses_identifier_first_dedup_shape() -> None:
-    row = schema.normalize_feedback_record(
-        {
-            "feedbackId": "fb-event",
-            "answerIndex": 0,
-            "ratingValue": 1,
-            "ratingLabel": "helpful",
-            "ratingTitle": "Helpful",
-            "ratingMode": "quick",
-            "ts": 123,
-        },
-        server_ts_ms=456,
-    )
-    assert row["_dedup_key"] == "fb-event:feedback"
-    assert row["trainingStatus"] == "telemetry"
-    assert row["query"] == row["answer"] == row["page"] == ""
-    assert row["model"] is None

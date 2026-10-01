@@ -1,0 +1,7 @@
+<article class="learn-prompt-card" id="{{ skill.id|e }}">
+<div class="learn-prompt-card-heading"><div><h2><a class="learn-prompt-link" href="{{ skill.href|e }}">{{ skill.title|e }}</a></h2><p class="learn-meta">by {{ skill.author|e }}</p></div>
+<label class="learn-switch" title="Show on topic pages">
+<input type="checkbox" data-skill-toggle="{{ skill.id|e }}" data-default="{{ 'true' if skill.default_enabled else 'false' }}" aria-label="Show {{ skill.title|e }} on topic pages">
+<span aria-hidden="true"><span>off</span><span>on</span></span>
+</label></div>
+<div class="learn-prompt-description">

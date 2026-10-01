@@ -1,0 +1,91 @@
+==============================================================================
+NEGATIVE PROBES — one per retired upstream defect
+==============================================================================
+CP-001    PASS shorter secret does not corrupt longer
+CP-002    PASS extra terms do not disable structural detection
+CP-003    PASS no state carries between documents
+CP-004    PASS URL class is not an accidental range
+CP-005    PASS email domain admits no pipe
+CP-006    PASS placeholders survive re-detection
+CP-007    PASS no eval/exec/pickle.loads in runtime code
+CP-008    PASS no mutable default arguments
+CP-009    PASS no module-level app/key/cleaner
+CP-012    PASS restoration returns plain text
+CP-013    PASS phone rejects dates and order numbers
+CP-014    PASS CSRF token is required on every form
+
+==============================================================================
+ROUND 3 — ENGINES, API, DIAGNOSIS
+==============================================================================
+CP-024    PASS unmeetable --ner raises, unrequired still degrades
+CP-025    PASS NLTK registry is not reported blind
+CP-025b   PASS entity remedy names no retired model
+CP-026    PASS unimportable-but-installed tier reports BROKEN
+CP-044a   PASS every documented rewrite shape matches the pattern (8 rows)
+CP-044b   PASS an escaped separator restores
+CP-044c   PASS escaped prose lookalikes are untouched
+CP-045a   PASS a closed pipe exits 141 in both frontends
+CP-045b   PASS a closed pipe prints nothing to stderr
+CP-045c   PASS an ordinary OSError is still reported
+CP-048    PASS field values in record files are hidden and restore exactly
+CP-049    PASS a custom format file with its own 'packs' key loads as a format
+CP-050    PASS an escaped backslash before a placeholder survives decode
+CP-051    PASS one value, one label across prose and record
+CP-052    PASS pack and field detectors run under an explicit-kinds profile
+CP-053    PASS probes import the tree they live in
+R12-ZIP   PASS an unsafe member is refused and never written
+CP-059    PASS child-logger records, extras and held values are scrubbed
+CP-060    PASS 500 random chunkings of a surrogate reply decode like the whole
+CP-061    PASS ask behind a closed pipe exits promptly
+CP-062    PASS a prose MRN does not swallow the rest of the line
+R13-GATE  PASS a recurrence with remember off is refused before the model is called
+CP-063    PASS a name is hidden in a note sorted before the record naming it
+R14-MCP   PASS no MCP tool result carries a value or the root path; writes restore on disk
+R14-PLAN  PASS a plan whose definitions changed is refused
+ENG-001   PASS every live engine round-trips exactly (spacy,nltk)
+ENG-002   PASS no engine emits an uncanonical label
+CP-064    PASS a seed of earlier entries does not use up max_entries
+CP-065    PASS 500 records against 3000 live holders: scrubbed, in under 5 s
+R15-CHUNK PASS a CSV encoded in 97-char pieces equals one pass
+R15-SURVEY PASS a dry run writes nothing, remembers nothing, and names kinds only
+CP-067    PASS 8 threads sharing a Cleaner, a Guard and a Session: one label per value
+R16-ASYNC PASS aask encodes, awaits and decodes
+CP-068    PASS 8 processes encoding into one vault: 8 labels, every reply decodes
+CP-069    PASS a reader during 60 vault rewrites never sees a partial file
+CP-070    PASS a remembered name is hidden in 7 other writings, each restoring exactly
+CP-071    PASS a surrogate stand-in never contains a held value
+CP-072    PASS 6 rewritten writings of surrogate stand-ins restore to the real values
+CP-073    PASS an injected tool call carrying a card number is refused; chat() leaves tool calls encoded
+CP-074    PASS closing tags in a prompt are not taken for file paths
+CP-075    PASS a Windows path hides the user name and restores exactly
+CP-076    PASS a tool result keyed by an email address hides the key
+CP-077    PASS a card number stored as a JSON integer is hidden
+CP-078    PASS Key: value prose inside a JSON string is read, and the file stays JSON
+CP-079    PASS no file in the package holds a whole credential-shaped value, and the check is armed
+CP-080    PASS a DTD in a UTF-16 Office part is refused, in every byte order
+CP-081    PASS importing the runtime, the gate and the Office reader loads the standard library only
+CP-082    PASS a session turn encodes, and decodes back
+CP-083    PASS the corpus bridge names scikitplot.corpus, and nothing else, in its sibling import
+CP-084    PASS a declared-but-empty section is refused; a fragmented example is joined and tested
+API-001   PASS encode hides and decode restores exactly
+API-002   PASS handle survives a JSON round trip
+API-003   PASS handle repr discloses nothing
+API-004   PASS placeholders stay stable across session turns
+
+==============================================================================
+INVARIANTS AT SCALE
+==============================================================================
+I1        PASS round trip over 3000 random documents
+I2        PASS no detected surface survives
+I7        PASS idempotent re-redaction
+           (3000 documents in 0.91s)
+I8        PASS arbitrary printable junk never crashes
+
+==============================================================================
+PERFORMANCE — linear, not quadratic
+==============================================================================
+    51000 chars  redact  0.016s  restore  0.009s  entries 2
+   204000 chars  redact  0.101s  restore  0.028s  entries 2
+   816000 chars  redact  0.235s  restore  0.117s  entries 2
+
+TOTAL FAILURES: 0

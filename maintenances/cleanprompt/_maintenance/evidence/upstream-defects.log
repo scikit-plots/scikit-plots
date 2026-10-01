@@ -1,0 +1,38 @@
+== D1: revert prefix collision (tag >= 10) ==
+  in : Hello [PERSON-11] and [PERSON-1].
+  out: Hello Person11 and Person1.
+
+== D2: phone pattern matches digits inside an inserted tag ==
+  out: [EMAIL-1] [EMAIL-2] [EMAIL-3] [EMAIL-4] [EMAIL-5] [EMAIL-6] [EMAIL-7] [EMAIL-8] [EMAIL-9] [EMAIL-10] [EMAIL-11]
+  PHONE map: {}
+
+== D3: substring collision on literal replace ==
+  out: [ADDITIONAL-1] met [ADDITIONAL-1]a | map: {'Ann': 'ADDITIONAL-1', 'Anna': 'ADDITIONAL-2'}
+
+== D4: state leaks across documents (same instance) ==
+  2nd doc tag: [EMAIL-2]  (counter did not restart)
+
+== D5: __main__ additional-text branch drops regex anonymization ==
+  regex_mapping: {} -> email survives: True
+
+== D6: URL class [$-_@.&+] is a RANGE $(0x24)-_(0x5F) ==
+  '5' in class: True | 'A': True | '<': True
+
+== D7: email TLD class [A-Z|a-z] admits literal '|' ==
+  matches 'a@b.a|b': True
+== CP-013: phone pattern false positives ==
+  'Revenue rose 1234 in 2024'            -> []
+  'numpy 1.26.4'                         -> []
+  'ISO 8601 date 2024-01-15'             -> ['2024-01-15']
+  'order 12345678'                       -> ['12345678']
+
+== CP-006: NER stage runs over already-tagged text ==
+  tagged in : Contact [EMAIL-1] now
+  after NER : Contact [[ORG-1]-1] now | {'EMAIL': 'ORG-1'}
+  -> placeholder destroyed, deanonymization of EMAIL-1 impossible: True
+
+== CP-008: mutable default argument ==
+  signature: (self, text, additional_texts=[])
+
+== CP-012: revert_text(color=True) injects ANSI into returned data ==
+  repr: 'hi \x1b[92mAda\x1b[0m'

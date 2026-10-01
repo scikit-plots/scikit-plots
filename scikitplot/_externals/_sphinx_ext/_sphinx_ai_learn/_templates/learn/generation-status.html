@@ -1,0 +1,17 @@
+{% set status_initial_state = status_initial_state|default('idle') %}
+{% set status_initial_label = status_initial_label|default('Ready') %}
+{% set status_initial_message = status_initial_message|default('Ready to generate.') %}
+<div class="learn-generation-activity"
+     data-generation-status
+     data-{{ generation_kind }}-status
+     {% if generation_kind == 'video' %}data-video-form-status{% endif %}
+     data-state="{{ status_initial_state|e }}"
+     role="status"
+     aria-live="polite"
+     aria-atomic="true">
+  <span class="learn-generation-activity-indicator" data-generation-status-indicator aria-hidden="true"></span>
+  <span class="learn-generation-activity-copy">
+    <strong data-generation-status-label>{{ status_initial_label|e }}</strong>
+    <span data-generation-status-message>{{ status_initial_message|e }}</span>
+  </span>
+</div>

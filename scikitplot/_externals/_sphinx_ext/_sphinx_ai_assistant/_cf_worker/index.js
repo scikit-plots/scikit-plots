@@ -47,7 +47,7 @@ const HF_BASE = "https://router.huggingface.co";
  *
  * @remarks
  * Developer: `Authorization` is required for write endpoints (POST /v1/share,
- * POST /v1/feedback) that validate a Bearer token.  Without it the browser
+ * protected write routes that validate a Bearer token.  Without it the browser
  * preflight blocks the request before the handler runs.
  *
  * Developer: `GET` is required for share retrieval and `HEAD` for explicit
@@ -77,6 +77,30 @@ function _allowedOriginsMode(env) {
   return ALLOWED_ORIGIN_MODES.includes(mode) ? mode : 'additive';
 }
 
+function _normaliseLocalDevOrigin(value) {
+  const origin = _normaliseBrowserOrigin(value);
+  if (!origin) return '';
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]') return origin;
+    if (/^127(?:\.\d{1,3}){3}$/.test(host)) {
+      const octets = host.split('.').map(Number);
+      if (octets.every((part) => Number.isInteger(part) && part >= 0 && part <= 255)) return origin;
+    }
+  } catch {}
+  return '';
+}
+
+function _localDevOrigins(env) {
+  const out = [];
+  for (const item of String(env.LOCAL_DEV_ORIGINS || '').split(',')) {
+    const origin = _normaliseLocalDevOrigin(item);
+    if (origin && !out.includes(origin)) out.push(origin);
+  }
+  return out;
+}
+
 function _allowedOrigins(env) {
   const raw = String(env.ALLOWED_ORIGINS || '').trim();
   if (raw === '*') return ['*'];
@@ -84,6 +108,9 @@ function _allowedOrigins(env) {
   for (const item of raw.split(',')) {
     const origin = _normaliseBrowserOrigin(item);
     if (origin && !merged.includes(origin)) merged.push(origin);
+  }
+  for (const origin of _localDevOrigins(env)) {
+    if (!merged.includes(origin)) merged.push(origin);
   }
   return merged;
 }
@@ -447,7 +474,6 @@ const CHAT_MAX_RESPONSE_BYTES_DEFAULT = 8 * 1024 * 1024;
 const CHAT_MAX_RESPONSE_BYTES_HARD = 32 * 1024 * 1024;
 const CHAT_RATE_LIMIT_PER_HOUR_DEFAULT = 30;
 const SHARE_RATE_LIMIT_PER_HOUR_DEFAULT = 10;
-const FEEDBACK_RATE_LIMIT_PER_HOUR_DEFAULT = 30;
 
 function _boundedPositiveEnv(env, key, fallback, hardMax) {
   const n = parseInt(env[key], 10);
@@ -1139,11 +1165,6 @@ export default {
           scope: env.RATE_LIMIT_DO ? 'per_identity_durable_object' : 'eventually_consistent_kv',
           identity_externalized: env.RATE_LIMIT_DO ? 'hmac_sha256' : 'local_hash_kv_fallback',
         },
-        feedback: {
-          telemetry_schema_version: 4,
-          telemetry_consent_version: '1.0.0',
-          persist_enabled: String(env.FEEDBACK_PERSIST_ENABLED || '').toLowerCase() === 'true',
-        },
         limits: {
           max_upstream_response_bytes: _boundedPositiveEnv(
             env, 'MAX_RESPONSE_BYTES', CHAT_MAX_RESPONSE_BYTES_DEFAULT, CHAT_MAX_RESPONSE_BYTES_HARD,
@@ -1158,6 +1179,7 @@ export default {
           default_allowed_origins_allowed: _allowedOrigins(env).includes('*') || DEFAULT_ALLOWED_ORIGINS.every((origin) => _allowedOrigins(env).includes(origin)),
           wildcard: _allowedOrigins(env).includes('*'),
           allowed_origin_count: _allowedOrigins(env).includes('*') ? null : _allowedOrigins(env).length,
+          local_dev_origin_count: _localDevOrigins(env).length,
           env_semantics: _allowedOriginsMode(env),
           share_opaque_origin_allowed: String(env.SHARE_ALLOW_OPAQUE_ORIGIN || '').toLowerCase() === 'true',
           share_opaque_origin_write_allowed:
@@ -1167,100 +1189,6 @@ export default {
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders(request, env) },
-      });
-    }
-
-    // ── POST /v1/feedback ────────────────────────────────────────────────────
-    if (request.method === 'POST' && url.pathname === '/v1/feedback') {
-      const providedToken = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/, '');
-      if (!env.FEEDBACK_WRITE_TOKEN || providedToken !== env.FEEDBACK_WRITE_TOKEN) {
-        _log('warn', 'feedback.auth_fail', { path: '/v1/feedback' });
-        return new Response(JSON.stringify({ error: 'Unauthorized.' }), {
-          status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-      const MAX_FB_BYTES = 16 * 1024;
-      const fbRead = await _readLimitedText(request, MAX_FB_BYTES, env, 'Feedback');
-      if (fbRead.response) return fbRead.response;
-      const fbText = fbRead.text;
-      let fb;
-      try { fb = JSON.parse(fbText); } catch {
-        return new Response(JSON.stringify({ error: 'Invalid JSON body.' }), {
-          status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-      if (!fb || typeof fb !== 'object' || Array.isArray(fb)) {
-        return new Response(JSON.stringify({ error: 'Feedback body must be an object.' }), {
-          status: 422, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-      if (fb.telemetryConsent !== true || fb.telemetryConsentVersion !== '1.0.0') {
-        _log('warn', 'feedback.consent_required', { path: '/v1/feedback' });
-        return new Response(JSON.stringify({ error: 'Explicit feedback telemetry permission is required.' }), {
-          status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-      if (fb.schemaVersion !== 4 || !Number.isFinite(fb.telemetryConsentAt) || fb.telemetryConsentAt <= 0) {
-        return new Response(JSON.stringify({ error: 'Invalid feedback telemetry consent contract.' }), {
-          status: 422, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-
-      const fbLimit = _boundedPositiveEnv(env, 'FEEDBACK_RATE_LIMIT_PER_HOUR', FEEDBACK_RATE_LIMIT_PER_HOUR_DEFAULT, 1000);
-      let fbRl;
-      try {
-        fbRl = await _rateLimit(env, 'rl:fb', request.headers.get('CF-Connecting-IP') || 'unknown', fbLimit, 3600);
-      } catch {
-        return new Response(JSON.stringify({ error: 'Rate limiter unavailable.' }), {
-          status: 503, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-        });
-      }
-      if (!fbRl.allowed) {
-        _log('warn', 'feedback.ratelimit', { count: fbRl.count });
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again in an hour.' }), {
-          status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(fbRl.retryAfter || 3600), ...corsHeaders(request, env) },
-        });
-      }
-
-      // Privacy v3: deliberately reconstruct telemetry from allowlisted fields.
-      // Direct callers cannot turn /v1/feedback into a Q&A/comment collection path.
-      const telemetry = {
-        schemaVersion: 4,
-        telemetryConsent: true,
-        telemetryConsentVersion: '1.0.0',
-        telemetryConsentAt: Number.isFinite(fb.telemetryConsentAt) ? fb.telemetryConsentAt : null,
-        action: fb.action === 'retract' ? 'retract' : 'rate',
-        feedbackId: typeof fb.feedbackId === 'string' ? fb.feedbackId.slice(0, 128) : null,
-        feedbackChainId: typeof fb.feedbackChainId === 'string' ? fb.feedbackChainId.slice(0, 128) : null,
-        prevFeedbackId: typeof fb.prevFeedbackId === 'string' ? fb.prevFeedbackId.slice(0, 128) : null,
-        prevFeedbackIds: Array.isArray(fb.prevFeedbackIds)
-          ? fb.prevFeedbackIds.filter((id) => typeof id === 'string' && id).slice(0, 1000).map((id) => id.slice(0, 128))
-          : [],
-        answerIndex: Number.isInteger(fb.answerIndex) ? fb.answerIndex : null,
-        editCount: Number.isInteger(fb.editCount) ? Math.max(0, Math.min(1000, fb.editCount)) : 0,
-        ratingValue: typeof fb.ratingValue === 'number' ? fb.ratingValue : null,
-        ratingLabel: typeof fb.ratingLabel === 'string' ? fb.ratingLabel.slice(0, 64) : null,
-        ratingTitle: typeof fb.ratingTitle === 'string' ? fb.ratingTitle.slice(0, 128) : null,
-        ratingMode: ['quick', 'panel'].includes(fb.ratingMode) ? fb.ratingMode : null,
-        ts: Number.isFinite(fb.ts) ? fb.ts : null,
-        trainingStatus: 'telemetry',
-      };
-
-      const persist = String(env.FEEDBACK_PERSIST_ENABLED || '').toLowerCase() === 'true';
-      if (persist) {
-        const fbUuid = crypto.randomUUID();
-        try {
-          await _kvPut(env.SHARE_KV, `fb:${fbUuid}`, JSON.stringify(telemetry), { expirationTtl: 2592000 });
-        } catch (err) {
-          _log('error', 'feedback.kv_fail', { error_type: _safeErrorType(err) });
-          return new Response(JSON.stringify({ error: 'Storage error. Please try again.' }), {
-            status: 503, headers: { 'Content-Type': 'application/json', ...corsHeaders(request, env) },
-          });
-        }
-      }
-      _log('info', 'feedback.receive', { persisted: persist });
-      return new Response(JSON.stringify({ ok: true, persisted: persist }), {
-        status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...corsHeaders(request, env) },
       });
     }
 

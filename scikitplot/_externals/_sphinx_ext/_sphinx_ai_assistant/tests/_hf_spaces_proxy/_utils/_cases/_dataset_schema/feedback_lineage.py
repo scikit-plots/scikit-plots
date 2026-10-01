@@ -95,24 +95,6 @@ def test_feedback_review_normalizer_preserves_complete_lineage() -> None:
     assert row["editCount"] == 2
 
 
-def test_feedback_retraction_targets_canonical_parent_key_and_keeps_ancestry() -> None:
-    row = schema.normalize_feedback_record(
-        {
-            "schemaVersion": 4,
-            "action": "retract",
-            "feedbackChainId": "f1",
-            "prevFeedbackId": "f3",
-            "prevFeedbackIds": ["f1", "f2", "f3"],
-            "editCount": 3,
-            "answerIndex": 0,
-            "ts": 9,
-        },
-        server_ts_ms=10,
-    )
-    assert row["_dedup_key"] == "f3:feedback"
-    assert row["feedbackChainId"] == "f1"
-    assert row["prevFeedbackIds"] == ["f1", "f2", "f3"]
-    assert row["action"] == "retract"
 
 
 def test_contribution_qa_and_conversation_preserve_same_lineage() -> None:

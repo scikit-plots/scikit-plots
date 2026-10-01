@@ -103,7 +103,11 @@ def test_the_behavioural_matrix_covers_every_command():
 def test_the_delegated_exemption_is_narrow():
     """Only a command that hands off control may skip the behavioural matrix."""
     delegated = {c.name for c in BUILTIN_COMMANDS if getattr(c, "delegate", None)}
-    assert delegated == {"mcp"}, (
+    # Reviewed exemptions, each a hand-off to a program with its own parity
+    # evidence: ``mcp`` starts a server; ``cleanprompt`` forwards every argument
+    # to its own CLI, whose argparse and click frontends are held equal by that
+    # submodule's frontend-parity lane (``scikitplot/cleanprompt/tests``).
+    assert delegated == {"mcp", "cleanprompt"}, (
         f"delegated commands are exempt from behavioural parity; {delegated} is "
         "more than expected, so the exemption has widened without review."
     )

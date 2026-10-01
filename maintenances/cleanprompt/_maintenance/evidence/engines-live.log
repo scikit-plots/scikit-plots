@@ -1,0 +1,35 @@
+==============================================================================
+LIVE ENTITY ENGINES
+==============================================================================
+  spacy  AVAILABLE      spacy 3.8.16 satisfies spacy>=3.4,<5
+  nltk   AVAILABLE      nltk 3.10.3 satisfies nltk>=3.6,<4
+  usable: spacy, nltk
+
+==============================================================================
+OFFSET ALIGNMENT AND ROUND TRIP OVER 120 FUZZED DOCUMENTS
+==============================================================================
+ALIGN     PASS spacy span.text == text[start:end]  (286 spans)
+RT        PASS spacy redact/restore is exact
+LABEL     PASS spacy every label is canonical
+ALIGN     PASS nltk  span.text == text[start:end]  (272 spans)
+RT        PASS nltk  redact/restore is exact
+LABEL     PASS nltk  every label is canonical
+ALIGN     PASS both  span.text == text[start:end]  (520 spans)
+RT        PASS both  redact/restore is exact
+LABEL     PASS both  every label is canonical
+ALIGN     PASS none  span.text == text[start:end]  (0 spans)
+RT        PASS none  redact/restore is exact
+LABEL     PASS none  every label is canonical
+           (120 documents x 4 modes in 4.7s)
+
+==============================================================================
+ENGINE INTERCHANGEABILITY
+==============================================================================
+  spacy  -> EMAIL, GPE, PERSON
+  nltk   -> EMAIL, GPE, PERSON
+SWAP-001  PASS engines agree on at least one category
+SWAP-002  PASS no engine invents a category outside the vocabulary
+SWAP-003  PASS spacy  vault restores exactly
+SWAP-003  PASS nltk   vault restores exactly
+
+TOTAL FAILURES: 0

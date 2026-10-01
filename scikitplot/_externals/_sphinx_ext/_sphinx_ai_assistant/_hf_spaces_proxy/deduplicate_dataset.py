@@ -1567,7 +1567,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "AUDIT/RECOVERY ONLY: include quarantined or legacy-unreviewed contribution rows. "
-            "Feedback telemetry remains excluded. Default training output accepts only trainingStatus=eligible."
+            "Generic page feedback is outside this dataset pipeline. Default training output accepts only trainingStatus=eligible."
         ),
     )
     parser.add_argument(

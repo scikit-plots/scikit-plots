@@ -1,0 +1,9 @@
+{% extends "page.html" %}
+{% block body %}
+<div class="learn-page" data-learn-page data-subject="{{ learn_subject.id|e }}" data-site="{{ learn_site|e }}" data-revision="{{ learn_revision|e }}">
+{% include "learn/search.html" %}
+{{ super() }}
+<p class="learn-message" role="status" aria-live="polite"></p>
+{% if learn_related %}<section class="learn-related-mobile"><h2>Related Topics</h2>{% include "learn/related.html" %}</section>{% endif %}
+</div>
+{% endblock %}

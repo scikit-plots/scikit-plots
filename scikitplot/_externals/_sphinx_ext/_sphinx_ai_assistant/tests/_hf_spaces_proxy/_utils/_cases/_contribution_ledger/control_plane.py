@@ -216,6 +216,8 @@ def _clean_app(monkeypatch):
         proxy_app._CONTRIBUTION_LEDGER.clear_for_tests()
     proxy_app._contrib_rl.clear()
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REQUIRE_DURABLE", False)
+    # These cases exercise the historical explicit promotion ledger path.
+    monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_MODE", "ledger")
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_TOKEN", "review-secret")
     yield
     if hasattr(proxy_app._CONTRIBUTION_LEDGER, "clear_for_tests"):

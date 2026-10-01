@@ -1,0 +1,92 @@
+<div class="learn-overview-actions" data-enhanced hidden>
+  <div class="learn-overview-action-group" data-action-group="reading">
+    <label class="learn-reading-control"><span>Reading</span><select data-reading aria-label="Reading"><option>Unread</option><option>Want to Read</option><option>Currently Reading</option><option>Completed</option></select></label>
+    <a class="learn-button learn-action-destination" href="{{ collections_href|e }}">Collections</a>
+  </div>
+  <div class="learn-overview-action-group" data-action-group="bookmark">
+    <button type="button" data-bookmark aria-pressed="false">Bookmark</button>
+    <a class="learn-button learn-action-destination" href="{{ bookmarks_href|e }}">Bookmarks</a>
+  </div>
+  <div class="learn-overview-action-group" data-action-group="ai-overview">
+    <button type="button" class="learn-primary" data-overview-generate>Generate AI Overview</button>
+    <span class="learn-meta">Private AI draft for this {{ subject.kind|replace('-', ' ')|e }} record.</span>
+  </div>
+  {% if subject.kind in ['topic', 'source'] %}
+  <div class="learn-overview-action-group learn-generation-entry" data-action-group="media-generation">
+    {% if video_generation_href|default('#') != '#' %}<a class="learn-button learn-primary" href="{{ video_generation_href|e }}">Generate Video</a>{% endif %}
+    {% if audio_generation_href|default('#') != '#' %}<a class="learn-button" href="{{ audio_generation_href|e }}">Generate Audio</a>{% endif %}
+    {% if document_generation_href|default('#') != '#' %}<a class="learn-button" href="{{ document_generation_href|e }}">Generate Document</a>{% endif %}
+    {% if whiteboard_generation_href|default('#') != '#' %}<a class="learn-button" href="{{ whiteboard_generation_href|e }}">Generate Whiteboard</a>{% endif %}
+    <span class="learn-meta">Opens a source-aware generator with this record as context.</span>
+  </div>
+  {% endif %}
+</div>
+<div class="learn-section-ai learn-overview-generation" data-overview-generation hidden>
+  <div class="learn-section-ai-heading">
+    <div><p class="learn-kicker">Page-level AI workflow</p><h4>AI Overview</h4></div>
+    <span class="learn-section-ai-badge">Private draft</span>
+  </div>
+  <p class="learn-section-ai-intro">Create an AI overview of <strong>{{ subject.title|e }}</strong>. This is a draft for the current {{ subject.kind|replace('-', ' ')|e }} page—not a new Topic record and not a replacement for published catalog text.</p>
+  {% set flow_scope = 'overview' %}
+  {% set flow_aria_label = 'AI overview lifecycle' %}
+  {% set flow_context_detail = 'Record + selected evidence' %}
+  {% set flow_draft_detail = 'Private generation' %}
+  {% set flow_review_detail = 'Human judgment' %}
+  {% set flow_final_stage = 'handoff' %}
+  {% set flow_handoff_detail = 'Copy / download' %}
+  {% include "learn/generation-private-flow.html" %}
+  {% set request_meta_label = 'AI overview request contract' %}
+  {% set request_meta_items = [
+    {'label':'Workflow','value':'learn.page-overview-generation.v1'},
+    {'label':'Primary skill','value':'record-synthesis'},
+    {'label':'Lens mode','value':'One model · bounded lenses'}
+  ] %}
+  {% include "learn/generation-request-meta.html" %}
+  {% set generation_kind = 'overview' %}
+  {% set authority_id = 'overview' %}
+  {% set authority_embedded = true %}
+  {% set authority_title = 'Generation authority' %}
+  {% set authority_help = 'The shared AI Assistant model directly creates this private page-level overview draft.' %}
+  {% set authority_kind = 'assistant' %}
+  {% set authority_managed = 'shared' %}
+  {% set authority_initial_label = 'Discovering…' %}
+  {% set authority_initial_badge = 'Default' %}
+  {% set authority_open_label = 'Model Configuration' %}
+  {% set authority_open_title = 'Open AI Assistant model configuration' %}
+  {% set authority_more_label = 'Try a different model' %}
+  {% set authority_more_title = 'More model options' %}
+  {% set authority_runtime_label = 'Chat runtime' %}
+  {% set authority_runtime_initial = 'Shared Assistant' %}
+  {% set authority_context = 'This overview remains a private browser-local draft until an explicit handoff.' %}
+  {% set authority_status = 'Checking shared Assistant model authority…' %}
+  {% include "learn/generation-authority.html" %}
+  <fieldset class="learn-ai-context-composer">
+    <legend>Context composition <small>Select one or more inputs. External URLs are references only.</small></legend>
+    <div class="learn-ai-choice-grid learn-ai-choice-grid--context">
+      <label><input type="checkbox" data-overview-context="summary" checked> Record summary</label>
+      <label><input type="checkbox" data-overview-context="sections" checked> Published sections</label>
+      <label><input type="checkbox" data-overview-context="related" checked> Related records</label>
+    </div>
+    {% if sources %}
+    <div class="learn-ai-context-sources" aria-label="Source context selection">
+      <strong>Evidence sources</strong>
+      {% for source in sources %}<label><input type="checkbox" data-overview-source="{{ source.id|e }}" checked> <span>{{ source.title|e }}</span></label>{% endfor %}
+    </div>
+    {% else %}<p class="learn-meta">No Source records are attached to this page yet.</p>{% endif %}
+  </fieldset>
+  {% set lens_scope = 'overview' %}
+  {% set lens_variant = 'overview' %}
+  {% include "learn/ai-lens-profile.html" %}
+  <label class="learn-generation-field">Depth
+    <select name="ai-depth" data-overview-depth><option value="concise">Concise</option><option value="balanced" selected>Balanced</option><option value="deep">Deep</option></select>
+  </label>
+  <label class="learn-section-ai-instructions">Additional guidance<textarea data-overview-instructions maxlength="4000" rows="4" placeholder="Optional emphasis, questions, constraints, or evidence boundaries."></textarea></label>
+  {% set publication_credit_help = 'Nickname or name reserved for the reviewed publication handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. This credit is stored separately from generation context and is never sent to the AI model.' %}
+  {% include "learn/publication-credit.html" %}
+  {% set generation_action_scope = 'overview' %}
+  {% set generation_action_run_label = 'Generate AI Overview' %}
+  {% set generation_action_copy_suffix = '-request' %}
+  {% include "learn/text-generation-actions.html" %}
+  <p class="learn-section-ai-status" data-overview-status role="status" aria-live="polite" aria-atomic="true">Ready to create a private AI overview.</p>
+  <article class="learn-ai-overview-result" data-overview-result hidden><div class="learn-section-ai-heading"><div><p class="learn-kicker">Private AI draft</p><h4>Generated overview</h4></div><span class="learn-section-ai-badge" data-overview-provenance>AI-generated</span></div><div class="learn-prose" data-overview-output></div><div class="learn-actions"><button type="button" data-overview-copy-result>Copy overview</button><button type="button" data-overview-download>Download handoff</button><button type="button" data-overview-discard>Discard draft</button><button type="button" class="learn-primary" data-overview-publish>Open pull request</button></div><p class="learn-meta" data-overview-publication-status role="status" aria-live="polite">Local only · publication not requested. Contributor credit above is used only if you open a reviewed pull request.</p><p class="learn-meta" data-overview-publication-link hidden></p></article>
+</div>

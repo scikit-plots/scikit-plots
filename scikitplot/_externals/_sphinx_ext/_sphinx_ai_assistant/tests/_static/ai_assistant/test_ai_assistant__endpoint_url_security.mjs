@@ -15,10 +15,10 @@ const block = src.slice(start, end + endMarker.length);
 const warnings = [];
 const store = new Map();
 store.set('ai-assistant-ep-custom', JSON.stringify({
-  _v: 1,
+  _v: 9,
   profiles: {
-    stale_private: { label: 'stale', base: 'https://127.0.0.1/private' },
-    stale_safe: { label: 'safe', base: 'https://safe.example.com', share: 'v1/share' },
+    stored_private: { label: 'stale', base: 'https://127.0.0.1/private' },
+    stored_safe: { label: 'safe', base: 'https://safe.example.com', share: 'v1/share' },
   },
   meta: {},
 }));
@@ -80,10 +80,10 @@ ok(warnings.some(x => x.includes('[endpoint-security]')), 'rejection emits priva
 ok(!warnings.some(x => x.includes('127.0.0.1') || x.includes('safe.example.com@')), 'security diagnostics never echo rejected URL');
 
 const listed = EP.list().map(x => x.key);
-ok(!listed.includes('stale_private'), 'unsafe persisted profile is discarded on load');
-ok(listed.includes('stale_safe'), 'safe persisted profile survives re-sanitization');
-EP.setActive('stale_safe');
-eq(EP.resolveEndpoint('share'), 'https://safe.example.com/v1/share', 're-sanitized persisted relative route resolves safely');
+ok(!listed.includes('stored_private'), 'unsafe current-schema persisted profile is discarded on load');
+ok(listed.includes('stored_safe'), 'safe current-schema persisted profile survives re-sanitization');
+EP.setActive('stored_safe');
+eq(EP.resolveEndpoint('share'), 'https://safe.example.com/v1/share', 're-sanitized current-schema relative route resolves safely');
 
 console.log(`${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

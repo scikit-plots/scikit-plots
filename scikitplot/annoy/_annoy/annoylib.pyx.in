@@ -855,10 +855,6 @@ cdef unsigned long long g_annoy_repr_html_seq = 0
 # ==============================================================================
 import itertools
 
-from scikitplot import __version__
-from scikitplot.externals._packaging.version import parse as parse_version
-from scikitplot import get_config
-
 
 cdef class ReprHTMLMixin:
     """
@@ -903,13 +899,19 @@ cdef class ReprHTMLMixin:
         AttributeError
             If display configuration is not 'diagram'
         """
-        if get_config()["display"] != "diagram":
-            raise AttributeError(
-                "_repr_html_ is only defined when the "
-                "'display' configuration option is set to "
-                "'diagram'"
-            )
-        return self._repr_html_inner
+        # HTML representation
+        try:
+            from scikitplot import get_config
+
+            if get_config()["display"] != "diagram":
+                raise AttributeError(
+                    "_repr_html_ is only defined when the "
+                    "'display' configuration option is set to "
+                    "'diagram'"
+                )
+            return self._repr_html_inner
+        except Exception:
+            pass
 
     def _repr_html_inner(self):
         """
@@ -943,6 +945,8 @@ cdef class ReprHTMLMixin:
 
         # Add HTML representation
         try:
+            from scikitplot import get_config
+
             if get_config()["display"] == "diagram":
                 output["text/html"] = self._html_repr()
         except Exception:
@@ -1021,6 +1025,9 @@ cdef class _HTMLDocumentationLinkMixin(ReprHTMLMixin):
         template : str
             URL template with placeholders
         """
+        from scikitplot import __version__
+        from scikitplot.externals._packaging.version import parse as parse_version
+
         scikitplot_version = parse_version(__version__)
         if scikitplot_version.dev is None:
             version_url = f"{scikitplot_version.major}.{scikitplot_version.minor}"
