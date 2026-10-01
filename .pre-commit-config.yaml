@@ -63,7 +63,7 @@ repos:
   # Documentation and Specialized Linting
   # - repo: https://github.com/woodruffw/zizmor-pre-commit
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.30.0
+    rev: v1.30.1
     hooks:
       # pre-commit run zizmor --all-files --verbose
       - id: zizmor
