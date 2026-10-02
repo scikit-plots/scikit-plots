@@ -236,8 +236,30 @@ def test_quick_action_selected_state_respects_forced_colors():
 def test_quick_counts_use_logical_divider_and_require_consistent_distribution():
     assert "sphinx-feedback-quick-count" in CSS
     assert "border-inline-start" in CSS
+    assert "border-inline-end" in CSS
     assert "counter.neutral_count" in JS
     assert "counter.negative_count + counter.positive_count + counter.neutral_count === counter.count" in JS
-    assert "fillQuickButton(down, 'down', negativeCount)" in JS
-    assert "fillQuickButton(up, 'up', positiveCount)" in JS
+    assert "fillQuickButton(down, 'down', negativeCount, quickCountPosition(this.config, 'down'))" in JS
+    assert "fillQuickButton(up, 'up', positiveCount, quickCountPosition(this.config, 'up'))" in JS
     assert 'for field in ("positive_count", "negative_count", "neutral_count")' in SPHINX
+
+
+def test_quick_count_position_is_configurable_per_button_with_balanced_fallback():
+    assert "function quickCountPosition(config, kind)" in JS
+    assert "kind === 'down' ? 'left' : 'right'" in JS
+    assert "config?.buttons_ratings?.[key]" in JS
+    assert "data-rating-position" in JS
+    assert "quickCountPosition(this.config, 'down')" in JS
+    assert "quickCountPosition(this.config, 'up')" in JS
+    assert '.sphinx-feedback-quick-count[data-rating-position="left"]' in CSS
+    assert '.sphinx-feedback-quick-count[data-rating-position="right"]' in CSS
+    assert '"buttons_ratings": dict(normalized["buttons_ratings"])' in SPHINX
+    assert '"feedback_buttons_ratings"' in SPHINX
+
+
+def test_readme_documents_all_supported_quick_count_layouts():
+    assert 'feedback_buttons_ratings' in README
+    assert 'left_button_rating' in README
+    assert 'right_button_rating' in README
+    assert '[0 | 👎]' in README
+    assert '[👎 | 0]' in README

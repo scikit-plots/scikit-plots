@@ -4,7 +4,7 @@
 
 Primary package:
 
-`scikitplot/_externals/_sphinx_ext/_sphinx_ai_learn/`
+`docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_ai_learn/`
 
 Canonical content lives under `docs/source/learn-ai/`.
 
@@ -60,6 +60,8 @@ Index explorer pages share one masthead/search/results model. Page-specific JSON
 
 Search presentation can be `pill-overflow` or `classic` where supported, but the page data should not duplicate browser-control implementation.
 
+Catalog/media indexes use deterministic 12-record presentation shards. `index.rst` owns offset 0; the materializer derives owned `page-N.rst` overflow pages from the same canonical index JSON. The shared filter panel exposes display presets `12/25/50/75/100/125/150`, while the end-of-results control advances by exactly 12 records per explicit press. Keep selector, progressive loader, no-JS next/previous links, table/grid adapters, and URL `limit` validation in the shared explorer contract rather than modality-specific code. Prompt/Skill and browser-local library grids reuse the same 12-item visible-window UX; their underlying canonical/local-storage semantics remain separate.
+
 Secondary sidebar behavior is a canonical page-level choice, not a template accident. Keep that policy centralized when adding a new page type.
 
 ## Generation studio
@@ -98,6 +100,13 @@ Sections may contain accepted generation records and reviewed feedback. Active-g
 
 Feedback sidecars are canonical scoped data. Changes should invalidate only the documents that depend on the affected feedback/content when possible.
 
+Quick-feedback count placement is presentation-only and is configured with
+`ai_learn_buttons_ratings` (`left_button_rating` for thumbs-down,
+`right_button_rating` for thumbs-up). Keep `_sphinx.py` validation, `_pages.py`
+HTML-time config injection, `generation-feedback.html` DOM order, and
+`topic.css` logical dividers synchronized. Do not persist this UI preference in
+canonical generation/feedback JSON or publication requests.
+
 Do not derive participant identity from network address, browser history, or a stable tracking identifier merely to support feedback counts.
 
 ## Sphinx lifecycle
@@ -129,36 +138,3 @@ For a new AI Learn change:
 6. Preserve accessibility, light/dark theme behavior, and responsive layouts when changing UI.
 7. Run idempotence and clean-tree checks after materializer changes.
 8. Keep this file present-tense and focused on the active contract.
-
-## Library checkout
-
-Canonical content (`docs/source/learn-ai/`), the site `conf.py` and the
-publication workflow exist only in the documentation repository. Tests that
-read them call `tests/_learn_site.py` (`content_root()`, `content_tree()`,
-`docs_source()`, `site_repository()`), which returns the path or skips with
-the reason. Tests of the schema, materializer logic on synthetic trees,
-templates and static assets run in both checkouts.
-
-Do not load canonical content at module import in a test. A module-level
-`load_content_tree(...)` fails at collection where there is no content, and a
-collection error stops the whole run.
-
-Link targets taken from page data in `_static/ai-learn.js` and
-`_static/topic.js` pass `safeHref` (http and https only); same-page targets are
-built with `encodeURIComponent`.
-
-A detail page that no index page owns is written with `:orphan:`. A record is
-owned by the explorer or media gallery of its kind, a prompt by the prompt
-library, a skill by the skill library; where that index page is not defined,
-Sphinx would otherwise report the generated page as outside every toctree and
-fail a `-W` build. Owned pages are unchanged.
-
-`tests/_integration/test_sphinx_build.py` builds a throwaway Sphinx project
-and needs `sphinx-design`. Of the themes it parametrizes over, `alabaster`
-ships with Sphinx and always runs; a third-party theme (`pydata_sphinx_theme`,
-`furo`) runs where it is installed and skips, naming the theme, where Sphinx
-cannot load it. The project declares `pydata-sphinx-theme` and does not declare
-`furo`, so a default CI install runs two themes and skips one. Adding a theme
-to the parameter list does not require adding it to `pyproject.toml`. A fixture
-that tests an explorer writes that explorer's page definition; records alone
-produce detail pages and no explorer.

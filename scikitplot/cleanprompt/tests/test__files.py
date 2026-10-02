@@ -46,6 +46,19 @@ def _holder(path, seconds):
     return child
 
 
+def _stop(child):
+    """
+    Kill a holder, reap it, and close its pipe.
+
+    A pipe left open is closed by the garbage collector at some later point,
+    and the project runs pytest with warnings as errors: the resulting
+    ``ResourceWarning`` then fails whichever test is running (``CP-087``).
+    """
+    child.kill()
+    child.wait()
+    child.stdout.close()
+
+
 class TestLocked:
     def test_a_second_process_waits_then_gives_up_with_the_reason(self, tmp_path):
         target = tmp_path / "vault.json"
@@ -59,14 +72,12 @@ class TestLocked:
             assert time.monotonic() - started < 5
             assert told == [1]
         finally:
-            child.kill()
-            child.wait()
+            _stop(child)
 
     def test_a_killed_holder_leaves_no_stale_lock(self, tmp_path):
         target = tmp_path / "vault.json"
         child = _holder(target, 30)
-        child.kill()
-        child.wait()
+        _stop(child)
         with locked(str(target), timeout=5):
             pass
 

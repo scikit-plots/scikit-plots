@@ -15,7 +15,8 @@ package UI-free lets catalog tooling, the gallery adapter, and the standalone
 player share one provider contract without creating an extension dependency
 cycle. Result-count placement is likewise outside this provider layer: the
 shared collection/gallery renderer owns the V4 controls -> status -> cards
-structure; this provider layer must never create or reposition the result count.
+structure and its bounded 12-card display/load-more controller; this provider
+layer must never create, paginate, hide, or reposition collection cards itself.
 """
 
 from __future__ import annotations

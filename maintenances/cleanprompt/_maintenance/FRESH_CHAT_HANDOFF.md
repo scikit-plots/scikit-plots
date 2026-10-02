@@ -28,7 +28,7 @@ all nine published examples in sandboxed homes.
 
 ## What is actually open
 
-Nothing in the runtime: 2467 tests pass, 10 skipped, the maintenance plane's
+Nothing in the runtime: 2471 tests pass, 10 skipped, the maintenance plane's
 tests pass, and both the maintenance and the runtime contract are `PASS`. One
 thing is *not proven*, which is different:
 

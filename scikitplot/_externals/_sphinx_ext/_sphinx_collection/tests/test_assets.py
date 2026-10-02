@@ -112,6 +112,63 @@ def test_search_is_live_and_ime_safe() -> None:
     assert "if(event.key==='Enter' && event.isComposing)event.preventDefault();" in js
 
 
+
+def test_bounded_display_is_one_shared_gallery_contract() -> None:
+    assets = _assets_module()
+    css = assets.ASSET_CSS
+    js = assets.ASSET_JS
+    collection = (ROOT / "_sphinx_collection" / "README.md").read_text(encoding="utf-8")
+    gallery = (ROOT / "_sphinx_gallery_grid" / "directive.py").read_text(encoding="utf-8")
+    youtube_core = (ROOT / "_sphinx_youtube_core" / "__init__.py").read_text(encoding="utf-8")
+    youtube_gallery = (ROOT / "_sphinx_youtube_gallery" / "__init__.py").read_text(encoding="utf-8")
+
+    # One shared browser implementation owns both gallery-grid and delegated
+    # youtube-gallery card modes. Provider/core layers must not fork it.
+    assert "var DISPLAY_SIZES=[12,25,50,75,100,125,150],DISPLAY_STEP=12;" in js
+    assert "control('Display up to',displaySelect);" in js
+    assert "Maximum cards displayed" in js
+    assert "Load '+DISPLAY_STEP+' more" in js
+    assert "root.append(pager,empty);" in js
+    assert "displaySummary.setAttribute('aria-live'" not in js
+    assert "matching.slice(0,visibleLimit)" in js
+    assert "visibleLimit+=DISPLAY_STEP" in js
+    assert "displayPreset=value;visibleLimit=value" in js
+    assert "displayPreset=displayDefault;visibleLimit=displayDefault" in js
+    assert "sourceReversed?ordered.slice().reverse():ordered" in js
+    assert "pager.hidden=!expandable||matching.length===0" in js
+    assert "Remember my filters, sorting & display" in js
+    assert "display:displayPreset" in js
+    assert "payload.display=DISPLAY_SIZES.includes(savedDisplay)?savedDisplay:displayDefault" in js
+    assert "displayPreset=state.display;visibleLimit=state.display" in js
+    assert "f.select.addEventListener('change',function(){saveView();apply();})" in js
+    assert "if(sort)sort.addEventListener('change',function(){applySort();saveView();apply();})" in js
+    assert "entry.clear();saveView();apply()" in js
+    assert "sk-collection-pager" in css
+    assert "sk-collection-load-more" in css
+    assert ".sk-collection-suggestions,.sk-collection-pager { display:none !important; }" in css
+
+    assert "12/25/50/75/100/125/150" in collection
+    assert "12 cards by default" in gallery
+    assert "bounded 12-card display/load-more controller" in youtube_core
+    assert "12 by default, shared presets, and Load 12 more" in youtube_gallery
+
+
+def test_bounded_display_does_not_replace_build_time_selection() -> None:
+    gallery = (ROOT / "_sphinx_gallery_grid" / "directive.py").read_text(encoding="utf-8")
+    youtube = (ROOT / "_sphinx_youtube_gallery" / "directive.py").read_text(encoding="utf-8")
+    js = _assets_module().ASSET_JS
+
+    # Existing author-facing selection remains server/build-time. The browser
+    # window only bounds cards that gallery-grid actually rendered.
+    assert '"limit": directives.nonnegative_int' in gallery
+    assert '"offset": directives.nonnegative_int' in gallery
+    assert "limit=self.options.get(\"limit\")" in gallery
+    assert "offset=self.options.get(\"offset\", 0)" in gallery
+    assert '"limit": directives.nonnegative_int' in youtube
+    assert '"offset": directives.nonnegative_int' in youtube
+    assert "matching=displayOrder.filter" in js
+    assert "var cards = Array.from(root.querySelectorAll('.sd-card'))" in js
+
 def test_disclosure_is_inline_not_popup_autoclose() -> None:
     js = _assets_module().ASSET_JS
 

@@ -38,6 +38,7 @@ scikitplot.cleanprompt._guard.Guard : The gate this runs through.
 from __future__ import annotations
 
 import codecs
+import contextlib
 import os
 import shlex
 import subprocess
@@ -91,6 +92,31 @@ def split_command(command: str) -> list[str]:
     return argv
 
 
+def _close_pipes(process: subprocess.Popen) -> None:
+    """
+    Close every pipe of a finished process.
+
+    Parameters
+    ----------
+    process : subprocess.Popen
+        A process that has exited and whose pipe threads have been joined.
+
+    Notes
+    -----
+    **Developer notes.** Closing the input pipe flushes it. If the command
+    exited before reading the whole prompt, that flush fails with the same
+    ``OSError`` the writer thread already recorded and reported to the user,
+    so it is not reported a second time here; the descriptor is released
+    either way.
+    """
+    for pipe in (process.stdout, process.stderr):
+        if pipe is not None:
+            pipe.close()
+    if process.stdin is not None:
+        with contextlib.suppress(OSError):
+            process.stdin.close()
+
+
 def run_command(  # ruff: ignore[too-many-positional-arguments]
     guard: Guard,
     argv: list[str],
@@ -134,6 +160,11 @@ def run_command(  # ruff: ignore[too-many-positional-arguments]
     message would otherwise show the user placeholders, and a user who then
     pastes that error into a ticket should not be pasting values either — so
     it is decoded for display here, locally, and never logged.
+
+    All three pipes are closed before this returns, on every path. A pipe
+    left to the garbage collector is closed at a time the caller does not
+    choose, and under ``-W error`` its ``ResourceWarning`` is an error raised
+    in whatever code happens to be running then (``CP-087``).
     """
     safe = guard.outgoing(prompt)
     try:
@@ -207,6 +238,7 @@ def run_command(  # ruff: ignore[too-many-positional-arguments]
         process.stdout.close()
         writer.join()
         reader.join()
+        _close_pipes(process)
     if errors and errors[0]:
         stderr.write(guard.incoming(errors[0].decode("utf-8", errors="replace")))
     if unread:

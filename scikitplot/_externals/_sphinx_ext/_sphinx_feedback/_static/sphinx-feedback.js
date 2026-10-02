@@ -104,32 +104,42 @@
     }
   }
 
-  function fillQuickButton(button, kind, count = null) {
+  function quickCountPosition(config, kind) {
+    const key = kind === 'down' ? 'left_button_rating' : 'right_button_rating';
+    const fallback = kind === 'down' ? 'left' : 'right';
+    const value = config?.buttons_ratings?.[key];
+    return value === 'left' || value === 'right' ? value : fallback;
+  }
+
+  function fillQuickButton(button, kind, count = null, countPosition = 'right') {
     const spec = QUICK_ICONS[kind];
     if (!button || !spec) return;
     const icon = quickIcon(kind);
-    if (icon) button.append(icon);
-    button.append(
-      el(
-        'span',
-        {class: 'sphinx-feedback-choice-label', 'aria-hidden': 'true'},
-        spec.label,
-      ),
+    const label = el(
+      'span',
+      {class: 'sphinx-feedback-choice-label', 'aria-hidden': 'true'},
+      spec.label,
     );
+    let counter = null;
     if (Number.isSafeInteger(count) && count >= 0) {
-      button.append(
-        el(
-          'span',
-          {
-            class: 'sphinx-feedback-quick-count',
-            'data-sphinx-feedback-quick-count': kind === 'down' ? '-1' : '1',
-            'data-feedback-count': String(count),
-            'aria-hidden': 'true',
-          },
-          formatCompactCount(count),
-        ),
+      const normalizedPosition = countPosition === 'left' ? 'left' : 'right';
+      counter = el(
+        'span',
+        {
+          class: 'sphinx-feedback-quick-count',
+          'data-sphinx-feedback-quick-count': kind === 'down' ? '-1' : '1',
+          'data-feedback-count': String(count),
+          'data-rating-position': normalizedPosition,
+          'aria-hidden': 'true',
+        },
+        formatCompactCount(count),
       );
+      button.dataset.ratingPosition = normalizedPosition;
     }
+    if (counter && countPosition === 'left') button.append(counter);
+    if (icon) button.append(icon);
+    button.append(label);
+    if (counter && countPosition !== 'left') button.append(counter);
   }
 
   function readConfig() {
@@ -690,7 +700,7 @@
             ? `Not helpful (-1) · ${negativeCount} negative rating${negativeCount === 1 ? '' : 's'}`
             : 'Not helpful (-1)',
         });
-        fillQuickButton(down, 'down', negativeCount);
+        fillQuickButton(down, 'down', negativeCount, quickCountPosition(this.config, 'down'));
         up = el('button', {
           type: 'button',
           class: 'sphinx-feedback-quick-btn',
@@ -703,7 +713,7 @@
             ? `Helpful (+1) · ${positiveCount} positive rating${positiveCount === 1 ? '' : 's'}`
             : 'Helpful (+1)',
         });
-        fillQuickButton(up, 'up', positiveCount);
+        fillQuickButton(up, 'up', positiveCount, quickCountPosition(this.config, 'up'));
         actions.append(down, up);
       }
 

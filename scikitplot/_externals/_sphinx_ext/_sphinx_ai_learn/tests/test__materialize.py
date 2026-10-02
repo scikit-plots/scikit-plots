@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import stat
 from pathlib import Path, PurePosixPath
 
 import pytest
@@ -65,7 +67,14 @@ def test_production_tree_is_one_json_to_one_rst_and_projection_is_canonical():
         for section in subject.get("sections", [])
         if section.get("body") or section.get("citations") or section.get("links")
     )
-    assert len(rendered) == len(tree.source_digests) - len(tree.feedback_events)
+    primary = {
+        rel.with_suffix(".rst")
+        for rel in set(tree.source_digests) - set(tree.feedback_events)
+    }
+    assert primary <= set(rendered)
+    derived = set(rendered) - primary
+    assert derived
+    assert all(path.name.startswith("page-") and path.suffix == ".rst" for path in derived)
     assert all((_learn_site.content_root() / rel).is_file() for rel in rendered)
     assert all((_learn_site.content_root() / rel).read_bytes() == raw for rel, raw in rendered.items())
 
@@ -85,6 +94,17 @@ def test_production_tree_is_one_json_to_one_rst_and_projection_is_canonical():
             add_toctree=record["add_toctree"],
         )
         assert projected == {path: (_learn_site.content_root() / path).read_bytes() for path in projected}
+
+
+def test_explorer_pagination_shards_are_uniform_owned_and_deterministic():
+    tree = load_content_tree(_learn_site.content_root())
+    rendered = render_materialized(tree)
+    assert Path("topics/page-2.rst") in rendered
+    page = rendered[Path("topics/page-2.rst")].decode()
+    assert page.startswith(":orphan:\n:no-search:\n")
+    assert ".. source-json: topics/index.json" in page
+    assert "Topics — Page 2" in page
+    assert ".. ai-topic-explorer:: topic\n   :offset: 12" in page
 
 
 def test_secondary_sidebar_control_is_explicit_for_every_renderable_json():
@@ -194,9 +214,9 @@ def test_canonical_record_projection_writes_sidebar_controls_explicitly():
 def test_materialize_is_idempotent_and_preserves_unchanged_mtime(tmp_path):
     root = _json_only_copy(tmp_path)
     expected = load_content_tree(root)
-    expected_renderable = len(expected.source_digests) - len(expected.feedback_events)
+    expected_rendered = render_materialized(expected)
     _, first = materialize(root)
-    assert len(first) == expected_renderable
+    assert len(first) == len(expected_rendered)
     tracked = root / first[0]
     before = tracked.stat().st_mtime_ns
     _, second = materialize(root)
@@ -204,6 +224,22 @@ def test_materialize_is_idempotent_and_preserves_unchanged_mtime(tmp_path):
     assert tracked.stat().st_mtime_ns == before
 
 
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits are not portable to Windows")
+def test_materialize_normalizes_owned_rst_permissions(tmp_path):
+    root = _json_only_copy(tmp_path)
+    _, first = materialize(root)
+    target_rel = Path(first[0])
+    target = root / target_rel
+    target.chmod(0o600)
+
+    _, changed = materialize(root)
+    assert target_rel.as_posix() in changed
+    assert stat.S_IMODE(target.stat().st_mode) == 0o644
+
+    _, again = materialize(root)
+    assert again == ()
 
 
 def test_feedback_sidecar_is_validated_scored_and_never_materialized_as_rst(tmp_path):

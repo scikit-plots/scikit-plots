@@ -32,9 +32,24 @@ CI, on the real package, failed
   interpreter through `tests/_isolated.py`, which also owns the stand-in
   parent, and an architecture test refuses a test module that imports
   `doctest`. A module whose examples were not attempted now fails too.
+- `CP-087`, the next CI failure: `test__bridge` failed with
+  `ResourceWarning: unclosed file <_io.BufferedReader>`. `run_command` closed
+  the command's output pipe and never its error pipe, nor its input pipe when
+  the write had failed. The project runs pytest with `filterwarnings = error`,
+  so the warning, raised when the collector closed the pipe, failed the test.
+  `_bridge._close_pipes` now closes all three on every path.
+- Run under that filter, fifteen tests failed, not one: six through the
+  bridge, three through `ask`, and six from handles the tests themselves left
+  open (the lock-holder child's pipe in `test__files` and `test__cli`, a pipe
+  in `test_regressions`, an `open().read()` in `test__vaultcrypt`). All are
+  closed; the `_files.locked` example no longer shows `open(...).read()`.
+- `TestPipesAreClosed` inspects the pipes directly after an ordinary run, a
+  failing command, a command that ignores its input and a timeout, so the
+  check holds under any warning filter.
 - Verification now runs under both parents (an empty one and one that imports
-  NumPy) and with the project's pytest logging options. 2467 tests pass under
-  each.
+  NumPy) and under the project's pytest options: warnings as errors, live
+  logging at INFO, strict markers and config. 2471 tests pass, also with a
+  forced collection after every test.
 
 ## 2026-10-02 — round twenty-two: what is committed is read by scanners
 

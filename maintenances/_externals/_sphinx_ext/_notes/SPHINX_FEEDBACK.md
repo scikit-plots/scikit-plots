@@ -4,7 +4,7 @@
 
 Primary package:
 
-`scikitplot/_externals/_sphinx_ext/_sphinx_feedback/`
+`docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_feedback/`
 
 The extension provides privacy-minimal page feedback for Sphinx/static HTML. Its dependency-free request/event helpers can be imported without Sphinx; Sphinx integration is loaded lazily.
 
@@ -40,11 +40,22 @@ Important configuration lives in `_sphinx.py`, including:
 - `feedback_page_enabled`;
 - `feedback_position` and fallback placement;
 - quick/detailed/comment/contributor switches;
+- `feedback_buttons_ratings` per-button quick-count placement;
 - counter enable/source settings;
 - `feedback_endpoint`;
 - `feedback_site_id`;
 - page revision and aggregate-file configuration;
 - include/exclude and selector settings.
+
+
+Quick-button reviewed counts are presentation-configurable without changing the
+feedback event contract. `feedback_buttons_ratings` accepts the distinct keys
+`left_button_rating` (thumbs-down) and `right_button_rating` (thumbs-up), each
+with `"left"` or `"right"`. The site default is the balanced outer-edge layout
+`[0 | 👎] [👍 | 0]`; selected labels stay attached to their thumb cluster.
+Configuration is validated in `_config.py`, serialized by `_sphinx.py`, applied
+by `sphinx-feedback.js`, and divided with logical-side CSS in
+`sphinx-feedback.css`. Keep those four layers in sync when extending this UI.
 
 Do not couple this generic page-feedback UI to AI Assistant answer ratings. They are separate product surfaces even when they share a backend deployment.
 
@@ -91,14 +102,3 @@ GitHub/provider tokens are server authority. Never serialize them into Sphinx co
 5. Keep provider credentials out of static/browser data.
 6. Preserve canonical hashing/retry semantics across transports.
 7. Keep this file present-tense and focused on the active contract.
-
-## Library checkout
-
-The proxy carries a byte-identical mirror of `__init__.py`, `_contracts.py`
-and `_service/` at `_sphinx_ai_assistant/_hf_spaces_proxy/_page_feedback/`.
-This package is the source; after editing it, run
-`_sphinx_ai_assistant/_hf_spaces_proxy/_utils/sync_page_feedback_runtime.py`.
-A test in the assistant tree fails on any difference.
-
-`tests/` is not a package. Its `conftest.py` puts the stack's parent on
-`sys.path` so the folder passes when run alone.

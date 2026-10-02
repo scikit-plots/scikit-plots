@@ -1037,13 +1037,23 @@ inside JSON strings unread); round twenty-two began with a refused push and
 found `CP-079` (whole key-shaped examples in committed files), `CP-080` (a DTD
 in a UTF-16 Office part was not refused) and `CP-081` to `CP-084` (a lint pass
 that broke the base-tier import, session turns and the corpus bridge; an empty
-pack section accepted). `CP-048` is the design driver
+pack section accepted); round twenty-three found `CP-085` (the import-isolation
+tests measured the parent package, whose `__init__` imports NumPy, so they
+failed in a real checkout; they now run under an empty stand-in parent, with a
+second test for what the submodule adds under the real one) and `CP-086`
+(doctests run inside the pytest process reported "Got nothing" once a log
+record was printed live, because pytest took `sys.stdout` back; every doctest
+run now goes through `tests/_isolated.py`, a fresh interpreter) and `CP-087`
+(`run_command` left the command's standard-error pipe to the garbage
+collector; all three pipes are now closed before it returns). The suite is
+verified under the project's own pytest options — warnings as errors, live
+logging at INFO — not pytest's defaults. `CP-048` is the design driver
 (records leaked because keys were never read); `CP-049` to `CP-053` were found
 while building and verifying it; `CP-054` to `CP-056` were found by running the
 Python matrix, lane 13, for the first time; `CP-057` and `CP-058` by the
 format fuzz (`probe_fuzz.py`). The suite stands at 2042 passing,
 6 skipped, green on CPython 3.8 to 3.13 (2128 after round fourteen, 2210
-after round fifteen, 2243 after round sixteen, 2258 after round seventeen, 2302 after round eighteen, 2354 after round nineteen, 2381 after round twenty, 2424 after round twenty-one, 2464 after round twenty-two).
+after round fifteen, 2243 after round sixteen, 2258 after round seventeen, 2302 after round eighteen, 2354 after round nineteen, 2381 after round twenty, 2424 after round twenty-one, 2464 after round twenty-two, 2471 after round twenty-three).
 
 Do not reopen any of them from source inspection alone, and do not close a new
 one without both a regression test and a probe.

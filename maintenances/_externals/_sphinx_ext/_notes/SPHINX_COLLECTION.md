@@ -13,7 +13,7 @@ This guide covers the cooperating private extensions:
 
 All live under:
 
-`scikitplot/_externals/_sphinx_ext/`
+`docs/source/scikitplot/_externals/_sphinx_ext/`
 
 ## Ownership model
 
@@ -32,6 +32,8 @@ Owns:
 - shared section rendering;
 - browser metadata serialization;
 - search/disclosure/filter/sort/add/export controls;
+- bounded display presets (`12/25/50/75/100/125/150`) and grid-end `Load 12 more`;
+- optional persisted display preset when the visitor opts into saved view state;
 - collection CSS/JS asset lifecycle;
 - the live result-status contract.
 
@@ -88,6 +90,30 @@ The shared presentation names are:
 
 Changing search presentation must not change status ownership: both variants use the same `controls -> status -> results` structure.
 
+
+## Bounded display contract
+
+Enhanced `gallery-grid` roots use a reader-side bounded window owned only by
+`_sphinx_collection`. The default is 12 visible cards. The expanded **View**
+panel offers `12/25/50/75/100/125/150`, while a grid-end **Load 12 more** action
+adds exactly one 12-card step to the current session view. A selected preset and
+manual expansion are deliberately separate: selecting 25 replaces the current
+window with 25; loading more then shows up to 37 without inventing a new preset.
+
+This layer must remain distinct from `gallery-grid` / `youtube-gallery`
+build-time `:limit:` and `:offset:`. Those options decide which records are
+rendered into the document. The browser window only decides how many rendered
+matching cards are visible. Search/facet/sort therefore operate over the full
+rendered collection, and the bounded subset follows the actual visual order,
+including `sd-flex-row-reverse` grids and live sorting.
+
+`youtube-gallery` gets this behavior only by delegation through `gallery-grid`;
+`_sphinx_youtube_core` stays UI-free. The selector/pager must fail open: with
+JavaScript unavailable, static cards remain visible. The current bounded YAML
+input ceiling still applies, so very large catalogs require source-side shards
+or a cursor/index backend rather than attempting to place 100K+ cards into one
+static HTML document.
+
 ## Asset and incremental-build lifecycle
 
 Collection CSS/JS are extension-owned output assets. Their content revision and the collection UI contract participate in Sphinx HTML rebuild decisions.
@@ -139,14 +165,5 @@ Unknown/new URL shapes should fail or degrade explicitly rather than silently re
 5. Use structural Docutils markers/predicates for cross-directive contracts, not brittle raw HTML scraping.
 6. Update asset/UI revision contracts when incompatible generated output changes.
 7. Test both `classic` and `pill-overflow` without changing their semantics accidentally.
-8. Keep this file current-state only; do not add build/debug chronology.
-
-## Library checkout
-
-Six tests in `_sphinx_collection/tests/test_assets.py` read the site's
-`conf.py`, `Makefile` or `make.bat` to check the local/installed authority
-bootstrap. They go through `_docs_source()` and skip in this checkout, where
-there is no site; they run in the documentation checkout.
-
-`tests/` is not a package. Its `conftest.py` puts the stack's parent on
-`sys.path` so the folder passes when run alone.
+8. Keep bounded display separate from build-time selection and preserve visual-order semantics.
+9. Keep this file current-state only; do not add build/debug chronology.

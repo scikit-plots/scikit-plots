@@ -21,6 +21,8 @@
         {% for option in sort_options %}<option value="{{ option.value|e }}">{{ option.label|e }}</option>{% endfor %}
       </select>
     </label>
+    {% set display_name = "limit" %}
+    {% include "learn/display-size-select.html" %}
     <button type="button" class="learn-sort-direction" data-explorer-direction aria-label="Reverse sort order">↓ Desc</button>
     <button type="button" data-explorer-reset>Reset</button>
   </div>

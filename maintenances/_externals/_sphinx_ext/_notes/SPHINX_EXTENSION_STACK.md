@@ -4,7 +4,7 @@
 
 Package root:
 
-`scikitplot/_externals/_sphinx_ext/`
+`docs/source/scikitplot/_externals/_sphinx_ext/`
 
 The same private extension tree is designed to work in two deployment layouts:
 
@@ -141,54 +141,3 @@ Do not infer release authority from a Git branch, editable-install path, or file
 5. Keep package initializers lazy where practical.
 6. Use explicit compatibility contracts instead of filesystem-path guesses.
 7. Keep this file current-state only and focused on the active contract.
-
-## Library checkout
-
-### One tree, two places
-
-| | Library repository | Documentation repository |
-|---|---|---|
-| Stack root | `scikitplot/_externals/_sphinx_ext/` | `docs/source/scikitplot/_externals/_sphinx_ext/` |
-| Site `conf.py` | none | `docs/source/conf.py` |
-| Canonical Learn content | none | `docs/source/learn-ai/` |
-| `maintenances/`, `skills/` | present | absent |
-
-The packages both repositories carry are kept byte-identical. Four exist only
-in the library: `_ansi_sanitizer`, `_sphinx_gallery_jupyterlite`,
-`_sphinx_jinja_render` and `_sphinx_llm`.
-
-### Finding the site from a test
-
-Never count parent directories. The directory that contains `scikitplot/` is
-the docs source in one checkout and the repository root in the other, so a
-fixed depth points at a `conf.py` that exists in neither. Establish the site
-from what is on disk: the ancestor whose `scikitplot/_externals/_sphinx_ext` is
-this stack *and* which holds a `conf.py`. Three helpers do this, one per test
-tree, each a copy rather than a shared import so the trees stay independent:
-
-- `_sphinx_ai_assistant/tests/_paths.py` — `DOCS_SOURCE_ROOT`, `STACK_ROOT`;
-  `REPOSITORY_ROOT`, `MAINTENANCE_ROOT` and `SKILL_ROOT` resolve on first use.
-- `_sphinx_ai_learn/tests/_learn_site.py` — `docs_source()`, `content_root()`,
-  `content_tree()`, `site_repository()`; each returns the path or skips.
-- `_sphinx_collection/tests/test_assets.py` — `_docs_source()`.
-
-### How tests import the stack
-
-- `_sphinx_ai_assistant/tests` is a package tree: tests import their runtime
-  relatively, and `_architecture/test_test_layout.py` enforces it. The modules
-  in `tests/_hf_spaces_proxy/security/` load one another by file path, so they
-  have no parent package and keep the canonical
-  `scikitplot._externals._sphinx_ext` name.
-- `_sphinx_ai_learn`, `_sphinx_feedback`, `_sphinx_collection` and
-  `_sphinx_llm` test folders are not packages. They import through the
-  top-level `_sphinx_ext` name, and each folder's own `conftest.py` puts the
-  stack's parent on `sys.path`. A folder that relies on another folder's
-  conftest having run first passes in a full run and fails alone.
-
-### The maintenance gate
-
-`maintenances/_externals/_sphinx_ext/_maintenance_core/tools/check_all.py`
-must report GREEN. A runtime import of a sibling package needs a typed
-dependency edge in the importing subsystem's `MAINTENANCE.json`; the proxy's
-optional import of `_sphinx_feedback` is declared that way. Compiled caches
-under the runtime tree are reported as residue, so run the gate on a clean tree.

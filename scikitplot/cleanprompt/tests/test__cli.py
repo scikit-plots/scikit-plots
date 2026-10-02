@@ -2024,25 +2024,27 @@ class TestVaultAcrossProcesses:
         return vault, _holder(vault, 30)
 
     def test_encode_waits_for_the_lock_and_says_why(self, tmp_path, monkeypatch):
+        from .test__files import _stop as _stop_holder
+
         vault, child = self._held(tmp_path, monkeypatch)
         try:
             status, _, err = _run(
                 ["encode", "mail bob@example.com", "--vault", str(vault)]
             )
         finally:
-            child.kill()
-            child.wait()
+            _stop_holder(child)
         assert status != 0
         assert "waiting for another cleanprompt run" in err
         assert "held the vault lock" in err
 
     def test_forget_takes_the_same_lock(self, tmp_path, monkeypatch):
+        from .test__files import _stop as _stop_holder
+
         vault, child = self._held(tmp_path, monkeypatch)
         try:
             status, _, _ = _run(["forget", "--force", "--vault", str(vault)])
         finally:
-            child.kill()
-            child.wait()
+            _stop_holder(child)
         assert status != 0 and vault.exists()
         assert _run(["forget", "--force", "--vault", str(vault)])[0] == 0
         assert not vault.exists()

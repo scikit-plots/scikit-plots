@@ -55,7 +55,7 @@ ok(renderBubble.includes("preview.className = 'ai-assistant-panel-attachment-car
 ok(renderBubble.includes('_openAttachmentPreview(item, preview)'), 'historical resource cards support the same preview surface');
 ok(renderBubble.includes('ai-assistant-panel-user-turn-question-wrap') && renderBubble.includes('data-collapsed'), 'question text is separately expandable below its resources');
 ok(renderBubble.indexOf("bubble.appendChild(files)") < renderBubble.indexOf("questionWrap.className = 'ai-assistant-panel-user-turn-question-wrap'"), 'resource cards render above the question text');
-ok(submit.indexOf('_composerTurnAttachmentSnapshot(attachmentText, preparedPageContext)') < submit.indexOf('_consumePreparedPageContexts(preparedPageContext, false)'), 'turn provenance is captured before PAGE/MD state is consumed');
+ok(submit.includes('var turnAttachments = _composerTurnAttachmentSnapshot(') && submit.includes('attachmentSnapshot,') && submit.indexOf('var turnAttachments = _composerTurnAttachmentSnapshot(') < submit.indexOf('_consumePreparedPageContexts(preparedPageContext, false)'), 'turn provenance is captured from the Send-time resource snapshot before PAGE/MD state is consumed');
 ok(submit.indexOf('_consumePreparedPageContexts(preparedPageContext, false)') < submit.indexOf('_clearComposerAttachments()'), 'PAGE/MD and uploaded FILEs are consumed together immediately after turn commit');
 ok(remember.includes('_loadConsumedPageContexts(false)') && remember.includes('_saveConsumedPageContexts()'), 'Remember ON preserves consumed state so restored saved pins cannot silently re-arm');
 ok(remember.includes('_ssDel(_CONSUMED_PAGE_CONTEXT_KEY)'), 'Remember OFF removes persisted consumed-state history');
@@ -65,6 +65,7 @@ ok(slashDefs.includes('var currentConsumed = _pageContextConsumed(currentUrl)'),
 ok(slashDefs.includes("current.badge = currentStaged ? 'Staged' : 'Context'"), 'slash current-page badge reflects one-turn staging');
 ok(slashDefs.includes("currentPinned ? (currentConsumed ? 'Saved' : 'Staged') : 'Save'"), 'slash pin badge distinguishes saved source from staged use');
 ok(css.includes('.ai-assistant-panel-user-turn-attachments'), 'user-turn resource tray has dedicated responsive styling');
+ok(css.includes('margin-inline-start: auto'), 'sent resource cards align with the trailing/right side of the user turn while retaining DOM order');
 ok(css.includes('.ai-assistant-panel-bubble--user[data-has-turn-attachments="true"]'), 'attachment-bearing user bubble receives bounded responsive width');
 
 // ----- Runtime: consumed transport survives same-tab restore when Remember is ON -----

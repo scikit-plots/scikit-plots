@@ -11,8 +11,10 @@
 .sphinx-feedback [data-tone="positive"][aria-pressed="true"]{border-color:#198754;background:color-mix(in srgb,#198754 14%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,#198754 22%,transparent)}
 @media(prefers-reduced-motion:reduce){.sphinx-feedback-expand .sphinx-feedback-icon{transition:none!important}}
 @media(forced-colors:active){.sphinx-feedback [data-tone][aria-pressed="true"]{border-color:Highlight;background:Highlight;color:HighlightText;box-shadow:none}.sphinx-feedback button:focus-visible{outline:2px solid Highlight;outline-offset:2px}}
-/* Per-sign reviewed counts live inside the quick buttons. The logical
-   border creates the compact "icon | count" split without extra markup that
-   could be announced as punctuation by assistive technology. */
-.sphinx-feedback-quick-count{display:inline-flex;align-items:center;min-width:1.2ch;padding-inline-start:.42rem;border-inline-start:1px solid currentColor;border-inline-start-color:color-mix(in srgb,currentColor 24%,transparent);font-size:.76rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap;opacity:.82}
-@media(forced-colors:active){.sphinx-feedback-quick-count{border-inline-start-color:CanvasText}}
+/* Per-sign reviewed counts live inside the quick buttons. Logical side
+   borders create either "count | choice" or "choice | count" without extra
+   punctuation markup that assistive technology could announce. */
+.sphinx-feedback-quick-count{display:inline-flex;align-items:center;min-width:1.2ch;font-size:.76rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;white-space:nowrap;opacity:.82}
+.sphinx-feedback-quick-count[data-rating-position="right"]{padding-inline-start:.42rem;border-inline-start:1px solid currentColor;border-inline-start-color:color-mix(in srgb,currentColor 24%,transparent)}
+.sphinx-feedback-quick-count[data-rating-position="left"]{padding-inline-end:.42rem;border-inline-end:1px solid currentColor;border-inline-end-color:color-mix(in srgb,currentColor 24%,transparent)}
+@media(forced-colors:active){.sphinx-feedback-quick-count[data-rating-position="right"]{border-inline-start-color:CanvasText}.sphinx-feedback-quick-count[data-rating-position="left"]{border-inline-end-color:CanvasText}}

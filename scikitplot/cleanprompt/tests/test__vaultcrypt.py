@@ -364,9 +364,11 @@ class TestWorksWithNothingInstalled:
         assert decrypt_mapping(tokens, SECRET, params) == MAPPING
 
     def test_it_imports_nothing_beyond_the_standard_library(self):
-        import scikitplot.cleanprompt._vaultcrypt as module
+        import pathlib
 
-        source = open(module.__file__, encoding="utf-8").read()
+        from .. import _vaultcrypt as module
+
+        source = pathlib.Path(module.__file__).read_text(encoding="utf-8")
         for name in ("cryptography", "nacl", "Crypto"):
             assert "import {0}".format(name) not in source
 

@@ -4,7 +4,7 @@
 
 Primary package:
 
-`scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/`
+`docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/`
 
 The module owns the documentation-side AI Assistant experience: generated Markdown companions, provider links, the floating Assistant panel, browser-side conversation/runtime state, multimodal generation UI, resource/file handling, sharing/contribution workflows, and the static assets copied by Sphinx.
 
@@ -139,69 +139,3 @@ For most Assistant work:
 5. Keep Sphinx import-time behavior free of unnecessary heavy/provider dependencies.
 6. Test both static/build-time contracts and browser runtime behavior after UI changes.
 7. Do not document implementation chronology here; document only the current contract.
-
-## Library checkout
-
-### Page feedback inside the proxy
-
-`_hf_spaces_proxy/_page_feedback/` is a byte-identical mirror of the server
-subset of `_sphinx_feedback` (`__init__.py`, `_contracts.py`, `_service/`). In
-package mode `app.py` imports the sibling extension; a standalone Space, which
-has no sibling, falls back to the mirror. `_utils/sync_page_feedback_runtime.py`
-writes the mirror, and `tests/_hf_spaces_proxy/_page_feedback/test___init__.py`
-fails if any mirrored file differs from its source. Edit `_sphinx_feedback`,
-then sync; never edit the mirror.
-
-### Error responses
-
-A generation error response carries a stable `code` and the authored
-`exc.message`. It never forwards `str(exc)`, which is the exception
-machinery's rendering of the instance and can include a path or a trace.
-
-### Links built from data
-
-A link target read from page data or configuration is set from the parsed URL
-after two checks: the string allow-list (`_isSafeHref`) and the URL parser's
-own verdict that the scheme is `http:` or `https:`.
-
-### Test tree rules
-
-Enforced by `tests/_architecture/test_test_layout.py`:
-
-- every runtime package `__init__.py` has a mirrored `test___init__.py`;
-- a test named for a source file sits in the mirrored folder
-  (`foo.py` → `test_foo.py`); cross-component tests live in `tests/_integration/`;
-- paths come from `tests/_paths.py`, never from `parents[n]`;
-- the extension stack is imported relatively.
-
-### Endpoint tokens in browser storage
-
-`localStorage['ai-assistant-ep-custom']` holds the current schema in the
-persisted shape, or nothing. On load, a blob that is not the current schema is
-removed; a current one carrying any field outside `_PERSISTED_PROFILE_FIELDS`,
-or any entry the loader rejects, is rewritten. There is no migration path. A
-runtime token lives in the profile object for the page only.
-
-### Remote responses in the browser
-
-Every response body is read through `_readResponseTextBounded` or
-`_readResponseJsonBounded`. `response.text()` and `.json()` buffer first and
-measure afterwards.
-
-### The Worker has no feedback route
-
-Page feedback is `_sphinx_feedback` on the proxy (`scope="page-feedback"`);
-Assistant review is `/v1/feedback/review` (`scope="feedback-review"`). The
-Worker serves chat and share only.
-
-### Values a test must not restate
-
-The proxy version is declared once, in `_utils/_shared_logic.py`, and repeated
-in two banners and the README health example; a test keeps them equal.
-Fixtures read it from the source. A ratchet is a floor.
-
-### Script-run and path-loaded test modules
-
-`tests/_hf_spaces_proxy/security/` modules load one another by path, and
-`tests/_hf_spaces_proxy/ci/test_run_redis_chaos.py` re-runs itself as a script.
-Neither has a parent package, so both use the canonical absolute import.

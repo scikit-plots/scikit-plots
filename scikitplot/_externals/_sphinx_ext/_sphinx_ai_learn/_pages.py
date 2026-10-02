@@ -39,6 +39,7 @@ from ._registry import (
 )
 
 TEMPLATES = Path(__file__).parent / "_templates"
+DISPLAY_SIZES = (12, 25, 50, 75, 100, 125, 150)
 
 # One renderer-owned registry defines the nine AI Learn creation studios.  The
 # same entries power the shared studio navigation and generation-route lookup so
@@ -74,9 +75,19 @@ def safe_json(value):
 
 
 def render(translator, template, context):
-    # Studio navigation is renderer policy, not authored/canonical content.
-    # Inject it centrally so no individual studio template owns a second route list.
-    merged = {**context, "studio_nav": _studio_navigation()}
+    # Studio navigation and quick-feedback presentation are renderer policy, not
+    # authored/canonical content. Inject both centrally so HTML-only config can
+    # change without being frozen into persisted doctrees.
+    app = getattr(translator.builder, "app", None)
+    buttons_ratings = getattr(app, "_ai_learn_buttons_ratings", None) or {
+        "left_button_rating": "left",
+        "right_button_rating": "right",
+    }
+    merged = {
+        **context,
+        "studio_nav": _studio_navigation(),
+        "ai_learn_buttons_ratings": dict(buttons_ratings),
+    }
     return translator.builder.templates.render("learn/" + template, merged)
 
 
@@ -336,6 +347,8 @@ class PageDirective(SphinxDirective):
             "evidence_sources": evidence_sources,
             "site_id": self.config.ai_learn_site_id,
             "revision": self.env.app._ai_learn_catalog["revision"],
+            "display_sizes": DISPLAY_SIZES,
+            "page_chunk_size": page_size("library"),
         }
         return [node]
 
@@ -886,6 +899,8 @@ class PromptLibraryDirective(SphinxDirective):
             {
                 "prompts": prompts,
                 "site_id": self.config.ai_learn_site_id,
+                "display_sizes": DISPLAY_SIZES,
+                "page_chunk_size": page_size("topic-prompt"),
             },
             "prompt-library-end.html",
         )
@@ -968,6 +983,8 @@ class SkillLibraryDirective(SphinxDirective):
             {
                 "skills": skills,
                 "site_id": self.config.ai_learn_site_id,
+                "display_sizes": DISPLAY_SIZES,
+                "page_chunk_size": page_size("skill"),
             },
             "skill-library-end.html",
         )
@@ -1317,6 +1334,9 @@ class ExplorerDirective(SphinxDirective):
             "label": LABELS[kind],
             "total": len(records),
             "count": len(selected),
+            "offset": offset,
+            "page_chunk_size": size,
+            "display_sizes": DISPLAY_SIZES,
             "tags": sorted({tag for s in selected for tag in s["domains"]}),
             "previous_page": ("index" if page == 1 else f"page-{page}") if page else "",
             "next_page": f"page-{page + 2}" if offset + size < len(records) else "",

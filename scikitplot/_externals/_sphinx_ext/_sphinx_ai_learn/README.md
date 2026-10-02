@@ -34,6 +34,10 @@ ai_learn_content_root = "learn-ai"
 ai_learn_site_id = "scikit-plots-learn"
 ai_learn_runtime = "assistant"  # or "none"
 ai_learn_explorer_search_variant = "pill-overflow"  # or "classic"
+ai_learn_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
 ```
 
 Materialization runs at `config-inited`, before Sphinx discovers/reads source
@@ -41,6 +45,15 @@ documents. That is required so RST newly derived from JSON participates in the
 same build. The materializer validates the whole JSON tree, writes only changed
 extension-owned RST, prunes only stale extension-owned RST, and records the
 semantic content digest for Sphinx environment invalidation.
+
+`ai_learn_buttons_ratings` controls only the reviewed-count placement inside the
+two compact AI Learn feedback buttons. `left_button_rating` targets thumbs-down
+and `right_button_rating` targets thumbs-up; each accepts `"left"` or `"right"`.
+The balanced default is `0 | 👎` and `👍 | 0`. Partial dictionaries inherit the
+missing side from that default. Unknown keys or unsupported values fail the
+build instead of silently changing presentation. The setting does not alter the
+`-1/+1` quick-feedback contract, detailed `-5..+5` ratings, canonical events, or
+aggregate counts.
 
 The extension also owns custom feedback-dependency state in the Sphinx build
 environment. Its setup metadata therefore carries an explicit `env_version`, and
@@ -367,10 +380,20 @@ only selects directives and structural classes.
   variant or modality. Typing in the query field filters immediately and updates
   URL state; submit/Enter remains available as an equivalent accessible action.
   IME composition is allowed to finish before filtering. Advanced category,
-  timeframe, sort, direction, and reset controls stay collapsed unless explicitly
-  opened or restored from non-default URL state. Result presentation is an adapter
-  concern; query/filter/sort/disclosure/URL behavior has one controller and one
-  template shell. Do not reintroduce modality-specific search forms.
+  timeframe, sort, direction, display-size, and reset controls stay collapsed
+  unless explicitly opened or restored from non-default URL state. Every catalog
+  explorer is materialized into deterministic 12-record static shards; the first
+  page is ``index.rst`` and overflow pages are derived ``page-N.rst`` files owned
+  by the same canonical index JSON. The browser may progressively fetch these
+  same-origin shards for the allowlisted ``12/25/50/75/100/125/150`` display
+  presets, and every explicit **Load 12 more** action advances by exactly one
+  shard. Automatic loading is bounded by the selected preset and never scans
+  unbounded pages just to satisfy a rare client-side filter. The chosen preset is
+  shareable URL state (``?limit=...``); incremental Load More state is deliberately
+  ephemeral. No-JavaScript users retain real previous/next shard links. Result
+  presentation is an adapter concern; query/filter/sort/disclosure/paging/URL
+  behavior has one controller and one template shell. Do not reintroduce
+  modality-specific search or pagination forms.
 - UI motion added to cards must respect `prefers-reduced-motion`.
 
 ### Shared generation context chooser

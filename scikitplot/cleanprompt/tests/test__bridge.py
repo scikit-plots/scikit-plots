@@ -133,3 +133,71 @@ def test_a_closed_output_pipe_stops_the_command_instead_of_hanging():
             io.StringIO(),
             timeout=20,
         )
+
+
+class TestPipesAreClosed:
+    """
+    CP-087: every pipe is closed before ``run_command`` returns.
+
+    Notes
+    -----
+    **Developer notes.** The standard-error pipe used to be left for the
+    garbage collector. Nothing failed until the suite ran with warnings as
+    errors, where the ``ResourceWarning`` became an error in whichever test
+    was running at collection time. The pipes are inspected directly here, so
+    the result does not depend on the warning filter or on when a collection
+    happens.
+    """
+
+    @staticmethod
+    def _started(monkeypatch):
+        import subprocess
+
+        from .. import _bridge
+
+        started = []
+        real = subprocess.Popen
+
+        def recording(*args, **kwargs):
+            process = real(*args, **kwargs)
+            started.append(process)
+            return process
+
+        monkeypatch.setattr(_bridge.subprocess, "Popen", recording)
+        return started
+
+    @staticmethod
+    def _assert_closed(started):
+        assert len(started) == 1
+        process = started[0]
+        assert process.returncode is not None
+        assert [
+            name
+            for name in ("stdin", "stdout", "stderr")
+            if not getattr(process, name).closed
+        ] == []
+
+    def test_after_an_ordinary_run(self, monkeypatch):
+        started = self._started(monkeypatch)
+        assert _run(_ECHO, "mail ann@example.com")[0] == 0
+        self._assert_closed(started)
+
+    def test_after_a_failing_command(self, monkeypatch):
+        started = self._started(monkeypatch)
+        script = "import sys; sys.stdin.read(); sys.stderr.write('no'); sys.exit(3)"
+        assert _run([sys.executable, "-c", script], "hi")[0] == 3
+        self._assert_closed(started)
+
+    def test_after_a_command_that_ignores_its_input(self, monkeypatch):
+        started = self._started(monkeypatch)
+        script = "import os, sys; os.close(0); sys.stdout.write('ok')"
+        status, _, err = _run([sys.executable, "-c", script], "x " * 400_000)
+        assert status == 0
+        assert err.count("closed its input before reading the whole prompt") == 1
+        self._assert_closed(started)
+
+    def test_after_a_timeout(self, monkeypatch):
+        started = self._started(monkeypatch)
+        with pytest.raises(CleanPromptError, match="ran past"):
+            _run([sys.executable, "-c", "import time; time.sleep(30)"], "hi", timeout=0.5)
+        self._assert_closed(started)

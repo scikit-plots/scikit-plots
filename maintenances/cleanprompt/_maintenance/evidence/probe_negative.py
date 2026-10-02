@@ -592,6 +592,20 @@ _doc23 = sorted(p.name for p in _tests23.glob("*.py")
                 or (isinstance(n, _ast22.ImportFrom) and n.level == 0 and (n.module or "").split(".")[0] == "doctest"))
 check("CP-086", "no test module runs doctest inside the pytest process; the isolated runner exists",
       _doc23 == [] and (_tests23 / "_isolated.py").is_file(), str(_doc23))
+import io as _io23
+from scikitplot.cleanprompt import _bridge as _bridge23, FluentCleanPrompt as _FCP23
+_started23 = []
+_real23p = _bridge23.subprocess.Popen
+def _rec23(*a, **k):
+    p = _real23p(*a, **k); _started23.append(p); return p
+_bridge23.subprocess.Popen = _rec23
+try:
+    _bridge23.run_command(_FCP23().guard(), [sys.executable, "-c", "import sys; sys.stderr.write('e'); sys.stdout.write(sys.stdin.read())"],
+                          "mail ann@example.com", _io23.StringIO(), _io23.StringIO())
+finally:
+    _bridge23.subprocess.Popen = _real23p
+check("CP-087", "run_command closes the command's input, output and error pipes before it returns",
+      len(_started23) == 1 and all(getattr(_started23[0], n).closed for n in ("stdin", "stdout", "stderr")))
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

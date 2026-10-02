@@ -12,10 +12,15 @@ in ``_sphinx_gallery_grid``; shared selection/browser behavior lives in
 ``_sphinx_collection``.
 
 The Sphinx build reads local YAML and produces complete HTML. Live search,
-filters, and sorting run locally over the rendered cards. They make no fetch,
+filters, sorting, and bounded card display run locally over the rendered cards.
+Searchable/interactive card modes show 12 by default, expose the shared
+12/25/50/75/100/125/150 selector in More options, and place Load 12 more after
+the grid; these controls are owned by `_sphinx_collection` through
+`gallery-grid`, never duplicated by this YouTube adapter. They make no fetch,
 cookie, analytics, or URL-history calls. Visitor additions and validated
-filter/sort choices can each be remembered locally only after separate explicit
-opt-ins; free-form search text is never stored. If JavaScript is unavailable,
+filter/sort/display choices can be remembered locally only after the explicit
+view opt-in; additions use their own separate opt-in, and free-form search text
+is never stored. If JavaScript is unavailable,
 the complete static gallery remains readable.
 
 ## Enable the extension
@@ -588,8 +593,11 @@ under the entire control surface. It is never embedded above the input inside
 the collapsed search box. Typing filters locally; Enter and the search icon
 apply the same search. The disclosure expands the long-form controls *inside
 the same bordered control surface* rather than opening a second toolbar/popup.
-Active search, filters and sorting appear as removable chips below the status
-row. Clear a chip to remove only that setting.
+Active search, filters, sorting, and non-default bounded display state appear
+as removable chips below the status row. Clear a chip to remove only that setting.
+The expanded View section also contains **Display up to** with
+12/25/50/75/100/125/150 presets; **Load 12 more** sits after the grid and expands
+the current session view without changing the selected preset.
 
 The adapter also validates this structure when it receives the delegated
 ``gallery-grid`` node: an enhanced YouTube gallery must have the shared V4
@@ -605,7 +613,7 @@ sort exists. Suggestions are generated from the gallery metadata, so new filter
 fields and sort fields participate without JavaScript changes.
 
 The expanded state is intentionally grouped rather than rendered as one long
-utility form. **View** contains facets, sort, and Reset view. **Gallery tools**
+utility form. **View** contains Display up to, facets, sort, and Reset view. **Gallery tools**
 contains compact nested panels for Add video/channel, Browser preferences, and
 Export additions. Closed tools share the available width on larger layouts;
 opening one spans the tools area so forms and status messages remain easy to

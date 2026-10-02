@@ -809,6 +809,16 @@
       "retired_by": "tests/_isolated.py runs doctests in a fresh interpreter, where no capture exists to be resumed, and reports failed and attempted counts per module; all seven doctest tests use it. TestDoctests.test_no_test_runs_doctest_inside_the_pytest_process refuses a test module that imports doctest. A module whose examples were not attempted fails.",
       "honest_limit": "The doctests run under the stand-in parent package, so they do not exercise the real scikitplot logger configuration. An example whose expected output depended on a log line printed to stdout would still be fragile; none does.",
       "regression": "test___init__.TestDoctests.test_doctests_pass; test___init__.TestDoctests.test_no_test_runs_doctest_inside_the_pytest_process; evidence/probe_negative.py CP-086"
+    },
+    {
+      "id": "CP-087",
+      "severity": "medium",
+      "status": "closed",
+      "title": "run_command left the command's error pipe open",
+      "detail": "_bridge.run_command closed the command's standard-output pipe and left standard error, and standard input after a failed write, to the garbage collector. Each ask through the bridge held a descriptor until a collection; in a long-running caller they accumulate. Under the project's pytest configuration (filterwarnings = error) the ResourceWarning raised at collection failed test__bridge, and fourteen further tests behind it: the rest of the bridge and ask tests, plus six whose own code left a child's pipe or a source file open.",
+      "retired_by": "_bridge._close_pipes closes all three pipes after the pipe threads are joined, on every path out of run_command. The tests close what they open (test__files._stop, shared with test__cli; test_regressions; test__vaultcrypt). The _files.locked example uses a with block.",
+      "honest_limit": "A flush failure while closing the input pipe is suppressed, because the writer thread has already recorded and reported the same condition. Earlier rounds were verified under pytest's default warning filter, which is why this was not seen; verification now uses the project's options.",
+      "regression": "test__bridge.TestPipesAreClosed (four tests); the whole suite under filterwarnings=error; evidence/probe_negative.py CP-087"
     }
   ],
   "investigated_and_rejected": [

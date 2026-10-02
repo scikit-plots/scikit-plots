@@ -1,4 +1,4 @@
-<div class="learn-explorer learn-topic-explorer" data-learn-explorer data-trending-table data-kind="topic" data-item-label="topic" data-numeric-sort="citations youtube github reddit hackernews x">
+<div class="learn-explorer learn-topic-explorer" data-learn-explorer data-trending-table data-kind="topic" data-item-label="topic" data-total="{{ total }}" data-offset="{{ offset }}" data-page-chunk-size="{{ page_chunk_size|default(12, true) }}" data-numeric-sort="citations youtube github reddit hackernews x">
 <script type="application/json" class="learn-section-registry">{{ section_registry }}</script>
 <p class="learn-meta">{{ total }} topics in this catalog snapshot · signal values appear only when catalog data is available.</p>
 {% set search_placeholder = "Topic or keyword" %}
@@ -57,6 +57,5 @@
 </table>
 </div>
 <p class="learn-meta learn-trending-note">This is a static catalog view, not a live ranking service. Missing signal values are intentionally not estimated.</p>
-{% if previous %}<a href="{{ previous|e }}">← Previous page</a>{% endif %}
-{% if next %}<a class="learn-next" href="{{ next|e }}">Show More</a>{% endif %}
+{% include "learn/explorer-pager.html" %}
 </div>

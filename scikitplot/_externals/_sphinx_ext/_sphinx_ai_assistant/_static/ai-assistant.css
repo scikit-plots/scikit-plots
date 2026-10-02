@@ -20886,6 +20886,17 @@ textarea.ai-assistant-panel-skill-input { min-height:4.25rem; resize:vertical; f
     height: 116px;
     flex-basis: 116px;
 }
+/* Run 173 — sent resources follow the user turn's trailing edge.
+ *
+ * Use an auto logical start margin on the first real tile instead of
+ * justify-content:flex-end. Auto flex margins consume only positive free space,
+ * so one/few cards move to the trailing edge while an overflowing batch keeps a
+ * normal zero-based scroll origin. This preserves upload order and keeps file 1
+ * reachable for large batches instead of pushing early cards into negative
+ * overflow. */
+.ai-assistant-panel-user-turn-attachments > .ai-assistant-panel-attachment-tile:first-child {
+    margin-inline-start: auto;
+}
 .ai-assistant-panel-user-turn-attachments .ai-assistant-panel-attachment-card {
     box-shadow: 0 1px 5px rgba(0,0,0,0.07);
 }

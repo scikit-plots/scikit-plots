@@ -7,7 +7,8 @@ they must not create a second search toolbar.
 ## UI ownership
 
 - `_sphinx_collection`: search/disclosure shell, local filtering, facets, sorting,
-  chips/suggestions, optional saved view/additions, add/export/revert controls.
+  bounded display presets, progressive Load 12 more, chips/suggestions, optional
+  saved view/additions, add/export/revert controls.
 - `_sphinx_gallery_grid`: static card/grid rendering and the single
   `sk-collection` DOM root.
 - `_sphinx_youtube_gallery`: typed YouTube catalog adapter that forwards the
@@ -76,8 +77,8 @@ predicate rather than inspecting ``rawsource``: for ``nodes.raw`` the raw source
 and rendered payload are distinct fields, and older code created the payload
 with an intentionally empty raw-source string.
 The expanded panel follows the same information hierarchy as AI Learn rather
-than presenting every control at one visual level. **View** owns facets, sort,
-and Reset. Domain-specific capabilities live under **Gallery tools** as compact
+than presenting every control at one visual level. **View** owns the bounded
+**Display up to** selector (`12/25/50/75/100/125/150`), facets, sort, and Reset. Domain-specific capabilities live under **Gallery tools** as compact
 nested panels such as Add, Browser preferences, and Export; a tool expands
 across the available width when opened and collapses back into the tool grid
 when closed. **Restore original gallery** is visually separated from ordinary
@@ -87,6 +88,32 @@ There is no redundant Close button or explanatory footer. Escape collapses the
 outer panel and returns focus to the disclosure; the overflow/chevron control
 remains the primary explicit open/close control. The panel does not auto-close on arbitrary
 outside pointer activity.
+
+
+## Bounded card display
+
+Searchable and interactive `gallery-grid` roots use the same reader-side bounded
+presentation contract as AI Learn: **12 cards are visible by default**, the
+expanded **View** panel can select `12`, `25`, `50`, `75`, `100`, `125`, or `150`,
+and a grid-end **Load 12 more** action expands only the current view by one fixed
+step. Selecting a preset replaces the current visible window; loading more does
+not invent a new preset value.
+
+This is deliberately presentation state, distinct from the directives' existing
+build-time `:limit:` and `:offset:` options. Build-time selection decides which
+records belong to the rendered collection; the bounded browser view decides how
+many of those rendered, locally searchable cards are currently painted. Search,
+facets, and sort still operate over the whole rendered collection, while status
+text reports the visible count against the current matching count. Group headings
+are hidden when none of their cards fall inside the current visible window.
+
+The selector and pager are progressive enhancement. With JavaScript disabled or
+if enhancement fails, all statically rendered cards remain available. The shared
+YAML loader still enforces its documented resource ceiling, so this UI is not a
+claim that one static Sphinx document can safely contain 100K/1B/1T cards. Truly
+large catalogs need source-side shards or a cursor/index service; the bounded
+`display preset + load-more` interaction is intentionally compatible with that
+future backend boundary.
 
 ## Progressive-enhancement invariant
 

@@ -19,11 +19,11 @@ def test_core_import_has_no_optional_dependencies():
 def test_extension_version_has_one_owner():
     from _sphinx_ext._sphinx_ai_learn import __version__
 
-    assert __version__ == "0.47.0"
+    assert __version__ == "0.49.0"
     source = (Path(__file__).resolve().parents[1] / "_sphinx.py").read_text(encoding="utf-8")
     assert 'from . import __version__' in source
     assert source.count('"version": __version__') == 2
-    assert '"version": "0.47.0"' not in source
+    assert '"version": "0.49.0"' not in source
     assert source.count('"env_version": _ENV_VERSION') == 2
     assert 'app.connect("env-merge-info", _merge_feedback_consumers)' in source
 
@@ -308,3 +308,66 @@ def test_youtube_subscribe_config_rejects_malformed_and_nonstandard_authority():
     assert "except ValueError as exc:" in source
     assert "port = parsed.port" in source
     assert "or port not in (None, 443)" in source
+
+
+def test_ai_learn_buttons_ratings_config_is_strict_balanced_and_html_only():
+    import ast
+
+    source_path = Path(__file__).resolve().parents[1] / "_sphinx.py"
+    source = source_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    wanted_assignments = {
+        "_AI_LEARN_BUTTON_RATING_POSITIONS",
+        "_AI_LEARN_BUTTONS_RATINGS_DEFAULT",
+    }
+    selected = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id in wanted_assignments
+            for target in node.targets
+        ):
+            selected.append(node)
+        if isinstance(node, ast.FunctionDef) and node.name == "_normalize_ai_learn_buttons_ratings":
+            selected.append(node)
+    class ConfigError(Exception):
+        pass
+    namespace = {"ConfigError": ConfigError}
+    exec(compile(ast.Module(body=selected, type_ignores=[]), str(source_path), "exec"), namespace)
+    normalize = namespace["_normalize_ai_learn_buttons_ratings"]
+
+    assert normalize(None) == {
+        "left_button_rating": "left",
+        "right_button_rating": "right",
+    }
+    assert normalize({"left_button_rating": " RIGHT "}) == {
+        "left_button_rating": "right",
+        "right_button_rating": "right",
+    }
+    assert normalize({"right_button_rating": "LEFT"}) == {
+        "left_button_rating": "left",
+        "right_button_rating": "left",
+    }
+    for bad in ([], "left", 1, True):
+        try:
+            normalize(bad)
+        except ConfigError as exc:
+            assert "dictionary" in str(exc)
+        else:
+            raise AssertionError(f"expected ConfigError for {bad!r}")
+    for bad in (
+        {"left_button_rating": "center"},
+        {"right_button_rating": 1},
+        {"unknown_button_rating": "left"},
+        {"unknown_button_rating": "left", 1: "right"},
+    ):
+        try:
+            normalize(bad)
+        except ConfigError:
+            pass
+        else:
+            raise AssertionError(f"expected ConfigError for {bad!r}")
+
+    assert '"ai_learn_buttons_ratings"' in source
+    registration = source.index('app.add_config_value(\n        "ai_learn_buttons_ratings",')
+    assert '"html",' in source[registration:registration + 260]
+    assert 'app._ai_learn_buttons_ratings = _normalize_ai_learn_buttons_ratings(' in source

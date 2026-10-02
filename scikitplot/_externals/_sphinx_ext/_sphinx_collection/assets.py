@@ -205,6 +205,21 @@ ASSET_CSS = r"""/* Compact collection controls share one inline shell across gal
     border-color:var(--pst-color-danger,var(--sk-collection-accent)); color:var(--pst-color-danger,var(--sk-collection-accent));
   }
 }
+.sk-collection-pager {
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.6rem; margin:.9rem 0 .25rem; min-inline-size:0;
+}
+.sk-collection-pager[hidden],.sk-collection-load-more[hidden] { display:none !important; }
+.sk-collection-display-summary {
+  margin:0; flex:1 1 12rem; min-inline-size:0; font-size:.8rem; line-height:1.45; text-align:center;
+  color:var(--pst-color-text-muted,var(--pst-color-text-base,CanvasText)); overflow-wrap:anywhere;
+}
+.sk-collection-load-more {
+  flex:0 0 auto; min-block-size:2.45rem; padding:.48rem .8rem; border:1px solid var(--sk-collection-line); border-radius:.55rem;
+  font:inherit; font-size:.88rem; font-weight:650; line-height:1.3; cursor:pointer;
+  color:var(--pst-color-text-base,CanvasText); background:var(--pst-color-background,Canvas);
+}
+.sk-collection-load-more:hover { border-color:var(--sk-collection-accent); color:var(--sk-collection-accent); }
+.sk-collection-load-more:focus-visible { outline:2px solid var(--sk-collection-accent); outline-offset:2px; }
 .sk-collection-empty { padding:.75rem; border-inline-start:3px solid var(--pst-color-border,#888); }
 .sk-collection-hidden,.sk-collection-section-hidden { display:none !important; }
 @container sk-gallery (max-width:22rem) {
@@ -217,7 +232,7 @@ ASSET_CSS = r"""/* Compact collection controls share one inline shell across gal
 @media print {
   .sk-collection-searchable { container-type:normal; }
   .sk-collection-controls,.sk-collection-panel,.sk-collection-status,.sk-collection-empty,
-  .sk-collection-chips,.sk-collection-suggestions { display:none !important; }
+  .sk-collection-chips,.sk-collection-suggestions,.sk-collection-pager { display:none !important; }
   .sk-collection-hidden,.sk-collection-section-hidden { display:revert !important; }
 }
 """
@@ -225,6 +240,7 @@ ASSET_CSS = r"""/* Compact collection controls share one inline shell across gal
 ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions. */
 (function () {
   var UI_CONTRACT='__SK_COLLECTION_UI_CONTRACT__';
+  var DISPLAY_SIZES=[12,25,50,75,100,125,150],DISPLAY_STEP=12;
   'use strict';
   function text(value) { return value == null ? '' : String(value); }
   function fold(value) { return text(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
@@ -330,6 +346,11 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       var wrap = element('label','sk-collection-control');
       wrap.append(element('span','sk-collection-control-label',caption),el);viewGrid.append(wrap);return el;
     }
+    var displayDefault=DISPLAY_SIZES.includes(12)?12:DISPLAY_SIZES[0],displayPreset=displayDefault,visibleLimit=displayDefault;
+    var displaySelect=element('select');displaySelect.setAttribute('aria-label','Maximum cards displayed');
+    DISPLAY_SIZES.forEach(function(value){var option=element('option',null,String(value));option.value=String(value);displaySelect.append(option);});
+    displaySelect.value=String(displayPreset);control('Display up to',displaySelect);
+    var displayControl=displaySelect.closest('.sk-collection-control');
     var searchWrap=element('form','sk-collection-search');searchWrap.setAttribute('role','search');searchWrap.setAttribute('aria-label',searchLabel);
     var searchField=element('div','sk-collection-search-field'+(searchVariant==='pill-overflow'?' sk-collection-search-field--pill':''));
     var input = element('input');input.type='search';input.maxLength=1024;input.autocomplete='off';input.placeholder=searchLabel;
@@ -354,7 +375,7 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       choices.forEach(function (value) { var option=element('option',null,value);option.value=value;select.append(option); });
       control(label(field),select);facetControls.push({field:field,select:select});
     });
-    var sort=null;
+    var sort=null,displayOrder=cards.slice();
     var buckets=new Map();cards.forEach(function (c) { if (!buckets.has(c.node.parentElement)) buckets.set(c.node.parentElement,[]);buckets.get(c.node.parentElement).push(c); });
     var reversedRows=new Set(Array.from(buckets.keys()).filter(function(parent){return parent.classList.contains('sd-flex-row-reverse');}));
     if (config.interactive) {
@@ -372,6 +393,10 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       control('Sort',sort);
     }
     var reset=element('button','sk-collection-reset','Reset view');reset.type='button';viewActions.append(reset);
+    var pager=element('div','sk-collection-pager');pager.setAttribute('role','group');pager.setAttribute('aria-label','Gallery display controls');
+    var displaySummary=element('p','sk-collection-display-summary');
+    var loadMore=element('button','sk-collection-load-more','Load '+DISPLAY_STEP+' more');loadMore.type='button';loadMore.setAttribute('aria-label','Load '+DISPLAY_STEP+' more gallery cards');
+    pager.append(displaySummary,loadMore);
     var initialCards=cards.slice(), added=[];
     var revert=element('button','sk-collection-revert','Restore original gallery');revert.type='button';
     revert.title='Restore the published cards and order, and clear saved additions and view preferences';
@@ -732,30 +757,30 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
         var viewStorageKey='sk-gallery-view:v1:'+encodeURIComponent(location.pathname)+':'+scope;
         var viewControls=element('div','sk-collection-storage sk-collection-view-storage');
         var viewLabel=element('label','sk-collection-remember');rememberView=element('input');rememberView.type='checkbox';
-        viewLabel.append(rememberView,element('span',null,'Remember my filters & sorting'));
+        viewLabel.append(rememberView,element('span',null,'Remember my filters, sorting & display'));
         var viewFeedback=element('p','sk-collection-note','Off. Search text is never remembered.');viewFeedback.setAttribute('role','status');
         viewForget=element('button',null,'Forget saved view');viewForget.type='button';viewForget.hidden=true;
         viewControls.append(viewLabel,viewFeedback,viewForget);preferencesBody.append(viewControls);preferencesDetails.append(preferencesBody);toolsGrid.append(preferencesDetails);
         var lastViewSaved=null;
         function viewFailed(message){rememberView.checked=false;viewStorageDirty=true;viewForget.hidden=false;viewFeedback.textContent=message;}
-        function viewPayload(){var facets={};facetControls.forEach(function(f){if(f.select.value)facets[f.field]=f.select.value;});return {version:1,remember:true,facets:facets,sort:sort?sort.value:''};}
+        function viewPayload(){var facets={};facetControls.forEach(function(f){if(f.select.value)facets[f.field]=f.select.value;});return {version:1,remember:true,facets:facets,sort:sort?sort.value:'',display:displayPreset};}
         function validView(raw){
           if(typeof raw!=='string'||raw.length>16384)throw Error('Saved view is too large.');var payload=JSON.parse(raw);
           if(!payload||payload.version!==1||payload.remember!==true||!payload.facets||typeof payload.facets!=='object'||typeof payload.sort!=='string')throw Error('Unsupported saved view.');
           var valuesByField={};facetControls.forEach(function(f){valuesByField[f.field]=new Set(Array.from(f.select.options).map(function(o){return o.value;}));});
           Object.keys(payload.facets).forEach(function(field){if(!valuesByField[field]||!valuesByField[field].has(payload.facets[field]))delete payload.facets[field];});
-          if(sort&&!Array.from(sort.options).some(function(o){return o.value===payload.sort;}))payload.sort='';return payload;
+          if(sort&&!Array.from(sort.options).some(function(o){return o.value===payload.sort;}))payload.sort='';var savedDisplay=Number(payload.display);payload.display=DISPLAY_SIZES.includes(savedDisplay)?savedDisplay:displayDefault;return payload;
         }
         saveView=function(){
           if(!rememberView.checked)return;try{
             if(localStorage.getItem(viewStorageKey)!==lastViewSaved){viewFailed('Saved view changed in another tab. Saving is paused; turn remembering on again to use this view.');return;}
-            var raw=JSON.stringify(viewPayload());localStorage.setItem(viewStorageKey,raw);lastViewSaved=raw;viewStorageDirty=false;viewForget.hidden=false;viewFeedback.textContent='Filters and sorting are saved in this browser. Search text stays private to this visit.';
+            var raw=JSON.stringify(viewPayload());localStorage.setItem(viewStorageKey,raw);lastViewSaved=raw;viewStorageDirty=false;viewForget.hidden=false;viewFeedback.textContent='Filters, sorting and display size are saved in this browser. Search text stays private to this visit.';
           }catch(_){viewFailed('Could not save this view. The visible gallery is unchanged.');}
         };
         forgetView=function(){rememberView.checked=false;try{localStorage.removeItem(viewStorageKey);lastViewSaved=null;viewStorageDirty=false;viewForget.hidden=true;viewFeedback.textContent='Saved view cleared. Remembering is off.';}catch(_){viewFailed('Could not clear the saved view. Use Forget saved view to retry.');}};
         rememberView.addEventListener('change',function(){if(rememberView.checked){try{lastViewSaved=localStorage.getItem(viewStorageKey);}catch(_){viewFailed('Browser storage is unavailable. The visible gallery is unchanged.');return;}saveView();}else forgetView();apply();});
         viewForget.addEventListener('click',function(){forgetView();apply();});
-        restoreView=function(){try{var raw=localStorage.getItem(viewStorageKey);if(raw===null)return;lastViewSaved=raw;var state=validView(raw);facetControls.forEach(function(f){f.select.value=state.facets[f.field]||'';});if(sort)sort.value=state.sort;rememberView.checked=true;viewForget.hidden=false;viewFeedback.textContent='Saved filters and sorting restored. Search text is not stored.';}catch(_){viewFailed('Saved view could not be restored. The published gallery is still available.');}};
+        restoreView=function(){try{var raw=localStorage.getItem(viewStorageKey);if(raw===null)return;lastViewSaved=raw;var state=validView(raw);facetControls.forEach(function(f){f.select.value=state.facets[f.field]||'';});if(sort)sort.value=state.sort;displayPreset=state.display;visibleLimit=state.display;displaySelect.value=String(state.display);rememberView.checked=true;viewForget.hidden=false;viewFeedback.textContent='Saved filters, sorting and display size restored. Search text is not stored.';}catch(_){viewFailed('Saved view could not be restored. The published gallery is still available.');}};
         window.addEventListener('storage',function(event){if(event.key!==viewStorageKey&&event.key!==null)return;rememberView.checked=false;lastViewSaved=null;viewStorageDirty=event.key!==null&&event.newValue!==null;viewForget.hidden=!viewStorageDirty;viewFeedback.textContent='Saved view changed in another tab. Current controls remain usable; saving is off.';apply();});
         function storageFailed(message){remember.checked=false;storageDirty=true;forget.hidden=false;storageFeedback.textContent=message;}
         function checkPayload(raw){
@@ -882,9 +907,10 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       var candidates=cards.map(function(c){return field ? c.fields[field] : null;}).filter(function(v){return v!=null && v!=='';});
       var numeric=candidates.length && candidates.every(function(v){return (typeof v==='number' || (typeof v==='string' && /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(v))) && Number.isFinite(Number(v));});
       var dates=!numeric && candidates.length && candidates.every(function(v){return typeof v==='string' && /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(v) && Number.isFinite(Date.parse(v));});
+      displayOrder=[];
       buckets.forEach(function (bucket,parent) {
         // Explicit live sorting uses normal visual order; Reset restores source reversal.
-        parent.classList.toggle('sd-flex-row-reverse', !field && reversedRows.has(parent));
+        var sourceReversed=!field && reversedRows.has(parent);parent.classList.toggle('sd-flex-row-reverse',sourceReversed);
         var ordered=bucket.slice().sort(function(a,b) {
           if (!field) return a.index-b.index;
           var left=a.fields[field],right=b.fields[field];
@@ -893,6 +919,9 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
           var cmp=numeric ? Number(left)-Number(right) : dates ? Date.parse(left)-Date.parse(right) : text(left).localeCompare(text(right),undefined,{numeric:true,sensitivity:'base'});
           return cmp*direction || a.index-b.index;
         });
+        // CSS row reversal changes visual order without changing DOM order. The
+        // bounded display window follows what the reader sees, not source order.
+        displayOrder.push.apply(displayOrder,sourceReversed?ordered.slice().reverse():ordered);
         // Reorder only on a sort change. moveBefore preserves iframe state where available.
         var position=parent.firstElementChild;
         ordered.forEach(function (c) {
@@ -904,8 +933,9 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
     }
     function apply() {
       tokens=fold(input.value).trim().split(/\s+/).filter(Boolean);
-      var shown=0,alive=new Map();
-      cards.forEach(function(c){var hit=matches(c);c.node.classList.toggle('sk-collection-hidden',!hit);if(hit)shown++;if(c.owner)alive.set(c.owner,(alive.get(c.owner)||false)||hit);});
+      var matching=displayOrder.filter(function(c){return matches(c);});
+      var visible=new Set(matching.slice(0,visibleLimit)),shown=visible.size,alive=new Map();
+      cards.forEach(function(c){var hit=visible.has(c);c.node.classList.toggle('sk-collection-hidden',!hit);if(c.owner)alive.set(c.owner,(alive.get(c.owner)||false)||hit);});
       alive.forEach(function(hit,heading){heading.classList.toggle('sk-collection-section-hidden',!hit);});
       facetControls.forEach(function(facet){
         var counts=new Map();
@@ -914,8 +944,12 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
           option.textContent=option.value+' ('+(counts.get(option.value)||0)+')';
         });
       });
-      status.textContent=shown+' of '+cards.length+' cards';empty.hidden=shown!==0;
-      reset.disabled=!input.value && !facetControls.some(function(f){return f.select.value;}) && !(sort && sort.value);
+      var hasFilter=!!tokens.length||facetControls.some(function(f){return f.select.value;});
+      var noun=hasFilter?' matching cards':' cards',summary='Showing '+shown+' of '+matching.length+noun+'.';
+      status.textContent=summary;displaySummary.textContent=summary;empty.hidden=matching.length!==0;
+      var expandable=cards.length>displayDefault;displayControl.hidden=!expandable;pager.hidden=!expandable||matching.length===0;
+      loadMore.hidden=matching.length<=visibleLimit;loadMore.disabled=matching.length<=visibleLimit;loadMore.textContent='Load '+DISPLAY_STEP+' more';
+      reset.disabled=!input.value && !facetControls.some(function(f){return f.select.value;}) && !(sort && sort.value) && displayPreset===displayDefault && visibleLimit===displayPreset;
       revert.disabled=reset.disabled && !added.length && !storageDirty && !viewStorageDirty && !(youtubeGallery && remember && remember.checked) && !(rememberView&&rememberView.checked);
       if(youtubeGallery)additionsSection.hidden=!added.length;
       renderChips();renderSuggestions();refreshAdditions();
@@ -929,13 +963,14 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       if(input.value)active.push({key:'search',caption:'Search: '+input.value,clear:function(){input.value='';}});
       facetControls.forEach(function(f){if(f.select.value)active.push({key:'facet:'+f.field,caption:label(f.field)+': '+f.select.value,clear:function(){f.select.value='';}});});
       if(sort && sort.value)active.push({key:'sort',caption:sort.options[sort.selectedIndex].textContent,clear:function(){sort.value='';applySort();}});
+      if(visibleLimit!==displayDefault)active.push({key:'display',caption:(visibleLimit===displayPreset?'Display: '+displayPreset:'Visible: '+visibleLimit),clear:function(){displayPreset=displayDefault;visibleLimit=displayDefault;displaySelect.value=String(displayDefault);}});
       var live=new Set(active.map(function(c){return c.key;}));
       chipCache.forEach(function(button,key){if(!live.has(key)){button.remove();chipCache.delete(key);}});
       active.forEach(function(entry){
         var button=chipCache.get(entry.key);
         if(!button){button=element('button','sk-collection-chip');button.type='button';chips.append(button);chipCache.set(entry.key,button);}
         button.textContent=entry.caption+' ×';button.title='Clear '+entry.caption;button.setAttribute('aria-label','Clear '+entry.caption);
-        button.onclick=function(){entry.clear();apply();var next=chips.querySelector('button');if(next)next.focus();else input.focus();};
+        button.onclick=function(){entry.clear();saveView();apply();var next=chips.querySelector('button');if(next)next.focus();else input.focus();};
       });
       chips.hidden=!active.length;
       var optionsLabel=active.length?'More gallery options, '+active.length+' active settings':'More gallery options';toggle.setAttribute('aria-label',optionsLabel);toggle.title=active.length?'More options ('+active.length+' active settings)':'More options';
@@ -963,9 +998,11 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
     input.addEventListener('input',function(event){if(!event.isComposing)apply();});
     input.addEventListener('compositionend',apply);
     input.addEventListener('keydown',function(event){if(event.key==='Escape'){input.value='';apply();}});
-    facetControls.forEach(function(f){f.select.addEventListener('change',apply);});
-    if(sort)sort.addEventListener('change',function(){applySort();apply();});
-    function resetView(){input.value='';facetControls.forEach(function(f){f.select.value='';});if(sort)sort.value='';applySort();apply();input.focus();}
+    facetControls.forEach(function(f){f.select.addEventListener('change',function(){saveView();apply();});});
+    if(sort)sort.addEventListener('change',function(){applySort();saveView();apply();});
+    displaySelect.addEventListener('change',function(){var value=Number(displaySelect.value);if(!DISPLAY_SIZES.includes(value)){displaySelect.value=String(displayPreset);return;}displayPreset=value;visibleLimit=value;saveView();apply();});
+    loadMore.addEventListener('click',function(){visibleLimit+=DISPLAY_STEP;apply();});
+    function resetView(){input.value='';facetControls.forEach(function(f){f.select.value='';});if(sort)sort.value='';displayPreset=displayDefault;visibleLimit=displayDefault;displaySelect.value=String(displayDefault);applySort();saveView();apply();input.focus();}
     reset.addEventListener('click',resetView);
     revert.addEventListener('click',function(){
       if(youtubeGallery){additionGeneration++;pendingSources.clear();}
@@ -975,7 +1012,7 @@ ASSET_JS = r"""/* Local gallery controls with optional, explicit saved additions
       resetView();showPanel(storageDirty||viewStorageDirty);if(storageDirty && forget)forget.focus();else if(viewStorageDirty&&viewForget)viewForget.focus();
     });
     input.addEventListener('keydown',function(event){if(event.key==='Enter' && event.isComposing)event.preventDefault();});
-    if(status.parentElement!==root){root.insertBefore(status,root.firstChild);}root.insertBefore(controls,status);status.after(chips);chips.after(suggestions);root.append(empty);
+    if(status.parentElement!==root){root.insertBefore(status,root.firstChild);}root.insertBefore(controls,status);status.after(chips);chips.after(suggestions);root.append(pager,empty);
     root.setAttribute('data-sk-enhanced','true');stampUiContract(root);restoreAdditions();restoreView();applySort();apply();
   }
   function start(){document.querySelectorAll('.sk-collection').forEach(function(root){try{run(root);}catch(error){console.warn('Gallery controls unavailable',error);}});}

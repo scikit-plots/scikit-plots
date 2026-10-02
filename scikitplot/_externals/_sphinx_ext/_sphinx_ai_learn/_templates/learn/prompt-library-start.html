@@ -1,3 +1,4 @@
-<div class="learn-prompt-library" data-prompt-library data-prompt-controls data-site="{{ site_id|e }}">
+<div class="learn-prompt-library" data-prompt-library data-prompt-controls data-local-display data-site="{{ site_id|e }}">
 <p class="learn-prompt-intro">Browse reusable, source-aware prompts for deeper topic analysis. The first five core prompts are enabled by default; additional analytical prompts are opt-in. Toggle a prompt to show or hide its matching section across topic pages in this browser.</p>
-<div class="learn-prompt-grid">
+{% if prompts|length > (page_chunk_size|default(12, true)) %}{% set display_controls_hidden = false %}{% include "learn/local-display-controls.html" %}{% endif %}
+<div class="learn-prompt-grid" data-display-items>

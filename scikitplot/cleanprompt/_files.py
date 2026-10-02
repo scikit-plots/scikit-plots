@@ -145,7 +145,8 @@ def locked(
     >>> target = os.path.join(tempfile.mkdtemp(), "vault.json")
     >>> with locked(target):
     ...     atomic_write(target, "{}")
-    >>> open(target).read()
+    >>> with open(target) as handle:
+    ...     handle.read()
     '{}'
     """
     if (

@@ -1,3 +1,4 @@
 </div>
+{% if skills|length > (page_chunk_size|default(12, true)) %}{% set display_controls_hidden = false %}{% include "learn/local-display-pager.html" %}{% endif %}
 <p class="learn-message" data-skill-status role="status" aria-live="polite"></p>
 </div>

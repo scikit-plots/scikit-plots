@@ -166,6 +166,7 @@ def _page_context(app, pagename, templatename, context, doctree) -> None:
         "fallback": normalized["fallback"],
         "page_main": normalized["page_main"],
         "quick_enabled": normalized["quick_enabled"],
+        "buttons_ratings": dict(normalized["buttons_ratings"]),
         "detailed_enabled": normalized["detailed_enabled"],
         "comment_enabled": normalized["comment_enabled"],
         "contributor_enabled": normalized["contributor_enabled"],
@@ -199,6 +200,11 @@ def setup_extension(app):
     app.add_config_value("feedback_page_main", True, "html")
     app.add_config_value("feedback_position_fallback", "main-bottom", "html")
     app.add_config_value("feedback_quick_enabled", True, "html")
+    app.add_config_value(
+        "feedback_buttons_ratings",
+        {"left_button_rating": "left", "right_button_rating": "right"},
+        "html",
+    )
     app.add_config_value("feedback_detailed_enabled", True, "html")
     app.add_config_value("feedback_comment_enabled", True, "html")
     app.add_config_value("feedback_contributor_enabled", True, "html")

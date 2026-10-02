@@ -40,6 +40,11 @@ _MAX_SECTIONS = 32
 _PRESET_FIELDS = 2
 _MAX_TITLE = 200
 _MAX_SUBSCRIBE_URL = 2048
+_AI_LEARN_BUTTON_RATING_POSITIONS = frozenset({"left", "right"})
+_AI_LEARN_BUTTONS_RATINGS_DEFAULT = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
 
 _ASSETS = Path(__file__).parent / "_static"
 _LOGGER = sphinx_logging.getLogger(__name__)
@@ -207,6 +212,42 @@ def _append_unique_config_path(config, name, path):
     setattr(config, name, values)
 
 
+def _normalize_ai_learn_buttons_ratings(value):
+    """Validate and normalize per-button community-count placement.
+
+    ``left_button_rating`` addresses the thumbs-down quick action and
+    ``right_button_rating`` addresses thumbs-up. Partial mappings inherit the
+    balanced defaults. The normalized mapping is presentation-only: it never
+    changes feedback values, aggregate authority, persistence, or request data.
+    """
+    if value is None:
+        value = {}
+    if not isinstance(value, dict):
+        raise ConfigError("ai_learn_buttons_ratings must be a dictionary")
+    unknown = set(value) - set(_AI_LEARN_BUTTONS_RATINGS_DEFAULT)
+    if unknown:
+        labels = ", ".join(repr(item) for item in sorted(unknown, key=repr))
+        raise ConfigError(
+            "ai_learn_buttons_ratings contains unsupported key(s): " + labels
+        )
+    normalized = dict(_AI_LEARN_BUTTONS_RATINGS_DEFAULT)
+    for key in _AI_LEARN_BUTTONS_RATINGS_DEFAULT:
+        if key not in value:
+            continue
+        raw = value[key]
+        if not isinstance(raw, str):
+            raise ConfigError(
+                f"ai_learn_buttons_ratings[{key!r}] must be 'left' or 'right'"
+            )
+        position = raw.strip().lower()
+        if position not in _AI_LEARN_BUTTON_RATING_POSITIONS:
+            raise ConfigError(
+                f"ai_learn_buttons_ratings[{key!r}] must be 'left' or 'right'"
+            )
+        normalized[key] = position
+    return normalized
+
+
 def _configure(  # ruff: ignore[too-many-branches]
     app,
     config,
@@ -216,6 +257,9 @@ def _configure(  # ruff: ignore[too-many-branches]
         raise ConfigError("ai_learn_runtime must be 'none' or 'assistant'")
     if not isinstance(config.ai_learn_media, bool):
         raise ConfigError("ai_learn_media must be true or false")
+    app._ai_learn_buttons_ratings = _normalize_ai_learn_buttons_ratings(
+        getattr(config, "ai_learn_buttons_ratings", None)
+    )
     if config.ai_learn_explorer_search_variant not in SEARCH_VARIANTS:
         raise ConfigError(
             "ai_learn_explorer_search_variant must be 'pill-overflow' or 'classic'"
@@ -440,6 +484,11 @@ def setup_extension(app):
     app.add_config_value("ai_learn_explorer_search_variant", "pill-overflow", "env")
     app.add_config_value("ai_learn_media", False, "env")
     app.add_config_value("ai_learn_youtube_subscribe_url", "", "env")
+    app.add_config_value(
+        "ai_learn_buttons_ratings",
+        dict(_AI_LEARN_BUTTONS_RATINGS_DEFAULT),
+        "html",
+    )
     media = app.config.ai_learn_media
     if not isinstance(media, bool):
         raise ConfigError("ai_learn_media must be true or false")

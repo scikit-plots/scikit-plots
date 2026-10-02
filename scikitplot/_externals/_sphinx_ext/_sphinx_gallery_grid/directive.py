@@ -515,7 +515,11 @@ class GalleryGridDirective(SphinxDirective):
     defaults to ``collection_search_variant`` and can be overridden for one
     directive with ``:search-variant:`` / ``:search_variant:``. The activating
     options also accept a shorthand value, for example ``:interactive: classic``;
-    their traditional valueless form remains backward compatible.
+    their traditional valueless form remains backward compatible. Enhanced
+    galleries use the shared bounded-view controller: 12 cards by default, a
+    12/25/50/75/100/125/150 display selector in the expanded View panel, and a
+    grid-end Load 12 more action. This reader-side window is independent of the
+    directive's build-time ``:limit:`` / ``:offset:`` selection.
     """
 
     name = "gallery-grid"

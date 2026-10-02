@@ -39,6 +39,11 @@ DEFAULT_EXCLUDE = ("search", "genindex", "py-modindex", "404")
 POSITIONS = frozenset({"auto", "sidebar", "main-bottom", "floating", "none"})
 FALLBACKS = frozenset({"main-bottom", "none"})
 COUNTER_SOURCES = frozenset({"embedded", "none"})
+BUTTON_RATING_POSITIONS = frozenset({"left", "right"})
+DEFAULT_BUTTONS_RATINGS = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
 
 
 class FeedbackConfigError(ValueError):
@@ -187,6 +192,49 @@ def _strict_bool(value: Any, *, name: str) -> bool:
     return value
 
 
+def validate_buttons_ratings(value: Any) -> dict[str, str]:
+    """
+    Normalize per-button counter placement for the compact quick actions.
+
+    ``left_button_rating`` addresses the thumbs-down button and
+    ``right_button_rating`` addresses the thumbs-up button. Each value controls
+    whether that button's reviewed count appears on the logical left or right
+    side of its icon/selected-state label cluster. Partial dictionaries are
+    allowed and inherit the balanced defaults.
+    """
+    if value is None:
+        value = {}
+    if not isinstance(value, dict):
+        raise FeedbackConfigError("feedback_buttons_ratings must be a dictionary")
+    unknown = sorted(set(value) - set(DEFAULT_BUTTONS_RATINGS))
+    if unknown:
+        raise FeedbackConfigError(
+            "feedback_buttons_ratings contains unsupported key(s): "
+            + ", ".join(str(item) for item in unknown)
+        )
+    normalized = dict(DEFAULT_BUTTONS_RATINGS)
+    for key in DEFAULT_BUTTONS_RATINGS:
+        if key not in value:
+            continue
+        raw = value[key]
+        if not isinstance(raw, str):
+            raise FeedbackConfigError(
+                f"feedback_buttons_ratings[{key!r}] must be 'left' or 'right'"
+            )
+        position = _plain_string(
+            raw,
+            name=f"feedback_buttons_ratings[{key!r}]",
+            maximum=16,
+            empty=False,
+        ).lower()
+        if position not in BUTTON_RATING_POSITIONS:
+            raise FeedbackConfigError(
+                f"feedback_buttons_ratings[{key!r}] must be 'left' or 'right'"
+            )
+        normalized[key] = position
+    return normalized
+
+
 def _page_revision(value: Any) -> str:
     text = _plain_string(value or "", name="feedback_page_revision", maximum=128)
     return text  # ruff: ignore[unnecessary-assign]
@@ -244,6 +292,9 @@ def validate_config(config: Any) -> dict[str, Any]:
         .strip()
         .lower()
     )
+    buttons_ratings = validate_buttons_ratings(
+        getattr(config, "feedback_buttons_ratings", None)
+    )
     if counter_source not in COUNTER_SOURCES:
         raise FeedbackConfigError(
             "feedback_counter_source must be 'embedded' or 'none'; live page-view fetches are intentionally unsupported",
@@ -299,6 +350,7 @@ def validate_config(config: Any) -> dict[str, Any]:
         "position": position,
         "fallback": fallback,
         "counter_source": counter_source,
+        "buttons_ratings": buttons_ratings,
         "site_id": site_id,
         "endpoint": endpoint,
         "include": include,

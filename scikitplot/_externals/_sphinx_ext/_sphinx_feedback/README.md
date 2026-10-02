@@ -45,6 +45,10 @@ feedback_position = "sidebar"  # auto | sidebar | main-bottom | floating | none
 feedback_page_main = True  # synchronized second view, not a second controller
 feedback_position_fallback = "main-bottom"
 feedback_detailed_enabled = True
+feedback_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
 feedback_counter_enabled = True
 feedback_counter_source = "embedded"
 feedback_aggregate_file = "/page-feedback-aggregate.json"
@@ -81,6 +85,64 @@ reverse-engineered into positive/negative event counts. `write_aggregate(..., co
 V3 may optionally carry `page_revision`; when
 `feedback_page_revision` is configured it must match exactly, so older-revision feedback
 is not silently presented as current feedback.
+
+
+### Quick-button counter placement
+
+The compact thumbs controls expose the reviewed per-sign count as an independently
+configurable presentation detail. The public Sphinx setting is
+`feedback_buttons_ratings`; use the distinct `left_button_rating` key for the
+thumbs-down button and `right_button_rating` for the thumbs-up button. Each value is
+`"left"` or `"right"`. A partial dictionary inherits the default for the omitted
+button, while unknown keys or values fail the build instead of silently drifting.
+
+The balanced default keeps the counts on the outside edges:
+
+```python
+feedback_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
+```
+
+```text
+[0 | 👎]   [👍 | 0]   [⌄]
+[0 | 👎 Not helpful]   [👍 | 0]   [⌄]
+[0 | 👎]   [👍 Helpful | 0]   [⌄]
+```
+
+Both counts can instead follow their icons:
+
+```python
+feedback_buttons_ratings = {
+    "left_button_rating": "right",
+    "right_button_rating": "right",
+}
+```
+
+```text
+[👎 | 0]   [👍 | 0]   [⌄]
+```
+
+Or both can precede their icons:
+
+```python
+feedback_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "left",
+}
+```
+
+```text
+[0 | 👎]   [0 | 👍]   [⌄]
+```
+
+The placement changes only visual ordering. Accessible button names, rating values,
+selected state, transport payloads, counters, retry/idempotency semantics, and storage
+contracts are unchanged. Logical CSS borders (`inline-start`/`inline-end`) preserve the
+divider correctly in both LTR and RTL layouts. Because Python dictionaries cannot hold
+two copies of the same key, do not repeat `left_button_rating`; use the distinct
+left/right keys shown above.
 
 ## Standalone service
 

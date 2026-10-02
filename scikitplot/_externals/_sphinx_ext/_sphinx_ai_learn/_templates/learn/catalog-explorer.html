@@ -1,4 +1,4 @@
-<div class="learn-explorer learn-catalog-explorer" data-learn-explorer data-catalog-table data-kind="{{ kind|e }}" data-item-label="{{ item_label|e }}" data-numeric-sort="{{ numeric_sort|join(' ')|e }}">
+<div class="learn-explorer learn-catalog-explorer" data-learn-explorer data-catalog-table data-kind="{{ kind|e }}" data-item-label="{{ item_label|e }}" data-total="{{ total }}" data-offset="{{ offset }}" data-page-chunk-size="{{ page_chunk_size|default(12, true) }}" data-numeric-sort="{{ numeric_sort|join(' ')|e }}">
 <script type="application/json" class="learn-section-registry">{{ section_registry }}</script>
 <p class="learn-meta">{{ total }} {{ label|lower|e }} in this catalog snapshot · filters and sorting apply to the records on this page.</p>
 {% set filter_panel_id = "learn-" ~ kind ~ "-filter-options" %}
@@ -59,6 +59,5 @@
 </table>
 </div>
 <p class="learn-meta learn-trending-note">This is a static catalog view. Missing metadata is shown as unavailable rather than estimated.</p>
-{% if previous %}<a href="{{ previous|e }}">← Previous page</a>{% endif %}
-{% if next %}<a class="learn-next" href="{{ next|e }}">Show More</a>{% endif %}
+{% include "learn/explorer-pager.html" %}
 </div>

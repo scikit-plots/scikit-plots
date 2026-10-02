@@ -268,12 +268,17 @@ class YouTubeGalleryDirective(SphinxDirective):
         Use real sections where allowed, otherwise rubrics. Explicit section
         mode warns when it must fall back; auto falls back quietly.
     searchable : flag or {"pill-overflow", "classic"}
-        Add local search to emitted cards without enabling facet/sort controls.
-        An optional value selects the search-shell presentation for this gallery.
+        Add local search plus the shared bounded display controls to emitted
+        cards without enabling facet/sort controls. Twelve cards are visible by
+        default; the expanded View panel offers 12/25/50/75/100/125/150 and the
+        grid end offers Load 12 more. An optional value selects the search-shell
+        presentation for this gallery.
     interactive : flag or {"pill-overflow", "classic"}
-        Add local search, available field filters, sorting, counts and Reset.
-        An optional value selects the search-shell presentation for this gallery.
-        Controls act on rendered cards only and are not enabled in list mode.
+        Add local search, available field filters, sorting, bounded display,
+        counts and Reset. An optional value selects the search-shell
+        presentation for this gallery. Controls act on rendered cards only and
+        are not enabled in list mode. Build-time ``limit``/``offset`` selection
+        remains separate from this reader-side visible window.
     search-variant : {"pill-overflow", "classic"}
         Presentation override for the shared collection search shell. The
         site-wide fallback is ``collection_search_variant``; this option does

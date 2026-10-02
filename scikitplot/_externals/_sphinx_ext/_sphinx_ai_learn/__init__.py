@@ -20,7 +20,7 @@ from __future__ import annotations
 from ._materialize import load_content_tree, materialize
 from ._schema import LearnValidationError, validate_contribution
 
-__version__ = "0.47.0"
+__version__ = "0.49.0"
 __all__ = [
     "LearnValidationError",
     "load_content_tree",

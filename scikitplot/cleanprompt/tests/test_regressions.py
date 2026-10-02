@@ -1705,10 +1705,14 @@ class TestCP045BrokenPipeReportedAsAnError:
             text=True,
         )
         assert writer.stdout is not None
+        assert writer.stderr is not None
         writer.stdout.readline()
         writer.stdout.close()
-        errors = writer.stderr.read() if writer.stderr else ""
-        writer.wait(timeout=60)
+        try:
+            errors = writer.stderr.read()
+            writer.wait(timeout=60)
+        finally:
+            writer.stderr.close()
 
         assert "Broken pipe" not in errors
         assert "Exception ignored" not in errors

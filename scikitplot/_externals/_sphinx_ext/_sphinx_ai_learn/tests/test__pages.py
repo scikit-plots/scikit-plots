@@ -580,6 +580,37 @@ def test_problem_source_skill_explorers_share_responsive_table_contract():
 
 
 
+def test_bounded_display_controls_cover_explorers_and_local_grid_libraries():
+    template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
+    select = (template_root/'display-size-select.html').read_text()
+    pager = (template_root/'explorer-pager.html').read_text()
+    prompt = (template_root/'prompt-library-start.html').read_text() + (template_root/'prompt-library-end.html').read_text()
+    skill = (template_root/'skill-library-start.html').read_text() + (template_root/'skill-library-end.html').read_text()
+    user = (template_root/'user-library.html').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    env = Environment(loader=FileSystemLoader(str(template_root.parent)), autoescape=False)
+    rendered_select = env.get_template('learn/display-size-select.html').render(
+        display_name='limit', display_sizes=(12, 25, 50, 75, 100, 125, 150)
+    )
+    for value in (12, 25, 50, 75, 100, 125, 150):
+        assert f'value="{value}"' in rendered_select
+    assert 'display_sizes|default([12, 25, 50, 75, 100, 125, 150], true)' in select
+    assert 'for size in sizes' in select
+    assert 'data-display-size' in select and 'Maximum items displayed' in select
+    assert 'data-display-load-more' in pager and 'data-explorer-next' in pager
+    assert 'data-local-display' in prompt and 'data-display-items' in prompt
+    assert 'data-local-display' in skill and 'data-display-items' in skill
+    assert 'data-local-display' in user and 'data-bookmarks-list' in user and 'data-collection-items' in user
+    assert "const defaultLimit=displaySizes.has(12)?12" in js
+    assert "visibleLimit+=chunkSize" in js
+    assert "while(items.length<target&&nextHref)" in js
+    assert "length>2*1024*1024" in js
+    assert "incomingItems.length>chunkSize" in js
+    assert '.learn-display-pager' in css and '.learn-display-toolbar' in css
+    assert '.learn-filter-options { display:grid; grid-template-columns:repeat(4' in css
+
+
 def test_prompt_and_skill_switches_use_native_accessible_names_without_theme_hidden_helpers():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
     names = (
@@ -1078,6 +1109,9 @@ def test_all_catalog_explorers_use_live_compact_shared_controls():
     assert 'learn/explorer-search-primary.html' in controls
     assert 'data-explorer-filter-options' in controls
     assert 'name="timeframe"' in controls
+    display_select = (template_root/'learn/display-size-select.html').read_text()
+    assert 'name="{{ display_name|e }}"' in display_select
+    assert 'learn/display-size-select.html' in controls
     assert 'data-explorer-sort' in controls
     assert 'data-explorer-direction' in controls
     assert 'data-explorer-reset' in controls
@@ -1103,9 +1137,10 @@ def test_all_catalog_explorers_use_live_compact_shared_controls():
     assert "filterOptions.hidden=!expanded" in js
     assert "hasAdvancedState(params)" in js
     assert "form.addEventListener('submit'" in js
-    assert "form.addEventListener('input',event=>{if(event.target===form.elements.sort||event.isComposing)return;apply(true);})" in js
+    assert "event.target===form.elements.sort||event.target===displaySelect||event.isComposing" in js
     assert "form.elements.q?.addEventListener('compositionend',()=>apply(true))" in js
-    assert "if(!tbody){" in js
+    assert "const itemSelector=tbody?'.learn-topic-row':'.learn-card'" in js
+    assert "const incomingHost=tbody?one(incoming,'tbody'):one(incoming,'.learn-items')" in js
     assert '.learn-search-primary-row { display:grid; grid-template-columns:minmax(0,1fr) 2.75rem; gap:.42rem; align-items:end;' in css
     assert '.learn-trending-controls .learn-visually-hidden { position:absolute!important;' in css
     assert '.learn-search-primary-row--pill-overflow { grid-template-columns:minmax(0,1fr) 2.5rem; }' in css
@@ -1518,7 +1553,8 @@ def test_all_nine_creation_studios_share_one_registry_header_and_responsive_navi
     assert 'STUDIO_DEFINITIONS = (' in pages
     assert '_STUDIO_LEAF_BY_KIND = {kind: leaf' in pages
     assert 'for kind, label, leaf in STUDIO_DEFINITIONS' in pages
-    assert 'merged = {**context, "studio_nav": _studio_navigation()}' in pages
+    assert '"studio_nav": _studio_navigation()' in pages
+    assert '"ai_learn_buttons_ratings": dict(buttons_ratings)' in pages
     assert '_STUDIO_LEAF_BY_KIND.get(kind)' in pages
     assert 'learn-generation-modality-nav' not in nav_source
     assert 'learn-generation-studio-nav' in nav_source
@@ -1795,3 +1831,76 @@ def test_index_explorer_header_template_escapes_dynamic_copy_and_links():
     assert 'Exploring &#34;Sources&#34; &amp; more' in rendered
     assert '?x=1&amp;y=2' in rendered
     assert rendered.count('class="learn-button"') == 2
+
+
+def test_generation_feedback_quick_count_placement_is_per_button_configurable():
+    template_root = EXT / '_sphinx_ext/_sphinx_ai_learn/_templates'
+    env = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False)
+    template = env.get_template('learn/generation-feedback.html')
+    common = {
+        'generation_id': 'generation-' + 'a' * 20,
+        'feedback_section_id': 'description',
+        'feedback_score': 0,
+        'feedback_count': 7,
+        'feedback_negative_count': 3,
+        'feedback_positive_count': 4,
+        'feedback_negative_count_display': '3',
+        'feedback_positive_count_display': '4',
+        'feedback_count_display': '7',
+        'generation_history': [],
+    }
+
+    def button_fragment(rendered, value):
+        marker = f'data-learn-feedback-quick="{value}"'
+        return rendered.split(marker, 1)[1].split('</button>', 1)[0]
+
+    # No explicit template variable still uses the public balanced default.
+    rendered = template.render(**common)
+    negative = button_fragment(rendered, -1)
+    positive = button_fragment(rendered, 1)
+    assert negative.index('data-rating-position="left"') < negative.index('<svg') < negative.index('Not helpful</span>')
+    assert positive.index('<svg') < positive.index('Helpful</span>') < positive.index('data-rating-position="right"')
+
+    cases = {
+        ('left', 'right'): ('left', 'right'),
+        ('right', 'right'): ('right', 'right'),
+        ('left', 'left'): ('left', 'left'),
+        ('right', 'left'): ('right', 'left'),
+    }
+    for (left_setting, right_setting), (negative_position, positive_position) in cases.items():
+        rendered = template.render(
+            **common,
+            ai_learn_buttons_ratings={
+                'left_button_rating': left_setting,
+                'right_button_rating': right_setting,
+            },
+        )
+        negative = button_fragment(rendered, -1)
+        positive = button_fragment(rendered, 1)
+        assert negative.count('data-learn-feedback-quick-count="-1"') == 1
+        assert positive.count('data-learn-feedback-quick-count="1"') == 1
+        assert f'data-rating-position="{negative_position}"' in negative
+        assert f'data-rating-position="{positive_position}"' in positive
+        if negative_position == 'left':
+            assert negative.index('data-learn-feedback-quick-count="-1"') < negative.index('<svg')
+        else:
+            assert negative.index('Not helpful</span>') < negative.index('data-learn-feedback-quick-count="-1"')
+        if positive_position == 'left':
+            assert positive.index('data-learn-feedback-quick-count="1"') < positive.index('<svg')
+        else:
+            assert positive.index('Helpful</span>') < positive.index('data-learn-feedback-quick-count="1"')
+
+
+def test_generation_feedback_count_placement_uses_logical_dividers_and_html_time_config():
+    extension_root = EXT / '_sphinx_ext/_sphinx_ai_learn'
+    css = (extension_root / '_static/topic.css').read_text(encoding='utf-8')
+    pages = (extension_root / '_pages.py').read_text(encoding='utf-8')
+    template = (extension_root / '_templates/learn/generation-feedback.html').read_text(encoding='utf-8')
+    assert '.learn-generation-feedback-quick-count[data-rating-position="left"]' in css
+    assert '.learn-generation-feedback-quick-count[data-rating-position="right"]' in css
+    assert 'border-inline-end' in css and 'border-inline-start' in css
+    assert 'forced-colors:active' in css
+    assert '"ai_learn_buttons_ratings": dict(buttons_ratings)' in pages
+    assert '_ai_learn_buttons_ratings' in pages
+    assert 'data-rating-position="left"' in template
+    assert 'data-rating-position="right"' in template

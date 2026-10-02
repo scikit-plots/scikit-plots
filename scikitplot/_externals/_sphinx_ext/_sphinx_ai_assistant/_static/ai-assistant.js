@@ -11894,9 +11894,17 @@
         return names.slice(0, _TURN_RESOURCE_LIVE_MAX_ITEMS);
     }
 
-    function _composerTurnAttachmentSnapshot(plan, preparedPageContext) {
+    function _composerTurnAttachmentSnapshot(plan, preparedPageContext, attachmentItems, replayContext) {
         var out = [];
         var finalContext = plan && typeof plan.text === 'string' ? plan.text : '';
+        // Preserve the exact Send-time attachment sequence. The live composer is
+        // intentionally not authoritative here: privacy review and other async
+        // work can outlive the original click, and historical turn provenance
+        // must never drift to a later composer mutation or reorder.
+        var sourceAttachments = Array.isArray(attachmentItems)
+            ? attachmentItems.slice() : _composerAttachments.slice();
+        var sourceReplayContext = replayContext == null
+            ? _composerReplayAttachmentContext : String(replayContext || '');
         var includedRows = plan && Array.isArray(plan.included) ? plan.included : [];
         var budgetExcluded = plan && Array.isArray(plan.budgetExcluded) ? plan.budgetExcluded : [];
         var rawResources = plan && Array.isArray(plan.resources) ? plan.resources : [];
@@ -11933,7 +11941,7 @@
             if (live) out.push(live);
         });
 
-        _composerAttachments.forEach(function (item) {
+        sourceAttachments.forEach(function (item) {
             if (!item || out.length >= _TURN_RESOURCE_LIVE_MAX_ITEMS) return;
             var info = _includedInfo(item);
             var rawInfo = _rawInfo(item);
@@ -11956,8 +11964,8 @@
             }));
             if (live) out.push(live);
         });
-        if (_composerReplayAttachmentContext && out.length < _TURN_RESOURCE_LIVE_MAX_ITEMS) {
-            var replayNames = _replayAttachmentNames(_composerReplayAttachmentContext);
+        if (sourceReplayContext && out.length < _TURN_RESOURCE_LIVE_MAX_ITEMS) {
+            var replayNames = _replayAttachmentNames(sourceReplayContext);
             if (!replayNames.length) replayNames = ['Prior attachment context'];
             replayNames.forEach(function (name) {
                 if (out.length >= _TURN_RESOURCE_LIVE_MAX_ITEMS) return;
@@ -12066,11 +12074,15 @@
         return out;
     }
 
-    async function _prepareComposerEffectiveAttachmentPlan(snapshotItems) {
+    async function _prepareComposerEffectiveAttachmentPlan(snapshotItems, replayContext) {
         // Newly staged files take precedence when the combined context reaches
-        // the cap; replay receives only the remaining fixed budget.
+        // the cap; replay receives only the remaining fixed budget. Capture the
+        // replay string with the same Send-time snapshot as files so async
+        // preparation cannot mix two different composer revisions.
+        var sourceReplayContext = replayContext == null
+            ? _composerReplayAttachmentContext : String(replayContext || '');
         var plan = await _prepareComposerAttachmentPlan(snapshotItems);
-        plan.text = _mergeAttachmentContexts(plan.text, _composerReplayAttachmentContext);
+        plan.text = _mergeAttachmentContexts(plan.text, sourceReplayContext);
         plan.resources = _prepareComposerRawResources(snapshotItems);
         return plan;
     }
@@ -15541,7 +15553,15 @@
         tray.toggleAttribute('data-overflow', overflowing);
         tray.toggleAttribute('data-overflow-start', overflowing && left > 2);
         tray.toggleAttribute('data-overflow-end', overflowing && left < max - 2);
-        tray.setAttribute('aria-label', overflowing ? 'Context and attached files. Scroll horizontally for more items.' : 'Context and attached files');
+        // Cache each tray's own semantic label before adding an overflow hint.
+        // This keeps composer and historical-turn accessibility distinct.
+        var baseLabel = tray.getAttribute('data-attachment-base-label');
+        if (!baseLabel) {
+            baseLabel = tray.getAttribute('aria-label') || 'Context and attached files';
+            tray.setAttribute('data-attachment-base-label', baseLabel);
+        }
+        tray.setAttribute('aria-label', overflowing
+            ? baseLabel + '. Scroll horizontally for more items.' : baseLabel);
     }
 
     function _bindAttachmentTrayScrolling(tray) {
@@ -15573,6 +15593,14 @@
                 _updateAttachmentTrayOverflow(tray);
             });
             tray._aiAttachmentResizeObserver.observe(tray);
+        }
+        // Historical trays are built before their bubble is attached to the DOM.
+        // Measure again on the next frame so overflow state is correct even in
+        // browsers without ResizeObserver.
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(function () { _updateAttachmentTrayOverflow(tray); });
+        } else {
+            _updateAttachmentTrayOverflow(tray);
         }
     }
 
@@ -47434,7 +47462,6 @@
                 // PAGE/MD context look and behave the same before and after Send.
                 files.className = 'ai-assistant-panel-attachments ai-assistant-panel-user-turn-attachments';
                 files.setAttribute('aria-label', 'Files and pages used for this question');
-                files.setAttribute('data-scroll-bound', 'true');
                 files.setAttribute('data-attachment-count', String(turnResourceManifest.totalCount));
 
                 turnAttachments.forEach(function (item) {
@@ -50489,7 +50516,11 @@
         }
         var attachmentRevision = _attachmentMutationRevision;
         var attachmentSnapshot = _composerAttachments.slice();
-        var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan(attachmentSnapshot);
+        var replayAttachmentSnapshot = _composerReplayAttachmentContext;
+        var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan(
+            attachmentSnapshot,
+            replayAttachmentSnapshot
+        );
         if (attachmentRevision !== _attachmentMutationRevision) {
             showNotification('Attachments changed while preparing this request. Review the visible batch and send again.', false);
             input.focus();
@@ -50557,9 +50588,15 @@
             return;
         }
 
+
         attachmentPlan.text = attachmentText;
         var requestQuestion = _composeQuestionWithAttachments(questionText, attachmentText);
-        var turnAttachments = _composerTurnAttachmentSnapshot(attachmentPlan, preparedPageContext);
+        var turnAttachments = _composerTurnAttachmentSnapshot(
+            attachmentPlan,
+            preparedPageContext,
+            attachmentSnapshot,
+            replayAttachmentSnapshot
+        );
 
         // ── Cancel any in-flight request before starting a new one ───────
         // Without this, rapid submits fire multiple concurrent fetches; the

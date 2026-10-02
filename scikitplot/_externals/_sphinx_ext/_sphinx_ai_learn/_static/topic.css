@@ -130,6 +130,7 @@ label.learn-switch>input:focus-visible+span[aria-hidden] { outline:2px solid var
 .learn-library-intro { max-width:70ch; margin:0; }
 .learn-library-heading-row { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
 .learn-library-heading-actions { display:flex; flex:0 0 auto; align-items:center; justify-content:flex-end; gap:.7rem; flex-wrap:wrap; }
+.learn-library-heading-actions .learn-display-toolbar { margin:0; }
 .learn-library-back { flex:0 0 auto; font-size:.84rem; text-decoration:none; }
 .learn-library-grid-control { display:inline-flex; align-items:center; gap:.18rem; padding:.2rem; border:1px solid var(--learn-line); border-radius:9px; background:var(--learn-soft); }
 .learn-library-grid-label { padding:0 .38rem; color:var(--pst-color-text-muted,#596573); font-size:.76rem; font-weight:650; }
@@ -208,8 +209,20 @@ label.learn-switch>input:focus-visible+span[aria-hidden] { outline:2px solid var
 .learn-trending-controls .learn-filter-disclosure--chevron[aria-expanded="true"] svg { transform:rotate(180deg); }
 .learn-trending-controls .learn-filter-disclosure--overflow .learn-filter-overflow-icon { fill:currentColor; }
 .learn-trending-controls .learn-filter-disclosure--overflow[aria-expanded="true"] { border-color:var(--learn-accent); color:var(--learn-accent); background:color-mix(in srgb,var(--learn-accent) 7%,var(--pst-color-background,#fff)); }
-.learn-filter-options { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)) auto auto; gap:.7rem; align-items:end; padding-top:.72rem; margin-top:.08rem; border-top:1px solid var(--learn-line); }
+.learn-filter-options { display:grid; grid-template-columns:repeat(4,minmax(110px,1fr)) auto auto; gap:.7rem; align-items:end; padding-top:.72rem; margin-top:.08rem; border-top:1px solid var(--learn-line); }
 .learn-filter-options[hidden] { display:none!important; }
+
+/* Shared bounded-display controls.  Catalog explorers fetch deterministic 12-record
+   shards; local prompt/skill/library grids progressively reveal their existing
+   semantic cards. */
+.learn-display-toolbar { display:flex; align-items:end; justify-content:flex-end; gap:.6rem; margin:.7rem 0; }
+.learn-display-size-control { min-width:7.2rem; margin:0; font-size:.76rem; font-weight:600; }
+.learn-display-toolbar .learn-display-size-control select { display:block; width:100%; margin-top:.32rem; border:1px solid var(--learn-line); border-radius:7px; padding:.45rem .55rem; background:var(--pst-color-background,#fff); color:inherit; }
+.learn-display-pager { display:flex; align-items:center; justify-content:flex-end; gap:.7rem; flex-wrap:wrap; margin:.8rem 0 .25rem; }
+.learn-display-summary { margin:0 auto 0 0; font-variant-numeric:tabular-nums; }
+.learn-display-load-more { min-width:8.7rem; }
+.learn-display-fallback-links { display:inline-flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+.learn-display-toolbar[hidden],.learn-display-pager[hidden],.learn-display-load-more[hidden],.learn-display-fallback-links a[hidden],.learn-prompt-card[hidden],.learn-collection-home-card[hidden] { display:none!important; }
 .learn-sort-direction { min-width:5.3rem; font-variant-numeric:tabular-nums; }
 .learn-table-scroll { width:100%; min-width:0; overflow:visible; border:1px solid var(--learn-line); border-radius:10px; background:var(--pst-color-background,#fff); }
 .learn-trending-table { width:100%; min-width:0; table-layout:fixed; border-collapse:separate; border-spacing:0; margin:0; font-size:.83rem; }
@@ -274,6 +287,9 @@ label.learn-switch>input:focus-visible+span[aria-hidden] { outline:2px solid var
   .learn-trending-head { align-items:flex-start; flex-direction:column; }
   .learn-trending-links { justify-content:flex-start; }
   .learn-filter-options { grid-template-columns:1fr; }
+  .learn-display-toolbar { justify-content:flex-start; }
+  .learn-display-pager { align-items:stretch; }
+  .learn-display-load-more { width:100%; }
   .learn-trending-search { grid-column:auto; }
   .learn-sort-direction { width:100%; }
   .learn-table-scroll { border:0; border-radius:0; background:transparent; }
@@ -1143,14 +1159,22 @@ html[data-theme="dark"] .learn-generation-feedback,body[data-theme="dark"] .lear
   max-width: 12rem;
 }
 /* Reviewed positive/negative counts are embedded in each quick-action button.
-   A logical inline divider gives the compact "icon | count" shape and remains
-   correct in both LTR and RTL layouts. */
+   Per-button placement is build-configurable; logical dividers preserve the
+   compact "count | choice" / "choice | count" shape across writing modes. */
 .learn-generation-feedback-quick-count {
-  display:inline-flex; align-items:center; min-width:1.2ch; padding-inline-start:.42rem;
-  border-inline-start:1px solid color-mix(in srgb,currentColor 24%,transparent);
+  display:inline-flex; align-items:center; min-width:1.2ch;
   font-size:.76rem; font-weight:750; font-variant-numeric:tabular-nums;
   line-height:1; white-space:nowrap; opacity:.82;
 }
+.learn-generation-feedback-quick-count[data-rating-position="right"] {
+  padding-inline-start:.42rem;
+  border-inline-start:1px solid color-mix(in srgb,currentColor 24%,transparent);
+}
+.learn-generation-feedback-quick-count[data-rating-position="left"] {
+  padding-inline-end:.42rem;
+  border-inline-end:1px solid color-mix(in srgb,currentColor 24%,transparent);
+}
 @media (forced-colors:active) {
-  .learn-generation-feedback-quick-count { border-inline-start-color:CanvasText; }
+  .learn-generation-feedback-quick-count[data-rating-position="right"] { border-inline-start-color:CanvasText; }
+  .learn-generation-feedback-quick-count[data-rating-position="left"] { border-inline-end-color:CanvasText; }
 }

@@ -86,6 +86,34 @@
     libraryAttr:'data-skill-library',statusAttr:'data-skill-status',
     storagePrefix:'learn-skills:v1:',label:'skill'
   });
+
+
+  // Bounded presentation for static card libraries (Topic Prompts, Skills, and
+  // the Collections landing grid).  All cards remain semantic HTML so native
+  // links/toggles and no-JS behavior stay intact; JavaScript progressively
+  // limits the visible window to a safe 12-item default.
+  all(document,'[data-local-display]').forEach(root=>{
+    const host=one(root,'[data-display-items]'), select=one(root,'[data-display-size]');
+    const button=one(root,'[data-display-load-more]'), summary=one(root,'[data-display-summary]');
+    const toolbar=one(root,'[data-local-display-toolbar]'), pager=one(root,'[data-local-display-pager]');
+    if(!host||!select||!button||!summary)return;
+    const items=all(host,'[data-display-item]'), sizes=new Set([...select.options].map(option=>Number(option.value)).filter(Number.isFinite));
+    const defaultLimit=sizes.has(12)?12:Math.min(...sizes), requested=Number(new URLSearchParams(location.search).get('limit'));
+    let preset=sizes.has(requested)?requested:defaultLimit, visibleLimit=preset;
+    select.value=String(preset);
+    function updateUrl(){const url=new URL(location.href);if(preset===defaultLimit)url.searchParams.delete('limit');else url.searchParams.set('limit',String(preset));history.replaceState(null,'',url);}
+    function render(){
+      items.forEach((item,index)=>{item.hidden=index>=visibleLimit;});
+      const shown=Math.min(visibleLimit,items.length), expandable=items.length>defaultLimit;
+      if(toolbar)toolbar.hidden=!expandable;if(pager)pager.hidden=!expandable;
+      button.hidden=shown>=items.length;button.textContent='Load 12 more';
+      summary.textContent=expandable?'Showing '+shown+' of '+items.length+' items.':'';
+    }
+    select.addEventListener('change',()=>{const value=Number(select.value);if(!sizes.has(value))return;preset=value;visibleLimit=value;updateUrl();render();});
+    button.addEventListener('click',()=>{visibleLimit+=12;render();});
+    window.addEventListener('popstate',()=>{const value=Number(new URLSearchParams(location.search).get('limit'));preset=sizes.has(value)?value:defaultLimit;visibleLimit=preset;select.value=String(preset);render();});
+    render();
+  });
   all(document, '[data-learn-page]').forEach(page => {
     try {
     const dataNode=one(page,'.learn-page-data');
@@ -151,6 +179,17 @@
     const grid=one(library,'.learn-library-grid');
     const gridControl=one(library,'[data-library-grid-control]');
     const validGridColumns=new Set(['2','3','4','5']);
+    const displaySelect=data.mode==='collections'?null:one(library,'[data-display-size]');
+    const displayButton=data.mode==='collections'?null:one(library,'[data-display-load-more]');
+    const displaySummary=data.mode==='collections'?null:one(library,'[data-display-summary]');
+    const displayToolbar=data.mode==='collections'?null:one(library,'[data-local-display-toolbar]');
+    const displayPager=data.mode==='collections'?null:one(library,'[data-local-display-pager]');
+    const displaySizes=new Set(displaySelect?[...displaySelect.options].map(option=>Number(option.value)).filter(Number.isFinite):[12]);
+    const defaultDisplayLimit=displaySizes.has(12)?12:Math.min(...displaySizes);
+    const requestedDisplayLimit=Number(new URLSearchParams(location.search).get('limit'));
+    let displayPreset=displaySizes.has(requestedDisplayLimit)?requestedDisplayLimit:defaultDisplayLimit;
+    let displayLimit=displayPreset;
+    if(displaySelect)displaySelect.value=String(displayPreset);
     function gridColumns(){
       try {const value=localStorage.getItem(gridKey);return validGridColumns.has(value)?value:'2';}
       catch {return '2';}
@@ -166,6 +205,18 @@
     }
     all(gridControl,'[data-library-grid]').forEach(button=>button.addEventListener('click',()=>applyGridColumns(button.dataset.libraryGrid,true)));
     applyGridColumns();
+    function updateDisplayUrl(){
+      const url=new URL(location.href);if(displayPreset===defaultDisplayLimit)url.searchParams.delete('limit');else url.searchParams.set('limit',String(displayPreset));history.replaceState(null,'',url);
+    }
+    function updateDisplayControls(total){
+      if(!displaySelect||!displayButton||!displaySummary)return;
+      const expandable=total>defaultDisplayLimit, shown=Math.min(displayLimit,total);
+      if(displayToolbar)displayToolbar.hidden=!expandable;if(displayPager)displayPager.hidden=!expandable;
+      displayButton.hidden=shown>=total;displayButton.textContent='Load 12 more';
+      displaySummary.textContent=expandable?'Showing '+shown+' of '+total+' items.':'';
+    }
+    displaySelect?.addEventListener('change',()=>{const value=Number(displaySelect.value);if(!displaySizes.has(value))return;displayPreset=value;displayLimit=value;updateDisplayUrl();render();});
+    displayButton?.addEventListener('click',()=>{displayLimit+=12;render();});
     function migrate(record) {
       const legacy='learn-page:v1:'+data.site_id+':'+record.id+':'+data.revision+':';
       try {
@@ -203,39 +254,55 @@
       }
       if(data.mode==='bookmarks'){
         const host=one(library,'[data-bookmarks-list]'), empty=one(library,'[data-bookmarks-empty]');host.replaceChildren();
-        const saved=data.records.filter(record=>getState(record).bookmark);
-        saved.forEach(record=>host.append(makeItem(record)));empty.hidden=saved.length>0;
-        status.textContent=saved.length+' bookmark'+(saved.length===1?'':'s')+' in this browser.';
+        const saved=data.records.filter(record=>getState(record).bookmark), visible=saved.slice(0,displayLimit);
+        visible.forEach(record=>host.append(makeItem(record)));empty.hidden=saved.length>0;updateDisplayControls(saved.length);
+        status.textContent='Showing '+visible.length+' of '+saved.length+' bookmark'+(saved.length===1?'':'s')+' in this browser.';
         return;
       }
       const host=one(library,'[data-collection-items]'), empty=one(library,'[data-collection-empty]');
       host.replaceChildren();
-      const matches=data.records.filter(record=>getState(record).reading===data.collection_name);
-      matches.forEach(record=>host.append(makeItem(record)));empty.hidden=matches.length>0;
-      status.textContent=matches.length+' record'+(matches.length===1?'':'s')+' in '+data.collection_name+'.';
+      const matches=data.records.filter(record=>getState(record).reading===data.collection_name), visible=matches.slice(0,displayLimit);
+      visible.forEach(record=>host.append(makeItem(record)));empty.hidden=matches.length>0;updateDisplayControls(matches.length);
+      status.textContent='Showing '+visible.length+' of '+matches.length+' record'+(matches.length===1?'':'s')+' in '+data.collection_name+'.';
     }
     window.addEventListener('storage',event=>{
       if(event.key===gridKey)applyGridColumns();
       if(event.key?.startsWith(prefix))render();
-    });render();
+    });
+    if(data.mode!=='collections')window.addEventListener('popstate',()=>{const requested=Number(new URLSearchParams(location.search).get('limit'));displayPreset=displaySizes.has(requested)?requested:defaultDisplayLimit;displayLimit=displayPreset;if(displaySelect)displaySelect.value=String(displayPreset);render();});
+    render();
   });
 
-  // Every catalog explorer shares one compact search/disclosure controller.
-  // Result presentation remains semantic: table explorers reorder rows; media
-  // explorers reorder card entries. Query, category, timeframe, sorting, URL
-  // state, reset behavior, IME handling and disclosure semantics stay identical.
+  // Every catalog explorer shares one bounded search/disclosure/paging
+  // controller.  Static RST/HTML shards remain 12 records each.  The display
+  // selector can progressively fetch enough same-origin shards to satisfy one
+  // bounded preset (max 150), while each explicit Load More action advances by
+  // exactly one 12-record shard.  Filtering continues to describe the loaded
+  // snapshot honestly rather than pretending client-side search covers records
+  // that have not been fetched.
   all(document,'[data-learn-explorer]').forEach(explorer=>{
     const form=one(explorer,'[data-explorer-controls]');
     if(!form)return;
-    const tbody=one(explorer,'tbody'), items=tbody?all(tbody,'.learn-topic-row'):all(explorer,'.learn-card');
-    const host=tbody||one(explorer,'.learn-items'), status=one(explorer,'[data-explorer-status]');
+    const tbody=one(explorer,'tbody'), host=tbody||one(explorer,'.learn-items'), status=one(explorer,'[data-explorer-status]');
     if(!host||!status)return;
-    const nodeFor=item=>tbody?item:item.closest('.learn-entry');
+    const itemSelector=tbody?'.learn-topic-row':'.learn-card', nodeFor=item=>tbody?item:item.closest('.learn-entry');
+    const items=tbody?all(tbody,itemSelector):all(explorer,itemSelector);
     const sortable=new Set([...form.elements.sort.options].map(option=>option.value));
     const numeric=new Set((explorer.dataset.numericSort||'').split(' ').filter(Boolean));
     const itemLabel=explorer.dataset.itemLabel||explorer.dataset.kind||'item', itemPlural=explorer.dataset.itemPlural||itemLabel+'s';
+    const total=Math.max(0,Number(explorer.dataset.total)||items.length), offset=Math.max(0,Number(explorer.dataset.offset)||0);
+    const chunkSize=Math.max(1,Number(explorer.dataset.pageChunkSize)||12), displaySelect=one(form,'[data-display-size]');
+    const displaySizes=new Set([...displaySelect.options].map(option=>Number(option.value)).filter(Number.isFinite));
+    const defaultLimit=displaySizes.has(12)?12:Math.min(...displaySizes), params=new URLSearchParams(location.search);
+    const requestedLimit=Number(params.get('limit'));
+    let presetLimit=displaySizes.has(requestedLimit)?requestedLimit:defaultLimit, visibleLimit=presetLimit;
+    let nextLink=one(explorer,'[data-explorer-next]'), nextHref=nextLink?.href||'', loading=false;
+    const loadMore=one(explorer,'[data-display-load-more]'), displaySummary=one(explorer,'[data-display-summary]');
+    const fallbackLinks=one(explorer,'[data-explorer-fallback-links]'), seenPages=new Set();
+    if(nextHref)seenPages.add(new URL(location.pathname,location.origin).href);
+    if(displaySelect)displaySelect.value=String(presetLimit);
+    if(nextLink)nextLink.hidden=true;
     const defaultDirection=key=>['title','status','publisher','format'].includes(key)?'asc':'desc';
-    const params=new URLSearchParams(location.search);
     let sort=sortable.has(params.get('sort'))?params.get('sort'):(sortable.has('created')?'created':[...sortable][0]);
     let direction=params.get('dir')==='asc'||params.get('dir')==='desc'?params.get('dir'):defaultDirection(sort);
     const directionButton=one(form,'[data-explorer-direction]');
@@ -243,6 +310,7 @@
     const hasAdvancedState=p=>Boolean(
       p.get('category')||
       (p.get('timeframe')&&p.get('timeframe')!=='all')||
+      (p.get('limit')&&Number(p.get('limit'))!==defaultLimit)||
       (p.get('sort')&&p.get('sort')!==(sortable.has('created')?'created':[...sortable][0]))||
       (p.get('dir')&&p.get('dir')!==defaultDirection(sortable.has(p.get('sort'))?p.get('sort'):sort))
     );
@@ -288,65 +356,85 @@
         const value=form.elements[name]?.value||'';
         if(value&&value!=='all')url.searchParams.set(name,value);else url.searchParams.delete(name);
       }
+      if(presetLimit===defaultLimit)url.searchParams.delete('limit');else url.searchParams.set('limit',String(presetLimit));
       url.searchParams.set('sort',sort);url.searchParams.set('dir',direction);
       history.replaceState(null,'',url);
     }
     function apply(update=false){
       const q=form.elements.q.value.trim().toLowerCase(), category=form.elements.category.value, timeframe=form.elements.timeframe.value;
-      let visible=0;
+      sortItems();
+      let matching=0, shown=0;
       for(const item of items){
         const categories=(item.dataset.categories||'').split(' ').filter(Boolean);
-        const show=(!q||item.textContent.toLowerCase().includes(q))&&(!category||categories.includes(category))&&withinTimeframe(item,timeframe);
-        nodeFor(item).hidden=!show;if(show)visible++;
+        const match=(!q||item.textContent.toLowerCase().includes(q))&&(!category||categories.includes(category))&&withinTimeframe(item,timeframe);
+        if(match)matching++;
+        const visible=match&&shown<visibleLimit;if(visible)shown++;
+        nodeFor(item).hidden=!visible;
       }
-      sortItems();
-      status.textContent=visible+' matching '+(visible===1?itemLabel:itemPlural)+' in this snapshot.';
+      const loaded=items.length, loadedEnd=Math.min(total,offset+loaded), noun=matching===1?itemLabel:itemPlural;
+      status.textContent='Showing '+shown+' of '+matching+' matching '+noun+' in '+loaded+' loaded record'+(loaded===1?'':'s')+'.';
+      if(displaySummary){const start=loaded?offset+1:0;displaySummary.textContent='Catalog records '+start+'–'+loadedEnd+' of '+total+'.';}
+      if(loadMore){loadMore.hidden=(!nextHref&&matching<=visibleLimit);loadMore.disabled=loading;loadMore.textContent=loading?'Loading…':'Load '+chunkSize+' more';}
+      if(fallbackLinks)fallbackLinks.dataset.enhanced='true';
       if(update)updateUrl();
     }
+    function addCategoryOptions(){
+      const known=new Set([...form.elements.category.options].map(option=>option.value));
+      for(const item of items)for(const tag of (item.dataset.categories||'').split(' '))if(tag&&!known.has(tag)){known.add(tag);form.elements.category.append(new Option(tag,tag));}
+    }
+    async function fetchNextChunk(){
+      if(!nextHref||loading)return false;
+      loading=true;apply();
+      try {
+        const url=new URL(nextHref,location.href);
+        if(url.origin!==location.origin||seenPages.has(url.href))throw new Error('unsafe or repeated explorer page');
+        const response=await fetch(url,{signal:AbortSignal.timeout(10000),credentials:'same-origin',cache:'no-store',redirect:'error'});if(!response.ok)throw new Error('explorer page unavailable');
+        const reader=response.body?.getReader();if(!reader)throw new Error('stream unavailable');
+        let length=0;const chunks=[];
+        while(true){const {value,done}=await reader.read();if(done)break;length+=value.length;if(length>2*1024*1024){await reader.cancel();throw new Error('explorer page too large');}chunks.push(value);}
+        const buffer=new Uint8Array(length);let cursor=0;for(const chunk of chunks){buffer.set(chunk,cursor);cursor+=chunk.length;}
+        const doc=new DOMParser().parseFromString(new TextDecoder().decode(buffer),'text/html');
+        const incoming=one(doc,'[data-learn-explorer]');if(!incoming||incoming.dataset.kind!==explorer.dataset.kind)throw new Error('explorer kind mismatch');
+        const incomingHost=tbody?one(incoming,'tbody'):one(incoming,'.learn-items');if(!incomingHost)throw new Error('explorer host missing');
+        const incomingItems=tbody?all(incomingHost,itemSelector):all(incoming,itemSelector);
+        if(!incomingItems.length||incomingItems.length>chunkSize)throw new Error('invalid explorer shard size');
+        seenPages.add(url.href);
+        if(tbody){
+          for(const row of incomingItems){const cloned=document.importNode(row,true);host.append(cloned);items.push(cloned);}
+        }else{
+          for(const item of incomingItems){const entry=item.closest('.learn-entry');if(!entry)throw new Error('card entry missing');for(const link of all(entry,'[href]'))link.setAttribute('href',new URL(link.getAttribute('href'),url).href);for(const image of all(entry,'[src]'))image.setAttribute('src',new URL(image.getAttribute('src'),url).href);const cloned=document.importNode(entry,true);host.append(cloned);const card=one(cloned,itemSelector);if(card)items.push(card);}
+        }
+        const after=one(incoming,'[data-explorer-next]');nextHref=after?new URL(after.getAttribute('href'),url).href:'';
+        if(nextLink){if(nextHref){nextLink.href=nextHref;}else{nextLink.remove();nextLink=null;}}
+        addCategoryOptions();decorateWhiteboards();return true;
+      } finally {loading=false;}
+    }
+    async function ensureLoaded(target){
+      // Automatic work is bounded by the largest allowlisted preset (150).  It
+      // loads by record count, not by filter matches, avoiding unbounded scans
+      // for a rare query across a very large static catalog.
+      while(items.length<target&&nextHref){const before=items.length;try{if(!await fetchNextChunk())break;}catch{if(nextLink)nextLink.hidden=false;status.textContent='Could not load more items. Use the next-page link or try again.';break;}if(items.length<=before)break;}
+      apply();
+    }
     form.addEventListener('submit',event=>{event.preventDefault();apply(true);});
-    form.addEventListener('input',event=>{if(event.target===form.elements.sort||event.isComposing)return;apply(true);});
+    form.addEventListener('input',event=>{if(event.target===form.elements.sort||event.target===displaySelect||event.isComposing)return;apply(true);});
     form.elements.q?.addEventListener('compositionend',()=>apply(true));
     form.elements.q?.addEventListener('search',()=>apply(true));
     form.elements.sort?.addEventListener('change',()=>{const next=form.elements.sort.value;if(!sortable.has(next))return;sort=next;direction=defaultDirection(sort);apply(true);});
+    displaySelect?.addEventListener('change',async()=>{const value=Number(displaySelect.value);if(!displaySizes.has(value))return;presetLimit=value;visibleLimit=value;updateUrl();await ensureLoaded(value);setFilterOptions(true);});
     directionButton?.addEventListener('click',()=>{direction=direction==='asc'?'desc':'asc';apply(true);});
-    one(form,'[data-explorer-reset]')?.addEventListener('click',()=>{form.reset();sort=sortable.has('created')?'created':[...sortable][0];direction=defaultDirection(sort);setFilterOptions(false);apply(true);});
+    one(form,'[data-explorer-reset]')?.addEventListener('click',()=>{form.reset();sort=sortable.has('created')?'created':[...sortable][0];direction=defaultDirection(sort);presetLimit=defaultLimit;visibleLimit=defaultLimit;if(displaySelect)displaySelect.value=String(defaultLimit);setFilterOptions(false);apply(true);});
     all(explorer,'[data-sort-key]').forEach(button=>button.addEventListener('click',()=>{const next=button.dataset.sortKey;if(!sortable.has(next))return;if(sort===next)direction=direction==='asc'?'desc':'asc';else{sort=next;direction=defaultDirection(next);}apply(true);}));
-    window.addEventListener('popstate',()=>{
+    loadMore?.addEventListener('click',async()=>{visibleLimit+=chunkSize;await ensureLoaded(visibleLimit);});
+    window.addEventListener('popstate',async()=>{
       const p=new URLSearchParams(location.search);
       for(const name of ['q','category','timeframe'])if(form.elements[name])form.elements[name].value=p.get(name)||(name==='timeframe'?'all':'');
       const requested=p.get('sort');sort=sortable.has(requested)?requested:(sortable.has('created')?'created':[...sortable][0]);
       direction=p.get('dir')==='asc'||p.get('dir')==='desc'?p.get('dir'):defaultDirection(sort);
-      setFilterOptions(hasAdvancedState(p));apply();
+      const requestedDisplay=Number(p.get('limit'));presetLimit=displaySizes.has(requestedDisplay)?requestedDisplay:defaultLimit;visibleLimit=presetLimit;if(displaySelect)displaySelect.value=String(presetLimit);
+      setFilterOptions(hasAdvancedState(p));await ensureLoaded(presetLimit);
     });
-    apply();
-
-    // Card explorers support progressive static-page loading. Newly fetched cards
-    // join the same item array, category choices and shared filter state.
-    if(!tbody){
-      const next=one(explorer,'.learn-next');let loading=false;
-      next?.addEventListener('click',async event=>{
-        event.preventDefault();if(loading)return;loading=true;next.textContent='Loading…';
-        try {
-          const url=new URL(next.href);if(url.origin!==location.origin)throw new Error();
-          const response=await fetch(url,{signal:AbortSignal.timeout(10000),credentials:'same-origin',cache:'no-store',redirect:'error'});if(!response.ok)throw new Error();
-          const reader=response.body.getReader();let length=0;const chunks=[];
-          while(true){const {value,done}=await reader.read();if(done)break;length+=value.length;if(length>2*1024*1024){await reader.cancel();throw new Error();}chunks.push(value);}
-          const buffer=new Uint8Array(length);let offset=0;for(const chunk of chunks){buffer.set(chunk,offset);offset+=chunk.length;}
-          const doc=new DOMParser().parseFromString(new TextDecoder().decode(buffer),'text/html');
-          const incoming=one(doc,'[data-learn-explorer]');if(!incoming||incoming.dataset.kind!==explorer.dataset.kind)throw new Error();
-          for(const entry of all(incoming,'.learn-entry')){
-            for(const link of all(entry,'[href]'))link.setAttribute('href',new URL(link.getAttribute('href'),url).href);
-            for(const image of all(entry,'[src]'))image.setAttribute('src',new URL(image.getAttribute('src'),url).href);
-            const cloned=document.importNode(entry,true);host.append(cloned);items.push(one(cloned,'.learn-card'));
-          }
-          const known=new Set([...form.elements.category.options].map(option=>option.value));
-          for(const item of items)for(const tag of (item.dataset.categories||'').split(' '))if(tag&&!known.has(tag)){known.add(tag);form.elements.category.append(new Option(tag,tag));}
-          const after=one(incoming,'.learn-next');if(after)next.href=new URL(after.getAttribute('href'),url).href;else next.remove();
-          apply();decorateWhiteboards();
-        }catch{status.textContent='Could not load more items. Try again or open the next-page link in a new tab.';}
-        finally{loading=false;if(next.isConnected)next.textContent='Show More';}
-      });
-    }
+    apply();ensureLoaded(presetLimit);
   });
 
   // Whiteboard viewer: no external lightbox dependency. The modal is built from

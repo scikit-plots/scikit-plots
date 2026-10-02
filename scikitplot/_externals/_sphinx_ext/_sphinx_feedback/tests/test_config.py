@@ -9,6 +9,7 @@ from _sphinx_ext._sphinx_feedback._config import (
     load_aggregate,
     page_enabled,
     resolve_endpoint,
+    validate_buttons_ratings,
     validate_config,
     validate_endpoint,
 )
@@ -25,6 +26,10 @@ def config(**overrides):
         feedback_page_main=True,
         feedback_position_fallback="main-bottom",
         feedback_quick_enabled=True,
+        feedback_buttons_ratings={
+            "left_button_rating": "left",
+            "right_button_rating": "right",
+        },
         feedback_detailed_enabled=True,
         feedback_comment_enabled=True,
         feedback_contributor_enabled=True,
@@ -40,6 +45,47 @@ def config(**overrides):
     )
     values.update(overrides)
     return SimpleNamespace(**values)
+
+
+
+
+def test_button_rating_positions_default_to_balanced_outer_counts():
+    assert validate_buttons_ratings(None) == {
+        "left_button_rating": "left",
+        "right_button_rating": "right",
+    }
+    assert validate_config(config())["buttons_ratings"] == {
+        "left_button_rating": "left",
+        "right_button_rating": "right",
+    }
+
+
+def test_button_rating_positions_are_independently_configurable_and_partial():
+    assert validate_buttons_ratings({
+        "left_button_rating": "right",
+        "right_button_rating": "right",
+    }) == {
+        "left_button_rating": "right",
+        "right_button_rating": "right",
+    }
+    assert validate_buttons_ratings({"right_button_rating": "left"}) == {
+        "left_button_rating": "left",
+        "right_button_rating": "left",
+    }
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        [],
+        {"left_button_rating": "center"},
+        {"left_button_rating": 1},
+        {"unknown": "left"},
+    ],
+)
+def test_button_rating_positions_reject_invalid_shapes_values_and_keys(value):
+    with pytest.raises(FeedbackConfigError, match="feedback_buttons_ratings"):
+        validate_buttons_ratings(value)
 
 
 def test_https_and_localhost_http_endpoints_allowed():
@@ -116,6 +162,8 @@ def test_include_exclude_patterns_are_deterministic():
 def test_invalid_selector_payload_rejected():
     with pytest.raises(FeedbackConfigError):
         validate_config(config(feedback_sidebar_selectors=["</script>"]))
+
+
 
 
 def write_aggregate(path, *, site_id="docs", pages=None, **extra):
