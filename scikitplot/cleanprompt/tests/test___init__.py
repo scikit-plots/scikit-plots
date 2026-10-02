@@ -36,11 +36,49 @@ def _runtime_sources():
     )
 
 
-def _in_subprocess(body):
-    """Run ``body`` in a fresh interpreter and return its stdout."""
-    script = "import sys;sys.path.insert(0, {0!r})\n{1}".format(str(ROOT), body)
+#: Registers an empty stand-in for the parent package before anything imports it.
+#:
+#: ``import scikitplot.cleanprompt`` first runs ``scikitplot/__init__.py``, and
+#: that file imports NumPy unconditionally. What the parent loads is not a
+#: property of this package, so the isolation claims are measured with the
+#: parent replaced by an empty module whose ``__path__`` is the real package
+#: directory: every submodule still resolves from the real files, and nothing
+#: outside ``cleanprompt`` runs.
+_ISOLATED_PARENT = (
+    "import sys, types\n"
+    "_parent = types.ModuleType('scikitplot')\n"
+    "_parent.__path__ = [{0!r}]\n"
+    "sys.modules['scikitplot'] = _parent\n"
+).format(str(PACKAGE.parent))
+
+#: Imports the real parent package from the checkout the tests run in.
+_REAL_PARENT = "import sys;sys.path.insert(0, {0!r})\n".format(str(ROOT))
+
+
+def _in_subprocess(body, *, prelude=_ISOLATED_PARENT):
+    """
+    Run ``body`` in a fresh interpreter and return its stdout.
+
+    Parameters
+    ----------
+    body : str
+        Source to execute after ``prelude``.
+    prelude : str, default=_ISOLATED_PARENT
+        Source executed first. ``_ISOLATED_PARENT`` measures this package
+        alone; ``_REAL_PARENT`` measures it under the real ``scikitplot``.
+
+    Returns
+    -------
+    str
+        Captured standard output.
+
+    Raises
+    ------
+    AssertionError
+        If the interpreter exits with a non-zero status.
+    """
     completed = subprocess.run(
-        [sys.executable, "-c", script], capture_output=True, text=True
+        [sys.executable, "-c", prelude + body], capture_output=True, text=True
     )
     assert completed.returncode == 0, completed.stderr
     return completed.stdout
@@ -485,6 +523,24 @@ class TestDoctests:
         assert failures == 0
 
 
+_LOADED_BY_THE_PACKAGE = (
+    "before = set(sys.modules)\n"
+    "import scikitplot.cleanprompt, scikitplot.cleanprompt._runtime\n"
+    "print(sorted({m.split('.')[0] for m in set(sys.modules) - before}))\n"
+)
+
+
+def _foreign(loaded):
+    """Top-level modules in ``loaded`` that are neither stdlib nor scikitplot."""
+    return [
+        name
+        for name in loaded
+        if name not in sys.stdlib_module_names
+        and name != "scikitplot"
+        and not name.startswith("_")
+    ]
+
+
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="sys.stdlib_module_names is 3.10+")
 def test_importing_the_package_loads_only_the_standard_library():
     """
@@ -492,14 +548,35 @@ def test_importing_the_package_loads_only_the_standard_library():
 
     A block-list of known optional packages missed ``typing_extensions``, which
     two modules imported at module scope; this asserts the positive instead —
-    every top-level module a fresh import loads is stdlib or scikitplot.
+    every top-level module a fresh import loads is stdlib or scikitplot. The
+    parent package is replaced by an empty stand-in, so the measurement covers
+    this package and nothing else.
     """
-    code = (
-        "import sys; before = set(sys.modules); import scikitplot.cleanprompt, scikitplot.cleanprompt._runtime; "
-        "print(sorted({m.split('.')[0] for m in set(sys.modules) - before}))"
+    loaded = ast.literal_eval(_in_subprocess(_LOADED_BY_THE_PACKAGE).strip())
+    assert "scikitplot" in loaded
+    assert _foreign(loaded) == []
+
+
+@pytest.mark.skipif(sys.version_info < (3, 10), reason="sys.stdlib_module_names is 3.10+")
+def test_the_package_adds_nothing_foreign_to_what_the_parent_loads():
+    """
+    CP-085: under the real parent, this package adds no third-party module.
+
+    ``scikitplot/__init__.py`` loads NumPy, so "nothing third-party is loaded"
+    cannot hold for ``import scikitplot.cleanprompt`` and is not this package's
+    to promise. What it does promise is that it adds nothing: the parent is
+    imported first and only the modules loaded after it are examined.
+    """
+    body = "import scikitplot\n" + _LOADED_BY_THE_PACKAGE
+    loaded = ast.literal_eval(_in_subprocess(body, prelude=_REAL_PARENT).strip())
+    assert "scikitplot" in loaded
+    assert _foreign(loaded) == []
+
+
+def test_the_isolated_parent_runs_no_parent_code():
+    """The stand-in is what was imported: the real ``__init__`` never ran."""
+    output = _in_subprocess(
+        "import scikitplot, scikitplot.cleanprompt\n"
+        "print(scikitplot.__file__ if hasattr(scikitplot, '__file__') else None)"
     )
-    root = pathlib.Path(__file__).resolve().parents[3]
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=root, check=True).stdout
-    loaded = ast.literal_eval(out.strip())
-    foreign = [m for m in loaded if m not in sys.stdlib_module_names and m != "scikitplot" and not m.startswith("_")]
-    assert foreign == []
+    assert output.strip() == "None"

@@ -789,6 +789,16 @@
       "retired_by": "_packs._section reports a key that is present and empty, with the other problems, and leaves an absent key meaning 'none'.",
       "honest_limit": "a pack that declared an empty section on purpose must now remove the key.",
       "regression": "test__packs.TestInvalidDocument.test_a_declared_but_empty_section_is_refused; test__packs.TestInvalidDocument.test_an_absent_section_is_fine; evidence/probe_negative.py CP-084"
+    },
+    {
+      "id": "CP-085",
+      "severity": "medium",
+      "status": "closed",
+      "title": "The import-isolation tests measured the parent package, not this submodule",
+      "detail": "Six tests in test___init__.py ran 'import scikitplot.cleanprompt' in a fresh interpreter and asserted that no third-party module was loaded. Python runs scikitplot/__init__.py first, and that file imports NumPy unconditionally, so in a real checkout the assertion fails on the first test ('numpy' reported) and the import-blocker test cannot import the parent at all. The tests passed only in an isolated root whose parent package was empty, which is where every earlier round was verified. probe_isolation.py and the CP-081 probe carried the same assumption.",
+      "retired_by": "The subprocess helper registers an empty stand-in for the parent package whose __path__ is the real package directory, so the isolation claims are measured on this submodule alone and hold whatever the parent imports. A second test imports the real parent first and asserts that this submodule adds no non-standard-library module to what the parent loaded. Both probes use the same stand-in.",
+      "honest_limit": "Under the real parent, a module the parent already loaded (NumPy today) is invisible to the added-modules test; the stand-in tests and the AST rule that optional dependencies are imported inside functions are what catch it. A real 'import scikitplot.cleanprompt' still pays for the parent's imports; removing that cost is a change to scikitplot/__init__.py, outside this submodule.",
+      "regression": "test___init__.TestImportIsolation (all); test___init__.test_importing_the_package_loads_only_the_standard_library; test___init__.test_the_package_adds_nothing_foreign_to_what_the_parent_loads; test___init__.test_the_isolated_parent_runs_no_parent_code; evidence/probe_negative.py CP-085"
     }
   ],
   "investigated_and_rejected": [

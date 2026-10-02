@@ -536,7 +536,11 @@ def _dtd22(enc):
 check("CP-080", "a DTD in a UTF-16 Office part is refused, in every byte order",
       all(_dtd22(e) for e in ("utf-16", "utf-16-le", "utf-16-be")))
 import subprocess as _sp22
-_code22 = ("import sys; before = set(sys.modules); import scikitplot.cleanprompt, scikitplot.cleanprompt._runtime, "
+# The parent package is replaced by an empty stand-in so the measurement covers
+# this submodule alone (CP-085); ``scikitplot/__init__.py`` imports NumPy.
+_iso22 = ("import sys, types; _p = types.ModuleType('scikitplot'); _p.__path__ = [%r]; "
+          "sys.modules['scikitplot'] = _p; " % (str(_pkg22.parent),))
+_code22 = (_iso22 + "before = set(sys.modules); import scikitplot.cleanprompt, scikitplot.cleanprompt._runtime, "
            "scikitplot.cleanprompt._guard, scikitplot.cleanprompt._office; "
            "print(sorted(m for m in {m.split('.')[0] for m in set(sys.modules) - before} "
            "if m not in sys.stdlib_module_names and m != 'scikitplot' and not m.startswith('_')))")
@@ -571,6 +575,16 @@ _base22 = {"name": "hr", "version": 1, "summary": "x",
 check("CP-084", "a declared-but-empty section is refused; a fragmented example is joined and tested",
       "fields: is declared but empty" in _refused22(dict(_base22, fields=[]))
       and _pfd22(_base22).patterns[0].examples_yes == ("EMP-004121",))
+_real23 = ("import sys; sys.path.insert(0, %r); import scikitplot; before = set(sys.modules); "
+           "import scikitplot.cleanprompt, scikitplot.cleanprompt._runtime; "
+           "print(sorted(m for m in {m.split('.')[0] for m in set(sys.modules) - before} "
+           "if m not in sys.stdlib_module_names and m != 'scikitplot' and not m.startswith('_')))" % (_ROOT,))
+if sys.version_info >= (3, 10):
+    _out23 = _sp22.run([sys.executable, "-c", _real23], capture_output=True, text=True)
+    check("CP-085", "under the real parent package, the submodule adds no third-party module to what the parent loaded",
+          _out23.returncode == 0 and _out23.stdout.strip() == "[]", _out23.stdout + _out23.stderr[-300:])
+else:
+    print("CP-085    SKIP sys.stdlib_module_names needs Python 3.10")
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

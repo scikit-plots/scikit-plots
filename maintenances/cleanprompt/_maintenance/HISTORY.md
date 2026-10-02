@@ -1,5 +1,27 @@
 # History
 
+## 2026-10-02 — round twenty-three: the isolation tests measured the parent
+
+CI, on the real package, failed
+`test_plain_import_loads_no_third_party_package` with `['numpy']`.
+
+- `CP-085`: `import scikitplot.cleanprompt` runs `scikitplot/__init__.py`
+  first, and that file imports NumPy. Six tests in `test___init__.py` asserted
+  that nothing third-party was loaded after that import, so they could pass
+  only where the parent package was empty — the isolated root every earlier
+  round was verified in. CI stops at the first failure, so it reported one.
+- The subprocess helper now registers an empty stand-in for `scikitplot` whose
+  `__path__` is the real package directory. The claims are about this
+  submodule and are measured on it alone, whatever the parent imports.
+- New test `test_the_package_adds_nothing_foreign_to_what_the_parent_loads`
+  imports the real parent first and examines only what is loaded after it.
+- `probe_isolation.py` and the `CP-081` probe carried the same assumption
+  (45 failures under a parent that imports NumPy) and use the same stand-in.
+- Not changed: a real `import scikitplot.cleanprompt` still loads what the
+  parent loads. That is `scikitplot/__init__.py`'s cost, outside this plane.
+- Verification now runs under both parents: an empty one and one that imports
+  NumPy. 2466 tests pass under each.
+
 ## 2026-10-02 — round twenty-two: what is committed is read by scanners
 
 A push was refused: the host's secret scanner found a Stripe-shaped key in

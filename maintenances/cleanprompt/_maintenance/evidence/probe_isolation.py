@@ -35,8 +35,22 @@ BLOCK = (
 )
 
 
+#: An empty stand-in for the parent package, registered before anything
+#: imports it (CP-085). ``scikitplot/__init__.py`` imports NumPy, so under the
+#: real parent every probe below would report a leak, or be refused by the
+#: blocker, for a reason that is not this submodule's. The stand-in's
+#: ``__path__`` is the real package directory: submodules load from the real
+#: files and no parent code runs.
+ISOLATED_PARENT = (
+    "import sys, types\n"
+    "_parent = types.ModuleType('scikitplot')\n"
+    "_parent.__path__ = [%r]\n"
+    "sys.modules['scikitplot'] = _parent\n"
+) % (str(_pathlib.Path(ROOT, "scikitplot")),)
+
+
 def run(body):
-    script = "import sys;sys.path.insert(0,%r)\n%s" % (ROOT, body)
+    script = ISOLATED_PARENT + body
     p = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
     return p.returncode, p.stdout.strip(), p.stderr.strip()
 
@@ -160,7 +174,8 @@ for args in (
         [
             sys.executable,
             "-c",
-            BLOCKER
+            ISOLATED_PARENT
+            + BLOCKER
             + "import runpy,sys;sys.argv=['m']+%r;runpy.run_module('scikitplot.cleanprompt',run_name='__main__')"
             % args,
         ],
