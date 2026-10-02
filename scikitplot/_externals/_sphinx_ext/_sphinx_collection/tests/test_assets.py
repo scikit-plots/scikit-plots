@@ -4,14 +4,36 @@ import importlib
 import sys
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
-DOCS_SOURCE = ROOT.parents[2]
+# The directory that contains ``scikitplot/``: the docs source in the
+# documentation checkout, the repository root in the library checkout.
+HOST_ROOT = ROOT.parents[2]
 ASSETS_PATH = ROOT / "_sphinx_collection" / "assets.py"
 
 
+def _docs_source() -> Path:
+    """
+    Return the documentation source directory, or skip where there is none.
+
+    The stack is deployed in a documentation checkout, beside the site's
+    ``conf.py``, and in the library checkout, where there is no site. A test
+    of the site's build configuration can only run where the site is; in the
+    library checkout it skips with that reason rather than failing on a
+    ``conf.py`` that was never meant to exist there.
+    """
+    if not (HOST_ROOT / "conf.py").is_file():
+        pytest.skip(
+            "no documentation site owns this extension stack in this checkout; "
+            "the site's build configuration is tested in the documentation checkout"
+        )
+    return HOST_ROOT
+
+
 def _assets_module():
-    externals = str(DOCS_SOURCE / "scikitplot" / "_externals")
+    externals = str(HOST_ROOT / "scikitplot" / "_externals")
     if externals not in sys.path:
         sys.path.insert(0, externals)
     return importlib.import_module("_sphinx_ext._sphinx_collection.assets")
@@ -158,7 +180,7 @@ def test_search_variant_is_one_shared_presentation_contract() -> None:
     browser = (ROOT / "_sphinx_collection" / "_browser.py").read_text(encoding="utf-8")
     gallery = (ROOT / "_sphinx_gallery_grid" / "directive.py").read_text(encoding="utf-8")
     youtube = (ROOT / "_sphinx_youtube_gallery" / "directive.py").read_text(encoding="utf-8")
-    conf = (DOCS_SOURCE / "conf.py").read_text(encoding="utf-8")
+    conf = (_docs_source() / "conf.py").read_text(encoding="utf-8")
 
     assert assets.SEARCH_VARIANTS == ("pill-overflow", "classic")
     assert '"searchVariant": options.get("search-variant", "pill-overflow")' in browser
@@ -497,9 +519,9 @@ def test_final_collection_asset_integrity_fails_closed_on_stale_output(tmp_path)
 
 
 def test_docs_build_has_explicit_local_and_installed_extension_authorities() -> None:
-    conf = (DOCS_SOURCE / "conf.py").read_text(encoding="utf-8")
-    makefile = (DOCS_SOURCE.parent / "Makefile").read_text(encoding="utf-8")
-    make_bat = (DOCS_SOURCE.parent / "make.bat").read_text(encoding="utf-8")
+    conf = (_docs_source() / "conf.py").read_text(encoding="utf-8")
+    makefile = (_docs_source().parent / "Makefile").read_text(encoding="utf-8")
+    make_bat = (_docs_source().parent / "make.bat").read_text(encoding="utf-8")
     namespace_init = (ROOT / "__init__.py").read_text(encoding="utf-8")
 
     assert '_MODE_ENV = "SCIKITPLOT_SPHINX_EXT_MODE"' in conf
@@ -531,8 +553,8 @@ def test_local_authority_isolated_from_preimported_scikitplot(tmp_path) -> None:
     (package / "__init__.py").write_text(
         "ORIGIN = 'foreign-scikitplot'\n", encoding="utf-8"
     )
-    externals = DOCS_SOURCE / "scikitplot" / "_externals"
-    conf_path = DOCS_SOURCE / "conf.py"
+    externals = _docs_source() / "scikitplot" / "_externals"
+    conf_path = _docs_source() / "conf.py"
     code = f"""
 import os
 import runpy
@@ -597,7 +619,7 @@ def test_installed_authority_uses_scikitplot_namespace_without_local_path_inject
         package.mkdir()
         (package / "__init__.py").write_text("", encoding="utf-8")
 
-    conf_path = DOCS_SOURCE / "conf.py"
+    conf_path = _docs_source() / "conf.py"
     code = f"""
 import os
 import runpy
@@ -614,7 +636,7 @@ private = [name for name in ns['extensions'] if name.startswith('scikitplot._ext
 assert len(private) == 7
 import scikitplot._externals._sphinx_ext as stack
 assert Path(stack.__file__).resolve().is_relative_to(Path({str(fake)!r}).resolve())
-local_externals = str(Path({str(DOCS_SOURCE)!r}) / 'scikitplot' / '_externals')
+local_externals = str(Path({str(_docs_source())!r}) / 'scikitplot' / '_externals')
 assert local_externals not in sys.path
 """
     completed = subprocess.run(
@@ -635,7 +657,7 @@ def test_auto_authority_fails_closed_when_local_and_installed_are_both_available
     root.mkdir(parents=True)
     for package in (fake / "scikitplot", fake / "scikitplot" / "_externals", root):
         (package / "__init__.py").write_text("", encoding="utf-8")
-    conf_path = DOCS_SOURCE / "conf.py"
+    conf_path = _docs_source() / "conf.py"
     code = f"""
 import os
 import runpy
@@ -671,7 +693,7 @@ def test_installed_authority_rejects_old_stack_api(tmp_path) -> None:
     for package in (fake / "scikitplot", fake / "scikitplot" / "_externals", root):
         (package / "__init__.py").write_text("", encoding="utf-8")
     (root / "__init__.py").write_text("SPHINX_EXT_STACK_API = 0\n", encoding="utf-8")
-    conf_path = DOCS_SOURCE / "conf.py"
+    conf_path = _docs_source() / "conf.py"
     code = f"""
 import os
 import runpy

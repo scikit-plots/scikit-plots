@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+import _learn_site
 from jinja2 import Environment, FileSystemLoader
 
 from _sphinx_ext._sphinx_ai_learn._materialize import load_content_tree, _media_directive
@@ -26,12 +28,7 @@ from _sphinx_ext._sphinx_ai_learn._registry import (
 )
 from _sphinx_ext._sphinx_ai_learn._schema import LearnValidationError, validate_catalog
 
-EXT = Path(__file__).resolve().parents[3]
-DOCS_SOURCE = Path(__file__).resolve().parents[5]
-CONTENT = DOCS_SOURCE / "learn-ai"
-TREE = load_content_tree(CONTENT)
-PROMPTS = TREE.prompts
-SKILLS = TREE.skills
+EXT = _learn_site.STACK_ROOT.parent
 
 def _render_text_generation_actions(scope: str, run_label: str, copy_suffix: str = "") -> str:
     env = Environment(
@@ -70,18 +67,18 @@ def topic():
 
 def test_scaffold_owns_every_heading_and_nested_prompt():
     rel, record = next(
-        (rel, row) for rel, row in TREE.records.items()
+        (rel, row) for rel, row in _learn_site.content_tree().records.items()
         if row["subject"]["kind"] == "topic"
     )
-    rst = (CONTENT / rel.with_suffix(".rst")).read_text()
-    specs = topic_sections(record["subject"], prompts=PROMPTS, skills=SKILLS)
+    rst = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text()
+    specs = topic_sections(record["subject"], prompts=_learn_site.content_tree().prompts, skills=_learn_site.content_tree().skills)
     for spec in specs:
         assert f".. _learn-{record['subject']['id']}-{spec['id']}:" in rst
         assert spec["title"] in rst
     assert ".. include:: topic-prompts/index.rst" in rst
     assert "Topic to Video (Beta)" in rst
     assert "Audio Explanation" in rst
-    assert len(specs) == len(PROMPTS) + len(SKILLS) + 12
+    assert len(specs) == len(_learn_site.content_tree().prompts) + len(_learn_site.content_tree().skills) + 12
     assert rst.index("Explain it Like I'm 14") < rst.index("Knowledge Gaps")
     assert rst.index("Tweets") < rst.index("HackerNews")
     assert ".. ai-learn::" not in rst
@@ -117,7 +114,7 @@ def test_context_aware_detail_sections_are_canonical_without_legacy_aliases():
     assert canonical_detail_section_id("source", "description") == "description"
 
 def test_inline_ai_section_generation_policy_is_explicit_and_kind_safe():
-    topic_specs = {row["id"]: row for row in topic_sections(prompts=PROMPTS, skills=SKILLS)}
+    topic_specs = {row["id"]: row for row in topic_sections(prompts=_learn_site.content_tree().prompts, skills=_learn_site.content_tree().skills)}
     assert topic_specs["summary"]["generation"]["mode"] == "chat"
     assert topic_specs["knowledge-gaps"]["generation"]["skill"] == "topic-prompt:knowledge-gaps"
     assert topic_specs["knowledge-gaps"]["generation"]["agent"] == "learning-section-agent"
@@ -144,10 +141,10 @@ def test_inline_ai_section_generation_policy_is_explicit_and_kind_safe():
 
 
 def test_site_custom_css_is_backed_by_a_configured_static_source():
-    conf = (DOCS_SOURCE / "conf.py").read_text(encoding="utf-8")
+    conf = (_learn_site.docs_source() / "conf.py").read_text(encoding="utf-8")
     assert "html_static_path = ['_static', 'css']" in conf
     assert 'html_css_files = ["styles/custom.css"]' in conf
-    assert (DOCS_SOURCE / "css/styles/custom.css").is_file()
+    assert (_learn_site.docs_source() / "css/styles/custom.css").is_file()
 
 
 def test_publication_credit_is_explicit_public_metadata_not_generation_context():
@@ -452,9 +449,9 @@ def test_section_action_visibility_follows_ai_provenance_not_published_body():
 
 
 def test_prompts_share_idempotent_source_grounded_generation_contract():
-    assert all("Generation contract:" not in prompt["instruction"] for prompt in PROMPTS)
-    specs = {row["id"]: row for row in topic_sections(prompts=PROMPTS)}
-    for prompt in PROMPTS:
+    assert all("Generation contract:" not in prompt["instruction"] for prompt in _learn_site.content_tree().prompts)
+    specs = {row["id"]: row for row in topic_sections(prompts=_learn_site.content_tree().prompts)}
+    for prompt in _learn_site.content_tree().prompts:
         instruction = specs[prompt["id"]]["generation"]["instruction"]
         assert "Rebuild this section from the canonical topic record" in instruction
         assert "do not append" in instruction
@@ -462,7 +459,7 @@ def test_prompts_share_idempotent_source_grounded_generation_contract():
         assert "structurally equivalent output" in instruction
 
 def test_production_knowledge_catalog_is_sklearn_19_and_arxiv_free():
-    catalog = TREE.catalog
+    catalog = _learn_site.content_tree().catalog
     topics = [row for row in catalog["subjects"] if row["kind"] == "topic"]
     sources = [row for row in catalog["subjects"] if row["kind"] == "source"]
     problems = [row for row in catalog["subjects"] if row["kind"] == "problem"]
@@ -627,8 +624,8 @@ def test_media_gallery_cards_have_bounded_surfaces_and_video_embeds():
     css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
     pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
     video_card = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-card-start.html').read_text()
-    video_index = (CONTENT/'videos/index.rst').read_text()
-    whiteboard_index = (CONTENT/'whiteboards/index.rst').read_text()
+    video_index = (_learn_site.content_root()/'videos/index.rst').read_text()
+    whiteboard_index = (_learn_site.content_root()/'whiteboards/index.rst').read_text()
     assert '.learn-explorer[data-kind=video] .learn-card' in css
     assert '.learn-explorer[data-kind=whiteboard] .learn-card' in css
     assert 'border:1px solid var(--learn-line)' in css
@@ -645,21 +642,21 @@ def test_media_gallery_cards_have_bounded_surfaces_and_video_embeds():
     assert video_card.index('learn-meta') < video_card.index('<h3>') < video_card.index('learn-media-card-content')
     assert '.. container:: learn-index-actions learn-video-index-actions' in video_index
     assert ':doc:`Create a Video <new>`' in video_index
-    topic_index = (CONTENT/'topics/index.rst').read_text()
+    topic_index = (_learn_site.content_root()/'topics/index.rst').read_text()
     assert '.. container:: learn-index-actions learn-topic-index-actions' in topic_index
     assert '.learn-index-actions { margin:0 0 1rem; }' in css
     assert '.learn-media-index-actions a' not in css
     assert '.. container:: learn-index-actions learn-whiteboard-index-actions' in whiteboard_index
 
 def test_media_indexes_use_materialized_explorer_and_whiteboard_detail_targets():
-    index = (CONTENT / "whiteboards/index.rst").read_text()
+    index = (_learn_site.content_root() / "whiteboards/index.rst").read_text()
     assert ".. ai-topic-explorer:: whiteboard" in index
     assert ".. toctree::" in index and ":hidden:" in index
     rel, record = next(
-        (rel, row) for rel, row in TREE.records.items()
+        (rel, row) for rel, row in _learn_site.content_tree().records.items()
         if row["subject"]["kind"] == "whiteboard"
     )
-    detail = (CONTENT / rel.with_suffix(".rst")).read_text()
+    detail = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text()
     subject_id = record["subject"]["id"]
     assert detail.index(f".. ai-whiteboard-gallery:: {subject_id}") < detail.index(
         f".. ai-media-actions:: {subject_id}"
@@ -696,7 +693,7 @@ def test_media_actions_and_gallery_viewer_contract_are_progressive_and_contextua
 
 def test_video_generation_lifecycle_is_contextual_capability_gated_and_provider_neutral():
     pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    generated_new = (CONTENT/'videos/new.rst').read_text()
+    generated_new = (_learn_site.content_root()/'videos/new.rst').read_text()
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
     template = (template_root/'learn/video-generation.html').read_text()
     rendered_template = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False).get_template('learn/video-generation.html').render(
@@ -1126,7 +1123,7 @@ def test_explorer_search_variant_is_shared_config_not_a_second_controller():
     sphinx = (EXT/'_sphinx_ext/_sphinx_ai_learn/_sphinx.py').read_text()
     pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
     readme = (EXT/'_sphinx_ext/_sphinx_ai_learn/README.md').read_text()
-    conf = (DOCS_SOURCE/'conf.py').read_text()
+    conf = (_learn_site.docs_source()/'conf.py').read_text()
     assert 'app.add_config_value("ai_learn_explorer_search_variant", "pill-overflow", "env")' in sphinx
     assert "ai_learn_explorer_search_variant must be 'pill-overflow' or 'classic'" in sphinx
     assert '"search_control_variant": search_control_variant' in pages
@@ -1174,8 +1171,8 @@ def test_audio_topic_and_detail_contracts_are_materialized_without_autoplay():
     }
     normalized = validate_catalog({"contract": "learn.catalog.v3", "revision": "a", "subjects": [audio]})["subjects"][0]
     assert ".. ai-audio-player:: audio-one" in _media_directive(normalized)
-    topic_rel, _ = next((rel, row) for rel, row in TREE.records.items() if row["subject"]["kind"] == "topic")
-    assert "Audio Explanation" in (CONTENT / topic_rel.with_suffix(".rst")).read_text()
+    topic_rel, _ = next((rel, row) for rel, row in _learn_site.content_tree().records.items() if row["subject"]["kind"] == "topic")
+    assert "Audio Explanation" in (_learn_site.content_root() / topic_rel.with_suffix(".rst")).read_text()
     template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/audio-player.html').read_text()
     assert '<audio controls preload="metadata"' in template
     assert 'autoplay' not in template
@@ -1186,8 +1183,8 @@ def test_audio_topic_and_detail_contracts_are_materialized_without_autoplay():
 
 def test_document_and_whiteboard_generation_surfaces_are_first_class_and_fail_closed():
     pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    document_new = (CONTENT/'documents/new.rst').read_text()
-    whiteboard_new = (CONTENT/'whiteboards/new.rst').read_text()
+    document_new = (_learn_site.content_root()/'documents/new.rst').read_text()
+    whiteboard_new = (_learn_site.content_root()/'whiteboards/new.rst').read_text()
     overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
     section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text()
     document_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/document-generation.html').read_text()

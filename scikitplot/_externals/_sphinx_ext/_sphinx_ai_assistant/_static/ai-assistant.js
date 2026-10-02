@@ -22234,9 +22234,24 @@
         function _makeEndpointValue(url, label, className) {
             var value = String(url || '');
             var el;
+            // Two independent checks before the value becomes a link: the
+            // string allow-list, then the URL parser's own verdict on the
+            // scheme. The link is set from the parsed URL, not from the
+            // text that was read, so what navigates is what was checked.
+            var href = '';
             if (value && _isSafeHref(value)) {
+                try {
+                    var parsed = new URL(value, document.baseURI);
+                    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+                        href = parsed.href;
+                    }
+                } catch (_err) {
+                    href = '';
+                }
+            }
+            if (href) {
                 el = document.createElement('a');
-                el.href = value;
+                el.href = href;
                 el.target = '_blank';
                 el.rel = 'noopener noreferrer';
                 el.setAttribute('aria-label', label + ' endpoint, opens in a new tab: ' + value);

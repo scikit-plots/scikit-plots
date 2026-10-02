@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+import _learn_site
+
 from _sphinx_ext._sphinx_ai_learn._materialize import load_content_tree
 from _sphinx_ext._sphinx_ai_learn._publication import (
     PUBLICATION_CONTRACT,
@@ -27,7 +29,6 @@ from _sphinx_ext._sphinx_ai_learn._publication import (
 from _sphinx_ext._sphinx_ai_learn._publication_cli import main as publication_cli
 from _sphinx_ext._sphinx_ai_learn._schema import LearnValidationError
 
-SOURCE = Path(__file__).resolve().parents[5] / "learn-ai"
 
 
 def _feedback_id(index=1):
@@ -37,8 +38,8 @@ def _feedback_id(index=1):
 
 def _json_only_copy(tmp_path):
     root = tmp_path / "learn-ai"
-    for source in SOURCE.rglob("*.json"):
-        target = root / source.relative_to(SOURCE)
+    for source in _learn_site.content_root().rglob("*.json"):
+        target = root / source.relative_to(_learn_site.content_root())
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
     return root
@@ -1243,7 +1244,7 @@ def test_reviewed_source_request_requires_explicit_metadata_review(tmp_path):
 
 
 def test_reviewed_publication_workflow_separates_dry_run_and_json_only_write_authority():
-    root = Path(__file__).resolve().parents[7]
+    root = _learn_site.site_repository()
     workflow_path = root / ".github" / "workflows" / "ai-learn-publish.yml"
     text = workflow_path.read_text()
     assert "transport-test:" in text
@@ -1303,7 +1304,7 @@ def test_reviewed_publication_workflow_separates_dry_run_and_json_only_write_aut
 
 
 def test_reviewed_publication_workflow_run_blocks_are_bash_syntax_valid():
-    root = Path(__file__).resolve().parents[7]
+    root = _learn_site.site_repository()
     workflow = (root / ".github" / "workflows" / "ai-learn-publish.yml").read_text()
     lines = workflow.splitlines()
     blocks = []
@@ -1340,7 +1341,7 @@ def test_reviewed_publication_workflow_run_blocks_are_bash_syntax_valid():
         )
 
 def test_reviewed_publication_git_askpass_is_prompt_scoped_and_fail_closed():
-    root = Path(__file__).resolve().parents[7]
+    root = _learn_site.site_repository()
     helper = root / ".github" / "scripts" / "ai-learn-git-askpass.sh"
     assert helper.is_file()
 

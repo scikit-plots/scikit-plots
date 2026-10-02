@@ -8,6 +8,8 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 
+import _learn_site
+
 from _sphinx_ext._sphinx_ai_learn._materialize import (
     GENERATED_MARKER,
     canonical_prompt_json_files,
@@ -20,7 +22,6 @@ from _sphinx_ext._sphinx_ai_learn._materialize import (
 )
 from _sphinx_ext._sphinx_ai_learn._schema import LearnValidationError
 
-SOURCE = Path(__file__).resolve().parents[5] / "learn-ai"
 
 
 def _feedback_id(index=1):
@@ -30,8 +31,8 @@ def _feedback_id(index=1):
 
 def _json_only_copy(tmp_path):
     root = tmp_path / "learn-ai"
-    for source in SOURCE.rglob("*.json"):
-        target = root / source.relative_to(SOURCE)
+    for source in _learn_site.content_root().rglob("*.json"):
+        target = root / source.relative_to(_learn_site.content_root())
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
     return root
@@ -46,7 +47,7 @@ def _first_topic(tree):
 
 
 def test_production_tree_is_one_json_to_one_rst_and_projection_is_canonical():
-    tree = load_content_tree(SOURCE)
+    tree = load_content_tree(_learn_site.content_root())
     rendered = render_materialized(tree)
     # Preserve the known baseline without freezing a publication-driven corpus.
     # New reviewed records/prompts/skills and feedback sidecars are expected to
@@ -65,15 +66,15 @@ def test_production_tree_is_one_json_to_one_rst_and_projection_is_canonical():
         if section.get("body") or section.get("citations") or section.get("links")
     )
     assert len(rendered) == len(tree.source_digests) - len(tree.feedback_events)
-    assert all((SOURCE / rel).is_file() for rel in rendered)
-    assert all((SOURCE / rel).read_bytes() == raw for rel, raw in rendered.items())
+    assert all((_learn_site.content_root() / rel).is_file() for rel in rendered)
+    assert all((_learn_site.content_root() / rel).read_bytes() == raw for rel, raw in rendered.items())
 
     assert canonical_prompt_json_files(tree.prompts) == {
-        rel: (SOURCE / rel).read_bytes()
+        rel: (_learn_site.content_root() / rel).read_bytes()
         for rel in canonical_prompt_json_files(tree.prompts)
     }
     assert canonical_skill_json_files(tree.skills) == {
-        rel: (SOURCE / rel).read_bytes()
+        rel: (_learn_site.content_root() / rel).read_bytes()
         for rel in canonical_skill_json_files(tree.skills)
     }
     for rel, record in tree.records.items():
@@ -83,7 +84,7 @@ def test_production_tree_is_one_json_to_one_rst_and_projection_is_canonical():
             tree.skills,
             add_toctree=record["add_toctree"],
         )
-        assert projected == {path: (SOURCE / path).read_bytes() for path in projected}
+        assert projected == {path: (_learn_site.content_root() / path).read_bytes() for path in projected}
 
 
 def test_secondary_sidebar_control_is_explicit_for_every_renderable_json():
@@ -96,7 +97,7 @@ def test_secondary_sidebar_control_is_explicit_for_every_renderable_json():
         "learn.skill.v1",
     }
     matched = 0
-    for source in SOURCE.rglob("*.json"):
+    for source in _learn_site.content_root().rglob("*.json"):
         data = json.loads(source.read_text(encoding="utf-8"))
         if data.get("contract") not in renderable_contracts:
             continue
@@ -168,7 +169,7 @@ def test_secondary_sidebar_control_is_optional_defaults_hidden_and_rejects_non_b
 
 
 def test_canonical_record_projection_writes_sidebar_controls_explicitly():
-    tree = load_content_tree(SOURCE)
+    tree = load_content_tree(_learn_site.content_root())
     _, record = _first_topic(tree)
     projected = canonical_record_json_files(
         record["subject"],
@@ -373,7 +374,7 @@ def test_toctree_mode_makes_children_navigable_without_orphan(tmp_path):
 
 def test_regeneration_from_json_only_is_byte_identical(tmp_path):
     root = _json_only_copy(tmp_path)
-    source_tree = load_content_tree(SOURCE)
+    source_tree = load_content_tree(_learn_site.content_root())
     expected = render_materialized(source_tree)
     _, changed = materialize(root)
     assert len(changed) == len(expected)
@@ -746,11 +747,11 @@ def test_index_explorer_headers_are_canonical_and_materialized_consistently():
         "skills": ("Topic Skill", "Exploring Skills", "Create a Skill"),
     }
     for folder, (kicker, title, create_label) in expected.items():
-        data = json.loads((SOURCE / folder / "index.json").read_text(encoding="utf-8"))
+        data = json.loads((_learn_site.content_root() / folder / "index.json").read_text(encoding="utf-8"))
         assert data["description"]
         assert data["create_label"] == create_label
         assert data["explorer_header"] == {"kicker": kicker, "title": title}
-        rst = (SOURCE / folder / "index.rst").read_text(encoding="utf-8")
+        rst = (_learn_site.content_root() / folder / "index.rst").read_text(encoding="utf-8")
         assert ".. ai-index-explorer-header::" in rst
         assert f"   :kicker: {kicker}" in rst
         assert f"   :title: {title}" in rst

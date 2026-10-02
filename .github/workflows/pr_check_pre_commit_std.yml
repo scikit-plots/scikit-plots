@@ -5,6 +5,7 @@ name: "PRs ✍️ Pre-Commit Standards (🐍🧹🐢🔒)"
 # ✅ Prevents accidental direct pushes to main. Enforces review + CI.
 on:
   pull_request:
+  #   types: [opened, synchronize, reopened]
   # push:
   #   branches:
   #     - main
@@ -26,6 +27,8 @@ concurrency:
   ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
   ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  # group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  # group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   ## If you push multiple times quickly, older runs would continue even though newer ones have started.
   ## Canceling previous runs reduces resource usage and speeds up feedback.
   ## If a new run is triggered for the same group, cancel the in-progress one.
@@ -62,6 +65,16 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: '3.11'
+
+      # - name: Verify checked-out PR commit
+      #   # echo "event: ${{ github.event_name }}"
+      #   # echo "action: ${{ github.event.action }}"
+      #   run: |
+      #     echo "PR number: ${{ github.event.pull_request.number }}"
+      #     echo "PR head SHA: ${{ github.event.pull_request.head.sha }}"
+      #     echo "GitHub SHA: ${{ github.sha }}"
+      #     echo "Checked-out SHA: $(git rev-parse HEAD)"
+      #     git log -1 --oneline
 
       - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd  # v3.0.1
         # with:

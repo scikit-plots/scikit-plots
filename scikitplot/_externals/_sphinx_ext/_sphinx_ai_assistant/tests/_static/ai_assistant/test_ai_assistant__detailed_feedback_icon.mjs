@@ -3,9 +3,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
-const root = process.cwd();
-const jsPath = path.join(root, 'docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_static/ai-assistant.js');
+// Located from this file, not from the working directory: the stack lives at
+// a different depth in the library checkout and the documentation checkout,
+// and a path spelled from the repository root is right in only one of them.
+const staticDir = fileURLToPath(new URL('../../../_static/', import.meta.url));
+const jsPath = path.join(staticDir, 'ai-assistant.js');
 const src = fs.readFileSync(jsPath, 'utf8');
 let passed = 0, failures = 0;
 function ok(value, message) {
