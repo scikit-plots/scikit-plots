@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+# .github/scripts/resolve-ai-learn-module.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Resolve the trusted AI Learn package namespace used by publication CI.
 
