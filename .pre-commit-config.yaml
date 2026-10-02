@@ -63,7 +63,7 @@ repos:
   # Documentation and Specialized Linting
   # - repo: https://github.com/woodruffw/zizmor-pre-commit
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.30.0
+    rev: v1.30.1
     hooks:
       # pre-commit run zizmor --all-files --verbose
       - id: zizmor
@@ -232,7 +232,7 @@ repos:
 
   # 2. Ruff auto-fixes
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.8
     hooks:
       # - id: ruff  # Run the linter.
       # pre-commit run ruff-check --all-files --verbose
@@ -304,7 +304,7 @@ repos:
   #       args: ["--config", ".ruff.toml"]  # Point to your custom ruff.toml file
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.8
     hooks:
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       # pre-commit run ruff-format --all-files --verbose
@@ -321,7 +321,7 @@ repos:
   # 4. Check-only linters
   # Code Quality: Formatter PyCQA flake8 vs ruff-format can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
-    rev: 7.3.0
+    rev: 7.4.1
     hooks:
       # pre-commit run flake8 --all-files --verbose
       - id: flake8

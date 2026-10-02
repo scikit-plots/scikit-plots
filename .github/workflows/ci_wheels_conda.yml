@@ -724,7 +724,7 @@ jobs:
             Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           ## for installation of anaconda-client, required for upload to
           ## anaconda.org
@@ -917,7 +917,7 @@ jobs:
           name: sdist
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           # for installation of anaconda-client, required for upload to
           # anaconda.org
@@ -1071,7 +1071,7 @@ jobs:
           # name: wasm32_artifact
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         continue-on-error: true
         with:
           ## for installation of anaconda-client, required for upload to
