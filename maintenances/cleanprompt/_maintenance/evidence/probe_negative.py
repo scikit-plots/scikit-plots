@@ -585,6 +585,13 @@ if sys.version_info >= (3, 10):
           _out23.returncode == 0 and _out23.stdout.strip() == "[]", _out23.stdout + _out23.stderr[-300:])
 else:
     print("CP-085    SKIP sys.stdlib_module_names needs Python 3.10")
+_tests23 = _pkg22 / "tests"
+_doc23 = sorted(p.name for p in _tests23.glob("*.py")
+                for n in _ast22.walk(_ast22.parse(p.read_text(encoding="utf-8")))
+                if (isinstance(n, _ast22.Import) and any(a.name.split(".")[0] == "doctest" for a in n.names))
+                or (isinstance(n, _ast22.ImportFrom) and n.level == 0 and (n.module or "").split(".")[0] == "doctest"))
+check("CP-086", "no test module runs doctest inside the pytest process; the isolated runner exists",
+      _doc23 == [] and (_tests23 / "_isolated.py").is_file(), str(_doc23))
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

@@ -270,8 +270,6 @@ class TestDoctests:
     """Every documented example runs."""
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _surrogates
-
-        assert doctest.testmod(_surrogates, verbose=False).failed == 0
+        assert_doctests_pass("_surrogates")

@@ -219,8 +219,6 @@ class TestVocabulary:
             assert not set(kind) & set("[]-")
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _schema
-
-        assert doctest.testmod(_schema, verbose=False).failed == 0
+        assert_doctests_pass("_schema")

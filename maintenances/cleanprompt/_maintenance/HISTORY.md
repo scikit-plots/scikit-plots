@@ -19,8 +19,22 @@ CI, on the real package, failed
   (45 failures under a parent that imports NumPy) and use the same stand-in.
 - Not changed: a real `import scikitplot.cleanprompt` still loads what the
   parent loads. That is `scikitplot/__init__.py`'s cost, outside this plane.
-- Verification now runs under both parents: an empty one and one that imports
-  NumPy. 2466 tests pass under each.
+- `CP-086`, the next CI failure: `TestDoctests.test_doctests_pass` reported
+  three examples in `_api.py` as "Got nothing" while their output sat in
+  pytest's captured stdout. `doctest` replaces `sys.stdout` to read an
+  example's output. The project's pytest configuration prints log records
+  live (`log_cli_level = "info"`), and pytest suspends and resumes its capture
+  around each printed record; resuming assigns pytest's stream back to
+  `sys.stdout`. `encode` logs at `INFO`, so every example after it printed to
+  pytest instead.
+- All seven doctest tests ran `doctest.testmod` inside the pytest process; six
+  passed only because their modules log nothing. They now run in a fresh
+  interpreter through `tests/_isolated.py`, which also owns the stand-in
+  parent, and an architecture test refuses a test module that imports
+  `doctest`. A module whose examples were not attempted now fails too.
+- Verification now runs under both parents (an empty one and one that imports
+  NumPy) and with the project's pytest logging options. 2467 tests pass under
+  each.
 
 ## 2026-10-02 — round twenty-two: what is committed is read by scanners
 

@@ -405,8 +405,6 @@ class TestDoctests:
     """Every documented example runs."""
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _vaultcrypt
-
-        assert doctest.testmod(_vaultcrypt, verbose=False).failed == 0
+        assert_doctests_pass("_vaultcrypt")

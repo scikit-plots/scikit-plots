@@ -255,8 +255,6 @@ class TestVocabulary:
             assert region.role in ROLES
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _documents
-
-        assert doctest.testmod(_documents, verbose=False).failed == 0
+        assert_doctests_pass("_documents")

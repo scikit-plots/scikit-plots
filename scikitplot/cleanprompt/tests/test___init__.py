@@ -19,6 +19,7 @@ import sys
 import pytest
 
 from .. import _capabilities as caps
+from ._isolated import REAL_PARENT, assert_doctests_pass, in_subprocess
 
 PACKAGE = pathlib.Path(__file__).resolve().parent.parent
 ROOT = PACKAGE.parents[1]
@@ -36,59 +37,11 @@ def _runtime_sources():
     )
 
 
-#: Registers an empty stand-in for the parent package before anything imports it.
-#:
-#: ``import scikitplot.cleanprompt`` first runs ``scikitplot/__init__.py``, and
-#: that file imports NumPy unconditionally. What the parent loads is not a
-#: property of this package, so the isolation claims are measured with the
-#: parent replaced by an empty module whose ``__path__`` is the real package
-#: directory: every submodule still resolves from the real files, and nothing
-#: outside ``cleanprompt`` runs.
-_ISOLATED_PARENT = (
-    "import sys, types\n"
-    "_parent = types.ModuleType('scikitplot')\n"
-    "_parent.__path__ = [{0!r}]\n"
-    "sys.modules['scikitplot'] = _parent\n"
-).format(str(PACKAGE.parent))
-
-#: Imports the real parent package from the checkout the tests run in.
-_REAL_PARENT = "import sys;sys.path.insert(0, {0!r})\n".format(str(ROOT))
-
-
-def _in_subprocess(body, *, prelude=_ISOLATED_PARENT):
-    """
-    Run ``body`` in a fresh interpreter and return its stdout.
-
-    Parameters
-    ----------
-    body : str
-        Source to execute after ``prelude``.
-    prelude : str, default=_ISOLATED_PARENT
-        Source executed first. ``_ISOLATED_PARENT`` measures this package
-        alone; ``_REAL_PARENT`` measures it under the real ``scikitplot``.
-
-    Returns
-    -------
-    str
-        Captured standard output.
-
-    Raises
-    ------
-    AssertionError
-        If the interpreter exits with a non-zero status.
-    """
-    completed = subprocess.run(
-        [sys.executable, "-c", prelude + body], capture_output=True, text=True
-    )
-    assert completed.returncode == 0, completed.stderr
-    return completed.stdout
-
-
 class TestImportIsolation:
     """The central claim: importing costs nothing and pulls in nothing."""
 
     def test_plain_import_loads_no_third_party_package(self):
-        output = _in_subprocess(
+        output = in_subprocess(
             "import scikitplot.cleanprompt\n"
             "print([n for n in {0!r} if n in sys.modules])".format(FORBIDDEN_AT_IMPORT)
         )
@@ -96,14 +49,14 @@ class TestImportIsolation:
 
     def test_star_import_is_base_safe(self):
         """``__all__`` is the star-import surface; it must resolve with no extras."""
-        output = _in_subprocess(
+        output = in_subprocess(
             "exec('from scikitplot.cleanprompt import *')\n"
             "print([n for n in {0!r} if n in sys.modules])".format(FORBIDDEN_AT_IMPORT)
         )
         assert output.strip() == "[]"
 
     def test_dir_does_not_resolve_optional_names(self):
-        output = _in_subprocess(
+        output = in_subprocess(
             "import scikitplot.cleanprompt as cp\n"
             "names = dir(cp)\n"
             "print('spacy_detector' in names, [n for n in {0!r} if n in sys.modules])".format(
@@ -113,7 +66,7 @@ class TestImportIsolation:
         assert output.strip() == "True []"
 
     def test_hasattr_on_a_missing_name_imports_nothing(self):
-        output = _in_subprocess(
+        output = in_subprocess(
             "import scikitplot.cleanprompt as cp\n"
             "hasattr(cp, 'definitely_not_here')\n"
             "print([n for n in {0!r} if n in sys.modules])".format(FORBIDDEN_AT_IMPORT)
@@ -156,7 +109,7 @@ class TestImportIsolation:
             "r = cp.Redactor().redact('mail a@b.co')\n"
             "print(r.text, cp.restore(r.text, r.vault).text == 'mail a@b.co')\n"
         ).format(FORBIDDEN_AT_IMPORT)
-        assert _in_subprocess(body).strip() == "mail [EMAIL-1] True"
+        assert in_subprocess(body).strip() == "mail [EMAIL-1] True"
 
 
 class TestLazyResolution:
@@ -479,48 +432,51 @@ class TestArchitecture:
             assert "from __future__ import annotations" in text, path.name
 
 
+#: Every base-tier module. An optional-tier module is excluded because running
+#: its examples would import the dependency this facade exists to keep out of
+#: the base install.
+DOCTESTED_MODULES = (
+    "_api",
+    "_capabilities",
+    "_detectors",
+    "_engine",
+    "_engines",
+    "_languages",
+    "_logging",
+    "_patterns",
+    "_policy",
+    "_render",
+    "_types",
+    "_vault",
+)
+
 class TestDoctests:
     """Every documented example runs."""
 
     def test_doctests_pass(self):
-        import doctest
+        counts = assert_doctests_pass(*DOCTESTED_MODULES)
+        assert sum(attempted for _, attempted in counts.values()) >= 50
 
-        from .. import (
-            _api,
-            _capabilities,
-            _detectors,
-            _engine,
-            _engines,
-            _languages,
-            _logging,
-            _patterns,
-            _policy,
-            _render,
-            _types,
-            _vault,
-        )
+    def test_no_test_runs_doctest_inside_the_pytest_process(self):
+        """
+        CP-086: ``doctest`` needs a ``sys.stdout`` that pytest does not replace.
 
-        # Every base-tier module. An optional-tier module is excluded because
-        # running its examples would import the dependency this facade exists
-        # to keep out of the base install.
-        failures = 0
-        for module in (
-            _api,
-            _capabilities,
-            _detectors,
-            _engine,
-            _engines,
-            _languages,
-            _logging,
-            _patterns,
-            _policy,
-            _render,
-            _types,
-            _vault,
-        ):
-            result = doctest.testmod(module, verbose=False, report=False)
-            failures += result.failed
-        assert failures == 0
+        Every doctest run goes through ``_isolated``; a direct call in a test
+        module would pass or fail by the logging configuration of the run.
+        """
+        offenders = []
+        for path in sorted(pathlib.Path(__file__).resolve().parent.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    names = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                    names = [node.module or ""]
+                else:
+                    continue
+                if any(name.split(".")[0] == "doctest" for name in names):
+                    offenders.append(path.name)
+        assert offenders == []
 
 
 _LOADED_BY_THE_PACKAGE = (
@@ -552,7 +508,7 @@ def test_importing_the_package_loads_only_the_standard_library():
     parent package is replaced by an empty stand-in, so the measurement covers
     this package and nothing else.
     """
-    loaded = ast.literal_eval(_in_subprocess(_LOADED_BY_THE_PACKAGE).strip())
+    loaded = ast.literal_eval(in_subprocess(_LOADED_BY_THE_PACKAGE).strip())
     assert "scikitplot" in loaded
     assert _foreign(loaded) == []
 
@@ -568,14 +524,14 @@ def test_the_package_adds_nothing_foreign_to_what_the_parent_loads():
     imported first and only the modules loaded after it are examined.
     """
     body = "import scikitplot\n" + _LOADED_BY_THE_PACKAGE
-    loaded = ast.literal_eval(_in_subprocess(body, prelude=_REAL_PARENT).strip())
+    loaded = ast.literal_eval(in_subprocess(body, prelude=REAL_PARENT).strip())
     assert "scikitplot" in loaded
     assert _foreign(loaded) == []
 
 
 def test_the_isolated_parent_runs_no_parent_code():
     """The stand-in is what was imported: the real ``__init__`` never ran."""
-    output = _in_subprocess(
+    output = in_subprocess(
         "import scikitplot, scikitplot.cleanprompt\n"
         "print(scikitplot.__file__ if hasattr(scikitplot, '__file__') else None)"
     )

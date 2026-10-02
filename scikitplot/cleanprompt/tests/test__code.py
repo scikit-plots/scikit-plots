@@ -186,8 +186,6 @@ class TestDoctests:
     """Every documented example runs."""
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _code
-
-        assert doctest.testmod(_code, verbose=False).failed == 0
+        assert_doctests_pass("_code")

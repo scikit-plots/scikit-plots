@@ -414,11 +414,9 @@ class TestDoctests:
     """Every documented example runs."""
 
     def test_doctests_pass(self):
-        import doctest
+        from ._isolated import assert_doctests_pass
 
-        from .. import _artifacts
-
-        assert doctest.testmod(_artifacts, verbose=False).failed == 0
+        assert_doctests_pass("_artifacts")
 
 
 def test_an_explicit_kinds_policy_needs_no_column_detector():
