@@ -3,7 +3,7 @@
 """Package-layout contract owned by :mod:`_hf_spaces_proxy._utils.__init__`."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import importlib
 

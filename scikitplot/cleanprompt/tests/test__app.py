@@ -417,9 +417,11 @@ class TestTemplates:
             if path.is_dir():
                 continue
             text = path.read_text(encoding="utf-8")
+            # No exemptions. An earlier version waived every ``https://`` in a
+            # file that mentioned one particular host anywhere, which would
+            # have let any remote resource through beside it; no shipped file
+            # needed the waiver.
             for marker in ("http://", "https://", "//cdn", "integrity="):
-                if marker == "https://" and "no-color.org" in text:
-                    continue
                 assert marker not in text, "{0} references {1}".format(path.name, marker)
 
     def test_no_inline_event_handlers(self):

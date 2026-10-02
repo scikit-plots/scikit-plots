@@ -1,7 +1,7 @@
 """Run 16.2.4+: built-in origins are safe defaults and downstream deployments can replace them explicitly."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ...._paths import RUNTIME_ROOT
 
 import importlib
 import json

@@ -30,7 +30,7 @@ import json
 
 import pytest
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import (
+from ...._paths import (
     RUNTIME_ROOT,
     TESTS_ROOT,
 )

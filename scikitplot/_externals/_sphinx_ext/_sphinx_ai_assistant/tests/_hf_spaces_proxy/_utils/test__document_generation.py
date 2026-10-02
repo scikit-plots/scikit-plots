@@ -9,8 +9,8 @@ import json
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._document_generation import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._utils._document_generation import (
     DOCUMENT_GENERATION_REQUEST_CONTRACT,
     DOCUMENT_GENERATION_RESPONSE_CONTRACT,
     DocumentGenerationError,
@@ -105,3 +105,29 @@ def test_proxy_document_generation_uses_chat_authority_and_canonical_route(monke
         alias = client.post("/v1/document-generations", json=_request(title="Alias"))
         assert alias.status_code == 200, alias.text
         assert alias.json()["contract"] == DOCUMENT_GENERATION_RESPONSE_CONTRACT
+
+class _Leaky(DocumentGenerationError):
+    """An instance whose own rendering is not what its author approved."""
+
+    def __str__(self) -> str:
+        return "Traceback (most recent call last): /srv/app/secret.py line 1"
+
+
+def test_error_response_exposes_the_authored_message_never_the_rendering():
+    """
+    The response carries ``code`` and the authored ``message``.
+
+    ``str(exc)`` is the exception machinery's rendering of the instance; a
+    subclass, a note or a chained cause can put a path or a trace there. The
+    handler must not forward it.
+    """
+    response = app._document_generation_error_response(_Leaky("REQUEST_INVALID", "prompt is required"))
+    body = json.loads(response.body)
+    assert "Traceback" not in response.body.decode("utf-8")
+    assert "secret.py" not in response.body.decode("utf-8")
+    assert body["error"]["code"] == 'REQUEST_INVALID'
+    assert body["error"]["message"] == 'prompt is required'
+
+
+def test_error_message_attribute_is_the_authored_sentence():
+    assert DocumentGenerationError("REQUEST_INVALID", "prompt is required").message == 'prompt is required'

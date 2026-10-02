@@ -25,6 +25,19 @@
     }
     let serial = 0;
 
+    // A link target taken from page data is a navigation only if it resolves to
+    // http(s). Anything else - javascript:, data:, vbscript:, an unparsable
+    // value - returns "" and the caller renders the label without a link.
+    function safeHref(value) {
+        if (typeof value !== "string" || !value) return "";
+        try {
+            const url = new URL(value, document.baseURI);
+            return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+        } catch (_) { return ""; }
+    }
+    // A same-document target. Encoded, so the result is a fragment whatever
+    // the identifier contains and can never be read as a URL of its own.
+    function fragment(identifier) { return "#" + encodeURIComponent(String(identifier)); }
     function node(tag, text, className) {
         const element = document.createElement(tag);
         if (text !== undefined && text !== null) element.textContent = text;
@@ -194,7 +207,8 @@
         function linkSubject(id, label) {
             const a = node("a", label || byId.get(id)?.title || id);
             const route = config.routes && config.routes[id];
-            if (route) { a.href = route; return a; }
+            const routeHref = safeHref(route);
+            if (routeHref) { a.href = routeHref; return a; }
             const url = new URL(location.href);
             url.searchParams.set("subject", id); url.hash = "";
             a.href = url.href;
@@ -228,7 +242,8 @@
             content.append(top);
             if (subject.url) {
                 const a = node("a", subject.kind === "source" ? "Original source" : "Open " + subject.kind);
-                a.href = subject.url; a.rel = "noopener noreferrer";
+                const href = safeHref(subject.url);
+                if (href) { a.href = href; a.rel = "noopener noreferrer"; }
                 content.append(a);
             }
             if (subject.kind === "whiteboard") {
@@ -263,14 +278,15 @@
             }
             if (subject.kind === "document" && subject.media && subject.media.type === "document") {
                 const open = node("a", "Open document");
-                open.href = subject.media.src; open.target = "_blank"; open.rel = "noopener";
+                const href = safeHref(subject.media.src);
+                if (href) { open.href = href; open.target = "_blank"; open.rel = "noopener"; }
                 content.append(open);
             }
             if (subject.sections.length) {
                 const toc = node("nav", null, "la-section-nav");
                 toc.setAttribute("aria-label", "On this subject");
                 subject.sections.forEach(section => {
-                    const a = node("a", section.title); a.href = "#" + instance + "-" + id + "-" + section.id;
+                    const a = node("a", section.title); a.href = fragment(instance + "-" + id + "-" + section.id);
                     toc.append(a);
                 });
                 content.append(toc);

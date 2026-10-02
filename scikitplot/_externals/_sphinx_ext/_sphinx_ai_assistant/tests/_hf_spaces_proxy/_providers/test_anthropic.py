@@ -9,26 +9,26 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.anthropic import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._providers.anthropic import (
     AnthropicResourceExecutor,
     official_anthropic_messages_backend,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import (
+from ...._hf_spaces_proxy._providers.base import ResourceRoute
+from ...._hf_spaces_proxy._providers.executor import (
     ProviderPrivateResource,
     ResourceExecutionError,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.policy import (
+from ...._hf_spaces_proxy._providers.policy import (
     anthropic_code_execution_supported_model,
     capabilities_for,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import (
+from ...._hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ...._hf_spaces_proxy._utils._resource_contract import (
     ResourceDescriptor,
     VerifiedResource,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ...._hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _chat(*, model: str = "claude-sonnet-4-6", stream: bool = False) -> ChatRequest:

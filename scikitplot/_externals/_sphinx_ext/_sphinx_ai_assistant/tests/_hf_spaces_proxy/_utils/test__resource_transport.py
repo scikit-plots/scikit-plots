@@ -1,7 +1,7 @@
 """Run 126 — first-class raw resource contract and bounded multipart transport."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import hashlib
 import json

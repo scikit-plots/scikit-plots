@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
+from ......_hf_spaces_proxy._utils import _dataset_schema as schema
 
 
 def test_feedback_review_is_the_only_saved_feedback_row_family() -> None:

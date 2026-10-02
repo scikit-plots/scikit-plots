@@ -15,18 +15,18 @@ import sys
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT
+from ....._paths import REPOSITORY_ROOT
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
+from ......_hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     ProviderArtifactError,
     ProviderArtifactGeneratorSpec,
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ......_hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     RedisProviderArtifactLifecycleRegistry,
     build_provider_artifact_lifecycle_registry,
 )

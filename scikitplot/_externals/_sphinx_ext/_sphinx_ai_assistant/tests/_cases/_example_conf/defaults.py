@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
+from ...._hf_spaces_proxy import app as proxy_app
 
 
 ROOT = RUNTIME_ROOT

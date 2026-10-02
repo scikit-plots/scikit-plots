@@ -50,6 +50,10 @@ class AudioGenerationError(RuntimeError):
     ) -> None:
         self.code = str(code or "AUDIO_GENERATION_ERROR")
         self.retryable = bool(retryable)
+        # The authored, client-safe sentence, or "" when only a code was
+        # given. Responses expose ``code`` and ``message`` and never
+        # ``str(exc)``, which is the exception's own rendering of itself.
+        self.message = message if message and message != self.code else ""
         super().__init__(message or self.code)
 
 

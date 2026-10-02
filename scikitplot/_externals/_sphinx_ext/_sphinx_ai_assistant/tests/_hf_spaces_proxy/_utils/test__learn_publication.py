@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from _sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._learn_publication import (
+from ...._hf_spaces_proxy._utils._learn_publication import (
     LearnPublicationTransportError,
     build_publication_policy,
     capability_document,

@@ -5,12 +5,12 @@ from copy import deepcopy
 import pytest
 from fastapi import HTTPException
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
+from ......_hf_spaces_proxy import app as proxy_app
+from ......_hf_spaces_proxy._utils import _dataset_schema as schema
 
 # deduplicate_dataset is deployed as a sibling script and intentionally supports
 # direct execution, so import it through its package-local module path.
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import deduplicate_dataset as dd
+from ......_hf_spaces_proxy import deduplicate_dataset as dd
 
 
 def _eligible(

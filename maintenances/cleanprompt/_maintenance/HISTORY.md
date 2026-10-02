@@ -22,6 +22,10 @@ A push was refused: the host's secret scanner found a Stripe-shaped key in
 - `CP-084`: a declared-but-empty pack section was accepted.
 - 2464 tests pass with every tier on CPython 3.11, stable over five runs;
   3.8, 3.12, 3.13 and 3.14 bare.
+- Code scanning, after the push: `test__app.py` waived every `https://` in a
+  file that mentioned one host anywhere; no shipped file needed the waiver and
+  it is gone. Negative probe `CP-004` restated upstream's faulty character
+  class to test Python's `re`; it now probes this package's pattern only.
 
 ## 2026-09-28 — round twenty-one: a tool result is a document
 

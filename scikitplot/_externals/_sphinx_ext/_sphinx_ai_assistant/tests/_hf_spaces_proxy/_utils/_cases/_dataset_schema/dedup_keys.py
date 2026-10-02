@@ -1,4 +1,4 @@
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
+from ......_hf_spaces_proxy._utils import _dataset_schema as schema
 
 
 def test_feedback_and_conversation_use_receipt_type_dedup_shape() -> None:

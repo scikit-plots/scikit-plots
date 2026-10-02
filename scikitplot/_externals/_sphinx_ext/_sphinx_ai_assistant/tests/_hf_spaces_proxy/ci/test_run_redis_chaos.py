@@ -3,7 +3,7 @@
 """Run 147 — reproducible live Redis standalone/cluster CI boundary."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT, RUNTIME_ROOT
+from ..._paths import REPOSITORY_ROOT, RUNTIME_ROOT
 
 import asyncio
 import binascii
@@ -20,14 +20,14 @@ import time
 
 import pytest
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ...._hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     ProviderArtifactError,
     ProviderArtifactGeneratorSpec,
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ...._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     RedisProviderArtifactLifecycleRegistry,
 )
 

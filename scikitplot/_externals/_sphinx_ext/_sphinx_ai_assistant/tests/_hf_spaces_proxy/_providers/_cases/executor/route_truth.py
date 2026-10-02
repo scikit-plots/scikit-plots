@@ -7,12 +7,12 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ProviderPrivateResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import ProviderPrivateResource
+from ......_hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ......_hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _chat(model="gpt-5.4"):
@@ -171,10 +171,10 @@ async def test_server_rejects_unimplemented_route_before_provider_prepare(monkey
 
 
 def test_real_executors_declare_only_routes_they_implement():
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.openai import (  # type: ignore[import-not-found]
+    from ......_hf_spaces_proxy._providers.openai import (  # type: ignore[import-not-found]
         OpenAIResourceExecutor,
     )
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.anthropic import (  # type: ignore[import-not-found]
+    from ......_hf_spaces_proxy._providers.anthropic import (  # type: ignore[import-not-found]
         AnthropicResourceExecutor,
     )
 

@@ -5382,7 +5382,7 @@ def _video_generation_error_response(
             "error": {
                 "type": "video_generation_error",
                 "code": exc.code,
-                "message": str(exc),
+                "message": exc.message,
             },
         },
         headers={"Cache-Control": "no-store"},
@@ -5534,9 +5534,7 @@ def _audio_generation_error_response(exc: AudioGenerationError) -> JSONResponse:
                 "code": code,
                 "layer": "request" if code.startswith("REQUEST") else "lifecycle",
                 "message": (
-                    str(exc)
-                    if str(exc) and str(exc) != code
-                    else "Audio generation request could not be completed."
+                    exc.message or "Audio generation request could not be completed."
                 ),
                 "retryable": bool(getattr(exc, "retryable", False)),
             }
@@ -5664,11 +5662,7 @@ def _document_generation_error_response(exc: DocumentGenerationError) -> JSONRes
             "error": {
                 "type": "document_generation_error",
                 "code": exc.code,
-                "message": (
-                    str(exc)
-                    if str(exc) != exc.code
-                    else "Document generation could not be completed."
-                ),
+                "message": exc.message or "Document generation could not be completed.",
             }
         },
         headers={"Cache-Control": "no-store"},

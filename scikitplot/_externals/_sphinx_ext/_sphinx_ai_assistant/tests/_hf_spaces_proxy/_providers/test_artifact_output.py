@@ -12,13 +12,13 @@ import json
 import httpx
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.artifact_output import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._providers.artifact_output import (
     OpenAIProviderArtifactOutputExecutor,
     ProviderArtifactOutputRegistry,
     StubProviderArtifactOutputExecutor,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ...._hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
     ProviderArtifactError,

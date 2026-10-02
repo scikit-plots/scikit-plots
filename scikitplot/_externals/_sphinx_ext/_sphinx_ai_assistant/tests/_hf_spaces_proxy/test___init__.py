@@ -3,7 +3,7 @@
 """Package/deployment layout owned by :mod:`_hf_spaces_proxy.__init__`."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 
 import importlib
 from pathlib import Path

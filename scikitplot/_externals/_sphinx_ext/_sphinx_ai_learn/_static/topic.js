@@ -4,6 +4,17 @@
   const one = (root, selector) => root?.querySelector?.(selector) || null;
   const all = (root, selector) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];
   const text = (tag, value) => { const el = document.createElement(tag); el.textContent = value; return el; };
+  // A link target taken from page data is a navigation only if it resolves to
+  // http(s). Anything else - javascript:, data:, vbscript:, an unparsable
+  // value - returns '' and the caller renders the label without a link.
+  const safeHref = value => {
+    if (typeof value !== 'string' || !value) return '';
+    try {
+      const url = new URL(value, document.baseURI);
+      return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    } catch { return ''; }
+  };
+  const safeLink = (label, target) => { const a = text('a', label), href = safeHref(target); if (href) a.href = href; return a; };
   const download = (value, name, type='application/json') => {
     const blob = new Blob([typeof value === 'string' ? value : JSON.stringify(value, null, 2)], {type});
     const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -118,7 +129,7 @@
       event.preventDefault();const query=search.elements.q.value.trim().toLowerCase();results?.replaceChildren();
       if(search.elements.mode.value!=='search'){results.append(text('p','Research generation will be available when the AI connection is configured. Search remains available now.'));return;}
       const matches=data.search.filter(s=>[s.id,s.title,s.summary,s.url,s.publisher,...s.domains].join(' ').toLowerCase().includes(query)).slice(0,10);
-      for(const match of matches){const a=text('a',match.title);a.href=match.href;results.append(a);}
+      for(const match of matches){results.append(safeLink(match.title,match.href));}
       if(!matches.length)results?.append(text('p','No matching topic in this snapshot. Create a custom topic from the Topics page.'));
     });
     } catch (error) {
@@ -169,7 +180,7 @@
     };
     function makeItem(record) {
       const state=getState(record), article=document.createElement('article');article.className='learn-library-item';
-      const title=text('a',record.title);title.href=record.href;title.className='learn-library-title';article.append(title);
+      const title=safeLink(record.title,record.href);title.className='learn-library-title';article.append(title);
       if(record.summary){const summary=text('p',record.summary);summary.className='learn-library-summary';article.append(summary);}
       const meta=text('p',[record.kind,...record.domains.map(tag=>'#'+tag)].join(' · '));meta.className='learn-meta';article.append(meta);
       const actions=document.createElement('div');actions.className='learn-actions';

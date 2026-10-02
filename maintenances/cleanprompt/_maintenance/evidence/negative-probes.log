@@ -78,14 +78,14 @@ INVARIANTS AT SCALE
 I1        PASS round trip over 3000 random documents
 I2        PASS no detected surface survives
 I7        PASS idempotent re-redaction
-           (3000 documents in 0.91s)
+           (3000 documents in 0.87s)
 I8        PASS arbitrary printable junk never crashes
 
 ==============================================================================
 PERFORMANCE — linear, not quadratic
 ==============================================================================
-    51000 chars  redact  0.016s  restore  0.009s  entries 2
-   204000 chars  redact  0.101s  restore  0.028s  entries 2
-   816000 chars  redact  0.235s  restore  0.117s  entries 2
+    51000 chars  redact  0.014s  restore  0.007s  entries 2
+   204000 chars  redact  0.096s  restore  0.031s  entries 2
+   816000 chars  redact  0.223s  restore  0.113s  entries 2
 
 TOTAL FAILURES: 0

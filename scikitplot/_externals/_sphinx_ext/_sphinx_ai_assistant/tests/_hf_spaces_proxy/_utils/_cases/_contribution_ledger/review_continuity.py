@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ....._paths import RUNTIME_ROOT
 
 import asyncio
 import json
@@ -12,9 +12,9 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _storage as st
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._contribution_ledger import (
+from ......_hf_spaces_proxy import app as proxy_app
+from ......_hf_spaces_proxy._utils import _storage as st
+from ......_hf_spaces_proxy._utils._contribution_ledger import (
     MemoryContributionLedger,
     SQLiteContributionLedger,
 )

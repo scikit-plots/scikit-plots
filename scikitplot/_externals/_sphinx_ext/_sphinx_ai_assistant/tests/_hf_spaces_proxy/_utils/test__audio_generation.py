@@ -10,12 +10,12 @@ import time
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.artifact_output import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._providers.artifact_output import (
     ProviderArtifactOutputRegistry,
     StubProviderArtifactOutputExecutor,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._audio_generation import (
+from ...._hf_spaces_proxy._utils._audio_generation import (
     AUDIO_GENERATION_REQUEST_CONTRACT,
     AudioGenerationError,
     AudioGenerationService,
@@ -189,3 +189,29 @@ def test_proxy_audio_canonical_create_route(monkeypatch) -> None:
         )
     assert response.status_code in {200, 202}, response.text
     assert response.json()["contract"]
+
+class _Leaky(AudioGenerationError):
+    """An instance whose own rendering is not what its author approved."""
+
+    def __str__(self) -> str:
+        return "Traceback (most recent call last): /srv/app/secret.py line 1"
+
+
+def test_error_response_exposes_the_authored_message_never_the_rendering():
+    """
+    The response carries ``code`` and the authored ``message``.
+
+    ``str(exc)`` is the exception machinery's rendering of the instance; a
+    subclass, a note or a chained cause can put a path or a trace there. The
+    handler must not forward it.
+    """
+    response = app._audio_generation_error_response(_Leaky("QUEUE_FULL"))
+    body = json.loads(response.body)
+    assert "Traceback" not in response.body.decode("utf-8")
+    assert "secret.py" not in response.body.decode("utf-8")
+    assert body["error"]["code"] == 'QUEUE_FULL'
+    assert body["error"]["message"] == 'Audio generation request could not be completed.'
+
+
+def test_error_message_attribute_is_the_authored_sentence():
+    assert AudioGenerationError("QUEUE_FULL").message == ''

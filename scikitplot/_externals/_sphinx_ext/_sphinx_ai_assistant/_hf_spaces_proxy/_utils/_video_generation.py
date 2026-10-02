@@ -53,11 +53,19 @@ _ASPECT_SET = frozenset({"16:9", "1:1", "9:16"})
 
 
 class VideoGenerationError(ValueError):
-    """Bounded contract/configuration error with a stable public code."""
+    """
+    Bounded contract/configuration error with a stable public code.
+
+    ``message`` is the authored, client-safe sentence passed at the raise
+    site. Responses expose ``code`` and ``message`` only - never ``str(exc)``,
+    whose content is whatever the exception machinery makes of the instance
+    (arguments, notes, a chained cause) rather than what the author approved.
+    """
 
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+        self.message = message
 
 
 def _bounded_text(value: Any, limit: int, *, required: bool = False) -> str:

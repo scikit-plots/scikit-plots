@@ -8,8 +8,8 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._video_generation import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._utils._video_generation import (
     StubVideoGenerationStore,
     VideoGenerationError,
     normalize_video_job,
@@ -178,3 +178,29 @@ def test_proxy_disabled_mode_keeps_execution_closed(monkeypatch) -> None:
             headers={"Idempotency-Key": "idem-disabled"},
         )
         assert response.status_code == 503
+
+class _Leaky(VideoGenerationError):
+    """An instance whose own rendering is not what its author approved."""
+
+    def __str__(self) -> str:
+        return "Traceback (most recent call last): /srv/app/secret.py line 1"
+
+
+def test_error_response_exposes_the_authored_message_never_the_rendering():
+    """
+    The response carries ``code`` and the authored ``message``.
+
+    ``str(exc)`` is the exception machinery's rendering of the instance; a
+    subclass, a note or a chained cause can put a path or a trace there. The
+    handler must not forward it.
+    """
+    response = app._video_generation_error_response(_Leaky("VIDEO_JOB_NOT_FOUND", "The video job was not found."))
+    body = json.loads(response.body)
+    assert "Traceback" not in response.body.decode("utf-8")
+    assert "secret.py" not in response.body.decode("utf-8")
+    assert body["error"]["code"] == 'VIDEO_JOB_NOT_FOUND'
+    assert body["error"]["message"] == 'The video job was not found.'
+
+
+def test_error_message_attribute_is_the_authored_sentence():
+    assert VideoGenerationError("VIDEO_JOB_NOT_FOUND", "The video job was not found.").message == 'The video job was not found.'

@@ -9,13 +9,14 @@ encoded by directory + filename; run chronology belongs under ``maintenances``.
 """
 from __future__ import annotations
 
+import ast
 from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
 import re
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import (
+from .._paths import (
     MAINTENANCE_ROOT,
     RUNTIME_ROOT,
     TESTS_ROOT,
@@ -174,3 +175,61 @@ def test_recorded_python_migration_targets_exist_and_old_flat_files_are_gone() -
             stale.append(old)
     assert missing == [], "recorded migration target missing: " + ", ".join(missing)
     assert stale == [], "stale pre-migration flat tests remain: " + ", ".join(stale)
+
+
+#: Directories whose test modules are also loaded by file path, as fixtures of
+#: one another (``spec_from_file_location``). A module loaded that way has no
+#: parent package, so a relative import cannot resolve there; these import the
+#: stack by its canonical installed name instead.
+_PATH_LOADED_TEST_DIRS = ("_hf_spaces_proxy/security",)
+
+_CANONICAL_STACK = "scikitplot._externals._sphinx_ext"
+_SOURCE_STACK = "_sphinx_ext"
+
+
+def _stack_imports(path: Path) -> list[tuple[int, str]]:
+    """Return ``(line, module)`` for every absolute import of the extension stack."""
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), filename=str(path))):
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            names = [node.module]
+        elif isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        else:
+            continue
+        for name in names:
+            if name == _SOURCE_STACK or name.startswith(
+                (_SOURCE_STACK + ".", _CANONICAL_STACK)
+            ):
+                found.append((node.lineno, name))
+    return found
+
+
+def test_tests_import_the_extension_stack_relatively() -> None:
+    """
+    A test reaches its runtime with ``from . import`` / ``from .. import``.
+
+    A relative import resolves against the package the test was collected
+    in, so it works whichever name the stack is importable under. The bare
+    ``_sphinx_ext`` name exists only when a docs source directory happens to
+    be on ``sys.path``; one test imported through it and the whole suite
+    stopped at collection wherever that directory was not on the path.
+    """
+    offenders: list[str] = []
+    for path in sorted(TESTS_ROOT.rglob("*.py")):
+        rel = path.relative_to(TESTS_ROOT).as_posix()
+        path_loaded = rel.startswith(tuple(d + "/" for d in _PATH_LOADED_TEST_DIRS))
+        for line, name in _stack_imports(path):
+            if path_loaded and name.startswith(_CANONICAL_STACK):
+                continue
+            offenders.append(f"{rel}:{line} imports {name}")
+    assert offenders == [], (
+        "import the extension stack relatively (path-loaded fixtures: by the "
+        "canonical name, never bare '_sphinx_ext'): " + "; ".join(offenders)
+    )
+
+
+def test_path_loaded_fixture_directories_exist() -> None:
+    """An exemption for a directory that is gone is an exemption for nothing."""
+    missing = [d for d in _PATH_LOADED_TEST_DIRS if not (TESTS_ROOT / d).is_dir()]
+    assert missing == [], "stale path-loaded exemption: " + ", ".join(missing)

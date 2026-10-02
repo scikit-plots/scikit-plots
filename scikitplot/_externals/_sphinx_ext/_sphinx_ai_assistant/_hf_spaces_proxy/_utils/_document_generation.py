@@ -31,11 +31,18 @@ FORMATS = {
 
 
 class DocumentGenerationError(ValueError):
-    """Stable public request/response validation error."""
+    """
+    Stable public request/response validation error.
+
+    ``message`` is the authored, client-safe sentence, or ``""`` when only a
+    code was given. Responses expose ``code`` and ``message`` and never
+    ``str(exc)``.
+    """
 
     def __init__(self, code: str, message: str = "") -> None:
         super().__init__(message or code)
         self.code = code
+        self.message = message if message and message != code else ""
 
 
 @dataclass(frozen=True)

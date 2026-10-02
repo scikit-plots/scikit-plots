@@ -26,8 +26,11 @@ check("CP-002", "extra terms do not disable structural detection", "a@example.co
 a, b = r.redact("mail a@x.com"), r.redact("mail b@x.com")
 check("CP-003", "no state carries between documents", a.text == b.text == "mail [EMAIL-1]", a.text + " / " + b.text)
 
-import re as _re
-check("CP-004", "URL class is not an accidental range", _accept := (_re.match(r'[$-_@.&+]', '5') is not None) and get_pattern("URL").compiled().findall("see 5A< here") == [])
+# Upstream's URL class held an unescaped '-' between '$' and '_', a range that
+# admits digits, capitals and '<'. The probe is on this package's pattern: text
+# only that range would accept must not be found. (It used to restate the
+# upstream class as well, which tested Python's ``re`` and nothing here.)
+check("CP-004", "URL class is not an accidental range", get_pattern("URL").compiled().findall("see 5A< here") == [])
 
 found = [m.group() for m in get_pattern("EMAIL").compiled().finditer("a@b.a|b")]
 check("CP-005", "email domain admits no pipe", all("|" not in m for m in found), str(found))
