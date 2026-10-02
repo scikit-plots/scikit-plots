@@ -88,8 +88,44 @@ def build(tmp_path, theme="pydata_sphinx_theme", namespace="_sphinx_ext", extra=
     return result, source, out
 
 
-@pytest.mark.parametrize("theme", ["pydata_sphinx_theme", "furo", "alabaster"])
+def _installed_html_themes() -> frozenset:
+    """
+    Return the names of the HTML themes Sphinx can load in this environment.
+
+    Sphinx finds a theme in two places: the themes it ships in its own
+    ``themes`` directory, and distributions that register an entry point in
+    the ``sphinx.html_themes`` group. This reads the same two places, so the
+    answer is Sphinx's own rather than a guess from an import name.
+    """
+    import sphinx
+    from importlib import metadata
+
+    builtin = {
+        path.name
+        for path in (Path(sphinx.__file__).resolve().parent / "themes").iterdir()
+        if path.is_dir()
+    }
+    points = metadata.entry_points()
+    if hasattr(points, "select"):  # Python 3.10+
+        registered = {point.name for point in points.select(group="sphinx.html_themes")}
+    else:  # Python 3.8 and 3.9 return a mapping of group to entry points
+        registered = {point.name for point in points.get("sphinx.html_themes", ())}
+    return frozenset(builtin | registered)
+
+
+#: The theme Sphinx itself depends on. It is present wherever Sphinx is, so the
+#: non-PyData path of the extension is always exercised and never skipped.
+_BUNDLED_THEME = "alabaster"
+
+
+@pytest.mark.parametrize("theme", ["pydata_sphinx_theme", "furo", _BUNDLED_THEME])
 def test_theme_build_static_fallback_and_page_scoped_assets(tmp_path, theme):
+    # A third-party theme is an optional package. Where it is not installed
+    # the build cannot start, which says nothing about the extension, so that
+    # one parameter is reported as skipped with the reason. The bundled theme
+    # has no such excuse: its absence is a broken Sphinx and must fail.
+    if theme != _BUNDLED_THEME and theme not in _installed_html_themes():
+        pytest.skip(f"the {theme!r} HTML theme is not installed in this environment")
     result, source, out = build(tmp_path, theme)
     assert result.returncode == 0, result.stdout + result.stderr
     hub = (out / "hub.html").read_text()

@@ -154,6 +154,11 @@ Sphinx would otherwise report the generated page as outside every toctree and
 fail a `-W` build. Owned pages are unchanged.
 
 `tests/_integration/test_sphinx_build.py` builds a throwaway Sphinx project
-and needs `sphinx-design` and the themes it parametrizes over. A fixture that
-tests an explorer writes that explorer's page definition; records alone
+and needs `sphinx-design`. Of the themes it parametrizes over, `alabaster`
+ships with Sphinx and always runs; a third-party theme (`pydata_sphinx_theme`,
+`furo`) runs where it is installed and skips, naming the theme, where Sphinx
+cannot load it. The project declares `pydata-sphinx-theme` and does not declare
+`furo`, so a default CI install runs two themes and skips one. Adding a theme
+to the parameter list does not require adding it to `pyproject.toml`. A fixture
+that tests an explorer writes that explorer's page definition; records alone
 produce detail pages and no explorer.
