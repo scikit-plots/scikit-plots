@@ -698,6 +698,7 @@
     var _CONTROL_RESPONSE_MAX_BYTES = 512 * 1024;
     var _CANONICAL_RESPONSE_MAX_BYTES = 1024 * 1024;
     var _CHAT_RESPONSE_MAX_BYTES = 8 * 1024 * 1024;
+    var _PUBLICATION_TEST_RESPONSE_MAX_BYTES = 64 * 1024;
     var _SSE_LINE_MAX_CHARS = 256 * 1024;
 
     function _responseDeclaredBytes(response) {
@@ -6210,6 +6211,14 @@
         var _STORAGE_KEY        = 'ai-assistant-ep';
         var _STORAGE_CUSTOM_KEY = 'ai-assistant-ep-custom';
 
+        // The only fields a stored custom profile may carry: the exact set
+        // _persistCustom() writes. Anything else found in storage - a token
+        // field above all - marks the blob for rewrite on load.
+        var _PERSISTED_PROFILE_FIELDS = [
+            'label', 'base', 'chat', 'share', 'training', 'image', 'video',
+            'audio', 'document', 'publication', 'datasetRepo', 'ttlDays'
+        ];
+
         // ── Limits ───────────────────────────────────────────────────────────
         var _SCHEMA_VER          = 9;    // v9: retired Assistant feedback endpoint/profile fields removed
         var _MAX_CUSTOM_PROFILES = 20;   // hard cap on runtime-added profiles
@@ -6580,25 +6589,46 @@
 //
 
         // ── Bootstrap: restore current custom profiles from localStorage ───────
+        //
+        // Storage holds the current schema, in the persisted shape, or nothing.
+        //
+        // Earlier schemas stored endpoint bearer tokens in this blob. Ignoring
+        // those fields in memory is not enough: the raw value stays readable
+        // by any same-origin script until the key is rewritten or removed, and
+        // a visitor who never edits a profile never rewrites it. There is no
+        // migration path - a blob that is not the current schema is removed,
+        // not skipped - and a current-schema blob that carries anything
+        // outside the persisted field list, or an entry this loader rejects,
+        // is rewritten from the sanitized in-memory registry before the
+        // function returns. After load, the stored bytes are exactly what
+        // _persistCustom() would write.
         (function _loadCustom() {
             var raw = null;
             try { raw = localStorage.getItem(_STORAGE_CUSTOM_KEY); } catch (_) { return; }
             if (!raw) return;
+            function _discardStored() {
+                try { localStorage.removeItem(_STORAGE_CUSTOM_KEY); } catch (_) {}
+            }
             var parsed;
-            try { parsed = JSON.parse(raw); } catch (_) { return; }
-            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed._v !== _SCHEMA_VER) return;
+            try { parsed = JSON.parse(raw); } catch (_) { _discardStored(); return; }
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed._v !== _SCHEMA_VER) { _discardStored(); return; }
             var profilesObj = parsed.profiles;
             var metaObj = parsed.meta;
-            if (!profilesObj || typeof profilesObj !== 'object' || Array.isArray(profilesObj)) return;
+            if (!profilesObj || typeof profilesObj !== 'object' || Array.isArray(profilesObj)) { _discardStored(); return; }
+            var needsRewrite = false;
             var keys = Object.keys(profilesObj);
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                if (!Object.prototype.hasOwnProperty.call(profilesObj, k) || !_SAFE_KEY_RE.test(k) || _builtin[k]) continue;
+                if (!Object.prototype.hasOwnProperty.call(profilesObj, k) || !_SAFE_KEY_RE.test(k) || _builtin[k]) { needsRewrite = true; continue; }
                 var rawProfile = profilesObj[k];
-                if (!_isValidProfileShape(rawProfile)) continue;
+                if (!_isValidProfileShape(rawProfile)) { needsRewrite = true; continue; }
+                var storedFields = Object.keys(rawProfile);
+                for (var f = 0; f < storedFields.length; f++) {
+                    if (_PERSISTED_PROFILE_FIELDS.indexOf(storedFields[f]) === -1) { needsRewrite = true; break; }
+                }
                 var safeStored = _sanitizeStoredProfile(rawProfile);
-                if (!safeStored) continue;
-                if (_countCustomOwn() >= _MAX_CUSTOM_PROFILES) break;
+                if (!safeStored) { needsRewrite = true; continue; }
+                if (_countCustomOwn() >= _MAX_CUSTOM_PROFILES) { needsRewrite = true; break; }
                 _profiles[k] = safeStored;
                 var metaEntry = (metaObj && metaObj[k]) || {};
                 _metadata[k] = {
@@ -6607,6 +6637,7 @@
                     lastActivated: typeof metaEntry.lastActivated === 'number' ? metaEntry.lastActivated : null
                 };
             }
+            if (needsRewrite) _persistCustom();
         }());
 
         // ── Internal helpers ──────────────────────────────────────────────────
@@ -23312,8 +23343,10 @@
                     cache: 'no-store',
                     redirect: 'error'
                 });
-                var raw = await response.text();
-                if (raw.length > 65536) throw new Error('Oversized response');
+                // The endpoint is operator- or visitor-configured, so its
+                // reply is bounded while it is read. Buffering it whole and
+                // measuring afterwards has already paid for the oversized body.
+                var raw = await _readResponseTextBounded(response, _PUBLICATION_TEST_RESPONSE_MAX_BYTES);
                 var doc = raw ? JSON.parse(raw) : {};
                 if (!response.ok) throw new Error(String(doc.detail || doc.message || ('HTTP ' + response.status)));
                 var target = [doc.repository, doc.default_branch ? 'branch ' + doc.default_branch : '', doc.canonical_prefix].filter(Boolean).join(' · ');

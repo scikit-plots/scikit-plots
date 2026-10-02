@@ -174,8 +174,34 @@ Enforced by `tests/_architecture/test_test_layout.py`:
 - paths come from `tests/_paths.py`, never from `parents[n]`;
 - the extension stack is imported relatively.
 
-### Open
+### Endpoint tokens in browser storage
 
-Collection is clean, but tests in this tree still assert older contracts
-(proxy version, contribution schema version, a helper file list, guide
-wording). Each needs a decision on whether source or test is the contract.
+`localStorage['ai-assistant-ep-custom']` holds the current schema in the
+persisted shape, or nothing. On load, a blob that is not the current schema is
+removed; a current one carrying any field outside `_PERSISTED_PROFILE_FIELDS`,
+or any entry the loader rejects, is rewritten. There is no migration path. A
+runtime token lives in the profile object for the page only.
+
+### Remote responses in the browser
+
+Every response body is read through `_readResponseTextBounded` or
+`_readResponseJsonBounded`. `response.text()` and `.json()` buffer first and
+measure afterwards.
+
+### The Worker has no feedback route
+
+Page feedback is `_sphinx_feedback` on the proxy (`scope="page-feedback"`);
+Assistant review is `/v1/feedback/review` (`scope="feedback-review"`). The
+Worker serves chat and share only.
+
+### Values a test must not restate
+
+The proxy version is declared once, in `_utils/_shared_logic.py`, and repeated
+in two banners and the README health example; a test keeps them equal.
+Fixtures read it from the source. A ratchet is a floor.
+
+### Script-run and path-loaded test modules
+
+`tests/_hf_spaces_proxy/security/` modules load one another by path, and
+`tests/_hf_spaces_proxy/ci/test_run_redis_chaos.py` re-runs itself as a script.
+Neither has a parent package, so both use the canonical absolute import.

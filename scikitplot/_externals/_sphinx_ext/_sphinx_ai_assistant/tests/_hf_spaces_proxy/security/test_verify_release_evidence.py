@@ -31,6 +31,41 @@ gate_mod = _load("run20_verify_release_gate", SECURITY / "verify_release_gate.py
 subjects_mod = _load("run20_release_subjects", SECURITY / "release_subjects.py")
 
 
+def _proxy_version_from_source() -> str:
+    """
+    Return the proxy's version as its own source declares it.
+
+    Evidence is valid only for the version the source states, and the
+    verifier reads that from ``_shared_logic.py`` with a regular expression.
+    The fixtures here used to restate the number, so the first version bump
+    made every evidence test fail on ``RELEASE_PROXY_VERSION_MISMATCH`` before
+    it reached the property it was written to check. The fixtures now model
+    what they are meant to: evidence produced for the current source. The
+    value is read from the syntax tree, independently of the verifier's
+    regular expression, so the two readings check each other.
+    """
+    import ast
+
+    tree = ast.parse((PROXY / "_utils" / "_shared_logic.py").read_text(encoding="utf-8"))
+    values = [
+        node.value.value
+        for node in tree.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "PROXY_VERSION"
+        and isinstance(node.value, ast.Constant)
+    ]
+    assert len(values) == 1, "PROXY_VERSION must be assigned exactly once, as a literal"
+    return values[0]
+
+
+CURRENT_PROXY_VERSION = _proxy_version_from_source()
+
+#: The release that introduced feedback-review training. The proxy version
+#: must never be lower; it may be, and now is, higher.
+FEEDBACK_REVIEW_TRAINING_RELEASE = (7, 9, 0)
+
+
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -114,7 +149,7 @@ def _evidence(tmp_path: Path, now: datetime) -> Path:
             "releaseId": "run20-test",
             "generatedAt": fmt(now - timedelta(minutes=5)),
             "expiresAt": fmt(now + timedelta(hours=12)),
-            "proxyVersion": "7.9.0",
+            "proxyVersion": CURRENT_PROXY_VERSION,
             "targetPlatform": "linux/amd64",
         },
         "source": {
@@ -371,7 +406,7 @@ def test_evidence_and_artifact_symlinks_are_forbidden(tmp_path):
 
 def test_release_subject_printer_exposes_only_non_secret_content_addressed_inputs():
     out = subjects_mod.subjects()
-    assert out["proxy_version"] == "7.9.0"
+    assert out["proxy_version"] == CURRENT_PROXY_VERSION
     assert out["target_platform"] == "linux/amd64"
     assert len(out["requirements_lock_sha256"]) == 64
     assert len(out["python_sbom_sha256"]) == 64
@@ -450,5 +485,24 @@ def test_runtime_source_digest_includes_non_python_utils_files(tmp_path):
 
 
 def test_proxy_version_ratchets_to_feedback_review_training_release():
-    shared_path = PROXY / "_utils/_shared_logic.py"
-    assert 'PROXY_VERSION: str = "7.9.0"' in shared_path.read_text()
+    """A ratchet is a floor: the version may rise past it and never fall below."""
+    current = tuple(int(part) for part in CURRENT_PROXY_VERSION.split("."))
+    assert current >= FEEDBACK_REVIEW_TRAINING_RELEASE, CURRENT_PROXY_VERSION
+    # The verifier must read the same number the source declares.
+    assert verify_mod._current_proxy_version() == CURRENT_PROXY_VERSION
+
+
+def test_proxy_version_is_stated_once_and_repeated_consistently():
+    """
+    The version is declared in ``_shared_logic.py`` and repeated in three places.
+
+    A repeat that falls behind is a wrong statement in a file an operator
+    reads: the two module banners and the health-check example.
+    """
+    banner = f"v{CURRENT_PROXY_VERSION}"
+    shared_text = (PROXY / "_utils" / "_shared_logic.py").read_text(encoding="utf-8")
+    app_text = (PROXY / "app.py").read_text(encoding="utf-8")
+    readme = (PROXY / "README.md").read_text(encoding="utf-8")
+    assert f"# _shared_logic.py  {banner}" in shared_text
+    assert f"_hf_spaces_proxy/app.py  {banner}" in app_text
+    assert f'{{"status":"ok","version":"{CURRENT_PROXY_VERSION}"}}' in readme

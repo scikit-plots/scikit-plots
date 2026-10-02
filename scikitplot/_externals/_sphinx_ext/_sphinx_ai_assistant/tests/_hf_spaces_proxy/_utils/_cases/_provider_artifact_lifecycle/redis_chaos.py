@@ -463,7 +463,10 @@ def _import_app_with_env(**updates):
         "'error': app._PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR}, sort_keys=True))"
     )
     result = subprocess.run(
-        [os.environ.get("PYTHON", "python"), "-c", code],
+        # The interpreter running this test, not whichever ``python`` is first
+        # on PATH: that one may be a different environment without the
+        # proxy's dependencies. ``PYTHON`` still overrides it when set.
+        [os.environ.get("PYTHON") or sys.executable, "-c", code],
         env=env,
         capture_output=True,
         text=True,

@@ -460,13 +460,18 @@ def test_redis_scripts_pin_atomic_index_and_claim_contract():
 
 
 def _contribution_payload() -> dict:
+    # The current contribution contract: the route accepts schemaVersion 4
+    # with consent 2.0.0 and nothing older. These cases are about what happens
+    # to a contribution after it is accepted, so the fixture must be one the
+    # route accepts.
     return {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "consentFlag": True,
-        "consentVersion": "1.0.0",
+        "consentVersion": "2.0.0",
         "page": "https://example.test/docs/page",
         "model": {"id": "claimed", "provider": "claimed", "model": "claimed/model"},
         "records": [{
+            "recordType": "qa",
             "answerIndex": 0,
             "query": "question",
             "answer": "answer",

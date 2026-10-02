@@ -78,10 +78,10 @@ repos:
         # args: ["--branch=main"]
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
-        exclude: "^(\
-            scikitplot/cleanprompt/_config/_compiled.json\
-            |scikitplot/cleanprompt/_config/packs/secrets.yaml\
-          )$"
+        # exclude: "^(\
+        #     scikitplot/cleanprompt/_config/_compiled.json\
+        #     |scikitplot/cleanprompt/_config/packs/secrets.yaml\
+        #   )$"
       - id: check-added-large-files  # Prevent giant files from being committed.
         args: ["--enforce-all", "--maxkb=333"]  # 333 KB is the default size limit.
         exclude: "^(\

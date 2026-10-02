@@ -147,11 +147,20 @@ def test_schema_v4_qa_preserves_existing_family_with_explicit_record_type():
     assert row["model"]["label"] is None
 
 
-def test_app_accepts_legacy_v3_consent_but_requires_v2_consent_for_v4():
+def test_app_rejects_legacy_v3_and_requires_v2_consent_for_v4():
+    """
+    The route accepts the current contribution contract and nothing older.
+
+    Pre-1.0 there is no dual-read path: a schemaVersion 3 submission is
+    refused by name rather than normalized, so no client can keep sending a
+    shape the dataset no longer means.
+    """
     _reset_state()
     with TestClient(proxy_app.app) as client:
         legacy = client.post("/v1/contribute", json=_legacy_v3_payload())
-        assert legacy.status_code == 200, legacy.text
+        assert legacy.status_code == 422, legacy.text
+        assert "schemaVersion must be 4" in legacy.text
+        assert proxy_app._contrib_quarantine == {}
 
         wrong = client.post("/v1/contribute", json=_v4_conversation_payload(consent="1.0.0"))
         assert wrong.status_code == 422

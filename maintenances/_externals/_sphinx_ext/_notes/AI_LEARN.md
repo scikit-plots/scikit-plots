@@ -147,5 +147,13 @@ Link targets taken from page data in `_static/ai-learn.js` and
 `_static/topic.js` pass `safeHref` (http and https only); same-page targets are
 built with `encodeURIComponent`.
 
+A detail page that no index page owns is written with `:orphan:`. A record is
+owned by the explorer or media gallery of its kind, a prompt by the prompt
+library, a skill by the skill library; where that index page is not defined,
+Sphinx would otherwise report the generated page as outside every toctree and
+fail a `-W` build. Owned pages are unchanged.
+
 `tests/_integration/test_sphinx_build.py` builds a throwaway Sphinx project
-and needs `sphinx-design` and the themes it parametrizes over.
+and needs `sphinx-design` and the themes it parametrizes over. A fixture that
+tests an explorer writes that explorer's page definition; records alone
+produce detail pages and no explorer.

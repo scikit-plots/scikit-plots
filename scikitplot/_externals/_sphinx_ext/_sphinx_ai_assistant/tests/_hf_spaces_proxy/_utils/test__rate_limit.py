@@ -130,8 +130,17 @@ def test_hf_proxy_redis_mode_is_fail_closed_not_local_fallback():
     assert 'RATE_LIMIT_BACKEND: str = (' in src
     assert 'os.environ.get("RATE_LIMIT_BACKEND", "local").strip().lower() or "local"' in src
     _assert_hf_shared_authority_contract(src)
-    for scope in ('scope="chat"', 'scope="share"', 'scope="feedback"', 'scope="contribution"'):
+    # ``page-feedback`` and ``feedback-review`` replaced the legacy
+    # ``feedback`` scope when Assistant feedback telemetry was retired.
+    for scope in (
+        'scope="chat"',
+        'scope="share"',
+        'scope="page-feedback"',
+        'scope="feedback-review"',
+        'scope="contribution"',
+    ):
         assert scope in src
+    assert 'scope="feedback"' not in src
 
 
 def test_worker_bundles_durable_object_authority_and_keeps_kv_fallback_explicit():

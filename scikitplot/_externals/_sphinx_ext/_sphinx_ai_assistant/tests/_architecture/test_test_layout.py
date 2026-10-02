@@ -183,6 +183,10 @@ def test_recorded_python_migration_targets_exist_and_old_flat_files_are_gone() -
 #: stack by its canonical installed name instead.
 _PATH_LOADED_TEST_DIRS = ("_hf_spaces_proxy/security",)
 
+#: Test modules that also run as scripts (``python <file> ...``), for the same
+#: reason: a script has no parent package.
+_SCRIPT_RUN_TEST_MODULES = ("_hf_spaces_proxy/ci/test_run_redis_chaos.py",)
+
 _CANONICAL_STACK = "scikitplot._externals._sphinx_ext"
 _SOURCE_STACK = "_sphinx_ext"
 
@@ -218,7 +222,10 @@ def test_tests_import_the_extension_stack_relatively() -> None:
     offenders: list[str] = []
     for path in sorted(TESTS_ROOT.rglob("*.py")):
         rel = path.relative_to(TESTS_ROOT).as_posix()
-        path_loaded = rel.startswith(tuple(d + "/" for d in _PATH_LOADED_TEST_DIRS))
+        path_loaded = (
+            rel.startswith(tuple(d + "/" for d in _PATH_LOADED_TEST_DIRS))
+            or rel in _SCRIPT_RUN_TEST_MODULES
+        )
         for line, name in _stack_imports(path):
             if path_loaded and name.startswith(_CANONICAL_STACK):
                 continue
@@ -232,4 +239,46 @@ def test_tests_import_the_extension_stack_relatively() -> None:
 def test_path_loaded_fixture_directories_exist() -> None:
     """An exemption for a directory that is gone is an exemption for nothing."""
     missing = [d for d in _PATH_LOADED_TEST_DIRS if not (TESTS_ROOT / d).is_dir()]
+    missing += [m for m in _SCRIPT_RUN_TEST_MODULES if not (TESTS_ROOT / m).is_file()]
     assert missing == [], "stale path-loaded exemption: " + ", ".join(missing)
+
+
+def _has_main_guard(path: Path) -> bool:
+    for node in ast.parse(path.read_text(encoding="utf-8"), filename=str(path)).body:
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if (
+            isinstance(test, ast.Compare)
+            and isinstance(test.left, ast.Name)
+            and test.left.id == "__name__"
+            and len(test.comparators) == 1
+            and isinstance(test.comparators[0], ast.Constant)
+            and test.comparators[0].value == "__main__"
+        ):
+            return True
+    return False
+
+
+def test_a_test_module_that_runs_as_a_script_does_not_import_relatively() -> None:
+    """
+    A module with a ``__main__`` block is run as a script; it has no package.
+
+    A relative import in such a module passes collection and every test that
+    imports it, then fails inside the subprocess that runs it. That only shows
+    when the test reaches the subprocess - here, when a Redis server happens
+    to be installed - so the rule is checked statically instead.
+    """
+    scripts = sorted(
+        path.relative_to(TESTS_ROOT).as_posix()
+        for path in TESTS_ROOT.rglob("*.py")
+        if _has_main_guard(path)
+    )
+    assert scripts == sorted(_SCRIPT_RUN_TEST_MODULES), scripts
+    offenders: list[str] = []
+    for rel in scripts:
+        tree = ast.parse((TESTS_ROOT / rel).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level > 0:
+                offenders.append(f"{rel}:{node.lineno}")
+    assert offenders == [], "relative import in a script-run test module: " + ", ".join(offenders)

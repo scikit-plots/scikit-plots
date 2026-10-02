@@ -784,3 +784,88 @@ def test_index_explorer_header_is_rejected_on_non_index_page_views(tmp_path):
     page.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     with pytest.raises(LearnValidationError, match="explorer_header is unsupported for media-create pages"):
         load_content_tree(root)
+
+
+def _synthetic_tree(root, *, kinds, explorers=()):
+    """Write records of ``kinds`` and explorer pages for ``explorers``; no site needed."""
+    root.mkdir(parents=True, exist_ok=True)
+    for kind in kinds:
+        subject = {
+            "id": "record-" + kind,
+            "kind": kind,
+            "title": kind.capitalize(),
+            "created_at": "2026-09-16T00:00:00Z",
+            "domains": [],
+            "related": [],
+            "sections": [],
+        }
+        if kind == "source":
+            subject["url"] = "https://example.org/source"
+        for relative, raw in canonical_record_json_files(subject, ()).items():
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+    folders = {"topic": "topics", "source": "sources"}
+    for kind in explorers:
+        folder = root / folders[kind]
+        folder.mkdir(parents=True, exist_ok=True)
+        for name, view, title in (("index", "explorer", "Index"), ("new", "record-create", "New")):
+            (folder / f"{name}.json").write_text(
+                json.dumps(
+                    {
+                        "contract": "learn.page.v1",
+                        "view": view,
+                        "kind": kind,
+                        "title": title,
+                        "hide_secondary_sidebar": False,
+                    },
+                    sort_keys=True,
+                )
+            )
+    return load_content_tree(root)
+
+
+def _record_pages(tree, rendered):
+    return {
+        wrapper["subject"]["kind"]: rendered[rel.with_suffix(".rst")].decode()
+        for rel, wrapper in tree.records.items()
+    }
+
+
+def test_a_record_page_no_index_owns_is_marked_orphan(tmp_path):
+    """
+    A detail page is in a toctree only if the explorer of its kind exists.
+
+    Without one, Sphinx reports "document isn't included in any toctree" for a
+    file the materializer wrote, and a build with warnings as errors fails.
+    The materializer knows whether the explorer exists, so the page says so.
+    """
+    tree = _synthetic_tree(tmp_path / "learn-ai", kinds=("topic", "source"))
+    pages = _record_pages(tree, render_materialized(tree))
+    for kind in ("topic", "source"):
+        assert pages[kind].startswith(":orphan:\n"), kind
+        # The ownership comments follow the metadata, as they do for sections.
+        assert pages[kind].index(":orphan:") < pages[kind].index(".. source-json:")
+
+
+def test_a_record_page_its_explorer_owns_is_not_orphan(tmp_path):
+    tree = _synthetic_tree(
+        tmp_path / "learn-ai", kinds=("topic", "source"), explorers=("topic",)
+    )
+    rendered = render_materialized(tree)
+    pages = _record_pages(tree, rendered)
+    assert ":orphan:" not in pages["topic"]
+    assert pages["source"].startswith(":orphan:\n")
+    # The explorer that owns the topic page lists it, which is what makes the
+    # absence of :orphan: correct rather than merely absent.
+    explorer = rendered[Path("topics/index.rst")].decode()
+    topic_rel = next(rel for rel, w in tree.records.items() if w["subject"]["kind"] == "topic")
+    assert f"   {topic_rel.parent.name}/index" in explorer
+
+
+def test_orphan_marking_is_deterministic_and_idempotent(tmp_path):
+    tree = _synthetic_tree(tmp_path / "learn-ai", kinds=("topic",))
+    first = render_materialized(tree)
+    assert first == render_materialized(load_content_tree(tmp_path / "learn-ai"))
+    (page,) = _record_pages(tree, first).values()
+    assert page.count(":orphan:") == 1

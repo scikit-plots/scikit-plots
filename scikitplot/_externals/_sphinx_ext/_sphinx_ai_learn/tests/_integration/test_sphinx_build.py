@@ -175,12 +175,43 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
     (static / "integration-audio.mp3").write_bytes(b"ID3")
     (static / "integration-document.txt").write_text("integration document\n")
     _write_record_tree(source / "learn-ai", subjects)
+    # The explorer under test is a page of its own, defined in canonical JSON
+    # like every index page. Records alone produce detail pages and no
+    # explorer, so a records-only tree built cleanly and never reached the
+    # media-card branch this test exists to cover.
+    whiteboards = source / "learn-ai" / "whiteboards"
+    (whiteboards / "index.json").write_text(
+        json.dumps(
+            {
+                "contract": "learn.page.v1",
+                "view": "media-gallery",
+                "kind": "whiteboard",
+                "title": "Whiteboards",
+                "hide_secondary_sidebar": True,
+            },
+            sort_keys=True,
+        )
+    )
+    (whiteboards / "new.json").write_text(
+        json.dumps(
+            {
+                "contract": "learn.page.v1",
+                "view": "media-create",
+                "kind": "whiteboard",
+                "title": "Create a Whiteboard",
+                "hide_secondary_sidebar": True,
+            },
+            sort_keys=True,
+        )
+    )
     # Routes are deterministic and can be referenced before Sphinx materializes RST.
     from _sphinx_ext._sphinx_ai_learn._materialize import record_docpath
 
     topic_route = record_docpath(subjects[0])
     (source / "index.rst").write_text(
-        "Home\n====\n\n.. toctree::\n\n   learn-ai/" + topic_route + "\n"
+        "Home\n====\n\n.. toctree::\n\n   learn-ai/"
+        + topic_route
+        + "\n   learn-ai/whiteboards/index\n"
     )
     (source / "conf.py").write_text(
         "import sys\nsys.path.insert(0, "
@@ -197,7 +228,13 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     route = Path("learn-ai") / topic_route
-    page = out / route.with_suffix(".html") if builder == "html" else out / route / "index.html"
+    # A record's docname ends in ``/index``. The dirhtml builder writes such a
+    # document to ``<dir>/index.html`` exactly as the html builder does; only a
+    # docname with another last component becomes ``<name>/index.html``.
+    if builder == "html" or route.name == "index":
+        page = out / route.with_suffix(".html")
+    else:
+        page = out / route / "index.html"
     rendered = page.read_text()
     assert "Topic" in rendered
     assert "astronomy" in rendered

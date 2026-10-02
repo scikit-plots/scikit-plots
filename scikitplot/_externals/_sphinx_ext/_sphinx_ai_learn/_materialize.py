@@ -1963,9 +1963,58 @@ def _render_section(
     )
 
 
+def _generated_document(header: str, body: str, *, owned: bool) -> bytes:
+    """
+    Assemble one generated page, marking it ``:orphan:`` when nothing owns it.
+
+    Parameters
+    ----------
+    header : str
+        The ownership comments from :func:`_owner_header`.
+    body : str
+        The rendered page, optionally starting with page-level metadata.
+    owned : bool
+        Whether an index page in the same tree lists this page in a toctree.
+
+    Returns
+    -------
+    bytes
+        The file content.
+
+    Notes
+    -----
+    **Developer notes.** A detail page is reached through the toctree of its
+    index page: the explorer or media gallery of its kind, or the prompt or
+    skill library. A tree is valid without that index page, and Sphinx then
+    reports the detail page as "not included in any toctree" - a warning the
+    materializer caused and the author cannot fix, and a failed build under
+    ``-W``. Whether the index exists is known here, so the page says so itself.
+
+    ``:orphan:`` must be the first metadata field, ahead of the ownership
+    comments; any sidebar metadata stays beside it in one field list. An
+    owned page is byte-for-byte what it was before this rule existed.
+    """
+    if owned:
+        return (header + body).encode()
+    sidebar = _secondary_sidebar_metadata(True)
+    if body.startswith(sidebar):
+        metadata, rest = ":orphan:\n" + sidebar.rstrip("\n"), body[len(sidebar) :]
+    else:
+        metadata, rest = ":orphan:", body
+    return (metadata + "\n\n" + header + rest).encode()
+
+
 def render_materialized(tree: ContentTree):
     """Return ``{relative_rst_path: bytes}`` for the complete canonical tree."""
     files = {}
+    # What each index view owns: an explorer or media gallery lists every
+    # record of its kind, and each library lists its prompts or skills.
+    views = [(page["view"], page.get("kind")) for page in tree.pages.values()]
+    owned_kinds = {
+        kind for view, kind in views if view in {"explorer", "media-gallery"}
+    }
+    prompts_owned = any(view == "prompt-library" for view, _kind in views)
+    skills_owned = any(view == "skill-library" for view, _kind in views)
     prompt_paths = {
         Path("topic-prompts") / prompt["id"] / "index.json": prompt
         for prompt in tree.prompts
@@ -1982,15 +2031,19 @@ def render_materialized(tree: ContentTree):
     for rel, prompt in prompt_paths.items():
         out = rel.with_suffix(".rst")
         body = _render_prompt(prompt)
-        files[out] = (
-            _owner_header(rel.as_posix(), tree.source_digests[rel]) + body
-        ).encode()
+        files[out] = _generated_document(
+            _owner_header(rel.as_posix(), tree.source_digests[rel]),
+            body,
+            owned=prompts_owned,
+        )
     for rel, skill in skill_paths.items():
         out = rel.with_suffix(".rst")
         body = _render_skill(skill)
-        files[out] = (
-            _owner_header(rel.as_posix(), tree.source_digests[rel]) + body
-        ).encode()
+        files[out] = _generated_document(
+            _owner_header(rel.as_posix(), tree.source_digests[rel]),
+            body,
+            owned=skills_owned,
+        )
     for rel, wrapper in tree.records.items():
         out = rel.with_suffix(".rst")
         body = _render_record(
@@ -2001,9 +2054,11 @@ def render_materialized(tree: ContentTree):
             prompts=tree.prompts,
             skills=tree.skills,
         )
-        files[out] = (
-            _owner_header(rel.as_posix(), tree.source_digests[rel]) + body
-        ).encode()
+        files[out] = _generated_document(
+            _owner_header(rel.as_posix(), tree.source_digests[rel]),
+            body,
+            owned=wrapper["subject"]["kind"] in owned_kinds,
+        )
     records_by_subject = {
         record["subject"]["id"]: record for record in tree.records.values()
     }

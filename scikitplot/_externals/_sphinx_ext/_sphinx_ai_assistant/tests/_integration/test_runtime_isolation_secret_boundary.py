@@ -26,8 +26,18 @@ shared = importlib.import_module("_utils._shared_logic")
 
 
 def test_proxy_version_ratchets_for_runtime_isolation():
-    assert shared.PROXY_VERSION == "7.9.0"
-    assert 'PROXY_VERSION: str = "7.9.0"' in (PROXY / "_utils" / "_shared_logic.py").read_text()
+    """
+    The proxy has not gone back below the release that added runtime isolation.
+
+    A ratchet is a floor. Pinning the exact number made this test fail on the
+    next release for no reason connected to isolation.
+    """
+    current = tuple(int(part) for part in shared.PROXY_VERSION.split("."))
+    assert current >= (7, 9, 0), shared.PROXY_VERSION
+    # The declaration keeps the one-line literal form the release verifier parses.
+    declaration = f'PROXY_VERSION: str = "{shared.PROXY_VERSION}"'
+    lines = (PROXY / "_utils" / "_shared_logic.py").read_text(encoding="utf-8").splitlines()
+    assert lines.count(declaration) == 1
 
 
 def test_opaque_origin_read_and_write_authority_are_separate_in_fresh_process():

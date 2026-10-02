@@ -10,7 +10,18 @@
   The current browser/server contract is `schemaVersion=4` with
   `consentVersion="2.0.0"`; older contribution schemas are rejected at intake.
 - Accepted contribution content enters quarantine/review and is not training eligible
-  until the configured review authority promotes or merges it.
+  until the configured review authority promotes or merges it. There are two
+  review authorities, selected by `CONTRIBUTION_REVIEW_MODE`:
+  - **Recommended human-review mode:** `CONTRIBUTION_REVIEW_MODE=provider-pr`
+    (the default). The proxy opens the storage provider's own review object — a
+    GitHub or Bitbucket pull request, a GitLab merge request, a Hugging Face PR —
+    and a record becomes eligible only when a maintainer merges it into the
+    configured canonical branch.
+  - **Compatibility mode:** `CONTRIBUTION_REVIEW_MODE=ledger`. Records stay in the
+    proxy's quarantine until an operator promotes them with
+    `CONTRIBUTION_REVIEW_TOKEN`. This review-token-only promotion is one approval
+    path, not the only one. An unrecognised mode value selects `ledger`, so a
+    typo cannot make anything eligible without that token.
 - Browser clients never receive provider repository credentials.
 
 ## 0. Start here: the whole system in one picture
