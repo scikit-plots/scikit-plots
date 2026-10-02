@@ -22,6 +22,9 @@ A push was refused: the host's secret scanner found a Stripe-shaped key in
 - `CP-084`: a declared-but-empty pack section was accepted.
 - 2464 tests pass with every tier on CPython 3.11, stable over five runs;
   3.8, 3.12, 3.13 and 3.14 bare.
+- `CP-082` came back once: the first fix looped over `vault.items()` ignoring
+  the label, and the linter's autofix rewrote it to `vault.values()` again.
+  The turn now reads `vault.export()`, a plain dict.
 - Code scanning, after the push: `test__app.py` waived every `https://` in a
   file that mentioned one host anywhere; no shipped file needed the waiver and
   it is gone. Negative probe `CP-004` restated upstream's faulty character

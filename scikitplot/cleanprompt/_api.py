@@ -629,9 +629,15 @@ class Session:
         for entry in result.entries:
             merged.setdefault(entry.label, entry)
         self._entries = tuple(merged.values())
-        for label, value in result.vault.items():
+        # ``export()`` is the vault's one named way to take values out, and it
+        # returns a plain dict. Vault itself has no ``values()`` on purpose; a
+        # linter rewrote an ``items()`` loop here into ``vault.values()`` twice,
+        # and every session turn raised AttributeError (CP-082). Reading the
+        # exported dict gives it nothing to rewrite.
+        held = result.vault.export()
+        for label, value in held.items():
             self._vault.add(label, value)
-        self._scrubber.add(value for value in result.vault.values())
+        self._scrubber.add(held.values())
         self._turns += 1
         logger.debug(
             "session turn %d: %d new value(s), %d carried",

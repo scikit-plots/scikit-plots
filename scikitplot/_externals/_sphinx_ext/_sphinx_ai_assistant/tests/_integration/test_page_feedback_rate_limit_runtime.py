@@ -1,12 +1,12 @@
+"""Page-feedback rate limiting, run against the proxy as it is deployed."""
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
 import sys
 
+from .._paths import RUNTIME_ROOT
 
-HERE = Path(__file__).resolve()
-PROXY = HERE.parents[2] / "_hf_spaces_proxy"
+PROXY = RUNTIME_ROOT / "_hf_spaces_proxy"
 
 
 def _run_proxy_script(code: str) -> None:

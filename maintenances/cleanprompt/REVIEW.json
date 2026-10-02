@@ -766,8 +766,8 @@
       "status": "closed",
       "title": "Every Session turn raised AttributeError",
       "detail": "Session.encode called result.vault.values(). Vault deliberately has no values(): items() is the one named way to read secrets. 17 tests failed with \"'Vault' object has no attribute 'values'\" on the tree as committed.",
-      "retired_by": "the scrubber is fed from result.vault.items(), the accessor the line above already used.",
-      "honest_limit": "none known.",
+      "retired_by": "the turn reads result.vault.export(), the vault's named way out, and feeds the scrubber from that plain dict. The first fix iterated result.vault.items() and discarded the label; a lint autofix turned that into result.vault.values() and the defect came back. A dict's own values() gives the linter nothing to rewrite.",
+      "honest_limit": "the regression is caught by the suite, not prevented by the code: run the suite after a lint pass.",
       "regression": "test__api.TestSession; test__api.TestSessionConcurrency; evidence/probe_negative.py CP-082"
     },
     {

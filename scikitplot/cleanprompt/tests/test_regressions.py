@@ -137,10 +137,18 @@ class TestCP003SharedMutableState:
 class TestCP004UrlCharacterRange:
     """``CP-004`` — the URL class must not be an accidental range."""
 
-    def test_upstream_class_was_a_range(self):
-        """Documents the defect: ``[$-_@.&+]`` spans 0x24 to 0x5F."""
-        upstream = re.compile(r"[$-_@.&+]")
-        assert upstream.match("5") and upstream.match("A") and upstream.match("<")
+    def test_what_only_the_accidental_range_admitted_is_not_url_text(self):
+        """
+        Upstream's URL class had an unescaped ``-`` between ``$`` and ``_``.
+
+        That made it a range from 0x24 to 0x5F, so digits, capitals and ``<``
+        counted as URL text. The assertion is on this package's pattern: text
+        made only of such characters is no URL, and ``<`` ends one.
+        """
+        assert _matches("URL", "see 5A< here") == []
+        assert _matches("URL", "see https://example.com/a<b now") == [
+            "https://example.com/a"
+        ]
 
     def test_current_url_pattern_stops_at_the_url(self):
         assert _matches("URL", "see https://example.com/a?b=1#c now") == [

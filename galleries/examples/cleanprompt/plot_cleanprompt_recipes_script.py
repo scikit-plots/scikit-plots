@@ -384,17 +384,20 @@ app_log.handlers = [logging.StreamHandler(buffer)]
 app_log.setLevel(logging.INFO)
 app_log.propagate = False
 
-API_TOKEN = "sk-demo-not-a-real-token"
+# The value held here is a customer reference: something you were given and
+# must not repeat, though it is no credential.  A token or a passphrase is
+# registered the same way; an example has no reason to put one through a logger.
+CUSTOMER_REFERENCE = "ACME-7731-demo"
 
-with redacting(secrets=[API_TOKEN], logger=app_log):
-    app_log.info("calling the model with token %s", API_TOKEN)
+with redacting(secrets=[CUSTOMER_REFERENCE], logger=app_log):
+    app_log.info("opening an incident for customer %s", CUSTOMER_REFERENCE)
     app_log.info("prompt was: Open an incident for [EMAIL-1]")
 
 written = buffer.getvalue()
 print(written.strip())
 print()
-print("the named token is absent:", API_TOKEN not in written)
-assert API_TOKEN not in written
+print("the held value is absent:", CUSTOMER_REFERENCE not in written)
+assert CUSTOMER_REFERENCE not in written
 
 # %%
 # 7. Two more worth knowing about
