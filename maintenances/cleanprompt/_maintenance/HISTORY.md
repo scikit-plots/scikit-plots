@@ -46,9 +46,26 @@ CI, on the real package, failed
 - `TestPipesAreClosed` inspects the pipes directly after an ordinary run, a
   failing command, a command that ignores its input and a timeout, so the
   check holds under any warning filter.
+- `CP-088`, the next CI failure: `test_the_user_is_told_what_to_do` asserted
+  that the suggested action contains `spacy`. `_entity_remedy` has three
+  answers, chosen by what is installed; two of them contain that word and the
+  NLTK-only one does not. CI has NLTK and no spaCy. The runtime is right; the
+  test now asserts what every answer has in common (`--ner`), and
+  `TestEntityRemedyFollowsWhatIsInstalled` supplies each installation in turn,
+  so all three answers are checked on every machine.
+- `CP-089`, found by running the suite repeatedly in an NLTK-only
+  environment: `test_filter_is_removed_when_the_block_raises` failed about one
+  run in four. It compared the number of filters on the namespace logger
+  before and after a `redacting` block. The shared filter of live vaults sits
+  on the same logger and leaves when the last vault is collected; when that
+  happened inside the test, the count fell by one. The two count-based tests
+  now follow the block's own filter, and a test collects a vault inside the
+  block on purpose.
+- Verification now also runs in four installations (every tier, NLTK only,
+  spaCy only, none), with the project's test plugins loaded, and repeatedly.
 - Verification now runs under both parents (an empty one and one that imports
   NumPy) and under the project's pytest options: warnings as errors, live
-  logging at INFO, strict markers and config. 2471 tests pass, also with a
+  logging at INFO, strict markers and config. 2481 tests pass, also with a
   forced collection after every test.
 
 ## 2026-10-02 — round twenty-two: what is committed is read by scanners

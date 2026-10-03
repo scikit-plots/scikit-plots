@@ -819,6 +819,26 @@
       "retired_by": "_bridge._close_pipes closes all three pipes after the pipe threads are joined, on every path out of run_command. The tests close what they open (test__files._stop, shared with test__cli; test_regressions; test__vaultcrypt). The _files.locked example uses a with block.",
       "honest_limit": "A flush failure while closing the input pipe is suppressed, because the writer thread has already recorded and reported the same condition. Earlier rounds were verified under pytest's default warning filter, which is why this was not seen; verification now uses the project's options.",
       "regression": "test__bridge.TestPipesAreClosed (four tests); the whole suite under filterwarnings=error; evidence/probe_negative.py CP-087"
+    },
+    {
+      "id": "CP-088",
+      "severity": "low",
+      "status": "closed",
+      "title": "A test asserted one installation's answer for the name-detection remedy",
+      "detail": "test__diagnostics.TestTheReportedDefect.test_the_user_is_told_what_to_do asserted that the suggested action contains 'spacy'. _diagnostics._entity_remedy returns one of three answers by what is installed: spaCy present, only NLTK present, neither. The first and third contain the word; the second does not, so the test failed where NLTK is installed and spaCy is not. No test covered the NLTK-only answer at all.",
+      "retired_by": "The test asserts the switch every answer names ('--ner'). TestEntityRemedyFollowsWhatIsInstalled replaces the capability probe with each of the four installations and checks all three answers on every machine.",
+      "honest_limit": "The runtime behaviour is unchanged. Other tests may still depend on a tier in ways that only one installation shows; the suite is now run in four (every tier, NLTK only, spaCy only, none).",
+      "regression": "test__diagnostics.TestEntityRemedyFollowsWhatIsInstalled (seven cases); test__diagnostics.TestTheReportedDefect.test_the_user_is_told_what_to_do; evidence/probe_negative.py CP-088"
+    },
+    {
+      "id": "CP-089",
+      "severity": "low",
+      "status": "closed",
+      "title": "Two tests counted the filters on a logger that live vaults also use",
+      "detail": "test__logging.TestRedactingContext compared len(logger.filters) before and after a redacting block. The shared filter that scrubs for every live vault is attached to the same logger and detached when the last vault is cleared or collected (weakref.finalize). When an earlier test's vault was collected inside the test, the count fell by one and the test failed: about one full run in four in an NLTK-only environment, never in isolation.",
+      "retired_by": "Both tests follow the filter the block returns: present inside, absent after, also on a child logger. A new test collects a vault inside the block deliberately.",
+      "honest_limit": "The runtime behaviour is unchanged and intended: a vault's surfaces are scrubbed until the vault is cleared or collected. Twenty-five repeated full runs after the change showed no failure; that bounds the rate, it does not prove no other order-dependent test exists.",
+      "regression": "test__logging.TestRedactingContext.test_filter_is_removed_on_exit; .test_filter_is_removed_when_the_block_raises; .test_filter_is_removed_from_every_logger_in_the_namespace; .test_a_vault_collected_inside_the_block_does_not_disturb_it; evidence/probe_negative.py CP-089"
     }
   ],
   "investigated_and_rejected": [

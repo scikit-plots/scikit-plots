@@ -175,20 +175,50 @@ class TestRedactingContext:
         assert "topsecret" not in capture[0].getMessage()
 
     def test_filter_is_removed_on_exit(self):
+        """
+        The block's own filter is followed, not a count of filters.
+
+        The shared filter of every live vault sits on the same logger and
+        leaves when the last vault is cleared or collected, which can happen
+        at any moment; a count taken before and after would change under it
+        (``CP-089``).
+        """
         logger = logging.getLogger(LOGGER_NAME)
-        before = len(logger.filters)
-        with redacting(["topsecret@example.com"]):
-            assert len(logger.filters) == before + 1
-        assert len(logger.filters) == before
+        with redacting(["topsecret@example.com"]) as filt:
+            assert filt in logger.filters
+        assert filt not in logger.filters
 
     def test_filter_is_removed_when_the_block_raises(self):
         """Otherwise a long-lived process accumulates every request's secrets."""
         logger = logging.getLogger(LOGGER_NAME)
-        before = len(logger.filters)
+        held = []
         with pytest.raises(ValueError):
-            with redacting(["topsecret@example.com"]):
+            with redacting(["topsecret@example.com"]) as filt:
+                held.append(filt)
+                assert filt in logger.filters
                 raise ValueError("boom")
-        assert len(logger.filters) == before
+        assert held[0] not in logger.filters
+
+    def test_filter_is_removed_from_every_logger_in_the_namespace(self):
+        child = get_logger(LOGGER_NAME + "._api")
+        with redacting(["topsecret@example.com"]) as filt:
+            assert filt in child.filters
+        assert filt not in child.filters
+
+    def test_a_vault_collected_inside_the_block_does_not_disturb_it(self):
+        """CP-089: the scenario that made the count-based test fail at random."""
+        import gc
+
+        from .. import Session
+
+        logger = logging.getLogger(LOGGER_NAME)
+        session = Session()
+        session.encode("mail someone-else@example.com")
+        with redacting(["topsecret@example.com"]) as filt:
+            del session
+            gc.collect()
+            assert filt in logger.filters
+        assert filt not in logger.filters
 
 
 class TestJsonFormatter:

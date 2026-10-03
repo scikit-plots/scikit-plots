@@ -606,6 +606,26 @@ finally:
     _bridge23.subprocess.Popen = _real23p
 check("CP-087", "run_command closes the command's input, output and error pipes before it returns",
       len(_started23) == 1 and all(getattr(_started23[0], n).closed for n in ("stdin", "stdout", "stderr")))
+from scikitplot.cleanprompt import _diagnostics as _diag23
+from scikitplot.cleanprompt._capabilities import CapabilityStatus as _CS23, probe as _probe23
+def _remedy23(*present):
+    _diag23.probe = lambda name: _probe23(name)._replace(
+        status=_CS23.AVAILABLE if name in present else _CS23.ABSENT)
+    try: return _diag23._entity_remedy()
+    finally: _diag23.probe = _probe23
+check("CP-088", "the name-detection remedy names the switch in every installation, and NLTK alone names NLTK",
+      all("--ner" in _remedy23(*p) for p in ((), ("ner",), ("nltk",), ("ner", "nltk")))
+      and _remedy23("nltk").startswith("NLTK is installed") and _remedy23("ner", "nltk").startswith("spaCy is installed"))
+import gc as _gc23, logging as _logging23
+from scikitplot.cleanprompt import Session as _S23
+from scikitplot.cleanprompt._logging import LOGGER_NAME as _LN23, redacting as _red23
+_lg23 = _logging23.getLogger(_LN23)
+_s23 = _S23(); _s23.encode("mail someone-else@example.com")
+with _red23(["topsecret@example.com"]) as _f23:
+    del _s23; _gc23.collect()
+    _in23 = _f23 in _lg23.filters
+check("CP-089", "a vault collected inside a redacting block leaves the block's own filter in place, and exit removes it",
+      _in23 and _f23 not in _lg23.filters)
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

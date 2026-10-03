@@ -268,7 +268,9 @@ class TestTheReportedDefect:
         result = Redactor().redact(ATATURK)
         outcome = describe_outcome(result, diagnose(), suggest_terms(ATATURK, result))
         joined = " ".join(outcome["actions"])
-        assert "spacy" in joined
+        # Which engine the action names depends on what is installed; that it
+        # names the switch that turns name detection on does not.
+        assert "--ner" in joined
         assert "suggested term" in joined
 
     def test_the_name_is_offered_as_a_candidate(self):
@@ -291,3 +293,58 @@ class TestTheReportedDefect:
         from .. import restore
 
         assert restore(result.text, result.vault).text == ATATURK
+
+
+class TestEntityRemedyFollowsWhatIsInstalled:
+    """
+    CP-088: the remedy for the name-detection gap, in every installation.
+
+    Notes
+    -----
+    **Developer notes.** ``_entity_remedy`` has three answers and picks one
+    from what is installed. A test that reads the answer of the machine it
+    runs on covers one of the three and fails on the others: asserting
+    ``"spacy"`` held with spaCy installed and with nothing installed, and
+    failed where only NLTK was. The installation is supplied here, so every
+    answer is checked on every machine.
+    """
+
+    @staticmethod
+    def _installed(monkeypatch, *present):
+        from .. import _diagnostics
+        from .._capabilities import probe as real_probe
+
+        def probe(name):
+            status = (
+                CapabilityStatus.AVAILABLE
+                if name in present
+                else CapabilityStatus.ABSENT
+            )
+            return real_probe(name)._replace(status=status)
+
+        monkeypatch.setattr(_diagnostics, "probe", probe)
+        return _diagnostics._entity_remedy()
+
+    @pytest.mark.parametrize("present", [("ner",), ("ner", "nltk")])
+    def test_spacy_installed_is_a_flag_not_a_download(self, monkeypatch, present):
+        remedy = self._installed(monkeypatch, *present)
+        assert remedy.startswith("spaCy is installed")
+        assert "spacy_detector()" in remedy and "--ner" in remedy
+        assert "pip install" not in remedy
+
+    def test_only_nltk_installed_names_nltk(self, monkeypatch):
+        remedy = self._installed(monkeypatch, "nltk")
+        assert remedy.startswith("NLTK is installed")
+        assert "--ner --ner-engine nltk" in remedy and "nltk_detector()" in remedy
+        assert "pip install" not in remedy
+        assert "spacy" not in remedy.lower()
+
+    def test_nothing_installed_offers_both_engines(self, monkeypatch):
+        remedy = self._installed(monkeypatch)
+        assert "python -m spacy download" in remedy
+        assert remedy.count("pip install") == 2
+        assert "--ner --ner-engine nltk" in remedy
+
+    @pytest.mark.parametrize("present", [(), ("ner",), ("nltk",), ("ner", "nltk")])
+    def test_every_answer_names_the_switch(self, monkeypatch, present):
+        assert "--ner" in self._installed(monkeypatch, *present)
