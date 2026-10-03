@@ -17,7 +17,7 @@ from . import logger
 
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.
-from .config import cbook
+from .config import _cbook as cbook
 
 __all__ = [
     "_replacer",

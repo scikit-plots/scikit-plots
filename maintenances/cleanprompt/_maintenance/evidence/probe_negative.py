@@ -639,6 +639,11 @@ finally:
     _al24.removeHandler(_h24); _al24.setLevel(_lv24)
 check("CP-090", "a reply streamed one character at a time records one decoded event, at flush, with the chunk count",
       _o24 == "mail ann@example.com" and _mid24 == [] and [e for e in _seen24 if e[0] == "decoded"] == [("decoded", len(_safe24))])
+_tp24 = (_tests23 / "test__patterns.py").read_text(encoding="utf-8")
+_cf24 = (_tests23 / "conftest.py").read_text(encoding="utf-8")
+check("CP-091", "pattern timing runs in a killable child, payloads are not test ids, and the suite runs at the default log level",
+      "in_subprocess(" in _tp24 and "timeout=KILL_AFTER" in _tp24 and "sorted(ADVERSARIAL)" in _tp24
+      and "compiled().findall(payload)" not in _tp24 and "_library_default_log_level" in _cf24)
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

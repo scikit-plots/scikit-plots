@@ -75,6 +75,24 @@ CI, on the real package, failed
   (distinct labels, gathered across chunks). `Cleaner._restore_report` is the
   unaudited restore and `Cleaner._audit_decoded` the one place the event is
   shaped. The suite's records fell from 33 671 to 4 413.
+- `CP-091`, reported as a CI run that stopped after
+  `test_bounded_time[...-MAC]` with nothing further printed. It could not be
+  reproduced: on the same interpreter version, with coverage and the project's
+  plugins, every pattern handles every payload in under 12 ms and the suite
+  runs through. What the report did show is that the test could not have
+  reported a slow pattern in any case. It timed `findall` inside the pytest
+  process and asserted afterwards; a pattern that backtracks without bound
+  never returns, so the assertion never runs and the run stops silently. Each
+  match now runs in a child interpreter with a deadline, and a deliberately
+  catastrophic pattern fails by name in thirty seconds.
+- The same report was hard to read for two reasons, both fixed. The payloads
+  were the test ids, 78 lines of four kilobytes each; they have names now.
+  And the project's pytest configuration lowers the root logger to `INFO`, so
+  every `encode` and `decode` printed a line; an autouse fixture holds the
+  namespace at the library's default, `WARNING`, and a test about the audit
+  trail asks for the level it needs. A verbose run of this suite went from
+  7 590 lines and 911 kB to 2 835 lines and 324 kB; the longest line from
+  4 168 characters to 201; records printed from 4 413 to 274.
 - Verification now also runs in four installations (every tier, NLTK only,
   spaCy only, none), with the project's test plugins loaded, and repeatedly.
 - Verification now runs under both parents (an empty one and one that imports

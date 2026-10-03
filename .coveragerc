@@ -15,7 +15,7 @@ omit =
     */scikitplot/_decorates/*
     */scikitplot/cexperimental/*
     */scikitplot/cexternals/*
-    */scikitplot/config/cbook.py
+    */scikitplot/config/_cbook.py
     */scikitplot/experimental/*
     */scikitplot/externals/*
     # ❌ Ignore all externals EXCEPT target

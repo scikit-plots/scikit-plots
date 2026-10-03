@@ -19,6 +19,7 @@ import pytest
 
 from .. import PATTERNS, PatternError, PatternSpec, default_patterns, get_pattern
 from .._patterns import luhn_ok
+from ._isolated import in_subprocess
 
 
 def _accepted(spec, text):
@@ -85,26 +86,69 @@ class TestLibraryHygiene:
         assert PATTERNS[kind].compiled().fullmatch("") is None
 
 
+#: Inputs built to make a careless expression backtrack, by a short name.
+#:
+#: The name is the test id. The payloads are four thousand characters long,
+#: and as ids they put seventy-eight four-kilobyte lines into every verbose
+#: run (``CP-091``).
+ADVERSARIAL = {
+    "letters": "a" * 4000,
+    "digits": "1" * 4000,
+    "at-runs": ("a" * 200 + "@") * 20,
+    "dash-runs": ("-" * 100 + "1") * 40,
+    "dotted-url": "http://" + "a." * 900,
+    "colons": ":" * 4000,
+}
+
+#: Seconds one pattern may spend on one payload.
+MATCH_BUDGET = 2.0
+
+#: Seconds before the child is killed: the budget, plus starting an interpreter
+#: and importing the package on a slow machine.
+KILL_AFTER = 30.0
+
+_TIME_ONE_MATCH = (
+    "import time\n"
+    "from scikitplot.cleanprompt._patterns import PATTERNS\n"
+    "compiled = PATTERNS[{0!r}].compiled()\n"
+    "payload = {1!r}\n"
+    "started = time.monotonic()\n"
+    "compiled.findall(payload)\n"
+    "print(time.monotonic() - started)\n"
+)
+
+
 class TestNoCatastrophicBacktracking:
-    """Adversarial inputs must not blow up."""
+    """
+    Adversarial inputs must not blow up.
+
+    Notes
+    -----
+    **Developer notes.** Each match runs in a child interpreter with a
+    deadline. Timed in the pytest process, a pattern that backtracks without
+    bound would never return, the assertion after it would never run, and the
+    whole run would stop on a test that reports nothing. Here that pattern
+    fails within :data:`KILL_AFTER` seconds, by name.
+    """
 
     @pytest.mark.parametrize("kind", sorted(PATTERNS))
-    @pytest.mark.parametrize(
-        "payload",
-        [
-            "a" * 4000,
-            "1" * 4000,
-            ("a" * 200 + "@") * 20,
-            ("-" * 100 + "1") * 40,
-            "http://" + "a." * 900,
-            ":" * 4000,
-        ],
-    )
+    @pytest.mark.parametrize("payload", sorted(ADVERSARIAL))
     def test_bounded_time(self, kind, payload):
-        spec = PATTERNS[kind]
+        output = in_subprocess(
+            _TIME_ONE_MATCH.format(kind, ADVERSARIAL[payload]), timeout=KILL_AFTER
+        )
+        assert float(output) < MATCH_BUDGET
+
+    def test_a_pattern_that_never_returns_fails_instead_of_hanging(self):
+        """The deadline itself: a child that does not finish is killed."""
         started = time.monotonic()
-        spec.compiled().findall(payload)
-        assert time.monotonic() - started < 2.0
+        with pytest.raises(AssertionError, match="still running after"):
+            in_subprocess("import time\ntime.sleep(60)\n", timeout=1.0)
+        assert time.monotonic() - started < 20
+
+    def test_no_test_id_carries_a_payload(self):
+        assert max(len(name) for name in ADVERSARIAL) < 20
+        assert len(ADVERSARIAL) == 6
 
 
 class TestLuhn:

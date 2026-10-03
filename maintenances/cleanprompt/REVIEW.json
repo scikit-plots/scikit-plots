@@ -849,6 +849,16 @@
       "retired_by": "StreamDecoder decodes pieces through Cleaner._restore_report, which records nothing, gathers the distinct restored, unknown and repaired labels, and records one event through Cleaner._audit_decoded when flush ends the reply, with the number of chunks. The counts equal those of the reply decoded whole.",
       "honest_limit": "A stream abandoned without flush records no decoded event; flush is what ends a reply, and run_command always calls it. The property test still records one event per simulated reply (604 per style), which is the intended behaviour.",
       "regression": "test__guard.TestStreamAudit (eight cases, including one through the bridge); evidence/probe_negative.py CP-090"
+    },
+    {
+      "id": "CP-091",
+      "severity": "medium",
+      "status": "closed",
+      "title": "The backtracking test could hang instead of fail, and the suite's output buried its results",
+      "detail": "TestNoCatastrophicBacktracking timed each pattern inside the pytest process and asserted on the elapsed time afterwards. A regular expression runs in C and cannot be interrupted, so a pattern that backtracks without bound would never return and the assertion would never run: the defect the test exists to catch would stop the run with no failure. Separately, the 4000-character payloads were used as test ids (78 lines of about 4 kB each), and under the project's pytest configuration (log_level = info, live logging) every encode and decode in the suite printed a record: 4 413 lines interleaved with the results.",
+      "retired_by": "Each match runs through tests/_isolated.in_subprocess with a timeout; the child is killed and the test fails, naming the pattern and payload. Payloads are named in ADVERSARIAL and the names are the ids. A conftest autouse fixture holds the namespace logger at WARNING, the library's unconfigured default; tests about the audit trail set the level they need.",
+      "honest_limit": "The reported stall after test_bounded_time[...-MAC] was not reproduced: with CPython 3.11.16, coverage and the project's plugins, the slowest pattern takes 11 ms and the suite completes. No pattern was changed. If a pattern is slow in CI for a reason not present here, the test now fails within 30 seconds and names it. test_regressions.test_rejection_scanning_stays_fast and test__logging's scale test still time work in-process.",
+      "regression": "test__patterns.TestNoCatastrophicBacktracking (78 cases, test_a_pattern_that_never_returns_fails_instead_of_hanging, test_no_test_id_carries_a_payload); evidence/probe_negative.py CP-091"
     }
   ],
   "investigated_and_rejected": [

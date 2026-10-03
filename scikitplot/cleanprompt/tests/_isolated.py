@@ -23,6 +23,9 @@ after the first such record prints to pytest and ``doctest`` reports "Got
 nothing". A fresh interpreter has no capture to resume, so the result depends
 on the examples alone. No test in this package calls ``doctest.testmod`` in
 the pytest process; an architecture test holds that.
+
+A third kind of test needs a process it can kill: see ``timeout`` on
+:func:`in_subprocess`.
 """
 
 from __future__ import annotations
@@ -67,7 +70,7 @@ _RUN_DOCTESTS = (
 )
 
 
-def in_subprocess(body, *, prelude=ISOLATED_PARENT):
+def in_subprocess(body, *, prelude=ISOLATED_PARENT, timeout=None):
     """
     Run ``body`` in a fresh interpreter and return its stdout.
 
@@ -78,6 +81,8 @@ def in_subprocess(body, *, prelude=ISOLATED_PARENT):
     prelude : str, default=ISOLATED_PARENT
         Source executed first. ``ISOLATED_PARENT`` measures this package
         alone; ``REAL_PARENT`` measures it under the real ``scikitplot``.
+    timeout : float, optional
+        Seconds after which the interpreter is killed. ``None`` waits for it.
 
     Returns
     -------
@@ -87,11 +92,28 @@ def in_subprocess(body, *, prelude=ISOLATED_PARENT):
     Raises
     ------
     AssertionError
-        If the interpreter exits with a non-zero status.
+        If the interpreter exits with a non-zero status, or is still running
+        after ``timeout`` seconds.
+
+    Notes
+    -----
+    **Developer notes.** ``timeout`` is how a test bounds code that cannot be
+    interrupted from inside the process. A regular expression runs in C and
+    holds the interpreter for as long as it backtracks; a test that times it
+    in-process and asserts afterwards never reaches the assertion, and the
+    run stops with no failure to read (``CP-091``). A child can be killed.
     """
-    completed = subprocess.run(
-        [sys.executable, "-c", prelude + body], capture_output=True, text=True
-    )
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", prelude + body],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        message = "still running after {0} seconds and was killed".format(timeout)
+        raise AssertionError(message) from None
     assert completed.returncode == 0, completed.stderr
     return completed.stdout
 
