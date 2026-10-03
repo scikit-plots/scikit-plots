@@ -8,7 +8,7 @@
     {
       "artifact": "evidence/focused-tests.log",
       "id": "focused_runtime_tests_native",
-      "result": "2481 passed, 10 skipped, no harness edits (CPython 3.11.16 with every tier; the 4 extra skips are the scikitplot.corpus bridge tests, absent from the isolated root this round ran in)",
+      "result": "2489 passed, 10 skipped, no harness edits (CPython 3.11.16 with every tier; the 4 extra skips are the scikitplot.corpus bridge tests, absent from the isolated root this round ran in)",
       "status": "PASS"
     },
     {
@@ -32,7 +32,7 @@
     {
       "artifact": "evidence/negative-probes.log",
       "id": "negative_probes",
-      "result": "every CP finding through CP-089 probed green (CP-054 to CP-056 by the stdlib-only test and the python matrix, CP-057/058 by the fuzz), plus archive, gate, MCP, plan, chunking, survey, concurrency, async, vault-file, value-variant, restored-variant, tool-privilege and tool-result probes, 4 API and 2 engine probes",
+      "result": "every CP finding through CP-090 probed green (CP-054 to CP-056 by the stdlib-only test and the python matrix, CP-057/058 by the fuzz), plus archive, gate, MCP, plan, chunking, survey, concurrency, async, vault-file, value-variant, restored-variant, tool-privilege and tool-result probes, 4 API and 2 engine probes",
       "status": "PASS"
     },
     {
@@ -44,7 +44,7 @@
     {
       "artifact": "evidence/multi-run.log",
       "id": "repeatability",
-      "result": "5 consecutive full runs (2481 passed each); the 2 shuffled module-order runs were measured in round 21 and not re-run",
+      "result": "5 consecutive full runs (2489 passed each); the 2 shuffled module-order runs were measured in round 21 and not re-run",
       "status": "PASS"
     },
     {
@@ -265,7 +265,7 @@
       "result": "no text file in the runtime package, the maintenance plane, the skill or the gallery holds a whole value a secrets-pack pattern accepts (I14, CP-REST-001); the compiler refuses the pre-round files with 15 findings; an unarmed check is an error"
     }
   ],
-  "runtime_tree_fingerprint": "8c2a2ffd7fb265d9e65092c2b9210532b26811e263bae9f63648beaced2e3b87",
+  "runtime_tree_fingerprint": "9b3164cddeccca78183525c39793ccf5a8b1d65513d5a412c0d25dbca6583aa6",
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
   "updated_at": "2026-10-02"

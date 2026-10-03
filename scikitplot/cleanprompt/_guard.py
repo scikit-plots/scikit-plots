@@ -148,13 +148,37 @@ class StreamDecoder:
       stand-in, or a whole stand-in that is also a prefix of a longer one.
 
     Everything emitted is decoded with the same function as a whole reply.
+
+    **One reply, one audit event.** A reply decoded whole records one
+    ``decoded`` event. Streamed, it arrives in as many chunks as the model
+    emits tokens, and recording each chunk turned one reply into thousands of
+    events that said nothing a single one does not (``CP-090``). The counts
+    are gathered as chunks arrive and recorded once, by :meth:`flush`, with
+    the number of chunks; they equal the counts of the same reply decoded
+    whole. A stream that is abandoned without :meth:`flush`
+    records no event; :meth:`flush` is what ends a reply.
     """
 
-    __slots__ = ("_buffer", "_guard", "_prefixes", "_reach", "_starts", "_vault_size")
+    __slots__ = (
+        "_buffer",
+        "_chunks",
+        "_guard",
+        "_prefixes",
+        "_reach",
+        "_repaired",
+        "_restored",
+        "_starts",
+        "_unknown",
+        "_vault_size",
+    )
 
     def __init__(self, guard: Guard) -> None:
         self._guard = guard
         self._buffer = ""
+        self._chunks = 0
+        self._restored: set[Any] = set()
+        self._unknown: set[Any] = set()
+        self._repaired: set[Any] = set()
         self._prefixes: frozenset[str] = frozenset()
         self._reach = 0
         self._starts: frozenset[str] = frozenset()
@@ -264,14 +288,29 @@ class StreamDecoder:
         """
         if not isinstance(chunk, str):
             raise TypeError(f"chunk must be str, got {type(chunk).__name__!r}")
+        self._chunks += 1
         self._buffer += chunk
         cut = self._hold()
         ready, self._buffer = self._buffer[:cut], self._buffer[cut:]
-        return self._guard.cleaner.decode(ready) if ready else ""
+        return self._decode(ready)
+
+    def _decode(self, text: str) -> str:
+        """Decode a piece that is certain, adding its counts to the reply's."""
+        if not text:
+            return ""
+        outcome = self._guard.cleaner._restore_report(  # noqa: SLF001 - same package
+            text,
+        )
+        # Sets, not sums: a label restored in three pieces is one label, as
+        # it is when the reply is decoded whole.
+        self._restored.update(outcome.restored)
+        self._unknown.update(outcome.unknown)
+        self._repaired.update(outcome.repaired)
+        return outcome.text
 
     def flush(self) -> str:
         """
-        Return the decoded remainder and reset.
+        Return the decoded remainder, record the reply, and reset.
 
         Returns
         -------
@@ -279,7 +318,17 @@ class StreamDecoder:
             Whatever was held back, decoded.
         """
         rest, self._buffer = self._buffer, ""
-        return self._guard.cleaner.decode(rest) if rest else ""
+        decoded = self._decode(rest)
+        if self._chunks:
+            self._guard.cleaner._audit_decoded(  # noqa: SLF001 - same package
+                len(self._restored),
+                len(self._unknown),
+                len(self._repaired),
+                chunks=self._chunks,
+            )
+        self._chunks = 0
+        self._restored, self._unknown, self._repaired = set(), set(), set()
+        return decoded
 
 
 class Guard:

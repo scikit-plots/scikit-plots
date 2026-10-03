@@ -166,6 +166,112 @@ class TestStream:
             StreamDecoder(Guard()).feed(b"x")
 
 
+class TestStreamAudit:
+    """
+    CP-090: a streamed reply records one ``decoded`` event, like a whole one.
+
+    Notes
+    -----
+    **Developer notes.** Each chunk used to be decoded through the audited
+    path, so a reply of *n* chunks recorded *n* events. The chunking property
+    test alone produced fifteen thousand per style, nine tenths of every
+    record the suite emits, and with live logging on it looked like a hang.
+    """
+
+    @staticmethod
+    def _events():
+        import logging
+
+        from .._logging import AUDIT_LOGGER_NAME
+
+        seen = []
+        handler = logging.Handler()
+        handler.emit = lambda record: seen.append(
+            (
+                record.getMessage(),
+                {
+                    name: getattr(record, name, None)
+                    for name in ("restored", "unknown", "repaired", "chunks")
+                },
+            )
+        )
+        logger = logging.getLogger(AUDIT_LOGGER_NAME)
+        return logger, handler, seen
+
+    @pytest.fixture
+    def decoded(self):
+        import logging
+
+        logger, handler, seen = self._events()
+        level = logger.level
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        try:
+            yield lambda: [fields for event, fields in seen if event == "decoded"]
+        finally:
+            logger.removeHandler(handler)
+            logger.setLevel(level)
+
+    @pytest.mark.parametrize("size", [1, 3, 7, 10_000])
+    def test_one_event_whatever_the_chunking(self, decoded, size):
+        guard, reply = TestStream()._reply("placeholder")
+        guard.incoming(reply)
+        (whole,) = decoded()
+        decoder = guard.stream()
+        pieces = [reply[index : index + size] for index in range(0, len(reply), size)]
+        for piece in pieces:
+            decoder.feed(piece)
+        assert len(decoded()) == 1, "a chunk recorded an event before the reply ended"
+        decoder.flush()
+        _, streamed = decoded()
+        assert streamed["chunks"] == len(pieces)
+        assert {name: streamed[name] for name in ("restored", "unknown", "repaired")} == {
+            name: whole[name] for name in ("restored", "unknown", "repaired")
+        }
+        assert whole["chunks"] is None
+
+    def test_an_unknown_label_is_counted_once(self, decoded):
+        guard, _ = TestStream()._reply("placeholder")
+        decoder = guard.stream()
+        for piece in ("see [EMAIL-", "99] and [EMAIL-99] again"):
+            decoder.feed(piece)
+        decoder.flush()
+        (event,) = decoded()
+        assert event["unknown"] == 1 and event["chunks"] == 2
+
+    def test_a_flush_with_nothing_fed_records_nothing(self, decoded):
+        guard, _ = TestStream()._reply("placeholder")
+        guard.stream().flush()
+        assert decoded() == []
+
+    def test_a_reused_decoder_starts_each_reply_from_zero(self, decoded):
+        guard, reply = TestStream()._reply("placeholder")
+        decoder = guard.stream()
+        decoder.feed(reply)
+        decoder.flush()
+        decoder.feed("plain text")
+        decoder.flush()
+        first, second = decoded()
+        assert first["restored"] > 0 and first["chunks"] == 1
+        assert second == {"restored": 0, "unknown": 0, "repaired": 0, "chunks": 1}
+
+    def test_the_bridge_records_one_event_for_a_streamed_reply(self, decoded):
+        import io
+        import sys
+
+        from .._bridge import run_command
+
+        guard = FluentCleanPrompt().guard()
+        script = "import sys; sys.stdin.read(); sys.stdout.write('[EMAIL-1] ' * 20000)"
+        out = io.StringIO()
+        status = run_command(
+            guard, [sys.executable, "-c", script], "mail ann@example.com", out, io.StringIO()
+        )
+        assert status == 0 and out.getvalue().count("ann@example.com") == 20000
+        (event,) = decoded()
+        assert event["restored"] == 1 and event["chunks"] > 1
+
+
 def test_clearing_ends_the_conversation():
     guard = Guard()
     guard.outgoing("ann@example.com")

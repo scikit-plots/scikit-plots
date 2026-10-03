@@ -61,6 +61,20 @@ CI, on the real package, failed
   happened inside the test, the count fell by one. The two count-based tests
   now follow the block's own filter, and a test collects a vault inside the
   block on purpose.
+- `CP-090`, reported as a CI run that never ended: under
+  `test_any_chunking_decodes_like_the_whole` the log filled with `decoded`
+  lines. It was not a loop. `StreamDecoder.feed` decoded each chunk through
+  the audited path, so one reply recorded one `decoded` event per chunk; the
+  test decodes a reply in about twenty-five chunks, six hundred times, in two
+  styles: about 30 000 events, 89% of every record the suite emits, each printed
+  live. The test would have finished. The defect is in the runtime: a reply
+  streamed in a thousand tokens wrote a thousand audit events that said
+  nothing one does not.
+- A streamed reply now records one event, at `flush`, with `chunks` and the
+  same `restored`, `unknown` and `repaired` counts as the reply decoded whole
+  (distinct labels, gathered across chunks). `Cleaner._restore_report` is the
+  unaudited restore and `Cleaner._audit_decoded` the one place the event is
+  shaped. The suite's records fell from 33 671 to 4 413.
 - Verification now also runs in four installations (every tier, NLTK only,
   spaCy only, none), with the project's test plugins loaded, and repeatedly.
 - Verification now runs under both parents (an empty one and one that imports

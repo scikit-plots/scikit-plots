@@ -839,6 +839,16 @@
       "retired_by": "Both tests follow the filter the block returns: present inside, absent after, also on a child logger. A new test collects a vault inside the block deliberately.",
       "honest_limit": "The runtime behaviour is unchanged and intended: a vault's surfaces are scrubbed until the vault is cleared or collected. Twenty-five repeated full runs after the change showed no failure; that bounds the rate, it does not prove no other order-dependent test exists.",
       "regression": "test__logging.TestRedactingContext.test_filter_is_removed_on_exit; .test_filter_is_removed_when_the_block_raises; .test_filter_is_removed_from_every_logger_in_the_namespace; .test_a_vault_collected_inside_the_block_does_not_disturb_it; evidence/probe_negative.py CP-089"
+    },
+    {
+      "id": "CP-090",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A streamed reply recorded one audit event per chunk",
+      "detail": "StreamDecoder.feed and flush decoded each piece through Cleaner.decode, which records a 'decoded' audit event. A reply streamed in n chunks therefore wrote n events to the audit log, each with partial counts, where the same reply decoded whole writes one. The chunking property test alone emitted about 30 000 of the suite's 33 671 INFO records; with the project's live logging each was printed, and the CI run was taken for an infinite loop.",
+      "retired_by": "StreamDecoder decodes pieces through Cleaner._restore_report, which records nothing, gathers the distinct restored, unknown and repaired labels, and records one event through Cleaner._audit_decoded when flush ends the reply, with the number of chunks. The counts equal those of the reply decoded whole.",
+      "honest_limit": "A stream abandoned without flush records no decoded event; flush is what ends a reply, and run_command always calls it. The property test still records one event per simulated reply (604 per style), which is the intended behaviour.",
+      "regression": "test__guard.TestStreamAudit (eight cases, including one through the bridge); evidence/probe_negative.py CP-090"
     }
   ],
   "investigated_and_rejected": [

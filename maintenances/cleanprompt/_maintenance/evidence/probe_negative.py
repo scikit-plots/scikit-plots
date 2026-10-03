@@ -626,6 +626,19 @@ with _red23(["topsecret@example.com"]) as _f23:
     _in23 = _f23 in _lg23.filters
 check("CP-089", "a vault collected inside a redacting block leaves the block's own filter in place, and exit removes it",
       _in23 and _f23 not in _lg23.filters)
+_seen24 = []
+_h24 = _logging23.Handler(); _h24.emit = lambda r: _seen24.append((r.getMessage(), getattr(r, "chunks", None)))
+_al24 = _logging23.getLogger("scikitplot.cleanprompt.audit"); _lv24 = _al24.level
+_al24.addHandler(_h24); _al24.setLevel(_logging23.INFO)
+try:
+    _g24 = _FCP23().guard(); _safe24 = _g24.outgoing("mail ann@example.com")
+    _d24 = _g24.stream(); _o24 = "".join(_d24.feed(c) for c in _safe24)
+    _mid24 = [e for e in _seen24 if e[0] == "decoded"]
+    _o24 += _d24.flush()
+finally:
+    _al24.removeHandler(_h24); _al24.setLevel(_lv24)
+check("CP-090", "a reply streamed one character at a time records one decoded event, at flush, with the chunk count",
+      _o24 == "mail ann@example.com" and _mid24 == [] and [e for e in _seen24 if e[0] == "decoded"] == [("decoded", len(_safe24))])
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

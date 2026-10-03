@@ -1051,13 +1051,15 @@ logging at INFO — not pytest's defaults, and in four installations: every
 tier, NLTK only, spaCy only, none. `CP-088` (a test read the name-detection
 remedy of the machine it ran on and failed where only NLTK was installed) and
 `CP-089` (a test counted the filters on a logger that live vaults also use, and
-failed when one was collected mid-test) came from that. `CP-048` is the design driver
+failed when one was collected mid-test) came from that, and `CP-090` from a CI
+run that looked hung: a streamed reply recorded one `decoded` audit event per
+chunk, and now records one per reply, at `flush`, with the chunk count. `CP-048` is the design driver
 (records leaked because keys were never read); `CP-049` to `CP-053` were found
 while building and verifying it; `CP-054` to `CP-056` were found by running the
 Python matrix, lane 13, for the first time; `CP-057` and `CP-058` by the
 format fuzz (`probe_fuzz.py`). The suite stands at 2042 passing,
 6 skipped, green on CPython 3.8 to 3.13 (2128 after round fourteen, 2210
-after round fifteen, 2243 after round sixteen, 2258 after round seventeen, 2302 after round eighteen, 2354 after round nineteen, 2381 after round twenty, 2424 after round twenty-one, 2464 after round twenty-two, 2481 after round twenty-three).
+after round fifteen, 2243 after round sixteen, 2258 after round seventeen, 2302 after round eighteen, 2354 after round nineteen, 2381 after round twenty, 2424 after round twenty-one, 2464 after round twenty-two, 2489 after round twenty-three).
 
 Do not reopen any of them from source inspection alone, and do not close a new
 one without both a regression test and a probe.

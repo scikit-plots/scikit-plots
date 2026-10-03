@@ -1632,18 +1632,67 @@ class Cleaner:
         RestorationResult
             With ``unknown`` and ``repaired`` filled in.
         """
-        self._check_open()
-        outcome = restore(
-            text, self._vault_of(kinds), policy=self._policy, strict=strict
-        )
-        audit(
-            "decoded",
-            restored=len(outcome.restored),
-            unknown=len(outcome.unknown),
-            repaired=len(outcome.repaired),
-            plan=self._fingerprint[:16],
+        outcome = self._restore_report(text, strict=strict, kinds=kinds)
+        self._audit_decoded(
+            len(outcome.restored), len(outcome.unknown), len(outcome.repaired)
         )
         return outcome
+
+    @_synchronized
+    def _restore_report(
+        self,
+        text: str,
+        strict: bool = False,
+        kinds: Iterable[str] | None = None,
+    ) -> RestorationResult:
+        """
+        Restore ``text`` without recording an audit event.
+
+        Parameters
+        ----------
+        text : str
+            A reply, or one piece of a reply.
+        strict : bool, default=False
+            Raise on a placeholder this cleaner never issued.
+        kinds : iterable of str, optional
+            Restore only values of these kinds.
+
+        Returns
+        -------
+        RestorationResult
+            The same result :meth:`decode_report` returns.
+
+        Notes
+        -----
+        **Developer notes.** A caller that decodes one reply in many pieces
+        uses this and records the reply once with :meth:`_audit_decoded`
+        (``CP-090``). Every other caller wants :meth:`decode_report`.
+        """
+        self._check_open()
+        return restore(text, self._vault_of(kinds), policy=self._policy, strict=strict)
+
+    def _audit_decoded(
+        self, restored: int, unknown: int, repaired: int, **fields: Any
+    ) -> None:
+        """
+        Record one ``decoded`` audit event for one reply.
+
+        Parameters
+        ----------
+        restored, unknown, repaired : int
+            Counts over the whole reply.
+        **fields
+            Further counts, for example ``chunks`` for a streamed reply.
+            Never a value.
+        """
+        audit(
+            "decoded",
+            restored=restored,
+            unknown=unknown,
+            repaired=repaired,
+            plan=self._fingerprint[:16],
+            **fields,
+        )
 
     def _vault_of(self, kinds: Iterable[str] | None) -> Vault:
         """Return a vault of every value, or of the values of ``kinds`` only."""
