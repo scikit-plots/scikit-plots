@@ -1,0 +1,5 @@
+{% set chunk = page_chunk_size|default(12, true) %}
+<div class="learn-display-pager" data-local-display-pager{% if display_controls_hidden %} hidden{% endif %}>
+  <span class="learn-meta learn-display-summary" data-display-summary aria-live="polite"></span>
+  <button type="button" class="learn-button learn-display-load-more" data-display-load-more hidden>Load {{ chunk }} more</button>
+</div>

@@ -1,5 +1,15 @@
 # History
 
+## 2026-09-28 — delegated exemption reviewed
+
+`test_the_delegated_exemption_is_narrow` had failed since `cleanprompt` was
+registered as a delegated command: the registration was deliberate and its
+frontend parity is proven by cleanprompt's own lane, but the allow-list here
+was never updated, so the test reported a widening nobody had reviewed. The
+exemption set is now `{"mcp", "cleanprompt"}` with the reason written beside
+it. The remaining `_cli` failures in the standalone archive are the absent
+package root (`__version__`, `show_config`, `scikitplot._testing`).
+
 ## 2026-09-12 — maintenance onboarding
 
 Created a dedicated `_cli` maintenance/skill domain. The runtime tree was left

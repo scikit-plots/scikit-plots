@@ -13,7 +13,7 @@ const detailed = slice('    function _buildFeedbackBlock(answerIndex, answerText
 const sheet = slice('    function _buildDatasetContributionSheet() {', '    function _buildKeyboardShortcutsSheet() {');
 
 ok(consent.includes("ai-assistant-feedback-review-consent"),'review sharing has separate versioned consent key');
-ok(!consent.includes('ai-assistant-feedback-telemetry-consent'),'review consent cannot reuse telemetry consent key');
+ok(!src.includes('ai-assistant-feedback-telemetry-consent'),'retired telemetry consent storage is absent');
 ok(consent.includes("var _FEEDBACK_TRAINING_CONSENT_VERSION = '1.0.0'"),'review consent carries independently versioned training authority');
 ok(review.includes("replace(/\\/v1\\/contribute\\/?$/i, '/v1/feedback/review')"),'review endpoint is derived from contribution-capable service');
 ok(review.includes("method: 'PUT'"),'changed feedback updates same review');
@@ -35,7 +35,7 @@ ok(sheet.includes("_workspaceButton('activity', 'Activity', ICONS.pulse)"),'work
 ok(sheet.includes('Feedback is exactly one Q&A'),'feedback tab explains one-Q&A scope');
 ok(sheet.includes('training-eligible only if a maintainer merges') || sheet.includes('merge required for training eligibility'),'workspace states merge-gated training invariant');
 ok(src.includes("reviewTitle.textContent = 'Maintainer feedback review'") && src.includes("reviewToggle.setAttribute('aria-label', 'Share feedback with maintainers')"),'Feedback workspace exposes explicit review/training permission');
-ok(src.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && src.includes("data-feedback-telemetry-toggle"),'telemetry remains separately named and permissioned');
+ok(!src.includes('Anonymous rating telemetry') && !src.includes('data-feedback-telemetry-toggle'),'retired telemetry UI is absent');
 
 // Execute the consent primitive so this is not only a source-layout contract.
 function consentRuntime(seed={}){
@@ -62,7 +62,6 @@ eq(r.api.enabled(),true,'explicit review-sharing opt-in enables permission');
 const saved=JSON.parse(r.store.get('ai-assistant-feedback-review-consent'));
 eq(saved.version,'2.0.0','review consent stores current version');
 eq(saved.enabled,true,'review consent stores enabled flag');
-ok(!r.store.has('ai-assistant-feedback-telemetry-consent'),'review opt-in does not create telemetry consent');
 r.api.set(false);
 eq(r.api.enabled(),false,'review opt-out disables future repository sharing');
 const disabledAgain=JSON.parse(r.store.get('ai-assistant-feedback-review-consent'));

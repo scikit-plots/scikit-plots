@@ -1,0 +1,7 @@
+name: json
+version: 1
+summary: JSON documents - values found by the name of their key.
+extensions: [.json, .geojson, .har]
+splitter: json
+round_trip: true
+packs: [personal, records, patient, finance, secrets]

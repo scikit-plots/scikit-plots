@@ -1,0 +1,10 @@
+<nav class="learn-generation-studio-nav" aria-label="AI Learn creation studios">
+  {% for studio in studio_nav %}
+  <a href="{{ studio.href|e }}"{% if generation_kind == studio.kind %} aria-current="page"{% endif %}>{{ studio.label|e }}</a>
+  {% endfor %}
+</nav>
+<div class="learn-generation-workflow" aria-label="Generation workflow">
+  <span><strong>1</strong> Generate privately</span>
+  <span><strong>2</strong> Review output</span>
+  <span><strong>3</strong> Publish separately</span>
+</div>

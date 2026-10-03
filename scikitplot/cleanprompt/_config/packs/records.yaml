@@ -1,0 +1,34 @@
+# Identifier-keyed records: CRM, HR, education, telemetry.
+#
+# An identifier is sensitive because it joins. `customer_id` alone discloses
+# little; next to an export of the same system it is the key to everything.
+name: records
+version: 1
+summary: Customer, account, employee, student and device identifiers in any record.
+
+fields:
+  - names: [customer_id, client_id, account_id, user_id, username, user_name, login, member_number, employee_id, staff_id, employee_number, student_id, pupil_id, applicant_id, candidate_id, case_id, claim_id, ticket_requester, external_id, external_ref, customer_ref]
+    kind: RECORD_ID
+    span: clause
+    role: id
+  - names: [device_id, imei, imsi, serial_number, mac_address, advertising_id, idfa, gaid, ip, ip_address, hostname]
+    kind: DEVICE_ID
+    span: clause
+    role: id
+  - names: [latitude, longitude, lat, lon, lng, geolocation, gps, coordinates]
+    kind: GEO
+    role: amount
+
+patterns:
+  - kind: IMEI
+    pattern: '(?i)\bIMEI\s*[:#]?\s*(?P<value>\d{15})\b'
+    intent: A mobile handset IMEI with its label.
+    priority: 85
+    examples_yes: ['IMEI: 490154203237518']
+    examples_no: ['IMEI']
+  - kind: GEO
+    pattern: '-?\b(?:[1-8]?\d(?:\.\d{4,})|90(?:\.0{4,})?)\s*,\s*-?(?:1[0-7]\d(?:\.\d{4,})|\d{1,2}(?:\.\d{4,})|180(?:\.0{4,})?)\b'
+    intent: A latitude-longitude pair precise to four or more decimals, which locates a person to a building.
+    priority: 75
+    examples_yes: ['51.50072, -0.12462', '41.0082,28.9784']
+    examples_no: ['1.5, 2.5', '3.14, 2.71']

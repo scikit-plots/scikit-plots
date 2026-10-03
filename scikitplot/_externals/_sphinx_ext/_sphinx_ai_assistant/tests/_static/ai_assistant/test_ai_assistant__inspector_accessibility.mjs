@@ -31,7 +31,7 @@ ok(sheet.includes('_renderPayloadCode(feedbackPreview'), 'feedback JSONL uses sa
 ok(sheet.includes('_renderPayloadCode(feedbackSavedStructurePreview'), 'feedback JSON uses safe syntax renderer');
 ok(sheet.includes('_renderPayloadCode(preview'), 'contribution JSONL uses safe syntax renderer');
 ok(sheet.includes('_renderPayloadCode(savedStructurePreview'), 'contribution JSON uses safe syntax renderer');
-ok(sheet.includes('_renderPayloadCode(telemetrySavedPreview'), 'telemetry JSONL uses safe syntax renderer');
+ok(!sheet.includes('telemetrySavedPreview'), 'retired telemetry inspector is absent from the current sheet');
 
 ok(!src.includes("getElementById('ai-assistant-feedback-persist-toggle')"), 'obsolete Endpoint telemetry DOM hook removed');
 

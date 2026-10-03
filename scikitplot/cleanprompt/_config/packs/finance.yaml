@@ -1,0 +1,40 @@
+# Financial records: payroll, invoices, bank exports, KYC files.
+#
+# Card numbers and IBANs are already core patterns. What this pack adds is the
+# field rules - an account number is nine digits nobody would recognise - and
+# the identifiers that only mean something next to their label.
+name: finance
+version: 1
+summary: Account and routing numbers, salaries, tax identifiers and card fields.
+
+fields:
+  - names: [iban, account_number, account_no, acct_number, bank_account, sort_code, routing_number, aba, swift, bic]
+    kind: BANK_ACCOUNT
+    span: clause
+    role: id
+  - names: [card_number, cc_number, credit_card, pan, cvv, cvc, card_expiry, expiry_date]
+    kind: CARD
+    span: clause
+    role: id
+  - names: [salary, income, wage, wages, bonus, compensation, net_worth, credit_score, balance]
+    kind: FINANCIAL
+    role: amount
+  - names: [ein, vat_number, vat_id, company_tax_id, tax_number]
+    kind: TAX_ID
+    span: clause
+    role: id
+
+patterns:
+  - kind: ROUTING_NUMBER
+    pattern: '(?i)\b(?:routing|aba|rtn)(?:\s+(?:number|no\.?))?\s*[:#]?\s*(?P<value>\d{9})\b'
+    intent: A US ABA routing number with its label, accepted only when its checksum holds.
+    priority: 85
+    validate: aba_routing
+    examples_yes: ['routing number: 011000015', 'ABA 011000015']
+    examples_no: ['routing number: 011000016']
+  - kind: SORT_CODE
+    pattern: '(?i)\bsort\s*code\s*[:#]?\s*(?P<value>\d{2}-?\d{2}-?\d{2})\b'
+    intent: A UK sort code with its label; the bare shape is also a date.
+    priority: 84
+    examples_yes: ['sort code: 12-34-56', 'Sort Code 123456']
+    examples_no: ['12-34-56']

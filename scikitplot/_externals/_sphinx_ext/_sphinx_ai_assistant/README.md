@@ -97,9 +97,9 @@ the server-side proxy's secret store.
 - **Export as txt**: download the whole conversation as a plain-text file
 - **Copy this answer**: per-answer copy button under each assistant reply
 - **Feedback**: configurable quick + detailed local rating UI with synchronized
-  controls and an optional note. Anonymous rating telemetry is a separate
-  browser preference whose built-in initial value is **False** and which never
-  contains Q&A, note, model, page URL, or stable conversation identity.
+  controls and an optional note. Ratings stay local unless the reader explicitly
+  chooses a separate sharing workflow. Generic documentation-page feedback is
+  owned by `_sphinx_feedback`; Assistant Q&A review uses `/v1/feedback/review`.
   **Maintainer feedback review** (**Share with maintainers**) has an independently
   configurable initial value (**True** by default) and can place exactly one Q&A
   into an updatable provider-native feedback review. Explicit reader ON/OFF choices
@@ -136,7 +136,13 @@ the server-side proxy's secret store.
   ledger, and a deduplicated **Changed files** section is appended after the
   answer. See [`ACTIVITY_AND_FILE_PREVIEW_GUIDE.md`](ACTIVITY_AND_FILE_PREVIEW_GUIDE.md).
 - **Standalone AI search-bar** (opt-in, default off): an additive search input
-  that forwards text into the panel; never touches the theme's own search
+  that forwards text into the panel and never touches the theme's own search.
+  Its base input may be full or compact, and adaptive mode can reduce it to an
+  icon-only launcher when the configured sidebar/host collapses.  The icon
+  opens the panel with the composer focused.  Theme-specific collapse can be
+  declared with ``ai_assistant_search_bar_collapsed_selector`` (for current
+  PyData Sphinx Theme: ``.bd-sidebar-primary.pst-squeeze``), with measured host
+  width as a portable fallback.
 - **API mode now uses a configurable proxy** (`ai_assistant_panel_api_url`).
   A browser cannot call Anthropic directly (no CORS, key would leak), so API
   mode must point at your own proxy that injects the key server-side. With no
@@ -189,8 +195,9 @@ before use. The browser rejects embedded URL credentials, fragments, protocol-
 relative authorities, private/reserved runtime hosts, control/bidi characters,
 ambiguous backslashes, traversal (including encoded forms), invalid percent-
 encoding, overlong paths/queries, and non-HTTP(S) schemes. Relative routes cannot
-switch authority/scheme and are always resolved beneath `base`. Old custom
-profiles restored from browser storage are re-sanitised before use. Build-time
+switch authority/scheme and are always resolved beneath `base`. Browser-stored
+profiles are loaded only when they match the current profile schema and are
+re-sanitised before use. Build-time
 `conf.py` private/local hosts remain available for trusted local-development
 workflows but emit a privacy-safe Sphinx warning.
 
@@ -206,8 +213,8 @@ ai_assistant_endpoint_profiles = {
         "base": "https://scikit-plots-ai.hf.space",
         "chat": "v1/chat/completions",  # relative
         "share": "/v1/share",  # relative with leading slash
-        "feedback": "",  # inherit default
         "training": None,  # inherit default
+        "publication": "",  # inherit /v1/learn
         # "datasetRepo": "scikit-plots/ai-assistant-contributions",
     },
 }
@@ -216,11 +223,42 @@ ai_assistant_endpoint_default_profile = "hf"
 
 Absolute provider-specific endpoints are also supported and are used verbatim,
 so heterogeneous deployments can override only the routes that need a different
-host or path. Legacy host-only feature values remain compatible.
+host or path. A feature value is never reinterpreted as another service base.
+
+The built-in route family also includes generation surfaces for ``image``,
+``video``, ``audio``, ``document``, and reviewed AI Learn ``publication``. Blank
+overrides inherit the canonical short routes ``{base}/v1/image``, ``{base}/v1/video``,
+``{base}/v1/audio``, ``{base}/v1/document``, and ``{base}/v1/learn``. The proxy keeps the previous ``*-generations`` routes
+as compatibility aliases where they existed; new configuration and generated
+snippets use the short routes. Capability discovery at ``GET {base}/`` remains
+the preferred path, because the browser can distinguish disabled, deterministic
+test, and real runtimes before it enables an expensive generation action.
+
+``document`` here is an **output-generation route**. It is separate from the
+Assistant resource-input ``document`` modality used to inspect uploaded PDF or
+other supported document resources in chat.
+
+### Public sibling bridges
+
+Two narrow browser APIs let sibling extensions integrate without scraping the
+Assistant DOM or reading private persistence/token state:
+
+- ``window.AI_ASSISTANT_ENDPOINT_API`` resolves sanitized feature routes and
+  subscribes to endpoint-profile changes.
+- ``window.AI_ASSISTANT_MODEL_API`` exposes non-secret model identity/provider
+  metadata, the current effort state, canonical model selection, the full Model
+  Configuration launcher, and a change subscription. Endpoint URLs and tokens
+  are intentionally absent from model snapshots.
+
+Every user-facing model selector must call the same canonical selection
+transaction (``_selectQuickModel`` internally). Updating only the persisted model
+id is insufficient: it skips the model-change event, effort reconciliation, full
+sheet/inline-picker synchronization, and sibling subscribers. This includes the
+compact **Try a different model** menu beside the footer model picker.
 
 ## Feedback and maintainer review
 
-Feedback is intentionally separate from anonymous telemetry and dataset contribution.
+Feedback review is intentionally separate from local ratings, generic page feedback, and dataset contribution.
 The **Feedback & contribution** workspace exposes three tabs:
 
 ```text
@@ -255,11 +293,7 @@ retains both the raw rating and server-derived `qualityScore` (`0..1`) /
 withdrawal removes the active canonical feedback view and clears the local rating
 state so old button selections do not remain visible.
 
-The existing **Send anonymous rating telemetry** switch still controls only
-privacy-minimal `/v1/feedback` metadata. `FEEDBACK_PERSIST_ENABLED=false` can make
-that telemetry intentionally non-persistent even while the browser permission is On.
-It does not disable `/v1/feedback/review`, and telemetry consent never authorizes
-content-bearing review.
+Assistant rating controls are local-only. Generic page feedback is owned by `_sphinx_feedback` on `/v1/feedback`; explicit content-bearing Assistant review remains a separate reader action on `/v1/feedback/review`.
 
 For provider setup, reviewer behavior, update/no-op rules, withdrawal, persistence,
 and troubleshooting, read [`FEEDBACK_REVIEW_GUIDE.md`](_hf_spaces_proxy/FEEDBACK_REVIEW_GUIDE.md).
@@ -361,7 +395,14 @@ Proxy Variable:
 CONTRIBUTION_REVIEW_MODE=provider-pr
 ```
 
-Provider-neutral storage topology is supplied through `RECORD_STORAGE_TARGETS`:
+Provider-neutral storage topology may be overridden through `RECORD_STORAGE_TARGETS`.
+When it is unset and legacy `TRAINING_DATASET_REPO` is also unset, the proxy uses
+the bundled records projection (`hf-primary` + `github-mirror`) from its code-owned
+`DEFAULT_TARGET_REGISTRY`. The same registry contains a separate
+`github-learn-ai` publication Primary; that entry is never passed to record
+storage.
+
+Example record-only override:
 
 ```json
 [
@@ -547,7 +588,6 @@ ai_assistant_panel_persist = True
 ai_assistant_panel_remember_conversation = True
 
 # Reader-facing privacy/runtime initial values. A stored reader choice wins.
-ai_assistant_panel_feedback_telemetry_default = False  # privacy-first
 ai_assistant_panel_feedback_review_default = True  # set False for local-only/dev checks
 ai_assistant_panel_page_integration_default = False  # private event bus by default
 ai_assistant_panel_streaming_default = True  # reader preference

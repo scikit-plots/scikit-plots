@@ -1,0 +1,7 @@
+name: docx
+version: 1
+summary: Word documents (Office Open XML) - body, headers, footers, notes and comments, read with the standard library. Output is redacted text.
+extensions: [.docx, .docm]
+splitter: office
+round_trip: false
+packs: [personal, patient, finance, secrets]

@@ -1,0 +1,7 @@
+name: javascript
+version: 1
+summary: JavaScript and TypeScript sources - object properties and assignments.
+extensions: [.js, .mjs, .cjs, .jsx, .ts, .tsx]
+splitter: script
+round_trip: true
+packs: [personal, secrets, cloud]

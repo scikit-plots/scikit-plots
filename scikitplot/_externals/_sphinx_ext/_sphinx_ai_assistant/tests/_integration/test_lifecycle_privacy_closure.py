@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 
 import asyncio
 import hashlib
@@ -107,6 +107,9 @@ def _reset_runtime(monkeypatch):
     monkeypatch.setattr(proxy_app, "SHARE_PUBLIC_BASE_URL", "https://share.example.test")
     monkeypatch.setattr(proxy_app, "SHARE_RATE_LIMIT_PER_HOUR", 10)
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_RATE_LIMIT_PER_HOUR", 5)
+    # This file validates operation-envelope/idempotency behavior against the
+    # local quarantine ledger; provider-pr transport is covered separately.
+    monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_MODE", "ledger")
     yield
     proxy_app._share_store.clear()
     proxy_app._share_rl.clear()

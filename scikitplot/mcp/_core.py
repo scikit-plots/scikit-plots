@@ -37,7 +37,6 @@ import math
 import re
 import threading
 from dataclasses import dataclass, field
-from itertools import islice
 from typing import Any, Iterable, Protocol, runtime_checkable
 from urllib.parse import (  # ruff: ignore[unused-import]
     quote,
@@ -293,7 +292,7 @@ def _coerce_finite_score(value: Any, default: float = 0.0) -> float:
     return score if math.isfinite(score) else default
 
 
-def build_search_docs_result(
+def build_search_docs_result(  # ruff: ignore[too-many-branches]
     query: str,
     chunks: Iterable[RetrievedChunk],
     *,
@@ -366,13 +365,29 @@ def build_search_docs_result(
     limit = _normalise_limit(max_results)
 
     safe: list[dict[str, Any]] = []
-    for chunk in islice(chunks or (), limit):
+    # Identical passages under different sources (licence headers, navigation,
+    # boilerplate repeated across pages) cost their full length in tokens each
+    # time and add nothing. The first, best-ranked copy is kept and every other
+    # source is cited on it, so no provenance is lost (finding CX-02).
+    first_of_text: dict[str, dict[str, Any]] = {}
+    merged = 0
+    for chunk in chunks or ():
+        if len(safe) >= limit:
+            break
         if not isinstance(chunk, RetrievedChunk):
             continue
         uri = _safe_uri(chunk.source_uri)
         anchor = _clean_text(chunk.anchor, 200)
         chunk_text, chunk_cut = _clean_text_reported(chunk.text, MAX_CHUNK_CHARS)
         chunk_doc_id = _clean_text(chunk.doc_id, 200)
+        text_key = " ".join(chunk_text.split())
+        kept = first_of_text.get(text_key)
+        if kept is not None:
+            kept["also_in"].append(
+                {"source_uri": _append_fragment(uri, anchor), "doc_id": chunk_doc_id}
+            )
+            merged += 1
+            continue
         if chunk_cut:
             truncations.append(
                 {
@@ -389,8 +404,10 @@ def build_search_docs_result(
                 "anchor": anchor,
                 "doc_id": chunk_doc_id,
                 "score": _coerce_finite_score(chunk.score),
+                "also_in": [],
             }
         )
+        first_of_text[text_key] = safe[-1]
 
     security = {
         "untrusted_content": True,
@@ -448,16 +465,17 @@ def build_search_docs_result(
                 "text": f"{_UNTRUSTED_NOTICE}\n{header}\n{item['text']}\n{cite_line}",
             }
         )
-        citations.append(
-            {
-                "n": i,
-                "source_uri": item["source_uri"],
-                "title": item["title"],
-                "anchor": item["anchor"],
-                "doc_id": item["doc_id"],
-                "score": item["score"],
-            }
-        )
+        citation = {
+            "n": i,
+            "source_uri": item["source_uri"],
+            "title": item["title"],
+            "anchor": item["anchor"],
+            "doc_id": item["doc_id"],
+            "score": item["score"],
+        }
+        if item["also_in"]:
+            citation["also_in"] = item["also_in"]
+        citations.append(citation)
 
     passages = [block["text"] for block in content_blocks]
     # M07: report the status on the success path too. A DEGRADED result still
@@ -476,6 +494,7 @@ def build_search_docs_result(
         "count": len(citations),
         "passages": passages,
         "citations": citations,
+        "duplicates_merged": merged,
         "message": None,
         "retrieval_status": ok_status,
         "security": security,

@@ -1,0 +1,22 @@
+<header class="learn-generation-hero{% if studio_hero_class|default('') %} {{ studio_hero_class|e }}{% endif %}">
+  <div class="learn-generation-hero-copy">
+    <p class="learn-kicker">AI Learn Studio</p>
+    <h2>{{ studio_title|e }}</h2>
+    <p>{{ studio_description|e }}</p>
+  </div>
+  {% include "learn/generation-studio-nav.html" %}
+  {% if studio_runtime|default(false) %}
+  <p class="learn-generation-status learn-generation-runtime-status{% if generation_kind == 'video' %} learn-video-runtime-status{% endif %}" data-{{ generation_kind|e }}-runtime-status role="status" aria-live="polite">{{ studio_runtime_status|e }}</p>
+  <div class="learn-generation-runtime-readiness{% if generation_kind == 'video' %} learn-video-runtime-readiness{% endif %}" data-{{ generation_kind|e }}-runtime-readiness role="list" aria-label="{{ studio_readiness_label|e }}">
+    <span role="listitem" data-{{ generation_kind|e }}-ready-endpoint data-state="pending"><span>Endpoint</span><strong>Checking</strong></span>
+    <span role="listitem" data-{{ generation_kind|e }}-ready-generation data-state="pending"><span>Generation</span><strong>Checking</strong></span>
+    <span role="listitem" data-{{ generation_kind|e }}-ready-publishing data-state="pending"><span>Publishing</span><strong>Checking</strong></span>
+  </div>
+  {% else %}
+  <div class="learn-generation-readiness" aria-label="Creation lifecycle">
+    <span data-state="ready"><strong>Context</strong><small>Composable</small></span>
+    <span data-state="ready"><strong>AI draft</strong><small>Private</small></span>
+    <span data-state="pending"><strong>Publication</strong><small>Separate handoff</small></span>
+  </div>
+  {% endif %}
+</header>

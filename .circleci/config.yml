@@ -642,7 +642,6 @@ commands:
             pip install -r ./requirements/corpus.txt
 
             # pip install voyager==2.1.0
-            pip install nltk
             pip install beautifulsoup4 markdownify
 
             # ✅ It’s a distutils override conflict
@@ -670,7 +669,10 @@ commands:
               jupyterlite-xeus \
               jupyterlite-terminal
 
+            pip install nltk
             # Pre-install the NLTK data in CI.
+            # python -m nltk.downloader stopwords
+            # python -m nltk.downloader punkt_tab
             # python -m nltk.downloader punkt_tab wordnet omw-1.4
             #
             # `python -m nltk.downloader` cannot work on this executor. NLTK's
@@ -833,8 +835,6 @@ commands:
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
             export SCIKITPLOT_GALLERY_RUN_ASR=1
             export SCIKITPLOT_GALLERY_RUN_NETWORK=1
-            # python -m nltk.downloader stopwords
-            # python -m nltk.downloader punkt_tab
             cd docs
             # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
             make html 2>&1 | tee ~/sphinx_html_log.txt

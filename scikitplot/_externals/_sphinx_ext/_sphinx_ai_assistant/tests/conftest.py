@@ -273,9 +273,7 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_panel_feedback_placeholder = ""
     cfg.ai_assistant_panel_feedback_submit = "Send feedback"
     cfg.ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
-    cfg.ai_assistant_panel_feedback_log = False
     cfg.ai_assistant_panel_feedback_scale = "auto"
-    cfg.ai_assistant_panel_feedback_telemetry_default = False
     cfg.ai_assistant_panel_feedback_review_default = True
     cfg.ai_assistant_panel_page_integration_default = False
 
@@ -285,14 +283,9 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_isolation_parent_origins = []
     cfg.ai_assistant_isolation_allow_microphone = False
 
-    cfg.ai_assistant_panel_feedback_endpoint = ""
-    cfg.ai_assistant_panel_feedback_token = ""
     cfg.ai_assistant_allow_runtime_tokens = False
     cfg.ai_assistant_allow_credentialed_fetch = False
-    cfg.ai_assistant_global_share_endpoint = ""
-    cfg.ai_assistant_global_share_token = ""
     cfg.ai_assistant_global_share_ttl_days = 30
-    cfg.ai_assistant_training_endpoint = ""
     cfg.ai_assistant_endpoint_profiles = {}
     cfg.ai_assistant_endpoint_default_profile = ""
 
@@ -303,6 +296,8 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_search_bar_selector = ""
     cfg.ai_assistant_search_bar_position = "top"
     cfg.ai_assistant_search_bar_mini = False
+    cfg.ai_assistant_search_bar_adaptive = True
+    cfg.ai_assistant_search_bar_collapsed_selector = ""
     cfg.ai_assistant_panel_search_placeholder = "Ask AI about these docs…"
 
     # Standard Sphinx values

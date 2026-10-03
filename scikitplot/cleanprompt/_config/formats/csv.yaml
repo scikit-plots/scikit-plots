@@ -1,0 +1,9 @@
+name: csv
+version: 1
+summary: Comma-separated tables - each cell named by its column header.
+extensions: [.csv]
+splitter: delimited
+round_trip: true
+options:
+  delimiter: ","
+packs: [personal, records, patient, finance, secrets]

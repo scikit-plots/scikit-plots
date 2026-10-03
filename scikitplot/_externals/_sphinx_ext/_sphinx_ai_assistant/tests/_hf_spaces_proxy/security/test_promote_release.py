@@ -163,7 +163,7 @@ def _evidence(tmp_path: Path, source: Path) -> tuple[Path, dict]:
     result = {
         "ok": True,
         "release_id": "run149-test",
-        "proxy_version": "7.4.0",
+        "proxy_version": "7.9.0",
         "source_tree_sha256": source_sha,
         "source_revision": REVISION,
         "evidence_sha256": _sha(evidence),

@@ -1,0 +1,7 @@
+name: archive
+version: 1
+summary: Zip archives - each member redacted by its own format and written to a new archive; unsafe or unsupported members are reported, never extracted.
+extensions: [.zip]
+splitter: archive
+round_trip: true
+packs: [personal, patient, finance, secrets]

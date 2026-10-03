@@ -5,7 +5,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# _shared_logic.py  v7.0.0
+# _shared_logic.py  v7.9.1
 #
 # Single source of truth for shared constants, pure helper functions, and
 # type aliases used by the deployed proxy (_hf_spaces_proxy/app.py) and the
@@ -110,6 +110,14 @@ DEFAULT_HF_SPACES_MODEL_URL : str
     Default URL for the custom ai-model HF Space (Path 2).
 DEFAULT_HF_SPACES_MODEL_NAMESPACES : tuple[str, ...]
     Default model owner namespaces routed to the model Space (Path 2).
+DEFAULT_AI_LEARN_GITHUB_TOKEN_ENVS : tuple[str, ...]
+    Ordered server-side credential aliases for AI Learn publication.
+DEFAULT_AI_LEARN_PUBLICATION_MODE : str
+    Default reviewed AI Learn publication transport.
+DEFAULT_CONTRIBUTION_REVIEW_MODE : str
+    Default contribution review transport.
+_resolve_first_env_value : callable
+    Resolve the first non-empty value from one env name or an ordered list.
 _safe_int : callable
     Parse an integer environment variable with a safe fallback.
 _parse_model : callable
@@ -180,6 +188,18 @@ __all__ = [  # noqa: RUF022
     "DEFAULT_HF_PROVIDER_MODELS",
     "DEFAULT_HF_SPACES_MODEL_NAMESPACES",
     "DEFAULT_HF_SPACES_MODEL_URL",
+    "DEFAULT_TARGET_REGISTRY",
+    "DEFAULT_RECORD_STORAGE_TARGETS",
+    "DEFAULT_AI_LEARN_PUBLICATION_TARGET",
+    "DEFAULT_AI_LEARN_GITHUB_REPOSITORY",
+    "DEFAULT_AI_LEARN_GITHUB_DEFAULT_BRANCH",
+    "DEFAULT_AI_LEARN_GITHUB_WORKFLOW",
+    "DEFAULT_AI_LEARN_CANONICAL_PREFIX",
+    "DEFAULT_AI_LEARN_PUBLICATION_MAX_BODY_BYTES",
+    "DEFAULT_AI_LEARN_PUBLICATION_RATE_LIMIT_PER_HOUR",
+    "DEFAULT_AI_LEARN_GITHUB_TOKEN_ENVS",
+    "DEFAULT_AI_LEARN_PUBLICATION_MODE",
+    "DEFAULT_CONTRIBUTION_REVIEW_MODE",
     "DEFAULT_MAX_BODY_BYTES",
     "DEFAULT_MODEL",
     "DEFAULT_PATH2_READ_TIMEOUT",
@@ -197,6 +217,7 @@ __all__ = [  # noqa: RUF022
     "_build_cors_headers",
     "_is_custom_model_namespace",
     "_parse_model",
+    "_resolve_first_env_value",
     "_safe_float",
     "_safe_int",
     "_token_log_fragment",
@@ -222,7 +243,7 @@ __all__ = [  # noqa: RUF022
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Proxy release version — bump on every breaking change.
-PROXY_VERSION: str = "7.4.0"
+PROXY_VERSION: str = "7.9.1"
 
 #: HuggingFace Inference Providers router base URL (no trailing slash).
 #: Only used for Path 3 (standard provider models) when ``BACKEND_URL`` is
@@ -290,6 +311,164 @@ DEFAULT_HF_SPACES_MODEL_URL: str = (
 #: are routed to the ai-model Space (Path 2) rather than the HF API (Path 3).
 #: Overridable via the ``HF_SPACES_MODEL_NAMESPACES`` environment variable.
 DEFAULT_HF_SPACES_MODEL_NAMESPACES: tuple[str, ...] = ("scikit-plots",)
+
+#: Code-owned provider/authority registry. This is the single source of truth
+#: for the bundled record topology and reviewed AI Learn publication target.
+#:
+#: ``role`` is scoped by ``authority``. Therefore the records authority and the
+#: publication authority may each have one ``primary`` without making the Learn
+#: repository a feedback/contribution destination. Browser input never mutates
+#: this registry, and token entries are environment-variable names only.
+DEFAULT_TARGET_REGISTRY: str = r"""
+[
+  {
+    "id": "hf-primary",
+    "label": "Hugging Face Dataset",
+    "authority": "records",
+    "provider": "huggingface",
+    "role": "primary",
+    "repo": "scikit-plots/ai-assistant-contributions",
+    "branch": "main",
+    "paths": {
+      "feedback": "feedback",
+      "contributions": "contributions"
+    },
+    "token_env": "AI_RECORD_STORAGE_TOKEN_HF_PRIMARY",
+    "token_type": "fine-grained",
+    "expose_links": true
+  },
+  {
+    "id": "github-mirror",
+    "label": "GitHub Mirror",
+    "authority": "records",
+    "provider": "github",
+    "role": "mirror",
+    "repo": "scikit-plots/ai-assistant-records",
+    "branch": "main",
+    "paths": {
+      "feedback": "feedback",
+      "contributions": "contributions"
+    },
+    "token_env": "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR",
+    "expose_links": true
+  },
+  {
+    "id": "github-learn-ai",
+    "label": "GitHub Learn AI",
+    "authority": "learn-ai-publication",
+    "provider": "github",
+    "role": "primary",
+    "repo": "scikit-plots/learn",
+    "branch": "main",
+    "workflow": "ai-learn-publish.yml",
+    "paths": {
+      "root": "docs/source",
+      "prefix": "docs/source/learn-ai"
+    },
+    "max_body_bytes": 49152,
+    "rate_limit_per_hour": 6,
+    "token_env": [
+      "AI_LEARN_GITHUB_TOKEN",
+      "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR"
+    ],
+    "expose_links": true
+  }
+]
+""".strip()
+
+
+def _load_default_target_registry() -> tuple[dict[str, Any], ...]:
+    """Parse and minimally validate the immutable code-owned target registry."""
+    data = json.loads(DEFAULT_TARGET_REGISTRY)
+    if not isinstance(data, list) or not data:
+        raise RuntimeError("DEFAULT_TARGET_REGISTRY must be a non-empty JSON array")
+    targets: list[dict[str, Any]] = []
+    ids: set[str] = set()
+    for raw in data:
+        if not isinstance(raw, dict):
+            raise RuntimeError(  # ruff: ignore[type-check-without-type-error]
+                "DEFAULT_TARGET_REGISTRY entries must be objects",
+            )
+        target_id = str(raw.get("id") or "").strip()
+        authority = str(raw.get("authority") or "").strip()
+        if not target_id or target_id in ids or not authority:
+            raise RuntimeError("DEFAULT_TARGET_REGISTRY target id/authority invalid")
+        ids.add(target_id)
+        targets.append(dict(raw))
+    return tuple(targets)
+
+
+_DEFAULT_TARGETS = _load_default_target_registry()
+_DEFAULT_RECORD_TARGETS = tuple(
+    target for target in _DEFAULT_TARGETS if target.get("authority") == "records"
+)
+_DEFAULT_AI_LEARN_TARGETS = tuple(
+    target
+    for target in _DEFAULT_TARGETS
+    if target.get("authority") == "learn-ai-publication"
+)
+if len([t for t in _DEFAULT_RECORD_TARGETS if t.get("role") == "primary"]) != 1:
+    raise RuntimeError("default records authority must contain exactly one primary")
+if (
+    len(_DEFAULT_AI_LEARN_TARGETS) != 1
+    or _DEFAULT_AI_LEARN_TARGETS[0].get("role") != "primary"
+):
+    raise RuntimeError(
+        "default AI Learn publication authority must contain one primary"
+    )
+
+#: JSON consumed by the record-storage parser. Publication entries are projected
+#: out before this value reaches StorageCoordinator, preserving the historical
+#: primary/mirror persistence contract.
+DEFAULT_RECORD_STORAGE_TARGETS: str = json.dumps(
+    _DEFAULT_RECORD_TARGETS,
+    separators=(",", ":"),
+    sort_keys=True,
+)
+
+#: Code-owned reviewed-publication target projected from the same registry.
+DEFAULT_AI_LEARN_PUBLICATION_TARGET: dict[str, Any] = dict(_DEFAULT_AI_LEARN_TARGETS[0])
+DEFAULT_AI_LEARN_GITHUB_REPOSITORY: str = str(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["repo"]
+)
+DEFAULT_AI_LEARN_GITHUB_DEFAULT_BRANCH: str = str(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["branch"]
+)
+DEFAULT_AI_LEARN_GITHUB_WORKFLOW: str = str(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["workflow"]
+)
+DEFAULT_AI_LEARN_CANONICAL_PREFIX: str = str(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["paths"]["prefix"]
+)
+DEFAULT_AI_LEARN_PUBLICATION_MAX_BODY_BYTES: int = int(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["max_body_bytes"]
+)
+DEFAULT_AI_LEARN_PUBLICATION_RATE_LIMIT_PER_HOUR: int = int(
+    DEFAULT_AI_LEARN_PUBLICATION_TARGET["rate_limit_per_hour"]
+)
+
+#: Ordered server-side credential aliases for reviewed AI Learn publication.
+#: The dedicated publication secret wins. The record-storage GitHub credential
+#: is a compatibility fallback only; it still must be authorized for the fixed
+#: AI Learn repository/workflow. Neither name nor value is browser-controlled.
+_raw_ai_learn_token_env = DEFAULT_AI_LEARN_PUBLICATION_TARGET["token_env"]
+if isinstance(_raw_ai_learn_token_env, str):
+    DEFAULT_AI_LEARN_GITHUB_TOKEN_ENVS: tuple[str, ...] = (_raw_ai_learn_token_env,)
+else:
+    DEFAULT_AI_LEARN_GITHUB_TOKEN_ENVS = tuple(str(v) for v in _raw_ai_learn_token_env)
+if DEFAULT_AI_LEARN_GITHUB_TOKEN_ENVS != (
+    "AI_LEARN_GITHUB_TOKEN",
+    "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR",
+):
+    raise RuntimeError("default AI Learn credential precedence is invalid")
+
+#: Default reviewed-publication transport. A missing credential still leaves the
+#: public capability unready and all publish attempts fail closed.
+DEFAULT_AI_LEARN_PUBLICATION_MODE: str = "github"
+
+#: Default contribution quarantine/review surface. Invalid explicit values are
+#: still rejected by the application into the historical ledger-safe fallback.
+DEFAULT_CONTRIBUTION_REVIEW_MODE: str = "provider-pr"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -385,6 +564,37 @@ HF_WRITE_TOKEN_TYPES: frozenset[str] = frozenset(
 # ─────────────────────────────────────────────────────────────────────────────
 # Pure helper functions
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _resolve_first_env_value(
+    env_names: str | list[str] | tuple[str, ...],
+) -> tuple[str, str]:
+    """Return the first non-empty environment value and the env name used.
+
+    ``env_names`` may be one environment-variable name or an ordered list/tuple.
+    Empty names and duplicates are ignored. This helper intentionally performs
+    no allow-list validation; callers that accept configurable names must apply
+    their own authority-specific validation before resolving values.
+    """
+    if isinstance(env_names, str):
+        raw_names = (env_names,)
+    elif isinstance(env_names, (list, tuple)):
+        raw_names = tuple(env_names)
+    else:
+        return "", ""
+
+    seen: set[str] = set()
+    for raw_name in raw_names:
+        if not isinstance(raw_name, str):
+            continue
+        name = raw_name.strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value, name
+    return "", ""
 
 
 def _safe_int(value: str | None, default: int) -> int:
@@ -1413,6 +1623,8 @@ def load_proxy_env() -> dict[str, Any]:
             Path 3 read timeout (env ``PATH3_TIMEOUT``).
         ``max_body_bytes`` : int
         ``allowed_origins`` : str
+        ``local_dev_origins`` : str
+            Exact loopback browser origins for opt-in local docs development.
         ``allowed_origins_mode`` : str
             Raw deployment composition mode (``additive`` or ``replace``).
         ``hf_token_type`` : str
@@ -1506,6 +1718,7 @@ def load_proxy_env() -> dict[str, Any]:
             DEFAULT_MAX_BODY_BYTES,
         ),
         "allowed_origins": os.environ.get("ALLOWED_ORIGINS", "").strip(),
+        "local_dev_origins": os.environ.get("LOCAL_DEV_ORIGINS", "").strip(),
         "allowed_origins_mode": (
             os.environ.get("ALLOWED_ORIGINS_MODE", "additive").strip().lower()
             or "additive"

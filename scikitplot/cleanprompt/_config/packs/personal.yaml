@@ -1,0 +1,65 @@
+# Personal information that appears in almost any record.
+#
+# Fields match on the normalised key, and also on a key that ends with one of
+# these names: `customer_email`, `billing_phone` and `patient_name` are all
+# covered by `email`, `phone` and `name`.
+name: personal
+version: 1
+summary: Names, contact details, birth dates and national identifiers in any record.
+
+fields:
+  - names: [full_name, first_name, last_name, given_name, family_name, surname, middle_name, maiden_name, nickname, customer_name, patient_name, contact_name, client_name, employee_name, person_name, owner_name, account_holder, cardholder_name, recipient_name, sender_name]
+    kind: PERSON
+    role: text
+  # A bare `name` is a person in a contact list and a file, a model or a
+  # column everywhere else, so it matches only exactly - never as a suffix.
+  - names: [name]
+    kind: PERSON
+    role: text
+    suffix: false
+  # Accounts a person signs in with or is named as the owner of.
+  - names: [owner, author, assignee]
+    kind: PERSON
+    role: text
+  - names: [email, email_address, e_mail, mail]
+    kind: EMAIL
+    span: clause
+    role: text
+  - names: [phone, phone_number, telephone, tel, mobile, cell, fax, whatsapp]
+    kind: PHONE
+    span: clause
+    role: text
+  - names: [address, street, street_address, address_line, address_line_1, address_line_2, house_number, postcode, post_code, postal_code, zip, zip_code, zipcode]
+    kind: ADDRESS
+    role: text
+  - names: [dob, date_of_birth, birth_date, birthdate, birthday]
+    kind: DOB
+    role: date
+  - names: [national_id, ssn, social_security_number, nino, national_insurance_number, tckn, tc_kimlik_no, passport, passport_number, driver_license, drivers_license, driving_licence, license_number, tax_id, tin]
+    kind: NATIONAL_ID
+    span: clause
+    role: id
+  - names: [gender, sex, ethnicity, race, religion, nationality, marital_status, sexual_orientation]
+    kind: DEMOGRAPHIC
+    role: category
+
+patterns:
+  - kind: TCKN
+    pattern: '\b[1-9]\d{10}\b'
+    intent: A Turkish national identity number, accepted only when both check digits hold.
+    priority: 88
+    validate: tckn
+    examples_yes: ['10000000146']
+    examples_no: ['10000000147', '01234567890']
+  - kind: NINO
+    pattern: '\b(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z] ?\d{2} ?\d{2} ?\d{2} ?[A-D]\b'
+    intent: A UK National Insurance number in its issued letter ranges.
+    priority: 86
+    examples_yes: ['AB 12 34 56 C', 'JG103782A']
+    examples_no: ['GB123456A', 'AB 12 34 56 E', 'QQ 12 34 56 C']
+  - kind: DOB
+    pattern: '(?i)\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\s*[:=]?\s*(?P<value>\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4})\b'
+    intent: A date of birth written with its label, so an ordinary date is never taken for one.
+    priority: 84
+    examples_yes: ['DOB: 1984-03-02', 'date of birth 02/03/1984', 'born on 2.3.1984']
+    examples_no: ['2024-01-15', 'released 2024-01-15']

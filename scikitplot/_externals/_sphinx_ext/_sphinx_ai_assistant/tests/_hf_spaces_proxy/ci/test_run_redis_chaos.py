@@ -3,6 +3,10 @@
 """Run 147 — reproducible live Redis standalone/cluster CI boundary."""
 from __future__ import annotations
 
+# Canonical absolute imports, on purpose. This module also runs as a script:
+# the live-cluster test starts two worker processes with ``python <this file>
+# --worker-reserve ...``. A script has no parent package, so a relative import
+# fails there, in the worker, long after collection has succeeded.
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT, RUNTIME_ROOT
 
 import asyncio
@@ -257,8 +261,23 @@ async def _bootstrap_cluster(nodes: list[_ClusterNode]) -> dict[int, int]:
         await clients[0].command("CLUSTER", "MEET", "127.0.0.1", client.port)
 
     async def all_known():
-        raw = await clients[0].command("CLUSTER", "NODES")
-        return len([line for line in _decode(raw).splitlines() if line.strip()]) >= 6
+        # Every node must know every other node, with the handshake finished.
+        # MEET is sent from node 0 only, so the rest learn of one another by
+        # gossip, a moment later. Asking node 0 alone let the next step run
+        # too early: a replica told to follow a primary it had not yet heard
+        # of answers "ERR Unknown node", and whether it had heard yet was a
+        # matter of timing.
+        for client in clients:
+            lines = [
+                line.split()
+                for line in _decode(await client.command("CLUSTER", "NODES")).splitlines()
+                if line.strip()
+            ]
+            if len(lines) < len(clients):
+                return False
+            if any("handshake" in fields[2].split(",") for fields in lines):
+                return False
+        return True
 
     await _wait_until(all_known)
 

@@ -1,0 +1,6 @@
+<form class="learn-search" role="search" action="{{ pathto('search')|e }}" data-topic-search>
+<label for="learn-query">Explore a topic</label>
+<input type="search" id="learn-query" name="q" maxlength="2000" placeholder="A topic, question, book, article, or source URL" autocomplete="off">
+<div class="learn-search-actions"><label class="learn-mode">Mode <select name="mode" aria-label="Mode"><option value="search">Search</option><option value="research">Research</option><option value="deep-research">Deep Research</option></select></label><button type="submit">Explore →</button></div>
+<div data-search-results aria-live="polite"></div>
+</form>

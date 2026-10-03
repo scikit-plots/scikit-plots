@@ -1,0 +1,7 @@
+name: shell
+version: 1
+summary: Shell scripts - assignments, exports and long options.
+extensions: [.sh, .bash, .zsh, .ksh, .fish, .ps1, .bat, .cmd]
+splitter: script
+round_trip: true
+packs: [personal, secrets, cloud]

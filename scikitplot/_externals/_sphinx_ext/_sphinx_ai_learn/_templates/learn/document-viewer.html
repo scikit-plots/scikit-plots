@@ -1,0 +1,10 @@
+<div class="learn-document-viewer" data-document-viewer>
+  <p class="learn-kicker">Published document</p>
+  <p><strong>{{ subject.title|e }}</strong></p>
+  <p class="learn-meta">{{ media.mime_type|e }} · passive local asset</p>
+  <div class="learn-actions">
+    <a class="learn-button learn-primary" href="{{ media.src|e }}" target="_blank" rel="noopener">Open document</a>
+    <a class="learn-button" href="{{ media.src|e }}" download>Download</a>
+  </div>
+  <p class="learn-meta">HTML documents are intentionally not published through this viewer; active content stays outside the Learn document contract.</p>
+</div>

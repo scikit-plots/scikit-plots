@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import base64
 import importlib
+from pathlib import Path
 
 import pytest
 
@@ -88,6 +90,28 @@ class TestStaticSubpackage:
     def test_chatgpt_icon_is_svg_chatgpt(self):
         assert self._static._PROVIDER_META["chatgpt"]["icon"] == self._static._SVG_CHATGPT
 
+    def test_feedback_detail_icon_is_additive_and_matches_disk_asset(self):
+        """The dedicated action icon must not replace the generic discussion icon."""
+        assert "_SVG_FEEDBACK_DETAIL" in self._static.__all__
+        assert "feedback-detail" in self._static._ICON_META
+        assert "comment-discussion" in self._static._ICON_META
+        assert (
+            self._static._ICON_META["feedback-detail"]["icon"]
+            == self._static._SVG_FEEDBACK_DETAIL
+        )
+        assert (
+            self._static._ICON_META["comment-discussion"]["icon"]
+            == self._static._SVG_COMMENT_DISCUSSION
+        )
+        assert self._static._SVG_FEEDBACK_DETAIL != self._static._SVG_COMMENT_DISCUSSION
+
+        encoded = self._static._SVG_FEEDBACK_DETAIL.split(",", 1)[1]
+        decoded = base64.b64decode(encoded)
+        disk = Path(self._static.__file__).with_name("feedback-detail.svg").read_bytes()
+        assert decoded == disk
+        assert b'viewBox="0 0 20 20"' in decoded
+        assert b'fill="currentColor"' in decoded
+
     def test_all_in_all_list(self):
-        for name in ("_SVG_COPY", "_SVG_DEFAULT", "_PROVIDER_META"):
+        for name in ("_SVG_COPY", "_SVG_DEFAULT", "_SVG_FEEDBACK_DETAIL", "_PROVIDER_META"):
             assert name in self._static.__all__

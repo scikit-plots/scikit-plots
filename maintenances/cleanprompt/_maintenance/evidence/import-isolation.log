@@ -1,0 +1,55 @@
+========================================================================
+IMPORT ISOLATION UNDER AN __import__ BLOCKER
+blocked: spacy, nltk, flask, cryptography, numpy, pandas, pydantic, scipy, sklearn, click, yaml, typing_extensions
+========================================================================
+plain import                   PASS  ok []
+star import                    PASS  ok []
+dir()                          PASS  ok True []
+capabilities()                 PASS  ok ['crypto', 'ner', 'nltk', 'web'] []
+redact+restore                 PASS  ok True []
+hasattr miss                   PASS  ok []
+getattr spacy leaks nothing    PASS  ok []
+getattr nltk leaks nothing     PASS  ok []
+pickle a result                PASS  ok True
+deepcopy a policy              PASS  ok True
+encode/decode round trip       PASS  ok True []
+handle export/load             PASS  ok True []
+session context manager        PASS  ok True []
+describe_engines               PASS  ok True []
+resolve_model                  PASS  ok True []
+logging configured             PASS  ok True []
+encrypt round trip             PASS  ok True []
+wrong passphrase refused       PASS  ok []
+new passphrase                 PASS  ok True []
+fluent plan without PyYAML     PASS  ok True []
+custom JSON pack without PyYAML PASS  ok True []
+custom YAML asks for PyYAML    PASS  ok True []
+guard ask/stream/objects       PASS  ok True []
+audit and scrubbing            PASS  ok True []
+mcp server read/write          PASS  ok True []
+plan file save/load            PASS  ok True []
+chunked CSV equals one pass    PASS  ok True []
+folder survey writes nothing   PASS  ok True []
+shared log filter, 1000 holders PASS  ok True []
+async aask and stream          PASS  ok True []
+vault lock and atomic write    PASS  ok True []
+tool arguments by kind         PASS  ok True []
+tool result keys and numbers   PASS  ok True []
+ner requested, none usable     PASS  ok True []
+
+========================================================================
+CLI ENTRY POINTS UNDER THE SAME BLOCKER
+========================================================================
+python -m ... --help           PASS  (exit 0)
+python -m ... doctor           PASS  (exit 0)
+python -m ... doctor --format json PASS  (exit 0)
+python -m ... kinds            PASS  (exit 0)
+python -m ... inspect --in /dev/null PASS  (exit 0)
+python -m ... redact --in /dev/null --vault /dev/null PASS  (exit 0)
+python -m ... packs            PASS  (exit 0)
+python -m ... packs --check    PASS  (exit 0)
+python -m ... skill            PASS  (exit 0)
+python -m ... plan             PASS  (exit 0)
+python -m ... ask --via cat mail ann@example.com PASS  (exit 0)
+
+TOTAL FAILURES: 0

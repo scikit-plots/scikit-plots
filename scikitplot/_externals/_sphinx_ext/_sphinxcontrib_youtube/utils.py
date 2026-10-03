@@ -14,12 +14,14 @@
 """Skeleton of the video directive ready to be extended for specific providers."""
 
 import re
+from hashlib import sha256
 from pathlib import Path
 from typing import ClassVar
 
 import requests
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
+from sphinx.errors import ConfigError
 from sphinx.util import logging
 from sphinx.util.display import status_iterator
 
@@ -35,22 +37,101 @@ DOWNLOAD_TIMEOUT = (5, 30)
 
 #: scikit-plots local patch: ceiling on thumbnails fetched in one build.
 #:
-#: The latex and texinfo builders fetch a thumbnail per video, because a PDF
-#: cannot embed a player. Per-request timeouts bound each call but *not* the
-#: aggregate: a 1200-video catalog is 1200 requests, and at the worst-case
-#: read timeout that is over eleven hours before the build gives up -- a job
-#: that looks hung rather than failed, which is the broken-pipe failure this
-#: whole design exists to avoid.
-#:
-#: Beyond this ceiling, remaining thumbnails are skipped with one warning
-#: naming the count and this setting. A PDF missing some video stills is a
-#: far better outcome than a CI job that never returns.
+#: Legacy opt-in LaTeX thumbnail compatibility ceiling. The current LaTeX
+#: visitor does not consume thumbnails, so ordinary builds perform no fetches.
+#: If a downstream project explicitly enables the compatibility path, both
+#: request count and byte budgets prevent a slow/large catalog from turning a
+#: documentation build into an unbounded network job.
 DEFAULT_DOWNLOAD_LIMIT = 200
 
 #: Maximum bytes accepted for one LaTeX thumbnail.  A response is streamed
 #: into a temporary file and promoted only after it completes, so a broken
 #: connection cannot leave a corrupt image that looks cached on the next run.
 DEFAULT_DOWNLOAD_MAX_BYTES = 8 * 1024 * 1024
+
+#: Aggregate byte ceiling for the optional legacy thumbnail path. This bounds
+#: total build-time network/disk exposure even when many responses are small.
+DEFAULT_DOWNLOAD_MAX_TOTAL_BYTES = 64 * 1024 * 1024
+
+_MAX_DOWNLOAD_LIMIT = 1000
+_MAX_DOWNLOAD_MAX_BYTES = 32 * 1024 * 1024
+_MAX_DOWNLOAD_MAX_TOTAL_BYTES = 512 * 1024 * 1024
+_THUMBNAIL_HOSTS = frozenset({"i3.ytimg.com", "vumbnail.com"})
+
+
+def _bounded_config_int(value, *, name, minimum, maximum):
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ConfigError(f"{name} must be an integer")
+    if not minimum <= value <= maximum:
+        raise ConfigError(
+            f"{name} must be between {minimum} and {maximum} inclusive"
+        )
+    return value
+
+
+def validate_download_config(app, config):
+    """Fail closed on unsafe optional thumbnail-download budgets."""
+    enabled = config.video_download_thumbnails
+    if not isinstance(enabled, bool):
+        raise ConfigError("video_download_thumbnails must be true or false")
+    limit = _bounded_config_int(
+        config.video_download_limit,
+        name="video_download_limit",
+        minimum=0,
+        maximum=_MAX_DOWNLOAD_LIMIT,
+    )
+    max_bytes = _bounded_config_int(
+        config.video_download_max_bytes,
+        name="video_download_max_bytes",
+        minimum=1,
+        maximum=_MAX_DOWNLOAD_MAX_BYTES,
+    )
+    max_total = _bounded_config_int(
+        config.video_download_max_total_bytes,
+        name="video_download_max_total_bytes",
+        minimum=1,
+        maximum=_MAX_DOWNLOAD_MAX_TOTAL_BYTES,
+    )
+    if enabled and limit < 1:
+        raise ConfigError(
+            "video_download_limit must be at least 1 when thumbnail downloads are enabled"
+        )
+    if enabled and max_total < max_bytes:
+        raise ConfigError(
+            "video_download_max_total_bytes must be >= video_download_max_bytes "
+            "when thumbnail downloads are enabled"
+        )
+
+
+def _safe_thumbnail_url(value):
+    """Return one absolute HTTPS thumbnail URL, or None for unsupported templates."""
+    from urllib.parse import urlsplit
+
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname not in _THUMBNAIL_HOSTS
+        or parsed.username
+        or parsed.password
+        or parsed.fragment
+    ):
+        return None
+    try:
+        port = parsed.port
+    except ValueError:
+        return None
+    if port not in (None, 443):
+        return None
+    return value
+
+
+def _thumbnail_path(url):
+    """Map one remote URL to a traversal-proof deterministic cache path."""
+    digest = sha256(url.encode("utf-8")).hexdigest()
+    return Path(THUMBNAIL_DIR, f"{digest}.jpg")
 
 # -- helper methods ------------------------------------------------------------
 
@@ -194,9 +275,26 @@ class Video(Directive):
             start_at = getattr(reference, "start", None)
         else:
             video_id = self.arguments[0]
-        url = self._thumbnail_url.format(video_id)
-        env.video_remote_images[url] = Path(THUMBNAIL_DIR, f"{video_id}.jpg")
-        env.images.add_file("", env.video_remote_images[url])
+        # The current LaTeX visitor renders a URL box and does not consume a
+        # thumbnail. Keep remote thumbnail I/O opt-in so normal documentation
+        # builds remain deterministic/offline. Only fixed HTTPS provider URLs
+        # enter the environment if compatibility downloading is explicitly on.
+        if getattr(env.config, "video_download_thumbnails", False):
+            url = _safe_thumbnail_url(self._thumbnail_url.format(video_id))
+            if url:
+                remote_images = getattr(env, "video_remote_images", None)
+                if not isinstance(remote_images, dict):
+                    remote_images = {}
+                    env.video_remote_images = remote_images
+                consumers = getattr(env, "video_remote_images_by_doc", None)
+                if not isinstance(consumers, dict):
+                    consumers = {}
+                    env.video_remote_images_by_doc = consumers
+                remote_images[url] = _thumbnail_path(url)
+                consumers.setdefault(env.docname, set()).add(url)
+                # Register the real owning document so Sphinx can purge its
+                # standard image inventory correctly during incremental builds.
+                env.images.add_file(env.docname, remote_images[url])
 
         if "aspect" in self.options:
             aspect = self.options.get("aspect")
@@ -404,9 +502,37 @@ _NODE_VISITORS = {
 # -- manage downloaded images ---------------------------------------------------
 
 
+def purge_download_images(app, env, docname):
+    """Drop thumbnail registrations owned only by one purged document."""
+    consumers = getattr(env, "video_remote_images_by_doc", None)
+    remote_images = getattr(env, "video_remote_images", None)
+    if not isinstance(consumers, dict) or not isinstance(remote_images, dict):
+        return
+    removed = set(consumers.pop(docname, set()) or ())
+    if not removed:
+        return
+    still_used = set().union(*(set(urls or ()) for urls in consumers.values())) if consumers else set()
+    for url in removed - still_used:
+        remote_images.pop(url, None)
+
+
 def merge_download_images(app, env, docnames, other):
-    """Merge remote images, when using parallel processing."""
-    env.video_remote_images.update(other.video_remote_images)
+    """Merge only worker-owned thumbnail registrations during parallel reads."""
+    if not isinstance(getattr(env, "video_remote_images", None), dict):
+        env.video_remote_images = {}
+    if not isinstance(getattr(env, "video_remote_images_by_doc", None), dict):
+        env.video_remote_images_by_doc = {}
+    incoming = getattr(other, "video_remote_images", None) or {}
+    incoming_by_doc = getattr(other, "video_remote_images_by_doc", None) or {}
+    for docname in set(docnames or ()):
+        purge_download_images(app, env, docname)
+        urls = set(incoming_by_doc.get(docname, ()) or ())
+        if not urls:
+            continue
+        env.video_remote_images_by_doc[docname] = urls
+        for url in urls:
+            if url in incoming:
+                env.video_remote_images[url] = incoming[url]
 
 
 def download_images(app, env):
@@ -422,11 +548,12 @@ def download_images(app, env):
 
     Notes
     -----
-    This is the only place a *documentation build* reaches the network, and
-    it runs for latex-family builders only. The number of requests is capped
-    (see :data:`DEFAULT_DOWNLOAD_LIMIT`) so the aggregate cost is bounded,
-    not just each individual call.
+    This legacy compatibility path is disabled by default. The current LaTeX
+    visitor does not reference thumbnails; projects that explicitly opt in get
+    bounded request-count, per-file, and aggregate-byte budgets.
     """
+    if not getattr(app.config, "video_download_thumbnails", False):
+        return
     # images should only be downloaded if the builder is Latex related
     if "latex" not in app.builder.name:
         return
@@ -450,13 +577,26 @@ def download_images(app, env):
     _max_bytes = getattr(
         app.config, "video_download_max_bytes", DEFAULT_DOWNLOAD_MAX_BYTES
     )
+    _max_total_bytes = getattr(
+        app.config,
+        "video_download_max_total_bytes",
+        DEFAULT_DOWNLOAD_MAX_TOTAL_BYTES,
+    )
+    _received_total = [0]
     for src in iterator(env.video_remote_images, msg, "brown", nb_images):
 
-        # scikit-plots local patch: bound the aggregate, not just each call.
-        if _attempted[0] >= _limit:
+        # Cached Sphinx environments predate this policy, so never trust a
+        # persisted URL merely because current directive registration is safe.
+        if _safe_thumbnail_url(src) is None:
+            logger.warning(f'Cannot download unsafe thumbnail URL "{src}"')
             _skipped[0] += 1
             continue
-        dst = Path(app.outdir) / env.video_remote_images[src]
+
+        # scikit-plots local patch: bound the aggregate, not just each call.
+        if _attempted[0] >= _limit or _received_total[0] >= _max_total_bytes:
+            _skipped[0] += 1
+            continue
+        dst = Path(app.outdir) / _thumbnail_path(src)
         if not dst.is_file():
             _attempted[0] += 1
             logger.info(f"{src} -> {dst} (downloading)")
@@ -470,16 +610,31 @@ def download_images(app, env):
             # `.jpg`. Fetch first, validate, then write only on success.
             response = None
             try:
-                response = requests.get(src, timeout=DOWNLOAD_TIMEOUT, stream=True)
+                response = requests.get(
+                    src,
+                    timeout=DOWNLOAD_TIMEOUT,
+                    stream=True,
+                    allow_redirects=False,
+                )
+                if response.is_redirect or response.is_permanent_redirect:
+                    raise ValueError("thumbnail redirects are not allowed")
                 response.raise_for_status()
                 content_type = response.headers.get("Content-Type", "")
-                if content_type and not content_type.lower().startswith("image/"):
+                if not content_type.lower().startswith("image/"):
                     raise ValueError(f"unexpected content type {content_type!r}")
                 length = response.headers.get("Content-Length")
-                if length and int(length) > _max_bytes:
-                    raise ValueError(
-                        f"response is {int(length):,} bytes; limit is {_max_bytes:,}"
-                    )
+                if length:
+                    declared = int(length)
+                    if declared < 0:
+                        raise ValueError("negative Content-Length")
+                    if declared > _max_bytes:
+                        raise ValueError(
+                            f"response is {declared:,} bytes; limit is {_max_bytes:,}"
+                        )
+                    if _received_total[0] + declared > _max_total_bytes:
+                        raise ValueError(
+                            "response would exceed aggregate thumbnail byte budget"
+                        )
                 temporary = dst.with_suffix(dst.suffix + ".part")
                 received = 0
                 try:
@@ -487,11 +642,17 @@ def download_images(app, env):
                         for chunk in response.iter_content(chunk_size=64 * 1024):
                             if not chunk:
                                 continue
-                            received += len(chunk)
+                            chunk_size = len(chunk)
+                            received += chunk_size
                             if received > _max_bytes:
                                 raise ValueError(
                                     f"response exceeds {_max_bytes:,} bytes"
                                 )
+                            if _received_total[0] + chunk_size > _max_total_bytes:
+                                raise ValueError(
+                                    "aggregate thumbnail byte budget exceeded"
+                                )
+                            _received_total[0] += chunk_size
                             handle.write(chunk)
                     temporary.replace(dst)
                     _downloaded[0] += 1
@@ -518,16 +679,21 @@ def download_images(app, env):
             f"video: attempted {_attempted[0]} thumbnail downloads, completed "
             f"{_downloaded[0]}, and skipped "
             f"{_skipped[0]} after reaching the download limit of {_limit}. "
-            f"Raise 'video_download_limit' in conf.py if the PDF needs them."
+            f"Raise 'video_download_limit' or the aggregate byte budget in "
+            f"conf.py only if this explicitly-enabled legacy path needs them."
         )
 
 
 def configure_image_download(app):
-    """Configure Sphinx to download video thumbnails."""
-    app.env.video_remote_images = {}
+    """Prepare opt-in LaTeX thumbnail state without mutating HTML static paths."""
+    if not getattr(app.config, "video_download_thumbnails", False):
+        return
+    if "latex" not in app.builder.name:
+        return
+    if not isinstance(getattr(app.env, "video_remote_images", None), dict):
+        app.env.video_remote_images = {}
+    if not isinstance(getattr(app.env, "video_remote_images_by_doc", None), dict):
+        app.env.video_remote_images_by_doc = {}
 
     output_dir = Path(app.outdir) / THUMBNAIL_DIR
-    # scikit-plots local patch: `parents=True` -- `outdir` need not exist yet
-    # when `builder-inited` fires, which made this raise FileNotFoundError.
     output_dir.mkdir(parents=True, exist_ok=True)
-    app.config.html_static_path.append(str(output_dir))

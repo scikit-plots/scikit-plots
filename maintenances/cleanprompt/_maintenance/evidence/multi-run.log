@@ -1,0 +1,18 @@
+# runs 1-5: round 22, CPython 3.11.16 with every tier
+--- run 1 ---
+2464 passed, 10 skipped in 25.97s
+--- run 2 ---
+2464 passed, 10 skipped in 25.51s
+--- run 3 ---
+2464 passed, 10 skipped in 26.17s
+--- run 4 ---
+2464 passed, 10 skipped in 26.19s
+--- run 5 ---
+2464 passed, 10 skipped in 25.92s
+--- shuffled module order --- (measured round 21; not re-run in round 22)
+trial 0 -> 2424 passed, 6 skipped in 35.85s
+trial 1 -> 2424 passed, 6 skipped in 37.72s
+--- hash seeds: packs x formats x styles, every round-trip sample --- (measured round 21; not re-run in round 22)
+seed=0 0e336512bc211db9
+seed=1 0e336512bc211db9
+seed=12345 0e336512bc211db9

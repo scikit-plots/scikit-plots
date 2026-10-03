@@ -1239,24 +1239,24 @@ ai_assistant_panel_api_model = "scikit-plots/Qwen2.5-Coder-7B-Instruct"  # "scik
 # than hitting sys.modules from a module-level binding).
 import os  # noqa: E402 — conf.py files commonly place imports after preamble
 
-# Single proxy base URL resolved once at build time from the environment.
-# ⚠️  PRODUCTION WARNING
+# Single public proxy base URL resolved once at build time.
 # ─────────────────────────────────────────────────────────────────────────────
-# The default fallback "http://localhost:8787" is for LOCAL DEVELOPMENT ONLY.
-# If AI_PROXY_BASE is not set in your CI/CD environment, every model endpoint
-# will silently point at localhost and all panel API calls will fail for
-# readers of your published documentation.
+# AI_PROXY_BASE / PROXY_BASE_URL are PUBLIC routing configuration, not secrets.
+# The production-safe fallback is the scikit-plots AI Space; override it with
+# an ordinary environment/build variable when testing another public proxy.
 #
-# Set the environment variable (or CI/CD secret) to your deployed proxy:
 #   Local dev  : export AI_PROXY_BASE=http://localhost:8787
-#   Staging/CI : export AI_PROXY_BASE=https://<org>-ai-proxy.hf.space  # https://scikit-plots-ai.hf.space
-#   Production : export AI_PROXY_BASE=https://hf-proxy.<subdomain>.workers.dev
+#   Staging/CI : export AI_PROXY_BASE=https://<org>-ai-proxy.hf.space
+#   Production : export AI_PROXY_BASE=https://scikit-plots-ai.hf.space
 #
 # SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
 # here. They live only in the proxy's server-side environment / secret store.
 # ─────────────────────────────────────────────────────────────────────────────
-# _AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "https://scikit-plots-ai.hf.space")
-_AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "http://localhost:8787")
+_AI_PROXY_BASE: str = (
+    os.environ.get("AI_PROXY_BASE")
+    or os.environ.get("PROXY_BASE_URL")
+    or "https://scikit-plots-ai.hf.space"
+).rstrip("/")
 
 # ════════════════════════════════════════════════════════════════════════════
 #  Phase B — Multi-model panel, Terms of Service, Share sheet, Hamburger menu
@@ -1537,20 +1537,22 @@ ai_assistant_panel_api_models = [
     #
     # IMPORTANT — endpoint resolution (environment-aware):
     #   AI_PROXY_BASE is the single knob that selects which free proxy to use.
-    #   Set it as an environment variable or CI/CD secret:
+    #   Set it as a public environment/build variable (not a secret):
     #
     #   Local development (maintenance dev proxy on port 8787):
     #       export AI_PROXY_BASE=http://localhost:8787
+#       export FEEDBACK_PROXY_BASE=http://localhost:7860  # if feedback authority is separate
     #
     #   Staging / CI (HuggingFace Space — Option A, always free):
     #       export AI_PROXY_BASE=https://scikit-plots-ai.hf.space
+#       # Generic _sphinx_feedback uses its own explicit feedback_endpoint.
     #
     #   Production (Cloudflare Worker — Option B, 100 000 req/day free):
     #       export AI_PROXY_BASE=https://hf-proxy.<your-subdomain>.workers.dev
     #
     # The _PROXY_BASE import at the top of this block reads the env var with
     # a sensible fallback so local builds work without any shell setup, and
-    # CI/CD secrets transparently select the production proxy.
+    # CI/CD/public build configuration selects the production proxy; credentials stay server-side.
     #
     # SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
     # here.  They live only in the proxy's environment secret store.
@@ -1613,7 +1615,6 @@ ai_assistant_panel_inline_model_picker = True
 # These are initial states only. Once a reader changes a control, the browser
 # stores both explicit ON and explicit OFF and that choice wins over the site
 # default on later page loads.
-ai_assistant_panel_feedback_telemetry_default = False  # privacy-first
 ai_assistant_panel_feedback_review_default = True      # False is useful for local-only/dev checks
 ai_assistant_panel_page_integration_default = False    # keep lifecycle events private by default
 ai_assistant_panel_streaming_default = True            # initial Streaming responses preference
@@ -1841,7 +1842,7 @@ ai_assistant_panel_api_streaming = True
 #       "model": "openai/gpt-oss-20b",
 #       "endpoint": f"{_PROXY}/v1/chat/completions", "default": True },
 # ]
-# Set AI_PROXY_BASE as a GitHub Actions / CI repo secret pointing at
+# Set AI_PROXY_BASE as a GitHub Actions / CI public configuration variable pointing at
 # the deployed HF Space or Cloudflare Worker URL for production builds.
 #
 #
@@ -2105,13 +2106,13 @@ ai_assistant_panel_hamburger = True
 # Cross-origin microphone delegation is independently OFF unless explicitly
 # enabled above. See ISOLATION_DEPLOYMENT.md for CSP/frame-ancestor guidance.
 
-# ── Feedback telemetry, page integration, and contribution boundaries ───────
+# ── Local ratings, page integration, and contribution boundaries ───────────
 #
-# Local rating buttons work without network telemetry and without publishing
+# Local rating buttons never transmit rating telemetry and do not publish
 # assistant lifecycle state to the host page. Internal UI coordination uses a
 # private event bus. Readers may separately enable "Allow page integration
 # events" in the assistant UI; that permission is versioned, OFF by default,
-# and does not grant network telemetry permission.
+# and does not grant any network-feedback permission.
 #
 # When page integration is explicitly enabled, selected events are projected
 # onto ``document`` with bounded detail. For example ``ai-assistant-feedback``
@@ -2121,8 +2122,7 @@ ai_assistant_panel_hamburger = True
 #
 # A documentation author may listen to those optional events, but MUST treat
 # that as a separate user-authorized integration surface. Do not automatically
-# forward them to analytics, APM, logs, or another service. Network telemetry
-# requires its own explicit reader permission. Dataset contribution is a third,
+# forward them to analytics, APM, logs, or another service. Dataset contribution is a separate,
 # separate flow with exact JSON inspection, privacy review, explicit consent,
 # quarantine, and receipt-based deletion/withdrawal.
 #
@@ -2153,9 +2153,9 @@ ai_assistant_panel_feedback_question = "Was this helpful?"
 #   {"emoji": "<char>", "title": "<hover/aria text>", "value": "<sent value>"}
 # The JS widget auto-scales emoji size (via CSS data-count) so all buttons
 # always stay on one line regardless of count.
-# The chosen value and optional note stay local by default. A separately
-# consented page-integration event exposes only bounded rating mechanics, and
-# separately consented network telemetry also excludes Q&A/note/model/page data.
+# The chosen value and optional note stay local. A separately consented
+# page-integration event exposes only bounded rating mechanics. Explicit
+# content-bearing review uses the dedicated /v1/feedback/review workflow.
 #
 # ── Example A: minimal 3-emoji (classic thumbs) ───────────────────────────
 # ai_assistant_panel_feedback_options = [
@@ -2202,7 +2202,6 @@ ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
 # Type:    bool
 # Default: False
 # When True the JS also console.log()s each feedback submission (dev aid).
-ai_assistant_panel_feedback_log = False
 
 # ── Run 171: first-message privacy/status row ─────────────────────────────
 # Shown once the first real chat message replaces onboarding.  The compact
@@ -2301,8 +2300,28 @@ ai_assistant_search_bar_position = "top"
 
 # Type:    bool
 # Default: False
-# Compact inline variant when True; full-width block when False.
-ai_assistant_search_bar_mini = False  # accept full width
+# Base INPUT size only: compact inline input when True; full-width input when
+# False.  This does not disable the adaptive icon-only rail state below.
+ai_assistant_search_bar_mini = False  # expanded host uses full width
+
+# Type:    bool
+# Default: True
+# Responsive host-aware mode.  When the selected host collapses/narrows, the
+# full/compact input becomes one accessible AI-search icon.  Clicking that icon
+# opens the AI panel and focuses its composer so typing can begin immediately.
+# Set False only when the host is guaranteed to keep enough horizontal space.
+ai_assistant_search_bar_adaptive = True
+
+# Type:    str
+# Default: ""
+# Optional selector that identifies the selected host (or an ancestor) in its
+# collapsed state.  This makes theme-specific collapse deterministic while the
+# extension remains theme-neutral.  Empty still works via host-width fallback.
+# Current PyData Sphinx Theme desktop sidebar example:
+#   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+#   ai_assistant_search_bar_collapsed_selector = ".bd-sidebar-primary.pst-squeeze"
+# For a navbar/body host that never has a collapsed rail, leave this empty.
+ai_assistant_search_bar_collapsed_selector = ""
 
 # Type:    str — placeholder for the standalone search-bar input.
 ai_assistant_panel_search_placeholder = "Ask AI about these docs\u2026"
@@ -2762,13 +2781,16 @@ ai_assistant_mcp_tools = {
 #   base       → REQUIRED/recommended service BASE URL
 #   chat       → absolute URL or Base-relative route; blank/null inherits default
 #   share      → absolute URL or Base-relative route; blank/null inherits default
-#   feedback   → absolute URL or Base-relative route; blank/null inherits default
 #   training   → absolute URL or Base-relative route; blank/null inherits default
+#   image      → absolute URL or Base-relative route; blank/null inherits default
+#   video      → absolute URL or Base-relative route; blank/null inherits default
+#   audio      → absolute URL or Base-relative route; blank/null inherits default
+#   document   → absolute URL or Base-relative route; blank/null inherits default
+#   publication→ reviewed AI Learn handoff route; blank/null inherits /v1/learn
 #   datasetRepo→ optional HuggingFace owner/repo; otherwise GET {base}/ discovery
 #
 # Relative routes may be written with or without a leading slash. Surrounding
-# whitespace is trimmed. Legacy profiles that explicitly repeat host-only
-# chat/share/feedback/training values continue to work unchanged.
+# whitespace is trimmed. Current profiles use only the fields documented below.
 #
 # ┌─────────────────────────────────────────────────────────────────────────┐
 # │ SECURITY — WHAT GETS BAKED INTO THE HTML                                │
@@ -2784,7 +2806,6 @@ ai_assistant_mcp_tools = {
 # │    signed URLs, or other credentials in any build-time profile field.   │
 # │    Reading a value from os.environ protects Git, NOT generated HTML.     │
 # │                                                                         │
-# │ 2. ``shareToken`` / ``feedbackToken`` are runtime-only compatibility    │
 # │    fields. Non-empty values supplied in conf.py are ignored and a build │
 # │    warning is emitted. Server-side authorization is the production      │
 # │    boundary.                                                            │
@@ -2822,10 +2843,16 @@ ai_assistant_mcp_tools = {
 #                              inherits base + '/v1/chat/completions'.
 #   share         (str|None) — absolute URL or Base-relative route; blank/null
 #                              inherits base + '/v1/share'.
-#   feedback      (str|None) — absolute URL or Base-relative route; blank/null
-#                              inherits base + '/v1/feedback'.
 #   training      (str|None) — absolute URL or Base-relative route; blank/null
 #                              inherits base + '/v1/contribute'.
+#   image         (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/image'.
+#   video         (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/video'.
+#   audio         (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/audio'.
+#   document      (str|None) — absolute URL or Base-relative route; blank/null
+#                              inherits base + '/v1/document'.
 #
 # Optional resource field:
 #   datasetRepo   (str)   — HuggingFace owner/repo. When omitted, the browser
@@ -2833,7 +2860,6 @@ ai_assistant_mcp_tools = {
 #
 # Runtime-only token fields (DO NOT configure in conf.py):
 #   shareToken    (str)   — Optional short-lived browser-session credential.
-#   feedbackToken (str)   — Optional short-lived browser-session credential.
 # Build-time values for either field are ignored and never serialized.
 #
 # Optional integer fields:
@@ -2846,10 +2872,12 @@ ai_assistant_mcp_tools = {
 #
 #   _EP.resolve('chat')           → chat override, else active profile base
 #   _EP.resolve('share')          → share override, else active profile base
-#   _EP.resolve('feedback')       → active profile's feedback base URL
 #   _EP.resolve('training')       → active profile's training base URL
+#   _EP.resolve('image')          → image override, else active profile base
+#   _EP.resolve('video')          → video override, else active profile base
+#   _EP.resolve('audio')          → audio override, else active profile base
+#   _EP.resolve('document')       → document override, else active profile base
 #   _EP.resolveToken('shareToken')    → token for share writes
-#   _EP.resolveToken('feedbackToken') → token for feedback writes
 #   _EP.getActive()               → active profile key (string)
 #   _EP.setActive('cf')           → switch to the 'cf' profile
 #   _EP.list()                    → [{key, label}, ...] all profiles
@@ -2872,11 +2900,11 @@ ai_assistant_mcp_tools = {
 # The Endpoint Configuration sheet (opened via the ⚡ subbar button) shows:
 #
 #   §1 Profile selector  — radio cards with "Active" badge on the current
-#                          profile; capability pills (Chat / Share / Feedback
-#                          / Training) show which features each profile covers.
+#                          profile; capability pills show which current service
+#                          routes each profile covers.
 #
 #   §2 Active Endpoints  — Simple mode: one representative base URL (chat).
-#                          Advanced mode: all four feature URLs + resolved full
+#                          Advanced mode: all five feature URLs + resolved full
 #                          URLs with copy-to-clipboard buttons.
 #                          Health-check button pings each endpoint and shows
 #                          latency / status inline.
@@ -2911,14 +2939,15 @@ ai_assistant_mcp_tools = {
 # ── Recommended minimal profile — one service + auto-discovery ─────────────
 #
 # The browser talks only to the service base. Chat / Share / Feedback /
-# Training inherit that base, and GET {base}/ discovers the backing dataset.
+# Training / Video inherit that base, and GET {base}/ discovers service
+# capabilities plus the backing dataset. Video execution remains capability-
+# gated even when its URL can be derived from the base.
 #
 # SECURITY — endpoint profile credentials
 # ---------------------------------------
 # Every profile below is serialized into generated HTML. Environment
 # variables used here are therefore NOT server secrets after the build.
 # Never place production bearer/API credentials in shareToken,
-# feedbackToken, endpoint query strings, or any other client config.
 # Prefer server-side authorization. Browser-entered bearer credentials are disabled by default.
 # Set this to True only for deliberate short-lived/self-hosted compatibility.
 ai_assistant_allow_runtime_tokens = False
@@ -2960,9 +2989,6 @@ _CF_WORKER_URL = os.environ.get("CF_WORKER_URL", "")
 #         # Same Worker handles /v1/share; uses the same base URL.
 #         "share": _CF_WORKER_URL,
 #
-#         # ── Panel feedback (P3) ────────────────────────────────────────
-#         "feedback": _CF_WORKER_URL,
-#
 #         # ── Training data contribution (P2) ───────────────────────────
 #         # Leave empty ("") to disable this feature for this profile.
 #         "training": "",
@@ -2991,10 +3017,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "label":        "Cloudflare Worker",
 #         "chat":         _CF_WORKER_URL,
 #         "share":        _CF_WORKER_URL,
-#         "feedback":     _CF_WORKER_URL,
 #         "training":     "",
 #         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
-#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      30,
 #     },
 #
@@ -3005,10 +3029,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "label":        "HuggingFace Space",
 #         "chat":         _HF_SPACE_URL,
 #         "share":        _CF_WORKER_URL,     # reuse CF for reliable share
-#         "feedback":     _HF_SPACE_URL,
 #         "training":     _HF_SPACE_URL,
 #         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
-#         # feedbackToken omitted: build-time credentials are forbidden.
 #         "ttlDays":      7,
 #     },
 # }
@@ -3048,7 +3070,6 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "label":        "Local Dev Proxy",
 #         "chat":         "http://localhost:8787",   # Cloudflare wrangler dev
 #         "share":        "",
-#         "feedback":     "http://localhost:8787",
 #         "training":     "",
 #         # Runtime tokens, if needed for local development, are entered in-browser.
 #         "ttlDays":      0,
@@ -3059,10 +3080,8 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "label":        "Staging Proxy",
 #         "chat":         os.environ.get("STAGING_PROXY_URL", ""),
 #         "share":        os.environ.get("STAGING_PROXY_URL", ""),
-#         "feedback":     os.environ.get("STAGING_PROXY_URL", ""),
 #         "training":     "",
 #         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
-#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      1,
 #     },
 #
@@ -3071,58 +3090,13 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #         "label":        "Production",
 #         "chat":         os.environ.get("PROD_PROXY_URL", ""),
 #         "share":        os.environ.get("PROD_PROXY_URL", ""),
-#         "feedback":     os.environ.get("PROD_PROXY_URL", ""),
 #         "training":     os.environ.get("PROD_PROXY_URL", ""),
 #         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
-#         # feedbackToken intentionally omitted for the same reason.
 #         "ttlDays":      30,
 #     },
 # }
 #
 # ai_assistant_endpoint_default_profile = _ENV_TAG  # "dev" / "staging" / "prod"
-
-# ── Option 5 — Migration from Legacy Flat Keys ──────────────────────────────
-#
-# BEFORE (legacy — still fully supported, auto-synthesises a "default" profile):
-#
-#   ai_assistant_panel_feedback_endpoint = os.environ.get("FEEDBACK_ENDPOINT", "")
-#   ai_assistant_global_share_endpoint   = os.environ.get("SHARE_ENDPOINT", "")
-#   ai_assistant_training_endpoint       = os.environ.get("TRAINING_ENDPOINT", "")
-#
-# AFTER (explicit profiles — enables the profile-switcher UI):
-#
-# _PROXY_BASE: str = os.environ.get("PROXY_BASE_URL", "https://scikit-plots-ai.hf.space")
-# _PROXY_BASE = os.environ.get("PROXY_BASE_URL", "")
-#
-# ai_assistant_endpoint_profiles = {
-#     "default": {
-#         "label":        "Default Proxy",
-#         "base":         _PROXY_BASE,
-#         # Optional: "datasetRepo": "scikit-plots/ai-assistant-contributions",
-#         # Usually omit datasetRepo and let GET {base}/ auto-discover it.
-#         # shareToken intentionally omitted: static HTML must not contain bearer secrets.
-#         # feedbackToken intentionally omitted for the same reason.
-#         "ttlDays":      30,
-#     },
-# }
-# ai_assistant_endpoint_default_profile = "default"
-#
-# Migration notes:
-#   1. The legacy keys (ai_assistant_panel_feedback_endpoint etc.) continue
-#      to work unchanged.  The extension auto-synthesises a "default" profile
-#      from them when ai_assistant_endpoint_profiles is not set.
-#
-#   2. Switching to explicit profiles enables the profile-switcher UI.
-#      Users can switch between profiles without a page reload.
-#
-#   3. After migration, you may remove the old flat keys entirely — the
-#      extension does NOT read both simultaneously.  Explicit profiles take
-#      precedence when ai_assistant_endpoint_profiles is set and non-empty.
-#
-#   4. The legacy ai_assistant_panel_feedback_token /
-#      ai_assistant_global_share_token / ai_assistant_global_share_ttl_days
-#      continue to be used for the auto-synthesised "default" profile.
-#      In explicit profiles you embed tokens in the profile dict instead.
 
 # ── Option 6 — Runtime Import / Export Workflow ─────────────────────────────
 #
@@ -3179,28 +3153,6 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #   1. User-switched profile stored in localStorage.
 #   2. Value of ai_assistant_endpoint_default_profile (build-time).
 #   3. First key in ai_assistant_endpoint_profiles (insertion order).
-#   4. "" (no profiles defined — widget falls back to legacy flat keys).
+#   4. "" (no profiles defined — network-backed features remain unavailable).
 #
 # ai_assistant_endpoint_default_profile = "cf"
-
-# ── LEGACY FLAT KEYS (still supported; auto-synthesise a "default" profile) ──
-#
-# The following three keys are the pre-profile-registry approach.
-# They continue to work unchanged when ai_assistant_endpoint_profiles is
-# NOT set (or is an empty dict).
-#
-# When at least one of these is non-empty, the extension automatically
-# synthesises a single "default" profile from them, so the JS _EP
-# registry always has a profile to read from even for legacy deployments.
-#
-# ai_assistant_panel_feedback_endpoint = os.environ.get(
-#     "FEEDBACK_ENDPOINT", ""
-# )
-#
-# ai_assistant_global_share_endpoint = os.environ.get(
-#     "SHARE_ENDPOINT", ""
-# )
-#
-# ai_assistant_training_endpoint = os.environ.get(
-#     "TRAINING_ENDPOINT", ""
-# )

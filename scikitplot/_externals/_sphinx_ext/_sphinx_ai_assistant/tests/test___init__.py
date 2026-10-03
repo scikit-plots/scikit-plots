@@ -78,7 +78,7 @@ from bs4 import BeautifulSoup
 
 # conftest._bootstrap_submodule() has already run before this import;
 # the module is registered under its canonical dotted path.
-import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _mod
+from ... import _sphinx_ai_assistant as _mod
 
 
 # ===========================================================================
@@ -3661,13 +3661,14 @@ class TestV03ConfigPlumbing:
         "panelFeedbackPlaceholder",
         "panelFeedbackSubmit",
         "panelFeedbackThanks",
-        "panelFeedbackLog",
         "panelPrivacyTitle",
         "panelPrivacyLinkText",
         "panelPrivacyHtml",
         "searchBar",
         "searchBarSelector",
         "searchBarMini",
+        "searchBarAdaptive",
+        "searchBarCollapsedSelector",
         "panelSearchPlaceholder",
         # trigger pill UX keys (v0.2/v0.3 boundary)
         "panelTriggerLabel",
@@ -3701,6 +3702,9 @@ class TestV03ConfigPlumbing:
         assert cfg["panelRememberConversation"] is True
         assert cfg["panelShortcut"] == "Alt+Shift+A"
         assert cfg["searchBar"] is False
+        assert cfg["searchBarMini"] is False
+        assert cfg["searchBarAdaptive"] is True
+        assert cfg["searchBarCollapsedSelector"] == ""
         assert cfg["panelApiUrl"] == ""
         # The trigger-pill visibility switch is offered by default, and its
         # build default keeps the pill on screen — an upgrade with no conf.py
@@ -3851,7 +3855,7 @@ class TestStubModelInjection:
         }
 
 # Large-contract case fragments are collected only through this canonical owner.
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._case_loader import export_case_tests as _export_case_tests
+from ._case_loader import export_case_tests as _export_case_tests
 
 _export_case_tests(globals(), package=__package__, case_package='_cases.root_init', cases=('conversion_rules', 'llms_txt'))
 del _export_case_tests

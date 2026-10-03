@@ -1,4 +1,4 @@
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 from pathlib import Path
 
 ROOT = RUNTIME_ROOT

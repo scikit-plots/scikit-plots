@@ -25,11 +25,11 @@ t('canonical attachment split helper exists', js.includes('function _splitQuesti
 t('retry splits canonical context before resend', /userRetryBtn[\s\S]*?_splitQuestionWithAttachments\(canonicalQuestion\)[\s\S]*?_setComposerReplayAttachmentContext/.test(js));
 t('edit splits canonical context before textarea fill', /editBtn[\s\S]*?_splitQuestionWithAttachments\(canonicalQuestion\)[\s\S]*?input\.value = replay\.question/.test(js));
 t('assistant retry also splits canonical context', /retryMenuBtn[\s\S]*?_splitQuestionWithAttachments\(q\)[\s\S]*?_setComposerReplayAttachmentContext/.test(js));
-t('submit awaits effective staged plus replay plan', js.includes('var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan(attachmentSnapshot);'));
+t('submit awaits effective staged plus replay plan from one Send-time snapshot', /var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan\([\s\S]*?attachmentSnapshot,[\s\S]*?replayAttachmentSnapshot[\s\S]*?\);/.test(js));
 t('replay context is bounded', js.includes("_composerReplayAttachmentContext = String(value || '').slice(0, _ATTACHMENT_MAX_TEXT_CHARS)"));
 t('replay context is visibly disclosed', js.includes('Reusing bounded attachment context from the prior turn'));
 t('replay context can be removed', js.includes("attachmentReplayRemove.addEventListener('click', _clearComposerReplayAttachmentContext)"));
-t('new staged files take priority under total cap', /function _prepareComposerEffectiveAttachmentPlan[\s\S]*?_prepareComposerAttachmentPlan[\s\S]*?_mergeAttachmentContexts\(plan\.text, _composerReplayAttachmentContext\)/.test(js));
+t('new staged files take priority under total cap', /function _prepareComposerEffectiveAttachmentPlan[\s\S]*?_prepareComposerAttachmentPlan[\s\S]*?_mergeAttachmentContexts\(plan\.text, sourceReplayContext\)/.test(js));
 t('clear removes hidden replay context', /function _clearComposerAttachments[\s\S]*?_composerReplayAttachmentContext = ''/.test(js));
 t('replay disclosure styling exists', css.includes('.ai-assistant-panel-attachment-replay'));
 

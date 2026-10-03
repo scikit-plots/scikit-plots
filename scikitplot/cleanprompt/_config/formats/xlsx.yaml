@@ -1,0 +1,7 @@
+name: xlsx
+version: 1
+summary: Excel workbooks (Office Open XML) - every sheet as tab-separated rows with its header, read with the standard library. Output is redacted text.
+extensions: [.xlsx, .xlsm]
+splitter: office
+round_trip: false
+packs: [personal, records, patient, finance, secrets]

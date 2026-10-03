@@ -681,3 +681,48 @@ class TestSimilarityIndexUtility:
         idx.build([doc])
         results = idx.search("custom")
         assert len(results) == 1
+
+
+class TestBM25PostingsEqualTheDefinition:
+    """The postings index scores exactly as Okapi BM25 over every document."""
+
+    @staticmethod
+    def _brute(docs, query, k1=1.5, b=0.75):
+        import math as _m
+
+        n = len(docs)
+        avgdl = sum(len(d) for d in docs) / n if n else 1.0
+        scores = [0.0] * n
+        for term in query:
+            df = sum(1 for d in docs if term in d)
+            if df == 0:
+                continue
+            idf = _m.log((n - df + 0.5) / (df + 0.5) + 1.0)
+            for i, d in enumerate(docs):
+                tf = d.count(term)
+                if tf:
+                    num = tf * (k1 + 1)
+                    den = tf + k1 * (1 - b + b * len(d) / avgdl)
+                    scores[i] += idf * num / den
+        ranked = [(i, s) for i, s in enumerate(scores) if s > 0]
+        ranked.sort(key=lambda x: x[1], reverse=True)
+        return ranked
+
+    @pytest.mark.parametrize("seed", range(40))
+    def test_random_corpora(self, seed) -> None:
+        import random
+
+        rng = random.Random(seed)
+        vocab = [f"t{i}" for i in range(rng.randint(1, 30))]
+        docs = [[rng.choice(vocab) for _ in range(rng.randint(0, 25))] for _ in range(rng.randint(1, 50))]
+        index = _BM25Index()
+        index.build(docs)
+        for _ in range(5):
+            query = [rng.choice(vocab + ["absent"]) for _ in range(rng.randint(0, 5))]
+            top_k = rng.randint(1, 60)
+            assert index.query(query, top_k) == self._brute(docs, query)[:top_k]
+
+    def test_ties_keep_the_lower_document_first(self) -> None:
+        index = _BM25Index()
+        index.build([["x"], ["y"], ["x"], ["x"]])
+        assert [i for i, _ in index.query(["x"], 10)] == [0, 2, 3]

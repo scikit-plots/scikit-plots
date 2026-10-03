@@ -18,17 +18,17 @@ import time
 
 import pytest
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT
+from ....._paths import REPOSITORY_ROOT
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ......_hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
+from ......_hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     ProviderArtifactError,
     ProviderArtifactGeneratorSpec,
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ......_hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     RedisProviderArtifactLifecycleRegistry,
     build_provider_artifact_lifecycle_registry,
 )
@@ -463,7 +463,10 @@ def _import_app_with_env(**updates):
         "'error': app._PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR}, sort_keys=True))"
     )
     result = subprocess.run(
-        [os.environ.get("PYTHON", "python"), "-c", code],
+        # The interpreter running this test, not whichever ``python`` is first
+        # on PATH: that one may be a different environment without the
+        # proxy's dependencies. ``PYTHON`` still overrides it when set.
+        [os.environ.get("PYTHON") or sys.executable, "-c", code],
         env=env,
         capture_output=True,
         text=True,

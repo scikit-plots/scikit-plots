@@ -1,7 +1,7 @@
 """Run 137 — bounded, tree-preserving ZIP edit workspace."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import ast
 import hashlib
@@ -377,7 +377,7 @@ def test_source_size_and_unsupported_compression_are_fail_closed() -> None:
         zw.rewrite_zip_workspace(src, {})
 
 # Large-contract case fragments are collected only through this canonical owner.
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._case_loader import export_case_tests as _export_case_tests
+from ..._case_loader import export_case_tests as _export_case_tests
 
 _export_case_tests(globals(), package=__package__, case_package='_cases._zip_workspace', cases=('surgical',))
 del _export_case_tests

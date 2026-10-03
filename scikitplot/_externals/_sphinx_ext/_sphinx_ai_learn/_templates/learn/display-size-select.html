@@ -1,0 +1,6 @@
+{% set sizes = display_sizes|default([12, 25, 50, 75, 100, 125, 150], true) %}
+<label class="learn-display-size-control">Display up to
+  <select {% if display_name %}name="{{ display_name|e }}" {% endif %}data-display-size aria-label="Maximum items displayed">
+    {% for size in sizes %}<option value="{{ size }}"{% if size == 12 %} selected{% endif %}>{{ size }}</option>{% endfor %}
+  </select>
+</label>

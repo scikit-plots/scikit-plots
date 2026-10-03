@@ -1,0 +1,7 @@
+name: html
+version: 1
+summary: HTML and XML pages - scanned as text; attribute values follow the patterns.
+extensions: [.html, .htm, .xml, .xhtml, .svg]
+splitter: text
+round_trip: true
+packs: [personal, patient, finance, secrets]

@@ -53,7 +53,7 @@ ok(snapshot.includes("'Included once · bounded excerpt'") && snapshot.includes(
 ok(snapshot.includes("status: included ? 'Reused once' : 'Not sent · shared context budget'"), 'explicit Retry/Edit file replay remains visible');
 ok(replayNames.includes('/^Attachment:\\s+(.+)$/'), 'replay filenames are reconstructed from canonical attachment headers');
 
-ok(submit.includes('var turnAttachments = _composerTurnAttachmentSnapshot(attachmentPlan, preparedPageContext);'), 'submit snapshots pages and files after privacy preparation');
+ok(submit.includes('var turnAttachments = _composerTurnAttachmentSnapshot(') && submit.includes('attachmentSnapshot,') && submit.includes('replayAttachmentSnapshot'), 'submit snapshots pages and files from the immutable Send-time resource sequence');
 ok(submit.includes('_consumePreparedPageContexts(preparedPageContext, false);'), 'submit consumes every participating page source exactly once');
 ok(submit.includes('_clearComposerAttachments();'), 'submit consumes uploaded/replay attachment state');
 ok(submit.includes("_appendPanelMessage(questionText, 'user', requestQuestion"), 'visible user question stays separate from hidden canonical envelopes');
@@ -73,6 +73,7 @@ ok(append.includes('turnMeta'), 'live message append uses same turn metadata pat
 
 ok(render.includes("files.className = 'ai-assistant-panel-attachments ai-assistant-panel-user-turn-attachments'"), 'user turn reuses composer attachment-strip classes');
 ok(render.includes("files.setAttribute('aria-label', 'Files and pages used for this question')"), 'historical resource strip is accessible');
+ok(!render.includes("files.setAttribute('data-scroll-bound', 'true')") && render.includes('_bindAttachmentTrayScrolling(files)'), 'historical resource strip is actually bound for overflow instead of pre-marked as already bound');
 ok(render.includes("preview.className = 'ai-assistant-panel-attachment-card'"), 'historical resources reuse the same preview-card anatomy');
 ok(render.includes('_openAttachmentPreview(item, preview)'), 'historical cards use the same preview dialog');
 ok(render.includes("questionText.className = 'ai-assistant-panel-user-turn-question'"), 'question has dedicated section below resources');
@@ -80,12 +81,13 @@ ok(render.includes("questionToggle.textContent = 'Show more'"), 'long question r
 ok(render.includes("questionToggle.textContent = next ? 'Show less' : 'Show more'"), 'long question disclosure is reversible');
 
 ok(css.includes('.ai-assistant-panel-user-turn-attachments'), 'turn resource strip has focused layout styling');
+ok(/\.ai-assistant-panel-user-turn-attachments\s*>\s*\.ai-assistant-panel-attachment-tile:first-child\s*\{[\s\S]*margin-inline-start:\s*auto;/.test(css), 'one/few sent resource cards align to the user-turn trailing edge without reversing order');
 ok(css.includes('.ai-assistant-panel-user-turn-question[data-collapsed="true"]'), 'long question clamp remains styled');
 ok(css.includes('-webkit-line-clamp: 7'), 'collapsed question has bounded visible slice');
 ok(css.includes('@media (max-width: 480px)') && css.includes('width: 94%'), 'resource-bearing user turn adapts on narrow panels');
 
 ok(attachmentContext.includes("item.kind === 'text'") && attachmentContext.includes('_readAttachmentText'), 'local-only binary/image bytes remain excluded while text is read lazily');
-ok(effective.includes('_prepareComposerAttachmentPlan(snapshotItems)') && effective.includes('_mergeAttachmentContexts(plan.text, _composerReplayAttachmentContext)'), 'only fresh files plus explicit Retry/Edit file replay can enter file context');
+ok(effective.includes('_prepareComposerAttachmentPlan(snapshotItems)') && effective.includes('_mergeAttachmentContexts(plan.text, sourceReplayContext)'), 'only Send-time fresh files plus the captured Retry/Edit replay context can enter file context');
 ok(src.includes('_splitQuestionWithAttachments(canonicalQuestion)'), 'Retry/Edit still use canonical one-turn file context explicitly');
 
 // Execute the resource snapshot helpers together so page/file status cannot
@@ -121,6 +123,8 @@ ok(snap[1].kind === 'page' && snap[1].status === 'Pinned page · used once', 'ru
 ok(snap[2].name === 'api.md' && snap[2].included === true && snap[2].status === 'Included once', 'runtime fresh text is marked Included once');
 ok(snap[3].name === 'diagram.png' && snap[3].localOnly === true && snap[3].status.includes('not sent'), 'runtime image remains visibly local-only');
 ok(snap[4].name === 'old.txt' && snap[4].replay === true && snap[4].status === 'Reused once', 'runtime Retry/Edit file context is marked Reused once');
+const reversedSendSnapshot = rt.snapshot(plan, pages, [rt.items[1], rt.items[0]], 'Attachment: old.txt (text/plain)\nlegacy');
+ok(reversedSendSnapshot[2].name === 'diagram.png' && reversedSendSnapshot[3].name === 'api.md', 'runtime turn provenance preserves the exact Send-time uploaded-file order');
 ok(rt.sanitize(snap).every(x => !('previewText' in x) && !('file' in x)), 'persisted summaries strip live preview bodies and File objects');
 ok(rt.sanitize(Array.from({length:600}, (_,i)=>({name:'f'+i+'.txt'}))).length === 512, 'runtime metadata sanitizer enforces independent live-resource bound');
 

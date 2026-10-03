@@ -8,18 +8,18 @@ from dataclasses import dataclass
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import (
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import (
     ProviderExecutorRegistry,
     ProviderPrivateResource,
     ResourceExecutionError,
     ResourceExecutionSession,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import (
+from ......_hf_spaces_proxy._utils._resource_contract import (
     ResourceDescriptor,
     VerifiedResource,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _upload(rid: str, data: bytes = b"abc", modality: str = "document") -> ResourceUpload:

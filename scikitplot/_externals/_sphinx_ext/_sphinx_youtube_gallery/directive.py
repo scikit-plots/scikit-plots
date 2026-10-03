@@ -48,17 +48,25 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.application import Sphinx
+from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxDirective
 from yaml import safe_dump
 
+from .._search_variant import resolve_search_variant, search_variant_option
 from .._sphinx_collection import (
     CONTAINER_CLASS,
+    CONTRACT_CLASS,
+    SEARCHABLE_CLASS,
     SECTION_STYLES,
     render_sections,
     sections_allowed,
 )
-from .._sphinx_collection._browser import collection_id, field_names
+from .._sphinx_collection._browser import (
+    collection_id,
+    field_names,
+    is_document_status_node,
+)
 from .._sphinx_collection._presentation import CARD_SPEC, GRID_SPEC
 from .._sphinx_collection._yaml import (
     BoundedYAMLError,
@@ -259,11 +267,22 @@ class YouTubeGalleryDirective(SphinxDirective):
     section-style : {"auto", "section", "rubric"}
         Use real sections where allowed, otherwise rubrics. Explicit section
         mode warns when it must fall back; auto falls back quietly.
-    searchable : flag
-        Add local search to emitted cards without enabling facet/sort controls.
-    interactive : flag
-        Add local search, available field filters, sorting, counts and Reset.
-        Controls act on rendered cards only and are not enabled in list mode.
+    searchable : flag or {"pill-overflow", "classic"}
+        Add local search plus the shared bounded display controls to emitted
+        cards without enabling facet/sort controls. Twelve cards are visible by
+        default; the expanded View panel offers 12/25/50/75/100/125/150 and the
+        grid end offers Load 12 more. An optional value selects the search-shell
+        presentation for this gallery.
+    interactive : flag or {"pill-overflow", "classic"}
+        Add local search, available field filters, sorting, bounded display,
+        counts and Reset. An optional value selects the search-shell
+        presentation for this gallery. Controls act on rendered cards only and
+        are not enabled in list mode. Build-time ``limit``/``offset`` selection
+        remains separate from this reader-side visible window.
+    search-variant : {"pill-overflow", "classic"}
+        Presentation override for the shared collection search shell. The
+        site-wide fallback is ``collection_search_variant``; this option does
+        not activate controls without ``searchable`` or ``interactive``.
     filter-fields : comma-separated field names
         Metadata fields for live dropdowns, e.g. ``channel,tags``. Fields with
         no values are omitted. Multiple selected fields combine with AND.
@@ -333,7 +352,9 @@ class YouTubeGalleryDirective(SphinxDirective):
         "view": _view_choice,
         "columns": directives.unchanged,
         "grid-columns": directives.unchanged,
-        "interactive": directives.flag,
+        "interactive": search_variant_option,
+        "search-variant": search_variant_option,
+        "search_variant": search_variant_option,
         "filter-fields": field_names,
         "sort-fields": field_names,
         "search-fields": field_names,
@@ -346,7 +367,7 @@ class YouTubeGalleryDirective(SphinxDirective):
         "section-style": lambda argument: directives.choice(
             (argument or "auto").strip().lower(), SECTION_STYLES
         ),
-        "searchable": directives.flag,
+        "searchable": search_variant_option,
         "search-label": directives.unchanged,
         "collection-id": collection_id,
     }
@@ -750,8 +771,10 @@ class YouTubeGalleryDirective(SphinxDirective):
             options["section-style"] = self.options["section-style"]
 
         # Forward the exact same reader-control contract instead of wrapping
-        # gallery-grid in a second enhanced collection. Flags are emitted as
-        # valueless directive options, never as the string ``None``.
+        # gallery-grid in a second enhanced collection. gallery-grid owns the
+        # structural controls -> status -> cards order, so this typed adapter
+        # must never create or prepend its own result-count node. Flags are
+        # emitted as valueless directive options, never as the string ``None``.
         for key in ("searchable", "interactive"):
             if key in self.options:
                 options[key] = None
@@ -761,6 +784,16 @@ class YouTubeGalleryDirective(SphinxDirective):
         for key in ("search-label", "collection-id"):
             if key in self.options:
                 options[key] = self.options[key]
+        if any(
+            key in self.options
+            for key in ("searchable", "interactive", "search-variant", "search_variant")
+        ):
+            try:
+                options["search-variant"] = resolve_search_variant(
+                    self.options, self.config.collection_search_variant
+                )
+            except ValueError as exc:
+                raise self.error(str(exc)) from exc
 
         def option_line(key: str, value: Any, indent: str = "") -> str:
             if value is None:
@@ -820,6 +853,23 @@ class YouTubeGalleryDirective(SphinxDirective):
                 continue
             classes = node.get("classes", [])
             if CONTAINER_CLASS in classes:
+                if SEARCHABLE_CLASS in classes:
+                    if CONTRACT_CLASS not in classes:
+                        raise ExtensionError(
+                            "youtube-gallery received a searchable gallery-grid root "
+                            "without the shared controls -> status -> results contract"
+                        )
+                    statuses = [
+                        child
+                        for child in node.children
+                        if is_document_status_node(child)
+                    ]
+                    if len(statuses) != 1:
+                        raise ExtensionError(
+                            "youtube-gallery expected exactly one document-owned "
+                            "collection status sibling from gallery-grid; got "
+                            f"{len(statuses)}"
+                        )
                 if "youtube-gallery" not in classes:
                     classes.append("youtube-gallery")
                 return

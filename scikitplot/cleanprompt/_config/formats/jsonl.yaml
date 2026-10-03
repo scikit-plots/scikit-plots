@@ -1,0 +1,7 @@
+name: jsonl
+version: 1
+summary: JSON Lines - one document per line, as exported by most logging and ML tools.
+extensions: [.jsonl, .ndjson]
+splitter: jsonl
+round_trip: true
+packs: [personal, records, patient, finance, secrets]

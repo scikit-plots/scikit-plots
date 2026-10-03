@@ -1,0 +1,32 @@
+# Cross-subsystem round, 2026-09-28: lexical retrieval and token cost
+# Environment: CPython 3.11.15, Linux x86-64, sqlite3 3.45.1
+# Baseline = the supplied archive, unmodified; after = this round.
+
+--- rank_bm25: after
+174 passed in 1.30s
+--- cleanprompt: after
+2424 passed, 6 skipped in 33.62s
+--- corpus: after
+61 failed, 3490 passed, 10 skipped in 16.14s
+--- _cli: after
+24 failed, 117 passed, 1 skipped in 0.67s
+--- mcp: after (test_protocol_in_memory.py needs mcp>=2; 1.27 installed)
+257 passed, 2 skipped in 1.25s
+--- corpus: failure set vs baseline
+identical to baseline (61, NLTK data absent)
+
+--- lexical leg over 13 realistic queries (fts_probe.py)
+'roc_auc_score()'                    success   ['d0']
+'sklearn.metrics:roc_auc_score'      success   ['d0']
+'C++ extension'                      success   ['d1']
+'dtype("float64")'                   success   ['d2']
+'ValueError: Input contains NaN'     success   ['d2']
+'random-state'                       success   ['d4']
+'plot_confusion_matrix deprecated'   success   ['d3']
+'AND'                                success   ['d5']
+'NOT operator'                       success   ['d5']
+'what is roc auc'                    success   ['d0', 'd1', 'd3']
+'NEAR(roc curve)'                    success   ['d0']
+'roc*'                               success   ['d0']
+'area under the curve?'              success   ['d0', 'd5', 'd1']
+FAILED legs: 0 / 13

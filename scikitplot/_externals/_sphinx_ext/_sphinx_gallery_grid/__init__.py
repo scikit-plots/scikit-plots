@@ -2,9 +2,11 @@
 Generic ``gallery-grid`` Sphinx extension.
 
 This package owns the public ``gallery-grid`` directive and delegates domain-
-agnostic selection/browser behavior to ``_sphinx_collection``.  It is not tied
-to a Sphinx theme; ``youtube-gallery`` is one typed adapter that renders through
-this same grid engine.
+agnostic selection/browser behavior to ``_sphinx_collection``.  Enhanced grids
+emit the shared V4 collection status placeholder as a root-level sibling; the
+controls shell never owns result-count text. It is not tied to a Sphinx theme;
+``youtube-gallery`` is one typed adapter that renders through this same grid
+engine.
 """
 
 from __future__ import annotations

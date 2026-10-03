@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._providers import (
     AnthropicAdapter,
     GeminiAdapter,
     HuggingFaceAdapter,
@@ -16,11 +16,11 @@ from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._pr
     ProviderRegistry,
     SelfHostedAdapter,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.policy import (
+from ...._hf_spaces_proxy._providers.policy import (
     capabilities_for,
     provider_names,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import (
+from ...._hf_spaces_proxy._utils._resource_contract import (
     ResourceDescriptor,
     VerifiedResource,
 )

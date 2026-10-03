@@ -1,0 +1,99 @@
+<section class="learn-generation-shell learn-generation-shell--video learn-video-generator" data-generation-kind="video" data-video-generator>
+  <script type="application/json" class="learn-video-generator-data">{{ payload|safe }}</script>
+
+  {% set generation_kind = 'video' %}
+  {% set studio_title = 'Create a Video' %}
+  {% set studio_description = 'Create a source-aware explainer from a Learn Topic, a canonical Source, a public URL, or your own prompt. Generation stays private until a separate publish action.' %}
+  {% set studio_hero_class = 'learn-video-generator-intro' %}
+  {% set studio_runtime = true %}
+  {% set studio_runtime_status = 'Checking the configured AI runtime…' %}
+  {% set studio_readiness_label = 'Video generation readiness' %}
+  {% include "learn/generation-studio-header.html" %}
+
+  <form class="learn-generation-form learn-video-generation-form" data-video-generation-form novalidate>
+    <fieldset class="learn-generation-card learn-video-mode-fieldset">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">1</span><span>Choose context<small>Choose one grounding mode for this Video request.</small></span></legend>
+      {% set context_scope = 'video' %}
+      {% set context_policy = 'exclusive' %}
+      {% set context_topics = topics %}
+      {% set context_sources = sources %}
+      {% set context_topic_help = 'Related canonical Sources are included in the request snapshot when available.' %}
+      {% set context_source_help = 'Use a canonical Source when provenance should stay explicit.' %}
+      {% set context_url_help = 'The generation service must validate remote content and treat it as untrusted input. Private or local network URLs are not intended for this workflow.' %}
+      {% set context_prompt_placeholder = 'Describe the video you want to create.' %}
+      {% set context_prompt_help = 'Use Prompt when no catalog context should be attached.' %}
+      {% include "learn/generation-context.html" %}
+    </fieldset>
+
+    <div class="learn-video-derived-context" data-video-derived-context hidden></div>
+
+    {% set generation_kind = 'video' %}
+    {% include "learn/generation-shaping.html" %}
+
+    {% include "learn/generation-lenses.html" %}
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">4</span><span>Output settings<small>Choose presentation defaults while keeping provider credentials server-side.</small></span></legend>
+      <div class="learn-generation-options learn-video-presentation-grid">
+        <label class="learn-generation-field">Style
+          <select name="style">
+            <option value="explainer">Explainer</option>
+            <option value="lecture">Lecture</option>
+            <option value="storyboard">Storyboard</option>
+            <option value="comparison">Comparison</option>
+          </select>
+        </label>
+        <label class="learn-generation-field">Length
+          <select name="length">
+            <option value="short">Short · 1–2 min</option>
+            <option value="standard" selected>Standard · 3–5 min</option>
+            <option value="deep">Deep · 6–10 min</option>
+          </select>
+        </label>
+        <label class="learn-generation-field">Language
+          <select name="language"><option value="en" selected>English</option></select>
+        </label>
+        <label class="learn-generation-field">Voice
+          <select name="voice"><option value="default" selected>Runtime default</option></select>
+        </label>
+      </div>
+    </fieldset>
+
+    {% set generation_kind = 'video' %}
+    {% include "learn/generation-advanced.html" %}
+
+    {% set generation_kind = 'video' %}
+    {% set authority_title = 'Generation authority' %}
+    {% set authority_help = 'The Assistant selection is requested model provenance; the active Video runtime owns rendering and publishing.' %}
+    {% set authority_kind = 'assistant' %}
+    {% set authority_managed = 'shared' %}
+    {% set authority_initial_label = 'Runtime default' %}
+    {% set authority_initial_badge = 'Default' %}
+    {% set authority_open_label = 'Model Configuration' %}
+    {% set authority_open_title = 'Open AI Assistant model configuration' %}
+    {% set authority_more_label = 'Try a different model' %}
+    {% set authority_more_title = 'More model options' %}
+    {% set authority_runtime_label = 'Video runtime' %}
+    {% set authority_runtime_initial = 'Discovering…' %}
+    {% set authority_status = 'Requested model provenance is synchronized with AI Assistant. The Video runtime remains authoritative for its renderer and publish provider.' %}
+    {% include "learn/generation-authority.html" %}
+
+    {% set publication_credit_help = 'Optional public credit reserved for a later reviewed publication handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. It is stored only with this browser studio state and is never sent to the Video generation runtime.' %}
+    {% include "learn/publication-credit.html" %}
+    {% set generation_kind = 'video' %}
+    {% include "learn/generation-actions.html" %}
+    {% set status_initial_state = 'idle' %}
+    {% set status_initial_label = 'Ready' %}
+    {% set status_initial_message = 'Ready to create a video when the configured Video runtime is available.' %}
+    {% include "learn/generation-status.html" %}
+  </form>
+
+  {% set generation_kind = 'video' %}
+  {% set library_title = 'Your Videos' %}
+  {% set library_singular = 'video generation' %}
+  {% set library_plural = 'video generations' %}
+  {% set library_empty_title = 'No generated videos are known to this browser yet.' %}
+  {% set library_empty_help = 'Submit a generation when the runtime is enabled. Published Learn videos remain separate from this private runtime library.' %}
+  {% set library_refresh_title = 'Refresh browser-known video receipts from the active Video runtime.' %}
+  {% include "learn/generation-library.html" %}
+</section>

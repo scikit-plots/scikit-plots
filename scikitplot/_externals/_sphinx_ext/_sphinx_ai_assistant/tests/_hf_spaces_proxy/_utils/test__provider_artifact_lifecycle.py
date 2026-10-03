@@ -12,9 +12,9 @@ import zipfile
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
+from ...._hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
     ProviderArtifactError,
@@ -22,12 +22,12 @@ from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._ut
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ...._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     PROVIDER_ARTIFACT_CANCEL_CONTRACT,
     PROVIDER_ARTIFACT_LIFECYCLE_CONTRACT,
     ProviderArtifactLifecycleRegistry,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._zip_artifact import (
+from ...._hf_spaces_proxy._utils._zip_artifact import (
     ZIP_EDIT_CONTRACT,
     ZIP_EDIT_RECEIPT_CONTRACT,
 )
@@ -506,7 +506,7 @@ def test_one_provider_lifecycle_cannot_ambiguously_correlate_to_two_paths(monkey
     assert response.json()["code"] == "PROVIDER_ARTIFACT_PROVENANCE_INVALID"
 
 # Large-contract case fragments are collected only through this canonical owner.
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._case_loader import export_case_tests as _export_case_tests
+from ..._case_loader import export_case_tests as _export_case_tests
 
 _export_case_tests(globals(), package=__package__, case_package='_cases._provider_artifact_lifecycle', cases=('redis_chaos', 'shared'))
 del _export_case_tests

@@ -54,3 +54,22 @@ Before packaging, run the common family gate, YouTube wrapper, dependency-free b
 gates, all available Sphinx integration gates, syntax/JSON checks, and residue audit.
 Missing Sphinx is `UNAVAILABLE`, not GREEN. Package the complete wide repository for
 wide-repo work, not another isolated `_sphinx_ext` archive.
+
+## Current-state notes and the two checkouts
+
+Read `maintenances/_externals/_sphinx_ext/_notes/SPHINX_COLLECTION.md` for the present contract of this subsystem and
+`maintenances/_externals/_sphinx_ext/_notes/SPHINX_EXTENSION_STACK.md` for the stack-wide rules. Each ends with a
+**Library checkout** section.
+
+## The two checkouts
+
+This stack is one tree in two repositories: the library, at
+`scikitplot/_externals/_sphinx_ext/`, and the documentation site, at
+`docs/source/scikitplot/_externals/_sphinx_ext/`. The shared packages are kept
+byte-identical. The site's `conf.py`, canonical content and publication
+workflow exist only in the documentation repository, so tests that read them
+skip in the library checkout with the reason, and run there.
+
+- Find the site from what is on disk, never from `parents[n]`.
+- After any lint or format pass, run the suites before committing.
+- A change to a shared package is made once and delivered to both repositories.

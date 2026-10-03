@@ -1,0 +1,35 @@
+# Cloud identifiers: Google Drive and Workspace, AWS, Azure, GCP.
+#
+# A shared-drive link is already hidden as a URL. A Drive file id on its own is
+# 25-44 characters of [A-Za-z0-9_-], which is also what a hash, a base64
+# fragment and a random token look like, so there is no pattern for it: an id
+# is hidden by the field that holds it (`spreadsheet_id = "..."`), which is
+# where one copied out of a link actually ends up.
+name: cloud
+version: 1
+summary: Drive, bucket, project, tenant and account identifiers, and cloud connection strings.
+
+fields:
+  - names: [drive_id, folder_id, file_id, document_id, spreadsheet_id, sheet_id, presentation_id, bucket, bucket_name, project_id, tenant_id, subscription_id, account_id_aws, aws_account_id, resource_group, storage_account]
+    kind: CLOUD_ID
+    span: token
+    role: id
+  # Internal host names say where a system lives; `db_host` matches by suffix.
+  - names: [host, host_name, server, server_name, endpoint, fqdn]
+    kind: HOST
+    span: token
+    role: id
+
+patterns:
+  - kind: AWS_ARN
+    pattern: '\barn:aws[a-z\-]*:[a-z0-9\-]+:[a-z0-9\-]*:\d{12}:[^\s"''`<>]+'
+    intent: An AWS resource name, which carries the twelve-digit account number.
+    priority: 90
+    examples_yes: ['arn:aws:iam::123456789012:role/analyst']
+    examples_no: ['arn:aws:iam::role/analyst']
+  - kind: AZURE_CONNECTION
+    pattern: 'DefaultEndpointsProtocol=https?;AccountName=[^;\s]+;AccountKey=[^;\s]+(?:;[^\s"'']*)?'
+    intent: An Azure storage connection string, which contains the account key.
+    priority: 96
+    examples_yes: ['DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=abc123==;EndpointSuffix=core.windows.net']
+    examples_no: ['DefaultEndpointsProtocol=https;AccountName=acct']

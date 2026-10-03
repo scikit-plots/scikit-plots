@@ -1,0 +1,11 @@
+name: email
+version: 1
+summary: Email messages and mailboxes (.eml, .mbox, Gmail Takeout) - headers as fields, body as prose.
+extensions: [.eml, .mbox]
+splitter: keyvalue
+round_trip: true
+options:
+  separators: [":"]
+  comments: []
+  header_block: true
+packs: [email, personal, secrets]

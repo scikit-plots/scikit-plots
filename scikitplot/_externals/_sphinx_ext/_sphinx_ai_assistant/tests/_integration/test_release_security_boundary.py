@@ -1,8 +1,9 @@
 """Run 11: B05/B06 browser-origin, identity, body and abuse-gate contracts."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
+from .._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
 
+import ast
 import asyncio
 import importlib
 import pathlib
@@ -123,10 +124,79 @@ def test_forwarded_identity_is_default_deny_and_shared_helper(monkeypatch):
     monkeypatch.setattr(proxy, "TRUST_X_FORWARDED_FOR", True)
     assert proxy._client_ip(req) == "198.51.100.22"
 
-    src = (PROXY / "app.py").read_text(encoding="utf-8")
-    for route in ("chat.ratelimit", "contribute.ratelimit", "share.ratelimit", "feedback.ratelimit"):
-        pos = src.index(route)
-        assert "_client_ip(request)" in src[max(0, pos - 1000):pos]
+    # Every rate-limit decision must take its identity from ``_client_ip``,
+    # the one function allowed to read a forwarded header. This is checked on
+    # the syntax tree, for every call there is. The earlier form searched the
+    # text before four named log events; it rotted when the legacy feedback
+    # route was replaced by page feedback and feedback review, and it never
+    # covered the routes added since.
+    tree = ast.parse((PROXY / "app.py").read_text(encoding="utf-8"))
+    functions = {
+        node.name: node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    def calls(node: ast.AST) -> set[str]:
+        return {
+            call.func.id
+            for call in ast.walk(node)
+            if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+        }
+
+    def reads_client_ip(expression: ast.AST) -> bool:
+        """``_client_ip(request)``, or an identity helper that is built on it."""
+        for call in ast.walk(expression):
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)):
+                continue
+            if call.func.id == "_client_ip":
+                return True
+            helper = functions.get(call.func.id)
+            if (
+                helper is not None
+                and call.func.id.endswith("_rate_identity")
+                and "_client_ip" in calls(helper)
+            ):
+                return True
+        return False
+
+    readers = sorted(
+        name
+        for name, node in functions.items()
+        if "x-forwarded-for" in ast.unparse(node).lower() or "request.client" in ast.unparse(node)
+    )
+    assert readers == ["_client_ip"], readers
+
+    seen_scopes: set[str] = set()
+    for name, function in functions.items():
+        for call in ast.walk(function):
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "_consume_rate_limit"
+            ):
+                continue
+            identity = call.args[2]
+            if isinstance(identity, ast.Name):
+                sources = [
+                    assign.value
+                    for assign in ast.walk(function)
+                    if isinstance(assign, ast.Assign)
+                    and any(
+                        isinstance(target, ast.Name) and target.id == identity.id
+                        for target in assign.targets
+                    )
+                ]
+                assert sources, f"{name}: rate identity {identity.id!r} is not assigned in the route"
+                assert all(reads_client_ip(source) for source in sources), name
+            else:
+                assert reads_client_ip(identity), name
+            scopes = [kw.value.value for kw in call.keywords if kw.arg == "scope"]
+            assert len(scopes) == 1, f"{name}: a rate-limit call names exactly one scope"
+            seen_scopes.add(scopes[0])
+    assert {"chat", "contribution", "share", "page-feedback", "feedback-review"} <= seen_scopes
+    # The legacy Assistant-feedback route is retired, not renamed.
+    assert "feedback" not in seen_scopes
 
 
 def test_all_hf_public_body_routes_use_the_streaming_gate():
@@ -136,8 +206,39 @@ def test_all_hf_public_body_routes_use_the_streaming_gate():
     assert "return await _read_limited_body(request, MAX_BODY_BYTES" in src
     assert 'await _read_limited_body(request, CONTRIBUTION_MAX_BODY_BYTES' in src
     assert 'await _read_limited_body(request, SHARE_MAX_BODY_BYTES' in src
-    assert 'await _read_limited_body(request, FEEDBACK_MAX_BODY_BYTES' in src
     assert "CHAT_RATE_LIMIT_PER_HOUR" in src
+
+    # The two feedback surfaces that replaced the legacy route each have a
+    # bound of their own, and no route reads a body any other way. Checked on
+    # the syntax tree so a re-wrapped call is still the same call.
+    tree = ast.parse(src)
+    limits = {
+        ast.unparse(call.args[1])
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Name)
+        and call.func.id == "_read_limited_body"
+    }
+    assert {
+        "MAX_BODY_BYTES",
+        "CONTRIBUTION_MAX_BODY_BYTES",
+        "SHARE_MAX_BODY_BYTES",
+        "PAGE_FEEDBACK_MAX_BODY_BYTES",
+        "FEEDBACK_REVIEW_MAX_BODY_BYTES",
+    } <= limits
+    assert "FEEDBACK_MAX_BODY_BYTES" not in limits
+    unbounded = sorted(
+        {
+            call.func.attr
+            for call in ast.walk(tree)
+            if isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "request"
+            and call.func.attr in {"body", "json", "form"}
+        }
+    )
+    assert unbounded == [], unbounded
 
 
 def test_direct_model_body_gate_streams_and_hard_clamps_configuration():
@@ -164,7 +265,10 @@ def test_worker_uses_exact_default_origin_streaming_body_and_edge_identity():
     assert "CF-Connecting-IP" in src
     assert "CHAT_RATE_LIMIT_PER_HOUR_DEFAULT = 30" in src
     assert "SHARE_RATE_LIMIT_PER_HOUR_DEFAULT = 10" in src
-    assert "FEEDBACK_RATE_LIMIT_PER_HOUR_DEFAULT = 30" in src
+    # The Worker's feedback route is retired; page feedback is rate-limited on
+    # the proxy. A limit left behind here would be a limit on nothing.
+    assert "FEEDBACK_RATE_LIMIT" not in src
+    assert "url.pathname === '/v1/feedback'" not in src
     rate = src[src.index("async function _rateLimit("):src.index("async function _kvPut(")]
     # Run 15: Durable Objects are the bundled authoritative cross-PoP decision
     # plane; the unique-event KV limiter remains only as an explicit soft

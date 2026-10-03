@@ -23,7 +23,7 @@ ok(sheet.includes("_feedbackReviewArtifactFilename('request-json')") && sheet.in
 ok(sheet.includes("'Originating model'"), 'Feedback tab visibly identifies originating model evidence');
 ok(sheet.includes("'Request JSON'"), 'Feedback transport envelope remains separately inspectable');
 ok(sheet.includes("'pre-save projection'") && sheet.includes('cloud-owned placeholders'), 'JSONL view makes pre-save cloud projection semantics explicit');
-ok(sheet.includes("'Anonymous telemetry JSONL · separate privacy-minimal row'"), 'Feedback telemetry row is separately inspectable inside JSONL view');
+ok(!sheet.includes('Anonymous telemetry JSONL'), 'retired anonymous telemetry projection is absent');
 ok(sheet.includes("idleText.textContent = reviewPayloadIssue") && !sheet.includes('share.disabled = !entry'), 'invalid review payload is surfaced without a duplicate share button');
 ok(!popup.includes('data-feedback-review-toggle'), 'quick popup no longer duplicates maintainer-review permission');
 ok(popup.includes('feedbackCenterIcon.innerHTML = ICONS.pulse'), 'feedback center uses pulse icon');

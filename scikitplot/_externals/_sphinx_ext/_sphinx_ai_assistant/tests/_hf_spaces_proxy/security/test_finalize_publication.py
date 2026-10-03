@@ -53,7 +53,7 @@ def _promoted(tmp_path: Path) -> Path:
         "schemaVersion": 1,
         "predicateType": publish.PROMOTION_PREDICATE_TYPE,
         "generatedAt": "2026-09-05T04:00:00Z",
-        "release": {"releaseId": "run151-test", "proxyVersion": "7.4.0", "sourceRevision": REVISION},
+        "release": {"releaseId": "run151-test", "proxyVersion": "7.9.0", "sourceRevision": REVISION},
         "subject": {"sourceTreeSha256": "4" * 64, "evidenceSha256": "5" * 64},
         "artifacts": {
             "zip": {"name": zip_path.name, "sha256": _sha(zip_path), "size": zip_path.stat().st_size, "fileCount": 349},

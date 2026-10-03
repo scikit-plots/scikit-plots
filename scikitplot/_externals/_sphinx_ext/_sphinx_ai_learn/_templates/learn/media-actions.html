@@ -1,0 +1,21 @@
+<div class="learn-media-actions" data-media-actions data-kind="{{ subject.kind|e }}">
+  <div class="learn-media-action-row" data-enhanced hidden>
+    {% if subject.kind == 'video' %}
+    <a class="learn-button learn-primary" href="{{ video_generation_href|default('#')|e }}">Generate Variant</a>
+    {% elif subject.kind == 'audio' %}
+    <a class="learn-button learn-primary" href="{{ audio_generation_href|default('#')|e }}">Generate Variant</a>
+    {% elif subject.kind == 'document' %}
+    <a class="learn-button learn-primary" href="{{ document_generation_href|default('#')|e }}">Generate Variant</a>
+    {% elif subject.kind == 'whiteboard' %}
+    <a class="learn-button learn-primary" href="{{ whiteboard_generation_href|default('#')|e }}">Generate Variant</a>
+    {% else %}
+    <button type="button" class="learn-primary" data-media-create>{{ create_label|e }}</button>
+    {% endif %}
+    {% if context_target %}<a class="learn-button learn-media-context" href="{{ context_target.href|default('#')|e }}">{{ context_label|e }}</a>{% endif %}
+    <button type="button" data-copy-url>Copy URL</button>
+  </div>
+  <div class="learn-media-overview-actions" data-overview>
+    {% include "learn/overview-actions.html" %}
+  </div>
+  {% if subject.url|default('') %}<div class="learn-media-utility-row"><a class="learn-button" href="{{ subject.url|e }}" rel="noopener noreferrer" target="_blank">Open resource ↗</a></div>{% endif %}
+</div>

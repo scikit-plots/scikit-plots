@@ -40,6 +40,9 @@ ok(banner.includes("'ai-assistant-open-privacy'"), 'More information routes to e
 ok(src.includes(".addEventListener('ai-assistant-open-privacy'"), 'panel owns internal privacy-sheet routing event');
 ok(src.includes(".addEventListener('ai-assistant-open-model-configuration'"), 'panel owns model-configuration routing event');
 
+ok(src.includes("if (!_selectQuickModel(id)) return;"), 'full model sheet uses the same canonical model-selection transaction as compact pickers');
+ok(src.includes("run: function () { _selectQuickModel(m.id); }"), 'footer compact model menu uses the canonical model-selection transaction');
+
 ok(more.indexOf("modelToggleLabel.textContent = 'Change model'") < more.indexOf("retryMenuLbl.textContent = 'Retry'"), 'Change model is first answer-menu action before Retry');
 ok(more.includes("modelHeading.textContent = 'Try a different model'"), 'expanded list uses requested try-a-different-model heading');
 // The six-item bound is gone. It kept the first six and dropped the rest in
@@ -151,7 +154,7 @@ ok(src.includes("'ai-assistant-panel-inline-picker-more', ICONS.chevronDown)"),'
 // while the panel is up.
 ok(src.includes('var live = _quickModelCandidates(_cfg());'),'candidates are read when the menu opens, not when it was built');
 ok(/m\.id === currentId \? '.{0,8} ' : ''/.test(src),'the current model is marked, so the list says where you are');
-ok(src.includes('_setActiveModelId(m.id);'),'choosing one switches the model');
+ok(src.includes('run: function () { _selectQuickModel(m.id); }'),'compact menu chooses through the canonical selection transaction');
 // The picker itself must stay the button: the sync code writes aria-expanded
 // on it, and a wrapper would have swallowed that silently.
 ok(src.includes('pickerWrap.appendChild(inlinePicker);') && src.includes('pickerWrap.appendChild(quickModelBtn);'),'the two are siblings inside a wrapper');

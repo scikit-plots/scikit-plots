@@ -1,0 +1,105 @@
+{% set creation_label = {'topic':'Topic','source':'Source','problem':'Open Problem','skill':'Skill','topic-prompt':'Topic Prompt'}[creation_kind] %}
+<section class="learn-generation-shell learn-record-generation" data-record-generation data-record-kind="{{ creation_kind|e }}" data-site-id="{{ site_id|e }}" data-revision="{{ revision|e }}">
+  <script type="application/json" class="learn-record-generation-data">{{ payload }}</script>
+  {% set generation_kind = creation_kind %}
+  {% set creation_article = 'an' if creation_kind == 'problem' else 'a' %}
+  {% set studio_title = 'Create ' ~ creation_article ~ ' ' ~ creation_label %}
+  {% set studio_description = 'Create a private AI-assisted draft first. Nothing here writes to the published catalog. Context is explicit, evidence-aware, reviewable, and exportable as a handoff.' %}
+  {% include "learn/generation-studio-header.html" %}
+  <form class="learn-generation-form learn-record-generation-form" data-record-generation-form novalidate>
+    <fieldset class="learn-generation-card learn-record-context-fieldset">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">1</span><span>Choose context<small>Build a focused context set from Topics, Sources, a reference URL, and your own Prompt/notes.</small></span></legend>
+      {% set context_scope = 'record' %}
+      {% set context_policy = 'composable' %}
+      {% set context_topics = topics %}
+      {% set context_sources = sources %}
+      {% set context_topic_help = 'Select one or more Topics when the draft should connect existing Learn concepts.' %}
+      {% set context_source_help = 'Select one or more canonical Sources when explicit evidence context is useful.' %}
+      {% if creation_kind == 'source' %}
+        {% set context_default_tab = 'url' %}
+        {% set context_url_label = 'Original source URL' %}
+        {% set context_url_required = true %}
+        {% set context_url_help = 'Required. The Source must begin from a real user-supplied public HTTPS URL; the browser does not fetch it for the model.' %}
+        {% set context_prompt_label = 'Source notes / excerpt' %}
+        {% set context_prompt_required = true %}
+        {% set context_prompt_placeholder = 'Paste an abstract, excerpt, metadata notes, or your own notes from the source.' %}
+        {% set context_prompt_help = 'Required generation content. The AI must not invent source metadata or claim the URL was fetched.' %}
+      {% else %}
+        {% set context_default_tab = 'topic' %}
+        {% set context_url_label = 'Reference URL' %}
+        {% set context_url_help = 'Optional public HTTPS reference. A URL is context metadata only unless retrieval is explicitly supported elsewhere.' %}
+        {% set context_prompt_label = 'Prompt / notes' %}
+        {% set context_prompt_placeholder = 'Paste notes, excerpts you are allowed to use, questions, constraints, or the problem you want to explore.' %}
+        {% set context_prompt_help = 'Add your own context. You can combine this with selected Topics and Sources.' %}
+      {% endif %}
+      {% include "learn/generation-context.html" %}
+    </fieldset>
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">2</span><span>Shape the draft<small>Give the AI a bounded goal; generated text remains a private draft.</small></span></legend>
+      <label class="learn-generation-field">Working title <input type="text" data-record-title maxlength="200" placeholder="Optional — AI may propose one"></label>
+      <label class="learn-generation-field">Creation brief<textarea data-record-brief rows="5" maxlength="6000" placeholder="What should this {{ creation_label|lower|e }} accomplish? What should it include or avoid?"></textarea></label>
+    </fieldset>
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">3</span><span>Choose AI lenses<small>Combine audiences, purposes, skills, and role lenses in one transparent model request.</small></span></legend>
+      {% set lens_scope = 'record' %}
+      {% set lens_variant = 'record' %}
+      {% include "learn/ai-lens-profile.html" %}
+      <label class="learn-generation-field">Depth<select data-record-depth><option value="concise">Concise</option><option value="balanced" selected>Balanced</option><option value="deep">Deep</option></select></label>
+    </fieldset>
+
+    {% set generation_kind = 'record' %}
+    {% set advanced_record_kind = creation_kind %}
+    {% set advanced_record_label = creation_label %}
+    {% include "learn/generation-advanced.html" %}
+
+    {% set generation_kind = 'record' %}
+    {% set authority_title = 'Generation authority' %}
+    {% set authority_help = 'The selected AI Assistant model directly drafts this private handoff through the shared Chat runtime; publication remains a separate reviewed action.' %}
+    {% set authority_kind = 'assistant' %}
+    {% set authority_managed = 'shared' %}
+    {% set authority_initial_label = 'Discovering…' %}
+    {% set authority_initial_badge = 'Default' %}
+    {% set authority_open_label = 'Model Configuration' %}
+    {% set authority_open_title = 'Open AI Assistant model configuration' %}
+    {% set authority_more_label = 'Try a different model' %}
+    {% set authority_more_title = 'More model options' %}
+    {% set authority_runtime_label = 'Draft runtime' %}
+    {% set authority_runtime_initial = 'Checking…' %}
+    {% set authority_context = 'Drafts stay private in this studio; publication remains a separate reviewed handoff.' %}
+    {% set authority_status = 'Checking shared Assistant model and Chat runtime authority…' %}
+    {% include "learn/generation-authority.html" %}
+
+    {% set publication_credit_help = 'Nickname or name reserved for a later reviewed pull-request handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. This credit stays outside the AI generation request.' %}
+    {% include "learn/publication-credit.html" %}
+    {% set generation_kind = 'record' %}{% include "learn/generation-actions.html" %}
+    {% set generation_kind = 'record' %}{% set status_initial_message = 'Ready to create a private AI-assisted draft.' %}{% include "learn/generation-status.html" %}
+    <div class="learn-actions learn-record-generation-job-actions" data-record-generation-job-actions hidden><button type="button" data-record-cancel>Cancel generation</button></div>
+  </form>
+
+  <section class="learn-generation-card learn-record-result" data-record-result hidden>
+    <div class="learn-section-ai-heading"><div><p class="learn-kicker">Private AI draft</p><h3 data-record-result-title>Generated draft</h3></div><span class="learn-section-ai-badge">Review required</span></div>
+    <pre class="learn-record-result-preview" data-record-result-preview></pre>
+    <div class="learn-actions"><button type="button" data-record-copy-result>Copy draft JSON</button><button type="button" data-record-download>Download handoff</button><button type="button" data-record-discard>Discard draft</button></div>
+    <div class="learn-record-publication" data-record-publication>
+      <div class="learn-section-ai-heading"><div><p class="learn-kicker">Reviewed publication</p><h4>Open pull request</h4></div><span class="learn-section-ai-badge">Explicit handoff</span></div>
+      <p class="learn-meta">Generation stays browser-local until you explicitly send this reviewed draft to the configured publication transport. The repository workflow revalidates the current catalog revision and opens a JSON-only review.</p>
+      {% if creation_kind == 'source' %}<label class="learn-generation-check"><input type="checkbox" data-record-metadata-reviewed> I reviewed the Source URL, metadata, and supplied notes for repository handoff.</label>{% endif %}
+      <div class="learn-actions"><button type="button" class="learn-primary" data-record-publish>Open pull request</button></div>
+      <p class="learn-meta" data-record-publication-status role="status" aria-live="polite">Local only · publication not requested. Contributor credit from the studio above is applied only to this reviewed handoff.</p>
+      <p class="learn-meta" data-record-publication-link hidden></p>
+    </div>
+    <p class="learn-meta">Until the reviewed publication action succeeds, this handoff remains local and is not a catalog mutation.</p>
+  </section>
+
+  {% set generation_kind = creation_kind %}
+  {% set library_kicker = 'Private AI draft library' %}
+  {% set library_title = {'topic':'Your Topics','source':'Your Sources','problem':'Your Open Problems','skill':'Your Skills','topic-prompt':'Your Topic Prompts'}[creation_kind] %}
+  {% set library_singular = {'topic':'topic draft','source':'source draft','problem':'open problem draft','skill':'skill draft','topic-prompt':'topic prompt draft'}[creation_kind] %}
+  {% set library_plural = {'topic':'topic drafts','source':'source drafts','problem':'open problem drafts','skill':'skill drafts','topic-prompt':'topic prompt drafts'}[creation_kind] %}
+  {% set library_empty_title = {'topic':'No generated topics are known to this browser yet.','source':'No generated sources are known to this browser yet.','problem':'No generated open problems are known to this browser yet.','skill':'No generated skills are known to this browser yet.','topic-prompt':'No generated topic prompts are known to this browser yet.'}[creation_kind] %}
+  {% set library_empty_help = 'Successful private AI drafts appear here as metadata-only browser receipts. Published catalog records remain separate and require a reviewed handoff.' %}
+  {% set library_refresh_title = 'Record creation currently returns private completed handoffs directly and does not expose a receipt refresh API.' %}
+  {% include "learn/generation-library.html" %}
+</section>

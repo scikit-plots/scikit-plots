@@ -1,0 +1,1504 @@
+{
+ "formats": {
+  "archive": {
+   "extensions": [
+    ".zip"
+   ],
+   "name": "archive",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "archive",
+   "summary": "Zip archives - each member redacted by its own format and written to a new archive; unsafe or unsupported members are reported, never extracted.",
+   "version": 1
+  },
+  "csv": {
+   "extensions": [
+    ".csv"
+   ],
+   "name": "csv",
+   "options": {
+    "delimiter": ","
+   },
+   "packs": [
+    "personal",
+    "records",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "delimited",
+   "summary": "Comma-separated tables - each cell named by its column header.",
+   "version": 1
+  },
+  "docx": {
+   "extensions": [
+    ".docx",
+    ".docm"
+   ],
+   "name": "docx",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": false,
+   "splitter": "office",
+   "summary": "Word documents (Office Open XML) - body, headers, footers, notes and comments, read with the standard library. Output is redacted text.",
+   "version": 1
+  },
+  "email": {
+   "extensions": [
+    ".eml",
+    ".mbox"
+   ],
+   "name": "email",
+   "options": {
+    "comments": [],
+    "header_block": true,
+    "separators": [
+     ":"
+    ]
+   },
+   "packs": [
+    "email",
+    "personal",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "keyvalue",
+   "summary": "Email messages and mailboxes (.eml, .mbox, Gmail Takeout) - headers as fields, body as prose.",
+   "version": 1
+  },
+  "env": {
+   "extensions": [
+    ".env",
+    ".envrc",
+    ".flaskenv"
+   ],
+   "name": "env",
+   "options": {
+    "comments": [
+     "#"
+    ],
+    "separators": [
+     "="
+    ]
+   },
+   "packs": [
+    "personal",
+    "secrets",
+    "cloud"
+   ],
+   "round_trip": true,
+   "splitter": "keyvalue",
+   "summary": "Environment files - KEY=value, one per line.",
+   "version": 1
+  },
+  "html": {
+   "extensions": [
+    ".html",
+    ".htm",
+    ".xml",
+    ".xhtml",
+    ".svg"
+   ],
+   "name": "html",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "text",
+   "summary": "HTML and XML pages - scanned as text; attribute values follow the patterns.",
+   "version": 1
+  },
+  "ini": {
+   "extensions": [
+    ".ini",
+    ".cfg",
+    ".conf",
+    ".properties",
+    ".toml"
+   ],
+   "name": "ini",
+   "options": {
+    "comments": [
+     "#",
+     ";"
+    ],
+    "separators": [
+     "=",
+     ":"
+    ]
+   },
+   "packs": [
+    "personal",
+    "secrets",
+    "cloud"
+   ],
+   "round_trip": true,
+   "splitter": "keyvalue",
+   "summary": "INI, CFG, properties and TOML files - key = value, sections ignored.",
+   "version": 1
+  },
+  "javascript": {
+   "extensions": [
+    ".js",
+    ".mjs",
+    ".cjs",
+    ".jsx",
+    ".ts",
+    ".tsx"
+   ],
+   "name": "javascript",
+   "packs": [
+    "personal",
+    "secrets",
+    "cloud"
+   ],
+   "round_trip": true,
+   "splitter": "script",
+   "summary": "JavaScript and TypeScript sources - object properties and assignments.",
+   "version": 1
+  },
+  "json": {
+   "extensions": [
+    ".json",
+    ".geojson",
+    ".har"
+   ],
+   "name": "json",
+   "packs": [
+    "personal",
+    "records",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "json",
+   "summary": "JSON documents - values found by the name of their key.",
+   "version": 1
+  },
+  "jsonl": {
+   "extensions": [
+    ".jsonl",
+    ".ndjson"
+   ],
+   "name": "jsonl",
+   "packs": [
+    "personal",
+    "records",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "jsonl",
+   "summary": "JSON Lines - one document per line, as exported by most logging and ML tools.",
+   "version": 1
+  },
+  "markdown": {
+   "extensions": [
+    ".md",
+    ".markdown",
+    ".mdx"
+   ],
+   "name": "markdown",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "text",
+   "summary": "Markdown documents, READMEs and notes.",
+   "version": 1
+  },
+  "notebook": {
+   "extensions": [
+    ".ipynb"
+   ],
+   "name": "notebook",
+   "packs": [
+    "secrets",
+    "pandas",
+    "numpy",
+    "sklearn"
+   ],
+   "round_trip": true,
+   "splitter": "notebook",
+   "summary": "Jupyter notebooks - cells, outputs and figures, structure preserved.",
+   "version": 1
+  },
+  "pdf": {
+   "extensions": [
+    ".pdf"
+   ],
+   "name": "pdf",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": false,
+   "splitter": "corpus",
+   "summary": "PDF documents, read through scikitplot.corpus (pdfminer.six or pypdf). Output is redacted text.",
+   "version": 1
+  },
+  "pptx": {
+   "extensions": [
+    ".pptx"
+   ],
+   "name": "pptx",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": false,
+   "splitter": "office",
+   "summary": "PowerPoint decks (Office Open XML) - slide text and speaker notes, read with the standard library. Output is redacted text.",
+   "version": 1
+  },
+  "python": {
+   "extensions": [
+    ".py",
+    ".pyi",
+    ".pyw"
+   ],
+   "name": "python",
+   "packs": [
+    "secrets",
+    "pandas"
+   ],
+   "round_trip": true,
+   "splitter": "python",
+   "summary": "Python modules - schema discovery, and literals bound to sensitive names.",
+   "version": 1
+  },
+  "rlang": {
+   "extensions": [
+    ".r",
+    ".rmd",
+    ".qmd"
+   ],
+   "name": "rlang",
+   "packs": [
+    "personal",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "script",
+   "summary": "R scripts and R Markdown - `name <- \"value\"` assignments.",
+   "version": 1
+  },
+  "rst": {
+   "extensions": [
+    ".rst",
+    ".rest"
+   ],
+   "name": "rst",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "text",
+   "summary": "reStructuredText documents, including Sphinx sources.",
+   "version": 1
+  },
+  "shell": {
+   "extensions": [
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".ksh",
+    ".fish",
+    ".ps1",
+    ".bat",
+    ".cmd"
+   ],
+   "name": "shell",
+   "packs": [
+    "personal",
+    "secrets",
+    "cloud"
+   ],
+   "round_trip": true,
+   "splitter": "script",
+   "summary": "Shell scripts - assignments, exports and long options.",
+   "version": 1
+  },
+  "sql": {
+   "extensions": [
+    ".sql",
+    ".ddl",
+    ".dml"
+   ],
+   "name": "sql",
+   "packs": [
+    "personal",
+    "secrets",
+    "records"
+   ],
+   "round_trip": true,
+   "splitter": "script",
+   "summary": "SQL scripts - string literals and assignments; values follow the patterns.",
+   "version": 1
+  },
+  "text": {
+   "extensions": [
+    ".txt",
+    ".text",
+    ".log",
+    ".out"
+   ],
+   "name": "text",
+   "packs": [
+    "personal",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "text",
+   "summary": "Plain text and logs. Lines of the form \"Key: value\" are read as fields.",
+   "version": 1
+  },
+  "tsv": {
+   "extensions": [
+    ".tsv",
+    ".tab"
+   ],
+   "name": "tsv",
+   "options": {
+    "delimiter": "\t"
+   },
+   "packs": [
+    "personal",
+    "records",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": true,
+   "splitter": "delimited",
+   "summary": "Tab-separated tables - each cell named by its column header.",
+   "version": 1
+  },
+  "vcard": {
+   "extensions": [
+    ".vcf",
+    ".vcard"
+   ],
+   "name": "vcard",
+   "options": {
+    "comments": [],
+    "separators": [
+     ":"
+    ]
+   },
+   "packs": [
+    "addressbook",
+    "personal"
+   ],
+   "round_trip": true,
+   "splitter": "keyvalue",
+   "summary": "vCard address books (.vcf, Google Contacts export) - properties as fields.",
+   "version": 1
+  },
+  "xlsx": {
+   "extensions": [
+    ".xlsx",
+    ".xlsm"
+   ],
+   "name": "xlsx",
+   "packs": [
+    "personal",
+    "records",
+    "patient",
+    "finance",
+    "secrets"
+   ],
+   "round_trip": false,
+   "splitter": "office",
+   "summary": "Excel workbooks (Office Open XML) - every sheet as tab-separated rows with its header, read with the standard library. Output is redacted text.",
+   "version": 1
+  },
+  "yaml": {
+   "extensions": [
+    ".yaml",
+    ".yml"
+   ],
+   "name": "yaml",
+   "options": {
+    "comments": [
+     "#"
+    ],
+    "separators": [
+     ":"
+    ]
+   },
+   "packs": [
+    "personal",
+    "secrets",
+    "cloud"
+   ],
+   "round_trip": true,
+   "splitter": "keyvalue",
+   "summary": "YAML files - \"key: value\" lines at any depth; block scalars are left to the patterns.",
+   "version": 1
+  }
+ },
+ "packs": {
+  "addressbook": {
+   "fields": [
+    {
+     "kind": "ORG",
+     "names": [
+      "company",
+      "organisation",
+      "organization",
+      "employer",
+      "org"
+     ],
+     "role": "category"
+    },
+    {
+     "kind": "JOB",
+     "names": [
+      "job_title",
+      "position",
+      "department"
+     ],
+     "role": "category"
+    },
+    {
+     "kind": "JOB",
+     "names": [
+      "title"
+     ],
+     "role": "category",
+     "suffix": false
+    },
+    {
+     "kind": "LOCATION",
+     "names": [
+      "city",
+      "town",
+      "county",
+      "state",
+      "province",
+      "region",
+      "country",
+      "billing_city",
+      "shipping_city",
+      "home_city",
+      "billing_state",
+      "shipping_state",
+      "billing_country",
+      "shipping_country"
+     ],
+     "role": "category",
+     "suffix": false
+    },
+    {
+     "kind": "PROFILE",
+     "names": [
+      "website",
+      "homepage",
+      "url",
+      "linkedin",
+      "twitter",
+      "facebook",
+      "instagram",
+      "profile_url"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "NOTE",
+     "names": [
+      "notes",
+      "note",
+      "comment",
+      "comments"
+     ],
+     "role": "text",
+     "suffix": false
+    },
+    {
+     "kind": "VCARD",
+     "names": [
+      "fn",
+      "n",
+      "adr",
+      "bday",
+      "nickname_vcard",
+      "impp"
+     ],
+     "role": "text"
+    }
+   ],
+   "name": "addressbook",
+   "patterns": [
+    {
+     "examples_no": [
+      "SW1A",
+      "ABCD 1234"
+     ],
+     "examples_yes": [
+      "SW1A 1AA",
+      "M1 1AE",
+      "EC1A1BB"
+     ],
+     "intent": "A UK postcode in the Royal Mail format.",
+     "kind": "UK_POSTCODE",
+     "pattern": "\\b(?:[A-PR-UWYZ][A-HK-Y]?\\d[A-HJKPSTUW\\d]?) ?\\d[ABD-HJLNP-UW-Z]{2}\\b",
+     "priority": 70
+    }
+   ],
+   "requires": [
+    "personal"
+   ],
+   "summary": "Contact entries - organisation, role, postal and web details, vCard properties.",
+   "version": 1
+  },
+  "cloud": {
+   "fields": [
+    {
+     "kind": "CLOUD_ID",
+     "names": [
+      "drive_id",
+      "folder_id",
+      "file_id",
+      "document_id",
+      "spreadsheet_id",
+      "sheet_id",
+      "presentation_id",
+      "bucket",
+      "bucket_name",
+      "project_id",
+      "tenant_id",
+      "subscription_id",
+      "account_id_aws",
+      "aws_account_id",
+      "resource_group",
+      "storage_account"
+     ],
+     "role": "id",
+     "span": "token"
+    },
+    {
+     "kind": "HOST",
+     "names": [
+      "host",
+      "host_name",
+      "server",
+      "server_name",
+      "endpoint",
+      "fqdn"
+     ],
+     "role": "id",
+     "span": "token"
+    }
+   ],
+   "name": "cloud",
+   "patterns": [
+    {
+     "examples_no": [
+      "arn:aws:iam::role/analyst"
+     ],
+     "examples_yes": [
+      "arn:aws:iam::123456789012:role/analyst"
+     ],
+     "intent": "An AWS resource name, which carries the twelve-digit account number.",
+     "kind": "AWS_ARN",
+     "pattern": "\\barn:aws[a-z\\-]*:[a-z0-9\\-]+:[a-z0-9\\-]*:\\d{12}:[^\\s\"'`<>]+",
+     "priority": 90
+    },
+    {
+     "examples_no": [
+      "DefaultEndpointsProtocol=https;AccountName=acct"
+     ],
+     "examples_yes": [
+      "DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=abc123==;EndpointSuffix=core.windows.net"
+     ],
+     "intent": "An Azure storage connection string, which contains the account key.",
+     "kind": "AZURE_CONNECTION",
+     "pattern": "DefaultEndpointsProtocol=https?;AccountName=[^;\\s]+;AccountKey=[^;\\s]+(?:;[^\\s\"']*)?",
+     "priority": 96
+    }
+   ],
+   "summary": "Drive, bucket, project, tenant and account identifiers, and cloud connection strings.",
+   "version": 1
+  },
+  "email": {
+   "fields": [
+    {
+     "kind": "MAIL_PARTY",
+     "names": [
+      "from",
+      "to",
+      "cc",
+      "bcc",
+      "reply_to",
+      "sender",
+      "return_path",
+      "delivered_to",
+      "envelope_to",
+      "x_original_to",
+      "in_reply_to",
+      "references"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "MESSAGE_ID",
+     "names": [
+      "message_id",
+      "x_gm_msgid",
+      "x_gm_thrid",
+      "thread_id"
+     ],
+     "role": "id",
+     "span": "token"
+    },
+    {
+     "kind": "MAIL_ROUTE",
+     "names": [
+      "received",
+      "x_received",
+      "x_originating_ip",
+      "authentication_results",
+      "arc_authentication_results",
+      "dkim_signature"
+     ],
+     "role": "text"
+    }
+   ],
+   "name": "email",
+   "patterns": [
+    {
+     "examples_no": [
+      "<not a message id>"
+     ],
+     "examples_yes": [
+      "<CAF=abc123.456@mail.example.com>"
+     ],
+     "intent": "An RFC 5322 message identifier, which points at one message in one mailbox.",
+     "kind": "MESSAGE_ID",
+     "pattern": "<[A-Za-z0-9._%+$!#&=~\\-]+@[A-Za-z0-9.\\-]+>",
+     "priority": 80
+    }
+   ],
+   "requires": [
+    "personal"
+   ],
+   "summary": "Message headers - senders, recipients, message ids and routing hosts.",
+   "version": 1
+  },
+  "finance": {
+   "fields": [
+    {
+     "kind": "BANK_ACCOUNT",
+     "names": [
+      "iban",
+      "account_number",
+      "account_no",
+      "acct_number",
+      "bank_account",
+      "sort_code",
+      "routing_number",
+      "aba",
+      "swift",
+      "bic"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "CARD",
+     "names": [
+      "card_number",
+      "cc_number",
+      "credit_card",
+      "pan",
+      "cvv",
+      "cvc",
+      "card_expiry",
+      "expiry_date"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "FINANCIAL",
+     "names": [
+      "salary",
+      "income",
+      "wage",
+      "wages",
+      "bonus",
+      "compensation",
+      "net_worth",
+      "credit_score",
+      "balance"
+     ],
+     "role": "amount"
+    },
+    {
+     "kind": "TAX_ID",
+     "names": [
+      "ein",
+      "vat_number",
+      "vat_id",
+      "company_tax_id",
+      "tax_number"
+     ],
+     "role": "id",
+     "span": "clause"
+    }
+   ],
+   "name": "finance",
+   "patterns": [
+    {
+     "examples_no": [
+      "routing number: 011000016"
+     ],
+     "examples_yes": [
+      "routing number: 011000015",
+      "ABA 011000015"
+     ],
+     "intent": "A US ABA routing number with its label, accepted only when its checksum holds.",
+     "kind": "ROUTING_NUMBER",
+     "pattern": "(?i)\\b(?:routing|aba|rtn)(?:\\s+(?:number|no\\.?))?\\s*[:#]?\\s*(?P<value>\\d{9})\\b",
+     "priority": 85,
+     "validate": "aba_routing"
+    },
+    {
+     "examples_no": [
+      "12-34-56"
+     ],
+     "examples_yes": [
+      "sort code: 12-34-56",
+      "Sort Code 123456"
+     ],
+     "intent": "A UK sort code with its label; the bare shape is also a date.",
+     "kind": "SORT_CODE",
+     "pattern": "(?i)\\bsort\\s*code\\s*[:#]?\\s*(?P<value>\\d{2}-?\\d{2}-?\\d{2})\\b",
+     "priority": 84
+    }
+   ],
+   "summary": "Account and routing numbers, salaries, tax identifiers and card fields.",
+   "version": 1
+  },
+  "numpy": {
+   "code": {
+    "column_keywords": [
+     "names",
+     "usecols"
+    ],
+    "dtype_roles": {
+     "?": "flag",
+     "S": "text",
+     "U": "text",
+     "datetime64[D]": "date",
+     "datetime64[s]": "datetime",
+     "f4": "amount",
+     "f8": "amount",
+     "i4": "count",
+     "i8": "count",
+     "u4": "count"
+    }
+   },
+   "name": "numpy",
+   "summary": "NumPy field-naming arguments and dtype codes, for notebooks and modules.",
+   "version": 1
+  },
+  "pandas": {
+   "code": {
+    "column_keywords": [
+     "values",
+     "index",
+     "var_name",
+     "value_name",
+     "labels",
+     "left_by",
+     "right_by"
+    ],
+    "dtype_roles": {
+     "Float32": "amount",
+     "Float64": "amount",
+     "Int16": "count",
+     "Int32": "count",
+     "Int64": "count",
+     "Int8": "count",
+     "UInt8": "count",
+     "boolean": "flag",
+     "datetime64[ns, UTC]": "datetime",
+     "string[python]": "text",
+     "timedelta64[ns]": "amount"
+    }
+   },
+   "name": "pandas",
+   "summary": "pandas column-naming arguments and dtype spellings, for notebooks and modules.",
+   "version": 1
+  },
+  "patient": {
+   "fields": [
+    {
+     "kind": "MRN",
+     "names": [
+      "mrn",
+      "medical_record_number",
+      "patient_id",
+      "patient_number",
+      "hospital_number",
+      "chart_number",
+      "encounter_id",
+      "visit_id"
+     ],
+     "role": "id",
+     "span": "token"
+    },
+    {
+     "kind": "NHS_NUMBER",
+     "names": [
+      "nhs_number",
+      "nhs_no",
+      "chi_number"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "NPI",
+     "names": [
+      "npi",
+      "provider_npi"
+     ],
+     "role": "id",
+     "span": "token"
+    },
+    {
+     "kind": "INSURANCE_ID",
+     "names": [
+      "insurance_id",
+      "insurer_id",
+      "member_id",
+      "policy_number",
+      "policy_id",
+      "subscriber_id",
+      "medicaid_id",
+      "medicare_id",
+      "group_number"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "DIAGNOSIS",
+     "names": [
+      "diagnosis",
+      "diagnoses",
+      "icd10",
+      "icd_10",
+      "icd_code",
+      "icd9",
+      "condition",
+      "conditions",
+      "problem",
+      "chief_complaint"
+     ],
+     "role": "category"
+    },
+    {
+     "kind": "MEDICATION",
+     "names": [
+      "medication",
+      "medications",
+      "drug",
+      "drugs",
+      "prescription",
+      "rx",
+      "dosage"
+     ],
+     "role": "category"
+    },
+    {
+     "kind": "CLINICAL_DATE",
+     "names": [
+      "admission_date",
+      "admit_date",
+      "discharge_date",
+      "visit_date",
+      "encounter_date",
+      "procedure_date",
+      "death_date",
+      "date_of_death"
+     ],
+     "role": "date"
+    },
+    {
+     "kind": "CLINICIAN",
+     "names": [
+      "physician",
+      "doctor",
+      "provider",
+      "attending",
+      "clinician",
+      "nurse",
+      "referring_physician"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "CLINICAL",
+     "names": [
+      "allergies",
+      "allergy",
+      "blood_type",
+      "lab_result",
+      "test_result",
+      "genotype"
+     ],
+     "role": "category"
+    }
+   ],
+   "name": "patient",
+   "patterns": [
+    {
+     "examples_no": [
+      "943 476 5918"
+     ],
+     "examples_yes": [
+      "943 476 5919",
+      "9434765919"
+     ],
+     "intent": "A UK NHS number, accepted only when its mod-11 check digit is correct.",
+     "kind": "NHS_NUMBER",
+     "pattern": "\\b\\d{3}[ -]?\\d{3}[ -]?\\d{4}\\b",
+     "priority": 87,
+     "validate": "nhs_mod11"
+    },
+    {
+     "examples_no": [
+      "MRN",
+      "MRN: abc"
+     ],
+     "examples_yes": [
+      "MRN: 00412345",
+      "medical record number 8812345",
+      "patient ID #AB77123"
+     ],
+     "intent": "A medical record number written with its label.",
+     "kind": "MRN",
+     "pattern": "(?i)\\b(?:MRN|medical record(?: number)?|patient id)\\s*[:#]?\\s*(?P<value>[A-Z]{0,3}\\d{4,12})\\b",
+     "priority": 86
+    },
+    {
+     "examples_no": [
+      "E11",
+      "U07.1x"
+     ],
+     "examples_yes": [
+      "E11.9",
+      "J45.909",
+      "S72.001A"
+     ],
+     "intent": "An ICD-10 diagnosis code with its decimal point, which a version number or a bare code-like token does not have.",
+     "kind": "ICD10",
+     "pattern": "\\b[A-TV-Z]\\d{2}\\.[0-9A-TV-Z]{1,4}\\b",
+     "priority": 72
+    },
+    {
+     "examples_no": [
+      "NPI"
+     ],
+     "examples_yes": [
+      "NPI: 1234567893",
+      "NPI 1234567893"
+     ],
+     "intent": "A US National Provider Identifier written with its label.",
+     "kind": "NPI",
+     "pattern": "(?i)\\bNPI\\s*[:#]?\\s*(?P<value>\\d{10})\\b",
+     "priority": 85
+    }
+   ],
+   "requires": [
+    "personal"
+   ],
+   "summary": "Clinical identifiers, dates, diagnoses and medications in patient records.",
+   "version": 1
+  },
+  "personal": {
+   "fields": [
+    {
+     "kind": "PERSON",
+     "names": [
+      "full_name",
+      "first_name",
+      "last_name",
+      "given_name",
+      "family_name",
+      "surname",
+      "middle_name",
+      "maiden_name",
+      "nickname",
+      "customer_name",
+      "patient_name",
+      "contact_name",
+      "client_name",
+      "employee_name",
+      "person_name",
+      "owner_name",
+      "account_holder",
+      "cardholder_name",
+      "recipient_name",
+      "sender_name"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "PERSON",
+     "names": [
+      "name"
+     ],
+     "role": "text",
+     "suffix": false
+    },
+    {
+     "kind": "PERSON",
+     "names": [
+      "owner",
+      "author",
+      "assignee"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "EMAIL",
+     "names": [
+      "email",
+      "email_address",
+      "e_mail",
+      "mail"
+     ],
+     "role": "text",
+     "span": "clause"
+    },
+    {
+     "kind": "PHONE",
+     "names": [
+      "phone",
+      "phone_number",
+      "telephone",
+      "tel",
+      "mobile",
+      "cell",
+      "fax",
+      "whatsapp"
+     ],
+     "role": "text",
+     "span": "clause"
+    },
+    {
+     "kind": "ADDRESS",
+     "names": [
+      "address",
+      "street",
+      "street_address",
+      "address_line",
+      "address_line_1",
+      "address_line_2",
+      "house_number",
+      "postcode",
+      "post_code",
+      "postal_code",
+      "zip",
+      "zip_code",
+      "zipcode"
+     ],
+     "role": "text"
+    },
+    {
+     "kind": "DOB",
+     "names": [
+      "dob",
+      "date_of_birth",
+      "birth_date",
+      "birthdate",
+      "birthday"
+     ],
+     "role": "date"
+    },
+    {
+     "kind": "NATIONAL_ID",
+     "names": [
+      "national_id",
+      "ssn",
+      "social_security_number",
+      "nino",
+      "national_insurance_number",
+      "tckn",
+      "tc_kimlik_no",
+      "passport",
+      "passport_number",
+      "driver_license",
+      "drivers_license",
+      "driving_licence",
+      "license_number",
+      "tax_id",
+      "tin"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "DEMOGRAPHIC",
+     "names": [
+      "gender",
+      "sex",
+      "ethnicity",
+      "race",
+      "religion",
+      "nationality",
+      "marital_status",
+      "sexual_orientation"
+     ],
+     "role": "category"
+    }
+   ],
+   "name": "personal",
+   "patterns": [
+    {
+     "examples_no": [
+      "10000000147",
+      "01234567890"
+     ],
+     "examples_yes": [
+      "10000000146"
+     ],
+     "intent": "A Turkish national identity number, accepted only when both check digits hold.",
+     "kind": "TCKN",
+     "pattern": "\\b[1-9]\\d{10}\\b",
+     "priority": 88,
+     "validate": "tckn"
+    },
+    {
+     "examples_no": [
+      "GB123456A",
+      "AB 12 34 56 E",
+      "QQ 12 34 56 C"
+     ],
+     "examples_yes": [
+      "AB 12 34 56 C",
+      "JG103782A"
+     ],
+     "intent": "A UK National Insurance number in its issued letter ranges.",
+     "kind": "NINO",
+     "pattern": "\\b(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z] ?\\d{2} ?\\d{2} ?\\d{2} ?[A-D]\\b",
+     "priority": 86
+    },
+    {
+     "examples_no": [
+      "2024-01-15",
+      "released 2024-01-15"
+     ],
+     "examples_yes": [
+      "DOB: 1984-03-02",
+      "date of birth 02/03/1984",
+      "born on 2.3.1984"
+     ],
+     "intent": "A date of birth written with its label, so an ordinary date is never taken for one.",
+     "kind": "DOB",
+     "pattern": "(?i)\\b(?:dob|d\\.o\\.b\\.|date of birth|born(?: on)?)\\s*[:=]?\\s*(?P<value>\\d{1,4}[-/.]\\d{1,2}[-/.]\\d{1,4})\\b",
+     "priority": 84
+    }
+   ],
+   "summary": "Names, contact details, birth dates and national identifiers in any record.",
+   "version": 1
+  },
+  "records": {
+   "fields": [
+    {
+     "kind": "RECORD_ID",
+     "names": [
+      "customer_id",
+      "client_id",
+      "account_id",
+      "user_id",
+      "username",
+      "user_name",
+      "login",
+      "member_number",
+      "employee_id",
+      "staff_id",
+      "employee_number",
+      "student_id",
+      "pupil_id",
+      "applicant_id",
+      "candidate_id",
+      "case_id",
+      "claim_id",
+      "ticket_requester",
+      "external_id",
+      "external_ref",
+      "customer_ref"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "DEVICE_ID",
+     "names": [
+      "device_id",
+      "imei",
+      "imsi",
+      "serial_number",
+      "mac_address",
+      "advertising_id",
+      "idfa",
+      "gaid",
+      "ip",
+      "ip_address",
+      "hostname"
+     ],
+     "role": "id",
+     "span": "clause"
+    },
+    {
+     "kind": "GEO",
+     "names": [
+      "latitude",
+      "longitude",
+      "lat",
+      "lon",
+      "lng",
+      "geolocation",
+      "gps",
+      "coordinates"
+     ],
+     "role": "amount"
+    }
+   ],
+   "name": "records",
+   "patterns": [
+    {
+     "examples_no": [
+      "IMEI"
+     ],
+     "examples_yes": [
+      "IMEI: 490154203237518"
+     ],
+     "intent": "A mobile handset IMEI with its label.",
+     "kind": "IMEI",
+     "pattern": "(?i)\\bIMEI\\s*[:#]?\\s*(?P<value>\\d{15})\\b",
+     "priority": 85
+    },
+    {
+     "examples_no": [
+      "1.5, 2.5",
+      "3.14, 2.71"
+     ],
+     "examples_yes": [
+      "51.50072, -0.12462",
+      "41.0082,28.9784"
+     ],
+     "intent": "A latitude-longitude pair precise to four or more decimals, which locates a person to a building.",
+     "kind": "GEO",
+     "pattern": "-?\\b(?:[1-8]?\\d(?:\\.\\d{4,})|90(?:\\.0{4,})?)\\s*,\\s*-?(?:1[0-7]\\d(?:\\.\\d{4,})|\\d{1,2}(?:\\.\\d{4,})|180(?:\\.0{4,})?)\\b",
+     "priority": 75
+    }
+   ],
+   "summary": "Customer, account, employee, student and device identifiers in any record.",
+   "version": 1
+  },
+  "secrets": {
+   "fields": [
+    {
+     "kind": "SECRET",
+     "names": [
+      "password",
+      "passwd",
+      "pwd",
+      "pass",
+      "passphrase",
+      "secret",
+      "secret_key",
+      "client_secret",
+      "token",
+      "access_token",
+      "refresh_token",
+      "id_token",
+      "auth_token",
+      "bearer_token",
+      "api_key",
+      "apikey",
+      "private_key",
+      "account_key",
+      "access_key",
+      "secret_access_key",
+      "credentials",
+      "credential",
+      "auth",
+      "authorization",
+      "cookie",
+      "session_id",
+      "connection_string",
+      "dsn",
+      "database_url",
+      "webhook_url"
+     ],
+     "role": "id"
+    }
+   ],
+   "name": "secrets",
+   "patterns": [
+    {
+     "examples_no": [
+      "sk_live_short"
+     ],
+     "examples_yes": [
+      [
+       "sk_live_",
+       "0123456789abcdefABCDEFGH"
+      ]
+     ],
+     "intent": "A Stripe API key.",
+     "kind": "STRIPE_KEY",
+     "pattern": "\\b(?:sk|rk|pk)_(?:live|test)_[0-9A-Za-z]{16,}\\b",
+     "priority": 96
+    },
+    {
+     "examples_no": [
+      "ghp_tooshort"
+     ],
+     "examples_yes": [
+      [
+       "ghp_",
+       "0123456789abcdefghijklmnopqrstuvwxyZ"
+      ]
+     ],
+     "intent": "A GitHub personal, OAuth, user, server or refresh token.",
+     "kind": "GITHUB_TOKEN",
+     "pattern": "\\b(?:gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})\\b",
+     "priority": 96
+    },
+    {
+     "examples_no": [
+      "xoxb-short"
+     ],
+     "examples_yes": [
+      [
+       "xoxb-",
+       "1234567890-abcdefghij"
+      ]
+     ],
+     "intent": "A Slack bot, user or app token.",
+     "kind": "SLACK_TOKEN",
+     "pattern": "\\bxox[abprs]-[0-9A-Za-z-]{10,}\\b",
+     "priority": 96
+    },
+    {
+     "examples_no": [
+      "AIzaShort"
+     ],
+     "examples_yes": [
+      [
+       "AIza",
+       "SyA1234567890abcdefghijklmnopqrstuv"
+      ]
+     ],
+     "intent": "A Google Cloud API key.",
+     "kind": "GOOGLE_API_KEY",
+     "pattern": "\\bAIza[0-9A-Za-z_\\-]{35}\\b",
+     "priority": 96
+    },
+    {
+     "examples_no": [
+      "bearer of bad news"
+     ],
+     "examples_yes": [
+      [
+       "Bearer ",
+       "abcdefghijklmnopqrstuvwxyz0123"
+      ]
+     ],
+     "intent": "An HTTP bearer credential, as it appears in a curl command or a header dump.",
+     "kind": "BEARER_TOKEN",
+     "pattern": "(?i)\\bbearer\\s+(?P<value>[A-Za-z0-9._~+/-]{20,}=*)",
+     "priority": 94
+    },
+    {
+     "examples_no": [
+      "https://example.com/a:b",
+      "postgres://db.example.invalid:5432"
+     ],
+     "examples_yes": [
+      [
+       "postgres://marion:",
+       "hunter2@db.example.invalid:5432"
+      ]
+     ],
+     "intent": "A connection string or URL carrying a user name and password.",
+     "kind": "URL_CREDENTIALS",
+     "pattern": "\\b[a-z][a-z0-9+.\\-]{1,15}://[^\\s:/@\"']+:[^\\s@/\"']+@[^\\s/\"']+",
+     "priority": 95
+    },
+    {
+     "examples_no": [
+      "-----BEGIN CERTIFICATE-----"
+     ],
+     "examples_yes": [
+      [
+       "-----BEGIN OPENSSH ",
+       "PRIVATE KEY-----"
+      ],
+      [
+       "-----BEGIN ",
+       "PRIVATE KEY-----"
+      ]
+     ],
+     "intent": "The header of a PEM private key, so a pasted key is refused even when truncated.",
+     "kind": "PRIVATE_KEY_BLOCK",
+     "pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----",
+     "priority": 97
+    }
+   ],
+   "summary": "Passwords, tokens, API keys and connection strings in code and configuration.",
+   "version": 1
+  },
+  "sklearn": {
+   "code": {
+    "column_keywords": [
+     "transformers",
+     "categorical_features"
+    ],
+    "column_methods": [
+     "make_column_transformer"
+    ]
+   },
+   "name": "sklearn",
+   "summary": "scikit-learn column lists in ColumnTransformer and friends, for notebooks and modules.",
+   "version": 1
+  }
+ },
+ "schema": 1
+}

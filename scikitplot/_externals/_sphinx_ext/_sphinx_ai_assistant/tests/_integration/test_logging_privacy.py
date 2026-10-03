@@ -22,7 +22,7 @@ its own fixtures.  Do not reintroduce credential words for these constants.
 
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
+from .._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
 
 import importlib.util
 import io

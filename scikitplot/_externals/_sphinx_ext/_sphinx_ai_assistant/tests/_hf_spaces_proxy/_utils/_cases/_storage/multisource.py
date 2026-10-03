@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ....._paths import RUNTIME_ROOT
 
 import asyncio
 import json
@@ -80,6 +80,48 @@ def test_token_env_is_restricted():
                 "role": "primary",
                 "repo": "org/repo",
                 "token_env": "HOME",
+            }
+        ]
+    )
+    with pytest.raises(ValueError):
+        load_storage_targets(raw)
+
+
+def test_token_env_accepts_ordered_fallback_list(monkeypatch):
+    monkeypatch.delenv("AI_RECORD_STORAGE_TOKEN_GH_PRIMARY", raising=False)
+    monkeypatch.setenv("AI_RECORD_STORAGE_TOKEN_GH_FALLBACK", "fallback-token")
+    raw = json.dumps(
+        [
+            {
+                "id": "github-primary",
+                "provider": "github",
+                "role": "primary",
+                "repo": "org/repo",
+                "token_env": [
+                    "AI_RECORD_STORAGE_TOKEN_GH_PRIMARY",
+                    "AI_RECORD_STORAGE_TOKEN_GH_FALLBACK",
+                ],
+            }
+        ]
+    )
+    target = load_storage_targets(raw)[0]
+    assert target.token == "fallback-token"
+    assert target.active_token_env == "AI_RECORD_STORAGE_TOKEN_GH_FALLBACK"
+
+    monkeypatch.setenv("AI_RECORD_STORAGE_TOKEN_GH_PRIMARY", "primary-token")
+    assert target.token == "primary-token"
+    assert target.active_token_env == "AI_RECORD_STORAGE_TOKEN_GH_PRIMARY"
+
+
+def test_token_env_fallback_list_rejects_unrelated_secret_names():
+    raw = json.dumps(
+        [
+            {
+                "id": "bad",
+                "provider": "github",
+                "role": "primary",
+                "repo": "org/repo",
+                "token_env": ["AI_RECORD_STORAGE_TOKEN_GH", "HOME"],
             }
         ]
     )

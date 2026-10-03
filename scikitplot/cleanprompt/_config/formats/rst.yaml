@@ -1,0 +1,7 @@
+name: rst
+version: 1
+summary: reStructuredText documents, including Sphinx sources.
+extensions: [.rst, .rest]
+splitter: text
+round_trip: true
+packs: [personal, patient, finance, secrets]

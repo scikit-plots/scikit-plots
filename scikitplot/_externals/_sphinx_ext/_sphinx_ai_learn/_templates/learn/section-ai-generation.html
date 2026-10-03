@@ -1,0 +1,61 @@
+<div class="learn-section-ai" data-section-ai-panel hidden>
+  <div class="learn-section-ai-heading">
+    <div>
+      <p class="learn-kicker">AI draft workflow</p>
+      <h4>Generate {{ spec.title|e }}</h4>
+    </div>
+    <span class="learn-section-ai-badge">Private draft</span>
+  </div>
+  <p class="learn-section-ai-intro">Create a source-grounded AI draft without changing published catalog text. Review the result before export or any separate publication workflow.</p>
+  {% set flow_scope = 'section-ai' %}
+  {% set flow_aria_label = 'AI section draft lifecycle' %}
+  {% set flow_context_detail = 'Catalog + Sources' %}
+  {% set flow_draft_detail = 'Private generation' %}
+  {% set flow_review_detail = 'Human judgment' %}
+  {% set flow_final_stage = 'export' %}
+  {% set flow_handoff_detail = 'Copy / export' %}
+  {% include "learn/generation-private-flow.html" %}
+  {% set request_meta_label = 'Section generation request contract' %}
+  {% set request_meta_items = [
+    {'label':'Workflow','value':spec.generation.workflow_id|default('learn.section-generation.v2')},
+    {'label':'Skill','value':spec.generation.skill|default('record-synthesis')},
+    {'label':'Agent role','value':spec.generation.agent|default('learning-section-agent')}
+  ] %}
+  {% include "learn/generation-request-meta.html" %}
+  {% set generation_kind = 'section' %}
+  {% set authority_id = 'section-' ~ spec.id %}
+  {% set authority_embedded = true %}
+  {% set authority_title = 'Generation authority' %}
+  {% set authority_help = 'The shared AI Assistant model creates this private section draft; publication remains separate.' %}
+  {% set authority_kind = 'assistant' %}
+  {% set authority_managed = 'shared' %}
+  {% set authority_initial_label = 'Discovering…' %}
+  {% set authority_initial_badge = 'Default' %}
+  {% set authority_open_label = 'Model Configuration' %}
+  {% set authority_open_title = 'Open AI Assistant model configuration' %}
+  {% set authority_more_label = 'Try a different model' %}
+  {% set authority_more_title = 'More model options' %}
+  {% set authority_runtime_label = 'Chat runtime' %}
+  {% set authority_runtime_initial = 'Shared Assistant' %}
+  {% set authority_context = 'This section draft remains browser-local until an explicit review/export workflow.' %}
+  {% set authority_status = 'Checking shared Assistant model authority…' %}
+  {% include "learn/generation-authority.html" %}
+  {% set lens_scope = 'section-ai' %}
+  {% set lens_variant = 'section' %}
+  {% include "learn/ai-lens-profile.html" %}
+  <label class="learn-generation-field">Depth
+    <select name="ai-depth" data-section-ai-depth><option value="concise">Concise</option><option value="balanced" selected>Balanced</option><option value="deep">Deep</option></select>
+  </label>
+  <label class="learn-section-ai-instructions">Additional guidance
+    <textarea name="generation-instructions" data-section-ai-instructions maxlength="4000" rows="4">{{ content.instructions|default('')|e }}</textarea>
+  </label>
+  <p class="learn-meta">Catalog context and attached Source metadata are sent only to the configured Assistant endpoint. URLs are references; this browser does not fetch them for the model.</p>
+  {% include "learn/publication-credit.html" %}
+  {% set generation_action_scope = 'section-ai' %}
+  {% set generation_action_run_label = 'Generate Now' %}
+  {% set generation_action_copy_suffix = '' %}
+  {% include "learn/text-generation-actions.html" %}
+  <p class="learn-section-ai-status" data-section-ai-status role="status" aria-live="polite" aria-atomic="true">Ready to create a private AI draft.</p>
+  <p class="learn-meta" data-section-ai-publication-status role="status" aria-live="polite">Local only · publication not requested.</p>
+  <p class="learn-meta" data-section-ai-publication-link hidden></p>
+</div>

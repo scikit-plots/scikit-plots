@@ -30,6 +30,6 @@ ok(src.includes("_ssDel(_FEEDBACK_STATE_KEY)"),'remember-off/clear can erase per
 ok(src.includes('_saveTranscript();\n            _saveFeedbackState();'),'remember-on immediately persists transcript plus lineage state');
 ok(src.includes('if (!_contributionQaAtIndex(idx)) return;'),'restored feedback cannot attach to a stale/non-Q&A answer slot');
 ok(src.includes('restoredPrev !== ids[ids.length - 1] || restoredChain !== ids[0] || restoredEdit !== ids.length'),'restored lineage must satisfy parent/root/revision invariants');
-ok(src.includes("function _postFeedbackRetract(url, token, priorEntry, answerIndex)"),'retraction uses canonical prior entry rather than legacy scalar signature');
+ok(src.includes('_feedbackLineageFromPrior(_priorQEntry, sid)') && !src.includes('function _postFeedbackRetract('),'supersession uses canonical prior entry lineage without retired network retraction transport');
 
 console.log(`${passed} passed, ${failed} failed`);if(failed)process.exit(1);

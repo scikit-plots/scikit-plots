@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _storage as st
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._contribution_ledger import MemoryContributionLedger
+from ......_hf_spaces_proxy import app as proxy_app
+from ......_hf_spaces_proxy._utils import _storage as st
+from ......_hf_spaces_proxy._utils._contribution_ledger import MemoryContributionLedger
 
 
 def _payload(*, value: int = 1, mode: str = "quick", note: str = "") -> dict:
@@ -254,7 +254,7 @@ def test_feedback_normalizer_enters_training_builder_only_with_explicit_training
     assert record["trainingStatus"] == "eligible"
     assert record["qualityScore"] == 1.0
     assert record["qualityPercent"] == 100.0
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import deduplicate_dataset as dd
+    from ......_hf_spaces_proxy import deduplicate_dataset as dd
     clean = dd.deduplicate([record])
     assert clean == [record]
 

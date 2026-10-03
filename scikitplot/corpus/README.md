@@ -245,6 +245,21 @@ retrieval = RetrievalConfig(
 )
 ```
 
+
+### Lexical search on a SQLite store
+
+`SQLiteStorage.search_text(text, limit)` ranks documents against free text with
+SQLite FTS5's BM25 and returns `(document, score)` pairs, higher meaning more
+relevant. The text is never read as FTS5 syntax, so identifiers, API names and
+pasted error messages work as typed — `roc_auc_score()`, `C++`, `random-state`,
+`ValueError: Input contains NaN` — and a question need not contain every word
+of a document to find it. A compound word is searched both as its exact phrase
+and as its parts, so the document holding `sklearn.metrics` in that order ranks
+above one that merely mentions `sklearn` and `metrics`.
+
+`StorageQuery(full_text=...)` stays a *filter*: the whole string as one phrase,
+the same meaning the in-memory and JSONL backends emulate by substring.
+
 ## 8. Generic vector-index configuration
 
 Prefer backend-generic constructor options for new examples:

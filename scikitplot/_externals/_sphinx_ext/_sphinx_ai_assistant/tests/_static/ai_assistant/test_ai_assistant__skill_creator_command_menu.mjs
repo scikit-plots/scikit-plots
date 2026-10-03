@@ -16,7 +16,8 @@ ok(src.includes("typeof target._takePreferredFocus === 'function'"),'generic she
 const submit=extract('handleAIPanelSubmit');
 const commandIdx=submit.indexOf('var skillCreatorCommand = _parseSkillCreatorCommand(rawText)');
 ok(commandIdx>=0,'submit parses skill command');
-ok(commandIdx < submit.indexOf('var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan(attachmentSnapshot)'),'command interception precedes outbound attachment composition');
+const attachmentPlanIdx=submit.indexOf('var attachmentPlan = await _prepareComposerEffectiveAttachmentPlan(');
+ok(commandIdx>=0 && attachmentPlanIdx>commandIdx,'command interception precedes outbound attachment composition');
 ok(commandIdx < submit.indexOf('_privacyPrepareDocumentationContext'),'command interception precedes privacy/network preflight');
 ok(commandIdx < submit.indexOf('_appendPanelMessage'),'command interception precedes transcript mutation');
 ok(commandIdx < submit.indexOf('_fetchAbortController'),'command interception does not cancel an active chat request');

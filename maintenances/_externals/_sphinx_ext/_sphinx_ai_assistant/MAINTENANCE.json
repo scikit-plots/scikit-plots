@@ -8,7 +8,17 @@
   "checkpoint_dir": "_maintenance/checkpoints",
   "skill_root": "skills/_externals/_sphinx_ext/_sphinx_ai_assistant",
   "notes": "AI-specific security/test ownership remains in its local checker; common family invariants and capability ownership are composed first.",
-  "dependency_edges": [],
+  "dependency_edges": [
+    {
+      "target": "_sphinx_feedback",
+      "kind": "runtime_optional",
+      "evidence": "python_import",
+      "capabilities": [
+        "sphinx.page-feedback-contract"
+      ],
+      "rationale": "In package mode the proxy imports the page-feedback request contract and service from the sibling extension; a standalone Space deployment falls back to the byte-identical mirror in _hf_spaces_proxy/_page_feedback, so the import is optional at runtime."
+    }
+  ],
   "capability_ownership": [
     {
       "id": "ai.assistant.browser-server-authority",
@@ -26,6 +36,12 @@
       "id": "ai.assistant.turn-lifecycle",
       "owner": "_sphinx_ai_assistant",
       "description": "Turn-owned cancellation, generation binding, and stale-work suppression.",
+      "stability": "internal-stable"
+    },
+    {
+      "id": "sphinx.page-feedback-contract",
+      "owner": "_sphinx_feedback",
+      "description": "Canonical page-feedback request/event contract, request hashing, and the provider-neutral feedback service.",
       "stability": "internal-stable"
     }
   ],

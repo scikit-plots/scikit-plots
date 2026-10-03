@@ -38,13 +38,14 @@ compatibility_date = "2026-08-01"
 #   HF_TOKEN            — HuggingFace API token with "Inference" read permission.
 #   SHARE_WRITE_TOKEN   — Server-only create token for POST /v1/share (run: wrangler secret put SHARE_WRITE_TOKEN)
 #                         Fixed /update and /revoke POSTs use the per-share X-Share-Edit-Token; legacy PATCH is retired and pre-generation DELETE is migration-only.
-#   FEEDBACK_WRITE_TOKEN— Bearer token for POST /v1/feedback (run: wrangler secret put FEEDBACK_WRITE_TOKEN)
 #   RATE_LIMIT_IDENTITY_SECRET — >=32-byte random secret used to HMAC client identities before Durable Object routing.
 #                                Generate independently; do not reuse provider/API tokens.
 
 # ── KV Namespace ────────────────────────────────────────────────────────────
-# Shared namespace for structured share entries (sh:<uuid>) and feedback entries
-# (fb:<uuid>). Soft rate-limit event keys remain compatibility fallback only;
+# Namespace for structured share entries (sh:<uuid>). The Worker stores no
+# feedback: page feedback belongs to _sphinx_feedback on the proxy, and the
+# Worker has no /v1/feedback route. Soft rate-limit event keys remain
+# compatibility fallback only;
 # the bundled production config uses RATE_LIMIT_DO below for authoritative
 # cross-PoP per-identity decisions.
 #
@@ -54,10 +55,8 @@ compatibility_date = "2026-08-01"
 #
 # Naming convention for keys:
 #   sh:<uuid>        Share entry   (TTL: panelGlobalShareTtlDays days)
-#   fb:<uuid>        Feedback entry (TTL: 90 days)
 #   rl:chat:<ipHash>:<event> Chat rate-limit event (TTL: 3600 s)
 #   rl:sh:<ipHash>:<event>   Share rate-limit event (TTL: 3600 s)
-#   rl:fb:<ipHash>:<event>   Feedback rate-limit event (TTL: 3600 s)
 [[kv_namespaces]]
 binding = "SHARE_KV"
 id      = "PASTE_ID_FROM_WRANGLER_KV_NAMESPACE_CREATE_HERE"
@@ -84,7 +83,6 @@ storage = "sqlite"
 # MAX_RESPONSE_BYTES           = "8388608"  # decoded upstream bytes; hard-capped at 33554432
 # CHAT_RATE_LIMIT_PER_HOUR     = "30"
 # SHARE_RATE_LIMIT_PER_HOUR    = "10"
-# FEEDBACK_RATE_LIMIT_PER_HOUR = "30"
 # SHARE_MAX_BODY_BYTES         = "512000"
 # SHARE_MAX_ENTRIES            = "256"
 # SHARE_MAX_TOTAL_BYTES        = "16777216"

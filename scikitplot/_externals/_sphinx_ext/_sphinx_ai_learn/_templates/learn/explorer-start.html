@@ -1,0 +1,5 @@
+<div class="learn-explorer learn-card-explorer" data-learn-explorer data-kind="{{ kind|e }}" data-item-label="{{ item_label|e }}" data-item-plural="{{ item_plural|e }}" data-total="{{ total }}" data-offset="{{ offset }}" data-page-chunk-size="{{ page_chunk_size|default(12, true) }}">
+<script type="application/json" class="learn-section-registry">{{ section_registry }}</script>
+<p class="learn-meta">{{ total }} {{ label|lower|e }} in this catalog snapshot · filters and sorting apply to the records on this page.</p>
+{% include "learn/explorer-controls.html" %}
+<p class="learn-meta" data-explorer-status role="status"></p>

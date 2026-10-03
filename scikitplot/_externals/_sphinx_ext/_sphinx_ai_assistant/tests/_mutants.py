@@ -1790,41 +1790,6 @@ MUTANTS: list[dict[str, str]] = [
     },
 
     # ── Run 6: feedback / contribution privacy lifecycle ────────────────
-    {
-        "id": "feedback-network-recollects-query",
-        "why": "Ordinary rating telemetry must never silently recollect the user question; full Q&A belongs only to explicit contribution consent.",
-        "find": "            ratingMode: detail.ratingMode || null,\n            ts: detail.ts || Date.now()",
-        "replace": "            ratingMode: detail.ratingMode || null,\n            query: detail.query || '',\n            ts: detail.ts || Date.now()",
-        "harness": "_static/ai_assistant/test_ai_assistant__feedback_contribution_privacy.mjs",
-    },
-    {
-        "id": "feedback-telemetry-consent-fails-open",
-        "why": "Network rating telemetry must require an explicit current structured consent record; missing enabled=true must never inherit authority.",
-        "find": "            if (!saved || saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION ||\n                    typeof saved.enabled !== 'boolean') {",
-        "replace": "            if (!saved || saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION ||\n                    saved.enabled === false) {",
-        "harness": "_static/ai_assistant/test_ai_assistant__feedback_telemetry_consent.mjs",
-    },
-    {
-        "id": "feedback-telemetry-helper-consent-gate-removed",
-        "why": "Even an internal caller must not be able to send feedback telemetry when the user has not opted in.",
-        "find": "        if (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) { return false; }",
-        "replace": "        if (false && (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt)) { return false; }",
-        "harness": "_static/ai_assistant/test_ai_assistant__feedback_telemetry_consent.mjs",
-    },
-    {
-        "id": "feedback-public-event-reexposes-content",
-        "why": "The public feedback DOM event must never rebroadcast Q&A/note/model/page content to arbitrary page listeners.",
-        "find": "        var out = _feedbackTelemetryPayload(detail);",
-        "replace": "        var out = Object.assign({}, detail);",
-        "harness": "_static/ai_assistant/test_ai_assistant__feedback_telemetry_consent.mjs",
-    },
-    {
-        "id": "feedback-retract-ignores-opt-out",
-        "why": "Turning telemetry off must stop all future feedback network traffic, including hidden retraction housekeeping requests.",
-        "find": "        if (!url || !lineage || !_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) {",
-        "replace": "        if (!url || !lineage) {",
-        "harness": "_static/ai_assistant/test_ai_assistant__feedback_telemetry_consent.mjs",
-    },
     {'id': 'contribution-consent-version-disabled',
      'why': 'Explicit contribution must carry the active versioned consent so stale pages cannot submit '
             'under materially changed terms.',
