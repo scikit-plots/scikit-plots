@@ -27,7 +27,10 @@ from .select import get_field
 
 def collection_id(argument):
     """Validate a stable per-page identity for optional browser persistence."""
-    value = argument.strip()
+    # docutils passes None for an option written without a value and reports
+    # a ValueError or TypeError as a directive error; anything else, such as
+    # the AttributeError of None.strip(), aborts the build with a traceback.
+    value = "" if argument is None else str(argument).strip()
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", value):
         raise ValueError(
             "collection-id must start with a letter and contain at most 64 letters, digits, underscores or hyphens"
@@ -37,8 +40,9 @@ def collection_id(argument):
 
 def field_names(argument):
     """Parse a nonempty, ordered set of safe field paths from an option."""
+    text = "" if argument is None else str(argument)
     names = tuple(
-        dict.fromkeys(part.strip() for part in argument.split(",") if part.strip())
+        dict.fromkeys(part.strip() for part in text.split(",") if part.strip())
     )
     if not names or any(
         not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*", name)

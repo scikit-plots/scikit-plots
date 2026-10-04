@@ -1,0 +1,170 @@
+{
+  "schema": 1,
+  "source": "CI Test and Coverage run of 2026-10-04 (cancelled at the six-hour limit at 95%); work_seconds is the time each test took above the fixed per-test overhead of that run",
+  "units": {
+    "scikitplot/_api": {
+      "tests": 303,
+      "work_seconds": 33.0
+    },
+    "scikitplot/_brand": {
+      "tests": 268,
+      "work_seconds": 38.6
+    },
+    "scikitplot/_build_utils": {
+      "tests": 25,
+      "work_seconds": 0.1
+    },
+    "scikitplot/_cli": {
+      "tests": 142,
+      "work_seconds": 3.4
+    },
+    "scikitplot/_compat": {
+      "tests": 129,
+      "work_seconds": 8.4
+    },
+    "scikitplot/_docstrings": {
+      "tests": 97,
+      "work_seconds": 2.9
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant": {
+      "tests": 2660,
+      "work_seconds": 567.4
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_ai_learn": {
+      "tests": 180,
+      "work_seconds": 12.4
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_collection": {
+      "tests": 26,
+      "work_seconds": 2.9
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_feedback": {
+      "tests": 299,
+      "work_seconds": 4.3
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_jinja_render": {
+      "tests": 108,
+      "work_seconds": 0.9
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_llm": {
+      "tests": 10,
+      "work_seconds": 0.1
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinxcontrib_youtube": {
+      "tests": 8,
+      "work_seconds": 1.8
+    },
+    "scikitplot/_factory_api": {
+      "tests": 52,
+      "work_seconds": 20.9
+    },
+    "scikitplot/_lib": {
+      "tests": 104,
+      "work_seconds": 18.4
+    },
+    "scikitplot/_testing": {
+      "tests": 131,
+      "work_seconds": 13.6
+    },
+    "scikitplot/_utils": {
+      "tests": 647,
+      "work_seconds": 15.9
+    },
+    "scikitplot/annoy": {
+      "tests": 624,
+      "work_seconds": 268.9
+    },
+    "scikitplot/api": {
+      "tests": 119,
+      "work_seconds": 43.7
+    },
+    "scikitplot/cexperimental": {
+      "tests": 61,
+      "work_seconds": 1.2
+    },
+    "scikitplot/cexternals/_annoy": {
+      "tests": 11,
+      "work_seconds": 0.5
+    },
+    "scikitplot/cexternals/_editdistance": {
+      "tests": 4,
+      "work_seconds": 0.1
+    },
+    "scikitplot/cleanprompt": {
+      "tests": 2478,
+      "work_seconds": 172.1
+    },
+    "scikitplot/config": {
+      "tests": 102,
+      "work_seconds": 2.1
+    },
+    "scikitplot/corpus": {
+      "tests": 2864,
+      "work_seconds": 823.4
+    },
+    "scikitplot/cython": {
+      "tests": 1248,
+      "work_seconds": 47.1
+    },
+    "scikitplot/datasets": {
+      "tests": 247,
+      "work_seconds": 5.1
+    },
+    "scikitplot/decile": {
+      "tests": 336,
+      "work_seconds": 44.1
+    },
+    "scikitplot/impute": {
+      "tests": 165,
+      "work_seconds": 119.2
+    },
+    "scikitplot/logging": {
+      "tests": 170,
+      "work_seconds": 6.0
+    },
+    "scikitplot/mcp": {
+      "tests": 268,
+      "work_seconds": 32.9
+    },
+    "scikitplot/memmap": {
+      "tests": 49,
+      "work_seconds": 0.9
+    },
+    "scikitplot/misc": {
+      "tests": 172,
+      "work_seconds": 42.3
+    },
+    "scikitplot/mlflow": {
+      "tests": 662,
+      "work_seconds": 47.6
+    },
+    "scikitplot/nc": {
+      "tests": 155,
+      "work_seconds": 2.0
+    },
+    "scikitplot/preprocessing": {
+      "tests": 180,
+      "work_seconds": 2.7
+    },
+    "scikitplot/random": {
+      "tests": 123,
+      "work_seconds": 1.7
+    },
+    "scikitplot/rank_bm25": {
+      "tests": 174,
+      "work_seconds": 6.3
+    },
+    "scikitplot/seaborn": {
+      "tests": 150,
+      "work_seconds": 7.6
+    },
+    "scikitplot/tests": {
+      "tests": 537,
+      "work_seconds": 31.2
+    },
+    "scikitplot/utils": {
+      "tests": 1745,
+      "work_seconds": 203.6
+    }
+  }
+}

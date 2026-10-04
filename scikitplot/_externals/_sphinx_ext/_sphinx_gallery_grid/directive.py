@@ -24,6 +24,7 @@ file both work out of the box.
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, ClassVar
@@ -425,6 +426,99 @@ _RESERVED_ITEM_KEYS = frozenset(
 
 
 # -- scikit-plots local patch: confine data files to the source tree ---------
+#: URL schemes a card may link to. Anything else with a scheme -- notably
+#: ``javascript:`` and ``data:`` -- would be written into ``href`` as given.
+_LINK_SCHEMES = frozenset({"http", "https", "mailto"})
+
+_SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*(?=:)")
+
+
+def _single_line(value: Any) -> Any:
+    """
+    Collapse every run of whitespace in a string to one space.
+
+    Parameters
+    ----------
+    value : Any
+        A card title, image reference or option value.
+
+    Returns
+    -------
+    Any
+        The string on one line with no leading or trailing space; any other
+        type unchanged.
+
+    Notes
+    -----
+    **Developer notes.** These values are written into generated directive
+    source: the title as the directive argument, each option as ``:key:
+    value``. A line break inside one ends that construct, and what follows it
+    is parsed as markup of its own -- a ``raw`` directive, for instance. Item
+    data is not markup, so it is kept on its line. ``header`` and ``content``
+    are markup by design and are not passed through here.
+    """
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+def _checked_link(value: Any, title: Any) -> Any:
+    """
+    Return ``value`` if it is a link a card may carry.
+
+    Parameters
+    ----------
+    value : Any
+        The item's ``link``, already on one line.
+    title : Any
+        The item's title, for the error message.
+
+    Returns
+    -------
+    Any
+        ``value`` unchanged.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` names a scheme other than ``http``, ``https`` or
+        ``mailto``. A value with no scheme (a relative path, a fragment) is
+        accepted.
+    """
+    scheme = _SCHEME_RE.match(value) if isinstance(value, str) else None
+    if scheme and scheme.group(0).lower() not in _LINK_SCHEMES:
+        raise ValueError(
+            f"item {title!r}: link uses the {scheme.group(0)!r} scheme; a card "
+            "links to an http, https or mailto address, or to a relative path"
+        )
+    return value
+
+
+#: Environment attribute holding the configuration directory, as a string.
+_CONFDIR_ATTRIBUTE = "sk_gallery_grid_confdir"
+
+
+def _record_confdir(app: Sphinx, env: Any, docnames: Any) -> None:
+    """
+    Record the configuration directory on the environment before reading.
+
+    Parameters
+    ----------
+    app : sphinx.application.Sphinx
+        The running application.
+    env : sphinx.environment.BuildEnvironment
+        The environment directives will see.
+    docnames : list of str
+        Documents about to be read; unused.
+
+    Notes
+    -----
+    **Developer notes.** A directive has the environment, not the
+    application. ``confdir`` is copied onto the environment through the
+    public ``env-before-read-docs`` event, once per build and before any
+    directive runs, so parallel readers inherit it with the environment.
+    """
+    setattr(env, _CONFDIR_ATTRIBUTE, str(app.confdir))
+
+
 def _confined_path(directive, reference: str) -> Path:
     """
     Resolve a data-file reference and confine it to the source tree.
@@ -461,7 +555,10 @@ def _confined_path(directive, reference: str) -> Path:
     source, _ = directive.get_source_info()
     candidate = (Path(source).parent / reference).resolve()
     roots = [Path(directive.env.srcdir).resolve()]
-    confdir = getattr(directive.env.app, "confdir", None)
+    # Recorded by _record_confdir. BuildEnvironment.app, the old way to
+    # reach the configuration directory from a directive, is deprecated in
+    # Sphinx 9 and removed in Sphinx 11.
+    confdir = getattr(directive.env, _CONFDIR_ATTRIBUTE, None)
     if confdir:
         roots.append(Path(confdir).resolve())
     for root in roots:
@@ -670,6 +767,14 @@ class GalleryGridDirective(SphinxDirective):
         item.update(forwarded(self.options, "card-"))
         item["class-card"] = (str(item.get("class-card", "")) + " " + token).strip()
 
+        # Item data is written into directive source below; keep each value
+        # on its own line and refuse a link the browser would execute.
+        title = _single_line(title)
+        image = _single_line(image)
+        item = {key: _single_line(value) for key, value in item.items()}
+        if "link" in item and str(item.get("link-type", "url")).lower() == "url":
+            _checked_link(item["link"], title)
+
         if rst:
             body_parts = []
             if header:
@@ -816,9 +921,23 @@ class GalleryGridDirective(SphinxDirective):
         # Real document sections where the context allows one, rubrics where
         # it does not -- decided per invocation, never an error. See
         # `_sphinx_collection.sections`.
-        parts = [
-            (label, self._render_grid(group, rst=rst)) for label, group in sections
-        ]
+        # A group with no records is not rendered: a ``grid`` directive with
+        # no cards is an error to sphinx-design ("Content block expected"),
+        # which turned a deliberately empty gallery, ``:limit: 0`` and a
+        # filter matching nothing into build errors. The reader is told
+        # below that nothing matched.
+        try:
+            parts = [
+                (label, self._render_grid(group, rst=rst))
+                for label, group in sections
+                if group
+            ]
+        except ValueError as exc:
+            return [
+                self.state_machine.reporter.error(
+                    f"gallery-grid: {exc}", line=self.lineno
+                )
+            ]
         rendered = render_sections(
             self, parts, self.options.get("section-style", "auto"), logger
         )
@@ -1013,6 +1132,7 @@ def setup(app: Sphinx) -> dict[str, Any]:  # ruff: ignore[undocumented-param]
     )
     register_collection_asset_revision(app)
     app.connect("config-inited", _validate_collection_search_variant)
+    app.connect("env-before-read-docs", _record_confdir)
 
     app.add_directive("gallery-grid", GalleryGridDirective)
     # scikit-plots local patch: browser enhancements (lazy images, optional

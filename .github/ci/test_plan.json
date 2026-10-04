@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "package_root": "scikitplot",
+  "containers": [
+    "scikitplot",
+    "scikitplot/_externals",
+    "scikitplot/_externals/_jupyter_ext",
+    "scikitplot/_externals/_sphinx_ext",
+    "scikitplot/cexternals"
+  ],
+  "full_run_globs": [
+    "pyproject.toml",
+    "pytest.ini",
+    "conftest.py",
+    "meson.build",
+    "meson.options",
+    "meson_cpu/**",
+    "requirements/**",
+    ".github/workflows/ci_codecov_test_coverage.yml",
+    ".github/scripts/ci_test_plan.py",
+    ".github/ci/test_plan.json",
+    "docker/scripts/install_nltk.sh",
+    "docker/scripts/install_spacy.sh"
+  ],
+  "ignore_globs": [],
+  "loose_test_globs": [
+    "test_*.py",
+    "*_test.py"
+  ],
+  "default_mode": {
+    "pull_request": "auto",
+    "push": "all",
+    "schedule": "all",
+    "workflow_dispatch": "auto"
+  },
+  "max_shards": 4,
+  "shard_timeout_minutes": 350,
+  "shard_target_minutes": 30,
+  "default_unit_seconds": 60,
+  "per_test_seconds": 0.05,
+  "dependents": "none"
+}

@@ -43,6 +43,7 @@ back to source order, so the same input always renders byte-identically.
 from __future__ import annotations
 
 import datetime as _dt
+import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -206,13 +207,16 @@ def _as_number(value: Any) -> float | None:
     """
     if isinstance(value, bool):
         return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
+    if isinstance(value, (int, float, str)):
         try:
-            return float(value.strip())
-        except ValueError:
+            number = float(value.strip() if isinstance(value, str) else value)
+        except (ValueError, OverflowError):
             return None
+        # NaN compares false with everything, itself included, so one NaN in
+        # a column makes the sort depend on input order; infinity is not a
+        # quantity a record can hold. Neither is a number here, which also
+        # keeps the words "nan" and "inf" text.
+        return number if math.isfinite(number) else None
     return None
 
 
@@ -344,7 +348,14 @@ def _compare(value: Any, operand: str) -> int | None:
         left, right = coerce(value), coerce(operand)
         if left is not None and right is not None:
             return (left > right) - (left < right)
-    left_text, right_text = str(value).casefold(), operand.casefold()
+        if right is not None:
+            # The filter names a number or a date and this value is neither.
+            return None
+    if not isinstance(value, str):
+        # A list, a mapping, a boolean or a number against a word: comparing
+        # their text would give an answer that means nothing.
+        return None
+    left_text, right_text = value.casefold(), operand.casefold()
     return (left_text > right_text) - (left_text < right_text)
 
 

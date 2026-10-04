@@ -242,7 +242,10 @@ def parse_duration(value: Any) -> int | None:
     if ":" in text:
         chunks = text.split(":")
         _len = len(chunks) > 3  # ruff: ignore[magic-value-comparison]
-        if _len or not all(c.isdigit() for c in chunks):
+        # ASCII digits only. str.isdigit() is also true for characters such
+        # as U+00B2 SUPERSCRIPT TWO, which int() refuses: the ValueError then
+        # escaped as a traceback instead of a located catalog error.
+        if _len or not all(re.fullmatch(r"[0-9]+", c) for c in chunks):
             raise CatalogError(f"{value!r} is not a valid clock duration")
         total = 0
         for chunk in chunks:
@@ -1244,8 +1247,15 @@ def normalize_record(  # ruff: ignore[too-many-branches]
     # Never forward a raw URL into generated RST/MyST or HTML links. A record
     # may supply both id and url; validate they identify the same video.
     raw_url = _text("url")
-    if raw_url and parse_video_id(raw_url) != video_id:
-        raise CatalogError(f"record {index}: url and id name different videos")
+    if raw_url:
+        try:
+            url_video_id = parse_video_id(raw_url)
+        except CatalogError as exc:
+            # The same prefix every other failure of this record carries, so
+            # the author can find it in a catalogue of thousands.
+            raise CatalogError(f"record {index}: {exc}") from exc
+        if url_video_id != video_id:
+            raise CatalogError(f"record {index}: url and id name different videos")
     canonical_url = f"https://www.youtube.com/watch?v={video_id}"
 
     handle = _text("handle")

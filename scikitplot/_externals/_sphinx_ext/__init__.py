@@ -109,10 +109,13 @@ _CORE_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
 #: absent from a standalone extraction.
 _OPTIONAL_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
     {
+        "_ansi_sanitizer",
         "_sphinx_ai_assistant",
         "_sphinx_ai_learn",
         "_sphinx_feedback",
+        "_sphinx_gallery_jupyterlite",
         "_sphinx_jinja_render",
+        "_sphinx_llm",
     }
 )
 

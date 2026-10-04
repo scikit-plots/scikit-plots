@@ -19,6 +19,7 @@ import time
 import pytest
 
 from ....._paths import REPOSITORY_ROOT
+from ._authority import assert_redis_url_not_echoed
 
 from ......_hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
 from ......_hf_spaces_proxy._utils._provider_artifact import (
@@ -478,7 +479,7 @@ def _import_app_with_env(**updates):
 
 
 def test_app_cluster_topology_is_explicit_without_redis_authority_leakage() -> None:
-    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:6380/0"
+    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:16380/0"
     doc, result = _import_app_with_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -488,13 +489,11 @@ def test_app_cluster_topology_is_explicit_without_redis_authority_leakage() -> N
     assert doc["error"] == ""
     assert doc["manifest"]["backend"] == "redis"
     assert doc["manifest"]["topology"] == "cluster"
-    rendered = result.stdout + result.stderr
-    for forbidden in ("cluster-user", "cluster-secret", "redis-cluster.internal", "6380", "rediss://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)
 
 
 def test_app_cluster_topology_rejects_nonzero_database_fail_closed() -> None:
-    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:6380/2"
+    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:16380/2"
     doc, result = _import_app_with_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -503,6 +502,4 @@ def test_app_cluster_topology_rejects_nonzero_database_fail_closed() -> None:
     )
     assert doc["error"] == "PROVIDER_ARTIFACT_REDIS_CLUSTER_DATABASE_INVALID"
     assert doc["manifest"]["backend"] == "memory"
-    rendered = result.stdout + result.stderr
-    for forbidden in ("cluster-user", "cluster-secret", "redis-cluster.internal", "6380", "rediss://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)

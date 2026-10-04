@@ -207,6 +207,15 @@ def _write_asset_atomic(path: Path, content: str) -> bool:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
+        # mkstemp creates the file readable by its owner only and replace()
+        # keeps that mode, so the published stylesheet and script could not
+        # be read by a web server running as another user. Give the file the
+        # mode an ordinary new file gets. The umask can only be read by
+        # setting it; it is put back at once, and assets are written from the
+        # main process before any parallel work starts.
+        mask = os.umask(0)
+        os.umask(mask)
+        os.chmod(temporary, 0o666 & ~mask)
         os.replace(temporary, path)
         return True
     except Exception:

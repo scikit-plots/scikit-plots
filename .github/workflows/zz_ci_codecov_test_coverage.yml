@@ -1,0 +1,262 @@
+# https://app.codecov.io/gh/scikit-plots/scikit-plots/new
+---
+name: "CI ☂️ Codecov Test Coverage"
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  # push:
+  #   # branches: [ "main", "*.X" ]
+  #   branches:
+  #     - main
+  #     ## Release branches
+  #     - maintenance/**
+  # pull_request:
+  #   # branches: [ "main", "*.X" ]
+  #   branches:
+  #     - main
+  #     ## Release branches
+  #     - maintenance/**
+  # schedule:
+  #   ## Automatically built and released every night (or at a regular interval, often nightly)
+  #   ## Cron schedule for automated runs
+  #   ## https://crontab.cronhub.io
+  #   ## https://freeformatter.com/cron-expression-generator-quartz.html#cronexpressionexamples
+  #   ## https://crontab.io/validator
+  #   ## https://cron-checker.com/
+  #   ## "* * * * * * *" 7 fields (Quartz with year)         <second> <minute> <hour> <day of month> <month> <day of week> <year>
+  #   ## "* * * * * *"   6 fields (Quartz / some schedulers) <second> <minute> <hour> <day of month> <month> <day of week>
+  #   ## "* * * * *"     5 fields (standard Unix cron)       <minute> <hour> <day of month> <month> <day of week>
+  #   ##        ┌─────────────────────── minute           (0 - 59)
+  #   ##        │  ┌──────────────────── hour             (0 - 23)
+  #   ##        │  │  ┌───────────────── day of the month (1 - 31)
+  #   ##        │  │  │ ┌─────────────── month            (1 - 12 or JAN-DEC)
+  #   ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
+  #   ##        │  │  │ │ │
+  #   ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
+  #   - cron: '11 11 * * 1'
+
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
+  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
+  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
+  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
+  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
+  cancel-in-progress: true  # ${{ github.event_name == 'pull_request' }}
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+permissions:
+  ## only required for workflows in private repositories
+  contents: read  # for actions/checkout to fetch code
+
+jobs:
+  test_coverage:
+    name: "CI Test and Coverage Codecov Reports"
+    runs-on: ubuntu-latest
+
+    ## For GitHub-hosted runners, the hard cap is 360 minutes (6 hours).
+    ## To exceed it, switch to a self-hosted runner and set timeout-minutes: 4320 (72-hour max).
+    ## If you can't switch runners, split the job into sequential steps using artifacts, each under 360 minutes.
+    ## There is no way to raise the 360-minute limit on GitHub-hosted infrastructure.
+    ## The fastest resolution for jobs that consistently exceed 6 hours is to switch to a self-hosted runner and raise timeout-minutes to 4320 (72 hours).
+    # Runner Type	                Maximum timeout-minutes
+    # GitHub-hosted (all plans:   Free, Pro, Team, Enterprise)	360 minutes (6 hours)
+    # Self-hosted	                4320 minutes (72 hours)
+    # timeout-minutes: 4320       # max allowed for self-hosted (72 hours)
+
+    env:
+      SETUPTOOLS_USE_DISTUTILS: local
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    steps:
+      ## 📥 Checkout the Git repository into the runner
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: "📦 Install dependencies"
+        run: |
+          # sudo apt-get install tesseract-ocr
+          python -m pip install --upgrade pip
+
+          # Resolve distutils conflict before any setuptools-dependent install
+          # export SETUPTOOLS_USE_DISTUTILS=local
+          # pip install "setuptools>=69"
+          pip install -U setuptools
+
+          pip install pytest pytest-cov
+          pip install beautifulsoup4 markdownify
+          pip install lxml polars pyarrow
+
+          pip install gradio streamlit flask
+          pip install nltk spacy gensim langdetect cryptography \
+                      faster-whisper openai-whisper \
+                      pytesseract youtube-transcript-api
+          python -m spacy download en_core_web_sm
+
+          # Pre-install the NLTK data in CI.
+          # python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
+          # python -m nltk.downloader stopwords
+          # python -m nltk.downloader punkt_tab
+          # python -m nltk.downloader punkt_tab wordnet omw-1.4
+          #
+          # `python -m nltk.downloader` cannot work on this executor. NLTK's
+          # pathsec guard refuses any fetch that egresses through a proxy,
+          # because it cannot pin the validated IP and so cannot enforce SSRF
+          # protection (CWE-918). CircleCI egresses through a proxy, so the
+          # downloader fails with "Security Violation" — which is exactly the
+          # error the failing docs build reported.
+          #
+          # Worse, it fails *quietly*: `nltk.downloader` prints the error and
+          # exits 0, so `set -Eeuo pipefail` does not catch it and the build
+          # continues to die 50 minutes later inside sphinx-gallery.
+          #
+          # Fetching the packages directly avoids the guard entirely: these
+          # are the same archives the downloader would retrieve, from the same
+          # repository, and no NLTK code path is involved.
+          export NLTK_DATA="$HOME/nltk_data"
+          mkdir -p "$NLTK_DATA/tokenizers" "$NLTK_DATA/taggers" "$NLTK_DATA/chunkers" "$NLTK_DATA/corpora"
+
+          NLTK_PKGS="https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages"
+
+          # Download your required packages
+          curl -sSfL "$NLTK_PKGS/tokenizers/punkt.zip"                          -o /tmp/punkt.zip
+          curl -sSfL "$NLTK_PKGS/tokenizers/punkt_tab.zip"                      -o /tmp/punkt_tab.zip
+          curl -sSfL "$NLTK_PKGS/corpora/omw-1.4.zip"                           -o /tmp/omw-1.4.zip
+          curl -sSfL "$NLTK_PKGS/corpora/wordnet.zip"                           -o /tmp/wordnet.zip
+          curl -sSfL "$NLTK_PKGS/corpora/words.zip"                             -o /tmp/words.zip
+          curl -sSfL "$NLTK_PKGS/chunkers/maxent_ne_chunker.zip"                -o /tmp/maxent_ne_chunker.zip
+          curl -sSfL "$NLTK_PKGS/chunkers/maxent_ne_chunker_tab.zip"            -o /tmp/maxent_ne_chunker_tab.zip
+          curl -sSfL "$NLTK_PKGS/taggers/averaged_perceptron_tagger.zip"        -o /tmp/averaged_perceptron_tagger.zip
+          curl -sSfL "$NLTK_PKGS/taggers/averaged_perceptron_tagger_eng.zip"    -o /tmp/averaged_perceptron_tagger_eng.zip
+
+          # Unzip into appropriate directories
+          unzip -q -o /tmp/punkt.zip                          -d "$NLTK_DATA/tokenizers"
+          unzip -q -o /tmp/punkt_tab.zip                      -d "$NLTK_DATA/tokenizers"
+          unzip -q -o /tmp/omw-1.4.zip                        -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/wordnet.zip                        -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/words.zip                          -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/maxent_ne_chunker.zip              -d "$NLTK_DATA/chunkers"
+          unzip -q -o /tmp/maxent_ne_chunker_tab.zip          -d "$NLTK_DATA/chunkers"
+          unzip -q -o /tmp/averaged_perceptron_tagger.zip     -d "$NLTK_DATA/taggers"
+          unzip -q -o /tmp/averaged_perceptron_tagger_eng.zip -d "$NLTK_DATA/taggers"
+
+          # Fail here, in 2 seconds, rather than in the gallery 50 minutes on.
+          # Verify installation
+          python - << 'PY'
+          import sys
+          import nltk
+          missing = []
+          for path in (
+            "tokenizers/punkt",
+            "tokenizers/punkt_tab/english/",
+            "corpora/omw-1.4",
+            "corpora/wordnet",
+            "corpora/words",
+            "chunkers/maxent_ne_chunker",
+            "taggers/averaged_perceptron_tagger",
+            "taggers/averaged_perceptron_tagger_eng",
+          ):
+              try:
+                  nltk.data.find(path)
+              except LookupError:
+                  missing.append(path)
+          if missing:
+              sys.exit("NLTK data missing after install: " + ", ".join(missing))
+          print("NLTK data verified:", ", ".join(nltk.data.path[:2]))
+          from nltk.tokenize import sent_tokenize
+          assert sent_tokenize("A. B.") == ["A.", "B."]
+          PY
+        env:
+          SETUPTOOLS_USE_DISTUTILS: local
+
+      - name: "🔨 Build library"
+        run: |
+          # install your project if it's a package
+          pip install -r requirements/all.txt
+          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc,cpu] -vvv
+        env:
+          SETUPTOOLS_USE_DISTUTILS: local
+
+      # Remove any stale coverage artifacts that may survive GitHub Actions
+      # workspace reuse. Without this, coverage.xml could have a file mtime
+      # from a prior run (potentially hours or days old), causing Codecov's
+      # max_report_age check to reject the upload even when set to a high value.
+      - name: "🧹 Remove stale coverage artifacts"
+        shell: bash
+        run: |
+          rm -f coverage.xml .coverage .coverage.*
+
+      # Record the moment pytest starts — this is T0 for age calculation
+      - name: "⏱️ Record coverage start time"
+        run: echo "COVERAGE_START=$(date -u +%s)" >> "$GITHUB_ENV"
+
+      - name: "☂️ Run tests with coverage"
+        env:
+          SETUPTOOLS_USE_DISTUTILS: local
+          # Optional: some Cython builders also benefit from this:
+          # PYTHONPATH: .
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
+        run: |
+          pytest \
+            --cov \
+            --cov-branch \
+            --cov-report=xml:coverage.xml
+
+      # Verify the coverage file was freshly generated in this run.
+      # Prints the file mtime so it is visible in CI logs for debugging.
+      - name: "📊 Report coverage age, Verify coverage.xml is fresh"
+        shell: bash
+        run: |
+          if [ ! -f coverage.xml ]; then
+            echo "ERROR: coverage.xml was not generated by pytest." >&2
+            exit 0
+          fi
+          NOW=$(date -u +%s)
+          FILE_MTIME=$(stat -c '%Y' coverage.xml)
+          JOB_AGE=$(( NOW - COVERAGE_START ))          # seconds since job started
+          FILE_AGE=$(( NOW - FILE_MTIME ))              # seconds since file was written
+          echo "Job elapsed:          $(( JOB_AGE / 60 ))m $(( JOB_AGE % 60 ))s"
+          echo "coverage.xml age:     $(( FILE_AGE / 60 ))m $(( FILE_AGE % 60 ))s"
+          echo "coverage.xml mtime:   $(stat -c '%y' coverage.xml)"
+          echo "Current time (UTC):   $(date -u)"
+          echo "COVERAGE_FILE_AGE_MINUTES=$(( FILE_AGE / 60 ))" >> "$GITHUB_ENV"
+
+      - name: "☂️ Upload coverage reports to Codecov"
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        continue-on-error: true
+        with:
+          fail_ci_if_error: false # optional (default = false)
+          files: ./coverage.xml # optional
+          # flags: unittests # optional
+          # name: codecov-umbrella # optional
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true # optional (default = false)
+        # env:
+        #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

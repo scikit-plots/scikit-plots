@@ -30,7 +30,13 @@ def _core_dependency_errors(core: Path) -> list[str]:
             if isinstance(node, ast.Import):
                 names.extend(alias.name for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
-                if node.level >= 2:
+                # A relative import leaves the core package when it climbs
+                # past the package root. For a module at the root that is
+                # level 2; for one in a subpackage such as ``tests`` it is
+                # one level more per directory, so ``from .. import X`` in
+                # ``tests/test_reference.py`` names the core itself.
+                depth = len(path.relative_to(core).parts) - 1
+                if node.level >= depth + 2:
                     errors.append(
                         f"canonical core imports sibling runtime package: {path.name}:{node.lineno}"
                     )

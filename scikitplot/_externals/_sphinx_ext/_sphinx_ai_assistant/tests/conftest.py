@@ -33,6 +33,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
+# Recorded before anything below imports a service module; see
+# pytest_collection_finish at the end of this file.
+import logging as _logging
+
+_ROOT_LOGGING_AT_IMPORT: dict = {
+    "handlers": list(_logging.getLogger().handlers),
+    "level": _logging.getLogger().level,
+}
+_SERVICE_LOGGING: dict = {"handlers": [], "level": None}
+
 # ---------------------------------------------------------------------------
 # Bootstrap: make the submodule importable under its canonical dotted name
 # even when running in isolation (full scikitplot package NOT installed).
@@ -565,3 +575,90 @@ __all__ = [
     "_catalog_entries",
     "register_generated_markdown",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Root logging: the service configuration stays inside this package
+# ---------------------------------------------------------------------------
+
+
+def _held_service_handlers() -> list:
+    """Return the service handlers taken off the root logger after collection."""
+    return _SERVICE_LOGGING["handlers"]
+
+
+def pytest_collection_finish(session: Any) -> None:
+    """
+    Take the service's logging configuration off the root logger.
+
+    Notes
+    -----
+    **Developer notes.** The proxy and model applications configure logging
+    for a service when they are imported: they replace the root logger's
+    handlers with one whose filter rewrites URLs in a log record *in place*,
+    and lower the root level to ``INFO``. Test modules import them while
+    pytest collects, so by the time the first test of the whole session ran
+    that handler was on the root logger, and it stayed there for every test
+    in every package: a test anywhere that read a URL from a captured record
+    found ``<url-redacted>``.
+
+    Whatever was added to the root logger between the import of this file and
+    the end of collection is removed here and held, and the level is put
+    back. :func:`_service_logging_inside_this_package` installs it again for
+    the tests of this package only, so they run as they always have.
+    """
+    import logging
+
+    root = logging.getLogger()
+    before = _ROOT_LOGGING_AT_IMPORT
+    added = [handler for handler in root.handlers if handler not in before["handlers"]]
+    _SERVICE_LOGGING["handlers"] = added
+    _SERVICE_LOGGING["level"] = root.level
+    for handler in added:
+        root.removeHandler(handler)
+    root.setLevel(before["level"])
+
+
+@pytest.fixture(scope="package", autouse=True)
+def _service_logging_inside_this_package():
+    """Install the service's root handlers for this package's tests only."""
+    import logging
+
+    root = logging.getLogger()
+    outside_level = root.level
+    outside = list(root.handlers)
+    for handler in reversed(_held_service_handlers()):
+        if handler not in root.handlers:
+            root.handlers.insert(0, handler)
+    if _SERVICE_LOGGING["level"] is not None:
+        root.setLevel(_SERVICE_LOGGING["level"])
+    try:
+        yield
+    finally:
+        _remove_handlers_added_since(outside)
+        root.setLevel(outside_level)
+
+
+def _remove_handlers_added_since(outside: list) -> None:
+    """
+    Remove root handlers that are neither in ``outside`` nor pytest's own.
+
+    Parameters
+    ----------
+    outside : list of logging.Handler
+        The root logger's handlers before this package's tests ran.
+
+    Notes
+    -----
+    **Developer notes.** A test here may configure service logging again, so
+    the handlers to remove are not only the ones held after collection.
+    pytest attaches and detaches its own capture handlers around every test
+    phase; those are recognised by their module and left for pytest.
+    """
+    import logging
+
+    root = logging.getLogger()
+    for handler in list(root.handlers):
+        ours = type(handler).__module__.startswith("_pytest.")
+        if handler not in outside and not ours:
+            root.removeHandler(handler)

@@ -4,6 +4,25 @@ name: "CI ☂️ Codecov Test Coverage"
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
+    inputs:
+      mode:
+        description: "auto: only what the changed files affect · all: everything · custom: the submodules named below"
+        type: choice
+        options: [auto, all, custom]
+        default: auto
+      submodules:
+        description: "custom mode: submodule names, e.g. 'corpus _sphinx_ai_learn' or 'scikitplot/cleanprompt'"
+        type: string
+        default: ""
+      max_shards:
+        description: "Most parallel test jobs (empty: the value in .github/ci/test_plan.json)"
+        type: string
+        default: ""
+      test_gc:
+        description: "Garbage collection between tests (see scikitplot/conftest.py)"
+        type: choice
+        options: [young, module, test, off]
+        default: young
   push:
     # branches: [ "main", "*.X" ]
     branches:
@@ -63,23 +82,110 @@ permissions:
   contents: read  # for actions/checkout to fetch code
 
 jobs:
-  test_coverage:
-    name: "CI Test and Coverage Codecov Reports"
+  ## ------------------------------------------------------------------
+  ## 1. Decide what runs.
+  ##
+  ## .github/scripts/ci_test_plan.py turns the changed files (or a manual
+  ## choice) into a list of test jobs. Its rules, and how to change them,
+  ## are in .github/ci/README.md. Nothing is installed here: the planner
+  ## uses the standard library only.
+  ## ------------------------------------------------------------------
+  plan:
+    name: "🧭 Plan tests"
     runs-on: ubuntu-latest
-
-    env:
-      SETUPTOOLS_USE_DISTUTILS: local
+    timeout-minutes: 10
 
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
 
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      mode: ${{ steps.plan.outputs.mode }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+
     steps:
-      ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false  # Prevents accidental credential exposure
-          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # The planner compares commits
+          ## Gets the correct commit for a pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: "🧪 Check the planner itself"
+        run: python3 -m unittest discover -s .github/scripts/tests -p "test_*.py"
+
+      - name: "🧭 Plan"
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_SUBMODULES: ${{ inputs.submodules }}
+          INPUT_MAX_SHARDS: ${{ inputs.max_shards }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -Eeuo pipefail
+          # A manual run uses the chosen mode; every other event uses the
+          # mode configured for it in .github/ci/test_plan.json.
+          mode="default"
+          base=""
+          head="$HEAD_SHA"
+          case "$EVENT_NAME" in
+            workflow_dispatch)
+              mode="${INPUT_MODE:-auto}"
+              base="origin/${DEFAULT_BRANCH}"
+              ;;
+            pull_request)
+              base="$PR_BASE_SHA"
+              head="$PR_HEAD_SHA"
+              ;;
+            push)
+              base="$PUSH_BEFORE_SHA"
+              ;;
+          esac
+          python3 .github/scripts/ci_test_plan.py plan \
+            --mode "$mode" \
+            --event "$EVENT_NAME" \
+            --base "$base" \
+            --head "$head" \
+            --select "$INPUT_SUBMODULES" \
+            --max-shards "$INPUT_MAX_SHARDS" \
+            --github-output "$GITHUB_OUTPUT" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+  ## ------------------------------------------------------------------
+  ## 2. Run the tests, one job per shard.
+  ##
+  ## Each job has the full six hours of a GitHub-hosted runner to itself
+  ## and writes its own coverage data file; job 3 combines them.
+  ## ------------------------------------------------------------------
+  test:
+    name: "☂️ Test ${{ matrix.name }} (~${{ matrix.estimate_minutes }} min)"
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+
+    ## For GitHub-hosted runners, the hard cap is 360 minutes (6 hours).
+    ## The planner keeps each job under it by splitting; raise
+    ## "shard_timeout_minutes" or "max_shards" in .github/ci/test_plan.json.
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+
+    strategy:
+      fail-fast: false   # One failing shard must not hide the others' results
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    env:
+      SETUPTOOLS_USE_DISTUTILS: local
+
+    steps:
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
           fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
           lfs: true
           ## Gets the correct commit message for pull request
@@ -96,8 +202,6 @@ jobs:
           python -m pip install --upgrade pip
 
           # Resolve distutils conflict before any setuptools-dependent install
-          # export SETUPTOOLS_USE_DISTUTILS=local
-          # pip install "setuptools>=69"
           pip install -U setuptools
 
           pip install pytest pytest-cov
@@ -108,145 +212,184 @@ jobs:
           pip install nltk spacy gensim langdetect cryptography \
                       faster-whisper openai-whisper \
                       pytesseract youtube-transcript-api
-          python -m spacy download en_core_web_sm
 
-          # Pre-install the NLTK data in CI.
-          # python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
-          # python -m nltk.downloader stopwords
-          # python -m nltk.downloader punkt_tab
-          # python -m nltk.downloader punkt_tab wordnet omw-1.4
-          #
-          # `python -m nltk.downloader` cannot work on this executor. NLTK's
-          # pathsec guard refuses any fetch that egresses through a proxy,
-          # because it cannot pin the validated IP and so cannot enforce SSRF
-          # protection (CWE-918). CircleCI egresses through a proxy, so the
-          # downloader fails with "Security Violation" — which is exactly the
-          # error the failing docs build reported.
-          #
-          # Worse, it fails *quietly*: `nltk.downloader` prints the error and
-          # exits 0, so `set -Eeuo pipefail` does not catch it and the build
-          # continues to die 50 minutes later inside sphinx-gallery.
-          #
-          # Fetching the packages directly avoids the guard entirely: these
-          # are the same archives the downloader would retrieve, from the same
-          # repository, and no NLTK code path is involved.
-          export NLTK_DATA="$HOME/nltk_data"
-          mkdir -p "$NLTK_DATA/tokenizers" "$NLTK_DATA/taggers" "$NLTK_DATA/chunkers" "$NLTK_DATA/corpora"
-
-          NLTK_PKGS="https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages"
-
-          # Download your required packages
-          curl -sSfL "$NLTK_PKGS/tokenizers/punkt.zip"                          -o /tmp/punkt.zip
-          curl -sSfL "$NLTK_PKGS/tokenizers/punkt_tab.zip"                      -o /tmp/punkt_tab.zip
-          curl -sSfL "$NLTK_PKGS/corpora/omw-1.4.zip"                           -o /tmp/omw-1.4.zip
-          curl -sSfL "$NLTK_PKGS/corpora/wordnet.zip"                           -o /tmp/wordnet.zip
-          curl -sSfL "$NLTK_PKGS/corpora/words.zip"                             -o /tmp/words.zip
-          curl -sSfL "$NLTK_PKGS/chunkers/maxent_ne_chunker.zip"                -o /tmp/maxent_ne_chunker.zip
-          curl -sSfL "$NLTK_PKGS/chunkers/maxent_ne_chunker_tab.zip"            -o /tmp/maxent_ne_chunker_tab.zip
-          curl -sSfL "$NLTK_PKGS/taggers/averaged_perceptron_tagger.zip"        -o /tmp/averaged_perceptron_tagger.zip
-          curl -sSfL "$NLTK_PKGS/taggers/averaged_perceptron_tagger_eng.zip"    -o /tmp/averaged_perceptron_tagger_eng.zip
-
-          # Unzip into appropriate directories
-          unzip -q -o /tmp/punkt.zip                          -d "$NLTK_DATA/tokenizers"
-          unzip -q -o /tmp/punkt_tab.zip                      -d "$NLTK_DATA/tokenizers"
-          unzip -q -o /tmp/omw-1.4.zip                        -d "$NLTK_DATA/corpora"
-          unzip -q -o /tmp/wordnet.zip                        -d "$NLTK_DATA/corpora"
-          unzip -q -o /tmp/words.zip                          -d "$NLTK_DATA/corpora"
-          unzip -q -o /tmp/maxent_ne_chunker.zip              -d "$NLTK_DATA/chunkers"
-          unzip -q -o /tmp/maxent_ne_chunker_tab.zip          -d "$NLTK_DATA/chunkers"
-          unzip -q -o /tmp/averaged_perceptron_tagger.zip     -d "$NLTK_DATA/taggers"
-          unzip -q -o /tmp/averaged_perceptron_tagger_eng.zip -d "$NLTK_DATA/taggers"
-
-          # Fail here, in 2 seconds, rather than in the gallery 50 minutes on.
-          # Verify installation
-          python - << 'PY'
-          import sys
-          import nltk
-          missing = []
-          for path in (
-            "tokenizers/punkt",
-            "tokenizers/punkt_tab/english/",
-            "corpora/omw-1.4",
-            "corpora/wordnet",
-            "corpora/words",
-            "chunkers/maxent_ne_chunker",
-            "taggers/averaged_perceptron_tagger",
-            "taggers/averaged_perceptron_tagger_eng",
-          ):
-              try:
-                  nltk.data.find(path)
-              except LookupError:
-                  missing.append(path)
-          if missing:
-              sys.exit("NLTK data missing after install: " + ", ".join(missing))
-          print("NLTK data verified:", ", ".join(nltk.data.path[:2]))
-          from nltk.tokenize import sent_tokenize
-          assert sent_tokenize("A. B.") == ["A.", "B."]
-          PY
-        env:
-          SETUPTOOLS_USE_DISTUTILS: local
+          # The same two scripts serve Docker images, the devcontainer and
+          # the documentation build; see their headers for the options.
+          bash docker/scripts/install_spacy.sh
+          bash docker/scripts/install_nltk.sh
 
       - name: "🔨 Build library"
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
-          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc,cpu] -vvv
-        env:
-          SETUPTOOLS_USE_DISTUTILS: local
-
-      # Remove any stale coverage artifacts that may survive GitHub Actions
-      # workspace reuse. Without this, coverage.xml could have a file mtime
-      # from a prior run (potentially hours or days old), causing Codecov's
-      # max_report_age check to reject the upload even when set to a high value.
-      - name: "🧹 Remove stale coverage artifacts"
-        shell: bash
-        run: |
-          rm -f coverage.xml .coverage .coverage.*
-
-      # Record the moment pytest starts — this is T0 for age calculation
-      - name: "⏱️ Record coverage start time"
-        run: echo "COVERAGE_START=$(date -u +%s)" >> "$GITHUB_ENV"
+          pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -vvv
 
       - name: "☂️ Run tests with coverage"
         env:
-          SETUPTOOLS_USE_DISTUTILS: local
-          # Optional: some Cython builders also benefit from this:
-          # PYTHONPATH: .
+          SHARD_NAME: ${{ matrix.name }}
+          SHARD_PATHS: ${{ matrix.paths }}
+          # One data file per shard; the report job combines them.
+          COVERAGE_FILE: .coverage.${{ matrix.name }}
+          SKPLT_TEST_GC: ${{ inputs.test_gc || 'young' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
         run: |
-          pytest \
+          set -Eeuo pipefail
+          rm -f coverage.xml .coverage .coverage.*
+          mkdir -p reports
+          read -r -a paths <<<"$SHARD_PATHS"
+          status=0
+          pytest "${paths[@]}" \
             --cov \
             --cov-branch \
-            --cov-report=xml:coverage.xml
+            --cov-report= \
+            --junitxml="reports/junit-${SHARD_NAME}.xml" || status=$?
+          # Exit status 5 is "no tests collected": a submodule without tests
+          # is not a failure of the run.
+          if [ "$status" -eq 5 ]; then
+            echo "::notice::no tests were collected for: $SHARD_PATHS"
+            status=0
+          fi
+          exit "$status"
 
-      # Verify the coverage file was freshly generated in this run.
-      # Prints the file mtime so it is visible in CI logs for debugging.
-      - name: "📊 Report coverage age, Verify coverage.xml is fresh"
-        shell: bash
+      - name: "⬆️ Keep coverage data and the test report"
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ matrix.name }}
+          path: |
+            .coverage.*
+            reports/junit-*.xml
+          include-hidden-files: true   # .coverage.* is a hidden file
+          if-no-files-found: warn
+          retention-days: 7
+
+  ## ------------------------------------------------------------------
+  ## 3. Combine, report, and decide the result of the whole run.
+  ##
+  ## This job keeps the name the single job had, so a branch protection
+  ## rule that requires it keeps working. It also runs when nothing needed
+  ## testing, and then succeeds.
+  ## ------------------------------------------------------------------
+  report:
+    name: "CI Test and Coverage Codecov Reports"
+    needs: [plan, test]
+    if: always() && github.repository == 'scikit-plots/scikit-plots'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      PLAN_RESULT: ${{ needs.plan.result }}
+      PLAN_RUN: ${{ needs.plan.outputs.run }}
+      PLAN_MODE: ${{ needs.plan.outputs.mode }}
+      TEST_RESULT: ${{ needs.test.result }}
+
+    steps:
+      - name: "🚦 Nothing to test"
+        if: needs.plan.result == 'success' && needs.plan.outputs.run != 'true'
+        run: echo "No file of the library changed; no test job was needed." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "⬇️ Checkout (cloned) repository"
+        if: needs.plan.outputs.run == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: Set up Python
+        if: needs.plan.outputs.run == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: "⬇️ Collect every shard's coverage data"
+        if: needs.plan.outputs.run == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: coverage-*
+          path: coverage-data
+          merge-multiple: true
+
+      - name: "🧮 Combine coverage"
+        if: needs.plan.outputs.run == 'true'
         run: |
-          if [ ! -f coverage.xml ]; then
-            echo "ERROR: coverage.xml was not generated by pytest." >&2
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install coverage
+          rm -f coverage.xml .coverage
+          shopt -s nullglob
+          files=(coverage-data/.coverage.*)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::warning::no coverage data was produced by the test jobs"
             exit 0
           fi
-          NOW=$(date -u +%s)
-          FILE_MTIME=$(stat -c '%Y' coverage.xml)
-          JOB_AGE=$(( NOW - COVERAGE_START ))          # seconds since job started
-          FILE_AGE=$(( NOW - FILE_MTIME ))              # seconds since file was written
-          echo "Job elapsed:          $(( JOB_AGE / 60 ))m $(( JOB_AGE % 60 ))s"
-          echo "coverage.xml age:     $(( FILE_AGE / 60 ))m $(( FILE_AGE % 60 ))s"
-          echo "coverage.xml mtime:   $(stat -c '%y' coverage.xml)"
-          echo "Current time (UTC):   $(date -u)"
-          echo "COVERAGE_FILE_AGE_MINUTES=$(( FILE_AGE / 60 ))" >> "$GITHUB_ENV"
+          coverage combine "${files[@]}"
+          # A selection without tests leaves data files with nothing in them;
+          # there is then no report to write, and that is not an error.
+          if ! coverage report -i --format=total >/dev/null 2>&1; then
+            echo "::notice::the test jobs recorded no coverage (no tests ran)"
+            echo "No coverage was recorded: the selected submodules collected no tests." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # -i: a file that exists only in a built tree (generated sources)
+          # has no source here; it is left out instead of failing the report.
+          coverage xml -i -o coverage.xml
+          {
+            echo "## Coverage"
+            echo
+            echo "- Mode: **${PLAN_MODE}**, from ${#files[@]} test job(s)"
+            echo "- Line and branch coverage of what ran: **$(coverage report -i --format=total)%**"
+          } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: "⏱️ Refresh the duration estimates"
+        if: needs.plan.outputs.run == 'true'
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          reports=(coverage-data/reports/junit-*.xml)
+          if [ "${#reports[@]}" -gt 0 ]; then
+            python3 .github/scripts/ci_test_durations.py "${reports[@]}" \
+              --source "workflow run ${GITHUB_RUN_ID} (${PLAN_MODE})" \
+              --output test_durations.json
+          fi
+
+      - name: "⬆️ Keep the combined report"
+        if: needs.plan.outputs.run == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            test_durations.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      ## Codecov reads a report as the coverage of the whole project. A run
+      ## that tested only some submodules would look like a collapse, so only
+      ## a complete and successful run is uploaded.
       - name: "☂️ Upload coverage reports to Codecov"
+        if: needs.plan.outputs.mode == 'all' && needs.test.result == 'success' && hashFiles('coverage.xml') != ''
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         continue-on-error: true
         with:
           fail_ci_if_error: false # optional (default = false)
           files: ./coverage.xml # optional
-          # flags: unittests # optional
-          # name: codecov-umbrella # optional
+          disable_search: true    # Only the combined report
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true # optional (default = false)
-        # env:
-        #   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: "🚦 Result of the run"
+        run: |
+          set -Eeuo pipefail
+          echo "plan=${PLAN_RESULT} run=${PLAN_RUN} mode=${PLAN_MODE} test=${TEST_RESULT}"
+          if [ "$PLAN_RESULT" != "success" ]; then
+            echo "::error::the test plan could not be made"
+            exit 1
+          fi
+          if [ "$PLAN_RUN" != "true" ]; then
+            exit 0
+          fi
+          if [ "$TEST_RESULT" != "success" ]; then
+            echo "::error::at least one test job did not succeed (${TEST_RESULT})"
+            exit 1
+          fi

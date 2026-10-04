@@ -54,6 +54,9 @@ except Exception:
 
 
 def pytest_configure(config):
+    # Validate the garbage-collection policy once, before any test runs, and
+    # keep the answer for the per-test hooks below (see _test_gc_policy).
+    config._skplt_test_gc_policy = _test_gc_policy()
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
@@ -91,10 +94,82 @@ def pytest_configure(config):
 ######################################################################
 
 
+#: Environment variable selecting how often the test session collects garbage.
+SKPLT_TEST_GC_ENV = "SKPLT_TEST_GC"
+
+#: Accepted values of :data:`SKPLT_TEST_GC_ENV`, most thorough first.
+#:
+#: ``test``
+#:     A full collection before and after every test.
+#: ``young``
+#:     The default. A young-generation collection after every test and a full
+#:     collection after the last test of each module.
+#: ``module``
+#:     A full collection after the last test of each module, nothing per test.
+#: ``off``
+#:     No collection beyond the interpreter's own.
+SKPLT_TEST_GC_POLICIES = ("test", "young", "module", "off")
+
+
+def _test_gc_policy():
+    """
+    Return the garbage-collection policy for this test session.
+
+    Returns
+    -------
+    str
+        One of :data:`SKPLT_TEST_GC_POLICIES`; ``"young"`` when
+        :data:`SKPLT_TEST_GC_ENV` is unset or empty.
+
+    Raises
+    ------
+    pytest.UsageError
+        If the variable holds any other value. A typo must not silently
+        select a different policy.
+
+    Notes
+    -----
+    **User notes.** Leave the variable unset. Set ``SKPLT_TEST_GC=test`` to
+    reproduce the behaviour of releases before this policy existed, for
+    example while hunting a leak that only a full collection exposes::
+
+        SKPLT_TEST_GC=test pytest scikitplot/annoy
+
+    **Developer notes.** A full ``gc.collect()`` walks every container object
+    alive in the process. With the scientific stack imported that is several
+    million objects, so one collection takes a few tenths of a second, and
+    it grows as the session imports more. Two of them around each of twenty
+    thousand tests cost five of the six hours a coverage run was allowed:
+    the fastest tests, and the skipped ones, took 0.73 s at the start of the
+    run and 1.40 s at the end, and the run was cancelled at the limit.
+
+    What the collections were for is kept. An object created by a test is in
+    the young generations when the test ends, so ``gc.collect(1)`` frees a
+    reference cycle the test left, and reports an unclosed resource against
+    the test that left it, at a cost that depends on what the test created
+    and not on the size of the process. A full collection at each module
+    boundary bounds what a long session accumulates.
+    """
+    value = _os.environ.get(SKPLT_TEST_GC_ENV, "").strip().lower() or "young"
+    if value not in SKPLT_TEST_GC_POLICIES:
+        raise _pytest.UsageError(
+            f"{SKPLT_TEST_GC_ENV}={value!r} is not a garbage-collection policy; "
+            f"use one of {', '.join(SKPLT_TEST_GC_POLICIES)}"
+        )
+    return value
+
+
+def _is_last_test_of_its_module(item, nextitem):
+    """Return True when ``nextitem`` belongs to another module, or is absent."""
+    if nextitem is None:
+        return True
+    return getattr(nextitem, "module", None) is not getattr(item, "module", None)
+
+
 def pytest_runtest_setup(item):
     # Before each test
-    # Trigger garbage collection
-    _gc.collect()
+    if getattr(item.config, "_skplt_test_gc_policy", "young") == "test":
+        _gc.collect()
 
     mark = item.get_closest_marker("xslow")
     if mark is not None:
@@ -146,9 +221,15 @@ def pytest_runtest_setup(item):
 
 
 def pytest_runtest_teardown(item, nextitem):
-    # After each test
-    # Trigger garbage collection
-    _gc.collect()
+    # After each test; see _test_gc_policy for what each policy costs and keeps.
+    policy = getattr(item.config, "_skplt_test_gc_policy", "young")
+    if policy == "test":
+        _gc.collect()
+        return
+    if policy == "young":
+        _gc.collect(1)
+    if policy != "off" and _is_last_test_of_its_module(item, nextitem):
+        _gc.collect()
 
 
 ######################################################################
