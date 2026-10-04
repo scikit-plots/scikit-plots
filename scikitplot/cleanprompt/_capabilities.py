@@ -109,28 +109,28 @@ TIERS: dict[str, _TierSpec] = {
         distribution="spacy",
         minimum=(3, 4),
         below=(5,),
-        extra="cleanprompt-ner",
+        extra="cleanprompt",
         purpose="named-entity detection",
     ),
     "nltk": _TierSpec(
         distribution="nltk",
         minimum=(3, 6),
         below=(4,),
-        extra="cleanprompt-nltk",
+        extra="cleanprompt",
         purpose="named-entity detection without spaCy (English only)",
     ),
     "web": _TierSpec(
         distribution="flask",
         minimum=(2, 2),
         below=(4,),
-        extra="cleanprompt-web",
+        extra="cleanprompt",
         purpose="the local web interface",
     ),
     "crypto": _TierSpec(
         distribution="cryptography",
         minimum=(41,),
         below=(50,),
-        extra="cleanprompt-crypto",
+        extra="cleanprompt",
         # Not "vault encryption" any more: the base tier encrypts vaults with
         # the standard library alone. This tier adds the reviewed AES
         # primitive for anyone who prefers it, which is a different and much

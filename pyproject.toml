@@ -536,6 +536,8 @@ maintenance = [
 
 ## Maintenance tools
 cleanprompt = [
+  "flask",
+  "cryptography",
   ## Pre-install the NLTK data in CI.
   # python -m nltk.downloader punkt_tab wordnet omw-1.4
   "nltk",                                   # https://github.com/nltk/nltk  https://www.nltk.org/install.html  https://www.nltk.org/data.html

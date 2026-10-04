@@ -30,10 +30,8 @@ afterwards:
     pip install scikit-plots
 
     # Optional tiers, each independent of the others
-    pip install scikit-plots[cleanprompt-ner]      # spaCy entity detection
-    pip install scikit-plots[cleanprompt-nltk]     # NLTK entity detection
-    pip install scikit-plots[cleanprompt-web]      # local Flask interface
-    pip install scikit-plots[cleanprompt-crypto]   # the Fernet vault cipher
+    # spaCy entity detection, NLTK entity detection, local Flask interface, the Fernet vault cipher
+    pip install scikit-plots[cleanprompt]
 
     # What is active on this machine, and what is blind
     python -m scikitplot.cleanprompt doctor
