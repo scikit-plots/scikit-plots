@@ -536,6 +536,7 @@ maintenance = [
 
 ## Maintenance tools
 cleanprompt = [
+  "lxml",
   "flask",
   "cryptography",
   ## Pre-install the NLTK data in CI.

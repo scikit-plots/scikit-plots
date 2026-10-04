@@ -101,16 +101,15 @@ jobs:
           pip install -U setuptools
 
           pip install pytest pytest-cov
-          pip install gradio streamlit
-
-          pip install polars pyarrow
           pip install beautifulsoup4 markdownify
+          pip install lxml polars pyarrow
 
-          pip install nltk gensim langdetect faster-whisper openai-whisper \
-                      pytesseract youtube-transcript-api spacy lxml
-
-          pip install nltk spacy
+          pip install gradio streamlit flask
+          pip install nltk spacy gensim langdetect cryptography \
+                      faster-whisper openai-whisper \
+                      pytesseract youtube-transcript-api
           python -m spacy download en_core_web_sm
+
           # Pre-install the NLTK data in CI.
           # python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
           # python -m nltk.downloader stopwords
@@ -191,7 +190,7 @@ jobs:
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
-          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc,cpu] -v
+          pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc,cpu] -vvv
         env:
           SETUPTOOLS_USE_DISTUTILS: local
 
