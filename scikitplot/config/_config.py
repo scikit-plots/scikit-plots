@@ -14,6 +14,7 @@
 import os
 import threading
 from contextlib import contextmanager
+from typing import Generator
 
 __all__ = [
     "get_config",
@@ -246,7 +247,7 @@ def config_context(
     array_api_dispatch=None,
     transform_output=None,
     skip_parameter_validation=None,
-):
+) -> Generator[None, None, None]:  # Iterator[None]
     """
     Context manager for global scikit-plots configuration.
 

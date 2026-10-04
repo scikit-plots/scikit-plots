@@ -50,7 +50,13 @@ import zlib
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Callable, Iterator, Mapping
+from typing import (  # ruff: ignore[unused-import]
+    BinaryIO,
+    Callable,
+    Generator,
+    Iterator,
+    Mapping,
+)
 
 from typing_extensions import Self
 
@@ -203,7 +209,9 @@ class _ArchivePlan:
 
 
 @contextmanager
-def _source_handle(source: str | os.PathLike[str] | BinaryIO) -> Iterator[BinaryIO]:
+def _source_handle(
+    source: str | os.PathLike[str] | BinaryIO,
+) -> Generator[BinaryIO, None, None]:  # Iterator[BinaryIO]
     if isinstance(source, (str, os.PathLike)):
         with open(Path(source), "rb") as fh:
             yield fh
