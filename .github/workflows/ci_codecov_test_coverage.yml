@@ -109,11 +109,10 @@ jobs:
           pip install nltk gensim langdetect faster-whisper openai-whisper \
                       pytesseract youtube-transcript-api spacy lxml
 
-          python -m spacy download en_core_web_sm
-          python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('maxent_ne_chunker'); nltk.download('words')"  || true
-
           pip install nltk spacy
+          python -m spacy download en_core_web_sm
           # Pre-install the NLTK data in CI.
+          # python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
           # python -m nltk.downloader stopwords
           # python -m nltk.downloader punkt_tab
           # python -m nltk.downloader punkt_tab wordnet omw-1.4
@@ -133,32 +132,52 @@ jobs:
           # are the same archives the downloader would retrieve, from the same
           # repository, and no NLTK code path is involved.
           export NLTK_DATA="$HOME/nltk_data"
-          mkdir -p "$NLTK_DATA/tokenizers" "$NLTK_DATA/corpora"
+          mkdir -p "$NLTK_DATA/tokenizers" "$NLTK_DATA/taggers" "$NLTK_DATA/chunkers" "$NLTK_DATA/corpora"
 
           NLTK_PKGS="https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages"
-          curl -sSfL "$NLTK_PKGS/tokenizers/punkt_tab.zip" -o /tmp/punkt_tab.zip
-          curl -sSfL "$NLTK_PKGS/corpora/wordnet.zip"      -o /tmp/wordnet.zip
-          curl -sSfL "$NLTK_PKGS/corpora/omw-1.4.zip"      -o /tmp/omw-1.4.zip
 
-          unzip -q -o /tmp/punkt_tab.zip -d "$NLTK_DATA/tokenizers"
-          unzip -q -o /tmp/wordnet.zip   -d "$NLTK_DATA/corpora"
-          unzip -q -o /tmp/omw-1.4.zip   -d "$NLTK_DATA/corpora"
+          # Download your required packages
+          curl -sSfL "$NLTK_PKGS/tokenizers/punkt.zip"                      -o /tmp/punkt.zip
+          curl -sSfL "$NLTK_PKGS/tokenizers/punkt_tab.zip"                  -o /tmp/punkt_tab.zip
+          curl -sSfL "$NLTK_PKGS/corpora/omw-1.4.zip"                       -o /tmp/omw-1.4.zip
+          curl -sSfL "$NLTK_PKGS/corpora/wordnet.zip"                       -o /tmp/wordnet.zip
+          curl -sSfL "$NLTK_PKGS/corpora/words.zip"                         -o /tmp/words.zip
+          curl -sSfL "$NLTK_PKGS/chunkers/maxent_ne_chunker.zip"            -o /tmp/maxent_ne_chunker.zip
+          curl -sSfL "$NLTK_PKGS/taggers/averaged_perceptron_tagger.zip"    -o /tmp/averaged_perceptron_tagger.zip
+
+          # Unzip into appropriate directories
+          unzip -q -o /tmp/punkt.zip                      -d "$NLTK_DATA/tokenizers"
+          unzip -q -o /tmp/punkt_tab.zip                  -d "$NLTK_DATA/tokenizers"
+          unzip -q -o /tmp/omw-1.4.zip                    -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/wordnet.zip                    -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/words.zip                      -d "$NLTK_DATA/corpora"
+          unzip -q -o /tmp/maxent_ne_chunker.zip          -d "$NLTK_DATA/chunkers"
+          unzip -q -o /tmp/averaged_perceptron_tagger.zip -d "$NLTK_DATA/taggers"
 
           # Fail here, in 2 seconds, rather than in the gallery 50 minutes on.
+          # Verify installation
           python - << 'PY'
           import sys
           import nltk
           missing = []
-          for path in ("tokenizers/punkt_tab/english/", "corpora/wordnet", "corpora/omw-1.4"):
+          for path in (
+            "tokenizers/punkt",
+            "tokenizers/punkt_tab/english/",
+            "corpora/omw-1.4",
+            "corpora/wordnet",
+            "corpora/words",
+            "chunkers/maxent_ne_chunker",
+            "taggers/averaged_perceptron_tagger",
+          ):
               try:
                   nltk.data.find(path)
               except LookupError:
                   missing.append(path)
           if missing:
               sys.exit("NLTK data missing after install: " + ", ".join(missing))
+          print("NLTK data verified:", ", ".join(nltk.data.path[:2]))
           from nltk.tokenize import sent_tokenize
           assert sent_tokenize("A. B.") == ["A.", "B."]
-          print("NLTK data verified:", ", ".join(nltk.data.path[:2]))
           PY
         env:
           SETUPTOOLS_USE_DISTUTILS: local
