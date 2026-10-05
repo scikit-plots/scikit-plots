@@ -1,6 +1,6 @@
 # https://app.codecov.io/gh/scikit-plots/scikit-plots/new
 ---
-name: "CI ☂️ Codecov Test Coverage"
+name: "yyCI ☂️ Codecov Test Coverage (single job)"
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

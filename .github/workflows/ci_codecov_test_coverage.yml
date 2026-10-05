@@ -245,7 +245,12 @@ jobs:
           # or autouse fixture, which once made this job need six hours.
           # Measured today: 0.003. See scikitplot/conftest.py.
           SKPLT_TEST_FLOOR_BUDGET: "0.1"
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
+          # No repository secret is given to this step, on purpose. A pull
+          # request from a fork has none, so a secret here makes a push test
+          # something a pull request did not (HF_TOKEN once turned a passing
+          # test into a failing one on main), and it hands a live credential
+          # to every test and every installed package. A test that needs a
+          # token sets a made-up one itself.
         run: |
           set -Eeuo pipefail
           if ! [[ "$MAX_FAILURES" =~ ^[0-9]+$ ]]; then
