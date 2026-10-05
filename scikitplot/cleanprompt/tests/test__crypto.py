@@ -7,9 +7,10 @@ import pytest
 from .. import CapabilityError, CleanPromptError
 from .. import _capabilities as caps
 from .._crypto import decrypt_mapping, encrypt_mapping, new_key
+from ._tiers import available, skip_reason
 
-CRYPTO = caps.probe("crypto").available
-needs_crypto = pytest.mark.skipif(not CRYPTO, reason="the 'crypto' tier is unavailable")
+CRYPTO = available("crypto")
+needs_crypto = pytest.mark.skipif(not CRYPTO, reason=skip_reason("crypto"))
 
 
 class TestUnavailableTier:

@@ -1,18 +1,18 @@
 {
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-02",
+  "updated_at": "2026-10-05",
   "maintenance_status": "PASS",
   "runtime_status": "PASS",
   "integration_status": "UNAVAILABLE",
   "release_status": "UNVERIFIED",
   "test_evidence": {
-    "focused_runtime_tests_native": "2491 passed, 10 skipped",
+    "focused_runtime_tests_native": "2513 passed, 10 skipped",
     "invariant_scale_probe": "0 failures over 3000 randomized + 2000 junk documents",
     "import_isolation": "34 probes and 11 CLI entry points green under an __import__ blocker (typing_extensions and yaml included), including chunked encoding, folder surveys the shared log filter async clients the vault's file lock least-privilege tool arguments and tool results; a positive stdlib-only import test (CP-054)",
-    "negative_probes": "every CP finding green through CP-091, plus chunking, survey, async, vault-file, value-variant, restored-variant and tool probes",
+    "negative_probes": "every CP finding green through CP-092, plus chunking, survey, async, vault-file, value-variant, restored-variant and tool probes",
     "entity_engines_live": "spaCy 3.8.16 + en_core_web_sm and NLTK 3.10.3 + corpora; 1078 spans over 480 fuzzed documents, every one offset-aligned, every mode exact on round trip",
-    "repeatability": "5 consecutive runs agree (2491 passed); measured in round 21 and not re-run since: 2 shuffled module-order runs, and Cleaner output byte-identical across 3 hash seeds and unchanged since round 14 (0e336512bc211db9)",
+    "repeatability": "5 consecutive runs agree (2513 passed); measured in round 21 and not re-run since: 2 shuffled module-order runs, and Cleaner output byte-identical across 3 hash seeds and unchanged since round 14 (0e336512bc211db9)",
     "frontend_parity": "argparse and click agree on exit status and stdout across every declared command",
     "option_grammar": "'--', long/short spellings and stray-option refusal, identical across both frontends",
     "vault_persistence": "default path outside any checkout, 0700/0600, append-mode label stability",
@@ -38,12 +38,12 @@
     "restored_variants": "surrogates the model re-cased or re-spaced restore and are reported (CP-072); streamed decoding 6.5x faster than v18",
     "tool_privilege": "tool arguments decoded per tool by allowed kinds; injected calls refused; chat() leaves tool calls encoded (CP-073); tags and Windows paths (CP-074, CP-075)",
     "tool_results": "tool results guarded as one JSON document: keys, numbers and prose in strings (CP-076 to CP-078)",
-    "secrets_at_rest": "no whole credential-shaped value in any committed cleanprompt file, by the secrets pack's own patterns; enforced at compile, at packs --check, in the suite and in the contract checker"
+    "secrets_at_rest": "no whole credential-shaped value in any committed cleanprompt file, by the secrets pack's own patterns; enforced at compile, at packs --check, in the suite and in the contract checker",
+    "crypto_range": "the crypto lane (157 tests) passes on cryptography 41.0.0 and 50.0.2 with warnings as errors; with the former <50 ceiling and 50.0.2 installed, 20 tests were skipped and TestInstalledTiers now fails (CP-092)"
   },
   "next_actions": [
     "Add Windows and macOS to the wide repository's CI and record the platform_matrix lane",
     "Wire the cleanprompt extras (ner, nltk, web, crypto, yaml) and the _config package data (packs, formats, agent) into the wide repository's packaging",
-    "Consider MCP resources/prompts (e.g. a prompt template that tells a model how to treat placeholders) once a client needs them",
-    "Decide whether to raise the crypto tier's upper bound: cryptography 50 is released and the declared range is >=41,<50, so a fresh install reports the tier INCOMPATIBLE until the Fernet lane is run against it"
+    "Consider MCP resources/prompts (e.g. a prompt template that tells a model how to treat placeholders) once a client needs them"
   ]
 }

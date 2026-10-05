@@ -675,22 +675,37 @@ which is exactly how `scikitplot.mcp` was directed to consume it. `BROKEN`
 
 ## 9. Dependency policy
 
-No `==` pins. Optional extras declare ranges with documented upper bounds:
+No `==` pins. Optional extras declare ranges; an upper bound is declared only
+where the distribution's major number marks breaking changes:
 
 ```text
 cleanprompt        (none — stdlib only)
 cleanprompt-ner    spacy>=3.4,<5
 cleanprompt-nltk   nltk>=3.6,<4
 cleanprompt-web    flask>=2.2,<4
-cleanprompt-crypto cryptography>=41,<50   (the Fernet cipher only, since CP-040)
+cleanprompt-crypto cryptography>=41       (the Fernet cipher only, since CP-040; no ceiling, CP-092)
 ```
 
 Upper bounds exist because each has a history of breaking changes at the major
 boundary (`spacy` 2→3 changed the model API, `flask` 1→2 changed the app
-factory and async surface, `cryptography` rotates its MSRV and backend, and
-`nltk` 3.8.2 split several of its data packages, so both the legacy and the
-`_tab` resource names are probed and either one satisfies the lookup).
-Compatibility is asserted across the declared floor and ceiling, not at one pin.
+factory and async surface, and `nltk` 3.8.2 split several of its data
+packages, so both the legacy and the `_tab` resource names are probed and
+either one satisfies the lookup). Compatibility is asserted across the declared
+floor and ceiling, not at one pin.
+
+`cryptography` has a floor and no ceiling (`CP-092`). Its API stability policy
+says the major number "is incremented on any feature release"; four majors
+appeared between April and July 2026. A ceiling at a major therefore carries no
+compatibility information and expires within weeks, and when it expires the
+tier reports `INCOMPATIBLE` for every fresh install although nothing changed.
+The same policy keeps code that runs without warnings working for two further
+majors and announces a removal with `CryptographyDeprecationWarning`, which the
+project's test configuration turns into a failure. The floor and the newest
+release are both run: 41.0.0 and 50.0.2 this round.
+
+A dependency that is installed and refused must not pass unnoticed:
+`test__capabilities.TestInstalledTiers` fails in that state, and every skip
+reason carries the probe's status and detail (`tests/_tiers.py`).
 
 ## 10. Verification ladder
 

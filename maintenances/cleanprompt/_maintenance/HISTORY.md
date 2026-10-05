@@ -1,5 +1,37 @@
 # History
 
+## 2026-10-05 — round twenty-four: a ceiling that expired
+
+The sharded CI run passed and reported
+`SKIPPED ... test__crypto.py: the 'crypto' tier is unavailable` twenty times,
+on a runner where `pip install cryptography` had succeeded.
+
+- `CP-092`: the tier declared `cryptography>=41,<50` and the runner had
+  50.0.2, so the probe answered `INCOMPATIBLE`. The open item in `STATE.json` that
+  asked for the Fernet lane to be run against 50 before raising the bound is
+  closed here: the lane (157 tests) passes on 41.0.0 and on 50.0.2 with warnings as
+  errors. Local verification had 49.0.0 installed, which is why the same
+  tests ran here and not in CI.
+- The ceiling is removed, not raised. cryptography increments its major
+  number on every feature release (47, 48, 49 and 50 between April and July
+  2026), so `<51` would refuse working versions again within weeks. The floor
+  stays. The reasoning, and what protects against a real removal, is in
+  `DESIGN.md` section 9 and beside the declaration.
+- This was not only a test matter. For any user with a current
+  `cryptography`, `--cipher fernet` was refused, `auto` chose the portable
+  cipher, and a Fernet vault would not open. The command line's message for
+  that last case told the user to install the package they already had; it
+  now quotes the probe.
+- Why it went unseen: one skip reason served both "not installed" and
+  "installed and refused". `tests/_tiers.py` now builds the reason from the
+  probe (`the 'crypto' tier is INCOMPATIBLE: installed 50.0.2 is outside
+  ...`), and `TestInstalledTiers` fails when a distribution is present and
+  its tier is not usable. With the old range and 50.0.2 that test fails; it
+  was run that way once to confirm.
+- 2513 tests pass, 10 skipped, in the every-tier installation; also green
+  with cryptography 41.0.0, with NLTK only, with spaCy only, and with the CI
+  plugin set, under both parent packages and the project's pytest options.
+
 ## 2026-10-02 — round twenty-three: the isolation tests measured the parent
 
 CI, on the real package, failed

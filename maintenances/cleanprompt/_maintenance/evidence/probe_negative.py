@@ -644,6 +644,22 @@ _cf24 = (_tests23 / "conftest.py").read_text(encoding="utf-8")
 check("CP-091", "pattern timing runs in a killable child, payloads are not test ids, and the suite runs at the default log level",
       "in_subprocess(" in _tp24 and "timeout=KILL_AFTER" in _tp24 and "sorted(ADVERSARIAL)" in _tp24
       and "compiled().findall(payload)" not in _tp24 and "_library_default_log_level" in _cf24)
+from scikitplot.cleanprompt import _capabilities as _caps25
+_real25 = _caps25._installed_version
+try:
+    _caps25._installed_version = lambda _n: "50.0.2"
+    _new25 = _caps25.probe("crypto")
+    _caps25._installed_version = lambda _n: "40.0.2"
+    _old25 = _caps25.probe("crypto")
+finally:
+    _caps25._installed_version = _real25
+_tiers25 = (_tests23 / "_tiers.py").read_text(encoding="utf-8")
+check("CP-092", "a current cryptography is accepted, one below the floor is refused, and a refused tier is not skipped in silence",
+      _caps25.TIERS["crypto"].below is None and _new25.available and _new25.supported == "cryptography>=41"
+      and _old25.status is _caps25.CapabilityStatus.INCOMPATIBLE
+      and "installed_but_refused" in _tiers25
+      and "tier is unavailable" not in (_tests23 / "test__crypto.py").read_text(encoding="utf-8"),
+      "%s / %s" % (_new25.detail, _old25.detail))
 
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])

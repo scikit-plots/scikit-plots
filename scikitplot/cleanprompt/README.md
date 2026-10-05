@@ -918,10 +918,12 @@ with an allowlist (`--allow`), or add a whole detector of your own through
 ```sh
 pip install "spacy>=3.4,<5" && python -m spacy download en_core_web_lg   # ner
 pip install "flask>=2.2,<4"                                             # web
-pip install "cryptography>=41,<50"                                      # crypto
+pip install "cryptography>=41"                                          # crypto
 ```
 
-Ranges, never pins. `capabilities()` reports each tier's status using a
+Ranges, never pins. `cryptography` has no upper bound: its major number
+rises with every feature release, so a bound there would refuse working
+versions within weeks. `capabilities()` reports each tier's status using a
 seven-state vocabulary that keeps `BROKEN` (installed and failing) distinct from
 `ABSENT` (not installed), and an unavailable tier raises with the exact install
 command rather than a bare `ModuleNotFoundError`.

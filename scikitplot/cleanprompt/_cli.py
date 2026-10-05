@@ -1886,10 +1886,13 @@ def _decrypt_entries(path: str, document: dict[str, Any], entries: Any) -> Any:
     if cipher == "fernet":
         from ._capabilities import probe  # ruff: ignore[import-outside-top-level]
 
-        if not probe("crypto").available:
+        report = probe("crypto")
+        if not report.available:
+            # The report says which of "not installed" and "installed but
+            # refused" this is; the two need different actions.
             raise CleanPromptError(
                 f"vault {_display_path(path)} was encrypted with Fernet, which needs the 'crypto' "
-                'tier: pip install "cryptography>=41,<50". A vault written '
+                f"tier ({report.detail}): {report.install_hint}. A vault written "
                 "with --cipher portable needs nothing installed and would open "
                 "here."
             )

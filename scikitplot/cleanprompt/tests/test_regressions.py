@@ -1322,9 +1322,10 @@ class TestCP041EntitySpanWithAnUnmatchedBracket:
     @pytest.fixture(autouse=True)
     def _needs_an_engine(self):
         from .. import _capabilities as caps
+        from ._tiers import skip_reason
 
         if not caps.probe("ner").available:
-            pytest.skip("the 'ner' tier is unavailable")
+            pytest.skip(skip_reason("ner"))
 
     def test_the_reported_span_is_trimmed(self):
         text = "Mustafa Kemal Atatürk[e] founded it"

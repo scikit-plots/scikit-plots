@@ -92,14 +92,16 @@ class TestTierTable:
     @pytest.mark.parametrize("tier", sorted(TIERS))
     def test_range_is_ordered(self, tier):
         spec = TIERS[tier]
-        assert spec.minimum < spec.below
+        assert spec.below is None or spec.minimum < spec.below
 
     @pytest.mark.parametrize("tier", sorted(TIERS))
     def test_no_exact_pin(self, tier):
         """Ranges, never ``==``: a library must span what consumers install."""
         report = probe(tier)
-        assert ">=" in report.supported and "<" in report.supported
+        assert ">=" in report.supported
         assert "==" not in report.supported
+        # A ceiling appears exactly when one is declared.
+        assert ("<" in report.supported) is (TIERS[tier].below is not None)
 
     @pytest.mark.parametrize("tier", sorted(TIERS))
     def test_purpose_is_stated(self, tier):
@@ -137,6 +139,87 @@ class TestProbe:
     def test_unknown_tier_raises_key_error(self):
         with pytest.raises(KeyError):
             probe("nope")
+
+
+class TestCryptoRange:
+    """``cryptography`` has a floor and, deliberately, no ceiling (CP-092)."""
+
+    def test_no_upper_bound_is_declared(self):
+        assert TIERS["crypto"].below is None
+        report = probe("crypto")
+        assert report.supported == "cryptography>=41"
+        assert report.install_hint == 'pip install "cryptography>=41"'
+
+    @pytest.mark.parametrize(
+        "version", ["41.0.0", "49.0.0", "50.0.0", "50.0.2", "51.0.0", "99.1.0", "50.0.0rc1"]
+    )
+    def test_every_release_from_the_floor_up_is_accepted(self, monkeypatch, version):
+        from .. import _capabilities
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: version)
+        report = _capabilities.probe("crypto")
+        assert report.status is CapabilityStatus.AVAILABLE, report.detail
+        assert "<" not in report.detail
+
+    @pytest.mark.parametrize("version", ["40.0.2", "3.4.8", "0.9"])
+    def test_a_release_below_the_floor_is_refused(self, monkeypatch, version):
+        from .. import _capabilities
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: version)
+        report = _capabilities.probe("crypto")
+        assert report.status is CapabilityStatus.INCOMPATIBLE
+        assert report.detail == f"installed {version} is outside cryptography>=41"
+
+    @pytest.mark.parametrize("tier", sorted(set(TIERS) - {"crypto"}))
+    def test_the_other_tiers_keep_their_ceiling(self, monkeypatch, tier):
+        from .. import _capabilities
+
+        spec = TIERS[tier]
+        assert spec.below is not None
+        ceiling = ".".join(str(part) for part in spec.below)
+        assert f",<{ceiling}" in probe(tier).supported
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: ceiling + ".0")
+        assert _capabilities.probe(tier).status is CapabilityStatus.INCOMPATIBLE
+
+
+class TestInstalledTiers:
+    """A dependency that is installed must not be refused in silence."""
+
+    @pytest.mark.parametrize("tier", sorted(TIERS))
+    def test_an_installed_tier_is_usable(self, tier):
+        from ._tiers import installed_but_refused
+
+        refused = installed_but_refused(tier)
+        assert refused is None, (
+            f"{refused.distribution} {refused.version} is installed, yet the {tier!r} tier "
+            f"is {refused.status.value}: {refused.detail}. Its tests are being skipped. "
+            f"Either install a supported version ({refused.install_hint}) or, if this "
+            "version works, widen the range in _capabilities.TIERS."
+        )
+
+    def test_the_guard_tells_absent_from_refused(self, monkeypatch):
+        from .. import _capabilities
+        from ._tiers import installed_but_refused, skip_reason
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: None)
+        assert installed_but_refused("ner") is None
+        assert skip_reason("ner") == "the 'ner' tier is ABSENT: spacy is not installed"
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: "9.0.0")
+        refused = installed_but_refused("ner")
+        assert refused is not None and refused.status is CapabilityStatus.INCOMPATIBLE
+        assert skip_reason("ner") == (
+            "the 'ner' tier is INCOMPATIBLE: installed 9.0.0 is outside spacy>=3.4,<5"
+        )
+
+        def explode(_name):
+            raise RuntimeError("corrupt metadata")
+
+        monkeypatch.setattr(_capabilities, "_installed_version", explode)
+        assert installed_but_refused("ner").status is CapabilityStatus.BROKEN
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: "3.8.0")
+        assert installed_but_refused("ner") is None
 
     def test_available_property_tracks_the_status(self):
         for report in capabilities().values():

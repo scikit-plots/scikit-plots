@@ -34,10 +34,10 @@
     "schedule": "all",
     "workflow_dispatch": "auto"
   },
-  "max_shards": 4,
+  "max_shards": 1,
   "shard_timeout_minutes": 350,
   "shard_target_minutes": 30,
   "default_unit_seconds": 60,
-  "per_test_seconds": 0.05,
+  "per_test_seconds": 0,
   "dependents": "none"
 }

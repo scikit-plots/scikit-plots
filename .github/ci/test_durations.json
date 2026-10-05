@@ -1,170 +1,199 @@
 {
   "schema": 1,
-  "source": "CI Test and Coverage run of 2026-10-04 (cancelled at the six-hour limit at 95%); work_seconds is the time each test took above the fixed per-test overhead of that run",
+  "source": "workflow run 37270145348 (all)",
+  "unassigned_tests": 2,
   "units": {
     "scikitplot/_api": {
       "tests": 303,
-      "work_seconds": 33.0
+      "work_seconds": 1.2
     },
     "scikitplot/_brand": {
-      "tests": 268,
-      "work_seconds": 38.6
+      "tests": 271,
+      "work_seconds": 34.4
     },
     "scikitplot/_build_utils": {
       "tests": 25,
-      "work_seconds": 0.1
+      "work_seconds": 0.6
     },
     "scikitplot/_cli": {
       "tests": 142,
-      "work_seconds": 3.4
+      "work_seconds": 5.8
     },
     "scikitplot/_compat": {
-      "tests": 129,
-      "work_seconds": 8.4
+      "tests": 137,
+      "work_seconds": 1.1
     },
     "scikitplot/_docstrings": {
-      "tests": 97,
-      "work_seconds": 2.9
+      "tests": 100,
+      "work_seconds": 0.4
+    },
+    "scikitplot/_externals/_sphinx_ext/_ansi_sanitizer": {
+      "tests": 40,
+      "work_seconds": 0.3
+    },
+    "scikitplot/_externals/_sphinx_ext/_pydata_component_list": {
+      "tests": 13,
+      "work_seconds": 0.3
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant": {
-      "tests": 2660,
-      "work_seconds": 567.4
+      "tests": 2800,
+      "work_seconds": 484.5
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_ai_learn": {
       "tests": 180,
-      "work_seconds": 12.4
+      "work_seconds": 12.9
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_collection": {
-      "tests": 26,
-      "work_seconds": 2.9
+      "tests": 746,
+      "work_seconds": 10.5
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_feedback": {
       "tests": 299,
-      "work_seconds": 4.3
+      "work_seconds": 3.9
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_gallery_grid": {
+      "tests": 308,
+      "work_seconds": 15.7
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_jinja_render": {
       "tests": 108,
-      "work_seconds": 0.9
+      "work_seconds": 1.6
     },
     "scikitplot/_externals/_sphinx_ext/_sphinx_llm": {
       "tests": 10,
-      "work_seconds": 0.1
+      "work_seconds": 0.2
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_core": {
+      "tests": 659,
+      "work_seconds": 3.0
+    },
+    "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_gallery": {
+      "tests": 1164,
+      "work_seconds": 16.1
     },
     "scikitplot/_externals/_sphinx_ext/_sphinxcontrib_youtube": {
       "tests": 8,
-      "work_seconds": 1.8
+      "work_seconds": 2.0
+    },
+    "scikitplot/_externals/_sphinx_ext/tests": {
+      "tests": 48,
+      "work_seconds": 0.7
     },
     "scikitplot/_factory_api": {
       "tests": 52,
-      "work_seconds": 20.9
+      "work_seconds": 20.2
     },
     "scikitplot/_lib": {
-      "tests": 104,
-      "work_seconds": 18.4
+      "tests": 106,
+      "work_seconds": 11.9
     },
     "scikitplot/_testing": {
       "tests": 131,
-      "work_seconds": 13.6
+      "work_seconds": 0.8
     },
     "scikitplot/_utils": {
-      "tests": 647,
-      "work_seconds": 15.9
+      "tests": 652,
+      "work_seconds": 12.5
     },
     "scikitplot/annoy": {
-      "tests": 624,
-      "work_seconds": 268.9
+      "tests": 646,
+      "work_seconds": 249.2
     },
     "scikitplot/api": {
-      "tests": 119,
-      "work_seconds": 43.7
+      "tests": 125,
+      "work_seconds": 39.0
     },
     "scikitplot/cexperimental": {
       "tests": 61,
-      "work_seconds": 1.2
+      "work_seconds": 0.5
     },
     "scikitplot/cexternals/_annoy": {
       "tests": 11,
-      "work_seconds": 0.5
+      "work_seconds": 1.1
     },
     "scikitplot/cexternals/_editdistance": {
       "tests": 4,
-      "work_seconds": 0.1
+      "work_seconds": 0.2
     },
     "scikitplot/cleanprompt": {
-      "tests": 2478,
-      "work_seconds": 172.1
+      "tests": 2501,
+      "work_seconds": 127.3
     },
     "scikitplot/config": {
       "tests": 102,
-      "work_seconds": 2.1
+      "work_seconds": 1.5
     },
     "scikitplot/corpus": {
-      "tests": 2864,
-      "work_seconds": 823.4
+      "tests": 3561,
+      "work_seconds": 63.6
     },
     "scikitplot/cython": {
       "tests": 1248,
-      "work_seconds": 47.1
+      "work_seconds": 34.2
     },
     "scikitplot/datasets": {
       "tests": 247,
-      "work_seconds": 5.1
+      "work_seconds": 2.6
     },
     "scikitplot/decile": {
       "tests": 336,
-      "work_seconds": 44.1
+      "work_seconds": 42.7
     },
     "scikitplot/impute": {
-      "tests": 165,
-      "work_seconds": 119.2
+      "tests": 255,
+      "work_seconds": 5.0
     },
     "scikitplot/logging": {
-      "tests": 170,
-      "work_seconds": 6.0
+      "tests": 171,
+      "work_seconds": 1.1
     },
     "scikitplot/mcp": {
-      "tests": 268,
-      "work_seconds": 32.9
+      "tests": 287,
+      "work_seconds": 12.9
     },
     "scikitplot/memmap": {
       "tests": 49,
-      "work_seconds": 0.9
+      "work_seconds": 0.7
     },
     "scikitplot/misc": {
-      "tests": 172,
-      "work_seconds": 42.3
+      "tests": 199,
+      "work_seconds": 4.7
     },
     "scikitplot/mlflow": {
-      "tests": 662,
-      "work_seconds": 47.6
+      "tests": 663,
+      "work_seconds": 50.1
     },
     "scikitplot/nc": {
       "tests": 155,
-      "work_seconds": 2.0
+      "work_seconds": 2.4
     },
     "scikitplot/preprocessing": {
       "tests": 180,
-      "work_seconds": 2.7
+      "work_seconds": 3.0
     },
     "scikitplot/random": {
       "tests": 123,
-      "work_seconds": 1.7
+      "work_seconds": 2.2
     },
     "scikitplot/rank_bm25": {
       "tests": 174,
-      "work_seconds": 6.3
+      "work_seconds": 11.7
     },
     "scikitplot/seaborn": {
       "tests": 150,
-      "work_seconds": 7.6
+      "work_seconds": 5.7
     },
     "scikitplot/tests": {
-      "tests": 537,
-      "work_seconds": 31.2
+      "tests": 565,
+      "work_seconds": 37.7
     },
     "scikitplot/utils": {
-      "tests": 1745,
-      "work_seconds": 203.6
+      "tests": 2573,
+      "work_seconds": 23.6
+    },
+    "scikitplot/visualkeras": {
+      "tests": 47,
+      "work_seconds": 4.0
     }
   }
 }

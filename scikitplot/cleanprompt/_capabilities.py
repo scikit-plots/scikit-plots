@@ -95,15 +95,16 @@ class _TierSpec(NamedTuple):
 
     distribution: str
     minimum: tuple[int, ...]
-    below: tuple[int, ...]
+    below: tuple[int, ...] | None
     extra: str
     purpose: str
 
 
-#: Static tier table. ``minimum`` is inclusive, ``below`` is exclusive.
+#: Static tier table. ``minimum`` is inclusive, ``below`` is exclusive, and
+#: ``below=None`` means there is no upper bound.
 #: Ranges rather than pins: a library must remain usable across the span its
-#: consumers legitimately install. Each upper bound is a major boundary at which
-#: the distribution has historically made breaking changes.
+#: consumers legitimately install. An upper bound is declared only where the
+#: distribution's major number marks breaking changes, and each one says so.
 TIERS: dict[str, _TierSpec] = {
     "ner": _TierSpec(
         distribution="spacy",
@@ -129,7 +130,17 @@ TIERS: dict[str, _TierSpec] = {
     "crypto": _TierSpec(
         distribution="cryptography",
         minimum=(41,),
-        below=(50,),
+        # No upper bound, on purpose. cryptography increments its major
+        # number "on any feature release" (its API stability policy), about
+        # once a month: 47 to 50 appeared between April and July 2026. A
+        # bound at a major therefore says nothing about compatibility and
+        # goes stale within weeks: with ``<50`` every fresh install reported
+        # this tier INCOMPATIBLE from the day 50.0.0 was published, although
+        # Fernet had not changed (CP-092). The same policy keeps code that
+        # runs without warnings working for two further majors, and a
+        # removal is announced by ``CryptographyDeprecationWarning`` first,
+        # which this project's test configuration turns into a failure.
+        below=None,
         extra="cleanprompt",
         # Not "vault encryption" any more: the base tier encrypts vaults with
         # the standard library alone. This tier adds the reviewed AES
@@ -281,11 +292,12 @@ def probe(tier: str) -> CapabilityReport:
     True
     """
     spec = TIERS[tier]
-    supported = "{}>={},<{}".format(
+    supported = "{}>={}".format(
         spec.distribution,
         ".".join(str(part) for part in spec.minimum),
-        ".".join(str(part) for part in spec.below),
     )
+    if spec.below is not None:
+        supported += ",<" + ".".join(str(part) for part in spec.below)
     hint = f'pip install "{supported}"'
 
     try:
@@ -326,7 +338,7 @@ def probe(tier: str) -> CapabilityReport:
             install_hint=hint,
         )
 
-    if release < spec.minimum or release >= spec.below:
+    if release < spec.minimum or (spec.below is not None and release >= spec.below):
         return CapabilityReport(
             tier=tier,
             status=CapabilityStatus.INCOMPATIBLE,

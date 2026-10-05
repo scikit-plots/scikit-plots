@@ -9,6 +9,7 @@ import pytest
 from .. import CleanPromptError
 from .. import _capabilities as caps
 from .._serve import LOOPBACK, container_files, resolve_bind
+from ._tiers import skip_reason
 
 WEB = caps.probe("web").available
 
@@ -126,7 +127,7 @@ class TestServe:
         base.update(overrides)
         return argparse.Namespace(**base)
 
-    @pytest.mark.skipif(not WEB, reason="the 'web' tier is unavailable")
+    @pytest.mark.skipif(not WEB, reason=skip_reason("web"))
     def test_docker_mode_requires_a_configured_secret_key(self, monkeypatch):
         import io
 
@@ -138,7 +139,7 @@ class TestServe:
         assert "CLEANPROMPT_SECRET_KEY" in str(caught.value)
         assert "replica" in str(caught.value)
 
-    @pytest.mark.skipif(not WEB, reason="the 'web' tier is unavailable")
+    @pytest.mark.skipif(not WEB, reason=skip_reason("web"))
     def test_remote_bind_is_refused_before_the_app_is_built(self, monkeypatch):
         import io
 

@@ -18,10 +18,11 @@ import pytest
 from .. import PolicyError, Vault
 from .. import _capabilities as caps
 from .._app import DEFAULT_MAX_SESSIONS, DEFAULT_TTL_SECONDS, SessionStore
+from ._tiers import skip_reason
 
 WEB_AVAILABLE = caps.probe("web").available
 pytestmark_web = pytest.mark.skipif(
-    not WEB_AVAILABLE, reason="the 'web' tier is unavailable"
+    not WEB_AVAILABLE, reason=skip_reason("web")
 )
 
 
@@ -225,7 +226,7 @@ class TestAppFactory:
 def client():
     """Return a test client for a freshly built app."""
     if not WEB_AVAILABLE:
-        pytest.skip("the 'web' tier is unavailable")
+        pytest.skip(skip_reason("web"))
     from .. import create_app
 
     app = create_app(secret_key="k" * 32, store=SessionStore())

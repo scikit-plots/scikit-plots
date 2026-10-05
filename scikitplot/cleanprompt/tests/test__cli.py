@@ -2048,3 +2048,36 @@ class TestVaultAcrossProcesses:
         assert status != 0 and vault.exists()
         assert _run(["forget", "--force", "--vault", str(vault)])[0] == 0
         assert not vault.exists()
+
+
+class TestFernetVaultWithoutTheTier:
+    """The refusal says which of "missing" and "refused" it is (CP-092)."""
+
+    @staticmethod
+    def _refusal(monkeypatch, version):
+        from .. import CleanPromptError, _capabilities
+        from .._cli import _decrypt_entries
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: version)
+        with pytest.raises(CleanPromptError) as caught:
+            _decrypt_entries("vault.json", {"cipher": "fernet"}, {})
+        return str(caught.value)
+
+    def test_not_installed(self, monkeypatch):
+        message = self._refusal(monkeypatch, None)
+        assert "cryptography is not installed" in message
+        assert 'pip install "cryptography>=41"' in message
+        assert "--cipher portable" in message
+
+    def test_installed_but_too_old(self, monkeypatch):
+        message = self._refusal(monkeypatch, "40.0.2")
+        assert "installed 40.0.2 is outside cryptography>=41" in message
+        assert 'pip install "cryptography>=41"' in message
+
+    def test_a_vault_without_the_field_is_fernet(self, monkeypatch):
+        from .. import CleanPromptError, _capabilities
+        from .._cli import _decrypt_entries
+
+        monkeypatch.setattr(_capabilities, "_installed_version", lambda _n: None)
+        with pytest.raises(CleanPromptError, match="encrypted with Fernet"):
+            _decrypt_entries("vault.json", {}, {})
