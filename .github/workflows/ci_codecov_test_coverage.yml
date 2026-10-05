@@ -240,6 +240,11 @@ jobs:
           # run should report every failure it has; the last --maxfail on
           # the command line is the one pytest uses.
           MAX_FAILURES: ${{ inputs.max_failures || '50' }}
+          # Fail the run if every test costs more than this many seconds
+          # before it does any work: the sign of an expensive per-test hook
+          # or autouse fixture, which once made this job need six hours.
+          # Measured today: 0.003. See scikitplot/conftest.py.
+          SKPLT_TEST_FLOOR_BUDGET: "0.1"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
         run: |
           set -Eeuo pipefail

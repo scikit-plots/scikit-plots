@@ -218,9 +218,9 @@ figures and reference cycles do not reach the next. `SKPLT_TEST_GC` (the
 
 | Value | After each test | After each test file | Cost |
 |---|---|---|---|
-| `young` (default) | young generations only | full collection | negligible |
-| `module` | nothing | full collection | negligible |
-| `test` | full collection, before and after | — | about 1 second per test |
+| `young` (default) | young generations only | full collection | about 0.4 s per test file: 4 of the suite's 23 minutes |
+| `module` | nothing | full collection | the same |
+| `test` | full collection, before and after | — | about 1 second per test: hours |
 | `off` | nothing | nothing | none |
 
 Use `test` only while chasing a memory leak, and only with `custom` mode on
@@ -229,6 +229,34 @@ six hours: a full collection walks every live object in the process, which
 takes 0.4–0.7 s with the scientific stack loaded, and it ran twice per test.
 The old job spent 5.9 hours on 17 838 tests and was cancelled at the limit;
 the whole suite of 23 049 tests now takes about 23 minutes of test time.
+
+### The check that keeps it from coming back
+
+A cost added to every test is invisible test by test: no test looks slow,
+and `--durations` does not list it. So `scikitplot/conftest.py` measures it
+and every run ends with:
+
+```text
+================================ cost per test =================================
+cost of every test: 0.003 s (5% quantile of 22737 tests)
+garbage collection (SKPLT_TEST_GC=young): <n> young in <s> s, <n> full in <s> s
+```
+
+- **First line:** what a test costs even when it does nothing, read from the
+  fastest tests of the run. It is 0.003 s today and was 0.73 s and more in
+  the six-hour run.
+- **Second line:** how many collections ran and how long they took. Expect
+  one full collection per test file, about 0.4 s each.
+- **The workflow sets `SKPLT_TEST_FLOOR_BUDGET=0.1`.** If every test costs
+  more than 0.1 s, the test job fails although all tests passed, and says
+  so. On your machine the variable is unset: you get a warning, never a
+  failure.
+- It needs 200 finished tests to judge, and it never fails a run made with
+  `SKPLT_TEST_GC=test`.
+
+The rules for anything that runs once per test are in the developer notes of
+`scikitplot/conftest.py`. A test also fails if any `conftest.py` of the
+package calls `gc.collect` by itself.
 
 ## 9. When a run fails
 
@@ -239,6 +267,7 @@ the whole suite of 23 049 tests now takes about 23 minutes of test time.
 | A test fails on a warning raised inside `site-packages` during an `import` | a third-party package warned, and `filterwarnings = error` made it a failure | see below |
 | `SKIPPED ... the '<tier>' tier is INCOMPATIBLE: ...` | a dependency is installed at a version the library refuses | the message names the version and the range |
 | `no tests were collected for: ...` (a notice) | the selected submodules have no tests | nothing; the run succeeds |
+| `ERROR: every test costs at least ... s before it does any work`, all tests passed | something that runs once per test became expensive: a hook or an `autouse` fixture | see *The check that keeps it from coming back*; find it with `pytest --durations=0 -vv` on a few skipped tests. If the selection really has slow tests only, raise `SKPLT_TEST_FLOOR_BUDGET` in the workflow for that case |
 | The report job fails with *at least one test job did not succeed* | a test job failed or was cancelled | open that test job |
 
 ### Warnings from third-party packages
@@ -267,7 +296,8 @@ case it is:
 | `.github/scripts/tests/` | tests of both scripts; the plan job runs them first |
 | `docker/scripts/install_nltk.sh`, `install_spacy.sh` | install NLTK data and spaCy models; shared with Docker and the documentation build |
 | `pytest.ini` | pytest options, `norecursedirs`, `filterwarnings` |
-| `scikitplot/conftest.py` | the garbage-collection policy |
+| `scikitplot/conftest.py` | the garbage-collection policy and the cost-per-test check |
+| `scikitplot/tests/test_conftest_gc_policy.py` | tests of both |
 
 The planner's tests run with the standard library alone:
 
