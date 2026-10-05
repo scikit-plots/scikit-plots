@@ -1,157 +1,129 @@
-# Compiler	Use flags style
-# cl	      MSVC style /O2 /fp:precise
-# clang-cl	MSVC style only
-# clang	    GCC style
-# gcc	      GCC style
-name: Build Dependencies(Win-ARM64)
-description: "Common setup steps for Win-ARM64 CI"
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Windows ARM64 build dependencies: LLVM (clang-cl, flang), the Visual Studio
+# C++ tools, and pkg-config.
+#
+# USER NOTES
+#   Use it as one step of a job that runs on `windows-11-arm`:
+#
+#       - uses: $/.github/windows_arm64_steps
+#
+#   Afterwards CC, CXX, FC and PKG_CONFIG are set for the rest of the job and
+#   the LLVM and pkgconf directories are on PATH. Inputs, outputs and what to
+#   do when a step fails are described in README.md, next to this file.
+#
+# DEVELOPER NOTES
+#   * The logic is in windows_arm64.ps1 and is tested by
+#     tests/test_windows_arm64.ps1, which runs on any system with PowerShell 7.
+#     This file only passes inputs and calls one function per step.
+#   * No Visual Studio path is written anywhere. In September 2026 the
+#     `windows-11-arm` label moved from Visual Studio 2022 to Visual Studio
+#     2026, the directory "2022\Enterprise" became "18\Enterprise", and the
+#     hard-coded path that used to be here stopped every ARM64 wheel build.
+#     Visual Studio is now located with vswhere.
+#   * Inputs reach the scripts through `env`, never through `${{ }}` inside
+#     `run`, so that a value cannot become part of the script text.
+#
+# Which flag style a compiler takes (kept from the previous version):
+#   cl        MSVC style: /O2 /fp:precise
+#   clang-cl  MSVC style only
+#   clang     GCC style
+#   gcc       GCC style
+#
+# Sources:
+#   https://github.com/actions/runner-images/issues/14602        (the label change)
+#   https://github.com/actions/runner-images/blob/main/images/windows/Windows11-VS2026-Arm64-Readme.md
+#   https://github.com/microsoft/vswhere/wiki/Find-VC
+#   https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line
+#   https://docs.github.com/en/actions/tutorials/create-actions/create-a-composite-action
+name: Build Dependencies (Win-ARM64)
+description: "LLVM (clang-cl, flang), Visual Studio C++ tools and pkg-config for Windows ARM64 builds"
+
+inputs:
+  llvm-version:
+    description: "LLVM release to install, for example 20.1.8"
+    required: false
+    default: "20.1.8"
+  llvm-sha256:
+    description: "SHA-256 of LLVM-<llvm-version>-woa64.exe; change it together with llvm-version"
+    required: false
+    default: "7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
+  msvc-environment:
+    description: >-
+      detect: locate Visual Studio and check it, leave the environment as it is (default).
+      import: also run vcvarsall.bat and pass its environment (INCLUDE, LIB, PATH, ...) to later steps.
+    required: false
+    default: "detect"
+  self-test:
+    description: "true: run the tests of the setup script on this runner before using it"
+    required: false
+    default: "false"
+
+outputs:
+  llvm-bin:
+    description: "Directory of clang-cl and flang"
+    value: ${{ steps.llvm.outputs.llvm-bin }}
+  fortran-compiler:
+    description: "Name of the Fortran compiler selected: flang-new or flang"
+    value: ${{ steps.llvm.outputs.fortran-compiler }}
+  vs-installation-path:
+    description: "Root of the Visual Studio installation that was found"
+    value: ${{ steps.msvc.outputs.vs-installation-path }}
+  vs-version:
+    description: "Version of that Visual Studio, for example 18.8.12023.21"
+    value: ${{ steps.msvc.outputs.vs-version }}
+  msvc-tools-version:
+    description: "Default MSVC toolset version of that installation; empty if it states none"
+    value: ${{ steps.msvc.outputs.msvc-tools-version }}
+  vcvarsall:
+    description: "Full path of vcvarsall.bat"
+    value: ${{ steps.msvc.outputs.vcvarsall }}
+  pkg-config:
+    description: "Full path of the pkg-config.exe that was installed"
+    value: ${{ steps.pkgconf.outputs.pkg-config }}
+
 runs:
   using: "composite"
   steps:
-    - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
+    - name: Check the runner
       shell: pwsh
-      # uses: ilammy/msvc-dev-cmd@v1
-      # with:  # Windows AMD64 Setup (MSVC Only) clang-cl emulates MSVC cl, not GCC.
-      #   arch: x64
-      run: | # zizmor: ignore[github-env]
-        Invoke-WebRequest https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe -UseBasicParsing -OutFile LLVM-woa64.exe
-        $expectedHash = "7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
-        $fileHash = (Get-FileHash -Path "LLVM-woa64.exe" -Algorithm SHA256).Hash
-        if ($fileHash -ne $expectedHash) {
-            Write-Error "Checksum verification failed. The downloaded file may be corrupted or tampered with."
-            exit 1
+      run: |
+        $ErrorActionPreference = 'Stop'
+        if ($env:RUNNER_OS -ne 'Windows' -or $env:RUNNER_ARCH -ne 'ARM64') {
+          throw "This action sets up Windows on ARM64; the runner is $env:RUNNER_OS $env:RUNNER_ARCH. Guard the step with: if: runner.os == 'Windows' && runner.arch == 'ARM64'"
         }
-        Start-Process -FilePath ".\LLVM-woa64.exe" -ArgumentList "/S" -Wait
-        echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Write-Host "Runner image: $env:ImageOS $env:ImageVersion"
 
-        # LLVM MSVC ABI
-        echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-        # echo "TARGET_ARCH=ARM64" >> $env:GITHUB_ENV
-        echo "TARGET_ARCH=ARM64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-        # Inside Meson
-        # echo "CL=/bigobj" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-        # Python itself is built with /MD, /MD = link against the shared runtime DLL
-        # echo "CFLAGS=/MD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        # echo "CXXFLAGS=/MD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-    - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
+    - name: Test the setup script
+      if: ${{ inputs.self-test == 'true' }}
       shell: pwsh
-      run: | # zizmor: ignore[github-env]
-        & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64
-        $env:VCPKG_ROOT = "C:\vcpkg"
-        Set-Location $env:VCPKG_ROOT
-        ./vcpkg install pkgconf:arm64-windows
-        $pkgconfPath = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf"
-        $pkgconf = "$env:VCPKG_ROOT\installed\arm64-windows\tools\pkgconf\pkg-config.exe"
-        Copy-Item "$pkgconfPath\pkgconf.exe" "$pkgconfPath\pkg-config.exe" -Force
-        echo "$pkgconfPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        # Meson: Fix current pkg-config executable is coming from Strawberry Perl, not from vcpkg or LLVM
-        echo "PKG_CONFIG=$pkgconf" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      run: |
+        & pwsh -NoLogo -NoProfile -File (Join-Path $env:GITHUB_ACTION_PATH 'tests' 'test_windows_arm64.ps1')
+        if ($LASTEXITCODE -ne 0) { throw "The tests of windows_arm64.ps1 failed on this runner; see above." }
 
-    # - name: "Set environment variables for ARM64 (CC/CXX/CFLAGS)"
-    #   shell: bash -el {0}
-    #   # shell: sh -l {0}
-    #   # shell: cmd /C CALL {0}
-    #   # shell: powershell
-    #   # shell: pwsh
-    #   run: | # zizmor: ignore[github-env] safe: adding
-    #     # echo "CC=clang-cl"  | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    #     # echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    #     # echo "CFLAGS=/MD /arch:arm64"   | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    #     # echo "CXXFLAGS=/MD /arch:arm64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    #     # echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    #     echo "CC=clang-cl" >> "$GITHUB_ENV"
-    #     echo "CXX=clang-cl" >> "$GITHUB_ENV"
-    #     echo "CFLAGS=/MD /arch:arm64" >> "$GITHUB_ENV"
-    #     echo "CXXFLAGS=/MD /arch:arm64" >> "$GITHUB_ENV"
-    #     echo "FC=flang-new" >> "$GITHUB_ENV"
+    - name: Install LLVM (clang-cl, flang)  # C, C++ and Fortran compilers with the MSVC ABI
+      id: llvm
+      shell: pwsh
+      env:
+        LLVM_VERSION: ${{ inputs.llvm-version }}
+        LLVM_SHA256: ${{ inputs.llvm-sha256 }}
+      run: |
+        . (Join-Path $env:GITHUB_ACTION_PATH 'windows_arm64.ps1')
+        Install-Llvm -Version $env:LLVM_VERSION -Sha256 $env:LLVM_SHA256
 
-    # - name: Install LLVM (ARM64)  # LLVM (clang-cl, flang-new) -> Cross-toolchain & Fortran
-    #   shell: bash -el {0}
-    #   run: | # zizmor: ignore[github-env] safe: adding
-    #     # Download LLVM installer
-    #     curl -L -o LLVM-woa64.exe https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.8/LLVM-20.1.8-woa64.exe
-    #     # Check SHA256 checksum
-    #     expected_hash="7c4ac97eb2ae6b960ca5f9caf3ff6124c8d2a18cc07a7840a4d2ea15537bad8e"
-    #     file_hash=$(sha256sum LLVM-woa64.exe | awk '{ print $1 }')
-    #     if [ "$file_hash" != "$expected_hash" ]; then
-    #       echo "Checksum verification failed. The downloaded file may be corrupted or tampered with."
-    #       exit 1
-    #     fi
-    #     # Run the installer silently
-    #     cmd.exe /C "LLVM-woa64.exe /S"
-    #     # Add LLVM\bin to PATH for the workflow
-    #     # echo "PATH=C:/Program Files/LLVM/bin:$PATH" >> "$GITHUB_ENV"
-    #     echo "C:/Program Files/LLVM/bin" >> "$GITHUB_PATH"
+    - name: Locate the Visual Studio C++ tools (vswhere, vcvarsall)  # headers and libraries clang-cl compiles against
+      id: msvc
+      shell: pwsh
+      env:
+        MSVC_ENVIRONMENT: ${{ inputs.msvc-environment }}
+      run: |
+        . (Join-Path $env:GITHUB_ACTION_PATH 'windows_arm64.ps1')
+        Initialize-Msvc -Mode $env:MSVC_ENVIRONMENT
 
-    # - name: Activate MSVC ARM64 Toolchain (vcvarsall)  # vcpkg + pkgconf -> Provides pkg-config tool for ARM64
-    #   shell: bash -el {0}
-    #   run: | # zizmor: ignore[github-env] safe: adding
-    #     # Run vcvarsall.bat for ARM64 and capture environment variables
-    #     # Use cmd.exe /C to run the batch file
-    #     cmd.exe /C '"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" arm64 && set' > vcvars_env.txt
-    #     # Convert Windows CRLF to LF
-    #     sed -i 's/\r$//' vcvars_env.txt
-    #     # Export environment variables for GitHub Actions
-    #     while IFS='=' read -r key value; do
-    #       # Skip empty lines
-    #       [[ -z "$key" ]] && continue
-    #       # Skip lines that are not valid environment variable assignments
-    #       if [[ -z "$key" || "$key" =~ ^[^A-Za-z_] ]]; then
-    #         continue
-    #       fi
-    #       # Only allow valid env var names
-    #       if [[ -n "$key" && "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-    #           echo "$key=$value" >> "$GITHUB_ENV"
-    #       fi
-    #       if [ "$key" = "PATH" ]; then
-    #         # Also append to PATH properly
-    #         echo "$value" >> "$GITHUB_PATH"
-    #       fi
-    #     done < vcvars_env.txt
-    #     echo "✅ MSVC ARM64 environment exported to GITHUB_ENV and PATH."
-
-    # Meson: Fix current pkg-config executable is coming from Strawberry Perl, not from vcpkg or LLVM
-    # - name: Install pkgconf (ARM64) via vcpkg
-    #   shell: bash -el {0}
-    #   run: | # zizmor: ignore[github-env] safe: adding
-    #     set -e
-
-    #     # Install pkgconf for ARM64
-    #     export VCPKG_ROOT="C:/vcpkg"  # "/c/vcpkg".Replace("\","/")
-    #     # cd "$VCPKG_ROOT"
-    #     # ./vcpkg install pkgconf:arm64-windows
-    #     # Set the path to pkgconf
-    #     PKGCONF_PATH="$VCPKG_ROOT/installed/arm64-windows/tools/pkgconf"
-    #     PKG_CONFIG="$PKGCONF_PATH/pkg-config.exe"
-
-    #     # Copying pkgconf.exe to pkg-config.exe for compatibility, Ensure pkg-config exists
-    #     # cp "$PKGCONF_PATH/pkgconf.exe" "$PKG_CONFIG"
-    #     # Use absolute path to pkg-config
-    #     if [ -x "$PKG_CONFIG" ]; then
-    #       echo "Found pkg-config at $PKG_CONFIG"
-    #     else
-    #       echo "ERROR: pkg-config not found at $PKG_CONFIG"
-    #       exit 1
-    #     fi
-    #     echo "Verifying which pkg-config is executable and correct one..."
-    #     command -v "$PKG_CONFIG" || echo "pkg-config not found"
-    #     "$PKG_CONFIG" --version || echo "pkg-config failed to execute"
-    #     # Create a wrapper batch file so Meson/cibuildwheel can call pkg-config from PATH
-    #     # Ensure Meson / cibuildwheel uses the vcpkg ARM64 pkgconf executable instead of the default Strawberry Perl
-    #     WRAPPER_DIR="$HOME/bin"
-    #     mkdir -p "$WRAPPER_DIR"
-    #     echo "@echo off
-    #     \"$PKG_CONFIG\" %*" > "$WRAPPER_DIR/pkg-config.bat"
-    #     # Prepend wrapper dir and pkgconf path to GitHub Actions PATH
-    #     echo "$WRAPPER_DIR" >> "$GITHUB_PATH"
-    #     echo "$PKGCONF_PATH" >> "$GITHUB_PATH"
-    #     # Exports PKG_CONFIG for downstream steps:
-    #     # https://github.com/mesonbuild/meson/issues/3500
-    #     # https://github.com/Neumann-A/meson-vcpkg
-    #     echo "PKG_CONFIG=$PKG_CONFIG" >> "$GITHUB_ENV"
+    - name: Install pkg-config (pkgconf from vcpkg)  # the one on PATH is Strawberry Perl's and is x64
+      id: pkgconf
+      shell: pwsh
+      run: |
+        . (Join-Path $env:GITHUB_ACTION_PATH 'windows_arm64.ps1')
+        Install-PkgConf

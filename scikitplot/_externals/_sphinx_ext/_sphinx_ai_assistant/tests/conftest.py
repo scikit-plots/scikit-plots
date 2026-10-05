@@ -24,7 +24,9 @@ sphinx_app
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
+import os
 import sys
 import types
 from pathlib import Path
@@ -32,6 +34,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+
+from ._paths import RUNTIME_ROOT
 
 # Recorded before anything below imports a service module; see
 # pytest_collection_finish at the end of this file.
@@ -42,6 +46,175 @@ _ROOT_LOGGING_AT_IMPORT: dict = {
     "level": _logging.getLogger().level,
 }
 _SERVICE_LOGGING: dict = {"handlers": [], "level": None}
+
+# ---------------------------------------------------------------------------
+# Deployment environment: the services under test never see the ambient one
+# ---------------------------------------------------------------------------
+#
+# DEVELOPER NOTES
+# The proxy and model applications are configured by environment variables,
+# and they read most of them once, when the module is imported. Test modules
+# import them while pytest collects. So whatever the shell or the CI job had
+# exported at that moment became the configuration of the service for every
+# test of the session.
+#
+# With nothing exported the tests pass: that is a pull request from a fork,
+# where GitHub provides no secrets. A push to ``main`` exported the
+# repository's real ``HF_TOKEN``; the Hugging Face executor then reported
+# itself ``enabled`` and ``test_model_capability_endpoint_is_on_demand_...``
+# failed. More important than the failure: 2 800 tests ran against a service
+# that held a live credential. A developer with ``HF_TOKEN`` in the shell is
+# in the same position.
+#
+# So before any service module can be imported, every variable those
+# services read by name is taken out of the process, and put back when the
+# session ends. A test that needs a value sets it, with ``monkeypatch`` or
+# in the environment it gives a child process; nothing is inherited.
+#
+# The names are read from the service sources, so a variable added to a
+# service is covered without anybody remembering to list it here.
+
+#: Directories, next to ``tests``, whose modules are deployed as services.
+_SERVICE_PACKAGES: tuple[str, ...] = ("_hf_spaces_proxy", "_hf_spaces_model")
+
+
+def _is_os_environ(node: ast.AST) -> bool:
+    """Return True for the expression ``os.environ``."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == "environ"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "os"
+    )
+
+
+def _literal(node: ast.AST) -> str:
+    """Return the string a node spells out, or an empty string."""
+    if isinstance(node, ast.Index):  # Python 3.8 wraps a subscript
+        node = node.value  # type: ignore[attr-defined]
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return ""
+
+
+def _environment_names_read_by(source: str) -> set[str]:
+    """
+    Return the variable names a module reads from ``os.environ`` by literal.
+
+    Parameters
+    ----------
+    source : str
+        Python source text.
+
+    Returns
+    -------
+    set of str
+        Names in ``os.environ.get("X")``, ``os.environ["X"]``,
+        ``os.getenv("X")`` and the ``pop`` and ``setdefault`` forms. A name
+        computed at run time is not a literal and is not returned.
+    """
+    names: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        name = ""
+        if isinstance(node, ast.Call) and node.args and isinstance(node.func, ast.Attribute):
+            owner, method = node.func.value, node.func.attr
+            if (_is_os_environ(owner) and method in {"get", "pop", "setdefault"}) or (
+                isinstance(owner, ast.Name) and owner.id == "os" and method == "getenv"
+            ):
+                name = _literal(node.args[0])
+        elif isinstance(node, ast.Subscript) and _is_os_environ(node.value):
+            name = _literal(node.slice)
+        if name:
+            names.add(name)
+    return names
+
+
+def _service_environment_names(root: Path) -> frozenset[str]:
+    """
+    Return every variable name the service packages under ``root`` read.
+
+    Raises
+    ------
+    RuntimeError
+        If no name is found although service packages exist: the scan no
+        longer matches how the services read their configuration, and
+        running on would mean running unprotected.
+    """
+    names: set[str] = set()
+    scanned = 0
+    for package in _SERVICE_PACKAGES:
+        for path in sorted((root / package).rglob("*.py")):
+            scanned += 1
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if "environ" not in text and "getenv" not in text:
+                continue
+            try:
+                names |= _environment_names_read_by(text)
+            except (SyntaxError, ValueError):
+                # A file Python cannot parse cannot be imported either.
+                continue
+    if scanned and not names:
+        raise RuntimeError(
+            "no environment variable was found in the service sources under "
+            f"{root}; tests/conftest.py can no longer isolate them"
+        )
+    return frozenset(names)
+
+
+def _withhold_ambient_service_environment(names: frozenset[str]) -> dict[str, str]:
+    """
+    Remove ``names`` from the process environment and return what was there.
+
+    Raises
+    ------
+    RuntimeError
+        If a value was present and a service module is already imported: it
+        has read that value, and removing it now would hide the fact.
+    """
+    held = {name: os.environ[name] for name in sorted(names) if name in os.environ}
+    if held:
+        prefix = __name__.rsplit(".", 2)[0] + "."
+        loaded = sorted(
+            module
+            for module in sys.modules
+            if module.startswith(tuple(prefix + package for package in _SERVICE_PACKAGES))
+        )
+        if loaded:
+            raise RuntimeError(
+                f"{loaded[0]} was imported before the test environment was isolated, "
+                f"with {', '.join(held)} set; unset the variable(s) or run these "
+                "tests so that this conftest is loaded first"
+            )
+    for name in held:
+        del os.environ[name]
+    return held
+
+
+#: Every variable the services read by name.
+SERVICE_ENVIRONMENT: frozenset[str] = _service_environment_names(RUNTIME_ROOT)
+
+#: What the process held for those names when this file was imported. Names
+#: only are ever shown; the values are kept to be put back.
+_AMBIENT_SERVICE_ENVIRONMENT: dict[str, str] = _withhold_ambient_service_environment(
+    SERVICE_ENVIRONMENT
+)
+
+
+def pytest_report_header(config: Any) -> "str | None":
+    """Say which ambient variables the service tests do not see."""
+    if not _AMBIENT_SERVICE_ENVIRONMENT:
+        return None
+    return (
+        "sphinx-ai-assistant tests: withheld from the services under test: "
+        + ", ".join(_AMBIENT_SERVICE_ENVIRONMENT)
+    )
+
+
+def pytest_unconfigure(config: Any) -> None:
+    """Give the process back what was withheld, unless a test replaced it."""
+    while _AMBIENT_SERVICE_ENVIRONMENT:
+        name, value = _AMBIENT_SERVICE_ENVIRONMENT.popitem()
+        os.environ.setdefault(name, value)
 
 # ---------------------------------------------------------------------------
 # Bootstrap: make the submodule importable under its canonical dotted name

@@ -203,9 +203,10 @@ def _test_gc_policy():
     the test that left it, at a cost that depends on what the test created
     and not on the size of the process. A full collection at each module
     boundary bounds what a long session accumulates. That one is not free:
-    about 0.4 s for each of 533 test files, 4 of the suite's 23 minutes in
-    the run of 5 October 2026. ``module`` costs the same and ``off`` removes
-    it; the monitor below prints the total after every run.
+    measured in the single-job run of 5 October 2026, 531 full collections
+    took 403 s, about 0.76 s each, of the 1482 s the tests ran (and the
+    22 792 young collections took 1.9 s). ``module`` costs the same and
+    ``off`` removes it; the monitor below prints the total after every run.
     """
     value = _os.environ.get(SKPLT_TEST_GC_ENV, "").strip().lower() or "young"
     if value not in SKPLT_TEST_GC_POLICIES:

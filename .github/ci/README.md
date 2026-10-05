@@ -218,7 +218,7 @@ figures and reference cycles do not reach the next. `SKPLT_TEST_GC` (the
 
 | Value | After each test | After each test file | Cost |
 |---|---|---|---|
-| `young` (default) | young generations only | full collection | about 0.4 s per test file: 4 of the suite's 23 minutes |
+| `young` (default) | young generations only | full collection | about 0.76 s per test file: 403 s of the suite's 1482 s (measured) |
 | `module` | nothing | full collection | the same |
 | `test` | full collection, before and after | — | about 1 second per test: hours |
 | `off` | nothing | nothing | none |
@@ -238,15 +238,18 @@ and every run ends with:
 
 ```text
 ================================ cost per test =================================
-cost of every test: 0.003 s (5% quantile of 22737 tests)
-garbage collection (SKPLT_TEST_GC=young): <n> young in <s> s, <n> full in <s> s
+cost of every test: 0.003 s (5% quantile of 22792 tests)
+garbage collection (SKPLT_TEST_GC=young): 22792 young in 1.9 s, 531 full in 403.1 s
 ```
+
+(The single-job run on `main`, 5 October 2026.)
 
 - **First line:** what a test costs even when it does nothing, read from the
   fastest tests of the run. It is 0.003 s today and was 0.73 s and more in
   the six-hour run.
 - **Second line:** how many collections ran and how long they took. Expect
-  one full collection per test file, about 0.4 s each.
+  one full collection per test file. They are the larger part of what the
+  policy costs: about a quarter of the test time in that run.
 - **The workflow sets `SKPLT_TEST_FLOOR_BUDGET=0.1`.** If every test costs
   more than 0.1 s, the test job fails although all tests passed, and says
   so. On your machine the variable is unset: you get a warning, never a
@@ -258,7 +261,27 @@ The rules for anything that runs once per test are in the developer notes of
 `scikitplot/conftest.py`. A test also fails if any `conftest.py` of the
 package calls `gc.collect` by itself.
 
-## 9. When a run fails
+## 9. Secrets and the test job
+
+The test job is given **no repository secret**. Two reasons:
+
+- A pull request from a fork has no secrets, so a secret in the test job
+  makes a push to `main` test something the pull request did not. That is
+  how a suite that was green on the pull request failed on `main`: the
+  repository's `HF_TOKEN` was exported, the documentation assistant's proxy
+  read it when it was imported, and reported a provider as enabled.
+- Every test, and every package installed for the tests, could read it.
+
+Tests do not rely on that alone. The assistant's tests remove every
+variable its services read from the process before a service is imported,
+and put them back when the session ends
+(`_sphinx_ai_assistant/tests/conftest.py`), so an `HF_TOKEN` in your own
+shell does not reach them either. A test that needs a token sets a made-up
+one itself.
+
+Only the report job uses a secret: `CODECOV_TOKEN`, for the upload.
+
+## 10. When a run fails
 
 | What you see | What it means | What to do |
 |---|---|---|
@@ -268,6 +291,7 @@ package calls `gc.collect` by itself.
 | `SKIPPED ... the '<tier>' tier is INCOMPATIBLE: ...` | a dependency is installed at a version the library refuses | the message names the version and the range |
 | `no tests were collected for: ...` (a notice) | the selected submodules have no tests | nothing; the run succeeds |
 | `ERROR: every test costs at least ... s before it does any work`, all tests passed | something that runs once per test became expensive: a hook or an `autouse` fixture | see *The check that keeps it from coming back*; find it with `pytest --durations=0 -vv` on a few skipped tests. If the selection really has slow tests only, raise `SKPLT_TEST_FLOOR_BUDGET` in the workflow for that case |
+| A test passes on the pull request and fails after the merge, on `main` | the two runs did not have the same environment | see section 9; compare the `env:` block at the top of the two *Run tests* steps |
 | The report job fails with *at least one test job did not succeed* | a test job failed or was cancelled | open that test job |
 
 ### Warnings from third-party packages
@@ -284,7 +308,7 @@ case it is:
   `platformdirs` importing `pip` was found this way; see
   `scikitplot/tests/test_vendored_self_contained.py`.
 
-## 10. Files
+## 11. Files
 
 | File | Role |
 |---|---|
