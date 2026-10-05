@@ -1,0 +1,94 @@
+<section class="learn-generation-shell learn-generation-shell--audio learn-audio-generation" data-generation-kind="audio" data-audio-generation>
+  <script type="application/json" data-audio-generation-payload>{{ payload|safe }}</script>
+
+  {% set generation_kind = 'audio' %}
+  {% set studio_title = 'Create an Audio Explanation' %}
+  {% set studio_description = 'Turn a Learn Topic, canonical Source, public reference URL, or your own prompt into a private narrated explanation. Review the generated artifact before any separate publishing workflow.' %}
+  {% set studio_runtime = true %}
+  {% set studio_runtime_status = 'Checking the configured Audio runtime…' %}
+  {% set studio_readiness_label = 'Audio generation readiness' %}
+  {% include "learn/generation-studio-header.html" %}
+
+  <form class="learn-generation-form learn-audio-generation-form" data-audio-form novalidate>
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">1</span><span>Choose context<small>Choose one grounding mode for this Audio request.</small></span></legend>
+      {% set context_scope = 'audio' %}
+      {% set context_policy = 'exclusive' %}
+      {% set context_topics = topics %}
+      {% set context_sources = sources %}
+      {% set context_topic_help = 'Related Learn context is added to the narration request.' %}
+      {% set context_source_help = 'Use a canonical Source when the narration should stay tightly grounded.' %}
+      {% set context_url_help = 'The URL is passed as untrusted reference text. This page does not fetch it; retrieval remains runtime-dependent.' %}
+      {% set context_prompt_placeholder = 'Describe the audio explanation you want to create.' %}
+      {% set context_prompt_help = 'Use Prompt when no Topic, Source, or URL context should be attached.' %}
+      {% include "learn/generation-context.html" %}
+    </fieldset>
+
+    {% set generation_kind = 'audio' %}
+    {% include "learn/generation-shaping.html" %}
+
+    {% include "learn/generation-lenses.html" %}
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">4</span><span>Output settings<small>Use runtime-safe defaults now; richer voices can appear through capability discovery later.</small></span></legend>
+      <div class="learn-generation-options">
+        <label class="learn-generation-field">Language
+          <select data-audio-language><option value="auto" selected>Automatic</option></select>
+        </label>
+        <label class="learn-generation-field">Voice
+          <select data-audio-voice><option value="auto" selected>Runtime default</option></select>
+        </label>
+      </div>
+    </fieldset>
+
+    {% set generation_kind = 'audio' %}
+    {% include "learn/generation-advanced.html" %}
+
+    {% set generation_kind = 'audio' %}
+    {% set authority_title = 'Generation authority' %}
+    {% set authority_help = 'The Assistant selection is request provenance; the server-owned Audio registry selects the speech renderer.' %}
+    {% set authority_kind = 'assistant' %}
+    {% set authority_managed = 'shared' %}
+    {% set authority_initial_label = 'Discovering…' %}
+    {% set authority_initial_badge = 'Default' %}
+    {% set authority_open_label = 'Model Configuration' %}
+    {% set authority_open_title = 'Open AI Assistant model configuration' %}
+    {% set authority_more_label = 'Try a different model' %}
+    {% set authority_more_title = 'More model options' %}
+    {% set authority_runtime_label = 'Speech renderer' %}
+    {% set authority_runtime_initial = 'Discovering…' %}
+    {% set authority_status = 'Checking Assistant provenance and server-owned speech rendering authority…' %}
+    {% include "learn/generation-authority.html" %}
+
+    {% set publication_credit_help = 'Optional public credit reserved for a later reviewed publication handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. It is stored only with this browser studio state and is never sent to the Audio generation runtime.' %}
+    {% include "learn/publication-credit.html" %}
+    {% set generation_kind = 'audio' %}
+    {% include "learn/generation-actions.html" %}
+    {% set status_initial_state = 'idle' %}
+    {% set status_initial_label = 'Ready' %}
+    {% set status_initial_message = 'Ready to create an audio explanation.' %}
+    {% include "learn/generation-status.html" %}
+  </form>
+
+  <section class="learn-generation-result-card learn-audio-runtime-card" data-audio-job hidden aria-label="Generated audio">
+    <div class="learn-generation-result-heading">
+      <div><p class="learn-kicker">Private result</p><strong data-audio-job-title>Audio explanation</strong></div>
+      <div class="learn-generation-job-controls">
+        <span class="learn-generation-result-state learn-meta" data-audio-stage>Queued</span>
+        <button type="button" class="learn-generation-secondary learn-generation-cancel" data-audio-cancel hidden>Cancel generation</button>
+      </div>
+    </div>
+    <progress max="1" value="0" data-audio-progress aria-label="Audio generation progress"></progress>
+    <audio controls preload="metadata" data-audio-result hidden></audio>
+    <p class="learn-meta" data-audio-result-note hidden></p>
+  </section>
+
+  {% set generation_kind = 'audio' %}
+  {% set library_title = 'Your Audio' %}
+  {% set library_singular = 'audio generation' %}
+  {% set library_plural = 'audio generations' %}
+  {% set library_empty_title = 'No generated audio is known to this browser yet.' %}
+  {% set library_empty_help = 'Successful Audio jobs appear here as private browser-known receipts. Published Learn audio remains separate from this library.' %}
+  {% set library_refresh_title = 'Audio job capabilities are scoped to the active session; collection refresh is not exposed by this endpoint yet.' %}
+  {% include "learn/generation-library.html" %}
+</section>

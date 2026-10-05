@@ -33,7 +33,7 @@ t('new attachment auto-reveals end of strip', js.includes('if (currentCount > pr
 t('reduced motion disables smooth reveal', js.includes("prefers-reduced-motion: reduce") && js.includes("behavior: reduced ? 'auto' : 'smooth'"));
 t('removal preserves nearest scroll position', js.includes('tray.scrollLeft = Math.min(previousScrollLeft, max)'));
 t('empty tray clears overflow state', js.includes("tray.removeAttribute('data-overflow-start')") && js.includes("tray.removeAttribute('data-overflow-end')"));
-t('overflow accessibility hint is dynamic', js.includes('Context and attached files. Scroll horizontally for more items.'));
+t('overflow accessibility hint preserves each tray label and adds a dynamic scroll hint', js.includes("data-attachment-base-label") && js.includes("baseLabel + '. Scroll horizontally for more items.'"));
 
 console.log(`${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

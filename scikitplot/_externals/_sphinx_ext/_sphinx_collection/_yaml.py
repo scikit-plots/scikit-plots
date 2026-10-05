@@ -83,47 +83,68 @@ def load_bounded_yaml(text: str, origin: str) -> Any:
     except yaml.YAMLError as exc:
         raise BoundedYAMLError(f"{origin}: could not parse YAML: {exc}") from exc
 
-    seen: set[int] = set()
+    # The payload is measured as a consumer will see it: expanded. PyYAML
+    # builds one object per anchor and every alias refers to it, so a walk
+    # that visits each object once counts an alias bomb as a few dozen values
+    # and never sees the nesting an alias adds. Each container's size, text
+    # and height are computed once and then added wherever it is referenced,
+    # which costs time proportional to the document, not to its expansion.
+    measured: dict[int, tuple[int, int, int]] = {}
     active: set[int] = set()
-    nodes = 0
-    scalar_chars = 0
 
-    def visit(value: Any, level: int) -> None:
-        nonlocal nodes, scalar_chars
-        nodes += 1
-        if nodes > MAX_YAML_NODES:
-            raise BoundedYAMLError(
-                f"{origin}: parsed YAML exceeds {MAX_YAML_NODES:,} values"
-            )
+    def too_deep() -> BoundedYAMLError:
+        return BoundedYAMLError(
+            f"{origin}: parsed YAML nesting exceeds {MAX_YAML_DEPTH} levels"
+        )
+
+    def measure(value: Any, level: int) -> tuple[int, int, int]:
+        """Return ``(values, scalar characters, height)`` of ``value`` expanded."""
         if level > MAX_YAML_DEPTH:
-            raise BoundedYAMLError(
-                f"{origin}: parsed YAML nesting exceeds {MAX_YAML_DEPTH} levels"
-            )
-        if isinstance(value, (dict, list, tuple, set)):
-            identity = id(value)
-            if identity in active:
-                raise BoundedYAMLError(
-                    f"{origin}: recursive YAML aliases are not supported"
-                )
-            if identity in seen:
-                return
-            seen.add(identity)
-            active.add(identity)
-            entries = value.items() if isinstance(value, dict) else enumerate(value)
-            for key, child in entries:
-                if isinstance(value, dict):
-                    visit(key, level + 1)
-                visit(child, level + 1)
-            active.remove(identity)
-        elif isinstance(value, (str, bytes)):
-            scalar_chars += len(value)
-            if scalar_chars > MAX_YAML_SCALAR_CHARS:
+            raise too_deep()
+        if isinstance(value, (str, bytes)):
+            if len(value) > MAX_YAML_SCALAR_CHARS:
                 raise BoundedYAMLError(
                     f"{origin}: YAML scalar text exceeds "
                     f"{MAX_YAML_SCALAR_CHARS:,} characters"
                 )
+            return 1, len(value), 0
+        if not isinstance(value, (dict, list, tuple, set)):
+            return 1, 0, 0
+        identity = id(value)
+        if identity in active:
+            raise BoundedYAMLError(
+                f"{origin}: recursive YAML aliases are not supported",
+            )
+        known = measured.get(identity)
+        if known is not None:
+            if level + known[2] > MAX_YAML_DEPTH:
+                raise too_deep()
+            return known
+        active.add(identity)
+        count, chars, height = 1, 0, 0
+        if isinstance(value, dict):
+            children = [part for item in value.items() for part in item]
+        else:
+            children = list(value)
+        for child in children:
+            child_count, child_chars, child_height = measure(child, level + 1)
+            count += child_count
+            chars += child_chars
+            height = max(height, child_height + 1)
+            if count > MAX_YAML_NODES:
+                raise BoundedYAMLError(
+                    f"{origin}: parsed YAML exceeds {MAX_YAML_NODES:,} values"
+                )
+            if chars > MAX_YAML_SCALAR_CHARS:
+                raise BoundedYAMLError(
+                    f"{origin}: YAML scalar text exceeds "
+                    f"{MAX_YAML_SCALAR_CHARS:,} characters"
+                )
+        active.remove(identity)
+        measured[identity] = (count, chars, height)
+        return count, chars, height
 
-    visit(payload, 0)
+    measure(payload, 0)
     return payload
 
 

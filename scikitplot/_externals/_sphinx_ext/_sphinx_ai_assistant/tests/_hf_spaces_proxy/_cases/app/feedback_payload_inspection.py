@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
+from ....._hf_spaces_proxy import app as proxy_app
 
 
 def _payload() -> dict:

@@ -1,7 +1,7 @@
 """Run 107-109 compatibility: Mirror shows client wire plus derived AI input."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
+from .._paths import MAINTENANCE_ROOT, RUNTIME_ROOT
 
 import importlib
 import json

@@ -1,0 +1,5 @@
+<div class="learn-generation-request-meta" role="list" aria-label="{{ request_meta_label|default('Generation request contract')|e }}">
+  {% for item in request_meta_items %}
+  <span role="listitem"><strong>{{ item.label|e }}</strong><small>{{ item.value|e }}</small></span>
+  {% endfor %}
+</div>

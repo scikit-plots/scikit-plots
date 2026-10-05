@@ -30,10 +30,7 @@ function extract(name) {
   class CustomEvent { constructor(type, init={}) { this.type=type; this.detail=init.detail; } }
   const code = `
     var _feedbackDomIntegrationEnabled=false;
-    var _FEEDBACK_TELEMETRY_CONSENT_VERSION='1.0.0';
-    var _feedbackTelemetryGrantedAt=123;
     var _assistantEvents={dispatchEvent(ev){ internal.push(ev); return true; }};
-    ${extract('_feedbackTelemetryPayload')}
     ${extract('_feedbackLocalEventPayload')}
     ${extract('_publicAssistantEventDetail')}
     ${extract('_dispatchAssistantEvent')}
@@ -66,7 +63,7 @@ function extract(name) {
 }
 
 // Runtime bearer-token policy: OFF strips programmatic injection; explicit
-// site-owner opt-in keeps the legacy page-memory-only compatibility path.
+// site-owner opt-in keeps the current page-memory-only Share token path.
 {
   const start = src.indexOf('var _EP = (function () {');
   const endMarker='\n    }());';
@@ -80,17 +77,15 @@ function extract(name) {
     vm.createContext(context); vm.runInContext(block,context); return context._EP;
   }
   let ep=runtime(false);
-  ok(ep.addProfile('locked',{label:'Locked',base:'https://example.com',shareToken:'SECRET',feedbackToken:'SECRET2'}).ok,'default-off profile still saves routing');
+  ok(ep.addProfile('locked',{label:'Locked',base:'https://example.com',shareToken:'SECRET'}).ok,'default-off profile still saves routing');
   ep.setActive('locked');
   eq(ep.resolveToken('shareToken'),'','default-off strips share token authority');
-  eq(ep.resolveToken('feedbackToken'),'','default-off strips feedback token authority');
   eq(ep.getProfile('locked').shareToken,'','default-off getProfile cannot reveal injected token');
 
   ep=runtime(true);
-  ok(ep.addProfile('compat',{label:'Compat',base:'https://example.com',shareToken:'SHORT',feedbackToken:'SHORT2'}).ok,'explicit opt-in accepts short-lived token fields');
-  ep.setActive('compat');
+  ok(ep.addProfile('current',{label:'Current',base:'https://example.com',shareToken:'SHORT'}).ok,'explicit opt-in accepts current short-lived Share token field');
+  ep.setActive('current');
   eq(ep.resolveToken('shareToken'),'SHORT','opt-in keeps share token in page memory');
-  eq(ep.resolveToken('feedbackToken'),'SHORT2','opt-in keeps feedback token in page memory');
 }
 
 ok(src.includes("if (!_feedbackDomIntegrationEnabled) {\n                showNotification('Attachment integration is off."),'attachment integration is gated by page permission');

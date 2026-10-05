@@ -9,13 +9,14 @@ encoded by directory + filename; run chronology belongs under ``maintenances``.
 """
 from __future__ import annotations
 
+import ast
 from collections import defaultdict
 import hashlib
 import json
 from pathlib import Path
 import re
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import (
+from .._paths import (
     MAINTENANCE_ROOT,
     RUNTIME_ROOT,
     TESTS_ROOT,
@@ -174,3 +175,110 @@ def test_recorded_python_migration_targets_exist_and_old_flat_files_are_gone() -
             stale.append(old)
     assert missing == [], "recorded migration target missing: " + ", ".join(missing)
     assert stale == [], "stale pre-migration flat tests remain: " + ", ".join(stale)
+
+
+#: Directories whose test modules are also loaded by file path, as fixtures of
+#: one another (``spec_from_file_location``). A module loaded that way has no
+#: parent package, so a relative import cannot resolve there; these import the
+#: stack by its canonical installed name instead.
+_PATH_LOADED_TEST_DIRS = ("_hf_spaces_proxy/security",)
+
+#: Test modules that also run as scripts (``python <file> ...``), for the same
+#: reason: a script has no parent package.
+_SCRIPT_RUN_TEST_MODULES = ("_hf_spaces_proxy/ci/test_run_redis_chaos.py",)
+
+_CANONICAL_STACK = "scikitplot._externals._sphinx_ext"
+_SOURCE_STACK = "_sphinx_ext"
+
+
+def _stack_imports(path: Path) -> list[tuple[int, str]]:
+    """Return ``(line, module)`` for every absolute import of the extension stack."""
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"), filename=str(path))):
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            names = [node.module]
+        elif isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        else:
+            continue
+        for name in names:
+            if name == _SOURCE_STACK or name.startswith(
+                (_SOURCE_STACK + ".", _CANONICAL_STACK)
+            ):
+                found.append((node.lineno, name))
+    return found
+
+
+def test_tests_import_the_extension_stack_relatively() -> None:
+    """
+    A test reaches its runtime with ``from . import`` / ``from .. import``.
+
+    A relative import resolves against the package the test was collected
+    in, so it works whichever name the stack is importable under. The bare
+    ``_sphinx_ext`` name exists only when a docs source directory happens to
+    be on ``sys.path``; one test imported through it and the whole suite
+    stopped at collection wherever that directory was not on the path.
+    """
+    offenders: list[str] = []
+    for path in sorted(TESTS_ROOT.rglob("*.py")):
+        rel = path.relative_to(TESTS_ROOT).as_posix()
+        path_loaded = (
+            rel.startswith(tuple(d + "/" for d in _PATH_LOADED_TEST_DIRS))
+            or rel in _SCRIPT_RUN_TEST_MODULES
+        )
+        for line, name in _stack_imports(path):
+            if path_loaded and name.startswith(_CANONICAL_STACK):
+                continue
+            offenders.append(f"{rel}:{line} imports {name}")
+    assert offenders == [], (
+        "import the extension stack relatively (path-loaded fixtures: by the "
+        "canonical name, never bare '_sphinx_ext'): " + "; ".join(offenders)
+    )
+
+
+def test_path_loaded_fixture_directories_exist() -> None:
+    """An exemption for a directory that is gone is an exemption for nothing."""
+    missing = [d for d in _PATH_LOADED_TEST_DIRS if not (TESTS_ROOT / d).is_dir()]
+    missing += [m for m in _SCRIPT_RUN_TEST_MODULES if not (TESTS_ROOT / m).is_file()]
+    assert missing == [], "stale path-loaded exemption: " + ", ".join(missing)
+
+
+def _has_main_guard(path: Path) -> bool:
+    for node in ast.parse(path.read_text(encoding="utf-8"), filename=str(path)).body:
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if (
+            isinstance(test, ast.Compare)
+            and isinstance(test.left, ast.Name)
+            and test.left.id == "__name__"
+            and len(test.comparators) == 1
+            and isinstance(test.comparators[0], ast.Constant)
+            and test.comparators[0].value == "__main__"
+        ):
+            return True
+    return False
+
+
+def test_a_test_module_that_runs_as_a_script_does_not_import_relatively() -> None:
+    """
+    A module with a ``__main__`` block is run as a script; it has no package.
+
+    A relative import in such a module passes collection and every test that
+    imports it, then fails inside the subprocess that runs it. That only shows
+    when the test reaches the subprocess - here, when a Redis server happens
+    to be installed - so the rule is checked statically instead.
+    """
+    scripts = sorted(
+        path.relative_to(TESTS_ROOT).as_posix()
+        for path in TESTS_ROOT.rglob("*.py")
+        if _has_main_guard(path)
+    )
+    assert scripts == sorted(_SCRIPT_RUN_TEST_MODULES), scripts
+    offenders: list[str] = []
+    for rel in scripts:
+        tree = ast.parse((TESTS_ROOT / rel).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.level > 0:
+                offenders.append(f"{rel}:{node.lineno}")
+    assert offenders == [], "relative import in a script-run test module: " + ", ".join(offenders)

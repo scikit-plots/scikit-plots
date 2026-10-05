@@ -123,6 +123,7 @@ _submodules = sorted(
         "api",
         "cexperimental",
         "cexternals",
+        "cleanprompt",
         "config",
         "corpus",
         "cython",

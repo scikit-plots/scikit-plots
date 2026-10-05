@@ -11,7 +11,7 @@
 experimental_cython_tree = [
   _root_cython_tree,                      # also _cython_tree
   fs.copyfile('__init__.py'),             # Ensure __init__.py is copied early
-  fs.copyfile('cbook.pyi'),               # Cython definition file for C/C++ code
+  fs.copyfile('_cbook.pyi'),               # Cython definition file for C/C++ code
 ]
 
 ######################################################################

@@ -1,0 +1,7 @@
+<div class="learn-audio-player" data-audio-player data-audio-id="{{ subject.id|e }}">
+  <audio controls preload="metadata" aria-label="{{ subject.title|e }}">
+    <source src="{{ media.src|e }}" type="{{ media.mime_type|e }}">
+    Your browser does not support audio playback.
+  </audio>
+  {% if media.duration_seconds|default(0) %}<span class="learn-meta">{{ media.duration_seconds|round|int }} s</span>{% endif %}
+</div>

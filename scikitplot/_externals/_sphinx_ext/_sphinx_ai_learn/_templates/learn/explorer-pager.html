@@ -1,0 +1,9 @@
+{% set chunk = page_chunk_size|default(12, true) %}
+<div class="learn-display-pager" data-explorer-pager>
+  <span class="learn-meta learn-display-summary" data-display-summary aria-live="polite"></span>
+  <button type="button" class="learn-button learn-display-load-more" data-display-load-more hidden>Load {{ chunk }} more</button>
+  <span class="learn-display-fallback-links" data-explorer-fallback-links>
+    {% if previous %}<a class="learn-previous" href="{{ previous|e }}">← Previous {{ chunk }}</a>{% endif %}
+    {% if next %}<a class="learn-next" data-explorer-next href="{{ next|e }}">Next {{ chunk }} →</a>{% endif %}
+  </span>
+</div>

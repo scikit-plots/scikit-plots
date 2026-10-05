@@ -24,7 +24,7 @@ SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT, TESTS_ROOT
+from .._paths import RUNTIME_ROOT, TESTS_ROOT
 
 import pathlib
 import shutil
@@ -36,7 +36,7 @@ import sys
 import pytest
 
 _TESTS_DIR = TESTS_ROOT
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._mutants import MUTANTS  # noqa: E402
+from .._mutants import MUTANTS  # noqa: E402
 _TARGET = RUNTIME_ROOT / "_static" / "ai-assistant.js"
 _CSS_TARGET = RUNTIME_ROOT / "_static" / "ai-assistant.css"
 _TIMEOUT_S = 120

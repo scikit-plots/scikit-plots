@@ -48,7 +48,7 @@ def _promoted(tmp_path: Path) -> Path:
         "schemaVersion": 1,
         "predicateType": "https://scikit-plots.org/attestations/release-promotion/v1",
         "generatedAt": "2026-09-05T03:58:00Z",
-        "release": {"releaseId": "run150-test", "proxyVersion": "7.4.0", "sourceRevision": REVISION},
+        "release": {"releaseId": "run150-test", "proxyVersion": "7.9.0", "sourceRevision": REVISION},
         "subject": {"sourceTreeSha256": "a" * 64, "evidenceSha256": "b" * 64},
         "artifacts": {
             "zip": {"name": zip_path.name, "sha256": _sha(zip_path), "size": zip_path.stat().st_size, "fileCount": 345},

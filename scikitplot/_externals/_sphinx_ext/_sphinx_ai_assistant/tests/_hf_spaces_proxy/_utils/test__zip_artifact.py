@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ..._paths import RUNTIME_ROOT
 
 import hashlib
 import io
@@ -15,9 +15,9 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _zip_workspace as zw
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._zip_artifact import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._utils import _zip_workspace as zw
+from ...._hf_spaces_proxy._utils._zip_artifact import (
     ZIP_EDIT_CONTRACT,
     ZIP_EDIT_MAX_ENTRY_BYTES,
     ZIP_EDIT_MAX_REPLACEMENT_TOTAL_BYTES,

@@ -9,8 +9,8 @@ from types import SimpleNamespace
 import httpx
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _storage as st
+from ......_hf_spaces_proxy import app as proxy_app
+from ......_hf_spaces_proxy._utils import _storage as st
 
 
 def _target(provider: str, repo: str = "org/repo") -> st.StorageTarget:

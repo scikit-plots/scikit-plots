@@ -19,13 +19,6 @@
       "purpose": "Coarse boolean: whether contribution persistence is server-ready."
     },
     {
-      "server_path": "training.feedback_persist_enabled",
-      "server_key_literal": "\"feedback_persist_enabled\"",
-      "client_access_expr": "tr.feedback_persist_enabled",
-      "client_field": "feedbackPersistEnabled",
-      "purpose": "Coarse boolean: whether durable rating persistence is enabled by server policy."
-    },
-    {
       "server_path": "tokens.hf_token_type",
       "server_key_literal": "\"hf_token_type\"",
       "client_access_expr": "tk.hf_token_type",

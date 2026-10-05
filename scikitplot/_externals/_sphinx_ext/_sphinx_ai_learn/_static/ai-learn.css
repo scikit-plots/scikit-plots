@@ -1,0 +1,74 @@
+/* Authors: The scikit-plots developers
+ * SPDX-License-Identifier: BSD-3-Clause */
+.skplt-learn-ai {
+    --la-surface: var(--pst-color-surface, var(--color-background-secondary, #f4f7f8));
+    --la-surface: var(--pst-color-background, var(--color-background-primary, #fff));
+    --la-text: var(--pst-color-text-base, var(--color-foreground-primary, #243237));
+    --la-muted: var(--pst-color-text-muted, var(--color-foreground-secondary, #51636a));
+    --la-border: var(--pst-color-border, var(--color-background-border, #cbd6da));
+    --la-accent: var(--pst-color-primary, var(--color-brand-primary, #087f80));
+    color: var(--la-text);
+    font: inherit;
+    margin-block: 1.5rem;
+}
+.skplt-learn-ai [hidden] { display: none !important; }
+.skplt-learn-ai .la-header {
+    background: var(--la-surface);
+    border: 1px solid var(--la-border);
+    border-left: 4px solid var(--la-accent);
+    border-radius: .7rem;
+    padding: clamp(1rem, 4vw, 2rem);
+    margin-bottom: 1rem;
+}
+.skplt-learn-ai .la-header h2 { margin-top: .5rem; font-size: clamp(1.5rem, 3vw, 2.15rem); }
+.skplt-learn-ai .la-eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .08em; color: var(--la-muted); }
+.skplt-learn-ai .la-toolbar, .skplt-learn-ai .la-actions,
+.skplt-learn-ai .la-nav, .skplt-learn-ai .la-section-nav {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-block: 1rem;
+}
+.skplt-learn-ai button, .skplt-learn-ai input, .skplt-learn-ai select, .skplt-learn-ai textarea {
+    font: inherit; color: var(--la-text); background: var(--la-surface);
+    border: 1px solid var(--la-border); border-radius: .4rem;
+    padding: .6rem .8rem; min-height: 2.75rem; max-width: 100%; box-sizing: border-box;
+}
+.skplt-learn-ai button { cursor: pointer; }
+.skplt-learn-ai button:hover:not(:disabled) { border-color: var(--la-accent); }
+.skplt-learn-ai button:disabled { cursor: not-allowed; opacity: .55; }
+.skplt-learn-ai .la-primary, .skplt-learn-ai button[aria-pressed="true"] {
+    font-weight: 700; border: 2px solid var(--la-accent);
+}
+.skplt-learn-ai :is(button, input, select, textarea, a):focus-visible {
+    outline: 3px solid var(--la-accent); outline-offset: 3px;
+}
+.skplt-learn-ai .la-toolbar input { flex: 1 1 15rem; }
+.skplt-learn-ai .la-toolbar select { flex: 0 1 13rem; }
+.skplt-learn-ai .la-status { min-height: 1.5em; font-weight: 600; overflow-wrap: anywhere; }
+.skplt-learn-ai .la-count, .skplt-learn-ai .la-note { font-size: .85rem; color: var(--la-muted); }
+.skplt-learn-ai .la-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; }
+.skplt-learn-ai .la-card, .skplt-learn-ai .la-section {
+    border: 1px solid var(--la-border); border-radius: .6rem; padding: 1.2rem; margin-block: .5rem;
+    background: var(--la-surface); overflow-wrap: anywhere; min-width: 0;
+}
+.skplt-learn-ai .la-card h3, .skplt-learn-ai .la-section h3 { margin-top: .3rem; }
+.skplt-learn-ai .la-card button { margin: .3rem; }
+.skplt-learn-ai .la-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; margin-block: 1rem; }
+.skplt-learn-ai .la-section-nav a, .skplt-learn-ai .la-related a { display: inline-block; margin: .3rem .8rem .3rem 0; }
+.skplt-learn-ai .la-citation { font-size: .9rem; }
+.skplt-learn-ai .la-editor { border: 2px solid var(--la-accent); border-radius: .6rem; padding: 1.2rem; margin-top: 1.5rem; }
+.skplt-learn-ai .la-field { display: flex; flex-direction: column; gap: .3rem; margin-block: .9rem; }
+.skplt-learn-ai .la-field span { font-weight: 600; }
+.skplt-learn-ai .la-field textarea { resize: vertical; min-height: 5rem; }
+.skplt-learn-ai textarea.la-draft-body { min-height: 16rem; }
+.skplt-learn-ai .la-empty { padding: 1.5rem; border: 1px dashed var(--la-border); border-radius: .6rem; }
+@media (max-width: 480px) {
+    .skplt-learn-ai .la-toolbar > *, .skplt-learn-ai .la-actions > * { width: 100%; flex-basis: 100%; }
+    .skplt-learn-ai .la-editor { padding: .8rem; }
+}
+@media print {
+    .skplt-learn-ai .la-app { display: none !important; }
+    .skplt-learn-ai .la-static[hidden] { display: block !important; }
+}
+
+.skplt-learn-ai .la-media { display: block; width: 100%; max-width: 100%; border: 0; margin-block: 1rem; }
+.skplt-learn-ai iframe.la-media { aspect-ratio: 16 / 9; }
+.skplt-learn-ai .la-activity { overflow-wrap: anywhere; }

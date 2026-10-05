@@ -1,0 +1,6 @@
+<div class="learn-library-grid-control" data-library-grid-control role="group" aria-label="Grid columns">
+  <span class="learn-library-grid-label">Grid</span>
+  {% for columns in (2, 3, 4, 5) %}
+  <button type="button" class="learn-library-grid-choice" data-library-grid="{{ columns }}" aria-pressed="{{ 'true' if columns == 2 else 'false' }}" title="Show up to {{ columns }} columns">{{ columns }}</button>
+  {% endfor %}
+</div>

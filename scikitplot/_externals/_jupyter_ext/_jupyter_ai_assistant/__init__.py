@@ -1140,11 +1140,12 @@ def _validate_mcp_tool(tool: dict[str, Any], name: str = "") -> list[str]:
     ... )
     []
     """
-    errors: list[str] = []
     prefix = f"MCP tool {name!r}: " if name else "MCP tool: "
-    for key in ("enabled", "type", "label", "description"):
-        if key not in tool:
-            errors.append(f"{prefix}missing required key {key!r}")
+    errors: list[str] = [
+        f"{prefix}missing required key {key!r}"
+        for key in ("enabled", "type", "label", "description")
+        if key not in tool
+    ]
     server_url = str(tool.get("server_url", "")).strip()
     if server_url and not _URL_SCHEME_RE.match(server_url):
         errors.append(f"{prefix}server_url {server_url!r} must use http:// or https://")
@@ -1204,12 +1205,13 @@ def _validate_provider(provider: dict[str, Any], name: str = "") -> list[str]:
     >>> _validate_provider({"enabled": True, "label": "X", ...})  # doctest: +SKIP
     []
     """
-    errors: list[str] = []
     prefix = f"Provider {name!r}: " if name else "Provider: "
 
-    for key in _PROVIDER_REQUIRED_KEYS:
-        if key not in provider:
-            errors.append(f"{prefix}missing required key {key!r}")
+    errors: list[str] = [
+        f"{prefix}missing required key {key!r}"
+        for key in _PROVIDER_REQUIRED_KEYS
+        if key not in provider
+    ]
 
     ptype = str(provider.get("type", ""))
     if ptype and ptype not in _PROVIDER_TYPES:

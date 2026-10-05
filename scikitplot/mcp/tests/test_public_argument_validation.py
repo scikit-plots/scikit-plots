@@ -23,7 +23,9 @@ def _chunk(doc_id="d"):
     """Return one retrieved chunk."""
     return _core.RetrievedChunk(
         doc_id=doc_id, title="T", source_uri="docs://d", anchor="#a",
-        text="body", score=0.5,
+        # Distinct text per chunk: identical passages are merged into one
+        # (CX-02), and these tests are about counts, not duplicates.
+        text=f"body {doc_id}", score=0.5,
     )
 
 

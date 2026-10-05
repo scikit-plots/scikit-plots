@@ -4,29 +4,10 @@ let passed = 0, failed = 0;
 function ok(cond, name) { if (cond) { passed++; } else { failed++; console.error('FAIL ' + name); } }
 function section(a, b) { const i=src.indexOf(a); const j=src.indexOf(b, i+1); return i>=0 && j>i ? src.slice(i,j) : ''; }
 
-ok(src.includes("var _FEEDBACK_TELEMETRY_PREF_KEY = 'ai-assistant-feedback-telemetry-consent';"), 'rating telemetry uses a dedicated consent record');
-ok(src.includes("panelFeedbackTelemetryDefault === true"), 'telemetry uses configurable privacy-first site default');
-ok(src.includes("saved.version !== _FEEDBACK_TELEMETRY_CONSENT_VERSION"), 'stale telemetry consent is rejected');
-ok(!src.includes("localStorage.getItem('ai-assistant-feedback-telemetry')"), 'retired boolean telemetry key has no read authority');
-ok(src.includes('return false;'), 'feedback telemetry storage failure defaults off');
-const telemetry = section('function _feedbackTelemetryPayload(detail)', 'function _postFeedback(url');
-ok(telemetry.includes('schemaVersion: 4'), 'network feedback uses consent-aware schema v4');
-ok(telemetry.includes('telemetryConsent: true'), 'network feedback carries explicit consent marker');
-ok(telemetry.includes('telemetryConsentVersion: _FEEDBACK_TELEMETRY_CONSENT_VERSION'), 'network feedback carries versioned consent');
-ok(telemetry.includes('telemetryConsentAt: _feedbackTelemetryGrantedAt'), 'network feedback carries consent timestamp');
-for (const forbidden of ['query:', 'answer:', 'message:', 'model:', 'page:', 'conversationId:']) {
-  ok(!telemetry.includes(forbidden), 'telemetry omits ' + forbidden);
-}
-
-const localEvent = section('function _feedbackLocalEventPayload(detail)', 'function _postFeedback(url');
-ok(localEvent.includes('delete out.telemetryConsent'), 'public feedback event does not expose network consent state');
-for (const forbidden of ['query:', 'answer:', 'message:', 'model:', 'page:', 'conversationId:']) {
-  ok(!localEvent.includes(forbidden), 'public feedback event does not add ' + forbidden);
-}
-ok(src.includes("detail: _feedbackLocalEventPayload(detail || {})") || src.includes("return _feedbackLocalEventPayload(detail);"), 'public feedback event uses privacy-minimal detail');
-ok(src.includes("if (!_feedbackPersistEnabled || !_feedbackTelemetryGrantedAt) { return false; }"), 'network helper self-gates on consent');
-ok(src.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'"), 'feedback workspace names telemetry truthfully');
-ok(src.includes('no Q&A, note, model, page, consent version, or conversation identifier'), 'feedback workspace explains excluded sensitive fields');
+ok(!src.includes('_FEEDBACK_TELEMETRY_CONSENT_VERSION'), 'retired rating telemetry consent runtime is absent');
+ok(!src.includes('function _postFeedback('), 'retired anonymous feedback transport is absent');
+ok(src.includes('function _feedbackLocalEventPayload(detail)'), 'local rating projection remains available');
+ok(src.includes("/v1/feedback/review"), 'explicit content-bearing review keeps its dedicated route');
 ok(src.includes("var _CONTRIBUTION_CONSENT_VERSION = '2.0.0';"), 'new contribution uses consent v2');
 ok(src.includes('var _CONTRIBUTION_SCHEMA_VERSION = 4;'), 'new contribution uses schema v4');
 const builder = section('function _buildDatasetContributionPayload(', 'function _datasetContributionPayloadBytes(');
@@ -41,7 +22,7 @@ ok(contribution.includes("lifecycle.status === 'withdrawn'"), 'UI recognizes pos
 ok(contribution.includes('versioned provider history is not claimed physically erased'), 'UI does not overclaim provider-history erasure');
 ok(contribution.includes('does not claim forensic deletion from database pages, backups, or infrastructure snapshots'), 'UI does not overclaim pending forensic erasure');
 ok(contribution.includes('not training-eligible until an authorized review promotes it'), 'UI does not claim immediate training ingestion');
-ok(contribution.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'") && !src.includes("persistLabel.textContent = 'Anonymous rating telemetry'"), 'feedback workspace owns telemetry without duplicating it in the popup');
+ok(!src.includes('Anonymous rating telemetry') && !src.includes('data-feedback-telemetry-toggle'), 'retired Assistant rating telemetry UI is absent');
 ok(src.includes("label: 'Contribute this Q&A\\u2026'") && src.includes("className: 'ai-assistant-fbk-popup-row--contribute'"), 'feedback popup has explicit Q&A contribution shortcut');
 
 console.log(`${passed} passed, ${failed} failed`);

@@ -1302,3 +1302,51 @@ background wins.
 - Verified by: T98's exact surface-value assertion, PyData dark-selector
   coverage, and mutants that restore speak-token coupling or concatenate a
   second color.
+
+## 2026-10-02: Removing a migration removed the scrub that rode on it
+
+**Context:** Endpoint profile storage moved to schema v9 with no migration path.
+
+**Issue:** Legacy blobs holding bearer tokens were skipped by the loader and
+left in `localStorage`. `AIA-021` was closed in Run 1 and silently reopened.
+
+**Root cause:** The scrub was implemented as a side effect of migrating. "No
+backward compatibility" was applied as "ignore old data" rather than "remove
+old data". The harness that would have failed had been deleted while its
+mutants stayed, so the mutation suite was red for a reason nobody read.
+
+**Prevention rule:**
+- When: a storage schema changes, or a loader gains an early return.
+- Then: a blob the loader will not use is removed, not skipped; a blob it does
+  use is rewritten if it carries any field outside the persisted list.
+- Verified by: `test_ai_assistant__endpoint_secret_lifecycle.mjs` and the two
+  `endpoint-*` mutants.
+
+## 2026-10-02: A test that restates a value fails when the value changes
+
+**Context:** Proxy version bump from 7.9.0 to 7.9.1.
+
+**Issue:** Fourteen release-evidence tests failed on a version mismatch before
+reaching the property they test.
+
+**Root cause:** Fixtures carried the version as a literal; ratchets pinned it.
+
+**Prevention rule:**
+- When: a fixture needs a value the source declares.
+- Then: read it from the source, by a different route than the code under
+  test uses; write a ratchet as a floor.
+- Verified by: `test_proxy_version_is_stated_once_and_repeated_consistently`.
+
+## 2026-10-02: A red test is read before it is called stale
+
+**Context:** 31 failing tests, most of them stale.
+
+**Issue:** Three were not: a lost credential scrub, an unbounded read, a
+relative import in a script-run module.
+
+**Prevention rule:**
+- When: a test fails after a refactor.
+- Then: establish which side is wrong from the source and a passing sibling
+  test before editing either; a mutant whose anchor is gone means the guarded
+  code is gone, which is a question about the code first.
+- Verified by: each rewritten test fails when its defect is reintroduced.

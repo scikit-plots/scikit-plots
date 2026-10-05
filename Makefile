@@ -1338,3 +1338,11 @@ pytest1:
 	@pytest \
 		scikitplot/corpus/_similarity/tests/test__backends.py::TestAnnoyBackend::test_auto_falls_back_to_cython \
 		-vv
+
+# git show a240dc5692b7e547be1ec2e66ae04100124dadf6:scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/__init__.py
+# git diff -- scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/__init__.py
+# pre-commit run --all-files --show-diff-on-failure
+precom:
+	@pre-commit run --files \
+		scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/__init__.py \
+		--show-diff-on-failure

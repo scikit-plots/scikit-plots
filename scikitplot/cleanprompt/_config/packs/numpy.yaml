@@ -1,0 +1,19 @@
+# NumPy structured data: numpy.genfromtxt field names and dtype codes.
+name: numpy
+version: 1
+summary: NumPy field-naming arguments and dtype codes, for notebooks and modules.
+
+code:
+  # genfromtxt: names (a list of field names), usecols (names or indices).
+  column_keywords: [names, usecols]
+  dtype_roles:
+    i4: count
+    i8: count
+    u4: count
+    f4: amount
+    f8: amount
+    "?": flag
+    "datetime64[D]": date
+    "datetime64[s]": datetime
+    U: text
+    S: text

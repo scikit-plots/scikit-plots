@@ -1,0 +1,55 @@
+<div class="learn-user-library" data-user-library data-mode="{{ mode|e }}" data-site="{{ site_id|e }}"{% if mode == 'collections' %} data-local-display{% endif %}>
+<script type="application/json" class="learn-user-library-data">{{ payload|safe }}</script>
+{% if mode == 'collections' %}
+  <p class="learn-library-intro">Reading status and bookmarks are private to this browser profile. Open a collection to see its topics.</p>
+  {% set display_controls_hidden = true %}{% include "learn/local-display-controls.html" %}
+  <div class="learn-collection-home-grid" data-collection-home data-display-items>
+    {% for item in collection_links %}
+    <a class="learn-collection-home-card" data-display-item data-collection-link="{{ item.title|e }}" href="{{ item.href|e }}">
+      <span class="learn-collection-card-title">{{ item.title|e }}</span>
+      <span class="learn-count" data-collection-count-for="{{ item.title|e }}">0</span>
+      <span class="learn-collection-card-summary">{{ item.description|e }}</span>
+      <span class="learn-collection-card-arrow" aria-hidden="true">→</span>
+    </a>
+    {% endfor %}
+    <a class="learn-collection-home-card" data-display-item data-collection-link="Bookmarks" href="{{ bookmarks_href|e }}">
+      <span class="learn-collection-card-title">Bookmarks</span>
+      <span class="learn-count" data-collection-count-for="Bookmarks">0</span>
+      <span class="learn-collection-card-summary">Topics and resources you saved for quick return.</span>
+      <span class="learn-collection-card-arrow" aria-hidden="true">→</span>
+    </a>
+  </div>
+  {% set display_controls_hidden = true %}{% include "learn/local-display-pager.html" %}
+{% elif mode == 'bookmarks' %}
+  <div class="learn-library-heading-row">
+    <p class="learn-library-intro">Saved records from topic and resource pages are kept in this browser.</p>
+    <div class="learn-library-heading-actions">
+      <a class="learn-library-back" href="{{ collections_href|e }}">← Collections</a>
+      {% include "learn/user-library-grid-control.html" %}
+      {% set display_controls_hidden = true %}{% include "learn/local-display-controls.html" %}
+    </div>
+  </div>
+  <div class="learn-library-grid" data-bookmarks-list data-grid-columns="2"></div>
+  {% set display_controls_hidden = true %}{% include "learn/local-display-pager.html" %}
+  <div class="learn-library-empty" data-bookmarks-empty>
+    <p>You do not have any bookmarks yet.</p>
+    <p>Use the <strong>Bookmark</strong> control on any learning page to save it here.</p>
+  </div>
+{% else %}
+  <div class="learn-library-heading-row">
+    <p class="learn-library-intro">{{ collection_name|e }} learning records are private to this browser profile.</p>
+    <div class="learn-library-heading-actions">
+      <a class="learn-library-back" href="{{ collections_href|e }}">← Back to Collections</a>
+      {% include "learn/user-library-grid-control.html" %}
+      {% set display_controls_hidden = true %}{% include "learn/local-display-controls.html" %}
+    </div>
+  </div>
+  <div class="learn-library-grid" data-collection-items data-grid-columns="2"></div>
+  {% set display_controls_hidden = true %}{% include "learn/local-display-pager.html" %}
+  <div class="learn-library-empty" data-collection-empty>
+    <p>You do not have any learning records in <strong>{{ collection_name|e }}</strong> yet.</p>
+    <p>Change a learning page's Reading status to add it here.</p>
+  </div>
+{% endif %}
+<p class="learn-meta" data-library-status role="status"></p>
+</div>

@@ -12,10 +12,15 @@ in ``_sphinx_gallery_grid``; shared selection/browser behavior lives in
 ``_sphinx_collection``.
 
 The Sphinx build reads local YAML and produces complete HTML. Live search,
-filters, and sorting run locally over the rendered cards. They make no fetch,
+filters, sorting, and bounded card display run locally over the rendered cards.
+Searchable/interactive card modes show 12 by default, expose the shared
+12/25/50/75/100/125/150 selector in More options, and place Load 12 more after
+the grid; these controls are owned by `_sphinx_collection` through
+`gallery-grid`, never duplicated by this YouTube adapter. They make no fetch,
 cookie, analytics, or URL-history calls. Visitor additions and validated
-filter/sort choices can each be remembered locally only after separate explicit
-opt-ins; free-form search text is never stored. If JavaScript is unavailable,
+filter/sort/display choices can be remembered locally only after the explicit
+view opt-in; additions use their own separate opt-in, and free-form search text
+is never stored. If JavaScript is unavailable,
 the complete static gallery remains readable.
 
 ## Enable the extension
@@ -294,6 +299,18 @@ extra wrapper.
 
 ## Live reader controls
 
+The search shell uses the same shared presentation contract as `gallery-grid`.
+`collection_search_variant = "pill-overflow"` (default) gives the pill field +
+circular overflow button; `"classic"` gives the rounded field + chevron. One
+gallery may override the presentation explicitly with `:search-variant:` (or
+`:search_variant:`), or concisely on the activating option itself, for example
+`:searchable: classic` or `:interactive: pill-overflow`. Valueless activation
+continues to inherit the global default. Repeating the same choice is harmless;
+conflicting choices fail the build. A standalone variant option is
+presentation-only and does not make a static gallery live. `_sphinx_youtube_core`
+and `_sphinxcontrib_youtube` stay UI-free; the typed gallery forwards this option
+to the single collection controller.
+
 Use `searchable` for search alone:
 
 ```rst
@@ -569,10 +586,24 @@ every downstream theme.
 
 ## Search, options, and reverting changes
 
-The compact toolbar shows a rounded gallery search field, search button, and
-an overflow (⋮) button. Typing filters locally; Enter and the search button
-apply the same search. Active search, filters and sorting appear as removable
-chips below the result count. Clear a chip to remove only that setting.
+The collection browser uses the same compact search/disclosure interaction as
+AI Learn: the primary search row comes first, with its integrated search icon
+and disclosure button; the live result count is a separate row immediately
+under the entire control surface. It is never embedded above the input inside
+the collapsed search box. Typing filters locally; Enter and the search icon
+apply the same search. The disclosure expands the long-form controls *inside
+the same bordered control surface* rather than opening a second toolbar/popup.
+Active search, filters, sorting, and non-default bounded display state appear
+as removable chips below the status row. Clear a chip to remove only that setting.
+The expanded View section also contains **Display up to** with
+12/25/50/75/100/125/150 presets; **Load 12 more** sits after the grid and expands
+the current session view without changing the selected preset.
+
+The adapter also validates this structure when it receives the delegated
+``gallery-grid`` node: an enhanced YouTube gallery must have the shared V4
+contract class and exactly one document-owned status sibling. A mismatched
+collection/gallery implementation fails the Sphinx build instead of falling back
+to a second, embedded result counter.
 
 A small **Try** row offers context-aware shortcuts without hiding the canonical
 controls. While typing it can suggest matching card titles. For interactive
@@ -581,32 +612,43 @@ set and offers a useful sort such as **Newest first** or **Title A–Z** when th
 sort exists. Suggestions are generated from the gallery metadata, so new filter
 fields and sort fields participate without JavaScript changes.
 
-The options disclosure holds filter/sort controls, Add video or channel,
-Export additions, optional browser preferences, Reset view, Revert to initial
-gallery, and Close options. Add and export forms expand only when needed. The Add
-form includes compact beginner guidance plus prefill chips for Video, Short, Live,
-Watch + list, Channel latest, Playlist latest, and Post source shapes. These chips only
-fill the input and select the replaceable placeholder token; they never submit or add a
-card automatically. A live readiness hint classifies what the visitor pasted before
-submission: exact video sources are marked ready without an API key, while latest channel,
-playlist, Courses, or Post lookups explain when optional site support is needed. A collapsed
-**Site setup for latest/post sources (optional)** disclosure includes a same-origin resolver
-stub so maintainers can keep provider credentials server-side. Escape
-closes options and returns focus to the trigger. Clicking or tapping outside the
-panel also closes it, but leaves focus with the destination the visitor chose.
-Native controls use ordinary Tab navigation. The panel stays in document flow
-to avoid covering players; its height is bounded, overscroll is contained and
-its content scrolls when necessary. The layout follows available gallery width,
-including narrow columns on desktop. Inputs retain 44px minimum height at the
-standard root font size, theme colors, focus outlines and logical RTL spacing.
+The expanded state is intentionally grouped rather than rendered as one long
+utility form. **View** contains Display up to, facets, sort, and Reset view. **Gallery tools**
+contains compact nested panels for Add video/channel, Browser preferences, and
+Export additions. Closed tools share the available width on larger layouts;
+opening one spans the tools area so forms and status messages remain easy to
+read. On tablet and mobile the same structure naturally becomes a single-column
+stack. **Restore original gallery** is kept apart from ordinary Reset because it
+also clears local additions and saved preferences.
+
+The Add form includes compact beginner guidance plus prefill chips for Video,
+Short, Live, Watch + list, Channel latest, Playlist latest, and Post source
+shapes. These chips only fill the input and select the replaceable placeholder
+token; they never submit or add a card automatically. A live readiness hint
+classifies what the visitor pasted before submission: exact video sources are
+marked ready without an API key, while latest channel, playlist, Courses, or
+Post lookups explain when optional site support is needed. A collapsed **Site
+setup for latest/post sources (optional)** disclosure includes a same-origin
+resolver stub so maintainers can keep provider credentials server-side.
+
+There is no separate Close-options button or generic explanatory footer. Escape
+closes the expanded panel and returns focus to the main disclosure, while the
+chevron remains the primary explicit open/close control. The panel remains open
+while the user interacts elsewhere, mirroring AI Learn's inline disclosure
+model rather than popup behavior. Native controls use ordinary Tab navigation.
+The panel stays in document flow inside the same control surface, so it never
+covers players; its height is bounded, overscroll is contained and its content
+scrolls when necessary. The layout follows available gallery width, including
+narrow columns on desktop. Controls keep theme colors, visible focus outlines
+and logical RTL spacing.
 
 | Action | Visible cards | Saved additions / view |
 | --- | --- | --- |
 | Reset view | Clear search/filters/sort; keep added cards | Keep consent; saved filters/sort become clear |
 | Forget saved additions / saved view | Keep the current visible gallery | Clear only that saved scope |
-| Revert to initial gallery | Restore original cards/order, clear view and forms | Clear additions and saved view; turn both remembering choices off |
+| Restore original gallery | Restore original cards/order, clear view and forms | Clear additions and saved view; turn both remembering choices off |
 
-Revert does not reload the page or reset playback in original frames. If browser
+Restore original gallery does not reload the page or reset playback in original frames. If browser
 storage cannot be cleared, the original visible gallery is still restored and
 options stay open with a Forget saved additions retry button. It never clears
 unrelated browser keys. The initial state is the gallery built from your source,

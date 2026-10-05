@@ -1,7 +1,7 @@
 """Run 16.2.6: HF public Share URL derivation and narrow opaque-origin opt-in."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ...._paths import RUNTIME_ROOT
 
 import importlib
 import json

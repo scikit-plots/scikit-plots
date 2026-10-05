@@ -1,0 +1,6 @@
+<fieldset class="learn-generation-card learn-generation-lenses" data-generation-lenses="{{ generation_kind|e }}">
+  <legend class="learn-generation-legend"><span class="learn-generation-step-index">3</span><span>Choose AI lenses<small>Combine audiences, purposes, supporting skills, and role lenses in this one generation request.</small></span></legend>
+  {% set lens_scope = generation_kind %}
+  {% set lens_variant = 'media' %}
+  {% include "learn/ai-lens-profile.html" %}
+</fieldset>

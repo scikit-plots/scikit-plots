@@ -12,13 +12,13 @@ import json
 import httpx
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.artifact_output import (
+from ...._hf_spaces_proxy import app
+from ...._hf_spaces_proxy._providers.artifact_output import (
     OpenAIProviderArtifactOutputExecutor,
     ProviderArtifactOutputRegistry,
     StubProviderArtifactOutputExecutor,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ...._hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     PROVIDER_ARTIFACT_RECEIPT_CONTRACT,
     ProviderArtifactError,
@@ -129,6 +129,8 @@ def test_provider_output_endpoint_returns_binary_with_bounded_provenance(monkeyp
     assert "request_id" not in response.headers["x-ai-artifact-receipt"]
     ids = {row["id"] for row in caps["generators"]}
     assert "stub/generated-png" in ids and "stub/generated-wav" in ids
+    assert caps["endpoint"] == "/v1/image"
+    assert caps["legacy_endpoint"] == "/v1/artifacts/provider-output"
     assert caps["chat_text_is_output_authority"] is False
     assert caps["resource_input_is_output_authority"] is False
 
@@ -268,3 +270,17 @@ def test_openai_output_requires_separate_explicit_deployment_opt_in(monkeypatch)
 
     monkeypatch.setattr(app, "BACKEND_URL", "https://example.com/v1/chat/completions")
     assert app._openai_provider_artifact_output_configured() is False
+
+
+def test_canonical_image_route_is_an_alias_of_provider_artifact_output(monkeypatch) -> None:
+    app._provider_artifact_rl.clear()
+    monkeypatch.setattr(app, "_SHARED_RATE_LIMITER", None)
+    with TestClient(app.app) as client:
+        response = client.post(
+            "/v1/image",
+            content=_body(),
+            headers={"content-type": "application/json"},
+        )
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("image/png")
+    assert response.headers["x-ai-artifact-contract"] == PROVIDER_ARTIFACT_RECEIPT_CONTRACT

@@ -1,0 +1,43 @@
+<div class="learn-evidence-review" data-evidence-review hidden>
+  <div class="learn-evidence-review-heading">
+    <div>
+      <p class="learn-kicker">Evidence workspace</p>
+      <h4>Review sources for {{ spec.title|e }}</h4>
+    </div>
+    <span class="learn-evidence-review-badge" data-evidence-review-summary>{{ citations|length }} attached</span>
+  </div>
+  <p class="learn-meta">Assess catalog evidence before AI generation. These controls do not verify an external source or fetch its URL; they record your local review and choose which catalog evidence may enter AI context.</p>
+  <div class="learn-evidence-review-tools">
+    <button type="button" data-evidence-select-all>Use all in AI context</button>
+    <button type="button" data-evidence-clear-context>Use none</button>
+    <button type="button" data-evidence-review-close>Close</button>
+  </div>
+  <div class="learn-evidence-review-list">
+  {% for citation in citations %}
+    <article class="learn-evidence-review-row" data-evidence-source-id="{{ citation.source_id|default('')|e }}">
+      <div class="learn-evidence-review-source">
+        <label class="learn-evidence-context-toggle"><input type="checkbox" data-evidence-use checked> <span>Use in AI context</span></label>
+        <a href="{{ citation.url|e }}" target="_blank" rel="noopener noreferrer"><strong>{{ citation.title|e }}</strong></a>
+        <span class="learn-meta">{{ citation.locator|e }}</span>
+      </div>
+      <label>Review assessment
+        <select data-evidence-assessment>
+          <option value="not-reviewed" selected>Not reviewed</option>
+          <option value="supports">Supports</option>
+          <option value="partial">Partially supports</option>
+          <option value="challenges">Challenges</option>
+          <option value="unclear">Unclear / needs follow-up</option>
+        </select>
+      </label>
+      <label>Reviewer note
+        <textarea data-evidence-note rows="2" maxlength="1000" placeholder="Optional note about relevance, limits, conflicts, or follow-up."></textarea>
+      </label>
+    </article>
+  {% endfor %}
+  </div>
+  <div class="learn-actions">
+    <button type="button" class="learn-primary" data-evidence-save>Save review state</button>
+    <button type="button" data-evidence-reset>Reset</button>
+  </div>
+  <p class="learn-evidence-review-status" data-evidence-review-status role="status" aria-live="polite" aria-atomic="true">No local evidence assessment recorded yet.</p>
+</div>

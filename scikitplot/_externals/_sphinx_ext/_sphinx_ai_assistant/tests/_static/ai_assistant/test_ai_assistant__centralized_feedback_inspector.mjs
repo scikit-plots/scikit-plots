@@ -12,7 +12,7 @@ ok(!endpoint.includes("_buildExtSub('Feedback telemetry')"), 'Endpoint Configura
 ok(!endpoint.includes("'Send anonymous rating telemetry'"), 'Endpoint Configuration no longer renders telemetry permission');
 ok(!endpoint.includes("'Share feedback for review & model improvement'"), 'Endpoint Configuration no longer renders maintainer-review permission');
 
-ok(feedback.includes("telemetryTitle.textContent = 'Anonymous rating telemetry'"), 'Feedback workspace owns anonymous telemetry');
+ok(!feedback.includes('Anonymous rating telemetry') && !feedback.includes('data-feedback-telemetry-toggle'), 'Feedback workspace has no retired telemetry control');
 ok(feedback.includes("reviewTitle.textContent = 'Maintainer feedback review'"), 'Feedback workspace owns maintainer review');
 ok(feedback.includes("reviewToggle.setAttribute('aria-label', 'Share feedback with maintainers')"), 'maintainer review has one concise sharing control');
 ok(!feedback.includes("toggleStrong.textContent = 'Share with maintainers'"), 'old duplicate maintainer toggle removed');
@@ -32,7 +32,7 @@ ok(src.includes("join('\\n\\n')"), 'readable JSONL separates expanded records cl
 ok(src.includes('Copy/Download still emits strict one-JSON-object-per-line NDJSON') || src.includes('copied/downloaded JSONL remains strict one-record-per-line NDJSON'), 'UI explains readable-view versus strict JSONL export');
 ok(sheet.includes("feedbackInspectFormat === 'json'"), 'Feedback copy/download follows selected format');
 ok(sheet.includes("contributionInspectFormat === 'json'"), 'Contribution copy/download follows selected format');
-ok(feedback.includes("telemetrySummary.textContent = 'Anonymous telemetry JSONL · separate privacy-minimal row'"), 'telemetry JSONL is nested rather than another toolbar button');
+ok(!feedback.includes('Anonymous telemetry JSONL'), 'retired anonymous telemetry JSONL is absent');
 ok(src.includes("application/x-ndjson"), 'JSONL download remains NDJSON MIME');
 ok(src.includes("application/json"), 'JSON download uses JSON MIME');
 

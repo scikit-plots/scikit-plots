@@ -42,12 +42,22 @@ _sphinxcontrib_youtube
 
 Notes
 -----
-*Users:* To register an extension in a Sphinx project, add the full
-dotted path to ``extensions`` in ``conf.py``::
+*Stable/released use:* register extensions through the installed Scikit-plots
+namespace::
 
     extensions = [
         "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
     ]
+
+*Development/test use:* a documentation checkout may expose this exact package
+tree as the standalone ``_sphinx_ext`` namespace.  Child modules are intentionally
+written with relative imports, so their implementation is identical in both
+layouts.  The documentation bootstrap must select one authority before loading
+any child and must never mix the two namespaces in one Sphinx application.
+
+``SPHINX_EXT_STACK_API`` is the cross-extension compatibility handshake used by
+documentation projects that can switch authorities.  Release the whole private
+extension stack together when this API changes.
 
 *Developers:* Add bundled extensions to ``_CORE_PRIVATE_SUBMODULES``.
 Known sibling extensions that are intentionally outside this replacement may
@@ -69,6 +79,12 @@ from __future__ import annotations
 from importlib.util import find_spec
 
 __all__: list[str] = []
+
+# Compatibility handshake for documentation projects that can switch between
+# a checkout-local extension stack and the copy shipped by an installed
+# Scikit-plots release.  Bump only for an incompatible cross-extension API
+# change; individual feature/UI revisions keep their own narrower contracts.
+SPHINX_EXT_STACK_API = 1
 
 # ---------------------------------------------------------------------------
 # Lazy-load registry
@@ -92,7 +108,15 @@ _CORE_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
 #: either deleting unrelated functionality or advertising modules that are
 #: absent from a standalone extraction.
 _OPTIONAL_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
-    {"_sphinx_ai_assistant", "_sphinx_jinja_render"}
+    {
+        "_ansi_sanitizer",
+        "_sphinx_ai_assistant",
+        "_sphinx_ai_learn",
+        "_sphinx_feedback",
+        "_sphinx_gallery_jupyterlite",
+        "_sphinx_jinja_render",
+        "_sphinx_llm",
+    }
 )
 
 _PRIVATE_SUBMODULES: frozenset[str] = _CORE_PRIVATE_SUBMODULES | frozenset(

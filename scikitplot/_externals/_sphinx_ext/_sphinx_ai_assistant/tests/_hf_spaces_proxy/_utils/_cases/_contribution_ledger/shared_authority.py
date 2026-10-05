@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ....._paths import RUNTIME_ROOT
 
 import asyncio
 import hashlib
@@ -460,13 +460,18 @@ def test_redis_scripts_pin_atomic_index_and_claim_contract():
 
 
 def _contribution_payload() -> dict:
+    # The current contribution contract: the route accepts schemaVersion 4
+    # with consent 2.0.0 and nothing older. These cases are about what happens
+    # to a contribution after it is accepted, so the fixture must be one the
+    # route accepts.
     return {
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "consentFlag": True,
-        "consentVersion": "1.0.0",
+        "consentVersion": "2.0.0",
         "page": "https://example.test/docs/page",
         "model": {"id": "claimed", "provider": "claimed", "model": "claimed/model"},
         "records": [{
+            "recordType": "qa",
             "answerIndex": 0,
             "query": "question",
             "answer": "answer",
@@ -502,6 +507,8 @@ def test_transient_promotion_write_becomes_uncertain_and_user_can_withdraw(monke
     monkeypatch.setattr(proxy_app, "_CONTRIBUTION_LEDGER_CONFIG_ERROR", "")
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REQUIRE_SHARED", False)
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REQUIRE_DURABLE", False)
+    # This case exercises the explicit historical ledger promotion path.
+    monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_MODE", "ledger")
     monkeypatch.setattr(proxy_app, "CONTRIBUTION_REVIEW_TOKEN", "review-secret")
 
     calls = {"count": 0}

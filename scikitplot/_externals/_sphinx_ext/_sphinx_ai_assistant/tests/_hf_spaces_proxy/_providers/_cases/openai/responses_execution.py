@@ -9,22 +9,22 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import (
     ProviderPrivateResource,
     ResourceExecutionError,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.openai import (
+from ......_hf_spaces_proxy._providers.openai import (
     OpenAIResourceExecutor,
     official_openai_chat_backend,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import (
+from ......_hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ......_hf_spaces_proxy._utils._resource_contract import (
     ResourceDescriptor,
     VerifiedResource,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _chat(*, stream: bool, resources=()) -> ChatRequest:
@@ -459,7 +459,7 @@ async def test_sse_incomplete_terminal_is_error_not_success() -> None:
 
 def test_buffered_incomplete_response_is_rejected() -> None:
     payload = {"status": "incomplete", "output_text": "partial"}
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers import openai as openai_mod
+    from ......_hf_spaces_proxy._providers import openai as openai_mod
     with pytest.raises(ResourceExecutionError):
         openai_mod._response_text(payload)
 

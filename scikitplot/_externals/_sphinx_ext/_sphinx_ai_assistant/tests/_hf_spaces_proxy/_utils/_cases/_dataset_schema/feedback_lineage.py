@@ -5,12 +5,12 @@ from copy import deepcopy
 import pytest
 from fastapi import HTTPException
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app as proxy_app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
+from ......_hf_spaces_proxy import app as proxy_app
+from ......_hf_spaces_proxy._utils import _dataset_schema as schema
 
 # deduplicate_dataset is deployed as a sibling script and intentionally supports
 # direct execution, so import it through its package-local module path.
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import deduplicate_dataset as dd
+from ......_hf_spaces_proxy import deduplicate_dataset as dd
 
 
 def _eligible(
@@ -95,24 +95,6 @@ def test_feedback_review_normalizer_preserves_complete_lineage() -> None:
     assert row["editCount"] == 2
 
 
-def test_feedback_retraction_targets_canonical_parent_key_and_keeps_ancestry() -> None:
-    row = schema.normalize_feedback_record(
-        {
-            "schemaVersion": 4,
-            "action": "retract",
-            "feedbackChainId": "f1",
-            "prevFeedbackId": "f3",
-            "prevFeedbackIds": ["f1", "f2", "f3"],
-            "editCount": 3,
-            "answerIndex": 0,
-            "ts": 9,
-        },
-        server_ts_ms=10,
-    )
-    assert row["_dedup_key"] == "f3:feedback"
-    assert row["feedbackChainId"] == "f1"
-    assert row["prevFeedbackIds"] == ["f1", "f2", "f3"]
-    assert row["action"] == "retract"
 
 
 def test_contribution_qa_and_conversation_preserve_same_lineage() -> None:

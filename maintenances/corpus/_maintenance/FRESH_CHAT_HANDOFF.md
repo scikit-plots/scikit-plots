@@ -29,3 +29,12 @@ python -B maintenances/corpus/_maintenance/tests/test_contract.py
 ```
 
 Expected on the supplied partial archive: maintenance `PASS`, runtime `FAIL`, release `BLOCKED`. The exact next action is to restore/provide the actual Corpus runtime snapshot, then rerun the gates before reviewing any historical defect or architecture claim.
+
+## Lexical search (2026-09-28)
+
+Free text never reaches FTS5 as syntax: `full_text` is quoted as one phrase
+(`_fts5_phrase`) and ranked retrieval is `SQLiteStorage.search_text`
+(`_fts5_any`). `_BM25Index` uses postings and must stay bit-identical to the
+BM25 definition (`TestBM25PostingsEqualTheDefinition`). Four BM25
+implementations and two tokenisations exist; consolidation is an open design
+decision, recorded in `HISTORY.md`.

@@ -1,0 +1,10 @@
+name: ini
+version: 1
+summary: INI, CFG, properties and TOML files - key = value, sections ignored.
+extensions: [.ini, .cfg, .conf, .properties, .toml]
+splitter: keyvalue
+round_trip: true
+options:
+  separators: ["=", ":"]
+  comments: ["#", ";"]
+packs: [personal, secrets, cloud]

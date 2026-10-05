@@ -235,13 +235,16 @@ on the same proxy without interfering.
 | `security/` | Offline lock/SBOM verifier, policy, CycloneDX Python SBOM, and networked release gates |
 | `docker-compose.hardened.reference.yml` | Operator reference for read-only/rootless/capability-dropped deployment |
 | `README.md` | This file — HF Space metadata + full documentation |
-| `./FEEDBACK_REVIEW_GUIDE.md` | Local ratings, anonymous telemetry, maintainer feedback review, update/withdraw semantics, and reviewer operations |
+| `./FEEDBACK_REVIEW_GUIDE.md` | Local ratings, generic page feedback, maintainer Q&A review, update/withdraw semantics, and reviewer operations |
 | `./DATASET_CONTRIBUTION_GUIDE.md` | Reader + maintainer contribution lifecycle, native review, receipt management, and scenario guide |
 | `DATASET_COLLECTION_GUIDANCE.md` | Deep multi-store operations, provider topology, migration, deduplication, and training-data assembly |
 
-> **Critical** — commit the complete `_utils/` package with `app.py`. The Dockerfile copies
-> `_utils/` as a directory so helper dependencies cannot be accidentally omitted one-by-one.
-> The only supported root-level Python entrypoints are `app.py` and `deduplicate_dataset.py`.
+> **Critical** — commit the complete `_utils/`, `_providers/`, and `_page_feedback/`
+> packages with `app.py`. The Dockerfile copies these runtime packages as directories so
+> deployment dependencies cannot be accidentally omitted one-by-one. `_page_feedback/` is
+> a deterministic deployment mirror of the authoritative `_sphinx_feedback` backend and
+> must remain byte-matched by tests. The only supported root-level Python entrypoints are
+> `app.py` and `deduplicate_dataset.py`.
 
 ---
 
@@ -255,7 +258,7 @@ on the same proxy without interfering.
 | `HEAD` | `/health`              | Health-monitor probe (no body) | Required by HF uptime monitor |
 | `POST` | `/`                    | Backward-compat alias for `/v1/chat/completions` | Identical behaviour |
 | `POST` | `/v1/chat/completions` | Primary proxy — routes to Path 1 / 2 / 3 | Negotiates SSE vs JSON; never relabels JSON as SSE |
-| `POST` | `/v1/feedback`         | Receive 👍/👎 rating; optionally persist the canonical record through the configured Primary + Mirrors | Rate-limited: 30/IP/hour |
+| `POST` | `/v1/feedback`         | Submit generic documentation-page feedback (`page.feedback-request.v1`) through `_sphinx_feedback` | Separate page-feedback service; no Assistant telemetry fallback |
 | `POST` | `/v1/feedback/review` | Open one explicit content-bearing feedback review for exactly one Q&A | Separate versioned review + training consent; provider-native PR/MR; merge makes the Q&A + quality signal eligible |
 | `PUT` | `/v1/feedback/review/{receipt}` | Update the same open feedback review | Requires `X-Feedback-Review-Token`; identical content is a no-op |
 | `GET` | `/v1/feedback/review/{receipt}` | Read content-free feedback review status | Requires `X-Feedback-Review-Token`; detects manual provider merge |
@@ -275,7 +278,7 @@ on the same proxy without interfering.
 | `POST` | `/v1/contribute/{receipt}/promote` | Optional API-driven merge/promotion | Requires `CONTRIBUTION_REVIEW_TOKEN`; in `provider-pr` mode it merges the native PR/MR instead of creating a second direct commit |
 
 > **Feedback operators:** start with [`./FEEDBACK_REVIEW_GUIDE.md`](./FEEDBACK_REVIEW_GUIDE.md)
-> for local ratings, telemetry, one-Q&A maintainer review, revisions, and withdrawal.
+> for local ratings, generic page feedback, one-Q&A maintainer review, revisions, and withdrawal.
 > **Dataset operators:** continue with [`./DATASET_CONTRIBUTION_GUIDE.md`](./DATASET_CONTRIBUTION_GUIDE.md)
 > for the contribution lifecycle. Use [`DATASET_COLLECTION_GUIDANCE.md`](./DATASET_COLLECTION_GUIDANCE.md)
 > for deep provider-storage, migration, deduplication, and multi-store operations.
@@ -419,19 +422,9 @@ ordered record:
 
 The dedicated **Contribute to dataset** sheet also supports **This Q&A** and
 **Rated answers** scopes. Those produce `recordType="qa"` records using the
-historical `query` / `answer` shape. The current v4 envelope always requires
-`consentVersion="2.0.0"`; legacy schema v2/v3 clients remain accepted with their
-historical `1.0.0` consent for compatibility, but legacy consent is not accepted
-for the broader v4 contract.
+historical `query` / `answer` shape. The current contribution envelope requires `schemaVersion=4` and `consentVersion="2.0.0"`. Older contribution schemas are rejected rather than migrated at intake.
 
-Ordinary `/v1/feedback` remains privacy-minimal rating telemetry and never turns
-into content contribution automatically. The browser keeps ratings local unless
-the reader explicitly enables **Send rating telemetry**. Current telemetry uses a
-versioned permission (`telemetryConsent=true`, `telemetryConsentVersion="1.0.0"`)
-and the proxy rejects feedback requests that do not carry that current consent
-contract. Enabling telemetry does not contribute the question, answer, note,
-page, model, or conversation content. Turning telemetry off stops future sends;
-it does not claim erasure of telemetry already accepted by a remote provider.
+`POST /v1/feedback` belongs to `_sphinx_feedback` and accepts only `page.feedback-request.v1`. Assistant ratings stay local; explicit content-bearing Assistant review uses `/v1/feedback/review`.
 
 Each accepted contribution record receives a server receipt-scoped dedup key,
 but raw accepted content is **not** written to provider repositories immediately.
@@ -500,7 +493,15 @@ actually sensitive.
 | `HF_SPACES_MODEL_NAMESPACES` | No | `scikit-plots` | Model owner prefixes routed through the configured Path-2 model Space. |
 | `ALLOWED_ORIGINS` | Custom sites only | comma-separated origins | Exact browser origins such as `https://docs.example.org`. Origins contain only scheme + host (+ optional port): no path, query, fragment, or trailing page URL. |
 | `ALLOWED_ORIGINS_MODE` | No | `additive` | `additive` keeps the bundled Scikit-plots origins and adds `ALLOWED_ORIGINS`; `replace` trusts only `ALLOWED_ORIGINS` and is the recommended mode for forks/downstream sites that want their own CORS boundary. |
-| `CONTRIBUTION_REVIEW_MODE` | No | `provider-pr` or `ledger` | Native provider PR/MR review or historical ledger review. |
+| `LOCAL_DEV_ORIGINS` | Local browser development only | empty | Comma-separated **exact loopback origins** such as `http://127.0.0.1:8000` or `http://localhost:8000`. Non-loopback/public hosts are ignored. This is intentionally separate from `ALLOWED_ORIGINS` so local testing does not widen the public-site trust boundary. |
+| `CONTRIBUTION_REVIEW_MODE` | No | `provider-pr` or `ledger` | Native provider PR/MR review or historical ledger review. Defaults to `provider-pr`; an invalid explicit value fails closed to `ledger`. |
+| `AI_LEARN_PUBLICATION_MODE` | No | `github`, `stub`, or `disabled` | Reviewed AI Learn publication transport. Defaults to `github`; a missing/unauthorized server credential keeps publication unready and fails closed. `stub` never writes GitHub. |
+| `AI_LEARN_GITHUB_REPOSITORY` | No | `scikit-plots/learn` | Fixed server-owned publication repository. Never accepted from browser requests. |
+| `AI_LEARN_GITHUB_DEFAULT_BRANCH` | No | `main` | Fixed workflow dispatch/base branch. |
+| `AI_LEARN_GITHUB_WORKFLOW` | No | `ai-learn-publish.yml` | Fixed workflow file dispatched by the proxy. |
+| `AI_LEARN_CANONICAL_PREFIX` | No | `docs/source/learn-ai` | Fixed canonical JSON subtree revalidated by the repository workflow. |
+| `AI_LEARN_PUBLICATION_MAX_BODY_BYTES` | No | `49152` | Bounded reviewed handoff size; capped below the workflow input ceiling. |
+| `AI_LEARN_PUBLICATION_RATE_LIMIT_PER_HOUR` | No | `6` | Per-client publication abuse bound. |
 
 | `HF_TOKEN_TYPE` | Recommended | `fine-grained` / `read` / `write` | Non-secret classification label for `HF_TOKEN`; avoids `unknown` startup diagnostics. |
 | `HF_DATASET_TOKEN_TYPE` | Legacy HF persistence | `fine-grained` | Non-secret classification label for the dataset-persistence token. |
@@ -530,6 +531,24 @@ ALLOWED_ORIGINS=https://preview.example.org
 ALLOWED_ORIGINS_MODE=additive
 ```
 
+For local documentation development against the deployed HF Space proxy, prefer the
+loopback-only developer setting instead of widening the general site allow-list:
+
+```text
+# HF Space -> Settings -> Variables
+LOCAL_DEV_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+
+# Local docs server
+python -m http.server 8000 --bind 127.0.0.1 --directory build/html
+```
+
+`127.0.0.1` and `localhost` are different browser origins, and the port is part of the origin.
+List only the exact forms you actually use. `LOCAL_DEV_ORIGINS` accepts only `localhost` and
+numeric loopback addresses (for example `127.0.0.1` or `[::1]`); public hosts, wildcard values,
+paths, credentials, query strings, and fragments are ignored. The setting works with both
+`ALLOWED_ORIGINS_MODE=additive` and `replace` because it is a separate explicit local-development
+opt-in. Remove it when local browser testing is no longer needed.
+
 Never use `ALLOWED_ORIGINS=*` in production. CORS is a browser abuse boundary, not authentication;
 server-to-server clients without an `Origin` header still rely on their own token/capability controls.
 
@@ -539,10 +558,11 @@ server-to-server clients without an `Origin` header still rely on their own toke
 |---|---:|---|
 | `HF_TOKEN` | Path 3 inference | Hugging Face inference credential. Prefer least privilege; it should not also be your broad repository-write token. |
 | `AI_RECORD_STORAGE_TOKEN_HF_PRIMARY` | When referenced by `RECORD_STORAGE_TARGETS` | Example HF Primary write credential. The exact name is configurable through each target's `token_env`. |
-| `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR` | When referenced by `RECORD_STORAGE_TARGETS` | Example GitHub Mirror write credential. Use an independent least-privilege token. |
+| `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR` | When referenced by `RECORD_STORAGE_TARGETS` | Example GitHub Mirror write credential. Use an independent least-privilege token. It is also the second-choice AI Learn publication credential only when `AI_LEARN_GITHUB_TOKEN` is unset; that reuse requires explicit access to the fixed Learn repository/workflow and broadens this token’s authority. |
 | `AI_RECORD_STORAGE_TOKEN_*` | Per configured target | Provider-specific HF/GitHub/GitLab/Bitbucket write credential. Only names with this prefix are accepted by storage target configuration. |
 | `HF_DATASET_TOKEN` | Legacy HF-only persistence | Preferred legacy dataset token; fine-grained to the target dataset repository. |
 | `CONTRIBUTION_REVIEW_TOKEN` | Optional | API-driven review/promotion capability. Not required when maintainers review entirely through provider-native PR/MR UI. |
+| `AI_LEARN_GITHUB_TOKEN` | Preferred when `AI_LEARN_PUBLICATION_MODE=github` | Server-only fine-grained GitHub credential used only to dispatch the fixed AI Learn publication workflow. It has precedence. If unset, the proxy may reuse `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR` as an ordered compatibility fallback. Same-organization membership is not sufficient: the selected token must actually be authorized for the fixed `scikit-plots/learn` repository and workflow dispatch. Do not grant content/PR write if Actions-dispatch permission is sufficient. |
 | `RATE_LIMIT_IDENTITY_SECRET` | Redis rate limiting | HMAC key used to pseudonymize shared rate-limit identities. |
 | `CONTRIBUTION_LEDGER_KEY_SECRET` | Redis contribution ledger | HMAC key used to pseudonymize receipt identifiers. |
 | `FEEDBACK_REVIEW_LEDGER_KEY_SECRET` | Redis feedback-review ledger | Optional dedicated HMAC key for feedback-review receipt identifiers; inherits the contribution ledger key secret when omitted. |
@@ -552,11 +572,12 @@ A practical Scikit-plots Space layout is therefore:
 
 ```text
 # Variables
-RECORD_STORAGE_TARGETS=<provider-neutral JSON topology>
+# RECORD_STORAGE_TARGETS=<provider-neutral records override>  # optional; bundled defaults exist
 ALLOWED_MODELS=openai/gpt-oss-20b,Qwen/Qwen2.5-Coder-7B-Instruct,Qwen/Qwen2.5-Coder-32B-Instruct,scikit-plots/gpt-oss-20b,scikit-plots/Qwen2.5-Coder-7B-Instruct,scikit-plots/Qwen2.5-Coder-32B-Instruct
 HF_SPACES_MODEL_NAMESPACES=scikit-plots
 FEEDBACK_REVIEW_MODE=provider-pr
 CONTRIBUTION_REVIEW_MODE=provider-pr
+# AI_LEARN_PUBLICATION_MODE=github  # optional: this is already the default
 ALLOWED_ORIGINS_MODE=additive
 # ALLOWED_ORIGINS may remain empty because both current Scikit-plots sites are built in.
 
@@ -567,13 +588,15 @@ TRAINING_DATASET_REPO=scikit-plots/ai-assistant-contributions
 HF_TOKEN=<inference-token>
 AI_RECORD_STORAGE_TOKEN_HF_PRIMARY=<repo-scoped-write-token>
 AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=<repo-scoped-write-token>
+# Recommended for least privilege; when omitted, the mirror token is only a fallback.
+AI_LEARN_GITHUB_TOKEN=<learn-workflow-dispatch-token>
 ```
 
-The proxy never reads provider token values from `RECORD_STORAGE_TARGETS`; it reads only the
-configured `token_env` name and then resolves that environment variable server-side. Keep token
-values out of `conf.py`, generated Sphinx HTML, JavaScript, logs, repository URLs, and commit metadata.
+The proxy never reads provider token values from `RECORD_STORAGE_TARGETS`; it reads only
+configured `token_env` name(s) and resolves them in order server-side. Keep token values out of
+`conf.py`, generated Sphinx HTML, JavaScript, logs, repository URLs, and commit metadata.
 
-Start with [./FEEDBACK_REVIEW_GUIDE.md](./FEEDBACK_REVIEW_GUIDE.md) for local ratings, telemetry, and maintainer feedback review. Continue with [./DATASET_CONTRIBUTION_GUIDE.md](./DATASET_CONTRIBUTION_GUIDE.md) for contribution review and lifecycle behavior. Then use [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for exact HF/GitHub/GitLab/Bitbucket storage, Primary+Mirror, migration, testing, and deduplication recipes.
+Start with [./FEEDBACK_REVIEW_GUIDE.md](./FEEDBACK_REVIEW_GUIDE.md) for local ratings, generic page feedback, and maintainer feedback review. Continue with [./DATASET_CONTRIBUTION_GUIDE.md](./DATASET_CONTRIBUTION_GUIDE.md) for contribution review and lifecycle behavior. Then use [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md) for exact HF/GitHub/GitLab/Bitbucket storage, Primary+Mirror, migration, testing, and deduplication recipes.
 
 ### Tokens
 
@@ -674,16 +697,20 @@ Effort / Thinking fields and opens a per-model in-memory fallback circuit.
 
 | Variable | Put in | Required? | Description |
 |---|---|---:|---|
-| `RECORD_STORAGE_TARGETS` | Variable | New multi-store mode | Provider-neutral JSON topology with exactly one Primary and optional Mirrors. Contains token environment-variable **names**, never token values. |
+| `RECORD_STORAGE_TARGETS` | Variable | Optional override | Provider-neutral **record** topology with exactly one Primary and optional Mirrors. When absent (and legacy `TRAINING_DATASET_REPO` is also absent), the records projection of the code-owned `DEFAULT_TARGET_REGISTRY` is used. Contains token environment-variable **names**, never token values. |
 | `TRAINING_DATASET_REPO` | Variable | Legacy HF mode only | Backward-compatible HF Dataset repo ID. When `RECORD_STORAGE_TARGETS` is present, the explicit target topology is authoritative; this value may remain for rollback/older discovery consumers. |
-| `FEEDBACK_PERSIST_ENABLED` | Variable | No | Server-side persistence permission for privacy-minimal `/v1/feedback` telemetry. Default is `false`; it cannot override the browser user-consent gate. Telemetry remains non-training even when reviewed feedback is eligible. |
-| `FEEDBACK_REVIEW_MODE` | Variable | No | `provider-pr` (default) enables explicit one-Q&A maintainer review; `disabled` turns the content-bearing review workflow off. This permission is separate from telemetry and contribution. |
+| `FEEDBACK_REVIEW_MODE` | Variable | No | `provider-pr` (default) enables explicit one-Q&A maintainer review; `disabled` turns the content-bearing review workflow off. This permission is separate from generic page feedback and contribution. |
 | `FEEDBACK_REVIEW_TTL_SECONDS` | Variable | No | Feedback-review receipt lifetime; default 7 days, bounded to 1 hour–30 days. |
 | `FEEDBACK_REVIEW_LEDGER_BACKEND` | Variable | No | Feedback management-receipt authority: inherits `CONTRIBUTION_LEDGER_BACKEND` unless explicitly set. Supports `memory`, `sqlite`, or `redis`. |
 | `FEEDBACK_REVIEW_LEDGER_SQLITE_PATH` | Variable | SQLite only | Restart-durable local feedback-review receipt database path. |
 | `FEEDBACK_REVIEW_REQUIRE_DURABLE` | Variable | No | Inherits the contribution durable requirement by default; when true, feedback-review intake fails closed without durable receipt storage. |
 | `FEEDBACK_REVIEW_REQUIRE_SHARED` | Variable | No | Inherits the contribution shared requirement by default; use for multi-replica deployments that require one authoritative receipt domain. |
-| `CONTRIBUTION_REVIEW_MODE` | Variable | `ledger` | `ledger` keeps the historical local/DB quarantine. `provider-pr` creates a native provider review ref immediately after consent; only merge to the canonical branch makes it eligible. |
+| `CONTRIBUTION_REVIEW_MODE` | Variable | `provider-pr` | `provider-pr` (default) creates a native provider review ref immediately after consent; only merge to the canonical branch makes it eligible. `ledger` keeps the historical local/DB quarantine as an explicit compatibility mode and as the fail-closed target for invalid values. |
+
+> **Default-mode migration:** an existing deployment that intentionally relies on
+> the historical local/DB quarantine without a write-ready provider Primary must
+> set `CONTRIBUTION_REVIEW_MODE=ledger` explicitly. With the new default,
+> `provider-pr` fails closed when it cannot open the provider-native review.
 | `CONTRIBUTION_REVIEW_TOKEN` | Secret | Optional | Operator-only token for API-driven merge/promotion. In `provider-pr` mode maintainers may instead merge/close directly in the provider UI. |
 | `CONTRIBUTION_LEDGER_BACKEND` | Variable | No | `memory` (default), `sqlite` (local transactional/restart-durable), or `redis` (shared transactional authority across replicas in one Redis consistency domain). Redis persistence durability is deployment-conditional and is not inferred by the proxy. |
 | `CONTRIBUTION_LEDGER_SQLITE_PATH` | Variable | When using SQLite | Local SQLite database path. Keep it on deployment-owned persistent storage if restart durability is required. |
@@ -697,7 +724,7 @@ Effort / Thinking fields and opens a per-model in-memory fallback circuit.
 
 Actual provider credentials belong in Space **Secrets** referenced by each target's `token_env`. For example, `AI_RECORD_STORAGE_TOKEN_HF_PRIMARY` and `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`.
 
-> **Recommended:** configure storage using `RECORD_STORAGE_TARGETS`; keep the legacy variables only when you need a simple one-HF-repo deployment or a rollback path. Full recipes and security notes are in [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md).
+> **Recommended for the bundled Scikit-plots deployment:** keep the code-owned default record topology and set only its referenced Secrets. Use `RECORD_STORAGE_TARGETS` when you intentionally need a different record Primary/Mirror topology; keep legacy variables only for an existing single-HF-repo deployment or rollback path. Full recipes and security notes are in [DATASET_COLLECTION_GUIDANCE.md](./DATASET_COLLECTION_GUIDANCE.md).
 
 ### Timeouts
 
@@ -719,6 +746,7 @@ All values are in seconds.  Non-integer values silently fall back to the default
 |---|---|---|
 | `ALLOWED_ORIGINS` | empty | Comma-separated exact browser origins. In `additive` mode they are appended to the two bundled defaults (`https://scikit-plots.github.io`, `https://scikit-plots-learn.readthedocs.io`). In `replace` mode they are the complete browser allow-list. Missing `Origin` remains valid for server-to-server clients. `*` is an explicit insecure compatibility escape hatch and is not authentication. |
 | `ALLOWED_ORIGINS_MODE` | `additive` | `additive` retains the bundled project origins; `replace` starts from an empty allow-list and trusts only valid entries from `ALLOWED_ORIGINS`. Invalid values fail safely back to `additive`. |
+| `LOCAL_DEV_ORIGINS` | empty | Optional exact loopback browser origins for local built-doc testing against this deployed proxy. Only `localhost` and numeric loopback addresses are accepted; the exact port remains part of the origin. Public hosts and `*` are ignored. |
 | `DEPLOYMENT_PROFILE` | `compat` | `compat` preserves explicit legacy deployment choices. The hardened Dockerfile sets `strict`, which fails startup as root, rejects wildcard origins and opaque-origin **writes**, and requires verified TLS for all configured Redis authorities. Read-only opaque Share compatibility remains a separate explicit opt-in because local `file://` viewers may need it. |
 | `REDIS_REQUIRE_TLS` | `false` (`true` in strict) | Requires `rediss://`; URL query parameters are rejected so callers cannot disable certificate verification through redis-py URL options. |
 | `REQUIRE_NON_ROOT` | `false` (`true` in strict) | Fails application startup when the process is UID 0 on POSIX. |
@@ -743,9 +771,9 @@ All values are in seconds.  Non-integer values silently fall back to the default
 | `MAX_UPSTREAM_RESPONSE_BYTES` | `8388608` | Maximum decoded upstream response body accepted by the proxy. Enforced while streaming before whole-body buffering and hard-clamped to 32 MiB. Oversize or malformed declared lengths fail closed. |
 | `CHAT_RATE_LIMIT_PER_HOUR` | `30` | Chat requests per resolved client identity. Enforced by the selected local or Redis backend. |
 | `SHARE_RATE_LIMIT_PER_HOUR` | `10` | Global Share creates/updates per resolved client identity. Enforced by the selected backend. |
-| `FEEDBACK_RATE_LIMIT_PER_HOUR` | `30` | Feedback writes, including retractions, per resolved client identity. |
-| `FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR` | `20` | Content-bearing maintainer-feedback review creates/updates per resolved client identity. Separate from anonymous telemetry. |
+| `FEEDBACK_REVIEW_RATE_LIMIT_PER_HOUR` | `20` | Content-bearing maintainer-feedback review creates/updates per resolved client identity. Separate from generic page feedback. |
 | `CONTRIBUTION_RATE_LIMIT_PER_HOUR` | `5` | Contribution writes per resolved client identity. |
+| `DOCUMENT_GENERATION_RATE_LIMIT_PER_HOUR` | `20` | Document generation requests per resolved client identity; clamped to 1–240. |
 | `RATE_LIMIT_BACKEND` | `local` | `local` keeps the bounded per-process abuse gate; `redis` uses one shared atomic fixed-window consistency domain across replicas. |
 | `RATE_LIMIT_REDIS_URL` | empty | Redis connection URL used only with `RATE_LIMIT_BACKEND=redis`. Treat it as a secret. `DEPLOYMENT_PROFILE=strict` requires `rediss://` with certificate and hostname verification. |
 | `RATE_LIMIT_IDENTITY_SECRET` | empty | Server-only HMAC-SHA256 key, at least 32 UTF-8 bytes. Required by Redis mode so raw client identities are not externalized in rate-limit keys. |
@@ -829,9 +857,70 @@ The proxy can persist the same canonical feedback/contribution record to more
 than one repository provider.  The browser never receives write credentials;
 all tokens remain server-side.
 
-`RECORD_STORAGE_TARGETS` is a JSON array with exactly one `primary` and zero or
-more `mirror` targets (maximum 8).  Supported providers are `huggingface`,
-`github`, `gitlab`, and `bitbucket`.
+The code-owned `DEFAULT_TARGET_REGISTRY` is the bundled source of truth for
+provider destinations. It contains three authority-scoped entries: the HF record
+Primary, GitHub record Mirror, and GitHub AI Learn publication Primary. A `role`
+is unique only inside its `authority`, so the two `primary` entries do not compete.
+
+`DEFAULT_RECORD_STORAGE_TARGETS` is derived from that registry and contains only
+the `authority: "records"` projection. That is what `StorageCoordinator` receives.
+If the operator supplies `RECORD_STORAGE_TARGETS`, the explicit value overrides
+the bundled record projection and retains the existing schema: exactly one
+`primary` plus zero or more `mirror` targets (maximum 8). Supported record
+providers are `huggingface`, `github`, `gitlab`, and `bitbucket`.
+
+The bundled registry is equivalent to the following code-owned shape (shown
+here for review; operators normally do not need to set it):
+
+```json
+[
+  {
+    "id": "hf-primary",
+    "label": "Hugging Face Dataset",
+    "authority": "records",
+    "provider": "huggingface",
+    "role": "primary",
+    "repo": "scikit-plots/ai-assistant-contributions",
+    "branch": "main",
+    "paths": {"feedback": "feedback", "contributions": "contributions"},
+    "token_env": "AI_RECORD_STORAGE_TOKEN_HF_PRIMARY",
+    "token_type": "fine-grained",
+    "expose_links": true
+  },
+  {
+    "id": "github-mirror",
+    "label": "GitHub Mirror",
+    "authority": "records",
+    "provider": "github",
+    "role": "mirror",
+    "repo": "scikit-plots/ai-assistant-records",
+    "branch": "main",
+    "paths": {"feedback": "feedback", "contributions": "contributions"},
+    "token_env": "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR",
+    "expose_links": true
+  },
+  {
+    "id": "github-learn-ai",
+    "label": "GitHub Learn AI",
+    "authority": "learn-ai-publication",
+    "provider": "github",
+    "role": "primary",
+    "repo": "scikit-plots/learn",
+    "branch": "main",
+    "workflow": "ai-learn-publish.yml",
+    "paths": {"root": "docs/source", "prefix": "docs/source/learn-ai"},
+    "max_body_bytes": 49152,
+    "rate_limit_per_hour": 6,
+    "token_env": [
+      "AI_LEARN_GITHUB_TOKEN",
+      "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR"
+    ],
+    "expose_links": true
+  }
+]
+```
+
+The derived record-storage projection is:
 
 ```json
 [
@@ -869,9 +958,26 @@ AI_RECORD_STORAGE_TOKEN_HF_PRIMARY_TYPE=fine-grained
 AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR=<github-repo-token>
 ```
 
-Only environment names beginning with `AI_RECORD_STORAGE_TOKEN_` are accepted
-in target configuration.  This prevents a storage target from accidentally
-referencing an unrelated process secret.
+`token_env` accepts either one `AI_RECORD_STORAGE_TOKEN_*` name or a bounded
+ordered array of those names. The first non-empty server-side Secret wins; this
+lets operators rotate or migrate credential names without duplicating target
+definitions. Every candidate is validated against the same storage-only prefix,
+so record storage still cannot borrow unrelated process secrets. For example:
+
+```json
+"token_env": [
+  "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR",
+  "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR_LEGACY"
+]
+```
+
+Do not place `AI_LEARN_GITHUB_TOKEN` in an operator-supplied
+`RECORD_STORAGE_TARGETS` entry. AI Learn publication is a separate authority.
+Its `github-learn-ai` Primary lives in the code-owned `DEFAULT_TARGET_REGISTRY`,
+where `token_env` is the fixed ordered list `AI_LEARN_GITHUB_TOKEN` then
+`AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`. The publication projection is never
+passed to `StorageCoordinator`, so feedback/contribution writes cannot reach the
+`scikit-plots/learn` repository through the record-storage loop.
 
 Use **private repositories** for feedback/contribution records unless you have an
 explicit public-data policy. Set `"expose_links": false` on a target when its
@@ -918,8 +1024,13 @@ provider, role, repo, branch, record paths, status, public links, and token
 
 ### Backward compatibility
 
-If `RECORD_STORAGE_TARGETS` is absent, the existing configuration is synthesized
-as one Hugging Face primary target:
+Precedence is intentionally migration-safe:
+
+1. explicit `RECORD_STORAGE_TARGETS` / `DATASET_TARGETS_JSON`;
+2. legacy `TRAINING_DATASET_REPO`, synthesized as one Hugging Face Primary;
+3. otherwise the bundled `DEFAULT_RECORD_STORAGE_TARGETS` projection.
+
+Legacy synthesis still uses:
 
 ```text
 TRAINING_DATASET_REPO
@@ -927,7 +1038,10 @@ HF_DATASET_TOKEN (preferred) or HF_WRITE_TOKEN (legacy alias) or HF_TOKEN (fallb
 HF_DATASET_TOKEN_TYPE / HF_WRITE_TOKEN_TYPE / HF_TOKEN_TYPE
 ```
 
-No migration is required for existing deployments.
+Existing deployments that already set `TRAINING_DATASET_REPO` therefore keep
+their historical single-HF behavior without migration. New bundled deployments
+can omit both topology variables and use the code-owned HF Primary + GitHub
+Mirror defaults.
 
 Provider credential minimums for mirror targets:
 
@@ -1039,6 +1153,7 @@ HF_DATASET_TOKEN           = hf_<fine-grained-dataset-token>
 # Leave empty to use only those defaults, or add exact custom origins.
 ALLOWED_ORIGINS            =
 ALLOWED_ORIGINS_MODE       = additive
+LOCAL_DEV_ORIGINS          =
 # Fork/downstream alternative:
 # ALLOWED_ORIGINS=https://docs.example.org,https://learn.example.org
 # ALLOWED_ORIGINS_MODE=replace
@@ -1051,6 +1166,151 @@ SHARE_ALLOW_OPAQUE_ORIGIN_WRITE = false
 
 ---
 
+## Canonical multimodal generation routes
+
+The public Space exposes one compact generation route per output modality while
+retaining compatibility aliases for older clients:
+
+| Capability | Canonical route | Compatibility / underlying authority |
+| --- | --- | --- |
+| Chat | ``POST /v1/chat/completions`` | existing chat authority |
+| Image | ``POST /v1/image`` | ``/v1/image-generations`` and ``/v1/artifacts/provider-output`` |
+| Video | ``POST /v1/video`` | ``/v1/video-generations`` |
+| Audio | ``POST /v1/audio`` | ``/v1/audio-generations`` |
+| Document | ``POST /v1/document`` | ``/v1/document-generations`` alias |
+| AI Learn reviewed publication | ``GET/POST /v1/learn`` | explicit reviewed workflow dispatch; ``/v1/learn-publication`` alias |
+
+``GET /v1/learn`` exposes only non-secret fixed policy. ``GET/POST /v1/learn-publication`` is the long-form alias. The default
+transport mode is ``github``; publication is still unavailable until a valid
+server-side dispatch credential is resolved. Credential precedence is fixed in
+code: ``AI_LEARN_GITHUB_TOKEN`` first, then
+``AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`` as a compatibility fallback. The
+fallback does not gain cross-repository rights merely because both repositories
+share an organization; its GitHub permissions must include the fixed Learn repo.
+
+``POST`` with ``action=test`` verifies disabled/stub/GitHub workflow readiness
+without writing. ``action=publish`` accepts a bounded reviewed draft envelope.
+``action=feedback`` accepts a bounded generation-bound rating event: quick AI Learn
+feedback uses ``-1/+1`` while the detailed panel may submit any integer from ``-5``
+through ``+5`` plus optional bounded public comment/credit. Both actions use the same
+reviewed JSON-only workflow; in ``stub`` mode they return simulated receipts with no
+GitHub write, and in ``github`` mode they may dispatch only the server-configured
+repository workflow. Feedback is append-only and targets an immutable generation id,
+so the repository may accept it from an older static page revision only when that
+exact generation still exists. Repository projection remains inside
+``_sphinx_ai_learn`` in the checked-out repository.
+
+The repository workflow uses two separate GitHub authorities. The server-side
+``AI_LEARN_GITHUB_TOKEN`` (or its documented fallback) only dispatches the fixed
+workflow. Once that workflow is running in ``scikit-plots/learn``, its
+repository-scoped ``GITHUB_TOKEN`` performs the reviewed branch and PR write with
+job-local ``contents: write`` and ``pull-requests: write`` permissions. Checkout
+keeps ``persist-credentials: false``: Git credentials are not left in the
+repository configuration. Instead, only the branch-replay/fetch and push steps
+receive ``GH_TOKEN`` plus a fail-closed ``GIT_ASKPASS`` bridge, with terminal
+credential prompting disabled. The token is therefore neither embedded in the
+remote URL nor persisted in Git config.
+
+Workflow operations are mutually exclusive and default-branch bound: ``test``
+runs only the transport check, while ``publish`` runs only the validation/PR job,
+and both require ``github.ref_name`` to equal the repository default branch. A
+deterministic ``ai-learn/<request-id>`` branch with an existing open PR is
+replayed. If a prior run pushed the branch but failed before opening the PR, a
+retry may reuse that orphan branch only when its branch-side changes are all
+canonical ``docs/source/learn-ai/*.json`` paths **and** its complete canonical
+Learn tree exactly matches the newly rebuilt reviewed plan. A request whose prior
+PR is already closed or merged is terminal and is never silently reopened as a
+second review. Any other branch collision fails closed instead of being
+overwritten.
+
+Image and Whiteboard generation reuse the provider-artifact registry and its
+validated binary lifecycle. Document generation reuses the server-owned chat/model
+authority but returns a bounded document artifact contract (Markdown, RST, or
+plain text); generation does not imply publication. Uploaded document resources
+in chat remain a separate input capability.
+
+## Video generation lifecycle gateway
+
+Video generation is deliberately separate from chat and is **disabled by
+default**. The public route may exist while execution remains closed; browsers
+should trust ``capabilities.video_generation.enabled`` rather than route
+presence. Three operator modes are supported:
+
+| ``VIDEO_GENERATION_MODE`` | Purpose | Publishes media | Lifecycle authority |
+| --- | --- | --- | --- |
+| ``disabled`` | production-safe default | no | none |
+| ``stub`` | deterministic end-to-end UI/API testing | **no** | bounded process memory |
+| ``upstream`` | delegate to the real renderer/publisher | backend-defined (normally YouTube) | upstream service |
+
+Configuration:
+
+```bash
+# Safe default
+VIDEO_GENERATION_MODE=disabled
+
+# End-to-end browser/proxy test without uploading anything
+# VIDEO_GENERATION_MODE=stub
+# VIDEO_GENERATION_STUB_READY_SECONDS=3
+
+# Real generation service (exact collection endpoint)
+# VIDEO_GENERATION_MODE=upstream
+# VIDEO_GENERATION_UPSTREAM_URL=https://video-runtime.example.org/v1/video-generations
+# VIDEO_GENERATION_UPSTREAM_TOKEN=<server-only bearer token>
+# VIDEO_GENERATION_TIMEOUT_SECONDS=600
+# VIDEO_GENERATION_RATE_LIMIT_PER_HOUR=12
+```
+
+``VIDEO_GENERATION_UPSTREAM_TOKEN`` is a Space Secret. It is attached only by
+the proxy to the exact configured upstream HTTPS authority and never appears in
+Sphinx HTML, capability discovery, generation receipts, logs, or the public
+Assistant model/endpoint bridges. The proxy canonicalizes the Learn request
+before forwarding it and validates/privacy-minimizes successful job receipts.
+Obvious localhost/private IP source URLs are rejected at this boundary; the real
+source-ingestion service must still perform DNS/redirect SSRF validation at fetch
+time.
+
+The canonical public lifecycle API is:
+
+```text
+POST /v1/video
+GET  /v1/video/{generation_id}
+POST /v1/video/{generation_id}/cancel
+POST /v1/video/{generation_id}/retry
+POST /v1/video/{generation_id}/archive
+POST /v1/video/{generation_id}/restore
+```
+
+The previous ``/v1/video-generations`` family remains a compatibility alias.
+``GET /v1/video`` (and its legacy alias) is deliberately **test-only**: it enumerates the
+bounded in-memory jobs in ``stub`` mode and returns 405 in ``upstream`` mode.
+Learn's **Your Videos** gallery is a browser-local receipt library, so a public
+proxy never needs to enumerate a shared upstream collection. Individual job
+status is resolved from the opaque ``generation_id`` returned by creation. A
+future authenticated account library should introduce an explicit ownership
+contract instead of silently repurposing this public route.
+
+Creation requires ``Idempotency-Key``. Stub mode honors the same idempotency and
+lifecycle contracts as upstream mode but returns ``result.test_mode=true``, an
+empty media URL, ``publishes_media=false``, and ``publish_provider=none``. This
+is intentional: a successful lifecycle test must never be mistaken for a
+YouTube publication. In Learn, the primary button therefore becomes **Run Test
+Generation** and the readiness row reports **Publishing · No publish**.
+
+For an upstream rollout, activate in this order:
+
+1. keep ``VIDEO_GENERATION_MODE=disabled`` while deploying the proxy changes;
+2. exercise ``stub`` mode from ``/learn-ai/videos/new`` and verify submit,
+   polling, model provenance, idempotency, archive/restore, and error states;
+3. configure the exact upstream URL/token as Variables/Secrets and switch to
+   ``upstream``;
+4. verify ``GET /health`` advertises ``enabled:true``, ``test_mode:false``, the
+   expected contracts/actions, and ``publishes_media:true`` before allowing a
+   production generation;
+5. keep YouTube/OAuth/upload credentials only in the generation service, never
+   in the browser-facing proxy configuration.
+
+---
+
 ## Verify the deployment
 
 ```bash
@@ -1058,11 +1318,21 @@ BASE=https://scikit-plots-ai.hf.space
 
 # 1. Liveness probe
 curl $BASE/health
-# {"status":"ok","version":"7.4.0"}
+# {"status":"ok","version":"7.9.1"}
 
 # Optional deterministic stub rig status
 curl -s $BASE/health | python3 -m json.tool
 # capabilities.stub.enabled is true only when STUB_ENABLED=true.
+# Video generation is independently gated:
+# capabilities.video_generation.enabled / mode / test_mode / publishes_media
+
+# 1b. Safe lifecycle smoke test (only after setting VIDEO_GENERATION_MODE=stub)
+# curl -s $BASE/ | python3 -c 'import json,sys; print(json.load(sys.stdin)["capabilities"]["video_generation"])'
+# curl -sS -X POST $BASE/v1/video \
+#   -H 'Content-Type: application/json' \
+#   -H 'Idempotency-Key: video-smoke-1' \
+#   -d '{"contract":"learn.video-generation-request.v1","client_request_id":"video-smoke-1","input":{"mode":"prompt","prompt":"Explain Lasso regularization."},"instructions":"","presentation":{"style":"explainer","length":"short","language":"en","voice":"default","aspect_ratio":"16:9","captions":true,"branding":true},"model_selection":null,"provenance":{"site_id":"smoke","catalog_revision":"smoke","source_page":"https://scikit-plots.github.io/"}}'
+# Expected: 202 + learn.video-generation-job.v1 with result.test_mode=true once ready.
 
 # 2. Full status — check routing, token slots, and record-storage readiness
 curl $BASE/ | python3 -m json.tool
@@ -1243,7 +1513,7 @@ Record-storage provider control responses are bounded independently from intenti
 
 ### Native maintainer feedback review (`FEEDBACK_REVIEW_MODE=provider-pr`)
 
-This is a separate content-bearing workflow from anonymous `/v1/feedback` telemetry.
+This is a separate content-bearing workflow from generic page feedback on `/v1/feedback`.
 The browser must hold the current versioned **Share feedback with maintainers**
 permission before it sends one Q&A + rating + optional note to `/v1/feedback/review`.
 Telemetry consent never authorizes this endpoint.
@@ -1271,7 +1541,7 @@ inherits the contribution ledger configuration, but it may be configured
 independently. Redis URLs and feedback ledger key secrets belong in Space Secrets.
 
 Read [FEEDBACK_REVIEW_GUIDE.md](./FEEDBACK_REVIEW_GUIDE.md) for the browser UX,
-reviewer workflow, telemetry explanation, update/no-op semantics, and troubleshooting.
+reviewer workflow, generic page-feedback boundary, update/no-op semantics, and troubleshooting.
 
 ### Native provider review quarantine (`CONTRIBUTION_REVIEW_MODE=provider-pr`)
 

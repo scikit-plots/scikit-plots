@@ -619,3 +619,37 @@ inspect → save → patch → continue. Promotion now returns the registered le
 entry so Continue editing can stage the exact tracked revision. Verification:
 T97 16/16, latest-preview 203/203, working-file 144/144, Node/UI 169/169,
 mutation anchors 272/272 and 269/269 mutants caught.
+
+## 2026-10-02 — test drift closed; two source defects found behind it
+
+The suite had 31 failures hidden behind a collection error. Twenty-eight were
+tests asserting a contract the source had left behind; three were defects in
+the source that the stale tests had stopped reaching.
+
+- **`AIA-021` regressed and is closed again.** Endpoint storage schema v9
+  dropped the legacy migration, and with it the rewrite that scrubbed stored
+  bearer tokens: the loader returned early on any non-current blob and left it
+  in `localStorage`. The loader now removes a blob that is not the current
+  schema and rewrites a current one that carries any field outside the
+  persisted set. `test_ai_assistant__endpoint_secret_lifecycle.mjs` was missing
+  while two mutants still named it; it is restored with 32 assertions.
+- **Unbounded browser read.** The AI Learn publication test buffered the
+  whole response with `response.text()` and measured it afterwards. It now
+  reads through `_readResponseTextBounded`.
+- **Retired Worker feedback route.** The Worker has no `/v1/feedback`; the
+  mutant, the rate-limit scope list, the body-gate list and the Worker config
+  comments still described it. The proxy checks are now made on the syntax
+  tree: every rate-limit identity derives from `_client_ip`, every body is read
+  through `_read_limited_body`.
+- **Version restated in fixtures.** Release-evidence fixtures carried the
+  proxy version as a literal; the 7.9.1 bump failed fourteen tests on
+  `RELEASE_PROXY_VERSION_MISMATCH` before they reached their subject. Fixtures
+  read the version from the source; the two ratchets are floors.
+- **Contribution intake is schemaVersion 4 only.** Fixtures and the legacy-v3
+  test follow the route.
+- **Script-run test module.** `ci/test_run_redis_chaos.py` re-runs itself as a
+  script and must not import relatively; the layout test now checks every
+  module with a `__main__` block. Its cluster bootstrap waited for node 0
+  only and raced the gossip.
+- Result: 2790 passed, 2 skipped, 0 failed (CPython 3.11, pinned proxy
+  requirements, Redis 7.0.15).

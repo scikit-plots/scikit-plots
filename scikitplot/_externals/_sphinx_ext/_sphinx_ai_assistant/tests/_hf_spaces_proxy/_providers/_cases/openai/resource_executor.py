@@ -8,11 +8,11 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ResourceExecutionError, ResourceExecutionSession
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.openai import OpenAIResourceExecutor
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import ResourceExecutionError, ResourceExecutionSession
+from ......_hf_spaces_proxy._providers.openai import OpenAIResourceExecutor
+from ......_hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _upload(rid: str, data: bytes, *, modality: str, mime: str, name: str) -> ResourceUpload:
@@ -113,7 +113,7 @@ async def test_release_deletes_private_file_and_404_is_idempotent_success():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
         ex = OpenAIResourceExecutor(api_key="secret", client=client)
-        from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ProviderPrivateResource
+        from ......_hf_spaces_proxy._providers.executor import ProviderPrivateResource
         h1 = ProviderPrivateResource("r0", "native", "openai", "a"*64, 1, {"file_id": "file-abc"})
         h2 = ProviderPrivateResource("r1", "native", "openai", "b"*64, 1, {"file_id": "file-already-gone"})
         await ex.release(h1); await ex.release(h2)

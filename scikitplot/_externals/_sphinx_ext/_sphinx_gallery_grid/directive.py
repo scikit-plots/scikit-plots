@@ -24,6 +24,7 @@ file both work out of the box.
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, ClassVar
@@ -32,8 +33,11 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.application import Sphinx
+from sphinx.errors import ConfigError
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxDirective
+
+from .._search_variant import resolve_search_variant, search_variant_option
 
 # -- shared collection engine -------------------------------------------------
 # Selection, grouping, browser metadata and assets are first-party siblings of
@@ -42,21 +46,28 @@ from sphinx.util.docutils import SphinxDirective
 # this exact implementation.
 from .._sphinx_collection import (
     CONTAINER_CLASS,
+    CONTRACT_CLASS,
+    SEARCH_VARIANTS,
     SEARCHABLE_CLASS,
     SECTION_STYLES,
     FilterError,
     Selection,
     apply_selection,
+    collection_assets_outdated,
     ensure_assets,
     group_records,
     has_field,
+    register_collection_asset_revision,
+    remember_collection_asset_revision,
     render_sections,
+    verify_collection_assets,
 )
 from .._sphinx_collection._browser import (
     collection_id,
     field_names,
     metadata_node,
     record_for_browser,
+    status_node,
 )
 from .._sphinx_collection._presentation import CARD_SPEC, GRID_SPEC, forwarded
 from .._sphinx_collection._yaml import (
@@ -415,6 +426,99 @@ _RESERVED_ITEM_KEYS = frozenset(
 
 
 # -- scikit-plots local patch: confine data files to the source tree ---------
+#: URL schemes a card may link to. Anything else with a scheme -- notably
+#: ``javascript:`` and ``data:`` -- would be written into ``href`` as given.
+_LINK_SCHEMES = frozenset({"http", "https", "mailto"})
+
+_SCHEME_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*(?=:)")
+
+
+def _single_line(value: Any) -> Any:
+    """
+    Collapse every run of whitespace in a string to one space.
+
+    Parameters
+    ----------
+    value : Any
+        A card title, image reference or option value.
+
+    Returns
+    -------
+    Any
+        The string on one line with no leading or trailing space; any other
+        type unchanged.
+
+    Notes
+    -----
+    **Developer notes.** These values are written into generated directive
+    source: the title as the directive argument, each option as ``:key:
+    value``. A line break inside one ends that construct, and what follows it
+    is parsed as markup of its own -- a ``raw`` directive, for instance. Item
+    data is not markup, so it is kept on its line. ``header`` and ``content``
+    are markup by design and are not passed through here.
+    """
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+def _checked_link(value: Any, title: Any) -> Any:
+    """
+    Return ``value`` if it is a link a card may carry.
+
+    Parameters
+    ----------
+    value : Any
+        The item's ``link``, already on one line.
+    title : Any
+        The item's title, for the error message.
+
+    Returns
+    -------
+    Any
+        ``value`` unchanged.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` names a scheme other than ``http``, ``https`` or
+        ``mailto``. A value with no scheme (a relative path, a fragment) is
+        accepted.
+    """
+    scheme = _SCHEME_RE.match(value) if isinstance(value, str) else None
+    if scheme and scheme.group(0).lower() not in _LINK_SCHEMES:
+        raise ValueError(
+            f"item {title!r}: link uses the {scheme.group(0)!r} scheme; a card "
+            "links to an http, https or mailto address, or to a relative path"
+        )
+    return value
+
+
+#: Environment attribute holding the configuration directory, as a string.
+_CONFDIR_ATTRIBUTE = "sk_gallery_grid_confdir"
+
+
+def _record_confdir(app: Sphinx, env: Any, docnames: Any) -> None:
+    """
+    Record the configuration directory on the environment before reading.
+
+    Parameters
+    ----------
+    app : sphinx.application.Sphinx
+        The running application.
+    env : sphinx.environment.BuildEnvironment
+        The environment directives will see.
+    docnames : list of str
+        Documents about to be read; unused.
+
+    Notes
+    -----
+    **Developer notes.** A directive has the environment, not the
+    application. ``confdir`` is copied onto the environment through the
+    public ``env-before-read-docs`` event, once per build and before any
+    directive runs, so parallel readers inherit it with the environment.
+    """
+    setattr(env, _CONFDIR_ATTRIBUTE, str(app.confdir))
+
+
 def _confined_path(directive, reference: str) -> Path:
     """
     Resolve a data-file reference and confine it to the source tree.
@@ -451,7 +555,10 @@ def _confined_path(directive, reference: str) -> Path:
     source, _ = directive.get_source_info()
     candidate = (Path(source).parent / reference).resolve()
     roots = [Path(directive.env.srcdir).resolve()]
-    confdir = getattr(directive.env.app, "confdir", None)
+    # Recorded by _record_confdir. BuildEnvironment.app, the old way to
+    # reach the configuration directory from a directive, is deprecated in
+    # Sphinx 9 and removed in Sphinx 11.
+    confdir = getattr(directive.env, _CONFDIR_ATTRIBUTE, None)
     if confdir:
         roots.append(Path(confdir).resolve())
     for root in roots:
@@ -500,7 +607,16 @@ class GalleryGridDirective(SphinxDirective):
     This directive can be used from both MyST (Markdown) and reStructuredText
     pages. It detects which markup language the calling page uses and
     generates the matching Sphinx Design syntax automatically -- no extra
-    configuration is required from the page author.
+    configuration is required from the page author. ``:searchable:`` and
+    ``:interactive:`` use the shared collection search shell. Its presentation
+    defaults to ``collection_search_variant`` and can be overridden for one
+    directive with ``:search-variant:`` / ``:search_variant:``. The activating
+    options also accept a shorthand value, for example ``:interactive: classic``;
+    their traditional valueless form remains backward compatible. Enhanced
+    galleries use the shared bounded-view controller: 12 cards by default, a
+    12/25/50/75/100/125/150 display selector in the expanded View panel, and a
+    grid-end Load 12 more action. This reader-side window is independent of the
+    directive's build-time ``:limit:`` / ``:offset:`` selection.
     """
 
     name = "gallery-grid"
@@ -531,8 +647,10 @@ class GalleryGridDirective(SphinxDirective):
         "section-style": lambda argument: directives.choice(
             (argument or "auto").strip().lower(), SECTION_STYLES
         ),
-        "searchable": directives.flag,
-        "interactive": directives.flag,
+        "searchable": search_variant_option,
+        "interactive": search_variant_option,
+        "search-variant": search_variant_option,
+        "search_variant": search_variant_option,
         "filter-fields": field_names,
         "sort-fields": field_names,
         "search-label": directives.unchanged,
@@ -648,6 +766,14 @@ class GalleryGridDirective(SphinxDirective):
 
         item.update(forwarded(self.options, "card-"))
         item["class-card"] = (str(item.get("class-card", "")) + " " + token).strip()
+
+        # Item data is written into directive source below; keep each value
+        # on its own line and refuse a link the browser would execute.
+        title = _single_line(title)
+        image = _single_line(image)
+        item = {key: _single_line(value) for key, value in item.items()}
+        if "link" in item and str(item.get("link-type", "url")).lower() == "url":
+            _checked_link(item["link"], title)
 
         if rst:
             body_parts = []
@@ -795,9 +921,23 @@ class GalleryGridDirective(SphinxDirective):
         # Real document sections where the context allows one, rubrics where
         # it does not -- decided per invocation, never an error. See
         # `_sphinx_collection.sections`.
-        parts = [
-            (label, self._render_grid(group, rst=rst)) for label, group in sections
-        ]
+        # A group with no records is not rendered: a ``grid`` directive with
+        # no cards is an error to sphinx-design ("Content block expected"),
+        # which turned a deliberately empty gallery, ``:limit: 0`` and a
+        # filter matching nothing into build errors. The reader is told
+        # below that nothing matched.
+        try:
+            parts = [
+                (label, self._render_grid(group, rst=rst))
+                for label, group in sections
+                if group
+            ]
+        except ValueError as exc:
+            return [
+                self.state_machine.reporter.error(
+                    f"gallery-grid: {exc}", line=self.lineno
+                )
+            ]
         rendered = render_sections(
             self, parts, self.options.get("section-style", "auto"), logger
         )
@@ -822,7 +962,7 @@ class GalleryGridDirective(SphinxDirective):
         # themselves. Harmless when the assets are absent: it is a plain div.
         classes = [CONTAINER_CLASS]
         if "searchable" in self.options or "interactive" in self.options:
-            classes.append(SEARCHABLE_CLASS)
+            classes.extend((SEARCHABLE_CLASS, CONTRACT_CLASS))
         wrapper = nodes.container(classes=classes)
         if "searchable" in self.options or "interactive" in self.options:
             # Carried in a hidden node, not a `data-` attribute: docutils'
@@ -832,7 +972,21 @@ class GalleryGridDirective(SphinxDirective):
                 text=self.options.get("search-label") or "Filter this gallery",
                 classes=["sk-collection-label"],
             )
-        wrapper += metadata_node(self._browser_records, self.options)
+        browser_options = dict(self.options)
+        try:
+            browser_options["search-variant"] = resolve_search_variant(
+                self.options, self.config.collection_search_variant
+            )
+        except ValueError as exc:
+            raise self.error(str(exc)) from exc
+        wrapper += metadata_node(self._browser_records, browser_options)
+        if "searchable" in self.options or "interactive" in self.options:
+            # Build the live-result row into the document as a sibling of the
+            # future controls shell.  The shared browser asset inserts controls
+            # immediately before this node and only updates its text/visibility.
+            # Keeping status out of the control container at document-build time
+            # prevents the compact search row from ever owning match metadata.
+            wrapper += status_node(len(self._browser_records))
         wrapper += rendered
         return [wrapper]
         # -- end scikit-plots local patch ------------------------------------
@@ -947,6 +1101,14 @@ def _register_assets(app: Sphinx) -> None:
     ensure_assets(app)
 
 
+def _validate_collection_search_variant(app: Sphinx, config: Any) -> None:
+    """Fail early when the shared collection search presentation is invalid."""
+    if config.collection_search_variant not in SEARCH_VARIANTS:
+        raise ConfigError(
+            "collection_search_variant must be 'pill-overflow' or 'classic'"
+        )
+
+
 def setup(app: Sphinx) -> dict[str, Any]:  # ruff: ignore[undocumented-param]
     """
     Add custom configuration to sphinx app.
@@ -965,6 +1127,12 @@ def setup(app: Sphinx) -> dict[str, Any]:  # ruff: ignore[undocumented-param]
 
     check_namespace(app, __package__.rsplit(".", 1)[0])
     app.setup_extension("sphinx_design")
+    app.add_config_value(
+        "collection_search_variant", "pill-overflow", "env", types=[str]
+    )
+    register_collection_asset_revision(app)
+    app.connect("config-inited", _validate_collection_search_variant)
+    app.connect("env-before-read-docs", _record_confdir)
 
     app.add_directive("gallery-grid", GalleryGridDirective)
     # scikit-plots local patch: browser enhancements (lazy images, optional
@@ -974,6 +1142,13 @@ def setup(app: Sphinx) -> dict[str, Any]:  # ruff: ignore[undocumented-param]
         "builder-inited",
         lambda a: _register_assets(a),  # ruff: ignore[unnecessary-lambda]
     )
+    # The collection CSS/JS are globally registered generated assets.  Their
+    # content can change while the RST documents do not.  Force incremental
+    # HTML builds to rewrite pages when that happens so Sphinx refreshes the
+    # static-asset cache token instead of leaving browsers on an older UI.
+    app.connect("env-get-outdated", collection_assets_outdated)
+    app.connect("env-updated", remember_collection_asset_revision)
+    app.connect("build-finished", verify_collection_assets)
 
     return {
         "parallel_read_safe": True,

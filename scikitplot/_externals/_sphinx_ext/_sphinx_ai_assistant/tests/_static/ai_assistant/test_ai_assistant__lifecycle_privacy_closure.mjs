@@ -42,13 +42,10 @@ function domRuntime(seed={}) {
   };
   class CustomEvent { constructor(type, init={}) { this.type=type; this.detail=init.detail; } }
   const code = `
-    var _FEEDBACK_TELEMETRY_CONSENT_VERSION='1.0.0';
-    var _feedbackTelemetryGrantedAt=1700000000000;
     var _FEEDBACK_DOM_CONSENT_VERSION='2.0.0';
     var _FEEDBACK_DOM_PREF_KEY='ai-assistant-page-integration-consent';
     ${extract('_readFeedbackDomConsent')}
     var _feedbackDomIntegrationEnabled=_readFeedbackDomConsent();
-    ${extract('_feedbackTelemetryPayload')}
     ${extract('_feedbackLocalEventPayload')}
     ${extract('_dispatchFeedbackIntegrationEvent')}
     ${extract('_feedbackDomStatusText')}
@@ -79,7 +76,7 @@ t('current page integration consent restores', r.api.enabled(), true);
 t('allowed dispatch reports true', r.api.dispatch(detail), true);
 t('one public event emitted', r.events.length, 1);
 t('public event name', r.events[0].type, 'ai-assistant-feedback');
-for (const key of ['query','answer','message','model','page','conversationId','telemetryConsent','telemetryConsentVersion','telemetryConsentAt']) {
+for (const key of ['query','answer','message','model','page','conversationId']) {
   ok(!(key in r.events[0].detail), `public event omits ${key}`);
 }
 t('public event keeps bounded rating value', r.events[0].detail.ratingValue, 1);

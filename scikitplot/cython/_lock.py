@@ -37,7 +37,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from typing import Generator, Iterator  # ruff: ignore[unused-import]
 
 __all__ = [
     "build_lock",
@@ -97,7 +97,7 @@ def build_lock(  # ruff:ignore[too-many-branches]
     timeout_s: float = 60.0,
     poll_s: float = 0.05,
     stale_after_s: float | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:  # Iterator[None]
     """
     Acquire an exclusive build lock via atomic directory creation.
 
@@ -118,7 +118,7 @@ def build_lock(  # ruff:ignore[too-many-branches]
 
     Returns
     -------
-    Iterator[None]
+    Generator[None, None, None]
         Context manager that yields once the lock is held.
 
     Raises

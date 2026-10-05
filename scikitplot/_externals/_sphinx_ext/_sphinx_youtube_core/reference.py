@@ -127,18 +127,23 @@ _HOST_SUFFIXES = (
 #: YouTube operates country-code domains (``youtube.de``, ``youtube.co.uk``)
 #: that redirect to ``.com``. Accepting them costs nothing and spares a
 #: reader an inexplicable rejection.
-_CCTLD_HOST_RE = re.compile(r"(?:^|\.)youtube\.(?:[a-z]{2}|co\.[a-z]{2})$")
+_CCTLD_HOST_RE = re.compile(r"(?:^|\.)youtube\.(?:[a-z]{2}|co\.[a-z]{2})\Z")
 
 
 # -- identifier shapes --------------------------------------------------------
 #: Canonical video id: exactly 11 URL-safe base64 characters.
-_VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+_VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}\Z")
 
 #: Canonical channel id: ``UC`` followed by 22 URL-safe base64 characters.
-_CHANNEL_ID_RE = re.compile(r"^UC[A-Za-z0-9_-]{22}$")
+_CHANNEL_ID_RE = re.compile(r"^UC[A-Za-z0-9_-]{22}\Z")
 
 #: Any URL-safe base64 run, used to validate opaque ids by alphabet.
-_OPAQUE_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+_OPAQUE_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
+
+#: A run of ASCII decimal digits. ``str.isdigit`` is not this test: it is true
+#: for characters such as U+00B2 SUPERSCRIPT TWO, which ``int`` refuses, so a
+#: value that passed ``isdigit`` could still raise ``ValueError``.
+_DECIMAL_RE = re.compile(r"[0-9]+\Z")
 
 #: Known playlist id prefixes and what they mean. Used for *classification*,
 #: not for admission: an unrecognised prefix is still accepted (see
@@ -329,9 +334,9 @@ def _parse_start(value: str) -> int | None:
     text = value.strip().lower()
     if not text:
         return None
-    if text.isdigit():
+    if _DECIMAL_RE.match(text):
         return int(text)
-    match = re.fullmatch(r"(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?", text)
+    match = re.fullmatch(r"(?:([0-9]+)h)?(?:([0-9]+)m)?(?:([0-9]+)s)?", text)
     if not match or not any(match.groups()):
         return None
     hours, minutes, seconds = (int(group or 0) for group in match.groups())
@@ -714,6 +719,10 @@ def is_reference_url(value: Any) -> bool:
 # -- normalisation ------------------------------------------------------------
 
 
+#: Shortest text that can still be an opening and a closing quote.
+_WRAPPED = 2
+
+
 def _normalize(value: Any) -> str:
     """
     Clean a pasted reference before structural parsing.
@@ -747,12 +756,17 @@ def _normalize(value: Any) -> str:
     text = re.sub(r"[\u200b-\u200f\u00ad\ufeff]", "", text)
     if text.startswith("<") and text.endswith(">"):
         text = text[1:-1].strip()
-    _len = len(text) >= 2  # ruff: ignore[magic-value-comparison]
-    if _len and text[0] == text[-1] and text[0] in "'\"":
+    # Each test measures the text as it is now: the strip above may have left
+    # one character, or none, and indexing an empty string raises.
+    if len(text) >= _WRAPPED and text[0] == text[-1] and text[0] in "'\"":
         text = text[1:-1].strip()
     # Word processors and chat apps substitute curly quotes, whose opening
     # and closing forms differ, so the symmetric check above cannot see them.
-    if _len and text[0] in "\u2018\u201c\u00ab" and text[-1] in "\u2019\u201d\u00bb":
+    if (
+        len(text) >= _WRAPPED
+        and text[0] in "\u2018\u201c\u00ab"
+        and text[-1] in "\u2019\u201d\u00bb"
+    ):
         text = text[1:-1].strip()
     text = text.replace("&amp;", "&")
     # A link pasted from prose arrives wrapped in a sentence, a Markdown
@@ -878,6 +892,11 @@ def _unwrap(text: str) -> tuple[str, str]:
                 break
         if not candidate:
             break
+        # '//host/path' names another host. Only a single leading slash is a
+        # path on this site; treating both alike turned an outbound redirect
+        # to any host into a YouTube path.
+        if candidate.startswith("//"):
+            candidate = "https:" + candidate
         if candidate.startswith("/"):
             candidate = f"https://www.youtube.com{candidate}"
         elif "://" not in candidate or not _is_youtube_host(_host_of(candidate)):
@@ -1339,7 +1358,11 @@ def parse_reference(value: Any) -> YouTubeReference:
     raw = value if isinstance(value, str) else repr(value)
     text = _normalize(value)
 
-    if not re.search(r"[/:.?&]", text):
+    # A handle may contain a dot ('@john.doe'), which is otherwise URL
+    # punctuation. With a leading '@' and no other URL punctuation the text
+    # is a handle, as validate_handle already holds.
+    punctuation = r"[/:?&]" if text.startswith("@") else r"[/:.?&]"
+    if not re.search(punctuation, text):
         reference = _parse_bare(text, raw)
         if reference is not None:
             return reference
@@ -1377,7 +1400,7 @@ def parse_reference(value: Any) -> YouTubeReference:
         except ReferenceError as exc:
             playlist_error = str(exc)
 
-    index = int(query["index"]) if query.get("index", "").isdigit() else None
+    index = int(query["index"]) if _DECIMAL_RE.match(query.get("index", "")) else None
 
     start = None
     for param in _START_PARAMS:

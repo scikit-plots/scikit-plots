@@ -143,13 +143,8 @@ def test_bm25_from_corpus_raises_without_deps(monkeypatch):
 
 
 def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
+    """The lexical leg ranks with ``SQLiteStorage.search_text`` (CX-01)."""
     calls = []
-
-    class FakeStorageQuery:
-        def __init__(self, *, full_text=None, limit=100, **kwargs):
-            assert not kwargs, f"unexpected StorageQuery fields: {kwargs}"
-            self.full_text = full_text
-            self.limit = limit
 
     class FakeDoc:
         def __init__(self, doc_id, text, source_uri, title=""):
@@ -168,9 +163,9 @@ def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
         def __init__(self, path):
             calls.append(("init", path))
 
-        def query(self, query):
-            calls.append(("query", query.full_text, query.limit))
-            return types.SimpleNamespace(documents=docs[: query.limit])
+        def search_text(self, text, limit):
+            calls.append(("search_text", text, limit))
+            return list(zip(docs, (7.5, 1.25)))[:limit]
 
         def get(self, doc_id):
             calls.append(("get", doc_id))
@@ -178,18 +173,17 @@ def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
 
     fake_corpus = types.ModuleType("scikitplot.corpus")
     fake_corpus.SQLiteStorage = FakeSQLiteStorage
-    fake_corpus.StorageQuery = FakeStorageQuery
     monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
 
     retriever = Bm25Retriever.from_corpus_sqlite("store.db")
-    hits = retriever.search("configure_rate_limit", k=2)
+    hits = retriever.search("configure_rate_limit()", k=2)
 
     assert [hit.doc_id for hit in hits] == ["d1", "d2"]
-    assert hits[0].score > hits[1].score
+    assert [hit.score for hit in hits] == [7.5, 1.25]  # BM25 itself, not 1/rank
     assert hits[0].title == "One"
-    assert calls[:2] == [
+    assert calls == [
         ("init", "store.db"),
-        ("query", "configure_rate_limit", 2),
+        ("search_text", "configure_rate_limit()", 2),
     ]
 
 

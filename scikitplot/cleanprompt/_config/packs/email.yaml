@@ -1,0 +1,25 @@
+# Mail exports: .eml, .mbox, Gmail Takeout, pasted headers.
+name: email
+version: 1
+summary: Message headers - senders, recipients, message ids and routing hosts.
+requires: [personal]
+
+fields:
+  - names: [from, to, cc, bcc, reply_to, sender, return_path, delivered_to, envelope_to, x_original_to, in_reply_to, references]
+    kind: MAIL_PARTY
+    role: text
+  - names: [message_id, x_gm_msgid, x_gm_thrid, thread_id]
+    kind: MESSAGE_ID
+    span: token
+    role: id
+  - names: [received, x_received, x_originating_ip, authentication_results, arc_authentication_results, dkim_signature]
+    kind: MAIL_ROUTE
+    role: text
+
+patterns:
+  - kind: MESSAGE_ID
+    pattern: '<[A-Za-z0-9._%+$!#&=~\-]+@[A-Za-z0-9.\-]+>'
+    intent: An RFC 5322 message identifier, which points at one message in one mailbox.
+    priority: 80
+    examples_yes: ['<CAF=abc123.456@mail.example.com>']
+    examples_no: ['<not a message id>']

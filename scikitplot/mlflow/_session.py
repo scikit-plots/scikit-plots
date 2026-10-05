@@ -15,7 +15,12 @@ import os
 from contextlib import contextmanager  # noqa: F401
 from dataclasses import dataclass
 from pathlib import Path  # noqa: F401
-from typing import Any, Iterator, Mapping
+from typing import (  # ruff: ignore[unused-import]
+    Any,
+    Generator,
+    Iterator,
+    Mapping,
+)
 from urllib.parse import urlparse
 
 from ._compat import import_mlflow
@@ -268,7 +273,11 @@ class MlflowHandle:
         return getattr(self.mlflow_module, name)
 
     @contextlib.contextmanager
-    def start_run(self, *args: Any, **kwargs: Any) -> Iterator[Any]:
+    def start_run(
+        self,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Generator[Any, None, None]:  # Iterator[Any]
         """
         Start an MLflow run and apply session defaults.
 
@@ -281,7 +290,7 @@ class MlflowHandle:
 
         Returns
         -------
-        Iterator[Any]
+        Generator[Any, None, None]
             Context manager yielding the active run object.
 
         Raises
@@ -319,7 +328,7 @@ def session(  # noqa: PLR0912
     config: SessionConfig | None = None,
     server: ServerConfig | None = None,
     start_server: bool = False,
-) -> Iterator[MlflowHandle]:
+) -> Generator[MlflowHandle, None, None]:  # Iterator[MlflowHandle]
     """
     Create a strict, context-managed MLflow session.
 
@@ -334,7 +343,7 @@ def session(  # noqa: PLR0912
 
     Returns
     -------
-    Iterator[MlflowHandle]
+    Generator[MlflowHandle, None, None]
         A handle that proxies `mlflow` and exposes session-bound helpers.
 
     Raises
@@ -506,7 +515,7 @@ def session_from_toml(
     toml_path: str | Path,
     *,
     profile: str = "local",
-) -> Iterator[MlflowHandle]:
+) -> Generator[MlflowHandle, None, None]:  # Iterator[MlflowHandle]
     """
     Create an MLflow session using a shared project TOML config.
 
@@ -527,7 +536,7 @@ def session_from_file(
     config_path: str | Path,
     *,
     profile: str = "local",
-) -> Iterator[MlflowHandle]:
+) -> Generator[MlflowHandle, None, None]:  # Iterator[MlflowHandle]
     """
     Create an MLflow session using a shared project config file (TOML or YAML).
 
@@ -540,7 +549,7 @@ def session_from_file(
 
     Returns
     -------
-    Iterator[MlflowHandle]
+    Generator[MlflowHandle, None, None]
         Session handle proxying the upstream `mlflow` module.
     """
     cfg: ProjectConfig = load_project_config(Path(config_path), profile=profile)

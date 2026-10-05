@@ -1,0 +1,7 @@
+name: pptx
+version: 1
+summary: PowerPoint decks (Office Open XML) - slide text and speaker notes, read with the standard library. Output is redacted text.
+extensions: [.pptx]
+splitter: office
+round_trip: false
+packs: [personal, patient, finance, secrets]

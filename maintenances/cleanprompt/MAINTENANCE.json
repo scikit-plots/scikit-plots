@@ -1,0 +1,301 @@
+{
+  "schema_version": 3,
+  "subsystem": "scikitplot.cleanprompt",
+  "runtime_path": "scikitplot/cleanprompt",
+  "facade_path": "scikitplot/cleanprompt/__init__.py",
+  "core_path": "scikitplot/cleanprompt/_engine.py",
+  "tests_path": "scikitplot/cleanprompt/tests",
+  "maintenance_path": "maintenances/cleanprompt",
+  "skill_path": "skills/cleanprompt/SKILL.md",
+  "updated_at": "2026-09-20",
+  "provenance": {
+    "upstream": "https://github.com/takashiishida/cleanprompt",
+    "relationship": "full rewrite; no upstream file is carried over",
+    "upstream_license": "MIT (retained as LICENSE_cleanprompt)"
+  },
+  "ownership": {
+    "owns": [
+      "the redaction pipeline: detect, reserve, resolve, assign, rewrite",
+      "restoration and the placeholder grammar",
+      "the curated structural pattern library and its validators",
+      "the Vault and its secrecy contract",
+      "RedactionPolicy and the policy/grammar fingerprints",
+      "optional tier gating and capability truth for ner, web and crypto",
+      "the command-line interface and the local web interface",
+      "the neutral command IR and both CLI frontends (argparse and click)",
+      "the diagnosis surface: what is detected, what is blind, what to do",
+      "the interactive terminal session and the web launcher",
+      "authenticated vault encryption (crypto tier)"
+    ],
+    "does_not_own": [
+      "spaCy model quality or entity recognition accuracy",
+      "Flask request handling internals",
+      "what a caller does with a vault after export()",
+      "any other scikitplot submodule's contracts"
+    ]
+  },
+  "tiers": {
+    "base": {
+      "requires": [],
+      "note": "standard library only"
+    },
+    "ner": {
+      "requires": [
+        "spacy>=3.4,<5"
+      ],
+      "note": "plus a downloaded model"
+    },
+    "web": {
+      "requires": [
+        "flask>=2.2,<4"
+      ]
+    },
+    "crypto": {
+      "requires": [
+        "cryptography>=41"
+      ],
+      "note": "the Fernet cipher only; vault encryption itself is base tier since CP-040"
+    },
+    "nltk": {
+      "requires": [
+        "nltk>=3.6,<4"
+      ],
+      "note": "plus four data packages; English only; the lighter alternative to spacy"
+    }
+  },
+  "required_symbols": [
+    "BlindSpot",
+    "CANONICAL_LABELS",
+    "CapabilityStatus",
+    "Detector",
+    "DetectorRegistry",
+    "Diagnosis",
+    "ENGINES",
+    "EncodedPrompt",
+    "Entry",
+    "Handle",
+    "JsonFormatter",
+    "LANGUAGES",
+    "LOGGER_NAME",
+    "Limits",
+    "LiteralDetector",
+    "OverlapStrategy",
+    "PATTERNS",
+    "RedactionPolicy",
+    "RedactionResult",
+    "Redactor",
+    "RegexDetector",
+    "RestorationResult",
+    "STYLES",
+    "SecretFilter",
+    "Session",
+    "Span",
+    "Stats",
+    "Suggestion",
+    "TagStyle",
+    "Vault",
+    "build_detectors",
+    "canonical_label",
+    "capabilities",
+    "configure_logging",
+    "decode",
+    "default_patterns",
+    "default_registry",
+    "describe_engines",
+    "describe_outcome",
+    "diagnose",
+    "encode",
+    "get_logger",
+    "get_pattern",
+    "language_report",
+    "probe",
+    "redacting",
+    "require",
+    "resolve_engine",
+    "resolve_model",
+    "resolve_spans",
+    "restore",
+    "session",
+    "suggest_terms",
+    "surrogate_for",
+    "trim_entity_span"
+  ],
+  "invariants": [
+    "I1 round trip",
+    "I2 no leakage",
+    "I3 determinism",
+    "I4 statelessness",
+    "I5 disjointedness",
+    "I6 detector purity",
+    "I7 idempotence",
+    "I8 bounded",
+    "I9 value identity"
+  ],
+  "release_requirements": [
+    "runtime structural PASS",
+    "focused tests collect and pass without harness edits",
+    "import isolation proven under an __import__ blocker",
+    "star import base-safe",
+    "one negative probe green per CP finding",
+    "invariants hold over a randomized scale probe",
+    "entity engine live evidence (spacy and nltk)",
+    "web tier live evidence",
+    "supported Python and platform matrix",
+    "offset alignment proven for every engine over fuzzed text",
+    "engine interchangeability: a vault written under one engine restores under the other",
+    "every pattern's examples found, and not over-captured, in ordinary sentence positions"
+  ],
+  "cli": {
+    "module_entry": "python -m scikitplot.cleanprompt",
+    "global_entry": "scikitplot cleanprompt",
+    "registered_in": "scikitplot/_cli/registry.py as a delegated CommandSpec",
+    "capability_gate": "none - the base tier is stdlib-only, unlike mcp",
+    "frontends": [
+      "argparse",
+      "click"
+    ],
+    "exit_codes": {
+      "ok": 0,
+      "error": 1,
+      "usage": 2,
+      "found": 3,
+      "unavailable": 69,
+      "interrupted": 130
+    },
+    "subcommands": [
+      "encode",
+      "clean",
+      "prompt",
+      "decode",
+      "restore",
+      "forget",
+      "clear-vault",
+      "redact",
+      "roundtrip",
+      "demo",
+      "inspect",
+      "scan",
+      "doctor",
+      "kinds",
+      "cli",
+      "repl",
+      "session",
+      "flask",
+      "serve",
+      "web",
+      "docker"
+    ],
+    "engine_options": [
+      "--ner",
+      "--ner-engine",
+      "--lang",
+      "--model-size",
+      "--ner-model"
+    ],
+    "logging_options": [
+      "--log-level",
+      "--log-format"
+    ],
+    "text_input": {
+      "sources": [
+        "positional TEXT argument",
+        "--in PATH",
+        "standard input"
+      ],
+      "conflict": "text given both positionally and with --in is an error, never a silent choice",
+      "interactive": "falling through to a terminal prints a hint naming every other way in",
+      "prose": "a heredoc with a quoted delimiter is the documented way to paste text containing shell metacharacters"
+    },
+    "option_grammar": {
+      "long_options": "full spelling only; abbreviation is refused by both frontends (CP-032)",
+      "short_options": [
+        "-h/--help",
+        "-V/--version",
+        "-i/--in",
+        "-o/--out",
+        "-f/--format",
+        "-k/--kinds",
+        "-q/--quiet"
+      ],
+      "end_of_options": "a standalone '--' ends the options; everything after it is text, including tokens beginning with a dash",
+      "dash_leading_values": "attach with '=' (--hide=-value); the separated form is accepted by click and refused by argparse, so '=' is the portable spelling",
+      "stray_options": "a dash-leading positional with no '--' before it is refused, never treated as text (CP-033)",
+      "rule": "every one of these is asserted through BOTH frontends; a difference between them is a defect, not a preference"
+    },
+    "pair": {
+      "encode": "text in, a pasteable prompt out; default vault, append mode",
+      "decode": "the model's answer in, the values put back",
+      "forget": "delete the vault when the conversation is over",
+      "why": "the two names read as one operation and must behave like it (CP-037)"
+    }
+  },
+  "engines": {
+    "modes": [
+      "auto",
+      "spacy",
+      "nltk",
+      "both",
+      "none"
+    ],
+    "default": "auto",
+    "vocabulary": "one canonical entity label set; every engine maps onto it",
+    "why": "spaCy says ORG where NLTK says ORGANIZATION. Passing those through raw would make the placeholder depend on which engine happened to be installed, and a vault written under one engine would not restore under the other.",
+    "explicit_request": "--ner is a request, not a default: an engine mode that resolves to nothing raises rather than scanning for nothing and reporting success (CP-024)."
+  },
+  "api": {
+    "surface": [
+      "encode",
+      "decode",
+      "session",
+      "Session",
+      "Handle"
+    ],
+    "purpose": "hand a safe prompt to any model - hosted or local - and put the values back in the reply",
+    "handle": "portable, JSON-serialisable, secret-free repr; carries the vault this process holds",
+    "context_manager": "Session supports 'with', clearing the vault on exit"
+  },
+  "logging": {
+    "logger": "scikitplot.cleanprompt",
+    "default": "NullHandler at import; nothing is emitted until configure_logging is called",
+    "rule": "a removed value never reaches a log record - guaranteed by construction, caught by SecretFilter",
+    "formats": [
+      "text",
+      "json"
+    ]
+  },
+  "vault": {
+    "format": 2,
+    "reads": [
+      1,
+      2
+    ],
+    "default_path": "CLEANPROMPT_VAULT, else $XDG_STATE_HOME/cleanprompt/vault.json (%LOCALAPPDATA% on Windows)",
+    "not_the_working_directory": "a clear-text secrets file in a checkout is one 'git add .' from a commit",
+    "permissions": "directory 0700, file 0600, requested at creation rather than chmod-ed afterwards",
+    "modes": {
+      "overwrite": "default for redact; a fresh vault each run",
+      "append": "default for clean; seeds from the existing vault so a value keeps its placeholder across turns"
+    },
+    "index": "label/kind/ordinal, carries no secrets, required by append; a format-1 vault restores but cannot be appended to",
+    "lifecycle": "a default path plus append mode means values accumulate, so 'forget' is part of the feature rather than an extra (CP-038): report by category, delete only with --force, and never claim more than an unlink provides",
+    "encryption": {
+      "default_cipher": "portable (cleanprompt-hmac-v1), standard library only",
+      "construction": "scrypt or pbkdf2 KDF -> split enc/mac keys -> HMAC-SHA256 CTR keystream -> encrypt-then-MAC with the label bound into the tag",
+      "fernet": "--cipher fernet, needs the crypto tier; a vault written with it needs that tier to read",
+      "recorded": "cipher name and every KDF parameter live in the document, so decryption dispatches and old vaults stay readable",
+      "key": "CLEANPROMPT_VAULT_KEY, else a getpass prompt at a terminal; 'doctor --new-key' generates one with no dependency",
+      "limit": "a standard composition, not a reviewed AES implementation; stated in the module rather than glossed"
+    }
+  },
+  "styles": {
+    "placeholder": "[PERSON-1]; the default, because it cannot be mistaken for a real value",
+    "surrogate": "an invented but ordinary-looking value for linguistic kinds; credentials keep placeholders",
+    "grammar": "the style is part of TagStyle and so of the grammar fingerprint, with a default-style digest deliberately unchanged so vaults written before the field remain readable"
+  },
+  "restoration": {
+    "lenient": "on by default; recognises the bounded set of rewrites a model applies and acts only on ones that resolve to a held label",
+    "reported": "every repair is listed in RestorationResult.repaired and named in the note",
+    "exact": "--exact restores byte-exact matching",
+    "why": "the channel between redaction and restoration is a language model, not a pipe (CP-042)"
+  }
+}

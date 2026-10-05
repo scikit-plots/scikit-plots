@@ -18,17 +18,18 @@ import time
 
 import pytest
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT
+from ....._paths import REPOSITORY_ROOT
+from ._authority import assert_redis_url_not_echoed
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ......_hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
+from ......_hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     ProviderArtifactError,
     ProviderArtifactGeneratorSpec,
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ......_hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     RedisProviderArtifactLifecycleRegistry,
     build_provider_artifact_lifecycle_registry,
 )
@@ -463,7 +464,10 @@ def _import_app_with_env(**updates):
         "'error': app._PROVIDER_ARTIFACT_LIFECYCLE_CONFIG_ERROR}, sort_keys=True))"
     )
     result = subprocess.run(
-        [os.environ.get("PYTHON", "python"), "-c", code],
+        # The interpreter running this test, not whichever ``python`` is first
+        # on PATH: that one may be a different environment without the
+        # proxy's dependencies. ``PYTHON`` still overrides it when set.
+        [os.environ.get("PYTHON") or sys.executable, "-c", code],
         env=env,
         capture_output=True,
         text=True,
@@ -475,7 +479,7 @@ def _import_app_with_env(**updates):
 
 
 def test_app_cluster_topology_is_explicit_without_redis_authority_leakage() -> None:
-    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:6380/0"
+    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:16380/0"
     doc, result = _import_app_with_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -485,13 +489,11 @@ def test_app_cluster_topology_is_explicit_without_redis_authority_leakage() -> N
     assert doc["error"] == ""
     assert doc["manifest"]["backend"] == "redis"
     assert doc["manifest"]["topology"] == "cluster"
-    rendered = result.stdout + result.stderr
-    for forbidden in ("cluster-user", "cluster-secret", "redis-cluster.internal", "6380", "rediss://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)
 
 
 def test_app_cluster_topology_rejects_nonzero_database_fail_closed() -> None:
-    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:6380/2"
+    secret_url = "rediss://cluster-user:cluster-secret@redis-cluster.internal:16380/2"
     doc, result = _import_app_with_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -500,6 +502,4 @@ def test_app_cluster_topology_rejects_nonzero_database_fail_closed() -> None:
     )
     assert doc["error"] == "PROVIDER_ARTIFACT_REDIS_CLUSTER_DATABASE_INVALID"
     assert doc["manifest"]["backend"] == "memory"
-    rendered = result.stdout + result.stderr
-    for forbidden in ("cluster-user", "cluster-secret", "redis-cluster.internal", "6380", "rediss://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)

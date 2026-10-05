@@ -20,11 +20,11 @@ if TYPE_CHECKING:
     from typing import Literal
 
 if sys.platform == "win32":
-    from pip._vendor.platformdirs.windows import Windows as _Result
+    from .windows import Windows as _Result
 elif sys.platform == "darwin":
-    from pip._vendor.platformdirs.macos import MacOS as _Result
+    from .macos import MacOS as _Result
 else:
-    from pip._vendor.platformdirs.unix import Unix as _Result
+    from .unix import Unix as _Result
 
 
 def _set_platform_dir_class() -> type[PlatformDirsABC]:
@@ -32,10 +32,10 @@ def _set_platform_dir_class() -> type[PlatformDirsABC]:
         if os.getenv("SHELL") or os.getenv("PREFIX"):
             return _Result
 
-        from pip._vendor.platformdirs.android import _android_folder  # noqa: PLC0415
+        from .android import _android_folder  # noqa: PLC0415
 
         if _android_folder() is not None:
-            from pip._vendor.platformdirs.android import Android  # noqa: PLC0415
+            from .android import Android  # noqa: PLC0415
 
             return Android  # return to avoid redefinition of a result
 

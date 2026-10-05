@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 
 from pathlib import Path
 
@@ -61,12 +61,28 @@ def test_readme_has_beginner_path_to_dataset_and_proxy_guides():
 
 
 def test_deep_guide_no_longer_claims_review_token_is_only_approval_path():
+    """
+    The guide's opening names both review authorities, and matches the source.
+
+    An operator who reads only the opening must learn that promotion by
+    review token is one approval path and that merging a provider review is
+    the default. The guide is a current-state document and carries no version
+    line; what it must agree with is the code, so the default named here is
+    read from ``_shared_logic.py`` rather than restated.
+    """
     text = DEEP_GUIDE.read_text(encoding="utf-8")
     head = text[:9000]
     assert "**Recommended human-review mode:** `CONTRIBUTION_REVIEW_MODE=provider-pr`" in head
     assert "**Compatibility mode:** `CONTRIBUTION_REVIEW_MODE=ledger`" in head
     assert "review-token-only promotion" in head
-    assert "**Guide version:** 4.0" in text
+    assert "not the only one" in head
+
+    shared = (ROOT / "_hf_spaces_proxy" / "_utils" / "_shared_logic.py").read_text(encoding="utf-8")
+    assert 'DEFAULT_CONTRIBUTION_REVIEW_MODE: str = "provider-pr"' in shared
+    assert "(the default)" in head[head.index("**Recommended human-review mode:**"):head.index("**Compatibility mode:**")]
+    app = (ROOT / "_hf_spaces_proxy" / "app.py").read_text(encoding="utf-8")
+    assert 'if CONTRIBUTION_REVIEW_MODE not in {"ledger", "provider-pr"}:\n    CONTRIBUTION_REVIEW_MODE = "ledger"' in app
+    assert "An unrecognised mode value selects `ledger`" in head
 
 
 def test_proxy_readme_routes_operators_to_the_right_guide_depth():
@@ -74,6 +90,8 @@ def test_proxy_readme_routes_operators_to_the_right_guide_depth():
     assert "./DATASET_CONTRIBUTION_GUIDE.md" in text
     assert "DATASET_COLLECTION_GUIDANCE.md" in text
     assert "CONTRIBUTION_REVIEW_MODE" in text
+    assert "DEFAULT_TARGET_REGISTRY" in text
+    assert "github-learn-ai" in text
 
 
 def test_documentation_examples_reference_secret_names_not_secret_values():
@@ -82,6 +100,12 @@ def test_documentation_examples_reference_secret_names_not_secret_values():
     )
     # Provider token values must stay placeholders; topology may expose only env names.
     assert '"token_env": "AI_RECORD_STORAGE_TOKEN_HF_PRIMARY"' in combined
+    assert '"token_env": [' in combined
+    assert "AI_LEARN_GITHUB_TOKEN" in combined
+    assert "AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR" in combined
+    assert "Same-organization membership is not sufficient" in combined
+    assert '"authority": "learn-ai-publication"' in combined
+    assert '"AI_LEARN_GITHUB_TOKEN",' in combined
     assert "hf_abcdefghijklmnopqrstuvwxyz" not in combined
     assert "github_pat_" not in combined
 

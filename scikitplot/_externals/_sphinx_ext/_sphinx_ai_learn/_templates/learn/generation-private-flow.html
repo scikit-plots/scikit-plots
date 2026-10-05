@@ -1,0 +1,6 @@
+<ol class="learn-section-ai-flow" aria-label="{{ flow_aria_label|default('Private AI generation lifecycle')|e }}">
+  <li data-{{ flow_scope|e }}-stage="context"><strong>1</strong><span>Choose context<small>{{ flow_context_detail|default('Ground the request')|e }}</small></span></li>
+  <li data-{{ flow_scope|e }}-stage="draft"><strong>2</strong><span>Generate draft<small>{{ flow_draft_detail|default('Private generation')|e }}</small></span></li>
+  <li data-{{ flow_scope|e }}-stage="review"><strong>3</strong><span>Review<small>{{ flow_review_detail|default('Human judgment')|e }}</small></span></li>
+  <li data-{{ flow_scope|e }}-stage="{{ flow_final_stage|default('handoff')|e }}"><strong>4</strong><span>Handoff<small>{{ flow_handoff_detail|default('Explicit action')|e }}</small></span></li>
+</ol>

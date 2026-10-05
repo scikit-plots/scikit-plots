@@ -46,6 +46,7 @@ const worker = mod.default;
 const env = {
   HF_TOKEN: 'hf-test-secret',
   ALLOWED_MODELS: 'Qwen/safe-model',
+  LOCAL_DEV_ORIGINS: 'http://127.0.0.1:8000,http://localhost:8000',
   SHARE_KV: {
     async list() { return { keys: [] }; },
     async put() {},
@@ -66,6 +67,17 @@ try {
   const healthDoc = await health.json();
   ok(health.status === 200, 'worker health is public');
   ok(healthDoc.capabilities.chat_request.contract === 'scikitplot-chat-v1', 'worker advertises structured contract');
+  ok(healthDoc.cors.local_dev_origin_count === 2, 'worker health exposes only local-dev origin count, not values');
+
+  const localHealth = await worker.fetch(new Request('https://worker.example/health', {
+    headers: { Origin: 'http://127.0.0.1:8000' },
+  }), env);
+  ok(localHealth.status === 200, 'worker allows exact loopback local-development origin');
+  ok(localHealth.headers.get('access-control-allow-origin') === 'http://127.0.0.1:8000', 'worker echoes only the allowed exact local origin');
+  const fakeLocalHealth = await worker.fetch(new Request('https://worker.example/health', {
+    headers: { Origin: 'http://127.0.0.1.evil.example:8000' },
+  }), env);
+  ok(fakeLocalHealth.status === 403, 'worker rejects public lookalikes of a loopback origin');
 
   upstreamCalls = [];
   const legacy = await worker.fetch(new Request('https://worker.example/v1/chat/completions', {

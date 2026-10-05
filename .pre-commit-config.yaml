@@ -79,9 +79,8 @@ repos:
       - id: check-merge-conflict  # Checks for merge conflict markers in files.
       - id: detect-private-key  # Checks for the existence of private keys.
         # exclude: "^(\
-        #     scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_untrusted_context.mjs\
-        #     |scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_logging_privacy.py\
-        #     |scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/test_stub_model.py\
+        #     scikitplot/cleanprompt/_config/_compiled.json\
+        #     |scikitplot/cleanprompt/_config/packs/secrets.yaml\
         #   )$"
       - id: check-added-large-files  # Prevent giant files from being committed.
         args: ["--enforce-all", "--maxkb=333"]  # 333 KB is the default size limit.
@@ -96,6 +95,7 @@ repos:
             docs/source/logos/.*|\
             docs/source/devel/sampledoc.pdf|\
             docs/source/user_guide/random/GoodPracticeRNG.pdf|\
+            docs/source/user_guide/cleanprompt/demo.gif|\
             .*searchindex.dat|\
             .*CDNOW_master.txt|\
             .*example_transactions.csv|\
@@ -106,7 +106,8 @@ repos:
             third_party/.*|\
             scikitplot/cexternals/annoy/ann.png|\
             scikitplot/cexternals/_annoy/src/annoymodule.cc|\
-            scikitplot/random/_kiss/_backup/kiss_random.cpp\
+            scikitplot/random/_kiss/_backup/kiss_random.cpp|\
+            scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/app.py\
           )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.

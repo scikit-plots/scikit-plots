@@ -39,6 +39,7 @@ import guard.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any, Callable, Protocol
 
@@ -47,6 +48,7 @@ from ._outcome import DEGRADED, EMPTY, FAILED, SUCCESS, LegRecord, RetrievalOutc
 
 __all__ = [
     "CorpusAnnoyRetriever",
+    "CorpusIndexRetriever",
     "Embedder",
     "VectorIndex",
 ]
@@ -160,6 +162,162 @@ def _doc_to_record(doc: Any) -> dict[str, Any]:
         "title": g("source_title", "title", "section", "heading"),
         "anchor": g("anchor", "section_id", "fragment"),
     }
+
+
+#: Match modes a :class:`CorpusIndexRetriever` may ask the corpus index for.
+#: ``strict`` is a filter, not ranked retrieval, so it is not offered here.
+_INDEX_MODES = ("hybrid", "keyword", "semantic")
+
+
+class CorpusIndexRetriever(DocsRetriever):
+    """
+    Text-level retriever over a corpus ``RetrievalIndex``: hybrid by default.
+
+    Parameters
+    ----------
+    embedder : Embedder or None
+        Embeds the query for the dense leg — the *same* model that embedded the
+        corpus. ``None`` only with ``match_mode='keyword'``.
+    index : RetrievalIndex
+        A built corpus index. Its own configuration (fusion constant, weights,
+        backend) is kept; only ``match_mode`` and ``top_k`` are set per query.
+    match_mode : {'hybrid', 'keyword', 'semantic'}, optional
+        Which evidence paths the corpus runs. Default ``'hybrid'``: BM25 and
+        dense, fused by rank inside the corpus.
+    strict : bool, optional
+        Re-raise failures instead of reporting them as a failed leg.
+
+    Raises
+    ------
+    ValueError
+        If ``match_mode`` is not one of the offered modes, or no embedder is
+        given for a mode that needs one.
+
+    Notes
+    -----
+    **User.**  Dense search blurs identifiers and error strings; keyword search
+    misses paraphrase. Hybrid runs both and fuses them by rank, which is why a
+    query such as ``roc_auc_score`` and one such as "area under the ROC curve"
+    both find the right page.
+
+    **Developer.**  The server's Corpus+Annoy backend built an index that
+    already holds a BM25 leg (``RetrievalIndex.build`` always constructs it)
+    and then used only the vector seam, so the MCP surface could never serve
+    hybrid retrieval although every piece existed (finding CX-04). Fusion is
+    *not* re-implemented here: corpus owns retrieval semantics, and its
+    per-leg account is carried into :class:`RetrievalOutcome`, so a hybrid
+    query whose dense leg could not run is reported ``degraded`` rather than
+    passed off as a complete result.
+    """
+
+    def __init__(
+        self,
+        embedder: Embedder | None,
+        index: Any,
+        *,
+        match_mode: str = "hybrid",
+        strict: bool = False,
+    ) -> None:
+        if match_mode not in _INDEX_MODES:
+            raise ValueError(
+                f"match_mode must be one of {_INDEX_MODES}, got {match_mode!r}"
+            )
+        if embedder is None and match_mode != "keyword":
+            raise ValueError(f"match_mode={match_mode!r} needs a query embedder")
+        self._embedder = embedder
+        self._index = index
+        self._mode = match_mode
+        self._strict = bool(strict)
+
+    @property
+    def match_mode(self) -> str:
+        """str: The evidence paths every query runs."""
+        return self._mode
+
+    def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
+        """Search the corpus index and map its hits and legs for MCP."""
+        if not isinstance(query, str) or not query.strip():
+            return RetrievalOutcome([], legs=[LegRecord(self._mode, EMPTY)])
+        k = max(1, min(int(k), _MAX_RETRIEVAL_K))
+
+        vector = None
+        if self._mode != "keyword":
+            try:
+                vector = self._embedder.embed(query)
+            except Exception as exc:
+                logger.warning("Query embedding failed: %s", exc, exc_info=self._strict)
+                if self._strict:
+                    raise
+                if self._mode == "semantic":
+                    return RetrievalOutcome(
+                        [], legs=[LegRecord(_DENSE_LEG, FAILED, error=str(exc))]
+                    )
+                # Hybrid: the lexical leg can still run. The corpus reports the
+                # missing embedding as a failed dense leg (F-R09-01).
+        try:
+            config = dataclasses.replace(
+                self._index.config, match_mode=self._mode, top_k=k
+            )
+            response = self._index.search(query, config=config, query_embedding=vector)
+        except Exception as exc:
+            logger.warning("Corpus search failed: %s", exc, exc_info=self._strict)
+            if self._strict:
+                raise
+            return RetrievalOutcome(
+                [], legs=[LegRecord(self._mode, FAILED, error=str(exc))]
+            )
+
+        output: list[RetrievedChunk] = []
+        seen: set[str] = set()
+        for hit in response:
+            document = getattr(hit, "doc", None)
+            doc_id = str(_value(document, "doc_id") or "")
+            if not doc_id or doc_id in seen:
+                continue
+            record = _doc_to_record(document)
+            if not record["text"]:
+                continue
+            seen.add(doc_id)
+            output.append(
+                RetrievedChunk(
+                    text=str(record["text"]),
+                    source_uri=str(record["source_uri"]),
+                    score=_coerce_finite_score(getattr(hit, "score", 0.0)),
+                    doc_id=doc_id,
+                    title=str(record["title"]),
+                    anchor=str(record["anchor"]),
+                )
+            )
+        return RetrievalOutcome(output, legs=_legs_of(response))
+
+
+def _legs_of(response: Any) -> list[LegRecord]:
+    """
+    Carry a corpus ``RetrievalResponse``'s per-leg account into MCP terms.
+
+    Notes
+    -----
+    **Developer.**  The two status vocabularies share their values; corpus's
+    ``skipped`` (a leg the query did not request) has no MCP counterpart and
+    is left out, because reporting it would make every single-leg query look
+    partial.
+    """
+    legs: list[LegRecord] = []
+    for leg in getattr(response, "legs", None) or ():
+        status = str(getattr(leg.status, "value", leg.status))
+        if status == "skipped":
+            continue
+        error = getattr(leg, "error", None)
+        message = getattr(error, "message", None) or (str(error) if error else None)
+        legs.append(
+            LegRecord(
+                str(getattr(leg.leg, "value", leg.leg)),
+                status,
+                hit_count=int(getattr(leg, "hit_count", 0) or 0),
+                error=message,
+            )
+        )
+    return legs
 
 
 class CorpusAnnoyRetriever(DocsRetriever):
@@ -294,7 +452,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
 
     # ------------------------------------------------------------------
     @classmethod
-    def from_corpus_annoy(
+    def from_corpus_annoy(  # ruff: ignore[too-many-branches]
         cls,
         docs_path: str,
         *,
@@ -304,7 +462,8 @@ class CorpusAnnoyRetriever(DocsRetriever):
         embedder: Any | None = None,
         backend: str = "annoy",
         strict: bool = False,
-    ) -> CorpusAnnoyRetriever:
+        mode: str = "semantic",
+    ) -> DocsRetriever:
         """
         Build the real retriever from a docs directory (import-guarded).
 
@@ -339,10 +498,16 @@ class CorpusAnnoyRetriever(DocsRetriever):
             ``'auto'`` (Annoy first, then FAISS / Voyager / brute-force).
         strict : bool, optional
             False.
+        mode : {'semantic', 'hybrid', 'keyword'}, optional
+            ``'semantic'`` (default) returns a :class:`CorpusAnnoyRetriever`
+            over the vector seam, as before. ``'hybrid'`` and ``'keyword'``
+            return a :class:`CorpusIndexRetriever` over the same index, which
+            already holds a BM25 leg: hybrid fuses BM25 and dense by rank
+            inside the corpus (finding CX-04).
 
         Returns
         -------
-        CorpusAnnoyRetriever
+        CorpusAnnoyRetriever or CorpusIndexRetriever
 
         Raises
         ------
@@ -350,9 +515,14 @@ class CorpusAnnoyRetriever(DocsRetriever):
             If :mod:`scikitplot.corpus` is unavailable, or the build produced
             no queryable semantic index (e.g. embeddings were unavailable).
         ValueError
-            Propagated from :class:`~scikitplot.corpus.CorpusBuilder` when
-            *docs_path* contains no valid input sources.
+            If *mode* is not one of the accepted values (checked before any
+            build), or propagated from :class:`~scikitplot.corpus.CorpusBuilder`
+            when *docs_path* contains no valid input sources.
         """
+        if mode not in ("semantic", *_INDEX_MODES):
+            raise ValueError(
+                f"mode must be 'semantic', 'hybrid' or 'keyword', got {mode!r}"
+            )
         try:
             from scikitplot.corpus import (  # noqa: PLC0415
                 BuilderConfig,
@@ -475,6 +645,10 @@ class CorpusAnnoyRetriever(DocsRetriever):
         if not table:
             raise RuntimeError("corpus build produced no retrievable documents")
 
+        if mode != "semantic":
+            return CorpusIndexRetriever(
+                query_embedder, index, match_mode=mode, strict=strict
+            )
         return cls(
             query_embedder,
             _SimilarityVectorIndex(index),

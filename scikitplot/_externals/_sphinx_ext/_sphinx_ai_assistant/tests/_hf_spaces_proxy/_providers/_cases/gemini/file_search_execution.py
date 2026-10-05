@@ -9,18 +9,18 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import (
     ProviderPrivateResource,
     ResourceExecutionError,
     ResourceExecutionSession,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.gemini import GeminiResourceExecutor
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.policy import gemini_file_search_supported_model
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._providers.gemini import GeminiResourceExecutor
+from ......_hf_spaces_proxy._providers.policy import gemini_file_search_supported_model
+from ......_hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ......_hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 MiB = 1024 * 1024
 
@@ -195,7 +195,7 @@ async def test_second_file_failure_rolls_back_shared_store() -> None:
 
 
 def test_gemini_file_search_tool_handle_stays_private() -> None:
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ResourceExecutionReceipt
+    from ......_hf_spaces_proxy._providers.executor import ResourceExecutionReceipt
     receipt = ResourceExecutionReceipt(
         resource_id="z", provider="gemini", model="gemini-3.8-flash", route="tool",
         source_sha256="a" * 64, source_size=7, metadata={"modality": "archive", "intent": "raw"},

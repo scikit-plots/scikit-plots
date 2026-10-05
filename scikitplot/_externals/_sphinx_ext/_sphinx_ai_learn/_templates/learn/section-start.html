@@ -1,0 +1,12 @@
+<div class="learn-section" data-section="{{ spec.id|e }}" data-state="{{ state|e }}" data-publication-state="{{ publication_state|default('published' if filled else 'unpublished')|e }}" data-evidence-review-state="{{ evidence_review_state|default('not-applicable')|e }}" data-generation-mode="{{ spec.generation.mode|default('none')|e }}"{% if generation_id|default('') %} data-active-generation-id="{{ generation_id|e }}"{% endif %}>
+<div class="learn-section-bar">
+  <span class="learn-state" data-state-label>{{ state_label|e }}</span>
+  <div class="learn-actions" data-enhanced hidden>
+    <button type="button" data-collapse aria-expanded="true" aria-controls="content-{{ subject.id|e }}-{{ spec.id|e }}">Hide content</button>
+    {% if spec.generation.mode|default('none') == 'chat' %}
+    <button type="button" data-edit hidden>Edit section</button>
+    <button type="button" data-discard-ai hidden>Discard AI draft</button>
+    {% endif %}
+  </div>
+</div>
+<div id="content-{{ subject.id|e }}-{{ spec.id|e }}" class="learn-section-content">

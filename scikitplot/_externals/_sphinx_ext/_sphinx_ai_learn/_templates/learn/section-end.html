@@ -1,0 +1,47 @@
+</div>
+{% if citations %}<details class="learn-evidence"><summary>Evidence · {{ citations|length }} references</summary><ol>{% for citation in citations %}<li><a href="{{ citation.url|e }}" target="_blank" rel="noopener noreferrer">{{ citation.title|e }}</a> — {{ citation.locator|e }}</li>{% endfor %}</ol></details>{% endif %}
+{% if citations %}{% include "learn/evidence-review.html" %}{% endif %}
+{% if content.contributors|default([]) %}<p class="learn-meta" data-contributors>Contributed by {% for contributor in content.contributors %}{% if not loop.first %}, {% endif %}{{ contributor|e }}{% endfor %}</p>{% endif %}
+{% if review %}<p class="learn-meta" data-review>Evidence reviewed by {{ review.by|e }} · {{ review.at|e }} · catalog revision {{ review.revision|e }}{% if state == 'stale' %} · Catalog changed; review again.{% endif %}</p>{% elif citations %}<p class="learn-meta" data-review>Evidence review pending · {{ citations|length }} reference{{ '' if citations|length == 1 else 's' }} attached.</p>{% else %}<p class="learn-meta" data-review>No references attached · evidence review not applicable.</p>{% endif %}
+{% if filled and generation_id|default('') %}{% include "learn/generation-feedback.html" %}{% endif %}
+<div class="learn-actions next-steps-container learn-primary-actions">
+{% if spec.id == 'video' %}
+<a class="learn-button learn-primary next-step-button" href="{{ video_generation_href|e }}">{{ 'Generate Another' if filled else 'Generate Now' }}</a>
+<a class="learn-button next-step-button" href="{{ videos_href|e }}">All videos</a>
+{% if youtube_subscribe_url %}
+<a class="learn-button next-step-button" target="_blank" rel="noopener noreferrer" href="{{ youtube_subscribe_url|e }}">Subscribe on YouTube</a>
+{% else %}
+<button type="button" class="learn-button next-step-button" disabled title="Configure ai_learn_youtube_subscribe_url to enable this link">Subscribe on YouTube</button>
+{% endif %}
+{% elif spec.id == 'audio' %}
+<a class="learn-button learn-primary next-step-button" href="{{ audio_generation_href|e }}">{{ 'Generate Another' if filled else 'Generate Now' }}</a>
+<a class="learn-button next-step-button" href="{{ audio_href|e }}">All audio</a>
+{% elif spec.id == 'document' %}
+<a class="learn-button learn-primary next-step-button" href="{{ document_generation_href|e }}">{{ 'Generate Another' if filled else 'Generate Now' }}</a>
+<a class="learn-button next-step-button" href="{{ document_href|e }}">All documents</a>
+{% elif spec.id == 'whiteboard' %}
+<a class="learn-button learn-primary next-step-button" href="{{ whiteboard_generation_href|e }}">{{ 'Generate Another' if filled else 'Generate Now' }}</a>
+<a class="learn-button next-step-button" href="{{ whiteboard_href|e }}">All whiteboards</a>
+{% elif spec.generation.mode|default('none') == 'chat' %}
+<button type="button" class="learn-primary next-step-button" data-generate>Generate Now</button>
+{% endif %}
+{% if citations %}<span data-enhanced hidden><button type="button" data-verify>Review sources</button></span>{% elif source_creation_href|default('#') != '#' and (spec.generation.mode|default('none') == 'chat' or spec.id in ['evidence', 'references']) %}<span data-enhanced hidden><a class="learn-button" href="{{ source_creation_href|e }}">Add evidence</a></span>{% endif %}
+</div>
+{% if spec.generation.mode|default('none') == 'chat' %}
+<div class="learn-section-legacy-note" data-section-legacy-note hidden role="note">
+  <p><strong>Legacy browser edit found.</strong> It is not loaded as an AI draft because its authorship cannot be verified.</p>
+  <div class="learn-actions"><button type="button" data-copy-legacy-edit>Copy legacy text</button><button type="button" data-hide-legacy-edit>Hide notice</button></div>
+</div>
+<form class="learn-edit" data-ai-edit hidden>
+<label>Draft heading<input aria-label="Draft heading" name="title" maxlength="200" value="{{ spec.title|e }}" required></label>
+<label>AI draft text <textarea aria-label="AI draft text" name="body" maxlength="50000" rows="10">{{ content.body|e }}</textarea></label>
+<label>Generation instructions<textarea aria-label="Generation instructions" name="instructions" maxlength="4000" rows="4">{{ content.instructions|default('')|e }}</textarea></label>
+<label>Start expanded <input aria-label="Start expanded" name="expanded" type="checkbox" {% if content.expanded|default(true) %}checked{% endif %}></label>
+<p>Editing is available only for this browser's AI draft. Saving changes marks the draft AI-assisted; published catalog text remains unchanged.</p>
+<div class="learn-actions"><button type="submit">Save changes</button><button type="button" data-cancel-edit>Cancel</button></div>
+</form>
+{% include "learn/section-ai-generation.html" %}
+{% elif spec.generation.reason %}
+<p class="learn-meta learn-section-ownership-note">{{ spec.generation.reason|e }}</p>
+{% endif %}
+</div>

@@ -1,0 +1,7 @@
+name: markdown
+version: 1
+summary: Markdown documents, READMEs and notes.
+extensions: [.md, .markdown, .mdx]
+splitter: text
+round_trip: true
+packs: [personal, patient, finance, secrets]

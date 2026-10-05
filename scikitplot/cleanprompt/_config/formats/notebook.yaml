@@ -1,0 +1,7 @@
+name: notebook
+version: 1
+summary: Jupyter notebooks - cells, outputs and figures, structure preserved.
+extensions: [.ipynb]
+splitter: notebook
+round_trip: true
+packs: [secrets, pandas, numpy, sklearn]

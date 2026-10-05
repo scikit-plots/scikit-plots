@@ -1,0 +1,10 @@
+{# Shared private text-generation lifecycle action bar. Scope values are static template constants. #}
+{% set action_scope = generation_action_scope|default('section-ai') %}
+{% set copy_suffix = generation_action_copy_suffix|default('') %}
+<div class="learn-actions learn-section-ai-actions">
+  <button type="button" class="learn-primary" data-{{ action_scope }}-run>{{ generation_action_run_label|default('Generate Now')|e }}</button>
+  <button type="button" data-{{ action_scope }}-cancel hidden>Cancel</button>
+  <button type="button" data-{{ action_scope }}-copy{{ copy_suffix }}>Copy request</button>
+  <button type="button" class="learn-primary" data-{{ action_scope }}-publish disabled>Open pull request</button>
+  <button type="button" data-{{ action_scope }}-close>Close</button>
+</div>

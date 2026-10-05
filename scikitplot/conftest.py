@@ -16,6 +16,7 @@ import gc as _gc
 import json as _json
 import os as _os
 import tempfile as _tempfile
+import time as _time
 import warnings as _warnings
 
 import hypothesis as _hypothesis
@@ -54,6 +55,20 @@ except Exception:
 
 
 def pytest_configure(config):
+    # Validate the garbage-collection policy once, before any test runs, and
+    # keep the answer for the per-test hooks below (see _test_gc_policy).
+    config._skplt_test_gc_policy = _test_gc_policy()
+    # Measure what every test costs before it does any work, and say so at
+    # the end of the run (see _TestCostMonitor). A pytest-xdist worker only
+    # runs tests; the process that started it reports.
+    config._skplt_test_cost = None
+    if not hasattr(config, "workerinput") and not config.pluginmanager.has_plugin(
+        "skplt-test-cost"
+    ):
+        config._skplt_test_cost = _TestCostMonitor(
+            config._skplt_test_gc_policy, _test_floor_budget()
+        )
+        config.pluginmanager.register(config._skplt_test_cost, "skplt-test-cost")
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
@@ -90,11 +105,362 @@ def pytest_configure(config):
 ## globally for all tests
 ######################################################################
 
+# DEVELOPER NOTES: what runs once per test must cost nothing
+# ----------------------------------------------------------
+# Everything in a ``pytest_runtest_*`` hook, and everything in an
+# ``autouse`` fixture of function scope, runs for *every* test of the
+# suite: more than twenty thousand times. One tenth of a second there is
+# forty minutes; one second is six hours.
+#
+# That is what happened. Until October 2026 this file ran a full
+# ``gc.collect()`` before and after each test. A full collection walks
+# every live container object of the process, so its cost follows what is
+# imported, not what the test did: 0.4 to 0.7 s with the scientific stack
+# loaded, and rising as the session imported more. A coverage run spent
+# 5.5 of its 5.9 hours there and was cancelled at the runner's limit. The
+# tests themselves need about 23 minutes.
+#
+# Why nobody saw it: the cost is the same for every test, so no test looks
+# slow. ``--durations`` lists the slowest tests and a flat cost is in none
+# of them. The only visible sign was that a *skipped* test, which does
+# nothing, took 0.7 s.
+#
+# Rules for this file and for every other ``conftest.py`` of the package:
+#
+# 1. Per-test code costs time in proportion to what the test did, never in
+#    proportion to the size of the process. No full ``gc.collect()``, no
+#    import of a heavy package, no file or network access, no sleep.
+# 2. Work that is needed once belongs in ``pytest_configure`` or in a
+#    fixture of session or module scope.
+# 3. Garbage is collected only through ``_collect_garbage`` below, so the
+#    time it takes is counted and reported.
+# 4. A costly diagnostic is opt-in, by an environment variable that is off
+#    by default (``SKPLT_TEST_GC=test`` is the example).
+#
+# What checks this, so that it does not depend on anybody remembering:
+#
+# * ``_TestCostMonitor`` measures the cost every test pays (the fastest
+#   tests of the run) and prints it after each run, with the time spent
+#   collecting garbage. Above ``SKPLT_TEST_FLOOR_BUDGET`` the run fails;
+#   the coverage workflow sets that variable.
+# * ``scikitplot/tests/test_conftest_gc_policy.py`` pins what each policy
+#   collects, and fails if any ``conftest.py`` of the package calls
+#   ``gc.collect`` by itself.
+
+
+#: Environment variable selecting how often the test session collects garbage.
+SKPLT_TEST_GC_ENV = "SKPLT_TEST_GC"
+
+#: Accepted values of :data:`SKPLT_TEST_GC_ENV`, most thorough first.
+#:
+#: ``test``
+#:     A full collection before and after every test.
+#: ``young``
+#:     The default. A young-generation collection after every test and a full
+#:     collection after the last test of each module.
+#: ``module``
+#:     A full collection after the last test of each module, nothing per test.
+#: ``off``
+#:     No collection beyond the interpreter's own.
+SKPLT_TEST_GC_POLICIES = ("test", "young", "module", "off")
+
+
+def _test_gc_policy():
+    """
+    Return the garbage-collection policy for this test session.
+
+    Returns
+    -------
+    str
+        One of :data:`SKPLT_TEST_GC_POLICIES`; ``"young"`` when
+        :data:`SKPLT_TEST_GC_ENV` is unset or empty.
+
+    Raises
+    ------
+    pytest.UsageError
+        If the variable holds any other value. A typo must not silently
+        select a different policy.
+
+    Notes
+    -----
+    **User notes.** Leave the variable unset. Set ``SKPLT_TEST_GC=test`` to
+    reproduce the behaviour of releases before this policy existed, for
+    example while hunting a leak that only a full collection exposes::
+
+        SKPLT_TEST_GC=test pytest scikitplot/annoy
+
+    **Developer notes.** A full ``gc.collect()`` walks every container object
+    alive in the process. With the scientific stack imported that is several
+    million objects, so one collection takes a few tenths of a second, and
+    it grows as the session imports more. Two of them around each of twenty
+    thousand tests cost five of the six hours a coverage run was allowed:
+    the fastest tests, and the skipped ones, took 0.73 s at the start of the
+    run and 1.40 s at the end, and the run was cancelled at the limit.
+
+    What the collections were for is kept. An object created by a test is in
+    the young generations when the test ends, so ``gc.collect(1)`` frees a
+    reference cycle the test left, and reports an unclosed resource against
+    the test that left it, at a cost that depends on what the test created
+    and not on the size of the process. A full collection at each module
+    boundary bounds what a long session accumulates. That one is not free:
+    about 0.4 s for each of 533 test files, 4 of the suite's 23 minutes in
+    the run of 5 October 2026. ``module`` costs the same and ``off`` removes
+    it; the monitor below prints the total after every run.
+    """
+    value = _os.environ.get(SKPLT_TEST_GC_ENV, "").strip().lower() or "young"
+    if value not in SKPLT_TEST_GC_POLICIES:
+        raise _pytest.UsageError(
+            f"{SKPLT_TEST_GC_ENV}={value!r} is not a garbage-collection policy; "
+            f"use one of {', '.join(SKPLT_TEST_GC_POLICIES)}"
+        )
+    return value
+
+
+def _is_last_test_of_its_module(item, nextitem):
+    """Return True when ``nextitem`` belongs to another module, or is absent."""
+    if nextitem is None:
+        return True
+    return getattr(nextitem, "module", None) is not getattr(item, "module", None)
+
+
+#: Environment variable holding the most, in seconds, that every test of a
+#: run may cost before the run fails. Unset, empty or ``0``: report only.
+SKPLT_TEST_FLOOR_ENV = "SKPLT_TEST_FLOOR_BUDGET"
+
+#: Above this many seconds the report is a warning even when nothing is
+#: enforced. Measured: 0.003 s for the whole suite, 0.005 s for its slowest
+#: submodule, 0.73 s and more with a full collection around each test.
+SKPLT_TEST_FLOOR_WARN = 0.1
+
+#: The cost every test pays is read from the fastest tests: this quantile
+#: of the whole-test times (setup, call and teardown together).
+SKPLT_TEST_FLOOR_QUANTILE = 0.05
+
+#: Fewer finished tests than this say nothing about a cost common to all.
+SKPLT_TEST_FLOOR_MIN_TESTS = 200
+
+
+def _test_floor_budget():
+    """
+    Return the enforced limit on the cost every test pays, if there is one.
+
+    Returns
+    -------
+    float or None
+        Seconds, from :data:`SKPLT_TEST_FLOOR_ENV`; ``None`` when the
+        variable is unset, empty or ``0``, and the cost is then reported
+        but never fails a run.
+
+    Raises
+    ------
+    pytest.UsageError
+        If the variable is not a number, or is negative or not finite.
+
+    Notes
+    -----
+    **User notes.** Leave it unset on your machine. The coverage workflow
+    sets ``SKPLT_TEST_FLOOR_BUDGET=0.1``. If a run fails on it and the
+    selection really consists of slow tests only, raise the value for that
+    run; do not remove the check.
+    """
+    raw = _os.environ.get(SKPLT_TEST_FLOOR_ENV, "").strip()
+    if not raw:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        value = float("nan")
+    if not 0.0 <= value < float("inf"):
+        raise _pytest.UsageError(
+            f"{SKPLT_TEST_FLOOR_ENV}={raw!r} is not a number of seconds; "
+            "use for example 0.1, or 0 to report without failing"
+        )
+    return value or None
+
+
+class _TestCostMonitor:
+    """
+    Measure what a test costs before it does anything, and report it.
+
+    Parameters
+    ----------
+    policy : str
+        The garbage-collection policy of the session, for the report.
+    budget : float or None
+        From :func:`_test_floor_budget`.
+
+    Notes
+    -----
+    **User notes.** Every run ends with a section like this::
+
+        cost of every test: 0.003 s (5% quantile of 22737 tests)
+        garbage collection (SKPLT_TEST_GC=young): <n> young in <s> s, <n> full in <s> s
+
+    The first line is what a test costs even when it does nothing. If it
+    is no longer a few milliseconds, something that runs once per test
+    became expensive: a hook, or an ``autouse`` fixture, here or in another
+    ``conftest.py``. Compare a skipped test's time with ``--durations=0
+    -vv`` to confirm, then bisect the fixtures.
+
+    **Developer notes.** A cost added to every test moves the whole
+    distribution of test times, including its fastest end, while slow
+    tests move only the upper end. So the low quantile is a measure of the
+    common cost that the tests' own work does not disturb, as long as a
+    twentieth of the selection is cheap; with fewer than
+    :data:`SKPLT_TEST_FLOOR_MIN_TESTS` tests no verdict is given.
+
+    The verdict changes the exit status of an otherwise successful run
+    only when a budget is set, and never under ``SKPLT_TEST_GC=test``,
+    which is slow on purpose.
+    """
+
+    def __init__(self, policy, budget):
+        self.policy = policy
+        self.budget = budget
+        self.collections = {"young": [0, 0.0], "full": [0, 0.0]}
+        self._running = {}
+        self._finished = []
+        self.over_budget = False
+
+    def add_collection(self, generation, seconds):
+        """Count one collection of ``generation`` that took ``seconds``."""
+        entry = self.collections["full" if generation >= 2 else "young"]
+        entry[0] += 1
+        entry[1] += seconds
+
+    def floor(self):
+        """
+        Return the cost every finished test paid.
+
+        Returns
+        -------
+        float or None
+            Seconds; ``None`` with fewer than
+            :data:`SKPLT_TEST_FLOOR_MIN_TESTS` finished tests.
+        """
+        if len(self._finished) < SKPLT_TEST_FLOOR_MIN_TESTS:
+            return None
+        ordered = sorted(self._finished)
+        return ordered[int(SKPLT_TEST_FLOOR_QUANTILE * (len(ordered) - 1))]
+
+    def exceeds(self, limit):
+        """Return True when the measured cost is known and above ``limit``."""
+        floor = self.floor()
+        return limit is not None and floor is not None and floor > limit
+
+    def lines(self):
+        """Return the report, one string per line; empty when no test ran."""
+        if not self._finished:
+            return []
+        floor = self.floor()
+        if floor is None:
+            first = (
+                f"cost of every test: not judged ({len(self._finished)} tests, "
+                f"{SKPLT_TEST_FLOOR_MIN_TESTS} needed)"
+            )
+        else:
+            first = (
+                f"cost of every test: {floor:.3f} s "
+                f"({SKPLT_TEST_FLOOR_QUANTILE:.0%} quantile of {len(self._finished)} tests)"
+            )
+        out = [first]
+        young, full = self.collections["young"], self.collections["full"]
+        if young[0] or full[0]:
+            out.append(
+                f"garbage collection ({SKPLT_TEST_GC_ENV}={self.policy}): "
+                f"{young[0]} young in {young[1]:.1f} s, {full[0]} full in {full[1]:.1f} s"
+            )
+        return out
+
+    def problem(self):
+        """Return the text explaining an excessive cost, or an empty string."""
+        limit = self.budget if self.budget is not None else SKPLT_TEST_FLOOR_WARN
+        if not self.exceeds(limit):
+            return ""
+        if self.policy == "test":
+            return (
+                f"every test costs at least {self.floor():.2f} s because "
+                f"{SKPLT_TEST_GC_ENV}=test collects fully around each test; "
+                "expected, and not a failure"
+            )
+        return (
+            f"every test costs at least {self.floor():.2f} s before it does any "
+            f"work (limit {limit:g} s). Something that runs once per test became "
+            "expensive: a pytest_runtest_* hook or an autouse fixture, in "
+            "scikitplot/conftest.py or another conftest.py. See the developer "
+            "notes in scikitplot/conftest.py."
+        )
+
+    # -- pytest hooks ---------------------------------------------------
+
+    def pytest_runtest_logreport(self, report):
+        # A test is reported three times; its cost is the three together.
+        # A sub-test has a report of its own, and its time is already inside
+        # the report of the test that contains it.
+        if getattr(report, "context", None) is not None:
+            return
+        total = self._running.pop(report.nodeid, 0.0) + float(report.duration)
+        if report.when == "teardown":
+            self._finished.append(total)
+        else:
+            self._running[report.nodeid] = total
+
+    def pytest_sessionfinish(self, session, exitstatus):
+        self.over_budget = (
+            self.budget is not None
+            and self.policy != "test"
+            and self.exceeds(self.budget)
+        )
+        if self.over_budget and int(exitstatus) == 0:
+            session.exitstatus = _pytest.ExitCode.TESTS_FAILED
+
+    def pytest_terminal_summary(self, terminalreporter):
+        lines = self.lines()
+        if not lines:
+            return
+        terminalreporter.section("cost per test")
+        for line in lines:
+            terminalreporter.write_line(line)
+        problem = self.problem()
+        if not problem:
+            return
+        if self.over_budget:
+            terminalreporter.write_line("ERROR: " + problem, red=True, bold=True)
+            if _os.environ.get("GITHUB_ACTIONS") == "true":
+                terminalreporter.write_line("::error title=Cost per test::" + problem)
+        else:
+            terminalreporter.write_line("WARNING: " + problem, yellow=True)
+
+
+def _collect_garbage(config, generation):
+    """
+    Collect garbage up to ``generation`` and count the time it took.
+
+    Parameters
+    ----------
+    config : pytest.Config
+        The session's configuration, which holds the monitor.
+    generation : int
+        ``1`` for the young generations, ``2`` for a full collection.
+
+    Notes
+    -----
+    **Developer notes.** The only place a ``conftest.py`` of this package
+    may call ``gc.collect``; a test enforces that. A collection that is
+    not counted is a cost nobody sees.
+    """
+    monitor = getattr(config, "_skplt_test_cost", None)
+    started = _time.perf_counter()
+    _gc.collect(generation)
+    if monitor is not None:
+        monitor.add_collection(generation, _time.perf_counter() - started)
+
 
 def pytest_runtest_setup(item):
-    # Before each test
-    # Trigger garbage collection
-    _gc.collect()
+    # Before each test. Keep this cheap: it runs for every test (see the
+    # developer notes at the top of this section).
+    if getattr(item.config, "_skplt_test_gc_policy", "young") == "test":
+        _collect_garbage(item.config, 2)
 
     mark = item.get_closest_marker("xslow")
     if mark is not None:
@@ -146,15 +512,24 @@ def pytest_runtest_setup(item):
 
 
 def pytest_runtest_teardown(item, nextitem):
-    # After each test
-    # Trigger garbage collection
-    _gc.collect()
+    # After each test; see _test_gc_policy for what each policy costs and keeps.
+    policy = getattr(item.config, "_skplt_test_gc_policy", "young")
+    if policy == "test":
+        _collect_garbage(item.config, 2)
+        return
+    if policy == "young":
+        _collect_garbage(item.config, 1)
+    if policy != "off" and _is_last_test_of_its_module(item, nextitem):
+        _collect_garbage(item.config, 2)
 
 
 ######################################################################
 ## pytest: run_gc
 ######################################################################
 
+# Do not restore this fixture: it is the six-hour run in another form (two
+# full collections around every test). SKPLT_TEST_GC=test gives the same
+# behaviour for one run, counted and reported.
 # @_pytest.fixture(autouse=True)
 # def run_gc():
 #     # Run garbage collection before each test

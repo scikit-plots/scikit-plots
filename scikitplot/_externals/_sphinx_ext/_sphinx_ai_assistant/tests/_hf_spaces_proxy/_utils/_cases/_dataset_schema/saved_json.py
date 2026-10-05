@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _dataset_schema as schema
+from ......_hf_spaces_proxy._utils import _dataset_schema as schema
 
 
 EXPECTED_CANONICAL_COLUMNS = [

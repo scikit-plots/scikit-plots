@@ -1,0 +1,7 @@
+name: pdf
+version: 1
+summary: PDF documents, read through scikitplot.corpus (pdfminer.six or pypdf). Output is redacted text.
+extensions: [.pdf]
+splitter: corpus
+round_trip: false
+packs: [personal, patient, finance, secrets]

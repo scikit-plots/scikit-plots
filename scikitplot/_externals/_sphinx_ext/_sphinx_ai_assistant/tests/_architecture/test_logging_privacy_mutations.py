@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 
 import importlib.util
 from pathlib import Path
@@ -115,16 +115,38 @@ def test_mutant_worker_field_filter_bypassed_is_detected() -> None:
 
 
 def test_mutant_worker_session_identifier_logging_restored_is_detected() -> None:
+    """
+    Seed a session identifier into a live Worker log call; the contract must object.
+
+    The mutant used to be seeded in the Worker's ``feedback.receive`` log
+    call. That call went away with the Worker's feedback route - page feedback
+    now belongs to ``_sphinx_feedback`` on the proxy, and
+    ``test_feedback_contribution_privacy`` asserts the Worker has no
+    ``/v1/feedback`` route - which left this control with nothing to mutate.
+    It is seeded in the chat rate-limit call instead: chat is the Worker
+    route that carries a session, so it is where an identifier would be
+    logged by mistake.
+    """
     src = WORKER.read_text(encoding="utf-8")
-    anchor = "_log('info', 'feedback.receive', { persisted: persist });"
+    anchor = "_log('warn', 'chat.ratelimit', { count: chatRl.count });"
     assert src.count(anchor) == 1
     mutated = src.replace(
         anchor,
-        "_log('info', 'feedback.receive', { sessionId: fb.sessionId, persisted: persist });",
+        "_log('warn', 'chat.ratelimit', { sessionId: body.sessionId, count: chatRl.count });",
         1,
     )
+    # The unmutated source satisfies the contract, so the failure below is
+    # caused by the seeded identifier and by nothing else.
+    _assert_worker_privacy_contract(src)
     with pytest.raises(AssertionError):
         _assert_worker_privacy_contract(mutated)
+
+
+def test_worker_has_no_feedback_log_surface_left_to_guard() -> None:
+    """The retired feedback route left no log call, key prefix or limit behind."""
+    src = WORKER.read_text(encoding="utf-8")
+    for residue in ("feedback.receive", "'fb:", "rl:fb", "FEEDBACK_RATE_LIMIT"):
+        assert residue not in src, residue
 
 
 def test_mutant_partial_token_fragment_restored_is_detected() -> None:

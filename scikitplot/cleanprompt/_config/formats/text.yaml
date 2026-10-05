@@ -1,0 +1,7 @@
+name: text
+version: 1
+summary: 'Plain text and logs. Lines of the form "Key: value" are read as fields.'
+extensions: [.txt, .text, .log, .out]
+splitter: text
+round_trip: true
+packs: [personal, patient, finance, secrets]

@@ -1,0 +1,7 @@
+name: rlang
+version: 1
+summary: R scripts and R Markdown - `name <- "value"` assignments.
+extensions: [.r, .rmd, .qmd]
+splitter: script
+round_trip: true
+packs: [personal, secrets]

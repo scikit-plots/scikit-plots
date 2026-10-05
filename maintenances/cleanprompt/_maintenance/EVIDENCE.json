@@ -1,0 +1,272 @@
+{
+  "lanes": [
+    {
+      "artifact": "evidence/maintenance-tests.log",
+      "id": "maintenance_contract",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "focused_runtime_tests_native",
+      "result": "2513 passed, 10 skipped, no harness edits (CPython 3.11.16 with every tier, cryptography 50.0.2; the 4 extra skips are the scikitplot.corpus bridge tests, absent from the isolated root this round ran in)",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "invariants_at_scale",
+      "result": "I1/I2/I7/I8 over 3000 randomized documents and 2000 junk documents",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/import-isolation.log",
+      "id": "import_isolation",
+      "result": "no third-party module loaded under an __import__ blocker (typing_extensions and yaml included) on 27 probes plus 11 CLI entry points, including the guard, the MCP server and plan files",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/import-isolation.log",
+      "id": "star_import_base_safe",
+      "result": "from scikitplot.cleanprompt import * resolves with spacy/nltk/flask/cryptography/numpy/click blocked",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "negative_probes",
+      "result": "every CP finding through CP-092 probed green (CP-054 to CP-056 by the stdlib-only test and the python matrix, CP-057/058 by the fuzz), plus archive, gate, MCP, plan, chunking, survey, concurrency, async, vault-file, value-variant, restored-variant, tool-privilege and tool-result probes, 4 API and 2 engine probes",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/multi-run.log",
+      "id": "determinism",
+      "result": "byte-identical Cleaner output over every round-trip format, placeholder and surrogate, across PYTHONHASHSEED 0/1/12345",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/multi-run.log",
+      "id": "repeatability",
+      "result": "5 consecutive full runs (2513 passed each); the 2 shuffled module-order runs were measured in round 21 and not re-run",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "web_tier_live",
+      "result": "routes, CSRF, session isolation and body bounds against Flask 3.1.3",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/upstream-defects.log",
+      "id": "upstream_reproduction",
+      "result": "12 upstream defects reproduced against the original source before any code was written",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/engines-live.log",
+      "id": "ner_tier_live",
+      "note": "This lane was UNAVAILABLE for two rounds. It is now measured, not asserted; the stub in tests/test__ner.py still proves span translation only and is still not recorded as this lane.",
+      "result": "spaCy 3.8.16 with en_core_web_sm and NLTK 3.10.3 with its four data packages, both live. 120 fuzzed documents per engine mode (spacy, nltk, both, none): every span satisfies span.text == text[start:end], every redact/restore is exact, every label is canonical. 1078 spans measured across the four modes.",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "crypto_tier_live",
+      "result": "both ciphers: the standard-library construction (wrong passphrase, bit flips anywhere in the token, label swapping, truncation, nonce freshness, KDF parameter round trip) and Fernet against cryptography 46.0.7",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/python-matrix.log",
+      "id": "python_platform_matrix",
+      "status": "PASS",
+      "result": "CPython 3.8.20, 3.9.25, 3.10.20, 3.12.3, 3.14.6 bare (pytest only), 3.13.15 with system site-packages, and 3.11.16 with every tier all green; PyYAML 5.1 (floor) on 3.8 and 6.0.3 (latest) on 3.13 green on the custom-pack, drift and CLI tests. The first run found CP-054, CP-055 and CP-056; round 22's bare rows are what CP-081 fails on.",
+      "note": "Python versions only. Other platforms are the separate platform_matrix lane, still UNAVAILABLE."
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "frontend_parity",
+      "result": "argparse and click agree on exit status and stdout for every declared command, including help and usage errors",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/cli-entrypoints.log",
+      "id": "global_cli_delegation",
+      "result": "scikitplot cleanprompt <sub> produces byte-identical output to python -m scikitplot.cleanprompt <sub>",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/web-live.log",
+      "id": "web_tier_http_live",
+      "result": "live server: /healthz, /api/doctor, static assets, CSRF round trip, suggestion chips",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/engines-live.log",
+      "id": "engine_interchangeability",
+      "result": "spaCy and NLTK emit the same canonical categories for the same text, and each engine's vault restores exactly. No engine emits a label outside the canonical vocabulary.",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/engines-live.log",
+      "id": "offset_alignment",
+      "result": "NLTK carries character offsets through sentence and word tokenization rather than recovering them by search; asserted over text with tabs, newlines, directional quotes, accented letters, astral-plane emoji and repeated names.",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "pattern_sentence_positions",
+      "result": "every pattern's own examples_yes are found, and not over-captured, in twelve sentence positions; every examples_no is still rejected. This lane found CP-028 and CP-029.",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "api_encode_decode",
+      "result": "encode/decode round trip, a 172-byte handle surviving JSON, placeholder stability across session turns, and a secret-free repr and JSON log stream.",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "cli_text_input",
+      "result": "text accepted positionally, from --in and from stdin, asserted through BOTH frontends with identical status and output; two sources at once refused; the interactive hint printed only to a terminal and only to standard error",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/cli-entrypoints.log",
+      "id": "roundtrip_demonstration",
+      "result": "all five stages present, the safe text free of values, the restored text carrying them again, the stand-in reply labelled as such on every run, and no file written to disk",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "option_grammar",
+      "result": "'--' end-of-options, long and short spellings, attached and separated values, and refusal of abbreviations and stray options - every case asserted through BOTH frontends and compared",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "vault_persistence",
+      "result": "the default vault resolves outside the working directory, the directory is 0700 and the file 0600, append keeps a value's placeholder across turns and never maps one placeholder to two values, appending onto an index-less vault is refused, and 'forget' deletes the vault reporting categories but never a value",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "lossy_restoration",
+      "result": "the ten measured shapes (the eight label spellings plus bold and code-span wrappers) a model returns a placeholder in all restore; prose lookalikes are untouched and never reported as unknown; every repair is named; --exact preserves byte-exact matching; and a surrogate round trip is exact through a single merged pass; the grammar travels in the vault, so decode needs no --style",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/gallery-examples.log",
+      "id": "gallery_examples",
+      "result": "all nine galleries/examples/cleanprompt scripts, including packs-and-formats and the model gate, execute to exit 0 under a sandboxed HOME and XDG_STATE_HOME; none writes a file outside its own temporary workspace; no unreserved address, telephone number or network address appears in any captured output",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log",
+      "id": "structured_artifacts",
+      "result": "a notebook and a module round-trip byte for byte through the artefact pipeline; the redacted notebook is still valid JSON with output_type, execution_count and cell ids byte-identical; no column name, path, rendered row or figure payload survives; the redacted code still parses as Python; a statement split across notebook source lines is parsed as one cell; a column that cannot be safely renamed is refused by name; a cell that does not parse is reported rather than treated as empty",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/packs-formats.log",
+      "id": "packs_and_formats",
+      "status": "PASS",
+      "result": "compiled catalogue equals the YAML (I10) and holds no whole credential (I14); 68 pattern examples executed at load (I11); 19 of 19 round-trip formats restore byte for byte under packs all, auto and none; 11 packs, 24 formats, 67 extensions"
+    },
+    {
+      "artifact": "evidence/packs-formats.log",
+      "id": "record_fields",
+      "status": "PASS",
+      "result": "CP-048 measured: of 12 sensitive field values across a CSV, a JSON record, a shell script and an INI file, the patterns alone left 11; packs('auto') leaves 0, every file round-trips, and one value keeps one label across a prose note and a record"
+    },
+    {
+      "id": "platform_matrix",
+      "status": "UNAVAILABLE",
+      "reason": "every run so far is Linux x86-64; Windows and macOS need the wide repository's CI"
+    },
+    {
+      "artifact": "evidence/fuzz.log",
+      "id": "randomized_formats",
+      "status": "PASS",
+      "result": "4000 randomized JSON, JSON Lines, CSV, env, INI, YAML, shell, Python and prose documents under packs all/auto: 0 round-trip, JSON-validity, leak, determinism, idempotence or crash failures; the first run found CP-057"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "model_gate",
+      "status": "PASS",
+      "result": "LeakError raised before the model call on a recurrence with remember off; 500 random chunkings of a surrogate reply decode like the whole (3000 each style in the suite); ask behind a closed pipe exits promptly with no orphan; chat parts that cannot be inspected are refused; async aask/achat/adecode_stream share every step with the sync methods, refuse before the call, and stream exactly like the whole"
+    },
+    {
+      "artifact": "evidence/negative-probes.log, evidence/scale.log",
+      "id": "logging_discipline",
+      "status": "PASS",
+      "result": "child-logger records, extra= fields and tracebacks scrubbed while a redacting block, Session, Cleaner or Guard holds the value; no value or file name in any record over every round-trip format; audit events emitted for encoded/decoded/blocked/sent/received; one counted shared filter: 5000 holders created in 0.01 s and 2000 records in 0.06 s with 126 000 values held (CP-065)"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "mcp_server",
+      "status": "PASS",
+      "result": "protocol negotiation, notifications, parse and method errors, path confinement including symlinks; no tool result carries a value or the root path; stdio round trip on CPython 3.8 to 3.13"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "plan_pinning",
+      "status": "PASS",
+      "result": "saved plans reload identically and are refused once a pack they resolve to changes; a folder hides a name in a note sorted before the record naming it (CP-063)"
+    },
+    {
+      "artifact": "evidence/scale.log",
+      "id": "record_chunking",
+      "status": "PASS",
+      "result": "chunked equals one pass at 30k, 60k and 120k rows (6 MB, 7 pieces) and over 300 random documents and cut sizes; 120k/30k time ratio 5.0 (linear); a seeded history no longer counts against max_entries (CP-064)"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "folder_survey",
+      "status": "PASS",
+      "result": "survey_tree writes nothing, leaves the vault unchanged, reports kinds only and matches encode_tree's statuses and counts; batch --dry-run agrees in both frontends; MCP inspect on a folder carries no value or root path"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "concurrency",
+      "status": "PASS",
+      "result": "8 threads sharing a Cleaner, a Guard and a Session: 0 labels naming two values and every text round-trips; 369 problems with the lock removed (CP-067)"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "vault_file",
+      "status": "PASS",
+      "result": "8 concurrent encode processes on one vault: 8 labels, every reply decodes (CP-068); a reader during 60 atomic rewrites saw 0 partial files, against 67 with the old truncating write (CP-069); lock waits are announced and bounded, and a killed holder leaves no stale lock"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "value_variants",
+      "status": "PASS",
+      "result": "7 writings of a remembered name hidden and restored exactly, all 7 refused with remember off, rewordings untouched (CP-070); surrogate stand-ins avoid held values (CP-071); canonical() length-preserving over 22 000 random code points"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "restored_variants",
+      "status": "PASS",
+      "result": "6 rewritten writings of surrogate stand-ins restore and are reported as repairs (CP-072); 40 random chunkings of a rewritten reply stream exactly like the whole; a 29 592-character reply in 5-character chunks decodes in 0.53 s (3.44 s in v18)"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "tool_privilege",
+      "status": "PASS",
+      "result": "an injected http_get carrying [CREDIT_CARD-1] and [EMAIL-1] is refused with allow=() and chat() leaves the call encoded (CP-073); closing tags pass through unchanged (CP-074); a Windows home path hides the user name and restores exactly (CP-075); least-privilege decoding runs with every optional package blocked"
+    },
+    {
+      "artifact": "evidence/negative-probes.log",
+      "id": "tool_results",
+      "status": "PASS",
+      "result": "a result keyed by an email hides the key (CP-076); a card number stored as an integer is hidden (CP-077); password: prose inside a JSON string is hidden and the file stays JSON (CP-078); the fuzz pool now carries prose values and 4000 documents keep every invariant"
+    },
+    {
+      "id": "secrets_at_rest",
+      "status": "PASS",
+      "artifact": "evidence/negative-probes.log, evidence/maintenance-tests.log",
+      "result": "no text file in the runtime package, the maintenance plane, the skill or the gallery holds a whole value a secrets-pack pattern accepts (I14, CP-REST-001); the compiler refuses the pre-round files with 15 findings; an unarmed check is an error"
+    }
+  ],
+  "runtime_tree_fingerprint": "ad6d37e39a11064aebc33155fc0f134709198b261eff8db828e504e6d8ab37f2",
+  "schema_version": 3,
+  "subsystem": "scikitplot.cleanprompt",
+  "updated_at": "2026-10-02"
+}

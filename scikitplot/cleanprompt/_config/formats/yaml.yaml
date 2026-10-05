@@ -1,0 +1,10 @@
+name: yaml
+version: 1
+summary: 'YAML files - "key: value" lines at any depth; block scalars are left to the patterns.'
+extensions: [.yaml, .yml]
+splitter: keyvalue
+round_trip: true
+options:
+  separators: [":"]
+  comments: ["#"]
+packs: [personal, secrets, cloud]

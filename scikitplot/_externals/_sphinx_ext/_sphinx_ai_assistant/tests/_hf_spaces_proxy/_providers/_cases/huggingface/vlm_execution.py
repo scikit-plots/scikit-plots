@@ -9,20 +9,20 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.huggingface import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.huggingface import (
     HuggingFaceResourceExecutor,
     official_huggingface_router_base,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.policy import (
+from ......_hf_spaces_proxy._providers.policy import (
     ModelResourceOverride,
     capabilities_for,
     huggingface_vlm_supported_model,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ......_hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _upload(data: bytes, *, mime="image/png", modality="image", name="x.png", rid="img") -> ResourceUpload:

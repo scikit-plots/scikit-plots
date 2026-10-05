@@ -46,7 +46,7 @@ function element(tag){
   // Mutating page globals after bridge startup must not alter the already
   // snapshotted bootstrap contract sent after the asynchronous HELLO.
   win.AI_ASSISTANT_CONFIG.panelTitle='MUTATED';
-  win.AI_ASSISTANT_CONFIG.panelFeedbackToken='LATE_SECRET';
+  win.AI_ASSISTANT_CONFIG.operatorSecret='LATE_SECRET';
   win.AI_ASSISTANT_ENDPOINTS.prod.base='https://evil.example';
   win.AI_ASSISTANT_ENDPOINT_DEFAULT='mutated';
   const iframe=appended.find(x=>x.tagName==='IFRAME');
@@ -94,10 +94,10 @@ function element(tag){
   eq(hello.o,'https://docs.example.com','frame HELLO uses exact declared parent origin');
   listeners.message({source:{},origin:'https://docs.example.com',data:{type:'AI_ASSISTANT_ISOLATION_INIT',v:'2.0.0',channel:hello.d.channel},ports:[port]});
   ok(!win.AI_ASSISTANT_ISOLATION_BRIDGE,'wrong message source cannot initialize frame');
-  listeners.message({source:parent,origin:'https://docs.example.com',data:{type:'AI_ASSISTANT_ISOLATION_INIT',v:'2.0.0',channel:hello.d.channel,page:{url:'https://docs.example.com/a.html',title:'A',pageName:'a'},config:{panelMaxTokens:1234,panelFeedbackToken:'LEAK',allowRuntimeTokens:true,constructor:'POLLUTE'},endpoints:{},endpointDefault:''},ports:[port]});
+  listeners.message({source:parent,origin:'https://docs.example.com',data:{type:'AI_ASSISTANT_ISOLATION_INIT',v:'2.0.0',channel:hello.d.channel,page:{url:'https://docs.example.com/a.html',title:'A',pageName:'a'},config:{panelMaxTokens:1234,operatorSecret:'LEAK',allowRuntimeTokens:true,constructor:'POLLUTE'},endpoints:{},endpointDefault:''},ports:[port]});
   ok(!!win.AI_ASSISTANT_ISOLATION_BRIDGE,'exact parent/source with one port initializes frame');
   eq(win.AI_ASSISTANT_CONFIG.panelMaxTokens,1234,'non-secret token-limit config survives scrub');
-  ok(!('panelFeedbackToken' in win.AI_ASSISTANT_CONFIG),'build-time secret-shaped config field is stripped');
+  ok(!('operatorSecret' in win.AI_ASSISTANT_CONFIG),'build-time secret-shaped config field is stripped');
   eq(win.AI_ASSISTANT_CONFIG.allowRuntimeTokens,true,'runtime-token policy flag is not mistaken for a credential');
   ok(!Object.prototype.hasOwnProperty.call(win.AI_ASSISTANT_CONFIG,'constructor'),'prototype-pollution key is stripped from frame config');
   eq(win.AI_ASSISTANT_CONFIG.isolationStorageScope,'host-site:https://docs.example.com|/','storage scope binds to parent origin + docs root');

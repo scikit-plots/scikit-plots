@@ -15,18 +15,19 @@ import sys
 
 from fastapi.testclient import TestClient
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import REPOSITORY_ROOT
+from ....._paths import REPOSITORY_ROOT
+from ._authority import assert_redis_url_not_echoed, echoed_parts
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._utils import _provider_artifact_lifecycle as lifecycle_mod
+from ......_hf_spaces_proxy._utils._provider_artifact import (
     PROVIDER_ARTIFACT_CONTRACT,
     ProviderArtifactError,
     ProviderArtifactGeneratorSpec,
     build_provider_artifact_receipt_from_digest,
     parse_provider_artifact_request,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._provider_artifact_lifecycle import (
+from ......_hf_spaces_proxy._utils._provider_artifact_lifecycle import (
     RedisProviderArtifactLifecycleRegistry,
     build_provider_artifact_lifecycle_registry,
 )
@@ -571,7 +572,7 @@ def _import_app_with_lifecycle_env(**updates):
 
 
 def test_app_environment_selects_shared_redis_lifecycle_without_echoing_authority() -> None:
-    secret_url = "rediss://runtime-user:super-secret@cache.internal.example:6380/4"
+    secret_url = "rediss://runtime-user:super-secret@cache.internal.example:16380/4"
     doc, result = _import_app_with_lifecycle_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -580,13 +581,11 @@ def test_app_environment_selects_shared_redis_lifecycle_without_echoing_authorit
     assert doc["error"] == ""
     assert doc["manifest"]["backend"] == "redis"
     assert doc["manifest"]["shared"] is True
-    rendered = result.stdout + result.stderr
-    for forbidden in ("runtime-user", "super-secret", "cache.internal.example", "6380", "rediss://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)
 
 
 def test_app_environment_rejects_plaintext_redis_under_tls_policy_without_echoing_url() -> None:
-    secret_url = "redis://runtime-user:super-secret@cache.internal.example:6379/4"
+    secret_url = "redis://runtime-user:super-secret@cache.internal.example:16379/4"
     doc, result = _import_app_with_lifecycle_env(
         PROVIDER_ARTIFACT_LIFECYCLE_BACKEND="redis",
         PROVIDER_ARTIFACT_LIFECYCLE_REDIS_URL=secret_url,
@@ -594,9 +593,7 @@ def test_app_environment_rejects_plaintext_redis_under_tls_policy_without_echoin
     )
     assert doc["manifest"]["backend"] == "memory"
     assert doc["error"] == "PROVIDER_ARTIFACT_REDIS_TLS_REQUIRED"
-    rendered = result.stdout + result.stderr
-    for forbidden in ("runtime-user", "super-secret", "cache.internal.example", "6379", "redis://"):
-        assert forbidden not in rendered
+    assert_redis_url_not_echoed(result.stdout + result.stderr, secret_url)
 
 def test_lua_scripts_use_one_hash_slot_and_do_not_embed_prompt_or_provider_secret_fields() -> None:
     scripts = [
@@ -608,3 +605,37 @@ def test_lua_scripts_use_one_hash_slot_and_do_not_embed_prompt_or_provider_secre
     assert "prompt_text" not in rendered and "artifact_bytes" not in rendered and "provider_token" not in rendered
     registry = _redis_registry(_SharedRedisState())
     assert all("{provider-artifact}" in key for key in registry._keys)
+
+
+_ECHO_URL = "redis://runtime-user:super-secret@cache.internal.example:16379/4"
+
+
+def test_url_echo_check_finds_each_part_of_the_url() -> None:
+    for rendered, part in (
+        ("connecting to redis://…", "scheme"),
+        ("user=runtime-user", "username"),
+        ("auth super-secret", "password"),
+        ("resolve cache.internal.example failed", "host"),
+        ("Connection(host=…, port=16379)", "port"),
+        ("refused …:16379/4", "port"),
+        ("{'port': 16379}", "port"),
+    ):
+        assert echoed_parts(rendered, _ECHO_URL) == [part], rendered
+
+
+def test_url_echo_check_ignores_the_port_digits_inside_another_number() -> None:
+    """The reported failure: a timestamp or thread identifier is not a port."""
+    incidental = (
+        "2026-10-03 12:47:37.163790: W scikitplot.app 140012484163794 app.py:2722:<module>] started\n"
+        "2026-10-03 12:47:37.416379: W scikitplot.app 139823516379616 app.py:2722:<module>] started\n"
+    )
+    assert "16379" in incidental
+    assert echoed_parts(incidental, _ECHO_URL) == []
+
+
+def test_url_echo_check_refuses_a_url_it_cannot_fully_check() -> None:
+    import pytest
+
+    for url in ("redis://cache.internal.example:16379/4", "redis://u:p@cache.internal.example/4"):
+        with pytest.raises(ValueError, match="has no"):
+            echoed_parts("", url)

@@ -9,20 +9,20 @@ import httpx
 import pytest
 from starlette.datastructures import UploadFile
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy import app
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.base import ResourceRoute
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ResourceExecutionError
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.gemini import (
+from ......_hf_spaces_proxy import app
+from ......_hf_spaces_proxy._providers.base import ResourceRoute
+from ......_hf_spaces_proxy._providers.executor import ResourceExecutionError
+from ......_hf_spaces_proxy._providers.gemini import (
     GeminiResourceExecutor,
     official_gemini_interactions_backend,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.policy import (
+from ......_hf_spaces_proxy._providers.policy import (
     capabilities_for,
     gemini_native_media_supported_model,
 )
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._chat_contract import ChatRequest
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils._resource_transport import ResourceUpload
+from ......_hf_spaces_proxy._utils._chat_contract import ChatRequest
+from ......_hf_spaces_proxy._utils._resource_contract import ResourceDescriptor, VerifiedResource
+from ......_hf_spaces_proxy._utils._resource_transport import ResourceUpload
 
 
 def _chat(*, model="gemini-3.8-flash", stream=False):
@@ -179,7 +179,7 @@ def test_interactions_payload_maps_media_and_hides_provider_capabilities() -> No
         _upload("pdf", b"x", modality="document", mime="application/pdf", name="x.pdf"),
     ]
     handles = []
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._providers.executor import ProviderPrivateResource
+    from ......_hf_spaces_proxy._providers.executor import ProviderPrivateResource
     for u in uploads:
         v = u.verified
         handles.append(ProviderPrivateResource(v.id, "native", "gemini", v.sha256, v.actual_size, {

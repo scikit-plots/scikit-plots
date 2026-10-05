@@ -3,7 +3,7 @@
 """Package/deployment layout owned by :mod:`_hf_spaces_proxy.__init__`."""
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from .._paths import RUNTIME_ROOT
 
 import importlib
 from pathlib import Path
@@ -14,6 +14,7 @@ import sys
 PROXY = RUNTIME_ROOT / "_hf_spaces_proxy"
 UTILS = PROXY / "_utils"
 PROVIDERS = PROXY / "_providers"
+PAGE_FEEDBACK = PROXY / "_page_feedback"
 EXPECTED_PACKAGE_ROOT_PY = {"__init__.py", "app.py", "deduplicate_dataset.py"}
 EXPECTED_DEPLOY_ENTRYPOINTS = {"app.py", "deduplicate_dataset.py"}
 
@@ -34,9 +35,10 @@ def test_docker_copies_private_packages_and_only_deploy_entrypoints() -> None:
     docker = (PROXY / "Dockerfile").read_text(encoding="utf-8")
     assert "COPY --chown=1000:1000 _utils ./_utils" in docker
     assert "COPY --chown=1000:1000 _providers ./_providers" in docker
+    assert "COPY --chown=1000:1000 _page_feedback ./_page_feedback" in docker
     assert "COPY --chown=1000:1000 app.py deduplicate_dataset.py ./" in docker
     assert "__init__.py" not in EXPECTED_DEPLOY_ENTRYPOINTS
-    assert UTILS.is_dir() and PROVIDERS.is_dir()
+    assert UTILS.is_dir() and PROVIDERS.is_dir() and PAGE_FEEDBACK.is_dir()
 
 
 def test_dockerignore_allows_every_local_docker_copy_source() -> None:
@@ -62,6 +64,7 @@ def test_dockerignore_allows_every_local_docker_copy_source() -> None:
         "requirements.lock",
         "_utils",
         "_providers",
+        "_page_feedback",
         "app.py",
         "deduplicate_dataset.py",
     }
@@ -74,6 +77,14 @@ def test_dockerignore_allows_every_local_docker_copy_source() -> None:
             assert f"!{source}/**" in active, source
         else:
             assert f"!{source}" in active, source
+
+
+def test_standalone_page_feedback_runtime_matches_authoritative_extension() -> None:
+    feedback_root = PROXY.parent.parent / "_sphinx_feedback"
+    assert (PAGE_FEEDBACK / "__init__.py").read_bytes() == (feedback_root / "__init__.py").read_bytes()
+    assert (PAGE_FEEDBACK / "_contracts.py").read_bytes() == (feedback_root / "_contracts.py").read_bytes()
+    for name in ("__init__.py", "_config.py", "_core.py", "_github.py", "_sqlite.py", "app.py"):
+        assert (PAGE_FEEDBACK / "_service" / name).read_bytes() == (feedback_root / "_service" / name).read_bytes()
 
 
 def test_top_level_hf_space_import_resolves_private_utils() -> None:
@@ -110,6 +121,7 @@ def test_docker_runtime_copy_set_is_standalone_importable(tmp_path: Path) -> Non
         shutil.copy2(PROXY / name, tmp_path / name)
     shutil.copytree(UTILS, tmp_path / "_utils")
     shutil.copytree(PROVIDERS, tmp_path / "_providers")
+    shutil.copytree(PAGE_FEEDBACK, tmp_path / "_page_feedback")
     proc = subprocess.run(
         [sys.executable, "-c", "import app; print(app.PROXY_VERSION)"],
         cwd=tmp_path,

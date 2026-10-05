@@ -534,6 +534,47 @@ maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
 
+## Maintenance tools
+cleanprompt = [
+  "lxml",
+  "flask",
+  "cryptography",
+  ## Pre-install the NLTK data in CI.
+  # python -m nltk.downloader punkt_tab wordnet omw-1.4
+  "nltk",                                   # https://github.com/nltk/nltk  https://www.nltk.org/install.html  https://www.nltk.org/data.html
+  ## Download best-matching version of specific model for your spaCy installation
+  # python -m spacy download en_core_web_sm
+  "spacy",                                  # https://github.com/explosion/spaCy#-download-model-packages advanced Natural Language Processing
+]
+
+## corpus submodule dep
+## sudo apt-get install tesseract-ocr
+corpus = [
+  "lxml",
+  "nltk",                                   # nltk
+  "gensim",
+  "datasets",
+  "langdetect",
+  "pytesseract",
+  "whisper",
+  "faster-whisper",
+  "openai-whisper",
+  "youtube-transcript-api",
+  "pypdf",
+  "pdfminer",
+  "pdfminer.six",
+  "sentence-transformers",
+  "langchain-core",
+]
+
+## mlflow submodule dep
+cython = [
+  "cython",                                 # cython
+  "setuptools",                             # setuptools
+  "pybind11",                               # pybind11
+  "pythran",                                # pythran
+]
+
 ## mcp submodule dep
 mcp = [
   # Tier-S server extra. The SDK is imported via the public ``mcp.types`` alias
@@ -567,33 +608,6 @@ mcp = [
 ## mlflow submodule dep
 mlflow = [
   "mlflow",                                 # mlflow
-]
-
-## mlflow submodule dep
-cython = [
-  "cython",                                 # cython
-  "setuptools",                             # setuptools
-  "pybind11",                               # pybind11
-  "pythran",                                # pythran
-]
-
-## corpus submodule dep
-## sudo apt-get install tesseract-ocr
-corpus = [
-  "nltk",                                   # nltk
-  "gensim",
-  "datasets",
-  "langdetect",
-  "pytesseract",
-  "whisper",
-  "faster-whisper",
-  "openai-whisper",
-  "youtube-transcript-api",
-  "pypdf",
-  "pdfminer",
-  "pdfminer.six",
-  "sentence-transformers",
-  "langchain-core",
 ]
 
 ## Specialized dependencies for specific hardware

@@ -60,6 +60,13 @@ class _ClosedModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class AlsoInOutput(_ClosedModel):
+    """Another source that holds exactly the same passage text (CX-02)."""
+
+    source_uri: str
+    doc_id: str
+
+
 class CitationOutput(_ClosedModel):
     """Stable source metadata for one returned passage."""
 
@@ -69,6 +76,9 @@ class CitationOutput(_ClosedModel):
     anchor: str
     doc_id: str
     score: float
+    #: Every other source whose passage was identical and was therefore sent
+    #: once, under this citation, instead of repeated.
+    also_in: list[AlsoInOutput] = Field(default_factory=list)
 
 
 class SecurityOutput(_ClosedModel):
@@ -100,6 +110,9 @@ class SearchDocsOutput(_ClosedModel):
     #: Explanations from any leg that did not run cleanly. Present only when
     #: ``retrieval_status`` is ``"degraded"`` or ``"failed"``.
     retrieval_errors: list[StrictStr] | None = None
+    #: How many retrieved passages were identical to one already returned and
+    #: were cited on it rather than sent again.
+    duplicates_merged: int = Field(default=0, ge=0)
     security: SecurityOutput
 
     @model_validator(mode="after")
@@ -190,6 +203,7 @@ class SearchService:
             message=structured.get("message"),
             retrieval_status=structured.get("retrieval_status"),
             retrieval_errors=structured.get("retrieval_errors"),
+            duplicates_merged=structured.get("duplicates_merged", 0),
             security=SecurityOutput.model_validate(structured["security"]),
         )
 

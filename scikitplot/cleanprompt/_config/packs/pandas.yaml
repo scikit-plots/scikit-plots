@@ -1,0 +1,28 @@
+# pandas: the column-naming sites beyond the core set in _code.py.
+#
+# A code pack hides nothing on its own. It widens where a notebook's column
+# names are *found*, so the role-preserving rename of round eleven reaches
+# them. Every entry is a documented pandas parameter whose value is a column
+# label or a list of them; methods such as `get` and `pop` are deliberately
+# absent, because `dict.get("password")` has the same shape and discovery must
+# stay unambiguous.
+name: pandas
+version: 1
+summary: pandas column-naming arguments and dtype spellings, for notebooks and modules.
+
+code:
+  # pivot / pivot_table: values, index; melt: var_name, value_name;
+  # drop: labels; merge_asof: left_by, right_by.
+  column_keywords: [values, index, var_name, value_name, labels, left_by, right_by]
+  dtype_roles:
+    Int8: count
+    Int16: count
+    Int32: count
+    Int64: count
+    UInt8: count
+    Float32: amount
+    Float64: amount
+    boolean: flag
+    "string[python]": text
+    "datetime64[ns, UTC]": datetime
+    "timedelta64[ns]": amount

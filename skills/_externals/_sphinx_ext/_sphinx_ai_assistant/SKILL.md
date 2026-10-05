@@ -343,3 +343,22 @@ Remaining risk / next failing test
 
 Do not bury a real code bug under environment explanations, and do not change
 production behavior when the evidence shows only a stale test.
+
+## Current-state notes and the two checkouts
+
+Read `maintenances/_externals/_sphinx_ext/_notes/AI_ASSISTANT.md` for the present contract of this subsystem and
+`maintenances/_externals/_sphinx_ext/_notes/SPHINX_EXTENSION_STACK.md` for the stack-wide rules. Each ends with a
+**Library checkout** section.
+
+## The two checkouts
+
+This stack is one tree in two repositories: the library, at
+`scikitplot/_externals/_sphinx_ext/`, and the documentation site, at
+`docs/source/scikitplot/_externals/_sphinx_ext/`. The shared packages are kept
+byte-identical. The site's `conf.py`, canonical content and publication
+workflow exist only in the documentation repository, so tests that read them
+skip in the library checkout with the reason, and run there.
+
+- Find the site from what is on disk, never from `parents[n]`.
+- After any lint or format pass, run the suites before committing.
+- A change to a shared package is made once and delivered to both repositories.

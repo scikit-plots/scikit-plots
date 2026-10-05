@@ -1,0 +1,97 @@
+<section class="learn-generation-shell learn-generation-shell--document learn-document-generation" data-generation-kind="document" data-document-generation>
+  <script type="application/json" data-document-generation-payload>{{ payload|safe }}</script>
+
+  {% set generation_kind = 'document' %}
+  {% set studio_title = 'Create a Document' %}
+  {% set studio_description = 'Generate a private Markdown, reStructuredText, or plain-text learning artifact from trusted Learn context, a public reference URL, or a free prompt. Generation never writes directly into the documentation tree.' %}
+  {% set studio_runtime = true %}
+  {% set studio_runtime_status = 'Checking the configured Document runtime…' %}
+  {% set studio_readiness_label = 'Document generation readiness' %}
+  {% include "learn/generation-studio-header.html" %}
+
+  <form class="learn-generation-form learn-document-generation-form" data-document-form novalidate>
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">1</span><span>Choose context<small>Choose one grounding mode for this Document request.</small></span></legend>
+      {% set context_scope = 'document' %}
+      {% set context_policy = 'exclusive' %}
+      {% set context_topics = topics %}
+      {% set context_sources = sources %}
+      {% set context_topic_help = 'Use the Topic summary as the primary context snapshot.' %}
+      {% set context_source_help = 'Use a canonical Source when provenance should be explicit.' %}
+      {% set context_url_help = 'The URL is passed as untrusted reference text. This page does not fetch it; retrieval depends on the selected model/runtime.' %}
+      {% set context_prompt_placeholder = 'Describe the document you want to create.' %}
+      {% set context_prompt_help = 'Use Prompt when no Topic, Source, or URL context should be attached.' %}
+      {% include "learn/generation-context.html" %}
+    </fieldset>
+
+    {% set generation_kind = 'document' %}
+    {% include "learn/generation-shaping.html" %}
+
+    {% include "learn/generation-lenses.html" %}
+
+    <fieldset class="learn-generation-card">
+      <legend class="learn-generation-legend"><span class="learn-generation-step-index">4</span><span>Output settings<small>Choose the artifact name and a portable text format.</small></span></legend>
+      <div class="learn-generation-options">
+        <label class="learn-generation-field">Title
+          <input type="text" data-document-title maxlength="200" value="AI Learn document" autocomplete="off">
+        </label>
+        <label class="learn-generation-field">Format
+          <select data-document-format>
+            <option value="markdown" selected>Markdown (.md)</option>
+            <option value="rst">reStructuredText (.rst)</option>
+            <option value="text">Plain text (.txt)</option>
+          </select>
+        </label>
+      </div>
+    </fieldset>
+
+    {% set generation_kind = 'document' %}
+    {% include "learn/generation-advanced.html" %}
+
+    {% set generation_kind = 'document' %}
+    {% set authority_title = 'Generation authority' %}
+    {% set authority_help = 'The selected AI Assistant model is the generation model used by the chat-backed Document endpoint.' %}
+    {% set authority_kind = 'assistant' %}
+    {% set authority_managed = 'shared' %}
+    {% set authority_initial_label = 'Discovering…' %}
+    {% set authority_initial_badge = 'Default' %}
+    {% set authority_open_label = 'Model Configuration' %}
+    {% set authority_open_title = 'Open AI Assistant model configuration' %}
+    {% set authority_more_label = 'Try a different model' %}
+    {% set authority_more_title = 'More model options' %}
+    {% set authority_runtime_label = 'Document runtime' %}
+    {% set authority_runtime_initial = 'Discovering…' %}
+    {% set authority_status = 'Checking AI Assistant model configuration and Document runtime authority…' %}
+    {% include "learn/generation-authority.html" %}
+
+    {% set publication_credit_help = 'Optional public credit reserved for a later reviewed publication handoff. Leave blank for Anonymous. Use only a name you want published; do not enter email addresses or other private contact details. It is stored only with this browser studio state and is never sent to the Document generation runtime.' %}
+    {% include "learn/publication-credit.html" %}
+    {% set generation_kind = 'document' %}
+    {% include "learn/generation-actions.html" %}
+    {% set status_initial_state = 'idle' %}
+    {% set status_initial_label = 'Ready' %}
+    {% set status_initial_message = 'Ready to generate a document.' %}
+    {% include "learn/generation-status.html" %}
+  </form>
+
+  <section class="learn-generation-result-card" data-document-result-card hidden aria-label="Generated document">
+    <div class="learn-generation-result-heading">
+      <div><p class="learn-kicker">Private result</p><strong>Document preview</strong></div>
+      <div class="learn-generation-result-actions learn-actions">
+        <button type="button" data-document-download>Download</button>
+        <button type="button" data-document-copy>Copy text</button>
+      </div>
+    </div>
+    <pre class="learn-document-result" data-document-result></pre>
+    <p class="learn-meta" data-document-result-meta></p>
+  </section>
+
+  {% set generation_kind = 'document' %}
+  {% set library_title = 'Your Documents' %}
+  {% set library_singular = 'document generation' %}
+  {% set library_plural = 'document generations' %}
+  {% set library_empty_title = 'No generated documents are known to this browser yet.' %}
+  {% set library_empty_help = 'Successful Documents appear here as private browser-known receipts. Publishing remains a separate reviewed action.' %}
+  {% set library_refresh_title = 'Document generation currently returns completed artifacts directly and does not expose a receipt refresh API.' %}
+  {% include "learn/generation-library.html" %}
+</section>

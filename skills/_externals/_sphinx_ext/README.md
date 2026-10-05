@@ -6,7 +6,16 @@ dependencies and do not duplicate the common checker machinery.
 ```text
 _sphinx_ai_assistant/SKILL.md      -> AI/security/runtime maintenance entry
 _sphinx_youtube_gallery/SKILL.md   -> YouTube/gallery family maintenance entry
+_sphinx_ai_learn/SKILL.md          -> JSON-first Learn materializer/pages/publication entry
+_sphinx_feedback/SKILL.md          -> page-feedback contract/service entry
+_sphinx_collection/SKILL.md        -> shared collection browser entry
 ```
+
+The first two subsystems own full maintenance state (`MAINTAINING.md`, `STATE.json`,
+trackers). The last three do not yet; their skills route to the current-state notes in
+`maintenances/_externals/_sphinx_ext/_notes/`, which every skill here reads for the
+stack-wide rules: the two checkouts, how tests find the site, and how tests import the
+stack.
 
 Generic structural, typed-dependency, capability-ownership, evidence, and security
 hygiene rules live in `maintenances/_externals/_sphinx_ext/_maintenance_core/`.

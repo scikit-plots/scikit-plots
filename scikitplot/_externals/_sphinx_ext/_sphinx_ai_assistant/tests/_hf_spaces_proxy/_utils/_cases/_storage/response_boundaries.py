@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from ....._paths import RUNTIME_ROOT
 
 import asyncio
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from scikitplot._externals._sphinx_ext._sphinx_ai_assistant._hf_spaces_proxy._utils import _storage as st
+from ......_hf_spaces_proxy._utils import _storage as st
 
 ROOT = RUNTIME_ROOT
 MAIN = ROOT / "_static" / "ai-assistant.js"
