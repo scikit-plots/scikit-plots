@@ -18,8 +18,10 @@ configuration to those rules.
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -29,7 +31,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import ci_test_plan as plan_module  # noqa: E402
-from ci_test_plan import PlanError, Planner, load_config, load_durations  # noqa: E402
+from ci_test_plan import (  # noqa: E402
+    PYTEST_DEFAULT_NORECURSEDIRS,
+    PlanError,
+    Planner,
+    load_config,
+    load_durations,
+    load_norecursedirs,
+)
 
 
 def main(argv):
@@ -76,6 +85,8 @@ FILES = {
     "pkg/_ext/_jupyter/__init__.py": "",
     "docs/index.rst": "",
     "pyproject.toml": "",
+    # The command line reads this, as pytest does.
+    "pytest.ini": "[pytest]\nnorecursedirs = docs\n",
 }
 
 
@@ -393,6 +404,241 @@ class TestConfiguration(unittest.TestCase):
             load_durations(bad)
 
 
+class TestNorecursedirsSetting(unittest.TestCase):
+    """Reading the setting from ``pytest.ini``."""
+
+    def _ini(self, text):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False, encoding="utf-8")
+        self.addCleanup(os.unlink, handle.name)
+        with handle:
+            handle.write(text)
+        return handle.name
+
+    def test_patterns_are_read_in_order_across_lines_and_within_one(self):
+        ini = self._ini(
+            "# a comment\n"
+            "[pytest]\n"
+            "## another\n"
+            "norecursedirs =\n"
+            "    .git_clones\n"
+            "    # a comment inside the value\n"
+            "    galleries examples\n"
+            "    pkg/cext/_vendored\n"
+            "    'two words'\n"
+            "addopts =\n"
+            "    -l\n"
+            "    \"-p no:cacheprovider\"\n"
+            "filterwarnings =\n"
+            "    error\n"
+            "    ignore:100%% sure:UserWarning\n"
+        )
+        self.assertEqual(
+            load_norecursedirs(ini),
+            (".git_clones", "galleries", "examples", "pkg/cext/_vendored", "two words"),
+        )
+
+    def test_without_the_setting_pytest_defaults_apply(self):
+        for text in ("", "[pytest]\naddopts = -q\n", "[tool:other]\nnorecursedirs = x\n"):
+            with self.subTest(text=text):
+                self.assertEqual(load_norecursedirs(self._ini(text)), PYTEST_DEFAULT_NORECURSEDIRS)
+        self.assertEqual(load_norecursedirs(None), PYTEST_DEFAULT_NORECURSEDIRS)
+        self.assertEqual(load_norecursedirs(""), PYTEST_DEFAULT_NORECURSEDIRS)
+
+    def test_an_empty_setting_excludes_nothing(self):
+        self.assertEqual(load_norecursedirs(self._ini("[pytest]\nnorecursedirs =\n")), ())
+
+    def test_a_named_file_that_cannot_be_used_is_an_error_not_a_default(self):
+        with self.assertRaisesRegex(PlanError, "cannot read the pytest configuration"):
+            load_norecursedirs("/nonexistent/pytest.ini")
+        with self.assertRaisesRegex(PlanError, "cannot read the pytest configuration"):
+            load_norecursedirs(self._ini("norecursedirs = x\n"))  # no section header
+        with self.assertRaisesRegex(PlanError, "cannot be split"):
+            load_norecursedirs(self._ini("[pytest]\nnorecursedirs = 'unclosed\n"))
+
+    def test_the_configuration_may_name_the_file_but_only_as_a_string(self):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8")
+        self.addCleanup(os.unlink, handle.name)
+        with handle:
+            json.dump(dict(CONFIG, pytest_ini=["pytest.ini"]), handle)
+        with self.assertRaisesRegex(PlanError, "'pytest_ini' must be a string"):
+            load_config(handle.name)
+
+
+class TestExcludedDirectories(Tree):
+    """A sharded run must collect what a recursive run collects, no more."""
+
+    patterns = ("docs", "tools", "pkg/vendored", "pkg/_ext/_sphinx/_old*")
+    extra = {
+        "pkg/vendored/__init__.py": "",
+        "pkg/vendored/conftest.py": "",
+        "pkg/vendored/_lib/tests/test_lib.py": "",
+        "pkg/tools/test_tool.py": "",
+        "pkg/corpus/tools/test_nested.py": "",
+        "pkg/_ext/_sphinx/_old_stack/tests/test_old.py": "",
+        "pkg/_ext/_sphinx/_grid/docs/test_example.py": "",
+    }
+
+    def setUp(self):
+        super().setUp()
+        for name, text in self.extra.items():
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        self.planner = Planner(self.root, dict(self.config), {}, self.patterns)
+
+    def test_matching_follows_pytest(self):
+        cases = {
+            "pkg/vendored": True,          # a pattern with a separator matches the end of the path
+            "pkg/vendored/_lib": True,     # ... and hides everything below
+            "pkg/vendored/_lib/tests/test_lib.py": True,
+            "other/pkg/vendored": True,
+            "vendored": False,             # ... but not a shorter path
+            "pkg/xvendored": False,
+            "pkg/tools": True,             # a bare pattern matches a directory name anywhere
+            "pkg/corpus/tools": True,
+            "pkg/corpus/toolset": False,
+            "pkg/_ext/_sphinx/_old_stack": True,
+            "pkg/_ext/_sphinx/_grid": False,
+            "pkg/corpus": False,
+            "pkg/corpus/__pycache__": True,
+            "pkg/tests/test_root.py": False,
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertIs(self.planner.is_excluded(path), expected)
+
+    def test_a_file_is_judged_by_its_directory_not_its_own_name(self):
+        (self.root / "pkg" / "corpus" / "tools.py").write_text("", encoding="utf-8")
+        (self.root / "pkg" / "corpus" / "docs").write_text("", encoding="utf-8")
+        self.assertFalse(self.planner.is_excluded("pkg/corpus/tools.py"))
+        self.assertFalse(self.planner.is_excluded("pkg/corpus/docs"))
+
+    def test_an_excluded_directory_is_not_a_unit(self):
+        units = self.planner.units()
+        for unit in ("pkg/vendored", "pkg/tools", "pkg/_ext/_sphinx/_old_stack"):
+            with self.subTest(unit=unit):
+                self.assertNotIn(unit, units)
+        self.assertEqual(self.planner.excluded_units(), ["pkg/_ext/_sphinx/_old_stack", "pkg/tools", "pkg/vendored"])
+        self.assertIn("pkg/corpus", units)
+
+    def test_a_full_run_leaves_excluded_tests_out_and_is_still_complete(self):
+        paths = self.paths(self.planner.plan("all"))
+        self.assertFalse([path for path in paths if self.planner.is_excluded(path)])
+        self.assertEqual(
+            self.planner.collectable_test_files(),
+            [
+                "pkg/_ext/_sphinx/_grid/tests/test_grid.py",
+                "pkg/_ext/_sphinx/_learn/tests/test_learn.py",
+                "pkg/_ext/_sphinx/tests/test_stack.py",
+                "pkg/_ext/tests/test_ext.py",
+                "pkg/corpus/tests/test_corpus.py",
+                "pkg/tests/test_root.py",
+                "pkg/utils/tests/test_utils.py",
+            ],
+        )
+
+    def test_a_change_inside_an_excluded_directory_runs_only_the_tests_above_it(self):
+        plan = self.planner.plan("auto", changed=["pkg/vendored/_lib/core.py"])
+        self.assertEqual(self.paths(plan), ["pkg/tests"])
+        self.assertTrue(any("norecursedirs" in reason for reason in plan["reason"]))
+        nested = self.planner.plan("auto", changed=["pkg/_ext/_sphinx/_old_stack/x.py"])
+        self.assertEqual(self.paths(nested), ["pkg/_ext/_sphinx/tests", "pkg/_ext/tests", "pkg/tests"])
+
+    def test_importers_of_an_excluded_directory_are_still_found(self):
+        (self.root / "pkg" / "stats" / "io.py").write_text("from ..vendored import _lib\n", encoding="utf-8")
+        planner = Planner(self.root, dict(self.config, dependents="direct"), {}, self.patterns)
+        plan = planner.plan("auto", changed=["pkg/vendored/_lib/core.py"])
+        self.assertEqual(self.paths(plan), ["pkg/stats", "pkg/tests"])
+
+    def test_an_excluded_directory_cannot_be_selected_by_any_spelling(self):
+        for name in ("vendored", "pkg/vendored", "pkg/vendored/_lib", "vendored/_lib", "_old_stack", "pkg/tools", "tools"):
+            with self.subTest(name=name), self.assertRaisesRegex(PlanError, "excluded from test collection"):
+                self.planner.plan("custom", select=name)
+
+    def test_selecting_a_container_skips_the_excluded_directories_below_it(self):
+        self.assertEqual(
+            self.planner.resolve_selection("_ext/_sphinx"),
+            ["pkg/_ext/_sphinx/_grid", "pkg/_ext/_sphinx/_learn", "pkg/_ext/_sphinx/tests"],
+        )
+
+    def test_an_excluded_container_contributes_nothing(self):
+        planner = Planner(self.root, dict(self.config), {}, ("_ext",))
+        self.assertFalse([unit for unit in planner.units() if unit.startswith("pkg/_ext")])
+        self.assertFalse(planner.loose_tests("pkg/_ext"))
+        self.assertEqual(planner.excluded_units(), ["pkg/_ext"])
+        self.assertEqual(self.paths(planner.plan("auto", changed=["pkg/_ext/_sphinx/_grid/a.py"])), ["pkg/tests"])
+        planner.plan("all")
+
+    def test_a_planned_path_that_is_excluded_is_refused(self):
+        # The invariant itself, independent of how a path got there.
+        with self.assertRaisesRegex(PlanError, "excluded by 'norecursedirs': pkg/vendored"):
+            self.planner._assert_collectable(["pkg/corpus", "pkg/vendored"])
+
+    def test_every_plan_is_checked_before_it_is_returned(self):
+        # A selection rule that went wrong must not reach pytest.
+        class Faulty(Planner):
+            def ancestor_tests(self, unit):
+                return ["pkg/vendored"]
+
+        faulty = Faulty(self.root, dict(self.config), {}, self.patterns)
+        with self.assertRaisesRegex(PlanError, "excluded by 'norecursedirs': pkg/vendored"):
+            faulty.plan("auto", changed=["pkg/corpus/a.py"])
+        with self.assertRaisesRegex(PlanError, "excluded by 'norecursedirs': pkg/vendored"):
+            faulty.plan("custom", select="corpus")
+
+        class FaultyAll(Planner):
+            def loose_tests(self, container=None):
+                return ["pkg/tools/test_tool.py"]
+
+        with self.assertRaisesRegex(PlanError, "excluded by 'norecursedirs'"):
+            FaultyAll(self.root, dict(self.config), {}, self.patterns).plan("all")
+
+    def test_without_patterns_nothing_is_excluded(self):
+        planner = Planner(self.root, dict(self.config), {}, ())
+        self.assertIn("pkg/vendored", planner.units())
+        self.assertEqual(planner.excluded_units(), [])
+
+    def test_the_command_line_reads_the_setting(self):
+        (self.root / "pytest.ini").write_text("[pytest]\nnorecursedirs = docs tools pkg/vendored\n", encoding="utf-8")
+        config = self.root / "plan.json"
+        config.write_text(json.dumps(self.config), encoding="utf-8")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(plan_module.main(["--root", str(self.root), "--config", str(config), "units", "--excluded"]), 0)
+        self.assertEqual(out.getvalue().split(), ["pkg/tools", "pkg/vendored"])
+        base = ["--root", str(self.root), "--config", str(config)]
+        self.assertEqual(main([*base, "plan", "--mode", "custom", "--select", "vendored"]), 2)
+        # An explicit empty value means "this project has no pytest.ini".
+        self.assertEqual(main([*base, "--pytest-ini", "", "plan", "--mode", "custom", "--select", "vendored"]), 0)
+        self.assertEqual(main([*base, "--pytest-ini", "missing.ini", "plan", "--mode", "all"]), 2)
+        (self.root / "pytest.ini").unlink()
+        self.assertEqual(main([*base, "plan", "--mode", "all"]), 2)
+
+    @unittest.skipUnless(importlib.util.find_spec("pytest"), "pytest is not installed")
+    def test_pytest_itself_agrees(self):
+        """Named paths collect exactly what a recursive run collects."""
+        for path in sorted(self.root.rglob("test_*.py")):
+            path.write_text("def test_it():\n    pass\n", encoding="utf-8")
+        (self.root / "pytest.ini").write_text(
+            "[pytest]\nnorecursedirs = " + " ".join(self.patterns) + "\n", encoding="utf-8",
+        )
+
+        def collected(*arguments):
+            done = subprocess.run(
+                [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider", *arguments],
+                cwd=self.root, capture_output=True, text=True, check=False,
+                env=dict(os.environ, PYTEST_ADDOPTS="", PYTHONDONTWRITEBYTECODE="1"),
+            )
+            return sorted(line for line in done.stdout.splitlines() if "::" in line)
+
+        whole = collected("pkg")
+        self.assertTrue(whole)
+        self.assertEqual(sorted(line.split("::")[0] for line in whole), self.planner.collectable_test_files())
+        self.assertEqual(collected(*self.paths(self.planner.plan("all"))), whole)
+        # What the planner prevents: a named excluded path is collected.
+        self.assertTrue(collected("pkg/vendored"))
+
+
 class TestGit(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -487,7 +733,13 @@ class TestShippedConfiguration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = load_config(REPOSITORY / ".github" / "ci" / "test_plan.json")
-        cls.planner = Planner(REPOSITORY, cls.config, load_durations(REPOSITORY / ".github" / "ci" / "test_durations.json"))
+        cls.norecursedirs = load_norecursedirs(REPOSITORY / cls.config.get("pytest_ini", "pytest.ini"))
+        cls.planner = Planner(
+            REPOSITORY,
+            cls.config,
+            load_durations(REPOSITORY / ".github" / "ci" / "test_durations.json"),
+            cls.norecursedirs,
+        )
 
     def test_every_configured_container_exists(self):
         for container in self.config["containers"]:
@@ -521,6 +773,32 @@ class TestShippedConfiguration(unittest.TestCase):
     def test_documentation_only_changes_run_nothing(self):
         plan = self.planner.plan("auto", changed=["README.md", "docs/source/index.rst", "galleries/examples/a.py", "maintenances/x.md"])
         self.assertFalse(plan["run"])
+
+    def test_the_project_excludes_something_so_the_setting_was_really_read(self):
+        # Guards the wiring: a planner that silently fell back to pytest's
+        # defaults would pass every other test in this class.
+        self.assertNotEqual(self.norecursedirs, PYTEST_DEFAULT_NORECURSEDIRS)
+        self.assertTrue(self.planner.excluded_units())
+
+    def test_no_mode_hands_pytest_a_directory_the_project_excludes(self):
+        excluded = self.planner.excluded_units()
+        plans = [self.planner.plan("all")]
+        plans += [self.planner.plan("auto", changed=[f"{unit}/__init__.py"]) for unit in excluded]
+        for plan in plans:
+            for shard in plan["shards"]:
+                for path in shard["paths"]:
+                    with self.subTest(path=path):
+                        self.assertFalse(self.planner.is_excluded(path))
+        for unit in excluded:
+            with self.subTest(unit=unit), self.assertRaisesRegex(PlanError, "norecursedirs"):
+                self.planner.plan("custom", select=unit)
+
+    def test_a_full_run_is_exactly_what_a_recursive_run_collects(self):
+        paths = [path for shard in self.planner.plan("all")["shards"] for path in shard["paths"]]
+        for source in self.planner.collectable_test_files():
+            covering = [path for path in paths if source == path or source.startswith(path + "/")]
+            with self.subTest(source=source):
+                self.assertEqual(len(covering), 1)
 
 
 if __name__ == "__main__":

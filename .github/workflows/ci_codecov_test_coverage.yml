@@ -23,6 +23,10 @@ on:
         type: choice
         options: [young, module, test, off]
         default: young
+      max_failures:
+        description: "Failures after which a test job stops (0: never; empty: 50)"
+        type: string
+        default: ""
   push:
     # branches: [ "main", "*.X" ]
     branches:
@@ -222,7 +226,7 @@ jobs:
         run: |
           # install your project if it's a package
           pip install -r requirements/all.txt
-          pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -vvv
+          pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
 
       - name: "☂️ Run tests with coverage"
         env:
@@ -231,14 +235,24 @@ jobs:
           # One data file per shard; the report job combines them.
           COVERAGE_FILE: .coverage.${{ matrix.name }}
           SKPLT_TEST_GC: ${{ inputs.test_gc || 'young' }}
+          # pytest.ini stops at the first failure, which suits a single
+          # local run. Each job here covers only part of the suite, so one
+          # run should report every failure it has; the last --maxfail on
+          # the command line is the one pytest uses.
+          MAX_FAILURES: ${{ inputs.max_failures || '50' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
         run: |
           set -Eeuo pipefail
+          if ! [[ "$MAX_FAILURES" =~ ^[0-9]+$ ]]; then
+            echo "::error::max_failures must be a whole number, got '$MAX_FAILURES'"
+            exit 2
+          fi
           rm -f coverage.xml .coverage .coverage.*
           mkdir -p reports
           read -r -a paths <<<"$SHARD_PATHS"
           status=0
           pytest "${paths[@]}" \
+            --maxfail="$MAX_FAILURES" \
             --cov \
             --cov-branch \
             --cov-report= \

@@ -42,6 +42,15 @@ The planner fails closed: when the changed files cannot be determined, it
 plans a full run and says why. In ``all`` mode it verifies that every test
 file under the package root is inside a planned path before it returns.
 
+**The plan collects what pytest collects.** A path named on the pytest
+command line is collected even when ``norecursedirs`` lists it: that option
+only stops pytest from *walking into* a directory. A sharded run names
+paths, so the planner applies ``norecursedirs`` itself, read from the same
+``pytest.ini`` pytest reads. A directory the project excludes is never a
+unit, is never handed to pytest, and cannot be selected by hand; a change
+inside it runs the ``tests`` directories above it. Before any plan is
+returned the planner checks that no planned path is excluded.
+
 Selected units are packed into shards by estimated duration, heaviest first
 onto the lightest shard, with ties broken by name, so the same inputs always
 produce the same plan. Estimates come from ``test_durations.json``; a unit
@@ -54,18 +63,23 @@ from __future__ import annotations
 
 import argparse
 import ast
+import configparser
 import fnmatch
 import json
+import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
 __all__ = [
     "MODES",
+    "PYTEST_DEFAULT_NORECURSEDIRS",
     "PlanError",
     "Planner",
     "changed_files_from_git",
     "load_config",
+    "load_norecursedirs",
     "main",
 ]
 
@@ -96,6 +110,25 @@ _REQUIRED_KEYS = {
 }
 
 _ZERO_SHA = "0" * 40
+
+#: Key of the optional setting that names the pytest configuration file.
+_PYTEST_INI_KEY = "pytest_ini"
+
+#: The file pytest reads first, and the default of that setting.
+_DEFAULT_PYTEST_INI = "pytest.ini"
+
+#: What pytest uses when ``norecursedirs`` is not set (``_pytest/main.py``).
+PYTEST_DEFAULT_NORECURSEDIRS = (
+    "*.egg",
+    ".*",
+    "_darcs",
+    "build",
+    "CVS",
+    "dist",
+    "node_modules",
+    "venv",
+    "{arch}",
+)
 
 
 class PlanError(Exception):
@@ -159,7 +192,57 @@ def load_config(  # ruff: ignore[too-many-branches]
     for event, mode in config["default_mode"].items():
         if mode not in ("auto", "all"):
             raise PlanError(f"{path}: default_mode[{event!r}] must be 'auto' or 'all'")
+    if not isinstance(config.get(_PYTEST_INI_KEY, _DEFAULT_PYTEST_INI), str):
+        raise PlanError(f"{path}: {_PYTEST_INI_KEY!r} must be a string")
     return config
+
+
+def load_norecursedirs(path):
+    """
+    Read the ``norecursedirs`` setting pytest itself will use.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path or None
+        A ``pytest.ini`` file. ``None`` or an empty string means the project
+        has no such file.
+
+    Returns
+    -------
+    tuple of str
+        The patterns, in file order. :data:`PYTEST_DEFAULT_NORECURSEDIRS`
+        when there is no file, no ``[pytest]`` section, or no such setting,
+        because that is what pytest then applies.
+
+    Raises
+    ------
+    PlanError
+        If a file is named and cannot be read or parsed. A plan made without
+        the project's exclusions would run tests the project never runs, so
+        this is an error and not a fall-back.
+
+    Notes
+    -----
+    **Developer notes.** The value is split the way pytest splits an
+    ``args`` setting (:func:`shlex.split`), so several patterns may share a
+    line. Only ``pytest.ini`` is understood; a project that keeps its pytest
+    settings elsewhere sets ``"pytest_ini": ""`` and lists nothing here.
+    """
+    if not path:
+        return PYTEST_DEFAULT_NORECURSEDIRS
+    parser = configparser.ConfigParser(interpolation=None, strict=False)
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+        parser.read_string(text, source=str(path))
+    except (OSError, ValueError, configparser.Error) as exc:
+        raise PlanError(f"cannot read the pytest configuration {path}: {exc}") from exc
+    if not parser.has_option("pytest", "norecursedirs"):
+        return PYTEST_DEFAULT_NORECURSEDIRS
+    try:
+        patterns = shlex.split(parser.get("pytest", "norecursedirs"), comments=True)
+    except ValueError as exc:
+        raise PlanError(f"{path}: norecursedirs cannot be split: {exc}") from exc
+    return tuple(patterns)
 
 
 def load_durations(path):
@@ -276,6 +359,8 @@ class Planner:
         From :func:`load_config`.
     durations : dict, optional
         From :func:`load_durations`.
+    norecursedirs : iterable of str, optional
+        From :func:`load_norecursedirs`. ``None`` means pytest's defaults.
 
     Notes
     -----
@@ -283,10 +368,13 @@ class Planner:
     else; it never imports the package, so it runs before anything is built.
     """
 
-    def __init__(self, root, config, durations=None):
+    def __init__(self, root, config, durations=None, norecursedirs=None):
         self.root = Path(root)
         self.config = config
         self.durations = dict(durations or {})
+        self.norecursedirs = tuple(
+            PYTEST_DEFAULT_NORECURSEDIRS if norecursedirs is None else norecursedirs,
+        )
         self.package = config["package_root"].strip("/")
         self.containers = sorted(c.strip("/") for c in config["containers"])
         if not (self.root / self.package).is_dir():
@@ -294,18 +382,82 @@ class Planner:
 
     # -- the tree -------------------------------------------------------
 
-    def _children(self, container):
-        """Return the sub-directories of ``container`` that may hold code."""
+    def _matches_norecurse(self, directory):
+        """Return True if pytest would not walk into ``directory`` itself."""
+        name = PurePosixPath(directory).name
+        for pattern in self.norecursedirs:
+            # pytest's ``fnmatch_ex``: a pattern without a separator is tried
+            # against the directory's name, any other against the end of its
+            # path.
+            if "/" in pattern:
+                if fnmatch.fnmatchcase(f"/{directory}", f"*/{pattern}"):
+                    return True
+            elif fnmatch.fnmatchcase(name, pattern):
+                return True
+        return False
+
+    def is_excluded(self, path):
+        """
+        Say whether a recursive ``pytest`` run would never reach ``path``.
+
+        Parameters
+        ----------
+        path : str
+            A POSIX path relative to the repository; a directory, or a file
+            (then its directory is what counts).
+
+        Returns
+        -------
+        bool
+            True if ``path`` or a directory above it matches
+            ``norecursedirs`` or is a ``__pycache__``.
+        """
+        parts = PurePosixPath(path).parts
+        if (self.root / path).is_file():
+            parts = parts[:-1]
+        return any(
+            parts[index] == "__pycache__"
+            or self._matches_norecurse("/".join(parts[: index + 1]))
+            for index in range(len(parts))
+        )
+
+    def _children(self, container, excluded=False):
+        """
+        Return the sub-directories of ``container`` pytest would walk into.
+
+        With ``excluded=True``, return the ones it would not, instead.
+        """
         directory = self.root / container
         if not directory.is_dir():
             return []
         return sorted(
-            f"{container}/{entry.name}"
-            for entry in directory.iterdir()
-            if entry.is_dir()
-            and not entry.name.startswith(".")
-            and entry.name != "__pycache__"
+            child
+            for child in (
+                f"{container}/{entry.name}"
+                for entry in directory.iterdir()
+                if entry.is_dir()
+                and not entry.name.startswith(".")
+                and entry.name != "__pycache__"
+            )
+            if self.is_excluded(child) is excluded
         )
+
+    def excluded_units(self):
+        """
+        Return the directories that would be units if pytest collected them.
+
+        Returns
+        -------
+        list of str
+            Children of a container that ``norecursedirs`` excludes, sorted.
+            A container that is itself excluded is listed once, unexpanded.
+        """
+        found = []
+        for container in self.containers:
+            if self.is_excluded(container):
+                continue
+            found.extend(self._children(container, excluded=True))
+        return sorted(found)
 
     def units(self, container=None):
         """
@@ -337,7 +489,7 @@ class Planner:
             c for c in self.containers if self._is_under(c, container or self.package)
         ]:
             directory = self.root / current
-            if not directory.is_dir():
+            if not directory.is_dir() or self.is_excluded(current):
                 continue
             found.extend(
                 f"{current}/{entry.name}"
@@ -388,7 +540,11 @@ class Planner:
         for container in self.containers:
             if self._is_under(parent, container):
                 tests = f"{container}/tests"
-                if tests != unit and (self.root / tests).is_dir():
+                if (
+                    tests != unit
+                    and (self.root / tests).is_dir()
+                    and not self.is_excluded(tests)
+                ):
                     found.append(tests)
         return sorted(found)
 
@@ -420,10 +576,16 @@ class Planner:
         if not names:
             raise PlanError("custom mode needs at least one submodule name")
         everything = self.units()
+        excluded = self.excluded_units()
         chosen = []
         for name in names:
             cleaned = name.strip("/")
             candidates = [cleaned, f"{self.package}/{cleaned}"]
+            # A path at or below an excluded directory is refused outright:
+            # naming it would make pytest collect what the project excludes.
+            barred = [c for c in candidates if self.is_excluded(c)]
+            if barred:
+                raise PlanError(self._excluded_message(name, barred[0]))
             hit = [c for c in candidates if c in everything]
             if hit:
                 chosen.append(hit[0])
@@ -442,10 +604,21 @@ class Planner:
                 raise PlanError(
                     f"{name!r} names several submodules: {', '.join(by_name)}",
                 )
+            barred = [unit for unit in excluded if PurePosixPath(unit).name == cleaned]
+            if barred:
+                raise PlanError(self._excluded_message(name, barred[0]))
             raise PlanError(
                 f"{name!r} is not a submodule; run 'ci_test_plan.py units' to list them",
             )
         return sorted(set(chosen))
+
+    @staticmethod
+    def _excluded_message(name, path):
+        return (
+            f"{name!r} cannot be selected: {path} is excluded from test "
+            "collection by 'norecursedirs', so no full run collects it "
+            "(list such directories with 'ci_test_plan.py units --excluded')"
+        )
 
     def select_for_changes(self, changed):
         """
@@ -599,20 +772,59 @@ class Planner:
             for index, group in enumerate(bins)
         ]
 
-    def _assert_complete(self, paths):
-        """Raise if any test file under the package root is outside ``paths``."""
+    def collectable_test_files(self):
+        """
+        Return the test files a recursive ``pytest <package root>`` reaches.
+
+        Returns
+        -------
+        list of str
+            POSIX paths, sorted: every file matching ``loose_test_globs``
+            below the package root that is not inside a directory
+            ``norecursedirs`` excludes.
+        """
         globs = self.config["loose_test_globs"]
-        missed = []
-        for source in sorted((self.root / self.package).rglob("*.py")):
-            if "__pycache__" in source.parts or not _matches(source.name, globs):
-                continue
-            relative = source.relative_to(self.root).as_posix()
-            if not any(self._is_under(relative, path) for path in paths):
-                missed.append(relative)
+        found = []
+        top = self.root / self.package
+        for current, directories, files in os.walk(top):
+            here = Path(current).relative_to(self.root).as_posix()
+            # Pruned in place, which is how pytest's own walk behaves: an
+            # excluded directory hides everything below it.
+            directories[:] = sorted(
+                name for name in directories if not self.is_excluded(f"{here}/{name}")
+            )
+            found.extend(
+                f"{here}/{name}"
+                for name in files
+                if name.endswith(".py") and _matches(name, globs)
+            )
+        return sorted(found)
+
+    def _assert_complete(self, paths):
+        """Raise if a test file pytest would collect is outside ``paths``."""
+        missed = [
+            source
+            for source in self.collectable_test_files()
+            if not any(self._is_under(source, path) for path in paths)
+        ]
         if missed:
             shown = ", ".join(missed[:5])
             raise PlanError(
                 f"a full run would not collect {len(missed)} test file(s): {shown}",
+            )
+
+    def _assert_collectable(self, paths):
+        """
+        Raise if a planned path is one pytest is configured never to enter.
+
+        Naming such a path on the command line would collect it anyway, and
+        the run would then include tests no recursive run of the project
+        has; this is the check that keeps a sharded run equal to a whole one.
+        """
+        barred = sorted(path for path in paths if self.is_excluded(path))
+        if barred:
+            raise PlanError(
+                "planned path(s) excluded by 'norecursedirs': " + ", ".join(barred),
             )
 
     # -- the plan -------------------------------------------------------
@@ -692,8 +904,18 @@ class Planner:
                 if extra:
                     reasons.append(f"importers of the selection: {', '.join(extra)}")
                 units = widened
-            existing = [unit for unit in units if (self.root / unit).is_dir()]
-            gone = sorted(set(units) - set(existing))
+            barred = sorted(unit for unit in units if self.is_excluded(unit))
+            if barred:
+                reasons.append(
+                    "excluded from collection by 'norecursedirs', only the tests "
+                    f"above them run: {', '.join(barred)}",
+                )
+            existing = [
+                unit
+                for unit in units
+                if unit not in barred and (self.root / unit).is_dir()
+            ]
+            gone = sorted(set(units) - set(existing) - set(barred))
             if gone:
                 reasons.append(
                     f"no longer present, only the tests above them run: {', '.join(gone)}",
@@ -702,6 +924,7 @@ class Planner:
             for unit in units:
                 paths.update(self.ancestor_tests(unit))
             paths = sorted(paths)
+        self._assert_collectable(paths)
         shards = self.shards(paths, limit) if paths else []
         return {
             "run": bool(shards),
@@ -769,6 +992,15 @@ def _parser():
         default=str(_DEFAULT_DURATIONS),
         help="duration estimates",
     )
+    parser.add_argument(
+        "--pytest-ini",
+        default=None,
+        help=(
+            "pytest configuration to read 'norecursedirs' from, relative to "
+            "--root (default: the 'pytest_ini' setting, else pytest.ini; "
+            "empty: none)"
+        ),
+    )
     commands = parser.add_subparsers(
         dest="command",
         required=True,
@@ -822,9 +1054,14 @@ def _parser():
         default="",
         help="append a Markdown summary to this file",
     )
-    commands.add_parser(
+    units = commands.add_parser(
         "units",
         help="list selectable submodules",
+    )
+    units.add_argument(
+        "--excluded",
+        action="store_true",
+        help="list the directories 'norecursedirs' keeps out, instead",
     )
     return parser
 
@@ -845,13 +1082,19 @@ def main(argv=None):
     """
     args = _parser().parse_args(argv)
     try:
+        config = load_config(args.config)
+        ini = args.pytest_ini
+        if ini is None:
+            ini = config.get(_PYTEST_INI_KEY, _DEFAULT_PYTEST_INI)
         planner = Planner(
             args.root,
-            load_config(args.config),
+            config,
             load_durations(args.durations),
+            load_norecursedirs(Path(args.root) / ini if ini else None),
         )
         if args.command == "units":
-            sys.stdout.write("\n".join(planner.units()) + "\n")
+            listed = planner.excluded_units() if args.excluded else planner.units()
+            sys.stdout.write("".join(f"{unit}\n" for unit in listed))
             return 0
         max_shards = None
         if args.max_shards.strip():

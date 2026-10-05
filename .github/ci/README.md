@@ -35,6 +35,27 @@ The rules for `auto`, in order:
 If the changed files cannot be determined (a new branch, a force push that
 removed the previous commit), everything runs.
 
+## What never gets tested
+
+A directory listed in `norecursedirs` in `pytest.ini` is not part of the
+suite: `pytest` run at the top of the repository does not walk into it. That
+setting does not stop a path *named* on the command line, and a sharded run
+names its paths, so the planner reads `norecursedirs` from `pytest.ini` and
+applies it itself:
+
+- such a directory is never a submodule and is never handed to pytest;
+- a change inside it runs only the `tests` directories above it;
+- it cannot be chosen in `custom` mode (the plan fails and says why);
+- every plan is checked for this before it is returned.
+
+```bash
+python .github/scripts/ci_test_plan.py units --excluded
+```
+
+To bring a vendored directory into the suite, remove it from `norecursedirs`;
+the planner follows. `pytest.ini` is in `full_run_globs`, so that change runs
+everything once.
+
 ## Running it by hand
 
 *Actions → CI ☂️ Codecov Test Coverage → Run workflow*:
@@ -45,13 +66,17 @@ removed the previous commit), everything runs.
   spaces or commas;
 - **max_shards**: the most parallel jobs for this run;
 - **test_gc**: garbage collection between tests (`young` unless you are
-  chasing a leak; see `scikitplot/conftest.py`).
+  chasing a leak; see `scikitplot/conftest.py`);
+- **max_failures**: failures after which a job stops (`50` when empty, `0`
+  for no limit). `pytest.ini` stops at the first failure; a job here overrides
+  that so one run reports everything that is wrong in its share of the suite.
 
 The same plan can be made locally, which is the quickest way to see what a
 change would run:
 
 ```bash
 python .github/scripts/ci_test_plan.py units
+python .github/scripts/ci_test_plan.py units --excluded
 python .github/scripts/ci_test_plan.py plan --mode auto --base origin/main --head HEAD
 python .github/scripts/ci_test_plan.py plan --mode custom --select "corpus cleanprompt"
 ```
@@ -61,6 +86,7 @@ python .github/scripts/ci_test_plan.py plan --mode custom --select "corpus clean
 | Key | Meaning |
 |---|---|
 | `package_root` | the package directory |
+| `pytest_ini` | the file `norecursedirs` is read from, relative to the repository (default `pytest.ini`; `""` when the project has none, and pytest's built-in list then applies). A file that is named but missing is an error |
 | `containers` | directories whose children are independent submodules; add a directory here when it starts holding several submodules |
 | `full_run_globs` | changed files that make everything run |
 | `ignore_globs` | changed files inside the package that select nothing |
@@ -92,3 +118,21 @@ test. With the scientific stack imported, one collection took 0.36 to 0.70 s,
 so twenty thousand tests spent more than five hours collecting garbage and
 about forty-four minutes testing. The policy is now `young`; see
 `SKPLT_TEST_GC` in that file.
+
+## Failures that move with test order
+
+Splitting the suite changes which test is the first to import a package. A
+warning that a third-party package emits once per process, at import, is
+turned into an error by `filterwarnings = error` for exactly one test: the
+first to meet it. In a single job that was always the same test, and it
+happened to tolerate the warning; in a shard it can be any test.
+
+When a job fails on a warning raised from inside `site-packages` during an
+`import`, decide which of the two it is:
+
+- the package is reporting the machine (for example a CUDA build of PyTorch
+  on a runner without CUDA): exempt that message in `filterwarnings` in
+  `pytest.ini`, with a comment saying why;
+- our code is importing something it should not: fix the import. This is how
+  the vendored `platformdirs` was found to import `pip`
+  (`scikitplot/tests/test_vendored_self_contained.py`).

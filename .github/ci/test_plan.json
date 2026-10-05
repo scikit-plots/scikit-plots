@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "package_root": "scikitplot",
+  "pytest_ini": "pytest.ini",
   "containers": [
     "scikitplot",
     "scikitplot/_externals",
