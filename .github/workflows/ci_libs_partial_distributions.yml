@@ -1,0 +1,184 @@
+# Partial distributions of scikit-plots (libs/<name>): build and verify.
+#
+# scikit-plots is also published as small, focused distributions built from the
+# same source tree (scikit-plots-skinny, scikit-plots-rank-bm25, ...). This
+# workflow proves, for every supported Python, that:
+#
+#   - the generated packaging files are up to date;
+#   - no file is owned by two distributions, and every wheel ships exactly the
+#     files its distribution owns;
+#   - each distribution installs alone, and all of them install together;
+#   - each part imports, its documented example runs, and its own tests pass;
+#   - uninstalling one distribution leaves the others working.
+#
+# See libs/README.md and `python -m libs._tools --help`.
+---
+name: "CI 📦 Partial Distributions (libs)"
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ci_libs_partial_distributions.yml"
+      - "libs/**"
+      - "pyproject.toml"
+      - "LICENSE.txt"
+      # The root package and everything a partial distribution owns
+      # (scikitplot/_distributions.py is the list).
+      - "scikitplot/__init__.py"
+      - "scikitplot/__init__.pyi"
+      - "scikitplot/__main__.py"
+      - "scikitplot/_distributions.py"
+      - "scikitplot/environment_variables.py"
+      - "scikitplot/exceptions.py"
+      - "scikitplot/exceptions.pyi"
+      - "scikitplot/_cli/**"
+      - "scikitplot/logging/**"
+      - "scikitplot/rank_bm25/**"
+      - "scikitplot/corpus/**"
+      - "scikitplot/annoy/**"
+      - "scikitplot/cexternals/__init__.py"
+      - "scikitplot/cexternals/_annoy/**"
+      - "scikitplot/_externals/__init__.py"
+      - "scikitplot/_externals/_sphinx_ext/**"
+      - "scikitplot/mcp/**"
+      - "scikitplot/cleanprompt/**"
+      - "scikitplot/cython/**"
+      - "scikitplot/mlflow/**"
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tooling:
+    name: "Generated files and tooling tests"
+    runs-on: ubuntu-latest
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: "📦 Install the tooling's requirements"
+        run: python -m pip install "pytest>=7.1.2"
+
+      - name: "🔎 Generated packaging files are up to date"
+        run: python -m libs._tools check
+
+      - name: "🧪 Tooling tests"
+        run: python -m pytest libs/_tools/tests
+
+  verify:
+    name: "Verify · ${{ matrix.os }} · py${{ matrix.python }}"
+    needs: tooling
+    runs-on: ${{ matrix.os }}
+    if: github.repository == 'scikit-plots/scikit-plots'
+    # A platform is `experimental` until it has been seen green once; its
+    # result is reported but does not fail the workflow. Linux is the
+    # platform the distributions were first verified on.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # 3.15 is installed as a pre-release until it is final
+        # (`allow-prereleases` below).
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        experimental: [false]
+        include:
+          # Staging copies files instead of linking them precisely so that
+          # this works without Developer Mode; and the compiled distribution
+          # is built here with MSVC and Apple Clang.
+          - os: windows-latest
+            python: "3.12"
+            experimental: true
+          - os: macos-latest
+            python: "3.12"
+            experimental: true
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python ${{ matrix.python }}"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+
+      # `build` builds the sdists and wheels; `uv` creates the clean test
+      # environments and is what lets the lowest allowed dependency versions
+      # be resolved; `tomli` reads the root pyproject.toml where the standard
+      # library cannot yet (Python < 3.11).
+      - name: "📦 Install build, uv and a TOML reader"
+        run: python -m pip install build uv "tomli; python_version < '3.11'"
+
+      # Building runs under the matrix interpreter, so the compiled
+      # distribution (scikit-plots-annoy) is built and tested for it.
+      - name: "🏗️ Build and verify every partial distribution"
+        run: >-
+          python -m libs._tools verify
+          --python ${{ matrix.python }}
+          --outdir dist/libs
+          --report dist/libs/verify-${{ matrix.os }}-py${{ matrix.python }}.json
+
+      - name: "📤 Upload distributions and the verification report"
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: libs-${{ matrix.os }}-py${{ matrix.python }}
+          path: dist/libs/
+          if-no-files-found: warn
+          retention-days: 7
+
+  pyodide:
+    name: "Pyodide · pure wheels import (experimental)"
+    needs: tooling
+    runs-on: ubuntu-latest
+    if: github.repository == 'scikit-plots/scikit-plots'
+    # Reported, never blocking, until it has been seen green once: the probe
+    # was verified with the standard library only; loading numpy and the other
+    # packages below needs the Pyodide package index, i.e. this runner.
+    continue-on-error: true
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: "🏗️ Build the pure-Python distributions"
+        run: |
+          python -m pip install build
+          python -m libs._tools build --outdir dist/libs \
+            scikit-plots-skinny scikit-plots-rank-bm25 scikit-plots-corpus \
+            scikit-plots-mcp scikit-plots-cleanprompt scikit-plots-cython \
+            scikit-plots-mlflow scikit-plots-sphinx-ext
+
+      # Node.js is part of the runner image. Pyodide is installed in the
+      # repository root so that the probe script can resolve it.
+      - name: "🕸️ Import every module in Pyodide (WebAssembly, no threads)"
+        run: |  # zizmor: ignore[adhoc-packages]
+          npm install --no-save pyodide
+          node libs/_tools/pyodide_probe.mjs \
+            --packages numpy,click,pyyaml,pydantic,docutils \
+            dist/libs/*-py3-none-any.whl

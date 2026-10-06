@@ -534,8 +534,8 @@ class CorpusAnnoyRetriever(DocsRetriever):
             # corpus (installed but failing to import) as ABSENT, telling the
             # user to install a package that is already present.
             raise RuntimeError(
-                "scikitplot.corpus is required to build the retriever; install "
-                "the corpus/embedding extras (pip install scikit-plots[corpus])."
+                "scikitplot.corpus is required to build the retriever and is not "
+                "installed (pip install scikit-plots-corpus)."
             ) from exc
         except Exception as exc:  # pragma: no cover - integration path
             # MCP-M00-08 / MCP-D05: BROKEN is not ABSENT.

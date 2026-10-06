@@ -1,4 +1,10 @@
 # scikitplot/annoy/_mixins/_vectors.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Vector neighbor utilities for Annoy-style indexes.
 
@@ -34,6 +40,7 @@ scikitplot.annoy._mixins._ndarray.NDArrayMixin
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal, cast
 
@@ -41,13 +48,45 @@ import numpy as np
 from sklearn.exceptions import NotFittedError
 
 # from sklearn.utils.multiclass import unique_labels
-from sklearn.utils.validation import (  # noqa: F401
-    FLOAT_DTYPES,
-    check_array,
-    validate_data,
-)
+from sklearn.utils.validation import FLOAT_DTYPES, check_array
 
 from .._utils import backend_for, lock_for
+
+# ------------------------------------------------------------------
+# scikit-learn compatibility (the project supports scikit-learn >= 1.3).
+#
+# Two names this module uses arrived in scikit-learn 1.6.0:
+#
+# * ``sklearn.utils.validation.validate_data`` (before 1.6 it was the private
+#   method ``BaseEstimator._validate_data``);
+# * the ``ensure_all_finite`` parameter of ``check_array`` (before 1.6 it was
+#   spelled ``force_all_finite``, with the same values and meaning).
+#
+# Importing either unconditionally makes ``import scikitplot.annoy`` raise
+# ImportError on scikit-learn 1.3 to 1.5, so both are resolved here, once, at
+# import time, and the rest of the module uses only the two names below.
+# ------------------------------------------------------------------
+try:
+    # 1. scikit-learn >= 1.6: the public function.
+    from sklearn.utils.validation import validate_data
+except ImportError:
+    try:
+        # 2. Older scikit-learn, full ``scikit-plots`` distribution: the copy
+        #    of the same function that ``scikitplot.utils.validation`` carries.
+        from ...utils.validation import validate_data
+    except ImportError:
+        # 3. Older scikit-learn, ``scikit-plots-annoy`` installed on its own:
+        #    ``scikitplot.utils`` is not part of that distribution. Queries
+        #    are then validated with ``check_array`` alone, which is also what
+        #    ``_validate_query_matrix`` falls back to in the other two cases.
+        validate_data = None
+
+#: Name under which the installed ``check_array`` takes the finiteness policy.
+_FINITE_KEYWORD: str = (
+    "ensure_all_finite"
+    if "ensure_all_finite" in inspect.signature(check_array).parameters
+    else "force_all_finite"
+)
 
 __all__: tuple[str, ...] = ("VectorOpsMixin",)
 
@@ -113,25 +152,25 @@ def _validate_query_matrix(
     Xv : numpy.ndarray
         Contiguous ``float32`` array of shape ``(n_samples, n_features)``.
     """
-    # Prefer validate_data when available to respect scikit-learn estimator
-    # conventions (e.g., n_features_in_). Fall back to check_array otherwise.
-    try:
-        Xv = validate_data(  # noqa: N806
-            est,
-            X,
-            accept_sparse=False,
-            dtype=FLOAT_DTYPES,
-            ensure_all_finite=ensure_all_finite,
-            copy=copy,
-            reset=False,
-        )
-    except Exception:  # noqa: BLE001
+    # ``check_array`` is the validation that decides; ``validate_data`` is tried
+    # first only because, for an estimator scikit-learn recognises, it also
+    # checks ``n_features_in_``. The two differ in one keyword: every
+    # ``validate_data`` this module can bind (scikit-learn >= 1.6, or the copy
+    # in ``scikitplot.utils.validation``) spells the finiteness policy
+    # ``ensure_all_finite``, while scikit-learn's ``check_array`` spells it
+    # ``_FINITE_KEYWORD``. See the compatibility block at the top of the module.
+    options = {"accept_sparse": False, "dtype": FLOAT_DTYPES, "copy": copy}
+    Xv = None  # noqa: N806
+    if validate_data is not None:
+        try:
+            Xv = validate_data(  # noqa: N806
+                est, X, reset=False, ensure_all_finite=ensure_all_finite, **options
+            )
+        except Exception:  # noqa: BLE001
+            Xv = None  # noqa: N806
+    if Xv is None:
         Xv = check_array(  # noqa: N806
-            X,
-            accept_sparse=False,
-            dtype=FLOAT_DTYPES,
-            ensure_all_finite=ensure_all_finite,
-            copy=copy,
+            X, **{_FINITE_KEYWORD: ensure_all_finite}, **options
         )
     # Annoy backends typically expect contiguous float arrays.
     return np.ascontiguousarray(np.asarray(Xv), dtype=np.float32)

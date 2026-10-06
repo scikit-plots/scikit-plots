@@ -93,6 +93,13 @@ def run(
     Each capability is reported as ``{"available": bool, "provider": str | None}``.
     Read and write are separate capabilities for serialization formats (see
     ``_CAPABILITIES``).
+
+    ``installation`` is the distribution report of
+    :func:`scikitplot._distributions.report`: whether the full distribution or
+    partial ones are installed, what the ones not installed would add, and any
+    incoherence between them. ``status`` is ``"ok"`` when that report
+    lists no problem and ``"problems"`` otherwise; the exit code is ``0`` in
+    both cases, because the command's job is to report and it did.
     """
     redact = mask_envs or not reveal_env_values
     envs = {
@@ -101,11 +108,17 @@ def run(
         if key.startswith(_ENV_PREFIXES)
     }
     capabilities = {name: _probe(providers) for name, providers in _CAPABILITIES}
+    from ..._distributions import (  # ruff: ignore[import-outside-top-level]
+        report as _installation_report,
+    )
+
+    installation = _installation_report()
     data = {
         "environment": envs,
         "environment_values_redacted": redact,
         "capabilities": capabilities,
-        "status": "ok",
+        "installation": installation,
+        "status": "problems" if installation["problems"] else "ok",
     }
     logger.debug(
         "doctor collected %d env vars (values redacted: %s)", len(envs), redact

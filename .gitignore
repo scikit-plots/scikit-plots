@@ -91,6 +91,8 @@
 #   !build/keep.txt
 # =====================================================================
 
+tasks
+
 # git_clone[s], if needed
 .git_clone*/*
 !.git_clone*/

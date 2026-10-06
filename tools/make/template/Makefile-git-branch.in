@@ -1,0 +1,74 @@
+######################################################################
+## Git Branch
+######################################################################
+
+# ⛔ Merge error Head branch is out of date. Review and try the merge again.
+# 1. Refresh / re-run mergeability check
+empty:
+	@git commit --allow-empty -m "Trigger PR refresh"
+	@git push
+
+## Add a Branch to the Local project
+## maintenance/0.3.x
+# branch:
+# ifdef BR
+# 	@echo "Adding Local branch: '$(BR)' to main"
+# 	@git checkout main
+# 	@## git branch "$(BR)" && git checkout "$(BR)" || git switch "$(BR)"
+# 	@## This command creates a new branch and switches to it immediately.
+# 	@# git checkout -b "$(BR)"
+# 	@git switch -c "$(BR)"
+# 	@## Commit changes incrementally
+# 	@cat Readme.md > Readme_$(BR).md
+# 	@git add .
+# 	@git commit -m "$(BR) initial commit (endpoints) for consistency"
+# else
+# 	@echo "BR is not defined"
+# endif
+
+## Delete the branch locally use BR Environment for del.
+# branch-del:
+# ifdef BR
+# 	@echo "Deleting (safe) Local branch: '$(BR)'"
+# 	@# git branch -D "$(BR)"
+# 	@git branch -d "$(BR)"
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
+
+## Delete the branch remotely use BR Environment for del.
+# branch-delr:
+# ifdef BR
+# 	@echo "Deleting Remote branch: '$(BR)'"
+# 	@git push origin --delete "$(BR)"
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
+
+## Delete a feature branch after merging
+## Periodically delete old local branches that have already been merged to keep your workspace clean.
+# branch-clean:
+# ifdef BR
+# 	@echo "Deleting local old branches..."
+# 	@git branch --merged main | grep -v "main" | xargs git branch -d
+# 	@git branch
+# else
+# 	@echo "BR is not defined"
+# endif
+
+## Push the updated stable branch to the remote repository
+## The -u (or --set-upstream) flag tells Git to link the current local branch to a branch on the remote (or create a new remote branch if it doesn't exist).
+## Use git push -u origin <branch> When: Pushing a new branch to the remote for the first time.
+## Use git push origin <branch> When: The branch already has an upstream tracking relationship, and you don't need to set it again.
+# branch-push:
+# ifdef BR
+# 	@echo "To check if your branch is tracked upstream, use:"
+# 	@git branch -vv
+# 	@echo "Adding Remote branch: '$(BR)'"
+# 	@git push -u origin "$(BR)"
+# 	@echo "$(BR) You’ve finished the work and are ready to merge into the main branch."
+# else
+# 	@echo "BR is not defined"
+# endif

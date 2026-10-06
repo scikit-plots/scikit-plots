@@ -580,8 +580,12 @@ class BM25:
             "analyzer": (
                 None
                 if analyzer is None
-                else dataclasses.asdict(analyzer)
-                | {"stopwords": sorted(analyzer.stopwords)}
+                # Unpacking, not ``dict | dict``: the union operator needs
+                # Python 3.9, and this package supports 3.8.
+                else {
+                    **dataclasses.asdict(analyzer),
+                    "stopwords": sorted(analyzer.stopwords),
+                }
             ),
             "corpus_size": self.corpus_size,
             "avgdl": self.avgdl,

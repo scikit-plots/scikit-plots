@@ -20,7 +20,9 @@ https://scikit-plots.github.io.
 
 from __future__ import annotations
 
-from numpy import __version__ as __numpy_version__
+# ``__numpy_version__`` is resolved on first access by ``__getattr__`` below.
+# The root package must import without NumPy, because the partial
+# distributions (see ``_distributions.py``) do not all depend on it.
 
 ######################################################################
 ## scikit-plots modules and objects
@@ -80,16 +82,23 @@ try:
         __version__,
         __version_iso_8601__,
     )
-except (ImportError, ModuleNotFoundError):
+except ImportError:  # ModuleNotFoundError is a subclass of ImportError
     _BUILT_WITH_MESON = None
-    logger.warning(
-        "⚠︎ BOOM! :: %s",
-        (
-            "Error importing scikitplot: you cannot import scikitplot while "
-            "being in scikitplot source directory; please exit the scikitplot source "
-            "tree first and relaunch your Python interpreter."
-        ),
-    )
+    from ._distributions import flavor as _flavor
+
+    # A partial distribution (``scikit-plots-skinny`` and friends) never ships
+    # the compiled core, so its absence is the expected state there and not a
+    # fault. Only an installation that should have it is warned about.
+    if _flavor() != "partial":
+        logger.warning(
+            "⚠︎ BOOM! :: %s",
+            (
+                "Error importing scikitplot: you cannot import scikitplot while "
+                "being in scikitplot source directory; please exit the scikitplot source "
+                "tree first and relaunch your Python interpreter."
+            ),
+        )
+    del _flavor
     # raise ImportError(_msg) from e
 else:
     _BUILT_WITH_MESON = True
@@ -140,11 +149,13 @@ _submodules = sorted(
         "neighbors",
         "preprocessing",
         "random",
+        "rank_bm25",
         "seaborn",  # Seaborn-style Plotting.
         "stats",
         "utils",
         "visualkeras",
         ## A module is a .py file that is itself a module object when imported.
+        "_distributions",
         "_globals",
         "_min_dependencies",
         "_preprocess",
@@ -206,6 +217,39 @@ __all__ = tuple(_submodules)
 ######################################################################
 
 
+def _api_names() -> frozenset[str]:
+    """
+    Return the names re-exported from ``scikitplot.api``.
+
+    Returns
+    -------
+    frozenset of str
+        Public names of ``scikitplot.api``; empty when ``scikitplot.api``
+        itself is not installed.
+
+    Raises
+    ------
+    ImportError
+        If ``scikitplot.api`` is installed but cannot be imported, for example
+        because one of its dependencies is missing.
+
+    Notes
+    -----
+    **Developer.** ``scikitplot.api`` belongs to the full distribution only. A
+    partial distribution has no such module, and that must read as "no
+    re-exports", not as a failure: otherwise every lazy attribute lookup, and
+    ``dir(scikitplot)``, would fail on a module unrelated to the name asked
+    for. Only the absence of ``scikitplot.api`` itself is tolerated; a broken
+    ``scikitplot.api`` still raises.
+    """
+    try:
+        return frozenset(dir(__import__(__name__ + ".api", fromlist=[""])))
+    except ModuleNotFoundError as exc:
+        if exc.name == __name__ + ".api":
+            return frozenset()
+        raise
+
+
 ## Customize dir(object) behavior to control what attributes are displayed.
 ## By default, dir() lists all names in the module's global namespace,
 ## including functions, classes, variables, and special attributes like '__doc__'.
@@ -246,7 +290,7 @@ def __dir__() -> list[str]:
             # .union(__all__)
             .union(_submodules)
             # submodule directly
-            .union(dir(__import__(__name__ + ".api", fromlist=[""])))
+            .union(_api_names())
             # diff
             .difference(
                 {
@@ -317,6 +361,14 @@ def __getattr__(
             del PytestTester
             return test
 
+        # Resolved on first use so that importing scikitplot does not import
+        # NumPy; cached in the module namespace so this runs at most once.
+        if name == "__numpy_version__":
+            from numpy import __version__ as numpy_version
+
+            globals()[name] = numpy_version
+            return numpy_version
+
         # Try importing as a submodule
         # import_module(f"{package}.{name}")              # high-level function, Return submodule directly
         # import_module(f".{name}", package=package)      # high-level function, Return submodule directly
@@ -324,7 +376,7 @@ def __getattr__(
         # __import__(f"{__name__}.{name}")                # low-level function, not return submodule directly
         from importlib import import_module
 
-        if name in dir(__import__(__name__ + ".api", fromlist=[""])):
+        if name in _api_names():
             from ._compat.optional_deps import nested_import
 
             # return any object, If any
@@ -358,6 +410,21 @@ def __getattr__(
             matches = get_close_matches(name, available)
             if matches:
                 suggestion_msg += f"Did you mean: {', '.join(matches)}?\n\n"
+        # A known submodule that is itself absent (as opposed to one of its
+        # dependencies being absent) was not installed: name the distribution
+        # that ships it. An unknown name gets no such hint, because nothing
+        # ships it.
+        if (
+            name in _submodules
+            and isinstance(e, ModuleNotFoundError)
+            and e.name == f"{package}.{name}"
+        ):
+            from ._distributions import install_hint
+
+            suggestion_msg += (
+                f"{e.name!r} is not installed. "
+                f"Install it with: {install_hint(e.name)}\n\n"
+            )
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(

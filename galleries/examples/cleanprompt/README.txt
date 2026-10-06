@@ -33,6 +33,11 @@ afterwards:
     # spaCy entity detection, NLTK entity detection, local Flask interface, the Fernet vault cipher
     pip install scikit-plots[cleanprompt]
 
+    # The same two scripts serve Docker images, the devcontainer and
+    # the documentation build; see their headers for the options.
+    bash docker/scripts/install_nltk.sh
+    bash docker/scripts/install_spacy.sh
+
     # What is active on this machine, and what is blind
     python -m scikitplot.cleanprompt doctor
 

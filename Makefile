@@ -7,6 +7,13 @@
 # including building the project, cleaning up build artifacts, running tests,
 # creating Docker images, and more.
 #
+# Important:
+# When you define a function that calls $(MAKE), you must add the @+ after the equality sign.
+# So like: sub_make = @+$(MAKE) -C $(TOPDIR)/subdir/$(1) $(2).
+# Otherwise make won't pass descriptors and options it ought to to submake calls,
+# which would manifest itself as a warning: jobserver unavailable: using -j1.
+# Add '+' to parent make rule.
+#
 # Notes:
 # - .ONESHELL ensures that all commands in a target run within a single shell,
 #   so variables and environment changes persist across commands.
@@ -15,17 +22,75 @@
 # - To enable shell debugging, uncomment the following line:
 #     SHELL = /bin/bash -x
 #
+# Run each recipe in one Bash process.
+# With .ONESHELL := true, you no longer need a backslash at the end of every recipe line.
+# .ONESHELL := true
+.ONESHELL:
+
+# SHELL := /bin/bash
+SHELL := bash
+
+# set -Eeuxo pipefail || echo "pipefail not available"
+# The flags mean:
+# 	-E: inherit ERR traps in functions and subshells.
+# 	-e: exit when a command fails.
+# 	-u: fail on unset variables.
+# 	-x: print commands before executing them.
+# 	-o pipefail: fail a pipeline if any command in it fails.
+# Apply strict mode to every Make recipe.
+# .SHELLFLAGS := -Eeuxo pipefail -c
+.SHELLFLAGS := -Eeuo pipefail -c
+
+## Global logging configuration.
+## Supported styles:
+## 	plain: 1791247515.851565               # Epoch timestamps
+## 	human: 2026-10-06T00:45:15+0000        # ISO-style timestamps
+## 	github: Mon, 05 Oct 2026 18:21:15 GMT  # GitHub-style timestamps
+## If you also export PS4 globally for commands executed by Make’s $(shell ...), make it safe under set -u:
+## export PS4 := + [$${EPOCHREALTIME}] $${BASH_SOURCE[0]:-main}:$${LINENO:-0}:
+## PS4='$${EPOCHREALTIME:-0} $${BASH_SOURCE[0]:-main}:$${LINENO:-0}: '
+## PS4='$$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" -1) $${BASH_SOURCE[0]:-main}:$${LINENO:-0}: '
+PS4='$$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S GMT") $${BASH_SOURCE[0]:-main}:$${LINENO:-0}: '
+export PS4
+
+# Make command-line variables available to Bash.
+TIME_STYLE ?= github
+TRACE ?= 0
+DRY_RUN ?= 0
+VERIFY ?= 1
+export TIME_STYLE
+export TRACE
+export DRY_RUN
+export VERIFY
+
+# Makefile
+# tools/
+# └── make-env.bash
+# Bash automatically sources this file for every non-interactive shell.
+# export BASH_ENV := $(CURDIR)/tools/make/make-env.bash >/dev/null 2>&1  || true
+
 # PHONY targets:
 # These targets are not associated with files or directories. Declaring them as
 # phony avoids conflicts with files or folders of the same name.
 #
 # Available phony targets: help, all, clean, publish
-.ONESHELL:
-.SHELLFLAGS := -euo pipefail -c
-SHELL := bash
+.PHONY: check-tools help all clean publish newbr
+# .DEFAULT_TARGET: all
 
 
-.PHONY: help all clean publish newbr
+REQUIRED_TOOLS := \
+	bash \
+	ln \
+	realpath \
+	readlink
+
+check-tools:
+	@for tool in $(REQUIRED_TOOLS); do \
+		command -v "$$tool" >/dev/null 2>&1 || { \
+			echo "ERROR: Required tool not found: $$tool" >&2; \
+			exit 1; \
+		}; \
+	done
 
 ######################################################################
 ## Makefile Variable Assignment Styles
@@ -399,6 +464,9 @@ tree:
 ## Repair
 ######################################################################
 
+git-check:
+	@git rev-parse --is-inside-work-tree >/dev/null 2>&1
+
 git_diff:
 	@git diff 1bf588a 2c378ee -- meson.build scikitplot/config/meson.build > my.patc
 
@@ -467,6 +535,7 @@ git_zip:
 
 ## sym
 ## Create symbolic links
+## ln -srfT -- "$src" "$dst" -> can replace an existing regular file at "$dst".
 sym:
 	@echo ">> Creating symbolic links..."
 
@@ -475,8 +544,8 @@ sym:
 	@rm -rf ".devcontainer/scripts" "environment.yml"
 
 	@# Create symbolic links
-	@ln -rsf "docker/scripts/" ".devcontainer/scripts"
-	@ln -rsf "./docker/env_conda/environment.yml" "environment.yml"
+	@ln -srfT -- "docker/scripts/" ".devcontainer/scripts"
+	@ln -srfT -- "./docker/env_conda/environment.yml" "environment.yml"
 
 	@echo ">> Symbolic links created successfully."
 
@@ -486,6 +555,66 @@ sym:
 	@# find . -type l
 	@# find . -type l -exec ls -l {} +
 	@# find . -type l -exec readlink -f {} \; -exec ls -l {} \;
+
+# --------------------------------------------------------------------
+# Partial distributions (libs/<name>)
+# --------------------------------------------------------------------
+#
+# scikit-plots is also published as small, focused distributions built from
+# this same source tree (scikit-plots-skinny, scikit-plots-rank-bm25, ...).
+# See libs/README.md.
+#
+# Nothing is linked or copied into libs/ permanently. Each libs/<name>/setup.py
+# stages the files its distribution owns when it builds and removes them when
+# the build exits, so these targets work the same on Linux, macOS and Windows
+# and need no symbolic links. (This replaces the former `sym-libs` target.)
+#
+#   make libs-list      distributions and what each one owns
+#   make libs-gen       rewrite the generated files in libs/ (commit the result)
+#   make libs-check     fail if a generated file is stale
+#   make libs-test      run the tooling's own tests
+#   make libs-build     build every sdist and wheel into $(LIBS_OUTDIR)
+#   make libs-verify    build, then install and test them in clean environments
+#   make libs-clean     remove staged files and build residue from libs/
+#
+# Select distributions with LIBS, Python versions with LIBS_PYTHONS:
+#   make libs-build  LIBS="scikit-plots-rank-bm25 scikit-plots-corpus"
+#   make libs-verify LIBS_PYTHONS="3.9 3.13"
+#
+# libs-build needs `python -m build`; libs-verify also needs `uv` on PATH.
+
+LIBS_PYTHON ?= python
+LIBS_OUTDIR ?= dist/libs
+LIBS ?=
+LIBS_PYTHONS ?=
+
+.PHONY: libs-list libs-gen libs-check libs-test libs-build libs-verify libs-clean
+
+libs-list:
+	@$(LIBS_PYTHON) -m libs._tools list
+
+libs-gen:
+	@$(LIBS_PYTHON) -m libs._tools generate
+
+libs-check:
+	@$(LIBS_PYTHON) -m libs._tools check
+
+libs-test:
+	@$(LIBS_PYTHON) -m pytest libs/_tools/tests
+
+libs-build: libs-check
+	@$(LIBS_PYTHON) -m libs._tools build $(LIBS) --outdir "$(LIBS_OUTDIR)"
+
+libs-verify: libs-check
+	@$(LIBS_PYTHON) -m libs._tools verify $(LIBS) --outdir "$(LIBS_OUTDIR)" \
+		$(foreach version,$(LIBS_PYTHONS),--python $(version))
+
+libs-clean:
+	@$(LIBS_PYTHON) -m libs._tools unstage
+
+# python -m libs._tools check && python -m pytest libs/_tools/tests
+libs-apply:
+	@$(LIBS_PYTHON) -m libs._tools check && $(LIBS_PYTHON) -m pytest libs/_tools/tests
 
 ######################################################################
 ## Environment Management (conda / mamba)
@@ -1069,193 +1198,6 @@ yml:
 	@python tools/scripts/check_yaml.py
 
 ######################################################################
-## Git Tag
-## Use := for immediate expansion consistently.
-## Use $(shell ...) only when needed.
-## Use $(if ...) for fallback logic cleanly.
-######################################################################
-
-ifeq ($(OS),Windows_NT)
-  NULL_DEVICE := NUL
-else
-  NULL_DEVICE := /dev/null
-endif
-
-# Get scikitplot version if installed, else fallback to 0.0.0
-# echo $(scikitplot -V | awk '{print $$3}' || echo 0.0.0)
-# VERSION := $(shell scikitplot -V | awk '{print $$3}')
-# VERSION := $(shell command -v scikitplot >$(NULL_DEVICE) 2>&1 && scikitplot -V | awk '{print $$3}' || echo 0.0.0)
-
-# VERSION := $(shell python -c "import importlib; print(getattr(importlib.import_module('scikitplot'), '__version__', '0.0.0'))")
-# VERSION := $(shell python -c "import scikitplot; print(scikitplot.__version__) if hasattr(scikitplot, '__version__') else print('0.0.0')" 2>$(NULL_DEVICE) || echo "0.0.0")
-# VERSION := $(shell python -c "try: import scikitplot; print(scikitplot.__version__) except Exception: print('0.0.0')" 2>$(NULL_DEVICE) || echo 0.0.0)
-
-cv:
-	@echo "$(VERSION)"
-
-# Git info
-# Check the short commit hash
-LAST_COMMIT_ID := $(shell git rev-parse --short HEAD)
-# Get last commit message (plain text)
-LAST_COMMIT_MESSAGE := $(shell git log -1 --pretty=%B)
-# Extract version-like string from commit message (v1.2.3 or 1.2.3) from the commit message using shell + grep
-VERSION_EXT := $(shell echo "$(LAST_COMMIT_MESSAGE)" | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-
-## $(if condition,then-part[,else-part]) $(if $(VERSION),$(VERSION),)
-# Decide which version to use:
-# If VERSION != 0.0.0, use VERSION
-# Else if VERSION_EXT exists, use VERSION_EXT
-# Else empty (will be handled below)
-# Use VERSION unless it's 0.0.0, in which case fallback to VERSION_EXT
-VERSION_USED := $(if $(filter-out 0.0.0,$(VERSION)),$(VERSION),$(VERSION_EXT))
-
-# $(patsubst pattern, replacement, text)
-# UNQUOTED := $(strip $(patsubst %",$(patsubst "\"%,\
-#     $(patsubst %',$(patsubst "'%,\
-#     $(VAR)))))
-# Remove leading quote (either " or ')
-# # RESULT now has no leading/trailing quotes
-# VERSION_USED := $(strip $(VERSION_USED))
-# VERSION_USED := $(patsubst "v%,%,$(VERSION_USED))  # removes leading double quote
-# VERSION_USED := $(patsubst "\"%,%,$(VERSION_USED))  # removes leading double quote
-# VERSION_USED := $(patsubst "'%,%,$(VERSION_USED)) # removes leading single quote
-# # Remove trailing quote (either " or ')
-# VERSION_USED := $(patsubst %\" ,%,$(VERSION_USED))  # removes trailing double quote
-# VERSION_USED := $(patsubst %',%,$(VERSION_USED))    # removes trailing single quote
-
-# Ensure version has a 'v' prefix; default to v0.0.0 if undefined or  empty
-GIT_TAG := v$(patsubst v%,%,$(VERSION_USED))
-
-# If VERSION_USED is empty, default to "v0.0.0"
-# If VERSION_USED starts with 'v', use as-is
-# Else prefix with 'v'
-
-# Force bash to run the shell command explicitly:
-GIT_TAG := $(shell bash -c '\
-  if [ -z "${VERSION_USED:-}" ]; then \
-    echo "v0.0.0"; \
-  elif echo "$(VERSION_USED)" | grep -q "^v"; then \
-    echo "$(VERSION_USED)"; \
-  else \
-    echo "v$(VERSION_USED)"; \
-  fi')
-
-# using pure Make functions (no shell):
-# GIT_TAG := $(if $(VERSION_USED), \
-#              $(if $(filter v%,$(VERSION_USED)),\
-#                  $(VERSION_USED),\
-#                  v$(VERSION_USED)), \
-#              v0.0.0)
-# GIT_TAG := $(strip $(GIT_TAG))
-
-# # Compose release message
-GIT_TAG_MESSAGE := Release version $(GIT_TAG)
-
-# Debug output if DEBUG is true or VERSION is 0.0.0 (scikitplot missing)
-ifeq ($(or $(DEBUG),$(filter 0.0.0,$(VERSION))),true)
-  $(info [DEBUG] Using scikitplot version: $(VERSION))
-  # $(warning "Warning: scikitplot is not installed. VERSION is set to MISSING.")
-endif
-# Debug output if DEBUG is true
-ifeq ($(DEBUG),true)
-  $(info [DEBUG] scikitplot version: $(VERSION))
-  $(info [DEBUG] Last commit ID: $(LAST_COMMIT_ID))
-  $(info [DEBUG] Last commit message: $(LAST_COMMIT_MESSAGE))
-  $(info [DEBUG] Extracted version from commit: $(VERSION_EXT))
-  $(info [DEBUG] Version used: $(VERSION_USED))
-  $(info [DEBUG] Final tag (with v prefix): $(GIT_TAG))
-  $(info [DEBUG] Tag message: $(GIT_TAG_MESSAGE))
-endif
-
-# make tag               # Quiet mode
-# make tag DEBUG=true    # Show debug messages
-# 	@if [ "$(DEBUG)" = "true" ]; then \
-# 		echo "[DEBUG] GIT_TAG is $(GIT_TAG)"; \
-# 	fi
-tag:
-	@echo TAG: "$(GIT_TAG)"
-
-# 💡 Rule of thumb:
-# 	Tag before commit → freeze the old state.
-# 	Tag after commit → mark the new state.
-archive:
-ifdef GIT_TAG
-	@echo "Remove tag locally: "$(GIT_TAG)""
-	@#git tag -d "v0.4.0rc0" "0.4.0.post9"
-	@git tag -d "$(GIT_TAG)" || true
-
-	@echo "Creates tag locally"
-	@#git tag -a "v0.4.0" -m "Release version 0.4.0"
-	git tag -a "$(GIT_TAG)" -m "Release version $(GIT_TAG)"
-
-	@echo "Pushes the tag to your fork"
-	@# git push --tags                   # then push all tags
-	git push origin "$(GIT_TAG)"        # push just that tag
-
-	@echo "Pushes tag to upstream (if allowed) "$(GIT_TAG)" (Month Dayth, Year)"
-	@#git push upstream "v0.4.0"
-	git push upstream "$(GIT_TAG)"      # push just that tag
-
-	@# git ls-remote --tags origin       # verify what's pushed by running
-else
-	@echo "GIT_TAG is not defined!"
-endif
-
-## Tagging the latest commit
-## For larger projects or those requiring stability guarantees, tagging in stable is safer.
-# tag-sample:
-# 	@echo "Sample tag: '$(TAG_SAMPLE)' message: '$(TAG_MESSAGE)' by commit: '$(LAST_COMMIT_MESSAGE)'"
-
-## Add a Tag to Stable Releases to the Local project
-# tag:
-# ifdef BR
-# 	@## Tagging in the stable Branch (Stability-First Workflow)
-# 	@#Best practice: Tag before PyPI publishing.
-# 	@echo "Adding tag to branch: '$(BR)'"
-# 	@git checkout "$(BR)"
-# 	@echo "Existing tags:"
-# 	@git tag
-# 	@echo "Adding local tag: $(TAG_SAMPLE) message: $(TAG_MESSAGE)"
-# 	@# git tag -a v0.4.0 -m "Release version 0.4.0"
-# 	@git tag -a "$(TAG_SAMPLE)" -m $(TAG_MESSAGE)
-# 	@echo "Local tagging completed."
-# else
-# 	@echo "BR is not defined"
-# endif
-
-## Delete the Tag locally use GIT_TAG Environment for del.
-# tag-del:
-# ifdef GIT_TAG
-# 	@echo "Deleting Local tag: 'v$(GIT_TAG)'"
-# 	@git tag -d "v$(GIT_TAG)"
-# 	@git tag
-# else
-# 	@echo "GIT_TAG is not defined"
-# endif
-
-## Delete the Tag remotely use GIT_TAG Environment for del.
-# tag-delr:
-# ifdef GIT_TAG
-# 	@echo "Deleting Remote tag: 'v$(GIT_TAG)'"
-# 	@git push origin --delete "v$(GIT_TAG)"
-# 	@git tag
-# else
-# 	@echo "GIT_TAG is not defined"
-# endif
-
-## Push the tag to the remote repository
-# tag-push:
-# 	@echo "Existing tags:"
-# 	@git tag
-# 	@echo "Adding to "remote repository" tag $(TAG_SAMPLE)..."
-# 	@git push origin $(TAG_SAMPLE) || git push --tags
-# 	@echo "Remote Repository Tagging completed."."
-
-## Release combines tagging and pushing the tag to remote
-# release: tag-sample tag tag-push
-# 	@echo "Ready to Publish on PyPI"
-
-######################################################################
 ## Git Branch
 ######################################################################
 
@@ -1265,70 +1207,224 @@ empty:
 	@git commit --allow-empty -m "Trigger PR refresh"
 	@git push
 
-## Add a Branch to the Local project
-## maintenance/0.3.x
-# branch:
-# ifdef BR
-# 	@echo "Adding Local branch: '$(BR)' to main"
-# 	@git checkout main
-# 	@## git branch "$(BR)" && git checkout "$(BR)" || git switch "$(BR)"
-# 	@## This command creates a new branch and switches to it immediately.
-# 	@# git checkout -b "$(BR)"
-# 	@git switch -c "$(BR)"
-# 	@## Commit changes incrementally
-# 	@cat Readme.md > Readme_$(BR).md
-# 	@git add .
-# 	@git commit -m "$(BR) initial commit (endpoints) for consistency"
-# else
-# 	@echo "BR is not defined"
-# endif
+######################################################################
+## Git Tag
+## Use := for immediate expansion consistently.
+## Use $(shell ...) only when needed.
+## Use $(if ...) for fallback logic cleanly.
+######################################################################
 
-## Delete the branch locally use BR Environment for del.
-# branch-del:
-# ifdef BR
-# 	@echo "Deleting (safe) Local branch: '$(BR)'"
-# 	@# git branch -D "$(BR)"
-# 	@git branch -d "$(BR)"
-# 	@git branch
-# else
-# 	@echo "BR is not defined"
-# endif
+# PYTHON ?= python3
+PYTHON ?= python
+DEBUG ?= false
 
-## Delete the branch remotely use BR Environment for del.
-# branch-delr:
-# ifdef BR
-# 	@echo "Deleting Remote branch: '$(BR)'"
-# 	@git push origin --delete "$(BR)"
-# 	@git branch
-# else
-# 	@echo "BR is not defined"
-# endif
+# User-configurable values.
+VERSION ?=
+VERSION_FILE ?= pyproject.toml
 
-## Delete a feature branch after merging
-## Periodically delete old local branches that have already been merged to keep your workspace clean.
-# branch-clean:
-# ifdef BR
-# 	@echo "Deleting local old branches..."
-# 	@git branch --merged main | grep -v "main" | xargs git branch -d
-# 	@git branch
-# else
-# 	@echo "BR is not defined"
-# endif
+# Development fallback.
+# DEFAULT_VERSION ?= 0.0.dev0
+DEFAULT_VERSION ?= 0.0.0
 
-## Push the updated stable branch to the remote repository
-## The -u (or --set-upstream) flag tells Git to link the current local branch to a branch on the remote (or create a new remote branch if it doesn't exist).
-## Use git push -u origin <branch> When: Pushing a new branch to the remote for the first time.
-## Use git push origin <branch> When: The branch already has an upstream tracking relationship, and you don't need to set it again.
-# branch-push:
-# ifdef BR
-# 	@echo "To check if your branch is tracked upstream, use:"
-# 	@git branch -vv
-# 	@echo "Adding Remote branch: '$(BR)'"
-# 	@git push -u origin "$(BR)"
-# 	@echo "$(BR) You’ve finished the work and are ready to merge into the main branch."
-# else
-# 	@echo "BR is not defined"
-# endif
+# Git availability.
+GIT := $(shell command -v git 2>/dev/null)
+
+ifeq ($(strip $(GIT)),)
+	GIT_AVAILABLE := false
+else
+	GIT_AVAILABLE := true
+endif
+
+# --------------------------------------------------------------------
+# Git metadata
+# --------------------------------------------------------------------
+
+ifeq ($(GIT_AVAILABLE),true)
+
+GIT_ROOT := $(strip $(shell git rev-parse --show-toplevel 2>/dev/null))
+GIT_COMMIT_ID := $(strip $(shell git rev-parse --short=12 HEAD 2>/dev/null))
+GIT_COMMIT_SUBJECT := $(strip $(shell git log -1 --format=%s 2>/dev/null))
+
+# Prefer the nearest existing version tag.
+GIT_VERSION_TAG := $(strip \
+	$(shell git describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' \
+		--abbrev=0 2>/dev/null) \
+)
+
+else
+
+GIT_ROOT :=
+GIT_COMMIT_ID :=
+GIT_COMMIT_SUBJECT :=
+GIT_VERSION_TAG :=
+
+endif
+
+## Extract v1.2.3 or 1.2.3 from the commit subject.
+##
+## The Git output is piped directly into sed. It is not interpolated into
+## another shell command, which avoids quoting and injection problems.
+##
+## The error is caused by the unescaped capture-group parentheses in the sed expression:
+## 	(v?[0-9]+\.[0-9]+\.[0-9]+)
+## make parses $(strip ...) and $(shell ...) before invoking the shell.
+## It interprets those ( and ) characters as Make function syntax, so it thinks the strip call is unbalanced.
+## Avoid capture groups and let grep extract the match:
+# GIT_VERSION_FROM_SUBJECT := $(strip \
+# 	$(shell \
+# 		if command -v git >/dev/null 2>&1; then \
+# 			git log -1 --format=%s 2>/dev/null \
+# 			| sed -nE 's/.*(v?[0-9]+\.[0-9]+\.[0-9]+).*/\1/p' \
+# 			| sed -n '1p'; \
+# 		fi \
+# 	)
+# )
+# Extract v1.2.3 or 1.2.3 from the commit subject.
+GIT_VERSION_FROM_SUBJECT := $(strip \
+	$(or \
+		$(shell \
+			if command -v git >/dev/null 2>&1; then \
+				git log -1 --format=%s 2>/dev/null \
+				| grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' \
+				| sed -n '1p'; \
+			fi \
+		), \
+		$(GIT_VERSION_TAG), \
+	) \
+)
+
+# --------------------------------------------------------------------
+# Version selection
+# --------------------------------------------------------------------
+
+# Remove a leading v from a version.
+strip-v = $(patsubst v%,%,$(strip $(1)))
+
+# Add exactly one v prefix.
+with-v = v$(call strip-v,$(strip $(1)))
+
+# Treat VERSION=0.0.0 as unset so development metadata can be used.
+VERSION_OVERRIDE := $(if \
+	$(filter-out 0.0.0,$(strip $(VERSION))), \
+	$(strip $(VERSION)), \
+)
+
+# Remove the v prefix from Git tag values before normalizing.
+GIT_TAG_VERSION := $(call strip-v,$(GIT_VERSION_TAG))
+GIT_SUBJECT_VERSION := $(call strip-v,$(GIT_VERSION_FROM_SUBJECT))
+
+VERSION_USED := $(strip \
+	$(or \
+		$(VERSION_OVERRIDE), \
+		$(GIT_TAG_VERSION), \
+		$(GIT_SUBJECT_VERSION), \
+		$(DEFAULT_VERSION) \
+	) \
+)
+
+GIT_TAG := $(call with-v,$(VERSION_USED))
+GIT_TAG_MESSAGE := Release version $(GIT_TAG)
+
+# --------------------------------------------------------------------
+# Validation
+# --------------------------------------------------------------------
+
+# Semantic release versions:
+#   1.2.3
+#   v1.2.3
+#
+# Optional prerelease/build metadata can be enabled later if required.
+VERSION_VALID := $(shell \
+	printf '%s\n' "$(GIT_TAG)" \
+	| sed -nE '/^v[0-9]+\.[0-9]+\.[0-9]+$$/p' \
+	| grep -q . \
+	&& echo true \
+	|| echo false \
+)
+
+# --------------------------------------------------------------------
+# Debug output
+# --------------------------------------------------------------------
+
+ifneq ($(filter true 1 yes,$(DEBUG)),)
+
+$(info [DEBUG] Git available:       $(GIT_AVAILABLE))
+$(info [DEBUG] Git root:            $(GIT_ROOT))
+$(info [DEBUG] Commit ID:           $(GIT_COMMIT_ID))
+$(info [DEBUG] Commit subject:      $(GIT_COMMIT_SUBJECT))
+$(info [DEBUG] Git version tag:     $(GIT_VERSION_TAG))
+$(info [DEBUG] Subject version:     $(GIT_VERSION_FROM_SUBJECT))
+$(info [DEBUG] Explicit VERSION:    $(VERSION))
+$(info [DEBUG] Selected version:    $(VERSION_USED))
+$(info [DEBUG] Final Git tag:       $(GIT_TAG))
+$(info [DEBUG] Version valid:       $(VERSION_VALID))
+$(info [DEBUG] Tag message:         $(GIT_TAG_MESSAGE))
+
+endif
+
+# --------------------------------------------------------------------
+# Public targets
+# --------------------------------------------------------------------
+# .PHONY: version tag tag-create check-version
+
+# Show the calculated version:
+# 	make version
+# Show diagnostic information:
+# 	make DEBUG=true version
+# Override the version:
+# 	make VERSION=0.4.0 version
+version:
+	@printf '%s\n' "$(GIT_TAG)"
+
+# Validate it:
+# 	make VERSION=0.4.0 check-version
+check-version:
+	@if [[ "$(VERSION_VALID)" != "true" ]]; then \
+		printf 'ERROR: Invalid release version: %s\n' "$(GIT_TAG)" >&2; \
+		exit 1; \
+	fi
+	@printf 'Valid release version: %s\n' "$(GIT_TAG)"
+
+# The important distinction is:
+# 	make tag
+# 	make VERSION=0.4.0 tag
+# 	make DEBUG=true VERSION=0.4.0 tag
+# only displays the calculated tag, while:
+# 	make tag-create
+# actually creates it.
+#
+# make DEBUG=true VERSION=0.4.0 tag
+# [DEBUG] Git available:       true
+# [DEBUG] Git root:            /work
+# [DEBUG] Commit ID:           76417b28daf1
+# [DEBUG] Commit subject:      doc (#848)
+# [DEBUG] Git version tag:     v0.4.0
+# [DEBUG] Subject version:     v0.4.0
+# [DEBUG] Explicit VERSION:    0.4.0
+# [DEBUG] Selected version:    0.4.0
+# [DEBUG] Final Git tag:       v0.4.0
+# [DEBUG] Version valid:       true
+# [DEBUG] Tag message:         Release version v0.4.0
+# v0.4.0
+tag: version
+
+# Create an annotated Git tag:
+# 	make VERSION=0.4.0 tag-create
+tag-create: check-version
+	@if [[ "$(GIT_AVAILABLE)" != "true" ]]; then \
+		printf '%s\n' 'ERROR: Git is not available.' >&2; \
+		exit 1; \
+	fi
+	@if [[ -n "$$(git status --porcelain)" ]]; then \
+		printf '%s\n' 'ERROR: Working tree is not clean.' >&2; \
+		exit 1; \
+	fi
+	@if git rev-parse --verify --quiet "refs/tags/$(GIT_TAG)" >/dev/null; then \
+		printf 'ERROR: Tag already exists: %s\n' "$(GIT_TAG)" >&2; \
+		exit 1; \
+	fi
+	git tag -a "$(GIT_TAG)" -m "$(GIT_TAG_MESSAGE)"
+	printf 'Created tag: %s\n' "$(GIT_TAG)"
 
 ######################################################################
 ##

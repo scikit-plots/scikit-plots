@@ -765,6 +765,22 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.cleanprompt": {
+        "short_summary": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+        "description": None,
+        "sections": [
+            {
+                "title": "Anonymize Sensitive Information",
+                "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+                "autosummary": [
+                    "FluentCleanPrompt",
+                    "Redactor",
+                    "encode",
+                    "decode",
+                ],
+            },
+        ],
+    },
     "scikitplot.config": {
         "short_summary": "config.",
         "description": None,

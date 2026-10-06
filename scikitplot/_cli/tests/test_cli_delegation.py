@@ -103,3 +103,88 @@ def test_global_verbosity_before_delegated_command(monkeypatch):
     from scikitplot._cli._frontends import _argparse
     assert _argparse.run(["-v", "mcp", "--print-effective-config"]) == 0
     assert seen["argv"] == ["--print-effective-config"]  # -v consumed as global
+
+
+# ---------------------------------------------------------------------------
+# A delegated part that is not installed (partial distributions)
+# ---------------------------------------------------------------------------
+#
+# With a partial distribution the submodule a command delegates to may simply
+# not be installed. The command's own ``install_hint`` describes its optional
+# dependencies and is the wrong advice then; the distribution map names the
+# package that ships the part.
+
+
+def _refuse_import(monkeypatch, missing):
+    """Make importing through the loader fail as if ``missing`` were not installed."""
+    from .. import loader as _loader
+
+    def import_module(name, *args, **kwargs):
+        raise ModuleNotFoundError(f"No module named {missing!r}", name=missing)
+
+    monkeypatch.setattr(_loader.importlib, "import_module", import_module)
+    return _loader
+
+
+@pytest.mark.parametrize(
+    ("target", "missing", "distribution"),
+    [
+        ("scikitplot.mcp.__main__:main", "scikitplot.mcp", "scikit-plots-mcp"),
+        ("scikitplot.mcp.__main__:main", "scikitplot.mcp.__main__", "scikit-plots-mcp"),
+        ("scikitplot.cleanprompt.__main__:main", "scikitplot.cleanprompt",
+         "scikit-plots-cleanprompt"),
+    ],
+)
+def test_missing_part_names_its_distribution(monkeypatch, target, missing, distribution):
+    _loader = _refuse_import(monkeypatch, missing)
+    with pytest.raises(CapabilityMissingError) as excinfo:
+        _loader.run_delegate(target, [], install_hint="pip install scikit-plots[extra]")
+    hint = excinfo.value.hint
+    assert f"pip install {distribution}" in hint
+    # The command's own hint is about optional dependencies of a part that is
+    # present; it must not be shown for a part that is absent.
+    assert "scikit-plots[extra]" not in hint
+    assert excinfo.value.exit_code == 69
+
+
+def test_missing_third_party_dependency_keeps_the_commands_hint(monkeypatch):
+    _loader = _refuse_import(monkeypatch, "pydantic")
+    with pytest.raises(CapabilityMissingError) as excinfo:
+        _loader.run_delegate("scikitplot.mcp.__main__:main", [],
+                             install_hint="pip install scikit-plots[mcp]")
+    assert excinfo.value.hint == "pip install scikit-plots[mcp]"
+
+
+def test_missing_part_no_partial_distribution_ships_keeps_the_commands_hint(monkeypatch):
+    # ``scikitplot.utils`` belongs to the full distribution only; the map has
+    # nothing more specific to say than the command does.
+    _loader = _refuse_import(monkeypatch, "scikitplot.utils")
+    with pytest.raises(CapabilityMissingError) as excinfo:
+        _loader.run_delegate("scikitplot.utils.__main__:main", [], install_hint="the hint")
+    assert excinfo.value.hint == "the hint"
+
+
+def test_import_error_that_is_not_a_missing_module_keeps_the_commands_hint(monkeypatch):
+    from .. import loader as _loader
+
+    def import_module(name, *args, **kwargs):
+        raise ImportError("cannot import name 'x' from 'scikitplot.mcp'", name="scikitplot.mcp")
+
+    monkeypatch.setattr(_loader.importlib, "import_module", import_module)
+    with pytest.raises(CapabilityMissingError) as excinfo:
+        _loader.run_delegate("scikitplot.mcp.__main__:main", [], install_hint="the hint")
+    assert excinfo.value.hint == "the hint"
+
+
+def test_bare_module_form_names_the_distribution_too(monkeypatch):
+    from .. import loader as _loader
+
+    def run_module(*args, **kwargs):
+        raise ModuleNotFoundError("No module named 'scikitplot.mcp'", name="scikitplot.mcp")
+
+    monkeypatch.setattr(_loader.runpy, "run_module", run_module)
+    old_argv = list(sys.argv)
+    with pytest.raises(CapabilityMissingError) as excinfo:
+        _loader.run_delegate("scikitplot.mcp", ["--help"], install_hint="the hint")
+    assert "pip install scikit-plots-mcp" in excinfo.value.hint
+    assert sys.argv == old_argv  # restored even though the run failed

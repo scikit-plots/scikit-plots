@@ -19,13 +19,21 @@ This module is stdlib-only and MUST stay importable without ``click``.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 ParamKind = Literal["flag", "option", "argument"]
 
+# ``dataclass(slots=True)`` exists from Python 3.10. It only saves the
+# per-instance ``__dict__``; both classes below are frozen, so nothing about
+# how they behave depends on it. Passing it unconditionally made this module,
+# and with it every ``scikitplot`` command, fail on Python 3.8 and 3.9 with a
+# ``TypeError`` at import.
+_SLOTS = {"slots": True} if sys.version_info >= (3, 10) else {}
 
-@dataclass(frozen=True, slots=True)
+
+@dataclass(frozen=True, **_SLOTS)
 class Param:
     """A single command-line parameter, expressed once for all frontends.
 
@@ -96,7 +104,7 @@ class Param:
                 raise ValueError(f"flag {flag!r} must use hyphens, not underscores")
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, **_SLOTS)
 class CommandSpec:
     """Metadata describing one CLI command.
 

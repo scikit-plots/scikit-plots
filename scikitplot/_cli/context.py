@@ -20,8 +20,11 @@ from typing import Literal, TextIO
 
 Format = Literal["text", "json", "yaml", "toml"]
 
+# ``dataclass(slots=True)`` exists from Python 3.10; see ``_spec.py``.
+_SLOTS = {"slots": True} if sys.version_info >= (3, 10) else {}
 
-@dataclass(slots=True)
+
+@dataclass(**_SLOTS)
 class Context:
     """State shared with a command handler for one invocation.
 

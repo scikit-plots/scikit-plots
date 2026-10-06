@@ -83,6 +83,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **pseudonymization engine for LLM**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            CleanPrompt <./cleanprompt/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **remarks citation generation**
         ^^^
         .. toctree::

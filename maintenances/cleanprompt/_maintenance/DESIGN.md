@@ -675,8 +675,12 @@ which is exactly how `scikitplot.mcp` was directed to consume it. `BROKEN`
 
 ## 9. Dependency policy
 
-No `==` pins. Optional extras declare ranges; an upper bound is declared only
-where the distribution's major number marks breaking changes:
+No `==` pins. The extras in `pyproject.toml` are version-free, like every other
+requirement of the project: the installer is never told a range. The ranges
+below are the ones the submodule supports and checks at run time
+(`_capabilities.py`: `TIERS`), reporting a tier outside its range as
+unavailable with the reason; an upper bound exists only where the
+distribution's major number marks breaking changes:
 
 ```text
 cleanprompt        (none — stdlib only)

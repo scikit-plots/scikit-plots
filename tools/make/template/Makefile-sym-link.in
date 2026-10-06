@@ -1,0 +1,204 @@
+# --------------------------------------------------------------------
+# Symbolic-link configuration
+# --------------------------------------------------------------------
+
+LIB_ROOT := libs
+LIBS := \
+	annoy \
+	cleanprompt \
+	corpus \
+	cython \
+	mcp \
+	mlflow \
+	rank-bm25 \
+	skinny \
+	sphinx-ext
+SYM_FILES := \
+	LICENSE.txt \
+	MANIFEST.in
+SYM_DIRS := \
+	scikitplot
+
+# sym: sym-libs
+# 	@:
+# sym-libs:
+# 	@set -eu; \
+# 	for lib in $(LIBS); do \
+# 		lib_dir="$(LIB_ROOT)/$$lib"; \
+# 		test -d "$$lib_dir" || { \
+# 			echo "ERROR: Missing directory: $$lib_dir" >&2; \
+# 			exit 1; \
+# 		}; \
+# 		\
+# 		for item in $(SYM_FILES) $(SYM_DIRS); do \
+# 			src="$$item"; \
+# 			dst="$$lib_dir/$$item"; \
+# 			\
+# 			test -e "$$src" || test -L "$$src" || { \
+# 				echo "ERROR: Missing source: $$src" >&2; \
+# 				exit 1; \
+# 			}; \
+# 			\
+# 			rm -rf "$$dst"; \
+# 			relative="../../$$src"; \
+# 			ln -srfT -- "$$relative" "$$dst"; \
+# 			echo "linked $$dst -> $$relative"; \
+# 		done; \
+# 	done
+# sym-libs:
+# 	@set -Eeuxo pipefail || echo "pipefail not available"; \
+# 	printf '%s\n' '>> Updating symbolic links in $(LIB_ROOT)/...'; \
+# 	\
+# 	log() { \
+# 		printf '[%(%Y-%m-%dT%H:%M:%S%z)T] %s\n' -1 "$$*"; \
+# 	}; \
+# 	for lib in $(LIBS); do \
+# 		lib_dir="$(LIB_ROOT)/$$lib"; \
+# 		\
+# 		if [[ ! -d "$$lib_dir" ]]; then \
+# 			printf 'ERROR: Missing library directory: %s\n' "$$lib_dir" >&2; \
+# 			exit 1; \
+# 		fi; \
+# 		\
+# 		for item in $(SYM_FILES); do \
+# 			if [[ ! -e "$$item" && ! -L "$$item" ]]; then \
+# 				printf 'ERROR: Missing source: %s\n' "$$item" >&2; \
+# 				exit 1; \
+# 			fi; \
+# 			\
+# 			ln -srfT -- "$$item" "$$lib_dir/$$item"; \
+# 			printf 'linked %s -> %s/%s\n' \
+# 				"$$item" "$$lib_dir" "$$item"; \
+# 		done; \
+# 		\
+# 		for item in $(SYM_DIRS); do \
+# 			if [[ ! -d "$$item" ]]; then \
+# 				printf 'ERROR: Missing source directory: %s\n' "$$item" >&2; \
+# 				exit 1; \
+# 			fi; \
+# 			\
+# 			ln -srfT -- "$$item" "$$lib_dir/$$item"; \
+# 			printf 'linked %s/ -> %s/%s\n' \
+# 				"$$item" "$$lib_dir" "$$item"; \
+# 		done; \
+# 	done; \
+# 	\
+# 	printf '%s\n' '>> Symbolic links are up to date.'
+
+# make TRACE=1 sym-libs
+# make DRY_RUN=1 sym-libs
+# make VERIFY=1 sym-libs
+# ln -srfT -- "$src" "$dst" -> can replace an existing regular file at "$dst".
+sym-libs:
+	@PS4='$$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S GMT") $${BASH_SOURCE[0]:-main}:$${LINENO:-0}: '; \
+	set -Eeuo pipefail; \
+	\
+	if [[ "$(TRACE)" == "1" ]]; then \
+		set -x; \
+	fi; \
+	\
+	timestamp() { \
+		case "$${TIME_STYLE:-github}" in \
+			github) \
+				LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S GMT' \
+				;; \
+			plain) \
+				printf '%s' "$${EPOCHREALTIME:-0}" \
+				;; \
+			human) \
+				printf '%(%Y-%m-%dT%H:%M:%S%z)T' -1 \
+				;; \
+		esac; \
+	}; \
+	\
+	log() { \
+		local level="INFO"; \
+		if [[ "$${1:-}" == "DEBUG" || "$${1:-}" == "INFO" || "$${1:-}" == "WARN" || "$${1:-}" == "ERROR" ]]; then \
+			level="$$1"; \
+			shift; \
+		fi; \
+		# printf '[%s] %s\n' "$$(timestamp)" "$$*"; \
+		printf '%s %s\n' "$$(timestamp)" "$$*"; \
+	}; \
+	die() { \
+		log "ERROR: $$*" >&2; \
+		# return 1; \
+		exit 1; \
+	}; \
+	\
+	link_count=0; \
+	skip_count=0; \
+	\
+	log 'Validating symbolic-link configuration...'; \
+	\
+	[[ -d "$(LIB_ROOT)" ]] || die "Missing library root: $(LIB_ROOT)"; \
+	[[ -e "LICENSE.txt" ]] || [[ -L "LICENSE.txt" ]] || die "Missing source: LICENSE.txt"; \
+	[[ -e "MANIFEST.in" ]] || [[ -L "MANIFEST.in" ]] || die "Missing source: MANIFEST.in"; \
+	[[ -d "scikitplot" ]] || die "Missing source directory: scikitplot"; \
+	\
+	for lib in $(LIBS); do \
+		lib_dir="$(LIB_ROOT)/$$lib"; \
+		[[ -d "$$lib_dir" ]] || die "Missing library directory: $$lib_dir"; \
+	done; \
+	\
+	log 'Updating symbolic links...'; \
+	\
+	for lib in $(LIBS); do \
+		lib_dir="$(LIB_ROOT)/$$lib"; \
+		\
+		for item in $(SYM_FILES) $(SYM_DIRS); do \
+			src="$$item"; \
+			dst="$$lib_dir/$$item"; \
+			\
+			if [[ -L "$$dst" ]]; then \
+				target="$$(readlink "$$dst")"; \
+				resolved_target="$$(realpath -m "$$dst")"; \
+				resolved_source="$$(realpath "$$src")"; \
+				\
+				if [[ "$$resolved_target" == "$$resolved_source" ]]; then \
+					((skip_count += 1)); \
+					continue; \
+				fi; \
+				\
+				if [[ "$(DRY_RUN)" == "1" ]]; then \
+					log "would replace incorrect link: $$dst"; \
+					continue; \
+				fi; \
+				\
+				rm -f -- "$$dst"; \
+			elif [[ -e "$$dst" ]]; then \
+				die "Refusing to replace non-symbolic-link path: $$dst"; \
+			fi; \
+			\
+			if [[ "$(DRY_RUN)" == "1" ]]; then \
+				log "would link $$dst -> $$src"; \
+				continue; \
+			fi; \
+			\
+			ln -srfT -- "$$src" "$$dst"; \
+			((link_count += 1)); \
+			log "linked $$dst -> $$src"; \
+		done; \
+	done; \
+	\
+	if [[ "$(VERIFY)" == "1" && "$(DRY_RUN)" != "1" ]]; then \
+		log 'Verifying symbolic links...'; \
+		\
+		for lib in $(LIBS); do \
+			lib_dir="$(LIB_ROOT)/$$lib"; \
+			\
+			for item in $(SYM_FILES) $(SYM_DIRS); do \
+				dst="$$lib_dir/$$item"; \
+				\
+				[[ -L "$$dst" ]] || die "Verification failed; not a symlink: $$dst"; \
+				\
+				actual="$$(realpath "$$dst")"; \
+				expected="$$(realpath "$$item")"; \
+				\
+				[[ "$$actual" == "$$expected" ]] || \
+					die "Verification failed: $$dst"; \
+			done; \
+		done; \
+	fi; \
+	\
+	log "Complete: $$link_count updated, $$skip_count already correct."

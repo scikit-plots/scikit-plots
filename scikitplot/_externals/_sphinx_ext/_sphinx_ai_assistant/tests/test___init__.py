@@ -1522,10 +1522,20 @@ class TestGenerateMarkdownFiles:
         """Strict already escalates a missing dependency; a 404 page is the same class."""
         from sphinx.errors import ExtensionError
 
+        from concurrent.futures import ThreadPoolExecutor
+
         app = _make_ai_app(tmp_path)
         app.config.ai_assistant_strict = True
         monkeypatch.setattr(_mod, "_process_html_file_worker",
                             lambda *a, **k: ("error", "guide/x.html", "injected"))
+        # The injected worker lives in *this* process. A worker process sees it
+        # only when it is created by ``fork``; with ``forkserver`` (the default
+        # on Linux from Python 3.14 on) or ``spawn`` (macOS, Windows) the child
+        # imports the module afresh and runs the real worker, which reports the
+        # page as skipped, and nothing is escalated. A thread pool has the same
+        # ``submit`` / ``as_completed`` contract and runs the work here, so the
+        # test no longer depends on how the platform starts processes.
+        monkeypatch.setattr(_mod, "ProcessPoolExecutor", ThreadPoolExecutor)
         (tmp_path / "guide").mkdir()
         (tmp_path / "guide" / "x.html").write_text("<html><body>x</body></html>",
                                                    encoding="utf-8")

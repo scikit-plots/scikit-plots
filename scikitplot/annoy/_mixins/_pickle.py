@@ -1,4 +1,9 @@
 # scikitplot/annoy/_mixins/_pickle.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Pickling support for Annoy-backed indices.
@@ -46,21 +51,20 @@ from typing_extensions import Self
 
 from .._utils import backend_for, lock_for
 
-# https://peps.python.org/pep-0258/#attribute-docstrings
-# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
-#: Compression used for ``"byte"`` pickling.
+# The ``#:`` comment above each alias is its documentation: Sphinx autodoc
+# reads it for module variables (PEP 258, "attribute docstrings").
+#
+# Do not assign ``__doc__`` to these objects. A type alias is not owned by this
+# module: ``Literal[...]`` objects are cached and shared by ``typing``, so the
+# assignment would change every equal alias in the process; and from Python
+# 3.14 on ``X | None`` is a ``typing.Union`` whose ``__doc__`` is read-only,
+# so the assignment raises AttributeError and the module cannot be imported.
+
+#: Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`.
 CompressMode: TypeAlias = Literal["zlib", "gzip"] | None
 
-CompressMode.__doc__ = """\
-Compression used for ``"byte"`` pickling by :class:`~.PickleMixin`."""
-
-# https://peps.python.org/pep-0258/#attribute-docstrings
-# Sphinx autodoc understands #: for module variables (and attributes), so your description will show up.
 #: Persistence strategy used by :class:`~.PickleMixin`.
 PickleMode: TypeAlias = Literal["auto", "disk", "byte"]
-
-PickleMode.__doc__ = """\
-Persistence strategy used by :class:`~.PickleMixin`."""
 
 __all__ = [
     "CompressMode",

@@ -638,9 +638,18 @@ def _build_corpus_annoy_retriever(config: RuntimeConfig):
     if config.corpus_embedding_model is not None:
         kwargs["embedding_model"] = config.corpus_embedding_model
     else:
-        from scikitplot.corpus import (  # ruff: ignore[import-outside-top-level]
-            HashEmbedder,
-        )
+        try:
+            from scikitplot.corpus import (  # ruff: ignore[import-outside-top-level]
+                HashEmbedder,
+            )
+        except ImportError as exc:
+            # ImportError only: corpus is absent. Without this the command
+            # ended in a traceback, while every other use of the corpus bridge
+            # reports the same absence as an unavailable capability.
+            raise SystemExit(
+                "--corpus-annoy needs scikitplot.corpus, which is not installed. "
+                "Install it with: pip install scikit-plots-corpus"
+            ) from exc
 
         kwargs["embedder"] = HashEmbedder(dimension=config.hash_dimension)
 
