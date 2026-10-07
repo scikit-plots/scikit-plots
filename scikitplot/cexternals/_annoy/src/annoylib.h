@@ -2919,8 +2919,37 @@ protected:
   S      _nodes_size; // Allocated capacity in nodes.
   std::vector<S> _roots; // Root node indices (one per tree).
 
-  S      _K;          // Max children per leaf node = (_s - offsetof(Node,children)) / sizeof(S).
+  S      _K;          // Max children per leaf node, see _leaf_capacity().
                       // Recomputed whenever _f changes via set_f().
+
+  /**
+   * @brief Number of item ids one leaf node can hold.
+   *
+   * A leaf stores item ids where a split node stores its vector, so the room
+   * is (node size - offsetof(Node, children)) / sizeof(S) ids. The count is
+   * kept in a field of type S (Node::n_descendants) and compared with _K, so
+   * it must also be a value S can hold: it is capped at the largest S.
+   *
+   * ANNOY-K-001. The quotient used to be cast to S unchecked. For a narrow
+   * index type it does not fit as soon as the vectors are large enough:
+   * int8 ids with 16 float64 components leave room for 136 ids, and
+   * static_cast<int8_t>(136) is -120. Building compares (size_t)_K, i.e. a
+   * huge number, and puts every item into one leaf; querying compares the
+   * signed value, never recognises that leaf, reads its first two ids as
+   * child nodes, and returns two results whatever was asked for. Measured:
+   * 20 items, 5 trees, get_nns_by_item(0, 3) returned 2 ids for int8 with
+   * float64 at f = 15..30 (and with the 8-byte long double of macOS/arm64
+   * for "float128"). For an unsigned type the cast only wrapped to a smaller
+   * capacity (uint8: 272 became 16), which worked but wasted the node.
+   *
+   * @param node_size  Size in bytes of one node (_s).
+   * @return Capacity in ids, at most std::numeric_limits<S>::max().
+   */
+  static S _leaf_capacity(size_t node_size) {
+    const size_t slots = (node_size - offsetof(Node, children)) / sizeof(S);
+    const size_t limit = static_cast<size_t>(std::numeric_limits<S>::max());
+    return static_cast<S>(slots < limit ? slots : limit);
+  }
   Random _random;     // RNG instance (stateful; seeded in constructor).
   R      _seed;       // Seed value passed to _random.
   bool   _loaded;     // True after load(); prevents add_item / build.
@@ -3039,7 +3068,7 @@ public:
     // corrupts every subsequent node-pointer and capacity calculation.
     if (_f > 0) {
       _s = offsetof(Node, v) + static_cast<size_t>(_f) * sizeof(T);
-      _K = static_cast<S>((_s - offsetof(Node, children)) / sizeof(S));
+      _K = _leaf_capacity(_s);
     }
   }
   /**
@@ -3087,7 +3116,7 @@ public:
     // These were 0 when constructed with f=0 (lazy init); they must be
     // correct before any node pointer arithmetic or allocation.
     _s = offsetof(Node, v) + static_cast<size_t>(_f) * sizeof(T);
-    _K = static_cast<S>((_s - offsetof(Node, children)) / sizeof(S));
+    _K = _leaf_capacity(_s);
     _params.f          = new_f;
     _params.f_inferred = false;
     return true;

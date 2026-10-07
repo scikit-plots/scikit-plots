@@ -51,13 +51,22 @@ class TestTypeAliasesAreNotMutated:
         (index,) = [i for i, line in enumerate(lines) if line.startswith(f"{name}:")]
         assert lines[index - 1].startswith("#: "), lines[index - 1]
 
-    def test_importing_the_module_leaves_shared_literals_alone(self):
-        # ``typing`` caches ``Literal[...]``: the object the module binds is the
-        # object every other user of the same literal gets.
+    @pytest.mark.parametrize("name", ALIASES)
+    def test_importing_the_module_writes_no_doc_onto_an_alias(self, name):
+        # What must hold is that the module stored no ``__doc__`` on the alias
+        # object: an alias keeps the documentation of its type. This is asked
+        # of the object the module binds. It is *not* compared by identity
+        # with a freshly written ``Literal[...]``: whether two equal literals
+        # are one object depends on a cache inside ``typing`` that a test run
+        # may clear (it did in CI), so identity is not a contract.
         module = pytest.importorskip("scikitplot.annoy._mixins._pickle")
-        literal = typing.Literal["auto", "disk", "byte"]
-        assert module.PickleMode is literal
-        assert literal.__doc__ == type(literal).__doc__
+        alias = getattr(module, name)
+        assert "__doc__" not in getattr(alias, "__dict__", {})
+        assert alias.__doc__ == type(alias).__doc__
+
+    def test_the_literal_alias_equals_the_literal_it_names(self):
+        module = pytest.importorskip("scikitplot.annoy._mixins._pickle")
+        assert module.PickleMode == typing.Literal["auto", "disk", "byte"]
 
     @pytest.mark.parametrize("name", ALIASES)
     def test_the_aliases_are_exported(self, name):

@@ -1,0 +1,10 @@
+{
+  "name": "scikit-plots-libs-pyodide-probe",
+  "version": "0.0.0",
+  "description": "Pyodide 0.28.3 for libs/_tools/pyodide_probe.mjs. Install with 'npm ci'; change the version here and run 'npm install --package-lock-only' to refresh the lockfile.",
+  "private": true,
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "pyodide": "0.28.3"
+  }
+}

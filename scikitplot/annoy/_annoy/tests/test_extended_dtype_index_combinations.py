@@ -531,3 +531,43 @@ def test_extended_combinations_summary(capsys):
 
     failed = [(i, d, s) for i, d, s in results if s != "OK"]
     assert not failed, f"Failed combinations: {failed}"
+
+
+# ===========================================================================
+# Section 9: Leaf capacity never exceeds what the index type can count
+# ===========================================================================
+#
+# ANNOY-K-001. A leaf holds as many item ids as fit in a node, and that count
+# is stored in the index type. With a narrow index type and a large enough
+# vector the count did not fit: int8 with 16 float64 components gives 136,
+# which became -120, and every query returned exactly two ids. The dimension
+# decides the node size, so the dimensions below walk the capacity across the
+# limits of int8 (127) and uint8 (255) for each data type.
+#
+# The expected count is exact, not "at most": with 20 items, 5 trees and the
+# default search_k (n * n_trees = 15 candidates), a search collects at least 15
+# ids of which any one item can account for at most 5 (once per tree), so at
+# least 3 distinct items are found.
+
+
+@pytest.mark.parametrize("index_dtype", ["int8", "uint8", "int16"])
+@pytest.mark.parametrize("data_dtype", ["float32", "float64", "float128"])
+@pytest.mark.parametrize("metric", ["euclidean", "angular"])
+def test_small_index_types_return_full_results_at_every_dimension(
+    index_dtype, data_dtype, metric
+):
+    """A narrow index type returns as many neighbours as were asked for."""
+    short = []
+    for f in range(2, 72):
+        idx = Index(f=f, metric=metric, index_dtype=index_dtype,
+                    dtype=data_dtype, seed=SEED)
+        for i, v in enumerate(_float_vectors(N_ITEMS, f, SEED)):
+            idx.add_item(i, v)
+        idx.build(n_trees=N_TREES)
+        neighbors = idx.get_nns_by_item(0, 3)
+        if len(neighbors) != 3 or neighbors[0] != 0 or len(set(neighbors)) != 3:
+            short.append((f, neighbors))
+    assert not short, (
+        f"{index_dtype} x {data_dtype} ({metric}): wrong result at "
+        f"dimensions {short[:8]}"
+    )

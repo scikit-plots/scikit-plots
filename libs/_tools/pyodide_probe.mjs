@@ -11,9 +11,16 @@
 // wheel installs there unchanged, so the only question is whether its modules
 // import. This script answers it for the wheels it is given.
 //
-// Usage (needs Node.js and `npm install pyodide`):
+// Usage (needs Node.js). Pyodide is taken from the directory the command is
+// run in, so that the version is the one a committed lockfile names:
 //
-//     node libs/_tools/pyodide_probe.mjs [--packages numpy,click] WHEEL...
+//     cd libs/_tools/pyodide/v314.0.0      # package.json + package-lock.json
+//     npm ci
+//     node ../../pyodide_probe.mjs [--packages numpy,click] WHEEL...
+//
+// One directory per Pyodide version lives under libs/_tools/pyodide/. To add
+// a version, copy a directory, change the version in package.json and run
+// `npm install --package-lock-only` there.
 //
 // --packages  Pyodide packages to load first (downloaded from the Pyodide
 //             index, so this needs network access). Without it only the
@@ -31,7 +38,28 @@
 // whether numpy is available is a property of the page, not of the wheel.
 
 import fs from "node:fs";
-import { loadPyodide } from "pyodide";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+// A bare `import "pyodide"` is resolved from the directory of *this file*, and
+// there is deliberately no node_modules above it: which Pyodide runs is decided
+// by the directory the command is started in (see "Usage").
+function loadPyodideModule() {
+  const here = createRequire(path.join(process.cwd(), "package.json"));
+  let entry;
+  try {
+    entry = here.resolve("pyodide");
+  } catch (error) {
+    console.error(
+      `Pyodide is not installed in ${process.cwd()}.\n` +
+        "Run this from a directory under libs/_tools/pyodide/ after `npm ci` there.",
+    );
+    process.exit(2);
+  }
+  // The package's ES module sits beside its CommonJS entry point.
+  return import(pathToFileURL(path.join(path.dirname(entry), "pyodide.mjs")).href);
+}
 
 const args = process.argv.slice(2);
 let packages = [];
@@ -111,6 +139,7 @@ else:
 json.dumps(result)
 `;
 
+const { loadPyodide } = await loadPyodideModule();
 const pyodide = await loadPyodide();
 if (packages.length > 0) {
   await pyodide.loadPackage(packages);

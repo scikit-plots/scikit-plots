@@ -542,10 +542,24 @@ def _make_site(tmp_path, *, full=False, fake_numpy=False, parts=(), api=None):
 
 
 def _import_root(site, *, versions, blocked=(), probe=()):
-    """Import the copied root package in a fresh interpreter; return (data, stderr)."""
+    """Import the copied root package in a fresh interpreter; return (data, stderr).
+
+    Notes
+    -----
+    **Developer.** The child runs with ``-I -S``. ``-S`` keeps it from importing
+    :mod:`site`, so no ``site-packages`` directory is on its path and no
+    ``.pth`` file is executed. That matters when the tests run from a checkout
+    installed in editable mode (``pip install -e .``, as CI does): the editable
+    install registers, through a ``.pth`` file, an import hook that answers
+    ``import scikitplot`` with the checkout, *before* ``sys.path`` is searched.
+    Without ``-S`` the child imported the checkout instead of the copy
+    ("imported the wrong copy"), or the checkout's compiled core together with
+    the stand-in NumPy of the copy. The copy needs nothing outside the standard
+    library, so the child loses nothing by it.
+    """
     done = subprocess.run(
         [
-            sys.executable, "-I", "-c", _CHILD,
+            sys.executable, "-I", "-S", "-c", _CHILD,
             json.dumps(str(site)), json.dumps(versions),
             json.dumps(list(blocked)), json.dumps(list(probe)),
         ],

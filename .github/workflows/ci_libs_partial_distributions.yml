@@ -147,14 +147,28 @@ jobs:
           retention-days: 7
 
   pyodide:
-    name: "Pyodide · pure wheels import (experimental)"
+    name: "Pyodide ${{ matrix.pyodide }} · pure wheels import (experimental)"
     needs: tooling
     runs-on: ubuntu-latest
     if: github.repository == 'scikit-plots/scikit-plots'
-    # Reported, never blocking, until it has been seen green once: the probe
-    # was verified with the standard library only; loading numpy and the other
-    # packages below needs the Pyodide package index, i.e. this runner.
+    # Reported, never blocking, until each version has been seen green once.
+    # Pyodide 314.0.7 was green on this runner with the packages below (306
+    # modules imported, none failed); the three versions here are the ones
+    # ci_wheels_emscripten.yml builds for, and were run with the standard
+    # library only.
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `packages` are loaded from the Pyodide index before the wheels.
+          # Pyodide 0.28 and 0.29 ship sqlite3 as a package; 314 has it built in.
+          - pyodide: "0.28.3"
+            packages: "numpy,click,pyyaml,pydantic,docutils,sqlite3"
+          - pyodide: "0.29.4"
+            packages: "numpy,click,pyyaml,pydantic,docutils,sqlite3"
+          - pyodide: "314.0.0"
+            packages: "numpy,click,pyyaml,pydantic,docutils"
     steps:
       - name: "⬇️ Checkout"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -174,11 +188,19 @@ jobs:
             scikit-plots-mcp scikit-plots-cleanprompt scikit-plots-cython \
             scikit-plots-mlflow scikit-plots-sphinx-ext
 
-      # Node.js is part of the runner image. Pyodide is installed in the
-      # repository root so that the probe script can resolve it.
+      # Node.js is part of the runner image. Each Pyodide version has its own
+      # directory with a package.json and a committed package-lock.json;
+      # `npm ci` installs exactly what the lockfile names, and the probe takes
+      # Pyodide from the directory it is started in.
+      - name: "📦 Install Pyodide from its lockfile"
+        working-directory: libs/_tools/pyodide/v${{ matrix.pyodide }}
+        run: npm ci --ignore-scripts
+
       - name: "🕸️ Import every module in Pyodide (WebAssembly, no threads)"
-        run: |  # zizmor: ignore[adhoc-packages]
-          npm install --no-save pyodide
-          node libs/_tools/pyodide_probe.mjs \
-            --packages numpy,click,pyyaml,pydantic,docutils \
-            dist/libs/*-py3-none-any.whl
+        working-directory: libs/_tools/pyodide/v${{ matrix.pyodide }}
+        env:
+          PYODIDE_PACKAGES: ${{ matrix.packages }}
+        run: |
+          node ../../pyodide_probe.mjs \
+            --packages "$PYODIDE_PACKAGES" \
+            "$GITHUB_WORKSPACE"/dist/libs/*-py3-none-any.whl

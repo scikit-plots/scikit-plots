@@ -688,6 +688,12 @@ def _extension_options() -> dict:
                 if msvc:
                     extension.extra_compile_args += [
                         f"/std:{standard}",
+                        # MSVC keeps the ``__cplusplus`` macro at 199711L
+                        # whatever ``/std`` says, unless it is told to
+                        # report the real value. The vendored Annoy header
+                        # checks that macro and stops with "requires at
+                        # least C++17" without this.
+                        "/Zc:__cplusplus",
                         "/O2",
                         "/bigobj",
                         "/permissive-",
@@ -1173,9 +1179,15 @@ def render_gitignore() -> str:
     must not be caught by that. The rest is what a build can leave behind if
     it is interrupted before it cleans up.
     """
-    residue = [f"/*/{staging.PACKAGE_NAME}/", f"/*/{staging.LICENSE_NAME}"]
+    # No trailing slash on the staged package: with one, the rule matches a
+    # directory only, and the link the earlier symlink layout put at
+    # ``libs/<name>/scikitplot`` is a file to git, so it was not ignored and
+    # could be committed (it then fails "build leaves nothing behind").
+    residue = [f"/*/{staging.PACKAGE_NAME}", f"/*/{staging.LICENSE_NAME}"]
     residue += [f"/*/{name}/" for name in staging.RESIDUE_DIR_NAMES]
     residue += ["/*/dist/", "/*/*.egg-info/", "__pycache__/"]
+    # What ``npm ci`` installs for the Pyodide probe (libs/_tools/pyodide/).
+    residue += ["node_modules/"]
     return "\n".join(
         [
             f"# {GENERATED_NOTICE}",

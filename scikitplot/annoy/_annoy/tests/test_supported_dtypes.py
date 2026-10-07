@@ -96,11 +96,25 @@ def test_bridge_capping_flagged_for_wide_types():
 @pytest.mark.parametrize("metric", ["angular", "euclidean", "manhattan", "dot"])
 def test_float80_dtype_end_to_end(metric):
     # float80 is a real usable dtype across all metrics: build + query + persist
+    #
+    # The vectors are chosen so that item 0 is its own nearest neighbour by a
+    # margin under every metric: the directions are all different (angular),
+    # the points are all different (euclidean, manhattan), and item 0 has the
+    # largest inner product with itself (dot: 144 against 132 for item 1).
+    #
+    # The earlier data, ``[i, i, 0, 0]``, made item 0 the zero vector and every
+    # other item a multiple of the same direction. Measured: under "angular"
+    # all twelve distances from item 0 are 1.414214, its distance to itself
+    # included, and under "dot" all twelve are 0. Which of twelve equal
+    # candidates comes first is not defined, so ``[0] == 0`` held only where
+    # the tie happened to break that way (it did not on macOS/arm64).
     idx = A.Index(4, metric, dtype="float80")
     for i in range(12):
-        idx.add_item(i, [float(i), float(i), 0.0, 0.0])
+        idx.add_item(i, [float(12 - i), float(i), 0.0, 0.0])
     idx.build(5)
-    assert idx.get_nns_by_item(0, 3)[0] == 0
+    ids, distances = idx.get_nns_by_item(0, 3, include_distances=True)
+    assert ids[0] == 0
+    assert distances[0] != distances[1], "item 0 must win by a margin, not a tie"
     fn = os.path.join(tempfile.mkdtemp(), "f80.ann")
     idx.save(fn)
     r = A.Index(4, metric, dtype="float80")

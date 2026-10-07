@@ -611,19 +611,86 @@ def check_wheel_from_tree(outdir: Path) -> list[Result]:
     return results
 
 
-def check_no_residue() -> list[Result]:
-    """Check that building left no staged file or build directory behind."""
+def _residue() -> list[str]:
+    """
+    Return what staging or a build has put in the lib directories.
+
+    Returns
+    -------
+    list of str
+        Repository-relative paths, with ``/`` separators, of every staged
+        package, staged licence file, build directory and ``*.egg-info``
+        directory under ``libs/<name>/``; empty when the directories hold
+        only their generated files.
+    """
     root = staging.repo_root()
-    left: list[str] = []
+    found: list[str] = []
     for dist in staging.load_distributions(root).DISTRIBUTIONS:
         lib_dir = root / "libs" / registry.directory_of(dist.name)
         names = [staging.PACKAGE_NAME, staging.LICENSE_NAME, *staging.RESIDUE_DIR_NAMES]
-        left += [
-            str((lib_dir / n).relative_to(root))
-            for n in names
-            if (lib_dir / n).exists()
-        ]
-        left += [str(p.relative_to(root)) for p in lib_dir.glob("*.egg-info")]
+        # ``lexists``: a dangling link (the earlier symlink layout) is residue too.
+        present = [lib_dir / n for n in names if os.path.lexists(lib_dir / n)]
+        present += sorted(lib_dir.glob("*.egg-info"))
+        found += [path.relative_to(root).as_posix() for path in present]
+    return found
+
+
+def check_clean_start() -> tuple[list[Result], list[str]]:
+    """
+    Check that the lib directories are clean *before* anything is built.
+
+    Returns
+    -------
+    results : list of Result
+        One result.
+    present : list of str
+        What was found, for :func:`check_no_residue` to leave out.
+
+    Notes
+    -----
+    **Developer.** Anything found here was not left by this run. In a fresh
+    checkout it can only be a path that is committed, typically
+    ``libs/<name>/scikitplot`` from the earlier symlink layout. Building a
+    distribution replaces and then removes such a path, which is why the
+    leftover used to show up only on the Python versions where that
+    distribution is not built, and was then reported as build residue. It is
+    reported here instead, with what to do about it.
+    """
+    present = _residue()
+    detail = "lib directories are clean"
+    if present:
+        detail = (
+            f"present before any build: {present}. Nothing has been built yet, "
+            "so these are part of the checkout. Remove them from the "
+            "repository: git rm -r --cached " + " ".join(present)
+        )
+    result = Result(
+        "lib directories are clean before the build",
+        "libs/",
+        "-",
+        FAIL if present else PASS,
+        detail,
+    )
+    return [result], present
+
+
+def check_no_residue(before: Sequence[str] = ()) -> list[Result]:
+    """
+    Check that building left no staged file or build directory behind.
+
+    Parameters
+    ----------
+    before : sequence of str, optional
+        Paths that were already present before the build
+        (:func:`check_clean_start`); they are that check's finding, not this
+        one's.
+
+    Returns
+    -------
+    list of Result
+        One result.
+    """
+    left = [path for path in _residue() if path not in set(before)]
     return [
         Result(
             "build leaves nothing behind",
@@ -1600,12 +1667,14 @@ def run(
     )
     uv = _require_uv()
     results = check_generated()
+    clean_start, present_before = check_clean_start()
+    results += clean_start
     if not skip_build:
         build(None, outdir)
     results += check_artefacts(outdir)
     if not skip_build:
         results += check_wheel_from_tree(outdir)
-    results += check_no_residue()
+    results += check_no_residue(present_before)
 
     distributions = staging.load_distributions(root)
     packages = registry.by_distribution()

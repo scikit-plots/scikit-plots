@@ -444,3 +444,39 @@ class TestIgnoreOptions:
             trees = MAP.get(package.distribution).trees
             found = [o for tree in trees for o in verify._ignore_options(package, tree)]
             assert len(found) == len(package.test_ignore), package.distribution
+
+
+class TestResidueChecks:
+    """A path that was there before the build is not the build's residue."""
+
+    def test_a_clean_tree_passes_both_checks(self, monkeypatch):
+        monkeypatch.setattr(verify, "_residue", lambda: [])
+        (start,), present = verify.check_clean_start()
+        (after,) = verify.check_no_residue(present)
+        assert (start.status, after.status, present) == (verify.PASS, verify.PASS, [])
+
+    def test_a_committed_path_fails_the_start_check_with_the_remedy(self, monkeypatch):
+        monkeypatch.setattr(verify, "_residue", lambda: ["libs/annoy/scikitplot"])
+        (start,), present = verify.check_clean_start()
+        assert start.status == verify.FAIL
+        assert present == ["libs/annoy/scikitplot"]
+        assert "git rm -r --cached libs/annoy/scikitplot" in start.detail
+
+    def test_a_path_present_before_is_not_reported_as_left_behind(self, monkeypatch):
+        monkeypatch.setattr(verify, "_residue", lambda: ["libs/annoy/scikitplot"])
+        (after,) = verify.check_no_residue(["libs/annoy/scikitplot"])
+        assert after.status == verify.PASS
+
+    def test_new_residue_is_reported_beside_an_old_path(self, monkeypatch):
+        monkeypatch.setattr(
+            verify, "_residue", lambda: ["libs/annoy/scikitplot", "libs/mcp/build"]
+        )
+        (after,) = verify.check_no_residue(["libs/annoy/scikitplot"])
+        assert after.status == verify.FAIL
+        assert after.detail == "left: ['libs/mcp/build']"
+
+    def test_residue_of_the_real_tree_is_listed_with_forward_slashes(self, tmp_path):
+        # Read-only on the real tree: whatever is listed must be a path under
+        # ``libs/<name>/`` written with ``/`` on every platform.
+        for path in verify._residue():
+            assert path.startswith("libs/") and "\\" not in path

@@ -738,9 +738,17 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 ## pip install [<distribution_metadata_name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>
 #  pip install mlflow  @ git+https://github.com/mlflow/mlflow.git@master#subdirectory=libs/skinny
 #  pip install voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python
+```
 
+```bash
 #🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
+## Need Compiler (C++)
 pip install scikit-plots-annoy       @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy
+```
+
+```bash
+## 🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
+## Pure Python
 pip install scikit-plots-cleanprompt @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt
 pip install scikit-plots-corpus      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus
 pip install scikit-plots-cython      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython

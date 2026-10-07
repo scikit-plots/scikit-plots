@@ -874,10 +874,28 @@ def _ensure_meta(
     meta = read_meta(build_dir) or {}
     meta_out = dict(meta)
 
-    # Annotation HTML is produced by Cython when `annotate=True`.
-    # For deterministic reuse, record the path if it exists.
-    html_path = build_dir / f"{module_name}.html"
-    annotate_html = html_path.as_posix() if html_path.exists() else None
+    # Annotation HTML is produced by Cython when `annotate=True`, beside the
+    # sources: ``<module_name>.html`` in ``build_dir``.
+    #
+    # It is recorded *relative to the cache entry*, never as an absolute path.
+    # ``build_dir`` here is the private staging directory on a fresh build
+    # (``.staging-<key>-<random>``), which is renamed to the final entry right
+    # after this function returns: an absolute path taken now names a directory
+    # that no longer exists a moment later (every fresh or forced build
+    # reported a dead path; only a cache hit, which runs this function on the
+    # final directory, reported a live one). A relative path is the same in the
+    # staging directory and in the published entry, and stays right when the
+    # cache is moved. ``BuildResult.annotation_html`` turns it into the
+    # absolute path of the published file.
+    #
+    # The two keys have the same shape as in a package build (see
+    # ``build_extension_package_from_code_result``): ``annotation_html`` maps
+    # module name to report, ``annotate_html`` is the first of them.
+    html_name = f"{module_name}.html"
+    annotation_html_map = (
+        {module_name: html_name} if (build_dir / html_name).is_file() else {}
+    )
+    annotate_html = annotation_html_map.get(module_name)
 
     meta_out.update(
         {
@@ -902,7 +920,7 @@ def _ensure_meta(
             "extra_compile_args": list(extra_compile_args or []),
             "extra_link_args": list(extra_link_args or []),
             "annotate_html": annotate_html,
-            "annotation_html": annotate_html,
+            "annotation_html": dict(annotation_html_map),
             "include_dirs": list(include_dirs),
             "support_files": list(support_files),
             "support_paths": list(support_paths),

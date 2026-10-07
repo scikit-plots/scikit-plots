@@ -269,6 +269,12 @@ def _extension_options() -> dict:
                 if msvc:
                     extension.extra_compile_args += [
                         f"/std:{standard}",
+                        # MSVC keeps the ``__cplusplus`` macro at 199711L
+                        # whatever ``/std`` says, unless it is told to
+                        # report the real value. The vendored Annoy header
+                        # checks that macro and stops with "requires at
+                        # least C++17" without this.
+                        "/Zc:__cplusplus",
                         "/O2",
                         "/bigobj",
                         "/permissive-",

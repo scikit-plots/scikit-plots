@@ -112,6 +112,11 @@ def _input_outside_source(path: Path, source_root: Path, code: str) -> Path:
 
 
 def _release_files(root: Path) -> list[Path]:
+    # The paths returned are below the *resolved* root. A caller that turns
+    # them back into relative paths must subtract the resolved root as well:
+    # where a temporary directory is reached through a symbolic link (macOS:
+    # ``/var`` is a link to ``/private/var``) the unresolved root is not a
+    # parent of these paths, and ``relative_to`` raises ValueError.
     root = root.resolve()
     files: list[Path] = []
     total = 0
@@ -143,6 +148,7 @@ def _release_files(root: Path) -> list[Path]:
 
 
 def _copy_snapshot(source_root: Path, target: Path) -> None:
+    source_root = source_root.resolve()  # see _release_files
     target.mkdir(parents=True, exist_ok=False)
     for source in _release_files(source_root):
         rel = source.relative_to(source_root)
@@ -156,6 +162,7 @@ def _copy_snapshot(source_root: Path, target: Path) -> None:
 
 
 def _compare_trees(left: Path, right: Path) -> None:
+    left, right = left.resolve(), right.resolve()  # see _release_files
     lfiles = _release_files(left)
     rfiles = _release_files(right)
     lmap = {p.relative_to(left).as_posix(): p for p in lfiles}
@@ -354,6 +361,7 @@ def _apply_patch(baseline_extension: Path, patch: Path) -> None:
 
 def _build_deterministic_zip(snapshot: Path, target: Path) -> tuple[str, int, int]:
     prefix = PurePosixPath(ARCHIVE_PREFIX)
+    snapshot = snapshot.resolve()  # see _release_files
     files = _release_files(snapshot)
     with zipfile.ZipFile(
         target, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9, allowZip64=False
@@ -374,6 +382,7 @@ def _build_deterministic_zip(snapshot: Path, target: Path) -> tuple[str, int, in
 
 def _verify_release_zip(archive: Path, snapshot: Path) -> None:
     prefix = PurePosixPath(ARCHIVE_PREFIX)
+    snapshot = snapshot.resolve()  # see _release_files
     expected = {p.relative_to(snapshot).as_posix(): p for p in _release_files(snapshot)}
     seen: list[str] = []
     with zipfile.ZipFile(archive, "r") as zf:

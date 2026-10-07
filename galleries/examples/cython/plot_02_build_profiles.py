@@ -117,14 +117,17 @@ else:
     _print_result("annotate", r_ann)
 
     # 5) Show where annotation lives (if present).
-    # We do not assume a fixed filename; we check metadata.
-    ann_meta = getattr(r_ann, "meta", {}) or {}
-    ann_path = ann_meta.get("annotate_html", None) or ann_meta.get("annotation_html", None)
-    if ann_path:
+    # We do not assume a fixed filename: ``annotation_html`` is the absolute
+    # path of the report Cython wrote for this module, or None. The metadata
+    # holds the same file relative to the build directory, so that it stays
+    # right when the cache is moved.
+    ann_path = r_ann.annotation_html
+    if ann_path is not None:
         print("\nAnnotation HTML report:")
-        print(" ", ann_path)
+        print("  file             :", ann_path)
+        print("  in the build dir :", r_ann.meta["annotate_html"])
     else:
-        print("\nAnnotation HTML report not recorded in metadata for this build.")
+        print("\nNo annotation HTML report for this build.")
 
     # 6) Demonstrate precedence: explicit args override profile defaults.
     # Example: even under "release", you can force annotate=False explicitly.
@@ -152,7 +155,7 @@ if report.get('cython', {}).get('ok'):
     print("  used_cache  :", r_ann.used_cache)
     print("  created_utc :", r_ann.created_utc)
     print("  Annotation  :", r_ann.meta["annotate"])
-    print("  HTML report :", r_ann.meta["annotate_html"])
+    print("  HTML report :", r_ann.annotation_html)
 
 # %%
 # Display `annotate` Profile to see the actual C code
@@ -167,8 +170,8 @@ def read_html_file(file_path):
     return html_content
 
 if report.get('cython', {}).get('ok'):
-    ann_path = r_ann.build_dir / (r_ann.module_name + ".html")
-    if ann_path:
+    ann_path = r_ann.annotation_html
+    if ann_path is not None:
         # print(HTML(read_html_file(ann_path)).data[-8000:])
 
         from IPython.display import display, HTML, IFrame

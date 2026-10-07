@@ -323,8 +323,12 @@ class TestOtherFiles:
 
     def test_gitignore_covers_everything_a_build_can_leave(self):
         lines = generate.render_gitignore().splitlines()
-        for pattern in ("/*/scikitplot/", "/*/LICENSE.txt", "/*/build/", "/*/*.egg-info/"):
+        for pattern in ("/*/scikitplot", "/*/LICENSE.txt", "/*/build/", "/*/*.egg-info/"):
             assert pattern in lines
+        # With a trailing slash the rule would match a directory only and let
+        # a ``libs/<name>/scikitplot`` *link* be committed.
+        assert "/*/scikitplot/" not in lines
+        assert "node_modules/" in lines  # the Pyodide probe's ``npm ci``
         assert "!mlflow" in lines  # libs/mlflow must not be caught by a repository-wide rule
 
     def test_libs_readme_lists_every_distribution(self):
