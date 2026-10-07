@@ -282,7 +282,7 @@ def atomic_write(path: str, text: str, mode: int = 0o600) -> None:
     **User notes.** On Windows there are no permission bits, so ``mode``
     restricts nothing: the file has the access rules of its folder. The
     default vault folder is inside the user's profile
-    (``%LOCALAPPDATA%\\cleanprompt``); a vault kept anywhere else is as
+    (``%LOCALAPPDATA%\cleanprompt``); a vault kept anywhere else is as
     private as that folder is. ``--encrypt`` protects the content on every
     platform.
 

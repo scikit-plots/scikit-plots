@@ -165,7 +165,13 @@ def test_mutant_is_caught(mutant: dict) -> None:
         result = subprocess.run(
             ["node", str(harness), str(js_arg), str(css_arg), str(RUNTIME_ROOT)],
             capture_output=True,
+            # Node writes UTF-8. Without a named encoding the output is read
+            # in the locale's: cp1252 on Windows, where the bytes of a
+            # zero-width joiner (e2 80 8d) do not decode, the reader stops
+            # and ``stdout`` is None (Windows job of CI run 37694585156).
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_TIMEOUT_S,
             check=False,
         )

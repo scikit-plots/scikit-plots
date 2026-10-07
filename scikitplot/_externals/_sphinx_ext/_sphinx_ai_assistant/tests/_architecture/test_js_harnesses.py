@@ -157,7 +157,11 @@ def test_node_harness(harness: pathlib.Path) -> None:
     result = subprocess.run(
         ["node", str(harness), str(_JS_TARGET), str(_CSS_TARGET), str(RUNTIME_ROOT)],
         capture_output=True,
+        # Node writes UTF-8; see the same call in test_mutation.py for what
+        # the locale's encoding does to it on Windows.
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=_TIMEOUT_S,
         check=False,
     )

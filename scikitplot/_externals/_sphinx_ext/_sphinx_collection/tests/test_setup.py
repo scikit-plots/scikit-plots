@@ -581,7 +581,9 @@ def test_verify_lists_stale_pages_relative_and_sorted(setup_mod, built, tmp_path
     for name in ("b/two.html", "a.html", "c.html"):
         (tmp_path / name).write_text(stale, encoding="utf-8")
     message = _verify_error(setup_mod, built)
-    expected = ", ".join(["a.html", os.path.join("b", "two.html"), "c.html"])
+    # POSIX form on every platform: the message does not depend on the
+    # machine that built the site.
+    expected = ", ".join(["a.html", "b/two.html", "c.html"])
     assert "status sibling: " + expected + ". Refusing" in message
     assert str(tmp_path) not in message
 
