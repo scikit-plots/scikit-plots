@@ -5,6 +5,7 @@ from ..._paths import RUNTIME_ROOT, TESTS_ROOT
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import os
 from pathlib import Path
 import stat
 
@@ -62,8 +63,13 @@ def test_run148_source_tree_subject_binds_content_mode_and_ignores_test_caches(t
     b.write_text("changed\n", encoding="utf-8")
     assert source_tree.source_tree_sha256(root) != first
     b.write_text("b\n", encoding="utf-8")
-    b.chmod((b.stat().st_mode & 0o777) ^ stat.S_IXUSR)
-    assert source_tree.source_tree_sha256(root) != first
+    assert source_tree.source_tree_sha256(root) == first
+    if os.name == "posix":
+        # The executable bit is part of the subject. Windows has no such bit:
+        # chmod changes only the read-only flag there, so there is nothing to
+        # bind and this last statement has no subject.
+        b.chmod((b.stat().st_mode & 0o777) ^ stat.S_IXUSR)
+        assert source_tree.source_tree_sha256(root) != first
 
 
 def test_run148_attestation_is_digest_pinned_revision_bound_and_outside_source_tree(tmp_path: Path):

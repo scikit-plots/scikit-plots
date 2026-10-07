@@ -271,8 +271,11 @@ them back, and it is the one file here that must not leak.
 
 You no longer name it. By default it goes to your platform's state directory —
 `$XDG_STATE_HOME/cleanprompt/vault.json`, or `~/.local/state/cleanprompt/` when
-that is unset, and `%LOCALAPPDATA%\cleanprompt\` on Windows. The directory is
-created `0700` and the file `0600`.
+that is unset, and `%LOCALAPPDATA%\cleanprompt\` on Windows. On Linux and
+macOS the directory is created `0700` and the file `0600`. Windows has no such
+permission bits: there the file has the access rules of its folder, and the
+default folder is inside your user profile. `--encrypt` protects the content
+on every platform.
 
 **Not the working directory, deliberately.** A vault is clear text, and this
 tool gets used inside checkouts. A `cleanprompt-vault.json` sitting in the

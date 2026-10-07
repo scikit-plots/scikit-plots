@@ -37,13 +37,15 @@ SECRETS = (
 @pytest.fixture()
 def root(tmp_path):
     (tmp_path / "records").mkdir()
-    (tmp_path / "records" / "patients.csv").write_text(
-        "name,email,mrn\nMarion Holt,ann@example.com,00412345\n", encoding="utf-8"
+    # Bytes, not text: a file written in text mode ends its lines with CRLF on
+    # Windows, and the tools return a file's line endings as they are.
+    (tmp_path / "records" / "patients.csv").write_bytes(
+        b"name,email,mrn\nMarion Holt,ann@example.com,00412345\n"
     )
-    (tmp_path / "records" / "note.txt").write_text(
-        "Call Marion Holt on +1 555 010 4477.\n", encoding="utf-8"
+    (tmp_path / "records" / "note.txt").write_bytes(
+        b"Call Marion Holt on +1 555 010 4477.\n"
     )
-    (tmp_path / ".env").write_text("DB_PASSWORD=hunter2hunter2\n", encoding="utf-8")
+    (tmp_path / ".env").write_bytes(b"DB_PASSWORD=hunter2hunter2\n")
     return tmp_path
 
 

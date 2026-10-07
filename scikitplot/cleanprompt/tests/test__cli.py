@@ -978,7 +978,9 @@ class TestDefaultVaultPath:
     def test_a_user_path_is_expanded(self, monkeypatch, tmp_path):
         from .._cli import resolve_vault_path
 
+        # ``~`` is read from HOME on POSIX and from USERPROFILE on Windows.
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         assert resolve_vault_path("~/v.json") == str(tmp_path / "v.json")
 
     def test_redact_needs_no_vault_option(self, state_home):
@@ -994,11 +996,13 @@ class TestDefaultVaultPath:
         assert status == 0
         assert out.strip() == "sent to ada@example.com"
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX modes only")
     def test_the_directory_is_created_owner_only(self, state_home):
         _run(["redact", "-q", "mail ada@example.com"])
         mode = stat.S_IMODE(os.stat(state_home.parent).st_mode)
         assert mode & 0o077 == 0, oct(mode)
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX modes only")
     def test_the_file_is_created_owner_only(self, state_home):
         _run(["redact", "-q", "mail ada@example.com"])
         mode = stat.S_IMODE(os.stat(state_home).st_mode)

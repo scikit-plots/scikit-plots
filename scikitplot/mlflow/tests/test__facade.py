@@ -140,8 +140,9 @@ class TestArtifactsFacadeDownload:
         client = _DummyClient()
         f = ArtifactsFacade(mlflow_module=_ModernMod(), client=client)
         result = f.download("r", "a")
-        # Modern path starts with /modern/
-        assert str(result).startswith("/modern/")
+        # Modern path starts with /modern/ (as_posix: ``str`` of a path uses
+        # backslashes on Windows)
+        assert result.as_posix().startswith("/modern/")
         # Client must NOT have been called
         assert len(client._downloaded) == 0
 

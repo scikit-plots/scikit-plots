@@ -783,7 +783,10 @@ def write_compiled(
     """
     folder = Path(config_dir)
     destination = Path(target) if target is not None else folder / "_compiled.json"
-    destination.write_text(_render(compile_config(folder)), encoding="utf-8")
+    # Bytes, not text: this file is generated and committed, and text mode
+    # would end its lines with CRLF on Windows, so the same definitions would
+    # compile to another file there.
+    destination.write_bytes(_render(compile_config(folder)).encode("utf-8"))
     builtin_catalog.cache_clear()
     return destination
 

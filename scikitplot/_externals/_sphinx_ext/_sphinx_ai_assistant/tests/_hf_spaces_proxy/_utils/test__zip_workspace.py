@@ -151,10 +151,27 @@ def test_binary_non_text_replacement_is_exact() -> None:
         assert payloads["assets/image.png"] == raw
 
 
+def _named(name: str) -> zipfile.ZipInfo:
+    """
+    Return an entry whose stored name is exactly ``name``, on every platform.
+
+    ``zipfile.ZipInfo(name)`` replaces ``os.sep`` with ``/``. On Windows that
+    turns ``a\\evil`` into ``a/evil`` before anything is written, so the
+    archive under test would hold an ordinary nested path and no backslash at
+    all. Setting ``filename`` afterwards stores the name as given.
+    """
+    info = _info("placeholder")
+    info.filename = name
+    return info
+
+
 def test_traversal_root_drive_backslash_and_ambiguous_segments_rejected() -> None:
     bad = ["../evil", "/root", "C:/evil", "a\\evil", "a/./evil", "a//evil"]
     for name in bad:
-        src = _zip([(name, b"x")])
+        src = _zip([(_named(name), b"x")])
+        with zipfile.ZipFile(src) as stored:
+            assert [row.orig_filename for row in stored.infolist()] == [name]
+        src.seek(0)
         with pytest.raises(zw.ZipWorkspaceError):
             zw.rewrite_zip_workspace(src, {})
 

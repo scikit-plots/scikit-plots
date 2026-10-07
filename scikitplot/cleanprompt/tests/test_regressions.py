@@ -1266,6 +1266,8 @@ class TestCP034To036VaultDefaultsAndCleanCommand:
         import os
         import stat as _stat
 
+        if os.name == "nt":
+            pytest.skip("POSIX modes only")
         self._run(["clean", "-q", "mail ada@example.com"])
         assert _stat.S_IMODE(os.stat(state).st_mode) & 0o077 == 0
 

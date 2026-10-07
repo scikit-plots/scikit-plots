@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._platform import POSIX_RELEASE_GATE
 
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -199,6 +200,7 @@ def _signature(tmp_path: Path, statement: Path, *, name: str = "sig.json", verif
     return sig, verifier_evidence
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Path):
     _, new, baseline, patch, evidence, result, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -237,6 +239,7 @@ def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Pat
     assert modes["bin.sh"] == 0o755
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_is_deterministic_for_same_source(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     first = tmp_path / "first"
@@ -247,6 +250,7 @@ def test_run149_prepare_is_deterministic_for_same_source(tmp_path: Path):
     assert (first / "release-statement.json").read_bytes() == (second / "release-statement.json").read_bytes()
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_rejects_patch_that_does_not_recreate_verified_tree(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     text = patch.read_text(encoding="utf-8")
@@ -272,6 +276,7 @@ def test_run149_baseline_rejects_traversal_and_special_entries(tmp_path: Path):
         promote._safe_extract_baseline(symlink, tmp_path / "out2")
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rechecks_signature_and_all_publishable_hashes(tmp_path: Path):
     _, new, baseline, patch, evidence, result, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -299,6 +304,7 @@ def test_run149_finalize_rechecks_signature_and_all_publishable_hashes(tmp_path:
         assert path.stat().st_size == item["size"]
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_tampered_zip_wrong_signature_and_source_drift(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -326,6 +332,7 @@ def test_run149_finalize_rejects_tampered_zip_wrong_signature_and_source_drift(t
         promote.finalize_release(evidence=evidence, prepared_dir=prepared2, baseline_zip=baseline, signature_record=sig3, signature_verifier_evidence=verifier_evidence3, promotion_dir=tmp_path / "bad3", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_stale_signature_record(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -335,6 +342,7 @@ def test_run149_finalize_rejects_stale_signature_record(tmp_path: Path):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_statement_path_traversal_even_if_signature_matches(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -348,6 +356,7 @@ def test_run149_finalize_rejects_statement_path_traversal_even_if_signature_matc
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_reapplies_patch_and_rejects_wrong_baseline(tmp_path: Path):
     old, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -361,6 +370,7 @@ def test_run149_finalize_reapplies_patch_and_rejects_wrong_baseline(tmp_path: Pa
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=wrong_baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_signature_record_must_bind_verified_identity_and_revision(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -373,6 +383,7 @@ def test_run149_signature_record_must_bind_verified_identity_and_revision(tmp_pa
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_changed_external_verifier_evidence(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -399,6 +410,7 @@ def test_run149_prepare_rejects_transaction_input_inside_source_tree(tmp_path: P
         )
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_signed_zip_file_count_tampering(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -412,6 +424,7 @@ def test_run149_finalize_rejects_signed_zip_file_count_tampering(tmp_path: Path)
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_fresh_signature_that_predates_statement(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"

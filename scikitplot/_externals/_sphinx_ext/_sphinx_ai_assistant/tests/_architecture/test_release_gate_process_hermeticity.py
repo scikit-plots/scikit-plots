@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .._paths import RUNTIME_ROOT, TESTS_ROOT
+from .._platform import POSIX_RELEASE_GATE
 
 import ast
 import importlib.util
@@ -48,6 +49,7 @@ def _hostile_git_environment(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("LANG", "tr_TR.UTF-8")
 
 
+@POSIX_RELEASE_GATE
 def test_run170_run149_patch_ignores_host_git_environment(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     _hostile_git_environment(monkeypatch, tmp_path)
@@ -76,6 +78,7 @@ def test_run170_patch_bytes_identical_across_hostile_environments(tmp_path: Path
     assert right == left
 
 
+@POSIX_RELEASE_GATE
 def test_run170_production_patch_replay_ignores_host_git_environment(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     case = tmp_path / "case"
@@ -96,6 +99,7 @@ def test_run170_production_patch_replay_ignores_host_git_environment(tmp_path: P
     assert (replay / "bin.sh").stat().st_mode & 0o777 == 0o755
 
 
+@POSIX_RELEASE_GATE
 def test_run170_production_git_resolution_ignores_ambient_path(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     case = tmp_path / "case"

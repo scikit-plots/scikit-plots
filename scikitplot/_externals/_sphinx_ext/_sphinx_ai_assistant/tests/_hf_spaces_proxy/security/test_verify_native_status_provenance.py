@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._platform import RUNS_A_SCRIPT_BY_ITS_FIRST_LINE
 
 import base64
 from datetime import datetime, timedelta, timezone
@@ -390,6 +391,7 @@ def test_run159_vendor_native_profile_fails_closed_without_verifier(tmp_path: Pa
         native._verify_vendor_manifest(p, {})
 
 
+@RUNS_A_SCRIPT_BY_ITS_FIRST_LINE
 def test_run159_vendor_verifier_result_is_bound_to_exact_raw_bytes(tmp_path: Path, monkeypatch):
     manifest = {"schemaVersion": 1, "profile": "test-vendor-v1", "evidenceType": "vendor-proof", "rawEvidenceBase64": base64.b64encode(b"raw-vendor-proof").decode(), "expectedKeyId": "root/key-a", "expectedPublicKeySha256": "1" * 64}
     p = tmp_path / "vendor.json"; p.write_bytes(_canonical(manifest))
@@ -603,6 +605,7 @@ def test_run159_rejects_crl_revocation_time_after_this_update(tmp_path: Path):
         )
 
 
+@RUNS_A_SCRIPT_BY_ITS_FIRST_LINE
 def test_run159_vendor_verifier_output_is_bounded_while_produced(tmp_path: Path, monkeypatch):
     manifest = {"schemaVersion": 1, "profile": "noisy-v1", "evidenceType": "vendor-proof", "rawEvidenceBase64": base64.b64encode(b"raw").decode(), "expectedKeyId": "root/key-a", "expectedPublicKeySha256": "1" * 64}
     p = tmp_path / "vendor.json"; p.write_bytes(_canonical(manifest))

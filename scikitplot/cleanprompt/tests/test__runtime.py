@@ -627,8 +627,10 @@ class TestOrderIndependence:
 
     def _files(self, root):
         root.mkdir()
-        (root / "a_note.txt").write_text("Call Marion Holt today.\n", encoding="utf-8")
-        (root / "b_people.csv").write_text("name\nMarion Holt\n", encoding="utf-8")
+        # Bytes, not text: text mode writes CRLF on Windows, and encoding
+        # keeps a file's line endings.
+        (root / "a_note.txt").write_bytes(b"Call Marion Holt today.\n")
+        (root / "b_people.csv").write_bytes(b"name\nMarion Holt\n")
         return root
 
     def test_a_folder(self, tmp_path):
