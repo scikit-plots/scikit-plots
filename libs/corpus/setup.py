@@ -51,8 +51,14 @@ CYTHON_FREETHREADING = (3, 1)
 EXTENSIONS = []
 #: Environment variable with which the builder asks for the multithreaded
 #: code of an extension: ``1`` compiles it in, ``0`` or unset leaves it out.
-#: Unset means out because that is what the full distribution's Meson build
-#: does, and the two builds must produce the same behaviour until both change.
+#: Unset means out because that is the default of the full distribution's
+#: Meson build (option ``annoy-threads`` in ``meson.options``), and the two
+#: builds must produce the same behaviour until both defaults change.
+#:
+#: This is the *build-time* switch: it decides what the wheel can do. What a
+#: build then does is decided at run time by ``SKPLT_ANNOY_THREADS`` (auto,
+#: single, multi; see ``scikitplot/annoy/_threads.py``), so a wheel compiled
+#: with threads serves a user who wants one thread as well.
 THREADS_ENV = "SKPLT_BUILD_THREADS"
 #: Prefixes of ``sysconfig.get_platform()`` for targets without threads: a
 #: WebAssembly interpreter (Pyodide, JupyterLite, WASI) runs on one thread,

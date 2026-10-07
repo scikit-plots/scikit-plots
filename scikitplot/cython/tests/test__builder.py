@@ -417,6 +417,81 @@ class TestDefaultCompilerDirectives:
 
 
 @requires_compiler
+class TestKeepObjectsFlat:
+    """Object files go directly into ``build_temp``, not below a mirrored path."""
+
+    class _Compiler:
+        """The part of a distutils compiler that names object files."""
+
+        def object_filenames(self, source_filenames, strip_dir=False, output_dir=""):
+            names = []
+            for source in source_filenames:
+                base = os.path.splitext(source)[0]
+                base = os.path.splitdrive(base)[1].lstrip("/\\")
+                if strip_dir:
+                    base = os.path.basename(base)
+                names.append(os.path.join(output_dir, base + ".o"))
+            return names
+
+    class _Command:
+        def __init__(self, compiler):
+            self.compiler = None
+            self._compiler = compiler
+            self.ran = 0
+
+        def build_extensions(self):
+            self.ran += 1
+
+        def run(self):
+            self.compiler = self._compiler  # as build_ext.run does
+            self.build_extensions()
+
+    def _names(self, sources, **kwargs):
+        from .._builder import _keep_objects_flat
+
+        cmd = self._Command(self._Compiler())
+        _keep_objects_flat(cmd)
+        cmd.run()
+        assert cmd.ran == 1
+        return cmd.compiler.object_filenames(sources, output_dir="out", **kwargs)
+
+    def test_an_absolute_source_gets_a_flat_object(self):
+        deep = os.path.join(os.sep, "very", "long", "cache", ".staging-abc", "mod.c")
+        assert self._names([deep]) == [os.path.join("out", "mod.o")]
+
+    def test_the_object_path_no_longer_contains_the_source_directory_twice(self, tmp_path):
+        source = tmp_path / "cache" / ".staging-0123456789abcdef-xxxxxxxx" / "module.c"
+        build_temp = source.parent / "build"
+        (flat,) = self._names([str(source)])
+        from .._builder import _keep_objects_flat  # noqa: F401 - documents the subject
+
+        mirrored = self._Compiler().object_filenames([str(source)], output_dir=str(build_temp))[0]
+        assert len(mirrored) > 2 * len(str(source.parent)) - len(source.anchor)
+        assert os.path.dirname(flat) == "out"
+
+    def test_sources_with_the_same_file_name_keep_the_compilers_layout(self):
+        sources = [os.path.join("a", "util.c"), os.path.join("b", "util.c")]
+        assert self._names(sources) == [
+            os.path.join("out", "a", "util.o"),
+            os.path.join("out", "b", "util.o"),
+        ]
+
+    def test_the_same_stem_with_another_extension_or_case_is_a_clash(self):
+        from .._builder import _unique_stems
+
+        assert _unique_stems(["x/a.c", "y/b.c"]) is True
+        assert _unique_stems(["x/a.c", "y/a.cpp"]) is False
+        assert _unique_stems(["x/Mod.c", "y/mod.c"]) is False
+        assert _unique_stems([]) is True
+
+    def test_an_explicit_request_for_flat_names_is_honoured(self):
+        sources = [os.path.join("a", "util.c"), os.path.join("b", "util.c")]
+        assert self._names(sources, strip_dir=True) == [
+            os.path.join("out", "util.o"),
+            os.path.join("out", "util.o"),
+        ]
+
+
 class TestCompileAndLoadSmoke:
     """
     Smoke tests that require a working C compiler + Cython.

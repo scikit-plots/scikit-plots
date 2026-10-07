@@ -73,3 +73,15 @@ option('pythran', type: 'feature', value: 'auto',
                      'to either pure Python code or Cython code, depending on ' +
                      'the implementation). ' +
                      'A feature option has three states: "enabled", "disabled" or "auto".')
+
+# scikit-plots: scikitplot.annoy
+option('annoy-threads', type: 'boolean', value: false,
+       description: 'Compile the multithreaded tree build into scikitplot.annoy ' +
+                    '(defines ANNOYLIB_MULTITHREADED_BUILD and links the ' +
+                    'thread library). With it, build(n_trees, n_jobs=N) can use ' +
+                    'N threads; without it, n_jobs is accepted and has no ' +
+                    'effect. The run-time mode is chosen with the environment ' +
+                    'variable SKPLT_ANNOY_THREADS (auto, single, multi). The ' +
+                    'partial distribution scikit-plots-annoy has the same ' +
+                    'switch as SKPLT_BUILD_THREADS=1; keep the two defaults ' +
+                    'equal. Not available for Emscripten.')

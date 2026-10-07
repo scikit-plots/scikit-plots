@@ -93,8 +93,20 @@ ok(yaml.includes('"resources":') && yaml.includes('"totalCount": 100'),'YAML con
 const toml=_buildConvTomlString(snap);
 ok(toml.includes('[records.resources]') && toml.includes('[[records.resources.items]]'),'TOML uses real nested resource tables');
 ok(toml.includes('[turns.user.resources]') && toml.includes('[[turns.user.resources.items]]'),'TOML nested turns also preserve resources');
-const py=spawnSync('python',['-c','import sys,tomllib; tomllib.loads(sys.stdin.read()); print("ok")'],{input:toml,encoding:'utf8'});
-ok(py.status===0 && py.stdout.trim()==='ok','generated TOML resource manifest parses with Python tomllib');
+// `tomllib` is in the standard library from Python 3.11. On 3.9 and 3.10 the
+// same parser is the `tomli` package (a test requirement there), so the
+// interpreter on PATH decides which one is imported; the assertion is the same.
+const tomlProbe=[
+  'import sys',
+  'try:',
+  '    import tomllib',
+  'except ImportError:',
+  '    import tomli as tomllib',
+  'tomllib.loads(sys.stdin.read())',
+  'print("ok")'
+].join('\n');
+const py=spawnSync('python',['-c',tomlProbe],{input:toml,encoding:'utf8'});
+ok(py.status===0 && py.stdout.trim()==='ok','generated TOML resource manifest parses with a Python TOML parser: '+String(py.stderr||'').trim().split('\n').pop());
 
 // HTML path must render escaped resource cards and embed the same JSON payload.
 ok(extract('_buildConvHtmlString').includes('_resourceManifestHtml(r.resources)'), 'HTML serializer consumes canonical record resources');

@@ -262,26 +262,36 @@ _CYTHON_CPP_MACROS: tuple[tuple[str, str], ...] = (
 
 #: Macro of the vendored Annoy header (``annoylib.h``) that selects
 #: ``AnnoyIndexMultiThreadedBuildPolicy``: ``build(n_trees, n_jobs=N)`` then
-#: builds the trees on ``N`` threads. Without it the header selects the
+#: can build the trees on ``N`` threads. Without it the header selects the
 #: single-threaded policy and ``n_jobs`` is accepted and has no effect.
 #:
+#: Two switches, on purpose:
+#:
+#: * build time, here: ``SKPLT_BUILD_THREADS=1`` (the Meson build of the full
+#:   distribution has ``-Dannoy-threads=true``; the defaults are equal and
+#:   ``test_generate.py`` checks that). It decides what a wheel *can* do.
+#: * run time: ``SKPLT_ANNOY_THREADS`` = ``auto``, ``single`` or ``multi``
+#:   (``scikitplot/annoy/_threads.py``). It decides what a build *does*, so
+#:   one wheel compiled with threads serves every user.
+#:
 #: Measured on Linux x86_64 (2 CPUs, CPython 3.10, GCC 13), 60 000 vectors of
-#: 64 dimensions, 24 trees, same seed:
+#: 64 dimensions, 24 trees, same seed, the compiled module called directly:
 #:
 #: ===================  =========  ==========================================
-#: wheel                n_jobs     build time; neighbours of item 0
+#: wheel                n_jobs     build time; saved file
 #: ===================  =========  ==========================================
-#: without the macro    1, 2, -1   4.4 to 4.7 s; identical saved file each time
-#: with the macro       1          4.2 s; the same neighbours as without it
-#: with the macro       2          2.15 s; other trees (seed + thread number)
-#: with the macro       -1         4.6 s; as n_jobs=1 (see ANNOY-MT-003)
+#: without the macro    1, 2, -1   2.0 to 2.2 s; one file, always
+#: with the macro       1, -1      2.0 to 2.2 s; that same file, byte for byte
+#: with the macro       2          1.1 s; other trees, and node order varies
+#:                                 from run to run
 #: ===================  =========  ==========================================
 #:
-#: Both annoy suites pass on a wheel built with the macro (706 passed).
-#: Open before it becomes the default, all in ``tasks/todo.md``:
-#: ANNOY-MT-002 (two files saved by one process with the macro and n_jobs=1
-#: differed in 36 of 51 376 960 bytes; queries were equal) and ANNOY-MT-003
-#: (``n_jobs=-1`` is documented as "all cores" and ran on one thread).
+#: Both annoy suites pass on a wheel built with the macro. Two findings of
+#: the first measurement are settled (``tasks/todo.md``, round 5):
+#: ANNOY-MT-002, files that differed in a few bytes, was uninitialised
+#: padding copied from the stack into every split node; ANNOY-MT-003,
+#: ``n_jobs=-1`` running on one thread, is now stated by the run-time rule
+#: (``auto``: one thread; ``multi``: every CPU) instead of left to chance.
 _ANNOY_THREADS_MACRO = "ANNOYLIB_MULTITHREADED_BUILD"
 
 PACKAGES: tuple[Package, ...] = (

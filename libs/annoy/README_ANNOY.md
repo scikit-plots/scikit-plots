@@ -30,7 +30,7 @@ print(index.get_nns_by_item(0, 2))
 
 ## Threads
 
-`build(n_trees, n_jobs=N)` builds the trees on `N` threads in a wheel that was compiled with threads. In a wheel that was not, `n_jobs` is accepted and has no effect. Released wheels are compiled without threads, like `scikit-plots` itself; the nightly wheels are compiled with them, except for WebAssembly (Pyodide, JupyterLite), which has one thread.
+An index is built on one thread unless you ask for more, and it can only use more in a wheel that was compiled with threads. Released wheels are compiled without, like `scikit-plots` itself; the nightly wheels with, except for WebAssembly (Pyodide, JupyterLite), which has one thread.
 
 ```sh
 # nightly wheel, with threads
@@ -40,18 +40,27 @@ pip install --pre --extra-index-url https://pypi.anaconda.org/scikit-plots-wheel
 SKPLT_BUILD_THREADS=1 pip install --no-binary scikit-plots-annoy scikit-plots-annoy
 ```
 
-Which one is installed:
+One wheel with threads serves everyone: what a build does is decided when it runs, by the environment variable `SKPLT_ANNOY_THREADS`.
+
+| `SKPLT_ANNOY_THREADS` | `build(n, n_jobs=4)` | `build(n)` or `n_jobs=-1` | wheel without threads |
+| --- | --- | --- | --- |
+| `auto` (default) | 4 threads | 1 thread | 1 thread; asking for more is logged once |
+| `single` | 1 thread | 1 thread | 1 thread |
+| `multi` | 4 threads | every CPU | an error that says how to get threads |
+
+What the installed wheel can do, and the mode in effect:
 
 ```python
-from scikitplot.annoy import Index
+from scikitplot.annoy import threads_info
 
-index = Index(3, "angular")
-index.add_item(0, [1.0, 0.0, 0.0])
-index.build(1)
-print(index.__getstate__()["_backend_abi"]["multithreaded_build"])
+print(threads_info())
+# {'compiled': True, 'mode': 'auto', 'modes': ('auto', 'single', 'multi'),
+#  'env': 'SKPLT_ANNOY_THREADS', 'cpu_count': 8}
 ```
 
-Each thread seeds its own trees, so an index built with `n_jobs=2` holds other trees than one built with `n_jobs=1`, and answers can differ in the approximate tail. For the same index on every machine and from every wheel, pass `n_jobs=1` and a seed.
+With one thread the index and its saved file are the same in every wheel, with or without threads. With several, each thread seeds its own trees: the index holds other trees, answers can differ in the approximate tail, and the saved file is not the same from run to run. For results that do not depend on the machine, build with one thread (`SKPLT_ANNOY_THREADS=single` makes that the rule for the whole process) and set a seed.
+
+Turn on logging for `scikitplot.annoy` at DEBUG to see, for every build, what was asked for, the mode, and the number of threads used.
 
 ## How it fits with the other distributions
 

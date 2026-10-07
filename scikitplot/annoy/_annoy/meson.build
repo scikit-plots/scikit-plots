@@ -108,7 +108,9 @@ annoylib_extension_metadata = {
       inc_dir_annoylib,
       inc_dir_py,
     ],
-    'dependencies': dep_list,                     # External libraries and dependencies
+    # annoy_threads_deps / annoy_threads_cpp_args: option `annoy-threads`,
+    # defined and documented in scikitplot/cexternals/_annoy/meson.build.
+    'dependencies': dep_list + annoy_threads_deps,  # External libraries and dependencies
     'link_with': [                                # Link with the created static library
       # version_link_args
       # annoy_static,
@@ -123,6 +125,7 @@ annoylib_extension_metadata = {
     'cpp_args': [                                 # Additional C/C++ arguments
       cython_cpp_flags,
       extra_compile_args,
+      annoy_threads_cpp_args,
     ],
     'link_args': [                                # 👈 add this
       # cython_link_flags,

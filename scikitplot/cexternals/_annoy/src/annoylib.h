@@ -4483,6 +4483,16 @@ protected:
 
     std::vector<S> children_indices[2];
     Node* m = (Node*)alloca(_s);
+    // ANNOY-MT-002: the whole node, padding included, is copied into the
+    // index below and from there into the saved file. Stack memory is not
+    // zero, so the padding between the fields (4 bytes after `a` when the id
+    // type is 8 bytes wide) carried whatever the stack held: 0x5610 in one
+    // binary, 0x558C in another, and in a worker thread a different value
+    // from run to run. Two files of the same index then differed in those
+    // bytes only (8156 of 713 664 in the measurement behind this note), and
+    // a few bytes of the process's stack ended up in every saved index.
+    // Zeroing the node first makes the file a function of the index alone.
+    std::memset(m, 0, _s);
 
     for (int attempt = 0; attempt < 3; attempt++) {
       children_indices[0].clear();
@@ -5237,6 +5247,21 @@ public:
     assert(n_threads >= 1 && "n_threads must be resolved via resolve_n_jobs() before calling policy::build");
 
     AnnoyIndexMultiThreadedBuildPolicy threaded_build_policy;
+
+    // ANNOY-MT-002: one thread means *this* thread. A build asked for a
+    // single thread used to start one worker thread and wait for it. The
+    // trees were the same as without threads, but two files saved by one
+    // process differed in a few bytes (36 of 51 376 960 in the measurement
+    // recorded in libs/_tools/registry.py), so a library compiled with
+    // threads could not reproduce the file of one compiled without. Running
+    // the single build on the calling thread is the code path of
+    // AnnoyIndexSingleThreadedBuildPolicy::build, statement for statement:
+    // the locks below are taken and released by one thread and change
+    // nothing.
+    if (n_threads == 1) {
+      annoy->thread_build(q, 0, threaded_build_policy);
+      return;
+    }
 
     std::vector<std::thread> threads(static_cast<size_t>(n_threads));
 

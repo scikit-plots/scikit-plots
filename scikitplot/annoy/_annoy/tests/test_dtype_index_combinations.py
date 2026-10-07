@@ -497,7 +497,7 @@ def test_float32_vs_float64_numerical_consistency(metric: str, index_dtype: str)
     ("get_item", lambda big: (big,)),
     ("get_distance", lambda big: (big, 0)),
 ])
-def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
+def test_int32_overflow_raises_overflow_error(method_name: str, args_fn, tmp_path):
     """
     Passing item > 2^31-1 to an int32 index raises OverflowError.
 
@@ -506,15 +506,29 @@ def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
     * Mention 'int64' as the remedy.
     """
     f = 5
-    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
+    # The on-disk file is this test's own. It used to be ``HERE/on_disk.ann``,
+    # one path inside the installed package shared by every case: the index of
+    # the previous case was still alive (held by its traceback) and had the
+    # file mapped, and Windows refuses to open a mapped file for truncation
+    # ("Unable to open: Invalid argument (22)" in every second case there).
+    index = Index(
+        f=f,
+        metric="angular",
+        index_dtype="int32",
+        seed=1,
+        on_disk_path=os.fspath(tmp_path / "on_disk.ann"),
+    )
     # Prime the index so get_nns_by_item / get_distance have something to work with.
     index.add_item(0, [0.1] * f)
 
     big = INT32_OVERFLOW  # 2^31 = 2_147_483_648
 
-    with pytest.raises(OverflowError) as exc_info:
-        method = getattr(index, method_name)
-        method(*args_fn(big))
+    try:
+        with pytest.raises(OverflowError) as exc_info:
+            method = getattr(index, method_name)
+            method(*args_fn(big))
+    finally:
+        index.unload()  # release the mapping before pytest removes tmp_path
 
     msg = str(exc_info.value)
     assert str(big) in msg or "int32" in msg, (
@@ -525,17 +539,26 @@ def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
     )
 
 
-def test_int32_overflow_exact_boundary():
+def test_int32_overflow_exact_boundary(tmp_path):
     """item == INT32_MAX (2^31-2) is valid; item == INT32_MAX+1 (= 2^31-1) raises."""
     f = 5
-    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
+    index = Index(
+        f=f,
+        metric="angular",
+        index_dtype="int32",
+        seed=1,
+        on_disk_path=os.fspath(tmp_path / "on_disk.ann"),
+    )
 
     # Last valid ID — must not raise
     # index.add_item(INT32_MAX, [0.1] * f)
 
     # First out-of-range ID — must raise OverflowError
-    with pytest.raises(OverflowError):
-        index.add_item(INT32_MAX + 1, [0.1] * f)
+    try:
+        with pytest.raises(OverflowError):
+            index.add_item(INT32_MAX + 1, [0.1] * f)
+    finally:
+        index.unload()
 
 
 # ---------------------------------------------------------------------------

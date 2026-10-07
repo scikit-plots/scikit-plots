@@ -11416,6 +11416,18 @@ static void AddVersionConstants(PyObject* m) {
 
   // At least publish something stable:
   PyModule_AddStringConstant(m, "__backend__", "cpp");
+
+  // Whether this module was compiled with ANNOYLIB_MULTITHREADED_BUILD, i.e.
+  // whether build(n_trees, n_jobs=N) can use N threads. A module constant, so
+  // that it can be read without building an index (the same fact is in every
+  // index's pickled state as _backend_abi["multithreaded_build"]).
+  // scikitplot.annoy reads it to choose between one thread and several
+  // (scikitplot/annoy/_threads.py).
+#ifdef ANNOYLIB_MULTITHREADED_BUILD
+  PyModule_AddIntConstant(m, "MULTITHREADED_BUILD", 1);
+#else
+  PyModule_AddIntConstant(m, "MULTITHREADED_BUILD", 0);
+#endif
 }
 #endif
 

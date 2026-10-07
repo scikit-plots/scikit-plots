@@ -18,6 +18,7 @@ scikitplot._cli.app.main
 
 import io
 import json
+import os
 import subprocess
 import sys
 import textwrap
@@ -191,6 +192,85 @@ def test_einval_with_a_healthy_stdout_is_still_an_internal_error(monkeypatch, ca
     monkeypatch.setattr(app, "_IS_WINDOWS", True)
     assert app.main([]) == exit_codes.SOFTWARE
     assert "Internal error: OSError" in capsys.readouterr().err
+
+
+def test_a_closed_reader_on_windows_after_an_unbuffered_write(monkeypatch):
+    """
+    The flush proves nothing when the failed bytes were never buffered.
+
+    Notes
+    -----
+    A large write goes straight to the pipe, so after it fails nothing is
+    pending and ``flush`` succeeds. This is the case the Windows job hit
+    (``test_a_closed_reader_exits_cleanly``: "Internal error: OSError: [Errno
+    22] Invalid argument"). The error is then recognised by its shape, and by
+    stdout being a pipe.
+    """
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", _raise_einval)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=False))
+    monkeypatch.setattr(app, "_stdout_is_pipe", lambda: True)
+    assert app.main([]) == exit_codes.OK
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError(22, "Invalid argument", "C:\\bad?name"),
+        OSError(22, "Invalid argument", "a", None, "b"),
+    ],
+    ids=["a file name", "two file names"],
+)
+def test_einval_about_a_file_is_an_internal_error_even_with_a_pipe(monkeypatch, capsys, error):
+    """An invalid path is not a closed reader, whatever stdout is."""
+
+    def explode(argv=None):
+        raise error
+
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", explode)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=False))
+    monkeypatch.setattr(app, "_stdout_is_pipe", lambda: True)
+    assert app.main([]) == exit_codes.SOFTWARE
+    assert "Internal error: OSError" in capsys.readouterr().err
+
+
+def test_einval_with_a_windows_error_code_is_an_internal_error(monkeypatch, capsys):
+    """An error from the Win32 file API carries its code; a failed write does not."""
+    error = OSError(22, "Invalid argument")
+    error.winerror = 87
+
+    def explode(argv=None):
+        raise error
+
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", explode)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=False))
+    monkeypatch.setattr(app, "_stdout_is_pipe", lambda: True)
+    assert app.main([]) == exit_codes.SOFTWARE
+
+
+class TestStdoutIsPipe:
+    def test_a_pipe_is_a_pipe(self, monkeypatch):
+        read_end, write_end = os.pipe()
+        try:
+            with os.fdopen(write_end, "w") as stream:
+                monkeypatch.setattr(app.sys, "stdout", stream)
+                assert app._stdout_is_pipe() is True
+        finally:
+            os.close(read_end)
+
+    def test_a_file_is_not_a_pipe(self, monkeypatch, tmp_path):
+        with open(tmp_path / "out.txt", "w", encoding="utf-8") as stream:
+            monkeypatch.setattr(app.sys, "stdout", stream)
+            assert app._stdout_is_pipe() is False
+
+    def test_a_stream_without_a_descriptor_is_not_a_pipe(self, monkeypatch):
+        monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=False))
+        assert app._stdout_is_pipe() is False
 
 
 def test_einval_off_windows_is_an_internal_error(monkeypatch, capsys):

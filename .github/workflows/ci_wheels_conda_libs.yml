@@ -45,10 +45,13 @@
 #
 # THREADS
 #
-#   `build(n_trees, n_jobs=N)` of the Annoy index uses N threads only when the
-#   wheel was compiled with them (SKPLT_BUILD_THREADS=1, see
+#   `build(n_trees, n_jobs=N)` of the Annoy index can use N threads only when
+#   the wheel was compiled with them (SKPLT_BUILD_THREADS=1, see
 #   libs/annoy/setup.py); otherwise `n_jobs` is accepted and has no effect.
-#   The default is without, as in the full distribution's build. Here:
+#   What a build does in a wheel that has them is the user's choice at run
+#   time (SKPLT_ANNOY_THREADS: auto, single, multi), and with one thread the
+#   index is the same in both kinds of wheel. The build default is without,
+#   as in the full distribution's build. Here:
 #
 #     schedule, workflow_dispatch (nightly index)   with threads
 #     push with "[wheel build]" (staging index)     without
@@ -264,12 +267,13 @@ jobs:
           CIBW_TEST_COMMAND: >-
             python -m scikitplot doctor &&
             python -c "from scikitplot.annoy import Index;
+            from scikitplot.annoy import threads_info;
             index = Index(3, 'angular');
             index.add_item(0, [1.0, 0.0, 0.0]);
             index.add_item(1, [0.0, 1.0, 0.0]);
             index.build(10, n_jobs=2);
             assert index.get_nns_by_item(0, 2) == [0, 1];
-            threads = index.__getstate__()['_backend_abi']['multithreaded_build'];
+            threads = threads_info()['compiled'];
             assert threads is (${{ env.ANNOY_THREADS }} == 1), threads"
 
       - name: "📤 Keep the wheels for the upload job"
@@ -334,7 +338,8 @@ jobs:
         index.add_item(1, [0.0, 1.0, 0.0]);
         index.build(10);
         assert index.get_nns_by_item(0, 2) == [0, 1];
-        threads = index.__getstate__()['_backend_abi']['multithreaded_build'];
+        from scikitplot.annoy import threads_info;
+        threads = threads_info()['compiled'];
         assert threads is False, threads"
     steps:
       - name: "⬇️ Checkout"

@@ -23,11 +23,14 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from pathlib import Path
 
 import pytest
 
-SOURCE = Path(__file__).resolve().parents[1] / "dev_proxy.py"
+from ._paths import RUNTIME_ROOT
+
+#: Located through the tests' path authority, never by counting parents of
+#: this file (``_architecture/test_test_layout.py`` enforces that).
+SOURCE = RUNTIME_ROOT / "dev_proxy.py"
 
 
 def _load(monkeypatch, token):

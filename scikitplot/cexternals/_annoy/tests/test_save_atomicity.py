@@ -33,6 +33,12 @@ def _build(items, seed=0):
     return idx
 
 
+def _read(path):
+    """Return a file's bytes and close it (an unclosed file is an error here)."""
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
 @pytest.fixture
 def workdir(tmp_path):
     return str(tmp_path)
@@ -102,7 +108,7 @@ def test_failed_replace_keeps_a_loaded_index_usable(workdir):
     q = [random.random() for _ in range(DIM)]
     source = os.path.join(workdir, "source.ann")
     _build(60).save(source)
-    before = open(source, "rb").read()
+    before = _read(source)
 
     idx = A.AnnoyIndex(DIM, "euclidean")
     idx.load(source)
@@ -115,7 +121,7 @@ def test_failed_replace_keeps_a_loaded_index_usable(workdir):
 
     assert idx.get_n_items() == 60
     assert idx.get_nns_by_vector(q, 8) == expected
-    assert open(source, "rb").read() == before
+    assert _read(source) == before
     assert os.path.isdir(blocked) and os.listdir(blocked) == []
     assert glob.glob(os.path.join(workdir, "*.tmp-*")) == []
     # The index is still mapped from a file it can be saved over.

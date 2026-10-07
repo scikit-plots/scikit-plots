@@ -52,6 +52,7 @@ from ._mixins._ndarray import NDArrayMixin
 from ._mixins._pickle import PickleMixin
 from ._mixins._plotting import PlottingMixin
 from ._mixins._vectors import VectorOpsMixin
+from ._threads import threaded
 from ._utils import FALLBACK_LOCK, lock_for
 
 __all__ = [
@@ -202,6 +203,16 @@ class Index(
     # __slots__ = ()
     # Re-entrant lock for deterministic, thread-safe reduce/rebuild paths.
     _lock: threading.RLock | None = None
+
+    # The four methods that build trees take ``n_jobs``. How many threads
+    # that turns into is decided in one place, ``_threads.py``: by the mode
+    # (``SKPLT_ANNOY_THREADS``: auto, single or multi) and by whether the
+    # compiled module has threads at all. Each name below is the compiled
+    # method, called with the resolved number; its documentation is kept.
+    build = threaded(Annoy.build, position=1)
+    fit = threaded(Annoy.fit)
+    fit_transform = threaded(Annoy.fit_transform)
+    rebuild = threaded(Annoy.rebuild)
 
     def _get_lock(self) -> threading.RLock:
         """

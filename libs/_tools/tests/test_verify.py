@@ -675,6 +675,26 @@ class TestResidueChecks:
             assert path.startswith("libs/") and "\\" not in path
 
 
+class TestInterpreterFirst:
+    """Tests that start ``python`` by name get the environment's interpreter."""
+
+    def test_the_environment_directory_is_first_and_the_rest_is_kept(self, tmp_path):
+        before = {"PATH": "a" + verify.os.pathsep + "b", "OTHER": "x"}
+        after = verify._interpreter_first(before, tmp_path / "venv")
+        first, rest = after["PATH"].split(verify.os.pathsep, 1)
+        assert first == str(tmp_path / "venv" / ("Scripts" if verify.os.name == "nt" else "bin"))
+        assert rest == before["PATH"] and after["OTHER"] == "x"
+        assert before == {"PATH": "a" + verify.os.pathsep + "b", "OTHER": "x"}
+
+    def test_an_empty_path_gets_no_trailing_separator(self, tmp_path):
+        after = verify._interpreter_first({}, tmp_path)
+        assert verify.os.pathsep not in after["PATH"]
+
+    def test_the_directory_follows_the_platform(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(verify.os, "name", "nt")
+        assert verify._interpreter_first({}, tmp_path)["PATH"].endswith("Scripts")
+
+
 class TestFailureReporting:
     """A failed test run names every failing test and keeps the whole output."""
 
@@ -696,23 +716,40 @@ class TestFailureReporting:
     def test_a_passing_run_has_none(self):
         assert verify._failed_test_ids("....\n4 passed in 0.1s\n") == []
 
-    def test_only_the_short_summary_names_a_failure(self):
-        # A log record of level ERROR before the summary, and standard error
-        # appended after the totals, start with the same words.
+    def test_a_log_record_before_the_summary_is_not_a_failure(self):
         output = (
             "ERROR    pkg.app:app.py:2908 Record storage target unavailable\n"
-            "FAILED to connect (a line of captured output)\n"
-            + self.OUTPUT
-            + "\n--- stderr ---\nERROR something written to standard error\n"
+            "FAILED to connect (a line of captured output)\n" + self.OUTPUT
         )
         assert verify._failed_test_ids(output) == verify._failed_test_ids(self.OUTPUT)
 
+    def test_a_multi_line_reason_does_not_end_the_list(self):
+        # On a CI runner pytest prints the whole failure message in the short
+        # summary. The lines of the message that follow name no test.
+        output = (
+            "= short test summary info =\n"
+            "FAILED Lib/site-packages/pkg/tests/test_a.py::test_one[x y-z] - AssertionError: first\n"
+            "  second line of the message\n"
+            "ERROR    a.log:record.py:1 inside the message\n"
+            "\n"
+            "FAILED Lib/site-packages/pkg/tests/test_b.py::TestC::test_two - OSError: boom\n"
+            "ERROR Lib/site-packages/pkg/tests/test_c.py - ImportError: no module\n"
+            "FAILED to do something, says the message of the last one\n"
+            "3 failed, 9 passed in 1.00s\n"
+        )
+        assert [line.split(" - ")[0] for line in verify._failed_test_ids(output)] == [
+            "FAILED Lib/site-packages/pkg/tests/test_a.py::test_one[x y-z]",
+            "FAILED Lib/site-packages/pkg/tests/test_b.py::TestC::test_two",
+            "ERROR Lib/site-packages/pkg/tests/test_c.py",
+        ]
+
     def test_output_without_a_summary_names_nothing(self):
-        assert verify._failed_test_ids("ERROR    a log record\n5 passed in 1s\n") == []
+        output = "ERROR pkg/tests/test_a.py - x\n5 passed in 1s\n"
+        assert verify._failed_test_ids(output) == []
 
     def test_the_detail_has_totals_failures_and_the_log(self, tmp_path):
         detail = verify._failure_detail(
-            self.OUTPUT, "2 failed, 5 passed, 1 error in 0.50s", tmp_path / "run.txt"
+            self.OUTPUT, "", "2 failed, 5 passed, 1 error in 0.50s", tmp_path / "run.txt"
         )
         parts = detail.split(" | ")
         assert parts[0] == "2 failed, 5 passed, 1 error in 0.50s"
@@ -720,37 +757,34 @@ class TestFailureReporting:
         assert parts[2].startswith("ERROR pkg/tests/test_b.py::test_two")
         assert parts[-1] == "full output: test-logs/run.txt"
 
+    def test_standard_error_never_names_a_failure(self, tmp_path):
+        stderr = "= short test summary info =\nFAILED pkg/tests/test_z.py::test_err - x\n"
+        detail = verify._failure_detail(self.OUTPUT, stderr, "2 failed", tmp_path / "run.txt")
+        assert "test_err" not in detail
+
     def test_more_failures_than_the_limit_are_counted_not_dropped(self, tmp_path):
         many = "= short test summary info =\n" + "".join(
             f"FAILED t.py::test_{i} - boom\n" for i in range(55)
         )
-        detail = verify._failure_detail(many, "55 failed in 1s", tmp_path / "run.txt")
+        detail = verify._failure_detail(many, "", "55 failed in 1s", tmp_path / "run.txt")
         parts = detail.split(" | ")
         named = [part for part in parts if part.startswith("FAILED ")]
         assert len(named) == verify.MAX_NAMED_FAILURES
         assert f"... and {55 - verify.MAX_NAMED_FAILURES} more" in parts
 
+    def test_a_long_reason_is_cut_and_marked(self, tmp_path):
+        output = "= short test summary info =\nFAILED t.py::test_long - " + "x" * 5000 + "\n"
+        detail = verify._failure_detail(output, "", "1 failed in 1s", tmp_path / "run.txt")
+        (named,) = [part for part in detail.split(" | ") if part.startswith("FAILED ")]
+        assert len(named) == verify.MAX_FAILURE_CHARS
+        assert named.endswith(" ...")
+
     def test_a_run_that_never_started_shows_the_end_of_its_output(self, tmp_path):
         detail = verify._failure_detail(
-            "ERROR: usage: pytest [options]\nunknown option", "", tmp_path / "run.txt"
+            "", "ERROR: usage: pytest [options]\nunknown option", "", tmp_path / "run.txt"
         )
         assert "pytest did not report totals" in detail
         assert "unknown option" in detail
-
-    @pytest.mark.parametrize(
-        ("label", "target", "expected"),
-        [
-            (
-                "scikit-plots-annoy [lowest]",
-                "scikitplot.annoy",
-                "scikit-plots-annoy--lowest---scikitplot.annoy--py3.12.txt",
-            ),
-            ("together", "scikitplot.mcp", "together--scikitplot.mcp--py3.12.txt"),
-            ('a:b/c\\d*e?f"g<h>i|j', "t", "a-b-c-d-e-f-g-h-i-j--t--py3.12.txt"),
-        ],
-    )
-    def test_log_file_names_are_valid_everywhere(self, label, target, expected):
-        assert verify._log_file_name(label, target, "3.12") == expected
 
 
 class TestImportFaults:

@@ -54,6 +54,7 @@ import configparser
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -152,6 +153,37 @@ def _clean_env() -> dict:
         env.pop(name, None)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     return env
+
+
+def _interpreter_first(env: dict, venv: Path) -> dict:
+    """
+    Return ``env`` with a virtual environment's commands first on ``PATH``.
+
+    Parameters
+    ----------
+    env : dict
+        A process environment; not modified.
+    venv : pathlib.Path
+        The virtual environment's directory. It does not have to exist yet.
+
+    Returns
+    -------
+    dict
+        A copy of ``env`` whose ``PATH`` starts with the environment's
+        ``bin`` (``Scripts`` on Windows) directory.
+
+    Notes
+    -----
+    **Developer.** A test that starts ``python`` by name gets the interpreter
+    that is first on ``PATH``, as it would in an activated environment.
+    Without this it got whatever the machine had there: locally a Python 3.11
+    while the environment under test was 3.9, so a test that needs
+    ``tomllib`` (3.11) passed here and failed in the 3.9 and 3.10 jobs, where
+    ``PATH`` names the job's own Python.
+    """
+    scripts = venv / ("Scripts" if os.name == "nt" else "bin")
+    path = env.get("PATH", "")
+    return dict(env, PATH=str(scripts) + (os.pathsep + path if path else ""))
 
 
 def _require_uv() -> str:
@@ -964,7 +996,7 @@ class _Environment:
     def __init__(self, session: _Session, label: str) -> None:
         self.uv, self.version, self.outdir = session.uv, session.python, session.outdir
         self.path = session.base / f"{label}-py{session.python}"
-        self.env = _clean_env()
+        self.env = _interpreter_first(_clean_env(), self.path)
 
     def create(self) -> str | None:
         """Create the environment; return an error message, or ``None``."""
@@ -1401,6 +1433,8 @@ def _ignore_options(package, tree: str, python: str) -> list[str]:
 TEST_LOG_DIR = "test-logs"
 #: How many failing test ids a result names; the log file holds all of them.
 MAX_NAMED_FAILURES = 40
+#: How many characters of one failing test's line a result shows.
+MAX_FAILURE_CHARS = 400
 
 
 def _log_file_name(label: str, target: str, python: str) -> str:
@@ -1427,6 +1461,11 @@ def _log_file_name(label: str, target: str, python: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in stem) + ".txt"
 
 
+#: A line of pytest's short summary that names a failed test or a collection
+#: error: the word, one space, then a node id whose file part ends in ``.py``.
+_SUMMARY_ENTRY = re.compile(r"^(?:FAILED|ERROR) \S*\.py(?:::\S.*)?(?: - .*)?$")
+
+
 def _failed_test_ids(output: str) -> list[str]:
     """
     Return the lines of pytest's short summary that name a failure or an error.
@@ -1445,12 +1484,18 @@ def _failed_test_ids(output: str) -> list[str]:
 
     Notes
     -----
-    **Developer.** Only pytest's "short test summary info" section is read:
-    the lines after that heading, up to the first one that names neither a
-    failure nor an error (the totals). Captured log output is printed before
-    the section and standard error is appended after it, and a log record of
-    level ERROR starts with ``ERROR`` too: the first version of this function
-    named such a record as if it were a failed test.
+    **Developer.** Only pytest's "short test summary info" section of
+    *standard output* is read, and in it only the lines that name a test:
+    ``FAILED`` or ``ERROR``, one space, and a node id (a path ending in
+    ``.py``, optionally followed by ``::name``).
+
+    Two earlier versions were wrong in opposite directions. The first read
+    every line starting with ``ERROR`` and named a captured log record
+    (``ERROR    pkg.app:app.py:2908 ...``) as a failed test. The second
+    stopped at the first line of the section that named no test, and on a CI
+    runner pytest prints the *whole* failure message there, not its first
+    line: a multi-line message ended the list after one entry (the Windows
+    job of run 37637526602 reported "50 failed" and named one).
     """
     lines = output.splitlines()
     start = next(
@@ -1463,15 +1508,28 @@ def _failed_test_ids(output: str) -> list[str]:
     )
     seen: dict[str, None] = {}
     for line in lines[start:]:
-        if not line.startswith(("FAILED ", "ERROR ")):
-            break
-        seen.setdefault(line.rstrip(), None)
+        if _SUMMARY_ENTRY.match(line):
+            seen.setdefault(line.rstrip(), None)
     return list(seen)
 
 
-def _failure_detail(output: str, counts: str, log: Path) -> str:
+def _failure_detail(stdout: str, stderr: str, counts: str, log: Path) -> str:
     """
     Describe a failed test run: its totals, the failing tests, and the full log.
+
+    Parameters
+    ----------
+    stdout, stderr : str
+        The two output streams of the pytest run.
+    counts : str
+        pytest's totals line, or ``""`` when it printed none.
+    log : pathlib.Path
+        The file that holds the complete output.
+
+    Returns
+    -------
+    str
+        The parts joined with ``" | "``.
 
     Notes
     -----
@@ -1479,11 +1537,19 @@ def _failure_detail(output: str, counts: str, log: Path) -> str:
     run with more failures than that showed only the end of the list (the
     first Windows run reported "46 failed" and named seven), so the causes
     could not be read from the report. Every failing test is now named, up to
-    ``MAX_NAMED_FAILURES``, and the complete output is kept in a file that the
-    workflow uploads with the distributions.
+    ``MAX_NAMED_FAILURES``, each cut to ``MAX_FAILURE_CHARS`` (one reason was
+    a compiler command of 3 000 characters), and the complete output is kept
+    in a file that the workflow uploads with the distributions.
     """
-    failed = _failed_test_ids(output)
-    named = failed[:MAX_NAMED_FAILURES]
+    failed = _failed_test_ids(stdout)
+    named = [
+        (
+            entry
+            if len(entry) <= MAX_FAILURE_CHARS
+            else entry[: MAX_FAILURE_CHARS - 4] + " ..."
+        )
+        for entry in failed[:MAX_NAMED_FAILURES]
+    ]
     parts = [counts.strip("= ") or "pytest did not report totals"]
     parts += named
     if len(failed) > len(named):
@@ -1491,7 +1557,7 @@ def _failure_detail(output: str, counts: str, log: Path) -> str:
     if not failed:
         # No summary lines: pytest stopped before running (usage or internal
         # error). The end of the output is all there is.
-        parts.append(_tail(output, 14))
+        parts.append(_tail(stdout + stderr, 14))
     parts.append(f"full output: {TEST_LOG_DIR}/{log.name}")
     return " | ".join(parts)
 
@@ -1593,7 +1659,7 @@ def _check_tests(env: _Environment, dist, label: str) -> list[Result]:
         else:
             status = PASS if done.returncode == 0 else FAIL
             if status == FAIL:
-                summary = _failure_detail(done.stdout + done.stderr, counts, log)
+                summary = _failure_detail(done.stdout, done.stderr, counts, log)
         results.append(
             Result(
                 "part's own tests pass",

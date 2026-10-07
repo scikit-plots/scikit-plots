@@ -1244,6 +1244,82 @@ def _init_setuptools_cache() -> tuple[Any, Any]:
     return _SETUPTOOLS_CACHE
 
 
+def _unique_stems(sources: Sequence[str]) -> bool:
+    """
+    Return whether no two source files would get the same object file name.
+
+    Parameters
+    ----------
+    sources : sequence of str
+        Source paths of one compiler call.
+
+    Returns
+    -------
+    bool
+        ``True`` when the file names without directory and extension are all
+        different, compared without regard to case (Windows file names are
+        case-insensitive, and ``a.c`` and ``a.cpp`` both become ``a.obj``).
+    """
+    stems = [
+        os.path.splitext(os.path.basename(source))[0].lower() for source in sources
+    ]
+    return len(set(stems)) == len(stems)
+
+
+def _keep_objects_flat(cmd: Any) -> None:
+    """
+    Make a ``build_ext`` command write object files directly into ``build_temp``.
+
+    Parameters
+    ----------
+    cmd : setuptools.command.build_ext.build_ext
+        The command, before it is run. It is modified in place.
+
+    Notes
+    -----
+    **User.** Nothing changes in what is built. A build under a long cache
+    directory works on Windows where it did not before.
+
+    **Developer.** The sources are given by absolute path, and the compiler
+    classes mirror a source's directories below ``build_temp``. The object
+    file of ``<cache>/.staging-<key>/module.c`` was therefore
+    ``<cache>/.staging-<key>/build/<cache without the drive>/.staging-<key>/module.obj``:
+    the cache path twice. In the Windows job of CI run 37637526602 that was
+    339 characters for a cache under pytest's temporary directory, and all 16
+    tests that compile failed with ``cl.exe ... returned non-zero exit status
+    1``. The compiler's own message was not in the uploaded report; that
+    MSVC cannot create a file beyond 260 characters is the premise here, and
+    the next run's log confirms or refutes it.
+
+    The compiler object exists only once the command runs, so
+    ``build_extensions`` is wrapped on the *instance* (as ``finalize_options``
+    is, above) and asks ``object_filenames`` for names without directories.
+    That is only correct while no two sources of a call share a file name;
+    when they do, the compiler's own layout is kept for that call.
+    """
+    original = cmd.build_extensions
+
+    def build_extensions() -> None:
+        compiler = cmd.compiler
+        names = compiler.object_filenames
+
+        def object_filenames(
+            source_filenames: Sequence[str],
+            strip_dir: bool = False,
+            output_dir: str = "",
+        ) -> list[str]:
+            return names(
+                source_filenames,
+                strip_dir=bool(strip_dir) or _unique_stems(source_filenames),
+                output_dir=output_dir,
+            )
+
+        compiler.object_filenames = object_filenames
+        original()
+
+    cmd.build_extensions = build_extensions
+
+
 def _compile(  # noqa: PLR0912
     *,
     name: str,
@@ -1406,6 +1482,7 @@ def _compile(  # noqa: PLR0912
     cmd.build_temp = str(build_dir / "build")
     cmd.inplace = False
     cmd.force = True
+    _keep_objects_flat(cmd)
 
     # ------------------------------------------------------------------
     # Patch finalize_options on the command INSTANCE to guard against
@@ -1839,6 +1916,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
             cmd.build_temp = str(build_dir / "build")
             cmd.inplace = False
             cmd.force = True
+            _keep_objects_flat(cmd)
 
             try:
                 dist.run_command("build_ext")

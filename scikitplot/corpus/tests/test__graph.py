@@ -198,6 +198,29 @@ class TestBudgets:
         )
         assert "deadline_seconds" in response.exhausted_budgets
 
+    def test_a_deadline_of_zero_does_not_depend_on_the_clock_moving(
+        self, graph, docs, monkeypatch
+    ) -> None:
+        """A coarse clock (Windows: 15.6 ms) may not tick during a traversal."""
+        from .. import _graph
+
+        monkeypatch.setattr(_graph.time, "monotonic", lambda: 1000.0)
+        response = graph.traverse(
+            GraphQuery(seeds=[docs[0].doc_id], deadline_seconds=0.0, max_hops=3)
+        )
+        assert "deadline_seconds" in response.exhausted_budgets
+
+    def test_a_deadline_that_has_not_passed_is_not_exhausted(
+        self, graph, docs, monkeypatch
+    ) -> None:
+        from .. import _graph
+
+        monkeypatch.setattr(_graph.time, "monotonic", lambda: 1000.0)
+        response = graph.traverse(
+            GraphQuery(seeds=[docs[0].doc_id], deadline_seconds=60.0, max_hops=3)
+        )
+        assert "deadline_seconds" not in response.exhausted_budgets
+
     def test_an_unbudgeted_traversal_is_not_possible(self) -> None:
         """Every budget has a conservative default; none is optional."""
         query = GraphQuery()

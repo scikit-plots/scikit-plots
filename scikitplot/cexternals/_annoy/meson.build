@@ -80,6 +80,49 @@ if not dep_lua.found()
   )
 endif
 
+# --------------------------------------------------------------------
+# Threads: option `annoy-threads` (meson.options), default false
+#
+# What it does
+#   Defines ANNOYLIB_MULTITHREADED_BUILD for the Annoy sources and links the
+#   platform's thread library. annoylib.h then selects
+#   AnnoyIndexMultiThreadedBuildPolicy, and build(n_trees, n_jobs=N) builds
+#   the trees on N threads. Without the macro the single-threaded policy is
+#   selected and n_jobs is accepted and has no effect.
+#
+# How a user chooses at run time (one binary serves all three)
+#   SKPLT_ANNOY_THREADS=auto    N threads when n_jobs=N > 1 is asked for and
+#                               this option was on; otherwise one (default)
+#   SKPLT_ANNOY_THREADS=single  always one thread
+#   SKPLT_ANNOY_THREADS=multi   n_jobs honoured, -1 is every CPU; an error
+#                               when this option was off
+#   The rule lives in scikitplot/annoy/_threads.py. With one thread the index
+#   and its saved file are the same whether this option was on or off.
+#
+# How to turn it on
+#   pip install . -Csetup-args=-Dannoy-threads=true
+#   meson setup build -Dannoy-threads=true
+#   The partial distribution scikit-plots-annoy (libs/annoy) has the same
+#   switch as the environment variable SKPLT_BUILD_THREADS=1. Keep the two
+#   defaults equal: libs/_tools/tests/test_generate.py checks that they are.
+#
+# Emscripten (Pyodide, JupyterLite) has one thread; starting a second one
+# fails at run time, so the option is refused there at configure time.
+#
+# The two variables below are also used by scikitplot/annoy/_annoy/meson.build
+# (the Cython binding), which is configured after this file.
+# --------------------------------------------------------------------
+annoy_threads_cpp_args = []
+annoy_threads_deps = []
+if get_option('annoy-threads')
+  if host_machine.system() == 'emscripten'
+    error('-Dannoy-threads=true cannot be honoured for Emscripten: the target has one thread. Leave the option at false.')
+  endif
+  annoy_threads_cpp_args += ['-DANNOYLIB_MULTITHREADED_BUILD']
+  annoy_threads_deps += [dependency('threads')]
+  message('scikitplot.annoy: multithreaded build compiled in (annoy-threads=true)')
+endif
+
 ## ⚠️ Automatically handle internally
 ## AVX, AVX2, AVX-512, and a generic fallback.
 ## annoy-simd-cp313-win_amd64.whl → AVX baseline
@@ -124,8 +167,8 @@ annoy_static_lib = static_library(
   'annoycore',
   annoy_core_sources,
   include_directories: inc_dir_annoy,
-  dependencies: dep_list,
-  cpp_args: cython_cpp_flags + extra_compile_args,
+  dependencies: dep_list + annoy_threads_deps,
+  cpp_args: cython_cpp_flags + extra_compile_args + annoy_threads_cpp_args,
   link_args: extra_link_args,
   install: true,
   install_dir: py.get_install_dir() / 'scikitplot/cexternals/_annoy/lib',
@@ -158,7 +201,7 @@ annoy_extension_metadata = {
       inc_dir_annoy,
       inc_dir_py,
     ],
-    'dependencies': dep_list,                     # External libraries and dependencies
+    'dependencies': dep_list + annoy_threads_deps,  # External libraries and dependencies
     'link_with': [                                # Link with the created static library
       # version_link_args
       annoy_static_lib,
@@ -170,7 +213,7 @@ annoy_extension_metadata = {
     ],
     'cython_args': cython_cpp_args,
     'c_args': cython_c_flags,                     # Additional C arguments
-    'cpp_args': cython_cpp_flags + extra_compile_args,  # Flat list: nested lists silently drop flags
+    'cpp_args': cython_cpp_flags + extra_compile_args + annoy_threads_cpp_args,  # Flat list: nested lists silently drop flags
     'link_args': cython_link_flags + extra_link_args,   # Flat list: same reason
     'install': true,                              # Whether to install the .so file executable after building
     'subdir': 'scikitplot/cexternals/_annoy',     # Path where the module is located

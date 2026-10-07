@@ -22,6 +22,7 @@ Run with::
 from __future__ import annotations
 
 import multiprocessing as mp
+import os
 import pathlib
 
 import pytest
@@ -194,3 +195,86 @@ class TestConcurrentPublication:
         # No orphan temporary files, only the published target remains.
         assert list(tmp_path.glob("*.tmp")) == []
         assert [p.name for p in tmp_path.iterdir()] == ["contended.bin"]
+
+
+class TestRefusedReplace:
+    """A replace that the platform refuses for an instant is repeated, bounded."""
+
+    @pytest.fixture
+    def refusals(self, monkeypatch):
+        """Make ``os.replace`` refuse a set number of times; record the pauses."""
+        from .. import _atomic
+
+        state = {"refuse": 0, "calls": 0, "pauses": []}
+        real = os.replace
+
+        def replace(source, target):
+            state["calls"] += 1
+            if state["calls"] <= state["refuse"]:
+                raise PermissionError(13, "Access is denied", str(source))
+            return real(source, target)
+
+        monkeypatch.setattr(_atomic.os, "replace", replace)
+        monkeypatch.setattr(_atomic.time, "sleep", state["pauses"].append)
+        return state
+
+    def test_a_transient_refusal_is_repeated_where_the_platform_has_them(
+        self, tmp_path, monkeypatch, refusals
+    ):
+        from .. import _atomic
+
+        monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", True)
+        refusals["refuse"] = 3
+        target = tmp_path / "t.bin"
+        _atomic.atomic_write_bytes(target, b"new")
+        assert target.read_bytes() == b"new"
+        assert refusals["calls"] == 4
+        assert refusals["pauses"] == list(_atomic._REPLACE_PAUSES[:3])
+        assert [p.name for p in tmp_path.iterdir()] == ["t.bin"]
+
+    def test_a_lasting_refusal_is_raised_and_leaves_the_old_file(
+        self, tmp_path, monkeypatch, refusals
+    ):
+        from .. import _atomic
+
+        monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", True)
+        target = tmp_path / "t.bin"
+        target.write_bytes(b"old")
+        refusals["refuse"] = 10**6
+        with pytest.raises(PermissionError):
+            _atomic.atomic_write_bytes(target, b"new")
+        assert refusals["calls"] == len(_atomic._REPLACE_PAUSES) + 1
+        assert target.read_bytes() == b"old"
+        assert [p.name for p in tmp_path.iterdir()] == ["t.bin"]
+
+    def test_no_repetition_where_the_platform_has_no_such_refusal(
+        self, tmp_path, monkeypatch, refusals
+    ):
+        from .. import _atomic
+
+        monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", False)
+        refusals["refuse"] = 1
+        with pytest.raises(PermissionError):
+            _atomic.atomic_write_bytes(tmp_path / "t.bin", b"new")
+        assert refusals["calls"] == 1 and refusals["pauses"] == []
+
+    def test_another_error_is_never_repeated(self, tmp_path, monkeypatch):
+        from .. import _atomic
+
+        calls = []
+
+        def replace(source, target):
+            calls.append(source)
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", True)
+        monkeypatch.setattr(_atomic.os, "replace", replace)
+        with pytest.raises(OSError, match="No space"):
+            _atomic.atomic_write_bytes(tmp_path / "t.bin", b"new")
+        assert len(calls) == 1
+
+    def test_the_pauses_are_bounded(self):
+        from .. import _atomic
+
+        assert all(pause > 0 for pause in _atomic._REPLACE_PAUSES)
+        assert sum(_atomic._REPLACE_PAUSES) <= 2.0

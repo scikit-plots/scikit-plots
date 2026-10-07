@@ -12,6 +12,7 @@ from __future__ import annotations
 import errno
 import logging
 import os
+import stat
 import sys
 from typing import Mapping, Sequence
 
@@ -127,6 +128,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 _IS_WINDOWS = os.name == "nt"
 
 
+def _stdout_is_pipe() -> bool:
+    """
+    Return whether standard output is a pipe.
+
+    Returns
+    -------
+    bool
+        ``True`` when stdout has a file descriptor and the operating system
+        calls it a FIFO; ``False`` for a terminal, a file, or a stream object
+        without a descriptor.
+    """
+    try:
+        mode = os.fstat(sys.stdout.fileno()).st_mode
+    except (OSError, ValueError, AttributeError):
+        return False
+    return stat.S_ISFIFO(mode)
+
+
 def _is_closed_reader(exc: OSError) -> bool:
     """
     Return whether an ``OSError`` means "the reader of stdout has gone away".
@@ -145,14 +164,27 @@ def _is_closed_reader(exc: OSError) -> bool:
     Notes
     -----
     **Developer.** On POSIX a write to a pipe whose reader closed raises
-    :class:`BrokenPipeError` (``EPIPE``). On
-    Windows the same write raises a plain ``OSError`` with ``errno.EINVAL``
-    ("Invalid argument"), so ``scikitplot ... | more`` followed by ``q`` was
-    reported as "Internal error" with exit status 70.
+    :class:`BrokenPipeError` (``EPIPE``). On Windows the same write raises a
+    plain ``OSError`` with ``errno.EINVAL`` ("Invalid argument"), so
+    ``scikitplot ... | more`` followed by ``q`` was reported as "Internal
+    error" with exit status 70.
 
-    ``EINVAL`` alone is not proof, since many things raise it. The proof is
-    stdout itself: the bytes that could not be written are still pending, so
-    flushing fails again if, and only if, the pipe is the cause.
+    ``EINVAL`` alone is not proof, since many things raise it. On Windows the
+    error is taken for a closed reader when one of two things holds:
+
+    1. flushing stdout fails. That is direct proof, but it is only available
+       when the failed bytes were buffered. A large write goes from the
+       caller's bytes straight to the pipe; nothing is pending afterwards and
+       the flush succeeds. The first version of this function had only this
+       test, and the Windows job still reported the internal error.
+    2. the error has the shape of a failed write and stdout is a pipe: no file
+       name on the exception (an invalid path carries one), no Windows error
+       code (errors raised by the Win32 file API carry one; a C-runtime write
+       does not), and :func:`_stdout_is_pipe`.
+
+    Rule 2 is an inference, and it is stated as one: an unrelated error of
+    the same shape, while stdout is a pipe, ends the command quietly. It is
+    logged at DEBUG with its traceback, so ``--verbose`` shows it.
     """
     if isinstance(exc, BrokenPipeError):
         return True
@@ -161,6 +193,16 @@ def _is_closed_reader(exc: OSError) -> bool:
     try:
         sys.stdout.flush()
     except (OSError, ValueError):
+        return True
+    write_shaped = (
+        exc.filename is None
+        and exc.filename2 is None
+        and getattr(exc, "winerror", None) is None
+    )
+    if write_shaped and _stdout_is_pipe():
+        logging.getLogger(__name__).debug(
+            "EINVAL while stdout is a pipe: taken for a closed reader", exc_info=exc
+        )
         return True
     return False
 

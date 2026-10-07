@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -382,17 +383,44 @@ class TestThreadsOption:
         monkeypatch.setenv("SKPLT_BUILD_THREADS", "1")
         assert enabled() is (not sysconfig.get_platform().startswith(("emscripten", "wasi")))
 
-    def test_no_meson_build_of_the_full_distribution_defines_the_macro(self):
-        """The reason for the default: both builds must behave the same."""
-        defining = [
-            path.relative_to(ROOT).as_posix()
-            for path in (ROOT / "scikitplot").rglob("meson.build")
-            if "ANNOYLIB_MULTITHREADED_BUILD" in path.read_text(encoding="utf-8")
-        ]
-        assert defining == [], (
-            "the full build now defines the macro: make SKPLT_BUILD_THREADS "
-            "default to on for platforms with threads, in the same change"
+    def test_both_builds_have_the_same_default(self, enabled):
+        """
+        A wheel of ``scikit-plots`` and one of ``scikit-plots-annoy`` agree.
+
+        The Meson build of the full distribution has the option
+        ``annoy-threads``; this build has ``SKPLT_BUILD_THREADS``. Whoever
+        changes one default changes the other in the same commit.
+        """
+        options = (ROOT / "meson.options").read_text(encoding="utf-8")
+        declared = re.search(
+            r"option\('annoy-threads',\s*type:\s*'boolean',\s*value:\s*(true|false)",
+            options,
         )
+        assert declared, "meson.options no longer declares the option 'annoy-threads'"
+        assert (declared.group(1) == "true") is enabled({}, "linux-x86_64")
+
+    def test_the_meson_option_defines_the_same_macro(self):
+        build = (ROOT / "scikitplot/cexternals/_annoy/meson.build").read_text(
+            encoding="utf-8"
+        )
+        macro = PACKAGES["scikit-plots-annoy"].extensions[0].threads_macro
+        assert "get_option('annoy-threads')" in build
+        assert f"'-D{macro}'" in build
+        assert "dependency('threads')" in build
+        # Both bindings get it: the Cython one reads the variables set there.
+        binding = (ROOT / "scikitplot/annoy/_annoy/meson.build").read_text(
+            encoding="utf-8"
+        )
+        assert "annoy_threads_cpp_args" in binding and "annoy_threads_deps" in binding
+
+    def test_no_build_file_defines_the_macro_unconditionally(self):
+        for path in (ROOT / "scikitplot").rglob("meson.build"):
+            for number, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                if "DANNOYLIB_MULTITHREADED_BUILD" not in line or line.lstrip().startswith("#"):
+                    continue
+                assert "annoy_threads_cpp_args +=" in line, f"{path}:{number}: {line.strip()}"
 
     @pytest.mark.parametrize("package", registry.PACKAGES, ids=lambda p: p.distribution)
     def test_readme_explains_threads_exactly_where_there_are_any(self, package):
@@ -402,7 +430,9 @@ class TestThreadsOption:
         if has_threads:
             assert f"SKPLT_BUILD_THREADS=1 pip install --no-binary {package.distribution}" in readme
             assert generate.NIGHTLY_INDEX in readme
-            assert "n_jobs=1" in readme
+            for mode in ("auto", "single", "multi"):
+                assert f"| `{mode}`" in readme, mode
+            assert "SKPLT_ANNOY_THREADS" in readme and "threads_info" in readme
 
     def test_annoy_extensions_name_the_macro_of_the_vendored_header(self):
         header = (ROOT / "scikitplot/cexternals/_annoy/src/annoylib.h").read_text(

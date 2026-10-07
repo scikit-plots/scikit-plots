@@ -191,6 +191,7 @@ def test_save_load():
     # Save
     fd, tmpfile = tempfile.mkstemp(suffix='.ann')
     os.close(fd)
+    index2 = None
 
     try:
         index1.save(tmpfile)
@@ -209,6 +210,13 @@ def test_save_load():
         print(f"✓ Query results match: {neighbors1}")
 
     finally:
+        # Both indexes have the file memory-mapped (``save`` maps what it
+        # wrote, ``load`` maps what it read). Windows does not remove a mapped
+        # file ("[WinError 32] ... being used by another process"), so the
+        # mappings are released first.
+        index1.unload()
+        if index2 is not None:
+            index2.unload()
         if os.path.exists(tmpfile):
             os.unlink(tmpfile)
 
