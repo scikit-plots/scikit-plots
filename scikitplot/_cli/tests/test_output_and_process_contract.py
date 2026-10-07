@@ -145,6 +145,74 @@ def test_a_closed_reader_exits_cleanly():
     assert "exit=0" in text, text
 
 
+class _Stdout:
+    """A stdout whose pending output can, or cannot, be flushed."""
+
+    def __init__(self, broken):
+        self.broken = broken
+
+    def flush(self):
+        if self.broken:
+            raise OSError(22, "Invalid argument")
+
+    def write(self, text):
+        return len(text)
+
+    def fileno(self):
+        raise OSError("no descriptor")
+
+
+def _raise_einval(argv=None):
+    raise OSError(22, "Invalid argument")
+
+
+def test_a_closed_reader_on_windows_exits_cleanly(monkeypatch):
+    """
+    Windows reports a closed pipe as ``OSError(EINVAL)``, not ``BrokenPipeError``.
+
+    Notes
+    -----
+    The Windows branch is selected through ``app._IS_WINDOWS`` and the broken
+    pipe is a stdout whose flush fails, so the test takes that branch on every
+    platform. On Windows this was "Internal error: OSError: [Errno 22] Invalid
+    argument" with exit status 70.
+    """
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", _raise_einval)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=True))
+    assert app.main([]) == exit_codes.OK
+
+
+def test_einval_with_a_healthy_stdout_is_still_an_internal_error(monkeypatch, capsys):
+    """``EINVAL`` alone is not a closed reader: stdout has to be the cause."""
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", _raise_einval)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    assert app.main([]) == exit_codes.SOFTWARE
+    assert "Internal error: OSError" in capsys.readouterr().err
+
+
+def test_einval_off_windows_is_an_internal_error(monkeypatch, capsys):
+    """POSIX has its own exception for a closed reader; ``EINVAL`` is not it."""
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", _raise_einval)
+    monkeypatch.setattr(app, "_IS_WINDOWS", False)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=True))
+    assert app.main([]) == exit_codes.SOFTWARE
+
+
+def test_another_os_error_is_an_internal_error(monkeypatch, capsys):
+    def explode(argv=None):
+        raise OSError(5, "Input/output error")
+
+    monkeypatch.setattr(app, "_select_frontend", lambda env=None: "argparse")
+    monkeypatch.setattr(_argparse, "run", explode)
+    monkeypatch.setattr(app, "_IS_WINDOWS", True)
+    monkeypatch.setattr(app.sys, "stdout", _Stdout(broken=True))
+    assert app.main([]) == exit_codes.SOFTWARE
+
+
 def test_an_unexpected_failure_maps_to_the_defined_exit_code(monkeypatch):
     """``exit_codes.SOFTWARE`` exists for this; it is now assigned."""
     def explode(argv=None):

@@ -260,7 +260,10 @@ class TestNormalizeSqliteUri:
         from scikitplot.mlflow._project import _normalize_sqlite_uri
         abs_path = str(tmp_path / "mlflow.db")
         result = _normalize_sqlite_uri(f"sqlite:///{abs_path}", base_dir=tmp_path)
-        assert abs_path in result
+        # The URI carries the path with forward slashes on every platform
+        # (``Path.as_posix``), so the native spelling of a Windows path, with
+        # backslashes, is never a substring of it.
+        assert (tmp_path / "mlflow.db").resolve().as_posix() in result
 
 
 # ===========================================================================

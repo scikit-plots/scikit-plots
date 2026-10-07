@@ -28,6 +28,31 @@ index.build(10)
 print(index.get_nns_by_item(0, 2))
 ```
 
+## Threads
+
+`build(n_trees, n_jobs=N)` builds the trees on `N` threads in a wheel that was compiled with threads. In a wheel that was not, `n_jobs` is accepted and has no effect. Released wheels are compiled without threads, like `scikit-plots` itself; the nightly wheels are compiled with them, except for WebAssembly (Pyodide, JupyterLite), which has one thread.
+
+```sh
+# nightly wheel, with threads
+pip install --pre --extra-index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-annoy
+
+# or compile it yourself (needs a C++17 compiler)
+SKPLT_BUILD_THREADS=1 pip install --no-binary scikit-plots-annoy scikit-plots-annoy
+```
+
+Which one is installed:
+
+```python
+from scikitplot.annoy import Index
+
+index = Index(3, "angular")
+index.add_item(0, [1.0, 0.0, 0.0])
+index.build(1)
+print(index.__getstate__()["_backend_abi"]["multithreaded_build"])
+```
+
+Each thread seeds its own trees, so an index built with `n_jobs=2` holds other trees than one built with `n_jobs=1`, and answers can differ in the approximate tail. For the same index on every machine and from every wheel, pass `n_jobs=1` and a seed.
+
 ## How it fits with the other distributions
 
 It depends on `scikit-plots-skinny`, which owns the root `scikitplot/__init__.py`, logging and the `scikitplot` command line.
@@ -35,6 +60,20 @@ It depends on `scikit-plots-skinny`, which owns the root `scikitplot/__init__.py
 Partial distributions compose: install any of them side by side and they form one `scikitplot` package. No file belongs to two of them, so uninstalling one never breaks another.
 
 Do not install a partial distribution together with `scikit-plots`: `scikit-plots` already contains all of them and would own the same files. Run `scikitplot doctor` to see what is installed and whether it is coherent.
+
+### Mixing versions
+
+Partial distributions are released together, and they do not have to be upgraded together. Each one records the *core API* it was built for, a number that changes only when `scikit-plots-skinny` and the parts stop understanding each other (it is 1 now). Parts at different versions with the same number are reported as a note; a part with another number is reported as a problem, with the command that fixes it:
+
+```sh
+scikitplot doctor
+```
+
+```python
+from scikitplot._distributions import log_report
+
+log_report()  # problems at WARNING, notes at INFO, on the scikitplot logger
+```
 
 ## Links
 

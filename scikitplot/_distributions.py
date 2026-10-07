@@ -65,16 +65,23 @@ from typing import Mapping, NamedTuple
 
 __all__ = [
     "CORE",
+    "CORE_API",
+    "CORE_API_HISTORY",
     "DISTRIBUTIONS",
     "FLAVORS",
     "FULL",
     "IMPORT_NAME",
+    "PARTS_GROUP",
     "Distribution",
     "canonicalize_name",
+    "declared_core_api",
     "flavor",
     "get",
     "install_hint",
     "installed",
+    "log_report",
+    "parts_entry_points",
+    "parts_group",
     "provider_of",
     "report",
 ]
@@ -91,6 +98,67 @@ CORE = "scikit-plots-skinny"
 
 #: The values :func:`flavor` can return.
 FLAVORS = ("full", "partial", "source")
+
+#: Number of the contract between the core and the other partial distributions.
+#:
+#: Every partial distribution is built from one source tree at one version,
+#: but a user can upgrade one of them and not the rest. Whether such a mix
+#: works does not depend on the version numbers being equal; it depends on
+#: whether the *contract* between the core and a part changed in between. This
+#: number names that contract. A part records the number it was built for
+#: (see :data:`PARTS_GROUP`); it works with a core that provides the same one.
+#:
+#: The contract is:
+#:
+#: 1. what a part may use from the core: the public names of
+#:    ``scikitplot.logging``, ``scikitplot.exceptions`` and
+#:    ``scikitplot.environment_variables``;
+#: 2. how the core reaches a part: as the module ``scikitplot.<part>``, and for
+#:    a command of the ``scikitplot`` CLI through the handler that
+#:    ``scikitplot/_cli/registry.py`` names, called the way ``_cli/loader.py``
+#:    calls it;
+#: 3. the ownership map below: which distribution ships which path.
+#:
+#: Raise the number, by one, in the same change that *breaks* any of the
+#: three: a name removed or given another meaning, a handler renamed or called
+#: differently, a path moved from one distribution to another. Do not raise it
+#: for an addition (a new name, a new command, a new distribution): an older
+#: part does not use what it does not know. Add a line to
+#: :data:`CORE_API_HISTORY` every time.
+CORE_API = 1
+
+#: Each value of :data:`CORE_API`, the first version of the core that provides
+#: it, and what changed. A record for people; nothing computes with it.
+CORE_API_HISTORY: tuple[tuple[int, str, str], ...] = (
+    (1, "0.5.0", "first numbered contract"),
+)
+
+#: Prefix of the entry-point group in which a partial distribution states the
+#: core API it was built for: the group is ``scikitplot.parts.api<N>`` and
+#: holds one entry per part the distribution ships (``annoy =
+#: scikitplot.annoy``). Entry points are part of the installed metadata, so the
+#: statement is read without importing the part, and it is written by the
+#: build tooling from :data:`CORE_API`, so it cannot be forgotten.
+PARTS_GROUP = "scikitplot.parts.api"
+
+#: Combinations of third-party packages that are known not to work together,
+#: as measured (see ``_third_party_findings``): the first package at or above
+#: its release together with the second package below its release.
+_INCOMPATIBLE_PAIRS: tuple[
+    tuple[str, tuple[int, ...], str, tuple[int, ...], str], ...
+] = (
+    (
+        "numpy",
+        (2,),
+        "scikit-learn",
+        (1, 4, 2),
+        (
+            "scikit-learn before 1.4.2 is built against NumPy 1 and cannot be "
+            'imported with NumPy 2 ("numpy.dtype size changed" or a failed '
+            "import from numpy.core)."
+        ),
+    ),
+)
 
 _NAME_SEPARATORS = re.compile(r"[-_.]+")
 
@@ -461,6 +529,270 @@ def _is_present(module: str) -> bool:
         return False
 
 
+def parts_group(api: int = CORE_API) -> str:
+    """
+    Return the entry-point group that states "built for core API ``api``".
+
+    Parameters
+    ----------
+    api : int, optional
+        A core API number; the one this core provides when omitted.
+
+    Returns
+    -------
+    str
+        ``"scikitplot.parts.api<api>"``.
+
+    Examples
+    --------
+    >>> parts_group(1)
+    'scikitplot.parts.api1'
+    """
+    return f"{PARTS_GROUP}{int(api)}"
+
+
+def parts_entry_points(name: str) -> dict[str, str]:
+    """
+    Return the entry points with which a distribution states its core API.
+
+    Parameters
+    ----------
+    name : str
+        Project name of a partial distribution, in any spelling.
+
+    Returns
+    -------
+    dict of str to str
+        Entry-point name to module, one for each tree the distribution owns
+        (``{"annoy": "scikitplot.annoy", ...}``), to be written in the group
+        :func:`parts_group`. Empty for the core, which provides the contract
+        and does not consume it.
+
+    Raises
+    ------
+    KeyError
+        If ``name`` is not a partial distribution.
+
+    Notes
+    -----
+    **Developer.** The build tooling writes exactly this mapping into each
+    generated ``pyproject.toml``; :func:`declared_core_api` reads it back from
+    installed metadata. Keeping both ends in this module means the statement
+    and its reader cannot drift apart.
+
+    Examples
+    --------
+    >>> parts_entry_points("scikit-plots-rank-bm25")
+    {'rank_bm25': 'scikitplot.rank_bm25'}
+    >>> parts_entry_points("scikit-plots-skinny")
+    {}
+    """
+    dist = get(name)
+    if dist.name == CORE:
+        return {}
+    return {
+        module: f"{IMPORT_NAME}.{module}"
+        for module in sorted(tree.replace("/", ".") for tree in dist.trees)
+    }
+
+
+def declared_core_api(name: str) -> int | None:
+    """
+    Return the core API an installed partial distribution was built for.
+
+    Parameters
+    ----------
+    name : str
+        Project name of a partial distribution, in any spelling.
+
+    Returns
+    -------
+    int or None
+        The number in the distribution's ``scikitplot.parts.api<N>``
+        entry-point group; ``None`` when the distribution is not installed or
+        declares none (the core itself, the full distribution, and a part
+        built before the number existed).
+
+    Raises
+    ------
+    ValueError
+        If the distribution declares more than one number, or a group whose
+        suffix is not a number: its metadata is not something this tooling
+        wrote.
+
+    Notes
+    -----
+    **Developer.** Only installed metadata is read; the part is not imported.
+    """
+    from importlib import metadata  # noqa: PLC0415
+
+    try:
+        entry_points = metadata.distribution(canonicalize_name(name)).entry_points
+    except metadata.PackageNotFoundError:
+        return None
+    suffixes = sorted(
+        {
+            entry.group[len(PARTS_GROUP) :]
+            for entry in entry_points
+            if entry.group.startswith(PARTS_GROUP)
+        }
+    )
+    if not suffixes:
+        return None
+    if len(suffixes) > 1 or not suffixes[0].isdigit():
+        raise ValueError(
+            f"{name}: expected one entry-point group '{PARTS_GROUP}<number>', "
+            f"found {[PARTS_GROUP + suffix for suffix in suffixes]}"
+        )
+    return int(suffixes[0])
+
+
+def _release(version: str) -> tuple[int, ...]:
+    """
+    Return the leading release numbers of a version string.
+
+    ``"1.3.0rc1"`` is ``(1, 3, 0)`` and ``"2.5.3"`` is ``(2, 5, 3)``; a string
+    that does not start with a number is ``()``. Enough to tell which side of
+    a release a version is on; pre-release ordering is not needed for that.
+    """
+    match = re.match(r"\d+(?:\.\d+)*", version.strip())
+    return tuple(int(part) for part in match.group(0).split(".")) if match else ()
+
+
+def _compatibility_findings(found: Mapping[str, str]) -> tuple[list[str], list[str]]:
+    """
+    Judge whether the installed partial distributions work with the core.
+
+    Parameters
+    ----------
+    found : mapping of str to str
+        Result of :func:`installed`.
+
+    Returns
+    -------
+    problems : list of str
+        One message for each part that cannot be relied on with this core.
+    notes : list of str
+        Observations that need no action.
+
+    Notes
+    -----
+    **Developer.** The rule, for each installed part other than the core:
+
+    ======================  ====================  ==========================
+    declares a core API     version equals core   result
+    ======================  ====================  ==========================
+    yes, equal to ours      (any)                 compatible; a note if the
+                                                  versions differ
+    yes, different          (any)                 problem
+    no                      yes                   compatible (same build)
+    no                      no                    problem: cannot be judged
+    ======================  ====================  ==========================
+
+    Equal versions were the only test before the number existed, and every
+    mix of versions was reported as a problem. That refused combinations that
+    work (a part left behind by an upgrade of another) and could not tell
+    them from the ones that do not.
+    """
+    problems: list[str] = []
+    notes: list[str] = []
+    if CORE not in found:
+        return problems, notes
+    core_version = found[CORE]
+    behind: list[str] = []
+    for dist in DISTRIBUTIONS:
+        if dist.name == CORE or dist.name not in found:
+            continue
+        version = found[dist.name]
+        try:
+            declared = declared_core_api(dist.name)
+        except ValueError as error:
+            problems.append(
+                f"{error}. Its metadata was not written by this project's build "
+                f"tooling. Fix: pip install --force-reinstall --no-deps {dist.name}"
+            )
+            continue
+        if declared is None:
+            if version != core_version:
+                problems.append(
+                    f"{dist.name} {version} does not state which core API it was "
+                    f"built for, and {CORE} is {core_version}: whether they work "
+                    "together cannot be judged. "
+                    f"Fix: pip install --upgrade {dist.name} {CORE}"
+                )
+        elif declared != CORE_API:
+            newer = dist.name if declared > CORE_API else CORE
+            problems.append(
+                f"{dist.name} {version} was built for core API {declared}, and "
+                f"{CORE} {core_version} provides core API {CORE_API}; the two "
+                "disagree about how the core and a part work together, so the "
+                f"part may fail in ways that look unrelated. {newer} is the "
+                "newer side. "
+                f"Fix: pip install --upgrade {dist.name} {CORE}"
+            )
+        elif version != core_version:
+            behind.append(f"{dist.name} {version}")
+    if behind:
+        notes.append(
+            f"Mixed versions: {', '.join(behind)} with {CORE} {core_version}. "
+            f"They state the same core API ({CORE_API}), so they are expected to "
+            "work together; nothing needs to change. To align them anyway: "
+            f"pip install --upgrade {CORE} "
+            + " ".join(entry.split(" ")[0] for entry in behind)
+        )
+    return problems, notes
+
+
+def _third_party_findings() -> tuple[list[str], list[str]]:
+    """
+    Report third-party versions that matter for how the parts are supported.
+
+    Returns
+    -------
+    problems : list of str
+        Installed combinations known not to work, each with a fix.
+    notes : list of str
+        Installed versions that are supported although an installer may say
+        otherwise, with the reason.
+
+    Notes
+    -----
+    **User.** The project *asks* installers for NumPy 2 on Python 3.9 and
+    newer, and for scikit-learn 1.3 or newer. NumPy 1.x installed afterwards
+    (``pip install "numpy<2"``) keeps working; ``pip check`` will name the
+    declared requirement, which is expected.
+
+    **Developer.** Versions are read from installed metadata; neither package
+    is imported, so this is safe to call where they are broken. The pairs in
+    ``_INCOMPATIBLE_PAIRS`` were measured on Python 3.10 with NumPy 2.0.0:
+    scikit-learn 1.3.0rc1 and 1.3.0 install and fail on import, 1.3.2 to 1.4.1
+    are refused by the installer, 1.4.2 is the first that imports.
+    """
+    problems: list[str] = []
+    notes: list[str] = []
+    versions = {name: _installed_version(name) for name in ("numpy", "scikit-learn")}
+    for first, at_least, second, below, reason in _INCOMPATIBLE_PAIRS:
+        one, two = versions.get(first), versions.get(second)
+        if one is None or two is None:
+            continue
+        if _release(one) >= at_least and _release(two) < below:
+            problems.append(
+                f"{first} {one} with {second} {two}: {reason} "
+                f'Fix: pip install --upgrade "{second}>='
+                f'{".".join(str(part) for part in below)}"  (or, to stay on '
+                f'{second} {two}: pip install "{first}<{at_least[0]}")'
+            )
+    numpy_version = versions["numpy"]
+    if numpy_version is not None and _release(numpy_version) < (2,):
+        notes.append(
+            f"numpy {numpy_version}: NumPy 1.x is supported. The project asks "
+            "installers for NumPy 2 on Python 3.9 and newer, so `pip check` "
+            "reports that requirement; it is a preference for new "
+            "environments, not a limit of the code."
+        )
+    return problems, notes
+
+
 def report() -> dict[str, object]:
     """
     Describe the installed distributions and whether they are coherent.
@@ -476,18 +808,26 @@ def report() -> dict[str, object]:
             Project name to the parts of ``scikitplot`` it would add, for
             every partial distribution that is not installed. Empty when the
             full distribution is installed, because it already contains them.
+        ``core_api``
+            :data:`CORE_API`, the contract number this core provides.
         ``problems``
             Actionable messages; empty when the installation is coherent.
+        ``notes``
+            Observations that need no action: a mix of versions that is
+            compatible, a third-party version that is supported although an
+            installer reports a conflict.
 
     Notes
     -----
-    **User.** Three situations are reported as problems, each with the command
+    **User.** Four situations are reported as problems, each with the command
     that fixes it:
 
     * the full distribution installed beside partial ones, where both own the
       same files and uninstalling either removes files the other needs;
-    * partial distributions of different versions, which were not built from
-      the same source tree; and
+    * a partial distribution built for another core API than the installed
+      core provides (different *versions* alone are a note, not a problem:
+      see ``_compatibility_findings``);
+    * third-party versions that are known not to work together; and
     * a partial distribution that is installed but whose files are gone.
 
     **Developer.** Whether a part is on disk is checked only for distributions
@@ -516,13 +856,11 @@ def report() -> dict[str, object]:
             f"pip install --force-reinstall --no-deps {FULL}"
         )
 
-    if len({found[name] for name in partial_names}) > 1:
-        detail = ", ".join(f"{name} {found[name]}" for name in partial_names)
-        problems.append(
-            f"Partial distributions have different versions ({detail}); they "
-            "were not built from the same source tree. "
-            f"Fix: pip install --upgrade {' '.join(partial_names)}"
-        )
+    notes: list[str] = []
+    for finder in (lambda: _compatibility_findings(found), _third_party_findings):
+        more_problems, more_notes = finder()
+        problems += more_problems
+        notes += more_notes
 
     available: dict[str, list[str]] = {}
     if FULL not in found:
@@ -535,5 +873,76 @@ def report() -> dict[str, object]:
         "flavor": flavor(found),
         "installed": dict(found),
         "available": available,
+        "core_api": CORE_API,
         "problems": problems,
+        "notes": notes,
     }
+
+
+def log_report(logger: object = None) -> dict[str, object]:
+    """
+    Write the installation report to a logger and return it.
+
+    Parameters
+    ----------
+    logger : logging.Logger, optional
+        Where to write. The ``"scikitplot"`` logger of the standard library
+        when omitted.
+
+    Returns
+    -------
+    dict
+        The result of :func:`report`.
+
+    See Also
+    --------
+    report : The same information as data.
+
+    Notes
+    -----
+    **User.** Call this when something fails in a way that looks unrelated to
+    what you did (an ``ImportError`` from NumPy, a missing attribute in a part
+    you just upgraded). Each *problem* is logged at ``WARNING`` and ends with
+    the command that fixes it; each *note* is logged at ``INFO`` and needs no
+    action. ``scikitplot doctor`` prints the same report from a shell.
+
+    How conflicts arise, and how to avoid them:
+
+    * Install the full distribution **or** partial ones in an environment,
+      not both: they own the same files.
+    * Upgrade the parts together (``pip install --upgrade scikit-plots-skinny
+      scikit-plots-annoy ...``). A mix of versions is accepted while the core
+      API number is the same, and is reported as a note; it becomes a problem
+      only when the number differs.
+    * NumPy 1.x installed after the fact keeps working. NumPy 2 needs
+      scikit-learn 1.4.2 or newer; with an older scikit-learn, upgrade it or
+      stay on NumPy 1.
+
+    **Developer.** Nothing is logged for a coherent installation except one
+    ``DEBUG`` line, so this is safe to call from application start-up. The
+    logger is looked up by name with the standard library because this module
+    must stay importable by file path, outside the package.
+
+    Examples
+    --------
+    >>> import logging
+    >>> logging.basicConfig(level=logging.INFO)
+    >>> result = log_report()
+    >>> sorted(result)
+    ['available', 'core_api', 'flavor', 'installed', 'notes', 'problems']
+    """
+    import logging  # noqa: PLC0415
+
+    target = logging.getLogger(IMPORT_NAME) if logger is None else logger
+    result = report()
+    for problem in result["problems"]:
+        target.warning("scikitplot installation problem: %s", problem)
+    for note in result["notes"]:
+        target.info("scikitplot installation note: %s", note)
+    target.debug(
+        "scikitplot installation: flavor=%s core_api=%s installed=%s",
+        result["flavor"],
+        result["core_api"],
+        result["installed"],
+    )
+    return result

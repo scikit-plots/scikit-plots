@@ -1217,6 +1217,9 @@ class TestCP034To036VaultDefaultsAndCleanCommand:
     def state(self, tmp_path, monkeypatch):
         monkeypatch.delenv("CLEANPROMPT_VAULT", raising=False)
         monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+        # Windows keeps state under %LOCALAPPDATA% and never reads XDG_STATE_HOME;
+        # without this the test would use, and change, the real user profile.
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "state"))
         monkeypatch.setenv("HOME", str(tmp_path / "home"))
         return tmp_path / "state" / "cleanprompt" / "vault.json"
 
@@ -1226,6 +1229,9 @@ class TestCP034To036VaultDefaultsAndCleanCommand:
 
         monkeypatch.delenv("CLEANPROMPT_VAULT", raising=False)
         monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+        # Windows keeps state under %LOCALAPPDATA% and never reads XDG_STATE_HOME;
+        # without this the test would use, and change, the real user profile.
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "state"))
         monkeypatch.chdir(tmp_path)
         resolved = default_vault_path()
         assert not resolved.startswith(str(tmp_path) + "/vault")

@@ -19,7 +19,7 @@ GUIDE = ROOT / "ISOLATION_DEPLOYMENT.md"
 
 
 def _load_validator(name: str):
-    tree = ast.parse(INIT.read_text())
+    tree = ast.parse(INIT.read_text(encoding="utf-8"))
     node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
     module = ast.Module(body=[node], type_ignores=[])
 
@@ -59,20 +59,20 @@ def test_frame_path_validator_is_root_relative_and_traversal_safe():
 
 
 def test_setup_loads_fail_closed_host_bridge_before_full_runtime():
-    src = INIT.read_text()
+    src = INIT.read_text(encoding="utf-8")
     host_pos = src.index('app.add_js_file("ai-assistant-isolation-host.js"')
     main_pos = src.index('"ai-assistant.js", loading_method="defer"')
     assert host_pos < main_pos
     assert 'app.add_config_value("ai_assistant_isolation_origin", "", "html")' in src
     assert 'app.add_config_value("ai_assistant_isolation_context_max_chars", 200000, "html")' in src
-    main = MAIN.read_text()
+    main = MAIN.read_text(encoding="utf-8")
     assert "window.AI_ASSISTANT_CONFIG && window.AI_ASSISTANT_CONFIG.isolationOrigin" in main
     assert main.count("!window.SphinxAIAssistantIsolationFrame) return;") >= 2
 
 
 def test_message_protocol_uses_port_after_exact_window_handshake():
-    host = HOST.read_text()
-    frame = FRAME.read_text()
+    host = HOST.read_text(encoding="utf-8")
+    frame = FRAME.read_text(encoding="utf-8")
     assert "event.source !== iframe.contentWindow || event.origin !== isolationOrigin" in host
     assert "var channel = new _NativeMessageChannel();" in host
     assert "_postToFrame(iframe.contentWindow, init, isolationOrigin, [channel.port2])" in host
@@ -85,8 +85,8 @@ def test_message_protocol_uses_port_after_exact_window_handshake():
 
 
 def test_bridge_bootstrap_snapshots_globals_and_blocks_prototype_pollution_keys():
-    host = HOST.read_text()
-    frame = FRAME.read_text()
+    host = HOST.read_text(encoding="utf-8")
+    frame = FRAME.read_text(encoding="utf-8")
     assert "var cfg = _snapshotBridgeValue(window.AI_ASSISTANT_CONFIG || {}, 0, [])" in host
     assert "var _endpointSnapshot = _snapshotBridgeValue(window.AI_ASSISTANT_ENDPOINTS || {}, 0, [])" in host
     assert "endpointDefault:_endpointDefaultSnapshot" in host
@@ -98,7 +98,7 @@ def test_bridge_bootstrap_snapshots_globals_and_blocks_prototype_pollution_keys(
 
 
 def test_host_capabilities_are_closed_and_bounded():
-    host = HOST.read_text()
+    host = HOST.read_text(encoding="utf-8")
     for cap in (
         "page.context.read",
         "page.canonical.read",
@@ -116,7 +116,7 @@ def test_host_capabilities_are_closed_and_bounded():
 
 
 def test_context_adapter_removes_active_forms_hidden_and_dangerous_attributes():
-    host = HOST.read_text()
+    host = HOST.read_text(encoding="utf-8")
     for token in ("'script'", "'iframe'", "'object'", "'embed'", "'form'", "'input'", "'[hidden]'", "'[aria-hidden=\"true\"]'"):
         assert token in host
     for attr in ("n === 'srcdoc'", "n === 'style'", "n === 'nonce'", "n === 'formaction'"):
@@ -126,8 +126,8 @@ def test_context_adapter_removes_active_forms_hidden_and_dangerous_attributes():
 
 
 def test_isolated_runtime_storage_is_namespaced_by_parent_site_root():
-    main = MAIN.read_text()
-    frame = FRAME.read_text()
+    main = MAIN.read_text(encoding="utf-8")
+    frame = FRAME.read_text(encoding="utf-8")
     assert "cfg.isolationStorageScope = storageScope(init.page || {})" in frame
     assert "return 'host-site:' + parentOrigin + '|' + path" in frame
     assert "function _scopedStorage(nativeStore, scope)" in main
@@ -137,7 +137,7 @@ def test_isolated_runtime_storage_is_namespaced_by_parent_site_root():
 
 
 def test_isolated_html_has_no_inline_script_or_style_and_restrictive_meta_csp():
-    html = HTML.read_text()
+    html = HTML.read_text(encoding="utf-8")
     assert "default-src 'none'" in html
     assert "script-src 'self'" in html
     assert "style-src 'self'" in html
@@ -151,8 +151,8 @@ def test_isolated_html_has_no_inline_script_or_style_and_restrictive_meta_csp():
 
 
 def test_public_event_bridge_revalidates_b40_projection_at_host_boundary():
-    main = MAIN.read_text()
-    host = HOST.read_text()
+    main = MAIN.read_text(encoding="utf-8")
+    host = HOST.read_text(encoding="utf-8")
     assert "isolationBridge.notify('page.integration.emit'" in main
     assert "if (!_feedbackDomIntegrationEnabled) return internalResult;" in main
     assert "PUBLIC_EVENT_TYPES" in host
@@ -162,7 +162,7 @@ def test_public_event_bridge_revalidates_b40_projection_at_host_boundary():
 
 
 def test_deployment_guide_keeps_residual_and_header_requirements_explicit():
-    guide = GUIDE.read_text()
+    guide = GUIDE.read_text(encoding="utf-8")
     assert "frame-ancestors" in guide
     assert "Referrer-Policy: no-referrer" in guide
     assert "X-Content-Type-Options: nosniff" in guide

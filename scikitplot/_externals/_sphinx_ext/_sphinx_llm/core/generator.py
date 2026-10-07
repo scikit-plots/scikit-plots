@@ -378,7 +378,10 @@ class CanonicalArtifactGenerator(ConfigParityMarkdownGenerator):
         override = str(getattr(self.app.config, "llms_txt_override_source", "")).strip()
         override_docname: str | None = None
         if override:
-            normalized = override.replace("\\", "/").removeprefix("./")
+            normalized = override.replace("\\", "/")
+            # str.removeprefix is Python 3.9+; this package supports 3.8.
+            if normalized.startswith("./"):
+                normalized = normalized[len("./") :]
             candidates = [normalized, str(Path(normalized).with_suffix(""))]
             override_docname = next(
                 (item for item in candidates if item in self._markdown_file_by_docname),

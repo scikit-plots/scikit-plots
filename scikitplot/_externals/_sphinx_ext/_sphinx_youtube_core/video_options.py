@@ -109,5 +109,7 @@ def player_options(options, title):
             if value in ("false", "off", "no", "0"):
                 continue
             value = ""
-        result[key.removeprefix("video-").replace("-", "_")] = value
+        # str.removeprefix is Python 3.9+; this package supports 3.8.
+        leaf = key[len("video-") :] if key.startswith("video-") else key
+        result[leaf.replace("-", "_")] = value
     return result

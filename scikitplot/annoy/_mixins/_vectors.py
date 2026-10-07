@@ -41,6 +41,7 @@ scikitplot.annoy._mixins._ndarray.NDArrayMixin
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Iterable, Sequence
 from typing import Any, Literal, cast
 
@@ -65,21 +66,41 @@ from .._utils import backend_for, lock_for
 # Importing either unconditionally makes ``import scikitplot.annoy`` raise
 # ImportError on scikit-learn 1.3 to 1.5, so both are resolved here, once, at
 # import time, and the rest of the module uses only the two names below.
+#
+# NumPy: the suites of ``annoy``, ``rank_bm25`` and ``corpus`` were run with
+# NumPy 1.26.4 and scikit-learn 1.3.2 on Python 3.10 (4396 passed). The
+# project *asks* installers for NumPy 2 on Python 3.9 and newer; NumPy 1.x
+# installed afterwards is supported, silently. ``scikitplot._distributions``
+# reports it as a note (``log_report()`` or ``scikitplot doctor``), never as
+# a problem, and reports the one combination that cannot work: NumPy 2 with
+# scikit-learn older than 1.4.2.
 # ------------------------------------------------------------------
 try:
     # 1. scikit-learn >= 1.6: the public function.
     from sklearn.utils.validation import validate_data
+
+    _VALIDATE_DATA_SOURCE = "sklearn.utils.validation.validate_data"
 except ImportError:
     try:
         # 2. Older scikit-learn, full ``scikit-plots`` distribution: the copy
         #    of the same function that ``scikitplot.utils.validation`` carries.
         from ...utils.validation import validate_data
+
+        _VALIDATE_DATA_SOURCE = "scikitplot.utils.validation.validate_data"
     except ImportError:
         # 3. Older scikit-learn, ``scikit-plots-annoy`` installed on its own:
         #    ``scikitplot.utils`` is not part of that distribution. Queries
         #    are then validated with ``check_array`` alone, which is also what
         #    ``_validate_query_matrix`` falls back to in the other two cases.
         validate_data = None
+        _VALIDATE_DATA_SOURCE = "sklearn.utils.validation.check_array"
+
+# Which of the three is in use is a fact about the environment, not an event:
+# it is logged once, at DEBUG, so it can be asked for and never interrupts.
+#   logging.getLogger("scikitplot.annoy").setLevel(logging.DEBUG)
+logging.getLogger(__name__).debug(
+    "query validation uses %s (numpy %s)", _VALIDATE_DATA_SOURCE, np.__version__
+)
 
 #: Name under which the installed ``check_array`` takes the finiteness policy.
 _FINITE_KEYWORD: str = (

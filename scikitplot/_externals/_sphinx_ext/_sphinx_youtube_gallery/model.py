@@ -36,7 +36,7 @@ import datetime as _dt
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Union
 
 from .._sphinx_collection._yaml import MAX_COLLECTION_ITEMS
 
@@ -568,7 +568,10 @@ class ChannelRecord:
         return str(self.published.year) if self.published else "unknown"
 
 
-CatalogRecord = VideoRecord | ChannelRecord
+# ``Union[...]``, not ``VideoRecord | ChannelRecord``: this line is executed
+# when the module is imported, and ``|`` between two classes exists from
+# Python 3.10 on (on 3.8 and 3.9 the extension could not be imported at all).
+CatalogRecord = Union[VideoRecord, ChannelRecord]
 
 _CHANNEL_KNOWN_KEYS = frozenset(
     {

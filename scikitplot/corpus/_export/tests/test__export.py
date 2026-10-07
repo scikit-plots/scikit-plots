@@ -624,11 +624,11 @@ class TestCSVRoundTrip:
 
         jsonl_ids = {
             json.loads(l)["doc_id"]
-            for l in jsonl_out.read_text().splitlines()
+            for l in jsonl_out.read_text(encoding="utf-8").splitlines()
             if l.strip()
         }
         json_ids = {
             item["doc_id"]
-            for item in json.loads(json_out.read_text())
+            for item in json.loads(json_out.read_text(encoding="utf-8"))
         }
         assert jsonl_ids == json_ids == {d.doc_id for d in docs}

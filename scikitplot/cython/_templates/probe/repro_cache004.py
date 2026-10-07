@@ -23,13 +23,13 @@ with tempfile.TemporaryDirectory() as td:
     key = "abc123"
     entry = root / key; entry.mkdir()
     (entry / "artifact.so").write_bytes(b"NEW-GOOD-ARTIFACT")
-    (entry / "meta.json").write_text('{"kind":"module"}')
+    (entry / "meta.json").write_text('{"kind":"module"}', encoding="utf-8")
 
     dest = Path(td) / "dest"
     # Pre-existing GOOD export at destination
     (dest / key).mkdir(parents=True)
     (dest / key / "artifact.so").write_bytes(b"OLD-GOOD-ARTIFACT")
-    (dest / key / "meta.json").write_text('{"kind":"module"}')
+    (dest / key / "meta.json").write_text('{"kind":"module"}', encoding="utf-8")
 
     # Simulate copytree failing PART-WAY (after rmtree already deleted the old export)
     real_copytree = shutil.copytree

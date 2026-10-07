@@ -337,7 +337,8 @@ def update_summaries(  # ruff: ignore[too-many-branches]
     shared_cache = generator._load_summary_cache()
     for key, record in shared_cache.items():
         if key.startswith("docref:"):
-            cache.setdefault(key.removeprefix("docref:"), record)
+            # str.removeprefix is Python 3.9+; this package supports 3.8.
+            cache.setdefault(key[len("docref:") :], record)
     cache_changed = False
     effective: dict[str, dict[str, Any]] = {}
     target_data: dict[str, tuple[nodes.document, str]] = {}
@@ -441,7 +442,7 @@ def update_summaries(  # ruff: ignore[too-many-branches]
     for stale_id in set(cache) - active_ids:
         cache.pop(stale_id, None)
     for key in list(shared_cache):
-        if key.startswith("docref:") and key.removeprefix("docref:") not in active_ids:
+        if key.startswith("docref:") and key[len("docref:") :] not in active_ids:
             shared_cache.pop(key)
             cache_changed = True
 

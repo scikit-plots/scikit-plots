@@ -30,7 +30,7 @@ def _source_files():
 
 
 def _imports_official_sdk(path: pathlib.Path) -> bool:
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             if (node.module or "").split(".")[0] in _SDK_ROOTS:
@@ -59,7 +59,7 @@ def test_no_handrolled_jsonrpc_branded_as_mcp():
     # tools/list dispatch) that duplicates the SDK. Reject it outside _server.py.
     offenders = []
     for p in _source_files():
-        src = p.read_text()
+        src = p.read_text(encoding="utf-8")
         if '"jsonrpc"' in src and "protocolVersion" in src and "tools/list" in src:
             offenders.append(p.name)
     assert not offenders, f"hand-rolled JSON-RPC MCP dispatch found in: {offenders}"
@@ -69,7 +69,7 @@ def test_sdk_import_is_lazy_not_module_level():
     # INV-1: importing scikitplot.mcp must not import the SDK. The only SDK
     # importer (_server.py) must do so inside a function, never at module scope.
     server = _MCP_DIR / "_server.py"
-    tree = ast.parse(server.read_text())
+    tree = ast.parse(server.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         is_sdk_import = (
             isinstance(node, ast.ImportFrom)

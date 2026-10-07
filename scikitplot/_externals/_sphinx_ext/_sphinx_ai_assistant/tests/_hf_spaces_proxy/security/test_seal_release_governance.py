@@ -196,7 +196,7 @@ def _seal(tmp_path: Path, *, candidate=None, envelope=None, private=None, next_r
         root_path, pin = _bootstrap(tmp_path / "bootstrap", envelope)
         kwargs.update(bootstrap_root_path=root_path, expected_bootstrap_root_sha256=pin)
     else:
-        previous_bundle_doc = json.loads((previous / "release-root-bundle.json").read_text())
+        previous_bundle_doc = json.loads((previous / "release-root-bundle.json").read_text(encoding="utf-8"))
         kwargs.update(previous_root_state=previous / "trusted-release-root-state.json", previous_root_bundle=previous / "release-root-bundle.json", expected_bootstrap_root_sha256=previous_bundle_doc["bootstrapRootSha256"])
     if next_root is not None:
         next_path = _write(tmp_path / "next-root.json", next_root)
@@ -210,7 +210,7 @@ def test_run155_bootstrap_seals_run154_with_real_threshold_signatures(tmp_path: 
     assert result["ok"] is True
     assert result["authorizing_root_version"] == 1
     assert result["active_root_version"] == 1
-    auth = json.loads((out / "cryptographic-governance-authorization.json").read_text())
+    auth = json.loads((out / "cryptographic-governance-authorization.json").read_text(encoding="utf-8"))
     assert auth["status"] == "cryptographically-authorized"
     assert auth["selectedKeyIds"] == ["governance/key-a", "governance/key-b"]
     assert len(auth["signatures"]) == 2
@@ -260,7 +260,7 @@ def test_run155_signature_subject_binds_exact_candidate_snapshot(tmp_path: Path)
     sigs = _authorization_files(tmp_path / "sigs", candidate, envelope, private)
     # Mutating any Run 154 sidecar causes candidate validation/rebinding failure before sealing.
     archive = next((candidate / "archive-results").iterdir())
-    changed = json.loads(archive.read_text())
+    changed = json.loads(archive.read_text(encoding="utf-8"))
     changed["verifiedAt"] = "2026-09-05T09:00:01Z"
     archive.write_bytes(_canonical(changed))
     with pytest.raises(seal.RootTrustError):
@@ -373,9 +373,9 @@ def test_run155_valid_dual_signed_rotation_updates_active_root(tmp_path: Path):
     new_envelope, _ = _root_envelope(version=2, policy_members=NEW_POLICY_AUTHORITIES, root_members=NEW_ROOT_MEMBERS, issued=NOW, expires=EXPIRES + timedelta(days=30), old_private=old_private, old_root_members=ROOT_MEMBERS)
     result, out, *_ = _seal(tmp_path / "seal", candidate=candidate, envelope=old_envelope, private=old_private, next_root=new_envelope)
     assert result["active_root_version"] == 2
-    state = json.loads((out / "trusted-release-root-state.json").read_text())
+    state = json.loads((out / "trusted-release-root-state.json").read_text(encoding="utf-8"))
     assert state["rootVersion"] == 2
-    pin = json.loads((out / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((out / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     seal.verify_root_bundle(bundle_path=out / "release-root-bundle.json", state_path=out / "trusted-release-root-state.json", expected_bootstrap_root_sha256=pin, now=NOW)
 
 
@@ -405,7 +405,7 @@ def test_run155_emergency_transition_requires_emergency_crypto_role(tmp_path: Pa
     final_members = next_policy["policyAuthority"]["members"]
     next_envelope, _ = _root_envelope(version=2, policy_members=final_members, root_members=new_root_members, issued=NOW, expires=EXPIRES + timedelta(days=30), old_private=private, old_root_members=ROOT_MEMBERS)
     result, out, *_ = _seal(tmp_path / "seal", candidate=candidate, envelope=envelope, private=private, next_root=next_envelope)
-    auth = json.loads((out / "cryptographic-governance-authorization.json").read_text())
+    auth = json.loads((out / "cryptographic-governance-authorization.json").read_text(encoding="utf-8"))
     assert result["ok"] is True
     assert auth["role"] == "emergency"
     assert auth["selectedKeyIds"] == ["emergency/key-a", "emergency/key-b"]
@@ -420,7 +420,7 @@ def test_run155_rejects_revoked_key_in_active_root_final_roles(tmp_path: Path):
 
 def test_run155_root_bundle_offline_verifier_detects_signature_mutation(tmp_path: Path):
     _, out, *_ = _seal(tmp_path)
-    bundle = json.loads((out / "release-root-bundle.json").read_text())
+    bundle = json.loads((out / "release-root-bundle.json").read_text(encoding="utf-8"))
     sig = bundle["roots"][0]["signatures"][0]["sig"]
     bundle["roots"][0]["signatures"][0]["sig"] = ("A" if sig[0] != "A" else "B") + sig[1:]
     bad = _write(tmp_path / "bad-bundle.json", bundle)
@@ -431,7 +431,7 @@ def test_run155_root_bundle_offline_verifier_detects_signature_mutation(tmp_path
 
 def _candidate_after(tmp_path: Path, previous_candidate: Path, history_dir: Path) -> Path:
     tmp_path.mkdir(parents=True, exist_ok=True)
-    previous_state = json.loads((previous_candidate / "trusted-governance-state.json").read_text())
+    previous_state = json.loads((previous_candidate / "trusted-governance-state.json").read_text(encoding="utf-8"))
     next_policy = json.loads(json.dumps(previous_state["policy"]))
     next_policy["policyVersion"] += 1
     proposal = run154._proposal(
@@ -465,7 +465,7 @@ def test_run155_previous_root_state_successfully_advances_epoch_two(tmp_path: Pa
     assert first_result["active_root_version"] == 1
     second_candidate = _candidate_after(tmp_path / "run154-second", first_candidate, history_dir)
     signatures = _authorization_files(tmp_path / "second-sigs", second_candidate, envelope, private)
-    pin = json.loads((first_sealed / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((first_sealed / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     second_out = tmp_path / "second-sealed"
     result = seal.seal_governance(
         governance_dir=second_candidate,
@@ -503,9 +503,9 @@ def test_run155_seal_is_deterministic_for_identical_authority_bytes(tmp_path: Pa
 
 def test_run155_offline_seal_rejects_embedded_history_mutation(tmp_path: Path):
     _, out, *_ = _seal(tmp_path)
-    pin = json.loads((out / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((out / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     snapshot_path = out / "release-governance-recovery-snapshot.json"
-    snapshot = json.loads(snapshot_path.read_text())
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
     snapshot["historyState"]["sequence"] += 1
     snapshot_path.write_bytes(_canonical(snapshot))
     with pytest.raises(seal.RootTrustError):
@@ -515,18 +515,18 @@ def test_run155_offline_seal_rejects_embedded_history_mutation(tmp_path: Path):
 def test_run155_previous_root_state_prevents_governance_rollback_or_skip(tmp_path: Path):
     _, first, *_ = _seal(tmp_path / "first")
     candidate = _candidate(tmp_path / "second-candidate")  # another epoch-1 candidate, not epoch 2
-    envelope = json.loads((first / "active-root.json").read_text())
+    envelope = json.loads((first / "active-root.json").read_text(encoding="utf-8"))
     # Private keys are deterministic from key ids, so use the same root private set for test signing.
     private, _ = _keys()
     sigs = _authorization_files(tmp_path / "second-sigs", candidate, envelope, private)
     with pytest.raises(seal.RootTrustError, match="ROOT_GOVERNANCE_SEQUENCE_OR_PREVIOUS_STATE_MISMATCH"):
-        pin = json.loads((first / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+        pin = json.loads((first / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
         seal.seal_governance(governance_dir=candidate, authorization_signature_paths=sigs, output_dir=tmp_path / "second", previous_root_state=first / "trusted-release-root-state.json", previous_root_bundle=first / "release-root-bundle.json", expected_bootstrap_root_sha256=pin, now=NOW)
 
 
 def test_run155_duplicate_json_keys_are_rejected(tmp_path: Path):
     p = tmp_path / "bad.json"
-    p.write_text('{"signatures":[],"signed":{},"signed":{}}\n')
+    p.write_text('{"signatures":[],"signed":{},"signed":{}}\n', encoding="utf-8")
     with pytest.raises(seal.RootTrustError, match="DUPLICATE_KEY"):
         seal._read(p, "ROOT_TEST")
 
@@ -541,7 +541,7 @@ def test_run155_output_contains_no_private_key_material(tmp_path: Path):
 
 def test_run155_offline_complete_seal_verifies_real_authorization_signatures(tmp_path: Path):
     _, out, *_ = _seal(tmp_path)
-    pin = json.loads((out / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((out / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     result = seal.verify_sealed_governance(sealed_dir=out, expected_bootstrap_root_sha256=pin, now=NOW)
     assert result["ok"] is True
     assert result["epoch"] == 1
@@ -549,9 +549,9 @@ def test_run155_offline_complete_seal_verifies_real_authorization_signatures(tmp
 
 def test_run155_offline_seal_rejects_authorization_signature_mutation(tmp_path: Path):
     _, out, *_ = _seal(tmp_path)
-    pin = json.loads((out / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((out / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     auth_path = out / "cryptographic-governance-authorization.json"
-    auth = json.loads(auth_path.read_text())
+    auth = json.loads(auth_path.read_text(encoding="utf-8"))
     sig = auth["signatures"][0]["signature"]
     auth["signatures"][0]["signature"] = ("A" if sig[0] != "A" else "B") + sig[1:]
     auth_path.write_bytes(_canonical(auth))
@@ -648,8 +648,8 @@ def test_run155_live_bundle_rejects_future_dated_current_root(tmp_path: Path):
         )
 
 def test_run155_documentation_describes_cryptographic_boundary():
-    guide = (SECURITY / "RELEASE_ROOT_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SECURITY / "RELEASE_ROOT_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     for needle in ("Ed25519", "old-root", "new-root", "freeze", "private key", "Run 155"):
         assert needle.lower() in guide.lower()
     assert "Run 155" in gates

@@ -39,6 +39,20 @@ Partial distributions compose: install any of them side by side and they form on
 
 Do not install a partial distribution together with `scikit-plots`: `scikit-plots` already contains all of them and would own the same files. Run `scikitplot doctor` to see what is installed and whether it is coherent.
 
+### Mixing versions
+
+Partial distributions are released together, and they do not have to be upgraded together. Each one records the *core API* it was built for, a number that changes only when `scikit-plots-skinny` and the parts stop understanding each other (it is 1 now). Parts at different versions with the same number are reported as a note; a part with another number is reported as a problem, with the command that fixes it:
+
+```sh
+scikitplot doctor
+```
+
+```python
+from scikitplot._distributions import log_report
+
+log_report()  # problems at WARNING, notes at INFO, on the scikitplot logger
+```
+
 ## Links
 
 - homepage: https://scikit-plots.github.io

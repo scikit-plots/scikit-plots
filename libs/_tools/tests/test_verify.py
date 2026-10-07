@@ -17,6 +17,8 @@ import hashlib
 import sys
 import zipfile
 
+from pathlib import PurePosixPath
+
 import pytest
 
 from .. import generate, registry, staging, verify
@@ -41,7 +43,13 @@ def _probe(**overrides):
             "flavor": "partial",
             "installed": {"scikit-plots-skinny": VERSION, "scikit-plots-mcp": VERSION},
             "available": {},
+            "core_api": MAP.CORE_API,
             "problems": [],
+            "notes": [],
+        },
+        "core_api": {
+            "core": MAP.CORE_API,
+            "declared": {"scikit-plots-mcp": MAP.CORE_API, "scikit-plots-skinny": None},
         },
         "modules": {
             "scikitplot._cli": None,
@@ -69,7 +77,7 @@ class TestCheckProbe:
     def test_a_healthy_installation_passes_every_check(self):
         results = _check(_probe())
         assert {r.status for r in results} == {verify.PASS}
-        assert len(results) == 6
+        assert len(results) == 7
 
     def test_an_optional_third_party_module_is_reported_not_failed(self):
         (row,) = [r for r in _check(_probe()) if r.check == "every shipped module imports"]
@@ -118,6 +126,27 @@ class TestCheckProbe:
     def test_an_incoherent_installation_fails(self, report):
         results = _statuses(_check(_probe(report=report)))
         assert results["doctor: partial flavor, no problem"] == verify.FAIL
+
+    @pytest.mark.parametrize(
+        "declared",
+        [
+            {"scikit-plots-mcp": None, "scikit-plots-skinny": None},
+            {"scikit-plots-mcp": MAP.CORE_API + 1, "scikit-plots-skinny": None},
+            {"scikit-plots-mcp": MAP.CORE_API, "scikit-plots-skinny": MAP.CORE_API},
+            {"scikit-plots-mcp": "expected one entry-point group", "scikit-plots-skinny": None},
+            {"scikit-plots-skinny": None},
+        ],
+        ids=["silent part", "other number", "core states one", "malformed", "not probed"],
+    )
+    def test_a_wrong_core_api_statement_fails(self, declared):
+        data = _probe(core_api={"core": MAP.CORE_API, "declared": declared})
+        results = _statuses(_check(data))
+        assert results["each part states the core API of the installed core"] == verify.FAIL
+
+    def test_the_core_api_row_names_the_number(self):
+        (row,) = [r for r in _check(_probe()) if r.check.startswith("each part states")]
+        assert row.status == verify.PASS
+        assert f"core API {MAP.CORE_API}, stated by 1 part(s)" == row.detail
 
     def test_a_module_that_raises_on_import_fails(self):
         modules = dict(_probe()["modules"])
@@ -319,7 +348,10 @@ class TestWheelMetadataProblems:
         lines.append(f"Requires-Dist: {MAP.CORE}>={self.META.version}")
         return "\n".join(lines) + "\n"
 
-    def _problems(self, tmp_path, metadata, name=None, entry_points=None):
+    #: What the generator writes for this distribution (see ``CORE_API``).
+    STATEMENT = f"[{MAP.parts_group()}]\nrank_bm25 = scikitplot.rank_bm25\n"
+
+    def _problems(self, tmp_path, metadata, name=None, entry_points=STATEMENT):
         name = name or f"scikit_plots_rank_bm25-{self.META.version}-py3-none-any.whl"
         wheel = _wheel(tmp_path, name, metadata, entry_points)
         problems, _summary = verify._wheel_metadata_problems(
@@ -356,15 +388,143 @@ class TestWheelMetadataProblems:
 
     def test_an_unexpected_console_script_is_a_problem(self, tmp_path):
         problems = self._problems(
-            tmp_path, self._metadata(), entry_points="[console_scripts]\nx = y:z\n"
+            tmp_path,
+            self._metadata(),
+            entry_points=self.STATEMENT + "[console_scripts]\nx = y:z\n",
         )
         assert problems == ["console script missing or unexpected"]
+
+    @pytest.mark.parametrize(
+        "entry_points",
+        [
+            None,
+            "",
+            f"[{MAP.PARTS_GROUP}{MAP.CORE_API + 1}]\nrank_bm25 = scikitplot.rank_bm25\n",
+            f"[{MAP.parts_group()}]\nrank_bm25 = scikitplot.other\n",
+            f"[{MAP.parts_group()}]\nRank_BM25 = scikitplot.rank_bm25\n",
+            STATEMENT + f"[{MAP.PARTS_GROUP}{MAP.CORE_API + 1}]\nx = scikitplot.x\n",
+        ],
+        ids=["no file", "empty", "other number", "other module", "other case", "two numbers"],
+    )
+    def test_a_wrong_core_api_statement_is_a_problem(self, tmp_path, entry_points):
+        (problem,) = self._problems(tmp_path, self._metadata(), entry_points=entry_points)
+        assert problem.startswith("core API statement is ")
+
+    def test_the_core_states_no_core_api(self, tmp_path):
+        package = PACKAGES[MAP.CORE]
+        floor = package.requires_python or self.META.requires_python
+        metadata = (
+            f"Name: {MAP.CORE}\nVersion: {self.META.version}\n"
+            f"Requires-Python: {floor}\n"
+        )
+        scripts = "[console_scripts]\nscikitplot = scikitplot._cli:main\n"
+        name = f"scikit_plots_skinny-{self.META.version}-py3-none-any.whl"
+
+        def problems(entry_points):
+            wheel = _wheel(tmp_path, name, metadata, entry_points)
+            return verify._wheel_metadata_problems(wheel, package, self.META)[0]
+
+        assert problems(scripts) == []
+        (problem,) = problems(scripts + self.STATEMENT)
+        assert problem.startswith("core API statement is ")
 
     def test_a_platform_tag_on_a_pure_distribution_is_a_problem(self, tmp_path):
         name = f"scikit_plots_rank_bm25-{self.META.version}-cp313-cp313-linux_x86_64.whl"
         assert self._problems(tmp_path, self._metadata(), name=name) == [
             "wheel tag does not match pure/compiled"
         ]
+
+
+class TestEntryPointGroups:
+    def test_empty_text_has_no_group(self):
+        assert verify._entry_point_groups("") == {}
+
+    def test_names_keep_case_and_dots_and_values_keep_colons(self):
+        text = "[g.one]\nA.b = pkg.mod:attr\n\n[g2]\nc = d\n"
+        assert verify._entry_point_groups(text) == {
+            "g.one": {"A.b": "pkg.mod:attr"},
+            "g2": {"c": "d"},
+        }
+
+
+class TestImplicitEncodings:
+    """Text I/O that would use the locale's encoding is found statically."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "path.read_text()",
+            "path.write_text(data)",
+            "open(name)",
+            "open(name, 'w')",
+            "open(name, mode='a+')",
+            "open(name, 'r', 1)",
+            "with open(name) as handle: pass",
+        ],
+    )
+    def test_reported(self, line):
+        assert verify._implicit_encodings(f"x = 1\n{line}\n") == [2]
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "path.read_text(encoding='utf-8')",
+            "path.read_text('utf-8')",
+            "path.write_text(data, encoding='utf-8')",
+            "path.write_text(data, 'utf-8')",
+            "open(name, encoding='utf-8')",
+            "open(name, 'rb')",
+            "open(name, mode='wb')",
+            "open(name, 'r', -1, 'utf-8')",
+            # Not decidable from the text alone.
+            "open(name, mode)",
+            "open(*arguments)",
+            "path.read_text(**options)",
+            # Another object's method: zipfile members have no encoding.
+            "archive.open(member)",
+            "os.open(name, flags)",
+        ],
+    )
+    def test_not_reported(self, line):
+        assert verify._implicit_encodings(line + "\n") == []
+
+    def test_lines_are_ascending_and_source_that_does_not_parse_is_skipped(self):
+        assert verify._implicit_encodings("b.read_text()\n\na.read_text()\n") == [1, 3]
+        assert verify._implicit_encodings("def broken(:\n") == []
+
+    def test_every_distribution_is_clean(self):
+        results = verify.check_text_encoding()
+        assert [r.target for r in results] == [d.name for d in MAP.DISTRIBUTIONS]
+        assert [(r.target, r.detail) for r in results if r.status != verify.PASS] == []
+
+    def test_a_finding_names_file_and_line_and_the_fix(self, tmp_path, monkeypatch):
+        package = tmp_path / "scikitplot"
+        (package / "alpha").mkdir(parents=True)
+        (package / "alpha" / "__init__.py").write_text("", encoding="utf-8")
+        (package / "alpha" / "io.py").write_text(
+            "from pathlib import Path\nPath('x').read_text()\n", encoding="utf-8"
+        )
+
+        class _Dist:
+            name = "scikit-plots-alpha"
+
+        class _Map:
+            DISTRIBUTIONS = (_Dist,)
+
+        monkeypatch.setattr(staging, "repo_root", lambda: tmp_path)
+        monkeypatch.setattr(staging, "load_distributions", lambda root=None: _Map)
+        monkeypatch.setattr(
+            staging,
+            "iter_owned_files",
+            lambda dist, package_dir: [
+                PurePosixPath("alpha/__init__.py"),
+                PurePosixPath("alpha/io.py"),
+                PurePosixPath("alpha/data.txt"),
+            ],
+        )
+        (result,) = verify.check_text_encoding()
+        assert result.status == verify.FAIL
+        assert "alpha/io.py:2" in result.detail and 'encoding="utf-8"' in result.detail
 
 
 class TestBuildableHere:
@@ -415,35 +575,68 @@ class TestDeclaresFloor:
 
 
 class TestIgnoreOptions:
-    """Declared repository-only tests are left out, and nothing else."""
+    """Declared repository-only and Python-gated tests are left out, nothing else."""
 
-    def _package(self, *entries):
-        return PACKAGES["scikit-plots-rank-bm25"]._replace(test_ignore=entries)
+    def _package(self, *entries, gated=()):
+        return PACKAGES["scikit-plots-rank-bm25"]._replace(
+            test_ignore=entries, test_gated=gated
+        )
 
     def test_nothing_is_ignored_by_default(self):
-        assert verify._ignore_options(self._package(), "rank_bm25") == []
+        assert verify._ignore_options(self._package(), "rank_bm25", "3.13") == []
 
     def test_an_entry_becomes_a_glob_with_the_platform_separator(self, monkeypatch):
         monkeypatch.setattr(verify.os, "sep", "\\")
         options = verify._ignore_options(
-            self._package("rank_bm25/tests/test_a.py"), "rank_bm25"
+            self._package("rank_bm25/tests/test_a.py"), "rank_bm25", "3.13"
         )
         assert options == ["--ignore-glob=*\\scikitplot\\rank_bm25\\tests\\test_a.py"]
 
     def test_only_entries_of_the_tree_under_test_apply(self):
         package = self._package("rank_bm25/tests/test_a.py", "rank_bm25_other/test_b.py")
-        options = verify._ignore_options(package, "rank_bm25")
+        options = verify._ignore_options(package, "rank_bm25", "3.13")
         assert options == [
             "--ignore-glob=*"
             + verify.os.sep
             + verify.os.sep.join(["scikitplot", "rank_bm25", "tests", "test_a.py"])
         ]
 
+    @pytest.mark.parametrize(
+        ("python", "left_out"),
+        [
+            ("3.8", ["rank_bm25/tests/services", "rank_bm25/tests/test_new.py"]),
+            ("3.9", ["rank_bm25/tests/services"]),
+            ("3.10", []),
+            ("3.15", []),
+        ],
+    )
+    def test_a_gated_path_is_left_out_below_its_floor_only(self, python, left_out):
+        package = self._package(
+            gated=(
+                ("rank_bm25/tests/services", ">=3.10"),
+                ("rank_bm25/tests/test_new.py", ">=3.9"),
+                ("another_tree/tests", ">=3.99"),
+            )
+        )
+        assert verify._ignored_entries(package, "rank_bm25", python) == left_out
+
+    def test_ignored_and_gated_entries_are_both_applied(self):
+        package = self._package(
+            "rank_bm25/tests/test_a.py", gated=(("rank_bm25/tests/b", ">=3.10"),)
+        )
+        assert verify._ignored_entries(package, "rank_bm25", "3.9") == [
+            "rank_bm25/tests/test_a.py",
+            "rank_bm25/tests/b",
+        ]
+        assert len(verify._ignore_options(package, "rank_bm25", "3.9")) == 2
+
     def test_every_registry_entry_is_reachable(self):
         for package in registry.PACKAGES:
             trees = MAP.get(package.distribution).trees
-            found = [o for tree in trees for o in verify._ignore_options(package, tree)]
-            assert len(found) == len(package.test_ignore), package.distribution
+            # Python 0.0 is below every floor: every gated path applies.
+            found = [e for tree in trees for e in verify._ignored_entries(package, tree, "0.0")]
+            declared = list(package.test_ignore) + [p for p, _ in package.test_gated]
+            assert sorted(found) == sorted(declared), package.distribution
 
 
 class TestResidueChecks:
@@ -480,3 +673,162 @@ class TestResidueChecks:
         # ``libs/<name>/`` written with ``/`` on every platform.
         for path in verify._residue():
             assert path.startswith("libs/") and "\\" not in path
+
+
+class TestFailureReporting:
+    """A failed test run names every failing test and keeps the whole output."""
+
+    OUTPUT = (
+        "....F..E\n"
+        "=========================== short test summary info ===========================\n"
+        "FAILED pkg/tests/test_a.py::test_one - AssertionError: assert 1 == 2\n"
+        "ERROR pkg/tests/test_b.py::test_two - PermissionError: [Errno 13] denied\n"
+        "FAILED pkg/tests/test_a.py::test_one - AssertionError: assert 1 == 2\n"
+        "2 failed, 5 passed, 1 error in 0.50s\n"
+    )
+
+    def test_every_failure_and_error_is_listed_once_in_order(self):
+        assert verify._failed_test_ids(self.OUTPUT) == [
+            "FAILED pkg/tests/test_a.py::test_one - AssertionError: assert 1 == 2",
+            "ERROR pkg/tests/test_b.py::test_two - PermissionError: [Errno 13] denied",
+        ]
+
+    def test_a_passing_run_has_none(self):
+        assert verify._failed_test_ids("....\n4 passed in 0.1s\n") == []
+
+    def test_only_the_short_summary_names_a_failure(self):
+        # A log record of level ERROR before the summary, and standard error
+        # appended after the totals, start with the same words.
+        output = (
+            "ERROR    pkg.app:app.py:2908 Record storage target unavailable\n"
+            "FAILED to connect (a line of captured output)\n"
+            + self.OUTPUT
+            + "\n--- stderr ---\nERROR something written to standard error\n"
+        )
+        assert verify._failed_test_ids(output) == verify._failed_test_ids(self.OUTPUT)
+
+    def test_output_without_a_summary_names_nothing(self):
+        assert verify._failed_test_ids("ERROR    a log record\n5 passed in 1s\n") == []
+
+    def test_the_detail_has_totals_failures_and_the_log(self, tmp_path):
+        detail = verify._failure_detail(
+            self.OUTPUT, "2 failed, 5 passed, 1 error in 0.50s", tmp_path / "run.txt"
+        )
+        parts = detail.split(" | ")
+        assert parts[0] == "2 failed, 5 passed, 1 error in 0.50s"
+        assert parts[1].startswith("FAILED pkg/tests/test_a.py::test_one")
+        assert parts[2].startswith("ERROR pkg/tests/test_b.py::test_two")
+        assert parts[-1] == "full output: test-logs/run.txt"
+
+    def test_more_failures_than_the_limit_are_counted_not_dropped(self, tmp_path):
+        many = "= short test summary info =\n" + "".join(
+            f"FAILED t.py::test_{i} - boom\n" for i in range(55)
+        )
+        detail = verify._failure_detail(many, "55 failed in 1s", tmp_path / "run.txt")
+        parts = detail.split(" | ")
+        named = [part for part in parts if part.startswith("FAILED ")]
+        assert len(named) == verify.MAX_NAMED_FAILURES
+        assert f"... and {55 - verify.MAX_NAMED_FAILURES} more" in parts
+
+    def test_a_run_that_never_started_shows_the_end_of_its_output(self, tmp_path):
+        detail = verify._failure_detail(
+            "ERROR: usage: pytest [options]\nunknown option", "", tmp_path / "run.txt"
+        )
+        assert "pytest did not report totals" in detail
+        assert "unknown option" in detail
+
+    @pytest.mark.parametrize(
+        ("label", "target", "expected"),
+        [
+            (
+                "scikit-plots-annoy [lowest]",
+                "scikitplot.annoy",
+                "scikit-plots-annoy--lowest---scikitplot.annoy--py3.12.txt",
+            ),
+            ("together", "scikitplot.mcp", "together--scikitplot.mcp--py3.12.txt"),
+            ('a:b/c\\d*e?f"g<h>i|j', "t", "a-b-c-d-e-f-g-h-i-j--t--py3.12.txt"),
+        ],
+    )
+    def test_log_file_names_are_valid_everywhere(self, label, target, expected):
+        assert verify._log_file_name(label, target, "3.12") == expected
+
+
+class TestImportFaults:
+    """Which import outcomes are faults, with and without optional packages."""
+
+    NAMES = ["scikit-plots-skinny", "scikit-plots-mcp"]
+
+    def _modules(self, **outcomes):
+        modules = {"scikitplot.mcp": None, "scikitplot.mcp._a": None}
+        modules.update(outcomes)
+        return modules
+
+    def test_everything_imported_is_no_fault(self):
+        bad, missing, gated, optional = verify._import_faults(
+            self._modules(), self.NAMES, "3.13"
+        )
+        assert (bad, missing, gated, optional) == ({}, {}, {}, [])
+
+    def test_a_missing_third_party_package_is_not_a_fault(self):
+        modules = self._modules(**{"scikitplot.mcp._b": {"kind": "missing", "name": "yaml"}})
+        bad, missing, _, optional = verify._import_faults(modules, self.NAMES, "3.13")
+        assert bad == {}
+        assert missing == {"scikitplot.mcp._b": "yaml"}
+        assert optional == ["yaml"]
+
+    def test_any_other_exception_is_a_fault(self):
+        modules = self._modules(
+            **{"scikitplot.mcp._b": {"kind": "error", "name": "TypeError: unsupported |"}}
+        )
+        bad, _, _, _ = verify._import_faults(modules, self.NAMES, "3.9")
+        assert bad == {"scikitplot.mcp._b": "TypeError: unsupported |"}
+
+    def test_a_missing_module_of_the_package_itself_is_a_fault(self):
+        modules = self._modules(
+            **{"scikitplot.mcp._b": {"kind": "missing", "name": "scikitplot.corpus"}}
+        )
+        bad, _, _, optional = verify._import_faults(modules, self.NAMES, "3.13")
+        assert bad == {"scikitplot.mcp._b": "scikitplot.corpus"}
+        assert optional == []
+
+    def test_a_gated_module_is_neither(self):
+        modules = self._modules(
+            **{"scikitplot.mcp._server": {"kind": "error", "name": "ImportError: x"}}
+        )
+        bad, missing, gated, _ = verify._import_faults(modules, self.NAMES, "3.8")
+        assert (bad, missing) == ({}, {})
+        assert gated == {"scikitplot.mcp._server": ">=3.10"}
+
+
+class TestProbeWithOptionalPackages:
+    """The second probe reaches what the first could not."""
+
+    NAMES = ["scikit-plots-skinny", "scikit-plots-mcp"]
+
+    def _result(self, monkeypatch, data, raw=""):
+        monkeypatch.setattr(verify, "_probe", lambda env, names: (data, raw))
+        return verify._check_probe_with_optional_packages(
+            object(), self.NAMES, label="label", python="3.9"
+        )
+
+    def test_a_clean_probe_passes(self, monkeypatch):
+        result = self._result(
+            monkeypatch, {"import_error": None, "modules": {"scikitplot.mcp": None}}
+        )
+        assert result.status == verify.PASS
+        assert result.check == "every shipped module imports with its optional packages"
+
+    def test_an_error_behind_an_optional_import_fails(self, monkeypatch):
+        modules = {"scikitplot.mcp._b": {"kind": "error", "name": "TypeError: | on types"}}
+        result = self._result(monkeypatch, {"import_error": None, "modules": modules})
+        assert result.status == verify.FAIL
+        assert "scikitplot.mcp._b -> TypeError" in result.detail
+
+    def test_a_package_that_is_still_absent_is_reported_not_failed(self, monkeypatch):
+        modules = {"scikitplot.mcp._b": {"kind": "missing", "name": "torch"}}
+        result = self._result(monkeypatch, {"import_error": None, "modules": modules})
+        assert result.status == verify.PASS
+        assert "['torch']" in result.detail
+
+    def test_no_probe_output_fails(self, monkeypatch):
+        assert self._result(monkeypatch, None, "Traceback boom").status == verify.FAIL

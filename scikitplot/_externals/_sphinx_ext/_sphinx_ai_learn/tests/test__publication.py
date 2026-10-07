@@ -490,7 +490,7 @@ def test_review_bundle_cli_contains_json_only(tmp_path):
             "2026-09-24T00:00:00Z",
         ]
     )
-    manifest = json.loads((bundle / "publication-plan.json").read_text())
+    manifest = json.loads((bundle / "publication-plan.json").read_text(encoding="utf-8"))
     assert manifest["contract"] == "learn.publication-review-bundle.v2"
     assert manifest["files"]
     assert all(name.endswith(".json") for name in manifest["files"])
@@ -503,7 +503,7 @@ def test_review_bundle_cli_supports_skill_without_record_timestamp(tmp_path):
     bundle = tmp_path / "skill-bundle"
     draft_path.write_text(json.dumps(skill_draft()), encoding="utf-8")
     publication_cli([str(root), str(draft_path), str(bundle)])
-    manifest = json.loads((bundle / "publication-plan.json").read_text())
+    manifest = json.loads((bundle / "publication-plan.json").read_text(encoding="utf-8"))
     assert manifest["files"]
     assert all(name.endswith(".json") for name in manifest["files"])
     assert any(
@@ -1246,7 +1246,7 @@ def test_reviewed_source_request_requires_explicit_metadata_review(tmp_path):
 def test_reviewed_publication_workflow_separates_dry_run_and_json_only_write_authority():
     root = _learn_site.site_repository()
     workflow_path = root / ".github" / "workflows" / "ai-learn-publish.yml"
-    text = workflow_path.read_text()
+    text = workflow_path.read_text(encoding="utf-8")
     assert "transport-test:" in text
     assert "permissions:\n      contents: read" in text
     assert "validate-plan-and-open-pr:" in text
@@ -1290,7 +1290,7 @@ def test_reviewed_publication_workflow_separates_dry_run_and_json_only_write_aut
     assert r"- Request: \`${REQUEST_ID}\`" not in text
     assert "gh pr create" in text
     assert "https://x-access-token" not in text
-    proxy = (root / "docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/app.py").read_text()
+    proxy = (root / "docs/source/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/app.py").read_text(encoding="utf-8")
     assert "def _learn_publication_rate_identity(request: Request, *, scope: str)" in proxy
     assert "_learn_publication_local_identity_secret: bytes = secrets.token_bytes(32)" in proxy
     assert "hmac.new(" in proxy
@@ -1305,7 +1305,7 @@ def test_reviewed_publication_workflow_separates_dry_run_and_json_only_write_aut
 
 def test_reviewed_publication_workflow_run_blocks_are_bash_syntax_valid():
     root = _learn_site.site_repository()
-    workflow = (root / ".github" / "workflows" / "ai-learn-publish.yml").read_text()
+    workflow = (root / ".github" / "workflows" / "ai-learn-publish.yml").read_text(encoding="utf-8")
     lines = workflow.splitlines()
     blocks = []
     index = 0

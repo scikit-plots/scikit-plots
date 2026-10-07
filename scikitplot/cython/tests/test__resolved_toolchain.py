@@ -60,7 +60,11 @@ class TestFingerprintKeying:
         base = dict(runtime_fingerprint(cython_version="3.2.9", numpy_version="2.4.4"))
         with mock.patch(
             "scikitplot.cython._profiles.resolved_toolchain",
-            return_value=ResolvedToolchain("msvc", "cl", "cl", "link"),
+            # A toolchain no platform resolves to. A real one ("msvc") is the
+            # *current* toolchain on some platform, and then nothing differs.
+            return_value=ResolvedToolchain(
+                "skplt-test-fake", "fake-cc", "fake-cxx", "fake-link"
+            ),
         ):
             other = dict(
                 runtime_fingerprint(cython_version="3.2.9", numpy_version="2.4.4")

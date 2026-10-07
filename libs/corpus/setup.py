@@ -30,6 +30,7 @@ import glob
 import importlib.util
 import os
 import sys
+import sysconfig
 from pathlib import Path
 
 import setuptools
@@ -48,6 +49,15 @@ PEP639_SETUPTOOLS_MAJOR = 77
 CYTHON_FREETHREADING = (3, 1)
 #: Compiled extension modules, as declared in libs/_tools/registry.py.
 EXTENSIONS = []
+#: Environment variable with which the builder asks for the multithreaded
+#: code of an extension: ``1`` compiles it in, ``0`` or unset leaves it out.
+#: Unset means out because that is what the full distribution's Meson build
+#: does, and the two builds must produce the same behaviour until both change.
+THREADS_ENV = "SKPLT_BUILD_THREADS"
+#: Prefixes of ``sysconfig.get_platform()`` for targets without threads: a
+#: WebAssembly interpreter (Pyodide, JupyterLite, WASI) runs on one thread,
+#: and starting a second one fails at run time, not at build time.
+PLATFORMS_WITHOUT_THREADS = ("emscripten", "wasi")
 #: Cython directives of the full distribution's build (root meson.build).
 CYTHON_DIRECTIVES = {
     "language_level": 3,
@@ -198,11 +208,57 @@ def _translate_cython(extension) -> None:
     extension.sources = translated.sources
 
 
+def _threads_enabled(environ=None, platform=None) -> bool:
+    """
+    Return whether the multithreaded code of the extensions is compiled in.
+
+    Parameters
+    ----------
+    environ : mapping, optional
+        The environment; ``os.environ`` when omitted.
+    platform : str, optional
+        The platform the build targets; ``sysconfig.get_platform()`` when
+        omitted, which is the target's and not the builder's under a
+        cross-build.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``SKPLT_BUILD_THREADS`` is ``1``; ``False`` when it is
+        ``0`` or unset.
+
+    Raises
+    ------
+    SystemExit
+        If ``SKPLT_BUILD_THREADS`` is set to anything but ``0`` or ``1`` (a
+        build option that is misspelled must not be read as its default), or
+        is ``1`` for a target without threads (the wheel would build, and
+        fail the first time a second thread is started).
+    """
+    environ = os.environ if environ is None else environ
+    platform = sysconfig.get_platform() if platform is None else platform
+    value = environ.get(THREADS_ENV, "").strip()
+    if value in ("", "0"):
+        return False
+    if value != "1":
+        raise SystemExit(
+            f"{THREADS_ENV}={value!r} is not understood. Set it to 1 (compile "
+            "the multithreaded code in), or to 0 or nothing (leave it out)."
+        )
+    if platform.startswith(PLATFORMS_WITHOUT_THREADS):
+        raise SystemExit(
+            f"{THREADS_ENV}=1 cannot be honoured for {platform}: this target "
+            "has no threads. Unset it, or set it to 0."
+        )
+    return True
+
+
 def _extension_options() -> dict:
     """Return the ``setup()`` options for the compiled extensions, if any."""
     if not EXTENSIONS:
         return {}
     declared = {entry["name"]: entry for entry in EXTENSIONS}
+    threads = _threads_enabled()
 
     class BuildExt(build_ext):
         """
@@ -248,6 +304,14 @@ def _extension_options() -> dict:
                         "-g0",
                         "-fno-strict-aliasing",
                     ]
+                if threads and entry["threads_macro"]:
+                    extension.define_macros += [(entry["threads_macro"], None)]
+                    if not msvc:
+                        # Compiling and linking with -pthread is how GCC and
+                        # Clang are told a program uses threads. MSVC needs
+                        # nothing: its runtime is always the threaded one.
+                        extension.extra_compile_args += ["-pthread"]
+                        extension.extra_link_args += ["-pthread"]
             super().build_extensions()
 
     return {

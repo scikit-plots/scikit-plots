@@ -53,6 +53,17 @@ from scikitplot.mlflow._server import (
     spawn_server,
 )
 
+# The POSIX branch of ``SpawnedServer.terminate`` signals a process *group*
+# (``os.getpgid`` / ``os.killpg`` with ``signal.SIGKILL``). Windows has none of
+# the three, so a test that drives that branch, even with the functions
+# replaced, cannot run there: ``monkeypatch.setattr(os, "getpgid", ...)``
+# refuses to replace an attribute that does not exist. The condition asks for
+# the feature, not for a platform name.
+posix_process_groups = pytest.mark.skipif(
+    not (hasattr(os, "getpgid") and hasattr(os, "killpg") and hasattr(signal, "SIGKILL")),
+    reason="needs POSIX process groups (os.getpgid, os.killpg, signal.SIGKILL)",
+)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -301,6 +312,7 @@ class TestSpawnedServerTerminate:
         # terminated should be False since we returned early
         assert sv.process.terminated is False
 
+    @posix_process_groups
     def test_posix_terminate_on_running_process(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -329,6 +341,7 @@ class TestSpawnedServerTerminate:
         sv.terminate()
         assert any(sig == signal.SIGTERM for _, sig in killed_groups)
 
+    @posix_process_groups
     def test_posix_kill_on_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """On POSIX, if wait() times out, must escalate to SIGKILL."""
         # Patch the module's helper instead of global os.name
@@ -351,6 +364,7 @@ class TestSpawnedServerTerminate:
         sv.terminate()
         assert signal.SIGKILL in killed
 
+    @posix_process_groups
     def test_posix_killpg_exception_falls_back_to_terminate(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -556,6 +570,7 @@ class TestSpawnedServerTerminateKillpgFallback:
     When os.killpg raises, terminate() must fall back to self.process.kill().
     """
 
+    @posix_process_groups
     def test_posix_killpg_exception_falls_back_to_kill(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -702,6 +717,7 @@ class TestSpawnedServerTerminateWindows:
 class TestSpawnedServerTerminatePosixPaths:
     """Tests for the POSIX terminate() exception fallback branches."""
 
+    @posix_process_groups
     def test_posix_killpg_raises_falls_back_to_direct_terminate(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -731,6 +747,7 @@ class TestSpawnedServerTerminatePosixPaths:
         sv_obj.terminate()  # must not raise
         proc.terminate.assert_called()
 
+    @posix_process_groups
     def test_posix_wait_timeout_killpg_raises_falls_back_to_kill(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

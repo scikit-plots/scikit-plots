@@ -49,6 +49,8 @@ test come only from ``--outdir``.
 from __future__ import annotations
 
 import argparse
+import ast
+import configparser
 import hashlib
 import json
 import os
@@ -327,6 +329,32 @@ def _wheel_metadata(wheel: Path, member: str) -> str:
     return ""
 
 
+def _entry_point_groups(text: str) -> dict[str, dict[str, str]]:
+    """
+    Parse the content of a wheel's ``entry_points.txt``.
+
+    Parameters
+    ----------
+    text : str
+        The file content; ``""`` when the wheel has none.
+
+    Returns
+    -------
+    dict
+        Group to ``{name: value}``.
+
+    Notes
+    -----
+    **Developer.** The format is an INI file whose keys are case-sensitive and
+    may contain ``.``; only ``=`` separates a name from its value, because a
+    value may contain ``:`` (``module:attribute``).
+    """
+    parser = configparser.ConfigParser(delimiters=("=",), interpolation=None)
+    parser.optionxform = str  # entry-point names are case-sensitive
+    parser.read_string(text)
+    return {group: dict(parser.items(group)) for group in parser.sections()}
+
+
 def _is_native(path: str) -> bool:
     """Return whether a wheel member is a compiled extension module."""
     return path.endswith((".so", ".pyd", ".dylib"))
@@ -364,6 +392,16 @@ def _wheel_metadata_problems(wheel: Path, package, meta) -> tuple[list[str], str
     has_core = any(generate.requirement_name(r) == distributions.CORE for r in base)
     has_scripts = "[console_scripts]" in _wheel_metadata(wheel, "entry_points.txt")
     is_pure = "-py3-none-any.whl" in wheel.name
+    stated = _entry_point_groups(_wheel_metadata(wheel, "entry_points.txt"))
+    parts_groups = {
+        group: entries
+        for group, entries in stated.items()
+        if group.startswith(distributions.PARTS_GROUP)
+    }
+    expected_parts = distributions.parts_entry_points(name)
+    expected_groups = (
+        {distributions.parts_group(): expected_parts} if expected_parts else {}
+    )
     expectations = [
         (f"Name: {name}" in fields, "Name is not the canonical project name"),
         (f"Version: {meta.version}" in fields, f"Version is not {meta.version}"),
@@ -379,6 +417,10 @@ def _wheel_metadata_problems(wheel: Path, package, meta) -> tuple[list[str], str
             "requires the full distribution",
         ),
         (has_scripts == package.scripts, "console script missing or unexpected"),
+        (
+            parts_groups == expected_groups,
+            f"core API statement is {parts_groups}, expected {expected_groups}",
+        ),
         (is_pure != bool(package.extensions), "wheel tag does not match pure/compiled"),
     ]
     problems = [message for holds, message in expectations if not holds]
@@ -401,6 +443,121 @@ def check_generated() -> list[Result]:
             ),
         )
     ]
+
+
+#: Number of positional arguments of the built-in ``open(file, mode,
+#: buffering, encoding)`` from which ``encoding`` is among them.
+_OPEN_ENCODING_POSITION = 4
+
+
+def _implicit_encodings(source: str) -> list[int]:
+    """
+    Return the lines of Python source that use the locale's text encoding.
+
+    Parameters
+    ----------
+    source : str
+        The content of a Python file.
+
+    Returns
+    -------
+    list of int
+        Line numbers, ascending, of calls to ``.read_text()`` or
+        ``.write_text()`` without ``encoding``, and of calls to the built-in
+        ``open()`` in text mode without ``encoding``. Empty for source that
+        does not parse with the running interpreter (it is then not this
+        check's business) and for calls that cannot be decided statically.
+
+    Notes
+    -----
+    **Developer.** Without ``encoding`` these calls use the locale's encoding
+    (PEP 597): UTF-8 on Linux and macOS, a code page such as cp1252 on
+    Windows. A file written by one and read by the other, or a UTF-8 file of
+    the repository read on Windows, then fails or is silently wrong. Seen as
+    ``UnicodeDecodeError`` and ``UnicodeEncodeError`` in the Windows job
+    (run 37555382019).
+
+    What is not reported, because it cannot be decided from the text alone:
+    a call that passes ``*args`` or ``**kwargs``, an ``open`` whose mode is
+    not a literal, and a method named ``open`` on another object
+    (``zipfile.ZipFile.open`` has no ``encoding``).
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    lines = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if any(key.arg is None for key in node.keywords) or any(
+            isinstance(argument, ast.Starred) for argument in node.args
+        ):
+            continue
+        if any(key.arg == "encoding" for key in node.keywords):
+            continue
+        function = node.func
+        if isinstance(function, ast.Attribute):
+            # ``read_text(encoding)`` and ``write_text(data, encoding)`` also
+            # take the encoding by position.
+            positional = {"read_text": 1, "write_text": 2}.get(function.attr)
+            if positional is not None and len(node.args) < positional:
+                lines.append(node.lineno)
+        elif isinstance(function, ast.Name) and function.id == "open":
+            mode = next(
+                (key.value for key in node.keywords if key.arg == "mode"),
+                node.args[1] if len(node.args) > 1 else ast.Constant(value="r"),
+            )
+            # ``open(file, mode, buffering, encoding)``: by position too.
+            named_by_position = len(node.args) >= _OPEN_ENCODING_POSITION
+            if (
+                isinstance(mode, ast.Constant)
+                and isinstance(mode.value, str)
+                and "b" not in mode.value
+                and not named_by_position
+            ):
+                lines.append(node.lineno)
+    return sorted(lines)
+
+
+def check_text_encoding() -> list[Result]:
+    """
+    Check that no shipped module depends on the locale's text encoding.
+
+    Returns
+    -------
+    list of Result
+        One result per distribution, for the Python files it owns (its tests
+        included: they run on every platform too).
+    """
+    root = staging.repo_root()
+    package_dir = root / "scikitplot"
+    results = []
+    for dist in staging.load_distributions(root).DISTRIBUTIONS:
+        found = []
+        count = 0
+        for relative in staging.iter_owned_files(dist, package_dir):
+            if relative.suffix != ".py":
+                continue
+            count += 1
+            source = (package_dir / relative).read_text(encoding="utf-8")
+            found += [f"{relative}:{line}" for line in _implicit_encodings(source)]
+        results.append(
+            Result(
+                "text is read and written with a named encoding",
+                dist.name,
+                "-",
+                FAIL if found else PASS,
+                (
+                    f"{len(found)} call(s) use the locale's encoding, which is "
+                    f"not UTF-8 on Windows: {found[:MAX_NAMED_FAILURES]}; add "
+                    'encoding="utf-8"'
+                    if found
+                    else f"{count} Python file(s)"
+                ),
+            )
+        )
+    return results
 
 
 def check_artefacts(outdir: Path) -> list[Result]:
@@ -732,6 +889,12 @@ _PROBE = textwrap.dedent(
         out["version"] = scikitplot.__version__
         out["built_with_meson"] = scikitplot._BUILT_WITH_MESON
         out["report"] = _distributions.report()
+        out["core_api"] = {"core": _distributions.CORE_API, "declared": {}}
+        for name in names:
+            try:
+                out["core_api"]["declared"][name] = _distributions.declared_core_api(name)
+            except ValueError as exc:
+                out["core_api"]["declared"][name] = str(exc)
         out["numpy_loaded"] = "numpy" in sys.modules
         try:
             out["dir"] = len(dir(scikitplot))
@@ -858,6 +1021,92 @@ def _probe(env: _Environment, names: Sequence[str]) -> tuple[dict | None, str]:
     return None, done.stdout + done.stderr
 
 
+def _import_faults(
+    modules: dict, names: Sequence[str], python: str
+) -> tuple[dict[str, str], dict[str, str], dict[str, str], list[str]]:
+    """
+    Sort the probe's per-module import outcomes into faults and non-faults.
+
+    Parameters
+    ----------
+    modules : dict
+        Module name to ``None`` (imported) or ``{"kind", "name"}`` from the probe.
+    names : sequence of str
+        The distributions installed in the probed environment.
+    python : str
+        The environment's Python version.
+
+    Returns
+    -------
+    bad : dict of str to str
+        Modules that failed for a reason that is a fault: any exception other
+        than a missing third-party package, or a missing module of
+        ``scikitplot`` itself (a sibling part imported at module level, or a
+        file absent from the wheel).
+    missing : dict of str to str
+        Modules that could not be imported because a package is not installed,
+        with the package's module name.
+    gated : dict of str to str
+        Modules of an optional tier that needs a newer Python than this one,
+        with that floor; by the part's own definition they cannot import here.
+    optional : list of str
+        The third-party packages named in ``missing``, sorted.
+    """
+    distributions = staging.load_distributions()
+    packages = registry.by_distribution()
+    gated = {
+        module: floor
+        for name in names
+        for module, floor in packages[distributions.get(name).name].python_gated
+        if not registry.python_satisfies(floor, python)
+    }
+    failed = {m: v for m, v in modules.items() if v and m not in gated}
+    errors = {m: v["name"] for m, v in failed.items() if v["kind"] == "error"}
+    missing = {m: v["name"] for m, v in failed.items() if v["kind"] == "missing"}
+    sibling = {
+        m: n for m, n in missing.items() if n.split(".")[0] == staging.PACKAGE_NAME
+    }
+    optional = sorted({n.split(".")[0] for m, n in missing.items() if m not in sibling})
+    return dict(errors, **sibling), missing, gated, optional
+
+
+def _check_probe_with_optional_packages(
+    env: _Environment, names: Sequence[str], *, label: str, python: str
+) -> Result:
+    """
+    Import every shipped module again, now that optional packages are installed.
+
+    Notes
+    -----
+    **Developer.** The first probe runs with the base dependencies only, and
+    there a module that needs an optional package stops at its first
+    ``import``. Whatever is wrong *after* that line stays unseen: with only
+    Sphinx installed, ``_sphinx_youtube_gallery.model`` stopped at
+    ``import yaml`` on every Python and was counted as "needs an optional
+    package", while on Python 3.8 and 3.9 the module itself could not be
+    imported (a ``X | Y`` between classes at module level). This probe runs
+    after the test requirements are installed, so those lines are reached.
+    A package that is still absent is still not a fault.
+    """
+    check = "every shipped module imports with its optional packages"
+    data, raw = _probe(env, names)
+    if data is None or data["import_error"]:
+        detail = _tail(raw) if data is None else data["import_error"]
+        return Result(check, label, python, FAIL, detail)
+    modules = data["modules"]
+    bad, missing, gated, optional = _import_faults(modules, names, python)
+    if bad:
+        detail = f"{len(bad)} of {len(modules)} fail: " + "; ".join(
+            f"{m} -> {why}" for m, why in sorted(bad.items())[:6]
+        )
+    else:
+        detail = (
+            f"{len(modules) - len(missing) - len(gated)} imported, "
+            f"{len(missing)} still need a package that is not installed {optional}"
+        )
+    return Result(check, label, python, FAIL if bad else PASS, detail)
+
+
 def _check_probe(
     data: dict | None,
     raw: str,
@@ -920,26 +1169,38 @@ def _check_probe(
         )
     )
 
-    modules = data["modules"]
-    packages = registry.by_distribution()
-    # Modules of an optional tier that needs a newer Python than this one
-    # cannot be imported here, by the part's own definition of that tier.
-    gated = {
-        module: floor
+    # What the installed metadata says, read by the installed core: the
+    # statement the generator wrote must survive build and installation.
+    core_api = data["core_api"]
+    wanted = {
+        distributions.get(name).name: (
+            None
+            if distributions.get(name).name == distributions.CORE
+            else core_api["core"]
+        )
         for name in names
-        for module, floor in packages[distributions.get(name).name].python_gated
-        if not registry.python_satisfies(floor, python)
     }
-    failed = {m: v for m, v in modules.items() if v and m not in gated}
-    errors = {m: v["name"] for m, v in failed.items() if v["kind"] == "error"}
-    missing = {m: v["name"] for m, v in failed.items() if v["kind"] == "missing"}
-    # A module of the package itself that cannot be found is a sibling part
-    # imported at module level, or a file missing from the wheel: both faults.
-    sibling = {
-        m: n for m, n in missing.items() if n.split(".")[0] == staging.PACKAGE_NAME
+    stated = {
+        distributions.get(name).name: value
+        for name, value in core_api["declared"].items()
     }
-    optional = sorted({n.split(".")[0] for m, n in missing.items() if m not in sibling})
-    bad = dict(errors, **sibling)
+    results.append(
+        Result(
+            "each part states the core API of the installed core",
+            label,
+            python,
+            PASS if stated == wanted else FAIL,
+            (
+                f"core API {core_api['core']}, stated by "
+                f"{sum(value is not None for value in wanted.values())} part(s)"
+                if stated == wanted
+                else f"stated {stated}, expected {wanted}"
+            ),
+        )
+    )
+
+    modules = data["modules"]
+    bad, missing, gated, optional = _import_faults(modules, names, python)
     results.append(
         Result(
             "every shipped module imports",
@@ -1073,9 +1334,9 @@ def _test_requirements(package) -> list[str]:
     return [name, *TEST_REQUIREMENTS, *package.test_requires]
 
 
-def _ignore_options(package, tree: str) -> list[str]:
+def _ignored_entries(package, tree: str, python: str) -> list[str]:
     """
-    Return the pytest options that leave out a distribution's ``test_ignore``.
+    Return the test paths under ``tree`` that a run on ``python`` leaves out.
 
     Parameters
     ----------
@@ -1083,12 +1344,44 @@ def _ignore_options(package, tree: str) -> list[str]:
         The distribution's packaging facts.
     tree : str
         The owned tree being tested, e.g. ``"_externals/_sphinx_ext"``.
+    python : str
+        The Python version of the environment, e.g. ``"3.9"``.
 
     Returns
     -------
     list of str
-        One ``--ignore-glob`` option for each ``test_ignore`` entry under
-        ``tree``, written with the path separator of the running platform.
+        The ``test_ignore`` entries under ``tree``, then the ``test_gated``
+        entries under ``tree`` whose floor ``python`` does not reach, in the
+        order they are declared.
+    """
+    entries = list(package.test_ignore)
+    entries += [
+        path
+        for path, floor in package.test_gated
+        if not registry.python_satisfies(floor, python)
+    ]
+    return [entry for entry in entries if entry == tree or entry.startswith(tree + "/")]
+
+
+def _ignore_options(package, tree: str, python: str) -> list[str]:
+    """
+    Return the pytest options that leave out what a run does not execute.
+
+    Parameters
+    ----------
+    package : registry.Package
+        The distribution's packaging facts.
+    tree : str
+        The owned tree being tested, e.g. ``"_externals/_sphinx_ext"``.
+    python : str
+        The Python version of the environment, e.g. ``"3.9"``.
+
+    Returns
+    -------
+    list of str
+        One ``--ignore-glob`` option for each entry of
+        :func:`_ignored_entries`, written with the path separator of the
+        running platform.
 
     Notes
     -----
@@ -1098,11 +1391,109 @@ def _ignore_options(package, tree: str) -> list[str]:
     ``site-packages``, which cannot match any other file.
     """
     options = []
-    for entry in package.test_ignore:
-        if entry == tree or entry.startswith(tree + "/"):
-            parts = [staging.PACKAGE_NAME, *entry.split("/")]
-            options.append("--ignore-glob=*" + os.sep + os.sep.join(parts))
+    for entry in _ignored_entries(package, tree, python):
+        parts = [staging.PACKAGE_NAME, *entry.split("/")]
+        options.append("--ignore-glob=*" + os.sep + os.sep.join(parts))
     return options
+
+
+#: Directory under ``outdir`` that receives the complete output of every test run.
+TEST_LOG_DIR = "test-logs"
+#: How many failing test ids a result names; the log file holds all of them.
+MAX_NAMED_FAILURES = 40
+
+
+def _log_file_name(label: str, target: str, python: str) -> str:
+    """
+    Return a file name for one test run's output that is valid on every platform.
+
+    Parameters
+    ----------
+    label : str
+        The environment label, e.g. ``"scikit-plots-annoy [lowest]"``.
+    target : str
+        The tested package, e.g. ``"scikitplot.annoy"``.
+    python : str
+        The Python version of the environment.
+
+    Returns
+    -------
+    str
+        ``"<label>--<target>--py<python>.txt"`` with every character outside
+        ``[A-Za-z0-9._-]`` replaced by ``-`` (Windows forbids several, and an
+        artifact store may refuse more).
+    """
+    stem = f"{label}--{target}--py{python}"
+    return "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in stem) + ".txt"
+
+
+def _failed_test_ids(output: str) -> list[str]:
+    """
+    Return the lines of pytest's short summary that name a failure or an error.
+
+    Parameters
+    ----------
+    output : str
+        Complete standard output of a pytest run.
+
+    Returns
+    -------
+    list of str
+        Every ``FAILED ...`` and ``ERROR ...`` line, in order, without
+        repeats. pytest prints one per failing test or collection error, with
+        the node id and the first line of the reason.
+
+    Notes
+    -----
+    **Developer.** Only pytest's "short test summary info" section is read:
+    the lines after that heading, up to the first one that names neither a
+    failure nor an error (the totals). Captured log output is printed before
+    the section and standard error is appended after it, and a log record of
+    level ERROR starts with ``ERROR`` too: the first version of this function
+    named such a record as if it were a failed test.
+    """
+    lines = output.splitlines()
+    start = next(
+        (
+            number + 1
+            for number, line in enumerate(lines)
+            if line.startswith("=") and "short test summary info" in line
+        ),
+        len(lines),
+    )
+    seen: dict[str, None] = {}
+    for line in lines[start:]:
+        if not line.startswith(("FAILED ", "ERROR ")):
+            break
+        seen.setdefault(line.rstrip(), None)
+    return list(seen)
+
+
+def _failure_detail(output: str, counts: str, log: Path) -> str:
+    """
+    Describe a failed test run: its totals, the failing tests, and the full log.
+
+    Notes
+    -----
+    **Developer.** The detail used to be the last 14 lines of the output. A
+    run with more failures than that showed only the end of the list (the
+    first Windows run reported "46 failed" and named seven), so the causes
+    could not be read from the report. Every failing test is now named, up to
+    ``MAX_NAMED_FAILURES``, and the complete output is kept in a file that the
+    workflow uploads with the distributions.
+    """
+    failed = _failed_test_ids(output)
+    named = failed[:MAX_NAMED_FAILURES]
+    parts = [counts.strip("= ") or "pytest did not report totals"]
+    parts += named
+    if len(failed) > len(named):
+        parts.append(f"... and {len(failed) - len(named)} more")
+    if not failed:
+        # No summary lines: pytest stopped before running (usage or internal
+        # error). The end of the output is all there is.
+        parts.append(_tail(output, 14))
+    parts.append(f"full output: {TEST_LOG_DIR}/{log.name}")
+    return " | ".join(parts)
 
 
 def _check_tests(env: _Environment, dist, label: str) -> list[Result]:
@@ -1167,10 +1558,20 @@ def _check_tests(env: _Environment, dist, label: str) -> list[Result]:
                 "-o",
                 "addopts=",
                 "--no-header",
-                *_ignore_options(package, tree),
+                # Name every failure and error in the short summary, with its
+                # reason; ``_failure_detail`` reads those lines.
+                "-rfE",
+                *_ignore_options(package, tree, env.version),
             ],
             cwd=env.path,
             env=run_env,
+        )
+        log = env.outdir / TEST_LOG_DIR / _log_file_name(label, target, env.version)
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text(
+            done.stdout + ("\n--- stderr ---\n" + done.stderr if done.stderr else ""),
+            encoding="utf-8",
+            errors="replace",
         )
         lines = [line for line in done.stdout.splitlines() if line.strip()]
         counts = next(
@@ -1192,7 +1593,7 @@ def _check_tests(env: _Environment, dist, label: str) -> list[Result]:
         else:
             status = PASS if done.returncode == 0 else FAIL
             if status == FAIL:
-                summary = _tail(done.stdout + done.stderr, 14)
+                summary = _failure_detail(done.stdout + done.stderr, counts, log)
         results.append(
             Result(
                 "part's own tests pass",
@@ -1376,6 +1777,11 @@ def check_single(
         elif error:
             results.append(Result("install test tooling", label, python, FAIL, error))
         else:
+            results.append(
+                _check_probe_with_optional_packages(
+                    env, names, label=label, python=python
+                )
+            )
             results += _check_tests(env, dist, label)
     return results
 
@@ -1667,6 +2073,7 @@ def run(
     )
     uv = _require_uv()
     results = check_generated()
+    results += check_text_encoding()
     clean_start, present_before = check_clean_start()
     results += clean_start
     if not skip_build:

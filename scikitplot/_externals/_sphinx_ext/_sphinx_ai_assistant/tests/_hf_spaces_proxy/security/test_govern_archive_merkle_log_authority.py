@@ -802,7 +802,7 @@ def test_run165_transition_artifact_is_deterministic(base, tmp_path):
 
 
 def test_run165_documentation_mentions_old_new_handoff_recovery_and_revocation():
-    text = (SEC / "RELEASE_ARCHIVE_LOG_AUTHORITY_GUIDE.md").read_text().lower()
+    text = (SEC / "RELEASE_ARCHIVE_LOG_AUTHORITY_GUIDE.md").read_text(encoding="utf-8").lower()
     for phrase in ("old + new", "compromise recovery", "permanent revocation", "run 164"):
         assert phrase in text
 

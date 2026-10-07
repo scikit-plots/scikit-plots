@@ -931,6 +931,9 @@ def state_home(tmp_path, monkeypatch):
     """Point the default vault at a temporary state directory."""
     monkeypatch.delenv("CLEANPROMPT_VAULT", raising=False)
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    # Windows keeps state under %LOCALAPPDATA% and never reads XDG_STATE_HOME;
+    # without this the test would use, and change, the real user profile.
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "state"))
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     return tmp_path / "state" / "cleanprompt" / "vault.json"
 
@@ -1874,8 +1877,8 @@ class TestAskCommand:
         assert status == 0
         assert out == "Re: MRN: 00412345 ann@example.com"
         assert (
-            "00412345" not in seen.read_text()
-            and "ann@example.com" not in seen.read_text()
+            "00412345" not in seen.read_text(encoding="utf-8")
+            and "ann@example.com" not in seen.read_text(encoding="utf-8")
         )
 
     def test_show_sent_prints_what_left(self):
@@ -1950,14 +1953,14 @@ class TestPlanCommand:
             ]
         )
         assert status == 0
-        assert (tmp_path / "out" / "a.json").read_text() == '{"mrn": "[MRN-1]"}'
+        assert (tmp_path / "out" / "a.json").read_text(encoding="utf-8") == '{"mrn": "[MRN-1]"}'
 
     def test_a_stale_plan_fails_the_check(self, tmp_path):
         plan = tmp_path / "team.json"
         _run(["plan", "--pack", "patient", "--write", str(plan)])
-        document = json.loads(plan.read_text())
+        document = json.loads(plan.read_text(encoding="utf-8"))
         document["fingerprint"] = "0" * 64
-        plan.write_text(json.dumps(document))
+        plan.write_text(json.dumps(document), encoding="utf-8")
         status, out, _ = _run(["plan", "--check", str(plan), "-f", "json"])
         assert status == 1 and json.loads(out)["status"] == "stale"
 

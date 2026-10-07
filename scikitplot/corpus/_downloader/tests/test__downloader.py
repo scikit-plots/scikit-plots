@@ -229,7 +229,7 @@ def _make_concrete_dl(input_url: str, **kwargs) -> BaseDownloader:
     class Concrete(BaseDownloader):
         def download(self) -> DownloadResult:
             dest = self._resolve_dest_dir() / "f.txt"
-            dest.write_text("x")
+            dest.write_text("x", encoding="utf-8")
             return DownloadResult(input_url=self.input_url, output_path=dest, suffix=".txt")
 
     return Concrete(input_url=input_url, **kwargs)
@@ -1071,7 +1071,7 @@ class TestCustomDownloader:
         def handler(input_url, output_path, **kwargs):
             captured.update({"input_url": input_url, "dest": output_path, **kwargs})
             out = output_path / "out.txt"
-            out.write_text("ok")
+            out.write_text("ok", encoding="utf-8")
             return out
 
         result = CustomDownloader(
@@ -1089,7 +1089,7 @@ class TestCustomDownloader:
         def handler(input_url, output_path, **kwargs):
             captured.update(kwargs)
             out = output_path / "f.txt"
-            out.write_text("x")
+            out.write_text("x", encoding="utf-8")
             return out
 
         CustomDownloader(
@@ -1103,7 +1103,7 @@ class TestCustomDownloader:
     def test_handler_returning_str_coerced_to_path(self, tmp_dir: Path) -> None:
         def handler(input_url, output_path, **kwargs):
             out = output_path / "f.json"
-            out.write_text("{}")
+            out.write_text("{}", encoding="utf-8")
             return str(out)  # str, not Path
 
         result = CustomDownloader(
@@ -1134,7 +1134,7 @@ class TestCustomDownloader:
     def test_ssrf_skipped_when_disabled(self, tmp_dir: Path) -> None:
         def handler(input_url, output_path, **kwargs):
             out = output_path / "f.txt"
-            out.write_text("ok")
+            out.write_text("ok", encoding="utf-8")
             return out
 
         result = CustomDownloader(
@@ -1149,7 +1149,7 @@ class TestCustomDownloader:
         def handler(input_url, output_path, **kwargs):
             captured.update(kwargs)
             out = output_path / "f.txt"
-            out.write_text("ok")
+            out.write_text("ok", encoding="utf-8")
             return out
 
         CustomDownloader(
@@ -1164,7 +1164,7 @@ class TestCustomDownloader:
         def handler(input_url, output_path, **kwargs):
             captured.update(kwargs)
             out = output_path / "f.txt"
-            out.write_text("ok")
+            out.write_text("ok", encoding="utf-8")
             return out
 
         CustomDownloader(
@@ -1207,7 +1207,7 @@ class TestPublicAPI:
 class TestDocumentReaderIntegration:
     def test_accepts_web_downloader(self, tmp_dir: Path) -> None:
         txt = tmp_dir / "doc.txt"
-        txt.write_text("Hello world from downloader.")
+        txt.write_text("Hello world from downloader.", encoding="utf-8")
         fake = DownloadResult(input_url="https://example.com/doc.txt", output_path=txt, suffix=".txt")
 
         with patch.object(WebDownloader, "download", return_value=fake):
@@ -1220,7 +1220,7 @@ class TestDocumentReaderIntegration:
 
     def test_accepts_any_downloader(self, tmp_dir: Path) -> None:
         txt = tmp_dir / "readme.txt"
-        txt.write_text("# README")
+        txt.write_text("# README", encoding="utf-8")
         fake = DownloadResult(
             input_url="https://github.com/user/repo/blob/main/README.md",
             output_path=txt,
@@ -1253,8 +1253,8 @@ class TestDocumentReaderIntegration:
     def test_multi_source_close_calls_cleanup(self, tmp_dir: Path) -> None:
         txt1 = tmp_dir / "a.txt"
         txt2 = tmp_dir / "b.txt"
-        txt1.write_text("aaa")
-        txt2.write_text("bbb")
+        txt1.write_text("aaa", encoding="utf-8")
+        txt2.write_text("bbb", encoding="utf-8")
 
         dl1 = WebDownloader("https://x.com/a.txt", output_path=tmp_dir)
         dl2 = WebDownloader("https://x.com/b.txt", output_path=tmp_dir)
@@ -1342,7 +1342,7 @@ class TestEdgeCases:
     def test_custom_downloader_no_handler_kwargs(self, tmp_dir: Path) -> None:
         def handler(input_url, output_path, **kwargs):
             out = output_path / "f.txt"
-            out.write_text("ok")
+            out.write_text("ok", encoding="utf-8")
             return out
 
         result = CustomDownloader(

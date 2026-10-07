@@ -244,6 +244,11 @@
 #endif
 
 #ifdef ANNOYLIB_MULTITHREADED_BUILD
+  // ANNOY-MT-001: AnnoyIndexMultiThreadedBuildPolicy::build() states its
+  // invariant with assert(). Nothing else in this header uses assert, so
+  // without this include the multithreaded build did not compile at all
+  // ("'assert' was not declared in this scope", GCC 13, -std=c++17).
+  #include <cassert>
   #include <thread>
   #include <functional>
   #include <mutex>
@@ -1416,11 +1421,82 @@ inline float16_t annoy_fabs<float16_t>(float16_t x) {
 
 #endif // ANNOY_MATH_HELPERS_DEFINED
 
+// ---------------------------------------------------------------------------
+// ANNOY-WIN-001 / ANNOY-WIN-002: operations a mapped view forbids on Windows.
+//
+// POSIX lets a file be shortened, and replaced by rename, while it is mapped.
+// Windows refuses both for as long as a view of the file exists. Measured in
+// the Windows job of CI run 37555382019 (MSVC, Python 3.12):
+//
+//   * on_disk_build() + build(): "Unable to truncate: Input/output error (5)"
+//     from the final shrink in build(), which truncated the file while the
+//     new view was mapped (ANNOY-WIN-001);
+//   * save(p); save(p): "Unable to atomically replace target file", because
+//     the first save left the index mapped from p (ANNOY-WIN-002).
+//
+// The two switches below select an order that never needs either operation
+// on a mapped file. They default to the platform's requirement and can be
+// forced to 1 on any platform, which is how that order is tested where no
+// Windows machine is at hand (the Linux build passes the whole suite with
+// both forced to 1).
+// ---------------------------------------------------------------------------
+#ifndef ANNOY_SHRINK_REQUIRES_UNMAP
+  #if defined(_WIN32)
+    #define ANNOY_SHRINK_REQUIRES_UNMAP 1
+  #else
+    #define ANNOY_SHRINK_REQUIRES_UNMAP 0
+  #endif
+#endif
+#ifndef ANNOY_REPLACE_REQUIRES_UNMAP
+  #if defined(_WIN32)
+    #define ANNOY_REPLACE_REQUIRES_UNMAP 1
+  #else
+    #define ANNOY_REPLACE_REQUIRES_UNMAP 0
+  #endif
+#endif
+
+// Shrink a file-backed mapping with no view mapped during the truncate:
+// unmap, truncate, map again (ANNOY-WIN-001).
+//
+// Returns false only when no mapping could be established afterwards; *_ptr
+// is then NULL and the caller must not touch the nodes. When the truncate
+// itself fails the previous size is mapped again, *trunc_ok is false, errno
+// is the truncate's, and the mapping stays usable.
+inline bool annoy_shrink_unmapped(void** _ptr, int _fd,
+                                  size_t old_size, size_t new_size,
+                                  bool* trunc_ok) {
+  munmap(*_ptr, old_size);
+  const bool truncated = ftruncate(_fd, ANNOYLIB_FTRUNCATE_SIZE(new_size)) != -1;
+  const int truncate_errno = errno;
+  const size_t mapped_size = truncated ? new_size : old_size;
+#ifdef MAP_POPULATE
+  void* new_ptr = mmap(0, mapped_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, _fd, 0);
+#else
+  void* new_ptr = mmap(0, mapped_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+#endif
+  if (!truncated) {
+    if (trunc_ok) *trunc_ok = false;
+    if (new_ptr != MAP_FAILED) errno = truncate_errno;
+  }
+  if (new_ptr == MAP_FAILED) {
+    *_ptr = NULL;
+    return false;
+  }
+  *_ptr = new_ptr;
+  return true;
+}
+
 inline bool remap_memory_and_truncate(void** _ptr, int _fd,
                                       size_t old_size, size_t new_size,
                                       bool* trunc_ok) {
   if (trunc_ok) *trunc_ok = true;
   if (new_size == old_size) return true;
+
+#if ANNOY_SHRINK_REQUIRES_UNMAP
+  if (new_size < old_size) {
+    return annoy_shrink_unmapped(_ptr, _fd, old_size, new_size, trunc_ok);
+  }
+#endif
 
 #ifdef __linux__
   if (new_size > old_size) {
@@ -2955,6 +3031,10 @@ protected:
   bool   _loaded;     // True after load(); prevents add_item / build.
   int    _fd;         // File descriptor for on-disk build (-1 = not open; fd 0 is valid). ANNOY-FD-001 (guide 6.8).
   bool   _on_disk;    // True when on_disk_build() has been called.
+  std::string _loaded_path;   // File load() mapped this index from; empty when
+                              // it is not mapped by load(). save() maps it
+                              // again if a replace fails after the mapping
+                              // had to be released. ANNOY-WIN-002.
   std::string _on_disk_path;  // Final on-disk path; used to remove a partially
                               // finalized (header-less, corrupt) file if build()
                               // fails. ANNOY-SAVE-002 (guide 6.7).
@@ -3428,6 +3508,12 @@ public:
           _unlink(_on_disk_path.c_str());
 #endif
         }
+        if (_nodes == NULL) {
+          // ANNOY-WIN-001: the mapping itself could not be re-established, so
+          // there are no nodes to keep. Leave an empty index, not one whose
+          // accessors would read through a null pointer.
+          unload();
+        }
         return false;
       }
       _nodes_size = _n_nodes;
@@ -3528,15 +3614,59 @@ public:
       return false;
     }
 
+#if ANNOY_REPLACE_REQUIRES_UNMAP
+    // ANNOY-WIN-002: a file cannot be replaced while a view of it is mapped,
+    // and after an earlier save() or load() this index is mapped from a file
+    // that may be the target. The temporary file is complete and flushed, so
+    // the mapping can be released before the replace; if the replace then
+    // fails, the file the index was mapped from is untouched and is mapped
+    // again below. `filename` is copied first: it may point into state that
+    // unload() clears.
+    const std::string target(filename);
+    const std::string mapped_from(_loaded_path);
+    const bool released = (_fd != -1);
+    if (released) {
+      unload();
+    }
+    filename = target.c_str();
+#endif
+
     // Atomic replace: POSIX rename() replaces the target atomically on the same
     // filesystem; Windows uses MoveFileEx with MOVEFILE_REPLACE_EXISTING.
 #ifndef _MSC_VER
     if (rename(tmp.c_str(), filename) != 0) {
+      set_error_from_errno(error, "Unable to atomically replace target file");
 #else
     if (!MoveFileExA(tmp.c_str(), filename, MOVEFILE_REPLACE_EXISTING)) {
+      // MoveFileEx reports through GetLastError, not errno: with errno the
+      // message read "No error (0)". Read the code before any other call.
+      const unsigned long replace_error = static_cast<unsigned long>(GetLastError());
+      char replace_message[96];
+      std::snprintf(replace_message, sizeof(replace_message),
+                    "Unable to atomically replace target file: Windows error %lu",
+                    replace_error);
+      set_error_from_string(error, replace_message);
 #endif
-      set_error_from_errno(error, "Unable to atomically replace target file");
       std::remove(tmp.c_str());
+#if ANNOY_REPLACE_REQUIRES_UNMAP
+      if (released) {
+        // Map the index again from where it was mapped. If that fails too,
+        // the index is empty (n_items == 0) and the error says so.
+        char* remap_error = NULL;
+        if (mapped_from.empty() || !load(mapped_from.c_str(), prefault, &remap_error)) {
+          std::string combined(
+            (error != NULL && *error != NULL) ? *error : "Unable to atomically replace target file");
+          combined += "; the index could not be mapped again and is now empty";
+          if (error != NULL) {
+            free(*error);
+            *error = dup_cstr(combined.c_str());
+          }
+        }
+        if (remap_error != NULL) {
+          free(remap_error);
+        }
+      }
+#endif
       return false;
     }
 
@@ -3554,6 +3684,7 @@ public:
     _nodes_size = 0;
     _on_disk = false;
     _on_disk_path.clear();
+    _loaded_path.clear();
     _seed = Random::default_seed;
     _roots.clear();
     _mmap_base = NULL;  // cleared on every unload; set only by load() for headered files
@@ -3890,6 +4021,7 @@ public:
     }
     _loaded = true;
     _built  = true;
+    _loaded_path = filename;
     return true;
   }
 

@@ -210,9 +210,9 @@ class TestStage:
     def test_stale_build_directories_are_removed(self, repo):
         lib = repo / "libs" / "alpha"
         (lib / "build" / "lib" / "scikitplot" / "alpha").mkdir(parents=True)
-        (lib / "build" / "lib" / "scikitplot" / "alpha" / "deleted_module.py").write_text("")
+        (lib / "build" / "lib" / "scikitplot" / "alpha" / "deleted_module.py").write_text("", encoding="utf-8")
         (lib / "scikit_plots_alpha.egg-info").mkdir()
-        (lib / "scikit_plots_alpha.egg-info" / "SOURCES.txt").write_text("stale\n")
+        (lib / "scikit_plots_alpha.egg-info" / "SOURCES.txt").write_text("stale\n", encoding="utf-8")
         staging.stage("scikit-plots-alpha", lib, repo)
         assert not (lib / "build").exists()
         assert not (lib / "scikit_plots_alpha.egg-info").exists()
@@ -248,7 +248,7 @@ class TestStage:
     def test_refuses_a_directory_outside_libs(self, repo, tmp_path):
         elsewhere = repo / "elsewhere"
         elsewhere.mkdir()
-        (elsewhere / "pyproject.toml").write_text("")
+        (elsewhere / "pyproject.toml").write_text("", encoding="utf-8")
         with pytest.raises(ValueError, match="not a direct child"):
             staging.stage("scikit-plots-alpha", elsewhere, repo)
 

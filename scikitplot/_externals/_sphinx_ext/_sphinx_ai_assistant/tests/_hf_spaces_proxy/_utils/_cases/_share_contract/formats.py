@@ -3,7 +3,10 @@ from __future__ import annotations
 from ....._paths import RUNTIME_ROOT
 import importlib.util
 from pathlib import Path
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 import yaml
 
 ROOT = RUNTIME_ROOT

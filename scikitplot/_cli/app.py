@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import sys
@@ -111,25 +112,95 @@ def main(argv: Sequence[str] | None = None) -> int:
     except KeyboardInterrupt:  # pragma: no cover - interactive
         sys.stderr.write("Interrupted.\n")
         return exit_codes.INTERRUPTED
-    except BrokenPipeError:
-        # `scikitplot ... | head` closes the reader as soon as it has enough.
-        # That is the normal end of the invocation, not a failure, but Python
-        # would otherwise print a traceback and a second complaint at shutdown
-        # when it flushes stdout. Redirect the remaining stdout to devnull so
-        # that flush cannot raise again.
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, sys.stdout.fileno())
-        return exit_codes.OK
     except SystemExit:
         raise
     except Exception as exc:  # noqa: BLE001 - the last boundary before the OS
-        # exit_codes.SOFTWARE exists for exactly this and was never assigned:
-        # an unexpected exception escaped main() and the process exited 1 with a
-        # raw traceback, which is neither the documented code nor a useful
-        # report. stdout is the result channel and stays empty.
-        sys.stderr.write(f"Internal error: {type(exc).__name__}: {exc}\n")
-        logging.getLogger(__name__).debug("unhandled CLI failure", exc_info=exc)
-        return exit_codes.SOFTWARE
+        # `scikitplot ... | head` closes the reader as soon as it has enough.
+        # That is the normal end of the invocation, not a failure.
+        if isinstance(exc, OSError) and _is_closed_reader(exc):
+            return _reader_closed()
+        return _internal_error(exc)
+
+
+#: Whether the process runs on Windows. A module constant so that a test can
+#: take either branch of ``_is_closed_reader`` on any platform.
+_IS_WINDOWS = os.name == "nt"
+
+
+def _is_closed_reader(exc: OSError) -> bool:
+    """
+    Return whether an ``OSError`` means "the reader of stdout has gone away".
+
+    Parameters
+    ----------
+    exc : OSError
+        The error that escaped a command.
+
+    Returns
+    -------
+    bool
+        ``True`` for a broken pipe in either platform's form; ``False`` for any
+        other error, which is then reported as an internal error.
+
+    Notes
+    -----
+    **Developer.** On POSIX a write to a pipe whose reader closed raises
+    :class:`BrokenPipeError` (``EPIPE``). On
+    Windows the same write raises a plain ``OSError`` with ``errno.EINVAL``
+    ("Invalid argument"), so ``scikitplot ... | more`` followed by ``q`` was
+    reported as "Internal error" with exit status 70.
+
+    ``EINVAL`` alone is not proof, since many things raise it. The proof is
+    stdout itself: the bytes that could not be written are still pending, so
+    flushing fails again if, and only if, the pipe is the cause.
+    """
+    if isinstance(exc, BrokenPipeError):
+        return True
+    if not (_IS_WINDOWS and exc.errno == errno.EINVAL):
+        return False
+    try:
+        sys.stdout.flush()
+    except (OSError, ValueError):
+        return True
+    return False
+
+
+def _reader_closed() -> int:
+    """
+    End quietly after the reader of stdout closed; return the exit status.
+
+    Notes
+    -----
+    **Developer.** Python flushes stdout once more at shutdown and would
+    print a second complaint then. Pointing the descriptor at the null device
+    makes that flush succeed. A stdout without a descriptor (a replaced
+    stream object) has nothing to redirect.
+    """
+    try:
+        descriptor = sys.stdout.fileno()
+    except (OSError, ValueError, AttributeError):
+        return exit_codes.OK
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull, descriptor)
+    finally:
+        os.close(devnull)
+    return exit_codes.OK
+
+
+def _internal_error(exc: BaseException) -> int:
+    """
+    Report an exception that escaped ``main`` and return ``SOFTWARE``.
+
+    Notes
+    -----
+    **Developer.** ``exit_codes.SOFTWARE`` exists for exactly this: without it
+    the process exited 1 with a raw traceback, which is neither the documented
+    code nor a useful report. stdout is the result channel and stays empty.
+    """
+    sys.stderr.write(f"Internal error: {type(exc).__name__}: {exc}\n")
+    logging.getLogger(__name__).debug("unhandled CLI failure", exc_info=exc)
+    return exit_codes.SOFTWARE
 
 
 __all__ = ["main"]

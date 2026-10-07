@@ -11,6 +11,7 @@ import ast
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 import pytest
@@ -168,6 +169,22 @@ class TestRenderPyproject:
         ]
         assert MAP.FULL not in {generate.requirement_name(line) for line in every}
 
+    def test_states_the_core_api_it_is_built_for(self, package):
+        project = _parse_toml(generate.render_pyproject(package, MAP, META))["project"]
+        groups = {
+            group: entries
+            for group, entries in project.get("entry-points", {}).items()
+            if group.startswith(MAP.PARTS_GROUP)
+        }
+        if package.distribution == MAP.CORE:
+            # The core provides the contract; it does not consume it.
+            assert groups == {}
+        else:
+            assert groups == {
+                MAP.parts_group(): MAP.parts_entry_points(package.distribution)
+            }
+            assert groups[MAP.parts_group()], "a part must state at least one entry"
+
     def test_no_requirement_is_pinned(self, package):
         project = _parse_toml(generate.render_pyproject(package, MAP, META))["project"]
         every = project["dependencies"] + [
@@ -183,7 +200,13 @@ class TestRenderPyproject:
             assert optional[extra] == list(META.extras[extra])
         for extra, siblings in package.siblings:
             assert optional[extra] == [f"{sibling}>={META.version}" for sibling in siblings]
-        assert set(optional) == set(package.extras) | {extra for extra, _ in package.siblings}
+        for extra, requirements in package.own_extras:
+            assert optional[extra] == list(requirements)
+        assert set(optional) == (
+            set(package.extras)
+            | {extra for extra, _ in package.siblings}
+            | {extra for extra, _ in package.own_extras}
+        )
 
     def test_only_the_core_declares_the_console_script(self, package):
         project = _parse_toml(generate.render_pyproject(package, MAP, META))["project"]
@@ -279,6 +302,122 @@ class TestRenderSetup:
         # A wheel must run on machines other than the one that built it.
         source = generate.render_setup(package)
         assert "-march" not in source and "-mtune" not in source and "/arch:" not in source
+
+
+def _setup_function(name, package=None):
+    """
+    Return one function of a rendered ``setup.py``, without running the script.
+
+    The script stages files and calls ``setup()`` when it runs, so it cannot
+    be imported. The function is compiled alone, in a namespace that holds the
+    script's imports and constants (its top-level assignments of literals).
+    """
+    import ast
+    import os
+    import sysconfig
+
+    package = package or PACKAGES["scikit-plots-annoy"]
+    tree = ast.parse(generate.render_setup(package))
+    namespace = {"os": os, "sysconfig": sysconfig}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            try:
+                value = ast.literal_eval(node.value)
+            except ValueError:
+                continue
+            for target in node.targets:
+                namespace[target.id] = value
+    (function,) = [
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == name
+    ]
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "setup.py", "exec"), namespace)
+    return namespace[name]
+
+
+class TestThreadsOption:
+    """Whether an extension's multithreaded code is compiled in."""
+
+    @pytest.fixture
+    def enabled(self):
+        return _setup_function("_threads_enabled")
+
+    PLATFORMS = [
+        "linux-x86_64",
+        "macosx-11.0-arm64",
+        "win-amd64",
+        "emscripten-3.1.58-wasm32",
+        "emscripten_4_0_9_wasm32",
+        "wasi-0.2-wasm32",
+    ]
+
+    @pytest.mark.parametrize("platform", PLATFORMS)
+    @pytest.mark.parametrize("environ", [{}, {"SKPLT_BUILD_THREADS": "  "}, {"SKPLT_BUILD_THREADS": "0"}, {"SKPLT_BUILD_THREADS": " 0 "}])
+    def test_left_out_unless_asked_for_on_every_platform(self, enabled, platform, environ):
+        # The full distribution's Meson build leaves it out; so does this one.
+        assert enabled(environ, platform) is False
+
+    @pytest.mark.parametrize("platform", PLATFORMS[:3])
+    def test_compiled_in_when_asked_for(self, enabled, platform):
+        assert enabled({"SKPLT_BUILD_THREADS": "1"}, platform) is True
+        assert enabled({"SKPLT_BUILD_THREADS": " 1 "}, platform) is True
+
+    @pytest.mark.parametrize("platform", PLATFORMS[3:])
+    def test_a_target_without_threads_refuses_the_request(self, enabled, platform):
+        with pytest.raises(SystemExit) as stopped:
+            enabled({"SKPLT_BUILD_THREADS": "1"}, platform)
+        assert platform in str(stopped.value) and "no threads" in str(stopped.value)
+
+    @pytest.mark.parametrize("value", ["yes", "true", "on", "2", "-1", "False"])
+    def test_any_other_value_stops_the_build(self, enabled, value):
+        with pytest.raises(SystemExit) as stopped:
+            enabled({"SKPLT_BUILD_THREADS": value}, "linux-x86_64")
+        assert "SKPLT_BUILD_THREADS" in str(stopped.value) and repr(value) in str(stopped.value)
+
+    def test_reads_the_real_environment_and_platform_by_default(self, enabled, monkeypatch):
+        monkeypatch.delenv("SKPLT_BUILD_THREADS", raising=False)
+        assert enabled() is False
+        monkeypatch.setenv("SKPLT_BUILD_THREADS", "0")
+        assert enabled() is False
+        monkeypatch.setenv("SKPLT_BUILD_THREADS", "1")
+        assert enabled() is (not sysconfig.get_platform().startswith(("emscripten", "wasi")))
+
+    def test_no_meson_build_of_the_full_distribution_defines_the_macro(self):
+        """The reason for the default: both builds must behave the same."""
+        defining = [
+            path.relative_to(ROOT).as_posix()
+            for path in (ROOT / "scikitplot").rglob("meson.build")
+            if "ANNOYLIB_MULTITHREADED_BUILD" in path.read_text(encoding="utf-8")
+        ]
+        assert defining == [], (
+            "the full build now defines the macro: make SKPLT_BUILD_THREADS "
+            "default to on for platforms with threads, in the same change"
+        )
+
+    @pytest.mark.parametrize("package", registry.PACKAGES, ids=lambda p: p.distribution)
+    def test_readme_explains_threads_exactly_where_there_are_any(self, package):
+        readme = generate.render_readme_package(package, MAP, META)
+        has_threads = any(e.threads_macro for e in package.extensions)
+        assert ("## Threads" in readme) is has_threads
+        if has_threads:
+            assert f"SKPLT_BUILD_THREADS=1 pip install --no-binary {package.distribution}" in readme
+            assert generate.NIGHTLY_INDEX in readme
+            assert "n_jobs=1" in readme
+
+    def test_annoy_extensions_name_the_macro_of_the_vendored_header(self):
+        header = (ROOT / "scikitplot/cexternals/_annoy/src/annoylib.h").read_text(
+            encoding="utf-8"
+        )
+        for extension in PACKAGES["scikit-plots-annoy"].extensions:
+            assert extension.threads_macro == "ANNOYLIB_MULTITHREADED_BUILD"
+            assert f"#ifdef {extension.threads_macro}" in header
+
+    def test_the_macro_is_applied_by_the_build_and_not_declared_unconditionally(self):
+        source = generate.render_setup(PACKAGES["scikit-plots-annoy"])
+        for extension in PACKAGES["scikit-plots-annoy"].extensions:
+            assert extension.threads_macro not in dict(extension.define_macros)
+        assert 'if threads and entry["threads_macro"]:' in source
+        assert source.count('"-pthread"') == 2  # compile and link
 
 
 class TestRenderSetupIsOneScript:

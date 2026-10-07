@@ -41,7 +41,7 @@ def test_the_command_sees_placeholders_and_the_user_sees_values(tmp_path):
     )
     assert status == 0
     assert out == "MRN: 00412345 for ann@example.com"
-    seen = record.read_text()
+    seen = record.read_text(encoding="utf-8")
     assert "00412345" not in seen and "ann@example.com" not in seen
 
 

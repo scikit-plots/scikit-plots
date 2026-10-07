@@ -17,7 +17,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -28,7 +31,9 @@ except ImportError:  # canonical package import
 
 logger = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_archive_log_authority_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_archive_log_authority_policy.toml").read_text(encoding="utf-8")
+)
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 
 

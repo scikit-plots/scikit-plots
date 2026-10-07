@@ -273,7 +273,7 @@ def _prepared(tmp_path: Path):
         now=PUB_NOW,
     )
     evidence = tmp_path / "signature-verifier-output.json"
-    evidence.write_text('{"verified":true,"source":"external-test-verifier"}\n')
+    evidence.write_text('{"verified":true,"source":"external-test-verifier"}\n', encoding="utf-8")
     signature = tmp_path / "publication-attestation.signature-verification.json"
     finalize.write_signature_verification_record(
         publication_dir=publication,
@@ -308,7 +308,7 @@ def test_run151_end_to_end_attests_reverifies_and_binds_final_record(tmp_path: P
     )
     assert result["phase"] == "bound" and result["artifact_count"] == 4
     assert binder.remote[finalize.RECORD_NAME] == (output / finalize.RECORD_NAME).read_bytes()
-    record = json.loads((output / finalize.RECORD_NAME).read_text())
+    record = json.loads((output / finalize.RECORD_NAME).read_text(encoding="utf-8"))
     assert record["signer"]["identity"] == SIGNER_IDENTITY
     assert record["independentVerifier"] == {
         "identity": VERIFIER_IDENTITY,
@@ -318,7 +318,7 @@ def test_run151_end_to_end_attests_reverifies_and_binds_final_record(tmp_path: P
     }
     assert record["verification"]["independentRemoteReadbackVerifiedAfterSignature"] is True
     assert record["target"] == {"publisher": "test-publisher", "targetId": "release/run151-test"}
-    text = "\n".join(p.read_text() for p in output.rglob("*.json"))
+    text = "\n".join(p.read_text(encoding="utf-8") for p in output.rglob("*.json"))
     assert str(tmp_path) not in text and "localPath" not in text
     assert (output / "publication-transparency.json").read_bytes() == (publication / "publication-transparency.json").read_bytes()
     assert (output / "publication-attestation.json").read_bytes() == (prepared / "publication-attestation.json").read_bytes()
@@ -356,14 +356,14 @@ def test_run151_final_record_is_deterministic_and_binding_retry_is_resumable(tmp
         now=FINAL_NOW + timedelta(minutes=1),
     )
     assert _sha(second / finalize.RECORD_NAME) == first_sha
-    bind_results = [json.loads(p.read_text()) for p in (second / "binding-results").glob("*.bind.json")]
+    bind_results = [json.loads(p.read_text(encoding="utf-8")) for p in (second / "binding-results").glob("*.bind.json")]
     assert bind_results[0]["status"] == "present"
 
 
 def test_run151_rejects_tampered_noncanonical_or_extra_publication_evidence(tmp_path: Path):
     publication, _ = _publication(tmp_path)
-    transparency = json.loads((publication / "publication-transparency.json").read_text())
-    (publication / "publication-transparency.json").write_text(json.dumps(transparency, indent=2))
+    transparency = json.loads((publication / "publication-transparency.json").read_text(encoding="utf-8"))
+    (publication / "publication-transparency.json").write_text(json.dumps(transparency, indent=2), encoding="utf-8")
     with pytest.raises(finalize.TransparencyError, match="PUBLICATION_TRANSPARENCY_NOT_CANONICAL"):
         finalize.prepare_attestation(
             publication_dir=publication,
@@ -374,7 +374,7 @@ def test_run151_rejects_tampered_noncanonical_or_extra_publication_evidence(tmp_
         )
 
     publication2, _ = _publication(tmp_path / "extra")
-    (publication2 / "extra.json").write_text("{}")
+    (publication2 / "extra.json").write_text("{}", encoding="utf-8")
     with pytest.raises(finalize.TransparencyError, match="PUBLICATION_DIRECTORY_ALLOWLIST_MISMATCH"):
         finalize.prepare_attestation(
             publication_dir=publication2,
@@ -482,7 +482,7 @@ def test_run151_signature_record_rebinds_attestation_signer_and_external_verifie
             now=FINAL_NOW,
         )
 
-    evidence.write_text("changed verifier evidence\n")
+    evidence.write_text("changed verifier evidence\n", encoding="utf-8")
     with pytest.raises(finalize.TransparencyError, match="SIGNATURE_VERIFIER_EVIDENCE_HASH_MISMATCH"):
         finalize.finalize_publication(
             publication_dir=publication,
@@ -501,7 +501,7 @@ def test_run151_signature_record_rebinds_attestation_signer_and_external_verifie
 def test_run151_detects_attestation_tamper_after_signature(tmp_path: Path):
     publication, publisher, prepared, evidence, signature, _ = _prepared(tmp_path)
     att_path = prepared / "publication-attestation.json"
-    att = json.loads(att_path.read_text())
+    att = json.loads(att_path.read_text(encoding="utf-8"))
     att["predicate"]["generatedAt"] = "2026-09-05T04:30:30Z"
     att_path.write_bytes(finalize._canonical_bytes(att))
     with pytest.raises(finalize.TransparencyError, match="SIGNATURE_RECORD_SUBJECT_MISMATCH"):
@@ -622,7 +622,7 @@ def test_run151_command_adapters_bound_stdout_and_reject_duplicate_json_keys(tmp
         "import sys\n"
         "sys.stdin.buffer.read()\n"
         "sys.stdout.buffer.write(b'x' * 400000)\n"
-        "sys.stdout.flush()\n"
+        "sys.stdout.flush()\n", encoding="utf-8"
     )
     noisy.chmod(0o755)
     adapter = finalize.command_verifier([sys.executable, str(noisy)])
@@ -637,7 +637,7 @@ def test_run151_command_adapters_bound_stdout_and_reject_duplicate_json_keys(tmp
         "#!/usr/bin/env python3\n"
         "import sys\n"
         "sys.stdin.buffer.read()\n"
-        "sys.stdout.write('{\\\"schemaVersion\\\":1,\\\"schemaVersion\\\":1}')\n"
+        "sys.stdout.write('{\\\"schemaVersion\\\":1,\\\"schemaVersion\\\":1}')\n", encoding="utf-8"
     )
     duplicate.chmod(0o755)
     adapter = finalize.command_binder([sys.executable, str(duplicate)])
@@ -676,11 +676,11 @@ def test_run151_rejects_stale_unsigned_attestation_before_signature_record(tmp_p
         now=PUB_NOW,
     )
     att_path = prepared / "publication-attestation.json"
-    att = json.loads(att_path.read_text())
+    att = json.loads(att_path.read_text(encoding="utf-8"))
     att["predicate"]["generatedAt"] = "2026-09-01T04:30:00Z"
     att_path.write_bytes(finalize._canonical_bytes(att))
     evidence = tmp_path / "external.json"
-    evidence.write_text("{}\n")
+    evidence.write_text("{}\n", encoding="utf-8")
     with pytest.raises(finalize.TransparencyError, match="POST_PUBLICATION_ATTESTATION_STALE"):
         finalize.write_signature_verification_record(
             publication_dir=publication,

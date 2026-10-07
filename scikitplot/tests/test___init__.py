@@ -676,6 +676,43 @@ class TestPartialDistribution:
         assert message.count("pip install") == 1
         assert command + "\n" in message
 
+    @staticmethod
+    def _site_with_a_part_that_fails_to_import(tmp_path):
+        site = _make_site(tmp_path, parts=["corpus"])
+        (site / "scikitplot" / "corpus" / "__init__.py").write_text(
+            "import _a_dependency_that_is_not_installed\n", encoding="utf-8"
+        )
+        return site
+
+    def test_a_part_that_fails_to_import_names_the_installation_problems(self, tmp_path):
+        """An error from deep inside another package comes with the likely cause."""
+        versions = dict(_CORE_ONLY, **{"numpy": "2.0.0", "scikit-learn": "1.3.0"})
+        data, _ = _import_root(
+            self._site_with_a_part_that_fails_to_import(tmp_path),
+            versions=versions, probe=["scikitplot.corpus"],
+        )
+        kind, message = data["probe"]["scikitplot.corpus"]
+        assert kind == "AttributeError"
+        assert "problems that may be the cause" in message
+        assert "numpy 2.0.0 with scikit-learn 1.3.0" in message
+        assert 'pip install --upgrade "scikit-learn>=1.4.2"' in message
+        assert "_a_dependency_that_is_not_installed" in message
+        assert "is not installed. Install it with" not in message
+
+    def test_a_part_that_fails_to_import_in_a_coherent_installation(self, tmp_path):
+        """No problem is invented: the original error stands on its own."""
+        # No distribution is "installed" here: the stand-in site holds only
+        # part of the core's files, which a report on an installed core would
+        # rightly name as missing.
+        data, _ = _import_root(
+            self._site_with_a_part_that_fails_to_import(tmp_path),
+            versions={}, probe=["scikitplot.corpus"],
+        )
+        kind, message = data["probe"]["scikitplot.corpus"]
+        assert kind == "AttributeError"
+        assert "problems that may be the cause" not in message
+        assert "_a_dependency_that_is_not_installed" in message
+
     def test_unknown_attribute_gets_no_install_hint(self, tmp_path):
         """Nothing ships a name that does not exist, so nothing is suggested."""
         data, _ = _import_root(

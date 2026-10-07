@@ -99,13 +99,13 @@ class TestAtomicWrite:
     def test_creates_owner_only_with_a_parent(self, tmp_path):
         target = tmp_path / "state" / "vault.json"
         atomic_write(str(target), "{}\n")
-        assert target.read_text() == "{}\n"
+        assert target.read_text(encoding="utf-8") == "{}\n"
         if os.name == "posix":
             assert stat.S_IMODE(target.stat().st_mode) == 0o600
 
     def test_a_failure_leaves_the_old_file_and_no_scratch(self, tmp_path, monkeypatch):
         target = tmp_path / "vault.json"
-        target.write_text("old")
+        target.write_text("old", encoding="utf-8")
 
         def refuse(src, dst):
             raise OSError("disk full")
@@ -113,19 +113,19 @@ class TestAtomicWrite:
         monkeypatch.setattr(os, "replace", refuse)
         with pytest.raises(OSError, match="disk full"):
             atomic_write(str(target), "new")
-        assert target.read_text() == "old"
+        assert target.read_text(encoding="utf-8") == "old"
         assert sorted(p.name for p in tmp_path.iterdir()) == ["vault.json"]
 
     def test_a_symlink_keeps_pointing_at_its_target(self, tmp_path):
         real = tmp_path / "real.json"
-        real.write_text("old")
+        real.write_text("old", encoding="utf-8")
         link = tmp_path / "link.json"
         try:
             link.symlink_to(real)
         except OSError:
             pytest.skip("symlinks unavailable")
         atomic_write(str(link), "new")
-        assert link.is_symlink() and real.read_text() == "new"
+        assert link.is_symlink() and real.read_text(encoding="utf-8") == "new"
 
     def test_readers_never_see_a_partial_file(self, tmp_path):
         import threading
@@ -137,7 +137,7 @@ class TestAtomicWrite:
 
         def read():
             while not stop.is_set():
-                seen.add(len(target.read_text()))
+                seen.add(len(target.read_text(encoding="utf-8")))
 
         reader = threading.Thread(target=read)
         reader.start()

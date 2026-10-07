@@ -135,7 +135,7 @@ class TestPublicPurgeCache:
 
         root = get_cache_dir(tmp_path / "to_purge")
         root.mkdir(exist_ok=True)
-        (root / "somefile.txt").write_text("x")
+        (root / "somefile.txt").write_text("x", encoding="utf-8")
         purge_cache(tmp_path / "to_purge")
         assert not root.exists()
 
@@ -526,7 +526,7 @@ class TestImportCachedResultPublic:
 
     def test_meta_source_sha256_propagated(self, tmp_path: Path) -> None:
         build_dir, artifact = _write_cache_entry(tmp_path, _FAKE_KEY)
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["source_sha256"] = "deadbeef" * 8
         write_meta(build_dir, meta)
 
@@ -761,15 +761,15 @@ class TestCythonImportAllBranches:
     def test_non_pyx_files_ignored(self, tmp_path: Path) -> None:
         d = tmp_path / "src"
         d.mkdir()
-        (d / "helper.py").write_text("x = 1")
-        (d / "data.txt").write_text("data")
+        (d / "helper.py").write_text("x = 1", encoding="utf-8")
+        (d / "data.txt").write_text("data", encoding="utf-8")
         result = cython_import_all(d)
         assert result == {}
 
     def test_custom_pattern_no_match_returns_empty(self, tmp_path: Path) -> None:
         d = tmp_path / "src"
         d.mkdir()
-        (d / "mod.pyx").write_text("def f(): pass")
+        (d / "mod.pyx").write_text("def f(): pass", encoding="utf-8")
         result = cython_import_all(d, pattern="*.cu")
         assert result == {}
 
@@ -1057,13 +1057,13 @@ class TestScenario9DocstringExamples:
         self, tmp_path: Path
     ) -> None:
         p = tmp_path
-        _ = (p / "a.c").write_text("int a() { return 1; }")
-        _ = (p / "b.cpp").write_text("int b() { return 2; }")
+        _ = (p / "a.c").write_text("int a() { return 1; }", encoding="utf-8")
+        _ = (p / "b.cpp").write_text("int b() { return 2; }", encoding="utf-8")
         srcs = collect_c_api_sources(str(tmp_path))
         assert len(srcs) == 2
 
     def test_collect_header_dirs_one_dir_example(self, tmp_path: Path) -> None:
-        _ = (tmp_path / "mylib.h").write_text("#pragma once")
+        _ = (tmp_path / "mylib.h").write_text("#pragma once", encoding="utf-8")
         dirs = collect_header_dirs(str(tmp_path))
         assert len(dirs) == 1
 
@@ -1122,8 +1122,8 @@ class TestRegressionR4DoctestNoStrayOutput:
     ) -> None:
         """The doctest uses ``_ =`` to suppress write_text return values."""
         p = tmp_path
-        _ = (p / "a.c").write_text("int a() { return 1; }")
-        _ = (p / "b.cpp").write_text("int b() { return 2; }")
+        _ = (p / "a.c").write_text("int a() { return 1; }", encoding="utf-8")
+        _ = (p / "b.cpp").write_text("int b() { return 2; }", encoding="utf-8")
         srcs = collect_c_api_sources(str(tmp_path))
         # Must be exactly 2 — not 21 or any other stray value.
         assert len(srcs) == 2

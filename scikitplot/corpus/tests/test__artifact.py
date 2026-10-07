@@ -125,7 +125,7 @@ class TestRowIndexLeakage:
             artifact.doc_id_for(99)
 
     def test_row_order_is_recorded_not_derived(self, artifact, docs) -> None:
-        payload = json.loads((artifact.path / "sidecar.json").read_text())
+        payload = json.loads((artifact.path / "sidecar.json").read_text(encoding="utf-8"))
         assert payload["doc_ids"] == [d.doc_id for d in docs]
 
 
@@ -181,21 +181,21 @@ class TestCorruption:
     def test_unknown_sidecar_schema_is_refused(self, artifact) -> None:
         """Refused rather than interpreted, as with the document schema."""
         path = artifact.path / "sidecar.json"
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding="utf-8"))
         payload["sidecar_schema"] = "999"
-        path.write_text(json.dumps(payload))
+        path.write_text(json.dumps(payload), encoding="utf-8")
         with pytest.raises(ArtifactError, match="sidecar schema"):
             ANNIndexArtifact.open(artifact.path)
 
     def test_sidecar_disagreeing_with_generation_is_refused(self, artifact) -> None:
         """The generation records a count; the sidecar records the rows."""
         path = artifact.path / "sidecar.json"
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding="utf-8"))
         payload["doc_ids"] = payload["doc_ids"][:1]
-        path.write_text(json.dumps(payload))
+        path.write_text(json.dumps(payload), encoding="utf-8")
         with pytest.raises(ArtifactError, match="inconsistent"):
             ANNIndexArtifact.open(artifact.path)
 
     def test_current_schema_is_the_one_written(self, artifact) -> None:
-        payload = json.loads((artifact.path / "manifest.json").read_text())
+        payload = json.loads((artifact.path / "manifest.json").read_text(encoding="utf-8"))
         assert payload["sidecar_schema"] == SIDECAR_SCHEMA

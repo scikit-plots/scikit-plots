@@ -20,12 +20,17 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_transparency_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_transparency_policy.toml").read_text(encoding="utf-8")
+)
 PUBLICATION_PREDICATE_TYPE = str(POLICY["publication_predicate_type"])
 ATTESTATION_PREDICATE_TYPE = str(POLICY["attestation_predicate_type"])
 FINAL_RECORD_PREDICATE_TYPE = str(POLICY["final_record_predicate_type"])

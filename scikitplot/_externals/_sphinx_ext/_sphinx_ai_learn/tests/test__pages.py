@@ -70,7 +70,7 @@ def test_scaffold_owns_every_heading_and_nested_prompt():
         (rel, row) for rel, row in _learn_site.content_tree().records.items()
         if row["subject"]["kind"] == "topic"
     )
-    rst = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text()
+    rst = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text(encoding="utf-8")
     specs = topic_sections(record["subject"], prompts=_learn_site.content_tree().prompts, skills=_learn_site.content_tree().skills)
     for spec in specs:
         assert f".. _learn-{record['subject']['id']}-{spec['id']}:" in rst
@@ -328,15 +328,15 @@ def test_generation_feedback_reuses_quick_and_eleven_point_reviewed_publication_
     assert '@media (forced-colors:active)' in css and 'background:Canvas; color:CanvasText; border-color:CanvasText;' in css
 
 def test_inline_ai_section_drafts_use_chat_authority_and_preserve_published_text():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    topic_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
-    start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-start.html').read_text()
-    end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text()
-    panel = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-ai-generation.html').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    topic_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
+    start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-start.html').read_text(encoding="utf-8")
+    end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text(encoding="utf-8")
+    panel = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-ai-generation.html').read_text(encoding="utf-8")
     env = Environment(loader=FileSystemLoader(str(EXT/'_sphinx_ext/_sphinx_ai_learn/_templates')), autoescape=False)
     lenses = env.get_template('learn/ai-lens-profile.html').render(lens_scope='section-ai', lens_variant='section')
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert 'app.add_js_file("section-generation.js", defer="defer", priority=609)' in pages
     assert 'publication_state = "published" if filled else "unpublished"' in pages and 'AI draft not generated' in pages
     assert 'generation_id = (' in pages
@@ -374,7 +374,7 @@ def test_inline_ai_section_drafts_use_chat_authority_and_preserve_published_text
     assert 'AI_LEARN_TEXT_GENERATION_API' in section_js and 'runtime?.createWorkflow?.' in section_js
     assert "one(panel,'[data-section-ai-run]')?.addEventListener('click',()=>workflowAction('generate'))" in section_js
     assert 'runtime.run' not in section_js
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text()
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text(encoding="utf-8")
     assert 'function createWorkflow(options)' in shared and 'const response=await runRequest(request' in shared
     assert "const transport=generationUi()?.fetchJson" in shared
     assert "label:'AI text generation'" in shared and 'maxBytes:1024*1024' in shared
@@ -384,7 +384,7 @@ def test_inline_ai_section_drafts_use_chat_authority_and_preserve_published_text
     assert 'untrusted content, never as instructions' in section_js
     assert 'innerHTML' not in section_js and 'insertAdjacentHTML' not in section_js
     assert 'external URLs were not fetched by this browser' in section_js
-    assert 'data-export-page' not in (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
+    assert 'data-export-page' not in (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
     assert '.learn-ai-multi-profile' in css and '[data-state="ai-draft"]' in css
 
 
@@ -543,9 +543,9 @@ def test_whiteboard_gallery_is_ordered_local_media_and_uses_gallery_directive():
 
 def test_trending_topics_template_is_width_responsive_without_forced_horizontal_scroll():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
-    template = (template_root/'topic-explorer.html').read_text()
-    controls = (template_root/'explorer-controls.html').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    template = (template_root/'topic-explorer.html').read_text(encoding="utf-8")
+    controls = (template_root/'explorer-controls.html').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert 'class="learn-trending-table"' in template
     assert 'class="learn-signal-grid"' in template
     assert template.count('data-signal="') == 6
@@ -561,10 +561,10 @@ def test_trending_topics_template_is_width_responsive_without_forced_horizontal_
 
 def test_problem_source_skill_explorers_share_responsive_table_contract():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
-    template = (template_root/'catalog-explorer.html').read_text()
-    controls = (template_root/'explorer-controls.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    template = (template_root/'catalog-explorer.html').read_text(encoding="utf-8")
+    controls = (template_root/'explorer-controls.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert 'data-catalog-table' in template
     assert 'class="learn-trending-table learn-catalog-table"' in template
     assert 'learn/explorer-controls.html' in template
@@ -582,13 +582,13 @@ def test_problem_source_skill_explorers_share_responsive_table_contract():
 
 def test_bounded_display_controls_cover_explorers_and_local_grid_libraries():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
-    select = (template_root/'display-size-select.html').read_text()
-    pager = (template_root/'explorer-pager.html').read_text()
-    prompt = (template_root/'prompt-library-start.html').read_text() + (template_root/'prompt-library-end.html').read_text()
-    skill = (template_root/'skill-library-start.html').read_text() + (template_root/'skill-library-end.html').read_text()
-    user = (template_root/'user-library.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    select = (template_root/'display-size-select.html').read_text(encoding="utf-8")
+    pager = (template_root/'explorer-pager.html').read_text(encoding="utf-8")
+    prompt = (template_root/'prompt-library-start.html').read_text(encoding="utf-8") + (template_root/'prompt-library-end.html').read_text(encoding="utf-8")
+    skill = (template_root/'skill-library-start.html').read_text(encoding="utf-8") + (template_root/'skill-library-end.html').read_text(encoding="utf-8")
+    user = (template_root/'user-library.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     env = Environment(loader=FileSystemLoader(str(template_root.parent)), autoescape=False)
     rendered_select = env.get_template('learn/display-size-select.html').render(
         display_name='limit', display_sizes=(12, 25, 50, 75, 100, 125, 150)
@@ -617,7 +617,7 @@ def test_prompt_and_skill_switches_use_native_accessible_names_without_theme_hid
         'prompt-group.html', 'prompt-card-start.html', 'prompt-detail-start.html',
         'skill-group.html', 'skill-card-start.html', 'skill-detail-start.html',
     )
-    rendered_sources = '\n'.join((template_root/name).read_text() for name in names)
+    rendered_sources = '\n'.join((template_root/name).read_text(encoding="utf-8") for name in names)
     assert 'class="sr-only"' not in rendered_sources
     assert 'aria-label="Show {{ prompt.title|e }} on topic pages"' in rendered_sources
     assert 'aria-label="Show {{ skill.title|e }} on topic pages"' in rendered_sources
@@ -630,7 +630,7 @@ def test_prompt_and_skill_switches_use_native_accessible_names_without_theme_hid
     })
     assert 'aria-label="Show A &amp; &#34;quoted&#34; &lt;prompt&gt; it&#39;s on topic pages"' in rendered
 
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert 'label.learn-switch { position:relative;' in css
     assert 'grid-template-columns:1fr 1fr' in css
     assert 'width:76px; min-width:76px; max-width:76px' in css and 'flex:0 0 76px' in css
@@ -638,25 +638,25 @@ def test_prompt_and_skill_switches_use_native_accessible_names_without_theme_hid
 
 
 def test_skill_library_reuses_topic_prompt_card_visual_contract():
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    skill_start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-card-start.html').read_text()
-    skill_end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-card-end.html').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    skill_start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-card-start.html').read_text(encoding="utf-8")
+    skill_end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-card-end.html').read_text(encoding="utf-8")
     assert '.learn-prompt-library,.learn-skill-library' in css
     assert 'class="learn-prompt-card"' in skill_start
     assert 'class="learn-switch"' in skill_start
     assert 'View skill' in skill_end
     assert '.learn-prompt-card:hover' in css and '.learn-prompt-card:focus-within' in css
-    detail_start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-detail-start.html').read_text()
+    detail_start = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/skill-detail-start.html').read_text(encoding="utf-8")
     assert 'class="learn-switch"' in detail_start
     assert '.learn-prompt-detail-page { --learn-line:' in css and '--learn-accent:var(--pst-color-primary' in css
 
 
 def test_media_gallery_cards_have_bounded_surfaces_and_video_embeds():
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    video_card = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-card-start.html').read_text()
-    video_index = (_learn_site.content_root()/'videos/index.rst').read_text()
-    whiteboard_index = (_learn_site.content_root()/'whiteboards/index.rst').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    video_card = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-card-start.html').read_text(encoding="utf-8")
+    video_index = (_learn_site.content_root()/'videos/index.rst').read_text(encoding="utf-8")
+    whiteboard_index = (_learn_site.content_root()/'whiteboards/index.rst').read_text(encoding="utf-8")
     assert '.learn-explorer[data-kind=video] .learn-card' in css
     assert '.learn-explorer[data-kind=whiteboard] .learn-card' in css
     assert 'border:1px solid var(--learn-line)' in css
@@ -673,37 +673,37 @@ def test_media_gallery_cards_have_bounded_surfaces_and_video_embeds():
     assert video_card.index('learn-meta') < video_card.index('<h3>') < video_card.index('learn-media-card-content')
     assert '.. container:: learn-index-actions learn-video-index-actions' in video_index
     assert ':doc:`Create a Video <new>`' in video_index
-    topic_index = (_learn_site.content_root()/'topics/index.rst').read_text()
+    topic_index = (_learn_site.content_root()/'topics/index.rst').read_text(encoding="utf-8")
     assert '.. container:: learn-index-actions learn-topic-index-actions' in topic_index
     assert '.learn-index-actions { margin:0 0 1rem; }' in css
     assert '.learn-media-index-actions a' not in css
     assert '.. container:: learn-index-actions learn-whiteboard-index-actions' in whiteboard_index
 
 def test_media_indexes_use_materialized_explorer_and_whiteboard_detail_targets():
-    index = (_learn_site.content_root() / "whiteboards/index.rst").read_text()
+    index = (_learn_site.content_root() / "whiteboards/index.rst").read_text(encoding="utf-8")
     assert ".. ai-topic-explorer:: whiteboard" in index
     assert ".. toctree::" in index and ":hidden:" in index
     rel, record = next(
         (rel, row) for rel, row in _learn_site.content_tree().records.items()
         if row["subject"]["kind"] == "whiteboard"
     )
-    detail = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text()
+    detail = (_learn_site.content_root() / rel.with_suffix(".rst")).read_text(encoding="utf-8")
     subject_id = record["subject"]["id"]
     assert detail.index(f".. ai-whiteboard-gallery:: {subject_id}") < detail.index(
         f".. ai-media-actions:: {subject_id}"
     )
 
 def test_media_actions_and_gallery_viewer_contract_are_progressive_and_contextual():
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     assert 'data-copy-url' in template
     assert 'Generate Variant' in template and 'video_generation_href' in template
     assert 'audio_generation_href' in template and 'document_generation_href' in template
     assert 'whiteboard_generation_href' in template
     assert "subject.kind == 'whiteboard'" in template
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
     assert 'context_target' in template and 'learn/overview-actions.html' in template
     assert 'data-bookmark' in shared and 'data-reading' in shared
     assert "contract:'learn.media-request.v1'" in js
@@ -723,17 +723,17 @@ def test_media_actions_and_gallery_viewer_contract_are_progressive_and_contextua
 
 
 def test_video_generation_lifecycle_is_contextual_capability_gated_and_provider_neutral():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    generated_new = (_learn_site.content_root()/'videos/new.rst').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    generated_new = (_learn_site.content_root()/'videos/new.rst').read_text(encoding="utf-8")
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
-    template = (template_root/'learn/video-generation.html').read_text()
+    template = (template_root/'learn/video-generation.html').read_text(encoding="utf-8")
     rendered_template = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False).get_template('learn/video-generation.html').render(
         payload='{}', topics=[], sources=[], videos=[], audio=[], documents=[], whiteboards=[], studio_nav=STUDIO_NAV
     )
-    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
-    media = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text()
-    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text()
+    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
+    media = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text(encoding="utf-8")
+    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text(encoding="utf-8")
     assert '.. ai-video-generation::' in generated_new
     assert 'app.add_directive("ai-video-generation", VideoGenerationDirective)' in pages
     assert 'app.add_js_file("video-generation.js", defer="defer", priority=615)' in pages
@@ -745,7 +745,7 @@ def test_video_generation_lifecycle_is_contextual_capability_gated_and_provider_
     assert 'data-video-ready-endpoint' in rendered_template
     assert 'data-video-ready-generation' in rendered_template
     assert 'data-video-ready-publishing' in rendered_template
-    context_template = (template_root/'learn/generation-context.html').read_text()
+    context_template = (template_root/'learn/generation-context.html').read_text(encoding="utf-8")
     assert 'learn/generation-context.html' in template
     for mode in ('topic', 'source', 'url', 'prompt'):
         assert f'data-generation-context-tab="{{{{ key }}}}"' in context_template or f"('\"{mode}\"')" not in context_template
@@ -778,14 +778,14 @@ def test_video_generation_lifecycle_is_contextual_capability_gated_and_provider_
 
 
 def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    ui_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    ui_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text(encoding="utf-8")
     template_root = EXT / '_sphinx_ext/_sphinx_ai_learn/_templates'
     env = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False)
     kinds = ('video', 'audio', 'document', 'whiteboard')
     for kind in kinds:
-        source = (template_root/f'learn/{kind}-generation.html').read_text()
+        source = (template_root/f'learn/{kind}-generation.html').read_text(encoding="utf-8")
         assert 'learn-generation-shell' in source
         assert f'data-generation-kind="{kind}"' in source
         assert 'learn/generation-studio-header.html' in source
@@ -841,29 +841,29 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
     assert "root.querySelector('[data-generation-copy-request]')" in ui_js
     assert "Draft saved in this browser only." in ui_js
     assert "Generation request copied. No network request was sent." in ui_js
-    actions = (template_root/'learn/generation-actions.html').read_text()
+    actions = (template_root/'learn/generation-actions.html').read_text(encoding="utf-8")
     assert 'learn-generation-action-bar' in actions
     assert '>Generate Now</button>' in actions
     assert '>Save draft</button>' in actions
     assert '>Copy request</button>' in actions
     assert 'data-generation-save-draft' in actions and 'data-generation-copy-request' in actions
     assert 'data-generation-submit data-{{ generation_kind|e }}-submit disabled' not in actions
-    status_template = (template_root/'learn/generation-status.html').read_text()
+    status_template = (template_root/'learn/generation-status.html').read_text(encoding="utf-8")
     assert 'learn-generation-activity' in status_template
     assert 'data-generation-status-label' in status_template
     assert 'data-generation-status-message' in status_template
     assert 'aria-atomic="true"' in status_template
-    shaping_template = (template_root/'learn/generation-shaping.html').read_text()
+    shaping_template = (template_root/'learn/generation-shaping.html').read_text(encoding="utf-8")
     assert 'learn-generation-shaping' in shaping_template
     assert 'data-generation-chip' in shaping_template
     assert "('Compare'," in shaping_template and "('Limitations'," in shaping_template
-    advanced_template = (template_root/'learn/generation-advanced.html').read_text()
+    advanced_template = (template_root/'learn/generation-advanced.html').read_text(encoding="utf-8")
     assert 'learn-generation-advanced-body' in advanced_template
     assert 'learn-generation-check' in advanced_template
     assert 'data-audio-pacing' in advanced_template
     assert 'data-document-structure' in advanced_template
     assert 'data-whiteboard-quality' in advanced_template
-    library_template = (template_root/'learn/generation-library.html').read_text()
+    library_template = (template_root/'learn/generation-library.html').read_text(encoding="utf-8")
     assert 'Private runtime library' in library_template
     assert 'data-generation-library-filter' in library_template
     assert 'data-generation-library-refresh' in library_template
@@ -890,7 +890,7 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
     assert '.learn-generation-library-menu' in css
     assert '.learn-generation-secondary' in css
     assert 'background:var(--learn-gen-surface)' in css
-    authority = (template_root/'learn/generation-authority.html').read_text()
+    authority = (template_root/'learn/generation-authority.html').read_text(encoding="utf-8")
     assert 'learn-generation-authority-picker' in authority
     assert 'learn-generation-authority-main' in authority
     assert 'learn-generation-authority-more' in authority
@@ -903,7 +903,7 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
     assert '.learn-generation-authority-menu-item' in css
     rendered_by_kind = {}
     for kind in kinds:
-        source = (template_root/f'learn/{kind}-generation.html').read_text()
+        source = (template_root/f'learn/{kind}-generation.html').read_text(encoding="utf-8")
         assert 'learn/generation-authority.html' in source
         rendered = env.get_template(f'learn/{kind}-generation.html').render(
             payload='{}', topics=[], sources=[], videos=[], audio=[], documents=[], whiteboards=[], studio_nav=STUDIO_NAV
@@ -966,12 +966,12 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
     assert 'data-generation-authority-managed="shared"' in rendered_by_kind['whiteboard']
     assert 'data-whiteboard-generator-menu' not in rendered_by_kind['whiteboard']
     for kind in ('audio', 'document', 'whiteboard'):
-        source = (template_root/f'learn/{kind}-generation.html').read_text()
+        source = (template_root/f'learn/{kind}-generation.html').read_text(encoding="utf-8")
         assert 'learn/generation-context.html' in source
         assert "context_policy = 'exclusive'" in source
         assert 'context_prompt_placeholder' in source
     for kind in kinds:
-        js = (EXT/f'_sphinx_ext/_sphinx_ai_learn/_static/{kind}-generation.js').read_text()
+        js = (EXT/f'_sphinx_ext/_sphinx_ai_learn/_static/{kind}-generation.js').read_text(encoding="utf-8")
         assert 'discoverySerial' in js
         assert 'bindGenerationStatus' in js
         assert 'bindRequestActions' in js
@@ -989,13 +989,13 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
         else:
             assert 'bindPrivateLibrary' in js
             assert 'library.upsert' in js
-    video_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text()
+    video_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text(encoding="utf-8")
     assert 'withLensGuidance?.(state.instructions,state.lenses,4000)' in video_js
     assert '[data-video-chip]' not in video_js
-    audio_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text()
+    audio_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text(encoding="utf-8")
     assert 'function advancedGuidance()' in audio_js
     assert 'data-audio-pacing' in audio_js and 'expand_acronyms' in audio_js and 'verbalize_uncertainty' in audio_js
-    whiteboard_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/whiteboard-generation.js').read_text()
+    whiteboard_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/whiteboard-generation.js').read_text(encoding="utf-8")
     assert 'selectedGeneratorId' not in whiteboard_js
     assert 'data-whiteboard-generator-menu' not in whiteboard_js
     assert "generator_id:generator ? String(generator.id || '') : ''" in whiteboard_js
@@ -1003,22 +1003,22 @@ def test_multimodal_generation_surfaces_share_one_accessible_studio_ux():
     assert 'server-owned Image renderer' in whiteboard_js
     assert "quality:String(quality && quality.value || 'auto')" in whiteboard_js
     assert 'include_legend' in whiteboard_js and 'number_flow' in whiteboard_js
-    document_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text()
+    document_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text(encoding="utf-8")
     assert 'function advancedGuidance()' in document_js
     assert 'include_glossary' in document_js and 'include_applications' in document_js
     assert "authority('Chat-backed · Ready')" in document_js
 
 
 def test_shared_detail_actions_and_collections_are_kind_agnostic():
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview.html').read_text()
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
-    media = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview.html').read_text(encoding="utf-8")
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
+    media = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/media-actions.html').read_text(encoding="utf-8")
     assert 'learn/overview-actions.html' in template and 'learn/overview-actions.html' in media
     assert 'data-reading' in shared and 'data-bookmark' in shared
     assert 'data-overview-generate' in shared and 'Generate AI Overview' in shared and 'data-export-page' not in shared
-    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
-    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text()
+    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
+    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text(encoding="utf-8")
     assert 'AI Learn page overview' in overview_js and "contract:'scikitplot-chat-v1'" in overview_js
     assert "page_descriptor:`AI Learn ${subject.kind||'record'} section draft" in section_js
     assert "context:{page_text:contextFor" in section_js
@@ -1027,7 +1027,7 @@ def test_shared_detail_actions_and_collections_are_kind_agnostic():
 
 
 def test_optional_detail_roots_cannot_abort_shared_actions_or_whiteboard_viewer():
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
     assert "const one = (root, selector) => root?.querySelector?.(selector) || null;" in js
     assert "const all = (root, selector) => root?.querySelectorAll ? [...root.querySelectorAll(selector)] : [];" in js
     assert "AI Learn: detail-page interaction initialization failed." in js
@@ -1036,8 +1036,8 @@ def test_optional_detail_roots_cannot_abort_shared_actions_or_whiteboard_viewer(
 
 
 def test_whiteboard_viewer_uses_single_click_focal_zoom_and_drag_does_not_toggle():
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert "function setZoomAt(value,clientX,clientY)" in js
     assert "image.addEventListener('click',event=>{" in js
     assert "scale===1?2:1" in js
@@ -1048,7 +1048,7 @@ def test_whiteboard_viewer_uses_single_click_focal_zoom_and_drag_does_not_toggle
 
 
 def test_learn_page_assets_are_registered_before_html_page_context():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     setup = pages[pages.index('def setup_pages(app):'):]
     context = pages[pages.index('def page_context('):pages.index('def setup_pages(app):')]
     assert 'app.add_css_file("topic.css")' in setup
@@ -1074,10 +1074,10 @@ def test_user_library_template_resolves_namespaced_grid_partial_like_sphinx():
 
 
 def test_saved_library_grid_density_is_shared_persisted_and_responsive():
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/user-library.html').read_text()
-    control = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/user-library-grid-control.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/user-library.html').read_text(encoding="utf-8")
+    control = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/user-library-grid-control.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert template.count('data-grid-columns="2"') == 2
     assert 'data-library-grid-control' in control
     assert 'for columns in (2, 3, 4, 5)' in control
@@ -1097,19 +1097,19 @@ def test_saved_library_grid_density_is_shared_persisted_and_responsive():
 
 def test_all_catalog_explorers_use_live_compact_shared_controls():
     template_root = EXT / '_sphinx_ext/_sphinx_ai_learn/_templates'
-    topic = (template_root/'learn/topic-explorer.html').read_text()
-    catalog = (template_root/'learn/catalog-explorer.html').read_text()
-    cards = (template_root/'learn/explorer-start.html').read_text()
-    controls = (template_root/'learn/explorer-controls.html').read_text()
-    primary = (template_root/'learn/explorer-search-primary.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    topic = (template_root/'learn/topic-explorer.html').read_text(encoding="utf-8")
+    catalog = (template_root/'learn/catalog-explorer.html').read_text(encoding="utf-8")
+    cards = (template_root/'learn/explorer-start.html').read_text(encoding="utf-8")
+    controls = (template_root/'learn/explorer-controls.html').read_text(encoding="utf-8")
+    primary = (template_root/'learn/explorer-search-primary.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     for template in (topic, catalog, cards):
         assert 'learn/explorer-controls.html' in template
     assert 'learn/explorer-search-primary.html' in controls
     assert 'data-explorer-filter-options' in controls
     assert 'name="timeframe"' in controls
-    display_select = (template_root/'learn/display-size-select.html').read_text()
+    display_select = (template_root/'learn/display-size-select.html').read_text(encoding="utf-8")
     assert 'name="{{ display_name|e }}"' in display_select
     assert 'learn/display-size-select.html' in controls
     assert 'data-explorer-sort' in controls
@@ -1155,10 +1155,10 @@ def test_all_catalog_explorers_use_live_compact_shared_controls():
     assert '.learn-filters {' not in css
 
 def test_explorer_search_variant_is_shared_config_not_a_second_controller():
-    sphinx = (EXT/'_sphinx_ext/_sphinx_ai_learn/_sphinx.py').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    readme = (EXT/'_sphinx_ext/_sphinx_ai_learn/README.md').read_text()
-    conf = (_learn_site.docs_source()/'conf.py').read_text()
+    sphinx = (EXT/'_sphinx_ext/_sphinx_ai_learn/_sphinx.py').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    readme = (EXT/'_sphinx_ext/_sphinx_ai_learn/README.md').read_text(encoding="utf-8")
+    conf = (_learn_site.docs_source()/'conf.py').read_text(encoding="utf-8")
     assert 'app.add_config_value("ai_learn_explorer_search_variant", "pill-overflow", "env")' in sphinx
     assert "ai_learn_explorer_search_variant must be 'pill-overflow' or 'classic'" in sphinx
     assert '"search_control_variant": search_control_variant' in pages
@@ -1207,25 +1207,25 @@ def test_audio_topic_and_detail_contracts_are_materialized_without_autoplay():
     normalized = validate_catalog({"contract": "learn.catalog.v3", "revision": "a", "subjects": [audio]})["subjects"][0]
     assert ".. ai-audio-player:: audio-one" in _media_directive(normalized)
     topic_rel, _ = next((rel, row) for rel, row in _learn_site.content_tree().records.items() if row["subject"]["kind"] == "topic")
-    assert "Audio Explanation" in (_learn_site.content_root() / topic_rel.with_suffix(".rst")).read_text()
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/audio-player.html').read_text()
+    assert "Audio Explanation" in (_learn_site.content_root() / topic_rel.with_suffix(".rst")).read_text(encoding="utf-8")
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/audio-player.html').read_text(encoding="utf-8")
     assert '<audio controls preload="metadata"' in template
     assert 'autoplay' not in template
-    generation = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text()
+    generation = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text(encoding="utf-8")
     assert 'X-Artifact-Capability' in generation
     assert 'X-Generation-Capability' in generation
     assert 'URL.createObjectURL' in generation
 
 def test_document_and_whiteboard_generation_surfaces_are_first_class_and_fail_closed():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
-    document_new = (_learn_site.content_root()/'documents/new.rst').read_text()
-    whiteboard_new = (_learn_site.content_root()/'whiteboards/new.rst').read_text()
-    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
-    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text()
-    document_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/document-generation.html').read_text()
-    whiteboard_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/whiteboard-generation.html').read_text()
-    document_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text()
-    whiteboard_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/whiteboard-generation.js').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
+    document_new = (_learn_site.content_root()/'documents/new.rst').read_text(encoding="utf-8")
+    whiteboard_new = (_learn_site.content_root()/'whiteboards/new.rst').read_text(encoding="utf-8")
+    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
+    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text(encoding="utf-8")
+    document_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/document-generation.html').read_text(encoding="utf-8")
+    whiteboard_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/whiteboard-generation.html').read_text(encoding="utf-8")
+    document_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text(encoding="utf-8")
+    whiteboard_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/whiteboard-generation.js').read_text(encoding="utf-8")
     assert '.. ai-document-generation::' in document_new
     assert '.. ai-whiteboard-generation::' in whiteboard_new
     assert 'app.add_directive("ai-document-generation", DocumentGenerationDirective)' in pages
@@ -1245,9 +1245,9 @@ def test_document_and_whiteboard_generation_surfaces_are_first_class_and_fail_cl
 
 
 def test_page_ai_overview_is_record_aware_chat_backed_and_not_topic_ambiguous():
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text()
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text()
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/overview-actions.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text(encoding="utf-8")
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text(encoding="utf-8")
     env = Environment(loader=FileSystemLoader(str(EXT/'_sphinx_ext/_sphinx_ai_learn/_templates')), autoescape=False)
     lenses = env.get_template('learn/ai-lens-profile.html').render(lens_scope='overview', lens_variant='overview')
     assert 'Generate AI Overview' in template
@@ -1280,10 +1280,10 @@ def test_page_ai_overview_is_record_aware_chat_backed_and_not_topic_ambiguous():
 
 
 def test_section_and_overview_share_one_text_generation_workflow_kernel():
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text()
-    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
-    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text()
-    panel = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-ai-generation.html').read_text()
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text(encoding="utf-8")
+    section = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
+    overview = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text(encoding="utf-8")
+    panel = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-ai-generation.html').read_text(encoding="utf-8")
 
     assert 'function createWorkflow(options)' in shared
     assert 'function canonicalRequest(input)' in shared and 'async function runRequest(input' in shared
@@ -1335,11 +1335,11 @@ def test_section_and_overview_share_one_text_generation_workflow_kernel():
 
 
 def test_evidence_review_controls_are_local_non_verifying_and_feed_ai_context():
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/evidence-review.html').read_text()
-    end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text()
-    evidence_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/evidence-review.js').read_text()
-    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/evidence-review.html').read_text(encoding="utf-8")
+    end = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/section-end.html').read_text(encoding="utf-8")
+    evidence_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/evidence-review.js').read_text(encoding="utf-8")
+    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     assert 'Use in AI context' in template
     for value in (
         'not-reviewed',
@@ -1369,10 +1369,10 @@ def test_evidence_review_controls_are_local_non_verifying_and_feed_ai_context():
 
 def test_shared_generation_context_component_supports_composable_and_exclusive_policies():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
-    source = (template_root/'learn/generation-context.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-context.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    source = (template_root/'learn/generation-context.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-context.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     assert 'data-generation-context-picker' in source
     assert 'Topic' in source and 'Source' in source and 'URL' in source and 'Prompt' in source
     assert "context_input_type = 'checkbox' if context_policy == 'composable' else 'radio'" in source
@@ -1388,9 +1388,9 @@ def test_shared_generation_context_component_supports_composable_and_exclusive_p
     assert 'app.add_js_file("generation-context.js", defer="defer", priority=613)' in pages
 
 def test_record_creation_studios_are_shared_private_and_source_safe():
-    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/record-generation.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/record-generation.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     assert 'data-record-generation' in template
     assert 'Choose context' in template and 'Shape the draft' in template and 'Choose AI lenses' in template
     assert 'learn/generation-context.html' in template and "context_policy = 'composable'" in template
@@ -1452,7 +1452,7 @@ def test_record_creation_studios_are_shared_private_and_source_safe():
     assert "learn-record-studio:v2:${data.site_id||'default'}:${kind}:library" in js
     assert 'rememberGeneratedDraft(draft,response)' in js
     assert 'Metadata-only receipt.' in js
-    context_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/generation-context.html').read_text()
+    context_template = (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/generation-context.html').read_text(encoding="utf-8")
     assert 'data-generation-context-record' in context_template
     assert "context_policy = 'composable'" in template
     assert rendered.count('data-record-audience=') >= 9 and 'data-record-purpose=' in rendered
@@ -1460,7 +1460,7 @@ def test_record_creation_studios_are_shared_private_and_source_safe():
     assert 'data-record-audience="decision-maker"' in rendered
     assert 'data-record-skill=' in rendered and 'data-record-role=' in rendered
     assert 'learn/generation-advanced.html' in template
-    assert 'data-record-advanced-strategy' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/generation-advanced.html').read_text()
+    assert 'data-record-advanced-strategy' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn/generation-advanced.html').read_text(encoding="utf-8")
     assert 'surface_evidence_gaps' in js and 'include_review_questions' in js
     assert 'Advanced drafting preferences:' in js
     assert 'The Chat generation runtime is not configured for the active endpoint profile.' in js
@@ -1496,10 +1496,10 @@ def test_record_creation_studios_are_shared_private_and_source_safe():
 def test_ai_lens_selection_summary_is_shared_live_and_mobile_compact():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
     env = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False)
-    partial = (template_root/'learn/ai-lens-profile.html').read_text()
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/lens-selection.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    partial = (template_root/'learn/ai-lens-profile.html').read_text(encoding="utf-8")
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/lens-selection.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     for scope, variant in [
         ('record', 'record'),
         ('overview', 'overview'),
@@ -1527,7 +1527,7 @@ def test_ai_lens_selection_summary_is_shared_live_and_mobile_compact():
 def test_inline_generation_supports_multi_audience_purpose_skill_and_role_lenses():
     env = Environment(loader=FileSystemLoader(str(EXT/'_sphinx_ext/_sphinx_ai_learn/_templates')), autoescape=False)
     template = env.get_template('learn/ai-lens-profile.html').render(lens_scope='section-ai', lens_variant='section')
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
     assert template.count('data-section-ai-audience=') >= 9
     assert template.count('data-section-ai-purpose=') >= 5
     assert template.count('data-section-ai-skill=') >= 5
@@ -1542,12 +1542,12 @@ def test_inline_generation_supports_multi_audience_purpose_skill_and_role_lenses
 
 
 def test_all_nine_creation_studios_share_one_registry_header_and_responsive_navigation():
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
-    nav_source = (template_root/'learn/generation-studio-nav.html').read_text()
-    header_source = (template_root/'learn/generation-studio-header.html').read_text()
-    record_source = (template_root/'learn/record-generation.html').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    nav_source = (template_root/'learn/generation-studio-nav.html').read_text(encoding="utf-8")
+    header_source = (template_root/'learn/generation-studio-header.html').read_text(encoding="utf-8")
+    record_source = (template_root/'learn/record-generation.html').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     env = Environment(loader=FileSystemLoader(str(template_root)), autoescape=False)
 
     assert 'STUDIO_DEFINITIONS = (' in pages
@@ -1567,7 +1567,7 @@ def test_all_nine_creation_studios_share_one_registry_header_and_responsive_navi
         'document',
         'whiteboard',
     ):
-        assert 'learn/generation-studio-header.html' in (template_root/f'learn/{kind}-generation.html').read_text()
+        assert 'learn/generation-studio-header.html' in (template_root/f'learn/{kind}-generation.html').read_text(encoding="utf-8")
 
     expected_labels = [row['label'] for row in STUDIO_NAV]
     expected_hrefs = [row['href'] for row in STUDIO_NAV]
@@ -1593,13 +1593,13 @@ def test_all_nine_creation_studios_share_one_registry_header_and_responsive_navi
 
 def test_nested_and_studio_generation_share_authority_lenses_and_private_flow_primitives():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates'
-    section = (template_root/'learn/section-ai-generation.html').read_text()
-    overview = (template_root/'learn/overview-actions.html').read_text()
-    lifecycle = (template_root/'learn/generation-private-flow.html').read_text()
-    ui = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text()
-    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
-    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text()
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    section = (template_root/'learn/section-ai-generation.html').read_text(encoding="utf-8")
+    overview = (template_root/'learn/overview-actions.html').read_text(encoding="utf-8")
+    lifecycle = (template_root/'learn/generation-private-flow.html').read_text(encoding="utf-8")
+    ui = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text(encoding="utf-8")
+    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
+    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text(encoding="utf-8")
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
 
     for source in (section, overview):
         assert 'learn/generation-authority.html' in source
@@ -1629,22 +1629,22 @@ def test_nested_and_studio_generation_share_authority_lenses_and_private_flow_pr
         'overview-generation.js',
         'section-generation.js',
     ):
-        controller = (EXT/f'_sphinx_ext/_sphinx_ai_learn/_static/{filename}').read_text()
+        controller = (EXT/f'_sphinx_ext/_sphinx_ai_learn/_static/{filename}').read_text(encoding="utf-8")
         assert 'AI_ASSISTANT_MODEL_API' not in controller
-    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text()
-    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text()
-    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text()
+    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text(encoding="utf-8")
+    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/audio-generation.js').read_text(encoding="utf-8")
+    assert 'assistantModelSnapshot' in (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/document-generation.js').read_text(encoding="utf-8")
 
 
 def test_reviewed_publication_ui_is_explicit_and_shared_across_private_drafts():
     template_root = EXT / '_sphinx_ext/_sphinx_ai_learn/_templates'
-    record = (template_root/'learn/record-generation.html').read_text()
-    overview = (template_root/'learn/overview-actions.html').read_text()
-    section = (template_root/'learn/section-ai-generation.html').read_text()
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text()
-    record_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text()
-    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text()
-    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text()
+    record = (template_root/'learn/record-generation.html').read_text(encoding="utf-8")
+    overview = (template_root/'learn/overview-actions.html').read_text(encoding="utf-8")
+    section = (template_root/'learn/section-ai-generation.html').read_text(encoding="utf-8")
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text(encoding="utf-8")
+    record_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text(encoding="utf-8")
+    overview_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/overview-generation.js').read_text(encoding="utf-8")
+    section_js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/section-generation.js').read_text(encoding="utf-8")
 
     assert 'data-record-publish' in record
     assert 'data-record-metadata-reviewed' in record
@@ -1662,7 +1662,7 @@ def test_reviewed_publication_ui_is_explicit_and_shared_across_private_drafts():
     assert "metadata_reviewed=true" in record_js
     assert "section_id:'summary'" in overview_js
     assert "publishButtons=all(panel,'[data-overview-publish]')" in overview_js
-    text_workflow = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text()
+    text_workflow = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/text-generation-ui.js').read_text(encoding="utf-8")
     assert "publishButtons.forEach(button=>button.addEventListener('click',()=>workflowAction('publish')))" in overview_js
     assert 'async function publish()' in text_workflow and 'ui?.submitPublication?.(publicationRequest)' in text_workflow
     assert 'syncPublishButtons' not in overview_js
@@ -1673,9 +1673,9 @@ def test_reviewed_publication_ui_is_explicit_and_shared_across_private_drafts():
 
 def test_multimodal_generation_uses_one_bounded_redirect_safe_transport_and_retry_identity():
     static = EXT/'_sphinx_ext/_sphinx_ai_learn/_static'
-    shared = (static/'generation-ui.js').read_text()
+    shared = (static/'generation-ui.js').read_text(encoding="utf-8")
     media = {
-        name: (static/name).read_text()
+        name: (static/name).read_text(encoding="utf-8")
         for name in ('video-generation.js','audio-generation.js','document-generation.js','whiteboard-generation.js')
     }
 
@@ -1725,7 +1725,7 @@ def test_multimodal_generation_uses_one_bounded_redirect_safe_transport_and_retr
 
 
 def test_private_generation_library_fails_closed_on_storage_errors_and_tracks_other_tabs():
-    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text()
+    shared = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/generation-ui.js').read_text(encoding="utf-8")
     assert 'That \' + singular + \' is no longer available in this browser.' in shared
     assert "for this tab. Browser storage is unavailable, so the change will not survive reload." in shared
     assert "receipt is kept only in this tab and will not survive reload." in shared
@@ -1738,7 +1738,7 @@ def test_private_generation_library_fails_closed_on_storage_errors_and_tracks_ot
 
 
 def test_video_receipts_survive_storage_failure_in_the_current_tab_and_sync_other_tabs():
-    video = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text()
+    video = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/video-generation.js').read_text(encoding="utf-8")
     assert 'let volatileJobs=[]' in video
     assert 'function boundedJobs(rows)' in video
     assert 'rows.map(row=>normalizeJob(row)).filter(Boolean).slice(0,50)' in video
@@ -1753,7 +1753,7 @@ def test_video_receipts_survive_storage_failure_in_the_current_tab_and_sync_othe
 
 
 def test_record_generation_freezes_request_provenance_and_requires_durable_local_result():
-    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text()
+    js = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/record-generation.js').read_text(encoding="utf-8")
     assert 'runProfile=profile()' in js and 'runAdvanced=advanced()' in js
     assert 'runContextIds=selectedContext().map(row=>row.id)' in js
     assert 'runSourceUrl=sourceUrl()' in js
@@ -1770,7 +1770,7 @@ def test_record_generation_freezes_request_provenance_and_requires_durable_local
 
 def test_generation_cleanup_is_bfcache_safe_and_private_libraries_keep_volatile_receipts():
     static = EXT/'_sphinx_ext/_sphinx_ai_learn/_static'
-    shared = (static/'generation-ui.js').read_text()
+    shared = (static/'generation-ui.js').read_text(encoding="utf-8")
     assert 'function onPageDispose(callback)' in shared
     assert 'event && event.persisted === true' in shared
     assert 'onPageDispose: onPageDispose' in shared
@@ -1788,21 +1788,21 @@ def test_generation_cleanup_is_bfcache_safe_and_private_libraries_keep_volatile_
         'document-generation.js', 'whiteboard-generation.js', 'record-generation.js'
     )
     for name in files:
-        source = (static/name).read_text()
+        source = (static/name).read_text(encoding="utf-8")
         assert "pagehide'," in source
         import re
         assert not re.search(r"pagehide[^\n]{0,160}once\s*:\s*true", source)
     for name in ('video-generation.js','audio-generation.js','document-generation.js','whiteboard-generation.js','record-generation.js'):
-        source = (static/name).read_text()
+        source = (static/name).read_text(encoding="utf-8")
         assert 'onPageDispose' in source or 'event?.persisted===true' in source or 'event.persisted === true' in source
 
 
 def test_index_explorer_header_is_shared_semantic_and_link_safe():
     template_root = EXT/'_sphinx_ext/_sphinx_ai_learn/_templates/learn'
-    shared = (template_root/'index-explorer-header.html').read_text()
-    topic = (template_root/'topic-explorer.html').read_text()
-    catalog = (template_root/'catalog-explorer.html').read_text()
-    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text()
+    shared = (template_root/'index-explorer-header.html').read_text(encoding="utf-8")
+    topic = (template_root/'topic-explorer.html').read_text(encoding="utf-8")
+    catalog = (template_root/'catalog-explorer.html').read_text(encoding="utf-8")
+    pages = (EXT/'_sphinx_ext/_sphinx_ai_learn/_pages.py').read_text(encoding="utf-8")
     assert 'learn-index-explorer-head' in shared
     assert '<nav class="learn-trending-links"' in shared
     assert 'aria-label="{{ explorer_title|e }} shortcuts"' in shared
@@ -1813,7 +1813,7 @@ def test_index_explorer_header_is_shared_semantic_and_link_safe():
     assert 'class IndexExplorerHeaderDirective' in pages
     assert 'root["index_explorer_header"] = True' in pages
     assert 'app.add_directive("ai-index-explorer-header", IndexExplorerHeaderDirective)' in pages
-    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text()
+    css = (EXT/'_sphinx_ext/_sphinx_ai_learn/_static/topic.css').read_text(encoding="utf-8")
     assert 'container-name:learn-index-explorer-masthead' in css
     assert '@container learn-index-explorer-masthead (max-width:640px)' in css
 

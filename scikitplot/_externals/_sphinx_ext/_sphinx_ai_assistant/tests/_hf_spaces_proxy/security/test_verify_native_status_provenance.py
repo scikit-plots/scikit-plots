@@ -197,7 +197,7 @@ def test_run159_initializes_and_offline_verifies_raw_crl_ocsp(tmp_path: Path):
 
 def test_run159_preserves_exact_raw_der_bytes(tmp_path: Path):
     _, _, out, crl, ocsps, _ = _init_native(tmp_path)
-    event = json.loads((out / "active-native-status-evidence.json").read_text())
+    event = json.loads((out / "active-native-status-evidence.json").read_text(encoding="utf-8"))
     by_hash = {s["sha256"]: base64.b64decode(s["der"]) for s in event["sources"]}
     assert by_hash[hashlib.sha256(crl.read_bytes()).hexdigest()] == crl.read_bytes()
     for p in ocsps:
@@ -356,7 +356,7 @@ def test_run159_advance_accepts_monotonic_crl_and_ocsp_evidence(tmp_path: Path):
 def test_run159_bundle_raw_evidence_mutation_is_detected_offline(tmp_path: Path):
     setup, _, out, *_ = _init_native(tmp_path)
     p = out / "release-native-status-bundle.json"
-    doc = json.loads(p.read_text())
+    doc = json.loads(p.read_text(encoding="utf-8"))
     doc["events"][0]["sources"][0]["der"] = base64.b64encode(
         b"not-der"
     ).decode()
@@ -393,7 +393,7 @@ def test_run159_vendor_native_profile_fails_closed_without_verifier(tmp_path: Pa
 def test_run159_vendor_verifier_result_is_bound_to_exact_raw_bytes(tmp_path: Path, monkeypatch):
     manifest = {"schemaVersion": 1, "profile": "test-vendor-v1", "evidenceType": "vendor-proof", "rawEvidenceBase64": base64.b64encode(b"raw-vendor-proof").decode(), "expectedKeyId": "root/key-a", "expectedPublicKeySha256": "1" * 64}
     p = tmp_path / "vendor.json"; p.write_bytes(_canonical(manifest))
-    verifier = tmp_path / "verifier.py"; verifier.write_text(f"""#!{sys.executable}\nimport sys,json,hashlib\nr=json.loads(sys.stdin.read())\no={{'schemaVersion':1,'profile':r['profile'],'verifierIdentity':'synthetic-vendor-verifier','rawEvidenceSha256':r['rawEvidenceSha256'],'keyId':r['expectedKeyId'],'publicKeySha256':r['expectedPublicKeySha256'],'verified':True}}\nprint(json.dumps(o,sort_keys=True,separators=(',',':')))\n"""); verifier.chmod(0o755)
+    verifier = tmp_path / "verifier.py"; verifier.write_text(f"""#!{sys.executable}\nimport sys,json,hashlib\nr=json.loads(sys.stdin.read())\no={{'schemaVersion':1,'profile':r['profile'],'verifierIdentity':'synthetic-vendor-verifier','rawEvidenceSha256':r['rawEvidenceSha256'],'keyId':r['expectedKeyId'],'publicKeySha256':r['expectedPublicKeySha256'],'verified':True}}\nprint(json.dumps(o,sort_keys=True,separators=(',',':')))\n""", encoding="utf-8"); verifier.chmod(0o755)
     empty_path = tmp_path / "empty-bin"
     empty_path.mkdir()
     monkeypatch.setattr(native.os, "defpath", str(empty_path))
@@ -403,7 +403,7 @@ def test_run159_vendor_verifier_result_is_bound_to_exact_raw_bytes(tmp_path: Pat
 
 
 def test_run159_duplicate_json_keys_are_rejected(tmp_path: Path):
-    p = tmp_path / "dup.json"; p.write_text('{"a":1,"a":2}\n')
+    p = tmp_path / "dup.json"; p.write_text('{"a":1,"a":2}\n', encoding="utf-8")
     with pytest.raises(native.NativeStatusError, match="DUPLICATE_KEY"):
         native._read_json(p, "RUN159_DUP")
 
@@ -424,8 +424,8 @@ def test_run159_initialization_is_deterministic(tmp_path: Path):
 
 
 def test_run159_documentation_describes_native_status_and_anti_equivocation():
-    guide = (SECURITY / "RELEASE_NATIVE_STATUS_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SECURITY / "RELEASE_NATIVE_STATUS_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     assert "Run 159" in guide and "OCSP" in guide and "CRL" in guide and "equivocation" in guide.lower() and "offline" in guide.lower()
     assert "Run 159" in gates and "native status" in gates.lower()
 
@@ -492,7 +492,7 @@ def test_run159_accepts_delegated_ocsp_responder_with_ocsp_signing_eku(tmp_path:
         output_dir=out,
         now=NOW,
     )
-    event = json.loads((out / "active-native-status-evidence.json").read_text())
+    event = json.loads((out / "active-native-status-evidence.json").read_text(encoding="utf-8"))
     assert any(s.get("responderKind") == "delegated" for s in event["sources"])
 
 
@@ -606,7 +606,7 @@ def test_run159_rejects_crl_revocation_time_after_this_update(tmp_path: Path):
 def test_run159_vendor_verifier_output_is_bounded_while_produced(tmp_path: Path, monkeypatch):
     manifest = {"schemaVersion": 1, "profile": "noisy-v1", "evidenceType": "vendor-proof", "rawEvidenceBase64": base64.b64encode(b"raw").decode(), "expectedKeyId": "root/key-a", "expectedPublicKeySha256": "1" * 64}
     p = tmp_path / "vendor.json"; p.write_bytes(_canonical(manifest))
-    verifier = tmp_path / "noisy.py"; verifier.write_text(f"#!{sys.executable}\nimport sys\nsys.stdout.write('x' * 200000)\nsys.stdout.flush()\n"); verifier.chmod(0o755)
+    verifier = tmp_path / "noisy.py"; verifier.write_text(f"#!{sys.executable}\nimport sys\nsys.stdout.write('x' * 200000)\nsys.stdout.flush()\n", encoding="utf-8"); verifier.chmod(0o755)
     real_popen = native.subprocess.Popen
     seen = {}
 

@@ -15,7 +15,7 @@ _JSON = sorted(_PLUGINS.rglob("*.json"))
 @pytest.mark.skipif(not _JSON, reason="no plugin bundles present")
 @pytest.mark.parametrize("path", _JSON, ids=lambda p: str(p.relative_to(_PLUGINS)))
 def test_plugin_json_is_valid(path):
-    json.loads(path.read_text())  # raises on invalid JSON
+    json.loads(path.read_text(encoding="utf-8"))  # raises on invalid JSON
 
 
 def _iter_server_entries(obj):
@@ -32,7 +32,7 @@ def _iter_server_entries(obj):
 def test_all_configs_launch_our_server():
     checked = 0
     for path in _JSON:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         for entry in _iter_server_entries(data):
             args = entry.get("args", [])
             # Command must invoke this module (module form or console command).

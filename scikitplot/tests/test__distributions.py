@@ -50,8 +50,31 @@ PACKAGE_DIR = Path(__file__).resolve().parents[1]
 SOURCE = PACKAGE_DIR / "_distributions.py"
 
 
-def _fake_metadata(monkeypatch, versions):
-    """Make ``importlib.metadata.version`` answer from ``versions`` only."""
+class _FakeEntryPoint:
+    def __init__(self, group, name="part", value="scikitplot.part"):
+        self.group, self.name, self.value = group, name, value
+
+
+class _FakeDistribution:
+    def __init__(self, groups):
+        self.entry_points = [_FakeEntryPoint(group) for group in groups]
+
+
+def _fake_metadata(monkeypatch, versions, apis=None):
+    """
+    Make ``importlib.metadata`` answer from the arguments only.
+
+    Parameters
+    ----------
+    versions : dict of str to str
+        Installed project name to version; every other project is absent.
+    apis : dict of str to (int, None or list of str), optional
+        Project name to the core API it states. An ``int`` is the number, a
+        list is the literal entry-point groups (for malformed metadata), and
+        ``None`` or a missing name is a distribution that states nothing.
+        When ``apis`` itself is omitted, every installed part states
+        ``dists.CORE_API``, which is what the build tooling writes.
+    """
 
     def version(name):
         try:
@@ -59,7 +82,21 @@ def _fake_metadata(monkeypatch, versions):
         except KeyError:
             raise metadata.PackageNotFoundError(name) from None
 
+    def distribution(name):
+        if name not in versions:
+            raise metadata.PackageNotFoundError(name)
+        if apis is None:
+            stated = None if name in {dists.CORE, dists.FULL} else dists.CORE_API
+        else:
+            stated = apis.get(name)
+        if stated is None:
+            return _FakeDistribution([])
+        if isinstance(stated, int):
+            return _FakeDistribution([dists.parts_group(stated)])
+        return _FakeDistribution(stated)
+
     monkeypatch.setattr(metadata, "version", version)
+    monkeypatch.setattr(metadata, "distribution", distribution)
 
 
 # ===========================================================================
@@ -328,7 +365,15 @@ class TestReport:
 
     def test_keys(self, monkeypatch, present):
         _fake_metadata(monkeypatch, {})
-        assert set(dists.report()) == {"flavor", "installed", "available", "problems"}
+        assert set(dists.report()) == {
+            "flavor",
+            "installed",
+            "available",
+            "core_api",
+            "problems",
+            "notes",
+        }
+        assert dists.report()["core_api"] == dists.CORE_API
 
     def test_coherent_partial_install_has_no_problem(self, monkeypatch, present):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
@@ -360,12 +405,111 @@ class TestReport:
         assert "pip uninstall scikit-plots-skinny scikit-plots-mcp" in problem
         assert "pip install --force-reinstall --no-deps scikit-plots" in problem
 
-    def test_mixed_versions_are_a_problem_with_a_fix(self, monkeypatch, present):
+    def test_mixed_versions_with_the_same_core_api_are_a_note(self, monkeypatch, present):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.1", "scikit-plots-mcp": "0.5.0"})
+        report = dists.report()
+        assert report["problems"] == []
+        (note,) = report["notes"]
+        assert "scikit-plots-mcp 0.5.0" in note and "scikit-plots-skinny 0.5.1" in note
+        assert f"core API ({dists.CORE_API})" in note
+        assert "pip install --upgrade scikit-plots-skinny scikit-plots-mcp" in note
+
+    def test_equal_versions_have_no_note(self, monkeypatch, present):
+        _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
+        assert dists.report()["notes"] == []
+
+    @pytest.mark.parametrize(
+        ("stated", "newer"),
+        [(dists.CORE_API + 1, "scikit-plots-mcp"), (dists.CORE_API - 1, dists.CORE)],
+    )
+    def test_another_core_api_is_a_problem_even_at_equal_versions(
+        self, monkeypatch, present, stated, newer
+    ):
+        _fake_metadata(
+            monkeypatch,
+            {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"},
+            apis={"scikit-plots-mcp": stated},
+        )
+        report = dists.report()
+        (problem,) = report["problems"]
+        assert f"built for core API {stated}" in problem
+        assert f"provides core API {dists.CORE_API}" in problem
+        assert f"{newer} is the newer side" in problem
+        assert "pip install --upgrade scikit-plots-mcp scikit-plots-skinny" in problem
+        assert report["notes"] == []
+
+    def test_a_part_that_states_nothing_is_trusted_only_at_the_core_version(
+        self, monkeypatch, present
+    ):
+        versions = {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"}
+        _fake_metadata(monkeypatch, versions, apis={})
+        assert dists.report()["problems"] == []
+        versions["scikit-plots-mcp"] = "0.4.9"
         (problem,) = dists.report()["problems"]
-        assert "different versions" in problem
-        assert "scikit-plots-skinny 0.5.1" in problem and "scikit-plots-mcp 0.5.0" in problem
-        assert "pip install --upgrade scikit-plots-skinny scikit-plots-mcp" in problem
+        assert "does not state which core API" in problem
+        assert "cannot be judged" in problem
+        assert "pip install --upgrade scikit-plots-mcp scikit-plots-skinny" in problem
+
+    @pytest.mark.parametrize(
+        "groups",
+        [
+            [dists.PARTS_GROUP + "1", dists.PARTS_GROUP + "2"],
+            [dists.PARTS_GROUP + "x"],
+            [dists.PARTS_GROUP],
+        ],
+    )
+    def test_malformed_statement_is_a_problem_not_a_crash(
+        self, monkeypatch, present, groups
+    ):
+        _fake_metadata(
+            monkeypatch,
+            {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"},
+            apis={"scikit-plots-mcp": groups},
+        )
+        (problem,) = dists.report()["problems"]
+        assert "expected one entry-point group" in problem
+        assert "pip install --force-reinstall --no-deps scikit-plots-mcp" in problem
+
+    def test_a_part_without_the_core_is_not_judged(self, monkeypatch, present):
+        _fake_metadata(monkeypatch, {"scikit-plots-mcp": "0.5.0"}, apis={})
+        report = dists.report()
+        assert report["problems"] == [] and report["notes"] == []
+
+    def test_numpy_two_with_an_older_scikit_learn_is_a_problem_with_both_fixes(
+        self, monkeypatch, present
+    ):
+        _fake_metadata(monkeypatch, {"numpy": "2.0.0", "scikit-learn": "1.3.0rc1"})
+        (problem,) = dists.report()["problems"]
+        assert "numpy 2.0.0 with scikit-learn 1.3.0rc1" in problem
+        assert 'pip install --upgrade "scikit-learn>=1.4.2"' in problem
+        assert 'pip install "numpy<2"' in problem
+
+    @pytest.mark.parametrize(
+        "versions",
+        [
+            {"numpy": "2.0.0", "scikit-learn": "1.4.2"},
+            {"numpy": "2.3.1", "scikit-learn": "1.7.0"},
+            {"numpy": "1.26.4", "scikit-learn": "1.3.0"},
+            {"numpy": "2.0.0"},
+            {"scikit-learn": "1.3.0"},
+        ],
+    )
+    def test_working_third_party_versions_are_not_a_problem(
+        self, monkeypatch, present, versions
+    ):
+        _fake_metadata(monkeypatch, versions)
+        assert dists.report()["problems"] == []
+
+    def test_numpy_one_is_a_note_that_explains_pip_check(self, monkeypatch, present):
+        _fake_metadata(monkeypatch, {"numpy": "1.26.4"})
+        report = dists.report()
+        assert report["problems"] == []
+        (note,) = report["notes"]
+        assert "numpy 1.26.4" in note and "pip check" in note
+
+    def test_numpy_two_has_no_note(self, monkeypatch, present):
+        _fake_metadata(monkeypatch, {"numpy": "2.1.0"})
+        assert dists.report()["notes"] == []
 
     def test_installed_but_missing_files_is_a_problem_with_a_fix(self, monkeypatch):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
@@ -384,6 +528,100 @@ class TestReport:
 
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0"})
         assert json.loads(json.dumps(dists.report()))["flavor"] == "partial"
+
+
+class TestCoreApi:
+    def test_number_is_a_positive_integer_with_a_history_line(self):
+        assert isinstance(dists.CORE_API, int) and dists.CORE_API >= 1
+        numbers = [number for number, _version, _what in dists.CORE_API_HISTORY]
+        assert numbers == list(range(1, dists.CORE_API + 1))
+        assert all(what.strip() for _number, _version, what in dists.CORE_API_HISTORY)
+
+    def test_group_name(self):
+        assert dists.parts_group() == f"{dists.PARTS_GROUP}{dists.CORE_API}"
+        assert dists.parts_group(7) == "scikitplot.parts.api7"
+
+    def test_the_core_states_nothing(self):
+        assert dists.parts_entry_points(dists.CORE) == {}
+
+    @pytest.mark.parametrize(
+        "dist", [d for d in dists.DISTRIBUTIONS if d.name != dists.CORE], ids=lambda d: d.name
+    )
+    def test_every_part_states_one_entry_per_tree(self, dist):
+        entries = dists.parts_entry_points(dist.name)
+        assert len(entries) == len(dist.trees) >= 1
+        for name, module in entries.items():
+            assert module == f"{dists.IMPORT_NAME}.{name}"
+            assert dists.provider_of(module) == dist.name
+
+    def test_entry_points_of_an_unknown_distribution(self):
+        with pytest.raises(KeyError):
+            dists.parts_entry_points("scikit-plots-nope")
+
+    def test_declared_is_none_when_absent_or_silent(self, monkeypatch):
+        _fake_metadata(monkeypatch, {dists.CORE: "0.5.0"})
+        assert dists.declared_core_api(dists.CORE) is None
+        assert dists.declared_core_api("scikit-plots-mcp") is None
+
+    def test_declared_reads_the_number_in_any_spelling(self, monkeypatch):
+        _fake_metadata(monkeypatch, {"scikit-plots-mcp": "0.5.0"}, apis={"scikit-plots-mcp": 3})
+        assert dists.declared_core_api("Scikit_Plots.MCP") == 3
+
+    def test_other_entry_point_groups_are_ignored(self, monkeypatch):
+        _fake_metadata(
+            monkeypatch,
+            {"scikit-plots-mcp": "0.5.0"},
+            apis={"scikit-plots-mcp": ["console_scripts", dists.parts_group(2)]},
+        )
+        assert dists.declared_core_api("scikit-plots-mcp") == 2
+
+    @pytest.mark.parametrize(
+        ("version", "expected"),
+        [("1.3.0rc1", (1, 3, 0)), ("2.5.3", (2, 5, 3)), ("2", (2,)), ("dev", ()), (" 1.26.4 ", (1, 26, 4))],
+    )
+    def test_release(self, version, expected):
+        assert dists._release(version) == expected
+
+
+class TestLogReport:
+    @pytest.fixture
+    def present(self, monkeypatch):
+        monkeypatch.setattr(dists, "_is_present", lambda module: True)
+
+    def test_returns_the_report_and_is_quiet_when_coherent(
+        self, monkeypatch, present, caplog
+    ):
+        _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
+        with caplog.at_level("INFO", logger=dists.IMPORT_NAME):
+            result = dists.log_report()
+        assert result == dists.report()
+        assert caplog.records == []
+
+    def test_problems_are_warnings_and_notes_are_info(self, monkeypatch, present, caplog):
+        _fake_metadata(
+            monkeypatch,
+            {
+                dists.CORE: "0.5.1",
+                "scikit-plots-mcp": "0.5.0",
+                "numpy": "2.0.0",
+                "scikit-learn": "1.3.0",
+            },
+        )
+        with caplog.at_level("INFO", logger=dists.IMPORT_NAME):
+            result = dists.log_report()
+        by_level = {record.levelname: record.getMessage() for record in caplog.records}
+        assert set(by_level) == {"WARNING", "INFO"}
+        assert result["problems"][0] in by_level["WARNING"]
+        assert result["notes"][0] in by_level["INFO"]
+
+    def test_writes_to_the_logger_it_is_given(self, monkeypatch, present, caplog):
+        import logging
+
+        _fake_metadata(monkeypatch, {"numpy": "1.26.4"})
+        with caplog.at_level("INFO", logger="another.logger"):
+            dists.log_report(logging.getLogger("another.logger"))
+        (record,) = caplog.records
+        assert record.name == "another.logger" and "numpy 1.26.4" in record.getMessage()
 
 
 class TestIsPresent:

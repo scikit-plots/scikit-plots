@@ -101,7 +101,7 @@ def _profiled_attestations(tmp_path: Path, root_envelope: dict, context_id: str,
 
 def _profiled_continuity(tmp_path: Path, *, claim_mutator=None):
     seed = run157._recovered_setup(tmp_path / "seed")
-    seed_bundle = json.loads((seed["activated"] / "release-root-continuity-bundle.json").read_text())
+    seed_bundle = json.loads((seed["activated"] / "release-root-continuity-bundle.json").read_text(encoding="utf-8"))
     sealed = tmp_path / "sealed"; recovery = tmp_path / "recovery"
     continuity._write_docs(sealed, seed_bundle["baseSeal"])
     continuity._write_docs(recovery, seed_bundle["recoveryOutput"])
@@ -292,7 +292,7 @@ def test_run158_ca_set_requires_release_root_threshold(tmp_path: Path):
         lifecycle.AttestationLifecycleError, match="SIGNATURE_INVALID"
     ):
         lifecycle._verify_ca_set(
-            json.loads(ca_path.read_text()),
+            json.loads(ca_path.read_text(encoding="utf-8")),
             continuity_docs=_continuity_docs(setup["activated"]),
             previous=None,
             now=NOW,
@@ -308,7 +308,7 @@ def test_run158_status_snapshot_requires_threshold_signature(tmp_path: Path):
         lifecycle.AttestationLifecycleError, match="SIGNATURE_INVALID"
     ):
         lifecycle._verify_status_snapshot(
-            json.loads(status.read_text()),
+            json.loads(status.read_text(encoding="utf-8")),
             ca_set=ca,
             continuity_bundle=_continuity_docs(setup["activated"])[
                 "release-root-continuity-bundle.json"
@@ -335,7 +335,7 @@ def test_run158_status_snapshot_must_cover_every_attestation_certificate(tmp_pat
         lifecycle.AttestationLifecycleError, match="COVERAGE_INCOMPLETE"
     ):
         lifecycle._verify_status_snapshot(
-            json.loads(p.read_text()),
+            json.loads(p.read_text(encoding="utf-8")),
             ca_set=ca,
             continuity_bundle=_continuity_docs(setup["activated"])[
                 "release-root-continuity-bundle.json"
@@ -454,7 +454,7 @@ def test_run158_live_status_has_freeze_protection(tmp_path: Path):
         lifecycle.AttestationLifecycleError, match="EXPIRED_OR_FREEZE_RISK"
     ):
         lifecycle._verify_status_snapshot(
-            json.loads(p.read_text()),
+            json.loads(p.read_text(encoding="utf-8")),
             ca_set=ca,
             continuity_bundle=_continuity_docs(setup["activated"])[
                 "release-root-continuity-bundle.json"
@@ -480,7 +480,7 @@ def test_run158_later_revocation_preserves_historical_acceptance_but_blocks_live
     with pytest.raises(lifecycle.AttestationLifecycleError, match="ACTIVE_CERT_REVOKED"):
         lifecycle.advance_lifecycle(previous_dir=out, status_snapshot_path=p, output_dir=tmp_path / "blocked", expected_bootstrap_root_sha256=setup["pin"], expected_recovery_root_sha256=setup["rr_pin"], expected_attestation_root_sha256=[setup["ca_pin"]], now=NOW + timedelta(hours=2))
     # The signed status itself still proves the release attestation was good at its earlier attestation time.
-    status = lifecycle._verify_status_snapshot(json.loads(p.read_text()), ca_set=ca, continuity_bundle=_continuity_docs(setup["activated"])["release-root-continuity-bundle.json"], previous=old_status, now=NOW + timedelta(days=20), historical=True)
+    status = lifecycle._verify_status_snapshot(json.loads(p.read_text(encoding="utf-8")), ca_set=ca, continuity_bundle=_continuity_docs(setup["activated"])["release-root-continuity-bundle.json"], previous=old_status, now=NOW + timedelta(days=20), historical=True)
     lifecycle._evaluate_status(continuity_bundle=_continuity_docs(setup["activated"])["release-root-continuity-bundle.json"], ca_set=ca, status=status, now=NOW + timedelta(days=20), historical=True)
 
 
@@ -503,7 +503,7 @@ def test_run158_revocation_effective_before_attestation_invalidates_historical_p
         next_update=NOW + timedelta(hours=12),
     )
     status = lifecycle._verify_status_snapshot(
-        json.loads(p.read_text()),
+        json.loads(p.read_text(encoding="utf-8")),
         ca_set=ca,
         continuity_bundle=_continuity_docs(setup["activated"])[
             "release-root-continuity-bundle.json"
@@ -736,13 +736,13 @@ def test_run158_ca_set_versions_cannot_skip(tmp_path: Path):
 
 
 def test_run158_bundle_mutation_is_detected_offline(tmp_path: Path):
-    setup, out, _, _, _, _ = _initialized(tmp_path); p = out / "release-attestation-lifecycle-bundle.json"; doc = json.loads(p.read_text()); doc["events"][0]["inventorySha256"] = "0" * 64; p.write_bytes(_canonical(doc))
+    setup, out, _, _, _, _ = _initialized(tmp_path); p = out / "release-attestation-lifecycle-bundle.json"; doc = json.loads(p.read_text(encoding="utf-8")); doc["events"][0]["inventorySha256"] = "0" * 64; p.write_bytes(_canonical(doc))
     with pytest.raises(lifecycle.AttestationLifecycleError):
         lifecycle.verify_lifecycle(output_dir=out, expected_bootstrap_root_sha256=setup["pin"], expected_recovery_root_sha256=setup["rr_pin"], expected_attestation_root_sha256=[setup["ca_pin"]], now=NOW, historical=True)
 
 
 def test_run158_duplicate_json_keys_are_rejected(tmp_path: Path):
-    p = tmp_path / "dup.json"; p.write_text('{"a":1,"a":2}\n')
+    p = tmp_path / "dup.json"; p.write_text('{"a":1,"a":2}\n', encoding="utf-8")
     with pytest.raises(lifecycle.AttestationLifecycleError, match="DUPLICATE_KEY"):
         lifecycle._read(p, "RUN158_DUP")
 
@@ -762,8 +762,8 @@ def test_run158_initialization_is_deterministic(tmp_path: Path):
 
 
 def test_run158_documentation_describes_status_revocation_ca_rotation_and_vendor_semantics():
-    guide = (SECURITY / "RELEASE_ATTESTATION_LIFECYCLE_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SECURITY / "RELEASE_ATTESTATION_LIFECYCLE_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     assert "Run 158" in guide and "revocation" in guide.lower() and "CA rotation" in guide and "vendor" in guide.lower()
     assert "Run 158" in gates and "attestation lifecycle" in gates.lower()
 

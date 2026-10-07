@@ -19,7 +19,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -30,7 +33,9 @@ if str(HERE) not in sys.path:
 import verify_release_evidence  # noqa: E402
 from source_tree import SourceTreeError, source_tree_sha256  # noqa: E402
 
-POLICY = tomllib.loads((HERE / "release_promotion_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_promotion_policy.toml").read_text(encoding="utf-8")
+)
 ARCHIVE_PREFIX = str(POLICY["archive_prefix"])
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -297,7 +302,7 @@ def _git_apply_environment(root: Path) -> dict[str, str]:
     home.mkdir()
     xdg.mkdir()
     empty_config = root / "empty.gitconfig"
-    empty_config.write_text("")
+    empty_config.write_text("", encoding="utf-8")
     env = {
         "HOME": str(home),
         "XDG_CONFIG_HOME": str(xdg),

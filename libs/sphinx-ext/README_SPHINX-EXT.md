@@ -14,6 +14,17 @@ It is pure Python: no compiler is needed to install it.
 pip install scikit-plots-sphinx-ext
 ```
 
+Optional extras:
+
+- `pip install "scikit-plots-sphinx-ext[ai-assistant]"`: `beautifulsoup4`, `httpx`, `markdownify`
+- `pip install "scikit-plots-sphinx-ext[collection]"`: `pyyaml`, `sphinx-design`
+- `pip install "scikit-plots-sphinx-ext[feedback]"`: `httpx`
+- `pip install "scikit-plots-sphinx-ext[gallery-grid]"`: `sphinx-design`
+- `pip install "scikit-plots-sphinx-ext[gallery-jupyterlite]"`: `sphinx-gallery`
+- `pip install "scikit-plots-sphinx-ext[llm]"`: `sphinx-markdown-builder`
+- `pip install "scikit-plots-sphinx-ext[youtube-gallery]"`: `defusedxml`, `pyyaml`
+- `pip install "scikit-plots-sphinx-ext[proxy]"`: `cryptography`, `fastapi`, `httpx`, `huggingface_hub`, `pandas`, `redis`, `starlette`, `tomli; python_version < "3.11"`, `typing_extensions`
+
 Every spelling an installer accepts names the same project, so `scikit_plots_sphinx_ext` installs it too.
 
 ## Use
@@ -37,6 +48,20 @@ It depends on `scikit-plots-skinny`, which owns the root `scikitplot/__init__.py
 Partial distributions compose: install any of them side by side and they form one `scikitplot` package. No file belongs to two of them, so uninstalling one never breaks another.
 
 Do not install a partial distribution together with `scikit-plots`: `scikit-plots` already contains all of them and would own the same files. Run `scikitplot doctor` to see what is installed and whether it is coherent.
+
+### Mixing versions
+
+Partial distributions are released together, and they do not have to be upgraded together. Each one records the *core API* it was built for, a number that changes only when `scikit-plots-skinny` and the parts stop understanding each other (it is 1 now). Parts at different versions with the same number are reported as a note; a part with another number is reported as a problem, with the command that fixes it:
+
+```sh
+scikitplot doctor
+```
+
+```python
+from scikitplot._distributions import log_report
+
+log_report()  # problems at WARNING, notes at INFO, on the scikitplot logger
+```
 
 ## Links
 

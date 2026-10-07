@@ -191,7 +191,17 @@ def atomic_write_path(
     tmp_path = pathlib.Path(tmp_name)
     try:
         writer(tmp_path)
-        _fsync_file(tmp_path)
+        # A writer may replace the empty staging file with a populated
+        # *directory* (the artifact writer does). A directory is synced as a
+        # directory: opening one the way a file is opened is refused on
+        # Windows (EACCES), which ``_fsync_file`` rightly treats as a real
+        # failure, so every artifact publication failed there with
+        # "Permission denied: ...candidate-<id>.<random>.tmp". ``_fsync_dir``
+        # knows that refusal is a platform limit and reports the downgrade.
+        if tmp_path.is_dir():
+            _fsync_dir(tmp_path)
+        else:
+            _fsync_file(tmp_path)
         os.replace(tmp_path, target)
     except BaseException:
         # The staging path may be a directory: a writer is free to replace the

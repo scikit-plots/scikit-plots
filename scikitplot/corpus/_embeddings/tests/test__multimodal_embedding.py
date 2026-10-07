@@ -858,7 +858,7 @@ class TestMultimodalEmbeddingEngineEmbedDocumentsWithCache:
     def test_disabled_cache_bypasses_cache(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(enable_cache=False, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("text")]
         out = e.embed_documents_with_cache(docs, src)
         assert out[0].embedding is not None
@@ -874,7 +874,7 @@ class TestMultimodalEmbeddingEngineEmbedDocumentsWithCache:
     def test_cache_miss_creates_file(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("hello"), _Doc("world")]
         e.embed_documents_with_cache(docs, src)
         npy_files = list(tmp_path.glob("*.npy"))
@@ -883,7 +883,7 @@ class TestMultimodalEmbeddingEngineEmbedDocumentsWithCache:
     def test_cache_hit_reloads(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(text_dim=8, normalize=False, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("hello")]
         out1 = e.embed_documents_with_cache(docs, src)
         out2 = e.embed_documents_with_cache(docs, src)
@@ -896,7 +896,7 @@ class TestMultimodalEmbeddingEngineEmbedDocumentsWithCache:
 
         e = _custom_engine(text_dim=4, normalize=False, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("hello")]
         # Write a corrupt .npy file under the right cache key pattern
         for npy in tmp_path.glob("*.npy"):
@@ -1026,14 +1026,14 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(self._make_docs(5), path)
-        lines = path.read_text().strip().split("\n")
+        lines = path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 5  # noqa: PLR2004
 
     def test_each_line_is_valid_json(self, tmp_path: pathlib.Path) -> None:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(self._make_docs(), path)
-        for line in path.read_text().strip().split("\n"):
+        for line in path.read_text(encoding="utf-8").strip().split("\n"):
             obj = json.loads(line)
             assert "messages" in obj
 
@@ -1041,7 +1041,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter(default_system_prompt="Test prompt.")
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(self._make_docs(1), path)
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         roles = [m["role"] for m in obj["messages"]]
         assert "system" in roles
         system_content = next(m["content"] for m in obj["messages"] if m["role"] == "system")
@@ -1052,7 +1052,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path)
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         user_content = next(m["content"] for m in obj["messages"] if m["role"] == "user")
         assert "My unique text content." in user_content
 
@@ -1061,7 +1061,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path, response_fn=lambda d: "My answer.")
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         roles = [m["role"] for m in obj["messages"]]
         assert "assistant" in roles
         asst = next(m["content"] for m in obj["messages"] if m["role"] == "assistant")
@@ -1072,7 +1072,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path, response_fn=lambda d: "")
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         roles = [m["role"] for m in obj["messages"]]
         assert "assistant" not in roles
 
@@ -1081,7 +1081,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path, skip_empty=True)
-        lines = [l for l in path.read_text().strip().split("\n") if l]
+        lines = [l for l in path.read_text(encoding="utf-8").strip().split("\n") if l]
         assert len(lines) == 1
 
     def test_skip_empty_false_includes_empty(self, tmp_path: pathlib.Path) -> None:
@@ -1089,7 +1089,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path, skip_empty=False)
-        lines = [l for l in path.read_text().strip().split("\n") if l]
+        lines = [l for l in path.read_text(encoding="utf-8").strip().split("\n") if l]
         assert len(lines) == 2  # noqa: PLR2004
 
     def test_include_embeddings(self, tmp_path: pathlib.Path) -> None:
@@ -1098,7 +1098,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(docs, path, include_embeddings=True)
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         assert "embedding" in obj
         assert len(obj["embedding"]) == 4  # noqa: PLR2004
 
@@ -1107,7 +1107,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl([doc], path)
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         assert "metadata" in obj
         assert obj["metadata"]["doc_id"] == "abc123"
         assert obj["metadata"]["chunk_index"] == 7  # noqa: PLR2004
@@ -1118,7 +1118,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl([doc], path, user_field="custom_field")
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         user_msg = next(m["content"] for m in obj["messages"] if m["role"] == "user")
         assert "alternate content" in user_msg
 
@@ -1128,7 +1128,7 @@ class TestLLMTrainingExporterOpenAIJsonl:
         exp.to_openai_finetuning_jsonl(
             [_Doc("text")], path, system_prompt="override prompt"
         )
-        obj = json.loads(path.read_text().strip())
+        obj = json.loads(path.read_text(encoding="utf-8").strip())
         sys_content = next(m["content"] for m in obj["messages"] if m["role"] == "system")
         assert sys_content == "override prompt"
 
@@ -1453,7 +1453,7 @@ class TestEmbedDocumentsWithCacheNoneAndSingle:
     def test_single_doc_accepted(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(text_dim=4, normalize=False, enable_cache=False)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         doc = _Doc("hello")
         out = e.embed_documents_with_cache(doc, src)
         assert list(out) == list(out)  # RetrievalResponse is sequence-like
@@ -1463,7 +1463,7 @@ class TestEmbedDocumentsWithCacheNoneAndSingle:
     def test_list_with_none_filtered(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(text_dim=4, normalize=False, enable_cache=False)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("a"), None, _Doc("b")]
         out = e.embed_documents_with_cache(docs, src)
         assert len(out) == 2
@@ -1523,14 +1523,14 @@ class TestOpenAIJsonlNoneAndSingle:
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(None, path)
         assert path.exists()
-        content = path.read_text().strip()
+        content = path.read_text(encoding="utf-8").strip()
         assert content == ""
 
     def test_single_doc_accepted(self, tmp_path: pathlib.Path) -> None:
         exp = LLMTrainingExporter()
         path = tmp_path / "out.jsonl"
         exp.to_openai_finetuning_jsonl(_Doc("single doc text"), path)
-        lines = [l for l in path.read_text().strip().split("\n") if l]
+        lines = [l for l in path.read_text(encoding="utf-8").strip().split("\n") if l]
         assert len(lines) == 1
         obj = json.loads(lines[0])
         assert "messages" in obj
@@ -1540,7 +1540,7 @@ class TestOpenAIJsonlNoneAndSingle:
         path = tmp_path / "out.jsonl"
         docs = [_Doc("valid A"), None, _Doc("valid B")]
         exp.to_openai_finetuning_jsonl(docs, path)
-        lines = [l for l in path.read_text().strip().split("\n") if l]
+        lines = [l for l in path.read_text(encoding="utf-8").strip().split("\n") if l]
         assert len(lines) == 2  # noqa: PLR2004
 
 
@@ -1620,7 +1620,7 @@ class TestMultimodalIntegration:
         embedded = engine.embed_documents(docs)
         path = tmp_path / "train.jsonl"
         exporter.to_openai_finetuning_jsonl(embedded, path, include_embeddings=True)
-        lines = path.read_text().strip().split("\n")
+        lines = path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 3  # noqa: PLR2004
         for line in lines:
             obj = json.loads(line)

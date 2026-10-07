@@ -132,7 +132,7 @@ def _pins(out: Path):
 def test_run168_preserves_three_generation_run167_history(base, tmp_path):
     out = tmp_path / "out"; result = _preserve(base, out)
     assert result["ok"] and result["archives"] == 3
-    cp = json.loads((out / "release-archive-merkle-recovery-checkpoint.json").read_text())
+    cp = json.loads((out / "release-archive-merkle-recovery-checkpoint.json").read_text(encoding="utf-8"))
     assert [x["action"] for x in cp["run167Documents"]["release-archive-merkle-rebridge-bundle.json"]["events"]] == ["rebridge", "append", "rebridge"]
     assert cp["summary"]["rebridgeSequence"] == 2
     assert base["changed"] is not None
@@ -140,8 +140,8 @@ def test_run168_preserves_three_generation_run167_history(base, tmp_path):
 
 def test_run168_compact_summary_reconstructs_active_authority_and_revocations(base, tmp_path):
     out = tmp_path / "out"; _preserve(base, out)
-    cp = json.loads((out / "release-archive-merkle-recovery-checkpoint.json").read_text())
-    state = json.loads((base["run167"] / "trusted-archive-merkle-rebridge-state.json").read_text())
+    cp = json.loads((out / "release-archive-merkle-recovery-checkpoint.json").read_text(encoding="utf-8"))
+    state = json.loads((base["run167"] / "trusted-archive-merkle-rebridge-state.json").read_text(encoding="utf-8"))
     assert cp["summary"]["activeAuthority"] == state["activeAuthority"]
     assert cp["summary"]["revokedKeyFingerprints"] == state["revokedKeyFingerprints"]
     assert cp["summary"]["lastCheckpoints"] == state["lastCheckpoints"]
@@ -198,7 +198,7 @@ def test_run168_locator_collision_rejected(base, tmp_path):
 
 def test_run168_run167_mutation_detected_offline(base, tmp_path):
     out = tmp_path / "out"; _preserve(base, out)
-    p = out / "release-archive-merkle-recovery-checkpoint.json"; d = json.loads(p.read_text())
+    p = out / "release-archive-merkle-recovery-checkpoint.json"; d = json.loads(p.read_text(encoding="utf-8"))
     d["run167Documents"]["trusted-archive-merkle-rebridge-state.json"]["sequence"] += 1
     # Recompute outer head to ensure the inner Run 167 checks, not only the outer hash, catch it.
     body = {k: d[k] for k in d if k != "recoveryCheckpointHeadSha256"}; d["recoveryCheckpointHeadSha256"] = rec._checkpoint_head(body); _write(p, d)
@@ -222,8 +222,8 @@ def test_run168_recovered_active_projection_is_self_contained(base, tmp_path):
     out = tmp_path / "preserved"; _preserve(base, out); _, raw = _checkpoint(out)
     src = [(f"source-{x}", f"source-op-{x}", RecoveryAdapter(f"source-{x}", f"source-op-{x}", raw)) for x in "abc"]
     recovered = tmp_path / "recovered"; rec.recover_rebridge_history(sources=src, output_dir=recovered, now=NOW, **_pins(out))
-    active = json.loads((recovered / "recovered-active-archive-merkle-authority.json").read_text())
-    state = json.loads((base["run167"] / "trusted-archive-merkle-rebridge-state.json").read_text())
+    active = json.loads((recovered / "recovered-active-archive-merkle-authority.json").read_text(encoding="utf-8"))
+    state = json.loads((base["run167"] / "trusted-archive-merkle-rebridge-state.json").read_text(encoding="utf-8"))
     assert active["authority"] == state["activeAuthority"]
     assert active["revokedKeyFingerprints"] == state["revokedKeyFingerprints"]
     assert active["lastCheckpoints"] == state["lastCheckpoints"]
@@ -296,7 +296,7 @@ def test_run168_recovery_requires_three_configured_sources(base, tmp_path):
 
 
 def test_run168_duplicate_json_keys_rejected(tmp_path):
-    p = tmp_path / "bad.json"; p.write_text('{"x":1,"x":2}\n')
+    p = tmp_path / "bad.json"; p.write_text('{"x":1,"x":2}\n', encoding="utf-8")
     with pytest.raises(rec.ArchiveMerkleRecoveryError, match="DUPLICATE_KEY"):
         rec._read_json(p, "BAD")
 
@@ -326,9 +326,9 @@ def test_run168_input_drift_detected_before_commit(base, tmp_path, monkeypatch):
 def test_run168_documentation_and_release_gates_are_wired():
     guide = SEC / "RELEASE_ARCHIVE_MERKLE_RECOVERY_GUIDE.md"
     assert guide.exists()
-    text = guide.read_text().lower()
+    text = guide.read_text(encoding="utf-8").lower()
     for phrase in ("run 168", "out-of-band", "equivocation", "rollback", "recovered-active-archive-merkle-authority.json"):
         assert phrase in text
-    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text().lower()
-    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text().lower()
+    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8").lower()
+    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text(encoding="utf-8").lower()
     assert "run 168" in gates and "run 168" in evidence

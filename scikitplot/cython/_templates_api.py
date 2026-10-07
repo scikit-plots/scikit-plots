@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Iterable, Mapping
 
+from ._security import _is_anchored_path
 from ._utils import sanitize
 
 _TEMPLATE_ROOT = Path(__file__).resolve().parent / "_templates"
@@ -61,7 +62,9 @@ def _resolve_within(root: Path, name: str | Path) -> Path:
         If ``name`` is absolute, or resolves outside ``root``.
     """
     n = Path(name)
-    if n.is_absolute():
+    # Not ``n.is_absolute()``: on Windows a rooted path without a drive
+    # ("/etc/passwd") is not "absolute" and went on to the containment check.
+    if _is_anchored_path(n):
         raise ValueError(f"path must be relative to the template root: {name!r}")
     base = root.resolve()
     candidate = (root / n).resolve()
@@ -352,10 +355,10 @@ def _contained_relpath(value: str) -> bool:
     """
     if not value or not isinstance(value, str):
         return False
-    p = PurePosixPath(value)
-    if p.is_absolute() or PureWindowsPath(value).is_absolute():
+    if _is_anchored_path(value):
         return False
-    return not any(part == ".." for part in p.parts)
+    parts = (*PurePosixPath(value).parts, *PureWindowsPath(value).parts)
+    return not any(part == ".." for part in parts)
 
 
 def validate_template_info(  # ruff:ignore[too-many-branches]

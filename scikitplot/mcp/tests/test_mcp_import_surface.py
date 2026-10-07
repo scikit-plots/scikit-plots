@@ -84,7 +84,7 @@ def test_mcp_extra_declares_server_dependencies():
     pp = _REPO_ROOT / "pyproject.toml"
     if not pp.exists():
         pytest.skip("pyproject.toml not present in this layout")
-    text = pp.read_text()
+    text = pp.read_text(encoding="utf-8")
     start = text.find("\nmcp = [")
     if start == -1:
         pytest.fail("no [mcp] optional-dependency group found")

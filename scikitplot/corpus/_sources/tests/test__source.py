@@ -68,14 +68,14 @@ class TestSourceEntry:
 class TestCorpusSourceFromFile:
     def test_construction(self, tmp_path: pathlib.Path) -> None:
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         src = CorpusSource.from_file(f)
         assert src.kind == SourceKind.FILE
         assert src.root == f
 
     def test_iter_entries_yields_one(self, tmp_path: pathlib.Path) -> None:
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         src = CorpusSource.from_file(f)
         entries = list(src.iter_entries())
         assert len(entries) == 1
@@ -84,7 +84,7 @@ class TestCorpusSourceFromFile:
 
     def test_provenance_propagated(self, tmp_path: pathlib.Path) -> None:
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         src = CorpusSource.from_file(f, source_provenance={"source_author": "X"})
         entries = list(src.iter_entries())
         assert entries[0].provenance["source_author"] == "X"
@@ -97,17 +97,17 @@ class TestCorpusSourceFromFile:
 
 class TestCorpusSourceFromDirectory:
     def test_yields_matching_files(self, tmp_path: pathlib.Path) -> None:
-        (tmp_path / "a.txt").write_text("a")
-        (tmp_path / "b.txt").write_text("b")
-        (tmp_path / "c.py").write_text("c")
+        (tmp_path / "a.txt").write_text("a", encoding="utf-8")
+        (tmp_path / "b.txt").write_text("b", encoding="utf-8")
+        (tmp_path / "c.py").write_text("c", encoding="utf-8")
         src = CorpusSource.from_directory(tmp_path, pattern="*.txt", recursive=False)
         entries = list(src.iter_entries())
         names = {pathlib.Path(e.path_or_url).name for e in entries}
         assert names == {"a.txt", "b.txt"}
 
     def test_extension_filter(self, tmp_path: pathlib.Path) -> None:
-        (tmp_path / "a.txt").write_text("a")
-        (tmp_path / "b.xml").write_text("b")
+        (tmp_path / "a.txt").write_text("a", encoding="utf-8")
+        (tmp_path / "b.xml").write_text("b", encoding="utf-8")
         src = CorpusSource.from_directory(
             tmp_path, pattern="*", recursive=False, extensions=[".xml"]
         )
@@ -121,7 +121,7 @@ class TestCorpusSourceFromDirectory:
 
     def test_count(self, tmp_path: pathlib.Path) -> None:
         for i in range(3):
-            (tmp_path / f"f{i}.txt").write_text("x")
+            (tmp_path / f"f{i}.txt").write_text("x", encoding="utf-8")
         src = CorpusSource.from_directory(tmp_path, pattern="*.txt", recursive=False)
         assert src.count() == 3
 
@@ -146,14 +146,14 @@ class TestCorpusSourceFromUrls:
 class TestCorpusSourceFromManifest:
     def test_yields_url_and_file_entries(self, tmp_path: pathlib.Path) -> None:
         doc = tmp_path / "doc.txt"
-        doc.write_text("hello")
+        doc.write_text("hello", encoding="utf-8")
         manifest = tmp_path / "manifest.txt"
         manifest.write_text(
             textwrap.dedent("""\
             # Comment line
             https://example.com/page1
             doc.txt
-            """)
+            """), encoding="utf-8"
         )
         src = CorpusSource.from_manifest(manifest)
         entries = list(src.iter_entries())
@@ -168,7 +168,7 @@ class TestCorpusSourceFromManifest:
 
     def test_blank_and_comment_lines_skipped(self, tmp_path: pathlib.Path) -> None:
         manifest = tmp_path / "m.txt"
-        manifest.write_text("# comment\n\nhttps://x.com\n")
+        manifest.write_text("# comment\n\nhttps://x.com\n", encoding="utf-8")
         src = CorpusSource.from_manifest(manifest)
         entries = list(src.iter_entries())
         assert len(entries) == 1

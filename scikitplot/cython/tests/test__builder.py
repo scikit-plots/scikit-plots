@@ -222,7 +222,7 @@ class TestWriteSupportFiles:
 
     def test_writes_str_content(self, tmp_path: Path) -> None:
         _write_support_files(tmp_path, {"common.pxi": "cdef int y"}, reserved=set())
-        assert (tmp_path / "common.pxi").read_text() == "cdef int y"
+        assert (tmp_path / "common.pxi").read_text(encoding="utf-8") == "cdef int y"
 
     def test_writes_bytes_content(self, tmp_path: Path) -> None:
         _write_support_files(tmp_path, {"data.bin": b"\x01\x02"}, reserved=set())
@@ -684,14 +684,14 @@ class TestScenario5CApiSources:
 
     def test_single_c_file(self, tmp_path: Path) -> None:
         f = tmp_path / "foo.c"
-        f.write_text("int foo() { return 1; }")
+        f.write_text("int foo() { return 1; }", encoding="utf-8")
         result = collect_c_api_sources(str(f))
         assert len(result) == 1
         assert result[0] == f.resolve()
 
     def test_single_cpp_file(self, tmp_path: Path) -> None:
         f = tmp_path / "bar.cpp"
-        f.write_text("int bar() { return 2; }")
+        f.write_text("int bar() { return 2; }", encoding="utf-8")
         result = collect_c_api_sources(str(f))
         assert len(result) == 1
         assert result[0].suffix == ".cpp"
@@ -702,13 +702,13 @@ class TestScenario5CApiSources:
 
     def test_single_file_bad_suffix_raises(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.txt"
-        f.write_text("not a C file")
+        f.write_text("not a C file", encoding="utf-8")
         with pytest.raises(ValueError, match="unsupported source suffix"):
             collect_c_api_sources(str(f))
 
     def test_header_file_ignored_in_default_suffixes(self, tmp_path: Path) -> None:
         h = tmp_path / "foo.h"
-        h.write_text("#pragma once")
+        h.write_text("#pragma once", encoding="utf-8")
         with pytest.raises(ValueError, match="unsupported source suffix"):
             collect_c_api_sources(str(h))
 
@@ -718,23 +718,23 @@ class TestScenario5CApiSources:
         files = []
         for name in ("a.c", "b.cpp", "c.cxx"):
             f = tmp_path / name
-            f.write_text("void stub() {}")
+            f.write_text("void stub() {}", encoding="utf-8")
             files.append(str(f))
         result = collect_c_api_sources(*files)
         assert len(result) == 3
 
     def test_deduplication_of_same_file_twice(self, tmp_path: Path) -> None:
         f = tmp_path / "dup.c"
-        f.write_text("int dup() { return 0; }")
+        f.write_text("int dup() { return 0; }", encoding="utf-8")
         result = collect_c_api_sources(str(f), str(f))
         assert len(result) == 1
 
     # --- Scenario 5c: directory ---
 
     def test_directory_collects_all_c_files(self, tmp_path: Path) -> None:
-        (tmp_path / "a.c").write_text("int a() {}")
-        (tmp_path / "b.cpp").write_text("int b() {}")
-        (tmp_path / "README.md").write_text("# docs")
+        (tmp_path / "a.c").write_text("int a() {}", encoding="utf-8")
+        (tmp_path / "b.cpp").write_text("int b() {}", encoding="utf-8")
+        (tmp_path / "README.md").write_text("# docs", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path))
         names = {p.name for p in result}
         assert "a.c" in names
@@ -742,8 +742,8 @@ class TestScenario5CApiSources:
         assert "README.md" not in names
 
     def test_directory_skips_headers_by_default(self, tmp_path: Path) -> None:
-        (tmp_path / "a.c").write_text("int a() {}")
-        (tmp_path / "mylib.h").write_text("#pragma once")
+        (tmp_path / "a.c").write_text("int a() {}", encoding="utf-8")
+        (tmp_path / "mylib.h").write_text("#pragma once", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path))
         names = {p.name for p in result}
         assert "mylib.h" not in names
@@ -753,8 +753,8 @@ class TestScenario5CApiSources:
     def test_recursive_directory(self, tmp_path: Path) -> None:
         sub = tmp_path / "sub"
         sub.mkdir()
-        (tmp_path / "root.c").write_text("int r() {}")
-        (sub / "child.c").write_text("int c() {}")
+        (tmp_path / "root.c").write_text("int r() {}", encoding="utf-8")
+        (sub / "child.c").write_text("int c() {}", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path), recursive=True)
         names = {p.name for p in result}
         assert "root.c" in names
@@ -763,8 +763,8 @@ class TestScenario5CApiSources:
     def test_non_recursive_directory_excludes_subdirs(self, tmp_path: Path) -> None:
         sub = tmp_path / "sub"
         sub.mkdir()
-        (tmp_path / "root.c").write_text("int r() {}")
-        (sub / "child.c").write_text("int c() {}")
+        (tmp_path / "root.c").write_text("int r() {}", encoding="utf-8")
+        (sub / "child.c").write_text("int c() {}", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path), recursive=False)
         names = {p.name for p in result}
         assert "root.c" in names
@@ -773,16 +773,16 @@ class TestScenario5CApiSources:
     # --- exclude_patterns ---
 
     def test_exclude_pattern_applied(self, tmp_path: Path) -> None:
-        (tmp_path / "main.c").write_text("int main() {}")
-        (tmp_path / "test_helper.c").write_text("int helper() {}")
+        (tmp_path / "main.c").write_text("int main() {}", encoding="utf-8")
+        (tmp_path / "test_helper.c").write_text("int helper() {}", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path), exclude_patterns=["test_*.c"])
         names = {p.name for p in result}
         assert "main.c" in names
         assert "test_helper.c" not in names
 
     def test_custom_suffixes(self, tmp_path: Path) -> None:
-        (tmp_path / "a.c").write_text("int a() {}")
-        (tmp_path / "b.f90").write_text("real b")
+        (tmp_path / "a.c").write_text("int a() {}", encoding="utf-8")
+        (tmp_path / "b.f90").write_text("real b", encoding="utf-8")
         result = collect_c_api_sources(
             str(tmp_path),
             suffixes=frozenset({".f90"}),
@@ -792,7 +792,7 @@ class TestScenario5CApiSources:
         assert "a.c" not in names
 
     def test_results_are_absolute_paths(self, tmp_path: Path) -> None:
-        (tmp_path / "x.c").write_text("int x() {}")
+        (tmp_path / "x.c").write_text("int x() {}", encoding="utf-8")
         result = collect_c_api_sources(str(tmp_path))
         for p in result:
             assert p.is_absolute()
@@ -800,7 +800,7 @@ class TestScenario5CApiSources:
     # --- collect_header_dirs ---
 
     def test_collect_header_dirs_single_dir(self, tmp_path: Path) -> None:
-        (tmp_path / "mylib.h").write_text("#pragma once")
+        (tmp_path / "mylib.h").write_text("#pragma once", encoding="utf-8")
         result = collect_header_dirs(str(tmp_path))
         assert len(result) == 1
         assert result[0] == tmp_path.resolve()
@@ -808,18 +808,18 @@ class TestScenario5CApiSources:
     def test_collect_header_dirs_nested(self, tmp_path: Path) -> None:
         sub = tmp_path / "include"
         sub.mkdir()
-        (sub / "api.h").write_text("#pragma once")
+        (sub / "api.h").write_text("#pragma once", encoding="utf-8")
         result = collect_header_dirs(str(tmp_path), recursive=True)
         assert sub.resolve() in result
 
     def test_collect_header_dirs_deduplicated(self, tmp_path: Path) -> None:
-        (tmp_path / "a.h").write_text("#pragma once")
-        (tmp_path / "b.h").write_text("#pragma once")
+        (tmp_path / "a.h").write_text("#pragma once", encoding="utf-8")
+        (tmp_path / "b.h").write_text("#pragma once", encoding="utf-8")
         result = collect_header_dirs(str(tmp_path))
         assert result.count(tmp_path.resolve()) == 1
 
     def test_collect_header_dirs_no_headers_returns_empty(self, tmp_path: Path) -> None:
-        (tmp_path / "main.c").write_text("int main() {}")
+        (tmp_path / "main.c").write_text("int main() {}", encoding="utf-8")
         result = collect_header_dirs(str(tmp_path))
         assert result == []
 
@@ -827,13 +827,13 @@ class TestScenario5CApiSources:
         for sub in ("z_inc", "a_inc"):
             d = tmp_path / sub
             d.mkdir()
-            (d / "h.h").write_text("#pragma once")
+            (d / "h.h").write_text("#pragma once", encoding="utf-8")
         result = collect_header_dirs(str(tmp_path), recursive=True)
         assert result == sorted(result)
 
     def test_collect_header_dirs_explicit_file(self, tmp_path: Path) -> None:
         h = tmp_path / "mylib.h"
-        h.write_text("#pragma once")
+        h.write_text("#pragma once", encoding="utf-8")
         result = collect_header_dirs(str(h))
         assert tmp_path.resolve() in result
 

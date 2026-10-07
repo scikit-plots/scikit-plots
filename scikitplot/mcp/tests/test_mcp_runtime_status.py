@@ -50,7 +50,7 @@ def test_probe_is_immune_to_a_shadowing_directory(tmp_path, monkeypatch):
     directory satisfies. Distribution metadata answers the question that matters.
     """
     (tmp_path / "mcp").mkdir()
-    (tmp_path / "mcp" / "__init__.py").write_text("")
+    (tmp_path / "mcp" / "__init__.py").write_text("", encoding="utf-8")
     monkeypatch.syspath_prepend(str(tmp_path))
     monkeypatch.chdir(tmp_path)
     st = server_runtime_status()

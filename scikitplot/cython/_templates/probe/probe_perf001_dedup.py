@@ -39,7 +39,7 @@ def main() -> int:
         ok = ok and collapsed
 
         pyx = Path(td) / "mod.pyx"
-        pyx.write_text("def f(): return 1\n")
+        pyx.write_text("def f(): return 1\n", encoding="utf-8")
         cap = {}
 
         def fake(source, **kw):

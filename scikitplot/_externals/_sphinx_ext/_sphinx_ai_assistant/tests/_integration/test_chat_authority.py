@@ -192,7 +192,10 @@ def test_browser_examples_never_point_directly_at_hf_router() -> None:
 
 
 def test_bundled_worker_allowlist_matches_public_example_models() -> None:
-    import tomllib
+    try:
+        import tomllib  # the standard library, Python >= 3.11
+    except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+        import tomli as tomllib  # the same parser, as the package it came from
 
     with (ROOT / "_cf_worker" / "wrangler.toml").open("rb") as fh:
         cfg = tomllib.load(fh)

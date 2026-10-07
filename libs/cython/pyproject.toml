@@ -74,6 +74,9 @@ changelog = "https://scikit-plots.github.io/dev/whats_new/index.html"
 documentation = "https://scikit-plots.github.io"
 issues = "https://github.com/scikit-plots/scikit-plots/issues"
 
+[project.entry-points."scikitplot.parts.api1"]
+"cython" = "scikitplot.cython"
+
 [tool.setuptools]
 # Files are listed explicitly by setup.py; MANIFEST.in decides the sdist only.
 include-package-data = false

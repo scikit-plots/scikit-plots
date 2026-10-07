@@ -349,6 +349,12 @@ def _optional_dependencies(
         for sibling in siblings:
             distributions.get(sibling)  # KeyError names the unknown distribution
         groups[name] = [f"{sibling}>={meta.version}" for sibling in siblings]
+    for name, requirements in package.own_extras:
+        if name in groups:
+            raise ValueError(
+                f"{package.distribution}: extra {name!r} is declared twice"
+            )
+        groups[name] = list(requirements)
     return groups
 
 
@@ -448,6 +454,21 @@ def render_pyproject(package, distributions, meta: RootMetadata) -> str:
         lines += [
             f"{name} = {_string(target)}" for name, target in meta.scripts.items()
         ]
+    parts = distributions.parts_entry_points(dist.name)
+    if dist.name != distributions.CORE and not parts:
+        raise ValueError(
+            f"{dist.name} owns no tree, so it has no part in which to state "
+            "the core API it is built for"
+        )
+    if parts:
+        # The statement "built for core API N" (see CORE_API in
+        # scikitplot/_distributions.py). It is metadata, so the core judges a
+        # mix of versions without importing the part.
+        group = distributions.parts_group()
+        lines += ["", f"[project.entry-points.{_string(group)}]"]
+        lines += [
+            f"{_string(name)} = {_string(target)}" for name, target in parts.items()
+        ]
     lines += [
         "",
         "[tool.setuptools]",
@@ -495,6 +516,7 @@ import glob
 import importlib.util
 import os
 import sys
+import sysconfig
 from pathlib import Path
 
 import setuptools
@@ -513,6 +535,15 @@ PEP639_SETUPTOOLS_MAJOR = 77
 CYTHON_FREETHREADING = (3, 1)
 #: Compiled extension modules, as declared in libs/_tools/registry.py.
 EXTENSIONS = @@EXTENSIONS@@
+#: Environment variable with which the builder asks for the multithreaded
+#: code of an extension: ``1`` compiles it in, ``0`` or unset leaves it out.
+#: Unset means out because that is what the full distribution's Meson build
+#: does, and the two builds must produce the same behaviour until both change.
+THREADS_ENV = "SKPLT_BUILD_THREADS"
+#: Prefixes of ``sysconfig.get_platform()`` for targets without threads: a
+#: WebAssembly interpreter (Pyodide, JupyterLite, WASI) runs on one thread,
+#: and starting a second one fails at run time, not at build time.
+PLATFORMS_WITHOUT_THREADS = ("emscripten", "wasi")
 #: Cython directives of the full distribution's build (root meson.build).
 CYTHON_DIRECTIVES = {
     "language_level": 3,
@@ -663,11 +694,57 @@ def _translate_cython(extension) -> None:
     extension.sources = translated.sources
 
 
+def _threads_enabled(environ=None, platform=None) -> bool:
+    """
+    Return whether the multithreaded code of the extensions is compiled in.
+
+    Parameters
+    ----------
+    environ : mapping, optional
+        The environment; ``os.environ`` when omitted.
+    platform : str, optional
+        The platform the build targets; ``sysconfig.get_platform()`` when
+        omitted, which is the target's and not the builder's under a
+        cross-build.
+
+    Returns
+    -------
+    bool
+        ``True`` when ``SKPLT_BUILD_THREADS`` is ``1``; ``False`` when it is
+        ``0`` or unset.
+
+    Raises
+    ------
+    SystemExit
+        If ``SKPLT_BUILD_THREADS`` is set to anything but ``0`` or ``1`` (a
+        build option that is misspelled must not be read as its default), or
+        is ``1`` for a target without threads (the wheel would build, and
+        fail the first time a second thread is started).
+    """
+    environ = os.environ if environ is None else environ
+    platform = sysconfig.get_platform() if platform is None else platform
+    value = environ.get(THREADS_ENV, "").strip()
+    if value in ("", "0"):
+        return False
+    if value != "1":
+        raise SystemExit(
+            f"{THREADS_ENV}={value!r} is not understood. Set it to 1 (compile "
+            "the multithreaded code in), or to 0 or nothing (leave it out)."
+        )
+    if platform.startswith(PLATFORMS_WITHOUT_THREADS):
+        raise SystemExit(
+            f"{THREADS_ENV}=1 cannot be honoured for {platform}: this target "
+            "has no threads. Unset it, or set it to 0."
+        )
+    return True
+
+
 def _extension_options() -> dict:
     """Return the ``setup()`` options for the compiled extensions, if any."""
     if not EXTENSIONS:
         return {}
     declared = {entry["name"]: entry for entry in EXTENSIONS}
+    threads = _threads_enabled()
 
     class BuildExt(build_ext):
         """
@@ -713,6 +790,14 @@ def _extension_options() -> dict:
                         "-g0",
                         "-fno-strict-aliasing",
                     ]
+                if threads and entry["threads_macro"]:
+                    extension.define_macros += [(entry["threads_macro"], None)]
+                    if not msvc:
+                        # Compiling and linking with -pthread is how GCC and
+                        # Clang are told a program uses threads. MSVC needs
+                        # nothing: its runtime is always the threaded one.
+                        extension.extra_compile_args += ["-pthread"]
+                        extension.extra_link_args += ["-pthread"]
             super().build_extensions()
 
     return {
@@ -910,6 +995,55 @@ def _install_block(package, distributions, meta: RootMetadata) -> list[str]:
     return lines
 
 
+#: Simple index of the nightly wheels (``ci_wheels_conda_libs.yml``).
+NIGHTLY_INDEX = "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple"
+
+
+def _threads_section(package, dist) -> list[str]:
+    """Return the README section on threads, for a distribution that has any."""
+    if not any(extension.threads_macro for extension in package.extensions):
+        return []
+    return [
+        "## Threads",
+        "",
+        (
+            "`build(n_trees, n_jobs=N)` builds the trees on `N` threads in a wheel "
+            "that was compiled with threads. In a wheel that was not, `n_jobs` is "
+            "accepted and has no effect. Released wheels are compiled without "
+            "threads, like `scikit-plots` itself; the nightly wheels are compiled "
+            "with them, except for WebAssembly (Pyodide, JupyterLite), which has "
+            "one thread."
+        ),
+        "",
+        "```sh",
+        "# nightly wheel, with threads",
+        f"pip install --pre --extra-index-url {NIGHTLY_INDEX} {dist.name}",
+        "",
+        "# or compile it yourself (needs a C++17 compiler)",
+        f"SKPLT_BUILD_THREADS=1 pip install --no-binary {dist.name} {dist.name}",
+        "```",
+        "",
+        "Which one is installed:",
+        "",
+        "```python",
+        "from scikitplot.annoy import Index",
+        "",
+        'index = Index(3, "angular")',
+        "index.add_item(0, [1.0, 0.0, 0.0])",
+        "index.build(1)",
+        'print(index.__getstate__()["_backend_abi"]["multithreaded_build"])',
+        "```",
+        "",
+        (
+            "Each thread seeds its own trees, so an index built with `n_jobs=2` "
+            "holds other trees than one built with `n_jobs=1`, and answers can "
+            "differ in the approximate tail. For the same index on every machine "
+            "and from every wheel, pass `n_jobs=1` and a seed."
+        ),
+        "",
+    ]
+
+
 def render_readme_package(package, distributions, meta: RootMetadata) -> str:
     """
     Render the package description shown on the package index.
@@ -972,6 +1106,9 @@ def render_readme_package(package, distributions, meta: RootMetadata) -> str:
         package.example.rstrip("\n"),
         "```",
         "",
+    ]
+    lines += _threads_section(package, dist)
+    lines += [
         "## How it fits with the other distributions",
         "",
     ]
@@ -1003,6 +1140,28 @@ def render_readme_package(package, distributions, meta: RootMetadata) -> str:
             "already contains all of them and would own the same files. Run "
             "`scikitplot doctor` to see what is installed and whether it is coherent."
         ),
+        "",
+        "### Mixing versions",
+        "",
+        (
+            "Partial distributions are released together, and they do not have to "
+            "be upgraded together. Each one records the *core API* it was built "
+            f"for, a number that changes only when `{core}` and the parts stop "
+            f"understanding each other (it is {distributions.CORE_API} now). Parts "
+            "at different versions with the same number are reported as a note; "
+            "a part with another number is reported as a problem, with the "
+            "command that fixes it:"
+        ),
+        "",
+        "```sh",
+        "scikitplot doctor",
+        "```",
+        "",
+        "```python",
+        "from scikitplot._distributions import log_report",
+        "",
+        "log_report()  # problems at WARNING, notes at INFO, on the scikitplot logger",
+        "```",
         "",
         "## Links",
         "",
@@ -1080,6 +1239,105 @@ def render_readme_directory(package, distributions) -> str:
     )
 
 
+def _testing_section(packages, distributions) -> list[str]:
+    """
+    Return the lines of the "what the verification does not run" section.
+
+    Parameters
+    ----------
+    packages : sequence of registry.Package
+        Every package, in order.
+    distributions : module
+        The distribution map.
+
+    Returns
+    -------
+    list of str
+        Markdown lines ending in a blank one; empty when every test of every
+        distribution runs on every supported Python.
+
+    Notes
+    -----
+    **Developer.** ``verify`` runs each part's tests from the *installed*
+    wheel. Three registry fields narrow that (``test_python``,
+    ``test_gated``, ``test_ignore``), and a narrowed test run is easy to
+    mistake for a complete one. The section is generated from those fields,
+    so the overview states exactly what is left out, why, and the command
+    that runs it from a checkout.
+    """
+    lines: list[str] = []
+    for package in packages:
+        if not (package.test_python or package.test_ignore or package.test_gated):
+            continue
+        name = package.distribution
+        trees = distributions.get(name).trees
+        lines += [f"### `{name}`", ""]
+        if package.test_python:
+            lines += [
+                (
+                    f"- The test suite runs on Python `{package.test_python}`. On "
+                    "older supported versions `verify` still installs the wheel, "
+                    "imports every module and runs the commands, and reports the "
+                    "suite as skipped."
+                ),
+            ]
+        for floor in sorted({floor for _path, floor in package.test_gated}):
+            gated = [
+                path for path, its_floor in package.test_gated if its_floor == floor
+            ]
+            lines += [
+                (
+                    f"- Below Python `{floor[2:]}` these are left out, and the rest "
+                    "of the suite runs: they test an optional tier whose own code "
+                    f"needs Python `{floor}`."
+                ),
+                "",
+                *[f"  - `scikitplot/{path}`" for path in gated],
+                "",
+            ]
+        if package.test_ignore:
+            lines += [
+                (
+                    f"- {len(package.test_ignore)} test modules are left out of "
+                    "the installed-wheel run: they read files of the repository "
+                    "that a wheel does not contain. Run them from a checkout of "
+                    "the repository root:"
+                ),
+                "",
+                "  ```sh",
+                "  python -m pytest \\",
+                *[
+                    f"    scikitplot/{entry}"
+                    + (" \\" if position < len(package.test_ignore) - 1 else "")
+                    for position, entry in enumerate(package.test_ignore)
+                ],
+                "  ```",
+                "",
+                (
+                    "  The whole suite of the part, these included, is "
+                    "`python -m pytest "
+                    + " ".join(f"scikitplot/{tree}" for tree in trees)
+                    + "` from the same place."
+                ),
+            ]
+        lines.append("")
+    if not lines:
+        return []
+    return [
+        "## Tests the verification does not run",
+        "",
+        (
+            "`verify` tests each distribution the way a user gets it: installed "
+            "from its wheel, outside the repository. What that leaves out is "
+            "listed here, from `test_python`, `test_gated` and `test_ignore` in "
+            "`libs/_tools/registry.py`; an entry there needs a comment saying "
+            "what was measured."
+        ),
+        "",
+        *lines,
+    ]
+
+
 def render_libs_readme(packages, distributions) -> str:
     """
     Render ``libs/README.md``, the overview of every partial distribution.
@@ -1105,6 +1363,7 @@ def render_libs_readme(packages, distributions) -> str:
         rows.append(
             f"| [`{directory}/`]({directory}/) | `{dist.name}` | {ships} | {kind} |"
         )
+    testing = _testing_section(packages, distributions)
     return "\n".join(
         [
             f"<!-- {GENERATED_NOTICE} -->",
@@ -1141,6 +1400,16 @@ def render_libs_readme(packages, distributions) -> str:
                 "root `pyproject.toml`. Version specifiers are inherited from the root, "
                 "so they cannot drift."
             ),
+            (
+                "- **A number for compatibility.** `CORE_API` in "
+                "`scikitplot/_distributions.py` names the contract between "
+                f"`{distributions.CORE}` and the other distributions. Each of them "
+                "states the number it is built for as an entry-point group "
+                f"(`{distributions.parts_group()}`), which the generator writes. "
+                "`scikitplot doctor` compares the two, so a mix of versions is "
+                "judged instead of always flagged. Raise the number only for a "
+                "breaking change; the comment above it says what counts."
+            ),
             "",
             "## Commands",
             "",
@@ -1154,6 +1423,7 @@ def render_libs_readme(packages, distributions) -> str:
             "python -m libs._tools verify     # build, then install and test them",
             "```",
             "",
+            *testing,
             "## See also",
             "",
             "- https://github.com/mlflow/mlflow/blob/master/libs/skinny/README.md",

@@ -41,7 +41,7 @@ def test_legacy_feedback_snapshot_is_excluded_from_training_by_default(tmp_path)
     out = tmp_path / "clean.jsonl"
     assert dd.main(["--local-dir", str(tmp_path), "--output", str(out)]) == 0
     assert out.exists()
-    assert len(out.read_text().splitlines()) == 0
+    assert len(out.read_text(encoding="utf-8").splitlines()) == 0
 
 
 def test_legacy_repo_id_parser_still_defaults_to_huggingface():

@@ -134,7 +134,7 @@ def test_b44_hf_factory_is_restored_after_scoped_call():
 
 
 def test_b44_same_origin_uses_live_rendered_visibility_authority():
-    src = MAIN.read_text()
+    src = MAIN.read_text(encoding="utf-8")
     assert "function _stripModelOnlyLiveNodes(liveRoot, cloneRoot)" in src
     assert "_stripModelOnlyLiveNodes(content, cloned);" in src
     for token in ("contentVisibility === 'hidden'", "classicallyClipped", "extremeIndent", "unreachable"):
@@ -142,7 +142,7 @@ def test_b44_same_origin_uses_live_rendered_visibility_authority():
 
 
 def test_b44_isolation_host_uses_live_rendered_visibility_authority():
-    src = HOST.read_text()
+    src = HOST.read_text(encoding="utf-8")
     for token in ("contentVisibility === 'hidden'", "classicallyClipped", "extremeIndent", "unreachable"):
         assert token in src
     assert "The live rendered DOM is the visibility authority" in src

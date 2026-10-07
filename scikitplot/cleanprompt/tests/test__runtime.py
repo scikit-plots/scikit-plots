@@ -636,7 +636,7 @@ class TestOrderIndependence:
         list(_cleaner().encode_tree(source, tmp_path / "out"))
         assert (
             tmp_path / "out" / "a_note.txt"
-        ).read_text() == "Call [PERSON-1] today.\n"
+        ).read_text(encoding="utf-8") == "Call [PERSON-1] today.\n"
 
     def test_a_zip(self, tmp_path):
         source = self._files(tmp_path / "src")
@@ -668,7 +668,7 @@ class TestOrderIndependence:
         list(_cleaner(remember=False).encode_tree(source, tmp_path / "out"))
         assert (
             tmp_path / "out" / "a_note.txt"
-        ).read_text() == "Call Marion Holt today.\n"
+        ).read_text(encoding="utf-8") == "Call Marion Holt today.\n"
 
 
 def _chunked(chunk_chars, **kwargs):
@@ -782,7 +782,7 @@ class TestSurvey:
         ]
 
     def test_a_file_is_refused(self, tmp_path):
-        (tmp_path / "x.txt").write_text("x")
+        (tmp_path / "x.txt").write_text("x", encoding="utf-8")
         with pytest.raises(CleanPromptError, match="not a folder"):
             _cleaner().survey_tree(tmp_path / "x.txt")
 

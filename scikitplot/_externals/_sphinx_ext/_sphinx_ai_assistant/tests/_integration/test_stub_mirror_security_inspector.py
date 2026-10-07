@@ -217,7 +217,7 @@ def test_mirror_display_clipping_is_explicit_and_fingerprint_remains_complete() 
 
 
 def test_python_catalog_exposes_six_visible_models_in_requested_order() -> None:
-    init_text = (ROOT / "__init__.py").read_text()
+    init_text = (ROOT / "__init__.py").read_text(encoding="utf-8")
     ids = [
         "stub-echo", "stub-mirror", "stub-error", "stub-hostile", "stub-qa", "stub-slow"
     ]
@@ -228,8 +228,8 @@ def test_python_catalog_exposes_six_visible_models_in_requested_order() -> None:
 
 
 def test_proxy_and_local_dev_pass_raw_wire_fingerprint_to_mirror() -> None:
-    proxy = (PROXY_DIR / "app.py").read_text()
-    dev = DEV_PROXY.read_text()
+    proxy = (PROXY_DIR / "app.py").read_text(encoding="utf-8")
+    dev = DEV_PROXY.read_text(encoding="utf-8")
     for text in (proxy, dev):
         assert "wire_body_bytes" in text
         assert "wire_body_sha256" in text

@@ -218,7 +218,8 @@ class TestArtifactsFacadeLogFile:
 
         f = ArtifactsFacade(mlflow_module=M(), client=None)  # type: ignore[arg-type]
         f.log_file(Path("/tmp/myfile.csv"))
-        assert logged == ["/tmp/myfile.csv"]
+        # The facade hands MLflow ``str(path)``: the platform's own spelling.
+        assert logged == [str(Path("/tmp/myfile.csv"))]
 
 
 # ===========================================================================
@@ -433,4 +434,5 @@ class TestArtifactsFacadeProviderPath:
 
         f = ArtifactsFacade(mlflow_module=_ModernMod(), client=_DummyClient())
         result = f.download("r", "path")
-        assert str(result).startswith("/modern/")
+        # Compared as a path: ``str()`` of it uses backslashes on Windows.
+        assert Path(result).as_posix().startswith("/modern/")

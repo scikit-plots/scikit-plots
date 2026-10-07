@@ -200,6 +200,10 @@ class IndexIOMixin:
         **User.** A bundle is self-contained and relocatable: move it, copy it,
         or publish it, and :py:meth:`load_bundle` reads it from wherever it is.
 
+        After a successful save this index is backed by the published index
+        file (``on_disk_path`` names it). After a failed save it holds the
+        same vectors and trees as before, in memory.
+
         **Developer.** This previously took two filenames and no directory, so
         the defaults resolved against the process working directory and two
         callers using them overwrote each other. It also wrote the index and
@@ -207,39 +211,98 @@ class IndexIOMixin:
         no loader could find. Both are fixed the same way the corpus artifact
         fixes them: build a candidate, then swap, so nothing is destroyed before
         a complete replacement exists.
+
+        The backend's ``save`` memory-maps the file it wrote, so once the
+        index member exists the index is backed by a file *inside the
+        candidate*. POSIX lets a directory be renamed or removed with a mapped
+        file in it; Windows does not (``PermissionError: [WinError 5]`` on the
+        swap, seen in the Windows job of run 37555382019). The order below
+        works on both, so there is one code path:
+
+        1. write both members into the candidate;
+        2. release the mapping (``unload``), swap the directories, map the
+           published index (``load``);
+        3. on any failure after step 1, take the index back into memory
+           (``serialize``, ``unload``, ``deserialize``) *before* the candidate
+           is removed, so the object keeps its contents and nothing of the
+           candidate is in use when it is deleted.
+
+        Not changed here, recorded in ``tasks/todo.md`` (ANNOY-BUNDLE-PATH):
+        the manifest's ``on_disk_path`` is the path of the candidate, which no
+        longer exists after publication. :py:meth:`load_bundle` does not read
+        it.
         """
+        backend = backend_for(self)
+        needed = ("load", "unload", "serialize", "deserialize")
+        missing = [
+            name for name in needed if not callable(getattr(backend, name, None))
+        ]
+        if missing:
+            raise TypeError(
+                "Backend does not provide "
+                + ", ".join(f"{name}()" for name in missing)
+                + ", which save_bundle needs to publish a bundle and to keep "
+                "this index usable if publishing fails"
+            )
+
         target = pathlib.Path(os.fspath(directory)).resolve()
         candidate = target.parent / f".{target.name}.candidate-{uuid.uuid4().hex}"
         superseded = target.parent / f".{target.name}.superseded-{uuid.uuid4().hex}"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        candidate.mkdir(parents=True)
-        try:
-            index_path = candidate / index_filename
-            manifest_path = candidate / manifest_filename
-            self.save_index(os.fspath(index_path), prefault=prefault)
-            self.to_json(os.fspath(manifest_path))
-        except BaseException:
-            shutil.rmtree(candidate, ignore_errors=True)
-            raise
+        candidate_index = os.fspath(candidate / index_filename)
+        published_index = os.fspath(target / index_filename)
 
-        had_previous = target.exists()
-        try:
-            if had_previous:
-                os.replace(target, superseded)
+        def load(path: str) -> None:
+            if prefault is None:
+                backend.load(path)
+            else:
+                backend.load(path, prefault=bool(prefault))
+
+        def back_into_memory(*, mapped: bool) -> None:
+            # The only complete copy of the index is the candidate's member.
+            if not mapped:
+                load(candidate_index)
+            snapshot = backend.serialize(format="native")
+            backend.unload()
+            backend.deserialize(snapshot)
+
+        with lock_for(self):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            candidate.mkdir(parents=True)
             try:
-                os.replace(candidate, target)
+                self.save_index(candidate_index, prefault=prefault)
             except BaseException:
-                if had_previous and superseded.exists():
-                    os.replace(superseded, target)
+                # The backend switches to the file only after it is complete,
+                # so a failed save leaves nothing of the candidate in use.
+                shutil.rmtree(candidate, ignore_errors=True)
                 raise
-        except BaseException:
-            shutil.rmtree(candidate, ignore_errors=True)
-            raise
+
+            mapped = True
+            had_previous = False
+            try:
+                self.to_json(os.fspath(candidate / manifest_filename))
+                backend.unload()
+                mapped = False
+                had_previous = target.exists()
+                if had_previous:
+                    os.replace(target, superseded)
+                try:
+                    os.replace(candidate, target)
+                except BaseException:
+                    if had_previous and superseded.exists():
+                        os.replace(superseded, target)
+                    raise
+            except BaseException:
+                try:
+                    back_into_memory(mapped=mapped)
+                finally:
+                    shutil.rmtree(candidate, ignore_errors=True)
+                raise
+            load(published_index)
         if had_previous:
             shutil.rmtree(superseded, ignore_errors=True)
         return [
             os.fspath(target / manifest_filename),
-            os.fspath(target / index_filename),
+            published_index,
         ]
 
     @classmethod

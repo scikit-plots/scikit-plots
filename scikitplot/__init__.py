@@ -425,6 +425,20 @@ def __getattr__(
                 f"{e.name!r} is not installed. "
                 f"Install it with: {install_hint(e.name)}\n\n"
             )
+        # A part that is present and still fails to import usually fails for
+        # a reason outside it: versions that do not work together. The
+        # installation report names those, each with its fix, so the reader
+        # is not left with an error from deep inside another package.
+        elif name in _submodules:
+            from ._distributions import report as _report
+
+            _problems = _report()["problems"]
+            if _problems:
+                suggestion_msg += (
+                    "This installation has problems that may be the cause:\n- "
+                    + "\n- ".join(_problems)
+                    + "\n\n"
+                )
         # Raise an error indicating the attribute could not be found,
         # with suggestions if any.
         raise AttributeError(

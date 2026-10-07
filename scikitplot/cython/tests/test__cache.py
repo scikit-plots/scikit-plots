@@ -443,7 +443,7 @@ class TestIterCacheEntriesFingerprint:
 
         build_dir, art = _write_cache_entry(tmp_path, _FAKE_KEY)
         # Overwrite meta with non-dict fingerprint
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = ["not", "a", "dict"]
         write_meta(build_dir, meta)
 
@@ -535,7 +535,7 @@ class TestIterPackageEntriesFingerprint:
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
         # Patch meta to include a fingerprint
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = {"python": "3.12"}
         (build_dir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
@@ -547,7 +547,7 @@ class TestIterPackageEntriesFingerprint:
         from .._cache import iter_package_entries
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = [1, 2, 3]
         (build_dir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 

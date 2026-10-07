@@ -91,6 +91,21 @@ class TestEveryPackage:
             assert any(entry.startswith(tree + "/") for tree in trees), entry
             assert (ROOT / "scikitplot" / entry).exists(), entry
 
+    def test_gated_tests_exist_and_their_floor_says_something(self, package):
+        # A gate at or below the suite's own floor never applies, and one that
+        # names no file gates nothing.
+        trees = MAP.get(package.distribution).trees
+        suite_floor = package.test_python or package.requires_python or META.requires_python
+        for entry, floor in package.test_gated:
+            assert any(entry.startswith(tree + "/") for tree in trees), entry
+            assert (ROOT / "scikitplot" / entry).exists(), entry
+            assert floor.startswith(">=")
+            lowest = suite_floor[2:].strip()
+            assert not registry.python_satisfies(floor, lowest), (
+                f"{entry}: gate {floor} is not above the suite's floor {suite_floor}"
+            )
+            assert entry not in package.test_ignore, entry
+
     def test_a_test_floor_is_above_the_install_floor(self, package):
         # ``test_python`` equal to or below ``requires-python`` says nothing.
         if package.test_python is None:
@@ -99,6 +114,19 @@ class TestEveryPackage:
         assert package.test_python.startswith(">=")
         lowest_supported = floor[2:].strip()
         assert not registry.python_satisfies(package.test_python, lowest_supported)
+
+    def test_own_extras_are_version_free_and_named_once(self, package):
+        names = [name for name, _ in package.own_extras]
+        assert len(names) == len(set(names)), names
+        for name, requirements in package.own_extras:
+            assert requirements, name
+            assert list(requirements) == sorted(requirements), name
+            for requirement in requirements:
+                # An environment marker (after ``;``) may compare versions of
+                # Python; the requirement itself names no version.
+                specifier = requirement.split(";", 1)[0]
+                for operator in ("==", "<", ">", "~=", "!="):
+                    assert operator not in specifier, f"{name}: {requirement}"
 
     def test_extras_exist_in_the_root(self, package):
         for extra in package.extras:
@@ -269,3 +297,66 @@ class TestPythonGated:
             assert path.with_suffix(".py").is_file() or (path / "__init__.py").is_file(), module
             # A gate at or below the distribution's own floor gates nothing.
             assert not registry.python_satisfies(floor, own), (module, floor)
+
+
+
+class TestSphinxExtensionExtras:
+    """Each extra lists what its extension imports, and nothing it does not."""
+
+    #: Distribution name on the index to the module it is imported as.
+    IMPORT_NAME = {
+        "beautifulsoup4": "bs4",
+        "pyyaml": "yaml",
+        "sphinx-design": "sphinx_design",
+        "sphinx-gallery": "sphinx_gallery",
+        "sphinx-markdown-builder": "sphinx_markdown_builder",
+    }
+    #: Extra to the directory, under the extensions tree, whose imports it covers.
+    DIRECTORY = {
+        "ai-assistant": "_sphinx_ai_assistant",
+        "collection": "_sphinx_collection",
+        "feedback": "_sphinx_feedback",
+        "gallery-grid": "_sphinx_gallery_grid",
+        "gallery-jupyterlite": "_sphinx_gallery_jupyterlite",
+        "llm": "_sphinx_llm",
+        "youtube-gallery": "_sphinx_youtube_gallery",
+        "proxy": "_sphinx_ai_assistant/_hf_spaces_proxy",
+    }
+    TREE = ROOT / "scikitplot" / "_externals" / "_sphinx_ext"
+
+    def _imported(self, directory):
+        """Return the top-level names imported or named as modules under a directory."""
+        import ast
+
+        names = set()
+        for path in (self.TREE / directory).rglob("*.py"):
+            if "tests" in path.relative_to(self.TREE).parts:
+                continue
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.Import):
+                    names.update(alias.name.split(".")[0] for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    names.add(node.module.split(".")[0])
+                elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    # ``importlib.import_module("sphinx_gallery...")`` and friends.
+                    if node.value.isidentifier() or "." in node.value:
+                        names.add(node.value.split(".")[0])
+        return names
+
+    def test_every_extra_has_a_directory(self):
+        package = PACKAGES["scikit-plots-sphinx-ext"]
+        assert {name for name, _ in package.own_extras} == set(self.DIRECTORY)
+        for directory in self.DIRECTORY.values():
+            assert (self.TREE / directory).is_dir(), directory
+
+    @pytest.mark.parametrize(
+        "extra", sorted(DIRECTORY), ids=sorted(DIRECTORY)
+    )
+    def test_each_requirement_is_imported_by_the_extension(self, extra):
+        package = PACKAGES["scikit-plots-sphinx-ext"]
+        requirements = dict(package.own_extras)[extra]
+        imported = self._imported(self.DIRECTORY[extra])
+        for requirement in requirements:
+            requirement = requirement.split(";", 1)[0].strip()
+            module = self.IMPORT_NAME.get(requirement, requirement.replace("-", "_"))
+            assert module in imported, f"{extra}: nothing imports {module!r}"

@@ -21,6 +21,7 @@
 - **One source tree.** Nothing is copied into `libs/` permanently. Each `setup.py` stages the files its distribution owns at build time and removes them when the build exits.
 - **One owner per file.** `scikitplot/_distributions.py` says which distribution owns which path, and no path has two owners, so the distributions install side by side. `scikit-plots-skinny` owns the root `__init__.py`; the others depend on it.
 - **Generated metadata.** Every file in a lib directory is generated from `scikitplot/_distributions.py`, `libs/_tools/registry.py` and the root `pyproject.toml`. Version specifiers are inherited from the root, so they cannot drift.
+- **A number for compatibility.** `CORE_API` in `scikitplot/_distributions.py` names the contract between `scikit-plots-skinny` and the other distributions. Each of them states the number it is built for as an entry-point group (`scikitplot.parts.api1`), which the generator writes. `scikitplot doctor` compares the two, so a mix of versions is judged instead of always flagged. Raise the number only for a breaking change; the comment above it says what counts.
 
 ## Commands
 
@@ -33,6 +34,35 @@ python -m libs._tools check      # fail if generated files are stale
 python -m libs._tools build      # build every sdist and wheel
 python -m libs._tools verify     # build, then install and test them
 ```
+
+## Tests the verification does not run
+
+`verify` tests each distribution the way a user gets it: installed from its wheel, outside the repository. What that leaves out is listed here, from `test_python`, `test_gated` and `test_ignore` in `libs/_tools/registry.py`; an entry there needs a comment saying what was measured.
+
+### `scikit-plots-sphinx-ext`
+
+- The test suite runs on Python `>=3.9`. On older supported versions `verify` still installs the wheel, imports every module and runs the commands, and reports the suite as skipped.
+- Below Python `3.10` these are left out, and the rest of the suite runs: they test an optional tier whose own code needs Python `>=3.10`.
+
+  - `scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy`
+  - `scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_app.py`
+  - `scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_service.py`
+
+- 8 test modules are left out of the installed-wheel run: they read files of the repository that a wheel does not contain. Run them from a checkout of the repository root:
+
+  ```sh
+  python -m pytest \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_architecture/test_test_layout.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/_utils/test__provider_artifact_lifecycle.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/ci/test_run_redis_chaos.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_integration/test_bounded_remote_response.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_integration/test_logging_privacy.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_integration/test_release_security_boundary.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_integration/test_stub_mirror_proxy.py \
+    scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_integration/test_stub_mirror_security_inspector.py
+  ```
+
+  The whole suite of the part, these included, is `python -m pytest scikitplot/_externals/_sphinx_ext` from the same place.
 
 ## See also
 

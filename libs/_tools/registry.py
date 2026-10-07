@@ -102,6 +102,13 @@ class Extension(NamedTuple):
         ``.in`` suffix, before the extension is built.
     define_macros : tuple of (str, str)
         Preprocessor macros defined for every source of the extension.
+    threads_macro : str or None
+        Preprocessor macro that compiles in the extension's multithreaded
+        code, when it has any. It is defined, and the platform's thread
+        library is linked, only when the builder asks for it
+        (``SKPLT_BUILD_THREADS=1``, see the generated ``setup.py``); a target
+        without threads refuses the request. ``None`` for an extension with
+        no such code.
 
     Notes
     -----
@@ -118,6 +125,7 @@ class Extension(NamedTuple):
     cxx_standard: str
     templates: tuple[str, ...] = ()
     define_macros: tuple[tuple[str, str], ...] = ()
+    threads_macro: str | None = None
 
 
 class Package(NamedTuple):
@@ -149,6 +157,13 @@ class Package(NamedTuple):
         ``scikitplot/`` with ``/`` separators. Only for tests that *state*
         they cannot run from an installed distribution (they need the
         repository checkout); say which statement that is.
+    test_gated : tuple of (str, str)
+        Test files or directories that need a newer Python than the rest of
+        the suite, as ``(path, ">=X.Y")`` with the path written like a
+        ``test_ignore`` entry. Below the floor the verification leaves the
+        path out and runs everything else; at or above it the path runs like
+        any other. For tests of an optional tier whose own code needs that
+        Python; say what was measured.
     lowest_constraints : tuple of str
         Constraints applied only by the verification's lowest-version run,
         never written into the distribution. Each one records a *measured*
@@ -158,6 +173,13 @@ class Package(NamedTuple):
     extras : tuple of str
         Root ``[project.optional-dependencies]`` groups re-exported under the
         same name.
+    own_extras : tuple of (str, tuple of str)
+        Extras that belong to this distribution alone: name to requirements,
+        written in full and version-free. For optional needs of single
+        features that the root does not group (the Sphinx extensions each
+        import different third-party packages). There is deliberately no
+        catch-all extra: the lists differ too much in weight (a theme helper
+        beside a web service) for one name to be a sensible default.
     siblings : tuple of (str, tuple of str)
         Extra name to the partial distributions it pulls in.
     keywords : tuple of str
@@ -226,6 +248,8 @@ class Package(NamedTuple):
     lowest_constraints: tuple[str, ...] = ()
     test_ignore: tuple[str, ...] = ()
     test_python: str | None = None
+    own_extras: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    test_gated: tuple[tuple[str, str], ...] = ()
 
 
 #: Macros the root ``meson.build`` defines for every C++ extension
@@ -235,6 +259,30 @@ _CYTHON_CPP_MACROS: tuple[tuple[str, str], ...] = (
     ("CYTHON_USE_TYPE_SPECS", "1"),
     ("__STDC_VERSION__", "0"),
 )
+
+#: Macro of the vendored Annoy header (``annoylib.h``) that selects
+#: ``AnnoyIndexMultiThreadedBuildPolicy``: ``build(n_trees, n_jobs=N)`` then
+#: builds the trees on ``N`` threads. Without it the header selects the
+#: single-threaded policy and ``n_jobs`` is accepted and has no effect.
+#:
+#: Measured on Linux x86_64 (2 CPUs, CPython 3.10, GCC 13), 60 000 vectors of
+#: 64 dimensions, 24 trees, same seed:
+#:
+#: ===================  =========  ==========================================
+#: wheel                n_jobs     build time; neighbours of item 0
+#: ===================  =========  ==========================================
+#: without the macro    1, 2, -1   4.4 to 4.7 s; identical saved file each time
+#: with the macro       1          4.2 s; the same neighbours as without it
+#: with the macro       2          2.15 s; other trees (seed + thread number)
+#: with the macro       -1         4.6 s; as n_jobs=1 (see ANNOY-MT-003)
+#: ===================  =========  ==========================================
+#:
+#: Both annoy suites pass on a wheel built with the macro (706 passed).
+#: Open before it becomes the default, all in ``tasks/todo.md``:
+#: ANNOY-MT-002 (two files saved by one process with the macro and n_jobs=1
+#: differed in 36 of 51 376 960 bytes; queries were equal) and ANNOY-MT-003
+#: (``n_jobs=-1`` is documented as "all cores" and ran on one thread).
+_ANNOY_THREADS_MACRO = "ANNOYLIB_MULTITHREADED_BUILD"
 
 PACKAGES: tuple[Package, ...] = (
     Package(
@@ -333,6 +381,7 @@ PACKAGES: tuple[Package, ...] = (
                 include_dirs=("scikitplot/cexternals/_annoy/src",),
                 cxx_standard="c++17",
                 define_macros=_CYTHON_CPP_MACROS,
+                threads_macro=_ANNOY_THREADS_MACRO,
             ),
             # The Cython binding, generated from a Tempita template
             # (scikitplot/annoy/_annoy/meson.build). Its ``cdef extern``
@@ -348,6 +397,7 @@ PACKAGES: tuple[Package, ...] = (
                     "scikitplot/annoy/_annoy/annoylib.pyx.in",
                 ),
                 define_macros=_CYTHON_CPP_MACROS,
+                threads_macro=_ANNOY_THREADS_MACRO,
             ),
         ),
         # Cython translates the binding and provides Tempita.
@@ -374,11 +424,69 @@ PACKAGES: tuple[Package, ...] = (
         requires=("sphinx",),
         keywords=("scikit-plots", "sphinx", "documentation", "extension"),
         classifiers=("Framework :: Sphinx :: Extension",),
-        # Measured: every module imports on Python 3.8 to 3.15, so the
-        # distribution keeps the root floor. The test suite does not: its
-        # collection fails in 51 modules on 3.8 and 3.9 and in 24 on 3.10,
-        # and passes from 3.11 on.
-        test_python=">=3.11",
+        # One extra per extension that imports something beyond Sphinx, named
+        # after the extension directory (``_sphinx_collection`` is
+        # ``collection``). Each list is what the extension's modules import,
+        # found by reading their import statements; an extension that is not
+        # listed needs Sphinx only. ``proxy`` is the hosted service under
+        # ``_sphinx_ai_assistant/_hf_spaces_proxy``, not a Sphinx extension.
+        # The model server under ``_hf_spaces_model`` (torch, transformers,
+        # gradio) is deployed from its own requirements and has no extra.
+        own_extras=(
+            ("ai-assistant", ("beautifulsoup4", "httpx", "markdownify")),
+            ("collection", ("pyyaml", "sphinx-design")),
+            ("feedback", ("httpx",)),
+            ("gallery-grid", ("sphinx-design",)),
+            ("gallery-jupyterlite", ("sphinx-gallery",)),
+            ("llm", ("sphinx-markdown-builder",)),
+            ("youtube-gallery", ("defusedxml", "pyyaml")),
+            (
+                "proxy",
+                (
+                    "cryptography",
+                    "fastapi",
+                    "httpx",
+                    "huggingface_hub",
+                    "pandas",
+                    "redis",
+                    "starlette",
+                    # The release tooling reads TOML; before Python 3.11 the
+                    # parser is this package instead of the standard library.
+                    'tomli; python_version < "3.11"',
+                    "typing_extensions",
+                ),
+            ),
+        ),
+        # Measured on the installed wheel, with every test requirement
+        # installed (Linux x86_64):
+        #
+        # * every module imports on Python 3.8 to 3.15;
+        # * on 3.9, with the hosted services gated below: 4958 passed, 80
+        #   skipped, 5 xfailed;
+        # * on 3.8 the suite does not run as a whole: 225 failed, 8 errors.
+        #   125 of them are the tests' own use of the Sphinx test fixtures
+        #   (``'PosixPath' object has no attribute 'makedirs'`` and
+        #   ``'copytree'``): the newest Sphinx for Python 3.8 hands out its
+        #   own path class, the tests are written for the ``pathlib`` paths
+        #   of later releases. The others were Python 3.9 API in tests and,
+        #   in four extensions, in the code (``str.removeprefix``); the code
+        #   is fixed, see ``tasks/todo.md`` (round 4).
+        test_python=">=3.9",
+        # The hosted services (``_hf_spaces_proxy`` and the feedback service)
+        # create ``asyncio`` locks and events in constructors. Python 3.9
+        # binds those to the current event loop at creation and refuses when
+        # there is none ("There is no current event loop in thread
+        # 'MainThread'": 46 tests), and two tests use the built-in ``anext``
+        # (3.10). The proxy is deployed on Python 3.11 (its Dockerfile). The
+        # Sphinx extensions do not go through any of this.
+        test_gated=tuple(
+            ("_externals/_sphinx_ext/" + path, ">=3.10")
+            for path in (
+                "_sphinx_ai_assistant/tests/_hf_spaces_proxy",
+                "_sphinx_feedback/tests/test_app.py",
+                "_sphinx_feedback/tests/test_service.py",
+            )
+        ),
         # Each entry was added for a collection error, a failure or a skipped
         # module it removed (``markdownify``: 644 tests were skipped with
         # "build-time conversion needs markdownify").
@@ -397,6 +505,7 @@ PACKAGES: tuple[Package, ...] = (
             "pyyaml",
             "sphinx-design",
             "starlette",
+            'tomli; python_version < "3.11"',
             "typing_extensions",
         ),
         # These modules import ``tests/_paths.py``, which raises "AI-assistant

@@ -119,7 +119,7 @@ def _recovered_setup(tmp_path: Path, *, attestation_kwargs=None):
     first_candidate, history_dir = transition[1], transition[2]
     root_env, root_private = run155._root_envelope()
     _, sealed, *_ = run155._seal(tmp_path / "seal-first", candidate=first_candidate, envelope=root_env, private=root_private)
-    pin = json.loads((sealed / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((sealed / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     effective = run156.trust._effective_root_from_run155(sealed, pin, now=NOW)
     rr_path, rr_pin, rr_private, rr_members = run156._recovery_root(tmp_path / "recovery-input", effective["info"]["governance_id"])
     repl_path, repl_doc, repl_private = run156._replacement(tmp_path / "recovery-input")
@@ -189,7 +189,7 @@ def test_run157_attestation_root_requires_exact_out_of_band_pin(tmp_path: Path):
     first_candidate = transition[1]
     root_env, root_private = run155._root_envelope()
     _, sealed, *_ = run155._seal(tmp_path / "seal", candidate=first_candidate, envelope=root_env, private=root_private)
-    pin = json.loads((sealed / "release-root-bundle.json").read_text())["bootstrapRootSha256"]
+    pin = json.loads((sealed / "release-root-bundle.json").read_text(encoding="utf-8"))["bootstrapRootSha256"]
     effective = run156.trust._effective_root_from_run155(sealed, pin, now=NOW)
     rr_path, rr_pin, rr_private, rr_members = run156._recovery_root(tmp_path / "ri", effective["info"]["governance_id"])
     repl_path, repl_doc, _ = run156._replacement(tmp_path / "ri")
@@ -283,7 +283,7 @@ def test_run157_activation_is_deterministic(tmp_path: Path):
 def test_run157_offline_verifier_detects_recovery_record_mutation(tmp_path: Path):
     setup = _recovered_setup(tmp_path)
     bundle_path = setup["activated"] / "release-root-continuity-bundle.json"
-    bundle = json.loads(bundle_path.read_text()); bundle["recoveryOutput"]["release-root-recovery-record.json"]["observedChannels"][0] = "evil-channel"
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8")); bundle["recoveryOutput"]["release-root-recovery-record.json"]["observedChannels"][0] = "evil-channel"
     bundle_path.write_bytes(_canonical(bundle))
     with pytest.raises(continuity.RootContinuityError):
         continuity.verify_continuity(output_dir=setup["activated"], expected_bootstrap_root_sha256=setup["pin"], expected_recovery_root_sha256=setup["rr_pin"], expected_attestation_root_sha256=[setup["ca_pin"]], now=NOW)
@@ -475,7 +475,7 @@ def test_run157_offline_verifier_detects_epoch_chain_head_mutation(tmp_path: Pat
         now=NOW,
     )
     p = out / "release-root-continuity-bundle.json"
-    doc = json.loads(p.read_text())
+    doc = json.loads(p.read_text(encoding="utf-8"))
     doc["epochs"][0]["chainHeadSha256"] = "0" * 64
     p.write_bytes(_canonical(doc))
     with pytest.raises(continuity.RootContinuityError):
@@ -490,7 +490,7 @@ def test_run157_offline_verifier_detects_epoch_chain_head_mutation(tmp_path: Pat
 
 def test_run157_duplicate_json_keys_are_rejected(tmp_path: Path):
     p = tmp_path / "dup.json"
-    p.write_text('{"a":1,"a":2}\n')
+    p.write_text('{"a":1,"a":2}\n', encoding="utf-8")
     with pytest.raises(continuity.RootContinuityError, match="DUPLICATE_KEY"):
         continuity._read(p, "TEST_DUP")
 
@@ -503,8 +503,8 @@ def test_run157_outputs_contain_no_private_keys(tmp_path: Path):
 
 
 def test_run157_documentation_describes_recovered_continuity_and_x509_attestation():
-    guide = (SECURITY / "RELEASE_ROOT_CONTINUITY_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SECURITY / "RELEASE_ROOT_CONTINUITY_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     assert "Run 157" in guide and "X.509" in guide and "old recovered-root" in guide
     assert "Run 157" in gates and "recovered-root" in gates
 
@@ -592,7 +592,7 @@ def test_run157_recovery_revoked_root_key_cannot_reappear_later(tmp_path: Path):
 
 
 def test_run157_embedded_attestation_trust_root_is_hash_rebound(tmp_path: Path):
-    setup = _recovered_setup(tmp_path); p = setup["activated"] / "release-root-continuity-bundle.json"; doc = json.loads(p.read_text())
+    setup = _recovered_setup(tmp_path); p = setup["activated"] / "release-root-continuity-bundle.json"; doc = json.loads(p.read_text(encoding="utf-8"))
     raw = base64.b64decode(doc["attestationTrustRoots"][0]["der"]); doc["attestationTrustRoots"][0]["der"] = base64.b64encode(raw[:-1] + bytes([raw[-1] ^ 1])).decode("ascii"); p.write_bytes(_canonical(doc))
     with pytest.raises(continuity.RootContinuityError):
         continuity.verify_continuity(output_dir=setup["activated"], expected_bootstrap_root_sha256=setup["pin"], expected_recovery_root_sha256=setup["rr_pin"], expected_attestation_root_sha256=[setup["ca_pin"]], now=NOW)

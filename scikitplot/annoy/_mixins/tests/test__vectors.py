@@ -61,6 +61,29 @@ class TestFiniteKeyword:
 @pytest.mark.filterwarnings(
     "ignore:The following error was raised:DeprecationWarning"
 )
+class TestValidateDataSource:
+    """The branch in use is recorded, so it can be logged and asked for."""
+
+    def test_names_the_branch_that_was_taken(self):
+        if _vectors.validate_data is None:
+            expected = {"sklearn.utils.validation.check_array"}
+        else:
+            expected = {
+                "sklearn.utils.validation.validate_data",
+                "scikitplot.utils.validation.validate_data",
+            }
+        assert _vectors._VALIDATE_DATA_SOURCE in expected
+
+    def test_the_public_function_is_preferred_when_scikit_learn_has_it(self):
+        import sklearn.utils.validation as validation
+
+        if hasattr(validation, "validate_data"):
+            assert _vectors.validate_data is validation.validate_data
+            assert _vectors._VALIDATE_DATA_SOURCE == (
+                "sklearn.utils.validation.validate_data"
+            )
+
+
 class TestValidateQueryMatrix:
     """Validation gives the same result with and without ``validate_data``."""
 

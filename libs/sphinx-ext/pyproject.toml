@@ -62,6 +62,44 @@ dependencies = [
   "sphinx",
 ]
 
+[project.optional-dependencies]
+ai-assistant = [
+  "beautifulsoup4",
+  "httpx",
+  "markdownify",
+]
+collection = [
+  "pyyaml",
+  "sphinx-design",
+]
+feedback = [
+  "httpx",
+]
+gallery-grid = [
+  "sphinx-design",
+]
+gallery-jupyterlite = [
+  "sphinx-gallery",
+]
+llm = [
+  "sphinx-markdown-builder",
+]
+youtube-gallery = [
+  "defusedxml",
+  "pyyaml",
+]
+proxy = [
+  "cryptography",
+  "fastapi",
+  "httpx",
+  "huggingface_hub",
+  "pandas",
+  "redis",
+  "starlette",
+  "tomli; python_version < \"3.11\"",
+  "typing_extensions",
+]
+
 [project.urls]
 homepage = "https://scikit-plots.github.io"
 repository = "https://github.com/scikit-plots/scikit-plots"
@@ -69,6 +107,9 @@ download = "https://github.com/scikit-plots/scikit-plots/tags"
 changelog = "https://scikit-plots.github.io/dev/whats_new/index.html"
 documentation = "https://scikit-plots.github.io"
 issues = "https://github.com/scikit-plots/scikit-plots/issues"
+
+[project.entry-points."scikitplot.parts.api1"]
+"_externals._sphinx_ext" = "scikitplot._externals._sphinx_ext"
 
 [tool.setuptools]
 # Files are listed explicitly by setup.py; MANIFEST.in decides the sdist only.

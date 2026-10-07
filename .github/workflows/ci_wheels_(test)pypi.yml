@@ -8,6 +8,24 @@ name: "CI 📦 Wheels (Test)PyPI"
 on:
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
+      distribution:  # Which project to publish; each one is its own PyPI project
+        description: 'Distribution to publish (the full package, or one under libs/)'
+        required: true
+        type: choice
+        default: 'scikit-plots'
+        options:
+          - 'scikit-plots'
+          # Partial distributions, built by ci_wheels_conda_libs.yml. Publish
+          # scikit-plots-skinny first: every other one requires it.
+          - 'scikit-plots-skinny'
+          - 'scikit-plots-rank-bm25'
+          - 'scikit-plots-corpus'
+          - 'scikit-plots-annoy'
+          - 'scikit-plots-sphinx-ext'
+          - 'scikit-plots-mcp'
+          - 'scikit-plots-cleanprompt'
+          - 'scikit-plots-cython'
+          - 'scikit-plots-mlflow'
       conda_source:  # Specify whether to conda pkg source
         description: 'conda pkg source'
         required: true           # 👈 This makes the input mandatory
@@ -43,7 +61,7 @@ on:
           - '0.3.9.post1'
           - '0.3.9.post2'
           # 0.4.0
-          - '0.4.0.post12'  # 👈
+          - '0.4.0.post12'  # 👈🔜 Next Release
           - '0.4.0.post13'
           - '0.4.0.post14'
           # 0.4.1
@@ -118,6 +136,7 @@ jobs:
     env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
       SKPLT_VERSION: ${{ github.event.inputs.version }}
       CONDA_SOURCE: ${{ github.event.inputs.conda_source }}
+      SKPLT_DISTRIBUTION: ${{ github.event.inputs.distribution }}
 
     steps:
       ## 📥 Checkout the Git repository into the runner
@@ -145,12 +164,15 @@ jobs:
       # Step 4: Download wheels and sdist from Anaconda
       - name: Downloading wheels and sdist from Anaconda staging
         run: |
-          echo "Downloading $SKPLT_VERSION wheels and sdist from Anaconda repository"
+          echo "Downloading $SKPLT_DISTRIBUTION $SKPLT_VERSION from $CONDA_SOURCE"
+          # The index is the one chosen as `conda_source` (it used to be the
+          # nightly index whatever was chosen), and the project the one chosen
+          # as `distribution`.
           python -m wheelhouse_uploader fetch \
-            --version $SKPLT_VERSION \
+            --version "$SKPLT_VERSION" \
             --local-folder dist/ \
-            scikit-plots \
-            https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/
+            "$SKPLT_DISTRIBUTION" \
+            "https://pypi.anaconda.org/$CONDA_SOURCE/simple/$SKPLT_DISTRIBUTION/"
 
       # ✅ Step 5: Dry run — list pyodide/WASM wheels to be removed (keep pyemscripten/WASM)
       - name: "[Dry Run] Show Pyodide/WASM wheels that would be deleted"
@@ -203,4 +225,4 @@ jobs:
           # user: __token__
           # password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
           print-hash: true
-          repository-url: https://upload.pypi.org/legacy/  # Change to TestPyPI if needed
+          repository-url: https://upload.pypi.org/legacy/  # Change to PyPI if needed

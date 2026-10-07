@@ -266,7 +266,7 @@ def test_run152_end_to_end_requires_append_only_consistency_and_witness_quorum(t
     result, out, final, prev, log, anchor = _run(tmp_path)
     assert result["phase"] == "witnessed"
     assert result["witness_count"] == 2 and result["operator_count"] == 2
-    record = json.loads((out / witness.RECORD_NAME).read_text())
+    record = json.loads((out / witness.RECORD_NAME).read_text(encoding="utf-8"))
     assert record["subject"]["finalPublicationRecordSha256"] == _sha(final / "release-publication-record.json")
     assert record["transparencyLog"]["checkpoint"] == log.checkpoint
     assert record["witnessQuorum"]["witnesses"] == [
@@ -275,11 +275,11 @@ def test_run152_end_to_end_requires_append_only_consistency_and_witness_quorum(t
     ]
     assert record["verification"] == {"primaryVerifierIdentity": PRIMARY, "checkpointSignatureVerified": True, "inclusionVerified": True, "consistencyVerified": True, "integratedEntryVerified": True}
     assert anchor.remote[witness.RECORD_NAME] == (out / witness.RECORD_NAME).read_bytes()
-    accepted = json.loads((out / "accepted-transparency-checkpoint.json").read_text())
+    accepted = json.loads((out / "accepted-transparency-checkpoint.json").read_text(encoding="utf-8"))
     assert accepted == {"schemaVersion": 1, "logId": LOG_ID, "checkpoint": log.checkpoint}
-    receipt = json.loads((out / "release-transparency-witness-receipt.json").read_text())
+    receipt = json.loads((out / "release-transparency-witness-receipt.json").read_text(encoding="utf-8"))
     assert receipt["transparency"]["acceptedCheckpointSha256"] == _sha(out / "accepted-transparency-checkpoint.json")
-    text = "\n".join(path.read_text() for path in out.rglob("*.json"))
+    text = "\n".join(path.read_text(encoding="utf-8") for path in out.rglob("*.json"))
     assert str(tmp_path) not in text and "localPath" not in text
 
 
@@ -298,13 +298,13 @@ def test_run152_witness_record_is_deterministic_and_anchor_retry_is_resumable(tm
     second = tmp_path / "second"
     witness.witness_publication(finalized_dir=final, previous_checkpoint=prev, output_dir=second, log_id=LOG_ID, submitter_identity=SUBMITTER, log_adapter=log, verifier_identity=PRIMARY, verifier=FakeObserver(PRIMARY, now=later), witnesses=defs2, anchor=anchor, now=later)
     assert _sha(second / witness.RECORD_NAME) == first_sha
-    assert json.loads((second / "anchor-results" / (witness.RECORD_NAME + ".bind.json")).read_text())["status"] == "present"
-    assert json.loads((second / "log-results" / "submit.json").read_text())["status"] == "present"
+    assert json.loads((second / "anchor-results" / (witness.RECORD_NAME + ".bind.json")).read_text(encoding="utf-8"))["status"] == "present"
+    assert json.loads((second / "log-results" / "submit.json").read_text(encoding="utf-8"))["status"] == "present"
 
 
 @pytest.mark.parametrize("mutator,code", [
-    (lambda d: (d / "unexpected.json").write_text("{}\n"), "RUN151_DIRECTORY_ALLOWLIST_MISMATCH"),
-    (lambda d: (d / "release-publication-record.json").write_text((d / "release-publication-record.json").read_text() + " \n"), "RUN151_FINAL_RECORD_NOT_CANONICAL"),
+    (lambda d: (d / "unexpected.json").write_text("{}\n", encoding="utf-8"), "RUN151_DIRECTORY_ALLOWLIST_MISMATCH"),
+    (lambda d: (d / "release-publication-record.json").write_text((d / "release-publication-record.json").read_text(encoding="utf-8") + " \n", encoding="utf-8"), "RUN151_FINAL_RECORD_NOT_CANONICAL"),
 ])
 def test_run152_rejects_run151_directory_drift_and_noncanonical_evidence(tmp_path: Path, mutator, code: str):
     final = _finalized(tmp_path); prev = _previous(tmp_path); mutator(final)
@@ -329,7 +329,7 @@ def test_run152_rejects_tampered_run151_binding_or_final_verifier_sidecar(tmp_pa
 
 def test_run152_rejects_previous_checkpoint_for_another_log(tmp_path: Path):
     final = _finalized(tmp_path); prev = _previous(tmp_path)
-    doc = json.loads(prev.read_text()); doc["logId"] = "other/log"; prev.write_bytes(_canonical(doc))
+    doc = json.loads(prev.read_text(encoding="utf-8")); doc["logId"] = "other/log"; prev.write_bytes(_canonical(doc))
     with pytest.raises(witness.WitnessError, match="PREVIOUS_CHECKPOINT_LOG_MISMATCH"):
         witness.witness_publication(finalized_dir=final, previous_checkpoint=prev, output_dir=tmp_path / "out", log_id=LOG_ID, submitter_identity=SUBMITTER, log_adapter=FakeLog(), verifier_identity=PRIMARY, verifier=FakeObserver(PRIMARY), witnesses=[(a, b, FakeObserver(a, b)) for a, b in WITNESSES], anchor=FakeAnchor(), now=NOW)
 
@@ -397,8 +397,8 @@ def test_run152_rejects_anchor_mutation_or_locator_collision(tmp_path: Path):
 
 
 def test_run152_policy_and_documentation_require_external_log_and_distinct_witnesses():
-    policy = (SECURITY / "release_witness_policy.toml").read_text()
+    policy = (SECURITY / "release_witness_policy.toml").read_text(encoding="utf-8")
     assert "min_witnesses = 2" in policy and "min_witness_operators = 2" in policy
-    guide = (SECURITY / "RELEASE_WITNESS_GUIDE.md").read_text()
+    guide = (SECURITY / "RELEASE_WITNESS_GUIDE.md").read_text(encoding="utf-8")
     for phrase in ("append-only", "previous checkpoint", "distinct operators", "split-view", "private key"):
         assert phrase.lower() in guide.lower()
