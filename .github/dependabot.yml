@@ -73,7 +73,7 @@ updates:
       - dependency-name: "pypa/cibuildwheel"
         versions:
           # - "*"  # block every version, including patch and minor bumps
-          - "<4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
+          - ">4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
     commit-message:
       prefix: "[MAINT]"
       # include: "scope"
