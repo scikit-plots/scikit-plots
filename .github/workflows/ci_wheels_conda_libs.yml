@@ -256,11 +256,19 @@ jobs:
           SKPLT_BUILD_THREADS: ${{ env.ANNOY_THREADS }}
           CIBW_ENVIRONMENT: SKPLT_BUILD_THREADS=${{ env.ANNOY_THREADS }}
           # The wheel requires scikit-plots-skinny, which is on no index yet:
-          # it is installed first, from the wheel the pure job built. On Linux
-          # the build runs in a container that sees the repository, with
-          # dist/libs in it, as {project}.
+          # it is installed first, from the wheel the pure job put in
+          # dist/libs. Not through {project}: package-dir is the sdist, and
+          # cibuildwheel builds an sdist by extracting it and changing into
+          # it, so {project} is the extracted sdist, which has no dist/libs
+          # ("Location '/project/dist/libs' is ignored" in the first run).
+          # The directory is named by its host path instead. On Linux the
+          # build runs in a container, where cibuildwheel mounts the host's
+          # root at /host; elsewhere the build runs on the host itself.
           CIBW_BEFORE_TEST: >-
-            pip install --no-index --find-links {project}/dist/libs
+            pip install --no-index --find-links
+            ${{ (matrix.buildplat[1] == 'manylinux' || matrix.buildplat[1] == 'musllinux')
+            && format('/host{0}/dist/libs', github.workspace)
+            || format('{0}/dist/libs', github.workspace) }}
             scikit-plots-skinny
           # Outside the repository, so that `scikitplot` is the installed one:
           # the installation is coherent, and an index can be built and asked.
@@ -328,8 +336,10 @@ jobs:
       # multithreaded code out by itself when it recognises the target; it is
       # stated here so that it does not depend on that recognition.
       CIBW_ENVIRONMENT: SKPLT_BUILD_THREADS=0
+      # The host path, not {project}: see "Build and test the wheels" above.
+      # Pyodide builds and tests on the host.
       CIBW_BEFORE_TEST: >-
-        pip install --no-index --find-links {project}/dist/libs
+        pip install --no-index --find-links ${{ github.workspace }}/dist/libs
         scikit-plots-skinny
       CIBW_TEST_COMMAND: >-
         python -c "from scikitplot.annoy import Index;
