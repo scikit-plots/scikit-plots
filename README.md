@@ -35,19 +35,11 @@
   <img alt="Anaconda Nightly Wheels Downloads" height="17"
    src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads%20Nightly&color=orange">
  </a>
- <!-- GitHub Actions -->
- <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
- <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
+ <!-- Anaconda Nightly Conda -->
+ <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
   rel="noopener noreferrer">
-  <img alt="GitHub Actions CI Build Wheels Status" height="17"
-   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=githubactions&label=GitHub%20Actions%20%7C%20Wheels%20Conda&color=olivegreen">
- </a>
- <!-- CircleCI -->
- <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
- <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="CircleCI Status" height="17"
-   src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
+  <img alt="Affiliated Packages" height="17"
+   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Affiliated%20Packages&color=orange">
  </a>
  <br>
  <!-- PyPI -->
@@ -86,16 +78,34 @@
   src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
  </a> -->
  <br>
- <!-- Code Style - Ruff -->
- <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
- <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
-  <img alt="Code Style - Ruff" height="17"
-   src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
+ <!-- CircleCI -->
+ <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
+ <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="CircleCI Status" height="17"
+   src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
  </a>
- <!-- PyPI - Types -->
- <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="PyPI - Types" height="17"
-   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
+ <!-- GitHub Actions -->
+ <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
+ <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="GitHub Actions CI Build Wheels Status" height="17"
+   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=githubactions&label=GitHub%20Actions%20%7C%20Wheels%20Conda&color=olivegreen">
+ </a>
+ <!-- pepy.tech -->
+ <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
+ <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
+ <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Pepy Total Downloads" height="17"
+   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total&color=green">
+ </a>
+ <br>
+ <!-- Documentation -->
+ <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
+ </a>
+ <a href="https://scikit-plots-learn.readthedocs.io/en/latest" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20readthedocs.io-brightgreen&logo=webauthn">
  </a>
  <!-- pre-commit -->
  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
@@ -106,13 +116,6 @@
  <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
   <img alt="pre-commit Status" height="17"
    src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
- </a>
- <!-- pepy.tech -->
- <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
- <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
- <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Pepy Total Downloads" height="17"
-   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total&color=green">
  </a>
  <br>
  <!-- codecov -->
@@ -131,12 +134,16 @@
   <img alt="OpenSSF Best Practices" height="17"
    src="https://www.bestpractices.dev/projects/12780/badge">
  </a>
- <!-- Documentation -->
- <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
+ <!-- Code Style - Ruff -->
+ <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
+ <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
+  <img alt="Code Style - Ruff" height="17"
+   src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
  </a>
- <a href="https://scikit-plots-learn.readthedocs.io/en/latest" target="_blank" rel="noopener noreferrer">
-  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20readthedocs.io-brightgreen&logo=webauthn">
+ <!-- PyPI - Types -->
+ <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="PyPI - Types" height="17"
+   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
  </a>
  <br>
  <!-- Zenodo -->
@@ -342,7 +349,7 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
   </a>:
  </h3>
 
- <h4>🧠 Gotchas</h4>
+ <h4>🧠 Gotchas:</h4>
  <ul>
   <li>
     🚨 By running <strong>Docker</strong> with <code>[bash] -ic "bash -i"</code>,
@@ -370,6 +377,19 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
     <a href="https://pypi.org/project/pipenv/"
       target="_blank" rel="noopener noreferrer"><code>pipenv</code></a>
     (adds a lock file for reproducible installs).
+  </li>
+ </ul>
+
+ <h4>💡 Hint: Troubleshooting</h4>
+ <ul>
+  <li>
+    ✅ <strong>
+    <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
+    rel="noopener noreferrer">
+    anaconda.org
+    </a> carries the may latest development</strong> (by branch
+    <code>main</code>). Use <code>pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple</code> if you need the most
+    recent bug fixes or features.
   </li>
   <li>
     ℹ️ <strong>
@@ -408,8 +428,20 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
   </li>
  </ul>
 
- <h4>💡 Tips: Troubleshooting</h4>
+ <h4>🛠️ Tip: Troubleshooting</h4>
  <ul>
+  <li>
+    🚨 <strong>
+    <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
+    rel="noopener noreferrer">
+    anaconda.org
+    </a> Try to install packages from this channel</strong> (by branch
+    <code>main</code>).
+    <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
+    rel="noopener noreferrer">
+    https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
+    </a>
+  </li>
    <li>
      🖥️ <strong>Wheel built for a different CPU — <code>Illegal instruction (core dumped)</code>:</strong>
      If pip downloads a pre-built wheel that was compiled with <code>-march=native</code>,
