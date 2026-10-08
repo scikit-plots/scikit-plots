@@ -49,7 +49,7 @@ class TestSuccessfulExport:
         _make_entry(root, "k", b"NEW")
         dest = tmp_path / "dest"
         (dest / "k").mkdir(parents=True)
-        (dest / "k" / "stale.txt").write_text("stale")
+        (dest / "k" / "stale.txt").write_text("stale", encoding="utf-8")
         out = export_cached("k", dest_dir=dest, cache_dir=root)
         names = {p.name for p in out.iterdir()}
         assert "stale.txt" not in names

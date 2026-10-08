@@ -20,7 +20,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +33,10 @@ if str(HERE) not in sys.path:
 from source_tree import EXTENSION_ROOT, source_tree_sha256  # noqa: E402
 
 ROOT = HERE.parent
-POLICY = tomllib.loads((HERE / "release_evidence_policy.toml").read_text())
-SUPPLY = tomllib.loads((HERE / "supply_chain_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_evidence_policy.toml").read_text(encoding="utf-8")
+)
+SUPPLY = tomllib.loads((HERE / "supply_chain_policy.toml").read_text(encoding="utf-8"))
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 SLSA_PREDICATE = "https://slsa.dev/provenance/v1"
@@ -266,7 +271,7 @@ def _verify_provenance(
         _fail("PROVENANCE_PREDICATE_UNSUPPORTED")
     _bool(item.get("signatureVerified"), True, "PROVENANCE_SIGNATURE_NOT_VERIFIED")
     try:
-        statement = json.loads(path.read_text())
+        statement = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
         raise EvidenceError("PROVENANCE_JSON_INVALID") from exc
     if (
@@ -736,7 +741,7 @@ def verify(  # ruff: ignore[too-many-branches, undocumented-public-function]
             subject=image_digest,
         )
         try:
-            image_sbom = json.loads(sbom_path.read_text())
+            image_sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
         except Exception as exc:
             raise EvidenceError("IMAGE_SBOM_JSON_INVALID") from exc
         if (

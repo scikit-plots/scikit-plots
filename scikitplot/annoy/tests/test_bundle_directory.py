@@ -101,7 +101,7 @@ def test_a_failed_save_leaves_no_partial_bundle(tmp_path, monkeypatch):
     """Publication commits or leaves nothing; it never accumulates."""
     bundle = tmp_path / "bundle"
 
-    def boom(self, path, *args, **kwargs):
+    def boom(self, *args, **kwargs):
         raise OSError("injected: manifest write failed")
 
     monkeypatch.setattr(type(_built()), "to_json", boom, raising=False)
@@ -119,7 +119,7 @@ def test_saving_over_an_existing_bundle_preserves_it_on_failure(tmp_path):
 
     replacement = _built(count=7)
 
-    def boom(self, path, *args, **kwargs):
+    def boom(self, *args, **kwargs):
         raise OSError("injected")
 
     original = type(replacement).to_json
@@ -131,3 +131,341 @@ def test_saving_over_an_existing_bundle_preserves_it_on_failure(tmp_path):
         type(replacement).to_json = original
     assert (bundle / "index.ann").read_bytes() == before
     assert INDEX.load_bundle(bundle).get_nns_by_item(0, 1)
+
+
+# ---------------------------------------------------------------------------
+# Publication where a mapped file pins its directory (Windows)
+# ---------------------------------------------------------------------------
+#
+# The backend's ``save`` and ``load`` memory-map the index file. POSIX lets a
+# directory be renamed or removed while a file in it is mapped; Windows refuses
+# both. ``_PinnedByMapping`` applies the Windows rule on any platform, so the
+# order of operations in ``save_bundle`` is tested where the tests run:
+#
+# * it records which file the index is mapped from, by observing the four
+#   backend calls that change it;
+# * ``os.replace`` of a directory that holds the mapped file raises the error
+#   Windows raises, and ``shutil.rmtree(..., ignore_errors=True)`` of such a
+#   directory leaves it in place, as it does on Windows.
+
+
+class _Tracked(INDEX):
+    """An index that records which file it is memory-mapped from."""
+
+    mapped_from = None
+
+    def save(self, fn, *args, **kwargs):
+        result = super().save(fn, *args, **kwargs)
+        self.mapped_from = Path(fn).resolve()
+        return result
+
+    def load(self, fn, *args, **kwargs):
+        result = super().load(fn, *args, **kwargs)
+        self.mapped_from = Path(fn).resolve()
+        return result
+
+    def unload(self, *args, **kwargs):
+        result = super().unload(*args, **kwargs)
+        self.mapped_from = None
+        return result
+
+    def deserialize(self, *args, **kwargs):
+        result = super().deserialize(*args, **kwargs)
+        self.mapped_from = None
+        return result
+
+
+def _tracked(count=5):
+    index = _Tracked(3, "angular")
+    for position in range(count):
+        index.add_item(position, [float(position), 1.0, 2.0])
+    index.build(4)
+    return index
+
+
+@pytest.fixture
+def pinned_by_mapping(monkeypatch):
+    """Apply the Windows rule for the indexes registered with the fixture."""
+    import shutil
+
+    from scikitplot.annoy._mixins import _io
+
+    indexes = []
+    real_replace, real_rmtree = os.replace, shutil.rmtree
+
+    def pins(directory):
+        directory = Path(directory).resolve()
+        return any(
+            index.mapped_from is not None and directory in index.mapped_from.parents
+            for index in indexes
+        )
+
+    def replace(source, destination):
+        if Path(source).is_dir() and pins(source):
+            raise PermissionError(5, "Access is denied", os.fspath(source))
+        return real_replace(source, destination)
+
+    def rmtree(path, ignore_errors=False, **kwargs):
+        if pins(path):
+            if ignore_errors:
+                return None
+            raise PermissionError(5, "Access is denied", os.fspath(path))
+        return real_rmtree(path, ignore_errors=ignore_errors, **kwargs)
+
+    monkeypatch.setattr(_io.os, "replace", replace)
+    monkeypatch.setattr(_io.shutil, "rmtree", rmtree)
+    return indexes
+
+
+def test_the_rule_is_applied_by_the_fixture(tmp_path, pinned_by_mapping):
+    """The emulation refuses what Windows refuses; otherwise it proves nothing."""
+    from scikitplot.annoy._mixins import _io
+
+    index = _tracked()
+    pinned_by_mapping.append(index)
+    holder = tmp_path / "holder"
+    holder.mkdir()
+    index.save(os.fspath(holder / "index.ann"))
+    with pytest.raises(PermissionError):
+        _io.os.replace(holder, tmp_path / "elsewhere")
+    _io.shutil.rmtree(holder, ignore_errors=True)
+    assert holder.is_dir()
+    index.unload()
+    _io.os.replace(holder, tmp_path / "elsewhere")
+    assert (tmp_path / "elsewhere" / "index.ann").is_file()
+
+
+def test_a_bundle_is_published_where_a_mapping_pins_its_directory(
+    tmp_path, pinned_by_mapping
+):
+    index = _tracked()
+    pinned_by_mapping.append(index)
+    expected = index.get_nns_by_item(0, 3)
+    bundle = tmp_path / "bundle"
+    members = index.save_bundle(bundle)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bundle"]
+    assert [Path(member).name for member in members] == ["manifest.json", "index.ann"]
+    # The index is usable, and is backed by the published member.
+    assert index.get_nns_by_item(0, 3) == expected
+    assert index.mapped_from == (bundle / "index.ann").resolve()
+    assert INDEX.load_bundle(bundle).get_nns_by_item(0, 3) == expected
+
+
+def test_a_bundle_is_replaced_where_a_mapping_pins_its_directory(
+    tmp_path, pinned_by_mapping
+):
+    bundle = tmp_path / "bundle"
+    index = _tracked(count=5)
+    pinned_by_mapping.append(index)
+    index.save_bundle(bundle)
+    # Saving again: the index is mapped from the bundle it is about to replace.
+    index.save_bundle(bundle)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bundle"]
+    assert INDEX.load_bundle(bundle).get_n_items() == 5
+
+    larger = _tracked(count=7)
+    pinned_by_mapping.append(larger)
+    index.unload()  # the reader of the old bundle lets go, as it must on Windows
+    larger.save_bundle(bundle)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bundle"]
+    assert INDEX.load_bundle(bundle).get_n_items() == 7
+
+
+def test_a_failed_manifest_leaves_nothing_and_keeps_the_index(
+    tmp_path, pinned_by_mapping, monkeypatch
+):
+    index = _tracked()
+    pinned_by_mapping.append(index)
+    expected = index.get_nns_by_item(0, 3)
+
+    def boom(self, *args, **kwargs):
+        raise OSError("injected: manifest write failed")
+
+    monkeypatch.setattr(_Tracked, "to_json", boom, raising=False)
+    with pytest.raises(OSError, match="injected"):
+        index.save_bundle(tmp_path / "bundle")
+    assert list(tmp_path.iterdir()) == []
+    assert index.mapped_from is None
+    assert index.get_nns_by_item(0, 3) == expected
+    assert index.get_n_items() == 5 and index.get_n_trees() == 4
+
+
+def test_a_failed_swap_restores_the_previous_bundle_and_keeps_the_index(
+    tmp_path, pinned_by_mapping
+):
+    bundle = tmp_path / "bundle"
+    _built(count=5).save_bundle(bundle)
+    before = (bundle / "index.ann").read_bytes()
+    reader = _Tracked.load_bundle(bundle)  # another index holds the old bundle
+    pinned_by_mapping.append(reader)
+
+    replacement = _tracked(count=7)
+    pinned_by_mapping.append(replacement)
+    expected = replacement.get_nns_by_item(0, 3)
+    with pytest.raises(PermissionError):
+        replacement.save_bundle(bundle)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["bundle"]
+    assert (bundle / "index.ann").read_bytes() == before
+    assert replacement.mapped_from is None
+    assert replacement.get_n_items() == 7
+    assert replacement.get_nns_by_item(0, 3) == expected
+    assert reader.get_n_items() == 5
+
+
+def test_a_backend_that_cannot_be_released_is_refused_before_anything_is_written(
+    tmp_path, monkeypatch
+):
+    index = _tracked()
+    monkeypatch.setattr(_Tracked, "unload", None)
+    with pytest.raises(TypeError, match=r"unload\(\)"):
+        index.save_bundle(tmp_path / "bundle")
+    assert list(tmp_path.iterdir()) == []
+
+
+# ---------------------------------------------------------------------------
+# The manifest describes the bundle, not the place it was written
+# ---------------------------------------------------------------------------
+
+
+def _manifest(bundle, name="manifest.json"):
+    import json
+
+    return json.loads((bundle / name).read_text(encoding="utf-8"))
+
+
+def test_the_manifest_records_no_location(tmp_path):
+    """
+    No path of the machine that wrote the bundle is in it.
+
+    The manifest used to record ``on_disk_path`` as the candidate directory
+    the index was first written to, which is gone once the bundle is published.
+    """
+    bundle = tmp_path / "bundle"
+    _built().save_bundle(bundle)
+    manifest = _manifest(bundle)
+    assert manifest["params"]["on_disk_path"] is None
+    assert manifest["info"]["on_disk_path"] is None
+    text = (bundle / "manifest.json").read_text(encoding="utf-8")
+    assert str(tmp_path) not in text and "candidate" not in text
+
+
+def test_the_manifest_names_its_index_member(tmp_path):
+    bundle = tmp_path / "bundle"
+    _built().save_bundle(bundle, index_filename="vectors.ann")
+    assert _manifest(bundle)["bundle"] == {"format": 1, "index": "vectors.ann"}
+    # Loading without naming the member takes the name from the manifest.
+    assert INDEX.load_bundle(bundle).get_nns_by_item(0, 1)
+
+
+def test_the_rest_of_the_manifest_is_the_index_metadata(tmp_path):
+    bundle = tmp_path / "bundle"
+    index = _built()
+    index.save_bundle(bundle)
+    manifest = _manifest(bundle)
+    metadata = index.to_metadata()
+    assert manifest["index_schema_version"] == metadata["index_schema_version"]
+    for key, value in metadata["params"].items():
+        if key != "on_disk_path":
+            assert manifest["params"][key] == value, key
+
+
+def test_the_index_is_backed_by_the_published_member_after_saving(tmp_path):
+    bundle = tmp_path / "bundle"
+    index = _built()
+    index.save_bundle(bundle)
+    assert Path(index.on_disk_path) == (bundle / "index.ann").resolve()
+
+
+def test_reading_the_manifest_as_metadata_does_not_touch_the_index_member(tmp_path):
+    """
+    ``from_json`` on a manifest must not be able to destroy the bundle.
+
+    ``on_disk_path`` in metadata configures an on-disk *build* at that path,
+    which truncates the file. A manifest that named its own index there would
+    lose it to the first reader that passed the manifest to ``from_json``.
+    """
+    bundle = tmp_path / "bundle"
+    _built().save_bundle(bundle)
+    before = (bundle / "index.ann").read_bytes()
+    described = INDEX.from_json(bundle / "manifest.json")
+    assert described.f == 3
+    del described
+    assert (bundle / "index.ann").read_bytes() == before
+    assert INDEX.load_bundle(bundle).get_nns_by_item(0, 1)
+
+
+def test_a_bundle_written_before_manifests_named_their_index_still_loads(tmp_path, caplog):
+    """An older manifest has no ``bundle`` section and records a stale path."""
+    import json
+
+    bundle = tmp_path / "bundle"
+    built = _built()
+    built.save_bundle(bundle)
+    manifest = _manifest(bundle)
+    del manifest["bundle"]
+    stale = str(tmp_path / ".bundle.candidate-0123" / "index.ann")
+    manifest["params"]["on_disk_path"] = stale
+    manifest["info"]["on_disk_path"] = stale
+    (bundle / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with caplog.at_level("INFO", logger="scikitplot.annoy._mixins._io"):
+        reloaded = INDEX.load_bundle(bundle)
+    assert reloaded.get_nns_by_item(0, 3) == built.get_nns_by_item(0, 3)
+    assert "records a location" in caplog.text and "not used" in caplog.text
+    assert not Path(stale).exists()
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../index.ann", "sub/index.ann", "sub\\index.ann", "/abs/index.ann", "C:index.ann", "..", ""],
+)
+def test_a_manifest_cannot_name_a_file_outside_the_bundle(tmp_path, name):
+    import json
+
+    bundle = tmp_path / "bundle"
+    _built().save_bundle(bundle)
+    outside = tmp_path / "index.ann"
+    outside.write_bytes((bundle / "index.ann").read_bytes())
+    manifest = _manifest(bundle)
+    manifest["bundle"]["index"] = name
+    (bundle / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="bundle"):
+        INDEX.load_bundle(bundle)
+
+
+@pytest.mark.parametrize("argument", ["manifest_filename", "index_filename"])
+@pytest.mark.parametrize("name", ["../x", "a/b", ""])
+def test_member_names_given_by_the_caller_are_plain_file_names(tmp_path, argument, name):
+    with pytest.raises(ValueError):
+        _built().save_bundle(tmp_path / "bundle", **{argument: name})
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_the_two_members_cannot_share_a_name(tmp_path):
+    with pytest.raises(ValueError, match="must differ"):
+        _built().save_bundle(tmp_path / "bundle", manifest_filename="x", index_filename="x")
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_bundle_of_another_format_is_refused_with_what_to_do(tmp_path):
+    import json
+
+    bundle = tmp_path / "bundle"
+    _built().save_bundle(bundle)
+    manifest = _manifest(bundle)
+    manifest["bundle"]["format"] = 2
+    (bundle / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="format 2.*reads format 1"):
+        INDEX.load_bundle(bundle)
+
+
+def test_a_failed_publication_is_logged_as_a_warning(tmp_path, caplog, monkeypatch):
+    def boom(self, *args, **kwargs):
+        raise OSError("injected: manifest write failed")
+
+    monkeypatch.setattr(type(_built()), "to_json", boom, raising=False)
+    with caplog.at_level("WARNING", logger="scikitplot.annoy._mixins._io"):
+        with pytest.raises(OSError):
+            _built().save_bundle(tmp_path / "bundle")
+    (record,) = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert "was not published" in record.getMessage()
+    assert "kept in memory" in record.getMessage()

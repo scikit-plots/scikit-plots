@@ -208,13 +208,27 @@ def _fail(message: str) -> NoReturn:
     sys.exit(1)
 
 
-if not HF_TOKEN:
-    _fail(
-        "HF_TOKEN environment variable is not set.\n"
-        "Export it before running:\n"
-        "  export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
-        "Or use Path A (Docker Model Runner) — it requires no token."
-    )
+def _require_token() -> None:
+    """
+    Stop the server from starting without ``HF_TOKEN``.
+
+    Notes
+    -----
+    **Developer note** — Called by :func:`main`, not at import. This check
+    used to run as a module-level statement, so *importing* this file without
+    the variable ended the interpreter with ``SystemExit(1)``. The file ships
+    inside the ``scikitplot`` package, where anything that walks a package
+    (``pkgutil.walk_packages``, Sphinx autosummary, a test collector) imports
+    it. Starting the server is what needs the token; reading the module does
+    not.
+    """
+    if not HF_TOKEN:
+        _fail(
+            "HF_TOKEN environment variable is not set.\n"
+            "Export it before running:\n"
+            "  export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+            "Or use Path A (Docker Model Runner) — it requires no token."
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -753,6 +767,7 @@ def main() -> None:
     Binds to ``127.0.0.1:{PORT}`` (loopback only — not reachable from the
     public internet).  Press ``Ctrl+C`` to stop.
     """
+    _require_token()
     _LOG.info("Listening on http://localhost:%d", PORT)
     _LOG.info(
         "Forwarding to: %s/v1/chat/completions  (model via request body)", HF_BASE

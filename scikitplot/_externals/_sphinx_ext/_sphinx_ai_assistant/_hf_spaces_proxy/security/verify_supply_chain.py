@@ -15,12 +15,17 @@ import re
 import sys
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = tomllib.loads((ROOT / "security/supply_chain_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (ROOT / "security/supply_chain_policy.toml").read_text(encoding="utf-8")
+)
 LOCK = ROOT / POLICY["lock_file"]
 SBOM = ROOT / POLICY["sbom_file"]
 DIRECT = ROOT / "requirements.txt"
@@ -46,7 +51,7 @@ def _version_tuple(text: str) -> tuple[int | str, ...]:
 
 def _locked() -> dict[str, tuple[str, str]]:
     result: dict[str, tuple[str, str]] = {}
-    for raw in LOCK.read_text().splitlines():
+    for raw in LOCK.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
@@ -67,7 +72,7 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
     locked = _locked()
 
     direct: dict[str, str] = {}
-    for raw in DIRECT.read_text().splitlines():
+    for raw in DIRECT.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
@@ -88,7 +93,7 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
         if _version_tuple(locked[normalized][0]) < _version_tuple(str(floor)):
             raise AssertionError(f"ADVISORY_FLOOR_REGRESSION:{normalized}")
 
-    docker = DOCKER.read_text()
+    docker = DOCKER.read_text(encoding="utf-8")
     image = POLICY["base_image"]
     expected = f"{image['repository']}:{image['tag']}@{image['index_digest']}"
     required_docker = (
@@ -109,7 +114,7 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
 
     ignore_lines = {
         line.strip()
-        for line in IGNORE.read_text().splitlines()
+        for line in IGNORE.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("#")
     }
     if "*" not in ignore_lines:
@@ -128,7 +133,7 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
                 f"DOCKERIGNORE_GENERATED_BYTECODE_EXCLUSION_MISSING:{required}"
             )
 
-    compose = COMPOSE.read_text()
+    compose = COMPOSE.read_text(encoding="utf-8")
     for marker in (
         "read_only: true",
         'user: "1000:1000"',
@@ -154,7 +159,9 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
         path = ROOT / raw
         if not path.is_file():
             raise AssertionError(f"RELEASE_EVIDENCE_FILE_MISSING:{field}")
-    evidence_policy = tomllib.loads((ROOT / release_policy["policy_file"]).read_text())
+    evidence_policy = tomllib.loads(
+        (ROOT / release_policy["policy_file"]).read_text(encoding="utf-8")
+    )
     if (int(evidence_policy.get("max_age_hours", 0)) <= 0) or int(
         evidence_policy.get("max_age_hours", 999)
     ) > (
@@ -181,7 +188,7 @@ def verify() -> dict[str, object]:  # ruff: ignore[too-many-branches]
     ):
         raise AssertionError("RELEASE_EVIDENCE_TELEMETRY_NOT_FORBIDDEN")
 
-    sbom = json.loads(SBOM.read_text())
+    sbom = json.loads(SBOM.read_text(encoding="utf-8"))
     components = {
         c["name"].lower().replace("_", "-"): c for c in sbom.get("components", [])
     }

@@ -85,13 +85,13 @@ async def test_streaming_mirror_preserves_same_content(monkeypatch: pytest.Monke
 
 
 def test_hf_proxy_default_and_docs_are_synchronized() -> None:
-    app_text = (PROXY_DIR / "app.py").read_text()
-    readme = (PROXY_DIR / "README.md").read_text()
+    app_text = (PROXY_DIR / "app.py").read_text(encoding="utf-8")
+    readme = (PROXY_DIR / "README.md").read_text(encoding="utf-8")
     assert '"true",' in app_text
     assert "| `STUB_ENABLED` | `true` |" in readme
     assert "stub/mirror" in readme
 
 
 def test_dev_proxy_uses_same_default() -> None:
-    text = DEV_PROXY.read_text()
+    text = DEV_PROXY.read_text(encoding="utf-8")
     assert 'os.environ.get("STUB_ENABLED", "true")' in text

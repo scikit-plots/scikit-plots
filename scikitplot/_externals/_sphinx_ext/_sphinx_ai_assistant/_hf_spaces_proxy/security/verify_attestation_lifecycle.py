@@ -31,7 +31,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +63,9 @@ except (ImportError, ValueError):
     rootseal = _load("_run155_root_for_lifecycle", "seal_release_governance.py")
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_attestation_lifecycle_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_attestation_lifecycle_policy.toml").read_text(encoding="utf-8")
+)
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _ZERO_HASH = "0" * 64
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

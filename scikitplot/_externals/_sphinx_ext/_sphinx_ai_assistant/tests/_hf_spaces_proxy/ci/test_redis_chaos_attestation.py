@@ -5,6 +5,7 @@ from ..._paths import RUNTIME_ROOT, TESTS_ROOT
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import os
 from pathlib import Path
 import stat
 
@@ -37,9 +38,9 @@ REVISION = "a" * 40
 
 
 def _mutate(path: Path, fn) -> None:
-    doc = json.loads(path.read_text())
+    doc = json.loads(path.read_text(encoding="utf-8"))
     fn(doc)
-    path.write_text(json.dumps(doc, indent=2, sort_keys=True))
+    path.write_text(json.dumps(doc, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def test_run148_source_tree_subject_binds_content_mode_and_ignores_test_caches(tmp_path: Path):
@@ -48,22 +49,27 @@ def test_run148_source_tree_subject_binds_content_mode_and_ignores_test_caches(t
     a = root / "a.py"
     b = root / "sub" / "b.txt"
     b.parent.mkdir()
-    a.write_text("print('a')\n")
-    b.write_text("b\n")
+    a.write_text("print('a')\n", encoding="utf-8")
+    b.write_text("b\n", encoding="utf-8")
     first = source_tree.source_tree_sha256(root)
 
     cache = root / "__pycache__"
     cache.mkdir()
     (cache / "ignored.pyc").write_bytes(b"ignored")
     (root / ".pytest_cache").mkdir()
-    (root / ".pytest_cache" / "ignored").write_text("ignored")
+    (root / ".pytest_cache" / "ignored").write_text("ignored", encoding="utf-8")
     assert source_tree.source_tree_sha256(root) == first
 
-    b.write_text("changed\n")
+    b.write_text("changed\n", encoding="utf-8")
     assert source_tree.source_tree_sha256(root) != first
-    b.write_text("b\n")
-    b.chmod((b.stat().st_mode & 0o777) ^ stat.S_IXUSR)
-    assert source_tree.source_tree_sha256(root) != first
+    b.write_text("b\n", encoding="utf-8")
+    assert source_tree.source_tree_sha256(root) == first
+    if os.name == "posix":
+        # The executable bit is part of the subject. Windows has no such bit:
+        # chmod changes only the read-only flag there, so there is nothing to
+        # bind and this last statement has no subject.
+        b.chmod((b.stat().st_mode & 0o777) ^ stat.S_IXUSR)
+        assert source_tree.source_tree_sha256(root) != first
 
 
 def test_run148_attestation_is_digest_pinned_revision_bound_and_outside_source_tree(tmp_path: Path):
@@ -117,7 +123,7 @@ def test_run148_signature_record_binds_exact_attestation_hash_and_revision(tmp_p
         tmp_path / "verification" / "redis7-standalone.signature-verification.json",
         source_revision=REVISION,
     )
-    doc = json.loads(record.read_text())
+    doc = json.loads(record.read_text(encoding="utf-8"))
     assert doc["verified"] is True
     assert doc["signerIdentityVerified"] is True
     assert doc["sourceRevision"] == REVISION
@@ -133,14 +139,14 @@ def test_run148_release_evidence_rejects_wrong_tree_and_unsigned_chaos(tmp_path:
         verify.verify(wrong_tree, now=now)
 
     unsigned = run20._evidence(tmp_path / "unsigned", now)
-    release = json.loads(unsigned.read_text())
+    release = json.loads(unsigned.read_text(encoding="utf-8"))
     entry = release["redisChaos"]["redis7"]["standalone"]
     signature_path = unsigned.parent / entry["signatureVerification"]["path"]
-    signature = json.loads(signature_path.read_text())
+    signature = json.loads(signature_path.read_text(encoding="utf-8"))
     signature["signerIdentityVerified"] = False
-    signature_path.write_text(json.dumps(signature, sort_keys=True))
+    signature_path.write_text(json.dumps(signature, sort_keys=True), encoding="utf-8")
     entry["signatureVerification"]["sha256"] = run20._sha(signature_path)
-    unsigned.write_text(json.dumps(release, indent=2, sort_keys=True))
+    unsigned.write_text(json.dumps(release, indent=2, sort_keys=True), encoding="utf-8")
     with pytest.raises(verify.EvidenceError, match="REDIS_CHAOS_REDIS7_STANDALONE_SIGNER_IDENTITY_UNVERIFIED"):
         verify.verify(unsigned, now=now)
 
@@ -149,21 +155,21 @@ def test_run148_release_evidence_rejects_wrong_pinned_image_and_stale_attestatio
     now = datetime(2026, 8, 30, 1, 0, tzinfo=timezone.utc)
 
     def rewrite_attestation(evidence: Path, *, major: int, mode: str, mutate) -> None:
-        release = json.loads(evidence.read_text())
+        release = json.loads(evidence.read_text(encoding="utf-8"))
         entry = release["redisChaos"][f"redis{major}"][mode]
         att_path = evidence.parent / entry["attestation"]["path"]
-        payload = json.loads(att_path.read_text())
+        payload = json.loads(att_path.read_text(encoding="utf-8"))
         mutate(payload)
-        att_path.write_text(json.dumps(payload, sort_keys=True))
+        att_path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
         att_sha = run20._sha(att_path)
         entry["attestation"]["sha256"] = att_sha
         sig_path = evidence.parent / entry["signatureVerification"]["path"]
-        sig = json.loads(sig_path.read_text())
+        sig = json.loads(sig_path.read_text(encoding="utf-8"))
         sig["attestationSha256"] = att_sha
-        sig_path.write_text(json.dumps(sig, sort_keys=True))
+        sig_path.write_text(json.dumps(sig, sort_keys=True), encoding="utf-8")
         entry["signatureVerification"]["sha256"] = run20._sha(sig_path)
         entry["signatureVerification"]["subject"] = "sha256:" + att_sha
-        evidence.write_text(json.dumps(release, indent=2, sort_keys=True))
+        evidence.write_text(json.dumps(release, indent=2, sort_keys=True), encoding="utf-8")
 
     wrong_image = run20._evidence(tmp_path / "image", now)
     rewrite_attestation(
@@ -187,10 +193,10 @@ def test_run148_release_evidence_rejects_wrong_pinned_image_and_stale_attestatio
 
 
 def test_run148_ci_references_pin_redis_digests_and_github_signing_actions() -> None:
-    dockerfile = (CI / "redis-chaos.Dockerfile").read_text()
-    github = (CI / "github-actions.redis-chaos.reference.yml").read_text()
-    circle = (CI / "circleci.redis-chaos.reference.yml").read_text()
-    policy = (SECURITY / "release_evidence_policy.toml").read_text()
+    dockerfile = (CI / "redis-chaos.Dockerfile").read_text(encoding="utf-8")
+    github = (CI / "github-actions.redis-chaos.reference.yml").read_text(encoding="utf-8")
+    circle = (CI / "circleci.redis-chaos.reference.yml").read_text(encoding="utf-8")
+    policy = (SECURITY / "release_evidence_policy.toml").read_text(encoding="utf-8")
 
     for image in (REDIS7, REDIS8):
         assert image in github

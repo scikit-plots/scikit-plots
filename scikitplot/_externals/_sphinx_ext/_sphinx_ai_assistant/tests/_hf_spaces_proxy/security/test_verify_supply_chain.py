@@ -36,7 +36,7 @@ def test_offline_supply_chain_verifier_and_locked_advisory_floors():
     result = json.loads(proc.stdout)
     assert result["ok"] is True
     assert result["locked_packages"] == 31
-    lock = (PROXY / "requirements.lock").read_text().lower()
+    lock = (PROXY / "requirements.lock").read_text(encoding="utf-8").lower()
     assert "click==8.3.3 " in lock
     assert "starlette==1.6.0 " in lock
     assert "click==8.1.8" not in lock
@@ -44,7 +44,7 @@ def test_offline_supply_chain_verifier_and_locked_advisory_floors():
 
 
 def test_container_release_path_is_digest_locked_minimal_non_root_and_strict():
-    docker = (PROXY / "Dockerfile").read_text()
+    docker = (PROXY / "Dockerfile").read_text(encoding="utf-8")
     assert "python:3.11.16-slim-bookworm@sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b" in docker
     assert "--require-hashes" in docker
     assert "--only-binary=:all:" in docker
@@ -58,7 +58,7 @@ def test_container_release_path_is_digest_locked_minimal_non_root_and_strict():
     # Installer tooling belongs to the builder, not the application runtime.
     assert "/usr/local/lib/python3.11/site-packages/pip*" in docker
     direct = [
-        line.strip() for line in (PROXY / "requirements.txt").read_text().splitlines()
+        line.strip() for line in (PROXY / "requirements.txt").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
     assert len(direct) == 6
@@ -66,7 +66,7 @@ def test_container_release_path_is_digest_locked_minimal_non_root_and_strict():
 
 
 def test_docker_build_context_and_read_only_reference_are_fail_closed():
-    ignore = (PROXY / ".dockerignore").read_text().splitlines()
+    ignore = (PROXY / ".dockerignore").read_text(encoding="utf-8").splitlines()
     active = [x.strip() for x in ignore if x.strip() and not x.lstrip().startswith("#")]
     assert active[0] == "*"
     assert "!requirements.lock" in active
@@ -74,7 +74,7 @@ def test_docker_build_context_and_read_only_reference_are_fail_closed():
     assert "!_utils/**" in active
     assert "!_providers/" in active
     assert "!_providers/**" in active
-    compose = (PROXY / "docker-compose.hardened.reference.yml").read_text()
+    compose = (PROXY / "docker-compose.hardened.reference.yml").read_text(encoding="utf-8")
     for marker in (
         'user: "1000:1000"',
         "read_only: true",
@@ -89,7 +89,7 @@ def test_docker_build_context_and_read_only_reference_are_fail_closed():
 
 
 def test_python_sbom_is_exactly_the_lock_not_a_claim_about_the_os_image():
-    sbom = json.loads((PROXY / "security/python-runtime.cdx.json").read_text())
+    sbom = json.loads((PROXY / "security/python-runtime.cdx.json").read_text(encoding="utf-8"))
     assert sbom["bomFormat"] == "CycloneDX"
     assert sbom["specVersion"] == "1.6"
     assert len(sbom["components"]) == 31

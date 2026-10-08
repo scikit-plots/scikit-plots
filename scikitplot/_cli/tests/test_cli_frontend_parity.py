@@ -57,7 +57,9 @@ def test_frontend_parity(argv, monkeypatch):
     if "json" in argv:
         assert json.loads(out_a) == json.loads(out_c), argv
     elif "toml" in argv:
-        import tomllib
+        # py311+; skipped below that, as in the other TOML tests of this suite.
+        # A bare ``import tomllib`` made this a failure on Python 3.8-3.10.
+        tomllib = pytest.importorskip("tomllib")
         assert tomllib.loads(out_a) == tomllib.loads(out_c), argv
     else:
         assert out_a == out_c, (argv, repr(out_a), repr(out_c))

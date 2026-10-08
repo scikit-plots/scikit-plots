@@ -22,8 +22,11 @@ Guarantees
 * **Durable.** The staging file is ``fsync``-ed before it is published, and the
   containing directory is ``fsync``-ed after (best-effort; a no-op where the
   platform cannot sync a directory).
-* **Atomic.** Publication is a single :func:`os.replace`, which is atomic on
-  POSIX and Windows for same-filesystem paths.
+* **Atomic.** Publication is :func:`os.replace`, which is atomic on POSIX and
+  Windows for same-filesystem paths: a reader sees the old file or the new
+  one, never a mix. On Windows the call itself can be *refused* while another
+  process is replacing or opening the same target; it is then repeated for a
+  bounded time (see :func:`_replace`), and each attempt is still atomic.
 * **No orphans on failure.** If the writer or sync fails, the staging file is
   removed and the original error propagates.
 
@@ -42,6 +45,7 @@ import os
 import pathlib
 import shutil
 import tempfile
+import time
 from typing import Callable, Union
 
 logger = logging.getLogger(__name__)
@@ -149,6 +153,76 @@ def _fsync_dir(path: pathlib.Path) -> None:
     _sync(path, tolerated=_UNSUPPORTED_DIR_SYNC_ERRNOS, kind="directory")
 
 
+#: Whether a refused replace is repeated. Windows refuses ``os.replace`` with
+#: ``PermissionError`` while another process holds the target (replacing it,
+#: or reading it without sharing deletion); POSIX never does. A module
+#: constant, so that a test takes either branch on any platform.
+_RETRY_REFUSED_REPLACE: bool = os.name == "nt"
+
+#: Pauses, in seconds, between attempts of a refused replace: 15 attempts in
+#: about 1.2 s. The holder is another publisher in the middle of the same
+#: call, which lasts microseconds; the last pauses are long only so that a
+#: reader that opened the file briefly has let go.
+_REPLACE_PAUSES: tuple[float, ...] = (
+    0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064,
+    0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.2,
+)  # fmt: skip
+
+
+def _replace(source: pathlib.Path, target: pathlib.Path) -> None:
+    """
+    Replace ``target`` with ``source``, repeating a refusal where one is transient.
+
+    Parameters
+    ----------
+    source : pathlib.Path
+        The staged file or directory.
+    target : pathlib.Path
+        The path to publish at.
+
+    Raises
+    ------
+    PermissionError
+        If the replace is refused and repeating does not apply
+        (``_RETRY_REFUSED_REPLACE`` is false) or did not help within
+        ``_REPLACE_PAUSES``. The last refusal is raised unchanged.
+    OSError
+        Any other failure, at once.
+
+    Notes
+    -----
+    **User.** Several processes may publish the same target at the same time;
+    one of them wins and every one of them returns normally. If a reader keeps
+    the target open for longer than about a second on Windows, the publisher
+    gets ``PermissionError`` and the previous file stays as it was.
+
+    **Developer.** Measured in the Windows job of CI run 37637526602: eight
+    processes publishing one target, ``PermissionError: [WinError 5] Access is
+    denied`` from ``os.replace`` in ``test_contended_target_stays_consistent``.
+    ``MoveFileEx`` cannot replace a file that another handle holds without
+    ``FILE_SHARE_DELETE``, and a concurrent replace holds one for an instant.
+    There is no handle to wait on from here, so the call is repeated; the
+    pauses are a fixed table, not a guess per call, and only this one error is
+    repeated. Every repetition is logged at DEBUG.
+    """
+    attempts = len(_REPLACE_PAUSES) + 1 if _RETRY_REFUSED_REPLACE else 1
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+        except PermissionError:  # noqa: PERF203 - a retry is a try in a loop
+            if attempt == attempts - 1:
+                raise
+            logger.debug(
+                "replace of %s refused (attempt %d of %d); repeating",
+                target,
+                attempt + 1,
+                attempts,
+            )
+            time.sleep(_REPLACE_PAUSES[attempt])
+        else:
+            return
+
+
 def atomic_write_path(
     target: StrPath,
     writer: Callable[[pathlib.Path], None],
@@ -191,8 +265,18 @@ def atomic_write_path(
     tmp_path = pathlib.Path(tmp_name)
     try:
         writer(tmp_path)
-        _fsync_file(tmp_path)
-        os.replace(tmp_path, target)
+        # A writer may replace the empty staging file with a populated
+        # *directory* (the artifact writer does). A directory is synced as a
+        # directory: opening one the way a file is opened is refused on
+        # Windows (EACCES), which ``_fsync_file`` rightly treats as a real
+        # failure, so every artifact publication failed there with
+        # "Permission denied: ...candidate-<id>.<random>.tmp". ``_fsync_dir``
+        # knows that refusal is a platform limit and reports the downgrade.
+        if tmp_path.is_dir():
+            _fsync_dir(tmp_path)
+        else:
+            _fsync_file(tmp_path)
+        _replace(tmp_path, target)
     except BaseException:
         # The staging path may be a directory: a writer is free to replace the
         # empty staging file with a populated directory, which the artifact

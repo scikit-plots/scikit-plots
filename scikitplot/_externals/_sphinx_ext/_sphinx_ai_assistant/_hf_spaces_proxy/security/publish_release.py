@@ -19,10 +19,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_publication_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_publication_policy.toml").read_text(encoding="utf-8")
+)
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 PROMOTION_PREDICATE_TYPE = str(POLICY["promotion_predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

@@ -53,6 +53,45 @@ def _uninitialized_module() -> ModuleType:
     return _ModuleType("__scikitplot_cython_uninitialized__")
 
 
+def _annotation_reports(build_dir: Path, meta: Mapping[str, Any]) -> dict[str, Path]:
+    """
+    Return the Cython annotation reports of a cache entry that exist on disk.
+
+    Parameters
+    ----------
+    build_dir : pathlib.Path
+        The cache entry's directory.
+    meta : Mapping[str, Any]
+        The entry's ``meta.json`` content.
+
+    Returns
+    -------
+    dict of str to pathlib.Path
+        Module name to the absolute path of its ``.html`` report, in module
+        name order. A module is listed only when its report is a file that
+        exists now; the dictionary is empty when the build did not annotate.
+
+    Notes
+    -----
+    **Developer.** ``meta["annotation_html"]`` maps module name to a path
+    *relative to the entry*, for module builds and package builds alike. The
+    entry is written in a staging directory and then renamed, and a cache can
+    be moved, so only the pair (entry directory, relative path) names the
+    report reliably; this is the one place that joins them. Anything else
+    under that key (an entry written before the paths were relative held a
+    single absolute string) is not a mapping and yields no report.
+    """
+    recorded = meta.get("annotation_html")
+    if not isinstance(recorded, Mapping):
+        return {}
+    reports: dict[str, Path] = {}
+    for name in sorted(key for key in recorded if isinstance(key, str)):
+        relative = recorded[name]
+        if isinstance(relative, str) and (Path(build_dir) / relative).is_file():
+            reports[name] = Path(build_dir) / relative
+    return reports
+
+
 @dataclass(frozen=True, slots=True)
 class BuildResult:
     """
@@ -100,6 +139,33 @@ class BuildResult:
     fingerprint: Mapping[str, Any] | None = None
     source_sha256: str | None = None
     meta: Mapping[str, Any] = field(default_factory=dict)
+
+    @property
+    def annotation_html(self) -> Path | None:
+        """
+        Absolute path of this module's Cython annotation report, if there is one.
+
+        Returns
+        -------
+        pathlib.Path or None
+            The ``.html`` file Cython wrote for this module when the build was
+            made with ``annotate=True`` (or ``profile="annotate"``); ``None``
+            when the build did not annotate or the file is not on disk.
+
+        Notes
+        -----
+        **User.** Open the file in a browser to read the generated C/C++ next
+        to each line of the ``.pyx`` source; lines are shaded by how much they
+        call into the Python interpreter. ``meta["annotate_html"]`` holds the
+        same file as a path relative to ``build_dir``.
+
+        Examples
+        --------
+        >>> result = compile_and_load_result(code, annotate=True)  # doctest: +SKIP
+        >>> result.annotation_html.name  # doctest: +SKIP
+        'scikitplot_cython_0123456789abcdef.html'
+        """
+        return _annotation_reports(self.build_dir, self.meta).get(self.module_name)
 
     def __repr__(self) -> str:  # pragma: no cover
         # NOTE: Include *all* declared dataclass fields to keep the repr
@@ -175,6 +241,27 @@ class PackageBuildResult:
             Loaded extension modules.
         """
         return [r.module for r in self.results]
+
+    @property
+    def annotation_html(self) -> Mapping[str, Path]:
+        """
+        Absolute paths of the Cython annotation reports, one per module.
+
+        Returns
+        -------
+        Mapping[str, pathlib.Path]
+            Full module name (``"mypkg.mod1"``) to the ``.html`` file Cython
+            wrote for it, in module name order; empty when the package was
+            built without ``annotate=True``. ``results[i].annotation_html``
+            gives the same path for one module.
+
+        Notes
+        -----
+        **User.** ``meta["annotation_html"]`` holds the same mapping with paths
+        relative to ``build_dir``, and ``meta["annotate_html"]`` the first of
+        them.
+        """
+        return _annotation_reports(self.build_dir, self.meta)
 
     def __repr__(self) -> str:  # pragma: no cover
         # NOTE: Include *all* declared dataclass fields to keep the repr

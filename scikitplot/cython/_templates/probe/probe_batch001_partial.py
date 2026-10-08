@@ -41,7 +41,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
         for s in ("a", "b", "c"):
-            (d / f"{s}.pyx").write_text("x")
+            (d / f"{s}.pyx").write_text("x", encoding="utf-8")
 
         with mock.patch.object(P, "cython_import_result", _fake({"b"})):
             try:

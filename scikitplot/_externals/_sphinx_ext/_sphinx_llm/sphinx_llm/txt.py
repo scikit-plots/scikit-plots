@@ -546,7 +546,10 @@ class MarkdownGenerator:
     def build_custom_llms_txt(self):
         """Write a configured rendered source document to llms.txt."""
         configured_source = str(self.app.config.llms_txt_override_source)
-        normalized_source = configured_source.replace("\\", "/").removeprefix("./")
+        normalized_source = configured_source.replace("\\", "/")
+        # str.removeprefix is Python 3.9+; this package supports 3.8.
+        if normalized_source.startswith("./"):
+            normalized_source = normalized_source[len("./") :]
         candidate_docnames = [normalized_source]
         without_suffix = str(Path(normalized_source).with_suffix(""))
         if without_suffix != normalized_source:

@@ -392,7 +392,7 @@ def test_toctree_mode_makes_children_navigable_without_orphan(tmp_path):
     path = root / rel
     data = json.loads(path.read_text(encoding="utf-8"))
     data["add_toctree"] = True
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     _, changed = materialize(root)
     parent = path.with_suffix(".rst").read_text(encoding="utf-8")
@@ -425,7 +425,7 @@ def test_one_section_json_change_rewrites_only_its_owned_rst(tmp_path):
     source = root / rel.parent / "summary.json"
     data = json.loads(source.read_text(encoding="utf-8"))
     data["section"]["body"] += "\n\nA deterministic mutation."
-    source.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    source.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _, changed = materialize(root)
     assert changed == ((rel.parent / "summary.rst").as_posix(),)
 
@@ -552,7 +552,7 @@ def test_rst_heading_inputs_reject_control_newlines(tmp_path):
     target = root / "index.json"
     data = json.loads(target.read_text(encoding="utf-8"))
     data["title"] = "AI Learn\n.. include:: secret.rst"
-    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     with pytest.raises(LearnValidationError, match="control characters"):
         load_content_tree(root)
 
@@ -617,7 +617,7 @@ def test_page_design_grid_is_typed_optional_and_deterministic(tmp_path):
     source = root / "index.json"
     data = json.loads(source.read_text(encoding="utf-8"))
     data.pop("design_grid")
-    source.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    source.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     plain = render_materialized(load_content_tree(root))[Path("index.rst")].decode()
     assert ".. grid::" not in plain
     assert ".. toctree::\n   :maxdepth: 2" in plain
@@ -639,7 +639,7 @@ def test_page_design_grid_can_augment_non_root_page_contracts(tmp_path):
             }
         ],
     }
-    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     tree = load_content_tree(root)
     rst = render_materialized(tree)[Path("topics/index.rst")].decode()
     assert ".. ai-topic-explorer:: topic" in rst
@@ -655,7 +655,7 @@ def test_page_design_grid_rejects_raw_rst_unsafe_paths_and_invalid_options(tmp_p
         target = root / "index.json"
         data = json.loads(target.read_text(encoding="utf-8"))
         mutate(data)
-        target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return root
 
     with pytest.raises(LearnValidationError, match="unexpected or missing fields"):
@@ -686,7 +686,7 @@ def test_page_design_grid_rejects_raw_rst_unsafe_paths_and_invalid_options(tmp_p
     target = root / "topics" / "index.json"
     data = json.loads(target.read_text(encoding="utf-8"))
     unknown_non_root(data)
-    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    target.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     with pytest.raises(LearnValidationError, match="references unknown canonical document missing-page"):
         load_content_tree(root)
 
@@ -856,7 +856,7 @@ def _synthetic_tree(root, *, kinds, explorers=()):
                         "hide_secondary_sidebar": False,
                     },
                     sort_keys=True,
-                )
+                ), encoding="utf-8"
             )
     return load_content_tree(root)
 

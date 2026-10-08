@@ -40,7 +40,7 @@ def _release_tests():
 
 
 def _wall_clock_calls(path: Path):
-    tree = ast.parse(path.read_text(), filename=str(path))
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     found = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
@@ -100,10 +100,10 @@ def test_run169_downstream_clock_lineage_remains_predecessor_derived():
 def test_run169_documentation_and_release_gates_are_wired():
     guide = SEC / "RELEASE_TEST_CLOCK_HERMETICITY_GUIDE.md"
     assert guide.exists()
-    text = guide.read_text().lower()
+    text = guide.read_text(encoding="utf-8").lower()
     for phrase in ("run 169", "wall clock", "synthetic", "production", "fail"):
         assert phrase in text
-    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text().lower()
-    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text().lower()
-    readme = (ROOT / "README.md").read_text().lower()
+    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8").lower()
+    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text(encoding="utf-8").lower()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
     assert "run 169" in gates and "run 169" in evidence and "run 169" in readme

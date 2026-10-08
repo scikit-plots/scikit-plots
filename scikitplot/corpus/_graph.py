@@ -410,8 +410,12 @@ class DerivedGraph:
             hops += 1
             following: list[str] = []
             for node_id in frontier:
+                # ``>=``: a deadline of zero is exhausted at once. With ``>``
+                # it depended on the clock having moved since ``started``, and
+                # the Windows monotonic clock ticks every 15.6 ms, so a whole
+                # traversal ran "within" a deadline of 0.0 there.
                 if query.deadline_seconds is not None and (
-                    time.monotonic() - started > query.deadline_seconds
+                    time.monotonic() - started >= query.deadline_seconds
                 ):
                     _exhausted("deadline_seconds", query.deadline_seconds)
                     stop = True

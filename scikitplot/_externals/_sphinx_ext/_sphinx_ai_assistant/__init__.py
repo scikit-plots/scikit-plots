@@ -3732,7 +3732,13 @@ def _detect_theme_preset(config: Any) -> str:
         return normalised
     # `sphinx_rtd_theme` is also published as `rtd`; `mkdocs-material` as
     # `material`. Try the bare stem before giving up.
-    stem = normalised.removeprefix("sphinx_").removesuffix("_theme")
+    # str.removeprefix and str.removesuffix are Python 3.9+; this package
+    # supports 3.8.
+    stem = normalised
+    if stem.startswith("sphinx_"):
+        stem = stem[len("sphinx_") :]
+    if stem.endswith("_theme"):
+        stem = stem[: -len("_theme")]
     for candidate in (stem, f"sphinx_{stem}_theme", f"{stem}_theme"):
         if candidate in _THEME_SELECTOR_PRESETS:
             return candidate

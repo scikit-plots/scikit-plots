@@ -547,6 +547,25 @@ cleanprompt = [
   "spacy",                                  # https://github.com/explosion/spaCy#-download-model-packages advanced Natural Language Processing
 ]
 
+## cleanprompt optional tiers, one extra per tier.
+## These are the extras the `scikitplot cleanprompt` install hint names
+## (scikitplot/_cli/registry.py); each is one entry of the `cleanprompt` extra
+## above, so a user can install a single tier. Version-free like the rest of
+## this file: the versions each tier works with are checked at run time
+## (scikitplot/cleanprompt/_capabilities.py: TIERS), not by the installer.
+cleanprompt-ner = [
+  "spacy",                                  # named-entity detection
+]
+cleanprompt-nltk = [
+  "nltk",                                   # named-entity detection without spaCy (English only)
+]
+cleanprompt-web = [
+  "flask",                                  # the local web interface
+]
+cleanprompt-crypto = [
+  "cryptography",                           # the Fernet vault cipher (--cipher fernet)
+]
+
 ## corpus submodule dep
 ## sudo apt-get install tesseract-ocr
 corpus = [

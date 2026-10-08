@@ -1522,10 +1522,20 @@ class TestGenerateMarkdownFiles:
         """Strict already escalates a missing dependency; a 404 page is the same class."""
         from sphinx.errors import ExtensionError
 
+        from concurrent.futures import ThreadPoolExecutor
+
         app = _make_ai_app(tmp_path)
         app.config.ai_assistant_strict = True
         monkeypatch.setattr(_mod, "_process_html_file_worker",
                             lambda *a, **k: ("error", "guide/x.html", "injected"))
+        # The injected worker lives in *this* process. A worker process sees it
+        # only when it is created by ``fork``; with ``forkserver`` (the default
+        # on Linux from Python 3.14 on) or ``spawn`` (macOS, Windows) the child
+        # imports the module afresh and runs the real worker, which reports the
+        # page as skipped, and nothing is escalated. A thread pool has the same
+        # ``submit`` / ``as_completed`` contract and runs the work here, so the
+        # test no longer depends on how the platform starts processes.
+        monkeypatch.setattr(_mod, "ProcessPoolExecutor", ThreadPoolExecutor)
         (tmp_path / "guide").mkdir()
         (tmp_path / "guide" / "x.html").write_text("<html><body>x</body></html>",
                                                    encoding="utf-8")
@@ -1616,7 +1626,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.html_baseurl = "https://docs.example.com"
         sphinx_app.config.ai_assistant_base_url = ""
         _mod.generate_llms_txt(sphinx_app, exception=None)
-        assert "https://docs.example.com/index.md" in (tmp_html_tree / "llms.txt").read_text()
+        assert "https://docs.example.com/index.md" in (tmp_html_tree / "llms.txt").read_text(encoding="utf-8")
 
     def test_writes_without_base_url(self, sphinx_app, tmp_html_tree):
         (tmp_html_tree / "page.md").write_text("# Page\n", encoding="utf-8")
@@ -1625,7 +1635,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_base_url = ""
         register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
-        llms = (tmp_html_tree / "llms.txt").read_text()
+        llms = (tmp_html_tree / "llms.txt").read_text(encoding="utf-8")
         assert "page.md" in llms and "https://" not in llms
 
     def test_invalid_base_url_logs_warning_and_skips(self, sphinx_app, tmp_html_tree):
@@ -1643,7 +1653,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.project = "MyLib"
         register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
-        assert "MyLib" in (tmp_html_tree / "llms.txt").read_text()
+        assert "MyLib" in (tmp_html_tree / "llms.txt").read_text(encoding="utf-8")
 
     def test_max_entries_limits_output(self, sphinx_app, tmp_html_tree):
         for i in range(5):
@@ -1657,7 +1667,7 @@ class TestGenerateLlmsTxt:
         # The structured layout emits "- [Title](url)" entries. The previous
         # assertion counted lines ending in ".md", which was the flat format's
         # shape; max_entries was always honoured, the shape changed under it.
-        text = (tmp_html_tree / "llms.txt").read_text()
+        text = (tmp_html_tree / "llms.txt").read_text(encoding="utf-8")
         entries = [l for l in text.splitlines() if l.startswith("- [")]
         assert len(entries) == 2
         assert all(".md)" in line for line in entries)
@@ -1673,7 +1683,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_llms_txt_format = "flat"
         register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
-        lines = [l for l in (tmp_html_tree / "llms.txt").read_text().splitlines()
+        lines = [l for l in (tmp_html_tree / "llms.txt").read_text(encoding="utf-8").splitlines()
                  if l.endswith(".md")]
         assert len(lines) == 2
 
@@ -1728,7 +1738,7 @@ class TestGenerateLlmsTxt:
         sphinx_app.config.ai_assistant_llms_txt_full_content = True
         register_generated_markdown(_mod, sphinx_app)
         _mod.generate_llms_txt(sphinx_app, exception=None)
-        llms = (tmp_html_tree / "llms.txt").read_text()
+        llms = (tmp_html_tree / "llms.txt").read_text(encoding="utf-8")
         assert "# Hello" in llms and "World" in llms
 
 

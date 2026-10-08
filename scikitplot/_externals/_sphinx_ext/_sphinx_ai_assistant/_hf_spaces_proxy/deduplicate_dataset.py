@@ -231,13 +231,19 @@ class DatasetSourceError(RuntimeError):
         self.code = code
 
 
+#: ``dataclass(slots=True)`` exists from Python 3.10 on. On 3.8 and 3.9 the
+#: classes below are ordinary dataclasses: same fields and behaviour, only
+#: without the memory saving, so the module stays importable there.
+_SLOTS = {"slots": True} if sys.version_info >= (3, 10) else {}
+
+
 class DatasetMirrorConflict(  # ruff: ignore[error-suffix-on-exception-name]
     RuntimeError,
 ):
     """Raised when mirrors disagree for the same canonical record-file ID."""
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class DatasetSource:
     """Provider-neutral read source used by the deduplication CLI."""
 
@@ -251,7 +257,7 @@ class DatasetSource:
     api_base: str = ""
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class SourceLoadStats:
     """Counters emitted when loading one or more storage targets."""
 
@@ -261,7 +267,7 @@ class SourceLoadStats:
     exact_records_suppressed: int = 0
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class FeedbackLineageStats:
     """Audit counters from semantic terminal-rating resolution."""
 

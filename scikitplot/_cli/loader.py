@@ -21,9 +21,42 @@ import runpy
 import sys
 from typing import Any, Callable
 
+from .._distributions import IMPORT_NAME, install_hint, provider_of
 from ._spec import CommandSpec
 from .context import Context
-from .errors import HandlerLoadError
+from .errors import CapabilityMissingError, HandlerLoadError
+
+
+def _missing_part(exc: ImportError) -> str | None:
+    """Return the ``scikitplot`` module whose absence caused ``exc``, if any.
+
+    Parameters
+    ----------
+    exc : ImportError
+        The import failure to classify.
+
+    Returns
+    -------
+    str or None
+        The absolute module name when ``exc`` reports that a module of the
+        ``scikitplot`` package itself could not be found; ``None`` when the
+        missing module belongs to another project, or when the failure is not
+        a missing module at all.
+
+    Notes
+    -----
+    **Developer.** The two cases need different advice. A missing third-party
+    module is fixed by installing that dependency. A missing ``scikitplot``
+    module means that part of the package was not installed, which happens
+    whenever a partial distribution (see ``scikitplot._distributions``) is in
+    use, and is fixed by installing the distribution that ships the part.
+    """
+    if not isinstance(exc, ModuleNotFoundError) or not exc.name:
+        return None
+    name = exc.name
+    if name == IMPORT_NAME or name.startswith(IMPORT_NAME + "."):
+        return name
+    return None
 
 
 def load_handler(target: str) -> Callable[..., int]:
@@ -65,14 +98,98 @@ def load_handler(target: str) -> Callable[..., int]:
 
 
 def dispatch(spec: CommandSpec, params: dict[str, Any], ctx: Context) -> int:
-    """Load ``spec``'s handler and invoke it, returning its exit code."""
+    """Load ``spec``'s handler and invoke it, returning its exit code.
+
+    Parameters
+    ----------
+    spec : CommandSpec
+        The native command to run.
+    params : dict
+        Parsed parameters, passed to the handler as keyword arguments.
+    ctx : Context
+        Invocation context.
+
+    Returns
+    -------
+    int
+        The handler's exit code.
+
+    Raises
+    ------
+    HandlerLoadError
+        If the handler cannot be loaded.
+    CapabilityMissingError
+        If the handler needs a part of ``scikitplot`` that is not installed.
+        The hint names the distribution that ships it.
+
+    Notes
+    -----
+    **Developer.** Handlers import the library function they wrap inside
+    ``run`` (so top-level help stays cheap). With a partial distribution that
+    function's module may not be installed, and the resulting
+    ``ModuleNotFoundError`` used to reach ``main`` as an "Internal error". It
+    is an unavailable capability with a known remedy, so it is reported as
+    one. A missing third-party module is left to the handler, which knows what
+    it was for.
+    """
     if spec.deprecated:
         ctx.stderr.write(f"warning: command {spec.name!r} is deprecated.\n")
     handler = load_handler(spec.handler)
-    return int(handler(ctx, **params))
+    try:
+        return int(handler(ctx, **params))
+    except ModuleNotFoundError as exc:
+        missing = _missing_part(exc)
+        if missing is None:
+            raise
+        raise CapabilityMissingError(
+            missing,
+            install_hint=(
+                "This part of scikitplot is not installed. "
+                f"Install it with: {install_hint(missing)}"
+            ),
+        ) from exc
 
 
 __all__ = ["dispatch", "load_handler", "run_delegate"]
+
+
+def _delegate_hint(exc: ImportError, module_name: str, install_hint: str | None) -> str:
+    """Choose the advice shown when a delegated submodule cannot be imported.
+
+    Parameters
+    ----------
+    exc : ImportError
+        The import failure.
+    module_name : str
+        The delegate's module.
+    install_hint : str or None
+        The command's own hint, which describes its optional dependencies.
+
+    Returns
+    -------
+    str
+        The installation command for the partial distribution that ships the
+        missing part, when the failure is that part being absent and a partial
+        distribution ships it; otherwise ``install_hint``; otherwise a generic
+        instruction naming ``module_name``.
+
+    Notes
+    -----
+    **Developer.** A command's ``install_hint`` is written for the case where
+    the submodule is present and an optional dependency is not. When the
+    submodule itself is absent that advice is wrong: installing an extra of a
+    distribution that is not installed changes nothing the user can see. The
+    distribution map is consulted first for exactly that case.
+    """
+    missing = _missing_part(exc)
+    if missing is not None:
+        provider = provider_of(missing)
+        if provider is not None:
+            return (
+                "This part of scikitplot is not installed. "
+                f"Install it with: pip install {provider}"
+            )
+    return install_hint or f"Ensure {module_name!r} is installed."
 
 
 def _exit_code(code: object) -> int:
@@ -117,11 +234,6 @@ def run_delegate(
     int
         Process exit code.
     """
-    from .errors import (  # ruff: ignore[import-outside-top-level]
-        CapabilityMissingError,
-        HandlerLoadError,
-    )
-
     argv = list(argv)
     if ":" in target:
         module_name, _, attr = target.partition(":")
@@ -134,7 +246,7 @@ def run_delegate(
         except ImportError as exc:
             raise CapabilityMissingError(
                 module_name,
-                install_hint=install_hint or f"Ensure {module_name!r} is installed.",
+                install_hint=_delegate_hint(exc, module_name, install_hint),
             ) from exc
         entry = getattr(module, attr, None)
         if not callable(entry):
@@ -154,7 +266,7 @@ def run_delegate(
         return 0
     except ImportError as exc:
         raise CapabilityMissingError(
-            target, install_hint=install_hint or f"Ensure {target!r} is installed."
+            target, install_hint=_delegate_hint(exc, target, install_hint)
         ) from exc
     except SystemExit as exc:
         return _exit_code(exc.code)

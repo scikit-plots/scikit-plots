@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._paths import RUNTIME_ROOT
+from scikitplot._externals._sphinx_ext._sphinx_ai_assistant.tests._platform import POSIX_RELEASE_GATE
 
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -44,9 +45,9 @@ def _source(tmp_path: Path) -> tuple[Path, Path]:
     new = tmp_path / "new"
     old.mkdir()
     new.mkdir()
-    (old / "a.txt").write_text("old\n")
-    (new / "a.txt").write_text("new\n")
-    (new / "bin.sh").write_text("#!/bin/sh\necho ok\n")
+    (old / "a.txt").write_text("old\n", encoding="utf-8")
+    (new / "a.txt").write_text("new\n", encoding="utf-8")
+    (new / "bin.sh").write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
     (new / "bin.sh").chmod(0o755)
     return old, new
 
@@ -74,7 +75,7 @@ def _git_env(repo: Path) -> dict[str, str]:
     for directory in (home, xdg, template):
         directory.mkdir(exist_ok=True)
     empty_config = parent / "empty.gitconfig"
-    empty_config.write_text("")
+    empty_config.write_text("", encoding="utf-8")
     env: dict[str, str] = {
         "HOME": str(home),
         "XDG_CONFIG_HOME": str(xdg),
@@ -146,7 +147,7 @@ def _patch(old: Path, new: Path, output: Path) -> Path:
 
 def _evidence(tmp_path: Path, source: Path) -> tuple[Path, dict]:
     sbom = tmp_path / "image.cdx.json"
-    sbom.write_text(json.dumps({"bomFormat": "CycloneDX", "specVersion": "1.6"}))
+    sbom.write_text(json.dumps({"bomFormat": "CycloneDX", "specVersion": "1.6"}), encoding="utf-8")
     source_sha = source_tree.source_tree_sha256(source)
     doc = {
         "source": {"sourceTreeSha256": source_sha, "pythonSbomSha256": "c" * 64},
@@ -159,7 +160,7 @@ def _evidence(tmp_path: Path, source: Path) -> tuple[Path, dict]:
         },
     }
     evidence = tmp_path / "release-evidence.json"
-    evidence.write_text(json.dumps(doc, sort_keys=True))
+    evidence.write_text(json.dumps(doc, sort_keys=True), encoding="utf-8")
     result = {
         "ok": True,
         "release_id": "run149-test",
@@ -186,7 +187,7 @@ def _fixture(tmp_path: Path):
 
 def _verifier_evidence(tmp_path: Path) -> Path:
     path = tmp_path / "external-signature-verifier.json"
-    path.write_text(json.dumps({"verified": True, "issuer": "test-trust-root"}, sort_keys=True))
+    path.write_text(json.dumps({"verified": True, "issuer": "test-trust-root"}, sort_keys=True), encoding="utf-8")
     return path
 
 
@@ -199,6 +200,7 @@ def _signature(tmp_path: Path, statement: Path, *, name: str = "sig.json", verif
     return sig, verifier_evidence
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Path):
     _, new, baseline, patch, evidence, result, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -213,7 +215,7 @@ def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Pat
     )
     assert out["ok"] is True and out["phase"] == "prepared"
     statement_path = prepared / "release-statement.json"
-    statement = json.loads(statement_path.read_text())
+    statement = json.loads(statement_path.read_text(encoding="utf-8"))
     assert statement["subject"] == {
         "sourceTreeSha256": result["source_tree_sha256"],
         "evidenceSha256": result["evidence_sha256"],
@@ -226,7 +228,7 @@ def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Pat
     }
     assert statement["sbomReferences"]["pythonRuntime"]["sha256"] == "c" * 64
     assert statement["sbomReferences"]["image"]["sha256"] == _sha(tmp_path / "image.cdx.json")
-    assert str(tmp_path) not in statement_path.read_text()
+    assert str(tmp_path) not in statement_path.read_text(encoding="utf-8")
     archive = prepared / "run149-test.zip"
     promote._verify_release_zip(archive, new)
     with zipfile.ZipFile(archive) as zf:
@@ -237,6 +239,7 @@ def test_run149_prepare_binds_patch_zip_source_and_sbom_references(tmp_path: Pat
     assert modes["bin.sh"] == 0o755
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_is_deterministic_for_same_source(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     first = tmp_path / "first"
@@ -247,10 +250,11 @@ def test_run149_prepare_is_deterministic_for_same_source(tmp_path: Path):
     assert (first / "release-statement.json").read_bytes() == (second / "release-statement.json").read_bytes()
 
 
+@POSIX_RELEASE_GATE
 def test_run149_prepare_rejects_patch_that_does_not_recreate_verified_tree(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
-    text = patch.read_text()
-    patch.write_text(text.replace("+new", "+wrong", 1))
+    text = patch.read_text(encoding="utf-8")
+    patch.write_text(text.replace("+new", "+wrong", 1), encoding="utf-8")
     with pytest.raises(promote.PromotionError, match="PATCH_RESULT_CONTENT_MISMATCH"):
         promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=tmp_path / "prepared", source_root=new, evidence_verifier=verifier, now=NOW)
 
@@ -272,6 +276,7 @@ def test_run149_baseline_rejects_traversal_and_special_entries(tmp_path: Path):
         promote._safe_extract_baseline(symlink, tmp_path / "out2")
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rechecks_signature_and_all_publishable_hashes(tmp_path: Path):
     _, new, baseline, patch, evidence, result, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -290,7 +295,7 @@ def test_run149_finalize_rechecks_signature_and_all_publishable_hashes(tmp_path:
         now=NOW,
     )
     assert out["phase"] == "promoted"
-    receipt = json.loads((promoted / "promotion-receipt.json").read_text())
+    receipt = json.loads((promoted / "promotion-receipt.json").read_text(encoding="utf-8"))
     assert receipt["sourceTreeSha256"] == result["source_tree_sha256"]
     assert receipt["status"] == "promoted"
     for item in receipt["publish"]:
@@ -299,6 +304,7 @@ def test_run149_finalize_rechecks_signature_and_all_publishable_hashes(tmp_path:
         assert path.stat().st_size == item["size"]
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_tampered_zip_wrong_signature_and_source_drift(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -314,18 +320,19 @@ def test_run149_finalize_rejects_tampered_zip_wrong_signature_and_source_drift(t
     prepared2 = tmp_path / "prepared2"
     promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=prepared2, source_root=new, evidence_verifier=verifier, now=NOW)
     sig2, verifier_evidence2 = _signature(tmp_path, prepared2 / "release-statement.json", name="sig2.json")
-    doc = json.loads(sig2.read_text())
+    doc = json.loads(sig2.read_text(encoding="utf-8"))
     doc["releaseStatementSha256"] = "0" * 64
-    sig2.write_text(json.dumps(doc))
+    sig2.write_text(json.dumps(doc), encoding="utf-8")
     with pytest.raises(promote.PromotionError, match="SIGNATURE_RECORD_SUBJECT_MISMATCH"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared2, baseline_zip=baseline, signature_record=sig2, signature_verifier_evidence=verifier_evidence2, promotion_dir=tmp_path / "bad2", source_root=new, evidence_verifier=verifier, now=NOW)
 
     sig3, verifier_evidence3 = _signature(tmp_path, prepared2 / "release-statement.json", name="sig3.json")
-    (new / "a.txt").write_text("drift\n")
+    (new / "a.txt").write_text("drift\n", encoding="utf-8")
     with pytest.raises(promote.PromotionError, match="RELEASE_STATEMENT_SOURCE_MISMATCH"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared2, baseline_zip=baseline, signature_record=sig3, signature_verifier_evidence=verifier_evidence3, promotion_dir=tmp_path / "bad3", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_stale_signature_record(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -335,19 +342,21 @@ def test_run149_finalize_rejects_stale_signature_record(tmp_path: Path):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_statement_path_traversal_even_if_signature_matches(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
     promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=prepared, source_root=new, evidence_verifier=verifier, now=NOW)
     statement_path = prepared / "release-statement.json"
-    doc = json.loads(statement_path.read_text())
+    doc = json.loads(statement_path.read_text(encoding="utf-8"))
     doc["artifacts"]["zip"]["name"] = "../escape.zip"
-    statement_path.write_text(json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n")
+    statement_path.write_text(json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     sig, verifier_evidence = _signature(tmp_path, statement_path)
     with pytest.raises(promote.PromotionError, match="RELEASE_STATEMENT_ZIP_NAME_INVALID"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_reapplies_patch_and_rejects_wrong_baseline(tmp_path: Path):
     old, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
@@ -355,30 +364,32 @@ def test_run149_finalize_reapplies_patch_and_rejects_wrong_baseline(tmp_path: Pa
     sig, verifier_evidence = _signature(tmp_path, prepared / "release-statement.json")
     wrong_old = tmp_path / "wrong-old"
     wrong_old.mkdir()
-    (wrong_old / "a.txt").write_text("different baseline\n")
+    (wrong_old / "a.txt").write_text("different baseline\n", encoding="utf-8")
     wrong_baseline = _baseline_zip(wrong_old, tmp_path / "wrong-baseline.zip")
     with pytest.raises(promote.PromotionError, match="PROMOTION_BASELINE_HASH_MISMATCH"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=wrong_baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_signature_record_must_bind_verified_identity_and_revision(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
     promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=prepared, source_root=new, evidence_verifier=verifier, now=NOW)
     sig, verifier_evidence = _signature(tmp_path, prepared / "release-statement.json")
-    doc = json.loads(sig.read_text())
+    doc = json.loads(sig.read_text(encoding="utf-8"))
     doc["signerIdentityVerified"] = False
-    sig.write_text(json.dumps(doc, sort_keys=True))
+    sig.write_text(json.dumps(doc, sort_keys=True), encoding="utf-8")
     with pytest.raises(promote.PromotionError, match="SIGNATURE_RECORD_NOT_VERIFIED"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_changed_external_verifier_evidence(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
     promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=prepared, source_root=new, evidence_verifier=verifier, now=NOW)
     sig, verifier_evidence = _signature(tmp_path, prepared / "release-statement.json")
-    verifier_evidence.write_text(json.dumps({"verified": False, "issuer": "tampered"}))
+    verifier_evidence.write_text(json.dumps({"verified": False, "issuer": "tampered"}), encoding="utf-8")
     with pytest.raises(promote.PromotionError, match="SIGNATURE_VERIFIER_EVIDENCE_HASH_MISMATCH"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
@@ -399,19 +410,21 @@ def test_run149_prepare_rejects_transaction_input_inside_source_tree(tmp_path: P
         )
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_signed_zip_file_count_tampering(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"
     promote.prepare_release(evidence=evidence, baseline_zip=baseline, patch=patch, output_dir=prepared, source_root=new, evidence_verifier=verifier, now=NOW)
     statement_path = prepared / "release-statement.json"
-    doc = json.loads(statement_path.read_text())
+    doc = json.loads(statement_path.read_text(encoding="utf-8"))
     doc["artifacts"]["zip"]["fileCount"] += 1
-    statement_path.write_text(json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n")
+    statement_path.write_text(json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     sig, verifier_evidence = _signature(tmp_path, statement_path)
     with pytest.raises(promote.PromotionError, match="PROMOTION_ZIP_FILE_COUNT_MISMATCH"):
         promote.finalize_release(evidence=evidence, prepared_dir=prepared, baseline_zip=baseline, signature_record=sig, signature_verifier_evidence=verifier_evidence, promotion_dir=tmp_path / "promoted", source_root=new, evidence_verifier=verifier, now=NOW)
 
 
+@POSIX_RELEASE_GATE
 def test_run149_finalize_rejects_fresh_signature_that_predates_statement(tmp_path: Path):
     _, new, baseline, patch, evidence, _, verifier = _fixture(tmp_path)
     prepared = tmp_path / "prepared"

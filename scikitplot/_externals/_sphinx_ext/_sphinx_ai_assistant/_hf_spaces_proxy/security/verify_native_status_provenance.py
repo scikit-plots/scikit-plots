@@ -30,7 +30,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 try:
     from . import verify_attestation_lifecycle as lifecycle
@@ -48,7 +51,9 @@ except (ImportError, ValueError) as exc:
     spec.loader.exec_module(lifecycle)
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_native_status_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_native_status_policy.toml").read_text(encoding="utf-8")
+)
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _ZERO_HASH = "0" * 64
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

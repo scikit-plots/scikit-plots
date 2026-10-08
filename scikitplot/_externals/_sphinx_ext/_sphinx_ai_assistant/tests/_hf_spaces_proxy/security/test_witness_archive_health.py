@@ -96,7 +96,7 @@ def _recovery_material(tmp_path,r,*,subject_mutator=None,signature_mutator=None,
     nr,nrp,nrpin,nrprivs=_new_retention_root(tmp_path,r["root_doc"])
     if new_root_mutator:
         new_root_mutator(nr,nrprivs); _write(nrp,nr); nrpin=witness._sha_bytes(_canonical(nr))
-    state=json.loads((r["out"]/"trusted-archive-health-state.json").read_text())
+    state=json.loads((r["out"]/"trusted-archive-health-state.json").read_text(encoding="utf-8"))
     selected=["rec-key-1","rec-key-2"]
     subject={"_type":"archive-retention-root-recovery","specVersion":"1.0.0","schemaVersion":1,"recoveryId":"retention-recovery/1","issuedAt":witness._ts(NOW),"recoveryRootSha256":rrpin,"oldRetentionRootSha256":r["root_pin"],"newRetentionRootSha256":nrpin,"run161HealthChainHeadSha256":state["healthChainHeadSha256"],"activeArchiveIds":state["activeArchiveIds"],"compromisedOldKeyIds":["ret-root-1"],"selectedRecoveryKeyIds":selected,"retirementAuthorizedArchiveIds":[]}
     if subject_mutator: subject_mutator(subject)
@@ -151,7 +151,7 @@ def test_run162_witness_root_extra_signature_is_rejected(tmp_path):
 
 def test_run162_witness_chain_mutation_is_detected(tmp_path):
     r,wr,wrp,wrpin,_,out,_=_witnessed(tmp_path)
-    d=json.loads((out/"release-archive-witness-bundle.json").read_text());d["events"][0]["view"]["archives"][0]["retentionMode"]="mutated";_write(out/"release-archive-witness-bundle.json",d)
+    d=json.loads((out/"release-archive-witness-bundle.json").read_text(encoding="utf-8"));d["events"][0]["view"]["archives"][0]["retentionMode"]="mutated";_write(out/"release-archive-witness-bundle.json",d)
     with pytest.raises(witness.ArchiveWitnessError):witness.verify_witness_history(run160_dir=r["run160"],run161_dir=r["out"],retention_root_path=r["root_path"],retention_root_pin=r["root_pin"],witness_root_path=wrp,witness_root_pin=wrpin,bootstrap_pin=r["setup"]["pin"],recovery_pin=r["setup"]["rr_pin"],attestation_pins=[r["setup"]["ca_pin"]],output_dir=out,now=NOW,historical=True)
 
 def test_run162_output_is_create_only(tmp_path):
@@ -204,15 +204,15 @@ def test_run162_recovery_is_deterministic(tmp_path):
 
 def test_run162_recovery_output_has_no_private_keys_or_retirement_authority(tmp_path):
     *_,out,result=_recover(tmp_path)
-    text="\n".join(p.read_text() for p in out.iterdir()).lower()
+    text="\n".join(p.read_text(encoding="utf-8") for p in out.iterdir()).lower()
     assert "privatekey" not in text and "private key" not in text and '"retirementauthorizedarchiveids":[]' in text.replace(" ","")
 
 def test_run162_duplicate_json_keys_are_rejected(tmp_path):
-    p=tmp_path/"dup.json";p.write_text('{"a":1,"a":2}\n')
+    p=tmp_path/"dup.json";p.write_text('{"a":1,"a":2}\n', encoding="utf-8")
     with pytest.raises(witness.ArchiveWitnessError,match="DUPLICATE_KEY"):witness._read_json(p,"DUP")
 
 def test_run162_command_adapter_bounds_output_while_produced(tmp_path, monkeypatch):
-    script=tmp_path/"noisy.py";script.write_text("import sys\nsys.stdout.write('x'*(9*1024*1024))\n")
+    script=tmp_path/"noisy.py";script.write_text("import sys\nsys.stdout.write('x'*(9*1024*1024))\n", encoding="utf-8")
     real_popen = witness.subprocess.Popen
     seen = {}
 
@@ -231,7 +231,7 @@ def test_run162_command_adapter_bounds_output_while_produced(tmp_path, monkeypat
     assert proc.stderr is not None and proc.stderr.closed
 
 def test_run162_documentation_describes_split_view_witnessing_and_recovery():
-    guide=(SECURITY/"RELEASE_ARCHIVE_WITNESS_GUIDE.md").read_text();gates=(SECURITY/"SECURITY_RELEASE_GATES.md").read_text()
+    guide=(SECURITY/"RELEASE_ARCHIVE_WITNESS_GUIDE.md").read_text(encoding="utf-8");gates=(SECURITY/"SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     for phrase in ("split view","witness quorum","out-of-band","retention root recovery","retirement"):
         assert phrase in guide.lower()
     assert "Run 162" in gates
@@ -245,7 +245,7 @@ def test_run162_witness_authority_is_separate_from_archive_planes(tmp_path):
 
 def test_run162_witness_history_advances_across_new_run161_audit(tmp_path):
     r,wr,wrp,wrpin,wprivs,wout,_=_witnessed(tmp_path/"first")
-    state=json.loads((r["out"]/"trusted-archive-health-state.json").read_text()); receipt=json.loads((r["run160"]/"release-native-evidence-archive-receipt.json").read_text()); later=NOW+timedelta(minutes=5)
+    state=json.loads((r["out"]/"trusted-archive-health-state.json").read_text(encoding="utf-8")); receipt=json.loads((r["run160"]/"release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")); later=NOW+timedelta(minutes=5)
     mp2,_=r161t._membership(tmp_path,r["root_doc"],r["root_privs"],r["run160"],receipt,r["members"],sequence=2,previous_head=state["healthChainHeadSha256"],previous_members=r["members"],issued=later,name="membership-2.json")
     targets=[]
     for m in r["members"]:
@@ -256,7 +256,7 @@ def test_run162_witness_history_advances_across_new_run161_audit(tmp_path):
     out2=tmp_path/"witness-second"
     res=witness.witness_archive_health(run160_dir=r["run160"],run161_dir=run161b,retention_root_path=r["root_path"],retention_root_pin=r["root_pin"],witness_root_path=wrp,witness_root_pin=wrpin,bootstrap_pin=r["setup"]["pin"],recovery_pin=r["setup"]["rr_pin"],attestation_pins=[r["setup"]["ca_pin"]],output_dir=out2,witnesses=adapters,previous_output_dir=wout,now=later)
     assert res["sequence"]==2
-    bundle=json.loads((out2/"release-archive-witness-bundle.json").read_text()); assert bundle["events"][0]["run161HealthChainHeadSha256"]!=bundle["events"][1]["run161HealthChainHeadSha256"]
+    bundle=json.loads((out2/"release-archive-witness-bundle.json").read_text(encoding="utf-8")); assert bundle["events"][0]["run161HealthChainHeadSha256"]!=bundle["events"][1]["run161HealthChainHeadSha256"]
 
 def test_run162_recovery_output_offline_verifier_replays(tmp_path):
     r,rr,nr,out,result=_recover(tmp_path)
@@ -266,7 +266,7 @@ def test_run162_recovery_output_offline_verifier_replays(tmp_path):
 
 def test_run162_recovery_output_mutation_is_detected(tmp_path):
     r,rr,nr,out,result=_recover(tmp_path)
-    rec=json.loads((out/"retention-root-recovery-receipt.json").read_text());rec["retirementAuthorizedArchiveIds"]=["x"];_write(out/"retention-root-recovery-receipt.json",rec)
+    rec=json.loads((out/"retention-root-recovery-receipt.json").read_text(encoding="utf-8"));rec["retirementAuthorizedArchiveIds"]=["x"];_write(out/"retention-root-recovery-receipt.json",rec)
     with pytest.raises(witness.ArchiveWitnessError,match="RECEIPT_MISMATCH"):
         witness.verify_retention_root_recovery(run160_dir=r["run160"],run161_dir=r["out"],old_retention_root_path=r["root_path"],old_retention_root_pin=r["root_pin"],recovery_root_path=tmp_path/"recovery-root.json",recovery_root_pin=witness._sha_bytes(_canonical(rr)),bootstrap_pin=r["setup"]["pin"],recovery_pin=r["setup"]["rr_pin"],attestation_pins=[r["setup"]["ca_pin"]],output_dir=out,now=NOW)
 
@@ -282,13 +282,13 @@ def test_run162_recovery_subject_must_be_inside_recovery_root_lifetime(tmp_path)
 
 def test_run162_witness_set_cannot_be_rewritten_by_dropping_response(tmp_path):
     r,wr,wrp,wrpin,_,out,_=_witnessed(tmp_path)
-    receipt=json.loads((out/"release-archive-witness-receipt.json").read_text());receipt["events"][0]["responses"]=receipt["events"][0]["responses"][:2];_write(out/"release-archive-witness-receipt.json",receipt)
-    bundle=json.loads((out/"release-archive-witness-bundle.json").read_text());bundle["events"][0]["witnessKeyIds"]=bundle["events"][0]["witnessKeyIds"][:2];bundle["events"][0]["witnessResponseSha256s"]=bundle["events"][0]["witnessResponseSha256s"][:2];_write(out/"release-archive-witness-bundle.json",bundle)
+    receipt=json.loads((out/"release-archive-witness-receipt.json").read_text(encoding="utf-8"));receipt["events"][0]["responses"]=receipt["events"][0]["responses"][:2];_write(out/"release-archive-witness-receipt.json",receipt)
+    bundle=json.loads((out/"release-archive-witness-bundle.json").read_text(encoding="utf-8"));bundle["events"][0]["witnessKeyIds"]=bundle["events"][0]["witnessKeyIds"][:2];bundle["events"][0]["witnessResponseSha256s"]=bundle["events"][0]["witnessResponseSha256s"][:2];_write(out/"release-archive-witness-bundle.json",bundle)
     with pytest.raises(witness.ArchiveWitnessError):
         witness.verify_witness_history(run160_dir=r["run160"],run161_dir=r["out"],retention_root_path=r["root_path"],retention_root_pin=r["root_pin"],witness_root_path=wrp,witness_root_pin=wrpin,bootstrap_pin=r["setup"]["pin"],recovery_pin=r["setup"]["rr_pin"],attestation_pins=[r["setup"]["ca_pin"]],output_dir=out,now=NOW,historical=True)
 
 def test_run162_witness_state_rejects_extra_fields(tmp_path):
     r,wr,wrp,wrpin,_,out,_=_witnessed(tmp_path)
-    state=json.loads((out/"trusted-archive-witness-state.json").read_text());state["unexpected"]=True;_write(out/"trusted-archive-witness-state.json",state)
+    state=json.loads((out/"trusted-archive-witness-state.json").read_text(encoding="utf-8"));state["unexpected"]=True;_write(out/"trusted-archive-witness-state.json",state)
     with pytest.raises(witness.ArchiveWitnessError,match="STATE_BINDING_INVALID"):
         witness.verify_witness_history(run160_dir=r["run160"],run161_dir=r["out"],retention_root_path=r["root_path"],retention_root_pin=r["root_pin"],witness_root_path=wrp,witness_root_pin=wrpin,bootstrap_pin=r["setup"]["pin"],recovery_pin=r["setup"]["rr_pin"],attestation_pins=[r["setup"]["ca_pin"]],output_dir=out,now=NOW,historical=True)

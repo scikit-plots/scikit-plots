@@ -654,3 +654,74 @@ def test_is_safe_compiler_arg_parametric(arg: str, expected: bool) -> None:
 )
 def test_is_safe_macro_name_parametric(name: str, valid: bool) -> None:
     assert is_safe_macro_name(name) is valid
+
+
+# ===========================================================================
+# Anchored paths: the same answer on every platform
+# ===========================================================================
+#
+# ``Path.is_absolute()`` asks the running platform, and on Windows a rooted
+# path without a drive ("/usr/include") is not "absolute". The checks below
+# are pure text checks by both platforms' rules, so they hold wherever the
+# suite runs; none of them is skipped per platform.
+
+
+class TestIsAnchoredPath:
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/usr/include",          # POSIX absolute; rooted-without-drive on Windows
+            "\\Windows\\System32",  # rooted on Windows
+            "C:\\Windows",           # drive-absolute
+            "C:/Windows",
+            "C:relative",            # drive-relative: leaves the joined directory
+            "\\\\host\\share\\x",   # UNC share
+            "//host/share/x",
+            "/",
+        ],
+    )
+    def test_anchored(self, path: str) -> None:
+        from .._security import _is_anchored_path
+
+        assert _is_anchored_path(path) is True
+
+    @pytest.mark.parametrize(
+        "path", ["include/mylib", "include\\mylib", "a", ".", "./a", "a/b/c.h", ""]
+    )
+    def test_relative(self, path: str) -> None:
+        from .._security import _is_anchored_path
+
+        assert _is_anchored_path(path) is False
+
+    def test_accepts_path_objects(self, tmp_path) -> None:
+        from pathlib import PurePosixPath, PureWindowsPath
+
+        from .._security import _is_anchored_path
+
+        assert _is_anchored_path(tmp_path) is True
+        assert _is_anchored_path(PurePosixPath("a/b")) is False
+        assert _is_anchored_path(PureWindowsPath("C:/a")) is True
+
+
+class TestIsSafePathOnEveryPlatform:
+    @pytest.mark.parametrize(
+        "path",
+        ["/usr/include", "\\Windows", "C:\\x", "C:x", "//host/share/x"],
+    )
+    def test_anchored_paths_are_unsafe_by_default_and_allowed_on_request(
+        self, path: str
+    ) -> None:
+        assert is_safe_path(path) is False
+        assert is_safe_path(path, allow_absolute=True) is True
+
+    @pytest.mark.parametrize(
+        "path",
+        ["../x", "a/../../x", "..\\x", "a\\..\\..\\x", "/a/../x", "C:\\a\\..\\x"],
+    )
+    def test_traversal_is_refused_with_either_separator(self, path: str) -> None:
+        assert is_safe_path(path) is False
+        assert is_safe_path(path, allow_absolute=True) is False
+
+    @pytest.mark.parametrize("path", ["include", "include/sub", "include\\sub", "a.b/c"])
+    def test_plain_relative_paths_stay_safe(self, path: str) -> None:
+        assert is_safe_path(path) is True

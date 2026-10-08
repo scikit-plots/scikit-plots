@@ -219,8 +219,8 @@ jobs:
 
           # The same two scripts serve Docker images, the devcontainer and
           # the documentation build; see their headers for the options.
-          bash docker/scripts/install_spacy.sh
           bash docker/scripts/install_nltk.sh
+          bash docker/scripts/install_spacy.sh
 
       - name: "🔨 Build library"
         run: |
@@ -276,7 +276,8 @@ jobs:
           exit "$status"
 
       - name: "⬆️ Keep coverage data and the test report"
-        if: always()
+        # if: always()
+        if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-${{ matrix.name }}
@@ -297,7 +298,8 @@ jobs:
   report:
     name: "CI Test and Coverage Codecov Reports"
     needs: [plan, test]
-    if: always() && github.repository == 'scikit-plots/scikit-plots'
+    # if: always() && github.repository == 'scikit-plots/scikit-plots'
+    if: success() && github.repository == 'scikit-plots/scikit-plots'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

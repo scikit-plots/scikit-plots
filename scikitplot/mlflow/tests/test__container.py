@@ -69,7 +69,9 @@ class TestRunningInDocker:
         checked_paths: list[str] = []
 
         def _recording_exists(self: Path) -> bool:
-            checked_paths.append(str(self))
+            # ``as_posix``: the product asks for ``Path("/.dockerenv")``, whose
+            # ``str`` is ``\\.dockerenv`` on Windows. The path is the same.
+            checked_paths.append(self.as_posix())
             return False
 
         with patch.object(Path, "exists", _recording_exists):

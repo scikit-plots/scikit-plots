@@ -72,7 +72,7 @@ def _root(tmp_path, *, selected=None, duplicate_operator=False):
 def _run160(tmp_path):
     setup, _, out, _, _ = run160_tests._preserved(tmp_path / "run160")
     receipt = json.loads(
-        (out / "release-native-evidence-archive-receipt.json").read_text()
+        (out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")
     )
     payload = (out / "release-native-evidence-archive.json").read_bytes()
     return setup, out, receipt, {
@@ -142,7 +142,7 @@ def _membership(
 ):
     payload = (run160_out / "release-native-evidence-archive.json").read_bytes()
     state = json.loads(
-        (run160_out / "trusted-native-evidence-archive-state.json").read_text()
+        (run160_out / "trusted-native-evidence-archive-state.json").read_text(encoding="utf-8")
     )
     old = {x["archiveId"] for x in (previous_members or [])}
     new = {x["archiveId"] for x in members}
@@ -345,7 +345,7 @@ def _audit(
         targets,
     ) = _setup(tmp_path)
     if membership_mutator:
-        doc = json.loads(mp.read_text())
+        doc = json.loads(mp.read_text(encoding="utf-8"))
         membership_mutator(doc, members, root_privs)
         _write(mp, doc)
     if targets_mutator:
@@ -398,7 +398,7 @@ def test_run161_requires_exact_run160_bootstrap_membership(tmp_path):
     setup, run160_out, _, _, root_path, root_pin, root_privs, _, _, mp, targets = _setup(
         tmp_path
     )
-    doc = json.loads(mp.read_text())
+    doc = json.loads(mp.read_text(encoding="utf-8"))
     doc["signed"]["members"][0]["locator"] = "mem+immutable://other/place"
     doc["signatures"] = [
         {"keyId": k, "signature": _sig(root_privs[k], doc["signed"])}
@@ -438,7 +438,7 @@ def test_run161_rejects_wrong_root_pin(tmp_path):
 def test_run161_root_threshold_requires_independent_operators(tmp_path):
     _, path, pin, _ = _root(tmp_path, duplicate_operator=True)
     with pytest.raises(health.ArchiveHealthError, match="ROOT_OPERATOR_QUORUM_INVALID"):
-        health._verify_root(json.loads(path.read_text()), pin, now=NOW)
+        health._verify_root(json.loads(path.read_text(encoding="utf-8")), pin, now=NOW)
 
 def test_run161_root_signature_set_is_exact(tmp_path):
     doc, _, pin, privs = _root(tmp_path)
@@ -607,7 +607,7 @@ def test_run161_rejects_archive_auditor_operator_overlap(tmp_path):
     setup, run160_out, _, _, root_path, root_pin, root_privs, _, _, mp, targets = _setup(
         tmp_path
     )
-    doc = json.loads(mp.read_text())
+    doc = json.loads(mp.read_text(encoding="utf-8"))
     doc["signed"]["members"][0]["auditorKey"]["operator"] = doc["signed"]["members"][0]["archiveOperator"]
     doc["signatures"] = [
         {"keyId": k, "signature": _sig(root_privs[k], doc["signed"])}
@@ -635,11 +635,11 @@ def test_run161_migration_proves_new_set_before_retirement(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(
         tmp_path / "first"
     )
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
     newm, pp, ap = _new_member(3)
     members2 = [members[1], newm]
     receipt = json.loads(
-        (run160_out / "release-native-evidence-archive-receipt.json").read_text()
+        (run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")
     )
     mp2, _ = _membership(
         tmp_path,
@@ -679,18 +679,18 @@ def test_run161_migration_proves_new_set_before_retirement(tmp_path):
         now=NOW + timedelta(minutes=5),
     )
     assert result["retirement_authorized"] == [members[0]["archiveId"]]
-    active = json.loads((out2 / "active-archive-health-evidence.json").read_text())
+    active = json.loads((out2 / "active-archive-health-evidence.json").read_text(encoding="utf-8"))
     assert active["retirementAuthorizedArchiveIds"] == [members[0]["archiveId"]]
 
 def test_run161_migration_rejects_missing_new_member_audit(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(
         tmp_path / "first"
     )
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
     newm, _, _ = _new_member(3)
     members2 = [members[1], newm]
     receipt = json.loads(
-        (run160_out / "release-native-evidence-archive-receipt.json").read_text()
+        (run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")
     )
     mp2, _ = _membership(
         tmp_path,
@@ -734,9 +734,9 @@ def test_run161_migration_cannot_drop_below_durable_copy_minimum(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(
         tmp_path / "first"
     )
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
     receipt = json.loads(
-        (run160_out / "release-native-evidence-archive-receipt.json").read_text()
+        (run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8")
     )
     mp2, _ = _membership(
         tmp_path,
@@ -847,8 +847,8 @@ def test_run161_live_replay_rejects_expired_current_retention(tmp_path):
 
 def test_run161_previous_event_expiry_does_not_freeze_new_current_event(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(tmp_path / "first")
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
-    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
+    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8"))
     later = NOW + timedelta(days=20)
     mp2, _ = _membership(
         tmp_path,
@@ -885,8 +885,8 @@ def test_run161_previous_event_expiry_does_not_freeze_new_current_event(tmp_path
 
 def test_run161_audit_interval_is_bounded(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(tmp_path / "first")
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
-    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
+    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8"))
     later = NOW + timedelta(days=40)
     mp2, _ = _membership(
         tmp_path,
@@ -923,7 +923,7 @@ def test_run161_audit_interval_is_bounded(tmp_path):
 
 def test_run161_bundle_mutation_is_detected(tmp_path):
     setup, run160_out, _, root_path, root_pin, _, _, _, out, _ = _audit(tmp_path)
-    doc = json.loads((out / "release-archive-health-bundle.json").read_text())
+    doc = json.loads((out / "release-archive-health-bundle.json").read_text(encoding="utf-8"))
     doc["events"][0]["audits"][0]["immutableVersionId"] = "mutated"
     _write(out / "release-archive-health-bundle.json", doc)
     with pytest.raises(health.ArchiveHealthError):
@@ -931,7 +931,7 @@ def test_run161_bundle_mutation_is_detected(tmp_path):
 
 def test_run161_receipt_mutation_is_detected(tmp_path):
     setup, run160_out, _, root_path, root_pin, _, _, _, out, _ = _audit(tmp_path)
-    doc = json.loads((out / "release-archive-health-receipt.json").read_text())
+    doc = json.loads((out / "release-archive-health-receipt.json").read_text(encoding="utf-8"))
     doc["events"][0]["providerResults"][0]["response"]["signed"]["legalHold"] = True
     _write(out / "release-archive-health-receipt.json", doc)
     with pytest.raises(health.ArchiveHealthError):
@@ -939,13 +939,13 @@ def test_run161_receipt_mutation_is_detected(tmp_path):
 
 def test_run161_duplicate_json_keys_are_rejected(tmp_path):
     p = tmp_path / "dup.json"
-    p.write_text('{"a":1,"a":2}\n')
+    p.write_text('{"a":1,"a":2}\n', encoding="utf-8")
     with pytest.raises(health.ArchiveHealthError, match="DUPLICATE_KEY"):
         health._read_json(p, "DUP")
 
 def test_run161_outputs_contain_no_private_keys_or_local_paths(tmp_path):
     *_, out, _ = _audit(tmp_path)
-    text = "\n".join(p.read_text() for p in out.iterdir()).lower()
+    text = "\n".join(p.read_text(encoding="utf-8") for p in out.iterdir()).lower()
     assert "privatekey" not in text and "private key" not in text and str(tmp_path).lower() not in text
 
 def test_run161_output_is_create_only(tmp_path):
@@ -957,22 +957,22 @@ def test_run161_output_is_create_only(tmp_path):
 
 def test_run161_command_adapter_bounds_output_while_produced(tmp_path):
     script = tmp_path / "noisy.py"
-    script.write_text("import sys\nsys.stdout.write('x' * (9 * 1024 * 1024))\n")
+    script.write_text("import sys\nsys.stdout.write('x' * (9 * 1024 * 1024))\n", encoding="utf-8")
     adapter = health.command_provider([sys.executable, str(script)])
     with pytest.raises(health.ArchiveHealthError, match="OUTPUT_TOO_LARGE"):
         adapter({"x": 1})
 
 def test_run161_documentation_describes_retention_challenges_migration_and_retirement():
-    guide = (SECURITY / "RELEASE_ARCHIVE_HEALTH_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SECURITY / "RELEASE_ARCHIVE_HEALTH_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     for phrase in ("provider-signed retention", "independent challenge", "retirement authorization", "minimum durable copies", "out-of-band"):
         assert phrase in guide.lower()
     assert "Run 161" in gates
 
 def _prepare_second(tmp_path, *, sequence=2, members_transform=None, issued_delta=timedelta(minutes=5)):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, privmap, out, _ = _audit(tmp_path / "first")
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
-    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
+    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8"))
     members2 = list(members)
     if members_transform:
         members2 = members_transform(members2)
@@ -1044,8 +1044,8 @@ def test_run161_sequence_skip_is_rejected_before_adapters(tmp_path):
 
 def test_run161_existing_archive_id_cannot_be_rebound(tmp_path):
     setup, run160_out, root_doc, root_path, root_pin, root_privs, members, _, out, _ = _audit(tmp_path / "first")
-    state = json.loads((out / "trusted-archive-health-state.json").read_text())
-    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text())
+    state = json.loads((out / "trusted-archive-health-state.json").read_text(encoding="utf-8"))
+    receipt = json.loads((run160_out / "release-native-evidence-archive-receipt.json").read_text(encoding="utf-8"))
     later = NOW + timedelta(minutes=5)
     changed = json.loads(json.dumps(members))
     changed[0]["locator"] = "mem+immutable://changed/provider/object"
@@ -1126,7 +1126,7 @@ def test_run161_governance_archive_auditor_operator_planes_are_separate(tmp_path
     setup, run160_out, _, _, root_path, root_pin, root_privs, _, _, mp, targets = _setup(
         tmp_path
     )
-    doc = json.loads(mp.read_text())
+    doc = json.loads(mp.read_text(encoding="utf-8"))
     m = doc["signed"]["members"][0]
     m["archiveOperator"] = "ret-root-op-1"
     m["providerKey"]["operator"] = "ret-root-op-1"
@@ -1151,7 +1151,7 @@ def test_run161_governance_archive_auditor_operator_planes_are_separate(tmp_path
 
 def test_run161_membership_signature_order_is_canonical(tmp_path):
     setup, run160_out, _, _, root_path, root_pin, _, _, _, mp, targets = _setup(tmp_path)
-    doc = json.loads(mp.read_text())
+    doc = json.loads(mp.read_text(encoding="utf-8"))
     doc["signatures"] = list(reversed(doc["signatures"]))
     _write(mp, doc)
     with pytest.raises(health.ArchiveHealthError, match="SIGNATURES_NOT_SORTED"):
@@ -1174,7 +1174,7 @@ def test_run161_detects_input_directory_drift_during_external_call(tmp_path):
 
     class MutatingProvider:
         def __call__(self, request):
-            (run160_out / "injected-during-audit.txt").write_text("drift")
+            (run160_out / "injected-during-audit.txt").write_text("drift", encoding="utf-8")
             return original(request)
 
     targets[0] = (targets[0][0], MutatingProvider(), targets[0][2])

@@ -2,9 +2,9 @@ from ..._paths import RUNTIME_ROOT
 from pathlib import Path
 
 ROOT = RUNTIME_ROOT
-INIT = (ROOT / "__init__.py").read_text()
-EXAMPLE = (ROOT / "_example_conf.py").read_text()
-JS = (ROOT / "_static" / "ai-assistant.js").read_text()
+INIT = (ROOT / "__init__.py").read_text(encoding="utf-8")
+EXAMPLE = (ROOT / "_example_conf.py").read_text(encoding="utf-8")
+JS = (ROOT / "_static" / "ai-assistant.js").read_text(encoding="utf-8")
 
 
 def test_run171_privacy_banner_config_is_registered_and_serialized():

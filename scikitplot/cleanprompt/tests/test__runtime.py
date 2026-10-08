@@ -627,8 +627,10 @@ class TestOrderIndependence:
 
     def _files(self, root):
         root.mkdir()
-        (root / "a_note.txt").write_text("Call Marion Holt today.\n", encoding="utf-8")
-        (root / "b_people.csv").write_text("name\nMarion Holt\n", encoding="utf-8")
+        # Bytes, not text: text mode writes CRLF on Windows, and encoding
+        # keeps a file's line endings.
+        (root / "a_note.txt").write_bytes(b"Call Marion Holt today.\n")
+        (root / "b_people.csv").write_bytes(b"name\nMarion Holt\n")
         return root
 
     def test_a_folder(self, tmp_path):
@@ -636,7 +638,7 @@ class TestOrderIndependence:
         list(_cleaner().encode_tree(source, tmp_path / "out"))
         assert (
             tmp_path / "out" / "a_note.txt"
-        ).read_text() == "Call [PERSON-1] today.\n"
+        ).read_text(encoding="utf-8") == "Call [PERSON-1] today.\n"
 
     def test_a_zip(self, tmp_path):
         source = self._files(tmp_path / "src")
@@ -668,7 +670,7 @@ class TestOrderIndependence:
         list(_cleaner(remember=False).encode_tree(source, tmp_path / "out"))
         assert (
             tmp_path / "out" / "a_note.txt"
-        ).read_text() == "Call Marion Holt today.\n"
+        ).read_text(encoding="utf-8") == "Call Marion Holt today.\n"
 
 
 def _chunked(chunk_chars, **kwargs):
@@ -782,7 +784,7 @@ class TestSurvey:
         ]
 
     def test_a_file_is_refused(self, tmp_path):
-        (tmp_path / "x.txt").write_text("x")
+        (tmp_path / "x.txt").write_text("x", encoding="utf-8")
         with pytest.raises(CleanPromptError, match="not a folder"):
             _cleaner().survey_tree(tmp_path / "x.txt")
 

@@ -37,13 +37,15 @@ SECRETS = (
 @pytest.fixture()
 def root(tmp_path):
     (tmp_path / "records").mkdir()
-    (tmp_path / "records" / "patients.csv").write_text(
-        "name,email,mrn\nMarion Holt,ann@example.com,00412345\n", encoding="utf-8"
+    # Bytes, not text: a file written in text mode ends its lines with CRLF on
+    # Windows, and the tools return a file's line endings as they are.
+    (tmp_path / "records" / "patients.csv").write_bytes(
+        b"name,email,mrn\nMarion Holt,ann@example.com,00412345\n"
     )
-    (tmp_path / "records" / "note.txt").write_text(
-        "Call Marion Holt on +1 555 010 4477.\n", encoding="utf-8"
+    (tmp_path / "records" / "note.txt").write_bytes(
+        b"Call Marion Holt on +1 555 010 4477.\n"
     )
-    (tmp_path / ".env").write_text("DB_PASSWORD=hunter2hunter2\n", encoding="utf-8")
+    (tmp_path / ".env").write_bytes(b"DB_PASSWORD=hunter2hunter2\n")
     return tmp_path
 
 
@@ -159,7 +161,7 @@ class TestTools:
         assert written["isError"] is False
         assert (
             root / "out" / "reply.txt"
-        ).read_text() == "Dear Marion Holt (00412345) [X-9]"
+        ).read_text(encoding="utf-8") == "Dear Marion Holt (00412345) [X-9]"
         assert "[X-9]" in written["content"][0]["text"]
 
     def test_the_same_value_keeps_its_placeholder_across_calls(self, root):
@@ -171,7 +173,7 @@ class TestTools:
     def test_writing_does_not_replace_a_file_unless_asked(self, root):
         server = _server(root)
         failed = _call(server, "cleanprompt_write_file", path=".env", text="x")
-        assert failed["isError"] is True and (root / ".env").read_text().startswith(
+        assert failed["isError"] is True and (root / ".env").read_text(encoding="utf-8").startswith(
             "DB_PASSWORD"
         )
         assert (
@@ -196,7 +198,7 @@ class TestTools:
 
     def test_a_symlink_out_of_the_root_is_refused(self, root, tmp_path_factory):
         outside = tmp_path_factory.mktemp("outside") / "secret.txt"
-        outside.write_text("ann@example.com")
+        outside.write_text("ann@example.com", encoding="utf-8")
         try:
             (root / "link.txt").symlink_to(outside)
         except OSError:
@@ -243,12 +245,12 @@ class TestTools:
             server, "cleanprompt_encode_folder", source="records", target="safe"
         )
         assert result["structuredContent"]["encoded"] == 2
-        assert "Marion Holt" not in (root / "safe" / "note.txt").read_text()
+        assert "Marion Holt" not in (root / "safe" / "note.txt").read_text(encoding="utf-8")
         _call(server, "cleanprompt_forget")
         written = _call(
             server, "cleanprompt_write_file", path="after.txt", text="[PERSON-1]"
         )
-        assert (root / "after.txt").read_text() == "[PERSON-1]"
+        assert (root / "after.txt").read_text(encoding="utf-8") == "[PERSON-1]"
         assert written["structuredContent"]["unknown"] == ["[PERSON-1]"]
 
     def test_the_server_needs_a_real_root(self, tmp_path):

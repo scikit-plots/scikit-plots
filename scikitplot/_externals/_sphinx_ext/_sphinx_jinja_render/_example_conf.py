@@ -20,6 +20,13 @@ extensions = [
 # jinja render — context kwargs
 # ---------------------------------------------------------------------------
 
+# ``_is_devrelease`` is a name of *your* conf.py: whether the documented version
+# is a development release (for example
+# ``packaging.version.parse(release).is_devrelease``). When this excerpt is
+# pasted below that definition the line keeps your value; on its own it falls
+# back to ``False`` instead of raising NameError.
+_is_devrelease = globals().get("_is_devrelease", False)
+
 # If development build, link to local page in the top navbar; otherwise link to the
 # development version; see https://github.com/scikit-learn/scikit-learn/pull/22550
 development_link = (

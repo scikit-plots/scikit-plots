@@ -1,0 +1,55 @@
+
+# --------------------------------------------------------------------
+# Platform and shell detection
+# --------------------------------------------------------------------
+
+ifeq ($(OS),Windows_NT)
+	HOST_OS := windows
+else
+	HOST_OS := unix
+endif
+
+# Git Bash normally exports MSYSTEM as MINGW64, MINGW32, or MSYS.
+ifneq ($(filter MINGW% MSYS%,$(MSYSTEM)),)
+	SHELL_ENV := git-bash
+else ifeq ($(HOST_OS),windows)
+	SHELL_ENV := native-windows
+else
+	SHELL_ENV := posix
+endif
+
+## Also avoid this pattern:
+##   ifeq ($(OS),Windows_NT)
+##     NULL_DEVICE := NUL
+##   endif
+## It is incorrect for Git Bash because it detects Windows but ignores the POSIX shell layer.
+
+## SHELL := bash
+## NULL_DEVICE := /dev/null
+## That works in:
+## 	Linux macOS Docker WSL Cygwin MSYS2 Git-Bash
+## Environment	       HOST_OS	SHELL_ENV	     Null device
+## Linux Bash	       unix	    posix	         /dev/null
+## macOS Bash	       unix	    posix	         /dev/null
+## Windows Git         Bash	    windows git-bash /dev/null
+## Windows native shell windows	native-windows	 NUL
+## Only use NUL if you deliberately support native Windows cmd.exe recipes.
+## Commands in this Makefile use POSIX shell syntax.
+ifeq ($(SHELL_ENV),native-windows)
+	NULL_DEVICE := NUL
+else
+	NULL_DEVICE := /dev/null
+endif
+
+check-environment:
+	@command -v bash >$(NULL_DEVICE) 2>&1 || { \
+		echo "ERROR: Bash is required to run this Makefile." >&2; \
+		exit 1; \
+	}
+	@echo "Host OS:       $(HOST_OS)"
+	@echo "Shell mode:    $(SHELL_ENV)"
+	@echo "Null device:   $(NULL_DEVICE)"
+	@echo "Shell:         $(SHELL)"
+
+git-check:
+	@git rev-parse --is-inside-work-tree >$(NULL_DEVICE) 2>&1

@@ -26,8 +26,14 @@ _CHILD = textwrap.dedent(
     sys.modules["scikitplot.api"] = types.ModuleType("scikitplot.api")
     sys.modules["scikitplot.api"].__path__ = []
     import scikitplot
-    from scikitplot.config import get_config
-    scikitplot.get_config = get_config
+    try:
+        from scikitplot.config import get_config
+    except ImportError:
+        # scikitplot.config belongs to the full distribution; the extension
+        # under test does not use it, so its absence changes nothing here.
+        pass
+    else:
+        scikitplot.get_config = get_config
     from scikitplot.cexternals._annoy import annoylib as A
 
     d = 5

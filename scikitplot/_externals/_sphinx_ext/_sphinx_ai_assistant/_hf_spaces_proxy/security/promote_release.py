@@ -19,7 +19,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -30,7 +33,9 @@ if str(HERE) not in sys.path:
 import verify_release_evidence  # noqa: E402
 from source_tree import SourceTreeError, source_tree_sha256  # noqa: E402
 
-POLICY = tomllib.loads((HERE / "release_promotion_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_promotion_policy.toml").read_text(encoding="utf-8")
+)
 ARCHIVE_PREFIX = str(POLICY["archive_prefix"])
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -112,6 +117,11 @@ def _input_outside_source(path: Path, source_root: Path, code: str) -> Path:
 
 
 def _release_files(root: Path) -> list[Path]:
+    # The paths returned are below the *resolved* root. A caller that turns
+    # them back into relative paths must subtract the resolved root as well:
+    # where a temporary directory is reached through a symbolic link (macOS:
+    # ``/var`` is a link to ``/private/var``) the unresolved root is not a
+    # parent of these paths, and ``relative_to`` raises ValueError.
     root = root.resolve()
     files: list[Path] = []
     total = 0
@@ -143,6 +153,7 @@ def _release_files(root: Path) -> list[Path]:
 
 
 def _copy_snapshot(source_root: Path, target: Path) -> None:
+    source_root = source_root.resolve()  # see _release_files
     target.mkdir(parents=True, exist_ok=False)
     for source in _release_files(source_root):
         rel = source.relative_to(source_root)
@@ -156,6 +167,7 @@ def _copy_snapshot(source_root: Path, target: Path) -> None:
 
 
 def _compare_trees(left: Path, right: Path) -> None:
+    left, right = left.resolve(), right.resolve()  # see _release_files
     lfiles = _release_files(left)
     rfiles = _release_files(right)
     lmap = {p.relative_to(left).as_posix(): p for p in lfiles}
@@ -290,7 +302,7 @@ def _git_apply_environment(root: Path) -> dict[str, str]:
     home.mkdir()
     xdg.mkdir()
     empty_config = root / "empty.gitconfig"
-    empty_config.write_text("")
+    empty_config.write_text("", encoding="utf-8")
     env = {
         "HOME": str(home),
         "XDG_CONFIG_HOME": str(xdg),
@@ -354,6 +366,7 @@ def _apply_patch(baseline_extension: Path, patch: Path) -> None:
 
 def _build_deterministic_zip(snapshot: Path, target: Path) -> tuple[str, int, int]:
     prefix = PurePosixPath(ARCHIVE_PREFIX)
+    snapshot = snapshot.resolve()  # see _release_files
     files = _release_files(snapshot)
     with zipfile.ZipFile(
         target, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9, allowZip64=False
@@ -374,6 +387,7 @@ def _build_deterministic_zip(snapshot: Path, target: Path) -> tuple[str, int, in
 
 def _verify_release_zip(archive: Path, snapshot: Path) -> None:
     prefix = PurePosixPath(ARCHIVE_PREFIX)
+    snapshot = snapshot.resolve()  # see _release_files
     expected = {p.relative_to(snapshot).as_posix(): p for p in _release_files(snapshot)}
     seen: list[str] = []
     with zipfile.ZipFile(archive, "r") as zf:

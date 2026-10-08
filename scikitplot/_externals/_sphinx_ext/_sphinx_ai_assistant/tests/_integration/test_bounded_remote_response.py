@@ -64,7 +64,7 @@ def _dev_proxy():
 
 
 def test_b43_browser_remote_reads_are_stream_bounded_and_fail_closed():
-    main = MAIN.read_text()
+    main = MAIN.read_text(encoding="utf-8")
     assert "var _CONTROL_RESPONSE_MAX_BYTES = 512 * 1024;" in main
     assert "var _CANONICAL_RESPONSE_MAX_BYTES = 1024 * 1024;" in main
     assert "var _CHAT_RESPONSE_MAX_BYTES = 8 * 1024 * 1024;" in main
@@ -81,8 +81,8 @@ def test_b43_browser_remote_reads_are_stream_bounded_and_fail_closed():
 
 
 def test_b43_isolation_reads_are_stream_bounded_without_text_fallback():
-    host = HOST.read_text()
-    frame = FRAME.read_text()
+    host = HOST.read_text(encoding="utf-8")
+    frame = FRAME.read_text(encoding="utf-8")
     assert "response.body.getReader" in host
     assert "response.text()" not in host
     assert "response.body.getReader" in frame
@@ -164,8 +164,8 @@ def test_b43_dev_proxy_enforces_declared_and_streamed_limits():
 
 
 def test_b43_hf_and_dev_proxy_use_streamed_upstream_transport():
-    app = APP.read_text()
-    dev = DEV.read_text()
+    app = APP.read_text(encoding="utf-8")
+    dev = DEV.read_text(encoding="utf-8")
     assert "await _http_client.send(request, stream=True)" in app
     assert "await upstream.aread()" not in app
     assert "httpx.stream(" in dev
@@ -176,8 +176,8 @@ def test_b43_hf_and_dev_proxy_use_streamed_upstream_transport():
 
 
 def test_b43_worker_bounds_declared_and_unknown_length_upstream_responses():
-    worker = WORKER.read_text()
-    wrangler = WRANGLER.read_text()
+    worker = WORKER.read_text(encoding="utf-8")
+    wrangler = WRANGLER.read_text(encoding="utf-8")
     assert "CHAT_MAX_RESPONSE_BYTES_DEFAULT = 8 * 1024 * 1024" in worker
     assert "CHAT_MAX_RESPONSE_BYTES_HARD = 32 * 1024 * 1024" in worker
     assert "_upstreamLengthAllowed" in worker
@@ -188,8 +188,8 @@ def test_b43_worker_bounds_declared_and_unknown_length_upstream_responses():
 
 
 def test_b43_share_viewers_stream_bound_json_in_both_server_implementations():
-    hf = SHARE.read_text()
-    worker = WORKER.read_text()
+    hf = SHARE.read_text(encoding="utf-8")
+    worker = WORKER.read_text(encoding="utf-8")
     for source in (hf, worker):
         assert "const max=4*1024*1024" in source
         assert "r.body.getReader" in source
@@ -199,9 +199,9 @@ def test_b43_share_viewers_stream_bound_json_in_both_server_implementations():
 
 
 def test_b43_no_direct_browser_buffering_calls_remain_in_production_runtime():
-    main = MAIN.read_text()
-    host = HOST.read_text()
-    frame = FRAME.read_text()
+    main = MAIN.read_text(encoding="utf-8")
+    host = HOST.read_text(encoding="utf-8")
+    frame = FRAME.read_text(encoding="utf-8")
     assert "response.text()" not in main
     assert "resp.json()" not in main
     assert "response.text()" not in host

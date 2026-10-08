@@ -63,10 +63,10 @@ def build(tmp_path, theme="pydata_sphinx_theme", namespace="_sphinx_ext", extra=
         "html_theme = " + repr(theme) + "\n"
         "ai_learn_content_root = 'learn-ai'\n"
     ) + extra
-    (source / "conf.py").write_text(config)
-    (source / "index.rst").write_text("Home\n====\n\n.. toctree::\n\n   hub\n")
+    (source / "conf.py").write_text(config, encoding="utf-8")
+    (source / "index.rst").write_text("Home\n====\n\n.. toctree::\n\n   hub\n", encoding="utf-8")
     (source / "hub.rst").write_text(
-        "Hub\n===\n\n.. ai-learn::\n\n.. ai-learn::\n   :subject: topic-a\n"
+        "Hub\n===\n\n.. ai-learn::\n\n.. ai-learn::\n   :subject: topic-a\n", encoding="utf-8"
     )
     out = tmp_path / "html"
     result = subprocess.run(
@@ -128,10 +128,10 @@ def test_theme_build_static_fallback_and_page_scoped_assets(tmp_path, theme):
         pytest.skip(f"the {theme!r} HTML theme is not installed in this environment")
     result, source, out = build(tmp_path, theme)
     assert result.returncode == 0, result.stdout + result.stderr
-    hub = (out / "hub.html").read_text()
+    hub = (out / "hub.html").read_text(encoding="utf-8")
     assert hub.count("data-skplt-learn-ai-mount") == 2
     assert "ai-learn.js" in hub
-    assert "ai-learn.js" not in (out / "index.html").read_text()
+    assert "ai-learn.js" not in (out / "index.html").read_text(encoding="utf-8")
     assert "<script>window.INJECTED" not in hub
     assert "<img src=x" not in hub
     assert "Custom topic" in hub and "raw:: html" in hub
@@ -154,16 +154,16 @@ def test_json_change_invalidates_existing_doctree(tmp_path):
     result, source, out = build(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     index_json = next((source / "learn-ai/topics").glob("*/index.json"))
-    data = json.loads(index_json.read_text())
+    data = json.loads(index_json.read_text(encoding="utf-8"))
     data["record"]["title"] = "Updated custom title"
-    index_json.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    index_json.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     result = subprocess.run(
         [sys.executable, "-m", "sphinx", "-b", "html", "-W", str(source), str(out)],
         capture_output=True,
         text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Updated custom title" in (out / "hub.html").read_text()
+    assert "Updated custom title" in (out / "hub.html").read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("builder", ["html", "dirhtml"])
@@ -206,10 +206,10 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
     (static / "integration-whiteboard.svg").write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" '
         'viewBox="0 0 320 180"><rect width="320" height="180" fill="white"/>'
-        '<text x="20" y="90">integration whiteboard</text></svg>'
+        '<text x="20" y="90">integration whiteboard</text></svg>', encoding="utf-8"
     )
     (static / "integration-audio.mp3").write_bytes(b"ID3")
-    (static / "integration-document.txt").write_text("integration document\n")
+    (static / "integration-document.txt").write_text("integration document\n", encoding="utf-8")
     _write_record_tree(source / "learn-ai", subjects)
     # The explorer under test is a page of its own, defined in canonical JSON
     # like every index page. Records alone produce detail pages and no
@@ -226,7 +226,7 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
                 "hide_secondary_sidebar": True,
             },
             sort_keys=True,
-        )
+        ), encoding="utf-8"
     )
     (whiteboards / "new.json").write_text(
         json.dumps(
@@ -238,7 +238,7 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
                 "hide_secondary_sidebar": True,
             },
             sort_keys=True,
-        )
+        ), encoding="utf-8"
     )
     # Routes are deterministic and can be referenced before Sphinx materializes RST.
     from _sphinx_ext._sphinx_ai_learn._materialize import record_docpath
@@ -247,14 +247,14 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
     (source / "index.rst").write_text(
         "Home\n====\n\n.. toctree::\n\n   learn-ai/"
         + topic_route
-        + "\n   learn-ai/whiteboards/index\n"
+        + "\n   learn-ai/whiteboards/index\n", encoding="utf-8"
     )
     (source / "conf.py").write_text(
         "import sys\nsys.path.insert(0, "
         + repr(str(EXT))
         + ")\nextensions = ['_sphinx_ext._sphinx_ai_learn']\n"
         + "ai_learn_content_root = 'learn-ai'\n"
-        + "ai_learn_domains = ['astronomy']\n"
+        + "ai_learn_domains = ['astronomy']\n", encoding="utf-8"
     )
     out = tmp_path / builder
     result = subprocess.run(
@@ -271,7 +271,7 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
         page = out / route.with_suffix(".html")
     else:
         page = out / route / "index.html"
-    rendered = page.read_text()
+    rendered = page.read_text(encoding="utf-8")
     assert "Topic" in rendered
     assert "astronomy" in rendered
     assert "<iframe" not in rendered
@@ -281,7 +281,7 @@ def test_materialized_record_routes_and_generic_resources(tmp_path, builder):
     # _rst_text helper while synthesizing an ``.. image::`` directive.
     whiteboard_pages = list((out / "learn-ai" / "whiteboards").rglob("*.html"))
     assert whiteboard_pages
-    whiteboard_html = "\n".join(path.read_text() for path in whiteboard_pages)
+    whiteboard_html = "\n".join(path.read_text(encoding="utf-8") for path in whiteboard_pages)
     assert "learn-whiteboard-card" in whiteboard_html
     assert "learn-whiteboard-index-image" in whiteboard_html
     assert "Integration whiteboard diagram" in whiteboard_html
@@ -306,14 +306,14 @@ def test_invalid_canonical_tree_fails_before_page_directives(tmp_path):
                     "links": [],
                 },
             }
-        )
+        ), encoding="utf-8"
     )
-    (source / "index.rst").write_text("Home\n====\n\n.. ai-learn::\n")
+    (source / "index.rst").write_text("Home\n====\n\n.. ai-learn::\n", encoding="utf-8")
     (source / "conf.py").write_text(
         "import sys\nsys.path.insert(0, "
         + repr(str(EXT))
         + ")\nextensions = ['_sphinx_ext._sphinx_ai_learn']\n"
-        + "ai_learn_content_root = 'learn-ai'\n"
+        + "ai_learn_content_root = 'learn-ai'\n", encoding="utf-8"
     )
     out = tmp_path / "html"
     result = subprocess.run(

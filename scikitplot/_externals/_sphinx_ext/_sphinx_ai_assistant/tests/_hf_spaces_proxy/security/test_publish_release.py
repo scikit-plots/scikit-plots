@@ -180,8 +180,8 @@ def test_run150_publishes_only_receipt_objects_and_emits_transparency(tmp_path: 
         "run150-test.zip", "run150-test.patch", "release-statement.json",
         "release-statement.signature-verification.json",
     }
-    transparency = json.loads((output / "publication-transparency.json").read_text())
-    receipt = json.loads((output / "publication-receipt.json").read_text())
+    transparency = json.loads((output / "publication-transparency.json").read_text(encoding="utf-8"))
+    receipt = json.loads((output / "publication-receipt.json").read_text(encoding="utf-8"))
     promotion_sha = _sha(promoted / "promotion-receipt.json")
     assert transparency["subject"]["promotionReceiptSha256"] == promotion_sha
     assert transparency["verification"] == {
@@ -194,7 +194,7 @@ def test_run150_publishes_only_receipt_objects_and_emits_transparency(tmp_path: 
     assert receipt["promotionReceiptSha256"] == promotion_sha
     assert receipt["transparencySha256"] == _sha(output / "publication-transparency.json")
     assert len(list((output / "publisher-results").glob("*.json"))) == 8
-    text = (output / "publication-transparency.json").read_text()
+    text = (output / "publication-transparency.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in text and "localPath" not in text
 
 
@@ -205,9 +205,9 @@ def test_run150_is_resumable_when_exact_remote_objects_already_exist(tmp_path: P
     publish.publish_release(promotion_dir=promoted, output_dir=first_out, publisher="test-publisher", target_id="release/run150-test", adapter=adapter, now=NOW)
     second_out = tmp_path / "second"
     out = publish.publish_release(promotion_dir=promoted, output_dir=second_out, publisher="test-publisher", target_id="release/run150-test", adapter=adapter, now=NOW)
-    assert out["publication_id"] == json.loads((first_out / "publication-receipt.json").read_text())["publicationId"]
+    assert out["publication_id"] == json.loads((first_out / "publication-receipt.json").read_text(encoding="utf-8"))["publicationId"]
     assert all(call["operation"] in {"publish", "verify"} for call in adapter.calls)
-    publish_results = [json.loads(p.read_text()) for p in (second_out / "publisher-results").glob("*.publish.json")]
+    publish_results = [json.loads(p.read_text(encoding="utf-8")) for p in (second_out / "publisher-results").glob("*.publish.json")]
     assert {item["status"] for item in publish_results} == {"present"}
 
 
@@ -218,15 +218,15 @@ def test_run150_rejects_tampered_or_extra_promotion_objects(tmp_path: Path):
         publish.publish_release(promotion_dir=promoted, output_dir=tmp_path / "out1", publisher="p", target_id="t", adapter=FakePublisher(), now=NOW)
 
     promoted2 = _promoted(tmp_path / "second")
-    (promoted2 / "extra.txt").write_text("not authorized")
+    (promoted2 / "extra.txt").write_text("not authorized", encoding="utf-8")
     with pytest.raises(publish.PublicationError, match="PROMOTION_DIRECTORY_CONTAINS_UNAUTHORIZED_OBJECT"):
         publish.publish_release(promotion_dir=promoted2, output_dir=tmp_path / "out2", publisher="p", target_id="t", adapter=FakePublisher(), now=NOW)
 
 
 def test_run150_rejects_noncanonical_or_rebound_promotion_receipt(tmp_path: Path):
     promoted = _promoted(tmp_path)
-    receipt = json.loads((promoted / "promotion-receipt.json").read_text())
-    (promoted / "promotion-receipt.json").write_text(json.dumps(receipt, indent=2))
+    receipt = json.loads((promoted / "promotion-receipt.json").read_text(encoding="utf-8"))
+    (promoted / "promotion-receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     with pytest.raises(publish.PublicationError, match="PROMOTION_RECEIPT_NOT_CANONICAL"):
         publish.publish_release(promotion_dir=promoted, output_dir=tmp_path / "out", publisher="p", target_id="t", adapter=FakePublisher(), now=NOW)
 
@@ -302,7 +302,7 @@ def test_run150_command_publisher_uses_json_protocol_without_shell(tmp_path: Pat
         "r=json.load(sys.stdin)\n"
         "a=r['artifact']\n"
         "a={k:a[k] for k in ('name','sha256','size')}\n"
-        "print(json.dumps({'schemaVersion':1,'operation':r['operation'],'publicationId':r['publicationId'],'status':'created' if r['operation']=='publish' else 'present','target':{'publisher':r['target']['publisher'],'targetId':r['target']['targetId'],'locator':'mock://release/'+a['name']},'artifact':a,'guarantees':{'createOnly':True,'overwrite':False,'remoteReadbackVerified':True,'immutability':'object-lock'},'verifiedAt':'2026-09-05T04:30:00Z'}))\n"
+        "print(json.dumps({'schemaVersion':1,'operation':r['operation'],'publicationId':r['publicationId'],'status':'created' if r['operation']=='publish' else 'present','target':{'publisher':r['target']['publisher'],'targetId':r['target']['targetId'],'locator':'mock://release/'+a['name']},'artifact':a,'guarantees':{'createOnly':True,'overwrite':False,'remoteReadbackVerified':True,'immutability':'object-lock'},'verifiedAt':'2026-09-05T04:30:00Z'}))\n", encoding="utf-8"
     )
     adapter = publish.command_publisher([sys.executable, str(script)])
     promoted = _promoted(tmp_path)
@@ -313,7 +313,7 @@ def test_run150_command_publisher_uses_json_protocol_without_shell(tmp_path: Pat
 def test_run150_rebinds_receipt_to_signed_statement_and_verifier_identity(tmp_path: Path):
     promoted = _promoted(tmp_path)
     receipt_path = promoted / "promotion-receipt.json"
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["releaseId"] = "run150-forged"
     receipt_path.write_bytes(publish._canonical_bytes(receipt))
     with pytest.raises(publish.PublicationError, match="PROMOTION_STATEMENT_RELEASE_REBIND_FAILED"):
@@ -321,11 +321,11 @@ def test_run150_rebinds_receipt_to_signed_statement_and_verifier_identity(tmp_pa
 
     promoted2 = _promoted(tmp_path / "sig")
     sig_path = promoted2 / "release-statement.signature-verification.json"
-    sig = json.loads(sig_path.read_text())
+    sig = json.loads(sig_path.read_text(encoding="utf-8"))
     sig["verifierEvidenceSha256"] = "8" * 64
     sig_path.write_bytes(publish._canonical_bytes(sig))
     receipt_path2 = promoted2 / "promotion-receipt.json"
-    receipt2 = json.loads(receipt_path2.read_text())
+    receipt2 = json.loads(receipt_path2.read_text(encoding="utf-8"))
     new_sig_sha = _sha(sig_path)
     receipt2["signatureVerificationSha256"] = new_sig_sha
     for item in receipt2["publish"]:
@@ -350,7 +350,7 @@ def test_run150_command_publisher_bounds_stdout_while_adapter_runs(tmp_path: Pat
         "import sys\n"
         "sys.stdin.buffer.read()\n"
         "sys.stdout.buffer.write(b'x' * 400000)\n"
-        "sys.stdout.flush()\n"
+        "sys.stdout.flush()\n", encoding="utf-8"
     )
     adapter = publish.command_publisher([sys.executable, str(script)])
     with pytest.raises(publish.PublicationError, match="PUBLISHER_COMMAND_OUTPUT_TOO_LARGE"):
@@ -375,7 +375,7 @@ def test_run150_command_publisher_rejects_duplicate_json_keys(tmp_path: Path):
     script.write_text(
         "import sys\n"
         "sys.stdin.buffer.read()\n"
-        "sys.stdout.write('{\\\"schemaVersion\\\":1,\\\"schemaVersion\\\":1}')\n"
+        "sys.stdout.write('{\\\"schemaVersion\\\":1,\\\"schemaVersion\\\":1}')\n", encoding="utf-8"
     )
     adapter = publish.command_publisher([sys.executable, str(script)])
     with pytest.raises(publish.PublicationError, match="PUBLISHER_COMMAND_OUTPUT_DUPLICATE_KEY"):
@@ -384,7 +384,7 @@ def test_run150_command_publisher_rejects_duplicate_json_keys(tmp_path: Path):
 
 def test_run150_command_publisher_closes_pipes_when_child_fails(tmp_path: Path, monkeypatch):
     script = tmp_path / "fails.py"
-    script.write_text("raise SystemExit(7)\n")
+    script.write_text("raise SystemExit(7)\n", encoding="utf-8")
     seen = []
     real_popen = publish.subprocess.Popen
 

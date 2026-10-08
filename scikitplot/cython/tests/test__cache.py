@@ -138,19 +138,45 @@ class TestCacheDirEnvVarBranch:
 class TestDefaultCacheDirPlatformBranches:
     """Cover platform-specific branches of ``_default_cache_dir``."""
 
-    def test_xdg_cache_home_used(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        monkeypatch.setattr("os.name", "posix")
-        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
-        monkeypatch.delenv("SCIKITPLOT_CYTHON_CACHE_DIR", raising=False)
-        result = _default_cache_dir()
-        assert "xdg" in str(result)
+    # The platform is an argument: ``os.name`` is never set for the process,
+    # which breaks pathlib on the platform it is not (see ``_default_cache_dir``).
 
-    def test_no_xdg_uses_home_cache(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr("os.name", "posix")
-        monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
-        monkeypatch.delenv("SCIKITPLOT_CYTHON_CACHE_DIR", raising=False)
-        result = _default_cache_dir()
-        assert ".cache" in str(result)
+    def test_xdg_cache_home_used(self, tmp_path: Path) -> None:
+        result = _default_cache_dir(
+            os_name="posix", environ={"XDG_CACHE_HOME": str(tmp_path / "xdg")}
+        )
+        assert result == tmp_path / "xdg" / "scikitplot" / "cython"
+
+    def test_no_xdg_uses_home_cache(self, tmp_path: Path) -> None:
+        result = _default_cache_dir(os_name="posix", environ={}, home=tmp_path)
+        assert result == tmp_path / ".cache" / "scikitplot" / "cython"
+
+    def test_nt_branches_on_every_platform(self, tmp_path: Path) -> None:
+        local, temp = str(tmp_path / "local"), str(tmp_path / "temp")
+        tail = Path("scikitplot") / "cython_cache"
+        both = {"LOCALAPPDATA": local, "TEMP": temp}
+        assert _default_cache_dir(os_name="nt", environ=both) == Path(local) / tail
+        assert (
+            _default_cache_dir(os_name="nt", environ={"TEMP": temp})
+            == Path(temp) / tail
+        )
+        assert (
+            _default_cache_dir(os_name="nt", environ={}, home=tmp_path)
+            == tmp_path / tail
+        )
+
+    def test_the_home_directory_is_not_asked_for_when_a_variable_decides(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        def no_home() -> Path:
+            raise RuntimeError("Could not determine home directory.")
+
+        monkeypatch.setattr(Path, "home", no_home)
+        for name, variable in (("posix", "XDG_CACHE_HOME"), ("nt", "LOCALAPPDATA")):
+            result = _default_cache_dir(
+                os_name=name, environ={variable: str(tmp_path)}
+            )
+            assert tmp_path in result.parents
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only path logic")
     def test_windows_localappdata(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -193,8 +219,9 @@ class TestDefaultCacheDirWindowsBranch:
         """XDG_CACHE_HOME is used on POSIX when set (lines 249-250)."""
         from .. import _cache as cache_mod
 
-        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
-        result = cache_mod._default_cache_dir()
+        result = cache_mod._default_cache_dir(
+            os_name="posix", environ={"XDG_CACHE_HOME": str(tmp_path)}
+        )
         assert str(tmp_path) in str(result)
         assert "scikitplot" in str(result)
 
@@ -204,8 +231,7 @@ class TestDefaultCacheDirWindowsBranch:
         """No XDG_CACHE_HOME → ~/.cache/scikitplot/cython (lines 251)."""
         from .. import _cache as cache_mod
 
-        monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
-        result = cache_mod._default_cache_dir()
+        result = cache_mod._default_cache_dir(os_name="posix", environ={})
         assert "scikitplot" in str(result)
         assert "cython" in str(result)
 
@@ -443,7 +469,7 @@ class TestIterCacheEntriesFingerprint:
 
         build_dir, art = _write_cache_entry(tmp_path, _FAKE_KEY)
         # Overwrite meta with non-dict fingerprint
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = ["not", "a", "dict"]
         write_meta(build_dir, meta)
 
@@ -535,7 +561,7 @@ class TestIterPackageEntriesFingerprint:
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
         # Patch meta to include a fingerprint
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = {"python": "3.12"}
         (build_dir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
@@ -547,7 +573,7 @@ class TestIterPackageEntriesFingerprint:
         from .._cache import iter_package_entries
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
-        meta = json.loads((build_dir / "meta.json").read_text())
+        meta = json.loads((build_dir / "meta.json").read_text(encoding="utf-8"))
         meta["fingerprint"] = [1, 2, 3]
         (build_dir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 

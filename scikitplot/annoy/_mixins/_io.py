@@ -24,6 +24,8 @@ This file intentionally does **not** implement general-purpose ``pickle``.
 from __future__ import annotations
 
 import contextlib  # noqa: F401
+import json
+import logging
 import os
 import pathlib
 import shutil  # noqa: F401
@@ -41,9 +43,152 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-from .._utils import backend_for, ensure_parent_dir, lock_for
+from .._utils import (
+    atomic_write_text,
+    backend_for,
+    ensure_parent_dir,
+    lock_for,
+    read_text,
+)
 
 __all__ = ["IndexIOMixin"]
+
+logger = logging.getLogger(__name__)
+
+#: Version of the ``bundle`` section of a manifest. Raise it when a reader of
+#: the previous number could not read the new section.
+BUNDLE_FORMAT = 1
+
+#: Member names a bundle uses when none is given.
+DEFAULT_MANIFEST = "manifest.json"
+DEFAULT_INDEX = "index.ann"
+
+#: Keys of a metadata payload under which a file-system location is recorded.
+_LOCATION_SECTIONS = ("params", "info")
+_LOCATION_KEY = "on_disk_path"
+
+
+def _member_name(name: object, what: str) -> str:
+    """
+    Return ``name`` if it names a file directly inside a bundle.
+
+    Parameters
+    ----------
+    name : object
+        The candidate member name.
+    what : str
+        What the name is for, for the error message.
+
+    Returns
+    -------
+    str
+        ``name``, unchanged.
+
+    Raises
+    ------
+    ValueError
+        If ``name`` is not a non-empty string, contains a path separator of
+        either platform, is ``.`` or ``..``, or starts with a drive
+        (``C:x``). A member is a file *in* the bundle directory; a manifest
+        must not be able to point a loader at any other file.
+    """
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"{what} must be a non-empty file name; got {name!r}")
+    if (
+        "/" in name
+        or "\\" in name
+        or name in (".", "..")
+        or pathlib.PureWindowsPath(name).drive
+    ):
+        raise ValueError(
+            f"{what} must name a file directly inside the bundle, without "
+            f"any directory; got {name!r}"
+        )
+    return name
+
+
+def _bundle_manifest(metadata: dict, *, index_filename: str) -> dict:
+    """
+    Return the manifest of a bundle for an index's metadata.
+
+    Parameters
+    ----------
+    metadata : dict
+        The payload of ``to_metadata()``. It is not modified.
+    index_filename : str
+        Name of the index member inside the bundle.
+
+    Returns
+    -------
+    dict
+        A copy of ``metadata`` in which no location is recorded
+        (``on_disk_path`` is ``None`` under ``params`` and ``info``), with a
+        ``bundle`` section that names the index member and the format.
+
+    Notes
+    -----
+    **Developer.** Before this, the manifest was ``to_json()`` taken after the
+    index had been saved into the *candidate* directory, so it recorded
+    ``on_disk_path`` as ``<parent>/.<name>.candidate-<id>/index.ann``: a path
+    that stops existing the moment the bundle is published. Recording the
+    final path instead would be no better, for two reasons. A bundle is
+    relocatable, so any absolute path in it is wrong after the first move.
+    And ``on_disk_path`` is not only a description: ``from_metadata`` hands it
+    to ``set_params``, which configures an on-disk *build* at that path, and
+    enabling one truncates the file. A manifest that names its own index
+    there invites the reader to destroy it. So the manifest records no
+    location; the members are found beside the manifest, by name.
+    """
+    manifest = dict(metadata)
+    for section in _LOCATION_SECTIONS:
+        payload = manifest.get(section)
+        if isinstance(payload, dict) and _LOCATION_KEY in payload:
+            manifest[section] = dict(payload, **{_LOCATION_KEY: None})
+    manifest["bundle"] = {"format": BUNDLE_FORMAT, "index": index_filename}
+    return manifest
+
+
+def _bundle_index_name(manifest: dict, requested: str | None) -> str:
+    """
+    Return the name of the index member to load from a bundle.
+
+    Parameters
+    ----------
+    manifest : dict
+        The parsed manifest.
+    requested : str or None
+        The caller's ``index_filename``; ``None`` for "what the bundle says".
+
+    Returns
+    -------
+    str
+        ``requested`` when given; else the manifest's ``bundle.index``; else
+        ``DEFAULT_INDEX``, for a bundle written before manifests had a
+        ``bundle`` section.
+
+    Raises
+    ------
+    TypeError
+        If the manifest's ``bundle`` entry is not a mapping.
+    ValueError
+        If the name is not a plain file name, or the manifest's ``bundle``
+        section has a format this version does not read.
+    """
+    if requested is not None:
+        return _member_name(requested, "index_filename")
+    section = manifest.get("bundle")
+    if section is None:
+        return DEFAULT_INDEX
+    if not isinstance(section, dict):
+        raise TypeError("the manifest's 'bundle' entry must be a mapping")
+    found = section.get("format")
+    if found != BUNDLE_FORMAT:
+        raise ValueError(
+            f"the bundle has format {found!r}; this version reads format "
+            f"{BUNDLE_FORMAT}. Load it with the version that wrote it, or save "
+            "it again."
+        )
+    return _member_name(section.get("index"), "the manifest's bundle.index")
 
 
 class IndexIOMixin:
@@ -167,8 +312,8 @@ class IndexIOMixin:
         self,
         directory: str | os.PathLike[str],
         *,
-        manifest_filename: str = "manifest.json",
-        index_filename: str = "index.ann",
+        manifest_filename: str = DEFAULT_MANIFEST,
+        index_filename: str = DEFAULT_INDEX,
         prefault: bool | None = None,
     ) -> list[str]:
         """
@@ -200,6 +345,10 @@ class IndexIOMixin:
         **User.** A bundle is self-contained and relocatable: move it, copy it,
         or publish it, and :py:meth:`load_bundle` reads it from wherever it is.
 
+        After a successful save this index is backed by the published index
+        file (``on_disk_path`` names it). After a failed save it holds the
+        same vectors and trees as before, in memory.
+
         **Developer.** This previously took two filenames and no directory, so
         the defaults resolved against the process working directory and two
         callers using them overwrote each other. It also wrote the index and
@@ -207,39 +356,126 @@ class IndexIOMixin:
         no loader could find. Both are fixed the same way the corpus artifact
         fixes them: build a candidate, then swap, so nothing is destroyed before
         a complete replacement exists.
+
+        The backend's ``save`` memory-maps the file it wrote, so once the
+        index member exists the index is backed by a file *inside the
+        candidate*. POSIX lets a directory be renamed or removed with a mapped
+        file in it; Windows does not (``PermissionError: [WinError 5]`` on the
+        swap, seen in the Windows job of run 37555382019). The order below
+        works on both, so there is one code path:
+
+        1. write both members into the candidate;
+        2. release the mapping (``unload``), swap the directories, map the
+           published index (``load``);
+        3. on any failure after step 1, take the index back into memory
+           (``serialize``, ``unload``, ``deserialize``) *before* the candidate
+           is removed, so the object keeps its contents and nothing of the
+           candidate is in use when it is deleted.
+
+        The manifest records no file-system location and names the index
+        member (see ``_bundle_manifest``): it describes the bundle, wherever
+        the bundle is. Steps and failures are logged on
+        ``scikitplot.annoy._mixins._io``: DEBUG for each step, WARNING when a
+        failed publication is undone.
         """
+        _member_name(manifest_filename, "manifest_filename")
+        _member_name(index_filename, "index_filename")
+        if manifest_filename == index_filename:
+            raise ValueError(
+                "manifest_filename and index_filename must differ; both are "
+                f"{index_filename!r}"
+            )
+        backend = backend_for(self)
+        needed = ("load", "unload", "serialize", "deserialize")
+        missing = [
+            name for name in needed if not callable(getattr(backend, name, None))
+        ]
+        if missing:
+            raise TypeError(
+                "Backend does not provide "
+                + ", ".join(f"{name}()" for name in missing)
+                + ", which save_bundle needs to publish a bundle and to keep "
+                "this index usable if publishing fails"
+            )
+
         target = pathlib.Path(os.fspath(directory)).resolve()
         candidate = target.parent / f".{target.name}.candidate-{uuid.uuid4().hex}"
         superseded = target.parent / f".{target.name}.superseded-{uuid.uuid4().hex}"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        candidate.mkdir(parents=True)
-        try:
-            index_path = candidate / index_filename
-            manifest_path = candidate / manifest_filename
-            self.save_index(os.fspath(index_path), prefault=prefault)
-            self.to_json(os.fspath(manifest_path))
-        except BaseException:
-            shutil.rmtree(candidate, ignore_errors=True)
-            raise
+        candidate_index = os.fspath(candidate / index_filename)
+        published_index = os.fspath(target / index_filename)
 
-        had_previous = target.exists()
-        try:
-            if had_previous:
-                os.replace(target, superseded)
+        def load(path: str) -> None:
+            if prefault is None:
+                backend.load(path)
+            else:
+                backend.load(path, prefault=bool(prefault))
+
+        def back_into_memory(*, mapped: bool) -> None:
+            # The only complete copy of the index is the candidate's member.
+            if not mapped:
+                load(candidate_index)
+            snapshot = backend.serialize(format="native")
+            backend.unload()
+            backend.deserialize(snapshot)
+
+        with lock_for(self):
+            target.parent.mkdir(parents=True, exist_ok=True)
+            candidate.mkdir(parents=True)
             try:
-                os.replace(candidate, target)
+                self.save_index(candidate_index, prefault=prefault)
             except BaseException:
-                if had_previous and superseded.exists():
-                    os.replace(superseded, target)
+                # The backend switches to the file only after it is complete,
+                # so a failed save leaves nothing of the candidate in use.
+                shutil.rmtree(candidate, ignore_errors=True)
                 raise
-        except BaseException:
-            shutil.rmtree(candidate, ignore_errors=True)
-            raise
+
+            mapped = True
+            had_previous = False
+            try:
+                manifest = _bundle_manifest(
+                    json.loads(self.to_json()), index_filename=index_filename
+                )
+                atomic_write_text(
+                    candidate / manifest_filename,
+                    json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False),
+                )
+                logger.debug("bundle %s: members written to the candidate", target)
+                backend.unload()
+                mapped = False
+                had_previous = target.exists()
+                if had_previous:
+                    os.replace(target, superseded)
+                try:
+                    os.replace(candidate, target)
+                except BaseException:
+                    if had_previous and superseded.exists():
+                        os.replace(superseded, target)
+                    raise
+            except BaseException as error:
+                logger.warning(
+                    "bundle %s was not published (%s: %s); the previous bundle, "
+                    "if any, is unchanged and this index is kept in memory",
+                    target,
+                    type(error).__name__,
+                    error,
+                )
+                try:
+                    back_into_memory(mapped=mapped)
+                finally:
+                    shutil.rmtree(candidate, ignore_errors=True)
+                raise
+            load(published_index)
+            logger.debug(
+                "bundle %s: published%s; index mapped from %s",
+                target,
+                ", replacing the previous one" if had_previous else "",
+                published_index,
+            )
         if had_previous:
             shutil.rmtree(superseded, ignore_errors=True)
         return [
             os.fspath(target / manifest_filename),
-            os.fspath(target / index_filename),
+            published_index,
         ]
 
     @classmethod
@@ -247,8 +483,8 @@ class IndexIOMixin:
         cls: type[Self],
         directory: str | os.PathLike[str],
         *,
-        manifest_filename: str = "manifest.json",
-        index_filename: str = "index.ann",
+        manifest_filename: str = DEFAULT_MANIFEST,
+        index_filename: str | None = None,
         prefault: bool | None = None,
     ) -> Self:
         """
@@ -258,8 +494,13 @@ class IndexIOMixin:
         ----------
         directory : str or path-like
             Bundle directory.
-        manifest_filename, index_filename : str, optional
-            Member names inside the bundle.
+        manifest_filename : str, optional
+            Name of the manifest inside the bundle.
+        index_filename : str or None, optional
+            Name of the index member inside the bundle. ``None`` (the
+            default) takes the name the manifest records, which is the one the
+            bundle was saved with; a bundle whose manifest records none has
+            ``index.ann``.
         prefault : bool or None, optional
             Forwarded to :py:meth:`load_index`.
 
@@ -272,9 +513,17 @@ class IndexIOMixin:
         ------
         OSError
             If a member is missing or unreadable.
+        ValueError
+            If a member name is not a plain file name, or the manifest is of
+            a bundle format this version does not read.
+        TypeError
+            If the manifest is not a JSON object.
 
         Notes
         -----
+        **User.** A bundle is loaded from where it is. Nothing in the manifest
+        can make this method read a file outside ``directory``.
+
         **Developer.** This previously did not load the index at all: the
         ``load_index`` call was commented out and both ``index_filename`` and
         ``prefault`` were marked unused, so the vectors arrived only as a side
@@ -283,16 +532,39 @@ class IndexIOMixin:
         index file had no effect whatsoever. Members are now resolved relative
         to the bundle, which is what makes it relocatable, and the index is
         loaded here rather than by accident.
+
+        The manifest is read once, as data. Its description of the index
+        (dimension, metric, parameters) goes through ``from_metadata`` with
+        ``load=False``, so a location recorded by an older writer is never
+        opened; such a location is reported at INFO and otherwise ignored.
         """
         root = pathlib.Path(os.fspath(directory)).resolve()
-        # The manifest states the shape of the index; the index file supplies
-        # its contents. load=False keeps from_json from chasing the absolute
-        # path it recorded at save time, which is what made a moved bundle fail.
-        described = cls.from_json(os.fspath(root / manifest_filename), load=False)
+        _member_name(manifest_filename, "manifest_filename")
+        manifest = json.loads(read_text(root / manifest_filename))
+        if not isinstance(manifest, dict):
+            raise TypeError("the bundle's manifest must be a JSON object")
+        index_name = _bundle_index_name(manifest, index_filename)
+        recorded = [
+            payload[_LOCATION_KEY]
+            for payload in (manifest.get(name) for name in _LOCATION_SECTIONS)
+            if isinstance(payload, dict) and payload.get(_LOCATION_KEY)
+        ]
+        if recorded:
+            logger.info(
+                "bundle %s: its manifest records a location (%s) from when it "
+                "was written; a bundle is loaded from where it is, so the "
+                "location is not used. Saving the bundle again removes it.",
+                root,
+                recorded[0],
+            )
+        # load=False: the manifest states the shape of the index; the member
+        # beside it supplies the contents.
+        described = cls.from_metadata(manifest, load=False)
+        logger.debug("bundle %s: loading index member %s", root, index_name)
         return cls.load_index(
             described.f,
             described.metric,
-            os.fspath(root / index_filename),
+            os.fspath(root / index_name),
             prefault=prefault,
         )
 

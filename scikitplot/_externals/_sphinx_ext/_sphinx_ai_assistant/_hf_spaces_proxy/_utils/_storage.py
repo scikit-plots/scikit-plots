@@ -23,6 +23,7 @@ import inspect
 import json
 import os
 import re
+import sys
 import threading
 import time
 from dataclasses import dataclass, field, replace
@@ -187,7 +188,13 @@ class StorageWriteError(RuntimeError):
         self.transient = transient
 
 
-@dataclass(slots=True)
+#: ``dataclass(slots=True)`` exists from Python 3.10 on. On 3.8 and 3.9 the
+#: classes below are ordinary dataclasses: same fields and behaviour, only
+#: without the memory saving, so the module stays importable there.
+_SLOTS = {"slots": True} if sys.version_info >= (3, 10) else {}
+
+
+@dataclass(**_SLOTS)
 class StorageTarget:
     id: str
     label: str
@@ -215,7 +222,7 @@ class StorageTarget:
         return self.feedback_path if kind == "feedback" else self.contributions_path
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class TargetRuntimeState:
     status: str = "configured"
     write_capability: str = "unknown"
@@ -227,7 +234,7 @@ class TargetRuntimeState:
     pending_retries: int = 0
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class StorageReceipt:
     accepted: bool
     record_id: str
@@ -240,7 +247,7 @@ class StorageReceipt:
     paths: dict[str, str] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
+@dataclass(**_SLOTS)
 class ReviewReceipt:
     """Provider-neutral code-review receipt for one quarantined contribution."""
 

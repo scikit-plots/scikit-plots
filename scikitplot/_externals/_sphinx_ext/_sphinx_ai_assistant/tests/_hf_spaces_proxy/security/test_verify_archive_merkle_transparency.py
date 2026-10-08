@@ -337,7 +337,7 @@ def test_run164_wrong_root_pin_rejected(tmp_path):
 
 def test_run164_extra_root_signature_rejected(tmp_path):
     f = _fixture(tmp_path)
-    d = json.loads(f['rp'].read_text())
+    d = json.loads(f['rp'].read_text(encoding="utf-8"))
     p = Ed25519PrivateKey.generate()
     d['signatures'].append(
         {'keyId': 'extra', 'signature': _sig(p, d['signed'])}
@@ -353,7 +353,7 @@ def test_run164_extra_root_signature_rejected(tmp_path):
 
 def test_run164_external_authority_overlap_rejected(tmp_path):
     f = _fixture(tmp_path)
-    d = json.loads(f['rp'].read_text())
+    d = json.loads(f['rp'].read_text(encoding="utf-8"))
     wid = next(iter(f['wr']['signed']['keys']))
     d['signed']['logs']['merkle-log-1']['operator'] = f['wr']['signed']['keys'][wid]['operator']
     d['signatures'] = [
@@ -401,7 +401,7 @@ def test_run164_gossip_split_view_rejected(tmp_path):
 def test_run164_log_signature_mutation_detected(tmp_path):
     f, out, _ = _anchored(tmp_path)
     d = json.loads(
-        (out / 'release-archive-merkle-receipt.json').read_text()
+        (out / 'release-archive-merkle-receipt.json').read_text(encoding="utf-8")
     )
     d['events'][0]['logResponses']['merkle-log-1']['signature'] = 'A' * 88
     _write(out / 'release-archive-merkle-receipt.json', d)
@@ -412,7 +412,7 @@ def test_run164_log_signature_mutation_detected(tmp_path):
 def test_run164_gossip_mutation_detected(tmp_path):
     f, out, _ = _anchored(tmp_path)
     d = json.loads(
-        (out / 'release-archive-merkle-receipt.json').read_text()
+        (out / 'release-archive-merkle-receipt.json').read_text(encoding="utf-8")
     )
     d['events'][0]['gossipResponses']['merkle-log-1']['signed']['checkpointSha256s'][
         'merkle-log-2'
@@ -425,7 +425,7 @@ def test_run164_gossip_mutation_detected(tmp_path):
 def test_run164_run163_document_mutation_detected(tmp_path):
     f, out, _ = _anchored(tmp_path)
     d = json.loads(
-        (out / 'release-archive-merkle-receipt.json').read_text()
+        (out / 'release-archive-merkle-receipt.json').read_text(encoding="utf-8")
     )
     d['events'][0]['run163Documents']['active-archive-anchor-evidence.json'][
         'sequence'
@@ -435,7 +435,7 @@ def test_run164_run163_document_mutation_detected(tmp_path):
         merkle.verify_merkle_history(**_kwargs(f, out))
 def test_run164_duplicate_json_keys_rejected(tmp_path):
     p = tmp_path / 'd.json'
-    p.write_text('{"x": 1, "x": 2}\n')
+    p.write_text('{"x": 1, "x": 2}\n', encoding="utf-8")
     with pytest.raises(
         merkle.ArchiveMerkleError, match='DUPLICATE_KEY'
     ):
@@ -471,7 +471,7 @@ def test_run164_active_checkpoint_eventually_expires(tmp_path):
 
 def test_run164_command_adapter_bounds_output(tmp_path, monkeypatch):
     p = tmp_path / 'noisy.py'
-    p.write_text("import sys;sys.stdout.write('x'*(9*1024*1024))")
+    p.write_text("import sys;sys.stdout.write('x'*(9*1024*1024))", encoding="utf-8")
     real_popen = merkle.subprocess.Popen
     seen = {}
 
@@ -500,10 +500,10 @@ def test_run164_second_epoch_proves_real_consistency(tmp_path):
     r = f['r']
     later = NOW + timedelta(minutes=5)
     state = json.loads(
-        (r['out'] / 'trusted-archive-health-state.json').read_text()
+        (r['out'] / 'trusted-archive-health-state.json').read_text(encoding="utf-8")
     )
     receipt = json.loads(
-        (r['run160'] / 'release-native-evidence-archive-receipt.json').read_text()
+        (r['run160'] / 'release-native-evidence-archive-receipt.json').read_text(encoding="utf-8")
     )
     mp2, _ = t163.r162t.r161t._membership(
         tmp_path,
@@ -578,10 +578,10 @@ def test_run164_second_epoch_proves_real_consistency(tmp_path):
     kw.update(run161_dir=run161b, run162_dir=wout2, run163_dir=aout2)
     res = merkle.anchor_merkle_transparency(**kw, adapters=f['adapters'], previous_output_dir=out1)
     assert res['sequence'] == 2
-    bundle = json.loads((out2 / 'release-archive-merkle-bundle.json').read_text())
+    bundle = json.loads((out2 / 'release-archive-merkle-bundle.json').read_text(encoding="utf-8"))
     assert [e['sequence'] for e in bundle['events']] == [1, 2]
     assert all(row['treeSize'] == 3 for row in bundle['events'][1]['logs'])
-    receipt2 = json.loads((out2 / 'release-archive-merkle-receipt.json').read_text())
+    receipt2 = json.loads((out2 / 'release-archive-merkle-receipt.json').read_text(encoding="utf-8"))
     assert all(receipt2['events'][1]['logResponses'][lid]['signed']['consistencyProof'] for lid in f['root']['signed']['logs'])
     assert merkle.verify_merkle_history(**kw)['ok']
 
@@ -612,8 +612,8 @@ def test_run164_authority_input_drift_detected(tmp_path):
 
 
 def test_run164_documentation_mentions_merkle_inclusion_consistency_and_gossip():
-    guide = (SEC / 'RELEASE_ARCHIVE_MERKLE_GUIDE.md').read_text().lower()
-    gates = (SEC / 'SECURITY_RELEASE_GATES.md').read_text()
+    guide = (SEC / 'RELEASE_ARCHIVE_MERKLE_GUIDE.md').read_text(encoding="utf-8").lower()
+    gates = (SEC / 'SECURITY_RELEASE_GATES.md').read_text(encoding="utf-8")
     for term in ('rfc6962', 'inclusion proof', 'consistency proof', 'gossip', 'split view', 'offline'):
         assert term in guide
     assert 'Run 164' in gates

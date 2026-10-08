@@ -49,7 +49,10 @@ def run(ctx: Context, *, mode: str = "stdout", fmt: str = "text") -> int:
         return 0
     # lazy: library's human-readable printer
     # mode == "stdout": library printer
-    from ... import show_config  # ruff: ignore[import-outside-top-level]
+    # Imported from the module that defines it, not from the root package: the
+    # root re-exports it only when the full distribution is installed, and its
+    # absence there surfaced as an unclassifiable "cannot import name" error.
+    from ...config import show_config  # ruff: ignore[import-outside-top-level]
 
     show_config(mode="stdout")
     return 0

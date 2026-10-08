@@ -103,7 +103,7 @@ DERIVED_FIELDS = (
     "semanteme_count",
 )
 
-_INSTALL = 'pip install "scikit-plots[corpus]"'
+_INSTALL = "pip install scikit-plots-corpus"
 
 
 def _corpus() -> Any:

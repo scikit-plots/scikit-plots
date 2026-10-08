@@ -16,6 +16,7 @@ from ._mixins._ndarray import NDArrayMixin
 from ._mixins._pickle import CompressMode, PickleMixin, PickleMode
 from ._mixins._plotting import PlottingMixin
 from ._mixins._vectors import VectorOpsMixin
+from ._threads import threads_info
 
 __version__: str
 __author__: str
@@ -34,4 +35,5 @@ __all__: list[str] = [
     "PickleMode",
     "PlottingMixin",
     "VectorOpsMixin",
+    "threads_info",
 ]

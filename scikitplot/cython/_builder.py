@@ -874,10 +874,28 @@ def _ensure_meta(
     meta = read_meta(build_dir) or {}
     meta_out = dict(meta)
 
-    # Annotation HTML is produced by Cython when `annotate=True`.
-    # For deterministic reuse, record the path if it exists.
-    html_path = build_dir / f"{module_name}.html"
-    annotate_html = html_path.as_posix() if html_path.exists() else None
+    # Annotation HTML is produced by Cython when `annotate=True`, beside the
+    # sources: ``<module_name>.html`` in ``build_dir``.
+    #
+    # It is recorded *relative to the cache entry*, never as an absolute path.
+    # ``build_dir`` here is the private staging directory on a fresh build
+    # (``.staging-<key>-<random>``), which is renamed to the final entry right
+    # after this function returns: an absolute path taken now names a directory
+    # that no longer exists a moment later (every fresh or forced build
+    # reported a dead path; only a cache hit, which runs this function on the
+    # final directory, reported a live one). A relative path is the same in the
+    # staging directory and in the published entry, and stays right when the
+    # cache is moved. ``BuildResult.annotation_html`` turns it into the
+    # absolute path of the published file.
+    #
+    # The two keys have the same shape as in a package build (see
+    # ``build_extension_package_from_code_result``): ``annotation_html`` maps
+    # module name to report, ``annotate_html`` is the first of them.
+    html_name = f"{module_name}.html"
+    annotation_html_map = (
+        {module_name: html_name} if (build_dir / html_name).is_file() else {}
+    )
+    annotate_html = annotation_html_map.get(module_name)
 
     meta_out.update(
         {
@@ -902,7 +920,7 @@ def _ensure_meta(
             "extra_compile_args": list(extra_compile_args or []),
             "extra_link_args": list(extra_link_args or []),
             "annotate_html": annotate_html,
-            "annotation_html": annotate_html,
+            "annotation_html": dict(annotation_html_map),
             "include_dirs": list(include_dirs),
             "support_files": list(support_files),
             "support_paths": list(support_paths),
@@ -1226,6 +1244,82 @@ def _init_setuptools_cache() -> tuple[Any, Any]:
     return _SETUPTOOLS_CACHE
 
 
+def _unique_stems(sources: Sequence[str]) -> bool:
+    """
+    Return whether no two source files would get the same object file name.
+
+    Parameters
+    ----------
+    sources : sequence of str
+        Source paths of one compiler call.
+
+    Returns
+    -------
+    bool
+        ``True`` when the file names without directory and extension are all
+        different, compared without regard to case (Windows file names are
+        case-insensitive, and ``a.c`` and ``a.cpp`` both become ``a.obj``).
+    """
+    stems = [
+        os.path.splitext(os.path.basename(source))[0].lower() for source in sources
+    ]
+    return len(set(stems)) == len(stems)
+
+
+def _keep_objects_flat(cmd: Any) -> None:
+    """
+    Make a ``build_ext`` command write object files directly into ``build_temp``.
+
+    Parameters
+    ----------
+    cmd : setuptools.command.build_ext.build_ext
+        The command, before it is run. It is modified in place.
+
+    Notes
+    -----
+    **User.** Nothing changes in what is built. A build under a long cache
+    directory works on Windows where it did not before.
+
+    **Developer.** The sources are given by absolute path, and the compiler
+    classes mirror a source's directories below ``build_temp``. The object
+    file of ``<cache>/.staging-<key>/module.c`` was therefore
+    ``<cache>/.staging-<key>/build/<cache without the drive>/.staging-<key>/module.obj``:
+    the cache path twice. In the Windows job of CI run 37637526602 that was
+    339 characters for a cache under pytest's temporary directory, and all 16
+    tests that compile failed with ``cl.exe ... returned non-zero exit status
+    1``. The compiler's own message was not in the uploaded report; that
+    MSVC cannot create a file beyond 260 characters is the premise here, and
+    the next run's log confirms or refutes it.
+
+    The compiler object exists only once the command runs, so
+    ``build_extensions`` is wrapped on the *instance* (as ``finalize_options``
+    is, above) and asks ``object_filenames`` for names without directories.
+    That is only correct while no two sources of a call share a file name;
+    when they do, the compiler's own layout is kept for that call.
+    """
+    original = cmd.build_extensions
+
+    def build_extensions() -> None:
+        compiler = cmd.compiler
+        names = compiler.object_filenames
+
+        def object_filenames(
+            source_filenames: Sequence[str],
+            strip_dir: bool = False,
+            output_dir: str = "",
+        ) -> list[str]:
+            return names(
+                source_filenames,
+                strip_dir=bool(strip_dir) or _unique_stems(source_filenames),
+                output_dir=output_dir,
+            )
+
+        compiler.object_filenames = object_filenames
+        original()
+
+    cmd.build_extensions = build_extensions
+
+
 def _compile(  # noqa: PLR0912
     *,
     name: str,
@@ -1388,6 +1482,7 @@ def _compile(  # noqa: PLR0912
     cmd.build_temp = str(build_dir / "build")
     cmd.inplace = False
     cmd.force = True
+    _keep_objects_flat(cmd)
 
     # ------------------------------------------------------------------
     # Patch finalize_options on the command INSTANCE to guard against
@@ -1821,6 +1916,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
             cmd.build_temp = str(build_dir / "build")
             cmd.inplace = False
             cmd.force = True
+            _keep_objects_flat(cmd)
 
             try:
                 dist.run_command("build_ext")

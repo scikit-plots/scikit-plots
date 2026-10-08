@@ -183,8 +183,8 @@ def test_run167_scheduled_rebridge_appends_from_exact_run166_checkpoint(base, tm
     out, ads, authority, privs, lid = _advance(base, tmp_path)
     res = rb.verify_archive_merkle_rebridge(**_kwargs(base, out))
     assert res["sequence"] == 3 and res["rebridge_sequence"] == 1
-    state166 = json.loads((base["run166"] / "trusted-archive-merkle-continuity-state.json").read_text())
-    receipt = json.loads((out / "release-archive-merkle-rebridge-receipt.json").read_text())
+    state166 = json.loads((base["run166"] / "trusted-archive-merkle-continuity-state.json").read_text(encoding="utf-8"))
+    receipt = json.loads((out / "release-archive-merkle-rebridge-receipt.json").read_text(encoding="utf-8"))
     for log_id, doc in receipt["events"][0]["logResponses"].items():
         assert doc["signed"]["previousTreeSize"] == state166["lastCheckpoints"][log_id]["treeSize"]
         assert doc["signed"]["previousRootHash"] == state166["lastCheckpoints"][log_id]["rootHash"]
@@ -193,7 +193,7 @@ def test_run167_scheduled_rebridge_appends_from_exact_run166_checkpoint(base, tm
 
 def test_run167_scheduled_rotation_requires_old_and_new_handoff(base, tmp_path):
     tp, hp, authority, privs, lid = _transition(base, tmp_path)
-    d = json.loads(hp.read_text()); row = next(x for x in d["proofs"] if x["logId"] == lid); row["oldLogSignature"] = None
+    d = json.loads(hp.read_text(encoding="utf-8")); row = next(x for x in d["proofs"] if x["logId"] == lid); row["oldLogSignature"] = None
     _write(hp, d)
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="OLD_HANDOFF_REQUIRED"):
         rb.advance_archive_merkle_rebridge(**_kwargs(base, tmp_path / "out"), adapters=_adapters(base, authority, privs), transition_path=tp, handoff_path=hp)
@@ -201,7 +201,7 @@ def test_run167_scheduled_rotation_requires_old_and_new_handoff(base, tmp_path):
 
 def test_run167_compromise_recovery_forbids_old_handoff_and_appends(base, tmp_path):
     out, ads, authority, privs, lid = _advance(base, tmp_path, kind="compromise-recovery")
-    state = json.loads((out / "trusted-archive-merkle-rebridge-state.json").read_text())
+    state = json.loads((out / "trusted-archive-merkle-rebridge-state.json").read_text(encoding="utf-8"))
     assert auth._pub_fingerprint(base["f"]["root"]["signed"]["logs"][lid]["publicKey"]) in state["revokedKeyFingerprints"]
     assert rb.verify_archive_merkle_rebridge(**_kwargs(base, out))["ok"]
 
@@ -215,7 +215,7 @@ def test_run167_append_only_epoch_under_rebridged_authority(base, tmp_path):
                                     current_privs=privs, run161=run161d, wout=wout4, aout=aout4, now=T4, leaves=leaves)
     res = rb.verify_archive_merkle_rebridge(**_kwargs(base, out2, run161=run161d, wout=wout4, aout=aout4, now=T4))
     assert res["sequence"] == 4 and res["rebridge_sequence"] == 1
-    bundle = json.loads((out2 / "release-archive-merkle-rebridge-bundle.json").read_text())
+    bundle = json.loads((out2 / "release-archive-merkle-rebridge-bundle.json").read_text(encoding="utf-8"))
     assert [x["action"] for x in bundle["events"]] == ["rebridge", "append"]
 
 
@@ -236,8 +236,8 @@ def test_run167_second_rebridge_uses_latest_run167_checkpoint_not_run166(base, t
         now=T4,
         leaves=leaves,
     )
-    rec = json.loads((out2 / "release-archive-merkle-rebridge-receipt.json").read_text())
-    prior = json.loads((out1 / "trusted-archive-merkle-rebridge-state.json").read_text())["lastCheckpoints"]
+    rec = json.loads((out2 / "release-archive-merkle-rebridge-receipt.json").read_text(encoding="utf-8"))
+    prior = json.loads((out1 / "trusted-archive-merkle-rebridge-state.json").read_text(encoding="utf-8"))["lastCheckpoints"]
     subject = rec["events"][1]["transitionDocument"]["signed"]
     assert subject["sourceKind"] == "run167" and subject["sourceMerkleSequence"] == 3
     row = rec["events"][1]["logResponses"][lid2]["signed"]
@@ -246,8 +246,8 @@ def test_run167_second_rebridge_uses_latest_run167_checkpoint_not_run166(base, t
 
 def test_run167_recovery_old_signature_is_rejected(base, tmp_path):
     tp, hp, authority, privs, lid = _transition(base, tmp_path, kind="compromise-recovery")
-    d = json.loads(hp.read_text()); row = next(x for x in d["proofs"] if x["logId"] == lid)
-    subject = rb._handoff_subject(signed=json.loads(tp.read_text())["signed"], log_id=lid, checkpoint=_source(base)["checkpoints"][lid])
+    d = json.loads(hp.read_text(encoding="utf-8")); row = next(x for x in d["proofs"] if x["logId"] == lid)
+    subject = rb._handoff_subject(signed=json.loads(tp.read_text(encoding="utf-8"))["signed"], log_id=lid, checkpoint=_source(base)["checkpoints"][lid])
     row["oldLogSignature"] = _sig(base["f"]["lpriv"][lid], subject); _write(hp, d)
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="OLD_HANDOFF_FORBIDDEN"):
         rb.advance_archive_merkle_rebridge(**_kwargs(base, tmp_path / "out"), adapters=_adapters(base, authority, privs), transition_path=tp, handoff_path=hp)
@@ -255,7 +255,7 @@ def test_run167_recovery_old_signature_is_rejected(base, tmp_path):
 
 def test_run167_source_state_binding_rejects_stale_run166_state(base, tmp_path):
     tp, hp, authority, privs, _ = _transition(base, tmp_path)
-    d = json.loads(tp.read_text()); d["signed"]["sourceTrustedStateSha256"] = "0" * 64
+    d = json.loads(tp.read_text(encoding="utf-8")); d["signed"]["sourceTrustedStateSha256"] = "0" * 64
     d["signatures"] = [{"keyId": k, "signature": _sig(base["gpriv"][k], d["signed"])} for k in d["signed"]["selectedSignerKeyIds"]]
     _write(tp, d)
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="SOURCE_STATE"):
@@ -279,7 +279,7 @@ def test_run167_gossip_split_view_rejected(base, tmp_path):
 
 def test_run167_log_signature_mutation_detected_offline(base, tmp_path):
     out, _, _, _, _ = _advance(base, tmp_path)
-    p = out / "release-archive-merkle-rebridge-receipt.json"; d = json.loads(p.read_text())
+    p = out / "release-archive-merkle-rebridge-receipt.json"; d = json.loads(p.read_text(encoding="utf-8"))
     d["events"][0]["logResponses"][sorted(d["events"][0]["logResponses"])[0]]["signature"] = "A" * 88; _write(p, d)
     with pytest.raises(rb.ArchiveMerkleRebridgeError):
         rb.verify_archive_merkle_rebridge(**_kwargs(base, out))
@@ -289,7 +289,7 @@ def test_run167_transition_id_reuse_rejected(base, tmp_path):
     out1, ads1, authority1, privs1, _ = _advance(base, tmp_path / "first")
     run161d, wout4, aout4 = t166._advance_run163(base["f"], tmp_path / "advance4", seq=4, run161_prev=base["run161c"], wout_prev=base["wout3"], aout_prev=base["aout3"], now=T4)
     source = _source(base, out1); tp, hp, authority2, privs2, _ = _transition(base, tmp_path / "second", source=source, issued=T4, current_privs=privs1)
-    d = json.loads(tp.read_text()); old = json.loads((out1 / "release-archive-merkle-rebridge-receipt.json").read_text())["events"][0]["transitionDocument"]["signed"]["transitionId"]
+    d = json.loads(tp.read_text(encoding="utf-8")); old = json.loads((out1 / "release-archive-merkle-rebridge-receipt.json").read_text(encoding="utf-8"))["events"][0]["transitionDocument"]["signed"]["transitionId"]
     d["signed"]["transitionId"] = old
     subjects = {x: rb._handoff_subject(signed=d["signed"], log_id=x, checkpoint=source["checkpoints"][x]) for x in sorted(authority2)}
     d["signed"]["handoffSubjectSha256s"] = {x: rb._sha_bytes(rb._canonical(subjects[x])) for x in sorted(subjects)}
@@ -305,7 +305,7 @@ def test_run167_revoked_key_cannot_be_reintroduced(base, tmp_path):
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="REINTRODUCED"):
         # Directly exercise the transition verifier with a fully signed document assembled from the stale key.
         tp, hp, _, _, _ = _transition(base, tmp_path / "x", source=source, issued=T4, current_privs=privs1)
-        d = json.loads(tp.read_text()); d["signed"]["nextAuthority"] = nxt
+        d = json.loads(tp.read_text(encoding="utf-8")); d["signed"]["nextAuthority"] = nxt
         subjects = {x: rb._handoff_subject(signed=d["signed"], log_id=x, checkpoint=source["checkpoints"][x]) for x in sorted(cur)}
         d["signed"]["handoffSubjectSha256s"] = {x: rb._sha_bytes(rb._canonical(subjects[x])) for x in sorted(subjects)}
         d["signatures"] = [{"keyId": k, "signature": _sig(base["gpriv"][k], d["signed"])} for k in d["signed"]["selectedSignerKeyIds"]]
@@ -315,7 +315,7 @@ def test_run167_revoked_key_cannot_be_reintroduced(base, tmp_path):
 
 
 def test_run167_duplicate_json_keys_rejected(tmp_path):
-    p = tmp_path / "bad.json"; p.write_text('{"x":1,"x":2}\n')
+    p = tmp_path / "bad.json"; p.write_text('{"x":1,"x":2}\n', encoding="utf-8")
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="DUPLICATE_KEY"):
         rb._read_json(p, "BAD")
 
@@ -347,8 +347,8 @@ def test_run167_output_is_canonical_and_allowlisted(base, tmp_path):
 
 
 def test_run167_documentation_mentions_recursive_rebridge_old_new_recovery_and_rfc6962():
-    guide = (SEC / "RELEASE_ARCHIVE_MERKLE_REBRIDGE_GUIDE.md").read_text().lower()
-    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text()
+    guide = (SEC / "RELEASE_ARCHIVE_MERKLE_REBRIDGE_GUIDE.md").read_text(encoding="utf-8").lower()
+    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     for phrase in ("recursive", "old + new", "compromise recovery", "rfc6962", "run 166", "append-only"):
         assert phrase in guide
     assert "Run 167" in gates
@@ -363,7 +363,7 @@ def test_run167_first_event_cannot_be_append_only(base, tmp_path):
 
 def test_run167_handoff_membership_is_exact(base, tmp_path):
     tp, hp, authority, privs, _ = _transition(base, tmp_path)
-    d = json.loads(hp.read_text()); d["proofs"].pop(); _write(hp, d)
+    d = json.loads(hp.read_text(encoding="utf-8")); d["proofs"].pop(); _write(hp, d)
     with pytest.raises(rb.ArchiveMerkleRebridgeError, match="PROOF_SET"):
         rb.advance_archive_merkle_rebridge(**_kwargs(base, tmp_path / "out"), adapters=_adapters(base, authority, privs), transition_path=tp, handoff_path=hp)
 

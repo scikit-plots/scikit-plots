@@ -738,9 +738,25 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 ## pip install [<distribution_metadata_name> @ ] git+<url>[@<branches|commit|ref|tag> ]#<subdirectory_fragment>
 #  pip install mlflow  @ git+https://github.com/mlflow/mlflow.git@master#subdirectory=libs/skinny
 #  pip install voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python
+```
 
-#🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
-# pip install scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+```bash
+#🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
+## Need Compiler (C++)
+pip install scikit-plots-annoy       @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy
+```
+
+```bash
+## 🔜🚀 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
+## Pure Python
+pip install scikit-plots-cleanprompt @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt
+pip install scikit-plots-corpus      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus
+pip install scikit-plots-cython      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython
+pip install scikit-plots-mcp         @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp
+pip install scikit-plots-mlflow      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow
+pip install scikit-plots-rank-bm25   @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25
+pip install scikit-plots-skinny      @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+pip install scikit-plots-sphinx-ext  @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext
 ```
 
  <h5>
@@ -790,7 +806,7 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
 
 ```bash
 ## If you want to install one of archived version from GitHub
-# abc123def456...full40charspip install git+https://github.com/scikit-plots/scikit-plots.git@<commit_sha>
+# abc123def456...full40chars pip install git+https://github.com/scikit-plots/scikit-plots.git@<commit_sha>
 pip install git+https://github.com/scikit-plots/scikit-plots.git@abc1234...short7chars
 pip install git+https://github.com/scikit-plots/scikit-plots.git@abc123def456...full40chars
 ```
@@ -1329,7 +1345,7 @@ or:
 🔜 ❌ 🆗 🟢 ❎ 🟩 📗 ⛌ ⛔ 🚫 📤 🆗 📦 🧊
 📄 📝︎ 📝 🗒︎ 🗓︎ 📒 ✎ ✏︎  ✏️ 🖉︎ 🖊️ 🖋︎ 🖊︎
 ❓❗ ‼ ⁉ ⁈ ⁉︎ ⁈︎ ⁇ ❔ ⍰ ℹ ? ⓠ ⓘ 🛈 ⍰
-🚗︎ 🚗 🚙 🚕 🏎️ 🚓 🚐 🚜 🛻 🚘 🚔 🚍 🚌 🚖
+🚗︎ 🚗 🚙 🚕 🏎️ 🚓 🚐 🚜 🛻 🚘 🚔 🚍 🚌 🚖 🌸 🌹 🤲🤞🏻 🫶❤️🌳🌼
 🚗︎ 🚗 🚙 🚕 🏎️ 🚓 🚐 🚜 🛻 🚘 🚔 🚍 🚌 🚖 ⛟ 🚚 🚛 🦽 🦼 🛴 🛵 🏍️ 🛞
 ✈︎ 🛫 🛬 🛩️ 🚁
 ⛴ ⛴︎ 🛳︎ 🚢 ⛴️ 🛳️ ⛵ 🚤 🛶 ⚓

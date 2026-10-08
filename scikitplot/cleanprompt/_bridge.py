@@ -57,6 +57,68 @@ __all__ = [
 _CHUNK = 4096
 
 
+#: Whether commands are split by the Windows rules. A module constant so that
+#: a test takes either branch of :func:`split_command` on any platform.
+_ON_WINDOWS: bool = os.name == "nt"
+
+
+def _split(command: str, *, windows: bool) -> list[str]:
+    r"""
+    Split a command line into arguments by one platform's rules.
+
+    Parameters
+    ----------
+    command : str
+        The command line.
+    windows : bool
+        ``True`` for the Windows rules, ``False`` for the POSIX ones.
+
+    Returns
+    -------
+    list of str
+        The argument vector; empty for a blank command.
+
+    Raises
+    ------
+    ValueError
+        If a quote is not closed.
+
+    Notes
+    -----
+    **User.** Quoting is the same on both platforms: either kind of quote
+    groups words, anywhere in an argument, and the quotes are removed. The
+    one difference is the backslash. On POSIX it escapes the next character;
+    on Windows it is a path separator and is kept as written, so a double
+    quote cannot be escaped inside double quotes there (put the argument in
+    single quotes instead).
+
+    **Developer.** POSIX rules are :func:`shlex.split` as it is. On Windows
+    this used to be ``shlex.split(command, posix=False)``, chosen to keep
+    backslashes. That mode also keeps the quotes around a quoted argument
+    (``-m 'gpt 4o'`` reached the program as ``'gpt 4o'`` *with* the quotes)
+    and ends a word at a quote inside it (``--opt="a b"`` became two
+    arguments), so every model command with a quoted argument was passed
+    wrongly on Windows. The Windows rules are now the POSIX lexer with no
+    escape character: one quoting grammar, one difference.
+
+    Examples
+    --------
+    >>> _split("llm -m 'gpt 4o'", windows=False)
+    ['llm', '-m', 'gpt 4o']
+    >>> _split("llm -m 'gpt 4o'", windows=True)
+    ['llm', '-m', 'gpt 4o']
+    >>> _split(r'C:\tools\llm.exe --opt="a b"', windows=True)
+    ['C:\\tools\\llm.exe', '--opt=a b']
+    """
+    if not windows:
+        return shlex.split(command)
+    lexer = shlex.shlex(command, posix=True)
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    lexer.escape = ""
+    return list(lexer)
+
+
 def split_command(command: str) -> list[str]:
     """
     Split a command line into arguments, without a shell.
@@ -76,13 +138,19 @@ def split_command(command: str) -> list[str]:
     CleanPromptError
         If the command is empty or cannot be split (an unclosed quote).
 
+    Notes
+    -----
+    **User.** Quote an argument that contains spaces, with either kind of
+    quote, on every platform: ``llm -m "gpt 4o"``. On Windows a backslash is
+    a path separator and is kept as written.
+
     Examples
     --------
     >>> split_command('llm -m "gpt 4o"')
     ['llm', '-m', 'gpt 4o']
     """
     try:
-        argv = shlex.split(command, posix=os.name != "nt")
+        argv = _split(command, windows=_ON_WINDOWS)
     except ValueError as exc:
         msg = f"could not read the command {command!r}: {exc}"
         raise CleanPromptError(msg) from exc

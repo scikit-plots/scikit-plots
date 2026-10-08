@@ -295,8 +295,14 @@ def test_build_twice():
 # 1 PB	10¹⁵
 # 1 EB	10¹⁸
 # required by test	9.22 EB
-def test_very_large_index():
+def test_very_large_index(tmp_path):
     # 388
+    #
+    # The saved file is about 3.2 GB. It was written into this directory, the
+    # installed package, and never removed: every environment that ran the
+    # suite kept one, and three of them at once filled the disk ("Unable to
+    # write: No space left on device"). It now goes to pytest's temporary
+    # directory and is removed before the test returns, pass or fail.
     f = 3
     dangerous_size = 2**31  # 2**63 2**31
     size_per_vector = 4 * (f + 3)
@@ -307,12 +313,19 @@ def test_very_large_index():
         m.add_item(n_vectors + i, [random.gauss(0, 1) for z in range(f)])
     n_trees = 10
     m.build(n_trees)
-    path = f"{HERE}/test_big.annoy"
-    m.save(path)  # Raises on Windows
+    path = os.fspath(tmp_path / "test_big.annoy")
+    try:
+        m.save(path)  # Raises on Windows
 
-    # Sanity check size of index
-    assert os.path.getsize(path) >= dangerous_size
-    assert os.path.getsize(path) >= dangerous_size + 100e3
+        # Sanity check size of index
+        assert os.path.getsize(path) >= dangerous_size
+        assert os.path.getsize(path) >= dangerous_size + 100e3
 
-    # Sanity check number of trees
-    assert m.get_n_trees() == n_trees
+        # Sanity check number of trees
+        assert m.get_n_trees() == n_trees
+    finally:
+        # The index is mapped from the file after save(); release it first,
+        # because a mapped file cannot be removed on Windows.
+        m.unload()
+        if os.path.exists(path):
+            os.remove(path)

@@ -98,20 +98,20 @@ def test_share_viewer_denies_framing_and_sensitive_browser_permissions():
 
 
 def test_worker_matches_opaque_origin_split_and_viewer_headers():
-    src = WORKER.read_text()
+    src = WORKER.read_text(encoding="utf-8")
     assert "function _opaqueShareRequestMode(request)" in src
     assert "SHARE_ALLOW_OPAQUE_ORIGIN_WRITE" in src
     assert "mode === 'write'" in src
     assert "X-Frame-Options': 'DENY'" in src
     assert "Permissions-Policy" in src
-    wrangler = WRANGLER.read_text()
+    wrangler = WRANGLER.read_text(encoding="utf-8")
     assert 'SHARE_ALLOW_OPAQUE_ORIGIN = "false"' in wrangler
     assert 'SHARE_ALLOW_OPAQUE_ORIGIN_WRITE = "false"' in wrangler
 
 
 def test_runtime_bearer_tokens_are_site_owner_opt_in_and_default_off():
-    js = JS.read_text()
-    py = INIT.read_text()
+    js = JS.read_text(encoding="utf-8")
+    py = INIT.read_text(encoding="utf-8")
     assert "allowRuntimeTokens" in js
     assert "if (!_runtimeTokensAllowed()) return '';" in js
     assert "_runtimeTokensAllowed() && typeof tok === 'string'" in js
@@ -121,7 +121,7 @@ def test_runtime_bearer_tokens_are_site_owner_opt_in_and_default_off():
 
 
 def test_private_event_bus_is_the_internal_lifecycle_chokepoint():
-    src = JS.read_text()
+    src = JS.read_text(encoding="utf-8")
     assert "var _assistantEvents = (function ()" in src
     assert "function _dispatchAssistantEvent(event)" in src
     assert "The only deliberate crossing from the private bus. In B41" in src
@@ -138,7 +138,7 @@ def test_private_event_bus_is_the_internal_lifecycle_chokepoint():
 
 
 def test_page_integration_permission_is_v2_and_old_feedback_key_does_not_migrate_authority():
-    src = JS.read_text()
+    src = JS.read_text(encoding="utf-8")
     assert "var _FEEDBACK_DOM_CONSENT_VERSION = '2.0.0';" in src
     assert "var _FEEDBACK_DOM_PREF_KEY = 'ai-assistant-page-integration-consent';" in src
     assert "ai-assistant-feedback-page-integration-consent" not in src

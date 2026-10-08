@@ -29,15 +29,15 @@
 #   that would land outside the target directory is refused.
 #
 # ENV VARS
-# - NLTK_DATA             : target directory (default: $HOME/nltk_data)
-# - NLTK_PACKAGES         : space-separated "<category>/<name>" list
-# - NLTK_DATA_REF         : commit or branch of nltk/nltk_data
-# - NLTK_DATA_BASE_URL    : full base URL, overrides NLTK_DATA_REF (mirrors)
-# - NLTK_FORCE=1          : fetch even when the package is present
-# - NLTK_VERIFY=0         : skip the final check with the nltk library
-# - NLTK_RETRIES          : download attempts per archive (default: 5)
+# - NLTK_DATA                 : target directory (default: $HOME/nltk_data)
+# - NLTK_PACKAGES             : space-separated "<category>/<name>" list
+# - NLTK_DATA_REF             : commit or branch of nltk/nltk_data
+# - NLTK_DATA_BASE_URL        : full base URL, overrides NLTK_DATA_REF (mirrors)
+# - NLTK_FORCE=1              : fetch even when the package is present
+# - NLTK_VERIFY=0             : skip the final check with the nltk library
+# - NLTK_RETRIES              : download attempts per archive (default: 5)
 # - NLTK_ALLOW_INSECURE_URL=1 : permit a base URL that is not https (tests)
-# - PYTHON                : interpreter to use (default: python3, then python)
+# - PYTHON                    : interpreter to use (default: python3, then python)
 # ===============================================================
 
 set -Eeuo pipefail

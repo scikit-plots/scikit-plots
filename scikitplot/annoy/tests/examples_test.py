@@ -1,5 +1,5 @@
 def execfile(fn):
-    with open(fn) as f:
+    with open(fn, encoding="utf-8") as f:
         exec(f.read())
 
 

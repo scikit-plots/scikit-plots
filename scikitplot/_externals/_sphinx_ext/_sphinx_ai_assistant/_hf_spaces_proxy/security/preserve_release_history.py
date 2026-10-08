@@ -19,12 +19,21 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 from urllib.parse import urlsplit
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_history_policy.toml").read_text())
-WITNESS_POLICY = tomllib.loads((HERE / "release_witness_policy.toml").read_text())
-RUN151_POLICY = tomllib.loads((HERE / "release_transparency_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_history_policy.toml").read_text(encoding="utf-8")
+)
+WITNESS_POLICY = tomllib.loads(
+    (HERE / "release_witness_policy.toml").read_text(encoding="utf-8")
+)
+RUN151_POLICY = tomllib.loads(
+    (HERE / "release_transparency_policy.toml").read_text(encoding="utf-8")
+)
 HISTORY_PREDICATE_TYPE = str(POLICY["history_predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")

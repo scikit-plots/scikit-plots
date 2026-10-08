@@ -20,7 +20,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,9 @@ except (ImportError, ValueError) as exc:
         _s.loader.exec_module(rootseal)
 
 HERE = Path(__file__).resolve().parent
-POLICY = tomllib.loads((HERE / "release_delegated_trust_policy.toml").read_text())
+POLICY = tomllib.loads(
+    (HERE / "release_delegated_trust_policy.toml").read_text(encoding="utf-8")
+)
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,511}$")

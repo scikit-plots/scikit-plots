@@ -159,10 +159,10 @@ def test_real_corpus_and_annoy_in_hybrid_mode(tmp_path):
         pytest.skip(f"Annoy extension unavailable: {exc}")
     corpus = pytest.importorskip("scikitplot.corpus")
     (tmp_path / "metrics.md").write_text(
-        "# Metrics\n\nUse roc_auc_score from sklearn.metrics to compute the area under the ROC curve.\n"
+        "# Metrics\n\nUse roc_auc_score from sklearn.metrics to compute the area under the ROC curve.\n", encoding="utf-8"
     )
     (tmp_path / "build.md").write_text(
-        "# Building\n\nThe C++ extension annoylib is compiled with meson and ninja.\n"
+        "# Building\n\nThe C++ extension annoylib is compiled with meson and ninja.\n", encoding="utf-8"
     )
     retriever = CorpusAnnoyRetriever.from_corpus_annoy(
         str(tmp_path), embedder=corpus.HashEmbedder(dimension=64), mode="hybrid", n_trees=5

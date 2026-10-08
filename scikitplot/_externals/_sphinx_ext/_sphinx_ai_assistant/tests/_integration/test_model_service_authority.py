@@ -58,7 +58,7 @@ def test_direct_model_contract_builds_server_policy() -> None:
 
 
 def test_model_app_route_parses_contract_not_client_messages() -> None:
-    src = (MODEL / "app.py").read_text()
+    src = (MODEL / "app.py").read_text(encoding="utf-8")
     route = src[src.index('@_app_inner.post("/v1/chat/completions")'):src.index('logger.info(\n    "REST routes registered', src.index('@_app_inner.post("/v1/chat/completions")'))]
     assert "parse_chat_request(" in route
     assert "build_upstream_payload(chat_req)" in route
@@ -68,7 +68,7 @@ def test_model_app_route_parses_contract_not_client_messages() -> None:
 
 
 def test_proxy_path2_preserves_structured_contract() -> None:
-    src = (PROXY / "app.py").read_text()
+    src = (PROXY / "app.py").read_text(encoding="utf-8")
     forward = src[src.index("async def _forward("):src.index("def _server_owned_chat_body", src.index("async def _forward("))]
     assert "structured_body: bytes | None = None" in forward
     assert "wire_body = structured_body if _path2_contract else body" in forward
@@ -79,7 +79,7 @@ def test_proxy_path2_preserves_structured_contract() -> None:
 
 
 def test_model_readme_no_longer_documents_openai_messages_as_public_contract() -> None:
-    src = (MODEL / "README.md").read_text()
+    src = (MODEL / "README.md").read_text(encoding="utf-8")
     assert '"contract": "scikitplot-chat-v1"' in src
     assert '"messages": [{"role": "user"' not in src
     assert "direct callers cannot replace it" in src

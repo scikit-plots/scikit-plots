@@ -574,7 +574,7 @@ class TestHookableCorpusPipeline:
     @pytest.fixture()
     def tmp_txt(self, tmp_path: pathlib.Path) -> pathlib.Path:
         p = tmp_path / "sample.txt"
-        p.write_text("First sentence here. Second sentence here.")
+        p.write_text("First sentence here. Second sentence here.", encoding="utf-8")
         return p
 
     def test_construction_defaults(self) -> None:
@@ -710,7 +710,7 @@ class TestFactoryCorpusBuilder:
     @pytest.fixture()
     def tmp_txt(self, tmp_path: pathlib.Path) -> pathlib.Path:
         p = tmp_path / "data.txt"
-        p.write_text("Simple text for builder tests. More words here.")
+        p.write_text("Simple text for builder tests. More words here.", encoding="utf-8")
         return p
 
     def test_construction_defaults(self) -> None:

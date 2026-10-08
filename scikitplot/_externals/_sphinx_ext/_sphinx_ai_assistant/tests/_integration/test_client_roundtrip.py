@@ -5,7 +5,10 @@ from .._paths import RUNTIME_ROOT
 import json
 from pathlib import Path
 import subprocess
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 import yaml
 

@@ -286,25 +286,55 @@ def peek_cache_dir(cache_dir: str | Path | None) -> Path:
     return root.expanduser().resolve()
 
 
-def _default_cache_dir() -> Path:
+def _default_cache_dir(
+    *,
+    os_name: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    home: str | os.PathLike[str] | None = None,
+) -> Path:
     """
-    Set default cache directory.
+    Return the default cache directory for a platform.
+
+    Parameters
+    ----------
+    os_name : str, optional
+        The platform family, as ``os.name`` spells it (``"nt"`` or
+        ``"posix"``); ``os.name`` when omitted.
+    environ : mapping, optional
+        The environment; ``os.environ`` when omitted.
+    home : str or path-like, optional
+        The home directory; ``Path.home()`` when omitted, and only asked for
+        when no environment variable decides.
 
     Returns
     -------
     pathlib.Path
-        Platform-appropriate default cache path.
+        ``%LOCALAPPDATA%``, else ``%TEMP%``, else the home directory, with
+        ``scikitplot/cython_cache`` on Windows; ``$XDG_CACHE_HOME``, else
+        ``~/.cache``, with ``scikitplot/cython`` elsewhere.
+
+    Notes
+    -----
+    **Developer.** The three inputs are parameters so that every branch can be
+    tested on every platform. The tests used to set ``os.name`` for the whole
+    process instead, and on Windows that broke ``pathlib`` itself ("cannot
+    instantiate 'PosixPath' on your system", Windows job of CI run
+    37668804532): ``os.name`` is not this function's to change.
     """
+    os_name = os.name if os_name is None else os_name
+    environ = os.environ if environ is None else environ
+
+    def home_dir() -> Path:
+        return Path.home() if home is None else Path(home)
+
     # Prefer XDG on POSIX, LOCALAPPDATA on Windows
-    if os.name == "nt":
-        base = (
-            os.environ.get("LOCALAPPDATA") or os.environ.get("TEMP") or str(Path.home())
-        )
+    if os_name == "nt":
+        base = environ.get("LOCALAPPDATA") or environ.get("TEMP") or str(home_dir())
         return Path(base) / "scikitplot" / "cython_cache"
-    xdg = os.environ.get("XDG_CACHE_HOME")
+    xdg = environ.get("XDG_CACHE_HOME")
     if xdg:
         return Path(xdg) / "scikitplot" / "cython"
-    return Path.home() / ".cache" / "scikitplot" / "cython"
+    return home_dir() / ".cache" / "scikitplot" / "cython"
 
 
 def make_cache_key(payload: Mapping[str, Any]) -> str:

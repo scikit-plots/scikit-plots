@@ -95,6 +95,7 @@ from cpython.exc cimport PyErr_SetString, PyErr_Format, PyErr_NoMemory, PyErr_Oc
 import warnings  # no-cython-lint
 import json  # no-cython-lint
 import pickle  # no-cython-lint
+import re  # no-cython-lint
 from threading import RLock
 
 # Only imports when type checking
@@ -901,9 +902,7 @@ cdef class ReprHTMLMixin:
         """
         # HTML representation
         try:
-            from scikitplot import get_config
-
-            if get_config()["display"] != "diagram":
+            if _display_mode() != "diagram":
                 raise AttributeError(
                     "_repr_html_ is only defined when the "
                     "'display' configuration option is set to "
@@ -945,9 +944,7 @@ cdef class ReprHTMLMixin:
 
         # Add HTML representation
         try:
-            from scikitplot import get_config
-
-            if get_config()["display"] == "diagram":
+            if _display_mode() == "diagram":
                 output["text/html"] = self._html_repr()
         except Exception:
             # Fall back to text if HTML generation fails
@@ -970,6 +967,74 @@ cdef class ReprHTMLMixin:
         #     "Subclasses must implement _html_repr()"
         # )
         pass
+
+
+# Leading release segment of a PEP 440 version: optional "v", optional epoch,
+# then MAJOR and an optional MINOR.
+_RELEASE_SEGMENT = re.compile(r"^\s*v?(?:\d+!)?(\d+)(?:\.(\d+))?")
+
+
+def _docs_version_segment(version):
+    """
+    Return the documentation URL segment for a scikit-plots version.
+
+    Parameters
+    ----------
+    version : str
+        A PEP 440 version, e.g. ``"0.5.dev0+git.20260217.abc1234"``.
+
+    Returns
+    -------
+    str
+        ``"dev"`` for a development release, otherwise ``"MAJOR.MINOR"``.
+
+    Raises
+    ------
+    ValueError
+        If ``version`` does not start with a release segment.
+
+    Notes
+    -----
+    **Developer.** This used to call the ``packaging`` copy vendored under
+    ``scikitplot.externals``, which made a documentation link the one thing in
+    this module that needed another part of the package: with only
+    ``scikitplot.annoy`` installed, building the link raised
+    ``ModuleNotFoundError``. The two facts needed are read here directly. The
+    local part (after ``+``) is dropped first, because it is free text; in
+    what remains, the letters ``dev`` can only be a development segment.
+    """
+    public = version.split("+", 1)[0]
+    match = _RELEASE_SEGMENT.match(public)
+    if match is None:
+        raise ValueError(f"{version!r} is not a PEP 440 version")
+    if "dev" in public.lower():
+        return "dev"
+    return f"{int(match.group(1))}.{int(match.group(2) or 0)}"
+
+
+def _display_mode():
+    """
+    Return scikit-plots' ``display`` configuration option.
+
+    Returns
+    -------
+    str
+        The configured value, or ``"diagram"``, the option's default, when the
+        configuration package is not installed.
+
+    Notes
+    -----
+    **Developer.** ``scikitplot.config`` belongs to the full distribution. With
+    only ``scikitplot.annoy`` installed there is no configuration to consult,
+    so the documented default applies, exactly as it does when nobody has
+    changed the option. Only the absence of the package is tolerated; an error
+    raised by the configuration itself still propagates to the caller.
+    """
+    try:
+        from scikitplot import get_config
+    except ImportError:
+        return "diagram"
+    return get_config()["display"]
 
 
 cdef class _HTMLDocumentationLinkMixin(ReprHTMLMixin):
@@ -1026,13 +1091,8 @@ cdef class _HTMLDocumentationLinkMixin(ReprHTMLMixin):
             URL template with placeholders
         """
         from scikitplot import __version__
-        from scikitplot.externals._packaging.version import parse as parse_version
 
-        scikitplot_version = parse_version(__version__)
-        if scikitplot_version.dev is None:
-            version_url = f"{scikitplot_version.major}.{scikitplot_version.minor}"
-        else:
-            version_url = "dev"
+        version_url = _docs_version_segment(__version__)
         return getattr(
             self,
             "__doc_link_template",

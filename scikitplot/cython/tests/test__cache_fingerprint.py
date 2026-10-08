@@ -44,8 +44,11 @@ def test_fingerprint_includes_toolchain_and_abi() -> None:
 @pytest.mark.parametrize(
     "var,newval",
     [
-        ("CC", "clang"),
-        ("CXX", "clang++"),
+        # Values no real toolchain has. A real compiler name is the *current*
+        # value on some platform ("clang" is what macOS interpreters are
+        # built with), and replacing a value by itself changes nothing.
+        ("CC", "skplt-test-fake-cc"),
+        ("CXX", "skplt-test-fake-c++"),
         ("EXT_SUFFIX", ".cpython-999-fake.so"),
         ("SOABI", "cpython-999-fake"),
         ("SIZEOF_VOID_P", "4"),
@@ -57,6 +60,7 @@ def test_toolchain_change_changes_key(var, newval, monkeypatch) -> None:
     base_key = make_cache_key({"source": "x", "fp": base_fp})
 
     cfg = sysconfig.get_config_vars()
+    assert cfg.get(var) != newval, f"{var} is already {newval!r}: nothing would change"
     monkeypatch.setitem(cfg, var, newval)
     new_fp = runtime_fingerprint(cython_version="3.2.9", numpy_version=None)
     new_key = make_cache_key({"source": "x", "fp": new_fp})

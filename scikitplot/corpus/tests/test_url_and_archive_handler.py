@@ -603,8 +603,8 @@ class TestExtractArchive:
         files = extract_archive(archive, dest)
         assert len(files) == 2
         assert all(f.exists() for f in files)
-        assert (dest / "file1.txt").read_text() == "Hello world"
-        assert (dest / "subdir" / "file2.txt").read_text() == "Second file"
+        assert (dest / "file1.txt").read_text(encoding="utf-8") == "Hello world"
+        assert (dest / "subdir" / "file2.txt").read_text(encoding="utf-8") == "Second file"
 
     def test_skip_hidden_files(self, tmp_path):
         """Hidden files inside archives should be skipped."""
@@ -669,7 +669,7 @@ class TestExtractArchive:
     def test_unsupported_format(self, tmp_path):
         """Non-archive files should raise ValueError."""
         fake = tmp_path / "not_archive.txt"
-        fake.write_text("I am not an archive")
+        fake.write_text("I am not an archive", encoding="utf-8")
         dest = tmp_path / "extracted"
 
         with pytest.raises(ValueError, match="not a recognised archive"):
@@ -909,7 +909,7 @@ class TestDummyReaderCheck:
 
     def test_existing_file_ok(self, tmp_path):
         f = tmp_path / "test.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         ok, errors = DummyReader.check(f)
         assert f in ok
         assert len(errors) == 0
@@ -922,7 +922,7 @@ class TestDummyReaderCheck:
 
     def test_multiple_sources_collected(self, tmp_path):
         good = tmp_path / "good.txt"
-        good.write_text("ok")
+        good.write_text("ok", encoding="utf-8")
         bad = tmp_path / "missing.txt"
         ok, errors = DummyReader.check(good, bad)
         assert good in ok
@@ -1049,7 +1049,7 @@ class TestExpandSourcesEdgeCases:
 
     def test_valid_file_still_works(self, tmp_path):
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         result = CorpusBuilder._expand_sources([str(f)])
         assert f in result
 
@@ -1073,14 +1073,14 @@ class TestAddSourceType:
     def test_config_source_type_restored_after_add(self, tmp_path):
         """Config must be unchanged whether add() succeeds or fails."""
         f = tmp_path / "doc.txt"
-        f.write_text("hello world test sentence paragraph here")
+        f.write_text("hello world test sentence paragraph here", encoding="utf-8")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
         builder.build(str(f))
         original_type = builder.config.source_type  # None
 
         # Override source_type for add(); config must restore after call
         f2 = tmp_path / "doc2.txt"
-        f2.write_text("second document content here for testing")
+        f2.write_text("second document content here for testing", encoding="utf-8")
         builder.add(str(f2), source_type="article")
 
         assert builder.config.source_type == original_type, (
@@ -1090,7 +1090,7 @@ class TestAddSourceType:
     def test_config_source_type_restored_even_on_error(self, tmp_path):
         """Config must restore even when build() raises inside add()."""
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
         builder.build(str(f))
 
@@ -1104,7 +1104,7 @@ class TestAddSourceType:
 
     def test_config_restored_on_error(self, tmp_path):
         f = tmp_path / "doc.txt"
-        f.write_text("hello")
+        f.write_text("hello", encoding="utf-8")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
         builder.build(str(f))
         original = builder.config.source_type
@@ -1123,7 +1123,7 @@ class TestNFilteredPopulated:
 
     def test_n_filtered_is_int(self, tmp_path):
         f = tmp_path / "doc.txt"
-        f.write_text("Hello world. This is a test document with enough content.")
+        f.write_text("Hello world. This is a test document with enough content.", encoding="utf-8")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
         result = builder.build(str(f))
         assert isinstance(result.n_filtered, int)
@@ -1131,7 +1131,7 @@ class TestNFilteredPopulated:
 
     def test_n_filtered_is_non_negative_int(self, tmp_path):
         f = tmp_path / "doc.txt"
-        f.write_text("Hello world. This is a test document with enough content.")
+        f.write_text("Hello world. This is a test document with enough content.", encoding="utf-8")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
         result = builder.build(str(f))
         assert isinstance(result.n_filtered, int)
@@ -1261,7 +1261,7 @@ class TestMaxWorkersParallel:
         # Write 4 small text files
         for i in range(4):
             (tmp_path / f"doc{i}.txt").write_text(
-                f"Document {i} with enough content to pass the default filter."
+                f"Document {i} with enough content to pass the default filter.", encoding="utf-8"
             )
 
         serial = CorpusBuilder(BuilderConfig(chunker="paragraph", max_workers=1))
@@ -1276,9 +1276,9 @@ class TestMaxWorkersParallel:
     def test_parallel_errors_collected(self, tmp_path):
         """Errors from parallel workers must be collected, not silently dropped."""
         good = tmp_path / "good.txt"
-        good.write_text("Valid document content here for testing.")
+        good.write_text("Valid document content here for testing.", encoding="utf-8")
         bad = tmp_path / "bad.unsupported_ext_xyz"
-        bad.write_text("this extension is not registered")
+        bad.write_text("this extension is not registered", encoding="utf-8")
 
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph", max_workers=2))
         result = builder.build([str(good), str(bad)])
@@ -1305,7 +1305,7 @@ class TestMaxWorkersParallel:
     def test_parallel_same_doc_count_as_serial(self, tmp_path):
         for i in range(4):
             (tmp_path / f"doc{i}.txt").write_text(
-                f"Document number {i} contains enough text to pass the default filter."
+                f"Document number {i} contains enough text to pass the default filter.", encoding="utf-8"
             )
         r_serial = CorpusBuilder(BuilderConfig(chunker="paragraph", max_workers=1)).build(str(tmp_path))
         r_parallel = CorpusBuilder(BuilderConfig(chunker="paragraph", max_workers=4)).build(str(tmp_path))

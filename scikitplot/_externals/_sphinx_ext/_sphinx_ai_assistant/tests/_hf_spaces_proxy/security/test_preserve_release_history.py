@@ -49,7 +49,7 @@ def _witnessed(tmp_path: Path) -> Path:
 
 
 def _genesis(tmp_path: Path, witnessed: Path, *, key_id: str = ACTIVE_KEY) -> tuple[Path, Path]:
-    previous = json.loads((witnessed / "previous-transparency-checkpoint.json").read_text())
+    previous = json.loads((witnessed / "previous-transparency-checkpoint.json").read_text(encoding="utf-8"))
     bundle = {
         "schemaVersion": 1,
         "predicateType": "https://scikit-plots.org/attestations/release-history/v1",
@@ -250,7 +250,7 @@ def test_run153_end_to_end_requires_gossip_quorum_and_independent_archives(tmp_p
     assert result["archive_count"] == 2
     verified = history.verify_history_bundle(bundle_path=out / "release-history-bundle.json", state_path=out / "trusted-history-state.json")
     assert verified["sequence"] == 1
-    receipt = json.loads((out / "release-history-preservation-receipt.json").read_text())
+    receipt = json.loads((out / "release-history-preservation-receipt.json").read_text(encoding="utf-8"))
     assert receipt["replicaQuorum"]["threshold"] == 2
     assert len(receipt["archives"]) == 2
 
@@ -262,7 +262,7 @@ def test_run153_bundle_and_state_are_deterministic_across_create_only_retry(tmp_
     assert result1["bundle_sha256"] == result2["bundle_sha256"]
     assert result1["state_sha256"] == result2["state_sha256"]
     assert (out1 / "release-history-bundle.json").read_bytes() == (out2 / "release-history-bundle.json").read_bytes()
-    bind_results = [json.loads(p.read_text())["status"] for p in sorted((out2 / "archive-results").glob("*.bind.json"))]
+    bind_results = [json.loads(p.read_text(encoding="utf-8"))["status"] for p in sorted((out2 / "archive-results").glob("*.bind.json"))]
     assert bind_results == ["present", "present"]
 
 
@@ -271,7 +271,7 @@ def test_run153_allows_one_explicitly_unavailable_replica_when_quorum_still_hold
     defs[2][2].unavailable = True
     result, out, *_ = _run(tmp_path, replicas=defs, quorum=2)
     assert result["replica_observed"] == 2
-    receipt = json.loads((out / "release-history-preservation-receipt.json").read_text())
+    receipt = json.loads((out / "release-history-preservation-receipt.json").read_text(encoding="utf-8"))
     assert receipt["replicaQuorum"]["unavailable"] == 1
 
 
@@ -312,7 +312,7 @@ def test_run153_scheduled_key_rotation_revokes_old_key_and_is_offline_verifiable
     transition = _transition(tmp_path)
     result, out, *_ = _run(tmp_path, replicas=defs, key_transition=transition)
     assert result["ok"] is True
-    state = json.loads((out / "trusted-history-state.json").read_text())
+    state = json.loads((out / "trusted-history-state.json").read_text(encoding="utf-8"))
     assert state["activeLogKeyId"] == NEW_KEY
     assert state["revokedLogKeyIds"] == [ACTIVE_KEY]
     history.verify_history_bundle(bundle_path=out / "release-history-bundle.json", state_path=out / "trusted-history-state.json")
@@ -328,7 +328,7 @@ def test_run153_compromise_recovery_requires_emergency_authority(tmp_path: Path)
 def test_run153_rejects_replay_of_revoked_key_in_offline_history(tmp_path: Path):
     defs = [(identity, operator, FakeReplica(identity, operator, key_id=NEW_KEY)) for identity, operator in REPLICAS]
     _, out, *_ = _run(tmp_path, replicas=defs, key_transition=_transition(tmp_path))
-    bundle = json.loads((out / "release-history-bundle.json").read_text())
+    bundle = json.loads((out / "release-history-bundle.json").read_text(encoding="utf-8"))
     prior = bundle["entries"][0]
     replay = json.loads(json.dumps(prior))
     replay["sequence"] = 2
@@ -346,7 +346,7 @@ def test_run153_rejects_replay_of_revoked_key_in_offline_history(tmp_path: Path)
 
 def test_run153_rejects_release_or_witness_replay_in_offline_history(tmp_path: Path):
     _, out, *_ = _run(tmp_path)
-    bundle = json.loads((out / "release-history-bundle.json").read_text())
+    bundle = json.loads((out / "release-history-bundle.json").read_text(encoding="utf-8"))
     replay = json.loads(json.dumps(bundle["entries"][0]))
     replay["sequence"] = 2
     replay["log"]["previousCheckpointSha256"] = hashlib.sha256(_canonical({"schemaVersion": 1, "logId": run152_fixture.LOG_ID, "checkpoint": bundle["entries"][0]["log"]["checkpoint"]})).hexdigest()
@@ -360,7 +360,7 @@ def test_run153_rejects_release_or_witness_replay_in_offline_history(tmp_path: P
 def test_run153_rejects_previous_history_tamper(tmp_path: Path):
     witnessed = _witnessed(tmp_path / "source")
     state, bundle = _genesis(tmp_path, witnessed)
-    doc = json.loads(bundle.read_text())
+    doc = json.loads(bundle.read_text(encoding="utf-8"))
     doc["genesis"]["bootstrapEvidenceSha256"] = "c" * 64
     bundle.write_bytes(_canonical(doc))
     replicas = [(identity, operator, FakeReplica(identity, operator)) for identity, operator in REPLICAS]
@@ -412,7 +412,7 @@ def test_run153_enforces_identity_and_operator_separation(tmp_path: Path):
 def test_run153_offline_verifier_detects_bundle_or_state_drift(tmp_path: Path):
     _, out, *_ = _run(tmp_path)
     state_path = out / "trusted-history-state.json"
-    state = json.loads(state_path.read_text())
+    state = json.loads(state_path.read_text(encoding="utf-8"))
     state["chainHeadSha256"] = "0" * 64
     state_path.write_bytes(_canonical(state))
     with pytest.raises(history.HistoryError, match="HISTORY_STATE_HASH_MISMATCH"):
@@ -432,7 +432,7 @@ def test_run153_rejects_replica_that_cannot_rebind_witness_anchor(tmp_path: Path
 
 def test_run153_offline_bundle_recomputes_previous_checkpoint_hash(tmp_path: Path):
     _, out, *_ = _run(tmp_path)
-    bundle = json.loads((out / "release-history-bundle.json").read_text())
+    bundle = json.loads((out / "release-history-bundle.json").read_text(encoding="utf-8"))
     bundle["entries"][0]["log"]["previousCheckpointSha256"] = "0" * 64
     with pytest.raises(history.HistoryError, match="HISTORY_ENTRY_PREVIOUS_CHECKPOINT_HASH_MISMATCH"):
         history._validate_bundle(bundle)
@@ -441,7 +441,7 @@ def test_run153_offline_bundle_recomputes_previous_checkpoint_hash(tmp_path: Pat
 def test_run153_key_transition_cannot_claim_effective_time_before_previous_checkpoint(tmp_path: Path):
     defs = [(identity, operator, FakeReplica(identity, operator, key_id=NEW_KEY)) for identity, operator in REPLICAS]
     transition = _transition(tmp_path)
-    doc = json.loads(transition.read_text())
+    doc = json.loads(transition.read_text(encoding="utf-8"))
     doc["effectiveTreeSize"] = 41
     transition.write_bytes(_canonical(doc))
     with pytest.raises(history.HistoryError, match="KEY_TRANSITION_NOT_EFFECTIVE"):
@@ -465,12 +465,12 @@ def test_run153_bundle_is_stable_when_replica_recovers_between_retries(tmp_path:
     assert result1["bundle_sha256"] == result2["bundle_sha256"]
     assert result1["state_sha256"] == result2["state_sha256"]
     assert (out1 / "release-history-bundle.json").read_bytes() == (out2 / "release-history-bundle.json").read_bytes()
-    assert [json.loads(p.read_text())["status"] for p in sorted((out2 / "archive-results").glob("*.bind.json"))] == ["present", "present"]
+    assert [json.loads(p.read_text(encoding="utf-8"))["status"] for p in sorted((out2 / "archive-results").glob("*.bind.json"))] == ["present", "present"]
 
 def test_run153_policy_and_documentation_define_durable_history_boundary():
-    policy = (SECURITY / "release_history_policy.toml").read_text()
-    guide = (SECURITY / "RELEASE_HISTORY_GUIDE.md").read_text()
-    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text()
+    policy = (SECURITY / "release_history_policy.toml").read_text(encoding="utf-8")
+    guide = (SECURITY / "RELEASE_HISTORY_GUIDE.md").read_text(encoding="utf-8")
+    gates = (SECURITY / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8")
     assert "min_replicas = 3" in policy
     assert "min_archives = 2" in policy
     assert "allow_log_key_change_without_transition = false" in policy

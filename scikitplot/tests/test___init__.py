@@ -413,3 +413,371 @@ class TestModuleHygiene:
         """``dir(sp)`` must not raise."""
         result = dir(sp)
         assert isinstance(result, list)
+
+
+# ===========================================================================
+# Partial distributions
+# ===========================================================================
+#
+# ``scikitplot/__init__.py`` is also the root of the partial distributions
+# (``scikit-plots-skinny`` and friends, see ``scikitplot/_distributions.py``),
+# where the compiled core, NumPy and most submodules are absent on purpose.
+#
+# Which branch the root takes is decided while it is being imported, so each
+# case below imports a *copy* of the root package in a fresh interpreter, with
+# the installed-distribution metadata it should see. The copy holds exactly the
+# files a core-only installation has; the "full" case adds stand-ins for the
+# compiled modules so that the success branch runs too.
+
+import json  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+import textwrap  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+_PACKAGE_DIR = Path(__file__).resolve().parents[1]
+
+_CHILD = textwrap.dedent(
+    """
+    import importlib.metadata as metadata, json, sys
+
+    site, versions, blocked, probe = (json.loads(arg) for arg in sys.argv[1:5])
+
+    def version(name):
+        if name in versions:
+            return versions[name]
+        raise metadata.PackageNotFoundError(name)
+
+    metadata.version = version
+    for name in blocked:
+        sys.modules[name] = None  # ``import name`` now raises ImportError
+    sys.path.insert(0, site)
+
+    import scikitplot
+
+    out = {
+        "file": scikitplot.__file__,
+        "version": scikitplot.__version__,
+        "built_with_meson": scikitplot._BUILT_WITH_MESON,
+        "numpy_imported": sys.modules.get("numpy") is not None,
+        "distributions_imported": "scikitplot._distributions" in sys.modules,
+        "probe": {},
+    }
+    for expression in probe:
+        try:
+            out["probe"][expression] = ["ok", repr(eval(expression))]
+        except Exception as exc:
+            out["probe"][expression] = [type(exc).__name__, str(exc)]
+    print("@@RESULT@@" + json.dumps(out))
+    """
+)
+
+
+def _declared_version():
+    """Return the version literal in the root ``__init__.py``, without importing it."""
+    import ast
+
+    tree = ast.parse((_PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "__version__"
+            for target in node.targets
+        ):
+            return node.value.value
+    raise AssertionError("no __version__ assignment in scikitplot/__init__.py")
+
+
+def _make_site(tmp_path, *, full=False, fake_numpy=False, parts=(), api=None):
+    """Build a directory holding a copy of the root package, and return it.
+
+    ``api`` adds a ``scikitplot.api`` package: ``"ok"`` for one that imports,
+    ``"broken"`` for one that is installed but needs a module that is not.
+    """
+    package = tmp_path / "scikitplot"
+    package.mkdir()
+    for name in ("__init__.py", "_distributions.py"):
+        shutil.copy2(_PACKAGE_DIR / name, package / name)
+    shutil.copytree(
+        _PACKAGE_DIR / "logging", package / "logging",
+        ignore=shutil.ignore_patterns("__pycache__", "tests"),
+    )
+    for part in parts:  # an installed, importable part of the package
+        (package / part).mkdir()
+        (package / part / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
+    if full:
+        # Stand-ins for what the full distribution's build provides.
+        (package / "_lib").mkdir()
+        (package / "_lib" / "__init__.py").write_text("", encoding="utf-8")
+        (package / "_lib" / "_ccallback.py").write_text(
+            "class LowLevelCallable: pass\n", encoding="utf-8"
+        )
+        (package / "config").mkdir()
+        (package / "config" / "__init__.py").write_text(
+            "__all__ = ['get_config']\ndef get_config(): return {'display': 'diagram'}\n",
+            encoding="utf-8",
+        )
+        (package / "utils").mkdir()
+        (package / "utils" / "__init__.py").write_text("", encoding="utf-8")
+        (package / "utils" / "_show_versions.py").write_text(
+            "def show_versions(*a, **k): return {}\n", encoding="utf-8"
+        )
+        (package / "version.py").write_text(
+            "__git_hash__ = 'abc'\n__version__ = '9.9.9'\n"
+            "__version_iso_8601__ = '2026-01-01T00:00:00+00:00'\n",
+            encoding="utf-8",
+        )
+    if api is not None:
+        (package / "api").mkdir()
+        (package / "api" / "__init__.py").write_text(
+            "import _a_dependency_that_is_not_installed\n" if api == "broken"
+            else "def plot_something(): return 'plotted'\n",
+            encoding="utf-8",
+        )
+    if fake_numpy:
+        (tmp_path / "numpy").mkdir()
+        (tmp_path / "numpy" / "__init__.py").write_text(
+            "__version__ = '0.0.fake'\n", encoding="utf-8"
+        )
+    return tmp_path
+
+
+def _import_root(site, *, versions, blocked=(), probe=()):
+    """Import the copied root package in a fresh interpreter; return (data, stderr).
+
+    Notes
+    -----
+    **Developer.** The child runs with ``-I -S``. ``-S`` keeps it from importing
+    :mod:`site`, so no ``site-packages`` directory is on its path and no
+    ``.pth`` file is executed. That matters when the tests run from a checkout
+    installed in editable mode (``pip install -e .``, as CI does): the editable
+    install registers, through a ``.pth`` file, an import hook that answers
+    ``import scikitplot`` with the checkout, *before* ``sys.path`` is searched.
+    Without ``-S`` the child imported the checkout instead of the copy
+    ("imported the wrong copy"), or the checkout's compiled core together with
+    the stand-in NumPy of the copy. The copy needs nothing outside the standard
+    library, so the child loses nothing by it.
+    """
+    done = subprocess.run(
+        [
+            sys.executable, "-I", "-S", "-c", _CHILD,
+            json.dumps(str(site)), json.dumps(versions),
+            json.dumps(list(blocked)), json.dumps(list(probe)),
+        ],
+        capture_output=True, text=True, timeout=120, check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    line = next(l for l in done.stdout.splitlines() if l.startswith("@@RESULT@@"))
+    data = json.loads(line[len("@@RESULT@@"):])
+    assert Path(data["file"]).parent == Path(site) / "scikitplot", "imported the wrong copy"
+    return data, done.stderr
+
+
+_SOURCE_TREE_WARNING = "you cannot import scikitplot while"
+_CORE_ONLY = {"scikit-plots-skinny": "0.5.dev0"}
+
+
+class TestPartialDistribution:
+    """The root package imports cleanly as the core of a partial installation."""
+
+    def test_imports_without_numpy(self, tmp_path):
+        """NumPy is not a dependency of the core; the root must not need it."""
+        data, _ = _import_root(_make_site(tmp_path), versions=_CORE_ONLY, blocked=["numpy"])
+        assert data["built_with_meson"] is None
+
+    def test_import_does_not_import_numpy_even_when_it_is_installed(self, tmp_path):
+        site = _make_site(tmp_path, fake_numpy=True)
+        data, _ = _import_root(site, versions=_CORE_ONLY)
+        assert data["numpy_imported"] is False
+
+    def test_numpy_version_resolves_on_first_access_and_is_cached(self, tmp_path):
+        site = _make_site(tmp_path, fake_numpy=True)
+        data, _ = _import_root(
+            site, versions=_CORE_ONLY,
+            probe=[
+                "'__numpy_version__' in vars(scikitplot)",
+                "scikitplot.__numpy_version__",
+                "'__numpy_version__' in vars(scikitplot)",
+            ],
+        )
+        probe = data["probe"]
+        assert probe["scikitplot.__numpy_version__"] == ["ok", "'0.0.fake'"]
+        # Evaluated in order: absent before the first access, cached after.
+        # (The same expression appears twice; the last evaluation is kept.)
+        assert probe["'__numpy_version__' in vars(scikitplot)"] == ["ok", "True"]
+
+    def test_numpy_version_without_numpy_is_an_attribute_error(self, tmp_path):
+        data, _ = _import_root(
+            _make_site(tmp_path), versions=_CORE_ONLY, blocked=["numpy"],
+            probe=["scikitplot.__numpy_version__"],
+        )
+        kind, message = data["probe"]["scikitplot.__numpy_version__"]
+        assert kind == "AttributeError"
+        assert "numpy" in message
+
+    def test_no_source_tree_warning(self, tmp_path):
+        """A partial distribution never ships the compiled core; that is not a fault."""
+        _, stderr = _import_root(_make_site(tmp_path), versions=_CORE_ONLY, blocked=["numpy"])
+        assert _SOURCE_TREE_WARNING not in stderr
+        assert stderr.strip() == ""
+
+    def test_version_is_the_declared_one(self, tmp_path):
+        """No generated version module exists, so the literal is the version."""
+        data, _ = _import_root(_make_site(tmp_path), versions=_CORE_ONLY)
+        assert data["version"] == _declared_version()
+
+    def test_dir_works_without_the_api_package(self, tmp_path):
+        data, _ = _import_root(
+            _make_site(tmp_path), versions=_CORE_ONLY,
+            probe=["'rank_bm25' in dir(scikitplot)", "scikitplot._api_names()"],
+        )
+        assert data["probe"]["'rank_bm25' in dir(scikitplot)"] == ["ok", "True"]
+        assert data["probe"]["scikitplot._api_names()"] == ["ok", "frozenset()"]
+
+    def test_api_names_are_served_when_the_api_package_is_installed(self, tmp_path):
+        site = _make_site(tmp_path, api="ok")
+        data, _ = _import_root(
+            site, versions=_CORE_ONLY,
+            probe=["'plot_something' in scikitplot._api_names()",
+                   "'plot_something' in dir(scikitplot)"],
+        )
+        assert data["probe"]["'plot_something' in scikitplot._api_names()"] == ["ok", "True"]
+        assert data["probe"]["'plot_something' in dir(scikitplot)"] == ["ok", "True"]
+
+    def test_a_broken_api_package_is_not_mistaken_for_an_absent_one(self, tmp_path):
+        """Only the absence of ``scikitplot.api`` itself reads as "no re-exports"."""
+        site = _make_site(tmp_path, api="broken")
+        data, _ = _import_root(site, versions=_CORE_ONLY, probe=["scikitplot._api_names()"])
+        kind, message = data["probe"]["scikitplot._api_names()"]
+        assert kind == "ModuleNotFoundError"
+        assert "_a_dependency_that_is_not_installed" in message
+
+    def test_installed_part_resolves_as_an_attribute(self, tmp_path):
+        """A lazy attribute lookup must not depend on the absent ``api`` package."""
+        site = _make_site(tmp_path, parts=["rank_bm25"])
+        data, _ = _import_root(site, versions=_CORE_ONLY, probe=["scikitplot.rank_bm25.VALUE"])
+        assert data["probe"]["scikitplot.rank_bm25.VALUE"] == ["ok", "1"]
+
+    @pytest.mark.parametrize(
+        ("name", "command"),
+        [
+            ("corpus", "pip install scikit-plots-corpus"),
+            ("mcp", "pip install scikit-plots-mcp"),
+            ("annoy", "pip install scikit-plots-annoy"),
+            ("utils", "pip install scikit-plots"),
+            ("config", "pip install scikit-plots"),
+        ],
+    )
+    def test_missing_part_names_the_distribution_that_ships_it(self, tmp_path, name, command):
+        expression = f"scikitplot.{name}"
+        data, _ = _import_root(_make_site(tmp_path), versions=_CORE_ONLY, probe=[expression])
+        kind, message = data["probe"][expression]
+        assert kind == "AttributeError"
+        assert f"'scikitplot.{name}' is not installed" in message
+        assert message.count("pip install") == 1
+        assert command + "\n" in message
+
+    @staticmethod
+    def _site_with_a_part_that_fails_to_import(tmp_path):
+        site = _make_site(tmp_path, parts=["corpus"])
+        (site / "scikitplot" / "corpus" / "__init__.py").write_text(
+            "import _a_dependency_that_is_not_installed\n", encoding="utf-8"
+        )
+        return site
+
+    def test_a_part_that_fails_to_import_names_the_installation_problems(self, tmp_path):
+        """An error from deep inside another package comes with the likely cause."""
+        versions = dict(_CORE_ONLY, **{"numpy": "2.0.0", "scikit-learn": "1.3.0"})
+        data, _ = _import_root(
+            self._site_with_a_part_that_fails_to_import(tmp_path),
+            versions=versions, probe=["scikitplot.corpus"],
+        )
+        kind, message = data["probe"]["scikitplot.corpus"]
+        assert kind == "AttributeError"
+        assert "problems that may be the cause" in message
+        assert "numpy 2.0.0 with scikit-learn 1.3.0" in message
+        assert 'pip install --upgrade "scikit-learn>=1.4.2"' in message
+        assert "_a_dependency_that_is_not_installed" in message
+        assert "is not installed. Install it with" not in message
+
+    def test_a_part_that_fails_to_import_in_a_coherent_installation(self, tmp_path):
+        """No problem is invented: the original error stands on its own."""
+        # No distribution is "installed" here: the stand-in site holds only
+        # part of the core's files, which a report on an installed core would
+        # rightly name as missing.
+        data, _ = _import_root(
+            self._site_with_a_part_that_fails_to_import(tmp_path),
+            versions={}, probe=["scikitplot.corpus"],
+        )
+        kind, message = data["probe"]["scikitplot.corpus"]
+        assert kind == "AttributeError"
+        assert "problems that may be the cause" not in message
+        assert "_a_dependency_that_is_not_installed" in message
+
+    def test_unknown_attribute_gets_no_install_hint(self, tmp_path):
+        """Nothing ships a name that does not exist, so nothing is suggested."""
+        data, _ = _import_root(
+            _make_site(tmp_path), versions=_CORE_ONLY, probe=["scikitplot._no_such_thing_xyz"]
+        )
+        kind, message = data["probe"]["scikitplot._no_such_thing_xyz"]
+        assert kind == "AttributeError"
+        assert "pip install" not in message
+
+
+class TestSourceTreeAndBrokenInstall:
+    """Where the compiled core *should* exist, its absence is still reported."""
+
+    def test_source_tree_still_warns(self, tmp_path):
+        _, stderr = _import_root(_make_site(tmp_path), versions={})
+        assert _SOURCE_TREE_WARNING in stderr
+
+    def test_full_distribution_without_its_compiled_core_still_warns(self, tmp_path):
+        _, stderr = _import_root(_make_site(tmp_path), versions={"scikit-plots": "0.5.0"})
+        assert _SOURCE_TREE_WARNING in stderr
+
+    def test_full_beside_partial_without_the_compiled_core_still_warns(self, tmp_path):
+        versions = {"scikit-plots": "0.5.0", "scikit-plots-skinny": "0.5.0"}
+        _, stderr = _import_root(_make_site(tmp_path), versions=versions)
+        assert _SOURCE_TREE_WARNING in stderr
+
+
+class TestFullDistributionBranch:
+    """The success branch is unchanged, and pays nothing for partial support."""
+
+    def test_success_branch(self, tmp_path):
+        site = _make_site(tmp_path, full=True, fake_numpy=True)
+        data, stderr = _import_root(
+            site, versions={"scikit-plots": "9.9.9"},
+            probe=["scikitplot.get_config()['display']", "scikitplot.__git_hash__"],
+        )
+        assert data["built_with_meson"] is True
+        assert data["version"] == "9.9.9"  # taken from the generated version module
+        assert data["probe"]["scikitplot.get_config()['display']"] == ["ok", "'diagram'"]
+        assert data["probe"]["scikitplot.__git_hash__"] == ["ok", "'abc'"]
+        assert _SOURCE_TREE_WARNING not in stderr
+
+    def test_success_branch_never_consults_the_distribution_map(self, tmp_path):
+        site = _make_site(tmp_path, full=True, fake_numpy=True)
+        data, _ = _import_root(site, versions={"scikit-plots": "9.9.9"})
+        assert data["distributions_imported"] is False
+
+
+class TestPublicSurfaceForPartialSupport:
+    """Names the partial distributions rely on are part of the declared surface."""
+
+    def test_rank_bm25_is_a_declared_submodule(self):
+        assert "rank_bm25" in sp._submodules
+        assert "rank_bm25" in sp.__all__
+
+    def test_distribution_map_is_a_declared_module(self):
+        assert "_distributions" in sp._submodules
+
+    def test_every_partial_distribution_part_is_a_declared_submodule(self):
+        """A part someone can install must be a name the root knows how to hint for."""
+        from .. import _distributions
+
+        for dist in _distributions.DISTRIBUTIONS:
+            for tree in dist.trees:
+                top = tree.split("/")[0]
+                if top.startswith("_") and top not in sp._submodules:
+                    continue  # private infrastructure (the CLI), not a public part
+                assert top in sp._submodules, f"{top} ({dist.name}) is not in _submodules"

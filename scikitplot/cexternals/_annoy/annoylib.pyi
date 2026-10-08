@@ -60,6 +60,9 @@ if TYPE_CHECKING:
     from typing_extensions import Literal, NotRequired, Required, Self, TypeAlias
 
 __backend__: Literal["cpp"]
+#: 1 when the module was compiled with threads (``build(..., n_jobs=N)`` can
+#: use ``N`` of them), 0 otherwise. See ``scikitplot.annoy.threads_info``.
+MULTITHREADED_BUILD: Literal[0, 1]
 
 # Annoy accepts many aliases on input, but normalizes to a canonical metric name
 # on output (see :attr:`Annoy.metric`).

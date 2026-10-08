@@ -41,7 +41,7 @@ def test_the_command_sees_placeholders_and_the_user_sees_values(tmp_path):
     )
     assert status == 0
     assert out == "MRN: 00412345 for ann@example.com"
-    seen = record.read_text()
+    seen = record.read_text(encoding="utf-8")
     assert "00412345" not in seen and "ann@example.com" not in seen
 
 
@@ -113,6 +113,64 @@ def test_split_command(line, argv):
 @pytest.mark.parametrize("line", ["", "   ", "llm 'unclosed"])
 def test_split_command_refuses(line):
     with pytest.raises(CleanPromptError):
+        split_command(line)
+
+
+@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+@pytest.mark.parametrize(
+    ("line", "argv"),
+    [
+        ("ollama run llama3", ["ollama", "run", "llama3"]),
+        ("llm -m 'gpt 4o'", ["llm", "-m", "gpt 4o"]),
+        ('llm -m "gpt 4o"', ["llm", "-m", "gpt 4o"]),
+        ("llm -m ''", ["llm", "-m", ""]),
+        ("  spaced   out  ", ["spaced", "out"]),
+    ],
+)
+def test_a_quoted_argument_arrives_without_its_quotes_on_both_platforms(
+    line, argv, windows, monkeypatch
+):
+    """
+    The platform decides how backslashes are read, not whether quotes work.
+
+    On Windows a quoted argument used to reach the program with its quotes
+    (``"'gpt 4o'"``), so every model command with one was passed wrongly.
+    """
+    from .. import _bridge
+
+    monkeypatch.setattr(_bridge, "_ON_WINDOWS", windows)
+    assert split_command(line) == argv
+
+
+def test_backslashes_are_path_separators_on_windows_and_escapes_on_posix():
+    from .._bridge import _split
+
+    line = r'C:\tools\llm.exe --root "C:\My Models"'
+    assert _split(line, windows=True) == [r"C:\tools\llm.exe", "--root", r"C:\My Models"]
+    assert _split(line, windows=False) == ["C:toolsllm.exe", "--root", r"C:\My Models"]
+
+
+@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+def test_quotes_inside_an_argument_group_words_on_both_platforms(windows):
+    from .._bridge import _split
+
+    assert _split('tool --opt="a b" plain', windows=windows) == ["tool", "--opt=a b", "plain"]
+
+
+@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+def test_a_hash_is_an_argument_not_a_comment(windows):
+    from .._bridge import _split
+
+    assert _split("tool a # b", windows=windows) == ["tool", "a", "#", "b"]
+
+
+@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+@pytest.mark.parametrize("line", ["llm 'unclosed", 'llm "unclosed'])
+def test_an_unclosed_quote_is_refused_on_both_platforms(line, windows, monkeypatch):
+    from .. import _bridge
+
+    monkeypatch.setattr(_bridge, "_ON_WINDOWS", windows)
+    with pytest.raises(CleanPromptError, match="could not read the command"):
         split_command(line)
 
 

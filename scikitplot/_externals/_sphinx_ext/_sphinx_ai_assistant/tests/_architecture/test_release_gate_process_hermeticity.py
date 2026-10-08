@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .._paths import RUNTIME_ROOT, TESTS_ROOT
+from .._platform import POSIX_RELEASE_GATE
 
 import ast
 import importlib.util
@@ -28,13 +29,13 @@ def _load_run149():
 def _hostile_git_environment(monkeypatch, tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     bad = tmp_path / "bad-diff"
-    bad.write_text("#!/bin/sh\nexit 97\n")
+    bad.write_text("#!/bin/sh\nexit 97\n", encoding="utf-8")
     bad.chmod(0o755)
     hostile_home = tmp_path / "hostile-home"
     hostile_home.mkdir()
     (hostile_home / ".gitconfig").write_text(
         "[diff]\n\texternal = " + str(bad) + "\n"
-        "[core]\n\tautocrlf = true\n\tfilemode = false\n"
+        "[core]\n\tautocrlf = true\n\tfilemode = false\n", encoding="utf-8"
     )
     monkeypatch.setenv("HOME", str(hostile_home))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(hostile_home / "xdg"))
@@ -48,6 +49,7 @@ def _hostile_git_environment(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("LANG", "tr_TR.UTF-8")
 
 
+@POSIX_RELEASE_GATE
 def test_run170_run149_patch_ignores_host_git_environment(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     _hostile_git_environment(monkeypatch, tmp_path)
@@ -76,6 +78,7 @@ def test_run170_patch_bytes_identical_across_hostile_environments(tmp_path: Path
     assert right == left
 
 
+@POSIX_RELEASE_GATE
 def test_run170_production_patch_replay_ignores_host_git_environment(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     case = tmp_path / "case"
@@ -91,11 +94,12 @@ def test_run170_production_patch_replay_ignores_host_git_environment(tmp_path: P
     monkeypatch.setenv("HF_TOKEN", "must-not-reach-git")
     run149.promote._apply_patch(replay, patch)
 
-    assert (replay / "a.txt").read_text() == "new\n"
-    assert (replay / "bin.sh").read_text() == "#!/bin/sh\necho ok\n"
+    assert (replay / "a.txt").read_text(encoding="utf-8") == "new\n"
+    assert (replay / "bin.sh").read_text(encoding="utf-8") == "#!/bin/sh\necho ok\n"
     assert (replay / "bin.sh").stat().st_mode & 0o777 == 0o755
 
 
+@POSIX_RELEASE_GATE
 def test_run170_production_git_resolution_ignores_ambient_path(tmp_path: Path, monkeypatch):
     run149 = _load_run149()
     case = tmp_path / "case"
@@ -110,13 +114,13 @@ def test_run170_production_git_resolution_ignores_ambient_path(tmp_path: Path, m
     fake_dir.mkdir()
     fake_git = fake_dir / "git"
     marker_path = tmp_path / "fake-git-ran"
-    fake_git.write_text(f"#!/bin/sh\ntouch {marker_path}\nexit 99\n")
+    fake_git.write_text(f"#!/bin/sh\ntouch {marker_path}\nexit 99\n", encoding="utf-8")
     fake_git.chmod(0o755)
     monkeypatch.setenv("PATH", str(fake_dir))
     monkeypatch.delenv("SCIKITPLOT_RELEASE_GIT_EXECUTABLE", raising=False)
 
     run149.promote._apply_patch(replay, patch)
-    assert (replay / "a.txt").read_text() == "new\n"
+    assert (replay / "a.txt").read_text(encoding="utf-8") == "new\n"
     assert not marker_path.exists()
 
 
@@ -143,7 +147,7 @@ def test_run170_production_git_pin_must_be_absolute(monkeypatch):
 
 
 def test_run170_git_fixture_uses_allowlisted_process_environment():
-    text = (TESTS_ROOT / "_hf_spaces_proxy" / "security" / "test_promote_release.py").read_text()
+    text = (TESTS_ROOT / "_hf_spaces_proxy" / "security" / "test_promote_release.py").read_text(encoding="utf-8")
     for marker in (
         "def _git_env(",
         '"GIT_CONFIG_NOSYSTEM": "1"',
@@ -160,7 +164,7 @@ def test_run170_git_fixture_uses_allowlisted_process_environment():
     assert 'subprocess.run(["git"' not in text
     assert "env=_git_env(repo)" in text
 
-    production = (SEC / "promote_release.py").read_text()
+    production = (SEC / "promote_release.py").read_text(encoding="utf-8")
     for marker in (
         "def _trusted_git_executable(",
         "SCIKITPLOT_RELEASE_GIT_EXECUTABLE",
@@ -175,7 +179,7 @@ def test_run170_git_fixture_uses_allowlisted_process_environment():
 def test_run170_all_release_subprocesses_have_explicit_secret_free_environment():
     sites = []
     for path in sorted(SEC.glob("*.py")):
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
                 continue
@@ -205,7 +209,7 @@ def test_run170_command_adapter_cannot_read_parent_secret(tmp_path: Path, monkey
         "import json,os,sys\n"
         "json.load(sys.stdin)\n"
         "if os.environ.get('RUN170_CANARY_SECRET'): sys.exit(91)\n"
-        "print(json.dumps({'ok': True, 'path': os.environ.get('PATH'), 'locale': os.environ.get('LC_ALL')}))\n"
+        "print(json.dumps({'ok': True, 'path': os.environ.get('PATH'), 'locale': os.environ.get('LC_ALL')}))\n", encoding="utf-8"
     )
     monkeypatch.setenv("RUN170_CANARY_SECRET", "must-not-cross-process-boundary")
     # Use the already-resolved interpreter as the executable.  The production
@@ -218,10 +222,10 @@ def test_run170_command_adapter_cannot_read_parent_secret(tmp_path: Path, monkey
 def test_run170_documentation_and_release_gates_are_wired():
     guide = SEC / "RELEASE_PROCESS_HERMETICITY_GUIDE.md"
     assert guide.exists()
-    text = guide.read_text().lower()
+    text = guide.read_text(encoding="utf-8").lower()
     for phrase in ("run 170", "git", "environment", "locale", "production"):
         assert phrase in text
-    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text().lower()
-    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text().lower()
-    readme = (ROOT / "README.md").read_text().lower()
+    gates = (SEC / "SECURITY_RELEASE_GATES.md").read_text(encoding="utf-8").lower()
+    evidence = (SEC / "RELEASE_EVIDENCE_GUIDE.md").read_text(encoding="utf-8").lower()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
     assert "run 170" in gates and "run 170" in evidence and "run 170" in readme

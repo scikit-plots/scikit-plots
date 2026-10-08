@@ -153,14 +153,25 @@ def test_mutant_is_caught(mutant: dict) -> None:
         # other is passed through unchanged, so a CSS mutant is still judged
         # against the real script and vice versa.
         mutated_path = pathlib.Path(tmp) / target_path.name
-        mutated_path.write_text(mutated, encoding="utf-8")
+        # Bytes, not text: text mode ends every line with CRLF on Windows.
+        # The copy would then differ from the source in every line, not only
+        # in the mutation, and harnesses that read the script line by line
+        # stop before they reach an assertion (30 mutants "crashed rather
+        # than failing" in the Windows job of CI run 37668804532).
+        mutated_path.write_bytes(mutated.encode("utf-8"))
         js_arg = mutated_path if target_path == _TARGET else _TARGET
         css_arg = mutated_path if target_path == _CSS_TARGET else _CSS_TARGET
 
         result = subprocess.run(
             ["node", str(harness), str(js_arg), str(css_arg), str(RUNTIME_ROOT)],
             capture_output=True,
+            # Node writes UTF-8. Without a named encoding the output is read
+            # in the locale's: cp1252 on Windows, where the bytes of a
+            # zero-width joiner (e2 80 8d) do not decode, the reader stops
+            # and ``stdout`` is None (Windows job of CI run 37694585156).
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=_TIMEOUT_S,
             check=False,
         )

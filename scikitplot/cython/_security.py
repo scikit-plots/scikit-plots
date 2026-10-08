@@ -79,7 +79,7 @@ import os
 import re
 from dataclasses import dataclass
 from dataclasses import field as field_  # noqa: F401
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Sequence
 
 __all__ = [
@@ -331,6 +331,56 @@ RELAXED_SECURITY_POLICY: SecurityPolicy = SecurityPolicy.relaxed()
 # ---------------------------------------------------------------------------
 
 
+def _is_anchored_path(path: str | os.PathLike[str]) -> bool:
+    r"""
+    Return ``True`` when a path names its own starting point on *any* platform.
+
+    Parameters
+    ----------
+    path : str or os.PathLike
+        Path to classify. It is read as text; nothing is looked up on disk.
+
+    Returns
+    -------
+    bool
+        ``True`` if the path is not purely relative: it starts at a root
+        (``/x``, ``\x``), names a drive (``C:\x``, ``C:x``) or a network
+        share (``\\host\share``). ``False`` for a path that is resolved
+        entirely against whatever directory it is joined to.
+
+    Notes
+    -----
+    **User.** The answer does not depend on the platform Python runs on, so a
+    build configuration is accepted or refused the same way everywhere.
+
+    **Developer.** ``pathlib.Path.is_absolute()`` asks the *running*
+    platform, and the two platforms disagree exactly where it matters:
+
+    * on Windows ``Path("/usr/include").is_absolute()`` is ``False`` (a root
+      without a drive), yet the path ignores the directory it is joined to
+      and lands at the root of the current drive;
+    * ``Path("C:x")`` is not absolute anywhere, yet on Windows it leaves the
+      directory it is joined to for drive ``C:``;
+    * on POSIX ``Path("C:\\x").is_absolute()`` is ``False``.
+
+    A check built on it therefore let rooted paths through on Windows
+    (``is_safe_path("/usr/include")`` was ``True`` there). Both grammars are
+    applied here: a path is anchored if POSIX calls it absolute or Windows
+    gives it any anchor (drive, root or share).
+
+    Examples
+    --------
+    >>> _is_anchored_path("include/mylib")
+    False
+    >>> _is_anchored_path("/usr/include")
+    True
+    >>> _is_anchored_path("C:x")
+    True
+    """
+    text = os.fsdecode(os.fspath(path))
+    return PurePosixPath(text).is_absolute() or bool(PureWindowsPath(text).anchor)
+
+
 def is_safe_path(
     path: str | os.PathLike[str],
     *,
@@ -369,8 +419,11 @@ def is_safe_path(
     """
     p = Path(os.fsdecode(os.fspath(path)))
     s = str(p)
-    # Reject traversal sequences unconditionally.
-    if ".." in p.parts:
+    raw = os.fsdecode(os.fspath(path))
+    # Reject traversal sequences unconditionally, whichever separator spells
+    # them: ``Path.parts`` splits on the running platform's separators only,
+    # so ``..\\x`` was one harmless-looking component on POSIX.
+    if ".." in PurePosixPath(raw).parts or ".." in PureWindowsPath(raw).parts:
         return False
     # Reject tilde that was not expanded (unexpanded tildes are suspicious).
     if "~" in s:
@@ -378,8 +431,8 @@ def is_safe_path(
     # Reject null bytes.
     if "\x00" in s:
         return False
-    # Absolute path check.
-    if p.is_absolute() and not allow_absolute:  # noqa: SIM103
+    # Absolute path check, by both platforms' rules (see _is_anchored_path).
+    if _is_anchored_path(raw) and not allow_absolute:  # noqa: SIM103
         return False
     return True
 

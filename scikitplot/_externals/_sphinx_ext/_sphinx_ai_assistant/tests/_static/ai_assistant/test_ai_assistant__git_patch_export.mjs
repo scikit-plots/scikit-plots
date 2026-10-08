@@ -84,6 +84,10 @@ if(gitAvailable){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-patch-'));
   const g=(...a)=>execFileSync('git',a,{cwd:dir,stdio:'pipe'});
   g('init','-q'); g('config','user.email','t@example.invalid'); g('config','user.name','T');
+  // Byte-exact assertions follow. Git for Windows converts line endings on
+  // checkout by default (core.autocrlf=true), which would hand back CRLF for
+  // content written with LF; the repository under test must not do that.
+  g('config','core.autocrlf','false'); g('config','core.eol','lf');
   fs.mkdirSync(path.join(dir,'docs'),{recursive:true});
   fs.writeFileSync(path.join(dir,'docs/index.rst'),before);
   g('add','-A'); g('commit','-qm','base');
@@ -110,6 +114,10 @@ if (gitAvailable) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-series-'));
   const g = (...a) => execFileSync('git', a, { cwd: dir, stdio: 'pipe' });
   g('init','-q'); g('config','user.email','t@example.invalid'); g('config','user.name','T');
+  // Byte-exact assertions follow. Git for Windows converts line endings on
+  // checkout by default (core.autocrlf=true), which would hand back CRLF for
+  // content written with LF; the repository under test must not do that.
+  g('config','core.autocrlf','false'); g('config','core.eol','lf');
   fs.mkdirSync(path.join(dir,'docs'),{recursive:true});
   fs.writeFileSync(path.join(dir,'docs/index.rst'), before);
   g('add','-A'); g('commit','-qm','base');

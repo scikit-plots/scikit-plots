@@ -35,7 +35,9 @@ Exports:
    - adds versioned manifest import/export,
    - provides explicit index I/O names (``save_index`` / ``load_index``),
    - provides safe Python-object persistence helpers (pickling),
-   - adds optional NumPy export and plotting utilities.
+   - adds optional NumPy export and plotting utilities,
+   - decides how many threads build an index from one rule
+     (:func:`~scikitplot.annoy.threads_info`, ``SKPLT_ANNOY_THREADS``).
 
 Notes
 -----
@@ -101,6 +103,7 @@ from ._mixins._ndarray import NDArrayMixin
 from ._mixins._pickle import CompressMode, PickleMixin, PickleMode
 from ._mixins._plotting import PlottingMixin
 from ._mixins._vectors import VectorOpsMixin
+from ._threads import threads_info
 
 # Define the annoy version
 # https://github.com/spotify/annoy/blob/main/setup.py
@@ -126,4 +129,5 @@ __all__ = [
     "PickleMode",
     "PlottingMixin",
     "VectorOpsMixin",
+    "threads_info",
 ]

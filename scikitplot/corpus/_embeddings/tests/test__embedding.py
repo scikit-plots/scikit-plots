@@ -646,14 +646,14 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_empty_texts_raises(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("dummy")
+        src.write_text("dummy", encoding="utf-8")
         with pytest.raises(ValueError, match="non-empty"):
             e.embed_with_cache([], src)
 
     def test_disabled_cache_always_recomputes(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(cache_dir=tmp_path, enable_cache=False)
         src = tmp_path / "src.txt"
-        src.write_text("content")
+        src.write_text("content", encoding="utf-8")
         r1, flag1 = e.embed_with_cache(["a"], src)
         r2, flag2 = e.embed_with_cache(["a"], src)
         assert flag1 is False
@@ -662,14 +662,14 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_cache_miss_returns_false_flag(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("hello")
+        src.write_text("hello", encoding="utf-8")
         _, flag = e.embed_with_cache(["text"], src)
         assert flag is False
 
     def test_cache_hit_returns_true_flag(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=8, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("hello")
+        src.write_text("hello", encoding="utf-8")
         e.embed_with_cache(["text"], src)  # miss — writes cache
         _, flag = e.embed_with_cache(["text"], src)  # hit
         assert flag is True
@@ -677,7 +677,7 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_cache_file_created_on_miss(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=16, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("hello")
+        src.write_text("hello", encoding="utf-8")
         e.embed_with_cache(["text1", "text2"], src)
         npy_files = list(tmp_path.glob("*.npy"))
         assert len(npy_files) == 1
@@ -685,7 +685,7 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_cached_values_match_computed(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=4, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("hello")
+        src.write_text("hello", encoding="utf-8")
         r1, _ = e.embed_with_cache(["one", "two"], src)
         r2, _ = e.embed_with_cache(["one", "two"], src)
         np.testing.assert_array_equal(r1, r2)
@@ -705,7 +705,7 @@ class TestEmbeddingEngineEmbedWithCache:
         # text must MISS (never reuse stale vectors) and get its own entry.
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("x")
+        src.write_text("x", encoding="utf-8")
         _, cached1 = e.embed_with_cache(["original"], src)
         _, cached2 = e.embed_with_cache(["changed!"], src)  # same path, same count
         _, cached3 = e.embed_with_cache(["changed!"], src)  # now cached
@@ -722,7 +722,7 @@ class TestEmbeddingEngineEmbedWithCache:
 
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
 
         with patch("scikitplot.corpus._embeddings._embedding._save_to_cache") as mock_save:
             mock_save.side_effect = OSError("disk full")
@@ -735,7 +735,7 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_returns_correct_shape_from_cache(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=32, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         e.embed_with_cache(["a", "b", "c"], src)
         r2, _ = e.embed_with_cache(["a", "b", "c"], src)
         assert r2.shape == (3, 32)
@@ -804,7 +804,7 @@ class TestEmbeddingEngineEmbedDocuments:
     def test_with_input_path_uses_cache(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=4, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc("hello")]
         out = e.embed_documents(docs, input_path=src)
         assert out[0].embedding is not None
@@ -969,7 +969,7 @@ class TestEmbeddingEngineIntegration:
             return np.ones((len(texts), 4), dtype=np.float32)
 
         src = tmp_path / "src.txt"
-        src.write_text("hello")
+        src.write_text("hello", encoding="utf-8")
 
         e1 = EmbeddingEngine(
             backend="custom", custom_fn=_fn,
@@ -990,7 +990,7 @@ class TestEmbeddingEngineIntegration:
         dim = 8
         e = _make_custom_engine(dim=dim, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
-        src.write_text("data")
+        src.write_text("data", encoding="utf-8")
         docs = [_Doc(f"doc {i}") for i in range(4)]
         out1 = e.embed_documents(docs, input_path=src)
         out2 = e.embed_documents(docs, input_path=src)

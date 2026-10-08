@@ -327,8 +327,8 @@ def to_corpus_status(status: str) -> Any:
     except ImportError as exc:
         raise RuntimeError(
             "scikitplot.corpus is required to map MCP retrieval statuses onto "
-            "RetrievalStatus; install the corpus extras "
-            "(pip install scikit-plots[corpus])."
+            "RetrievalStatus and is not installed "
+            "(pip install scikit-plots-corpus)."
         ) from exc
     return RetrievalStatus(status)
 

@@ -353,8 +353,8 @@ def test_collection_asset_registration_runtime_is_html_only_and_idempotent(tmp_p
     app.outdir = str(tmp_path / "html")
     ensure(app)
     assert [row[0] for row in calls] == ["css", "js"]
-    assert (tmp_path / "html" / "_static" / "sk-collection.css").read_text() == "body{display:block}"
-    assert (tmp_path / "html" / "_static" / "sk-collection.js").read_text() == "console.log('ok');"
+    assert (tmp_path / "html" / "_static" / "sk-collection.css").read_text(encoding="utf-8") == "body{display:block}"
+    assert (tmp_path / "html" / "_static" / "sk-collection.js").read_text(encoding="utf-8") == "console.log('ok');"
     before = (tmp_path / "html" / "_static" / "sk-collection.js").stat().st_mtime_ns
     ensure(app)
     after = (tmp_path / "html" / "_static" / "sk-collection.js").stat().st_mtime_ns
@@ -366,7 +366,7 @@ def test_collection_asset_registration_runtime_is_html_only_and_idempotent(tmp_p
     namespace["collection_asset_revision"] = lambda: "rev-2"
     namespace["ASSET_JS"] = "console.log('new');"
     ensure(app)
-    assert (tmp_path / "html" / "_static" / "sk-collection.js").read_text() == "console.log('new');"
+    assert (tmp_path / "html" / "_static" / "sk-collection.js").read_text(encoding="utf-8") == "console.log('new');"
     assert [row[0] for row in calls] == ["css", "js", "css", "js"]
 
 

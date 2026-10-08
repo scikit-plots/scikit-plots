@@ -38,9 +38,15 @@ class TestResolveWithin:
     def test_root_itself_ok(self) -> None:
         assert _resolve_within(_TEMPLATE_ROOT, ".") == _TEMPLATE_ROOT.resolve()
 
-    def test_absolute_rejected(self) -> None:
+    @pytest.mark.parametrize(
+        "anchored",
+        ["/etc/passwd", "\\Windows\\win.ini", "C:\\Windows\\win.ini", "C:win.ini"],
+    )
+    def test_absolute_rejected(self, anchored: str) -> None:
+        # Refused as "not relative" by the rules of both platforms, wherever
+        # the suite runs ("/etc/passwd" is not absolute for Windows' pathlib).
         with pytest.raises(ValueError, match="relative"):
-            _resolve_within(_TEMPLATE_ROOT, "/etc/passwd")
+            _resolve_within(_TEMPLATE_ROOT, anchored)
 
     @pytest.mark.parametrize("bad", ["../..", "../../_loader.py", "a/../../../x"])
     def test_traversal_rejected(self, bad: str) -> None:

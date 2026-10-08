@@ -34,7 +34,10 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 from urllib.parse import urlsplit
 
-import tomllib
+try:
+    import tomllib  # the standard library, Python >= 3.11
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
+    import tomli as tomllib  # the same parser, as the package it came from
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,7 @@ except (ImportError, ValueError) as exc:
 
 HERE = Path(__file__).resolve().parent
 POLICY = tomllib.loads(
-    (HERE / "release_archive_merkle_recovery_policy.toml").read_text()
+    (HERE / "release_archive_merkle_recovery_policy.toml").read_text(encoding="utf-8")
 )
 PREDICATE_TYPE = str(POLICY["predicate_type"])
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

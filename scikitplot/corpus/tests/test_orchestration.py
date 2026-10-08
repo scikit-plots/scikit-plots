@@ -844,7 +844,7 @@ class TestPipelineGuard:
                 list(guard.iter(iter(sample_docs)))
 
             assert ckpt.exists()
-            lines = ckpt.read_text().strip().split("\n")
+            lines = ckpt.read_text(encoding="utf-8").strip().split("\n")
             assert len(lines) > 0
             # Each line must be valid JSON with doc_id
             for line in lines:
@@ -902,7 +902,7 @@ class TestLLMTrainingExporter:
                 system_prompt="You are a helpful assistant.",
             )
             assert result_path.exists()
-            lines = [l for l in out_path.read_text().strip().split("\n") if l]
+            lines = [l for l in out_path.read_text(encoding="utf-8").strip().split("\n") if l]
             assert len(lines) == 5
             for line in lines:
                 obj = json.loads(line)
@@ -921,7 +921,7 @@ class TestLLMTrainingExporter:
             out_path = pathlib.Path(tf.name)
         try:
             exporter.to_openai_finetuning_jsonl(sample_docs, out_path)
-            line = json.loads(out_path.read_text().strip().split("\n")[0])
+            line = json.loads(out_path.read_text(encoding="utf-8").strip().split("\n")[0])
             assert "metadata" in line
             assert "doc_id" in line["metadata"]
         finally:
@@ -939,7 +939,7 @@ class TestLLMTrainingExporter:
                 sample_docs, out_path,
                 response_fn=lambda doc: "Answer: " + (doc.text or ""),
             )
-            line = json.loads(out_path.read_text().strip().split("\n")[0])
+            line = json.loads(out_path.read_text(encoding="utf-8").strip().split("\n")[0])
             msgs = line["messages"]
             assistant = [m for m in msgs if m["role"] == "assistant"]
             assert len(assistant) == 1
@@ -957,7 +957,7 @@ class TestLLMTrainingExporter:
             out_path = pathlib.Path(tf.name)
         try:
             exporter.to_openai_finetuning_jsonl(docs, out_path, skip_empty=True)
-            lines = [l for l in out_path.read_text().strip().split("\n") if l]
+            lines = [l for l in out_path.read_text(encoding="utf-8").strip().split("\n") if l]
             assert len(lines) == 1
         finally:
             out_path.unlink(missing_ok=True)
@@ -1284,7 +1284,7 @@ class TestCorpusPipelineRun:
 
         pipeline = CorpusPipeline()
         txt = tmp_path / "sample.txt"
-        txt.write_text("Hello world.")
+        txt.write_text("Hello world.", encoding="utf-8")
 
         captured = {}
 
@@ -1392,7 +1392,7 @@ class TestCorpusPipelineRunBatch:
 
         pipeline = CorpusPipeline()
         txt = tmp_path / "a.txt"
-        txt.write_text("hello")
+        txt.write_text("hello", encoding="utf-8")
         url = "https://example.com/b.html"
 
         call_sources = []

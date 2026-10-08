@@ -75,23 +75,51 @@ PathLikeAny = str | bytes | Path | os.PathLike[str] | os.PathLike[bytes]
 PathLikeSeq = Sequence[PathLikeAny] | PathLikeAny | None
 
 
+def _normalized_path(item: Any) -> str:
+    """
+    Return the identity ``_dedup_paths`` compares path-likes by.
+
+    Parameters
+    ----------
+    item : path-like or Any
+        A path, or anything a caller put where a path belongs.
+
+    Returns
+    -------
+    str
+        The absolute path with ``~`` expanded and symbolic links resolved;
+        ``repr(item)`` when ``item`` cannot be read as a path, so that such an
+        entry still has a stable identity and is left for validation to judge.
+    """
+    try:
+        return str(Path(os.fsdecode(os.fspath(item))).expanduser().resolve())
+    except (TypeError, ValueError, OSError):
+        return repr(item)
+
+
 def _dedup_paths(paths: list[Any], *, drop: set[Path] | None = None) -> list[Any]:
     """Deduplicate path-likes by normalized identity, preserving order.
 
     Two entries that resolve to the same absolute path are collapsed to the
-    first occurrence; any entry whose normalized form is in ``drop`` is removed
-    (CYTHON-PERF-001).  Non-resolvable entries are kept as-is (deduped by their
-    string form) so validation semantics are unchanged — this only removes
-    redundant duplicates, never a distinct path.
+    first occurrence; any entry whose normalized form equals the normalized
+    form of an entry of ``drop`` is removed (CYTHON-PERF-001).  Non-resolvable
+    entries are kept as-is (deduped by their string form) so validation
+    semantics are unchanged — this only removes redundant duplicates, never a
+    distinct path.
+
+    Notes
+    -----
+    **Developer.** ``drop`` is normalized exactly like ``paths``. It used to be
+    compared as written (``str(d)``) against *resolved* entries, so a ``drop``
+    path reached through a symbolic link never matched and was kept. That is
+    the ordinary case on macOS, where the temporary directory ``/var/...`` is
+    a link to ``/private/var/...``.
     """
-    drop_norm = {str(d) for d in drop or set()}
+    drop_norm = {_normalized_path(d) for d in drop or set()}
     seen: set[str] = set()
     out: list[Any] = []
     for item in paths:
-        try:
-            norm = str(Path(os.fsdecode(os.fspath(item))).expanduser().resolve())
-        except (TypeError, ValueError, OSError):
-            norm = repr(item)
+        norm = _normalized_path(item)
         if norm in drop_norm or norm in seen:
             continue
         seen.add(norm)

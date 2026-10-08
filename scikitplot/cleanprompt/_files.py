@@ -45,6 +45,12 @@ run hung behind another one" into an error a person can act on.
 elsewhere (an encrypted volume, say) keeps pointing there: the target is
 replaced, not the link.
 
+*Windows differs in two ways,* and both are stated where they apply. It has
+no permission bits, so ``mode`` restricts nothing there: a file gets the
+access rules of the folder it is created in. And it refuses to replace a file
+that another program has open, which POSIX allows; :func:`atomic_write`
+repeats a refused replace for about a second (see :func:`_replace`).
+
 See Also
 --------
 scikitplot.cleanprompt._cli : Every command that reads and writes a vault.
@@ -59,6 +65,9 @@ import time
 from collections.abc import Callable, Iterator
 
 from ._exceptions import CleanPromptError
+from ._logging import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = [
     "LOCK_TIMEOUT",
@@ -72,6 +81,19 @@ LOCK_TIMEOUT = 600.0
 
 #: Seconds between attempts while another run holds the lock.
 _POLL_SECONDS = 0.05
+
+#: Whether a refused replace is repeated. Windows answers
+#: ``PermissionError`` while another handle holds the target open (a reader,
+#: a virus scanner, an indexer); POSIX never does. A module constant, so that
+#: a test takes either branch on any platform.
+_RETRY_REFUSED_REPLACE: bool = os.name == "nt"
+
+#: Pauses, in seconds, between attempts of a refused replace: 15 attempts in
+#: about 1.2 s. A fixed table, so the worst case is a known length of time.
+_REPLACE_PAUSES: tuple[float, ...] = (
+    0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064,
+    0.1, 0.1, 0.15, 0.15, 0.2, 0.2, 0.2,
+)  # fmt: skip
 
 
 def _try_lock(descriptor: int) -> bool:
@@ -182,8 +204,58 @@ def locked(
         os.close(descriptor)
 
 
-def atomic_write(path: str, text: str, mode: int = 0o600) -> None:
+def _replace(source: str, target: str) -> None:
     """
+    Replace ``target`` with ``source``, repeating a refusal where one is transient.
+
+    Parameters
+    ----------
+    source : str
+        The finished sibling file.
+    target : str
+        The path to publish at.
+
+    Raises
+    ------
+    PermissionError
+        If the replace is refused and repeating does not apply
+        (:data:`_RETRY_REFUSED_REPLACE` is false) or did not help within
+        :data:`_REPLACE_PAUSES`. The last refusal is raised unchanged, and
+        ``target`` is as it was.
+    OSError
+        Any other failure, at once.
+
+    Notes
+    -----
+    **Developer notes.** Measured in the Windows job of CI run 37668804532:
+    ``PermissionError: [WinError 5] Access is denied`` from ``os.replace`` in
+    ``test_readers_never_see_a_partial_file``, where a thread reads the
+    target in a loop. Windows cannot replace a file while a handle that does
+    not share deletion is open on it, and Python's ``open`` does not share
+    deletion. There is no handle to wait on from here, so the call is
+    repeated. Only this one error is repeated, and every repetition is logged
+    at DEBUG.
+    """
+    attempts = len(_REPLACE_PAUSES) + 1 if _RETRY_REFUSED_REPLACE else 1
+    for attempt in range(attempts):
+        try:
+            os.replace(source, target)
+        except PermissionError:  # noqa: PERF203 - a retry is a try in a loop
+            if attempt == attempts - 1:
+                raise
+            logger.debug(
+                "replace of %s refused (attempt %d of %d); repeating",
+                target,
+                attempt + 1,
+                attempts,
+            )
+            time.sleep(_REPLACE_PAUSES[attempt])
+        else:
+            return
+
+
+def atomic_write(path: str, text: str, mode: int = 0o600) -> None:
+    r"""
     Replace the file at ``path`` with ``text`` in one step.
 
     Parameters
@@ -195,15 +267,25 @@ def atomic_write(path: str, text: str, mode: int = 0o600) -> None:
         The whole new content, written as UTF-8.
     mode : int, default=0o600
         Permission bits of the new file, set when it is created so there is no
-        moment at which it is readable by others.
+        moment at which it is readable by others. POSIX only; see the notes.
 
     Raises
     ------
+    PermissionError
+        On Windows, if another program keeps the file open for longer than
+        about a second. The target is then unchanged.
     OSError
         If the directory cannot be written. The target is then unchanged.
 
     Notes
     -----
+    **User notes.** On Windows there are no permission bits, so ``mode``
+    restricts nothing: the file has the access rules of its folder. The
+    default vault folder is inside the user's profile
+    (``%LOCALAPPDATA%\cleanprompt``); a vault kept anywhere else is as
+    private as that folder is. ``--encrypt`` protects the content on every
+    platform.
+
     **Developer notes.** The sibling file is created with ``O_EXCL`` under a
     random name, so two writers never share one; it is flushed and
     ``fsync``-ed before :func:`os.replace`, which is atomic on POSIX and on
@@ -223,7 +305,7 @@ def atomic_write(path: str, text: str, mode: int = 0o600) -> None:
             handle.write(text)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(scratch, target)
+        _replace(scratch, target)
     except BaseException:
         with contextlib.suppress(OSError):
             os.remove(scratch)

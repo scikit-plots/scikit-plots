@@ -36,7 +36,7 @@ from ..._schema import SectionType, SourceType
 def tmp_txt(tmp_path: pathlib.Path) -> pathlib.Path:
     """A real file so validate_input passes for tests that need it."""
     p = tmp_path / "test.txt"
-    p.write_text("hello world this is a test sentence for the corpus pipeline")
+    p.write_text("hello world this is a test sentence for the corpus pipeline", encoding="utf-8")
     return p
 
 
@@ -193,7 +193,7 @@ class TestCustomReaderDirect:
     def test_basic_str_extractor(self, tmp_txt: pathlib.Path) -> None:
         """Extractor returning str → one document."""
         def extractor(path: pathlib.Path, **kw: Any) -> str:
-            return path.read_text()
+            return path.read_text(encoding="utf-8")
 
         reader = CustomReader(input_path=tmp_txt, extractor=extractor)
         docs = list(reader.get_documents())
@@ -381,7 +381,7 @@ class TestCustomReaderRegister:
             extractor=ext,
         )
         p = tmp_path / "file.xyz3"
-        p.write_text("dummy")
+        p.write_text("dummy", encoding="utf-8")
         reader = DocumentReader.create(p)
         assert isinstance(reader, CustomReader)
         docs = list(reader.get_documents())
@@ -402,7 +402,7 @@ class TestCustomReaderRegister:
             reader_kwargs={"model": "large-v3"},
         )
         p = tmp_path / "file.xyz4"
-        p.write_text("dummy")
+        p.write_text("dummy", encoding="utf-8")
         docs = list(DocumentReader.create(p).get_documents())
         assert received.get("model") == "large-v3"
 
@@ -423,7 +423,7 @@ class TestCustomReaderRegister:
             reader_kwargs={"language": "en"},
         )
         p = tmp_path / "file.xyz5"
-        p.write_text("dummy")
+        p.write_text("dummy", encoding="utf-8")
         # Instance override: language="de" wins
         reader = Cls(input_path=p, reader_kwargs={"language": "de"})
         list(reader.get_documents())
@@ -485,7 +485,7 @@ class TestCustomReaderRegister:
             default_source_type=SourceType.PODCAST,
         )
         p = tmp_path / "file.xyz6"
-        p.write_text("dummy")
+        p.write_text("dummy", encoding="utf-8")
         docs = list(DocumentReader.create(p).get_documents())
         assert docs[0].source_type == SourceType.PODCAST
 
@@ -795,7 +795,7 @@ class TestAudioReaderCustomExtractor:
         mp3 = tmp_path / "episode.mp3"
         mp3.write_bytes(b"ID3fake")
         txt = tmp_path / "episode.txt"
-        txt.write_text("line one of the transcript\nline two of the transcript\n")
+        txt.write_text("line one of the transcript\nline two of the transcript\n", encoding="utf-8")
 
         reader = AudioReader(input_path=mp3, custom_extractor=None)
         docs = list(reader.get_documents())
@@ -888,7 +888,7 @@ class TestVideoReaderCustomExtractor:
         srt = tmp_path / "lecture.srt"
         srt.write_text(
             "1\n00:00:01,000 --> 00:00:04,000\nHello, this is the subtitle text.\n\n"
-            "2\n00:00:05,000 --> 00:00:08,000\nAnd here is another subtitle line.\n\n"
+            "2\n00:00:05,000 --> 00:00:08,000\nAnd here is another subtitle line.\n\n", encoding="utf-8"
         )
 
         reader = VideoReader(input_path=mp4, custom_extractor=None)

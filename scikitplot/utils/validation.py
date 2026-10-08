@@ -48,7 +48,7 @@ from ._array_api import (
     get_namespace_and_device,
     move_to,
 )
-from ._dataframe import is_pandas_df, is_pandas_df_or_series
+from ._dataframe import is_pandas_df, is_pandas_df_or_series, is_polars_df
 from sklearn.utils._isfinite import FiniteStatus, cy_isfinite
 from ._tags import get_tags
 from ._fixes import (
@@ -2355,6 +2355,9 @@ def _get_feature_names(X):
         - pandas dataframe : The columns will be considered to be feature
           names. If the dataframe contains non-string feature names, `None` is
           returned.
+        - polars dataframe : The columns are the feature names.
+        - Any other object with ``__dataframe__`` (the dataframe interchange
+          protocol, e.g. a pyarrow table) : its column names.
         - All other array containers will return `None`.
 
     Returns
@@ -2377,6 +2380,13 @@ def _get_feature_names(X):
         # that could fail with other libraries. Note: in the longer term, we
         # could decide to instead rely on the __dataframe_namespace__ API once
         # adopted by our minimally supported pandas version.
+        feature_names = np.asarray(X.columns, dtype=object)
+    elif is_polars_df(X):
+        # polars 2.0 removed ``DataFrame.__dataframe__`` (the dataframe
+        # interchange protocol the next branch relies on), so a polars frame
+        # fell through every branch and its column names were silently
+        # dropped. ``DataFrame.columns`` is a plain list of str in every polars
+        # release, with or without the protocol, and reading it copies no data.
         feature_names = np.asarray(X.columns, dtype=object)
     elif hasattr(X, "__dataframe__"):
         df_protocol = X.__dataframe__()

@@ -33,6 +33,12 @@ def _build(items, seed=0):
     return idx
 
 
+def _read(path):
+    """Return a file's bytes and close it (an unclosed file is an error here)."""
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
 @pytest.fixture
 def workdir(tmp_path):
     return str(tmp_path)
@@ -87,3 +93,68 @@ def test_failed_save_preserves_in_memory_index_and_target(workdir):
     assert idx.get_nns_by_vector(q, 8) == expected
     # no partial/temp files created anywhere under the workdir
     assert glob.glob(os.path.join(workdir, "**", "*.tmp-*"), recursive=True) == []
+
+
+def test_failed_replace_keeps_a_loaded_index_usable(workdir):
+    """ANNOY-WIN-002: an index mapped from a file survives a failed replace.
+
+    Where a mapped file cannot be replaced (Windows), ``save`` releases the
+    mapping before the replace. If the replace then fails, the index must be
+    mapped again from the file it came from: same answers, source untouched,
+    no temporary file. Elsewhere the mapping is never released, and the same
+    assertions hold. The replace is made to fail by naming a directory as the
+    target, which no platform replaces with a file.
+    """
+    q = [random.random() for _ in range(DIM)]
+    source = os.path.join(workdir, "source.ann")
+    _build(60).save(source)
+    before = _read(source)
+
+    idx = A.AnnoyIndex(DIM, "euclidean")
+    idx.load(source)
+    expected = idx.get_nns_by_vector(q, 8)
+
+    blocked = os.path.join(workdir, "a_directory")
+    os.mkdir(blocked)
+    with pytest.raises(OSError, match="replace target file"):
+        idx.save(blocked)
+
+    assert idx.get_n_items() == 60
+    assert idx.get_nns_by_vector(q, 8) == expected
+    assert _read(source) == before
+    assert os.path.isdir(blocked) and os.listdir(blocked) == []
+    assert glob.glob(os.path.join(workdir, "*.tmp-*")) == []
+    # The index is still mapped from a file it can be saved over.
+    idx.save(source)
+    assert idx.get_nns_by_vector(q, 8) == expected
+
+
+def test_save_over_the_file_another_index_was_loaded_from(workdir):
+    """A second index mapped from the target does not corrupt either one.
+
+    On POSIX the replace succeeds and the reader keeps the old contents. Where
+    a mapped file cannot be replaced, the save fails cleanly instead: the
+    target and both indexes are as they were.
+    """
+    q = [random.random() for _ in range(DIM)]
+    p = os.path.join(workdir, "shared.ann")
+    _build(60, seed=1).save(p)
+    reader = A.AnnoyIndex(DIM, "euclidean")
+    reader.load(p)
+    reader_expected = reader.get_nns_by_vector(q, 8)
+
+    writer = _build(40, seed=2)
+    writer_expected = writer.get_nns_by_vector(q, 8)
+    try:
+        writer.save(p)
+    except OSError:
+        replaced = False
+    else:
+        replaced = True
+
+    assert writer.get_nns_by_vector(q, 8) == writer_expected
+    assert reader.get_nns_by_vector(q, 8) == reader_expected
+    assert glob.glob(p + ".tmp-*") == []
+    fresh = A.AnnoyIndex(DIM, "euclidean")
+    fresh.load(p)
+    assert fresh.get_n_items() == (40 if replaced else 60)

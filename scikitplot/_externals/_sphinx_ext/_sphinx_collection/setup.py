@@ -170,7 +170,9 @@ def verify_collection_assets(app: Any, exception: BaseException | None) -> None:
             text.count(marker) < searchable or contract_roots < searchable
         ):
             try:
-                label = str(path.relative_to(app.outdir))
+                # POSIX form: the same message on every platform, and the
+                # page's path as it appears in a URL.
+                label = path.relative_to(app.outdir).as_posix()
             except ValueError:
                 label = str(path)
             stale_html.append(label)

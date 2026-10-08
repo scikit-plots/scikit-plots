@@ -44,10 +44,10 @@ def _advance_run163(
     tmp.mkdir(parents=True, exist_ok=True)
     r = f['r']
     state = json.loads(
-        (run161_prev / 'trusted-archive-health-state.json').read_text()
+        (run161_prev / 'trusted-archive-health-state.json').read_text(encoding="utf-8")
     )
     receipt = json.loads(
-        (r['run160'] / 'release-native-evidence-archive-receipt.json').read_text()
+        (r['run160'] / 'release-native-evidence-archive-receipt.json').read_text(encoding="utf-8")
     )
     mp, _ = t164.t163.r162t.r161t._membership(
         tmp,
@@ -182,7 +182,7 @@ def base(tmp_path_factory):
 def _adapters(base, authority=None, log_privs=None, gossip_privs=None, now=LATER):
     f = base['f']
     authority = authority or json.loads(
-        (base['run165'] / 'active-archive-log-authority.json').read_text()
+        (base['run165'] / 'active-archive-log-authority.json').read_text(encoding="utf-8")
     )['authority']
     log_privs = log_privs or f['lpriv']
     gossip_privs = gossip_privs or f['gpriv']
@@ -249,7 +249,7 @@ def _append(base, tmp, **kw):
     args.pop('historical', None)
     r165 = kw.get('run165') or base['run165']
     authority_map = json.loads(
-        (r165 / 'active-archive-log-authority.json').read_text()
+        (r165 / 'active-archive-log-authority.json').read_text(encoding="utf-8")
     )['authority']
     adapters = kw.get('adapters') or _adapters(base, authority=authority_map)
     res = cont.continue_merkle_authority(
@@ -267,10 +267,10 @@ def test_run166_bootstrap_bridge_and_offline_verify(base, tmp_path):
 def test_run166_first_checkpoint_bridges_exact_run165_checkpoint(base, tmp_path):
     out, _ = _append(base, tmp_path)
     rec = json.loads(
-        (out / 'release-archive-merkle-continuity-receipt.json').read_text()
+        (out / 'release-archive-merkle-continuity-receipt.json').read_text(encoding="utf-8")
     )
     st = json.loads(
-        (base['run165'] / 'trusted-archive-log-authority-state.json').read_text()
+        (base['run165'] / 'trusted-archive-log-authority-state.json').read_text(encoding="utf-8")
     )
     for lid, doc in rec['events'][0]['logResponses'].items():
         assert (
@@ -285,7 +285,7 @@ def test_run166_first_checkpoint_bridges_exact_run165_checkpoint(base, tmp_path)
 
 def _rotated_run165(base, tmp, kind='scheduled-rotation'):
     stp = base['run165'] / 'trusted-archive-log-authority-state.json'
-    st = json.loads(stp.read_text())
+    st = json.loads(stp.read_text(encoding="utf-8"))
     cur = copy.deepcopy(st['activeAuthority'])
     nxt = copy.deepcopy(cur)
     lid = sorted(nxt)[0]
@@ -346,7 +346,7 @@ def _rotated_run165(base, tmp, kind='scheduled-rotation'):
 def test_run166_scheduled_rotation_appends_with_new_key_only(base, tmp_path):
     r165, _, logs, goss = _rotated_run165(base, tmp_path / 'r')
     authority = json.loads(
-        (r165 / 'active-archive-log-authority.json').read_text()
+        (r165 / 'active-archive-log-authority.json').read_text(encoding="utf-8")
     )['authority']
     adapters = _adapters(base, authority, logs, goss)
     _, res = _append(
@@ -369,7 +369,7 @@ def test_run166_compromise_recovery_never_requires_old_key(base, tmp_path):
         base, tmp_path / 'r', kind='compromise-recovery'
     )
     authority = json.loads(
-        (r165 / 'active-archive-log-authority.json').read_text()
+        (r165 / 'active-archive-log-authority.json').read_text(encoding="utf-8")
     )['authority']
     _, res = _append(
         base,
@@ -396,7 +396,7 @@ def test_run166_run165_mutation_detected(base, tmp_path):
 
     shutil.copytree(base['run165'], bad)
     p = bad / 'active-archive-log-authority.json'
-    d = json.loads(p.read_text())
+    d = json.loads(p.read_text(encoding="utf-8"))
     d['sequence'] = 99
     p.write_bytes(cont._canonical(d))
     with pytest.raises(cont.ArchiveMerkleContinuityError):
@@ -408,7 +408,7 @@ def test_run166_run165_mutation_detected(base, tmp_path):
 def test_run166_log_signature_mutation_detected(base, tmp_path):
     out, _ = _append(base, tmp_path / 'a')
     p = out / 'release-archive-merkle-continuity-receipt.json'
-    d = json.loads(p.read_text())
+    d = json.loads(p.read_text(encoding="utf-8"))
     d['events'][0]['logResponses']['merkle-log-1']['signature'] = 'A' * 88
     p.write_bytes(cont._canonical(d))
     with pytest.raises(cont.ArchiveMerkleContinuityError):
@@ -418,7 +418,7 @@ def test_run166_gossip_split_view_rejected(base, tmp_path):
     ads = _adapters(base)
     lid = 'merkle-log-3'
     cfg = json.loads(
-        (base['run165'] / 'active-archive-log-authority.json').read_text()
+        (base['run165'] / 'active-archive-log-authority.json').read_text(encoding="utf-8")
     )['authority'][lid]
 
     def mut(s):
@@ -445,7 +445,7 @@ def test_run166_gossip_split_view_rejected(base, tmp_path):
 
 def test_run166_duplicate_json_keys_rejected(tmp_path):
     p = tmp_path / 'x.json'
-    p.write_text('{"a": 1, "a": 2}\n')
+    p.write_text('{"a": 1, "a": 2}\n', encoding="utf-8")
     with pytest.raises(
         cont.ArchiveMerkleContinuityError, match='DUPLICATE_KEY'
     ):
@@ -473,7 +473,7 @@ def test_run166_live_active_epoch_expires_but_historical_survives(base, tmp_path
     )['ok']
 
 def test_run166_documentation_mentions_recovered_authority_rfc6962_and_retired_key():
-    text = (SEC / 'RELEASE_ARCHIVE_MERKLE_CONTINUITY_GUIDE.md').read_text().lower()
+    text = (SEC / 'RELEASE_ARCHIVE_MERKLE_CONTINUITY_GUIDE.md').read_text(encoding="utf-8").lower()
     for phrase in (
         'run 165',
         'rfc6962',
@@ -502,7 +502,7 @@ def test_run166_second_post_handoff_epoch_extends_same_trees(base, tmp_path):
     out2 = tmp_path / 'out2'; args2 = _kwargs(base, out2, run161=run161c, wout=wout3, aout=aout3, now=later2); args2.pop('historical', None)
     res = cont.continue_merkle_authority(**args2, adapters=ads, previous_output_dir=out1)
     assert res['sequence'] == 3 and res['post_handoff_sequence'] == 2
-    rec = json.loads((out2/'release-archive-merkle-continuity-receipt.json').read_text())
+    rec = json.loads((out2/'release-archive-merkle-continuity-receipt.json').read_text(encoding="utf-8"))
     assert all(rec['events'][1]['logResponses'][lid]['signed']['consistencyProof'] for lid in rec['events'][1]['logResponses'])
     assert cont.verify_merkle_authority_continuity(**_kwargs(base, out2, run161=run161c, wout=wout3, aout=aout3, now=later2))['ok']
 
@@ -515,7 +515,7 @@ def test_run166_authority_change_after_bridge_requires_new_bridge(base, tmp_path
     cont.continue_merkle_authority(**args, adapters=ads)
     later2 = LATER + timedelta(minutes=5); run161c, wout3, aout3 = _advance_run163(base['f'], tmp_path/'advance3', seq=3, run161_prev=base['run161b'], wout_prev=base['wout2'], aout_prev=base['aout2'], now=later2)
     r165, lid, logs, goss = _rotated_run165(base, tmp_path/'rotation')
-    amap = json.loads((r165/'active-archive-log-authority.json').read_text())['authority']
+    amap = json.loads((r165/'active-archive-log-authority.json').read_text(encoding="utf-8"))['authority']
     ads2 = _adapters(base, amap, logs, goss, now=later2)
     args2 = _kwargs(base, tmp_path/'out2', run161=run161c, wout=wout3, aout=aout3, run165=r165, now=later2)
     args2.pop('historical', None)
@@ -524,13 +524,13 @@ def test_run166_authority_change_after_bridge_requires_new_bridge(base, tmp_path
 
 
 def test_run166_active_authority_cannot_overlap_witness_plane(base, tmp_path):
-    stp = base['run165'] / 'trusted-archive-log-authority-state.json'; st = json.loads(stp.read_text()); cur = copy.deepcopy(st['activeAuthority']); nxt = copy.deepcopy(cur); lid = sorted(nxt)[0]
+    stp = base['run165'] / 'trusted-archive-log-authority-state.json'; st = json.loads(stp.read_text(encoding="utf-8")); cur = copy.deepcopy(st['activeAuthority']); nxt = copy.deepcopy(cur); lid = sorted(nxt)[0]
     lp = Ed25519PrivateKey.generate(); gp = Ed25519PrivateKey.generate(); nxt[lid]['publicKey'] = _pub(lp); nxt[lid]['gossipPublicKey'] = _pub(gp)
     wit_key = next(iter(base['f']['wr']['signed']['keys'].values())); nxt[lid]['operator'] = wit_key['operator']
     tr, info = t165._transition(base, tmp_path, sequence=2, kind='scheduled-rotation', current=cur, nxt=nxt, previous_state_path=stp, issued=NOW + timedelta(seconds=2)); logs = dict(base['f']['lpriv']); goss = dict(base['f']['gpriv']); logs[lid] = lp; goss[lid] = gp
     hf = t165._handoff(base, tr, info, new_privs={'log': logs, 'gossip': goss}, old_privs={'log': base['f']['lpriv'], 'gossip': base['f']['gpriv']}); tp = _write(tmp_path / 'tr.json', tr); hp = _write(tmp_path / 'hf.json', hf); r165 = tmp_path / 'run165'
     auth.apply_log_authority_transition(run164_dir=base['run164'], transparency_root_path=base['f']['rp'], transparency_root_pin=base['f']['rpin'], governance_root_path=base['gp'], governance_root_pin=base['gpin'], recovery_root_path=base['rp'], recovery_root_pin=base['rpin'], transition_path=tp, handoff_path=hp, previous_output_dir=base['run165'], output_dir=r165, now=NOW + timedelta(seconds=2))
-    amap = json.loads((r165 / 'active-archive-log-authority.json').read_text())['authority']; args = _kwargs(base, tmp_path / 'out', run165=r165); args.pop('historical', None)
+    amap = json.loads((r165 / 'active-archive-log-authority.json').read_text(encoding="utf-8"))['authority']; args = _kwargs(base, tmp_path / 'out', run165=r165); args.pop('historical', None)
     with pytest.raises(cont.ArchiveMerkleContinuityError, match='EXTERNAL_AUTHORITY_OVERLAP'):
         cont.continue_merkle_authority(**args, adapters=_adapters(base, amap, logs, goss))
 
