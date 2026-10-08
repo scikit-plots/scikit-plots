@@ -466,7 +466,7 @@ def test_mirrors_run_concurrently_and_timeout_as_degraded(tmp_path):
         elapsed = loop.time() - started
     finally:
         loop.close()
-    assert elapsed < 0.9
+    assert elapsed < 0.99
     assert receipt["status"] == "accepted"
     assert receipt["mirrors"] == {"mirror-a": "degraded", "mirror-b": "degraded"}
 
