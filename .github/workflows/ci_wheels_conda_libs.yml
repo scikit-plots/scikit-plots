@@ -265,6 +265,8 @@ jobs:
           # build runs in a container, where cibuildwheel mounts the host's
           # root at /host; elsewhere the build runs on the host itself.
           CIBW_BEFORE_TEST: >-
+            ${{ (matrix.buildplat[1] }}_${{ matrix.buildplat[2] == 'win_ARM64')
+            && 'pip install numpy==2.4.0'}}
             pip install --no-index --find-links
             ${{ (matrix.buildplat[1] == 'manylinux' || matrix.buildplat[1] == 'musllinux')
             && format('/host{0}/dist/libs', github.workspace)
