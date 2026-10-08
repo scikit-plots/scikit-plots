@@ -56,24 +56,33 @@ updates:
       - dependency-name: "bus1/cabuild"
       # ── pypa/cibuildwheel: NEVER auto-update ──────────────────────────────
       # Reason: ci_wheels_conda.yml carries two intentionally different pins:
+      #   - Pin 1: v3.4.1 (cp38 / cp313t legacy compatibility)
+      #   - Pin 2: v4.3.0 (cp39 through cp315)
       #
       #   Pin 1 → v3.4.1  used for cp38 and cp313t
       #     cibuildwheel 4.x removed Python <3.9 support and cp313t support.
       #     v3.4.1 is the last 3.x release that covers both; any 3.x→4.x bump
       #     would immediately break every cp38 and cp313t matrix cell.
       #
-      #   Pin 2 → v4.1.0  used for cp39 through cp314t
-      #     v4.1.0 is the first release where cp314t works without an explicit
+      #   Pin 2 → v4.3.0  used for cp39 through cp315
+      #     v4.3.0 is the first release where cp314t works without an explicit
       #     cpython-freethreading enable flag.  A future patch might change the
       #     build selector format or drop another Python version without notice.
       #
       # Both pins must be updated together, manually, after reading the upstream
       # changelog at https://github.com/pypa/cibuildwheel/releases and verifying
       # the full Python version support matrix remains intact.
+      #
+      # Ignoring "semver-major" prevents Dependabot from bumping v3.4.1 -> v4.x.x,
+      # while allowing v4.1.0 to update to v4.2.0, v4.3.0, etc.
       - dependency-name: "pypa/cibuildwheel"
-        versions:
-          # - "*"  # block every version, including patch and minor bumps
-          - ">4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
+        # ⚠️ Note: When v5.0.0 eventually comes out, Dependabot will treat 4.x -> 5.x
+        # as a major bump and pause updates until you manually update the 4.x pin to 5.x.
+        update-types:
+          - "version-update:semver-major"
+        # versions:
+        #   # - "*"  # block every version, including patch and minor bumps
+        #   - ">4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
     commit-message:
       prefix: "[MAINT]"
       # include: "scope"
