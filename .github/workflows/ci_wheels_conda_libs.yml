@@ -249,12 +249,12 @@ jobs:
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
           # Free-threaded builds are left out until the part's tests have been
           # run on one.
-          CIBW_SKIP: ["cp3??t-*"]  # "cp39-*", "cp310-*", "cp310-win_arm64", "cp3??t-*"
+          CIBW_SKIP: "cp3??t-*"  # "cp39-*", "cp310-*", "cp310-win_arm64", "cp3??t-*"
           # https://cibuildwheel.pypa.io/en/stable/options/#build-skip
           # https://cibuildwheel.pypa.io/en/stable/options/#test-skip
           # ⚠️ numpy could not support below python 3.11 on win ARM so fail to build from sdist
           # https://pypi.org/project/numpy/2.3.5/?interpreter=cp311&platform=win_arm64#files
-          CIBW_TEST_SKIP: ["cp310-win_arm64"]
+          CIBW_TEST_SKIP: "cp310-win_arm64"
           CIBW_BUILD_FRONTEND: build
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.buildplat[3] }}
           # See THREADS at the top of this file. On Linux the build runs in a
