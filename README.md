@@ -387,9 +387,13 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
     <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
     rel="noopener noreferrer">
     anaconda.org
-    </a> carries the may latest development</strong> (by branch
-    <code>main</code>). Use <code>pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple</code> if you need the most
+    </a> may carries the latest development</strong> (branch
+    <code>main</code>). Use <code>pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots</code> if you need the most
     recent bug fixes or features.
+    <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
+    rel="noopener noreferrer">
+    https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
+    </a>
   </li>
   <li>
     ℹ️ <strong>
@@ -435,7 +439,7 @@ docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891
     <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
     rel="noopener noreferrer">
     anaconda.org
-    </a> Try to install packages from this channel</strong> (by branch
+    </a> Try to install packages from this channel</strong> (branch
     <code>main</code>).
     <a href="https://anaconda.org/channels/scikit-plots-wheels-staging-nightly" target="_blank"
     rel="noopener noreferrer">
