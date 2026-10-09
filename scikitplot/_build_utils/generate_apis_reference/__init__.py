@@ -92,8 +92,8 @@ class SectionReference:
     classes: list[str]
     sources: list[str]
     exclude: set[str]
-    autosummary_node: ast.list
-    classes_node: Optional[ast.list]
+    autosummary_node: ast.List
+    classes_node: Optional[ast.List]
 
     @property
     def label(self) -> str:
@@ -294,7 +294,7 @@ def _node_to_blueprint(
 ) -> object:
     """Convert template AST into editable data while preserving expressions."""
 
-    if isinstance(node, ast.dict):
+    if isinstance(node, ast.Dict):
         result: dict[str, object] = {}
         for key_node, value_node in zip(node.keys, node.values):
             if key_node is None:
@@ -312,7 +312,7 @@ def _node_to_blueprint(
                 context="%s.%s" % (context, key),
             )
         return result
-    if isinstance(node, ast.list):
+    if isinstance(node, ast.List):
         return [
             _node_to_blueprint(
                 source,
@@ -321,7 +321,7 @@ def _node_to_blueprint(
             )
             for index, item in enumerate(node.elts)
         ]
-    if isinstance(node, ast.tuple):
+    if isinstance(node, ast.Tuple):
         return [
             _node_to_blueprint(
                 source,
@@ -783,7 +783,7 @@ def _literal(
 
 
 def _dict_items(node: ast.AST) -> dict[str, ast.AST]:
-    if not isinstance(node, ast.dict):
+    if not isinstance(node, ast.Dict):
         raise APIReferenceError(
             "expected dictionary literal in APIS_REFERENCE",
         )
@@ -900,7 +900,7 @@ def load_reference(
         ):
             assignment = value
 
-    if not isinstance(assignment, ast.dict):
+    if not isinstance(assignment, ast.Dict):
         raise APIReferenceError(
             "could not find literal APIS_REFERENCE dictionary assignment",
         )
@@ -918,7 +918,7 @@ def load_reference(
             )
         module_fields = _dict_items(value_node)
         sections_node = module_fields.get("sections")
-        if not isinstance(sections_node, ast.list):
+        if not isinstance(sections_node, ast.List):
             raise APIReferenceError(
                 "%s.sections must be a literal list" % module_name,
             )
@@ -936,13 +936,13 @@ def load_reference(
                     % (module_name, index),
                 )
             autosummary_node = fields.get("autosummary")
-            if not isinstance(autosummary_node, ast.list):
+            if not isinstance(autosummary_node, ast.List):
                 raise APIReferenceError(
                     "%s section %d autosummary must be a literal list"
                     % (module_name, index),
                 )
             classes_node = fields.get("classes")
-            if classes_node is not None and not isinstance(classes_node, ast.list):
+            if classes_node is not None and not isinstance(classes_node, ast.List):
                 raise APIReferenceError(
                     "%s section %d classes must be a literal list"
                     % (module_name, index),
@@ -1303,7 +1303,7 @@ def inspect_reference(
 def _line_comment_guard(
     lines: list[str],
     node: ast.Constant,
-    list_node: ast.list,
+    list_node: ast.List,
 ) -> bool:
     """Return True when removing ``node`` may orphan a nearby explanatory comment."""
 
@@ -1335,7 +1335,7 @@ def _line_comment_guard(
 
 
 def _list_element_lines(
-    node: ast.list,
+    node: ast.List,
 ) -> dict[str, ast.Constant]:
     result: dict[str, ast.Constant] = {}
     for child in node.elts:

@@ -1,4 +1,0 @@
-
-extensions = [
-    "jupyterlite_sphinx",
-]

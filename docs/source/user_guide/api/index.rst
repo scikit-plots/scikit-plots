@@ -30,6 +30,7 @@ For model evaluation metric performance.
 .. grid:: 1 1 2 2
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **decomposition**
@@ -40,6 +41,7 @@ For model evaluation metric performance.
             decomposition.rst
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **estimators**
@@ -50,6 +52,7 @@ For model evaluation metric performance.
             estimators.rst
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **metrics**

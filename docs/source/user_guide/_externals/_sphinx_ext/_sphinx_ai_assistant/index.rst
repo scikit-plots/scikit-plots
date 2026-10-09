@@ -1,6 +1,7 @@
 .. currentmodule:: scikitplot._externals._sphinx_ext._sphinx_ai_assistant
 
 .. _externals-sphinx-ext-sphinx-ai-assistant-index:
+.. _externals_-sphinx_ext_-sphinx_ai_assistant_-index:
 
 ======================================================================
 Sphinx AI Assistant

@@ -246,7 +246,7 @@ keeps the boundary narrow:
 The callable receives only the redacted prompt and returns the model reply.
 
 Full control: ``Redactor`` and policy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use :class:`Redactor` when you need explicit detector or overlap control:
 
@@ -536,7 +536,7 @@ before they are embedded, indexed, or prompted. See :ref:`corpus-index` for
 the corpus side of that workflow.
 
 Guarding models, tools, and agents
----------------------------------
+----------------------------------
 
 :class:`Guard` is the boundary for integrations where text should be checked
 immediately before it crosses into a model/tool and decoded immediately after

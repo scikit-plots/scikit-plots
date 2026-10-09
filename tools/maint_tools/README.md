@@ -123,3 +123,31 @@ Runtime generation remains conservative: prefer `__all__` when present,
 otherwise inventory locally defined public objects; exclude module objects by
 default; auto-assign only unambiguous symbols; and report optional/compiled
 import failures as unverified rather than using them as deletion evidence.
+
+## Affiliated / partial-distribution index generator
+
+`generate_affiliated_index.py` keeps `docs/source/affiliated/index.rst` aligned
+with the partial distributions under `libs/` without creating a second package
+registry. Ownership is read from `scikitplot/_distributions.py`; packaging facts
+are read from `libs/_tools/registry.py`; the surrounding human-authored narrative
+lives in `docs/source/affiliated/index.rst.in`.
+
+```sh
+# Fail when the generated page is stale.
+python tools/maint_tools/generate_affiliated_index.py check
+
+# Render the expected page without writing it.
+python tools/maint_tools/generate_affiliated_index.py render
+
+# Preview a synchronization as a diff.
+python tools/maint_tools/generate_affiliated_index.py sync
+
+# Apply only after reviewing the preview.
+python tools/maint_tools/generate_affiliated_index.py sync --apply
+```
+
+The helper does not import `scikitplot`, does not use the network, and validates
+that the ownership and packaging registries describe the same distributions.
+The page intentionally calls these entries *partial distributions*, not
+independent affiliated projects: they are maintained from the same repository
+and share the `scikitplot` namespace.

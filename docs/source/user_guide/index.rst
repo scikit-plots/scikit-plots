@@ -203,6 +203,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **lexical document ranking**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Rank-BM25 <./rank_bm25/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **seaborn based**
         ^^^
         .. toctree::

@@ -139,8 +139,8 @@ EmbeddingVector = list[float]
 class DocumentStatus(str, Enum):
     """Lifecycle state of a :class:`CorpusDocument` in the corpus pipeline.
 
-    Values
-    ------
+    Parameters
+    ----------
     PENDING
         Ingested but not yet processed.
     PROCESSING
@@ -164,8 +164,8 @@ class DocumentStatus(str, Enum):
 class ContentType(str, Enum):
     """MIME-style content type for raw document payloads.
 
-    Values
-    ------
+    Parameters
+    ----------
     PLAIN_TEXT
         UTF-8 encoded plain text.
     MARKDOWN
@@ -204,8 +204,8 @@ class ContentType(str, Enum):
 class StorageBackend(str, Enum):
     """Storage backend identifiers for the corpus store.
 
-    Values
-    ------
+    Parameters
+    ----------
     MEMORY
         In-process dict store (testing / prototyping only).
     SQLITE
@@ -238,8 +238,8 @@ class StorageBackend(str, Enum):
 class NormalizerType(str, Enum):
     """Normalisation step identifiers for pipeline ordering.
 
-    Values
-    ------
+    Parameters
+    ----------
     UNICODE
         Unicode NFC/NFD/NFKC/NFKD normalisation.
     WHITESPACE

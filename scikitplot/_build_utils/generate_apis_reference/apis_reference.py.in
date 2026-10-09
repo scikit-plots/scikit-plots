@@ -825,34 +825,34 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "create_app",
                 ],
             },
-            {
-                "title": "Artifact Plan",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "PATH_PATTERN",
-                    "ArtifactPlan",
-                    "encode_artifact",
-                    "path_seed",
-                    "plan_artifact",
-                ],
-            },
-            {
-                "title": "Bridge any Model you Run as a Command",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "run_command",
-                    "split_command",
-                ],
-            },
-            {
-                "title": "Canonical",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "canonical",
-                    "normal_form",
-                    "value_pattern",
-                ],
-            },
+            # {
+            #     "title": "Artifact Plan",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "PATH_PATTERN",
+            #         # "ArtifactPlan",
+            #         # "encode_artifact",
+            #         # "path_seed",
+            #         # "plan_artifact",
+            #     ],
+            # },
+            # {
+            #     "title": "Bridge any Model you Run as a Command",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "run_command",
+            #         # "split_command",
+            #     ],
+            # },
+            # {
+            #     "title": "Canonical",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "canonical",
+            #         # "normal_form",
+            #         # "value_pattern",
+            #     ],
+            # },
             {
                 "title": "Capability",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
@@ -865,47 +865,47 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "require",
                 ],
             },
-            {
-                "title": "Catalog Artifact",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "AT_REST_PACKS",
-                    "COMPILED_PATH",
-                    "CONFIG_DIR",
-                    "Catalog",
-                    "at_rest_findings",
-                    "builtin_catalog",
-                    "check_compiled",
-                    "compile_config",
-                    "write_compiled",
-                ],
-            },
-            {
-                "title": "Code Discovery",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "COLUMN_KEYWORDS",
-                    "COLUMN_METHODS",
-                    "Discovery",
-                    "discover",
-                ],
-            },
-            {
-                "title": "Corpus Bridge",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "DERIVED_FIELDS",
-                    "TEXT_FIELDS",
-                    "read_text",
-                    "redact_documents",
-                    "register_corpus_readers",
-                ],
-            },
+            # {
+            #     "title": "Catalog Artifact",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "AT_REST_PACKS",
+            #         # "COMPILED_PATH",
+            #         # "CONFIG_DIR",
+            #         # "Catalog",
+            #         # "at_rest_findings",
+            #         # "builtin_catalog",
+            #         # "check_compiled",
+            #         # "compile_config",
+            #         # "write_compiled",
+            #     ],
+            # },
+            # {
+            #     "title": "Code Discovery",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "COLUMN_KEYWORDS",
+            #         # "COLUMN_METHODS",
+            #         # "Discovery",
+            #         # "discover",
+            #     ],
+            # },
+            # {
+            #     "title": "Corpus Bridge",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "DERIVED_FIELDS",
+            #         # "TEXT_FIELDS",
+            #         # "read_text",
+            #         # "redact_documents",
+            #         # "register_corpus_readers",
+            #     ],
+            # },
             {
                 "title": "Custom Domain and Point",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "MAX_FILE_BYTES",
+                    # "MAX_FILE_BYTES",
                     "load_custom",
                     "with_custom",
                 ],
@@ -933,17 +933,17 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "suggest_terms",
                 ],
             },
-            {
-                "title": "Document Regions",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "FORMATS",
-                    # "ROLES",
-                    "Region",
-                    "detect_format",
-                    "regions_for",
-                ],
-            },
+            # {
+            #     "title": "Document Regions",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "FORMATS",
+            #         # "ROLES",
+            #         # "Region",
+            #         # "detect_format",
+            #         # "regions_for",
+            #     ],
+            # },
             {
                 "title": "Redactor",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
@@ -970,21 +970,21 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "trim_entity_span",
                 ],
             },
-            {
-                "title": "File Spec",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "LOCK_TIMEOUT",
-                    "atomic_write",
-                    "locked",
-                ],
-            },
+            # {
+            #     "title": "File Spec",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "LOCK_TIMEOUT",
+            #         # "atomic_write",
+            #         # "locked",
+            #     ],
+            # },
             {
                 "title": "Format Spec",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
                     "FormatSpec",
-                    "format_from_document",
+                    # "format_from_document",
                 ],
             },
             {
@@ -1013,7 +1013,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Mcp Server",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "PROTOCOL_VERSIONS",
+                    # "PROTOCOL_VERSIONS",
                     "McpServer",
                     # "serve",
                 ],
@@ -1032,33 +1032,33 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Nltk Detector",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "REQUIRED_CORPORA",
+                    # "REQUIRED_CORPORA",
                     "NltkDetector",
                     "nltk_detector",
                 ],
             },
-            {
-                "title": "Office Limits",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "OFFICE_EXTENSIONS",
-                    "OfficeLimits",
-                    "extract_office_text",
-                ],
-            },
+            # {
+            #     "title": "Office Limits",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "OFFICE_EXTENSIONS",
+            #         # "OfficeLimits",
+            #         # "extract_office_text",
+            #     ],
+            # },
             {
                 "title": "Pack Pattern Detector",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "VALUE_GROUP",
-                    "CodeSpec",
+                    # "VALUE_GROUP",
+                    # "CodeSpec",
                     "FieldSpec",
                     "PackError",
-                    "PackPatternDetector",
+                    # "PackPatternDetector",
                     "PackSpec",
-                    "normalise_field",
-                    "pack_detectors",
-                    "pack_from_document",
+                    # "normalise_field",
+                    # "pack_detectors",
+                    # "pack_from_document",
                 ],
             },
             {
@@ -1076,13 +1076,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Plan Spec",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "KEEPABLE",
-                    "PLAN_SCHEMA",
+                    # "KEEPABLE",
+                    # "PLAN_SCHEMA",
                     "CleanPlan",
                     "FluentCleanPrompt",
-                    "load_plan",
-                    "plan_from_dict",
-                    "save_plan",
+                    # "load_plan",
+                    # "plan_from_dict",
+                    # "save_plan",
                 ],
             },
             {
@@ -1113,69 +1113,69 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Runtime Helper",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "SKIPPED_DIRECTORIES",
+                    # "SKIPPED_DIRECTORIES",
                     "Cleaner",
                     "Encoded",
                     "Item",
-                    "kind_totals",
-                    "restore_archive",
-                    "restore_tree",
-                    "sentinel",
+                    # "kind_totals",
+                    # "restore_archive",
+                    # "restore_tree",
+                    # "sentinel",
                 ],
             },
-            {
-                "title": "Schema Helper",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "NEUTRAL_ROLE",
-                    # "ROLES",
-                    "SCHEMA_KINDS",
-                    "infer_role",
-                    "is_safe_to_rename",
-                    "path_surrogate",
-                    "role_for",
-                    "schema_surrogate",
-                ],
-            },
-            {
-                "title": "Serve (flask) Web Interface",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "container_files",
-                    "resolve_bind",
-                    # "serve",
-                ],
-            },
-            {
-                "title": "Session Interactive Terminal",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "run_session",
-                ],
-            },
-            {
-                "title": "Structured Text",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "SPLITTERS",
-                    "FieldDetector",
-                    "FieldRegion",
-                    "field_regions",
-                    "json_tokens",
-                    "match_field",
-                    "record_starts",
-                ],
-            },
-            {
-                "title": "Surrogate Text",
-                # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-                "autosummary": [
-                    "DEFAULT_STYLE",
-                    "STYLES",
-                    "SURROGATE_KINDS",
-                    "surrogate_for",
-                ],
-            },
+            # {
+            #     "title": "Schema Helper",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "NEUTRAL_ROLE",
+            #         # "ROLES",
+            #         # "SCHEMA_KINDS",
+            #         # "infer_role",
+            #         # "is_safe_to_rename",
+            #         # "path_surrogate",
+            #         # "role_for",
+            #         # "schema_surrogate",
+            #     ],
+            # },
+            # {
+            #     "title": "Serve (flask) Web Interface",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "container_files",
+            #         # "resolve_bind",
+            #         # "serve",
+            #     ],
+            # },
+            # {
+            #     "title": "Session Interactive Terminal",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "run_session",
+            #     ],
+            # },
+            # {
+            #     "title": "Structured Text",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "SPLITTERS",
+            #         # "FieldDetector",
+            #         # "FieldRegion",
+            #         # "field_regions",
+            #         # "json_tokens",
+            #         # "match_field",
+            #         # "record_starts",
+            #     ],
+            # },
+            # {
+            #     "title": "Surrogate Text",
+            #     # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
+            #     "autosummary": [
+            #         # "DEFAULT_STYLE",
+            #         # "STYLES",
+            #         # "SURROGATE_KINDS",
+            #         # "surrogate_for",
+            #     ],
+            # },
             {
                 "title": "Vault",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
@@ -1187,13 +1187,13 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "title": "Vault Encryption",
                 # "description": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
                 "autosummary": [
-                    "CIPHERS",
-                    "DEFAULT_CIPHER",
-                    "PORTABLE_CIPHER",
+                    # "CIPHERS",
+                    # "DEFAULT_CIPHER",
+                    # "PORTABLE_CIPHER",
                     "decrypt_mapping",
                     "encrypt_mapping",
-                    "new_passphrase",
-                    "resolve_cipher",
+                    # "new_passphrase",
+                    # "resolve_cipher",
                 ],
             },
         ],
@@ -1281,16 +1281,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ArtifactError",
                 ],
             },
-            {
-                "title": "Atomic File Handler",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "atomic_write_bytes",
-                    "atomic_write_path",
-                ],
-            },
+            # {
+            #     "title": "Atomic File Handler",
+            #     # "description": (
+            #     #     _get_submodule("scikitplot.corpus", "__init__")
+            #     # ),
+            #     "autosummary": [
+            #         # "atomic_write_bytes",
+            #         # "atomic_write_path",
+            #     ],
+            # },
             {
                 "title": "Base Classes",
                 # "description": (
@@ -1314,20 +1314,20 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "DummyReader",
                 ],
             },
-            {
-                "title": "Canonical Encoding",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "CANONICAL_VERSION",
-                    "CanonicalError",
-                    "canonical_bytes",
-                    "canonical_digest",
-                ],
-                # for inheritance-diagram
-                "classes": [],
-            },
+            # {
+            #     "title": "Canonical Encoding",
+            #     # "description": (
+            #     #     _get_submodule("scikitplot.corpus", "__init__")
+            #     # ),
+            #     "autosummary": [
+            #         # "CANONICAL_VERSION",
+            #         # "CanonicalError",
+            #         # "canonical_bytes",
+            #         # "canonical_digest",
+            #     ],
+            #     # for inheritance-diagram
+            #     "classes": [],
+            # },
             {
                 "title": "Capability Status",
                 # "description": (
@@ -1357,19 +1357,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # for inheritance-diagram
                 "classes": [],
             },
-            {
-                "title": "Collection Membership",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "CollectionError",
-                    "CorpusCollection",
-                    "Member",
-                ],
-                # for inheritance-diagram
-                "classes": [],
-            },
+            # {
+            #     "title": "Collection Membership",
+            #     # "description": (
+            #     #     _get_submodule("scikitplot.corpus", "__init__")
+            #     # ),
+            #     "autosummary": [
+            #         # "CollectionError",
+            #         # "CorpusCollection",
+            #         # "Member",
+            #     ],
+            #     # for inheritance-diagram
+            #     "classes": [],
+            # },
             {
                 "title": "Chunkers",
                 # "description": (
@@ -1764,9 +1764,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # xml
                     "TEIReader",
                     "XMLReader",
-                    "XmlSecurityError",
-                    "hardened_lxml_parser",
-                    "parse_stdlib_secure",
+                    # "XmlSecurityError",
+                    # "hardened_lxml_parser",
+                    # "parse_stdlib_secure",
                     # zip
                     "ArchiveNestingError",
                     "ZipReader",
@@ -1787,18 +1787,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "registry",
                 ],
             },
-            {
-                "title": "Resources (NLTK)",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "ResourceUnavailableError",
-                    "downloads_allowed",
-                    "ensure_nltk_resource",
-                    "nltk_resource_available",
-                ],
-            },
+            # {
+            #     "title": "Resources (NLTK)",
+            #     # "description": (
+            #     #     _get_submodule("scikitplot.corpus", "__init__")
+            #     # ),
+            #     "autosummary": [
+            #         # "ResourceUnavailableError",
+            #         # "downloads_allowed",
+            #         # "ensure_nltk_resource",
+            #         # "nltk_resource_available",
+            #     ],
+            # },
             {
                 "title": "Retrieval Response",
                 # "description": (
@@ -2010,19 +2010,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "list_api",
                 ],
             },
-            {
-                "title": "Build Budget",
-                # "description": (
-                #     _get_submodule("scikitplot.cython", "__init__")
-                # ),
-                "autosummary": [
-                    "BoundedBuffer",
-                    "BuildBudget",
-                    "BuildDiagnostic",
-                    "BuildTimeoutError",
-                    "run_with_deadline",
-                ],
-            },
+            # {
+            #     "title": "Build Budget",
+            #     # "description": (
+            #     #     _get_submodule("scikitplot.cython", "__init__")
+            #     # ),
+            #     "autosummary": [
+            #         # "BoundedBuffer",
+            #         # "BuildBudget",
+            #         # "BuildDiagnostic",
+            #         # "BuildTimeoutError",
+            #         # "run_with_deadline",
+            #     ],
+            # },
             {
                 "title": "Build an Extension Module (PKG/MOD)",
                 # "description": (

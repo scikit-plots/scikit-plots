@@ -1,6 +1,7 @@
 .. currentmodule:: scikitplot._externals._sphinx_ext
 
 .. _externals-sphinx-ext-index:
+.. _externals_-sphinx_ext_-index:
 
 ======================================================================
 Bundled Sphinx extensions (experimental)

@@ -370,12 +370,10 @@ Gallery reliability rule
 
 Keep Annoy examples small, explicit, and honest:
 
-``missing optional native/compiler capability``
-    visible ``SKIP`` when continuation is safe.
+``missing optional native/compiler capability`` visible ``SKIP`` when continuation is safe.
 
 ``wrong public API / invalid vector dimension / corrupt required artifact /
-installed-backend failure``
-    visible failure.
+installed-backend failure`` visible failure.
 
 Do not fabricate fallback nearest-neighbor results merely to keep a gallery
 page green.
