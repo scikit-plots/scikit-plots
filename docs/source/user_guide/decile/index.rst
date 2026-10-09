@@ -31,6 +31,7 @@ For model evaluation decile-wise performance.
 .. grid:: 1 1 2 2
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **kds**
@@ -41,6 +42,7 @@ For model evaluation decile-wise performance.
             kds.rst
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **modelplotpy**

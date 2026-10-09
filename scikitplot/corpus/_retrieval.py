@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Operation outcomes for retrieval: :class:`RetrievalResponse` and per-leg status.
+"""
+Operation outcomes for retrieval: :class:`RetrievalResponse` and per-leg status.
 
 A retrieval operation can run several *independent evidence paths* -- lexical,
 dense, graph -- and any one of them can fail while the others succeed.  This

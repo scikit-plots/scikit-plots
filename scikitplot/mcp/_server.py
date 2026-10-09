@@ -4,6 +4,7 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
 Thin MCP SDK v2 server shell over the SDK-independent retrieval core.
 
@@ -17,7 +18,14 @@ import logging
 from collections.abc import Callable
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    StrictStr,
+    model_validator,
+)
 
 from ._capabilities import (
     effective_server_capabilities,

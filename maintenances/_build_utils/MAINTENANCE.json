@@ -23,10 +23,10 @@
   ],
   "runtime_contract": {
     "inventory": {
-      "baseline_sha256": "178a8d79294682a72032add3a76d41ae29663346791cd4ce8da90bab2d826247",
-      "tracked_files": 23,
-      "production_python_files": 19,
-      "test_python_files": 2,
+      "baseline_sha256": "01a8c772ec0d5ae1f525d6d1f06424405b31a970024b2f7a776f63f774417080",
+      "tracked_files": 27,
+      "production_python_files": 21,
+      "test_python_files": 3,
       "test_support_python_files": 1,
       "paths": [
         "__init__.py",
@@ -42,6 +42,9 @@
         "fix_submodule_import.py",
         "fix_submodule_import_v2.py",
         "gcc_build_bitness.py",
+        "generate_apis_reference/__init__.py",
+        "generate_apis_reference/__main__.py",
+        "generate_apis_reference/apis_reference.py.in",
         "gitversion.py",
         "install_meson_features.py",
         "link-version-pyinit.map",
@@ -50,6 +53,7 @@
         "tempita.py",
         "tests/__init__.py",
         "tests/test_fix_submodule_import_v2.py",
+        "tests/test_generate_apis_reference.py",
         "tests/test_gitversion.py",
         "version.py"
       ]
@@ -68,6 +72,7 @@
       "scikitplot/_build_utils/fix_submodule_import.py",
       "scikitplot/_build_utils/fix_submodule_import_v2.py",
       "scikitplot/_build_utils/gcc_build_bitness.py",
+      "scikitplot/_build_utils/generate_apis_reference/__init__.py",
       "scikitplot/_build_utils/gitversion.py",
       "scikitplot/_build_utils/install_meson_features.py",
       "scikitplot/_build_utils/link-version-pyinit.map",
@@ -76,8 +81,11 @@
       "scikitplot/_build_utils/tempita.py",
       "scikitplot/_build_utils/tests/__init__.py",
       "scikitplot/_build_utils/tests/test_fix_submodule_import_v2.py",
+      "scikitplot/_build_utils/tests/test_generate_apis_reference.py",
       "scikitplot/_build_utils/tests/test_gitversion.py",
-      "scikitplot/_build_utils/version.py"
+      "scikitplot/_build_utils/version.py",
+      "scikitplot/_build_utils/generate_apis_reference/__main__.py",
+      "scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in"
     ],
     "required_symbols": {
       "scikitplot/_build_utils/tempita.py": [
@@ -118,6 +126,22 @@
         "ImportTransformer",
         "TransformConfig",
         "process_file"
+      ],
+      "scikitplot/_build_utils/generate_apis_reference/__init__.py": [
+        "Policy",
+        "ReferenceModel",
+        "InspectionReport",
+        "load_policy",
+        "load_reference",
+        "inspect_reference",
+        "render_plan",
+        "PythonExpression",
+        "reference_blueprint_copy",
+        "validate_reference_blueprint",
+        "build_reference_source",
+        "main",
+        "default_template_path",
+        "load_reference_blueprint"
       ]
     }
   }

@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers.alto
 ===============================
+
 ALTO XML reader for the scikitplot corpus pipeline.
 
 Reads ALTO XML files (Analyzed Layout and Text Object) packed inside a

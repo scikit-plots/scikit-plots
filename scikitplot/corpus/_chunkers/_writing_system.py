@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._writing_system
 ============================================
+
 Layer 2 — Writing-system-aware segmentation strategies.
 
 Each :class:`SegmentationStrategy` receives a :class:`ScriptSpan` (produced by

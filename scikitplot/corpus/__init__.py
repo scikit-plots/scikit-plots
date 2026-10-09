@@ -8,6 +8,7 @@
 """
 scikitplot.corpus
 =================
+
 Tools for turning files, URLs, media, and text sources into canonical
 :class:`CorpusDocument` evidence that can be transformed, embedded, stored,
 searched, adapted, and exported.

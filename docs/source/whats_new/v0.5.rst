@@ -20,8 +20,8 @@ Version 0.5
   Since November 2024, DO NOT add your changelog entry in this file.
 ..
   Instead, create a file named `<PR_NUMBER>.<TYPE>.rst` in the relevant sub-folder in
-  `doc/whats_new/upcoming_changes/`. For full details, see:
-  https://github.com/scikit-learn/scikit-learn/blob/main/doc/whats_new/upcoming_changes/README.md
+  `docs/source/whats_new/upcoming_changes/`. For the repository-specific workflow, see
+  `docs/source/whats_new/upcoming_changes/README.md`.
 
 .. towncrier release notes start
 

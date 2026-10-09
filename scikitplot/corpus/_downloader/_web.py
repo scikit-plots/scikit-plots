@@ -6,6 +6,7 @@
 r"""
 scikitplot.corpus._downloader._web
 ==================================
+
 Generic HTTP/HTTPS file downloader.
 
 :class:`WebDownloader` is the workhorse downloader for any ``http://`` or

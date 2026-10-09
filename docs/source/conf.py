@@ -318,6 +318,7 @@ extensions = [
     "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",  # "sphinxcontrib.youtube",
     "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery",
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    "scikitplot._externals._sphinx_ext._sphinx_feedback",
     #
     # https://isolveit.github.io/sphinx-pdf-generate
     # "sphinx_pdf_generate",
@@ -1085,7 +1086,7 @@ html_theme_options = {
     # "use_issues_button": True,
     # "use_fullscreen_button": False,
     # -- Header and Footer Settings -------------------------------------------
-    "header_links_before_dropdown": 5,
+    "header_links_before_dropdown": 6,
     "header_dropdown_text": "More",
     "navbar_align": "left",
     "navbar_start": ["navbar-logo"],
@@ -2049,23 +2050,25 @@ autosummary_generate = True
 # This is useful to resolve naming conflicts or control the generated filenames for `autosummary`.
 autosummary_filename_map = {
     # "sklearn.cluster.dbscan": "dbscan-function",
-    "scikitplot.modelplotpy.ModelPlotPy": "modelplotpy-cls",
+    "scikitplot.modelplotpy.ModelPlotPy": "scikitplot.modelplotpy.ModelPlotPy-cls",
     # ``scikitplot.logging`` re-exports the stdlib ``logging`` level *constants*
     # (INFO, DEBUG, ...) alongside the same-named *functions* (info, debug, ...).
     # Their fully-qualified names collide case-insensitively, so each function
     # needs a distinct stub filename to avoid "stub file not found" warnings.
-    "scikitplot.logging.critical": "critical-func",
-    "scikitplot.logging.debug": "debug-func",
-    "scikitplot.logging.error": "error-func",
-    "scikitplot.logging.fatal": "fatal-func",
-    "scikitplot.logging.info": "info-func",
-    "scikitplot.logging.warn": "warn-func",
-    "scikitplot.logging.warning": "warning-func",
+    "scikitplot.logging.critical": "scikitplot.logging.critical-func",
+    "scikitplot.logging.debug": "scikitplot.logging.debug-func",
+    "scikitplot.logging.error": "scikitplot.logging.error-func",
+    "scikitplot.logging.fatal": "scikitplot.logging.fatal-func",
+    "scikitplot.logging.info": "scikitplot.logging.info-func",
+    "scikitplot.logging.warn": "scikitplot.logging.warn-func",
+    "scikitplot.logging.warning": "scikitplot.logging.warning-func",
     # ``scikitplot.corpus`` exposes lower-case converter functions whose names
     # collide case-insensitively with upper-case lookup-table constants
     # (e.g. ``iso_to_nltk`` vs ``ISO_TO_NLTK``); give the functions distinct stubs.
-    "scikitplot.corpus.iso_to_nltk": "iso_to_nltk-func",
-    "scikitplot.corpus.nltk_to_iso": "nltk_to_iso-func",
+    "scikitplot.corpus.iso_to_nltk": "scikitplot.corpus.iso_to_nltk-func",
+    "scikitplot.corpus.nltk_to_iso": "scikitplot.corpus.nltk_to_iso-func",
+    # Session vs session collusion
+    "scikitplot.cleanprompt.session": "scikitplot.cleanprompt.session-func",
 }
 
 # ---------------------------------------------------------------------------

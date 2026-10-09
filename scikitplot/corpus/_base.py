@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._base
 =======================
+
 Abstract base classes for all scikitplot.corpus pipeline components.
 
 Three abstract contracts are defined here, corresponding to the three

@@ -13,16 +13,16 @@ uniform contract so that :class:`~scikitplot.corpus._similarity.RetrievalIndex`
 (and any consumer such as :mod:`scikitplot.mcp`) never has to branch on the
 concrete backend, and so that *scores mean the same thing regardless of backend*.
 
-Unified score contract
------------------------
+Unified score contract:
+
 Every backend's :meth:`VectorIndexBackend.query` returns ``(row_index, score)`` pairs
 where ``score`` is **cosine similarity in the closed interval ``[-1.0, 1.0]``**
 (higher is better), sorted in descending score order with deterministic,
 index-ascending tie breaking. This makes ``semantic_threshold`` comparisons and
 hybrid fusion identical across backends.
 
-Backend selection order
-------------------------
+Backend selection order:
+
 ``select_backend("auto")`` resolves the first *available* backend in
 :data:`DEFAULT_BACKEND_ORDER`, which is ``annoy`` first (it is an internal
 dependency of scikit-plots), then ``faiss``, then ``voyager``, then the always

@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Content-derived identity for a built index: :class:`IndexGeneration`.
+"""
+Content-derived identity for a built index: :class:`IndexGeneration`.
 
 Notes
 -----

@@ -1,5 +1,6 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
 Neutral retrieval outcome envelope for the MCP retrieval tier.
 

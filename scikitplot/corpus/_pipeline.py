@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._pipeline
 ============================
+
 High-level orchestration of the full corpus ingestion pipeline:
 **source → read → chunk → filter → embed → export**.
 

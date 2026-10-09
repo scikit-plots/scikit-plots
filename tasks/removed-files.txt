@@ -1,0 +1,9 @@
+libs/annoy/LICENSE.txt
+libs/cleanprompt/LICENSE.txt
+libs/corpus/LICENSE.txt
+libs/cython/LICENSE.txt
+libs/mcp/LICENSE.txt
+libs/mlflow/LICENSE.txt
+libs/rank-bm25/LICENSE.txt
+libs/skinny/LICENSE.txt
+libs/sphinx-ext/LICENSE.txt

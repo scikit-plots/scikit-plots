@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._schema
 =========================
+
 Canonical data contracts for the scikitplot corpus pipeline.
 
 This module is the **single source of truth** for every data type that flows

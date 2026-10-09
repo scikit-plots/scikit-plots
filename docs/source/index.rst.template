@@ -258,6 +258,7 @@ References:
 	:caption: Project
 	:hidden:
 
+	Affiliated Packages <affiliated/index.rst>
 	Code of Conduct <project/code_of_conduct.rst>
 	Community <project/community.rst>
 	{%- if development_link | default(false) %}

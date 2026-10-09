@@ -888,12 +888,12 @@ Model Instance and/or Attributes Visualization.
 
 Supported attributes:
 
-- feature_names_in_
-- feature_importances_
-- coef_
-- explained_variance_ratio_
-- eigenvalues_
-- eigenvectors_
+- ``feature_names_in_``
+- ``feature_importances_``
+- ``coef_``
+- ``explained_variance_ratio_``
+- ``eigenvalues_``
+- ``eigenvectors_``
 
 Parameters
 ----------

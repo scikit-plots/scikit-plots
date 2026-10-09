@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._readers._zip
 ===============================
+
 Generic ZIP archive reader for the corpus pipeline.
 
 :class:`ZipReader` transparently extracts a ZIP file and dispatches each
@@ -70,7 +71,10 @@ from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["ArchiveNestingError", "ZipReader"]
+__all__ = [
+    "ArchiveNestingError",
+    "ZipReader",
+]
 
 #: Maximum archive nesting depth (zip-in-zip-in-…) processed before refusing,
 #: to bound recursion from a nested-archive bomb / zip quine (CORPUS-ARC-002).

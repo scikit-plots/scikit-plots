@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._normalizers._normalizer
 ==========================================
+
 Concrete normaliser implementations.
 
 Design invariants:

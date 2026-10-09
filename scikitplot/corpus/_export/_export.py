@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._export
 =========================
+
 Multi-format corpus export for
 :class:`~scikitplot.corpus._schema.CorpusDocument` lists.
 

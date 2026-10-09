@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""A backend-neutral filter expression tree.
+"""
+A backend-neutral filter expression tree.
 
 Nine composable operators -- ``Eq``, ``NotEq``, ``In``, ``NotIn``, ``Range``,
 ``Exists``, ``And``, ``Or``, ``Not`` -- with a **mandatory per-operator

@@ -19,11 +19,12 @@
 """
 scikitplot.annoy
 ================
+
 Public Annoy Python API for scikitplot.
 
 Spotify ANNoy [1]_ (Approximate Nearest Neighbors Oh Yeah).
 
-This package exposes **two layers**:
+This package exposes **two layers**.
 
 Exports:
 
@@ -31,13 +32,14 @@ Exports:
    :class:`~scikitplot.cexternals._annoy.Annoy` and :class:`~scikitplot.cexternals._annoy.AnnoyIndex`.
 
 2. A high-level, mixin-composed wrapper :class:`~scikitplot.annoy.Index` that:
-   - forwards the complete low-level API deterministically,
-   - adds versioned manifest import/export,
-   - provides explicit index I/O names (``save_index`` / ``load_index``),
-   - provides safe Python-object persistence helpers (pickling),
-   - adds optional NumPy export and plotting utilities,
-   - decides how many threads build an index from one rule
-     (:func:`~scikitplot.annoy.threads_info`, ``SKPLT_ANNOY_THREADS``).
+
+- forwards the complete low-level API deterministically,
+- adds versioned manifest import/export,
+- provides explicit index I/O names (``save_index`` / ``load_index``),
+- provides safe Python-object persistence helpers (pickling),
+- adds optional NumPy export and plotting utilities,
+- decides how many threads build an index from one rule
+  (:func:`~scikitplot.annoy.threads_info`, ``SKPLT_ANNOY_THREADS``).
 
 Notes
 -----

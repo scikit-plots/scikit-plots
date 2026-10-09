@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._semantic
 =====================================
+
 Layer 3 — :class:`SemanticChunker`: embedding-aware, morphology-aware,
 and writing-system-aware text chunking.
 

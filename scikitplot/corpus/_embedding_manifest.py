@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Provenance for a set of embeddings: :class:`EmbeddingManifest`.
+"""
+Provenance for a set of embeddings: :class:`EmbeddingManifest`.
 
 An embedding vector on its own says nothing about what produced it.  This module
 supplies the record that does, so vectors from different models cannot be mixed

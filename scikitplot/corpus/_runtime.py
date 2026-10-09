@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Runtime materialization for :class:`CorpusPlan` / :class:`FluentCorpus`.
+"""
+Runtime materialization for :class:`CorpusPlan` / :class:`FluentCorpus`.
 
 ``CorpusPlan`` is deliberately immutable and side-effect free.  This module is
 its operational boundary: :func:`materialize_plan` resolves supported plan

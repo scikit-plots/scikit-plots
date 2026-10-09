@@ -24,7 +24,8 @@ __all__: list[str] = []
 
 
 def security_trust_model() -> None:
-    """Security: the default policy is strict; ``strict=`` is operative.
+    """
+    Security: the default policy is strict; ``strict=`` is operative.
 
     The default :class:`~scikitplot.cython.SecurityPolicy` rejects dangerous
     inputs; ``strict=False`` relaxes the unset guards, and an explicit per-flag

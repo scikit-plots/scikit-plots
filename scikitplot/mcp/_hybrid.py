@@ -2,6 +2,7 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
 Hybrid retrieval for :mod:`scikitplot.mcp`.
 
@@ -21,8 +22,8 @@ intended legs, each already a plain ``DocsRetriever``:
   wiring depends on the relationship metadata the corpus exposes, so it is
   specified but not bound here (see ``DESIGN.md`` §Hybrid).
 
-Why RRF
--------
+Why RRF:
+
 Dense scores (cosine) and BM25 scores are not comparable, and min/max
 normalisation is brittle. RRF ignores raw scores and fuses by *rank*:
 ``score(d) = Σ_legs weight_leg / (rrf_k + rank_leg(d))``. It is parameter-light

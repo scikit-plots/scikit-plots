@@ -10,8 +10,8 @@ Build profile presets for :mod:`scikitplot.cython`.
 
 Profiles provide canonical, reproducible presets for common developer workflows.
 
-Design goals
-------------
+Design goals:
+
 - Deterministic: a profile maps to a fixed, hashable set of defaults.
 - Strict precedence: explicit user arguments always override profile defaults;
   an *unset* argument (``None``) inherits the profile default.
@@ -21,8 +21,8 @@ Design goals
   resolved build configuration cannot be mutated after the fact, before it
   reaches the content-addressed cache key.
 
-Security model
---------------
+Security model:
+
 This module is intentionally narrow and is *not* a security boundary on its own,
 but it is written so that it cannot become an attack surface:
 

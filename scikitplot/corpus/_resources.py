@@ -14,8 +14,8 @@ resource produces an actionable capability error by default instead of an
 implicit ``nltk.download`` call (the CORPUS-RES-001 defect: hangs, network-policy
 violations, nondeterministic CI, and browser/WASM incompatibility).
 
-Policy
-------
+Policy:
+
 Managed downloads are **disabled by default**. They are enabled only when the
 caller passes ``allow_download=True`` or sets the environment variable
 ``SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS`` to a truthy value (``1``/``true``/``yes``/
@@ -23,8 +23,8 @@ caller passes ``allow_download=True`` or sets the environment variable
 :func:`ensure_nltk_resource` raises :class:`ResourceUnavailableError` with
 one-time install instructions and performs **no** network access.
 
-Preflight
----------
+Preflight:
+
 :func:`nltk_resource_available` reports whether a resource is present without
 ever downloading, so callers and CI can surface missing resources up front.
 """

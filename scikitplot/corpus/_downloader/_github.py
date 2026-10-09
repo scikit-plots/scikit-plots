@@ -6,6 +6,7 @@
 r"""
 scikitplot.corpus._downloader._github
 =====================================
+
 GitHub URL downloader with automatic blob → raw normalisation.
 
 :class:`GitHubDownloader` handles two GitHub URL forms:

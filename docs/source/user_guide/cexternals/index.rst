@@ -27,51 +27,52 @@ C-Externals (experimental)
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **Nearest Neighbor**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             spotify/ANNoy Vector Index DB <./_annoy/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
 
         **astropy stats**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./_astropy/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
 
         **Fortran to Python**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./_f2py/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
 
         **NumCpp**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             NumCpp <./_numcpp/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
 
         **lightnumpy**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./_lightnumpy/index.rst

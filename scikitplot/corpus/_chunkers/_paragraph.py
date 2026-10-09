@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._paragraph
 ======================================
+
 Paragraph-boundary segmentation via blank-line splitting.
 
 Pure Python — no external dependencies. Suitable for plain text, pre-processed

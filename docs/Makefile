@@ -310,13 +310,13 @@ optipng:
 dist: html ziphtml
 
 ######################################################################
-## symbolic links
+## upcoming-change directories
 ######################################################################
 
-# sym:
-# 	@#rm -rf .devcontainer/script
-# 	@ln -rsf docs/source/whats_new/upcoming_changes upcoming_changes
-# 	@echo "Created symbolic links..."
+# The repository-root ``upcoming_changes/`` directory is the current engineering
+# follow-up ledger. ``docs/source/whats_new/upcoming_changes/`` contains Towncrier
+# release-note fragments. They intentionally have different lifecycles and must
+# never be symlinked together.
 
 serve:
 	cd ./build/html/stable && python -m http.server 8000

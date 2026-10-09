@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Relationship-aware retrieval over a *derived* document graph.
+"""
+Relationship-aware retrieval over a *derived* document graph.
 
 Notes
 -----

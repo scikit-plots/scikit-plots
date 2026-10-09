@@ -647,7 +647,10 @@ class CorpusAnnoyRetriever(DocsRetriever):
 
         if mode != "semantic":
             return CorpusIndexRetriever(
-                query_embedder, index, match_mode=mode, strict=strict
+                query_embedder,
+                index,
+                match_mode=mode,
+                strict=strict,
             )
         return cls(
             query_embedder,

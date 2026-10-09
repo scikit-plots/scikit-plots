@@ -116,6 +116,7 @@ _OPTIONAL_PRIVATE_SUBMODULES: frozenset[str] = frozenset(
         "_sphinx_gallery_jupyterlite",
         "_sphinx_jinja_render",
         "_sphinx_llm",
+        "_sphinx_rawfiles",
     }
 )
 

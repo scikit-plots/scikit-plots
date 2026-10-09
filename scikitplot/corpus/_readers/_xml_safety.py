@@ -51,7 +51,11 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = ["XmlSecurityError", "hardened_lxml_parser", "parse_stdlib_secure"]
+__all__ = [
+    "XmlSecurityError",
+    "hardened_lxml_parser",
+    "parse_stdlib_secure",
+]
 
 
 class XmlSecurityError(ValueError):

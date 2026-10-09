@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Composable, order-independent configuration: :class:`CorpusPlan` and the fluent facade.
+"""
+Composable, order-independent configuration: :class:`CorpusPlan` and the fluent facade.
 
 Two ways to configure a corpus, both compiling to the *same* canonical plan::
 

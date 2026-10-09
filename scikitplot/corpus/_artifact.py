@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Persistable index artifacts: :class:`ANNIndexArtifact` and the ordinal sidecar.
+"""
+Persistable index artifacts: :class:`ANNIndexArtifact` and the ordinal sidecar.
 
 An artifact is a directory holding everything needed to reload a vector index
 *and prove it still means what it meant when it was written*:

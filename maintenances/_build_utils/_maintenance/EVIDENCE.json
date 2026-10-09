@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "subsystem": "scikitplot._build_utils",
-  "updated_at": "2026-09-12",
+  "updated_at": "2026-10-09",
   "lanes": [
     {
       "id": "maintenance_contract",
@@ -62,6 +62,11 @@
       "status": "PASS",
       "result": "23/23 original _build_utils files unchanged",
       "artifact": "evidence/runtime-integrity.log"
+    },
+    {
+      "id": "api_reference_generator",
+      "status": "PASS",
+      "result": "AST-only docs parsing, optional-import safety, dry-run/apply behavior, stale-class coherence, and repository-path guards passed 10 focused isolated tests; installed-package API comparison was unavailable because scikit-plots is not installed in the evidence environment"
     }
   ]
 }

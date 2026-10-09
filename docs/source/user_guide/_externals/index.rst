@@ -27,7 +27,8 @@ Externals (experimental)
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **Sphinx Ext**
         ^^^

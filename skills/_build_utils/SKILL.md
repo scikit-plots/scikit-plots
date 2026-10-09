@@ -37,6 +37,17 @@ Never infer live Meson compatibility from `compileall`; the local `_meson_featur
 
 A destination basename in the current directory is a normal file path. Current `BLD-COPY-001` calls `os.makedirs(os.path.dirname(dest))`, which becomes `os.makedirs("")` for `dst.txt`. Test basename destinations, nested destinations, existing files, dry-run, no-overwrite, interactive refusal, multiple sources, directory recursion, archive output, and Windows path forms. Dry-run must perform no mutation.
 
+
+## API-reference generation must separate canonical layout from runtime discovery
+
+`generate_apis_reference/` separates generator logic from editorial data. Treat `docs/source/apis_reference.py` as disposable generated output and `scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in` as the durable human-editable template. Editorial section prose, guide expressions, ordering, inheritance lists, symbol snapshots, and deprecations belong in the `.py.in` template; the package parses that template into a structured blueprint for advanced customization and can rebuild the docs file byte-for-byte without importing Scikit-Plots. Use `python -m scikitplot._build_utils.generate_apis_reference rebuild --apply` after durable template edits, and require `rebuild --check` to pass before accepting API-reference maintenance changes.
+
+Full rebuild must remain offline and deterministic: it must not import Scikit-Plots, probe optional extensions, access the network, or depend on the previous generated file. The destructive edge case is part of the contract: deleting `docs/source/apis_reference.py` and running `rebuild --apply` must recreate a parseable equivalent from the checked-in `.py.in` template alone. Advanced callers may use `reference_blueprint_copy()` plus `build_reference_source()` for isolated customization; never mutate the canonical template implicitly.
+
+Runtime API discovery is a separate evidence lane. Parse the generated configuration with `ast` rather than importing/executing it: `_get_submodule(...)` calls can touch optional or compiled modules during evaluation. `check`/`plan`/`inventory` should use an installed/importable Scikit-Plots build; a source checkout that partially imports after a compiled-core failure is not authoritative API evidence. Prefer `__all__` when present, otherwise locally defined public objects. Auto-place new exports only when section ownership is deterministic from `sources`, `_get_submodule(...)` hints, or one unambiguous defining-module match. Ambiguous and unavailable imports remain reported, never guessed or silently pruned.
+
+`generate` remains a reviewable symbol-list planner and is dry-run by default. If it is used to apply a symbol-list update, synchronize the canonical `.py.in` template before considering the task complete; otherwise the next full rebuild would intentionally restore the template. This drift must be caught by `rebuild --check`.
+
 ## Import rewriting is source transformation
 
 Prefer the AST-based `fix_submodule_import_v2.py` contract over regex assumptions when Python syntax is involved. Require idempotency, comments/docstrings/future-import handling, TYPE_CHECKING behavior, aliases, nested modules, and syntax validity after rewriting. A transformation should operate on explicitly scoped source trees and preserve files on failure; use temporary output/atomic replacement for destructive batch rewrites.

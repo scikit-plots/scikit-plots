@@ -16,8 +16,8 @@ an existing lock is never accepted as a successful acquisition.  Each acquired
 lock records owner metadata (``owner.json``) and is released only by the owner
 whose token matches, so a stale-lock takeover cannot delete a live owner's lock.
 
-Stale lock recovery
--------------------
+Stale lock recovery:
+
 If the owning process is killed hard (SIGKILL, OOM, power loss), the lock
 directory is never removed by the ``finally`` block. To prevent permanent
 deadlock, a lock directory whose *mtime* exceeds the effective stale threshold

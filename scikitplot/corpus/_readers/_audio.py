@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers.audio
 ================================
+
 Text extraction from audio files via companion transcript/lyrics detection,
 automatic speech recognition (Whisper), and optional audio classification.
 

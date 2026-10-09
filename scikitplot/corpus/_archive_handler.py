@@ -7,7 +7,8 @@
 
 r"""
 scikitplot.corpus._archive_handler
-====================================
+==================================
+
 Safe extraction of archive files (ZIP, TAR, TAR.GZ, TAR.BZ2, TAR.XZ)
 for the corpus pipeline.
 

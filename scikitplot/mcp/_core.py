@@ -2,6 +2,7 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
 SDK-agnostic retrieval contracts core for :mod:`scikitplot.mcp`.
 

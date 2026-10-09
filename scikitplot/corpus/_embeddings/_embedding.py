@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._embedding
 =============================
+
 Multi-backend text and multimodal embedding engine with file-based caching.
 
 Produces dense vector representations of text chunks. The embedding step

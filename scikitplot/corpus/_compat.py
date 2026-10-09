@@ -6,6 +6,7 @@
 """
 scikitplot.corpus._compat
 =========================
+
 Python version compatibility shims for the corpus package.
 
 Single source of truth for backports that would otherwise be duplicated
