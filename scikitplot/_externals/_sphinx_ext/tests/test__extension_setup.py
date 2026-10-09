@@ -7,7 +7,13 @@ import types
 import pytest
 from sphinx.errors import ExtensionError
 
-from .._extension_setup import check_namespace
+from .. import _CORE_PRIVATE_SUBMODULES, _OPTIONAL_PRIVATE_SUBMODULES
+from .._extension_setup import (
+    RETIRED_MEMBERS,
+    STACK_MEMBERS,
+    check_namespace,
+    split_stack_name,
+)
 
 INSTALLED = "scikitplot._externals._sphinx_ext"
 LOCAL = "_sphinx_ext"
@@ -35,6 +41,23 @@ class TestOneNamespace:
         check_namespace(app, LOCAL)
         assert app._scikitplot_sphinx_extension_root == LOCAL
 
+    @pytest.mark.parametrize(
+        "helper",
+        [
+            # The documentation's own helper package is also called
+            # ``_sphinx_ext``; it is not the stack and is not a second root.
+            LOCAL + ".mpl_ext.redirect_from",
+            LOCAL + ".sklearn_ext.doi_role",
+            LOCAL + ".skplt_ext.version_info_extension",
+            LOCAL + ".pydata_ext.gallery_directive",
+            LOCAL,
+        ],
+    )
+    def test_a_non_stack_package_named_like_the_local_root_is_ignored(self, helper):
+        app = _app([helper, INSTALLED + "._sphinx_gallery_grid"], loaded=[helper])
+        check_namespace(app, INSTALLED)
+        assert app._scikitplot_sphinx_extension_root == INSTALLED
+
     def test_a_second_call_with_the_same_root_is_idempotent(self):
         app = _app([LOCAL + "._sphinx_collection"])
         check_namespace(app, LOCAL)
@@ -45,14 +68,17 @@ class TestOneNamespace:
 class TestMixedNamespaces:
     def test_configured_extensions_from_two_roots_are_refused(self):
         app = _app([INSTALLED + "._sphinx_gallery_grid", LOCAL + "._sphinx_collection"])
-        with pytest.raises(ExtensionError, match="Mixed scikit-plots extension namespaces"):
+        with pytest.raises(
+            ExtensionError, match="Mixed scikit-plots extension namespaces"
+        ):
             check_namespace(app, INSTALLED)
 
     def test_the_message_names_both_roots(self):
         app = _app([LOCAL + "._sphinx_collection"])
         with pytest.raises(ExtensionError) as caught:
             check_namespace(app, INSTALLED)
-        assert INSTALLED in str(caught.value) and LOCAL in str(caught.value)
+        assert INSTALLED in str(caught.value)
+        assert LOCAL in str(caught.value)
 
     def test_an_already_loaded_extension_counts(self):
         app = _app(loaded=[LOCAL + "._sphinx_collection"])
@@ -92,3 +118,30 @@ class TestRetiredNames:
         app = _app([LOCAL + "._sphinx_collection"])
         check_namespace(app, LOCAL)
         assert app._scikitplot_sphinx_extension_root == LOCAL
+
+
+class TestSplitStackName:
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [
+            (INSTALLED + "._sphinx_collection", (INSTALLED, "_sphinx_collection")),
+            (LOCAL + "._sphinx_collection.setup", (LOCAL, "_sphinx_collection")),
+            (
+                "vendor." + LOCAL + "._sphinx_rawfiles",
+                ("vendor." + LOCAL, "_sphinx_rawfiles"),
+            ),
+            (LOCAL + ".youtube_catalog", (LOCAL, "youtube_catalog")),
+            (LOCAL + ".mpl_ext.github", None),
+            (LOCAL, None),
+            ("sphinx.ext.autodoc", None),
+            ("_sphinx_collection", None),
+            ("scikitplot.externals._sphinxext.sphinx_tabs_patch", None),
+            (None, None),
+        ],
+    )
+    def test_only_declared_or_retired_members_are_stack_names(self, name, expected):
+        assert split_stack_name(name) == expected
+
+    def test_the_member_list_is_the_declared_registry(self):
+        assert STACK_MEMBERS == _CORE_PRIVATE_SUBMODULES | _OPTIONAL_PRIVATE_SUBMODULES
+        assert not STACK_MEMBERS & set(RETIRED_MEMBERS)

@@ -296,12 +296,18 @@
 - **Verified by:** the comment beside the placeholder names the source line it relies on.
 - **Added:** 2026-10-08. Root cause: `{project}/dist/libs` assumed `{project}` was the repository; built from an sdist, cibuildwheel sets it to the extracted sdist, which has no `dist/libs`.
 
+### Rule 50: Guards - a false positive is fixed in the classifier, never by emptying its input
+- **When:** a safety check refuses a configuration that is legitimate.
+- **Then:** find the rule that misclassified it, narrow that rule to the contract (here: declared members, not a shared prefix), and add the legitimate configuration as a regression test next to the refusal tests.
+- **Verified by:** the refusal tests still pass, and a test named after the legitimate configuration passes.
+- **Added:** 2026-10-09. Root cause: `check_namespace` took any `_sphinx_ext.` name as a stack root; the docs' unrelated `_sphinx_ext.mpl_ext` helpers tripped it, and the workaround filtered every name away, which switched the guard off and failed 13 tests.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 49
+- Total lessons: 50
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.
