@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""One read-only view over every component registry in Corpus.
+"""
+One read-only view over every component registry in Corpus.
 
 Corpus registers components in four different places, in three different shapes:
 ``ComponentRegistry`` instance methods, module-level singleton registries in

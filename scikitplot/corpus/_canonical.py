@@ -14,8 +14,8 @@ This module is the single place that answers "what bytes represent this value",
 so every identity in the package derives from one rule and they cannot drift
 apart.
 
-Design
-------
+Design:
+
 The encoding is **type-tagged**: every value is written as its tag, then its
 payload, so ``1``, ``True``, ``1.0`` and ``"1"`` cannot collide. It is
 **length-prefixed**, so no concatenation of two values can be mistaken for a

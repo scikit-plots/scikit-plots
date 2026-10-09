@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Validation and traversal for the ``parent_doc_id`` document hierarchy.
+"""
+Validation and traversal for the ``parent_doc_id`` document hierarchy.
 
 :class:`~scikitplot.corpus.CorpusDocument` carries ``parent_doc_id``, a
 self-referential reference to another document's ``doc_id``.  This module makes

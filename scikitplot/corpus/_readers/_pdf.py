@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers.pdf
 ==============================
+
 PDF document reader for the scikitplot corpus pipeline.
 
 Extracts text from PDF files page-by-page using a two-backend cascade:

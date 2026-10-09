@@ -157,8 +157,8 @@ classifiers = [
   'Programming Language :: Fortran',
   'Programming Language :: Cython',
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
   # "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
@@ -167,6 +167,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   ## CPython is what you get when you run python on most systems.
   ## It's written in C, compiles to bytecode, and runs via the CPython interpreter.
   ## If your package uses C extensions, CPython-specific internals, or is only tested on CPython
@@ -1579,6 +1580,72 @@ CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/p
 ## https://github.com/scientific-python/action-towncrier-changelog
 ######################################################################
 
+[tool.scikitplot.maintenance.api_reference]
+# Policy consumed by scikitplot._build_utils.generate_apis_reference.
+# The helper owns an embedded full-file blueprint for deterministic offline
+# regeneration, parses the generated docs file without executing it, and keeps
+# installed-package symbol verification as a separate explicit maintenance lane.
+reference_file = "docs/source/apis_reference.py"
+distribution = "scikit-plots"
+package_root = "scikitplot"
+public_source = "auto"  # prefer __all__; otherwise use local public objects
+require_distribution = true
+include_module_objects = false
+
+[tool.scikitplot.maintenance.towncrier]
+# Repository-derived Towncrier ownership policy consumed by
+# tools/maint_tools/generate_towncrier_sections.py. Keep policy here so humans, CI, and AI
+# use one durable source instead of reconstructing owner rules from chat history.
+python_package_roots = ["scikitplot"]
+directory_roots = ["libs", "tools"]
+root_owner_sections = ["scikitplot", "tools"]
+exclude_owner_sections = ["scikitplot.tests", "tools.zz_yanked"]
+cross_cutting_sections = [
+  "array-api",
+  "build-packaging",
+  "compatibility",
+  "documentation",
+  "many-modules",
+  "metadata-routing",
+  "security",
+]
+
+# Optional fine-grained owners below the default one-level package boundary.
+# Keys are exact package parents; values are relative child package paths.
+# The base owner remains active, so unlisted nested packages continue to roll up
+# to their nearest automatically discovered owner. Dotted relative values are
+# supported for future deeper nesting.
+[tool.scikitplot.maintenance.towncrier.nested_owner_sections]
+"scikitplot._externals._sphinx_ext" = [
+  "_pydata_component_list",
+  "_sphinx_ai_assistant",
+  "_sphinx_ai_learn",
+  "_sphinx_collection",
+  "_sphinx_feedback",
+  "_sphinx_gallery_grid",
+  "_sphinx_youtube_core",
+  "_sphinx_youtube_gallery",
+  "_sphinxcontrib_youtube",
+]
+"scikitplot.cexternals" = [
+  "_annoy",
+  "_astropy",
+  "_editdistance",
+  "_f2py",
+  "_numcpp",
+]
+"scikitplot.externals" = [
+  "_packaging",
+  "_platformdirs",
+  "_probscale",
+  "_scipy",
+  "_seaborn",
+  "_sphinxext",
+  "_tweedie",
+  "array_api_compat",
+  "array_api_extra",
+]
+
 [tool.towncrier]
   all_bullets  = false
   single_file  = true
@@ -1627,18 +1694,32 @@ CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/p
     showcontent = true
 
   # === towncrier.section ===
+  #
+  # Ownership invariant:
+  # - cross-cutting topics use the explicit curated sections below;
+  # - structure-derived owner policy lives in [tool.scikitplot.maintenance.towncrier];
+  # - immediate owners under scikitplot/, libs/, and tools/ are generated/validated
+  #   by tools/maint_tools/generate_towncrier_sections.py;
+  # - nested implementation paths roll up to their nearest owner unless a dedicated
+  #   user-facing release-note section is intentionally introduced.
+  #
+  # Check or synchronize this block and its fragment directories with:
+  #   python tools/maint_tools/generate_towncrier_sections.py check
+  #   python tools/maint_tools/generate_towncrier_sections.py sync
+
+  # --- Cross-cutting user-facing topics ---
 
   [[tool.towncrier.section]]
-    name = "Support for Array API"
+    name = "Array API support"
     path = "array-api"
 
   [[tool.towncrier.section]]
-    name = "Changed models"
-    path = "changed-models"
+    name = "Build and packaging"
+    path = "build-packaging"
 
   [[tool.towncrier.section]]
-    name = "custom-top-level"
-    path = "custom-top-level"
+    name = "Compatibility and dependencies"
+    path = "compatibility"
 
   [[tool.towncrier.section]]
     name = "Documentation"
@@ -1656,21 +1737,401 @@ CIBW_ENVIRONMENT_WINDOWS = "PKG_CONFIG='c:/vcpkg/installed/arm64-windows/tools/p
     name = "Security"
     path = "security"
 
-  [[tool.towncrier.section]]
-    name = ":mod:`scikitplot.cexternals._astropy`"
-    path = "scikitplot.cexternals._astropy"
+
+  # BEGIN AUTO-GENERATED TOWNCRIER OWNER SECTIONS
+
+  # --- scikitplot ownership ---
 
   [[tool.towncrier.section]]
-    name = ":mod:`scikitplot.externals._seaborn`"
-    path = "scikitplot.externals._seaborn"
+    name = "scikitplot (top-level)"
+    path = "scikitplot"
 
   [[tool.towncrier.section]]
-    name = ":mod:`scikitplot.api`"
+    name = "scikitplot._api"
+    path = "scikitplot._api"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._brand"
+    path = "scikitplot._brand"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._build_utils"
+    path = "scikitplot._build_utils"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._cli"
+    path = "scikitplot._cli"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._compat"
+    path = "scikitplot._compat"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._core"
+    path = "scikitplot._core"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._decorates"
+    path = "scikitplot._decorates"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._docstrings"
+    path = "scikitplot._docstrings"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._env"
+    path = "scikitplot._env"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals"
+    path = "scikitplot._externals"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._pydata_component_list"
+    path = "scikitplot._externals._sphinx_ext._pydata_component_list"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_ai_assistant"
+    path = "scikitplot._externals._sphinx_ext._sphinx_ai_assistant"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_ai_learn"
+    path = "scikitplot._externals._sphinx_ext._sphinx_ai_learn"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_collection"
+    path = "scikitplot._externals._sphinx_ext._sphinx_collection"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_feedback"
+    path = "scikitplot._externals._sphinx_ext._sphinx_feedback"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_gallery_grid"
+    path = "scikitplot._externals._sphinx_ext._sphinx_gallery_grid"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_youtube_core"
+    path = "scikitplot._externals._sphinx_ext._sphinx_youtube_core"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery"
+    path = "scikitplot._externals._sphinx_ext._sphinx_youtube_gallery"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube"
+    path = "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._factory_api"
+    path = "scikitplot._factory_api"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._lib"
+    path = "scikitplot._lib"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._testing"
+    path = "scikitplot._testing"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._typing"
+    path = "scikitplot._typing"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._utils"
+    path = "scikitplot._utils"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.annoy"
+    path = "scikitplot.annoy"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.api"
     path = "scikitplot.api"
 
   [[tool.towncrier.section]]
-    name = ":mod:`scikitplot.utils`"
+    name = "scikitplot.cexperimental"
+    path = "scikitplot.cexperimental"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals"
+    path = "scikitplot.cexternals"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals._annoy"
+    path = "scikitplot.cexternals._annoy"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals._astropy"
+    path = "scikitplot.cexternals._astropy"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals._editdistance"
+    path = "scikitplot.cexternals._editdistance"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals._f2py"
+    path = "scikitplot.cexternals._f2py"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cexternals._numcpp"
+    path = "scikitplot.cexternals._numcpp"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cleanprompt"
+    path = "scikitplot.cleanprompt"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.config"
+    path = "scikitplot.config"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.corpus"
+    path = "scikitplot.corpus"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.cython"
+    path = "scikitplot.cython"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.datasets"
+    path = "scikitplot.datasets"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.decile"
+    path = "scikitplot.decile"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.experimental"
+    path = "scikitplot.experimental"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals"
+    path = "scikitplot.externals"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._packaging"
+    path = "scikitplot.externals._packaging"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._platformdirs"
+    path = "scikitplot.externals._platformdirs"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._probscale"
+    path = "scikitplot.externals._probscale"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._scipy"
+    path = "scikitplot.externals._scipy"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._seaborn"
+    path = "scikitplot.externals._seaborn"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._sphinxext"
+    path = "scikitplot.externals._sphinxext"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals._tweedie"
+    path = "scikitplot.externals._tweedie"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals.array_api_compat"
+    path = "scikitplot.externals.array_api_compat"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.externals.array_api_extra"
+    path = "scikitplot.externals.array_api_extra"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.impute"
+    path = "scikitplot.impute"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.logging"
+    path = "scikitplot.logging"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.mcp"
+    path = "scikitplot.mcp"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.memmap"
+    path = "scikitplot.memmap"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.misc"
+    path = "scikitplot.misc"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.mlflow"
+    path = "scikitplot.mlflow"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.nc"
+    path = "scikitplot.nc"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.neighbors"
+    path = "scikitplot.neighbors"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.preprocessing"
+    path = "scikitplot.preprocessing"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.random"
+    path = "scikitplot.random"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.rank_bm25"
+    path = "scikitplot.rank_bm25"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.seaborn"
+    path = "scikitplot.seaborn"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.stats"
+    path = "scikitplot.stats"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.utils"
     path = "scikitplot.utils"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.visualkeras"
+    path = "scikitplot.visualkeras"
+
+
+  # --- libs ownership ---
+
+  [[tool.towncrier.section]]
+    name = "libs/_tools"
+    path = "libs._tools"
+
+  [[tool.towncrier.section]]
+    name = "libs/annoy"
+    path = "libs.annoy"
+
+  [[tool.towncrier.section]]
+    name = "libs/cleanprompt"
+    path = "libs.cleanprompt"
+
+  [[tool.towncrier.section]]
+    name = "libs/corpus"
+    path = "libs.corpus"
+
+  [[tool.towncrier.section]]
+    name = "libs/cython"
+    path = "libs.cython"
+
+  [[tool.towncrier.section]]
+    name = "libs/mcp"
+    path = "libs.mcp"
+
+  [[tool.towncrier.section]]
+    name = "libs/mlflow"
+    path = "libs.mlflow"
+
+  [[tool.towncrier.section]]
+    name = "libs/rank-bm25"
+    path = "libs.rank-bm25"
+
+  [[tool.towncrier.section]]
+    name = "libs/skinny"
+    path = "libs.skinny"
+
+  [[tool.towncrier.section]]
+    name = "libs/sphinx-ext"
+    path = "libs.sphinx-ext"
+
+
+  # --- tools ownership ---
+
+  [[tool.towncrier.section]]
+    name = "tools (top-level)"
+    path = "tools"
+
+  [[tool.towncrier.section]]
+    name = "tools/_pyext"
+    path = "tools._pyext"
+
+  [[tool.towncrier.section]]
+    name = "tools/changelog"
+    path = "tools.changelog"
+
+  [[tool.towncrier.section]]
+    name = "tools/ci"
+    path = "tools.ci"
+
+  [[tool.towncrier.section]]
+    name = "tools/circle"
+    path = "tools.circle"
+
+  [[tool.towncrier.section]]
+    name = "tools/citation"
+    path = "tools.citation"
+
+  [[tool.towncrier.section]]
+    name = "tools/cython"
+    path = "tools.cython"
+
+  [[tool.towncrier.section]]
+    name = "tools/docs"
+    path = "tools.docs"
+
+  [[tool.towncrier.section]]
+    name = "tools/f2py"
+    path = "tools.f2py"
+
+  [[tool.towncrier.section]]
+    name = "tools/github"
+    path = "tools.github"
+
+  [[tool.towncrier.section]]
+    name = "tools/maint_tools"
+    path = "tools.maint_tools"
+
+  [[tool.towncrier.section]]
+    name = "tools/make"
+    path = "tools.make"
+
+  [[tool.towncrier.section]]
+    name = "tools/protos"
+    path = "tools.protos"
+
+  [[tool.towncrier.section]]
+    name = "tools/requirements"
+    path = "tools.requirements"
+
+  [[tool.towncrier.section]]
+    name = "tools/scripts"
+    path = "tools.scripts"
+
+  [[tool.towncrier.section]]
+    name = "tools/server"
+    path = "tools.server"
+
+  [[tool.towncrier.section]]
+    name = "tools/submodules"
+    path = "tools.submodules"
+
+  [[tool.towncrier.section]]
+    name = "tools/subprojects"
+    path = "tools.subprojects"
+
+  [[tool.towncrier.section]]
+    name = "tools/tagging"
+    path = "tools.tagging"
+
+  [[tool.towncrier.section]]
+    name = "tools/wheels"
+    path = "tools.wheels"
+  # END AUTO-GENERATED TOWNCRIER OWNER SECTIONS
 
 ######################################################################
 ## meson-python

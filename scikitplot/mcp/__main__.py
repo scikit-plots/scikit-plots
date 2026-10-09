@@ -4,7 +4,9 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-"""Command-line entry point for the runnable MCP documentation server.
+
+"""
+Command-line entry point for the runnable MCP documentation server.
 
 The CLI has two deployment profiles:
 
@@ -37,6 +39,29 @@ from ._capabilities import (  # SDK-free (no pydantic)
 from ._core import DOC_ID_RE, SearchCoordinator  # SDK-free (no pydantic)
 from ._demo import InMemoryBm25Retriever, builtin_demo_retriever
 
+__all__ = [
+    "RuntimeConfig",
+    "main",
+]
+
+logger = logging.getLogger(__name__)
+
+_DOC_ID_RE = DOC_ID_RE
+_LOCAL_HOSTS = {
+    "127.0.0.1",
+    "localhost",
+    "::1",
+}
+_REMOTE_BIND_HOSTS = {
+    "0.0.0.0",  # ruff: ignore[hardcoded-bind-all-interfaces]
+    "::",
+}
+
+
+# NOTE: SearchService / create_server are imported lazily, only in the
+# branches that build the server tier, so --help / --print-effective-config /
+# --list-capabilities stay base-install safe (no pydantic/SDK import).
+
 
 # Server-tier factories exposed as module attributes so callers/tests reference and
 # patch them here, but the pydantic + MCP-SDK import happens only when they are
@@ -59,21 +84,6 @@ def create_server(*args, **kwargs):
     )
 
     return _create_server(*args, **kwargs)
-
-
-# NOTE: SearchService / create_server are imported lazily, only in the
-# branches that build the server tier, so --help / --print-effective-config /
-# --list-capabilities stay base-install safe (no pydantic/SDK import).
-
-_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
-_REMOTE_BIND_HOSTS = {"0.0.0.0", "::"}  # ruff: ignore[hardcoded-bind-all-interfaces]
-_DOC_ID_RE = DOC_ID_RE
-logger = logging.getLogger(__name__)
-
-__all__ = [
-    "RuntimeConfig",
-    "main",
-]
 
 
 @dataclass(frozen=True)
@@ -592,7 +602,8 @@ def _probe_health(config: RuntimeConfig) -> int:
 
 
 def _editable_install_hint() -> str | None:
-    """Return a concise warning when a Meson editable loader is active.
+    """
+    Return a concise warning when a Meson editable loader is active.
 
     This cannot prevent a rebuild triggered while importing ``scikitplot``;
     Python resolves the parent package before this module executes. It still

@@ -7,7 +7,8 @@
 
 """
 scikitplot.corpus._storage._storage
-=====================================
+====================================
+
 Storage backend implementations for persisting and retrieving
 :class:`~scikitplot.corpus._schema.CorpusDocument` collections.
 

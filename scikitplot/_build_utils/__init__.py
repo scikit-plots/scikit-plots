@@ -25,6 +25,11 @@ _build_utils.
 #     │   └── fix_submodule_import_v2.py
 #     ├── filesystem support
 #     │   └── copyfiles.py
+#     ├── documentation maintenance
+#     │   └── generate_apis_reference/
+#     │       ├── __init__.py
+#     │       ├── __main__.py
+#     │       └── apis_reference.py.in
 #     └── Meson integration
 #         ├── install_meson_features.py
 #         └── _meson_features/*

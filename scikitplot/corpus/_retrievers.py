@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Independent evidence paths: retriever legs and deterministic rank fusion.
+"""
+Independent evidence paths: retriever legs and deterministic rank fusion.
 
 Notes
 -----

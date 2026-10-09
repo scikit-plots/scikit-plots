@@ -4,7 +4,9 @@
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-"""Small, deterministic, dependency-free BM25 backend for examples and tests.
+
+"""
+Small, deterministic, dependency-free BM25 backend for examples and tests.
 
 This is intentionally not a replacement for ``scikitplot.corpus``.  It is a
 fully runnable reference backend that demonstrates the MCP mechanism before a

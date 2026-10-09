@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._embeddings._multimodal_embedding
 ====================================================
+
 Multimodal embedding engine — any modality to any LLM training format.
 
 Bridges the corpus pipeline to LLM fine-tuning by producing a single

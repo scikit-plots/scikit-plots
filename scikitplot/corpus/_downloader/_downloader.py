@@ -5,7 +5,8 @@
 
 r"""
 scikitplot.corpus._downloader._downloader
-============================================
+==========================================
+
 High-level dispatcher downloaders.
 
 :class:`AnyDownloader`

@@ -14,8 +14,8 @@ file. Every cache/export/storage writer in :mod:`scikitplot.corpus` funnels
 through here instead of rolling its own ``path + ".tmp"`` scheme (the
 CORPUS-TMP-001 predictable-temp race).
 
-Guarantees
-----------
+Guarantees:
+
 * **Unique staging file.** Each publish stages to a unique same-directory temp
   created with :func:`tempfile.mkstemp`, so two processes publishing the same
   target do not share (and cannot delete) each other's temp.
@@ -50,7 +50,10 @@ from typing import Callable, Union
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["atomic_write_bytes", "atomic_write_path"]
+__all__ = [
+    "atomic_write_bytes",
+    "atomic_write_path",
+]
 
 StrPath = Union[str, "os.PathLike[str]"]
 

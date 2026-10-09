@@ -26,7 +26,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal
 
-__all__ = ["Command", "Param", "ParamKind"]
+__all__ = [
+    "Command",
+    "Param",
+    "ParamKind",
+]
 
 ParamKind = Literal["flag", "option", "argument"]
 

@@ -6,6 +6,7 @@
 r"""
 scikitplot.corpus._downloader._base
 =====================================
+
 Abstract base class and shared contracts for all ``[xxx]Downloader`` classes.
 
 Design Invariants:

@@ -41,7 +41,11 @@ from typing import IO
 from ._capabilities import require
 from ._exceptions import CleanPromptError
 
-__all__ = ["container_files", "resolve_bind", "serve"]
+__all__ = [
+    "container_files",
+    "resolve_bind",
+    "serve",
+]
 
 #: Addresses that are reachable only from the local machine.
 LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})

@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers.text
 ===============================
+
 Plain-text document reader for the scikitplot corpus pipeline.
 
 Handles ``.txt``, ``.md``, and ``.rst`` files (and any other extension

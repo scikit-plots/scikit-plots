@@ -37,7 +37,10 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = ["require_count", "require_index"]
+__all__ = [
+    "require_count",
+    "require_index",
+]
 
 
 def _as_integral(value: Any, name: str) -> int:

@@ -1,6 +1,7 @@
 """
 scikitplot.corpus._sources._source
-====================================
+===================================
+
 Concrete implementation of :class:`CorpusSource`.
 
 Design invariants:

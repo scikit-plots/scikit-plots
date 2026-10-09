@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Composable documentation retrieval for Model Context Protocol servers.
+Composable documentation retrieval for Model Context Protocol (MCP) servers.
 
 The default import surface is **independent of the MCP SDK, pydantic, and the
 optional corpus/vector dependencies**. Importing :mod:`scikitplot.mcp` pulls only
@@ -27,14 +27,27 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from . import (
+    __main__,
+    _capabilities,
+    _core,
+    _corpus_annoy,
+    _demo,
+    _hybrid,
+    _outcome,
+    # _server,
+    _validation,
+    _version,
+)
+
 # Eager: pydantic-free, dependency-light modules (Legacy Retrieval tier).
-from . import _capabilities, _core, _corpus_annoy, _demo, _hybrid, _version
+from .__main__ import *  # noqa: F403
 from ._capabilities import *  # noqa: F403
 from ._core import *  # noqa: F403
 from ._corpus_annoy import *  # noqa: F403
 from ._demo import *  # noqa: F403
 from ._hybrid import *  # noqa: F403
-from ._version import *  # noqa: F403
+from ._outcome import *  # noqa: F403
 
 # Names served lazily from ``_server`` (which imports pydantic, and — only inside
 # ``create_server`` — the MCP SDK). Listed here so they appear in ``__all__`` and
@@ -46,14 +59,8 @@ _SERVER_EXPORTS = (
     "create_server",
 )
 
-__all__ = []
-__all__ += _capabilities.__all__
-__all__ += _core.__all__
-__all__ += _corpus_annoy.__all__
-__all__ += _demo.__all__
-__all__ += _hybrid.__all__
-__all__ += _version.__all__
-__all__ += list(_SERVER_EXPORTS)
+from ._validation import *  # noqa: F403
+from ._version import *  # noqa: F403
 
 if TYPE_CHECKING:  # for type checkers/IDEs only; not executed at runtime
     from ._server import (  # noqa: F401
@@ -62,6 +69,18 @@ if TYPE_CHECKING:  # for type checkers/IDEs only; not executed at runtime
         SearchService,
         create_server,
     )
+
+__all__ = []
+__all__ += __main__.__all__
+__all__ += _capabilities.__all__
+__all__ += _core.__all__
+__all__ += _corpus_annoy.__all__
+__all__ += _demo.__all__
+__all__ += _hybrid.__all__
+__all__ += _outcome.__all__
+__all__ += list(_SERVER_EXPORTS)
+__all__ += _validation.__all__
+__all__ += _version.__all__
 
 
 def __getattr__(name: str) -> Any:

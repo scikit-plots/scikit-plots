@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._sentence
 =====================================
+
 Sentence-boundary segmentation via spaCy, NLTK, or regex.
 
 This module is a ground-up rewrite of remarx's ``segment.py``. Every failure

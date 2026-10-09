@@ -19,6 +19,7 @@
 """
 scikitplot.annoy
 ================
+
 Public Annoy Python API for scikitplot.
 
 Spotify ANNoy [1]_ (Approximate Nearest Neighbors Oh Yeah).

@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._multilang_mixin
 ============================================
+
 Shared multilang mixin for all five chunkers.
 
 All five chunkers — :class:`~._word.WordChunker`,

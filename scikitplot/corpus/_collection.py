@@ -42,7 +42,11 @@ import uuid
 from ._artifact import ANNIndexArtifact
 from ._canonical import canonical_digest
 
-__all__ = ["CollectionError", "CorpusCollection", "Member"]
+__all__ = [
+    "CollectionError",
+    "CorpusCollection",
+    "Member",
+]
 
 _POINTER_NAME = "current.json"
 _SNAPSHOT_NAME = "collection.json"

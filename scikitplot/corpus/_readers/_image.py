@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers._image
 =================================
+
 OCR-based text extraction from raster image files.
 
 Supported formats: PNG, JPEG/JPG, GIF, WEBP, TIFF/TIF, BMP.

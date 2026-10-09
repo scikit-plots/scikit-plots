@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Structured, serialisable diagnostics for Corpus operations.
+"""
+Structured, serialisable diagnostics for Corpus operations.
 
 This module provides :class:`ErrorRecord` -- the single diagnostic type every
 Corpus operation uses to report *what went wrong* without either raising or

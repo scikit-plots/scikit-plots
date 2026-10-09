@@ -8,6 +8,10 @@ scikitplot/_build_utils
 ├── gitversion.py / version.py           version provenance
 ├── fix_submodule_import*.py             vendored-import rewriting
 ├── copyfiles.py                         filesystem copy/archive helper
+├── generate_apis_reference/             docs API generation package
+│   ├── __init__.py                       parser, rebuild/customization API, runtime verification
+│   ├── __main__.py                       `python -m ...generate_apis_reference` CLI launcher
+│   └── apis_reference.py.in              canonical editable API-reference template
 ├── install_meson_features.py
 │   └── _meson_features/*                code copied into mesonbuild.modules.features
 └── tests/*                              focused local tests

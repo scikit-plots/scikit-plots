@@ -67,7 +67,11 @@ from ._logging import get_logger
 from ._policy import RedactionPolicy
 from ._types import Span
 
-__all__ = ["REQUIRED_CORPORA", "NltkDetector", "nltk_detector"]
+__all__ = [
+    "REQUIRED_CORPORA",
+    "NltkDetector",
+    "nltk_detector",
+]
 
 logger = get_logger(__name__)
 

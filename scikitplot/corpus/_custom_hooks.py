@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._custom_hooks
 ================================
+
 Comprehensive user-customization entry point for every layer of the corpus
 pipeline.
 

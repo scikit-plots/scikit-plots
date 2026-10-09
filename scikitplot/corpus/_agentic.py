@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Bounded investigation: session state, budget policy, routing and the A2 loop.
+"""
+Bounded investigation: session state, budget policy, routing and the A2 loop.
 
 Notes
 -----

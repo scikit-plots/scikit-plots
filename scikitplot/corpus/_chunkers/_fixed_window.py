@@ -8,6 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._fixed_window
 =========================================
+
 Sliding-window chunking with configurable size, overlap, and unit.
 
 Pure Python — no external dependencies. Suitable for RAG pipelines that

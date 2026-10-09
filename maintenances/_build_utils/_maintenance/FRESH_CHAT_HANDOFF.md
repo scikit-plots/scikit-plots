@@ -6,6 +6,9 @@ Maintenance tooling is healthy. Runtime/build-tool structural status is FAIL bec
 
 `mesonbuild` is not installed in the evidence environment, so the custom `_meson_features` package was not copied into or executed inside a live Meson installation. Do not mark that lane green from static imports.
 
+
+The domain also contains the `generate_apis_reference/` maintenance package. Its adjacent `apis_reference.py.in` file is the durable source of truth for generated `docs/source/apis_reference.py`; deleting the generated docs file is recoverable with `python -m scikitplot._build_utils.generate_apis_reference rebuild --apply`. The helper parses the template/generated configuration with AST rather than executing it, while runtime API verification remains a separate installed-distribution lane. The focused rebuild/generator tests are self-contained; installed-package comparison still requires an installed Scikit-Plots distribution.
+
 ## First commands
 
 ```bash

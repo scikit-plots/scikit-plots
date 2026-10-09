@@ -1,6 +1,7 @@
 """
 scikitplot.corpus._metadata._metadata
-========================================
+======================================
+
 Corpus metadata types and statistics computation.
 
 Design invariants:

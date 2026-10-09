@@ -48,7 +48,11 @@ from typing import Any, Mapping
 from ._capabilities import require
 from ._exceptions import CleanPromptError
 
-__all__ = ["decrypt_mapping", "encrypt_mapping", "new_key"]
+__all__ = [
+    "decrypt_mapping",
+    "encrypt_mapping",
+    "new_key",
+]
 
 
 def _fernet(key: bytes):

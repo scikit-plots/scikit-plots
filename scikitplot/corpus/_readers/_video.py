@@ -8,6 +8,7 @@
 """
 scikitplot.corpus._readers._video
 =================================
+
 Text extraction from video files via subtitle detection and/or
 automatic speech recognition (transcription).
 

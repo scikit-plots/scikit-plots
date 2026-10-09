@@ -7,7 +7,8 @@
 
 """
 scikitplot.corpus._registry._registry
-=========================================
+======================================
+
 Central component registry for the scikitplot corpus pipeline.
 
 Design invariants:

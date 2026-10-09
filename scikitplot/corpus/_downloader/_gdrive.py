@@ -5,7 +5,8 @@
 
 r"""
 scikitplot.corpus._downloader._gdrive
-========================================
+======================================
+
 Google Drive share-link downloader.
 
 :class:`GoogleDriveDownloader` accepts any public Google Drive share URL and
