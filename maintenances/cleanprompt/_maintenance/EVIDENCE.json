@@ -293,9 +293,14 @@
       "artifact": "evidence/focused-tests.log, evidence/gallery-examples.log",
       "id": "surrogate_sets",
       "status": "PASS"
+    },
+    {
+      "artifact": "evidence/maintenance-tests.log",
+      "id": "regex_fixtures",
+      "status": "PASS"
     }
   ],
-  "runtime_tree_fingerprint": "0df7ef58bb2fe24494b3534bd724055179b07e044b05942262225e4767f7f462",
+  "runtime_tree_fingerprint": "b67aa2aedbfb79de61f3ed3d0b7421927d04710efdb06c186190b58db9747949",
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
   "updated_at": "2026-10-10"

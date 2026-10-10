@@ -1,5 +1,24 @@
 .. currentmodule:: scikitplot._externals._sphinx_ext
 
+.. _externals-sphinx-ext-index:
+.. _externals_-sphinx_ext_-index:
+
+======================================================================
+Bundled Sphinx extensions (experimental)
+======================================================================
+
+``scikitplot._externals._sphinx_ext`` is Scikit-Plots' private namespace for
+bundled documentation extensions and the small support libraries shared by
+those extensions.  The namespace is intentionally lazy: importing
+``scikitplot._externals._sphinx_ext`` does not eagerly import Sphinx or every
+optional dependency.
+
+These modules are useful to projects that build the Scikit-Plots documentation
+stack, but the leading underscore is significant.  Treat them as experimental
+integration APIs rather than as the stable plotting API of Scikit-Plots.
+Pin Scikit-Plots when a documentation deployment depends on their exact
+configuration or generated markup.
+
 ..
   .. toctree::
     :hidden:
@@ -163,25 +182,6 @@
          :maxdepth: 2
 
         Sphinx Video Directives <_sphinxcontrib_youtube/index>
-
-.. _externals-sphinx-ext-index:
-.. _externals_-sphinx_ext_-index:
-
-======================================================================
-Bundled Sphinx extensions (experimental)
-======================================================================
-
-``scikitplot._externals._sphinx_ext`` is Scikit-Plots' private namespace for
-bundled documentation extensions and the small support libraries shared by
-those extensions.  The namespace is intentionally lazy: importing
-``scikitplot._externals._sphinx_ext`` does not eagerly import Sphinx or every
-optional dependency.
-
-These modules are useful to projects that build the Scikit-Plots documentation
-stack, but the leading underscore is significant.  Treat them as experimental
-integration APIs rather than as the stable plotting API of Scikit-Plots.
-Pin Scikit-Plots when a documentation deployment depends on their exact
-configuration or generated markup.
 
 How to enable an extension
 ----------------------------------------------------------------------

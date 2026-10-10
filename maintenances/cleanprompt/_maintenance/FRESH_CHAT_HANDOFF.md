@@ -486,3 +486,13 @@ rules:
     The log scrub filter is shared by every live cleaner; a common sample
     value held by a cleaner awaiting garbage collection made a test fail
     under xdist only (round 26, `tasks/lessons.md` rule 55).
+
+26. **Slow regular expressions in tests are wrapped.** A test or probe that
+    needs a catastrophic pattern writes `regex_fixture(r"...")`
+    (`scikitplot/cleanprompt/tests/_regex_fixtures.py`); the gate
+    `tests/test_regex_fixtures.py` fails otherwise, because CodeQL reports
+    such literals on the pull request (round 27).
+27. **A test in one part does not read another part's files.** `scikitplot/_cli`
+    ships alone in `scikit-plots-skinny`; cross-checks with cleanprompt skip
+    where it is not installed. Run `python -m libs._tools verify
+    scikit-plots-skinny` before delivering a change to such a test.

@@ -29,6 +29,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[4]))
 from scikitplot.cleanprompt._catalog import builtin_catalog  # noqa: E402
 from scikitplot.cleanprompt._pattern_risk import analyse_pattern, pack_findings  # noqa: E402
 from scikitplot.cleanprompt._patterns import PATTERNS  # noqa: E402
+from scikitplot.cleanprompt.tests._regex_fixtures import regex_fixture  # noqa: E402
 
 SIZES = (12, 18, 26)
 LIMIT = 4.0  # seconds per child before it counts as slow
@@ -43,21 +44,21 @@ FLOOR = 0.005  # seconds: below this, a ratio is timer noise, not growth
 #: characters, a repeated unit, a bounded outer repetition) and linear shapes
 #: it flagged (separators one group up, fixed counts).
 CASES = [
-    (r"^(a+)+$", "", "a", "b", True),
-    (r"^(a*)*$", "", "a", "b", True),
-    (r"^(a|aa)+$", "", "aa", "b", True),
-    (r"^(\w+\s?)*$", "", "a", "!", True),
-    (r"^(?:[A-Z]+\d*)+-\d+$", "", "A", "!", True),
+    (regex_fixture(r"^(a+)+$"), "", "a", "b", True),
+    (regex_fixture(r"^(a*)*$"), "", "a", "b", True),
+    (regex_fixture(r"^(a|aa)+$"), "", "aa", "b", True),
+    (regex_fixture(r"^(\w+\s?)*$"), "", "a", "!", True),
+    (regex_fixture(r"^(?:[A-Z]+\d*)+-\d+$"), "", "A", "!", True),
     (r"^(\w+,)+$", "", "a,", "!", False),
     (r"^(?:\.\w+)+$", "", ".a", "!", False),
     (r"^(?:[A-Z]+-)+\d+$", "", "A-", "!", False),
     (r"^\bEMP-\d{6}\b$", "", "E", "!", False),
     # round 26 review
-    (r"(?x) ^ (?: \w+ \s? )+ $  # verbose", "", "a", "!", True),
-    (r"^(?:\w+,\w+)+$", "a,", "aaaa,", "a!", True),
-    (r"(?i)^(?:a+A)+$", "", "aa", "!", True),
-    (r"^(?:[\x41-\x5a]+\x4b)+$", "", "KK", "!", True),
-    (r"^(?:\w+\s?){1,40}$", "", "a", "!", True),
+    (regex_fixture(r"(?x) ^ (?: \w+ \s? )+ $  # verbose"), "", "a", "!", True),
+    (regex_fixture(r"^(?:\w+,\w+)+$"), "a,", "aaaa,", "a!", True),
+    (regex_fixture(r"(?i)^(?:a+A)+$"), "", "aa", "!", True),
+    (regex_fixture(r"^(?:[\x41-\x5a]+\x4b)+$"), "", "KK", "!", True),
+    (regex_fixture(r"^(?:\w+\s?){1,40}$"), "", "a", "!", True),
     (r"^(?:(?:\w+)-)+$", "", "aa-", "!", False),
     (r"^(?:([a-z0-9]+)\.)+[a-z]{2,}$", "", "ab.", "!", False),
     (r"^(?:[ ]?[A-Z0-9]{4}){2,7}$", "", "ABCD", "!", False),

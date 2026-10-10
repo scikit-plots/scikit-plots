@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.levenshtein",
+  "updated_at": "2026-10-10",
+  "runtime_status": "PASS",
+  "maintenance_status": "PASS",
+  "release_status": "UNVERIFIED",
+  "runtime_tree_fingerprint": "b329f11d23d281a8eebeb02cafb59b6e141f41cb5bee9d733e248361d580f84c",
+  "open_findings": [
+    "LV-001",
+    "LV-002"
+  ],
+  "next_action": "Design one per-operation backend execution plan to close LV-001 and LV-002 together."
+}

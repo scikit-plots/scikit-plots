@@ -141,6 +141,17 @@ User Guide
         :columns: 12 12 6 6
         :padding: 2
 
+        **edit distance / fuzzy matching**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Levenshtein <./levenshtein/index.rst>
+
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
         **logging system**
         ^^^
         .. toctree::

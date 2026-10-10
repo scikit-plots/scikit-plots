@@ -76,6 +76,7 @@ quick options, never refused by default; generator scope was delegated
 | 7 | Docs (5 pages), gallery (packs, moderate), README, fragments, ledger | done | guide sync 9 passed; every new example executed |
 | 8 | Verification ladder on a frozen copy identical to the work tree | done | see **Last verified numbers** |
 | 9 | Evidence refresh, maintenance plane, drop-in | done | `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED |
+| 10 | Round 27 (PR 864 CI): CodeQL `py/redos` on test fixtures, skinny `_cli` test reading cleanprompt, corpus ResourceWarning | done | `test_regex_fixtures.py` gate; `libs._tools verify scikit-plots-skinny` PASS (3.13, 3.8); corpus suite with `-W error::ResourceWarning` (DNS-dependent tests excepted, sandbox only); see `HISTORY.md` round 27 |
 
 ## Last verified numbers
 

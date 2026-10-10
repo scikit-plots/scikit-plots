@@ -1,5 +1,28 @@
 # History
 
+## 2026-10-10 — round twenty-seven: the pull request's CI, three failures
+
+PR 864's checks failed in three places after rounds 25–26 were applied:
+
+- **CodeQL `py/redos` (alert 227):** the deliberately catastrophic test
+  pattern `_RISKY` in `test__pattern_risk.py` reached `re.compile` through
+  `analyse_pattern`. Every slow fixture in the tests and the round-26 probe
+  (47 literals) is now built through `tests/_regex_fixtures.regex_fixture`,
+  an equal string computed from the literal, and
+  `_maintenance/tests/test_regex_fixtures.py` fails on any unwrapped one
+  (checked with the subsystem's own analyser; it fails on the round-26 tree
+  at the reported line).
+- **Partial distributions (every Verify leg):** round 25's
+  `scikitplot/_cli/tests/test_registry.py` read `cleanprompt/_capabilities.py`
+  by path; `scikit-plots-skinny` ships `_cli` without cleanprompt. The hint
+  is now checked against the extras it promises everywhere, and against
+  cleanprompt's tier table only where it is installed. `libs._tools verify
+  scikit-plots-skinny` passes on 3.13 and 3.8.
+- **Coverage job (corpus):** `test_downloader_factory_is_wired_to_builder_seam`
+  dropped a builder owning a temporary directory; the job turns unraisable
+  ResourceWarnings into failures. The test now uses the builder as a context
+  manager and asserts the directory is removed.
+
 ## 2026-10-10 — round twenty-six: the user decides, and the floor does not move
 
 Maintainer decisions: PR **864** for every round-25/26 fragment; risky custom

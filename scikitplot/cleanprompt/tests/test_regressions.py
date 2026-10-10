@@ -28,6 +28,7 @@ from .. import (
     get_pattern,
     restore,
 )
+from ._regex_fixtures import regex_fixture
 
 
 def _matches(kind, text):
@@ -2082,7 +2083,7 @@ class TestCP104RiskyCustomPatternsLoadedSilently:
         "patterns": [
             {
                 "kind": "RUN",
-                "pattern": "^(a+)+$",
+                "pattern": regex_fixture("^(a+)+$"),
                 "intent": "Nested repetition.",
                 "examples_yes": ["aaa"],
                 "examples_no": ["b"],
@@ -2116,7 +2117,15 @@ class TestCP104RiskyCustomPatternsLoadedSilently:
             builder.materialize()
 
     @pytest.mark.parametrize(
-        "source", ["(a+)+", "(a*)*", "(a|a)+", "(a|aa)+", "(a+?)+", "((a+)b?)+"]
+        "source",
+        [
+            regex_fixture("(a+)+"),
+            regex_fixture("(a*)*"),
+            regex_fixture("(a|a)+"),
+            regex_fixture("(a|aa)+"),
+            regex_fixture("(a+?)+"),
+            regex_fixture("((a+)b?)+"),
+        ],
     )
     def test_the_ledger_edge_cases_are_reported(self, source):
         from .._pattern_risk import analyse_pattern

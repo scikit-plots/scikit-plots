@@ -45,10 +45,11 @@ from .._pattern_risk import (
 )
 from .._patterns import PATTERNS
 from .._plan import CleanPlan, FluentCleanPrompt, plan_from_dict, save_plan
+from ._regex_fixtures import regex_fixture
 
 #: A pattern with a nested repetition: ``[A-Z]+`` inside ``(...)+`` with
 #: nothing mandatory between repetitions that ``[A-Z]`` cannot match.
-_RISKY = r"\b(?:[A-Z]+\d*)+-\d+\b"
+_RISKY = regex_fixture(r"\b(?:[A-Z]+\d*)+-\d+\b")
 
 
 def _pack(pattern=_RISKY, **extra):
@@ -89,17 +90,17 @@ class TestAnalysis:
     @pytest.mark.parametrize(
         ("source", "rule"),
         [
-            (r"^(a+)+$", "nested-quantifier"),
-            (r"(a*)*", "nested-quantifier"),
-            (r"(\w+\s?)*", "nested-quantifier"),
-            (r"(?P<value>x+)+", "nested-quantifier"),
-            (r"(\w+,?)+", "nested-quantifier"),
-            (r"(?:\.?\w+)+", "nested-quantifier"),
-            (r"(?:(?:ab)+)+", "nested-quantifier"),
-            (r"(a|ab)+", "overlapping-alternation"),
-            (r"(?:\w|\d)+", "overlapping-alternation"),
-            (r"\d+\d+", "adjacent-quantifiers"),
-            (r"[a-z]*\w+", "adjacent-quantifiers"),
+            (regex_fixture(r"^(a+)+$"), "nested-quantifier"),
+            (regex_fixture(r"(a*)*"), "nested-quantifier"),
+            (regex_fixture(r"(\w+\s?)*"), "nested-quantifier"),
+            (regex_fixture(r"(?P<value>x+)+"), "nested-quantifier"),
+            (regex_fixture(r"(\w+,?)+"), "nested-quantifier"),
+            (regex_fixture(r"(?:\.?\w+)+"), "nested-quantifier"),
+            (regex_fixture(r"(?:(?:ab)+)+"), "nested-quantifier"),
+            (regex_fixture(r"(a|ab)+"), "overlapping-alternation"),
+            (regex_fixture(r"(?:\w|\d)+"), "overlapping-alternation"),
+            (regex_fixture(r"\d+\d+"), "adjacent-quantifiers"),
+            (regex_fixture(r"[a-z]*\w+"), "adjacent-quantifiers"),
         ],
     )
     def test_risky_shapes_are_reported(self, source, rule):
@@ -146,7 +147,7 @@ class TestAnalysis:
         assert analyse_pattern(_RISKY) == analyse_pattern(_RISKY)
 
     def test_every_finding_carries_its_way_out(self):
-        (risk,) = analyse_pattern(r"(a+)+")
+        (risk,) = analyse_pattern(regex_fixture(r"(a+)+"))
         text = risk.describe("hr.yaml: pack hr, pattern X")
         assert text.startswith("hr.yaml: pack hr, pattern X: nested-quantifier (high)")
         for needle in ("risk: accepted", "--pattern-risk ignore", "--pattern-risk refuse"):
@@ -154,7 +155,7 @@ class TestAnalysis:
 
     def test_fragment_is_the_repeated_group(self):
         (risk,) = analyse_pattern(_RISKY)
-        assert risk.fragment == r"(?:[A-Z]+\d*)+"
+        assert risk.fragment == regex_fixture(r"(?:[A-Z]+\d*)+")
 
 
 class TestReviewFindings:
@@ -172,22 +173,22 @@ class TestReviewFindings:
     @pytest.mark.parametrize(
         ("source", "flags"),
         [
-            ("(?: \\w+ \\s? )+ ;", re.VERBOSE),  # verbose whitespace is not a separator
-            ("(?x) (?: \\w+ \\s? )+ ;  # comment", 0),
-            ("^(?:\\w+,\\w+)+$", 0),  # equal units: positions, not equality
-            ("(?i)^(?:a+A)+$", 0),  # inline flags widen overlap
-            ("(?i:(?:a+A)+)", 0),
-            ("(?s)^(?:.+\\n)+$", 0),
-            ("^(?:[\\x41-\\x5a]+\\x4b)+$", 0),  # escaped characters are probed
-            ("^(?:[\\u0400-\\u04ff]+\\u0430)+$", 0),
-            ("^(?:\\d+[\\uff10-\\uff19])+$", 0),
-            ("^(?:\\w+\\s?){1,40}$", 0),  # a large bound is still repetition
-            ("^(?:\\w{1,50}\\s?)+$", 0),
+            (regex_fixture("(?: \\w+ \\s? )+ ;"), re.VERBOSE),  # verbose whitespace is not a separator
+            (regex_fixture("(?x) (?: \\w+ \\s? )+ ;  # comment"), 0),
+            (regex_fixture("^(?:\\w+,\\w+)+$"), 0),  # equal units: positions, not equality
+            (regex_fixture("(?i)^(?:a+A)+$"), 0),  # inline flags widen overlap
+            (regex_fixture("(?i:(?:a+A)+)"), 0),
+            (regex_fixture("(?s)^(?:.+\\n)+$"), 0),
+            (regex_fixture("^(?:[\\x41-\\x5a]+\\x4b)+$"), 0),  # escaped characters are probed
+            (regex_fixture("^(?:[\\u0400-\\u04ff]+\\u0430)+$"), 0),
+            (regex_fixture("^(?:\\d+[\\uff10-\\uff19])+$"), 0),
+            (regex_fixture("^(?:\\w+\\s?){1,40}$"), 0),  # a large bound is still repetition
+            (regex_fixture("^(?:\\w{1,50}\\s?)+$"), 0),
             # found by the soundness fuzz (probe_round26_fuzz.py)
-            ("^(?:\\w?\\.?)* {2}$", 0),  # optional parts trade a character
-            ("^(?:(?:(?:\\d?){1,9}) {2,})+$", 0),  # a nullable group is no separator
-            ("^(?:(?:\\w{1,5}\\s*)(?:-?){1,9})+$", 0),
-            ("^(?:\\w{1,3}\\s?)+$", 0),  # any variation counts inside
+            (regex_fixture("^(?:\\w?\\.?)* {2}$"), 0),  # optional parts trade a character
+            (regex_fixture("^(?:(?:(?:\\d?){1,9}) {2,})+$"), 0),  # a nullable group is no separator
+            (regex_fixture("^(?:(?:\\w{1,5}\\s*)(?:-?){1,9})+$"), 0),
+            (regex_fixture("^(?:\\w{1,3}\\s?)+$"), 0),  # any variation counts inside
         ],
     )
     def test_missed_shapes_are_reported(self, source, flags):
@@ -225,7 +226,7 @@ class TestReviewFindings:
             assert analyse_pattern("[[]") == ()
 
     def test_no_suggestion_recommends_a_bounded_repetition(self):
-        (risk,) = analyse_pattern("(a+)+")
+        (risk,) = analyse_pattern(regex_fixture("(a+)+"))
         assert not any("{1,32}" in item for item in risk.suggestions)
 
 

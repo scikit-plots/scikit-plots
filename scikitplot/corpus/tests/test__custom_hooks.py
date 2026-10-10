@@ -775,18 +775,25 @@ class TestFactoryCorpusBuilder:
             calls.append((url, kwargs))
             return sentinel
 
-        builder = FactoryCorpusBuilder(
+        # The seam resolves ``output_path`` from the builder's temporary
+        # directory, which the builder owns and removes on close. Without the
+        # context manager the directory was cleaned up implicitly by garbage
+        # collection, a ResourceWarning that strict runs (the coverage job)
+        # turn into a failure.
+        with FactoryCorpusBuilder(
             factories=BuilderFactories(downloader_factory=downloader_factory)
-        )
-        assert builder._inner._make_downloader("https://example.com/a.pdf") is sentinel
-        assert len(calls) == 1
-        url, options = calls[0]
-        assert url == "https://example.com/a.pdf"
-        assert options["timeout"] == builder.config.download_timeout
-        assert options["max_bytes"] == builder.config.max_download_bytes
-        assert options["max_retries"] == builder.config.download_max_retries
-        assert options["retry_backoff"] == builder.config.download_retry_backoff
-        assert pathlib.Path(options["output_path"]).is_dir()
+        ) as builder:
+            assert builder._inner._make_downloader("https://example.com/a.pdf") is sentinel
+            assert len(calls) == 1
+            url, options = calls[0]
+            assert url == "https://example.com/a.pdf"
+            assert options["timeout"] == builder.config.download_timeout
+            assert options["max_bytes"] == builder.config.max_download_bytes
+            assert options["max_retries"] == builder.config.download_max_retries
+            assert options["retry_backoff"] == builder.config.download_retry_backoff
+            output_path = pathlib.Path(options["output_path"])
+            assert output_path.is_dir()
+        assert not output_path.exists()  # removed by the builder, not by gc
 
     def test_context_manager(self, tmp_txt: pathlib.Path) -> None:
         with FactoryCorpusBuilder() as builder:
