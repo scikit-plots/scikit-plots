@@ -217,6 +217,29 @@ def test_aggregate_path_must_be_root_relative_and_cannot_escape_asset_root(tmp_p
             load_aggregate(tmp_path, configured, expected_site_id="docs")
 
 
+def test_source_relative_aggregate_loads_only_inside_source_root(tmp_path):
+    packaged = tmp_path / "packaged"
+    source = tmp_path / "source"
+    (source / "_feedback").mkdir(parents=True)
+    packaged.mkdir()
+    write_aggregate(source / "_feedback" / "agg.json", site_id="site-b")
+    write_aggregate(tmp_path / "outside.json", site_id="site-b")
+    rows = load_aggregate(
+        packaged, "_feedback/agg.json", expected_site_id="site-b", source_root=source
+    )
+    assert rows["guide/install"]["count"] == 2
+    # The packaged form still resolves under the packaged root only.
+    with pytest.raises(FeedbackConfigError, match="Unable to read"):
+        load_aggregate(
+            packaged, "/_feedback/agg.json", expected_site_id="site-b", source_root=source
+        )
+    for configured in ("../outside.json", "_feedback/../../outside.json", "C:x.json"):
+        with pytest.raises(FeedbackConfigError, match="feedback_aggregate_file"):
+            load_aggregate(
+                packaged, configured, expected_site_id="site-b", source_root=source
+            )
+
+
 def test_aggregate_rejects_impossible_score(tmp_path):
     path = tmp_path / "feedback.json"
     write_aggregate(path, pages={"x": {"count": 1, "score": 6, "positive_count": 1, "negative_count": 0, "neutral_count": 0}})

@@ -360,6 +360,93 @@ def validate_config(config: Any) -> dict[str, Any]:
     }
 
 
+def _resolve_aggregate_path(
+    raw: str,
+    asset_root: str | Path,
+    source_root: str | Path | None,
+) -> Path:
+    """
+    Resolve a configured aggregate selector to a file confined to its root.
+
+    Parameters
+    ----------
+    raw : str
+        Non-empty ``feedback_aggregate_file`` value.
+    asset_root : str or pathlib.Path
+        The extension's packaged ``_static`` directory. A selector with a
+        leading ``/`` resolves beneath it.
+    source_root : str or pathlib.Path or None
+        The documentation source directory (Sphinx ``confdir``). A selector
+        without a leading ``/`` resolves beneath it. ``None`` disables that
+        form, so callers that do not pass it keep the packaged-only contract.
+
+    Returns
+    -------
+    pathlib.Path
+        The resolved file path, inside the selected root after symlinks are
+        resolved.
+
+    Raises
+    ------
+    FeedbackConfigError
+        If the selector is not one of the two forms, contains an empty,
+        ``.``, ``..``, backslash, drive, query or fragment component, or
+        resolves outside its root.
+
+    Notes
+    -----
+    The packaged form is shared by every site that installs the extension,
+    so it can hold only one site's snapshot. The source-relative form lets
+    each site keep its own reviewed snapshot beside its ``conf.py``. Both
+    forms are build-time reads; neither becomes a browser fetch URL.
+    """
+    packaged = raw.startswith("/")
+    if packaged:
+        body = raw[1:]
+        if body.startswith("/"):
+            raise FeedbackConfigError(
+                "feedback_aggregate_file must be a root-relative packaged asset path",
+            )
+        root_value: str | Path = asset_root
+    else:
+        if source_root is None:
+            raise FeedbackConfigError(
+                "feedback_aggregate_file must be a root-relative packaged asset path "
+                "('/name.json'); a relative path needs the documentation source "
+                "directory",
+            )
+        body = raw
+        root_value = source_root
+    if any(marker in raw for marker in ("?", "#", "\\", ":")):
+        raise FeedbackConfigError(
+            (
+                "feedback_aggregate_file must be a root-relative packaged asset path"
+                if packaged
+                else "feedback_aggregate_file must be a relative path inside the "
+                "documentation source directory"
+            ),
+        )
+    parts = body.split("/")
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise FeedbackConfigError(
+            "feedback_aggregate_file contains an unsafe asset path",
+        )
+    root = Path(root_value).resolve()
+    path = root.joinpath(*parts).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError as exc:
+        raise FeedbackConfigError(
+            (
+                "feedback_aggregate_file must stay inside the packaged feedback asset root"
+                if packaged
+                else "feedback_aggregate_file must stay inside the documentation "
+                "source directory"
+            ),
+        ) from exc
+    return path
+
+
 def load_aggregate(  # ruff: ignore[too-many-branches]
     asset_root: str | Path,
     configured: Any,
@@ -367,14 +454,47 @@ def load_aggregate(  # ruff: ignore[too-many-branches]
     expected_site_id: str,
     expected_page_revision: str = "",
     return_metadata: bool = False,
+    source_root: str | Path | None = None,
 ):
     """
-    Load the current bounded V3 aggregate from a packaged asset root.
+    Load the current bounded V3 aggregate for one site.
 
-    ``configured`` is a root-relative logical asset path such as
-    ``/page-feedback-aggregate.json``. It is resolved only beneath ``asset_root``
-    (the caller-provided asset root), never against the documentation source
-    tree or host filesystem. Missing/blank means unknown.
+    Parameters
+    ----------
+    asset_root : str or pathlib.Path
+        The extension's packaged ``_static`` directory.
+    configured : str
+        ``feedback_aggregate_file``. Blank means unknown: no counters.
+        ``/name.json`` (leading slash) is a packaged asset beneath
+        ``asset_root``. ``dir/name.json`` (no leading slash) is a file beneath
+        ``source_root``, the site's own documentation source directory.
+    expected_site_id : str
+        ``feedback_site_id``; the aggregate's ``site_id`` must equal it.
+    expected_page_revision : str, default ""
+        ``feedback_page_revision``; must match a revision-pinned aggregate.
+    return_metadata : bool, default False
+        Also return ``{"contract": ..., "complete": ...}``.
+    source_root : str or pathlib.Path or None, default None
+        The documentation source directory (Sphinx ``confdir``). ``None``
+        rejects the source-relative form.
+
+    Returns
+    -------
+    dict or tuple of (dict, dict)
+        Page rows keyed by page ID, and the metadata when requested.
+
+    Raises
+    ------
+    FeedbackConfigError
+        If the selector is unsafe, the file is unreadable or oversized, or
+        its contract, site, revision or rows are invalid.
+
+    Notes
+    -----
+    Neither form reads outside its root, and neither is a browser fetch URL.
+    The packaged form is one file shared by every site that installs the
+    extension; a site whose ``feedback_site_id`` differs from that file's
+    ``site_id`` must use its own source-relative snapshot or a blank value.
 
     ``page.feedback-aggregate.v3`` is the only supported aggregate contract.
     Every page row carries total score/count plus explicit positive, negative,
@@ -399,29 +519,7 @@ def load_aggregate(  # ruff: ignore[too-many-branches]
         empty = {}
         metadata = {"contract": "", "complete": False}
         return (empty, metadata) if return_metadata else empty
-    if (
-        not raw.startswith("/")
-        or raw.startswith("//")
-        or "?" in raw
-        or "#" in raw
-        or "\\" in raw
-    ):
-        raise FeedbackConfigError(
-            "feedback_aggregate_file must be a root-relative packaged asset path",
-        )
-    parts = raw[1:].split("/")
-    if not parts or any(part in {"", ".", ".."} for part in parts):
-        raise FeedbackConfigError(
-            "feedback_aggregate_file contains an unsafe asset path",
-        )
-    root = Path(asset_root).resolve()
-    path = root.joinpath(*parts).resolve()
-    try:
-        path.relative_to(root)
-    except ValueError as exc:
-        raise FeedbackConfigError(
-            "feedback_aggregate_file must stay inside the packaged feedback asset root",
-        ) from exc
+    path = _resolve_aggregate_path(raw, asset_root, source_root)
     try:
         data = path.read_bytes()
     except OSError as exc:

@@ -380,13 +380,26 @@
 - **Verified by:** `python tools/maint_tools/check_path_lengths.py check` on every pull request (`pr_check_path_lengths.yml`).
 - **Added:** 2026-10-10. Root cause: a Git-based `pip install ...#subdirectory=libs/skinny` on Windows failed with "Filename too long" on two `_sphinx_ai_assistant` fresh-chat handoff notes (152 and 166 characters under a 108-character clone directory). pip clones the whole repository, so any long path anywhere breaks every Git-based install of every part.
 
+### Rule 64: Shared defaults - every site that consumes a shared default is tested against it
+- **When:** a library ships a value bound to one deployment (a server allowlist default, a packaged data file carrying a `site_id`) that more than one site consumes.
+- **Then:** name every known consumer in a test and assert its configuration agrees with the shared value; give each site a place for its own data (here: `feedback_aggregate_file` without a leading slash, beside `conf.py`) instead of one packaged file; never pin the shared value as a source-text string.
+- **Verified by:** `test_page_feedback_integration_source.py::test_proxy_generic_feedback_site_authority_lists_both_public_sites` and `::test_library_site_feedback_is_served_by_the_proxy`, and `_sphinx_feedback/tests/test_sphinx_build.py` (any site builds; a packaged snapshot of another site fails closed).
+- **Added:** 2026-10-10. Root cause: `_sphinx_feedback` was configured for scikit-plots-learn only. The proxy allowed `site_id` `scikit-plots-learn`, the one packaged snapshot carried `scikit-plots-learn`, and the integration test pinned both as text and ran only in the learn checkout, so https://scikit-plots.github.io/dev/ (`scikit-plots`) failed at build (`site_id does not match`) and at submit (`422 site_not_allowed`) with every check green.
+
+### Rule 65: SQLite - `with sqlite3.connect(...)` does not close the connection
+- **When:** opening a `sqlite3` connection, in product code or tests.
+- **Then:** `with closing(sqlite3.connect(...)) as conn, conn:`: `closing` releases the handle, the inner `with conn` keeps commit/rollback.
+- **Verified by:** `python -m pytest scikitplot/_externals/_sphinx_ext/_sphinx_feedback --confcutdir scikitplot/_externals/_sphinx_ext/_sphinx_feedback -W error` on Python 3.13+, where an unclosed connection raises `ResourceWarning`.
+- **Added:** 2026-10-10. Root cause: `SQLiteFeedbackStore` used the connection's context manager, which only ends the transaction; every `put`/`events` leaked a handle in the long-running service, and the suite failed at random tests under `-W error`. Rule 62 applied to product code.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 63
+- Total lessons: 65
+- Round 29: Rule 62 repeated in product code (SQLite connections), now Rule 65 with the exact idiom.
 - Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.

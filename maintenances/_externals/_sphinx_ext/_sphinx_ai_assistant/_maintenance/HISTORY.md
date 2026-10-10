@@ -653,3 +653,19 @@ the source that the stale tests had stopped reaching.
   only and raced the gossip.
 - Result: 2790 passed, 2 skipped, 0 failed (CPython 3.11, pinned proxy
   requirements, Redis 7.0.15).
+
+## 2026-10-10 — page feedback: the proxy serves both public sites
+
+- **One site rejected.** The proxy's default `FEEDBACK_ALLOWED_SITE_IDS` was
+  `scikit-plots-learn`, so a submission from https://scikit-plots.github.io/dev/
+  (`feedback_site_id = "scikit-plots"`) was answered `422 site_not_allowed`
+  while scikit-plots-learn.readthedocs.io worked. The default is now
+  `scikit-plots-learn,scikit-plots`; both origins were already in
+  `_DEFAULT_ALLOWED_ORIGINS`. Any other `site_id` is still refused.
+- **Pinned string replaced.** The integration test pinned the one-site default
+  as source text; it now parses the allowlist, requires both sites, and checks
+  the library checkout's `docs/source/conf.py` site ID and snapshot against it.
+- **Mirror resynced** with `_utils/sync_page_feedback_runtime.py` after
+  `_sphinx_feedback` 0.7.0 (SQLite connections are now closed).
+- Deployment: the live Space keeps its old default until redeployed, or until
+  the Space sets `FEEDBACK_ALLOWED_SITE_IDS=scikit-plots-learn,scikit-plots`.

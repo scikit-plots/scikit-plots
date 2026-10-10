@@ -51,14 +51,27 @@ feedback_buttons_ratings = {
 }
 feedback_counter_enabled = True
 feedback_counter_source = "embedded"
-feedback_aggregate_file = "/page-feedback-aggregate.json"
+feedback_aggregate_file = "_feedback/aggregate.json"  # beside conf.py; "" = no counters
 feedback_endpoint = "https://feedback.example.org/v1/feedback"
 ```
 
-`feedback_aggregate_file` is a build-time packaged-asset selector, not a browser
-fetch URL. A leading `/` is required and resolves beneath this extension's
-`_static/` asset root. This keeps the reviewed aggregate authority with the
-feedback module and prevents arbitrary documentation-source or filesystem reads.
+`_example_conf.py` in this directory assigns every `feedback_*` value with its
+default, allowed values and purpose, and shows the AI-assistant, two-site and
+service variants; the test suite builds a site from it.
+
+`feedback_aggregate_file` is a build-time snapshot selector, not a browser fetch
+URL. It has two forms, and neither may leave its directory:
+
+- `/name.json` (leading `/`) resolves beneath this extension's `_static/` asset
+  root. That file is shipped with the extension and therefore shared by every
+  site that installs it; the shipped `page-feedback-aggregate.json` is the
+  `scikit-plots-learn` snapshot.
+- `dir/name.json` (no leading `/`) resolves beneath the site's own
+  documentation source directory (Sphinx `confdir`; the source directory when
+  the build has no `conf.py`). Use this for any other site.
+
+Blank means no snapshot: counters stay hidden. The snapshot's `site_id` must
+equal `feedback_site_id`, or the build stops with a configuration error.
 
 Automatic placement uses semantic/theme-compatible candidates and falls back to the
 main content/body rather than disappearing on an unknown theme. `.. feedback::` is an
@@ -163,8 +176,28 @@ FEEDBACK_ALLOWED_SITE_IDS=my-docs
 
 `FEEDBACK_ALLOWED_SITE_IDS` is an optional exact server-side allowlist. It prevents a
 direct client from changing the browser-supplied `site_id` to pollute another logical
-site. The Scikit-Plots proxy binds its generic feedback route to `scikit-plots-learn` by
-default. Blank preserves generic multi-site compatibility.
+site; any other `site_id` is answered with `422 site_not_allowed`. The Scikit-Plots proxy
+binds its generic feedback route to `scikit-plots-learn,scikit-plots` by default (the
+`scikit-plots-learn.readthedocs.io` and `scikit-plots.github.io` sites). Blank preserves
+generic multi-site compatibility.
+
+## Supporting any site
+
+A site works when three values agree, with or without the AI assistant (this package
+imports neither the AI assistant nor AI Learn, and a build may list both extensions):
+
+| Site (`conf.py`) | Service (environment) | Failure when they disagree |
+| --- | --- | --- |
+| `feedback_site_id` | listed in `FEEDBACK_ALLOWED_SITE_IDS` (when set) | `422 site_not_allowed` on submit |
+| site origin, e.g. `https://user.github.io` (no path) | listed in the CORS allowlist | browser blocks the response |
+| `feedback_site_id` | `site_id` in the `feedback_aggregate_file` snapshot | build stops at `config-inited` |
+
+The Scikit-Plots sites are configured this way:
+
+| Site | `feedback_site_id` | `feedback_aggregate_file` |
+| --- | --- | --- |
+| `https://scikit-plots-learn.readthedocs.io/en/latest/` | `scikit-plots-learn` | `/page-feedback-aggregate.json` (packaged) |
+| `https://scikit-plots.github.io/dev/` | `scikit-plots` | `_page_feedback/aggregate.json` (in `docs/source`) |
 
 For high-assurance deployments, an optional local authority manifest can also bind
 accepted pages (and optionally exact revisions) without adding browser secrets or page-view

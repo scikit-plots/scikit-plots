@@ -1397,9 +1397,15 @@ _page_feedback_env.setdefault(
     "FEEDBACK_GITHUB_PATH",
     "docs/source/_feedback",
 )
+# Every public site that posts to this proxy must be listed: the service
+# answers 422 ``site_not_allowed`` for any other ``feedback_site_id``. The
+# two Scikit-Plots sites are https://scikit-plots-learn.readthedocs.io
+# (``scikit-plots-learn``) and https://scikit-plots.github.io (``scikit-plots``);
+# both origins are already in ``_DEFAULT_ALLOWED_ORIGINS``. A deployment that
+# hosts other sites sets FEEDBACK_ALLOWED_SITE_IDS (and ALLOWED_ORIGINS) itself.
 _page_feedback_env.setdefault(
     "FEEDBACK_ALLOWED_SITE_IDS",
-    "scikit-plots-learn",
+    "scikit-plots-learn,scikit-plots",
 )
 try:
     PAGE_FEEDBACK_SERVICE_CONFIG = load_page_feedback_service_config(_page_feedback_env)
