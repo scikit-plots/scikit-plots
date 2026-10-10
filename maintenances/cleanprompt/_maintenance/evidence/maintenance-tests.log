@@ -1,3 +1,12 @@
-........................................................................ [ 94%]
-....                                                                     [100%]
-76 passed in 71.49s (0:01:11)
+# round 25, 2026-10-10, after the evidence refresh.
+$ python -B maintenances/cleanprompt/_maintenance/check_trackers.py
+maintenance=PASS runtime=PASS release=UNVERIFIED
+$ python -B -m pytest maintenances/cleanprompt/_maintenance/tests -q -p no:cacheprovider
+88 passed in 99.74s (0:01:39)
+$ python -B maintenances/cleanprompt/_maintenance/review_subsystem.py
+scikitplot.cleanprompt  review=CLOSED  release=UNVERIFIED
+  closed: 100  open: 0
+  UNAVAILABLE lane: platform_matrix
+(exit 0: the recorded evidence describes this tree)
+$ python -B -m pytest docs/source/user_guide/cleanprompt -q
+9 passed

@@ -1028,7 +1028,11 @@ COMMANDS: tuple[Command, ...] = (
                 flags=("--debug",),
                 kind="flag",
                 default=False,
-                help="Enable Flask debug mode.",
+                help=(
+                    "Enable Flask debug mode. Loopback only: refused with "
+                    "--docker or any non-loopback --host, because the debugger "
+                    "runs code typed into the browser."
+                ),
             ),
             Param(
                 dest="open",
@@ -1459,7 +1463,10 @@ COMMANDS: tuple[Command, ...] = (
                 flags=("--with-ner",),
                 kind="flag",
                 default=False,
-                help="Include spaCy and a model in the image.",
+                help=(
+                    "Include spaCy and the default English model in the image; "
+                    "the image runs with exactly that model."
+                ),
             ),
         ),
     ),
@@ -3043,9 +3050,15 @@ def _cmd_doctor(
     """Run the ``doctor`` subcommand."""
     del stderr
     policy, settings = _policy_from(args)
+    # The registry is built by the same function inspect and encode use, so a
+    # request doctor reports as met is one the next run can meet (CP-093).
+    # When it cannot be met, the failure is reported, not swallowed: the
+    # structural registry stands in so the rest of the report still renders.
+    ner_error: CapabilityError | None = None
     try:
         registry = _registry_for(policy, settings)
-    except CapabilityError:
+    except CapabilityError as exc:
+        ner_error = exc
         registry = default_registry(kinds=policy.kinds)
     if getattr(args, "new_key", False):
         # A key generator that needs an optional package installed is no use to
@@ -3067,7 +3080,15 @@ def _cmd_doctor(
         return EXIT_OK
 
     report = diagnose(policy, registry)
-    engines = describe_engines(settings["language"], settings["ner_engine"])
+    # check_assets=True: doctor is where NLTK's data packages are looked at,
+    # so the report says "ready" only for an engine that has its data.
+    engines = describe_engines(
+        settings["language"],
+        settings["ner_engine"],
+        model=settings["ner_model"],
+        size=settings["model_size"],
+        check_assets=True,
+    )
     languages = language_report(settings["language"], settings["model_size"])
     corpora: dict[str, Any] = {"checked": False}
     if engines["engines"].get("nltk", {}).get("status") == "AVAILABLE":
@@ -3083,6 +3104,11 @@ def _cmd_doctor(
             "active_kinds": list(report.active_kinds),
             "inactive_kinds": list(report.inactive_kinds),
             "ner_active": report.ner_active,
+            "ner_requested": bool(settings["ner"]),
+            # Not "installed": the request can be met with the data present.
+            "ner_ready": report.ner_active,
+            "ner_error": str(ner_error) if ner_error is not None else None,
+            "ner_remedy": ner_error.install_hint if ner_error is not None else None,
             "total_patterns": len(PATTERNS),
         },
         "blind_spots": [spot.as_dict() for spot in report.blind_spots],

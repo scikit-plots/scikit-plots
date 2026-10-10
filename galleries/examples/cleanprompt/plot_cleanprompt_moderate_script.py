@@ -186,28 +186,47 @@ for profile in ("balanced", "strict"):
 from scikitplot.cleanprompt import build_detectors, describe_engines  # noqa: E402
 from scikitplot.cleanprompt._exceptions import CapabilityError  # noqa: E402
 
-engines = describe_engines(language="en", mode="auto")
+engines = describe_engines(language="en", mode="auto", check_assets=True)
 
 for name, report in engines["engines"].items():
     print(
-        "{0:<6} {1:<14} usable={2!s:<6} {3}".format(
-            name, report["status"], report["usable"], report["summary"]
+        "{0:<6} installed={1!s:<5} data={2!s:<5} ready={3!s:<5} {4}".format(
+            name,
+            report["installed"],
+            report["assets_ready"],
+            report["ready"],
+            report["remedy"] or report["summary"],
         )
     )
+print("auto would run:", engines["selected"] or "(nothing ready)")
 
 # %%
-# The same sentence, through each mode that is usable here.  Where an engine is
-# absent, the mode reports a specific ``SKIP`` rather than quietly falling back
-# — a redaction that found nothing must never look like one that found nothing
-# to find.
+# **Installed is not ready.**  An engine needs three things: its package, a
+# language it can read, and its data — a spaCy *model*, or NLTK's *data
+# packages*.  The commonest way entity detection fails is the package without
+# the data, so the report shows the three separately and, where one is missing,
+# the one command that supplies it.  ``auto`` picks only an engine that is
+# ready; ``doctor`` reports the same thing from the command line:
 #
-# The ``try`` wraps the **detection**, not just the construction, and that
-# placement is deliberate.  ``build_detectors`` can only see whether the
-# *package* is importable; NLTK additionally needs four data packages that live
-# under ``$HOME/nltk_data``, and their absence is not discovered until a
-# sentence is actually tokenised.  An example that only guarded construction
-# would pass on a developer's machine and crash the documentation build on a
-# fresh one.
+# .. code-block:: bash
+#
+#     python -m scikitplot.cleanprompt doctor --ner --format json
+#
+# and its ``detection.ner_ready`` and ``detection.ner_remedy`` fields are the
+# ones to read.
+
+# %%
+# The same sentence, through each mode that is ready here.  Where an engine is
+# not, the mode reports a specific ``SKIP`` — with the remedy — rather than
+# quietly falling back: a redaction that found nothing must never look like one
+# that found nothing to find.
+#
+# ``build_detectors(required=True)`` is the check: it refuses an engine whose
+# package, language or data is missing, *before* any text is read, and it is
+# the same function ``doctor``, ``inspect``, :func:`encode` and the web app
+# use, so they cannot disagree.  The ``try`` still wraps the detection as well,
+# because a model that is present can still fail to load — a damaged download,
+# say — and an example must not crash a documentation build over that.
 
 from scikitplot.cleanprompt import encode  # noqa: E402
 
@@ -216,7 +235,7 @@ for mode in ("none", "spacy", "nltk", "both"):
         build_detectors(mode=mode, language="en", required=(mode != "none"))
         outcome = encode(SAMPLE, ner=(mode != "none"), engine=mode)
     except CapabilityError as exc:
-        print("[SKIP] {0:<6} {1}".format(mode, str(exc)[:96]))
+        print("[SKIP] {0:<6} {1}".format(mode, exc.install_hint or str(exc)[:96]))
         continue
     print("{0:<6} {1}".format(mode, outcome.text))
 

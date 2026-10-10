@@ -117,11 +117,16 @@ class DocumentReader:
     default_language: str | None
     source_uri: str | None
     source_provenance: dict[str, Any]
+    custom_extractor: Any | None
+    custom_extractor_kwargs: dict[str, Any]
 
     # ------------------------------------------------------------------
     # Computed properties
     # ------------------------------------------------------------------
 
+    @property
+    def backend_reports(self) -> tuple[dict[str, Any], ...]: ...
+    def clear_backend_reports(self) -> None: ...
     @property
     def file_name(self) -> str: ...
 

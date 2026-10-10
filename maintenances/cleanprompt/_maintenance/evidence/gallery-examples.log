@@ -1,88 +1,7 @@
-ok     plot_cleanprompt_advanced_script.py            exit=0 lines=81   skips=0 leftovers=0
-ok     plot_cleanprompt_basics_script.py              exit=0 lines=80   skips=0 leftovers=0
-ok     plot_cleanprompt_cli_usage_script.py           exit=0 lines=172  skips=0 leftovers=0
-ok     plot_cleanprompt_guard_agents_script.py        exit=0 lines=36   skips=0 leftovers=0
-ok     plot_cleanprompt_moderate_script.py            exit=0 lines=113  skips=2 leftovers=0
-ok     plot_cleanprompt_notebooks_script.py           exit=0 lines=101  skips=0 leftovers=0
-ok     plot_cleanprompt_packs_formats_script.py       exit=0 lines=92   skips=0 leftovers=0
-ok     plot_cleanprompt_python_api_script.py          exit=0 lines=64   skips=0 leftovers=0
-ok     plot_cleanprompt_recipes_script.py             exit=0 lines=86   skips=0 leftovers=0
+# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
 
-{
-  "failed": 0,
-  "lane": "gallery_examples",
-  "results": [
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_advanced_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 81,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_basics_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 80,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_cli_usage_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 172,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_guard_agents_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 36,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_moderate_script.py",
-      "skips": 2,
-      "status": 0,
-      "stdout_lines": 113,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_notebooks_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 101,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_packs_formats_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 92,
-      "unreserved_values": 0
-    },
-    {
-      "leftover_files": 0,
-      "ok": true,
-      "script": "plot_cleanprompt_python_api_script.py",
-      "skips": 0,
-      "status": 0,
-      "stdout_lines": 64,
-      "unreserved_values": 0
+## no optional tier
+$ python -B .../probe_gallery.py
     },
     {
       "leftover_files": 0,
@@ -90,9 +9,27 @@ ok     plot_cleanprompt_recipes_script.py             exit=0 lines=86   skips=0 
       "script": "plot_cleanprompt_recipes_script.py",
       "skips": 0,
       "status": 0,
-      "stdout_lines": 86,
+      "stdout_lines": 223,
       "unreserved_values": 0
     }
   ],
   "scripts": 9
 }
+EXIT=0
+
+## every tier (the sandbox hides NLTK data: moderate reports a remedy-bearing SKIP for nltk/both)
+$ python -B .../probe_gallery.py
+    },
+    {
+      "leftover_files": 0,
+      "ok": true,
+      "script": "plot_cleanprompt_recipes_script.py",
+      "skips": 0,
+      "status": 0,
+      "stdout_lines": 223,
+      "unreserved_values": 0
+    }
+  ],
+  "scripts": 9
+}
+EXIT=0

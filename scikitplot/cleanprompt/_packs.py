@@ -84,6 +84,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from ._canonical import detection_view
 from ._detectors import RegexDetector
 from ._exceptions import CleanPromptError
 from ._hooks import get_validator, validator_names
@@ -209,6 +210,14 @@ def normalise_field(name: str) -> str:
     field, and a rule that listed every spelling would be a rule that missed
     the next one.
 
+    The name is read through the detection view first (``CP-103``): an
+    invisible character inside it (``n\u200bame``) or full-width letters
+    (``\uff4e\uff41\uff4d\uff45``) still name the field. Without that, one
+    zero-width space in a header turned ``name`` into ``n_ame``, the field
+    rule did not apply, and the column's values went out in the clear. The
+    same function builds the index and looks names up, so the two cannot
+    disagree.
+
     Examples
     --------
     >>> normalise_field("DateOfBirth")
@@ -217,8 +226,12 @@ def normalise_field(name: str) -> str:
     'date_of_birth'
     >>> normalise_field("patientMRN")
     'patient_mrn'
+    >>> normalise_field("n\u200bame")
+    'name'
     """
-    split = _CAMEL.sub("_", str(name).strip())
+    written = str(name)
+    view = detection_view(written)
+    split = _CAMEL.sub("_", (view.text if view is not None else written).strip())
     return _SEPARATORS.sub("_", split.lower()).strip("_")
 
 

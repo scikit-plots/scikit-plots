@@ -69,11 +69,22 @@ __all__ = [
 #: no download at all.
 DEFAULT_MODEL = "en_core_web_sm"
 
-#: Remedy offered when spaCy is present in metadata but will not import.
-#: ``--force-reinstall`` is deliberate: an ordinary install is a no-op against
-#: a distribution pip already believes is satisfied, which is precisely the
-#: state this message is reporting.
-_REINSTALL_SPACY = 'pip install --force-reinstall "spacy>=3.4,<4"'
+
+def _reinstall_spacy() -> str:
+    """
+    Return the command that repairs an installed-but-unimportable ner tier.
+
+    Notes
+    -----
+    **Developer notes.** Computed from the tier's declared range rather than
+    written down: a hand-written copy said ``<4`` for spaCy after the tier had
+    moved to ``<5``, which would have reinstalled an older major (round 25,
+    the ``CP-025`` rule applied again).
+    """
+    from ._capabilities import probe  # ruff: ignore[import-outside-top-level]
+
+    return f'pip install --force-reinstall "{probe("ner").supported}"'
+
 
 #: Entity labels redacted by default, in the canonical vocabulary.
 #:
@@ -229,10 +240,10 @@ class NerDetector(Detector):
             raise CapabilityError(
                 "spaCy reports itself installed but cannot be imported "
                 f"({type(exc).__name__}: {exc}). The installation is broken; reinstall it with: "
-                f"{_REINSTALL_SPACY}",
+                f"{_reinstall_spacy()}",
                 tier="ner",
                 status="BROKEN",
-                install_hint=_REINSTALL_SPACY,
+                install_hint=_reinstall_spacy(),
             ) from exc
 
         try:

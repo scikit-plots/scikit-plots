@@ -60,16 +60,18 @@ Start here
    renamed role by role, paths and rendered data removed, and the code still
    readable enough for a model to help with.
 5. **Moderate** — policies and profiles, the vault lifecycle, append versus
-   overwrite, entity engines, languages, and the surrogate style.
+   overwrite, entity engines and whether they are *ready* (package, language
+   and data), languages, and the surrogate style.
 6. **Advanced** — custom detectors, overlap arbitration, vault encryption
-   without a compiled dependency, the lossy model hop, and the nine invariants.
+   without a compiled dependency, the lossy model hop, values written with
+   invisible or full-width characters, and the nine core runtime invariants.
 7. **Recipes** — a CI gate, a notebook helper, a logging filter, a batch
-   pipeline, and an agent loop.
+   pipeline, an agent loop, and container files that stay on loopback.
 8. **Packs and formats** — records, configs and whole folders: YAML packs that
    read field names (``mrn``, ``DB_PASSWORD``, ``member_id``), formats from
    CSV to Word to zip, the fluent plan (``all``, one domain, or any
-   combination), your own pack from a JSON or YAML file, and the corpus
-   bridge.
+   combination), your own pack from a JSON or YAML file (and why a pack file
+   is trusted like code), and the corpus bridge.
 9. **A gate for any model or agent** — :class:`Guard` in front of any client:
    checked outgoing text, chat messages, tool calls, streamed replies,
    ``ask --via`` for command-line models, the agent skill, the MCP server for

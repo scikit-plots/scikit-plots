@@ -355,7 +355,15 @@ def _entity_remedy() -> str:
     *Both engines are offered.* NLTK is a tenth of the size and needs no
     compiler, which on a constrained machine is the difference between some
     name detection and none.
+
+    *Installed is not ready* (``CP-093``). "spaCy is installed; enable it" was
+    the advice on a machine with spaCy and no model, and following it failed on
+    the first sentence. spaCy's readiness is read from metadata, so it is
+    checked here without importing anything; NLTK's data can only be checked
+    by importing NLTK, which this function must not do, so the NLTK advice says
+    that ``doctor`` checks the data.
     """
+    from ._engines import engine_readiness  # ruff: ignore[import-outside-top-level]
     from ._languages import (  # ruff: ignore[import-outside-top-level]
         DEFAULT_LANGUAGE,
         resolve_model,
@@ -364,16 +372,28 @@ def _entity_remedy() -> str:
     spacy_report = probe("ner")
     nltk_report = probe("nltk")
 
+    spacy_fix = ""
     if spacy_report.status is CapabilityStatus.AVAILABLE:
-        return (
-            "spaCy is installed; enable it for this run (--ner on the command "
-            "line, or add spacy_detector() to the registry)"
+        spacy = engine_readiness("spacy", DEFAULT_LANGUAGE)
+        if spacy.ready:
+            return (
+                "spaCy is installed with its model; enable it for this run (--ner "
+                "on the command line, or add spacy_detector() to the registry)"
+            )
+        spacy_fix = (
+            "spaCy is installed but has no model; download one: "
+            f"{spacy.remedy}, then run with --ner"
         )
+        if nltk_report.status is not CapabilityStatus.AVAILABLE:
+            return spacy_fix
     if nltk_report.status is CapabilityStatus.AVAILABLE:
-        return (
+        advice = (
             "NLTK is installed; enable it for this run "
-            "(--ner --ner-engine nltk, or add nltk_detector() to the registry)"
+            "(--ner --ner-engine nltk, or add nltk_detector() to the registry) — "
+            "it needs its data packages, and `doctor --ner --ner-engine nltk` "
+            "says which are missing"
         )
+        return f"{advice}; or: {spacy_fix}" if spacy_fix else advice
 
     model, _note = resolve_model(DEFAULT_LANGUAGE, "sm")
     return (

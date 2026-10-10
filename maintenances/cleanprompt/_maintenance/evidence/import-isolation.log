@@ -1,3 +1,7 @@
+# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+
+## import isolation
+$ python -B .../probe_isolation.py
 ========================================================================
 IMPORT ISOLATION UNDER AN __import__ BLOCKER
 blocked: spacy, nltk, flask, cryptography, numpy, pandas, pydantic, scipy, sklearn, click, yaml, typing_extensions
@@ -53,3 +57,4 @@ python -m ... plan             PASS  (exit 0)
 python -m ... ask --via cat mail ann@example.com PASS  (exit 0)
 
 TOTAL FAILURES: 0
+EXIT=0

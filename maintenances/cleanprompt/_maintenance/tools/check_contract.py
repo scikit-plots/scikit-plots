@@ -138,6 +138,7 @@ REQUIRED_MAINTENANCE_FILES = (
     "_maintenance/STATE.json",
     "_maintenance/EVIDENCE.json",
     "_maintenance/FRESH_CHAT_HANDOFF.md",
+    "_maintenance/RESUME.md",
     "_maintenance/VERIFICATION.md",
     "_maintenance/SUBMODULE_STRUCTURE.md",
     "_maintenance/FAMILY.md",

@@ -41,6 +41,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
+from .._backends import BackendCandidate, run_backend_chain
 from .._base import DocumentReader
 from .._schema import SectionType
 
@@ -212,44 +213,51 @@ def _parse_xml_stdlib(content: bytes) -> Any:
 
 
 def _parse_xml(content: bytes) -> Any:
+    """Parse XML bytes with lxml first and a secure stdlib fallback.
+
+    Only *absence* of lxml triggers fallback.  A parse error from an installed
+    lxml is still authoritative and propagates, preserving the historical
+    parser contract.
     """
-    Parse XML bytes: lxml primary, stdlib fallback.
 
-    Parameters
-    ----------
-    content : bytes
-        Raw XML bytes.
+    def _stdlib() -> Any:
+        import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
 
-    Returns
-    -------
-    Element
-        Document root (lxml or stdlib element, both expose ``itertext``).
+        try:
+            return _parse_xml_stdlib(content)
+        except (ET.ParseError, UnicodeDecodeError, ValueError) as exc:
+            raise ValueError(
+                f"XMLReader: could not parse XML content: {exc}",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(
+                f"XMLReader: could not parse XML content: {exc}",
+            ) from exc
 
-    Raises
-    ------
-    ValueError
-        If neither parser can parse the content.
-    """
-    # Try lxml first (better namespace / XPath support)
-    try:
-        return _parse_xml_lxml(content)
-    except ImportError:
-        pass  # lxml not installed — fall through to stdlib
-
-    # stdlib fallback — ET.fromstring raises xml.etree.ElementTree.ParseError
-    # for malformed XML, and UnicodeDecodeError for encoding problems.  Both
-    # are re-raised as ValueError with context for the caller.
-    # The broad fallback `Exception` is retained as a safety net since stdlib
-    # XML occasionally surfaces unexpected expat errors on exotic byte sequences.
-    import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
-
-    try:
-        return _parse_xml_stdlib(content)
-    except (ET.ParseError, UnicodeDecodeError, ValueError) as exc:
-        raise ValueError(f"XMLReader: could not parse XML content: {exc}") from exc
-    except Exception as exc:  # noqa: BLE001
-        # Catch-all: expat / codec errors that don't subclass the above.
-        raise ValueError(f"XMLReader: could not parse XML content: {exc}") from exc
+    outcome = run_backend_chain(
+        (
+            BackendCandidate(
+                "lxml",
+                lambda: _parse_xml_lxml(content),
+                fallback_exceptions=(ImportError,),
+                failure_level=logging.DEBUG,
+                degrades_on_failure=False,
+            ),
+            BackendCandidate(
+                "stdlib-xml",
+                _stdlib,
+                fallback_exceptions=(),
+                degrades_on_failure=False,
+            ),
+        ),
+        default=None,
+        logger=logger,
+        component="XMLReader",
+        operation="XML parsing",
+        error_code="XML_BACKEND_UNAVAILABLE",
+        stage="parse",
+    )
+    return outcome.value
 
 
 def _clark_to_prefix(

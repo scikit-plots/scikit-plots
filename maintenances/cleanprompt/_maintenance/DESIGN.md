@@ -1664,3 +1664,133 @@ code is written the way a linter dislikes, and the suppressions are standard
 
 `fields: []` was read as "no fields". A key that is present and empty is an
 unfinished pack; it is now a problem, reported with the others.
+
+
+## 24. Every surface says what it does
+
+Added in round twenty-five. The governing rule of the round, taken from the
+internal review of 2026-10-10: do not add capability until the current
+contract is internally truthful. Six of the nine findings are places where one
+surface described one thing and the run did another.
+
+### D-24.1 — installed is not ready, and one function decides (`CP-093`, `CP-100`)
+
+An entity engine is *ready* when three conditions hold, checked in the order
+their remedies must be applied: it can read the language; its package is
+installed and inside the declared range; its data is present and loadable.
+`_engines.engine_readiness` is the one decision. `auto` selects only a ready
+engine. `build_detectors(required=True)` refuses any engine it would run that
+is not ready, before any text is read, naming each engine's status, reason and
+remedy. `doctor`, `inspect`, `encode`, `redact`, `encode()`, the file runtime
+and the web app all build through that function, so the diagnosis and the run
+are the same decision and cannot disagree.
+
+spaCy's data is checked without importing anything: the resolved model as a
+distribution, as an importable top-level package (`find_spec` locates without
+executing), or as a directory. NLTK's data cannot be located without NLTK's
+own search path, and copying that logic would be a guess about its internals,
+so the NLTK check imports NLTK. It therefore runs only under `check_assets`,
+which the callers set where NLTK is about to be loaded anyway; elsewhere the
+report says `assets_checked: false` instead of pretending. Construction
+without `required` still imports nothing (`test_construction_imports_nothing`).
+
+`CP-100` is why the NLTK check is a *run*, not a lookup. NLTK 3.9 moved the
+tagger and chunker to new data packages; the path lookup accepted either name
+of a group, so data present only under the old names was reported ready and
+failed at the first sentence. `_nltk.missing_data` runs the path lookup and
+then, only if nothing is absent, the detector's own tagger and chunker once on
+a fixed sentence — each step independently, so both failures are named at
+once. `LookupError` is the only exception read as missing data. Success caches
+the very machinery the detector uses (the `CP-027` chunker), so the check is
+free the first time and absent afterwards; failure is not cached, so data
+downloaded mid-process is believed. The remedy names every package that can
+satisfy a group, current and older, which is right on every release in the
+declared range rather than the one it was written against.
+
+### D-24.2 — generated files are derived, never written beside the code (`CP-095`, `CP-096`)
+
+The container files were hand-written text next to the code they deploy, and
+drifted twice: the image installed `en_core_web_lg` after the default moved to
+`sm` (the `CP-025` drift, generated), and the `docker run` line published on
+every interface while the compose file beside it used loopback. The model is
+now `resolve_model(language, model_size)` and is passed back explicitly
+(`--ner-engine spacy --ner-model <model>`), so a future default change cannot
+separate what is installed from what is requested. Every launch line is
+`127.0.0.1:PORT:PORT`. A setting nothing reads (`CLEANPROMPT_NER`) is removed,
+not documented: a dead setting that looks load-bearing is a false statement.
+
+### D-24.3 — no acknowledgement unlocks code execution (`CP-097`)
+
+`--allow-remote` and `--docker` acknowledge that the page is reachable. Flask's
+debug mode serves a debugger that executes code typed into the browser; that
+is a different exposure and no flag here acknowledges it. `resolve_bind`
+refuses `debug` on any non-loopback host, container mode included.
+
+### D-24.4 — a second reading, never a rewrite (`CP-098`)
+
+Values written with an invisible format character inside them, in full-width
+letters, or with a Unicode space or dash inside a telephone number read the
+same to a person and to a model, and went out in the clear. The obvious fix —
+normalise the text before detection — breaks `I6` and exact restoration at
+once: detectors would see rewritten text, and the vault would hold a value the
+user never wrote.
+
+`_canonical.detection_view` is a second *reading*: Unicode `Cf` characters
+removed and every non-ASCII character folded by the same one-to-one table
+`canonical` already owns for "the same value" (ASCII untouched, so line breaks
+stay line breaks and code stays code). The only offset change is a deletion,
+so the view carries the deletion positions and maps a view index back with one
+`bisect` — logarithmic, so a text salted with a zero-width character between
+every letter costs no more per span. `Redactor._view_spans` runs structural
+and literal detectors over the view, maps every span onto the original, and
+adds it to the original-text spans before overlap resolution. Entity engines
+never read the view: they are statistical models of natural text. Spans are
+only added, and the resolver merges overlaps, so the view can widen redaction
+and cannot narrow it. When the view equals the text — always for ASCII — there
+is no second pass.
+
+What it does not do, recorded so it is not over-claimed: fold look-alike
+letters from other scripts (Unicode has no normalisation form for them; see
+the ledger note), or rejoin a value split by ordinary spaces.
+
+### D-24.5 — a documented command line is a claim that is tested (`CP-099`, `CP-101`)
+
+A remedy string and a documentation example are both instructions, and both
+drifted: the spaCy repair hint carried an old range (`CP-099`), and a module
+docstring showed `encode --pack-file`, which never existed (`CP-101`). Hints
+are now computed from the tier declaration; every `cleanprompt <command>
+--option` line in the README, docstrings, skills, guide and gallery is checked
+against the command table by `_maintenance/tests/test_documented_cli.py`.
+
+### D-24.6 — the reviewer says whether its record is current
+
+`review_subsystem.py` reported the recorded `PASS` while the checker failed on
+a stale evidence fingerprint. It now reports `evidence_current` with both
+fingerprints and exits 3 when the record describes another tree.
+
+### D-24.7 — continuity is a file and a test
+
+A round's state lives in `_maintenance/RESUME.md`: step log with evidence,
+last verified numbers, next action, the open ledger and pending decisions.
+`tests/test_resume.py` fails when its ledger and
+`upcoming_changes/scikitplot/cleanprompt/` disagree, so a fresh session cannot
+miss a note or redo a closed one.
+
+### D-24.8 — only pure detectors read the view (`CP-102`, `CP-103`)
+
+The view's first form ran every non-entity detector over it, and the round's
+independent review found the flaw before delivery: field, region and
+JSON-token detectors carry offsets computed from the original document, so
+their spans were mapped twice and cut through newlines and separators. The
+rule is now a declared contract, not an inference from a detector's kind:
+`Detector.reads_view` defaults to `False`, and only detectors whose every
+offset indexes the string passed to `detect` — `RegexDetector`,
+`LiteralDetector`, `PackPatternDetector` — set it. A third-party detector
+does not read the view unless it says it may.
+
+Testing that contract found `CP-103`, older than the round: field names were
+normalised as written, so one invisible character in a header hid a whole
+column. `normalise_field` now reads names through the view. Splitters that
+tokenise names with an identifier class first (`.env`, shell, code) and
+token-bound JSON values are the recorded remainder; the proposed fix computes
+regions on the view and maps their boundaries back before any detector runs.

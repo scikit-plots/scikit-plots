@@ -26,8 +26,10 @@ Two strategies are attempted in order, stopping at the first success:
 
 2. **Whisper transcription** (opt-in, requires ``openai-whisper`` or
    ``faster-whisper``).  Set ``transcribe=True`` to enable.
-   ``faster-whisper`` is tried first (faster, lower VRAM); falls back to
-   ``openai-whisper`` (reference implementation).
+   ``faster-whisper`` is tried first (faster, lower VRAM); import *and runtime*
+   failures fall back to ``openai-whisper`` (reference implementation).
+   With the default ``strict=False``, failure of both optional backends is
+   logged and yields no transcription chunks instead of aborting ingestion.
 
    .. warning::
       Whisper downloads model weights (~75 MB - 6 GB depending on size)
@@ -72,47 +74,12 @@ from typing import (  # noqa: F401
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
-from ._custom import normalize_extractor_output
+from ._whisper import WHISPER_MODELS
+from ._whisper import transcribe_whisper as _shared_transcribe_whisper
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["VideoReader"]
-
-
-def _load_faster():
-    """Lazily import faster_whisper and return the WhisperModel class.
-
-    Returns
-    -------
-    type
-        The ``faster_whisper.WhisperModel`` class.
-
-    Raises
-    ------
-    ImportError
-        If ``faster_whisper`` is not installed.
-    """
-    from faster_whisper import WhisperModel  # noqa: PLC0415
-
-    return WhisperModel
-
-
-def _load_openai():
-    """Lazily import openai-whisper and return the module.
-
-    Returns
-    -------
-    module
-        The ``whisper`` module (openai-whisper).
-
-    Raises
-    ------
-    ImportError
-        If ``openai-whisper`` is not installed.
-    """
-    import whisper  # noqa: PLC0415
-
-    return whisper
 
 
 # ---------------------------------------------------------------------------
@@ -149,12 +116,6 @@ _SUB_RE = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
 
 # HTML tag stripper
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-# Whisper backend identifiers
-# BUG-04 note: Duplicated from _audio.py — keep in sync.
-# TODO: extract to a shared _whisper_common module.
-_WHISPER_BACKEND_FASTER = "faster-whisper"
-_WHISPER_BACKEND_OPENAI = "openai-whisper"
 
 
 def _tc_to_seconds(h: str, m: str, s: str, ms: str) -> float:
@@ -379,103 +340,20 @@ def _transcribe_whisper(
     video_path: Path,
     model_size: str,
     language: str | None,
+    *,
+    strict: bool = False,
+    report: Callable[[Any], None] | None = None,
 ) -> list[dict[str, Any]]:
-    """
-    Transcribe a video file using Whisper (faster-whisper → openai-whisper).
-
-    Parameters
-    ----------
-    video_path : Path
-        Path to the video/audio file. Whisper handles both directly.
-    model_size : str
-        Whisper model size: ``"tiny"``, ``"base"``, ``"small"``,
-        ``"medium"``, ``"large"``, ``"large-v2"``, ``"large-v3"``.
-        See ``pip install openai-whisper``.
-    language : str or None
-        ISO 639-1 language code hint (e.g. ``"en"``, ``"de"``). ``None``
-        triggers automatic language detection.
-
-    Returns
-    -------
-    list of dict
-        Each dict has ``"text"``, ``"timecode_start"``, ``"timecode_end"``.
-        ``source_type`` is intentionally absent here — it is set at the
-        ``get_raw_chunks`` yield boundary so that the promoted key name and
-        enum value are controlled in one place only.
-
-    Raises
-    ------
-    ImportError
-        If neither ``faster-whisper`` nor ``openai-whisper`` is installed.
-    """
-    # Try faster-whisper first
-    try:
-        # pip install faster-whisper
-        from faster_whisper import WhisperModel  # noqa: PLC0415
-
-        logger.info(
-            "VideoReader: transcribing with faster-whisper (model=%s).", model_size
-        )
-        model = WhisperModel(model_size)
-        segments, _info = model.transcribe(
-            str(video_path),
-            language=language,
-        )
-        results = []
-        for seg in segments:
-            text = seg.text.strip()
-            if text:
-                results.append(
-                    {
-                        "text": text,
-                        # raw_text: ASR output is verbatim engine text;
-                        # no pre-processing step to undo.
-                        "raw_text": text,
-                        "timecode_start": round(seg.start, 3),
-                        "timecode_end": round(seg.end, 3),
-                    }
-                )
-        return results
-
-    except ImportError:
-        pass  # faster-whisper not installed; try openai-whisper
-
-    # Try openai-whisper
-    try:
-        # pip install openai-whisper
-        import whisper  # noqa: PLC0415
-
-        logger.info(
-            "VideoReader: transcribing with openai-whisper (model=%s).", model_size
-        )
-        model = whisper.load_model(model_size)
-        result = model.transcribe(str(video_path), language=language)
-        segments = result.get("segments", [])
-        results = []
-        for seg in segments:
-            text = seg.get("text", "").strip()
-            if text:
-                results.append(
-                    {
-                        "text": text,
-                        "raw_text": text,
-                        "timecode_start": round(seg.get("start", 0.0), 3),
-                        "timecode_end": round(seg.get("end", 0.0), 3),
-                    }
-                )
-        return results
-
-    except ImportError:
-        pass
-
-    raise ImportError(
-        "VideoReader: transcribe=True requires either faster-whisper or"
-        " openai-whisper.\n"
-        "Install one of:\n"
-        "  pip install faster-whisper   # recommended (faster, lower VRAM)\n"
-        "  pip install openai-whisper   # reference implementation\n"
-        "Or provide a companion subtitle file (.srt/.vtt/.sbv next to the video)"
-        " to avoid transcription entirely."
+    """Transcribe video through the shared Whisper backend cascade."""
+    return _shared_transcribe_whisper(
+        video_path,
+        model_size,
+        language,
+        component="VideoReader",
+        logger=logger,
+        strict=strict,
+        include_confidence=False,
+        report=report,
     )
 
 
@@ -508,6 +386,10 @@ class VideoReader(DocumentReader):
         Whisper model size. One of ``"tiny"``, ``"base"``, ``"small"``,
         ``"medium"``, ``"large"``, ``"large-v2"``, ``"large-v3"``.
         Smaller models are faster but less accurate. Default: ``"base"``.
+    strict : bool, optional
+        Whisper failure policy. ``False`` (default) logs backend failures,
+        tries the next backend, and yields no ASR chunks if all backends fail.
+        ``True`` raises after the fallback cascade is exhausted.
     subtitle_frame_rate : float, optional
         Frames per second used to convert MicroDVD ``.sub`` frame numbers
         to seconds. Ignored for all other subtitle formats. Default: 25.0.
@@ -535,7 +417,11 @@ class VideoReader(DocumentReader):
     ValueError
         If ``whisper_model`` is not a valid Whisper model size.
     ImportError
-        If ``transcribe=True`` and neither Whisper variant is installed.
+        If ``transcribe=True``, ``strict=True``, and neither Whisper backend
+        can be imported.
+    RuntimeError
+        If ``transcribe=True``, ``strict=True``, and all available Whisper
+        backends fail at runtime.
 
     See Also
     --------
@@ -594,15 +480,7 @@ class VideoReader(DocumentReader):
     file_type: ClassVar[str | None] = None
     file_types: ClassVar[list[str] | None] = _VIDEO_EXTENSIONS
 
-    _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = (
-        "tiny",
-        "base",
-        "small",
-        "medium",
-        "large",
-        "large-v2",
-        "large-v3",
-    )
+    _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = WHISPER_MODELS
 
     transcribe: bool = field(default=False)
     """Enable Whisper fallback when no subtitle file is found."""
@@ -630,6 +508,9 @@ class VideoReader(DocumentReader):
         only when the downstream model requires visual input alongside the
         transcript.  For text-only pipelines, leave this at ``False``.
     """
+
+    strict: bool = field(default=False)
+    """Raise when all Whisper backends fail instead of yielding no ASR chunks."""
 
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
@@ -694,7 +575,11 @@ class VideoReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes``.
         ImportError
-            If ``transcribe=True`` and Whisper is not installed.
+            If ``transcribe=True``, ``strict=True``, and neither Whisper backend
+            can be imported.
+        RuntimeError
+            If ``transcribe=True``, ``strict=True``, and all available Whisper
+            backends fail at runtime.
         """
         file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
@@ -705,34 +590,7 @@ class VideoReader(DocumentReader):
 
         # ── Strategy 0: custom extractor (highest priority) ───────────
         if self.custom_extractor is not None:
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
-            )
-            logger.info(
-                "VideoReader: using custom extractor %r on %s.",
-                extractor_name,
-                self.file_name,
-            )
-            try:
-                raw = self.custom_extractor(
-                    self.input_path, **self.custom_extractor_kwargs
-                )
-            except Exception as exc:
-                raise RuntimeError(
-                    f"VideoReader: custom extractor {extractor_name!r} raised "
-                    f"an error processing {self.file_name!r}: {exc}"
-                ) from exc
-            chunks = normalize_extractor_output(
-                raw,
-                source_type=SourceType.VIDEO,
-                section_type=SectionType.TEXT,
-            )
-            logger.info(
-                "VideoReader: custom extractor returned %d chunk(s) from %s.",
-                len(chunks),
-                self.file_name,
-            )
-            yield from chunks
+            yield from self._iter_custom_extractor_chunks()
             return
 
         # --- Strategy 1: companion subtitle file ---
@@ -777,6 +635,8 @@ class VideoReader(DocumentReader):
                 self.input_path,
                 self.whisper_model,
                 self.default_language,
+                strict=self.strict,
+                report=self._record_backend_outcome,
             )
             logger.info(
                 "VideoReader: transcription produced %d segments for %s.",

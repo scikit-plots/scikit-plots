@@ -23,7 +23,8 @@ Notes
 
 .. code-block:: bash
 
-    cleanprompt encode --pack-file hr_pack.yaml --pack hr --in roster.csv
+    cleanprompt packs --pack-file hr_pack.yaml --check
+    cleanprompt batch hr/ --out hr-safe/ --pack-file hr_pack.yaml --pack hr
 
 A file may hold one pack, one format, or a bundle of several::
 

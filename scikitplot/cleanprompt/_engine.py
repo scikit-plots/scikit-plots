@@ -63,7 +63,7 @@ import re
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
-from ._canonical import canonical, normal_form, value_pattern
+from ._canonical import canonical, detection_view, normal_form, value_pattern
 from ._detectors import DetectorRegistry, LiteralDetector, default_registry
 from ._exceptions import LimitExceededError, OverlapError, PolicyError, RestorationError
 from ._policy import (
@@ -454,6 +454,7 @@ class Redactor:
         reserved_ranges, reserved_labels = reserved_label_spans(text, policy)
 
         detected = self.registry.detect_all(text, policy, detectors=detectors)
+        detected.extend(self._view_spans(text, detected, detectors))
         allow = allowed_surfaces(policy)
         fold = policy.case_insensitive
         candidate = [
@@ -475,6 +476,94 @@ class Redactor:
         )
 
     # -- internals --------------------------------------------------------
+
+    def _view_spans(
+        self,
+        text: str,
+        detected: Sequence[Span],
+        detectors: Sequence[Any],
+    ) -> list[Span]:
+        """
+        Return what structural and literal detectors find in the detection view.
+
+        Parameters
+        ----------
+        text : str
+            The original text.
+        detected : sequence of Span
+            What the original-text pass found; exact repeats are not returned.
+        detectors : sequence of Detector
+            The detectors of this call.
+
+        Returns
+        -------
+        list of Span
+            New spans, as offsets into ``text`` with the original surface.
+
+        Raises
+        ------
+        LimitExceededError
+            If the two passes together exceed :attr:`Limits.max_spans`.
+
+        Notes
+        -----
+        **Developer notes — CP-098.** Measured on the untouched tree:
+        ``ada\u200b@example.com``, a full-width address, ``+1 555\u00a00100``,
+        ``+1\u2011555\u20110100`` and ``192.0.2.\u200b10`` all went to the model
+        in the clear, and ``4111\u200b1111 1111 1111`` came out as
+        ``4111\u200b[PHONE-1]`` — the card's first group sent, the rest
+        mislabelled. Each value reads the same to a person and to a model.
+
+        The fix keeps invariant I6 — detectors never see rewritten text — by
+        not rewriting it: :func:`~scikitplot.cleanprompt._canonical.detection_view`
+        is a second *reading*, and every span it yields is mapped back onto
+        the original before it joins the others. Only detectors that declare
+        ``reads_view`` (structural patterns, pack patterns and literal terms)
+        read it. Entity engines do not: they are statistical models of natural
+        text and already read it as written. Detectors bound to one document —
+        field, region and JSON-token detectors, whose offsets were computed
+        from the original in advance — do not either: reading the view, their
+        spans were mapped a second time and cut through a record file's
+        newlines and separators (``CP-102``). The view's spans are additions only, and the resolver
+        merges overlaps, so this pass can widen redaction and cannot narrow it.
+        """
+        view = detection_view(text)
+        if view is None:
+            return []
+        # Only detectors whose offsets index the text they are given (CP-102):
+        # a detector bound to the original document would be mapped twice.
+        readers = [d for d in detectors if getattr(d, "reads_view", False)]
+        if not readers:
+            return []
+        policy = self.policy
+        seen = {(span.start, span.end, span.kind) for span in detected}
+        added: list[Span] = []
+        for span in self.registry.detect_all(view.text, policy, detectors=readers):
+            start, end = view.source_span(span.start, span.end)
+            if (start, end, span.kind) in seen:
+                continue
+            seen.add((start, end, span.kind))
+            added.append(
+                Span(
+                    start,
+                    end,
+                    span.kind,
+                    text[start:end],
+                    span.detector,
+                    span.priority,
+                    span.confidence,
+                )
+            )
+        limit = policy.limits.max_spans
+        if len(detected) + len(added) > limit:
+            raise LimitExceededError(
+                f"detection produced more than {limit} spans; raise "
+                "Limits.max_spans or narrow the detector set",
+                limit_name="max_spans",
+                limit=limit,
+                actual=len(detected) + len(added),
+            )
+        return added
 
     @staticmethod
     def _check_terms(terms: Sequence[str], limits) -> None:

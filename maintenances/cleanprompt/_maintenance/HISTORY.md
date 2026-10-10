@@ -1,5 +1,58 @@
 # History
 
+## 2026-10-10 — round twenty-five: every surface says what it does
+
+Inputs: an internal review (findings CP-NEW-01..08) and an external comparison,
+both read-only and outside the tree. Every finding taken from them was
+reproduced on the uploaded tree first (`evidence/probe_round25.py`).
+
+- `CP-093`: `doctor --ner` called spaCy without a model, and NLTK without its
+  data, healthy; `auto` chose such an engine. `_engines.engine_readiness`
+  decides from package, language and data; `build_detectors(required=True)`
+  refuses an unready engine before any text, with each engine's remedy; every
+  surface builds through it. `CP-094`: the web app built its own spaCy detector
+  and ignored engine, language and size; it now uses the shared builder.
+- `CP-100`, found by measuring `CP-093` live: NLTK 3.10.3 with data only under
+  pre-3.9 names was reported ready and failed at the first sentence. NLTK
+  readiness now runs the detector's own tagger and chunker on a fixed
+  sentence; remedies name every package of a group.
+- `CP-095`/`CP-096`: the image installed `en_core_web_lg` and ran asking for
+  `sm`; `docker run` published on every interface; compose set a variable
+  nothing read. All derived from the runtime now. `CP-097`: `--debug` is
+  refused on every non-loopback bind.
+- `CP-098`: values with invisible or compatibility characters inside them went
+  out in the clear (a card with a zero-width space came out
+  `4111\u200b[PHONE-1]`). A detection *view* — a second reading with an offset
+  map, never a rewrite — closes it. `CP-102`: the view's first form also ran
+  document-bound detectors and cut through `.env` lines and CSV columns; the
+  round's independent review caught it before delivery, and only detectors
+  declaring `reads_view` read the view. `CP-103` (older than the round): one
+  invisible character in a field name hid its column; `normalise_field` reads
+  names through the view.
+- `CP-099` (a hand-written reinstall hint with a stale range) and `CP-101`
+  (`encode --pack-file`, documented and never real) led to computed hints and
+  `tests/test_documented_cli.py`, which checks every documented option.
+- The reviewer now reports whether its record describes the tree on disk and
+  exits 3 when it does not (the review's CP-NEW-01, where a stale record read
+  as PASS).
+- The user guide is ten pages plus an index; every example in it was executed.
+  The README carries no hand-counted command total; its `encode` transcript is
+  the real output.
+- Continuity: `RESUME.md` holds the step log, numbers, next action, ledger and
+  pending decisions; `tests/test_resume.py` keeps it equal to
+  `upcoming_changes`. Ten notes are open there with full designs (and one
+  blocked on a pull-request number), including
+  the customisable surrogate generator and per-kind actions.
+- Found pre-existing and recorded rather than fixed: PHONE partial redaction of
+  `+33 1 …` and year ranges, a near-placeholder in the source rewritten on
+  restore, non-ASCII email addresses, invisible characters in key-value and
+  code names, look-alike letters, custom-pattern run time.
+- 2654 passed, 88 skipped with no tier; 2665/77 with spaCy and NLTK but no data;
+  2732/10 with every tier; CPython 3.8–3.14 green; 3 repeated and 2 shuffled
+  runs agree; every probe 0 failures; gallery 9/9 in both installations;
+  maintenance 88 passed; maintenance and runtime `PASS`, release `UNVERIFIED`
+  (Windows and macOS not measured).
+
 ## 2026-10-05 — round twenty-four: a ceiling that expired
 
 The sharded CI run passed and reported

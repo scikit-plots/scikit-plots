@@ -294,6 +294,37 @@ can provide every capability.
 | Annoy / FAISS / Voyager | corresponding native/vector backend |
 | browser/WASM | portable subset; native/model-heavy paths may be unavailable |
 
+Audio/video Whisper readers use a fail-soft optional-backend cascade by default:
+``faster-whisper`` is attempted first, then ``openai-whisper``. Import or runtime
+backend failures are logged. If neither backend succeeds, ``strict=False``
+(the default) yields no ASR documents; pass ``strict=True`` to raise after the
+fallback cascade is exhausted. A successful backend that legitimately returns no
+speech segments is still a successful empty transcription and does not trigger
+the next backend.
+
+Optional backend orchestration is centralized internally, but **fallback policy
+remains reader-specific**. Whisper may fall back on runtime failures; XML falls
+back to the stdlib parser only when optional ``lxml`` is unavailable; explicit
+OCR backend selection does not silently switch engines. This prevents a generic
+backend manager from hiding format-specific correctness failures.
+
+Fail-soft media extraction is observable through ``backend_reports``:
+
+```python
+reader = AudioReader(path, transcribe=True)
+docs = list(reader.get_documents())
+
+for report in reader.backend_reports:
+    print(report["status"], report["backend"], report["errors"])
+```
+
+Reports are JSON-compatible and store exception type/message strings rather than
+live exception objects. ``get_documents()`` clears stale reports at the start of
+each run. Typical statuses are ``success``, ``empty``, ``degraded`` (a fallback
+succeeded after an earlier backend failed), and ``failed``. Therefore an empty
+ASR document set caused by backend failure is not indistinguishable from a
+successful empty transcription.
+
 ### Gallery/example rule
 
 If an **optional dependency or optional resource is absent**, a showcase should
@@ -321,7 +352,10 @@ corrupt mandatory sidecar asset
 regression in an installed backend
 ```
 
-Those are real defects or explicit failures and should remain observable.
+Those are real defects and should remain observable. For optional ASR, the
+default observation is a warning plus backend fallback; ``strict=True`` converts
+exhausted fallback into an exception. The gallery must never fabricate an ASR
+result after a backend failure.
 
 ## 10. Which example should I read next?
 

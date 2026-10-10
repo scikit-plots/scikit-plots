@@ -119,8 +119,15 @@ The examples distinguish optional capability absence from real defects:
     Report a visible, specific ``SKIP`` and continue when the example can
     remain truthful.
 
-``invalid public API / security-policy failure / installed-backend defect``
-    Fail visibly. The gallery must not convert a real regression into a skip.
+``invalid public API / security-policy failure``
+    Fail visibly. The gallery must not convert these into a skip.
+
+``optional ASR backend defect``
+    Remain observable. Audio/video readers warn and try the next Whisper backend;
+    their default ``strict=False`` policy yields no ASR chunks only after the
+    fallback chain is exhausted. ``reader.backend_reports`` keeps a structured,
+    JSON-compatible ``degraded``/``failed`` record for programmatic inspection.
+    Use ``strict=True`` for fail-fast validation.
 
 A missing local sidecar never silently enables public-network access.
 

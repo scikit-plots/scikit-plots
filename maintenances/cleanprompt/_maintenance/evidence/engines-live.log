@@ -1,8 +1,13 @@
+# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+
+## live engines (spaCy 3.8.16 + en_core_web_sm, NLTK 3.10.3 + data)
+$ NLTK_DATA=... python -B .../probe_engines.py
+2026-10-10 00:20:05.330611: W scikitplot 140433433264256 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
 ==============================================================================
 LIVE ENTITY ENGINES
 ==============================================================================
-  spacy  AVAILABLE      spacy 3.8.16 satisfies spacy>=3.4,<5
-  nltk   AVAILABLE      nltk 3.10.3 satisfies nltk>=3.6,<4
+  spacy  AVAILABLE      spaCy 3.8.16 with model 'en_core_web_sm'
+  nltk   AVAILABLE      NLTK 3.10.3 is installed; its data packages are checked when it loads (doctor checks them now)
   usable: spacy, nltk
 
 ==============================================================================
@@ -20,7 +25,7 @@ LABEL     PASS both  every label is canonical
 ALIGN     PASS none  span.text == text[start:end]  (0 spans)
 RT        PASS none  redact/restore is exact
 LABEL     PASS none  every label is canonical
-           (120 documents x 4 modes in 4.7s)
+           (120 documents x 4 modes in 8.0s)
 
 ==============================================================================
 ENGINE INTERCHANGEABILITY
@@ -33,3 +38,4 @@ SWAP-003  PASS spacy  vault restores exactly
 SWAP-003  PASS nltk   vault restores exactly
 
 TOTAL FAILURES: 0
+EXIT=0

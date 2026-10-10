@@ -302,12 +302,36 @@
 - **Verified by:** the refusal tests still pass, and a test named after the legitimate configuration passes.
 - **Added:** 2026-10-09. Root cause: `check_namespace` took any `_sphinx_ext.` name as a stack root; the docs' unrelated `_sphinx_ext.mpl_ext` helpers tripped it, and the workaround filtered every name away, which switched the guard off and failed 13 tests.
 
+### Rule 51: Shell - text that may contain the heredoc delimiter goes in a file, not a heredoc
+- **When:** a command embeds a document (a README, a transcript, a shell example) in a heredoc, and that document may itself contain the delimiter word on a line of its own (`END`, `EOF`).
+- **Then:** write the content with the file-writing tool to a script in the scratchpad and run the script; never embed such content in `<<'END'`.
+- **Verified by:** no heredoc in the session's commands carries a document that contains its delimiter; `grep -n "^END$" <content>` before embedding.
+- **Added:** 2026-10-09. Root cause: a Python edit of the cleanprompt README was passed in `<<'END'`; the README's own `<<'END'` example ended the heredoc early, the edit did not run, and the shell executed the following lines, one of them a `pip install` (already satisfied; checked, nothing changed).
+
+### Rule 52: Tooling - an escape written through a tool may arrive as the character it names
+- **When:** text written through a tool parameter contains `\uXXXX` meant to stay an escape (invisible characters, confusables, test data for Unicode handling).
+- **Then:** write the backslash doubled inside Python source, or generate the character with `chr()`; after writing, scan the file for categories `Cf`/`Zs`/confusable scripts and convert any literal one to an escape.
+- **Verified by:** `python3 -c "import unicodedata,sys;t=open(sys.argv[1],encoding='utf-8').read();print([ascii(c) for c in t if ord(c)>127 and unicodedata.category(c) in ('Cf','Zs')])" FILE` prints `[]` for every file written in the round.
+- **Added:** 2026-10-09. Root cause: zero-width spaces and a Cyrillic letter landed literally in tests, a probe, a gallery comment and two ledger notes — the exact disguises the round was fixing. Found by the scan, converted before delivery.
+
+### Rule 53: Diagnostics - "ready" is proved by running the thing on a fixed input
+- **When:** a report says an optional component can run (an engine, a model, a data package, a driver).
+- **Then:** decide it with the same code path the real run uses, on a small fixed input; a package's presence, or a file's presence under a guessed name, is not readiness. Keep one function for the report and the run.
+- **Verified by:** a test with the component installed and its data absent (and with data under an outdated name) asserts that the report and the run fail alike, with the same remedy.
+- **Added:** 2026-10-09. Root cause: `doctor` read the package (`CP-093`), then the data's path under either of two names (`CP-100`); the run needed the data, under the new name.
+
+### Rule 54: Documentation - every example is executed before it is published
+- **When:** a guide page, README section or docstring shows a command or a call.
+- **Then:** run each one against the tree being delivered and compare the output; add a mechanical check where the class of error can recur (options per command).
+- **Verified by:** the round's notes list each page with "examples executed"; `test_documented_cli.py` passes.
+- **Added:** 2026-10-09. Root cause: executing the rewritten guide found `encode --pack-file` (`CP-101`, an option that never existed), `encode_tree(source)` without its required target, and `batch --dry-run --out` (refused) — two of them copied from the previous guide.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 50
+- Total lessons: 54
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.

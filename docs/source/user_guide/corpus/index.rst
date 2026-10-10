@@ -81,6 +81,25 @@ Quick start
 
     print(corpus.__doc__)
 
+Optional backend outcomes
+-------------------------
+
+Media and parser readers keep format-specific fallback semantics while sharing a
+small internal orchestration layer.  In particular, AudioReader and VideoReader
+try ``faster-whisper`` before ``openai-whisper``.  With the default
+``strict=False``, optional ASR failures warn and may yield no ASR documents
+instead of aborting the surrounding Corpus/gallery run.
+
+Fail-soft does not mean unobservable.  After a reader run,
+``reader.backend_reports`` contains JSON-compatible backend provenance and
+structured errors.  A successful empty transcription is reported as ``empty``;
+a fallback after a backend failure is ``degraded``; total backend failure is
+``failed``.  Pass ``strict=True`` when backend exhaustion must raise.
+
+This shared mechanism does not force every reader to use the same fallback
+policy.  For example, XML parser fallback is only for an unavailable optional
+parser, while explicit OCR backend selection remains explicit.
+
 
 .. rubric:: Examples
 

@@ -52,8 +52,8 @@ Additional coverage
     * ``VideoReader.__post_init__``: invalid model, negative frame_rate.
     * ``get_raw_chunks``: file-too-large guard.
     * ``get_raw_chunks``: no subtitle + transcribe=False → zero chunks.
-    * ``_transcribe_whisper``: faster-whisper path, openai-whisper fallback,
-      both absent → ``ImportError``.
+    * ``_transcribe_whisper``: faster-whisper path, runtime/import fallback to
+      openai-whisper, fail-soft default, strict failure mode.
     * ``source_type`` not in ``_transcribe_whisper`` internal dicts.
 
 All tests use ``unittest.mock`` — no video/subtitle files, no Whisper model
@@ -703,7 +703,57 @@ class TestTranscribeWhisperBackends:
         video = _make_video_file(tmp_path, "v.mp4")
         with patch.dict(sys.modules, {"faster_whisper": None, "whisper": None}):
             with pytest.raises(ImportError, match="faster-whisper"):
-                _transcribe_whisper(video, "base", None)
+                _transcribe_whisper(video, "base", None, strict=True)
+
+    def test_both_backends_absent_non_strict_returns_empty(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Missing optional ASR backends do not abort non-strict ingestion."""
+        video = _make_video_file(tmp_path, "v.mp4")
+        with patch.dict(sys.modules, {"faster_whisper": None, "whisper": None}):
+            assert _transcribe_whisper(video, "base", None) == []
+
+    def test_runtime_failure_falls_back_to_openai(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Installed faster-whisper runtime failures still reach fallback."""
+        faster = MagicMock()
+        faster.WhisperModel.return_value.transcribe.side_effect = TypeError(
+            "open() got an unexpected keyword argument 'metadata_errors'"
+        )
+        openai = MagicMock()
+        openai.load_model.return_value.transcribe.return_value = {
+            "segments": [{"text": "fallback", "start": 1.0, "end": 2.5}]
+        }
+        video = _make_video_file(tmp_path, "v.mp4")
+
+        with patch.dict(
+            sys.modules, {"faster_whisper": faster, "whisper": openai}
+        ):
+            result = _transcribe_whisper(video, "base", "en")
+
+        assert result[0]["text"] == "fallback"
+        openai.load_model.assert_called_once_with("base")
+
+    def test_runtime_failures_raise_only_in_strict_mode(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        faster = MagicMock()
+        faster.WhisperModel.return_value.transcribe.side_effect = BrokenPipeError(
+            "decoder closed"
+        )
+        openai = MagicMock()
+        openai.load_model.return_value.transcribe.side_effect = RuntimeError(
+            "reference backend failed"
+        )
+        video = _make_video_file(tmp_path, "v.mp4")
+
+        with patch.dict(
+            sys.modules, {"faster_whisper": faster, "whisper": openai}
+        ):
+            assert _transcribe_whisper(video, "base", None, strict=False) == []
+            with pytest.raises(RuntimeError, match="all Whisper backends failed"):
+                _transcribe_whisper(video, "base", None, strict=True)
 
     def test_empty_text_segments_skipped(self, tmp_path: pathlib.Path) -> None:
         seg_empty = self._seg_fw("   ", 0.0, 1.0)

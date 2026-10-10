@@ -129,6 +129,86 @@ class TestRoundTrip:
             json.loads(line)
 
 
+class TestInvisibleCharactersKeepStructure:
+    """
+    ``CP-102``: a zero-width character in a record file leaves its structure alone.
+
+    Notes
+    -----
+    **Developer notes.** Round 25's detection view first ran *every* detector
+    over the view, including field, region and JSON-token detectors whose
+    offsets were computed from the original document. Their spans were mapped
+    a second time and cut through newlines and separators: with one
+    zero-width space early in a ``.env`` file, ``DB_PASSWORD=...`` and the next
+    two lines merged into one; a CSV row lost a column; JSON failed closed. The
+    view is now read only by detectors that declare ``reads_view``.
+
+    The assertion is structural equivalence: encoding the salted sample and
+    removing the zero-width spaces gives exactly the encoding of the plain
+    sample, and the salted sample round-trips byte for byte.
+    """
+
+    @staticmethod
+    def _salted(text):
+        """Insert a zero-width space after the first ASCII letter."""
+        for index, char in enumerate(text):
+            if char.isascii() and char.isalpha():
+                return text[: index + 1] + "\u200b" + text[index + 1 :]
+        return "\u200b" + text
+
+    #: Where the salt lands on a name the format's own splitter tokenises
+    #: with an identifier class, or on a structural key, the equivalence does
+    #: not hold yet. Each is a known, recorded limit — never a silent skip:
+    #: - ``notebook``: the salt lands in the ``cells`` key; the document is no
+    #:   longer a notebook and is refused (fails closed), asserted below;
+    #: - ``python``, ``rlang``: the salt lands inside an identifier; the code
+    #:   splitter does not read names through the view yet
+    #:   (upcoming_changes/scikitplot/cleanprompt/
+    #:   invisible-characters-in-keyvalue-and-code-names.md).
+    NOT_YET = {"notebook", "python", "rlang"}
+
+    @pytest.mark.parametrize("name", sorted(set(SAMPLES) - NOT_YET))
+    @pytest.mark.parametrize("packs", [("auto",), ("all",)])
+    def test_structure_is_unchanged_and_the_round_trip_exact(self, name, packs):
+        plain = SAMPLES[name]
+        salted = self._salted(plain)
+        expected = _cleaner(*packs).encode_text(plain, name, name=f"s.{name}").text
+        cleaner = _cleaner(*packs)
+        encoded = cleaner.encode_text(salted, name, name=f"s.{name}")
+        assert encoded.text.replace("\u200b", "") == expected
+        assert cleaner.decode(encoded.text) == salted
+
+    def test_a_salted_structural_key_is_refused_not_misread(self):
+        from .. import CleanPromptError
+
+        with pytest.raises(CleanPromptError, match="not a notebook"):
+            _cleaner("all").encode_text(self._salted(SAMPLES["notebook"]), "notebook", name="s")
+
+    @pytest.mark.parametrize(
+        ("fmt", "text", "value"),
+        [
+            ("csv", "n\u200bame,phone\nAnn Lee,+1 555 010 4477\n", "Ann Lee"),
+            ("tsv", "n\u200bame\tphone\nAnn Lee\t+1 555 010 4477\n", "Ann Lee"),
+            ("json", '{"m\u200brn": 12345678, "ok": true}\n', "12345678"),
+            ("email", "F\u200brom: Ann Lee <ann@example.com>\n\nHi\n", "Ann Lee"),
+            ("csv", "\uff4e\uff41\uff4d\uff45,x\nAnn Lee,1\n", "Ann Lee"),
+        ],
+    )
+    def test_a_salted_field_name_still_names_the_field(self, fmt, text, value):
+        """CP-103: one invisible character in a header no longer hides a column."""
+        cleaner = _cleaner("all")
+        encoded = cleaner.encode_text(text, fmt, name=f"s.{fmt}")
+        assert value not in encoded.text
+        assert cleaner.decode(encoded.text) == text
+
+    def test_a_salted_value_in_a_record_file_is_found(self):
+        """The reason the view exists still holds where it is allowed to."""
+        text = "NOTE=x\nOTHER=bob\u200b@example.com\n"
+        encoded = _cleaner("all").encode_text(text, "env", name="s.env")
+        assert "bob" not in encoded.text
+        assert encoded.text.count("\n") == text.count("\n")
+
+
 class TestLeaks:
     """CP-048: a value the field name marks sensitive never reaches the output."""
 

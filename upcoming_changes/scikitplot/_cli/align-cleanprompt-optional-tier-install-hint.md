@@ -1,10 +1,10 @@
 ---
 title: "Align the project CLI CleanPrompt install hint with current optional tiers"
-status: open
+status: blocked
 kind: "docs-contract"
 area: "scikitplot/_cli"
 discovered_during: "source-grounded CleanPrompt user-guide synchronization"
-release_note: "unknown"
+release_note: "required"
 towncrier_section: "scikitplot._cli"
 towncrier_type: "fix"
 towncrier_fragment: ""
@@ -87,3 +87,28 @@ with the corrected hint.
 
 Decide during implementation whether correcting CLI recovery guidance warrants a
 ``fix`` fragment under ``scikitplot._cli``.
+
+## Implementation status (round 25, 2026-10-09)
+
+Implemented and verified; **blocked only on a pull-request number** for the
+Towncrier fragment (`<PR>.<TYPE>.rst`, see
+`docs/source/whats_new/upcoming_changes/README.md`).
+
+- `scikitplot/_cli/registry.py`: the hint names all four extras, says
+  encryption needs no extra, and describes `cleanprompt-crypto` as the Fernet
+  cipher. The base command stays ungated.
+- `scikitplot/_cli/tests/test_registry.py` (new, 3 tests): reads cleanprompt's
+  `TIERS` from source text (no cross-submodule import) and fails when the hint
+  misses an extra or describes encryption as needing one.
+- `_cli` suite in a stand-in parent: 155 passed (152 before + 3 new); the same
+  23 environment failures (modules of the compiled parent) on the original
+  tree and on this one.
+
+When the PR exists: create
+`docs/source/whats_new/upcoming_changes/scikitplot._cli/<PR>.fix.rst` with
+
+    The ``scikitplot cleanprompt`` install hint now names the NLTK extra and
+    says that vault encryption needs no optional package; the
+    ``cleanprompt-crypto`` extra adds only the Fernet cipher.
+
+then mark this note `promoted`, and remove it once the PR is merged.

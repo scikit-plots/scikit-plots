@@ -160,6 +160,16 @@ print("same plan, any order:", first.fingerprint()[:16])
 # A custom definition is validated exactly like a built-in: unknown keys are
 # errors, and every pattern's examples are executed before it is used. JSON
 # needs nothing installed; YAML needs PyYAML and says so when it is missing.
+#
+# **A pack file is trusted configuration, like code.** Its regular expressions
+# run on every document you encode with it. Validation checks that they mean
+# what their examples say; it cannot prove that one finishes quickly on every
+# input. Python's ``re`` backtracks, so a pattern such as ``^(a+)+$`` takes
+# time that doubles with each extra character of a near-match — a document
+# could stall the run. So: load pack files only from people you would accept
+# code from, review a new pattern for nested repetition (``(x+)+``,
+# ``(x*)*``, ``(x|x)+``), and prefer a bounded form (``\d{6}`` rather than
+# ``\d+``) wherever the identifier has a fixed shape — as the one below does.
 
 hr_pack = {
     "name": "hr",

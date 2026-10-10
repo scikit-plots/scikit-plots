@@ -420,6 +420,7 @@ else:
         collection_id=_COLLECTION_ID,
         transcribe=True,
         whisper_model="base",
+        strict=False,
     )
     _record(
         "audio ASR",

@@ -68,7 +68,6 @@ from typing import (  # noqa: F401
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
-from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -478,41 +477,14 @@ class ImageReader(DocumentReader):
             If Pillow or the OCR library is not installed.
         """
         # ── Custom extractor path ──────────────────────────────────────
-        if self.backend == _BACKEND_CUSTOM:
-            if self.custom_extractor is None:
-                raise ValueError(
-                    "ImageReader: backend='custom' requires a "
-                    "'custom_extractor' callable.  Pass one via "
-                    "custom_extractor=my_fn, or choose a built-in backend."
-                )
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
+        if self.backend == _BACKEND_CUSTOM and self.custom_extractor is None:
+            raise ValueError(
+                "ImageReader: backend='custom' requires a "
+                "'custom_extractor' callable.  Pass one via "
+                "custom_extractor=my_fn, or choose a built-in backend."
             )
-            logger.info(
-                "ImageReader: using custom extractor %r on %s.",
-                extractor_name,
-                self.file_name,
-            )
-            try:
-                raw = self.custom_extractor(
-                    self.input_path, **self.custom_extractor_kwargs
-                )
-            except Exception as exc:
-                raise RuntimeError(
-                    f"ImageReader: custom extractor {extractor_name!r} raised "
-                    f"an error processing {self.file_name!r}: {exc}"
-                ) from exc
-            chunks = normalize_extractor_output(
-                raw,
-                source_type=SourceType.IMAGE,
-                section_type=SectionType.TEXT,
-            )
-            logger.info(
-                "ImageReader: custom extractor returned %d chunk(s) from %s.",
-                len(chunks),
-                self.file_name,
-            )
-            yield from chunks
+        if self.custom_extractor is not None:
+            yield from self._iter_custom_extractor_chunks()
             return
 
         try:

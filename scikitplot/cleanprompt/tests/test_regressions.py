@@ -514,14 +514,38 @@ class TestCP023SilentEngineDegradation:
         monkeypatch.setattr(caps, "_installed_version", lambda _n: None)
         assert build_detectors(mode="auto") == []
 
-    def test_a_named_engine_still_fails_at_the_point_of_use(self, monkeypatch):
-        """Naming an engine is already loud; ``required`` must not change it."""
+    def test_a_named_engine_fails_before_any_text_is_read(self, monkeypatch):
+        """
+        Required and named: refused at construction, with its own remedy.
+
+        Until ``CP-093`` a named engine that could not run was built anyway
+        and failed on the first sentence. That was loud, but late: ``doctor``
+        builds through the same function and so called the configuration
+        healthy. Refusing at construction makes the diagnosis and the run the
+        same decision.
+        """
         from .. import CapabilityError
         from .. import _capabilities as caps
         from .._engines import build_detectors
 
         monkeypatch.setattr(caps, "_installed_version", lambda _n: None)
-        detectors = build_detectors(mode="nltk", required=True)
+        with pytest.raises(CapabilityError) as caught:
+            build_detectors(mode="nltk", required=True)
+        message = str(caught.value)
+        assert "nltk: ABSENT" in message
+        assert "spacy:" not in message, "only the engine that was asked for"
+        assert caught.value.install_hint.startswith("pip install")
+
+    def test_a_named_engine_unrequired_still_fails_at_the_point_of_use(
+        self, monkeypatch
+    ):
+        """Without ``required`` naming an engine stays loud at first use."""
+        from .. import CapabilityError
+        from .. import _capabilities as caps
+        from .._engines import build_detectors
+
+        monkeypatch.setattr(caps, "_installed_version", lambda _n: None)
+        detectors = build_detectors(mode="nltk")
         assert len(detectors) == 1
         with pytest.raises(CapabilityError):
             list(detectors[0].detect("Ada Lovelace", DEFAULT_POLICY))
@@ -1329,11 +1353,12 @@ class TestCP041EntitySpanWithAnUnmatchedBracket:
 
     @pytest.fixture(autouse=True)
     def _needs_an_engine(self):
-        from .. import _capabilities as caps
-        from ._tiers import skip_reason
+        from ._tiers import engine_ready, engine_skip_reason
 
-        if not caps.probe("ner").available:
-            pytest.skip(skip_reason("ner"))
+        # Ready, not merely installed: spaCy without its model is skipped with
+        # the download in the reason (round 25), never failed as a defect.
+        if not engine_ready("spacy"):
+            pytest.skip(engine_skip_reason("spacy"))
 
     def test_the_reported_span_is_trimmed(self):
         text = "Mustafa Kemal Atatürk[e] founded it"
@@ -1725,3 +1750,313 @@ class TestCP045BrokenPipeReportedAsAnError:
 
         assert "Broken pipe" not in errors
         assert "Exception ignored" not in errors
+
+
+# ---------------------------------------------------------------------------
+# Round 25. Each was reproduced on the uploaded tree before it was fixed
+# (maintenances/cleanprompt/_maintenance/evidence/probe_round25.py).
+# ---------------------------------------------------------------------------
+
+
+def _round25_machine(monkeypatch, *, spacy=None, nltk=None, model=True, corpora=()):
+    """Supply an installation: engine package versions, spaCy model, NLTK data."""
+    from .. import _capabilities as caps
+    from .. import _engines
+
+    real = caps._installed_version
+    engines = {"spacy": spacy, "nltk": nltk}
+    monkeypatch.setattr(
+        caps,
+        "_installed_version",
+        lambda name: engines[name] if name in engines else real(name),
+    )
+    monkeypatch.setattr(_engines, "_spacy_model_ready", lambda _m: model)
+    monkeypatch.setattr(_engines, "_nltk_missing_corpora", lambda: tuple(corpora))
+
+
+class TestCP093InstalledIsNotReady:
+    """
+    ``CP-093`` — ``doctor --ner`` called an engine without its data healthy.
+
+    Notes
+    -----
+    **Developer notes.** With spaCy 3.8.16 installed and no model, ``doctor
+    --ner`` printed ``healthy: true`` and "named-entity detection are active";
+    the next ``inspect --ner`` exited 69 on the missing model. NLTK without
+    its data packages did the same. ``auto`` chose such an engine over a
+    working one. The decision read the package and never the data.
+    """
+
+    def test_doctor_and_inspect_agree_for_spacy_without_a_model(self, monkeypatch):
+        import io
+        import json
+
+        from .._cli import main
+
+        _round25_machine(monkeypatch, spacy="3.8.16", model=False)
+        out = io.StringIO()
+        main(["doctor", "--ner", "--format", "json"], stdin=io.StringIO(), stdout=out, stderr=io.StringIO())
+        report = json.loads(out.getvalue())
+        err = io.StringIO()
+        status = main(["inspect", "--ner", "Ada Lovelace"], stdin=io.StringIO(), stdout=io.StringIO(), stderr=err)
+        assert report["healthy"] is False and report["detection"]["ner_ready"] is False
+        assert status == 69
+        assert report["detection"]["ner_remedy"] in err.getvalue()
+
+    def test_auto_skips_an_engine_without_its_data(self, monkeypatch):
+        from .._engines import resolve_engine
+
+        _round25_machine(monkeypatch, spacy="3.8.16", nltk="3.10.3", model=False)
+        assert resolve_engine("auto") == ("nltk",)
+
+
+class TestCP094WebBuildsLikeEverythingElse:
+    """
+    ``CP-094`` — the web app ignored ``ner_engine``, ``language`` and ``model_size``.
+
+    Notes
+    -----
+    **Developer notes.** ``create_app(enable_ner=True, ner_engine="nltk",
+    language="tr", model_size="lg")`` called ``spacy_detector(model=None)``.
+    """
+
+    def test_the_shared_builder_receives_every_argument(self, monkeypatch):
+        from .. import _engines
+        from ._tiers import available, skip_reason
+
+        if not available("web"):
+            pytest.skip(skip_reason("web"))
+        from .._app import create_app
+
+        calls = []
+        monkeypatch.setattr(_engines, "build_detectors", lambda **kw: calls.append(kw) or [])
+        create_app(ephemeral_secret_key=True, enable_ner=True, ner_engine="nltk", language="tr", model_size="lg")
+        assert calls == [{"mode": "nltk", "language": "tr", "model": None, "size": "lg", "required": True}]
+
+
+class TestCP095ImageRunsTheModelItInstalls:
+    """``CP-095`` — the image installed ``en_core_web_lg`` and ran asking for ``sm``."""
+
+    def test_installed_equals_requested(self):
+        from .._languages import resolve_model
+        from .._serve import container_files
+
+        dockerfile = container_files(with_ner=True)["Dockerfile"]
+        model = resolve_model("en", "sm")[0]
+        assert f"spacy download {model}" in dockerfile
+        assert f'"--ner-model", "{model}"' in dockerfile
+        assert "en_core_web_lg" not in dockerfile
+
+
+class TestCP096LaunchLinesAreLoopback:
+    """
+    ``CP-096`` — the Dockerfile's ``docker run`` published on every interface.
+
+    Notes
+    -----
+    **Developer notes.** ``-p 5000:5000`` binds every host interface; the
+    compose file beside it used ``127.0.0.1:5000:5000``. The generated
+    compose file also set ``CLEANPROMPT_NER``, which nothing reads.
+    """
+
+    def test_every_docker_run_is_loopback(self):
+        from .._serve import container_files
+
+        lines = [
+            line
+            for body in container_files(with_ner=True).values()
+            for line in body.splitlines()
+            if "docker run" in line
+        ]
+        assert lines and all("-p 127.0.0.1:" in line for line in lines)
+
+    def test_no_unread_setting(self):
+        from .._serve import container_files
+
+        assert "CLEANPROMPT_NER" not in container_files(with_ner=True)["docker-compose.yml"]
+
+
+class TestCP097NoDebuggerOffLoopback:
+    """``CP-097`` — ``--docker --debug`` served Werkzeug's debugger on 0.0.0.0."""
+
+    def test_refused_in_container_mode(self):
+        from .. import CleanPromptError
+        from .._serve import resolve_bind
+
+        with pytest.raises(CleanPromptError, match="refusing --debug"):
+            resolve_bind(None, True, False, debug=True)
+
+    def test_refused_on_an_acknowledged_remote_bind(self):
+        from .. import CleanPromptError
+        from .._serve import resolve_bind
+
+        with pytest.raises(CleanPromptError, match="refusing --debug"):
+            resolve_bind("0.0.0.0", False, True, debug=True)  # noqa: S104
+
+
+class TestCP098InvisibleCharactersInsideValues:
+    """
+    ``CP-098`` — a value with an invisible or compatibility character inside
+    it went to the model in the clear.
+
+    Notes
+    -----
+    **Developer notes.** Measured on the uploaded tree: ``ada\\u200b@example.com``,
+    a full-width address, ``+1 555\\u00a00100``, ``+1\\u2011555\\u20110100`` and
+    ``192.0.2.\\u200b10`` were sent unchanged, and ``4111\\u200b1111 1111 1111``
+    came out ``4111\\u200b[PHONE-1]``. Fixed by a detection *view* mapped back
+    onto the original text; the source is never rewritten.
+    """
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "mail ada\u200b@example.com",
+            "mail \uff41\uff44\uff41\uff20\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45\uff0e\uff43\uff4f\uff4d",
+            "call +1 555\u00a00100",
+            "call +1\u2011555\u20110100",
+            "ip 192.0.2.\u200b10",
+            "card 4111\u200b1111 1111 1111",
+        ],
+    )
+    def test_found_and_restored_as_written(self, text):
+        result = Redactor().redact(text)
+        assert len(result.entries) == 1
+        assert result.entries[0].original not in result.text
+        assert restore(result.text, result.vault).text == text
+
+
+class TestCP099ReinstallHintsFollowTheTier:
+    """
+    ``CP-099`` — the spaCy repair hint said ``<4`` while the tier declared ``<5``.
+
+    Notes
+    -----
+    **Developer notes.** Found while reading the readiness messages in round
+    25. ``_REINSTALL_SPACY`` was a hand-written string; the tier's range moved
+    and the string did not, so a user with a broken spaCy 4 installation was
+    told to reinstall within spaCy 3. Both hints are now computed from the
+    declaration, the rule ``CP-025`` already stated for model names.
+    """
+
+    @pytest.mark.parametrize(
+        "module,function,tier",
+        [("_ner", "_reinstall_spacy", "ner"), ("_nltk", "_reinstall_nltk", "nltk")],
+    )
+    def test_the_hint_is_the_declared_range(self, module, function, tier):
+        import importlib
+
+        from .._capabilities import probe
+
+        hint = getattr(importlib.import_module(f"..{module}", __package__), function)()
+        assert hint == f'pip install --force-reinstall "{probe(tier).supported}"'
+
+
+class TestCP100PresentIsNotLoadable:
+    """
+    ``CP-100`` — NLTK data present under an older name was reported ready.
+
+    Notes
+    -----
+    **Developer notes.** Found while verifying ``CP-093`` against real NLTK
+    3.10.3: with only ``punkt``, ``averaged_perceptron_tagger``,
+    ``maxent_ne_chunker`` and ``words`` on disk, ``doctor --ner --ner-engine
+    nltk`` said ready and ``inspect`` failed with ``LookupError:
+    averaged_perceptron_tagger_eng`` (exit 1). The readiness check accepted
+    either name of each group, and the remedy it printed downloaded only the
+    older names — following it led straight back to the failure. Readiness now
+    runs the detector's own pipeline once on a fixed sentence, and the remedy
+    names every package that can satisfy a group.
+    """
+
+    def test_unloadable_tagger_is_not_ready(self, monkeypatch):
+        pytest.importorskip("nltk")
+        from .. import _nltk
+
+        class Stale:
+            data = type("D", (), {"find": staticmethod(lambda path: path)})()
+
+            @staticmethod
+            def pos_tag(tokens):
+                raise LookupError("averaged_perceptron_tagger_eng")
+
+            @staticmethod
+            def ne_chunk(tagged):
+                return tagged
+
+        monkeypatch.setattr(_nltk, "_RESOURCES", {})
+        monkeypatch.setattr(_nltk, "_build_chunker", lambda: None)
+        assert _nltk.missing_data(Stale()) == ["averaged_perceptron_tagger"]
+
+    def test_the_remedy_names_the_current_and_the_older_package(self):
+        from .._nltk import download_command
+
+        command = download_command(["averaged_perceptron_tagger"])
+        assert "nltk.download('averaged_perceptron_tagger_eng')" in command
+        assert "nltk.download('averaged_perceptron_tagger')" in command
+
+
+class TestCP102DocumentBoundDetectorsDoNotReadTheView:
+    """
+    ``CP-102`` — the first detection view cut through record files.
+
+    Notes
+    -----
+    **Developer notes.** Found by round 25's independent review, during the
+    round: the view ran every detector, including field, region and
+    JSON-token detectors whose offsets were computed from the original
+    document, so their spans were mapped twice. With a zero-width space early
+    in a ``.env`` file, three lines merged into one placeholder; a CSV row
+    lost a column; JSON failed closed. Only detectors declaring
+    ``reads_view`` read the view now.
+    """
+
+    def test_an_env_file_keeps_its_lines(self):
+        from .. import FluentCleanPrompt
+
+        text = "NO\u200bTE=x\nDB_PASSWORD=pw-1\nOTHER=y\n"
+        cleaner = FluentCleanPrompt().packs("all").materialize()
+        encoded = cleaner.encode_text(text, "env", name="s.env")
+        assert encoded.text.count("\n") == text.count("\n")
+        assert "pw-1" not in encoded.text
+        assert cleaner.decode(encoded.text) == text
+
+    def test_the_contract_is_declared_not_inferred(self):
+        from .._detectors import Detector, LiteralDetector, RegexDetector
+        from .._packs import PackPatternDetector
+        from .._structured import FieldDetector
+
+        assert Detector.reads_view is False
+        assert RegexDetector.reads_view is True and LiteralDetector.reads_view is True
+        assert PackPatternDetector.reads_view is True
+        assert getattr(FieldDetector, "reads_view", False) is False
+
+
+class TestCP103InvisibleCharactersInFieldNames:
+    """
+    ``CP-103`` — one invisible character in a header hid the whole column.
+
+    Notes
+    -----
+    **Developer notes.** Found in round 25 while testing ``CP-102``, and
+    present on the uploaded tree: ``n\\u200bame`` normalised to ``n_ame``, the
+    field rule for ``name`` did not apply, and every value in the column went
+    out in the clear; the same for a JSON key and an email header.
+    ``normalise_field`` now reads the name through the detection view.
+    """
+
+    def test_the_name_is_normalised_through_the_view(self):
+        from .._packs import normalise_field
+
+        assert normalise_field("n\u200bame") == "name"
+        assert normalise_field("\uff4e\uff41\uff4d\uff45") == "name"
+        assert normalise_field("Date\u2060Of\u00adBirth") == "date_of_birth"
+
+    def test_a_salted_header_still_hides_its_column(self):
+        from .. import FluentCleanPrompt
+
+        text = "n\u200bame,phone\nAnn Lee,+1 555 010 4477\n"
+        cleaner = FluentCleanPrompt().packs("all").materialize()
+        encoded = cleaner.encode_text(text, "csv", name="s.csv")
+        assert "Ann Lee" not in encoded.text
+        assert cleaner.decode(encoded.text) == text

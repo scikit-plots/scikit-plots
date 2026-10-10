@@ -61,6 +61,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
+from .._backends import BackendCandidate, run_backend_chain
 from .._base import DocumentReader
 from .._schema import SectionType
 
@@ -224,38 +225,47 @@ def _ns(local: str, ns_uri: str) -> str:
 
 
 def _parse_xml_bytes(content: bytes) -> Any:
-    """
-    Parse XML bytes: lxml primary, stdlib fallback.
+    """Parse ALTO XML bytes with lxml first and secure stdlib fallback."""
 
-    Parameters
-    ----------
-    content : bytes
-        Raw XML bytes.
-
-    Returns
-    -------
-    Element
-        Root element (lxml or stdlib).
-
-    Raises
-    ------
-    ValueError
-        If neither parser can parse the bytes.
-    """
-    try:
+    def _lxml() -> Any:
         from lxml import etree  # type: ignore[] # noqa: PLC0415
 
         from ._xml_safety import hardened_lxml_parser  # noqa: PLC0415
 
         return etree.fromstring(content, parser=hardened_lxml_parser())
-    except ImportError:
-        pass
-    from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
 
-    try:
-        return parse_stdlib_secure(content)
-    except Exception as exc:  # noqa: BLE001
-        raise ValueError(f"ALTOReader: could not parse XML: {exc}") from exc
+    def _stdlib() -> Any:
+        from ._xml_safety import parse_stdlib_secure  # noqa: PLC0415
+
+        try:
+            return parse_stdlib_secure(content)
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(f"ALTOReader: could not parse XML: {exc}") from exc
+
+    outcome = run_backend_chain(
+        (
+            BackendCandidate(
+                "lxml",
+                _lxml,
+                fallback_exceptions=(ImportError,),
+                failure_level=logging.DEBUG,
+                degrades_on_failure=False,
+            ),
+            BackendCandidate(
+                "stdlib-xml",
+                _stdlib,
+                fallback_exceptions=(),
+                degrades_on_failure=False,
+            ),
+        ),
+        default=None,
+        logger=logger,
+        component="ALTOReader",
+        operation="XML parsing",
+        error_code="ALTO_XML_BACKEND_UNAVAILABLE",
+        stage="parse",
+    )
+    return outcome.value
 
 
 def _attr_float(element: Any, attr: str) -> float | None:

@@ -21,7 +21,8 @@ given, and a language model that rewrites what it is given.
       │         │          └─ one pass over the ORIGINAL text, never over a
       │         │             partially rewritten one
       │         └─ one stable label per distinct value
-      └─ detectors are pure: they read, they never rewrite
+      └─ detectors are pure: they read, they never rewrite — the original
+         text, and a detection view of it mapped back onto the original
 
 The encryption section runs with nothing optional installed. The ``fernet``
 section reports a specific ``SKIP`` when ``cryptography`` is absent.
@@ -96,9 +97,12 @@ def run(*arguments: str, limit: int = 0, env: dict | None = None):
 # %%
 # 1. The invariants, measured
 # ---------------------------
-# Nine properties carry the design.  Six of them can be checked on randomised
-# documents in a few lines, which is what the submodule's own probes do at
-# larger scale; the numbers below are small so the example stays fast.
+# Nine core runtime invariants carry the design (``I1`` to ``I9`` in the
+# maintainers' design notes; the later ``I10`` to ``I14`` govern packs,
+# formats and committed files rather than a single redaction).  Six of the
+# nine can be checked on randomised documents in a few lines, which is what the
+# submodule's own probes do at larger scale; the numbers below are small so the
+# example stays fast.
 
 from scikitplot.cleanprompt import (  # noqa: E402
     DEFAULT_POLICY,
@@ -531,7 +535,44 @@ from scikitplot.cleanprompt import restoration_note  # noqa: E402
 print(restoration_note(restore("Nothing to restore here.", issued.handle.vault)))
 
 # %%
-# 5. Preventing the rewrite rather than repairing it
+# 5. Values written to slip past a pattern
+# ----------------------------------------
+# A value can be written so that it reads the same — to a person and to a
+# model — while a regular expression no longer matches it: an invisible
+# zero-width space inside an address, full-width letters, a non-breaking space
+# or hyphen inside a telephone number.
+#
+# The pipeline does not rewrite your text to catch these.  It *reads* it a
+# second time, through a **detection view**: invisible format characters
+# removed and compatibility forms folded, with a map from every view position
+# back to the original.  A value found in the view is redacted in the
+# original, invisible characters included, so the vault keeps exactly what you
+# wrote and restoration puts exactly that back.  The view can only add
+# detections; it never removes one.
+
+HIDDEN = [
+    "mail ada\u200b@example.com",  # zero-width space inside the address
+    "mail \uff41\uff44\uff41\uff20\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45\uff0e\uff43\uff4f\uff4d",  # full-width
+    "call +1 555\u00a00142",  # non-breaking space
+    "call +1\u2011555\u20110142",  # non-breaking hyphens
+    "host 192.0.2.\u200b10",
+]
+
+for text in HIDDEN:
+    hidden = Redactor().redact(text)
+    back = restore(hidden.text, hidden.vault).text
+    print("{0:<34} -> {1:<16} exact round trip: {2}".format(ascii(text)[:34], hidden.text, back == text))
+    assert hidden.entries and back == text
+
+# %%
+# What this does **not** cover is worth knowing.  A value spelled with
+# look-alike letters from another script (Cyrillic ``U+0430`` in place of
+# Latin ``a``) is a different string, not a compatibility form of the same one, and
+# is not folded; nor is a value broken up with ordinary spaces or reworded.
+# Those are the cases for ``hide=`` or for entity detection.
+
+# %%
+# 6. Preventing the rewrite rather than repairing it
 # --------------------------------------------------
 # Repair is the mitigation.  The prevention is to stop issuing tokens that
 # invite rewriting: ``--style surrogate`` puts an ordinary-looking value where
@@ -549,7 +590,7 @@ print("no bracket token where the address was:", "[EMAIL" not in prose.text)
 print("credential kinds keep their placeholder:", "[IPV4-1]" in prose.text)
 
 # %%
-# 6. Cleanup
+# 7. Cleanup
 # ----------
 
 run("forget", "--force")

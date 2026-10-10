@@ -57,7 +57,6 @@ from typing import (  # noqa: F401
 
 from .._base import DocumentReader
 from .._schema import SectionType
-from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -463,36 +462,7 @@ class PDFReader(DocumentReader):
         """
         # ── Custom extractor path ──────────────────────────────────────
         if self.prefer_backend == "custom":
-            # custom_extractor is guaranteed non-None by __post_init__
-            assert self.custom_extractor is not None  # noqa: S101
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
-            )
-            logger.info(
-                "PDFReader: using custom extractor %r on %s.",
-                extractor_name,
-                self.file_name,
-            )
-            try:
-                raw = self.custom_extractor(
-                    self.input_path, **self.custom_extractor_kwargs
-                )
-            except Exception as exc:
-                raise RuntimeError(
-                    f"PDFReader: custom extractor {extractor_name!r} raised "
-                    f"an error processing {self.file_name!r}: {exc}"
-                ) from exc
-            chunks = normalize_extractor_output(
-                raw,
-                source_type=self.source_provenance.get("source_type", "unknown"),
-                section_type=SectionType.TEXT,
-            )
-            logger.info(
-                "PDFReader: custom extractor returned %d chunk(s) from %s.",
-                len(chunks),
-                self.file_name,
-            )
-            yield from chunks
+            yield from self._iter_custom_extractor_chunks()
             return
 
         file_size = self.input_path.stat().st_size
