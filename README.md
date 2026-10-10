@@ -748,6 +748,23 @@ pip install -U -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/
 ## Cause numpy>=2.0.0 but support old numpy
 # pip install numpy==1.26.4
 ```
+
+```bash
+## Need Compiler (C++)
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-annoy
+```
+
+```bash
+## Pure Python
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-cleanprompt
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-corpus
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-cython
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-mcp
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-mlflow
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-rank-bm25
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-skinny
+pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-sphinx-ext
+```
 </div>
 
 
