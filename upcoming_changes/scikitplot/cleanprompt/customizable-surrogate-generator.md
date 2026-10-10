@@ -1,13 +1,13 @@
 ---
 title: "Let users customise surrogate stand-ins without weakening their safety rules"
-status: open
+status: promoted
 kind: "api"
 area: "scikitplot/cleanprompt"
 discovered_during: "cleanprompt round 25 planning (maintainer request: generator customisation)"
 release_note: "required"
 towncrier_section: "scikitplot.cleanprompt"
 towncrier_type: "feature"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.cleanprompt/864.feature.rst"
 ---
 
 # Let users customise surrogate stand-ins without weakening their safety rules
@@ -140,3 +140,37 @@ section in the moderate gallery example.
 ## Release-note promotion
 
 Required: a `feature` fragment under `scikitplot.cleanprompt`.
+
+## Promotion record (2026-10-10, round 26)
+
+**Slice A is implemented**; the design is now
+`maintenances/cleanprompt/_maintenance/GENERATOR_DESIGN.md` (invariants
+G1–G6, the safety floor, slices, locale, growth paths).
+
+- `scikitplot/cleanprompt/_surrogate_sets.py`: `SurrogateSet`,
+  `surrogate_set_from_document`, `load_surrogate_set`, `entry_problem`.
+  Kinds a set may define: `PERSON`, `ORG` (two lists each), `GPE`, `LOC`,
+  `FAC`. `EMAIL`/`PHONE`/`URL` are refused (their reserved forms are the
+  core's), and so is every other kind.
+- `TagStyle.surrogates` (identity `name@version#digest16`, recorded, in the
+  fingerprint only when set) and `TagStyle.surrogate_set` (the object; not
+  compared, not serialised). Default digests unchanged (pinned in
+  `test__surrogate_sets.TestIdentity`).
+- `--surrogates FILE` (refused without `--style surrogate`) on `redact`,
+  `encode`, `roundtrip`, `batch`, `ask`, `mcp`, `plan`;
+  `FluentCleanPrompt().surrogates(path)`; `CleanPlan.surrogates` (identity in
+  the plan fingerprint, so editing the set makes a saved plan stale).
+- The round's independent review hardened the floor before release:
+  default-ignorable code points, mark runs, full-width and other look-alike forms and mixed
+  scripts are refused (entries could look identical); combined names are
+  checked when issued; opt-in `TITLE_CASE` is not a detection rule; appending
+  with another grammar is refused (`CP-106`). Ordinary-word entries remain a
+  documented limit:
+  `upcoming_changes/scikitplot/cleanprompt/surrogate-stand-ins-that-are-ordinary-words.md`.
+- Deviations from the proposal: sets are selected by **path**, not by a
+  registered name (no catalog of sets exists yet; growth path 3), and the
+  set does not supply `EMAIL` local parts (floor rule 2).
+
+**Slice B (provider protocol) is not implemented**; it moved to
+`upcoming_changes/scikitplot/cleanprompt/surrogate-provider-protocol.md`.
+Remove this note once PR 864 is merged.

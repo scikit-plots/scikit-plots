@@ -213,6 +213,18 @@ fingerprint in any process, which is what makes a redaction reproducible.
    surrogate = DEFAULT_POLICY.evolve(tag_style=TagStyle(style="surrogate"))
    Redactor(policy=surrogate).redact("Mail ada@example.com").text
 
+For your own invented names, load a surrogate set
+(:ref:`cleanprompt-surrogate-sets`) and attach it to the grammar, or name it
+in a plan:
+
+.. code-block:: python
+
+   from scikitplot.cleanprompt import FluentCleanPrompt, TagStyle, load_surrogate_set
+
+   names = load_surrogate_set("nordic.yaml")  # validated; names.identity is recorded
+   style = TagStyle(style="surrogate", surrogate_set=names)
+   cleaner = FluentCleanPrompt().style("surrogate").surrogates("nordic.yaml").materialize()
+
 Its fields are ``kinds``, ``allow``, ``tag_style`` (the placeholder grammar and
 style), ``overlap`` (an :class:`OverlapStrategy`), ``limits`` (input size,
 span and term bounds; exceeding one raises), ``case_insensitive``,

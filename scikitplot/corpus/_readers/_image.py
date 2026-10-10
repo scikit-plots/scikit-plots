@@ -13,18 +13,21 @@ OCR-based text extraction from raster image files.
 
 Supported formats: PNG, JPEG/JPG, GIF, WEBP, TIFF/TIF, BMP.
 
-Backend chain:
+Backend selection:
 
-1. **pytesseract** (primary) — wraps Google's Tesseract OCR engine.
+1. **pytesseract** (default) — wraps Google's Tesseract OCR engine.
    Installed via ``pip install pytesseract``; requires ``tesseract``
-   binary on ``PATH``.  Returns per-word confidence scores that are
-   aggregated to a chunk-level mean confidence.
-2. **easyocr** (secondary) — deep-learning OCR; slower but often more
-   accurate on low-quality scans and non-Latin scripts.
-   Installed via ``pip install easyocr``.
-3. **PIL-only stub** — if neither OCR library is available, the reader
-   raises ``ImportError`` with actionable install instructions rather
-   than silently yielding empty text.
+   binary on ``PATH``. Returns per-word confidence scores that are aggregated
+   to a chunk-level mean confidence.
+2. **easyocr** (explicit) — deep-learning OCR; slower but often more accurate
+   on low-quality scans and non-Latin scripts. It is selected only with
+   ``backend="easyocr"`` because first use may download model weights.
+3. **custom** (explicit) — delegates extraction to ``custom_extractor``.
+
+There is deliberately **no automatic pytesseract -> easyocr fallback**. Missing
+or broken Tesseract is visible unless the caller explicitly chooses another
+backend; a fallback that can download a model would change network/resource
+policy rather than merely change implementation.
 
 Multi-frame support:
 

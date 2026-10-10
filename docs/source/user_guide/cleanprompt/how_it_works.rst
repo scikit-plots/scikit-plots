@@ -155,6 +155,67 @@ or one that contains a value the conversation holds; after a bounded search it
 falls back to a placeholder. The style is part of the placeholder grammar, so
 a vault written in one style is refused, not half-read, by the other.
 
+.. _cleanprompt-surrogate-sets:
+
+Your own invented names
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The built-in names are English-sounding. ``Marion Holt`` in a Finnish or
+Turkish paragraph reads oddly, and a model may comment on it. A **surrogate
+set** is a small file with your own lists:
+
+.. code-block:: yaml
+
+   # nordic.yaml
+   name: nordic
+   version: 1
+   summary: Nordic-sounding invented names.
+   kinds:
+     PERSON: {first: [Aino, Eero, Liv], last: [Halvorsen, Lindgren, Virtanen]}
+     ORG:    {first: [Fjord, Norrsken], second: [Data, Logistik]}
+     GPE:    [Granvik, Solberga]
+
+.. code-block:: bash
+
+   cleanprompt encode --ner --style surrogate --surrogates nordic.yaml \
+     "Ada Lovelace met Grace Hopper at the Acme Corporation in Paris"
+   # Aino Halvorsen met Eero Virtanen at Fjord Data in Granvik
+
+* ``PERSON`` and ``ORG`` take two lists, which are combined so that
+  consecutive people do not share a surname. ``GPE``, ``LOC`` and ``FAC``
+  take one list. A kind the set leaves out uses the built-in names.
+* E-mail addresses, telephone numbers and links are always built by
+  CleanPrompt in their reserved forms, and credentials and identifiers always
+  keep placeholders. A set that lists ``EMAIL``, ``PHONE``, ``URL`` or any
+  other kind is refused, with the reason.
+* Each entry must read as a name, and no two entries may look alike:
+  letters, spaces and ``' - .`` and the typographic apostrophe, 1–64
+  characters, starting and ending with a letter. Combining marks may follow
+  a letter, at most two in a row. Full-width, circled and other
+  drawn-differently forms of a letter are refused, an entry must be in one
+  script (so a Cyrillic ``\u0410`` cannot pass for a Latin ``A``), and
+  spellings that differ only in how a letter and its marks were typed are
+  stored once, composed. Digits, ``@``, ``/``, brackets and invisible
+  characters (zero-width characters, variation selectors, fillers) are
+  refused. So is an entry that a default core pattern or a built-in pack
+  pattern would detect, since the next encode would hide the stand-in
+  itself. Combined names (``Aino Halvorsen``) are checked again when they
+  are issued.
+* **Choose names that are not ordinary words.** ``decode`` restores a
+  stand-in wherever it appears in the reply. An entry such as ``The`` or
+  ``Ash`` would turn every ``The`` in the model's answer into your value.
+  The built-in names are chosen to be unusual for this reason.
+* Every rule above still applies: no stand-in already in the text, none
+  issued twice, none containing a value the conversation holds. When a set
+  runs out of names, the remaining values get placeholders.
+* ``--surrogates`` without ``--style surrogate`` is refused. The flag never
+  switches the style on by itself.
+* ``decode`` needs no set file. The vault records which set wrote it, as
+  ``name@version#digest``, and the digest changes when any entry changes. To
+  continue an existing vault with ``--vault-mode append`` (``encode``'s
+  default), pass the same ``--style`` and set again: appending with another
+  style or set is refused, so one vault never mixes two kinds of stand-in.
+
 The guarantees, in plain words
 ------------------------------
 

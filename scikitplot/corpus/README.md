@@ -11,8 +11,15 @@ adapted, and exported.
 | Process one source with explicit stages | `CorpusPipeline` |
 | Build/search/adapt a corpus quickly | `CorpusBuilder` |
 | Create reusable immutable configuration | `FluentCorpus` |
+| Generate bounded configuration/tuning variants | `FluentCorpus.iter_variants()` / `variants()` |
 | Execute a Fluent plan and own runtime state | `RuntimeCorpus` |
+| Customize readers, filters, downloads, or stages | `CorpusBuilder(..., factories=BuilderFactories(...))` |
+| Inspect optional backend readiness | `component_capabilities()` / `reader.plan_asr_backends()` |
+| Control optional backend ordering/fallback | `BackendPolicy` |
+| Reuse one typed policy family across runtime/reader/builder seams | `CorpusPolicyBundle` |
+| Control transfer security/resource budgets | `DownloadPolicy` |
 | Extend retrieval/vector behavior | `RetrievalIndex` / `VectorIndexBackend` |
+| Add deterministic fuzzy lexical matching | `scikitplot.levenshtein` |
 
 A useful mental model is:
 
@@ -101,6 +108,34 @@ assert a.plan() == b.plan()
 ```python
 plan = base.build()
 ```
+
+For settings files, CLIs, or tuning jobs, the same model is available through
+data-driven helpers:
+
+```python
+configured = FluentCorpus.from_config(
+    {
+        "reader": "auto",
+        "storage": "memory",
+    }
+)
+
+variants = configured.iter_variants(
+    retrieval=("keyword", "hybrid"),
+    max_variants=8,
+)
+
+for candidate in variants:
+    print(candidate.plan().fingerprint, candidate.explain()["valid"])
+```
+
+`iter_variants()` is the lazy bounded deterministic generator; `variants()` is
+its eager tuple convenience wrapper. Both prove the entire Cartesian size
+before the first plan is yielded, refuse empty/explosive choice sets, and feed
+every candidate through the same canonical plan/fingerprint model. Strings,
+bytes, mappings and scalar fragments are one value; other iterables form
+explicit axes. It is intended for explicit test/tuning matrices, not hidden
+auto-optimization.
 
 ## 4. Operational execution with `RuntimeCorpus`
 
@@ -208,13 +243,98 @@ fluent = FluentCorpus().enricher(  # initialize immutable  # setter
 frequency-keyword enrichment is enough and the richer `NLPEnricher` stack is
 not needed.
 
-## 6. Runtime network policy
+## 6. Reader, filter, and downloader customization
 
-The current runtime policy is intentionally narrow:
+`CorpusBuilder` now has one construction seam for each user-replaceable
+component and accepts `BuilderFactories` natively. `FactoryCorpusBuilder` remains
+a compatibility facade over the same seam; new code can use the core builder
+directly.
 
 ```python
-RuntimePolicy(allow_network=False)
+from scikitplot.corpus import BuilderFactories, CorpusBuilder
+
+factories = BuilderFactories(
+    reader_factory=my_reader_factory,
+    filter_factory=my_filter_factory,
+    downloader_factory=my_downloader_factory,
+)
+builder = CorpusBuilder(config, factories=factories)
 ```
+
+The downloader seam is deliberately parallel to the reader seam:
+
+```text
+source URL
+   -> builder._make_downloader()
+   -> AnyDownloader / custom downloader
+   -> DownloadResult
+   -> builder._make_reader()
+   -> DocumentReader / custom reader
+```
+
+This keeps URL policy, retries, limits, and output-path provenance inside the
+downloader contract rather than duplicating URL download logic in the builder.
+`BuilderConfig.filter_kwargs` is also applied by the normal builder path, so
+configuration and factory customization no longer diverge.
+
+For advanced settings that still use the built-in downloader, use a
+`DownloadPolicy` for transport/security budgets and reserve
+`BuilderConfig(downloader_kwargs={...})` for per-source/router options such as
+YouTube language, headers or a GitHub token:
+
+```python
+from scikitplot.corpus import BuilderConfig, DownloadPolicy
+
+config = BuilderConfig(
+    download_policy=DownloadPolicy.constrained(),
+    downloader_kwargs={"youtube_language": "tr"},
+)
+```
+
+`DownloadPolicy` rejects unknown fields and non-boolean TLS/SSRF flags.
+
+Preview dispatch without touching DNS/network:
+
+```python
+from scikitplot.corpus import AnyDownloader
+
+dl = AnyDownloader("https://github.com/org/repo/blob/main/data.csv")
+plan = dl.plan()
+print(plan.downloader, plan.verify_ssl, plan.block_private_ips)
+```
+
+`DownloadPlan` never serializes token/header contents and does not allocate a
+temporary directory. `plan_all()` provides one plan per URL for batch UI/CI
+inspection. This is dispatch preflight, not an SSRF/content security verdict;
+DNS and remote probes still occur only at the real network boundary.
+When `download_policy` is explicit, customized legacy scalar download fields
+(`download_timeout`, `max_download_bytes`, retry fields) are rejected instead
+of being silently ignored; use the policy itself or `downloader_kwargs` for a
+deliberate per-build override. Its
+`secure`, `constrained` and `large_files` presets all keep TLS verification and
+private-IP blocking enabled. Explicit downloader kwargs still win when a caller
+deliberately needs one transfer-specific override.
+
+`CustomDownloader` is a trusted-code escape hatch, not a Python sandbox. The
+wrapper still validates the original URL by default, forwards timeout/TLS/size
+policy, requires the returned path to be a regular file inside its output
+directory unless explicitly allowed otherwise, and enforces `max_bytes` as a
+postcondition. A custom handler can still make arbitrary additional network
+requests, so untrusted handler code must never be loaded merely because it was
+downloaded or supplied by a remote source.
+
+## 7. Runtime network policy
+
+The current runtime policy is intentionally narrow and defaults offline:
+
+```python
+RuntimePolicy.offline()
+RuntimePolicy.networked()  # explicit URL-source permission
+RuntimePolicy.from_config({"allow_network": False})
+```
+
+Security booleans are type-checked: strings such as `"false"` are rejected
+instead of being treated as truthy Python values.
 
 It rejects `http://` / `https://` **source ingestion** through `RuntimeCorpus`.
 It does not claim to be a universal sandbox for model downloads, subprocesses,
@@ -224,7 +344,30 @@ own contracts.
 The existing URL-reader security layer still owns SSRF, redirect, size,
 timeout, and archive protections. `RuntimePolicy` does not replace it.
 
-## 7. Retrieval modes
+### Compose policies without a mega strict flag
+
+`RuntimePolicy`, `BackendPolicy`, `DownloadPolicy`, and `ErrorPolicy` keep
+different responsibilities. `CorpusPolicyBundle` is a convenience container
+that creates, validates, serializes, and explains those policies together
+without changing their ownership:
+
+```python
+from scikitplot.corpus import CorpusPolicyBundle
+
+policies = CorpusPolicyBundle.safe_local()
+reader_kwargs = policies.reader_kwargs(model_size="tiny")
+builder_config = policies.builder_config(chunker="paragraph")
+runtime_policy = policies.runtime
+error_policy = policies.errors
+```
+
+Convenience presets are `default`, `safe-local`, `strict-local`, `networked`,
+and `docs-ci`. Nested mappings reject unknown keys and truthy string booleans.
+Use `with_overrides()` when one policy dimension needs deliberate tuning. The
+bundle does not automatically push backend policy into PDF/OCR/text readers,
+because those formats do not share ASR fallback semantics.
+
+## 8. Retrieval modes
 
 | Mode | Use when | Dense embeddings required? |
 | --- | --- | --- |
@@ -260,7 +403,7 @@ above one that merely mentions `sklearn` and `metrics`.
 `StorageQuery(full_text=...)` stays a *filter*: the whole string as one phrase,
 the same meaning the in-memory and JSONL backends emulate by substring.
 
-## 8. Generic vector-index configuration
+## 9. Generic vector-index configuration
 
 Prefer backend-generic constructor options for new examples:
 
@@ -279,7 +422,7 @@ The legacy `annoy_*` fields remain compatibility syntax. New documentation
 should prefer `index_kwargs` because the same shape can configure other vector
 backends without adding backend-specific top-level fields.
 
-## 9. Optional capabilities
+## 10. Optional capabilities
 
 Corpus deliberately supports optional stacks. Not every environment needs or
 can provide every capability.
@@ -316,16 +459,159 @@ docs = list(reader.get_documents())
 
 for report in reader.backend_reports:
     print(report["status"], report["backend"], report["errors"])
+    for skipped in report.get("skip_details", []):
+        print("skipped:", skipped["backend"], skipped["reason"])
 ```
 
 Reports are JSON-compatible and store exception type/message strings rather than
 live exception objects. ``get_documents()`` clears stale reports at the start of
 each run. Typical statuses are ``success``, ``empty``, ``degraded`` (a fallback
-succeeded after an earlier backend failed), and ``failed``. Therefore an empty
-ASR document set caused by backend failure is not indistinguishable from a
-successful empty transcription.
+succeeded after an earlier backend failed), ``unavailable`` (policy/readiness
+left nothing runnable), ``exhausted`` (backends ran but produced no accepted
+result), and ``failed`` (runtime exceptions exhausted the chain). Therefore an
+empty ASR document set caused by backend failure or policy exclusion is not
+indistinguishable from a successful empty transcription.
 
-### Gallery/example rule
+### Readiness is more precise than "installed"
+
+Use `component_capabilities()` when the distinction matters:
+
+```python
+from scikitplot.corpus import component_capabilities
+
+reports = component_capabilities(
+    (
+        "asr:faster-whisper",
+        "asr:openai-whisper",
+        "ocr:pytesseract",
+    )
+)
+
+for name, report in reports.items():
+    print(
+        name,
+        report["installed"],
+        report["assets_ready"],
+        report["ready"],
+        report["selected"],
+        report["active"],
+    )
+```
+
+The vocabulary is intentional:
+
+- `installed`: the package/module can be located;
+- `assets_ready`: required model/corpus/executable is known ready, missing, or
+  unknown without loading/downloading it;
+- `ready`: combined side-effect-free preflight answer;
+- `selected`: a backend policy chose the capability;
+- `active`: runtime evidence says that capability actually completed work.
+
+A preflight probe must not download a model or contact the network simply to
+turn `unknown` into `True`.
+
+For an actual reader configuration, preflight the exact ASR chain without
+running any backend:
+
+```python
+reader = AudioReader(path, transcribe=True, backend_policy="offline")
+plan = reader.plan_asr_backends()
+print(plan.selected, plan.skipped)
+print(plan.capability_view())
+```
+
+`BackendPlan` and runtime `BackendOutcome` share the same candidate factory, so
+selection diagnostics cannot silently drift from execution order.
+
+Discover families without knowing internal names:
+
+```python
+component_capabilities(role="asr")
+component_capabilities(role="ocr")
+component_capabilities(role="pdf")
+component_capabilities(role="edit-distance")
+```
+
+Private/custom backends can use their own `CapabilityRegistry` and pass it to
+`AudioReader`/`VideoReader`, so readiness, selection, and actual activity remain
+connected without mutating the process-global registry.
+
+### Backend policy and custom ASR
+
+`BackendPolicy` controls orchestration while readers retain format semantics:
+
+```python
+from scikitplot.corpus import ASRBackend, BackendPolicy
+
+policy = BackendPolicy.offline().with_order(
+    "company-asr",
+    include_unlisted=False,
+)
+
+backend = ASRBackend(
+    name="company-asr",
+    transcribe=my_transcriber,
+    requires_network=False,
+    may_download=False,
+)
+```
+
+Custom ASR segments may include provider metadata. Reader-owned fields such as
+`source_type` cannot be shadowed by those values; additional provider fields are
+nested under `asr_metadata`, while `asr_backend` records the orchestrator-owned
+backend provenance.
+
+Policies can be serialized/tuned without multiplying named presets:
+
+```python
+policy = BackendPolicy.from_config(
+    {
+        "preset": "offline",
+        "order": ["company-asr", "faster-whisper"],
+        "include_unlisted": False,
+        "on_exhausted": "raise",
+    }
+)
+print(policy.to_dict())
+```
+
+Unknown configuration keys raise instead of being ignored.
+
+`BackendPolicy.offline()` forbids network/download side effects, but does not
+confuse “this backend may download on first use” with “it must download now.” A
+backend marked `offline_capable=True` may make a local-only attempt when cache
+readiness is unknown. The built-in faster-whisper adapter forces
+`local_files_only=True` in this mode; backends that cannot guarantee local-only
+execution are skipped.
+
+## 11. Levenshtein lexical matching
+
+`scikitplot.levenshtein` is a small independent facade that Corpus can consume:
+
+```python
+from scikitplot import levenshtein
+
+assert levenshtein.distance("kitten", "sitting") == 3
+scorer = levenshtein.make_corpus_scorer(score_cutoff=0.70)
+```
+
+Automatic selection is deliberately license-aware and remains importable even
+without optional packages:
+
+```text
+bundled scikitplot.cexternals._editdistance
+    -> RapidFuzz (optional, MIT)
+    -> pure Python fallback
+```
+
+The separately distributed `Levenshtein`/`python-Levenshtein` implementation is
+supported only by explicit backend selection; it is not silently inserted into
+the automatic chain. Edit distance is lexical rather than semantic, so it is a
+good fit for spelling/OCR/identifier variation rather than a replacement for
+semantic embedding retrieval.
+
+## 12. Gallery reliability rule
+
 
 If an **optional dependency or optional resource is absent**, a showcase should
 report a clear skip and continue where that is safe. Missing optional capability
@@ -357,17 +643,19 @@ default observation is a warning plus backend fallback; ``strict=True`` converts
 exhausted fallback into an exception. The gallery must never fabricate an ASR
 result after a backend failure.
 
-## 10. Which example should I read next?
+## 13. Which example should I read next?
 
 Recommended learning order:
 
-1. **FluentCorpus basics** — immutable plans, validation, branching.
-2. **FluentCorpus + RuntimeCorpus Hamlet** — real local run/store/search/export.
-3. **Chunking strategy comparison** — choose sentence/paragraph/window/semantic behavior.
-4. **MP3** — optional ASR/media provenance.
-5. **ZIP mixed media** — archive member routing and per-extension reader settings.
-6. **YouTube** — offline proxy plus live-network configuration.
-7. **WHO multi-source** — broad integration and partial-source outcomes.
+1. **FluentCorpus basics** — immutable plans, validation, branching, and bounded variants.
+2. **Backend readiness/custom ASR** — explicit policy and user-provided backends.
+3. **Levenshtein retrieval** — deterministic fuzzy lexical matching.
+4. **FluentCorpus + RuntimeCorpus Hamlet** — real local run/store/search/export.
+5. **Chunking strategy comparison** — choose sentence/paragraph/window/semantic behavior.
+6. **MP3** — optional ASR/media provenance.
+7. **ZIP mixed media** — archive member routing and per-extension reader settings.
+8. **YouTube** — offline proxy plus live-network configuration.
+9. **WHO multi-source** — broad integration and partial-source outcomes.
 
 The gallery review should keep portable executed paths separate from optional
 network/native/model paths so documentation builds remain truthful and useful

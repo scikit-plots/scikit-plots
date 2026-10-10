@@ -283,9 +283,19 @@
       "artifact": "evidence/maintenance-tests.log",
       "id": "documented_commands",
       "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round26.log, evidence/focused-tests.log",
+      "id": "pattern_risk",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log, evidence/gallery-examples.log",
+      "id": "surrogate_sets",
+      "status": "PASS"
     }
   ],
-  "runtime_tree_fingerprint": "e135fcef4ecca6dfd569e51928c1f817cd4347b24f87007b7774f91bd5f5474b",
+  "runtime_tree_fingerprint": "0df7ef58bb2fe24494b3534bd724055179b07e044b05942262225e4767f7f462",
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
   "updated_at": "2026-10-10"

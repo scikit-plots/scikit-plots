@@ -1,13 +1,13 @@
 ---
 title: "Bound the run time of custom pack patterns"
-status: open
+status: promoted
 kind: "reliability"
 area: "scikitplot/cleanprompt"
 discovered_during: "internal review 2026-10-10 (CP-NEW-07), reproduced in round 25"
 release_note: "required"
-towncrier_section: "scikitplot.cleanprompt"
-towncrier_type: "enhancement"
-towncrier_fragment: ""
+towncrier_section: "security"
+towncrier_type: "feature"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/security/864.feature.rst"
 ---
 
 # Bound the run time of custom pack patterns
@@ -97,3 +97,38 @@ gallery example.
 ## Release-note promotion
 
 Required: an `enhancement` fragment under `scikitplot.cleanprompt`.
+
+## Promotion record (2026-10-10, round 26)
+
+**Step 1 (static check at load) is implemented**, with the maintainer's
+decision on policy: *warn by default*, never refuse by default, and let the
+user tune it at every level (round 26 message: "always warn ... suggest
+various quick options or policy tuning ... ignore, refuse").
+
+- `scikitplot/cleanprompt/_pattern_risk.py`: a parser of the pattern source
+  (not `sre_parse`), overlap decided by public `re` over a probe alphabet;
+  rules `nested-quantifier` (high), `overlapping-alternation` (medium),
+  `adjacent-quantifiers` (medium); `not-analysed` (info) for syntax it
+  cannot model, never passed silently.
+- Policy: `--pattern-risk ignore|warn|refuse` (`packs`, `batch`, `plan`,
+  `ask`, `mcp`; both frontends), `pattern_risk` in a plan file (omitted while
+  unset, so existing plan fingerprints hold), `CLEANPROMPT_PATTERN_RISK`,
+  `load_custom(..., pattern_risk=)`; per pattern `risk: accepted` +
+  `risk_reason` in the pack. `packs --check` lists every finding.
+- This note proposed *refuse by default* with an `--allow-unbounded-patterns`
+  flag; that direction was **not** taken (maintainer decision above).
+- Evidence: `tests/test__pattern_risk.py`, `tests/test_regressions.py`
+  `TestCP104…`, `maintenances/cleanprompt/_maintenance/evidence/probe_round26.py`
+  (measured run time agrees with every verdict; built-ins report nothing).
+- The round's independent review found eight misses and false positives in
+  the first version (verbose patterns, inline flags, escaped characters, two
+  equal units, a bounded outer repetition; separators one group up, fixed
+  counts, possessive forms); all fixed, each a test and a measured probe
+  case.
+- Every edge case listed above is reported: `(a+)+`, `(a*)*`, `(a|a)+`,
+  `(a|aa)+`, lazy `(a+?)+`; `\bEMP-\d{6}\b` stays silent.
+
+**Step 2 (optional runtime bound with `regex` and `timeout=`) is not
+implemented**; it moved to
+`upcoming_changes/scikitplot/cleanprompt/bound-custom-pattern-runtime-with-a-timeout.md`.
+Remove this note once PR 864 is merged.

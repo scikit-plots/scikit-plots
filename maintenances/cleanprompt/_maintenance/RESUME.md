@@ -49,100 +49,98 @@ or link of the real package), with a `pytest.ini` that sets
 
 ## Current round
 
-Round twenty-five is **complete** (2026-10-10): *truthful readiness, safe
-deployment files, a Unicode detection view, and a guide of several pages*.
+Round twenty-six is **complete** (2026-10-10): *the user decides, and the
+floor does not move* — a pattern-risk check for custom packs (warn by
+default, tuned per pattern, run, team or machine), custom surrogate name
+sets under a fixed safety floor, and the generator's design and growth plan.
 Summary in `HISTORY.md`; plan and results in `tasks/todo.md` under
-"cleanprompt round 25"; reasoning in `DESIGN.md` section 24. Findings
-`CP-093` … `CP-103` are closed in `REVIEW.json`.
+"cleanprompt round 26"; reasoning in `DESIGN.md` section 25 and
+`GENERATOR_DESIGN.md`. Findings `CP-104` … `CP-107` are closed in
+`REVIEW.json`. PR number for all round-25/26 fragments: **864**.
 
-Inputs that are **not** in the tree and need not be re-fetched: an internal
-review (`scikit_plots_cleanprompt_review_2026-10-10`, CP-NEW-01..08), an
-external comparison (`cleanprompt_external_research_2026-10-09`) and a
-ChatGPT planning log. Every finding taken from them was reproduced on the tree
-first (`evidence/probe_round25.py`).
+Maintainer decisions taken this round (do not reopen without asking):
+pull request 864; risky custom patterns are **always warned about** with
+quick options, never refused by default; generator scope was delegated
+(data sets first, provider protocol later only on a concrete request).
 
 ## Step log
 
 | # | Step | Status | Evidence |
 |---|---|---|---|
-| 1 | Plan, this file, skill read-first, continuity test | done | `tests/test_resume.py` 6 passed; `RESUME.md` required by `check_contract.py` |
-| 2 | CP-093 readiness, CP-094 web builder | done | `test__engines.TestReadiness`, `test__cli.TestDoctorAgreesWithTheRun`, `test__app.TestEntityDetectionUsesTheSharedBuilder`; live: spaCy 3.8.16 without model and NLTK 3.10.3 without data → `doctor --ner` healthy=False with the download remedy, `inspect --ner` exit 69 with the same; with model and data → healthy=True for spacy, nltk, both |
-| 3 | CP-095/096/097 container files, debug guard | done | `test__serve.TestContainerFilesDeriveFromTheRuntime`, `TestDebugIsLoopbackOnly`; `probe_round25.py` lines CP-095..097 |
-| 4 | CP-098 detection view | done | `_canonical.detection_view`, `Redactor._view_spans`; `test__canonical.TestDetectionView`, `test__engine.TestDetectionView` (every pattern example salted); probe `V25` 1000 salted values, 0 failures |
-| 5 | Regression tests and negative probes | done | `test_regressions.TestCP093..TestCP099`; `probe_negative.py` TOTAL FAILURES: 0; CP-099 (reinstall hint drift) found and fixed on the way |
-| 6 | Gallery | done | moderate (readiness), advanced (detection view, "nine core runtime invariants"), recipes (loopback files, debug refusal), packs (pattern trust), README.txt; `probe_gallery.py` 9/9 ok bare and with every tier (the sandbox hides NLTK data: moderate reports a remedy-bearing SKIP for nltk/both) |
-| 7 | Multi-page user guide, README inventory | done | index + 10 pages under `docs/source/user_guide/cleanprompt/`, every example executed against the CLI/API; `test_user_guide_sync.py` 9 passed (all pages, toctree, contract phrases, no hand count); README: grouped commands, real `encode`/`decode` transcript, `en_core_web_sm`; `_maintenance/tests/test_documented_cli.py` (CP-101) 3 passed |
-| 8 | upcoming_changes ledger | done | README note removed (implemented); `_cli` hint implemented (`scikitplot/_cli/tests/test_registry.py` 3 passed), note `blocked` on a PR number; release fragments drafted in `round-25-release-fragments.md`; six new `open` notes for the next slices |
-| 9 | Verification ladder, evidence refresh | done | see **Last verified numbers**; `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED (lane 27, Windows/macOS, not measured); reviewer exit 0 |
-| 10 | Independent review, drop-in package | done | two fresh agents (runtime, docs) started; both were cut off by a rate limit, and the runtime agent's last lead was followed up by hand: it was real (`CP-102`), and testing the fix found `CP-103`. The docs agent produced no findings before stopping; every guide example had been executed by hand. Drop-in: `scikit_plots_cleanprompt_round25_dropin.zip` |
+| 1 | Round-25 fragments under PR 864; two notes promoted | done | `generate_towncrier_sections.py check` PASS |
+| 2 | `_pattern_risk.py`: parser, overlap by public `re`, rules, policy surfaces (packs, plan, cleaner, CLI, env, `risk: accepted`) | done | `tests/test__pattern_risk.py`; `TestCP104`; CLI smoke in both frontends |
+| 3 | `GENERATOR_DESIGN.md`; slice A `_surrogate_sets.py`, `TagStyle.surrogates`, `--surrogates` | done | `tests/test__surrogate_sets.py`; default digests pinned and equal to round 25 |
+| 4 | `CP-105` (held name shown with a dot) found via the gallery | done | `TestCP105`; reproduced on the round-25 tree |
+| 5 | Independent review (one agent, fresh): 12 findings, all reproduced and fixed or recorded | done | analyser (verbose, inline flags, escapes, equal units, bounded repetition, separators one group up, possessive), surrogate floor (invisible/look-alike entries, TITLE_CASE, pairs), `CP-106` append grammar, `-W error`; ordinary-word entries → new ledger note. A second review pass was cut off by a rate limit; its brief was re-run by hand (reviewer scripts, verbose edge cases, 14 scripts of names) and found `CP-107` and the NFKC over-refusal (Thai, Arabic) |
+| 6 | Soundness fuzz of the analyser | done | `evidence/probe_round26_fuzz.py`: found 3 misses of the first fix (nullable groups, optional parts); after the fix 0 slow among passed patterns |
+| 7 | Docs (5 pages), gallery (packs, moderate), README, fragments, ledger | done | guide sync 9 passed; every new example executed |
+| 8 | Verification ladder on a frozen copy identical to the work tree | done | see **Last verified numbers** |
+| 9 | Evidence refresh, maintenance plane, drop-in | done | `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED |
 
 ## Last verified numbers
 
-Final round-25 tree, 2026-10-10 (frozen copy identical to the work tree):
+Final round-26 tree, 2026-10-10 (frozen copy identical to the work tree):
 
-- package suite, no optional tier: 2654 passed, 88 skipped (3 runs and 2
-  shuffled orders agree; also with live logging at INFO)
-- spaCy 3.8.16 and NLTK 3.10.3 installed, no model and no data: 2665 passed,
+- package suite, no optional tier: 2888 passed, 88 skipped (2 runs, a
+  shuffled order, a shuffled order under xdist, live logging under xdist)
+- spaCy 3.8.16 and NLTK 3.10.3 installed, no model and no data: 2899 passed,
   77 skipped
-- every tier (model and data present): 2732 passed, 10 skipped
+- every tier (model and data present): 2966 passed, 10 skipped
 - CPython 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 (pytest only): all green
 - probes: negative (no tier, every tier), isolation, fuzz (4000 documents),
-  scale, live engines, round 25 — 0 failures; gallery 9/9 in both installations
-- maintenance plane: 88 passed; guide sync: 9 passed
+  scale, live engines, round 25, round 26 (22 measured verdicts), round-26
+  fuzz (0 slow among passed patterns) — 0 failures; gallery 9/9 in both
+  installations
 - `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED
-- project CLI `_cli` suite in a stand-in parent: 155 passed (+3 new); its 23
-  failures are environmental and identical on the original tree
 
 ## Next action
 
-Round twenty-six. Start read-only, as the ChatGPT planning log proposed, with
-an evidence pack before code — but scoped to the open notes rather than to the
-whole subsystem again (round 25 already re-proved the rest):
+Round twenty-seven. Suggested order (each has a note with a full design):
 
-1. **Detectors + names together** (the log's "detectors + NER + policy"
-   target, narrowed by what round 25 measured):
-   `invisible-characters-in-keyvalue-and-code-names.md`,
+1. `invisible-characters-in-keyvalue-and-code-names.md`,
    `email-addresses-with-non-ascii-letters.md`,
-   `phone-pattern-groupings-and-ranges.md`. For each detector touched, record
-   kind → implementation → validator → known limits → attack cases → change →
-   evidence, as the log suggested.
-2. `restore-alters-near-placeholders-in-the-source.md` (restoration
-   adversarial review).
-3. Then the capability notes, in order: custom-pattern run time, surrogate
-   generator slice A, per-kind actions, vehicle/locale packs, look-alike
-   characters, coverage matrix.
+   `phone-pattern-groupings-and-ranges.md` — detectors and names together.
+2. `restore-alters-near-placeholders-in-the-source.md` and
+   `surrogate-stand-ins-that-are-ordinary-words.md` — restoration review
+   (both are about what `decode` rewrites in a reply).
+3. `bound-custom-pattern-runtime-with-a-timeout.md` (optional `regex` tier).
+4. Capability notes: per-kind actions, vehicle/locale packs, look-alike
+   characters, coverage matrix; `surrogate-provider-protocol.md` only on a
+   concrete request.
 
-Reset the step log above for round 26 before starting.
+Reset the step log above for round 27 before starting.
 
 ## Open ledger
 
 Every note under `upcoming_changes/scikitplot/cleanprompt/`, with its status.
-`tests/test_resume.py` compares this list with the directory. Suggested order
-for the next rounds: invisible characters in key-value/code names, email
-addresses, PHONE groupings, near-placeholders on restore, custom-pattern run
-time, surrogate generator (slice A then B), per-kind actions, vehicle/locale
-packs, look-alike characters, coverage matrix.
+`tests/test_resume.py` compares this list with the directory. Promoted notes
+are removed once PR 864 merges.
 
-- `upcoming_changes/scikitplot/cleanprompt/round-25-release-fragments.md` — blocked
+- `upcoming_changes/scikitplot/cleanprompt/bound-custom-pattern-runtime-with-a-timeout.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/customizable-surrogate-generator.md` — promoted
 - `upcoming_changes/scikitplot/cleanprompt/email-addresses-with-non-ascii-letters.md` — open
-- `upcoming_changes/scikitplot/cleanprompt/guard-custom-pattern-runtime.md` — open
-- `upcoming_changes/scikitplot/cleanprompt/customizable-surrogate-generator.md` — open
-- `upcoming_changes/scikitplot/cleanprompt/per-kind-action-policy.md` — open
-- `upcoming_changes/scikitplot/cleanprompt/vehicle-and-locale-identifier-packs.md` — open
-- `upcoming_changes/scikitplot/cleanprompt/look-alike-characters-in-detection-view.md` — open
 - `upcoming_changes/scikitplot/cleanprompt/generated-coverage-matrix.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/guard-custom-pattern-runtime.md` — promoted
 - `upcoming_changes/scikitplot/cleanprompt/invisible-characters-in-keyvalue-and-code-names.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/look-alike-characters-in-detection-view.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/per-kind-action-policy.md` — open
 - `upcoming_changes/scikitplot/cleanprompt/phone-pattern-groupings-and-ranges.md` — open
 - `upcoming_changes/scikitplot/cleanprompt/restore-alters-near-placeholders-in-the-source.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/round-25-release-fragments.md` — promoted
+- `upcoming_changes/scikitplot/cleanprompt/surrogate-provider-protocol.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/surrogate-stand-ins-that-are-ordinary-words.md` — open
+- `upcoming_changes/scikitplot/cleanprompt/vehicle-and-locale-identifier-packs.md` — open
 
-Outside this directory but owned by this round:
+Outside this directory but owned by these rounds:
 `upcoming_changes/scikitplot/_cli/align-cleanprompt-optional-tier-install-hint.md`
-(blocked on a PR number for its fragment).
+(promoted: `scikitplot._cli/864.fix.rst`).
 
 ## Decisions waiting for the maintainer
 
-1. A pull-request number, to turn the drafted fragments into files.
-2. For `guard-custom-pattern-runtime.md`: refuse nested unbounded patterns in
-   custom packs by default (with an acknowledgement flag), or warn only.
-3. For `customizable-surrogate-generator.md`: whether slice B (a Python
-   provider protocol) is wanted, or data sets only.
+1. A contributor GitHub handle for the `By :user:` lines of the PR-864
+   fragments (not guessed; none added).
+2. `surrogate-stand-ins-that-are-ordinary-words.md`: which of the three
+   directions (report ambiguity on decode, a length/case rule, a per-set
+   `avoid:` list).
+3. `bound-custom-pattern-runtime-with-a-timeout.md`: whether an optional
+   `regex` tier is wanted.

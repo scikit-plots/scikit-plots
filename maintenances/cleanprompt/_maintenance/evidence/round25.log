@@ -1,8 +1,8 @@
-# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
 
 ## round-25 reproductions, final tree
 $ python -B .../probe_round25.py
-2026-10-10 00:20:14.501263: W scikitplot 139949671448704 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+2026-10-10 05:42:49.115922: W scikitplot 140499625930880 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
 CP-095 image installs : ['&& python -m spacy download en_core_web_sm']
 CP-095 runtime default: en_core_web_sm
 CP-095 image requests : ['CMD ["--ner", "--ner-engine", "spacy", "--ner-model", "en_core_web_sm"]']

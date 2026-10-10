@@ -207,6 +207,9 @@ class TestAudioReaderStrictPlumbing:
             reader.default_language,
             strict=True,
             report=reader._record_backend_outcome,
+            policy=None,
+            custom_backends=(),
+            capability_registry=None,
         )
 
     def test_reader_non_strict_backend_failures_do_not_add_generic_warning(

@@ -35,7 +35,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any, Iterable
 
@@ -113,6 +113,15 @@ class TagStyle:
         changes how a stand-in is spelled, and restoration checks the grammar
         digest before reading a vault. A vault written in one style therefore
         cannot be silently read as the other.
+    surrogates : str, optional
+        The identity (``name@version#digest16``) of the custom surrogate set
+        whose names this grammar issues. Filled in from ``surrogate_set``
+        when that is given; recorded in a vault, so ``decode`` needs no set
+        file. Requires ``style='surrogate'``.
+    surrogate_set : SurrogateSet, optional
+        The set itself (:mod:`~scikitplot.cleanprompt._surrogate_sets`),
+        needed to *issue* stand-ins. Not compared, not serialised: restoring
+        reads stand-ins from the vault and needs only ``surrogates``.
 
     Raises
     ------
@@ -143,6 +152,8 @@ class TagStyle:
     separator: str = "-"
     uppercase_kind: bool = True
     style: str = "placeholder"
+    surrogates: str | None = None
+    surrogate_set: Any = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         for name in ("prefix", "suffix", "separator"):
@@ -161,6 +172,42 @@ class TagStyle:
         if self.style not in STYLES:
             msg = "TagStyle.style {!r} is unknown; choose from {}".format(
                 self.style, ", ".join(STYLES)
+            )
+            raise PolicyError(msg)
+        self._check_surrogates()
+
+    def _check_surrogates(self) -> None:
+        """
+        Tie ``surrogates`` to ``surrogate_set`` and to the surrogate style.
+
+        Notes
+        -----
+        **Developer notes.** The identity is what is recorded and compared;
+        the set object is what issues names. When both are given they must
+        agree, or the vault would record a set other than the one that wrote
+        it. A set never switches the style on by itself: asking for custom
+        names under placeholders is a contradiction, refused here.
+        """
+        if self.surrogate_set is not None:
+            identity = getattr(self.surrogate_set, "identity", None)
+            if not isinstance(identity, str) or not identity:
+                raise PolicyError("TagStyle.surrogate_set must be a SurrogateSet")
+            if self.surrogates is None:
+                object.__setattr__(self, "surrogates", identity)
+            elif self.surrogates != identity:
+                msg = (
+                    f"TagStyle.surrogates {self.surrogates!r} names a different set "
+                    f"than surrogate_set ({identity!r})"
+                )
+                raise PolicyError(msg)
+        if self.surrogates is None:
+            return
+        if not isinstance(self.surrogates, str) or not self.surrogates:
+            raise PolicyError("TagStyle.surrogates must be a non-empty string or None")
+        if self.style != "surrogate":
+            msg = (
+                f"a surrogate set ({self.surrogates}) needs style='surrogate'; "
+                f"this grammar is {self.style!r}"
             )
             raise PolicyError(msg)
 
@@ -375,6 +422,7 @@ class TagStyle:
             "separator": self.separator,
             "uppercase_kind": self.uppercase_kind,
             "style": self.style,
+            **({} if self.surrogates is None else {"surrogates": self.surrogates}),
         }
 
     def _fingerprint_payload(self) -> dict[str, Any]:
@@ -395,6 +443,11 @@ class TagStyle:
 
         A non-default style *does* change the spelling, so it enters the digest
         and a vault written under it cannot be read as the other.
+
+        ``surrogates`` follows the same rule from the other side: absent from
+        :meth:`as_dict` while it is ``None``, so it changes no existing digest,
+        and present — as the set's content-derived identity — when a custom
+        set issues the names (``GENERATOR_DESIGN.md`` G6).
         """
         payload = self.as_dict()
         if payload.get("style") == "placeholder":

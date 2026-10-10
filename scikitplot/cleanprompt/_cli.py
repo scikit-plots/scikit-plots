@@ -86,6 +86,7 @@ import json
 import os
 import signal
 import sys
+import warnings
 from typing import IO, Any, Callable, Sequence
 
 from ._artifacts import ArtifactPlan, encode_artifact
@@ -103,6 +104,7 @@ from ._languages import (
     language_report,
 )
 from ._logging import configure_logging, get_logger, log_level_from_env
+from ._pattern_risk import PATTERN_RISK_MODES, PatternRiskWarning
 from ._patterns import PATTERNS
 from ._plan import CleanPlan, FluentCleanPrompt
 from ._policy import (
@@ -596,6 +598,19 @@ STYLE = Param(
     ),
 )
 
+#: A custom set of invented names for --style surrogate.
+SURROGATES = Param(
+    dest="surrogates",
+    flags=("--surrogates",),
+    metavar="PATH",
+    help=(
+        "With --style surrogate: use the invented names in this set file "
+        "(.yaml, .yml or .json) instead of the built-in ones. E-mail "
+        "addresses, telephone numbers, links and credentials keep their "
+        "reserved forms. decode needs no set: the vault records it."
+    ),
+)
+
 #: Encrypt the vault's values at rest.
 ENCRYPT = Param(
     dest="encrypt",
@@ -665,6 +680,19 @@ def _pack_params() -> tuple[Param, ...]:
             default=False,
             help="Let a --pack-file definition replace a built-in of the same name.",
         ),
+        Param(
+            dest="pattern_risk",
+            flags=("--pattern-risk",),
+            choices=PATTERN_RISK_MODES,
+            default=None,
+            help=(
+                "What a --pack-file pattern that can backtrack catastrophically "
+                "does: warn (default; load it and print the fix), ignore (load "
+                "it silently) or refuse (stop). Defaults to "
+                "CLEANPROMPT_PATTERN_RISK. A pattern marked 'risk: accepted' "
+                "with a 'risk_reason' in its pack is never warned about."
+            ),
+        ),
     )
 
 
@@ -693,6 +721,7 @@ COMMANDS: tuple[Command, ...] = (
             ),
             VAULT_MODE,
             STYLE,
+            SURROGATES,
             ENCRYPT,
             CIPHER,
             *_detection_params(),
@@ -826,6 +855,7 @@ COMMANDS: tuple[Command, ...] = (
                 ),
             ),
             STYLE,
+            SURROGATES,
             ENCRYPT,
             CIPHER,
             AS_FORMAT,
@@ -896,6 +926,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Read the model's reply from this file.",
             ),
             STYLE,
+            SURROGATES,
             *_detection_params(),
             REVEAL,
             FORMAT,
@@ -1184,6 +1215,7 @@ COMMANDS: tuple[Command, ...] = (
                 ),
             ),
             STYLE,
+            SURROGATES,
             KEEP,
             INFER_ROLES,
             Param(
@@ -1268,6 +1300,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Also run named-entity detection (requires the 'ner' tier).",
             ),
             STYLE,
+            SURROGATES,
             Param(
                 dest="no_remember",
                 flags=("--no-remember",),
@@ -1338,6 +1371,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Do not hide a value where it recurs unless a rule finds it again.",
             ),
             STYLE,
+            SURROGATES,
             LOG_LEVEL,
             LOG_FORMAT,
         ),
@@ -1408,6 +1442,7 @@ COMMANDS: tuple[Command, ...] = (
                 help="Do not hide a value where it recurs unless a rule finds it again.",
             ),
             STYLE,
+            SURROGATES,
             KEEP,
             INFER_ROLES,
             FORMAT,
@@ -1611,6 +1646,22 @@ def _policy_from(args: argparse.Namespace) -> tuple[RedactionPolicy, dict[str, A
         from dataclasses import replace  # ruff: ignore[import-outside-top-level]
 
         changes["tag_style"] = replace(base.tag_style, style=style)
+    surrogates = getattr(args, "surrogates", None)
+    if surrogates:
+        # Never switches the style on by itself (GENERATOR_DESIGN.md §5).
+        if (style or base.tag_style.style) != "surrogate":
+            msg = "--surrogates needs --style surrogate"
+            raise CleanPromptError(msg)
+        from dataclasses import replace  # ruff: ignore[import-outside-top-level]
+
+        from ._surrogate_sets import (  # ruff: ignore[import-outside-top-level]
+            load_surrogate_set,
+        )
+
+        changes["tag_style"] = replace(
+            changes.get("tag_style", base.tag_style),
+            surrogate_set=load_surrogate_set(surrogates),
+        )
 
     policy = base.evolve(**changes) if changes else base
 
@@ -2214,7 +2265,9 @@ def _vault_tag_style(path: str) -> Any | None:
         return None
 
 
-def _seed_from_vault(path: str) -> tuple[Vault | None, tuple[Any, ...]]:
+def _seed_from_vault(
+    path: str, grammar: Any = None
+) -> tuple[Vault | None, tuple[Any, ...]]:
     """
     Read a vault for ``--vault-mode append``.
 
@@ -2222,6 +2275,9 @@ def _seed_from_vault(path: str) -> tuple[Vault | None, tuple[Any, ...]]:
     ----------
     path : str
         The vault to continue from.
+    grammar : TagStyle, optional
+        The grammar this run will issue labels in. When given, a vault
+        written under a different grammar is refused.
 
     Returns
     -------
@@ -2262,6 +2318,7 @@ def _seed_from_vault(path: str) -> tuple[Vault | None, tuple[Any, ...]]:
         except ValueError as exc:
             raise CleanPromptError(f"vault {path!r} is not valid JSON: {exc}") from exc
 
+    _check_append_grammar(path, document, grammar)
     vault = _read_vault(path)
     index = document.get("index") if isinstance(document, dict) else None
     values = vault.export()
@@ -2299,6 +2356,40 @@ def _seed_from_vault(path: str) -> tuple[Vault | None, tuple[Any, ...]]:
     return vault, tuple(seed)
 
 
+def _check_append_grammar(path: str, document: Any, grammar: Any) -> None:
+    """
+    Refuse to append labels of one grammar to a vault written in another.
+
+    Notes
+    -----
+    **Developer notes (round 26 review).** Appending with a different style
+    or surrogate set mixed stand-ins of two grammars in one vault and
+    re-stamped the vault with the new grammar's fingerprint, so text encoded
+    earlier could no longer be decoded as written. A vault that records no
+    grammar (written before it was recorded) is not checked: there is
+    nothing to compare.
+    """
+    if grammar is None or not isinstance(document, dict):
+        return
+    recorded = document.get("grammar_fingerprint")
+    if not isinstance(recorded, str) or recorded == grammar.fingerprint:
+        return
+    written = document.get("tag_style")
+    described = "a different placeholder grammar"
+    if isinstance(written, dict):
+        described = f"--style {written.get('style', 'placeholder')}"
+        if written.get("surrogates"):
+            described += f" with surrogate set {written['surrogates']}"
+    msg = (
+        f"vault {_display_path(path)!r} was written with {described} "
+        f"(grammar {recorded}); this run uses grammar {grammar.fingerprint}. "
+        "Appending would mix two kinds of stand-in in one vault. Pass the same "
+        "--style and --surrogates as before, or start a new vault "
+        "(--vault-mode overwrite, or --vault pointing somewhere else)."
+    )
+    raise CleanPromptError(msg)
+
+
 def _color_flag(choice: str) -> bool | None:
     """Map the ``--color`` choice onto the tri-state used by the renderer."""
     return {"always": True, "never": False}.get(choice)
@@ -2320,7 +2411,9 @@ def _cmd_redact(
     mode = getattr(args, "vault_mode", "overwrite")
     with _vault_lock(vault_path, stderr):
         prior_vault, seed = (
-            _seed_from_vault(vault_path) if mode == "append" else (None, ())
+            _seed_from_vault(vault_path, policy.tag_style)
+            if mode == "append"
+            else (None, ())
         )
 
         result = redactor.redact(
@@ -2532,7 +2625,9 @@ def _cmd_clean(
     mode = getattr(args, "vault_mode", "append")
     with _vault_lock(vault_path, stderr):
         prior_vault, seed = (
-            _seed_from_vault(vault_path) if mode == "append" else (None, ())
+            _seed_from_vault(vault_path, policy.tag_style)
+            if mode == "append"
+            else (None, ())
         )
 
         artifact = _artifact_settings(args)
@@ -3216,6 +3311,8 @@ def _plan_from(  # ruff: ignore[too-many-branches]
                 ("hide", "--hide"),
                 ("allow", "--allow"),
                 ("keep", "--keep"),
+                ("pattern_risk", "--pattern-risk"),
+                ("surrogates", "--surrogates"),
             )
             if getattr(args, dest, None)
         ]
@@ -3267,6 +3364,10 @@ def _plan_from(  # ruff: ignore[too-many-branches]
         builder = builder.ner("auto")
     if getattr(args, "no_remember", False):
         builder = builder.remember(False)
+    if getattr(args, "pattern_risk", None):
+        builder = builder.pattern_risk(args.pattern_risk)
+    if getattr(args, "surrogates", None):
+        builder = builder.surrogates(args.surrogates)
     return builder.build()
 
 
@@ -3294,18 +3395,28 @@ def _cmd_packs(
             {"written": _display_path(str(written)), "status": "ok"}, args.fmt, stdout
         )
         return EXIT_OK
+    from ._pattern_risk import enforce  # ruff: ignore[import-outside-top-level]
+
     problems: list[str] = []
+    findings: list = []
     try:
         plan = FluentCleanPrompt()
         if args.pack_files:
             plan = plan.custom(*args.pack_files, replace_builtins=args.replace_builtins)
         if args.packs:
             plan = plan.packs(*args.packs)
+        if getattr(args, "pattern_risk", None):
+            plan = plan.pattern_risk(args.pattern_risk)
         built = plan.build()
         catalog = built.catalog()
         selected = catalog.resolve_packs(
             built.packs_selection() if args.packs else "all"
         )
+        findings = built.pattern_findings()
+        if not args.check:
+            # --check lists every finding in its report; elsewhere the mode
+            # speaks, as it does for a run.
+            enforce(findings, built.pattern_risk_mode(), ", ".join(built.custom))
     except CleanPromptError as exc:
         if not args.check:
             raise
@@ -3324,6 +3435,7 @@ def _cmd_packs(
         data = {
             "problems": problems,
             "compiled": compiled,
+            "pattern_risk": [item.as_dict() for item in findings],
             "status": "ok" if not problems else "problems",
         }
         _emit(data, args.fmt, stdout)
@@ -3445,9 +3557,11 @@ def _cmd_batch(  # ruff: ignore[too-many-branches]
     else:
         with _vault_lock(vault_path, stderr):
             prior: tuple[Any, ...] = ()
+            plan = _plan_from(args)
+            cleaner = Cleaner(plan)
             if args.vault_mode == "append":
-                _, prior = _seed_from_vault(vault_path)
-            cleaner = Cleaner(_plan_from(args), prior=prior)
+                _, prior = _seed_from_vault(vault_path, cleaner.policy.tag_style)
+                cleaner = Cleaner(plan, prior=prior)
             try:
                 if is_zip:
                     items = cleaner.encode_archive(source, args.target)
@@ -3790,7 +3904,14 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
         get_logger().debug("command=%s frontend=%s", name, _frontend_name)
 
     try:
-        return _handler_for(name)(args, in_, out, err)
+        with _pattern_risk_to(err):
+            return _handler_for(name)(args, in_, out, err)
+    except PatternRiskWarning as exc:
+        # Raised, not shown, only under -W error::...PatternRiskWarning (or a
+        # test's filter): the user asked for findings to be fatal, so this is
+        # a handled error with its message, not a traceback.
+        err.write(f"error: {exc}\n")
+        return EXIT_ERROR
     except CapabilityError as exc:
         err.write(f"error: {exc}\n")
         if exc.install_hint:
@@ -3814,6 +3935,44 @@ def main(  # ruff: ignore[too-many-branches, too-many-return-statements]
     except OSError as exc:
         err.write(f"error: {exc}\n")
         return EXIT_ERROR
+
+
+@contextlib.contextmanager
+def _pattern_risk_to(err: IO[str]):
+    """
+    Print pattern-risk warnings as plain ``warning:`` blocks on ``err``.
+
+    Notes
+    -----
+    **User notes.** A risky ``--pack-file`` pattern prints::
+
+        warning: hr.yaml: pack hr, pattern TICKET: nested-quantifier (high) ...
+          - drop the outer repetition ...
+          - accept this pattern in its pack: add `risk: accepted` ...
+
+    on standard error; standard output (a report, a JSON document, encoded
+    text) is untouched, so a pipeline keeps working.
+
+    **Developer notes.** Only :class:`PatternRiskWarning` is reformatted;
+    every other warning goes to the display hook that was in place. The
+    warning *filters* are not touched, so ``-W error::...`` or a test's
+    ``filterwarnings`` still decide whether a warning is shown, hidden or
+    raised. :func:`warnings.catch_warnings` restores the hook on exit, even on
+    an exception.
+    """
+    with warnings.catch_warnings():
+        previous = warnings.showwarning
+
+        def show(  # ruff: ignore[too-many-positional-arguments]
+            message, category, filename, lineno, file=None, line=None
+        ):  # the signature of warnings.showwarning
+            if issubclass(category, PatternRiskWarning):
+                err.write(f"warning: {message}\n")
+                return
+            previous(message, category, filename, lineno, file, line)
+
+        warnings.showwarning = show
+        yield
 
 
 def _exit_broken_pipe(owns_stdout: bool = True) -> int:

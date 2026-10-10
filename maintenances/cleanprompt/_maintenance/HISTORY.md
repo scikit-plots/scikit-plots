@@ -1,5 +1,40 @@
 # History
 
+## 2026-10-10 — round twenty-six: the user decides, and the floor does not move
+
+Maintainer decisions: PR **864** for every round-25/26 fragment; risky custom
+patterns are always warned about, with quick options and policy tuning, never
+refused by default; the generator's scope was delegated.
+
+- `CP-104`: a custom pattern such as `^(a+)+$` loaded silently and could
+  stall a run. `_pattern_risk.py` reads the source as Python runs it (own
+  parser, no `sre_parse`; overlap decided by public `re` over a probe
+  alphabet) and reports `nested-quantifier`, `overlapping-alternation`,
+  `adjacent-quantifiers`, or `not-analysed`. Warn by default; `ignore` /
+  `refuse` per run (`--pattern-risk`, five commands), per team (plan file),
+  per machine (`CLEANPROMPT_PATTERN_RISK`); `risk: accepted` +
+  `risk_reason` per pattern; `packs --check` lists every finding.
+- Custom surrogate sets (slice A, `GENERATOR_DESIGN.md`): `PERSON`, `ORG`,
+  `GPE`, `LOC`, `FAC` names from a YAML/JSON file (`--surrogates`); contact
+  forms and credentials stay the core's; entries must read as names and
+  cannot look alike; identity recorded, default digests unchanged.
+- `CP-105` (found writing the gallery): a surrogate address spelled a held
+  two-word name with a dot. Both sides are now word-split.
+- The independent review found twelve issues in the new code before
+  release (eight analyser misses or false positives, invisible and look-alike
+  set entries, `TITLE_CASE` refusing the design's own example, `-W error`
+  tracebacks) and `CP-106` on the old tree (appending with another style
+  mixed two grammars). All fixed; ordinary-word entries are a recorded limit
+  (new note). Re-running the review's brief by hand found `CP-107`
+  (`x{99999999999999999999}` crashed pack validation with OverflowError)
+  and that requiring NFKC refused ordinary Thai and Arabic names. A
+  soundness fuzz then found three more analyser misses (nullable groups,
+  optional parts); after the fix none in thousands of passed patterns.
+- A test that failed one run in three under xdist only was root-caused to
+  the process-wide scrub filter and a shared sample value (lessons rule 55).
+- Verified: 2888/88 (no tier), 2899/77 (engines, no data), 2966/10 (every
+  tier); CPython 3.8–3.14; all probes 0 failures; gallery 9/9 twice.
+
 ## 2026-10-10 — round twenty-five: every surface says what it does
 
 Inputs: an internal review (findings CP-NEW-01..08) and an external comparison,

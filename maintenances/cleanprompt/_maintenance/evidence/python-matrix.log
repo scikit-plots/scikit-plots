@@ -1,11 +1,11 @@
-# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
 
 ## CPython 3.8 to 3.14, pytest only (no optional tier, no PyYAML)
 $ uv venv -p X.Y; uv pip install pytest; python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
-3.8   2543 passed, 199 skipped in 49.00s
-3.9   2544 passed, 198 skipped in 36.47s
-3.10  2546 passed, 196 skipped in 36.34s
-3.11  2546 passed, 196 skipped in 32.05s
-3.12  2546 passed, 196 skipped in 34.11s (Python 3.12.3)
-3.13  2546 passed, 196 skipped in 34.41s (Python 3.13.16)
-3.14  2546 passed, 196 skipped in 32.65s (Python 3.14.6)
+3.8: 2762 passed, 214 skipped in 38.21s
+3.9: 2763 passed, 213 skipped in 36.72s
+3.10: 2765 passed, 211 skipped in 38.06s
+3.11: 2767 passed, 209 skipped in 33.94s
+3.12: 2767 passed, 209 skipped in 35.64s
+3.13: 2767 passed, 209 skipped in 34.20s
+3.14: 2767 passed, 209 skipped in 34.49s

@@ -61,187 +61,206 @@ User Guide
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **nearest neighbor**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ANNoy <./annoy/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **metric analysis**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./api/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **pseudonymization engine for LLM**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             CleanPrompt <./cleanprompt/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **remarks citation generation**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Corpus <./corpus/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **live, on demand generation**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Cython <./cython/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **decile-wise analysis**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./decile/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **data imputation**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./impute/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **logging system**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Logging <./logging/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **memory mapping**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             MemMap <./memmap/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **model context protocol**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Mcp <./mcp/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **workflow automation**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             MLflow <./mlflow/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **lightweight high-performance**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Nc <./nc/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **data preprocessing**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./preprocessing/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **random generator**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./random/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **lexical document ranking**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Rank-BM25 <./rank_bm25/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **seaborn based**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Seaborn <./seaborn/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **extended by astropy**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./stats/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **tensorflow keras**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             ./visualkeras/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **array api dispatching**
         ^^^
@@ -251,7 +270,8 @@ User Guide
             ./_lib/index.rst
 
     .. grid-item-card::
-        :padding: 3
+        :columns: 12 12 6 6
+        :padding: 2
 
         **branding**
         ^^^

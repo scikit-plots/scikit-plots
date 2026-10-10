@@ -98,6 +98,7 @@ from .._chunkers._custom_tokenizer import (
     StemmerProtocol,
     TokenizerProtocol,
 )
+from .._resources import ResourceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -795,8 +796,13 @@ class NLPEnricher:
                         ensure_nltk_resource("corpora/stopwords", "stopwords")
                         result |= set(sw_corpus.words(lang))
                         continue
-                    except (ImportError, OSError, LookupError):
-                        pass  # fall through to built-in
+                    except (
+                        ImportError,
+                        OSError,
+                        LookupError,
+                        ResourceUnavailableError,
+                    ):
+                        pass  # fall through to bundled stopwords
                 # Built-in fallback
                 builtin = BUILTIN_LANG_STOPWORDS.get(lang)
                 if builtin:

@@ -409,7 +409,7 @@ class TestBytesAndFiles:
 
     def test_bom_and_crlf_survive(self, tmp_path):
         path = tmp_path / "a.csv"
-        path.write_bytes("﻿email\r\nann@example.com\r\n".encode("utf-8"))
+        path.write_bytes("\ufeffemail\r\nann@example.com\r\n".encode("utf-8"))
         cleaner = _cleaner()
         encoded = cleaner.encode_file(path)
         assert cleaner.decode(encoded.text).encode("utf-8") == path.read_bytes()
@@ -686,20 +686,27 @@ class TestLoggingDiscipline:
         from .. import configure_logging
         from .._logging import get_logger
 
+        # The scrub filter is shared by every live cleaner in the process
+        # (by design: a value stays hidden while *anyone* holds it). A value
+        # used by other tests may still be held by a cleaner that is waiting
+        # for garbage collection, which made "in second" fail under xdist
+        # (round 26). A value no other test uses keeps the assertion about
+        # this cleaner only.
+        value = "scrub.until.cleared@example.com"
         buffer = io.StringIO()
         configure_logging("debug", stream=buffer)
         cleaner = _cleaner()
-        cleaner.encode_text("mail ann@example.com", "text")
-        get_logger("scikitplot.cleanprompt._engine").warning("oops ann@example.com")
+        cleaner.encode_text(f"mail {value}", "text")
+        get_logger("scikitplot.cleanprompt._engine").warning(f"oops {value}")
         cleaner.clear()
-        get_logger("scikitplot.cleanprompt._engine").warning("later ann@example.com")
+        get_logger("scikitplot.cleanprompt._engine").warning(f"later {value}")
         first, second = [
             line
             for line in buffer.getvalue().splitlines()
             if "oops" in line or "later" in line
         ]
-        assert "ann@example.com" not in first
-        assert "ann@example.com" in second
+        assert value not in first
+        assert value in second
 
 
 class TestOrderIndependence:

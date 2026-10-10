@@ -1,25 +1,25 @@
-# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
 
 ## no optional tier (CPython 3.13)
 $ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
 SKIPPED [1] scikitplot/cleanprompt/tests/test_regressions.py:1973: could not import 'nltk': No module named 'nltk'
-2654 passed, 88 skipped in 54.18s
+2888 passed, 88 skipped in 40.23s
 EXIT=0
 
-## project pytest options, live logging at INFO
-$ python -B -m pytest scikitplot/cleanprompt/tests -q (log_cli on) -p no:cacheprovider (stand-in parent, filterwarnings=error)
-SKIPPED [1] scikitplot/cleanprompt/tests/test_regressions.py:1973: could not import 'nltk': No module named 'nltk'
-================= 2654 passed, 88 skipped in 61.59s (0:01:01) ==================
+## project pytest options, live logging at INFO, xdist -n 8
+$ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error) -n 8
+SKIPPED [1] scikitplot/cleanprompt/tests/test__nltk.py:510: the 'nltk' tier or its corpora are unavailable
+====================== 2888 passed, 88 skipped in 26.30s =======================
 EXIT=0
 
 ## spaCy 3.8.16 and NLTK 3.10.3 installed, no model and no data
 $ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
-SKIPPED [1] scikitplot/cleanprompt/tests/test_regressions.py:1386: the 'spacy' engine is not ready (MISCONFIGURED): spaCy is installed but model 'en_core_web_sm' is not (fix: python -m spacy download en_core_web_sm)
-2665 passed, 77 skipped in 126.19s (0:02:06)
+SKIPPED [1] scikitplot/cleanprompt/tests/test_regressions.py:1378: the 'spacy' engine is not ready (MISCONFIGURED): spaCy is installed but model 'en_core_web_sm' is not (fix: python -m spacy download en_core_web_sm)
+2899 passed, 77 skipped in 43.74s
 EXIT=0
 
 ## every tier: spaCy 3.8.16 + en_core_web_sm, NLTK 3.10.3 + data, Flask, click, cryptography
 $ NLTK_DATA=... python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
 SKIPPED [1] scikitplot/cleanprompt/tests/test__exceptions.py:140: PolicyError inherits its constructor
-2732 passed, 10 skipped in 97.20s (0:01:37)
+2966 passed, 10 skipped in 50.25s
 EXIT=0

@@ -2060,3 +2060,182 @@ class TestCP103InvisibleCharactersInFieldNames:
         encoded = cleaner.encode_text(text, "csv", name="s.csv")
         assert "Ann Lee" not in encoded.text
         assert cleaner.decode(encoded.text) == text
+
+
+class TestCP104RiskyCustomPatternsLoadedSilently:
+    """
+    ``CP-104`` — a custom pattern that backtracks catastrophically loaded silently.
+
+    Notes
+    -----
+    **Developer notes.** From the internal review (CP-NEW-07), reproduced in
+    round 25: a pack with ``^(a+)+$`` passed validation, and on ``'a' * 22 +
+    'b'`` the match took 0.16 s, doubling with each extra character. The
+    maintainer's decision (round 26): warn by default, with rewrites and the
+    ways to accept or silence it; ``refuse`` on request.
+    """
+
+    _PACK = {
+        "name": "slowpack",
+        "version": 1,
+        "summary": "A slow pattern.",
+        "patterns": [
+            {
+                "kind": "RUN",
+                "pattern": "^(a+)+$",
+                "intent": "Nested repetition.",
+                "examples_yes": ["aaa"],
+                "examples_no": ["b"],
+            }
+        ],
+    }
+
+    def _file(self, tmp_path):
+        import json
+
+        path = tmp_path / "slow.json"
+        path.write_text(json.dumps(self._PACK), encoding="utf-8")
+        return path
+
+    def test_loading_warns_naming_pack_and_kind(self, tmp_path, monkeypatch):
+        from .._custom import load_custom
+        from .._pattern_risk import PATTERN_RISK_ENV, PatternRiskWarning
+
+        monkeypatch.delenv(PATTERN_RISK_ENV, raising=False)
+        with pytest.warns(PatternRiskWarning, match="slow.json: pack slowpack, pattern RUN"):
+            load_custom(self._file(tmp_path))
+
+    def test_refuse_stops_before_any_text_is_read(self, tmp_path):
+        from .. import FluentCleanPrompt
+        from .._exceptions import CleanPromptError
+
+        builder = (
+            FluentCleanPrompt().custom(str(self._file(tmp_path))).pattern_risk("refuse")
+        )
+        with pytest.raises(CleanPromptError, match="nested-quantifier"):
+            builder.materialize()
+
+    @pytest.mark.parametrize(
+        "source", ["(a+)+", "(a*)*", "(a|a)+", "(a|aa)+", "(a+?)+", "((a+)b?)+"]
+    )
+    def test_the_ledger_edge_cases_are_reported(self, source):
+        from .._pattern_risk import analyse_pattern
+
+        assert analyse_pattern(source) != ()
+
+    def test_a_bounded_pattern_stays_silent(self):
+        from .._pattern_risk import analyse_pattern
+
+        assert analyse_pattern(r"\bEMP-\d{6}\b") == ()
+
+
+class TestCP105StandInShowedAHeldNameWithADot:
+    """
+    ``CP-105`` — an e-mail stand-in spelled a held two-word name with a dot.
+
+    Notes
+    -----
+    **Developer notes.** Found in round 26 while writing the surrogate-set
+    gallery section, and present on the round-25 tree: with ``Marion Holt``
+    in the text, the person became *Devin Nakamura* but the address became
+    ``marion.holt@example.invalid`` — the real name, in front of the model.
+    ``CP-071`` matched held values as whole tokens joined by spaces, so a
+    one-word name was caught and a two-word one joined by a dot was not.
+    """
+
+    def test_the_held_name_does_not_reappear_with_another_separator(self):
+        from .. import DEFAULT_POLICY, Redactor, TagStyle, restore
+
+        policy = DEFAULT_POLICY.evolve(tag_style=TagStyle(style="surrogate"))
+        text = "Marion Holt mailed ada@example.com"
+        result = Redactor(policy=policy).redact(
+            text, extra_terms=["Marion Holt"], extra_kind="PERSON"
+        )
+        folded = result.text.lower().replace(".", " ").replace("@", " ")
+        assert "marion holt" not in folded
+        assert restore(result.text, result.vault, policy=policy).text == text
+
+    @pytest.mark.parametrize(
+        "held",
+        ["Marion Holt", "MARION HOLT", "marion  holt", "Marion-Holt", "marion.holt", "MarionHolt"],
+    )
+    def test_the_check_folds_separators_on_both_sides(self, held):
+        from .._canonical import value_pattern
+        from .._engine import _held_forms, _shows_held
+
+        pattern = value_pattern(_held_forms([held]))
+        assert _shows_held(pattern, "Marion Holt")
+        assert _shows_held(pattern, "marion.holt@example.invalid")
+        assert _shows_held(pattern, "https://example.invalid/marion-holt")
+        assert not _shows_held(pattern, "devin.nakamura@example.invalid")
+
+
+class TestCP106AppendingMixedGrammars:
+    """
+    ``CP-106`` — appending with another ``--style`` mixed two grammars in a vault.
+
+    Notes
+    -----
+    **Developer notes.** Found by the round-26 independent review, present on
+    the round-25 tree for styles alone: ``encode --style surrogate`` into a
+    vault, then a plain ``encode`` (append is ``encode``'s default) issued
+    ``[EMAIL-1]`` into the surrogate vault and re-stamped its grammar
+    fingerprint, so the first turn's text no longer decoded as written.
+    """
+
+    def test_a_plain_append_to_a_surrogate_vault_is_refused(self, tmp_path):
+        import io
+        import json
+
+        from .._cli import main
+
+        vault = str(tmp_path / "v.json")
+
+        def run(*argv):
+            err = io.StringIO()
+            code = main(list(argv), stdin=io.StringIO(""), stdout=io.StringIO(), stderr=err)
+            return code, err.getvalue()
+
+        assert run("encode", "--style", "surrogate", "--vault", vault, "mail ada@example.com")[0] == 0
+        before = json.loads((tmp_path / "v.json").read_text(encoding="utf-8"))
+        code, err = run("encode", "--vault", vault, "mail bob@example.org")
+        assert code == 1
+        assert "written with --style surrogate" in err
+        after = json.loads((tmp_path / "v.json").read_text(encoding="utf-8"))
+        assert after == before
+        assert run("encode", "--style", "surrogate", "--vault", vault, "mail bob@example.org")[0] == 0
+
+
+class TestCP107HugeRepetitionCountCrashedValidation:
+    """
+    ``CP-107`` — ``x{99999999999999999999}`` crashed pack validation.
+
+    Notes
+    -----
+    **Developer notes.** Found in round 26 while re-verifying the independent
+    review's cases, present on the round-25 tree: :func:`re.compile` raises
+    :class:`OverflowError` (not :class:`re.error`) for a repetition count
+    above the engine's limit, so ``pack_from_document`` let it escape as a
+    traceback instead of listing it with the pack's other problems.
+    """
+
+    _PATTERN = "x{99999999999999999999}"
+
+    def test_the_pack_lists_it_as_a_problem(self):
+        from .._packs import PackError, pack_from_document
+
+        document = {
+            "name": "huge",
+            "version": 1,
+            "summary": "s",
+            "patterns": [
+                {"kind": "HUGE", "pattern": self._PATTERN, "intent": "i", "examples_yes": ["x"]}
+            ],
+        }
+        with pytest.raises(PackError, match="does not compile"):
+            pack_from_document(document)
+
+    def test_the_risk_check_reports_it_as_not_analysed(self):
+        from .._pattern_risk import analyse_pattern
+
+        assert [r.rule for r in analyse_pattern(self._PATTERN)] == ["not-analysed"]

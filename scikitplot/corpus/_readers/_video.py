@@ -68,13 +68,17 @@ from typing import (  # noqa: F401
     Dict,
     Generator,
     List,
+    Mapping,
     Optional,
     Tuple,
 )
 
+from .._backends import BackendPolicy
 from .._base import DocumentReader
+from .._capabilities import CapabilityRegistry
 from .._schema import SectionType, SourceType
-from ._whisper import WHISPER_MODELS
+from ._whisper import WHISPER_MODELS, ASRBackend, asr_segment_metadata
+from ._whisper import plan_whisper_backends as _shared_plan_whisper_backends
 from ._whisper import transcribe_whisper as _shared_transcribe_whisper
 
 logger = logging.getLogger(__name__)
@@ -343,6 +347,9 @@ def _transcribe_whisper(
     *,
     strict: bool = False,
     report: Callable[[Any], None] | None = None,
+    policy: BackendPolicy | str | dict[str, Any] | None = None,
+    custom_backends: tuple[ASRBackend, ...] = (),
+    capability_registry: CapabilityRegistry | None = None,
 ) -> list[dict[str, Any]]:
     """Transcribe video through the shared Whisper backend cascade."""
     return _shared_transcribe_whisper(
@@ -354,6 +361,9 @@ def _transcribe_whisper(
         strict=strict,
         include_confidence=False,
         report=report,
+        policy=policy,
+        custom_backends=custom_backends,
+        capability_registry=capability_registry,
     )
 
 
@@ -512,6 +522,18 @@ class VideoReader(DocumentReader):
     strict: bool = field(default=False)
     """Raise when all Whisper backends fail instead of yielding no ASR chunks."""
 
+    backend_policy: BackendPolicy | str | Mapping[str, Any] | None = field(
+        default=None,
+        repr=False,
+    )
+    """Optional backend policy preset/object/config mapping."""
+
+    asr_backends: tuple[ASRBackend, ...] = field(default_factory=tuple, repr=False)
+    """User-provided ASR backends appended to the built-in backend registry."""
+
+    capability_registry: CapabilityRegistry | None = field(default=None, repr=False)
+    """Optional private readiness registry for custom ASR capabilities."""
+
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
     # dataclass __init__ field order (subclass fields come after base fields
@@ -555,6 +577,20 @@ class VideoReader(DocumentReader):
     def _custom_extractor_source_type(self) -> SourceType:
         """Return :attr:`~scikitplot.corpus._schema.SourceType.VIDEO` for custom-extractor chunks."""
         return SourceType.VIDEO
+
+    def plan_asr_backends(self):
+        """Return the exact side-effect-free ASR backend preflight plan."""
+        return _shared_plan_whisper_backends(
+            self.input_path,
+            self.whisper_model,
+            self.default_language,
+            component="VideoReader",
+            strict=self.strict,
+            include_confidence=False,
+            policy=self.backend_policy,
+            custom_backends=self.asr_backends,
+            capability_registry=self.capability_registry,
+        )
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
         """
@@ -637,6 +673,9 @@ class VideoReader(DocumentReader):
                 self.default_language,
                 strict=self.strict,
                 report=self._record_backend_outcome,
+                policy=self.backend_policy,
+                custom_backends=self.asr_backends,
+                capability_registry=self.capability_registry,
             )
             logger.info(
                 "VideoReader: transcription produced %d segments for %s.",
@@ -644,7 +683,7 @@ class VideoReader(DocumentReader):
                 self.file_name,
             )
             for seg in segments:
-                yield {
+                chunk = {
                     "text": seg["text"],
                     # raw_text: ASR transcription — verbatim Whisper output.
                     "raw_text": seg.get("raw_text", seg["text"]),
@@ -661,6 +700,14 @@ class VideoReader(DocumentReader):
                     # non-promoted → metadata (sub-type detail)
                     "transcript_type": "whisper",
                 }
+                if "confidence" in seg:
+                    chunk["confidence"] = seg["confidence"]
+                if seg.get("asr_backend") is not None:
+                    chunk["asr_backend"] = seg["asr_backend"]
+                extra_asr_metadata = asr_segment_metadata(seg)
+                if extra_asr_metadata:
+                    chunk["asr_metadata"] = extra_asr_metadata
+                yield chunk
             return
 
         # --- No subtitle, transcription disabled ---

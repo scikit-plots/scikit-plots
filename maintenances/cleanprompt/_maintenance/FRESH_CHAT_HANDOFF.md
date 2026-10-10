@@ -460,3 +460,29 @@ in `)` has that bracket left in the clear, which discloses nothing.
     are computed from declarations, never typed (`CP-099`, as `CP-025`).
 21. **Continuity.** Update `RESUME.md` in the same change as the work it
     records, and keep its ledger equal to `upcoming_changes`.
+
+### Round 26 rules
+
+`DESIGN.md` section 25 and `GENERATOR_DESIGN.md` are the reasoning. The
+rules:
+
+22. **Pattern risk is a warning by default, and the user tunes it.** Never
+    make `refuse` the default and never drop the rewrites or the ways out
+    from a finding's message (maintainer decision, round 26). New policy
+    levels go through `resolve_pattern_risk` and the plan; a new rule in
+    `_pattern_risk` needs a calibration case in `tests/test__pattern_risk.py`
+    *and* a measured case in `evidence/probe_round26.py`, the soundness fuzz
+    (`evidence/probe_round26_fuzz.py`) must still end `TOTAL FAILURES: 0`,
+    and every built-in pattern must still report nothing (`CP-104`).
+23. **The generator's floor is not configurable.** A set, a plan, a flag or a
+    future provider may change *which names* are used, never whether a kind
+    gets a surrogate, never the reserved forms of `EMAIL`/`PHONE`/`URL`, and
+    never skip a check of the core loop (`GENERATOR_DESIGN.md` §3).
+24. **A new setting keeps old digests.** A field added to `TagStyle`,
+    `RedactionPolicy` or `CleanPlan` is left out of its serialised form while
+    it has its default value, and a test pins the default digests
+    (`test__surrogate_sets.TestIdentity.test_default_digests_are_unchanged`).
+25. **Tests that read process-wide state use values no other test uses.**
+    The log scrub filter is shared by every live cleaner; a common sample
+    value held by a cleaner awaiting garbage collection made a test fail
+    under xdist only (round 26, `tasks/lessons.md` rule 55).

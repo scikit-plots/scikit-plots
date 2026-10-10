@@ -674,6 +674,7 @@ class TestBuilderFactories:
             "reader_factory",
             "chunker_factory",
             "filter_factory",
+            "downloader_factory",
             "normalizer_factory",
             "enricher_factory",
             "embedding_engine_factory",
@@ -730,6 +731,62 @@ class TestFactoryCorpusBuilder:
         builder = FactoryCorpusBuilder(factories=factories)
         result = builder.build(tmp_txt)
         assert result is not None
+
+    def test_reader_factory_is_actually_used(self, tmp_txt: pathlib.Path) -> None:
+        from scikitplot.corpus._base import DocumentReader
+
+        calls = []
+
+        def reader_factory(source, chunker=None, **kwargs):
+            calls.append((pathlib.Path(source), kwargs.get("filter_")))
+            return DocumentReader.create(source, chunker=chunker, **kwargs)
+
+        builder = FactoryCorpusBuilder(
+            factories=BuilderFactories(reader_factory=reader_factory)
+        )
+        result = builder.build(tmp_txt)
+        assert result is not None
+        assert calls and calls[0][0] == tmp_txt
+        assert calls[0][1] is not None
+
+    def test_filter_factory_is_actually_used(self, tmp_path: pathlib.Path) -> None:
+        from scikitplot.corpus._base import DefaultFilter
+
+        path = tmp_path / "short.txt"
+        path.write_text("x", encoding="utf-8")
+        calls = []
+
+        def filter_factory():
+            calls.append(True)
+            return DefaultFilter(min_words=0, min_chars=0)
+
+        builder = FactoryCorpusBuilder(
+            factories=BuilderFactories(filter_factory=filter_factory)
+        )
+        result = builder.build(path)
+        assert calls == [True]
+        assert len(result.documents) == 1
+
+    def test_downloader_factory_is_wired_to_builder_seam(self) -> None:
+        sentinel = object()
+        calls = []
+
+        def downloader_factory(url, **kwargs):
+            calls.append((url, kwargs))
+            return sentinel
+
+        builder = FactoryCorpusBuilder(
+            factories=BuilderFactories(downloader_factory=downloader_factory)
+        )
+        assert builder._inner._make_downloader("https://example.com/a.pdf") is sentinel
+        assert len(calls) == 1
+        url, options = calls[0]
+        assert url == "https://example.com/a.pdf"
+        assert options["timeout"] == builder.config.download_timeout
+        assert options["max_bytes"] == builder.config.max_download_bytes
+        assert options["max_retries"] == builder.config.download_max_retries
+        assert options["retry_backoff"] == builder.config.download_retry_backoff
+        assert pathlib.Path(options["output_path"]).is_dir()
 
     def test_context_manager(self, tmp_txt: pathlib.Path) -> None:
         with FactoryCorpusBuilder() as builder:

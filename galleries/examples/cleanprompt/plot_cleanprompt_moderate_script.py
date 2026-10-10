@@ -409,23 +409,14 @@ print("surrogate  :", fancy.text)
 # ``example.invalid`` is reserved permanently by :rfc:`2606` and the telephone
 # numbers come from the North American fiction block.
 #
-# One thing in that output looks alarming and is not.  The address became
-# ``marion.holt@example.invalid`` while the sentence happens to contain a
-# Marion Holt, which reads like a leak.  It is a collision: a surrogate is
-# chosen from a fixed bank by its **ordinal**, never from the value it
-# replaces, so the first invented address is that one whatever the input was.
-# The original address was ``ada@example.com`` and it is in the vault, not in
-# the text.
-#
-# What produced the coincidence is that both banks are ordered the same way, so
-# the first invented person and the local part of the first invented address
-# come from the same entry.  Collision avoidance is by **exact string**: the
-# person became *Devin Nakamura* because ``Marion Holt`` occurs verbatim in the
-# source, while ``marion.holt@example.invalid`` does not and so was kept.
-#
-# That is a readability wart rather than a disclosure, and the check below is
-# the one that matters: the surrogate depends only on the kind and the ordinal,
-# never on the value.
+# A stand-in is chosen from a fixed list by its **ordinal**, never from the
+# value it replaces, and it is never one that would show a value the text
+# holds. The first invented person, *Marion Holt*, was skipped because the
+# sentence really contains a Marion Holt. The first invented address,
+# ``marion.holt@example.invalid``, was skipped for the same reason: written
+# with a dot it is still that name (``CP-105``; before round 26 only a
+# one-word name was caught this way). Both moved on to the next entry, which
+# is why the person and the address now share it.
 #
 # The round trip is exact either way:
 
@@ -459,6 +450,55 @@ except PolicyError as exc:
 
 run("encode", "--quiet", "--vault-mode", "overwrite", "--style", "surrogate", "Mail ada@example.com")
 run("decode", "I wrote to marion.holt@example.invalid.")
+
+# %%
+# Your own invented names
+# ^^^^^^^^^^^^^^^^^^^^^^^
+# The built-in names are English-sounding. A **surrogate set** supplies your
+# own lists, for a language or a fictional cast your team recognises. The set
+# can change only names: e-mail addresses, telephone numbers and links keep
+# their reserved forms, and credentials keep placeholders. The vault records
+# the set by its identity (``name@version#digest``), so ``decode`` needs no
+# set file, and editing any entry gives a new identity.
+
+from scikitplot.cleanprompt import load_surrogate_set  # noqa: E402
+
+set_path = _HOME / "nordic.json"
+set_path.write_text(
+    json.dumps(
+        {
+            "name": "nordic",
+            "version": 1,
+            "summary": "Nordic-sounding invented names.",
+            "kinds": {
+                "PERSON": {
+                    "first": ["Aino", "Eero", "Liv"],
+                    "last": ["Halvorsen", "Lindgren", "Virtanen"],
+                }
+            },
+        }
+    ),
+    encoding="utf-8",
+)
+nordic = load_surrogate_set(set_path)
+print("set identity:", nordic.identity)
+
+local = DEFAULT_POLICY.evolve(tag_style=TagStyle(style="surrogate", surrogate_set=nordic))
+named = Redactor(policy=local).redact(SAMPLE, extra_terms=["Marion Holt"], extra_kind="PERSON")
+print("with the set:", named.text)
+assert restore(named.text, named.vault, policy=local).text == SAMPLE
+
+# A set that tries to invent a contact form is refused, with the reason.
+try:
+    from scikitplot.cleanprompt import PackError  # noqa: E402
+
+    set_path.write_text(
+        json.dumps({"name": "bad", "version": 1, "summary": "x", "kinds": {"EMAIL": ["Aino"]}}),
+        encoding="utf-8",
+    )
+    load_surrogate_set(set_path)
+except PackError as exc:
+    print("refused:", exc.problems[0][:72], "...")
 
 # %%
 # 10. Cleanup

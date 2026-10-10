@@ -63,6 +63,7 @@ from typing import Any
 from ._catalog import Catalog, builtin_catalog, catalog_from_documents, require_yaml
 from ._exceptions import CleanPromptError
 from ._packs import PackError
+from ._pattern_risk import enforce, pack_findings, resolve_pattern_risk
 
 __all__ = [
     "MAX_FILE_BYTES",
@@ -137,7 +138,10 @@ def _split(document: Any, label: str) -> tuple[dict[str, Any], dict[str, Any]]:
     return {label: document}, {}
 
 
-def load_custom(paths: str | Path | Iterable[str | Path]) -> Catalog:
+def load_custom(
+    paths: str | Path | Iterable[str | Path],
+    pattern_risk: str | None = None,
+) -> Catalog:
     """
     Load user definitions from one or more files into a catalog of their own.
 
@@ -145,6 +149,12 @@ def load_custom(paths: str | Path | Iterable[str | Path]) -> Catalog:
     ----------
     paths : path or iterable of paths
         ``.yaml``, ``.yml`` or ``.json`` files.
+    pattern_risk : {'warn', 'ignore', 'refuse'}, optional
+        What to do when a pattern has a shape that can backtrack
+        catastrophically (:mod:`~scikitplot.cleanprompt._pattern_risk`).
+        Defaults to ``CLEANPROMPT_PATTERN_RISK``, else ``'warn'``. A pattern
+        marked ``risk: accepted`` in its pack is never warned about or
+        refused.
 
     Returns
     -------
@@ -156,11 +166,21 @@ def load_custom(paths: str | Path | Iterable[str | Path]) -> Catalog:
     Raises
     ------
     PackError
-        If any definition is invalid, listing every problem in it.
+        If any definition is invalid, listing every problem in it, or
+        ``pattern_risk`` is ``'refuse'`` and a pattern has an open finding.
     CleanPromptError
         If a file is missing, too large, of an unknown type, or two files
         define the same name.
+    ValueError
+        If ``pattern_risk`` (or the environment variable) is not a mode.
+
+    Warns
+    -----
+    PatternRiskWarning
+        Under ``'warn'``, once per open finding, with rewrites and the ways to
+        accept or silence it.
     """
+    mode = resolve_pattern_risk(pattern_risk)
     items = [paths] if isinstance(paths, (str, Path)) else list(paths)
     packs: dict[str, Any] = {}
     formats: dict[str, Any] = {}
@@ -169,7 +189,13 @@ def load_custom(paths: str | Path | Iterable[str | Path]) -> Catalog:
         found_packs, found_formats = _split(_read(path), path.name)
         packs.update(found_packs)
         formats.update(found_formats)
-    return catalog_from_documents(_label(packs), _label(formats), partial=True)
+    catalog = catalog_from_documents(_label(packs), _label(formats), partial=True)
+    enforce(
+        pack_findings(catalog.packs.values()),
+        mode,
+        ", ".join(Path(item).name for item in items),
+    )
+    return catalog
 
 
 def _label(documents: Mapping[str, Any]) -> dict[str, Any]:
@@ -195,6 +221,7 @@ def with_custom(
     paths: str | Path | Iterable[str | Path] | None,
     conflict: str = "error",
     base: Catalog | None = None,
+    pattern_risk: str | None = None,
 ) -> Catalog:
     """
     Return the built-in catalog with custom definitions merged in.
@@ -208,6 +235,8 @@ def with_custom(
         name.
     base : Catalog, optional
         Defaults to :func:`~scikitplot.cleanprompt._catalog.builtin_catalog`.
+    pattern_risk : {'warn', 'ignore', 'refuse'}, optional
+        Passed to :func:`load_custom`.
 
     Returns
     -------
@@ -237,4 +266,4 @@ def with_custom(
     catalog = base if base is not None else builtin_catalog()
     if not paths:
         return catalog
-    return catalog.merge(load_custom(paths), conflict=conflict)
+    return catalog.merge(load_custom(paths, pattern_risk), conflict=conflict)

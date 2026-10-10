@@ -288,6 +288,64 @@ def resolve_spans(
 # ---------------------------------------------------------------------------
 
 
+#: A run of characters that separates words in a stand-in (``.``, ``@``, ``-``).
+_WORD_SEPARATORS = re.compile(r"[^\w]+")
+
+
+def _split_words(value: str) -> str:
+    """
+    Return ``value`` with its words separated by single spaces.
+
+    Notes
+    -----
+    **Developer notes.** Separator runs (``.``, ``-``, ``_``, ``@``) become a
+    space, and so does a lower-to-upper case change (``MarionHolt``), so a
+    value and a stand-in spelled with different separators compare as the
+    same words. Used on both sides of the held-value check (``CP-105``).
+    """
+    out = []
+    previous = ""
+    for char in value:
+        if previous.islower() and char.isupper():
+            out.append(" ")
+        out.append(char)
+        previous = char
+    return _WORD_SEPARATORS.sub(" ", "".join(out)).strip()
+
+
+def _held_forms(values) -> list:
+    """Return each held value and, when different, its word-split form."""
+    forms = []
+    for value in values:
+        forms.append(value)
+        split = _split_words(value)
+        if split and split != value:
+            forms.append(split)
+    return forms
+
+
+def _shows_held(held: re.Pattern, candidate: str) -> bool:
+    """
+    Whether ``candidate`` would show a value the conversation holds.
+
+    Notes
+    -----
+    **Developer notes.** ``held`` matches every held value as whole tokens of
+    canonical text (``CP-071``). That caught ``marion`` inside
+    ``marion.holt@example.invalid`` but not the two-word value
+    ``Marion Holt``: the value's words are joined by a space and the
+    candidate's by a dot (``CP-105``). The candidate is therefore also read
+    with its words split (:func:`_split_words`), and the engine builds
+    ``held`` from each value *and* its split form (:func:`_held_forms`), so
+    ``Marion-Holt``, ``marion.holt`` and ``MarionHolt`` held are all found in
+    a stand-in ``Marion Holt``, and the reverse (round 26 review). Adding
+    forms can only reject more stand-ins, never accept one the plain check
+    rejects.
+    """
+    text = canonical(candidate)
+    return bool(held.search(text) or held.search(_split_words(text)))
+
+
 class Redactor:
     """
     Reusable, stateless redactor.
@@ -596,6 +654,20 @@ class Redactor:
         """Allocate labels and rebuild the text in one left-to-right pass."""
         policy = self.policy
         style = policy.tag_style
+        if (
+            style.style == "surrogate"
+            and style.surrogates is not None
+            and style.surrogate_set is None
+        ):
+            # The grammar records a custom set it was not given. Issuing the
+            # built-in names instead would write stand-ins the recorded
+            # identity does not describe (GENERATOR_DESIGN.md section 4).
+            msg = (
+                f"this grammar issues names from surrogate set {style.surrogates}, "
+                "which was not loaded; pass the same set (--surrogates FILE, or "
+                "TagStyle(surrogate_set=...)) to encode with it"
+            )
+            raise PolicyError(msg)
         fingerprint = policy.fingerprint
         fold = policy.case_insensitive
 
@@ -669,21 +741,23 @@ class Redactor:
                         # Every value this text or the conversation holds;
                         # a stand-in containing one would show it (CP-071).
                         held_pattern = value_pattern(
-                            [
-                                *originals.values(),
-                                *(text[r.start : r.end] for r in resolved),
-                            ]
+                            _held_forms(
+                                [
+                                    *originals.values(),
+                                    *(text[r.start : r.end] for r in resolved),
+                                ]
+                            )
                         )
                     stand_in = surrogate_for(
                         span.kind,
                         ordinal,
                         avoid=issued,
                         source=text,
-                        forbidden=lambda one: bool(
-                            held_pattern.search(  # ruff: ignore[function-uses-loop-variable]
-                                canonical(one),
-                            )
+                        forbidden=lambda one: _shows_held(
+                            held_pattern,  # ruff: ignore[function-uses-loop-variable]
+                            one,
                         ),
+                        provider=style.surrogate_set,
                     )
                     if stand_in is not None:
                         label = stand_in

@@ -50,6 +50,8 @@ scikitplot/cleanprompt/
 5. `maintenances/cleanprompt/_maintenance/STATE.json`
 6. `upcoming_changes/scikitplot/cleanprompt/` — verified follow-up work with
    full designs; report any inconsistency you find there as a new note
+7. `maintenances/cleanprompt/_maintenance/GENERATOR_DESIGN.md` — before
+   touching stand-ins (`_surrogates.py`, `_surrogate_sets.py`, `TagStyle`)
 
 Then run:
 
@@ -896,6 +898,30 @@ against `COMMANDS` by `_maintenance/tests/test_documented_cli.py` (`CP-101`:
 `encode --pack-file` was documented and never existed). The user guide is ten
 pages under `docs/source/user_guide/cleanprompt/`, and its sync test reads
 every page and requires the toctree to list exactly the pages that exist.
+
+## Custom patterns are checked; the user sets the policy (round 26)
+
+`CP-104`: a pack pattern like `^(a+)+$` loaded silently and could stall a
+run. `_pattern_risk.analyse_pattern` reads the source with its own small
+parser (never `sre_parse`) and decides overlap with public `re` over a probe
+alphabet. Three rules: `nested-quantifier`, `overlapping-alternation` and
+`adjacent-quantifiers`; anything it cannot read is `not-analysed`. The
+default is **warn** (maintainer decision). Every finding prints its rewrites
+and the ways out: `risk: accepted` + `risk_reason` in the pack,
+`--pattern-risk ignore|warn|refuse`, `pattern_risk` in a plan, or
+`CLEANPROMPT_PATTERN_RISK`. Built-in patterns must report nothing
+(`test__pattern_risk.TestBuiltinsAreClean`). Measured run time must agree
+with every verdict (`evidence/probe_round26.py`).
+
+## Custom surrogate names under a fixed floor (round 26)
+
+A surrogate set (`_surrogate_sets.py`, `--surrogates FILE`) supplies names for
+`PERSON`, `ORG`, `GPE`, `LOC`, `FAC` only. It only *proposes*; the core loop
+keeps every rule. `EMAIL`/`PHONE`/`URL` never reach it. Its identity is
+recorded in `TagStyle.surrogates`, and default digests are pinned. A
+stand-in must not show a held value written with other separators
+(`CP-105`, `_engine._shows_held`). The design and growth plan are in
+`GENERATOR_DESIGN.md`.
 
 ## Registration in the project-wide CLI
 

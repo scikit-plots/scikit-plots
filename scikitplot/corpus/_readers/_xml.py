@@ -242,6 +242,7 @@ def _parse_xml(content: bytes) -> Any:
                 fallback_exceptions=(ImportError,),
                 failure_level=logging.DEBUG,
                 degrades_on_failure=False,
+                capability="xml:lxml",
             ),
             BackendCandidate(
                 "stdlib-xml",

@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-09",
+  "updated_at": "2026-10-10",
   "status": "CLOSED",
   "note": "All findings are closed by construction, each with a named regression test and an executable negative probe. CP-015 and CP-016 were found by this rewrite's own scale verification; CP-024 to CP-029 were found by round three's verification, and CP-030 and CP-031 by a user report of the command line being unusable for a pasted paragraph, rather than inherited from upstream - by the suite, by the import-isolation probe once its harness was strengthened, by the live-engine probe's runtime, and by exercising every pattern's own examples in ordinary sentence positions. CP-041 to CP-043 share one root cause: the hop between redaction and restoration is a language model, not a lossless channel, and the design had treated it as one. CP-044 and CP-045 were found while writing the published gallery examples: CP-044 by checking the documented rewrite table against the implementation instead of against itself, and CP-045 by piping a report into head in an example of how to explore the output. CP-064 and CP-065 were found by round 15's scale verification (evidence/scale.log). CP-067 was found by round 16's concurrency probe. CP-068 and CP-069 were found by round 17's multi-process probe. CP-070 was found by round 18's variant probe, and CP-071 by the stricter check CP-070 introduced. CP-072 was found by round 19's restoration probe. CP-073 to CP-075 were found by round 20's agent-threat review. CP-076 to CP-078 were found by round 21's review of the tool loop. CP-079 was found by a refused push in round 22; CP-080 by reviewing the reader its fix relies on; CP-081 to CP-083 by running the suite on the tree as committed, after a lint pass; CP-084 by a test that had been asserting it. Round 25 added CP-093 to CP-101: six from the internal review of 2026-10-10 (each reproduced on the tree first: readiness false green, the web app's own detector construction, the image's model, the published port, remote debug, obfuscated values) and five found by round 25's own verification (CP-099 a drifted repair hint, CP-100 NLTK data under pre-3.9 names, CP-101 a documented option that does not exist, CP-102 the first detection view cutting through record files — introduced and caught within the round — and CP-103 an invisible character in a field name hiding its column).",
   "findings": [
@@ -979,6 +979,36 @@
       "retired_by": "_packs.normalise_field reads the name through _canonical.detection_view before splitting and folding; the one function builds the field index and looks names up, so the two cannot disagree.",
       "honest_limit": "Covers formats whose splitter hands over the whole key string. Shell/.env-style keys and code identifiers are tokenised with an identifier class first and are still open (upcoming_changes: invisible-characters-in-keyvalue-and-code-names.md).",
       "regression": "test__runtime.TestInvisibleCharactersKeepStructure.test_a_salted_field_name_still_names_the_field (csv, tsv, json, email, full-width csv); test_regressions.TestCP103InvisibleCharactersInFieldNames; evidence/probe_negative.py CP-103"
+    },
+    {
+      "id": "CP-104",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A custom pack pattern that backtracks catastrophically loaded silently",
+      "detail": "From the internal review (CP-NEW-07), reproduced in round 25: a pack with '^(a+)+$' passed validation and on 'a'*22+'b' took 0.16 s, doubling per character; nothing reported the shape. One document could stall batch, the MCP server or the web app.",
+      "retired_by": "_pattern_risk.analyse_pattern compiles the pattern, reads it as Python runs it (verbose stripped, inline i/s flags, escaped characters probed) with its own parser (no sre_parse), and decides overlap with public re over a probe alphabet; repetition means more than three choices; possessive/atomic parts are never the inner part. load_custom, CleanPlan.validate (refuse) and Cleaner (warn) apply the mode: warn by default (maintainer decision, round 26), ignore, or refuse; per-pattern 'risk: accepted' + 'risk_reason'; --pattern-risk on packs/batch/plan/ask/mcp; CLEANPROMPT_PATTERN_RISK; packs --check lists every finding; under -W error the CLI reports an error line, not a traceback. The round's independent review found eight misses and false positives in the first version (verbose, inline flags, escapes, equal units, bounded outer repetition, separators one group up, possessive forms); each is now a test and a measured probe case.",
+      "honest_limit": "A warning, not a proof: shapes outside the three rules, runs separated only by an optional element (at most quadratic), and scoped (?x:...) groups (reported not-analysed) are not proven; no time bound exists (upcoming_changes: bound-custom-pattern-runtime-with-a-timeout.md).",
+      "regression": "test__pattern_risk (analysis, built-ins clean, policy, surfaces, both frontends); test_regressions.TestCP104RiskyCustomPatternsLoadedSilently; evidence/probe_round26.py R26-RISK/R26-CORE/R26-PACKS"
+    },
+    {
+      "id": "CP-105",
+      "severity": "high",
+      "status": "closed",
+      "title": "A surrogate e-mail address spelled a held two-word name with a dot",
+      "detail": "Present on the round-25 tree, found in round 26 while writing the surrogate-set gallery section: with 'Marion Holt' in the text the person became 'Devin Nakamura' but the address became 'marion.holt@example.invalid', putting the real name in front of the model. CP-071 matched held values as whole tokens joined by spaces, so one-word names were caught and multi-word names joined by '.', '-' or '/' were not.",
+      "retired_by": "_engine._held_forms adds each held value's word-split form (separator runs and lower-to-upper case changes become spaces) to the held-value pattern, and _shows_held also searches the word-split candidate; Marion Holt, marion.holt, Marion-Holt and MarionHolt are one value in both directions (the reverse direction was found by the round-26 independent review). Adding forms can only reject more stand-ins.",
+      "honest_limit": "Catches a held value whose words appear in the same order; a reordered name (holt.marion) is not caught. Built-in and set candidates never produce that order for the value they replace.",
+      "regression": "test_regressions.TestCP105StandInShowedAHeldNameWithADot; galleries moderate example section 9"
+    },
+    {
+      "id": "CP-106",
+      "severity": "high",
+      "status": "closed",
+      "title": "Appending with another --style or surrogate set mixed two grammars in one vault",
+      "detail": "Found by the round-26 independent review; present on the round-25 tree for styles: encode --style surrogate into a vault, then a plain encode (append is encode's default) issued [EMAIL-2] into the surrogate vault and re-stamped its grammar fingerprint, so text from the first turn no longer decoded as written. The same with a surrogate set and without it.",
+      "retired_by": "_cli._check_append_grammar compares the vault's recorded grammar_fingerprint with the run's before seeding (redact, encode, batch) and refuses, naming the recorded style and set and the two ways forward; the vault is not touched.",
+      "honest_limit": "A vault written before the grammar was recorded is not checked (nothing to compare). Python API callers who seed a Redactor themselves are responsible for passing a matching policy.",
+      "regression": "test_regressions.TestCP106AppendingMixedGrammars; test__surrogate_sets.TestCommandLine.test_appending_with_another_grammar_is_refused (both frontends)"
     }
   ],
   "investigated_and_rejected": [

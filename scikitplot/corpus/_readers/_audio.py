@@ -75,14 +75,17 @@ from typing import (  # noqa: F401
     Dict,
     Generator,
     List,
+    Mapping,
     Optional,
     Tuple,
 )
 
-from .._backends import BackendCandidate, run_backend_chain
+from .._backends import BackendCandidate, BackendPolicy, run_backend_chain
 from .._base import DocumentReader
+from .._capabilities import CapabilityRegistry
 from .._schema import SectionType, SourceType
-from ._whisper import WHISPER_MODELS
+from ._whisper import WHISPER_MODELS, ASRBackend, asr_segment_metadata
+from ._whisper import plan_whisper_backends as _shared_plan_whisper_backends
 from ._whisper import transcribe_whisper as _shared_transcribe_whisper
 
 logger = logging.getLogger(__name__)
@@ -606,6 +609,9 @@ def _transcribe_whisper(
     *,
     strict: bool = False,
     report: Callable[[Any], None] | None = None,
+    policy: BackendPolicy | str | dict[str, Any] | None = None,
+    custom_backends: tuple[ASRBackend, ...] = (),
+    capability_registry: CapabilityRegistry | None = None,
 ) -> list[dict[str, Any]]:
     """Transcribe audio through the shared Whisper backend cascade."""
     return _shared_transcribe_whisper(
@@ -619,6 +625,9 @@ def _transcribe_whisper(
         faster_transcribe_kwargs={"beam_size": 5},
         include_confidence=True,
         report=report,
+        policy=policy,
+        custom_backends=custom_backends,
+        capability_registry=capability_registry,
     )
 
 
@@ -785,16 +794,19 @@ def _get_audio_duration(audio_path: Path) -> float | None:
                 _mutagen,
                 accept=lambda value: value is not None,
                 failure_level=logging.DEBUG,
+                capability="audio:mutagen",
             ),
             BackendCandidate(
                 "librosa",
                 _librosa,
                 failure_level=logging.DEBUG,
+                capability="audio:librosa",
             ),
             BackendCandidate(
                 "soundfile",
                 _soundfile,
                 failure_level=logging.DEBUG,
+                capability="audio:soundfile",
             ),
         ),
         default=None,
@@ -1169,6 +1181,18 @@ class AudioReader(DocumentReader):
     strict: bool = field(default=False)
     """Raise when all Whisper backends fail instead of yielding no ASR chunks."""
 
+    backend_policy: BackendPolicy | str | Mapping[str, Any] | None = field(
+        default=None,
+        repr=False,
+    )
+    """Optional backend policy preset/object/config mapping."""
+
+    asr_backends: tuple[ASRBackend, ...] = field(default_factory=tuple, repr=False)
+    """User-provided ASR backends appended to the built-in backend registry."""
+
+    capability_registry: CapabilityRegistry | None = field(default=None, repr=False)
+    """Optional private readiness registry for custom ASR capabilities."""
+
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
     # dataclass __init__ field order (subclass fields come after base fields
@@ -1231,6 +1255,22 @@ class AudioReader(DocumentReader):
     def _custom_extractor_source_type(self) -> SourceType:
         """Return :attr:`~scikitplot.corpus._schema.SourceType.AUDIO` for custom-extractor chunks."""
         return SourceType.AUDIO
+
+    def plan_asr_backends(self):
+        """Return the exact side-effect-free ASR backend preflight plan."""
+        return _shared_plan_whisper_backends(
+            self.input_path,
+            self.whisper_model,
+            self.default_language,
+            component="AudioReader",
+            strict=self.strict,
+            faster_model_kwargs={"device": "auto"},
+            faster_transcribe_kwargs={"beam_size": 5},
+            include_confidence=True,
+            policy=self.backend_policy,
+            custom_backends=self.asr_backends,
+            capability_registry=self.capability_registry,
+        )
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
@@ -1349,6 +1389,9 @@ class AudioReader(DocumentReader):
                 self.default_language,
                 strict=self.strict,
                 report=self._record_backend_outcome,
+                policy=self.backend_policy,
+                custom_backends=self.asr_backends,
+                capability_registry=self.capability_registry,
             )
             logger.info(
                 "AudioReader: transcription produced %d segments for %s.",
@@ -1367,6 +1410,11 @@ class AudioReader(DocumentReader):
                 }
                 if "confidence" in seg:
                     chunk["confidence"] = seg["confidence"]
+                if seg.get("asr_backend") is not None:
+                    chunk["asr_backend"] = seg["asr_backend"]
+                extra_asr_metadata = asr_segment_metadata(seg)
+                if extra_asr_metadata:
+                    chunk["asr_metadata"] = extra_asr_metadata
                 # Add audio features if requested
                 if self.extract_features:
                     features = _extract_audio_features(

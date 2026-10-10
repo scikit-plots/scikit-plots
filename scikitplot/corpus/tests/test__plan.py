@@ -178,18 +178,21 @@ class TestValidation:
         """CF-06, CF-07 — no network, no model loading at configuration time.
 
         Checked in a fresh interpreter: chaining every domain must not import a
-        single heavyweight backend.
+        single heavyweight backend beyond the unavoidable parent-package baseline.
         """
         source = (
             "import sys\n"
+            "import scikitplot\n"
+            "watched = ('torch','sentence_transformers','transformers','annoy',"
+            "'faiss','requests')\n"
+            "before = {m for m in watched if m in sys.modules}\n"
             "from scikitplot.corpus import FluentCorpus\n"
             "b = FluentCorpus()\n"
             "for d in ('source','reader','embedder','storage','index'):\n"
             "    b = b.config(d, 'X')\n"
             "b.plan().fingerprint\n"
-            "watched = ('torch','sentence_transformers','transformers','annoy',"
-            "'faiss','requests')\n"
-            "print(','.join(m for m in watched if m in sys.modules))\n"
+            "after = {m for m in watched if m in sys.modules}\n"
+            "print(','.join(sorted(after - before)))\n"
         )
         proc = subprocess.run(
             [sys.executable, "-c", source], capture_output=True, text=True, check=False

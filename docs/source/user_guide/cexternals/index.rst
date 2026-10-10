@@ -38,6 +38,7 @@ C-Externals (experimental)
             spotify/ANNoy Vector Index DB <./_annoy/index.rst>
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **astropy stats**
@@ -48,6 +49,7 @@ C-Externals (experimental)
             ./_astropy/index.rst
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **Fortran to Python**
@@ -58,6 +60,7 @@ C-Externals (experimental)
             ./_f2py/index.rst
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **NumCpp**
@@ -68,6 +71,7 @@ C-Externals (experimental)
             NumCpp <./_numcpp/index.rst>
 
     .. grid-item-card::
+        :columns: 12 12 6 6
         :padding: 2
 
         **lightnumpy**

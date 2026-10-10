@@ -1,13 +1,13 @@
 ---
 title: "Align the project CLI CleanPrompt install hint with current optional tiers"
-status: blocked
+status: promoted
 kind: "docs-contract"
 area: "scikitplot/_cli"
 discovered_during: "source-grounded CleanPrompt user-guide synchronization"
 release_note: "required"
 towncrier_section: "scikitplot._cli"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot._cli/864.fix.rst"
 ---
 
 # Align the project CLI CleanPrompt install hint with current optional tiers
@@ -112,3 +112,7 @@ When the PR exists: create
     ``cleanprompt-crypto`` extra adds only the Fernet cipher.
 
 then mark this note `promoted`, and remove it once the PR is merged.
+
+## Promotion record (2026-10-10)
+
+Pull request 864: `docs/source/whats_new/upcoming_changes/scikitplot._cli/864.fix.rst` created; the fragment check passes. Remove this note once PR 864 is merged.

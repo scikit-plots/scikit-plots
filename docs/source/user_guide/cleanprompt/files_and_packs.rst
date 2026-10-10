@@ -151,14 +151,103 @@ A pack file is trusted like code
 Validation proves that a pattern means what its examples say. It cannot prove
 that the pattern finishes quickly on every input. Python's :mod:`re` engine
 backtracks, so a pattern with nested repetition — ``^(a+)+$``, ``(x*)*``,
-``(x|x)+`` — can take time that doubles with each extra character of a
-near-match, and a single document can stall a run. A length limit on pattern
-source exists, and it is not a defence against this.
+``(x|xx)+`` — can take time that doubles with each extra character of a
+near-match, and a single document can stall a run.
 
-So treat a pack file like code you would run:
+**Every custom pattern is checked for those shapes when it loads.** The check
+reads the pattern and reports three of them:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 30 44
+
+   * - Finding
+     - Example
+     - Rewrite
+   * - ``nested-quantifier``
+     - ``(\w+\s?)*``
+     - end each repetition with a required separator, ``(\w+\s)*\w*``; on
+       Python 3.11+, make the inner part possessive, ``(\w++\s?)*``
+   * - ``overlapping-alternation``
+     - ``(a|ab)+``
+     - factor the shared start, ``(?:ab?)+``
+   * - ``adjacent-quantifiers``
+     - ``\d+\d+``
+     - merge them, ``\d{2,}``
+
+By default it **warns**, and the pack still loads. The warning goes to
+standard error and names the file, the pack and the pattern. It also lists
+the rewrites and the ways to proceed::
+
+    warning: tickets.yaml: pack tickets, pattern TICKET: nested-quantifier (high) in `(?:[A-Z]+\d*)+`: ...
+      - drop the outer repetition when the group adds nothing: `(x+)+` matches exactly what `x+` matches
+      - end each repetition with a required separator the inner part cannot match, ...
+      - accept this pattern in its pack: add `risk: accepted` and a `risk_reason:` ...
+      - silence the check for this run: --pattern-risk ignore ...
+      - make findings fatal: --pattern-risk refuse ...
+
+You decide what happens next, at the level that fits:
+
+* **for one pattern** — accept it in its pack, with the reason next to it.
+  Both keys are required, and an accepted pattern is never warned about or
+  refused:
+
+  .. code-block:: yaml
+
+     patterns:
+       - kind: TICKET
+         pattern: '\b(?:[A-Z]+\d*)+-\d+\b'
+         intent: A ticket id.
+         examples_yes: ['ABC-12']
+         risk: accepted
+         risk_reason: inputs are single ticket ids, never prose
+
+* **for one run** — ``--pattern-risk ignore`` (load quietly), ``warn``, or
+  ``refuse`` (stop before any text is read). It works on ``packs``, ``batch``,
+  ``plan``, ``ask`` and ``mcp``;
+* **for a team** — ``pattern_risk: refuse`` saved in a plan file. A plan
+  fixes every choice, so ``--pattern-risk`` cannot be combined with
+  ``--plan``;
+* **for a machine or a CI job** — ``CLEANPROMPT_PATTERN_RISK=refuse``. It
+  applies when neither a flag nor a plan sets the mode.
+
+``cleanprompt packs --pack-file tickets.yaml --check`` lists every finding
+under ``pattern_risk``, accepted ones included with their reason, so a review
+can see what was accepted.
+
+In Python, findings are :class:`PatternRiskWarning`, a :class:`UserWarning`.
+``warnings.simplefilter("error", PatternRiskWarning)`` makes them fatal in a
+test suite, and ``load_custom(paths, pattern_risk="refuse")`` does the same
+for one call. :func:`analyse_pattern` checks a single pattern.
+
+The check reads the pattern the way Python runs it. Verbose patterns
+(``flags: [VERBOSE]`` or ``(?x)``) are checked without their whitespace and
+comments. Inline ``(?i)`` and ``(?s)`` and escaped characters such as
+``\x41`` are taken into account. A group repeated with more than three choices
+(``{1,40}``) counts as repeated, and a fixed count (``{4}``) does not. Inside
+a repeated group, any part that can vary in length (``\w{1,3}``, ``\.?``)
+can trade characters with the next repetition, and a group whose parts are
+all optional separates nothing.
+Possessive and atomic forms (``\w++``, ``(?>\w+)``, Python 3.11+) give
+nothing back, so they are not reported.
+
+The check is a warning, not a proof. It reports shapes known to backtrack
+badly; it can report a shape that is harmless on the inputs a pattern will
+really see (that is what ``risk: accepted`` is for); and it cannot prove that
+a pattern is fast. Two runs separated only by an optional character
+(``\s*:?\s*``) are not reported: they cost at most quadratic time, and
+policy limits already bound every span. A pattern the check cannot read
+(a scoped ``(?x:...)`` group, a conditional group) is reported as
+``not-analysed``, never passed as safe. The built-in patterns produce no
+findings, and every verdict above was checked against measured run time.
+A random-pattern fuzz found no pattern the check passes that was slow; of
+the patterns it reports, roughly a third to a half were measurably slow on
+generic near-miss inputs. The rest may be harmless, or slow only on inputs
+shaped for them. That uncertainty is why the default is *warn*.
+
+So keep treating a pack file like code you would run:
 
 * load pack files only from people you would accept code from;
-* review every new pattern for nested repetition;
 * prefer bounded forms (``\d{6}`` rather than ``\d+``) wherever an identifier
   has a fixed shape — they are also more precise;
 * keep the ``intent`` and examples honest, because they are what a reviewer

@@ -1,4 +1,4 @@
-# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
 
 ## no optional tier
 $ python -B .../probe_gallery.py

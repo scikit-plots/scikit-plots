@@ -227,6 +227,22 @@ act on.
 The style is part of the placeholder grammar, so a vault written one way cannot
 be read the other — `decode` refuses rather than half-restoring.
 
+**Your own names.** `--surrogates nordic.yaml` (with `--style surrogate`)
+draws people, organisations and places from a set file you write:
+
+```yaml
+name: nordic
+version: 1
+summary: Nordic-sounding invented names.
+kinds:
+  PERSON: {first: [Aino, Eero, Liv], last: [Halvorsen, Lindgren, Virtanen]}
+  GPE:    [Granvik, Solberga]
+```
+
+A set cannot touch the reserved forms of addresses, numbers and links, or give
+a credential a surrogate; every entry must read as a name, and the vault
+records the set's identity, so `decode` needs nothing extra.
+
 ### Encrypting the vault
 
 `--encrypt` needs nothing installed. It works on any machine with a Python
@@ -750,6 +766,14 @@ person. Redefining a built-in needs `--replace-builtins`.
 
 A section you declare must have something in it: `fields: []` or a bare
 `patterns:` is reported as an unfinished pack rather than read as "none".
+
+**A pattern that could stall a run is reported when it loads.** Nested or
+overlapping repetition (`(\w+\s?)*`, `(a|ab)+`) can backtrack for exponential
+time on a near-match. Such a pattern prints a `warning:` with rewrites on
+standard error and still loads. `--pattern-risk refuse` stops instead and
+`--pattern-risk ignore` stays quiet. Add `risk: accepted` with a
+`risk_reason:` in the pack to accept one pattern. `cleanprompt packs
+--pack-file hr.yaml --check` lists every finding.
 
 **An example that looks like a real credential is written in pieces.** An
 example may be a list of fragments, which are joined before the pattern is

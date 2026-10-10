@@ -138,6 +138,12 @@ __all__ = [
 ]
 
 
+_DEFAULT_BUILDER_MAX_DOWNLOAD_BYTES = 500 * 1024 * 1024
+_DEFAULT_BUILDER_DOWNLOAD_TIMEOUT = 120
+_DEFAULT_BUILDER_DOWNLOAD_MAX_RETRIES = 3
+_DEFAULT_BUILDER_DOWNLOAD_RETRY_BACKOFF = 1.0
+
+
 # =====================================================================
 # Configuration
 # =====================================================================
@@ -206,6 +212,16 @@ class BuilderConfig:
     probe_url_timeout : int
         HTTP timeout in seconds for :func:`~scikitplot.corpus._url_handler.probe_url_kind`
         calls.  Default: 15.
+    downloader_kwargs : dict[str, Any]
+        Advanced keyword overrides forwarded to :class:`AnyDownloader` (and to
+        ``downloader_factory``). Use this for explicit transport policy such as
+        ``verify_ssl``, ``block_private_ips``, ``max_redirects``, YouTube
+        settings, headers or a GitHub token without replacing the downloader.
+        Values here override the builder's ordinary download defaults.
+    download_policy : DownloadPolicy, str, mapping or None
+        Optional immutable transport/resource preset.  When supplied it becomes
+        the authority for timeout/size/TLS/SSRF/redirect/retry defaults;
+        ``downloader_kwargs`` still provides deliberate per-build overrides.
 
     Notes
     -----
@@ -252,18 +268,18 @@ class BuilderConfig:
     filter_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Download / URL handling
-    max_download_bytes: int = 500 * 1024 * 1024
+    max_download_bytes: int = _DEFAULT_BUILDER_MAX_DOWNLOAD_BYTES
     """Maximum download size per URL in bytes. Default: 500 MB."""
 
-    download_timeout: int = 120
+    download_timeout: int = _DEFAULT_BUILDER_DOWNLOAD_TIMEOUT
     """HTTP timeout for URL downloads in seconds. Default: 120."""
 
-    download_max_retries: int = 3
+    download_max_retries: int = _DEFAULT_BUILDER_DOWNLOAD_MAX_RETRIES
     """Maximum retry attempts for transient HTTP errors (429, 500, 502,
     503, 504) during URL downloads.  Set to ``0`` to disable retries.
     Default: 3."""
 
-    download_retry_backoff: float = 1.0
+    download_retry_backoff: float = _DEFAULT_BUILDER_DOWNLOAD_RETRY_BACKOFF
     """Base delay in seconds for exponential back-off between download
     retries.  Actual wait = ``download_retry_backoff * 2 ** attempt``.
     Default: 1.0."""
@@ -290,6 +306,45 @@ class BuilderConfig:
 
     # Parallelism
     max_workers: int = 1
+
+    # Advanced downloader overrides. Appended deliberately so existing
+    # positional BuilderConfig construction keeps its historical field order.
+    downloader_kwargs: dict[str, Any] = field(default_factory=dict)
+
+    # Immutable transport/resource preset. Appended to preserve the historical
+    # positional order of every pre-existing BuilderConfig field.
+    download_policy: object | None = None
+
+    def __post_init__(self) -> None:
+        """Reject ambiguous legacy/new download policy configuration.
+
+        ``download_policy`` is the canonical transport/resource policy.  The
+        legacy scalar fields remain supported when no policy is supplied, but
+        silently ignoring a non-default legacy value beside an explicit policy
+        makes user intent impossible to determine.  Deliberate per-build
+        overrides belong in ``downloader_kwargs``.
+        """
+        if self.download_policy is None:
+            return
+
+        conflicts: list[str] = []
+        if self.max_download_bytes != _DEFAULT_BUILDER_MAX_DOWNLOAD_BYTES:
+            conflicts.append("max_download_bytes")
+        if self.download_timeout != _DEFAULT_BUILDER_DOWNLOAD_TIMEOUT:
+            conflicts.append("download_timeout")
+        if self.download_max_retries != _DEFAULT_BUILDER_DOWNLOAD_MAX_RETRIES:
+            conflicts.append("download_max_retries")
+        if self.download_retry_backoff != _DEFAULT_BUILDER_DOWNLOAD_RETRY_BACKOFF:
+            conflicts.append("download_retry_backoff")
+
+        if conflicts:
+            joined = ", ".join(conflicts)
+            raise ValueError(
+                "BuilderConfig.download_policy cannot be combined with customized "
+                f"legacy download field(s): {joined}. Put transport/resource "
+                "settings in DownloadPolicy and use downloader_kwargs only for "
+                "deliberate per-build overrides."
+            )
 
 
 # =====================================================================
@@ -465,6 +520,8 @@ class CorpusBuilder:
     def __init__(
         self,
         config: BuilderConfig | None = None,
+        *,
+        factories: Any | None = None,
     ) -> None:
         """Initialise the builder with a :class:`BuilderConfig`.
 
@@ -474,6 +531,12 @@ class CorpusBuilder:
             Configuration object controlling every stage of the pipeline.
             When ``None``, defaults are used:
             ``BuilderConfig(chunker="sentence", normalize=True)``.
+        factories : BuilderFactories or None, optional
+            User construction policy for readers, filters, downloaders,
+            chunkers, normalizers, enrichers and embedding engines. The type is
+            imported lazily so ordinary CorpusBuilder construction remains
+            dependency-light. ``FactoryCorpusBuilder`` is a compatibility
+            facade over this native seam.
 
         Notes
         -----
@@ -483,10 +546,22 @@ class CorpusBuilder:
         and does not import optional dependencies.
         """
         self.config = config or BuilderConfig()
+        self.factories = factories
+        if factories is not None:
+            # Keep the core builder independent from the customization module at
+            # import time, but validate eagerly when the feature is requested.
+            from ._custom_hooks import BuilderFactories  # noqa: PLC0415
+
+            if not isinstance(factories, BuilderFactories):
+                raise TypeError(
+                    "factories must be BuilderFactories or None; "
+                    f"got {type(factories).__name__}"
+                )
         self._result: BuildResult | None = None
 
         # Lazy-initialised components
         self._chunker: Any = None
+        self._filter: Any = None
         self._normalizer_pipeline: Any = None
         self._enricher: Any = None
         self._embedding_engine: Any = None
@@ -1317,7 +1392,7 @@ class CorpusBuilder:
 
             if has_dedicated_reader:
                 try:
-                    reader = DocumentReader.create(
+                    reader = self._make_reader(
                         source_str,
                         chunker=chunker,
                         **reader_kwargs,
@@ -1351,7 +1426,7 @@ class CorpusBuilder:
             )
 
         # ── Regular file ─────────────────────────────────────────────
-        reader = DocumentReader.create(
+        reader = self._make_reader(
             source_str,
             chunker=chunker,
             **reader_kwargs,
@@ -1433,9 +1508,7 @@ class CorpusBuilder:
         from ._url_handler import (  # noqa: PLC0415
             URLKind,
             classify_url,
-            download_url,
             probe_url_kind,
-            resolve_url,
         )
 
         cfg = self.config
@@ -1512,20 +1585,19 @@ class CorpusBuilder:
             logger.debug("Ingested %d documents from web URL %s", len(documents), url)
             return documents
 
-        # ── Downloadable file: resolve → download → create reader ────────────
-        resolved = resolve_url(url, kind=kind)
-        if resolved != url:
-            logger.info("Resolved URL: %s → %s", url, resolved)
-
-        temp_dir = self._get_temp_dir()
-        local_path = download_url(
-            resolved,
-            output_path=temp_dir,
-            max_bytes=cfg.max_download_bytes,
-            timeout=cfg.download_timeout,
-            max_retries=cfg.download_max_retries,
-            retry_backoff=cfg.download_retry_backoff,
-        )
+        # ── Downloadable file: centralized downloader → reader ──────────────
+        # AnyDownloader owns specialist routing (GDrive/GitHub/direct HTTP),
+        # retry policy and DownloadResult metadata.  CorpusBuilder owns only
+        # orchestration and reader dispatch.
+        downloader = self._make_downloader(url)
+        download_result = downloader.download()
+        if isinstance(download_result, list):  # defensive: single URL must be scalar
+            if len(download_result) != 1:
+                raise RuntimeError(
+                    "CorpusBuilder downloader returned multiple results for one URL"
+                )
+            download_result = download_result[0]
+        local_path = Path(download_result.output_path)
 
         # If the downloaded file is an archive, apply the same
         # reader-first logic as _ingest_source: try a dedicated reader
@@ -1538,7 +1610,7 @@ class CorpusBuilder:
 
             if has_dedicated_reader:
                 try:
-                    reader = DocumentReader.create(
+                    reader = self._make_reader(
                         local_path,
                         chunker=chunker,
                         filename_override=url,
@@ -1577,7 +1649,7 @@ class CorpusBuilder:
         # download_url already inferred the correct extension from Content-Type
         # headers (via _infer_extension_from_headers), so the file on disk has
         # the right suffix even when the URL path had none.
-        reader = DocumentReader.create(
+        reader = self._make_reader(
             local_path,
             chunker=chunker,
             filename_override=url,
@@ -1637,7 +1709,7 @@ class CorpusBuilder:
         all_docs: list[Any] = []
         for fp in extracted_files:
             try:
-                reader = DocumentReader.create(
+                reader = self._make_reader(
                     fp,
                     chunker=chunker,
                     filename_override=f"{archive_path.name}/{fp.relative_to(extract_dir)}",
@@ -1669,6 +1741,83 @@ class CorpusBuilder:
     # Internal: lazy component creation
     # ==================================================================
 
+    def _factory(self, name: str) -> Any:
+        """Return one configured construction factory, or ``None``.
+
+        The helper keeps factory precedence centralized instead of scattering
+        ``getattr(self.factories, ...)`` across ingestion branches.
+        """
+        if self.factories is None:
+            return None
+        return getattr(self.factories, name)
+
+    def _get_filter(self) -> Any:
+        """Get or create the configured document filter.
+
+        ``BuilderConfig.filter_kwargs`` was historically documented but not
+        applied by :class:`CorpusBuilder`.  Centralising filter construction
+        here makes that configuration effective and creates a supported seam
+        for :class:`FactoryCorpusBuilder`.
+        """
+        if self._filter is None:
+            factory = self._factory("filter_factory")
+            if factory is not None:
+                self._filter = factory()
+            else:
+                from ._base import DefaultFilter  # noqa: PLC0415
+
+                self._filter = DefaultFilter(**dict(self.config.filter_kwargs))
+        return self._filter
+
+    def _make_reader(
+        self,
+        source: str | Path,
+        *,
+        chunker: Any = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Construct one reader through the builder's single reader seam.
+
+        Subclasses/factory adapters may override this method without
+        monkey-patching every ingestion branch.  The configured filter is
+        injected consistently for local, downloaded and archive-member files.
+        """
+        kwargs.setdefault("filter_", self._get_filter())
+        factory = self._factory("reader_factory")
+        if factory is not None:
+            return factory(source, chunker=chunker, **kwargs)
+
+        from ._base import DocumentReader  # noqa: PLC0415
+
+        return DocumentReader.create(source, chunker=chunker, **kwargs)
+
+    def _make_downloader(self, url: str, **kwargs: Any) -> Any:
+        """Construct the URL downloader through one customizable seam."""
+        from ._downloader import AnyDownloader  # noqa: PLC0415
+
+        cfg = self.config
+        if cfg.download_policy is None:
+            options = {
+                "timeout": cfg.download_timeout,
+                "max_bytes": cfg.max_download_bytes,
+                "max_retries": cfg.download_max_retries,
+                "retry_backoff": cfg.download_retry_backoff,
+            }
+        else:
+            from ._downloader import download_policy  # noqa: PLC0415
+
+            options = download_policy(cfg.download_policy).to_kwargs()
+        options["output_path"] = self._get_temp_dir()
+        options.update(dict(cfg.downloader_kwargs))
+        options.update(kwargs)
+        factory = self._factory("downloader_factory")
+        if factory is not None:
+            # The factory receives the same resolved resource/security limits
+            # as the built-in downloader. It may deliberately override them,
+            # but cannot accidentally miss the builder configuration.
+            return factory(url, **options)
+        return AnyDownloader(input_url=url, **options)
+
     def _get_index_config(self) -> Any:
         """Return the canonical ``RetrievalConfig`` for index construction.
 
@@ -1698,6 +1847,11 @@ class CorpusBuilder:
     def _get_chunker(self) -> Any:
         """Get or create the chunker, auto-bridging if needed."""
         if self._chunker is not None:
+            return self._chunker
+
+        factory = self._factory("chunker_factory")
+        if factory is not None:
+            self._chunker = factory()
             return self._chunker
 
         cfg = self.config
@@ -1788,6 +1942,11 @@ class CorpusBuilder:
         if self._normalizer_pipeline is not None:
             return self._normalizer_pipeline
 
+        factory = self._factory("normalizer_factory")
+        if factory is not None:
+            self._normalizer_pipeline = factory()
+            return self._normalizer_pipeline
+
         from ._normalizers import (  # noqa: PLC0415
             DedupLinesNormalizer,
             HTMLStripNormalizer,
@@ -1821,6 +1980,11 @@ class CorpusBuilder:
         if self._enricher is not None:
             return self._enricher
 
+        factory = self._factory("enricher_factory")
+        if factory is not None:
+            self._enricher = factory()
+            return self._enricher
+
         from ._enrichers._nlp_enricher import (  # noqa: PLC0415
             EnricherConfig,
             NLPEnricher,
@@ -1837,6 +2001,11 @@ class CorpusBuilder:
 
         if not self.config.embed:
             return None
+
+        factory = self._factory("embedding_engine_factory")
+        if factory is not None:
+            self._embedding_engine = factory()
+            return self._embedding_engine
 
         try:
             from ._embeddings import (  # noqa: PLC0415

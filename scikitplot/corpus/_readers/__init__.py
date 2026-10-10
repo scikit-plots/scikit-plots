@@ -43,7 +43,8 @@ Available readers:
 :class:`ImageReader`
     Raster images (``.png``, ``.jpg``, ``.jpeg``, ``.gif``, ``.webp``,
     ``.tiff``, ``.tif``, ``.bmp``) via OCR.
-    Backend: ``pytesseract`` (primary) -> ``easyocr`` (fallback).
+    Backend selection is explicit: ``pytesseract`` by default,
+    ``easyocr`` only when requested because it may download model weights.
     Multi-frame GIF/TIFF yields one chunk per frame.
 
 :class:`VideoReader`
@@ -139,6 +140,7 @@ from . import (
     _text,
     _video,
     _web,
+    _whisper,
     _xml,
     _zip,
 )
@@ -150,6 +152,7 @@ from ._pdf import *  # noqa: F403
 from ._text import *  # noqa: F403
 from ._video import *  # noqa: F403
 from ._web import *  # noqa: F403
+from ._whisper import *  # noqa: F403  # public ASR customization contracts
 from ._xml import *  # noqa: F403
 from ._zip import *  # noqa: F403  # must come after ALTOReader
 
@@ -162,5 +165,6 @@ __all__ += _pdf.__all__
 __all__ += _text.__all__
 __all__ += _video.__all__
 __all__ += _web.__all__
+__all__ += _whisper.__all__
 __all__ += _xml.__all__
 __all__ += _zip.__all__

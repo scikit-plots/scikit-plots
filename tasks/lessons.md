@@ -326,12 +326,43 @@
 - **Verified by:** the round's notes list each page with "examples executed"; `test_documented_cli.py` passes.
 - **Added:** 2026-10-09. Root cause: executing the rewritten guide found `encode --pack-file` (`CP-101`, an option that never existed), `encode_tree(source)` without its required target, and `batch --dry-run --out` (refused) — two of them copied from the previous guide.
 
+### Rule 55: Tests - an assertion about process-wide state uses a value no other test uses
+- **When:** a test asserts something about state shared across a process (a log filter, a registry, a cache, an environment variable) that other tests also populate.
+- **Then:** use a value unique to that test (or reset the state explicitly in a fixture); never rely on objects from earlier tests having been garbage-collected.
+- **Verified by:** the full suite passes five times in a row under `-n 8` as well as serially.
+- **Added:** 2026-10-10. Root cause: `test_the_cleaners_values_are_scrubbed_until_cleared` used `ann@example.com`, which other tests also encode; a cleaner waiting for garbage collection in the same xdist worker still held it in the shared scrub filter, so the value stayed scrubbed after `clear()` — 1 run in 3 failed, never serially.
+
+### Rule 56: Analysis - a static check is calibrated on known-bad, known-good and every shipped input
+- **When:** writing a rule that classifies code or data (a regex risk check, a linter rule, a validator).
+- **Then:** run it on a table of cases that must fire, a table that must not, and on *everything the project ships*; a finding on shipped input is a false positive until proved otherwise. Where the property is measurable (run time), measure it and compare with each verdict.
+- **Verified by:** `TestBuiltinsAreClean` and `probe_round26.py` (measured slow == reported, for every case).
+- **Added:** 2026-10-10. Root cause: the first pattern-risk rule flagged the core EMAIL pattern `(?:\.[...]+)+`; it read only the part after the inner repetition and missed that the group's mandatory leading `.` separates repetitions. Running it on the built-ins found it before anything shipped.
+
+### Rule 57: Protection - check the forms your own generator produces, not only the form you were given
+- **When:** a guard decides whether generated text could reveal an input (stand-ins, slugs, file names, IDs built from names).
+- **Then:** list every transformation the generator applies (case, separators, joining, truncation) and make the guard match the input through each of them; test with a multi-word input, not only a one-word one.
+- **Verified by:** a regression test with a two-word held value against e-mail, URL and slug-shaped candidates (`TestCP105...`).
+- **Added:** 2026-10-10. Root cause: `CP-071` matched held values joined by spaces; the generator builds e-mail local parts by joining words with `.`, so `Marion Holt` passed as `marion.holt@example.invalid`. Found by reading the gallery output of a new feature, not by a test.
+
+### Rule 58: Unicode - a normalisation rule is tried on real text in many scripts before it ships
+- **When:** a validator refuses input that is not in some normal form (NFC, NFKC) or restricts characters by category.
+- **Then:** run it on ordinary names or words from at least a dozen scripts (Latin with diacritics, Turkish, Vietnamese, Greek, Cyrillic, Arabic with harakat, Hebrew with niqqud, Devanagari, Thai, Hangul, Japanese, Chinese) and on canonically equivalent spellings; prefer naming the forms to refuse over requiring a normal form, and normalise what is equivalent instead of refusing it.
+- **Verified by:** `test__surrogate_sets.TestEntryFloor.test_names_pass` lists names from those scripts.
+- **Added:** 2026-10-10. Root cause: requiring NFKC to stop full-width look-alikes also refused Thai `\u0e19\u0e49\u0e33\u0e1d\u0e19` (SARA AM has a compatibility decomposition) and Arabic typed shadda-then-fatha; found by re-running the review brief by hand.
+
+### Rule 59: Analysis - a static check of a measurable property is fuzzed against the measurement
+- **When:** a check predicts behaviour that can be measured (run time, memory, output size).
+- **Then:** generate random inputs from a fixed seed, run the check, and measure every input it passes in a killable child; a passed input that misbehaves is a miss. Report precision on the flagged side too, and let it decide the default policy.
+- **Verified by:** `evidence/probe_round26_fuzz.py` ends `TOTAL FAILURES: 0`.
+- **Added:** 2026-10-10. Root cause: after the review's fixes, three classes of exponential pattern still passed (nullable groups read as separators, optional parts trading characters); hand-written cases had not covered them.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 54
+- Total lessons: 59
+- Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.

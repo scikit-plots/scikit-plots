@@ -1,13 +1,13 @@
 ---
 title: "Create the release-note fragments for cleanprompt round 25"
-status: blocked
+status: promoted
 kind: "other"
 area: "scikitplot/cleanprompt"
 discovered_during: "cleanprompt round 25 (truthful readiness, safe deployment files, detection view)"
 release_note: "required"
 towncrier_section: "scikitplot.cleanprompt"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/{security,scikitplot.cleanprompt}/864.{fix,enhancement}.rst"
 ---
 
 # Create the release-note fragments for cleanprompt round 25
@@ -103,3 +103,17 @@ None beyond the fragments.
 
 This note *is* the promotion step. Mark it `promoted` once the files exist,
 and remove it when the PR merges.
+
+## Promotion record (2026-10-10)
+
+Pull request **864** (number given by the maintainer). Created, and
+`python -B tools/maint_tools/generate_towncrier_sections.py check` passes:
+
+- `docs/source/whats_new/upcoming_changes/security/864.fix.rst`
+- `docs/source/whats_new/upcoming_changes/security/864.enhancement.rst`
+- `docs/source/whats_new/upcoming_changes/scikitplot.cleanprompt/864.fix.rst`
+- `docs/source/whats_new/upcoming_changes/scikitplot.cleanprompt/864.enhancement.rst`
+
+No `By :user:` line was added: the contributor's GitHub handle was not given
+and is not guessed. Add it before merging if the project wants attribution.
+Remove this note once PR 864 is merged.

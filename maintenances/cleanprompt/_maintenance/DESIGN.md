@@ -1794,3 +1794,121 @@ column. `normalise_field` now reads names through the view. Splitters that
 tokenise names with an identifier class first (`.env`, shell, code) and
 token-bound JSON values are the recorded remainder; the proposed fix computes
 regions on the view and maps their boundaries back before any detector runs.
+
+
+## 25. The user decides, and the floor does not move
+
+Added in round twenty-six. Two capabilities open the subsystem further — a
+check on custom patterns and custom surrogate names — and both follow one
+rule: the user chooses the policy, at whatever level fits (one pattern, one
+run, a team, a machine), and the safety rules underneath cannot be changed by
+any of those choices.
+
+### D-25.1 — a static check, by public means (`CP-104`)
+
+Custom patterns are checked for shapes that backtrack catastrophically when
+they load (`_pattern_risk.py`). `sre_parse` / `re._parser` would give a parse
+tree for free, but they are private, moved in 3.11, and warn on import there,
+which the suite turns into an error. The source is therefore read by a small
+parser that understands repetition (escapes, classes, every group kind,
+alternation, every quantifier form). Whether two pieces can match the same
+character is decided by Python's public `re`: each piece is compiled alone and
+tried against a probe alphabet — every character the pattern mentions, its
+neighbours, and fixed representatives.
+
+Before parsing, the source is read the way Python runs it: a verbose
+pattern (`VERBOSE` flag or a leading `(?x)`) loses its whitespace and
+comments, inline `i` and `s` flags join the flags overlap is decided with
+(wherever they appear — they can only widen matching, so applying a scoped
+one to the whole pattern errs towards a report), and escaped characters
+(`\x41`, `\u0430`, `\N{...}`) join the probe alphabet with their case
+variants. A pattern that does not compile, or uses a scoped `(?x:...)` or a
+conditional group, is `not-analysed`.
+
+"Repeated" means more than three *choices* (`+`, `*`, `{1,40}`; not `{4}` or
+`{1,3}`). Possessive quantifiers and atomic groups give nothing back and are
+never the inner part of a finding. Three rules:
+
+* `nested-quantifier` — inside a repeated group, an element that can vary
+  in length (any quantifier with a range, an optional part, a group with
+  branches or such parts), when, walking round from it — the rest of the
+  alternative, the start of the next repetition, itself again — an element
+  that can start with a character it consumes is met before an element
+  that cannot be skipped. "Skipped" means *nullable*: a group whose parts
+  are all optional separates nothing, whatever its count (the soundness
+  fuzz, `probe_round26_fuzz.py`, found three misses of the first fix this
+  way: `(?:\w?\.?)*`, `(?:(?:\d?){1,9} {2,})+`, `(?:\w{1,5}\s*(?:-?){1,9})+`). Elements are taken by position: `(?:\w+,\w+)+` holds two equal
+  `\w+`, and an equality lookup found the first one and its separator.
+  `(\.\w+)+` and `(?:(?:\w+)-)+` are linear; `(\w+,?)+` is not.
+* `overlapping-alternation` — two branches of a repeated, non-atomic group
+  that can start alike.
+* `adjacent-quantifiers` — two repeated single units side by side that can
+  trade characters.
+
+Runs separated only by an optional element (`\s*:?\s*`) are *not*
+reported: at most quadratic, everywhere in label patterns, and every span is
+already bounded by the policy. `probe_round26.py` checks every verdict
+against run time measured in a killable child, including the independent
+review's cases (verbose, inline flags, escapes, equal units, bounded outer
+repetition; separators one group up, fixed counts, possessive forms), and
+the built-in patterns report nothing — a warning is always about something
+a user wrote.
+
+### D-25.2 — warn by default; the user tunes, at four levels (`CP-104`)
+
+The maintainer's decision: always warn, with concrete rewrites and the ways
+out on screen; never refuse by default. The mode comes from, highest first: a
+per-pattern acceptance in the pack (`risk: accepted` with a non-empty
+`risk_reason` — both or neither, and `accepted` is the only value, so a typo
+cannot silence anything); then `--pattern-risk` or a plan's `pattern_risk`
+(a plan fixes every choice, so the two are never combined); then
+`CLEANPROMPT_PATTERN_RISK`; then `warn`. `refuse` is a plan validation
+problem, so it stops before any text is read. The cleaner warns once per open
+finding; validating and fingerprinting stay silent. Warnings are
+`PatternRiskWarning` (`UserWarning`) at a fixed library line, so Python's
+default filter shows each once per process, `-W error::` makes them fatal,
+and the command line prints them as one `warning:` block on standard error
+without touching any filter. `pattern_risk` is left out of `as_dict` while
+unset, so every saved plan keeps its fingerprint.
+
+### D-25.3 — custom names, by data, under a fixed floor (slice A)
+
+`GENERATOR_DESIGN.md` is the full design. In short: a surrogate set
+supplies name lists for `PERSON`, `ORG`, `GPE`, `LOC`, `FAC`; `EMAIL`,
+`PHONE`, `URL` stay in the core's reserved forms and every other kind keeps
+placeholders. Entries are whitelisted by character class, refused when they
+hold a default-ignorable code point, more than two combining marks in a row,
+a drawn-differently compatibility form (full-width, circled) or two
+scripts, entries are stored in NFC, — so no two entries can look alike — and
+checked against the default core patterns and every built-in pack pattern;
+the combined two-part name is checked again when it is issued. A set only
+*proposes*; the core loop keeps uniqueness, absence from the source, absence
+of held values and the bounded search. One limit cannot be enforced
+without guessing at someone's language: a stand-in that is also an ordinary
+word is restored wherever the reply uses that word. The identity
+`name@version#digest16` is derived from the validated content and enters the
+grammar fingerprint only when a set is present, so default digests are
+unchanged (pinned in a test) and `decode` needs only the identity. A grammar
+that names a set it was not given refuses to encode rather than issue
+built-in names the identity does not describe.
+
+### D-25.4 — one value, whatever its separators (`CP-105`)
+
+A stand-in must not show a held value however it is written (`CP-071`). The
+held-value pattern joins a value's words with spaces, so `Marion Holt` was not
+found in `marion.holt@example.invalid` and the real name reached the model.
+Both sides are now word-split — separator runs and lower-to-upper case
+changes become spaces — so `Marion Holt`, `marion.holt`, `Marion-Holt` and
+`MarionHolt` are one value whichever is held and whichever is proposed (the
+first version folded only the candidate; the independent review found the
+reverse direction). Adding forms keeps the check monotone: it can reject
+more stand-ins and never accept one the plain check rejects.
+
+### D-25.5 — one vault, one grammar (round 26 review)
+
+Appending to a vault with another style or surrogate set mixed two kinds of
+stand-in and re-stamped the vault with the new grammar's fingerprint, so
+earlier text could not be decoded as written. The command line now compares
+the vault's recorded grammar with the run's before seeding and refuses,
+naming the recorded style and set. A vault that records no grammar is not
+checked.

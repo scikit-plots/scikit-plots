@@ -1,23 +1,5 @@
 ..
-  # docs/source/user_guide/corpus/index.rst
-
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-..
-  # https://rsted.info.ucl.ac.be/
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-  # https://documatt.com/restructuredtext-reference/element/admonition.html
-  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+  docs/source/user_guide/corpus/index.rst
 
 .. currentmodule:: scikitplot.corpus
 
@@ -27,105 +9,258 @@
 Corpus User Guide
 ======================================================================
 
-..
-  # Mermain diagrams for future imp
-  .. grid:: 1 1 1 1
-    .. grid-item-card::
-      :padding: 2
-      :shadow: none
+:mod:`scikitplot.corpus` turns local files, URLs, archives and media into
+canonical :class:`CorpusDocument` evidence, then lets you normalize, enrich,
+embed, store, retrieve and export that evidence without requiring one monolithic
+runtime.
 
-      **diagram**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
+The important boundary is that configuration, capability discovery and
+execution are separate.  A package can be installed without its model or system
+binary being ready; a backend can be selected without becoming active; and a
+fail-soft operation can continue while still recording structured degradation.
 
-        corpus_user_guide_schema
+.. important::
 
-    .. grid-item-card::
-      :padding: 2
-      :shadow: none
+   Corpus treats optional capability failure as data, not as success.  Use
+   :func:`component_capabilities` before a run when readiness matters and inspect
+   ``reader.backend_reports`` after a reader run when a fallback was possible.
+   ``strict=False`` may keep ingestion alive; it does not mean failures are
+   invisible.
 
-      **diagram**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
+The whole idea in one picture
+-----------------------------
 
-        diagram_include_catalog
+.. code-block:: text
 
+   source
+      |
+      v
+   downloader / local path
+      |
+      v
+   DocumentReader ---- capability/readiness ---- optional backends
+      |                                      \
+      |                                       +-- fallback policy + reports
+      v
+   filter -> normalize -> chunk -> enrich -> embed -> store -> index
+                                                     |
+                                                     v
+                                          retrieve / adapt / export
 
-Corpus (Remarks Citation) Generation
-------------------------------------
+There are three complementary configuration levels:
 
-.. image:: /_static/user_guide/scikitplot_corpus_architecture.svg
-    :align: center
-    :alt: Corpus Architecture
+``CorpusPipeline``
+    Direct control of one execution pipeline.
 
-Quick start
------------
+``CorpusBuilder``
+    High-level heterogeneous ingestion, downloading, search and adaptation.
 
-.. rubric:: Examples
+``FluentCorpus``
+    Immutable declarative plans that can be generated, branched, compared and
+    materialized explicitly.
 
-..
-  .. code-block:: python
-  .. code-block:: bash
-  .. jupyter-execute
-  .. prompt:: python >>>
+Thirty seconds
+--------------
 
 .. prompt:: python >>>
 
-    # First we download the media preproccess libraries (text, image, audio or video).
-    # pip install nltk gensim langdetect faster-whisper openai-whisper pytesseract youtube-transcript-api
-    # sudo apt-get install tesseract-ocr
-    # pip install scikit-plots[corpus]
-    from scikitplot import corpus
+   from scikitplot.corpus import FluentCorpus
 
-    print(corpus.__doc__)
+   plan = FluentCorpus.from_config({
+       "chunker": "paragraph",
+       "storage": "memory",
+   })
+   plan.explain()["configured"]
+   # ['chunker', 'storage']
 
-Optional backend outcomes
--------------------------
+Inspect optional component readiness without importing heavy models:
 
-Media and parser readers keep format-specific fallback semantics while sharing a
-small internal orchestration layer.  In particular, AudioReader and VideoReader
-try ``faster-whisper`` before ``openai-whisper``.  With the default
-``strict=False``, optional ASR failures warn and may yield no ASR documents
-instead of aborting the surrounding Corpus/gallery run.
+.. prompt:: python >>>
 
-Fail-soft does not mean unobservable.  After a reader run,
-``reader.backend_reports`` contains JSON-compatible backend provenance and
-structured errors.  A successful empty transcription is reported as ``empty``;
-a fallback after a backend failure is ``degraded``; total backend failure is
-``failed``.  Pass ``strict=True`` when backend exhaustion must raise.
+   from scikitplot.corpus import component_capabilities
 
-This shared mechanism does not force every reader to use the same fallback
-policy.  For example, XML parser fallback is only for an unavailable optional
-parser, while explicit OCR backend selection remains explicit.
+   status = component_capabilities(["asr:faster-whisper", "ocr:pytesseract"])
+   status["asr:faster-whisper"]["installed"]
+   # True or False depending on the environment
 
+Which surface should I use?
+---------------------------
 
-.. rubric:: Examples
+.. list-table::
+   :header-rows: 1
+   :widths: 39 61
 
-* :ref:`sphx_glr_auto_examples_corpus_plot_corpus_who_per_file_script.py`: Example notebook.
+   * - Goal
+     - Start with
+   * - Process one source with explicit stages
+     - :class:`CorpusPipeline`
+   * - Ingest heterogeneous local/remote sources
+     - :class:`CorpusBuilder`
+   * - Generate reusable configuration variants
+     - :class:`FluentCorpus` (:ref:`corpus-fluent-policies`)
+   * - Supply a custom reader/filter/downloader/component
+     - :class:`CorpusBuilder` with :class:`BuilderFactories`
+       (:ref:`corpus-customization`)
+   * - Inspect optional package/model/binary readiness
+     - :func:`component_capabilities` (:ref:`corpus-readers-backends`)
+   * - Preview the exact ASR chain without running models
+     - :meth:`AudioReader.plan_asr_backends` / :class:`BackendPlan`
+   * - Control backend order/fallback/offline behavior
+     - :class:`BackendPolicy`
+   * - Reuse one typed policy family across runtime/reader/builder seams
+     - :class:`CorpusPolicyBundle` (:ref:`corpus-fluent-policies`)
+   * - Control transfer TLS/SSRF/size/retry budgets
+     - :class:`DownloadPolicy` (:ref:`corpus-downloads-network`)
+   * - Add a private/local ASR implementation
+     - :class:`ASRBackend`
+   * - Download HTTP/GDrive/GitHub/YouTube inputs
+     - :class:`AnyDownloader` (:ref:`corpus-downloads-network`)
+   * - Do fuzzy lexical ranking without requiring Corpus
+     - :mod:`scikitplot.levenshtein` (:ref:`corpus-retrieval-similarity`)
+   * - Search vectors/lexical/hybrid indexes
+     - :class:`RetrievalIndex`
+   * - Export/adapt documents
+     - the export and adapter APIs (:ref:`corpus-formats-export`)
 
-.. seealso::
-  * https://github.com/modelcontextprotocol/python-sdk
-  * https://github.com/semantica-agi/semantica
-  * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
+How this guide is organised
+---------------------------
+
+Read the first two pages first. After that, choose the page for the task in
+front of you.
 
 ..
-  # https://github.com/roy-ht/langdetect
+  .. toctree::
+    :maxdepth: 2
+
+    getting_started
+    architecture
+    readers_and_backends
+    fluent_and_policies
+    customization
+    downloads_and_network
+    retrieval_and_similarity
+    formats_and_export
+    security_and_limits
+    troubleshooting
+
+.. grid:: 1 1 1 1
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **getting-started**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        getting_started
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **architect**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        architecture
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **reader**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        readers_and_backends
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **fluent**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        fluent_and_policies
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **customize**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        customization
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **download**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        downloads_and_network
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **retrieval**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        retrieval_and_similarity
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **format**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        formats_and_export
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **security**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        security_and_limits
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **troubleshoot**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        troubleshooting
+
+The executable gallery, :ref:`corpus_examples`, follows the same architecture
+with deterministic local examples first and optional live/model paths clearly
+marked.
 
 .. seealso::
-  Google's language-detection:
 
-  * https://github.com/google/cld3
-  * https://pypi.org/project/gcld3/
-  * https://github.com/Mimino666/langdetect
-  * https://github.com/shuyo/language-detection
-  * https://github.com/Abhijit-2592/spacy-langdetect
-  * https://spacy.io/models/en
-
-  facebookresearch:
-
-  * https://github.com/facebookresearch/fastText
-  * https://fasttext.cc/
-  * https://github.com/facebookresearch/faiss
-  * https://research.facebook.com/research-areas/facebook-ai-research-fair/
+   * :ref:`corpus_examples`
+   * :ref:`cleanprompt-index`
+   * :mod:`scikitplot.corpus`

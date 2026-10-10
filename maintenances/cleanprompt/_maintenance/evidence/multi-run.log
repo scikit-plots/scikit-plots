@@ -1,26 +1,26 @@
-# round 25, 2026-10-10. Tree: the final round-25 package, frozen copy identical to the work tree (diff -rq).
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
 
 ## run 1
 $ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
-2654 passed, 88 skipped in 54.18s
+2888 passed, 88 skipped in 40.23s
 EXIT=0
 
 ## run 2
 $ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
-2654 passed, 88 skipped in 51.68s
-EXIT=0
-
-## run 3
-$ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
-2654 passed, 88 skipped in 52.82s
+2888 passed, 88 skipped in 40.97s
 EXIT=0
 
 ## shuffled module order, seed 11
-$ python -B -m pytest <test files in random.Random(seed) order> -q
-2654 passed, 88 skipped in 52.49s
+$ python -B -m pytest <test files in random.Random(11) order> -q
+2888 passed, 88 skipped in 40.14s
 EXIT=0
 
-## shuffled module order, seed 29
-$ python -B -m pytest <test files in random.Random(seed) order> -q
-2654 passed, 88 skipped in 57.90s
+## shuffled module order, seed 29, xdist -n 4
+$ python -B -m pytest <files, seed 29> -q -n 4
+2888 passed, 88 skipped in 25.94s
+EXIT=0
+
+## live logging at INFO, xdist -n 8
+$ python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error) -n 8
+====================== 2888 passed, 88 skipped in 26.30s =======================
 EXIT=0

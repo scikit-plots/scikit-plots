@@ -71,6 +71,9 @@ scikitplot.cleanprompt._engine : Where both styles are applied and reversed.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
+
+from ._surrogate_sets import detected_by, entry_problem
 
 __all__ = [
     "DEFAULT_STYLE",
@@ -225,6 +228,10 @@ SURROGATE_KINDS = (
 )
 
 
+#: Surrogated kinds whose reserved form only the core builds.
+_CORE_FORMS = ("EMAIL", "PHONE", "URL")
+
+
 def _pair(first: tuple[str, ...], second: tuple[str, ...], index: int) -> str:
     """
     Return a deterministic two-part name for ``index``.
@@ -251,8 +258,23 @@ def _pair(first: tuple[str, ...], second: tuple[str, ...], index: int) -> str:
 def _candidate(  # ruff: ignore[too-many-return-statements]
     kind: str,
     index: int,
+    provider: Any = None,
 ) -> str | None:
-    """Return the ``index``-th stand-in for ``kind``, or ``None``."""
+    """
+    Return the ``index``-th stand-in for ``kind``, or ``None``.
+
+    Notes
+    -----
+    **Developer notes.** A provider (a
+    :class:`~scikitplot.cleanprompt._surrogate_sets.SurrogateSet`) is asked
+    first for name kinds only. ``EMAIL``, ``PHONE`` and ``URL`` never reach it:
+    their reserved forms are the core's (``GENERATOR_DESIGN.md`` floor rule
+    2). A provider answering ``None`` leaves the kind to the built-in names.
+    """
+    if provider is not None and kind not in _CORE_FORMS:
+        proposed = provider.candidate(kind, index)
+        if proposed is not None:
+            return proposed
     if kind == "PERSON":
         return _pair(_FIRST, _LAST, index)
     if kind == "ORG":
@@ -283,6 +305,8 @@ def surrogate_for(
     avoid: frozenset[str] | set[str] | None = None,
     source: str = "",
     forbidden: Callable[[str], bool] | None = None,
+    *,
+    provider: Any = None,
 ) -> str | None:
     """
     Return an invented stand-in for one value, or ``None`` to use a label.
@@ -302,6 +326,11 @@ def surrogate_for(
     forbidden : callable, optional
         Returns ``True`` for a candidate that must not be used — one that
         contains a value this conversation holds (``CP-071``).
+    provider : SurrogateSet, optional
+        Proposes name stand-ins in place of the built-in names
+        (:mod:`~scikitplot.cleanprompt._surrogate_sets`). Every rule below
+        still applies to what it proposes, and a proposal that is not a
+        well-formed name is skipped.
 
     Returns
     -------
@@ -353,9 +382,18 @@ def surrogate_for(
     taken = avoid or frozenset()
     index = ordinal - 1
     for attempt in range(100):
-        candidate = _candidate(kind, index + attempt)
+        candidate = _candidate(kind, index + attempt, provider)
         if candidate is None:
             return None
+        if (
+            provider is not None
+            and kind not in _CORE_FORMS
+            and (entry_problem(candidate) or detected_by(candidate))
+        ):
+            # Floor rules 3 and 4, again at run time, on the combined stand-in:
+            # a set's entries are checked when it loads, and this covers the
+            # two-part names it forms and any later provider.
+            continue
         if candidate in taken:
             continue
         if source and candidate in source:

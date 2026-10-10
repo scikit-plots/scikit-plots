@@ -130,19 +130,132 @@ How this guide is organised
 Read the first two pages in order; after that, go to the page for the job in
 front of you.
 
-.. toctree::
-   :maxdepth: 2
+..
+  .. toctree::
+    :maxdepth: 2
 
-   getting_started
-   how_it_works
-   python_api
-   command_line
-   entity_detection
-   files_and_packs
-   agents_and_models
-   web_and_containers
-   security_and_limits
-   troubleshooting
+    getting_started
+    how_it_works
+    python_api
+    command_line
+    entity_detection
+    files_and_packs
+    agents_and_models
+    web_and_containers
+    security_and_limits
+    troubleshooting
+
+.. grid:: 1 1 1 1
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **getting-started**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        getting_started
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **how**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        how_it_works
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **python**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        python_api
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **cli**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        command_line
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **entity**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        entity_detection
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **files**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        files_and_packs
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **agents**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        agents_and_models
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **web**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        web_and_containers
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **security**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        security_and_limits
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **troubleshooting**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        troubleshooting
 
 The executable gallery, :ref:`cleanprompt_examples`, follows the same path with
 code you can run: basics, the command line, the Python API, notebooks, then
