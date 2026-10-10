@@ -41,6 +41,7 @@ from . import (
     _downloader,
     _gdrive,
     _github,
+    _policy,
     _web,
     _youtube,
 )
@@ -48,6 +49,7 @@ from ._base import *  # noqa: F403
 from ._downloader import *  # noqa: F403
 from ._gdrive import *  # noqa: F403
 from ._github import *  # noqa: F403
+from ._policy import *  # noqa: F403
 from ._web import *  # noqa: F403
 from ._youtube import *  # noqa: F403
 
@@ -55,6 +57,7 @@ __all__ = []
 __all__ += _base.__all__
 __all__ += _downloader.__all__
 __all__ += _gdrive.__all__
+__all__ += _policy.__all__
 __all__ += _github.__all__
 __all__ += _web.__all__
 __all__ += _youtube.__all__

@@ -4,6 +4,7 @@ import asyncio
 import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 
 import pytest
 
@@ -269,7 +270,7 @@ def test_sqlite_schema_has_no_participant_identity_or_timestamp_columns(tmp_path
     store = SQLiteFeedbackStore(tmp_path / "feedback.db")
     req = request()
     store.put(feedback_id=req["feedback_id"], request_hash=feedback_request_hash(req), event=build_feedback_event(req))
-    with sqlite3.connect(store.path) as conn:
+    with closing(sqlite3.connect(store.path)) as conn:
         names = [row[1] for row in conn.execute("PRAGMA table_info(feedback_events)")]
     assert names == ["feedback_id", "request_hash", "site_id", "page_id", "event_json"]
 
@@ -614,7 +615,7 @@ def test_sqlite_events_validate_site_id_and_fail_closed_on_noncanonical_tamper(t
     with pytest.raises(ValueError):
         store.events(site_id="../bad")
 
-    with store._connect() as conn:
+    with closing(store._connect()) as conn, conn:
         raw = conn.execute(
             "SELECT event_json FROM feedback_events WHERE feedback_id = ?",
             (req["feedback_id"],),
@@ -690,14 +691,14 @@ def test_sqlite_readback_rejects_tampered_index_metadata_and_request_hash(tmp_pa
         ("page_id", "other/page"),
         ("request_hash", "f" * 64),
     ]:
-        with store._connect() as conn:
+        with closing(store._connect()) as conn, conn:
             conn.execute(
                 f"UPDATE feedback_events SET {column} = ? WHERE feedback_id = ?",
                 (value, req["feedback_id"]),
             )
         with pytest.raises(sqlite3.DatabaseError, match="metadata does not match"):
             store.events()
-        with store._connect() as conn:
+        with closing(store._connect()) as conn, conn:
             conn.execute(
                 "DELETE FROM feedback_events WHERE feedback_id = ?",
                 (req["feedback_id"],),

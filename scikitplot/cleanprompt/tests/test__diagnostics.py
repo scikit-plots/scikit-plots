@@ -307,11 +307,16 @@ class TestEntityRemedyFollowsWhatIsInstalled:
     ``"spacy"`` held with spaCy installed and with nothing installed, and
     failed where only NLTK was. The installation is supplied here, so every
     answer is checked on every machine.
+
+    ``CP-093`` added a fourth input: whether spaCy's *model* is present. The
+    package alone is not a working engine, so "spaCy is installed; enable it"
+    on a machine without a model was advice that failed on the first
+    sentence. The model's presence is supplied here too.
     """
 
     @staticmethod
-    def _installed(monkeypatch, *present):
-        from .. import _diagnostics
+    def _installed(monkeypatch, *present, model=True):
+        from .. import _diagnostics, _engines
         from .._capabilities import probe as real_probe
 
         def probe(name):
@@ -323,6 +328,8 @@ class TestEntityRemedyFollowsWhatIsInstalled:
             return real_probe(name)._replace(status=status)
 
         monkeypatch.setattr(_diagnostics, "probe", probe)
+        monkeypatch.setattr(_engines, "probe", probe)
+        monkeypatch.setattr(_engines, "_spacy_model_ready", lambda _m: model)
         return _diagnostics._entity_remedy()
 
     @pytest.mark.parametrize("present", [("ner",), ("ner", "nltk")])
@@ -330,6 +337,21 @@ class TestEntityRemedyFollowsWhatIsInstalled:
         remedy = self._installed(monkeypatch, *present)
         assert remedy.startswith("spaCy is installed")
         assert "spacy_detector()" in remedy and "--ner" in remedy
+        assert "pip install" not in remedy
+
+    def test_spacy_without_its_model_names_the_download(self, monkeypatch):
+        """CP-093: the package without a model is not an engine yet."""
+        remedy = self._installed(monkeypatch, "ner", model=False)
+        assert "has no model" in remedy
+        assert "python -m spacy download en_core_web_sm" in remedy
+        assert "pip install" not in remedy
+        assert "spacy_detector()" not in remedy
+
+    def test_spacy_without_its_model_beside_nltk_offers_both(self, monkeypatch):
+        """The cheapest working step first, the other one still named."""
+        remedy = self._installed(monkeypatch, "ner", "nltk", model=False)
+        assert remedy.startswith("NLTK is installed")
+        assert "python -m spacy download en_core_web_sm" in remedy
         assert "pip install" not in remedy
 
     def test_only_nltk_installed_names_nltk(self, monkeypatch):
@@ -345,6 +367,7 @@ class TestEntityRemedyFollowsWhatIsInstalled:
         assert remedy.count("pip install") == 2
         assert "--ner --ner-engine nltk" in remedy
 
+    @pytest.mark.parametrize("model", [True, False])
     @pytest.mark.parametrize("present", [(), ("ner",), ("nltk",), ("ner", "nltk")])
-    def test_every_answer_names_the_switch(self, monkeypatch, present):
-        assert "--ner" in self._installed(monkeypatch, *present)
+    def test_every_answer_names_the_switch(self, monkeypatch, present, model):
+        assert "--ner" in self._installed(monkeypatch, *present, model=model)

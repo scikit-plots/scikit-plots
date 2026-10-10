@@ -144,7 +144,7 @@ class TestUnavailableTier:
         from .. import _nltk
 
         monkeypatch.setattr(caps, "_installed_version", lambda _n: "3.9")
-        monkeypatch.setattr(_nltk, "_missing_corpora", lambda _m: ["words"])
+        monkeypatch.setattr(_nltk, "missing_data", lambda _m: ["words"])
         with pytest.raises(CapabilityError) as caught:
             _spans(nltk_detector(), "Ada Lovelace")
         assert caught.value.status == "MISCONFIGURED"
@@ -156,7 +156,7 @@ class TestUnavailableTier:
         from .. import _nltk
 
         monkeypatch.setattr(caps, "_installed_version", lambda _n: "3.9")
-        monkeypatch.setattr(_nltk, "_missing_corpora", lambda _m: ["punkt", "words"])
+        monkeypatch.setattr(_nltk, "missing_data", lambda _m: ["punkt", "words"])
         with pytest.raises(CapabilityError) as caught:
             _spans(nltk_detector(), "Ada Lovelace")
         hint = caught.value.install_hint
@@ -239,6 +239,111 @@ class TestCorpusAccounting:
         status = corpora_status()
         if status["available"]:
             assert status["install_hint"] == ""
+
+
+class TestLoadability:
+    """
+    ``CP-100``: present on disk is not the same as loadable by this NLTK.
+
+    Notes
+    -----
+    **Developer notes.** NLTK 3.9 moved the tagger to
+    ``averaged_perceptron_tagger_eng`` and the chunker to
+    ``maxent_ne_chunker_tab``. :func:`_missing_corpora` accepts either name of
+    a group, so with only the older packages NLTK 3.10.3 was reported ready
+    and the first sentence failed in :func:`nltk.pos_tag`. Measured before the
+    fix: ``doctor`` ready, ``inspect`` exit 1 with ``LookupError``. After:
+    not ready, exit 69, the remedy naming the current package.
+
+    The stand-ins here are one-method fakes in the sense the module notes
+    allow: the point is *which* step raised ``LookupError``, which is the
+    exception's origin, not recognition quality.
+    """
+
+    class _Nltk:
+        """Every path resolves; ``pos_tag`` and ``ne_chunk`` raise as told."""
+
+        def __init__(self, tagger_ok=True, chunker_ok=True):
+            self.tagger_ok, self.chunker_ok = tagger_ok, chunker_ok
+            self.data = type("D", (), {"find": staticmethod(lambda path: path)})()
+
+        def pos_tag(self, tokens):
+            if not self.tagger_ok:
+                raise LookupError("averaged_perceptron_tagger_eng")
+            return [(token, "NNP") for token in tokens]
+
+        def ne_chunk(self, tagged):
+            if not self.chunker_ok:
+                raise LookupError("maxent_ne_chunker_tab")
+            return tagged
+
+    @pytest.fixture(autouse=True)
+    def _fresh(self, monkeypatch):
+        pytest.importorskip("nltk")  # the tokenizers are NLTK's own classes
+        from .. import _nltk
+
+        monkeypatch.setattr(_nltk, "_RESOURCES", {})
+        monkeypatch.setattr(_nltk, "_build_chunker", lambda: None)
+        return _nltk
+
+    def test_everything_loadable_is_ready_and_cached(self, _fresh):
+        assert _fresh.missing_data(self._Nltk()) == []
+        assert {"sentence", "word", "chunker"} <= set(_fresh._RESOURCES)
+
+    def test_a_tagger_this_nltk_cannot_load_is_reported(self, _fresh):
+        assert _fresh.missing_data(self._Nltk(tagger_ok=False)) == ["averaged_perceptron_tagger"]
+
+    def test_a_chunker_this_nltk_cannot_load_is_reported(self, _fresh):
+        assert _fresh.missing_data(self._Nltk(chunker_ok=False)) == ["maxent_ne_chunker"]
+
+    def test_both_are_reported_in_one_answer(self, _fresh):
+        """A user fixing one should not discover the other afterwards."""
+        missing = _fresh.missing_data(self._Nltk(tagger_ok=False, chunker_ok=False))
+        assert missing == ["averaged_perceptron_tagger", "maxent_ne_chunker"]
+
+    def test_a_failure_is_not_cached(self, _fresh):
+        """Data downloaded mid-process is believed on the next call."""
+        assert _fresh.missing_data(self._Nltk(tagger_ok=False))
+        assert "chunker" not in _fresh._RESOURCES
+        assert _fresh.missing_data(self._Nltk()) == []
+
+    def test_the_path_check_still_comes_first(self, _fresh):
+        """Absent packages are all named at once, without running anything."""
+        ran = []
+
+        def absent(path):
+            raise LookupError(path)
+
+        class Absent(self._Nltk):
+            def __init__(self):
+                super().__init__()
+                self.data = type("D", (), {"find": staticmethod(absent)})()
+
+            def pos_tag(self, tokens):
+                ran.append("tagger")
+                return super().pos_tag(tokens)
+
+        assert _fresh.missing_data(Absent()) == [p for p, _ in REQUIRED_CORPORA]
+        assert ran == []
+
+    def test_the_remedy_names_every_package_that_satisfies_a_group(self, _fresh):
+        command = _fresh.download_command(["averaged_perceptron_tagger", "maxent_ne_chunker"])
+        for name in (
+            "averaged_perceptron_tagger_eng",
+            "averaged_perceptron_tagger",
+            "maxent_ne_chunker_tab",
+            "maxent_ne_chunker",
+        ):
+            assert f"nltk.download('{name}')" in command
+        assert "punkt" not in command, "only the groups asked for"
+
+    def test_the_detector_refuses_with_the_remedy(self, _fresh, monkeypatch):
+        monkeypatch.setattr(caps, "_installed_version", lambda _n: "3.10.3")
+        monkeypatch.setattr(_fresh, "missing_data", lambda _m: ["averaged_perceptron_tagger"])
+        with pytest.raises(CapabilityError) as caught:
+            _spans(nltk_detector(), "Ada Lovelace")
+        assert caught.value.status == "MISCONFIGURED"
+        assert "averaged_perceptron_tagger_eng" in caught.value.install_hint
 
 
 @requires_nltk

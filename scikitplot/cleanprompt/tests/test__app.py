@@ -433,3 +433,72 @@ class TestTemplates:
         for path in (package / "_templates").rglob("*.html"):
             text = path.read_text(encoding="utf-8")
             assert not re.search(r"\son[a-z]+\s*=", text), path.name
+
+
+@pytestmark_web
+class TestEntityDetectionUsesTheSharedBuilder:
+    """
+    ``CP-094``: the web app builds entity detectors the way everything else does.
+
+    Notes
+    -----
+    **Developer notes.** Reproduced before the fix: ``create_app(enable_ner=
+    True, ner_engine="nltk", language="tr", model_size="lg")`` called
+    ``spacy_detector(model=None)``. The page then described one configuration
+    while each request ran another.
+    """
+
+    def test_every_argument_reaches_the_builder(self, monkeypatch):
+        from .. import _engines
+        from .._app import create_app
+
+        calls = []
+        monkeypatch.setattr(
+            _engines, "build_detectors", lambda **kw: calls.append(kw) or []
+        )
+        create_app(
+            ephemeral_secret_key=True,
+            enable_ner=True,
+            ner_engine="nltk",
+            language="en",
+            model_size="lg",
+            ner_model="custom_pipeline",
+        )
+        assert calls == [
+            {
+                "mode": "nltk",
+                "language": "en",
+                "model": "custom_pipeline",
+                "size": "lg",
+                "required": True,
+            }
+        ]
+
+    def test_an_unmeetable_request_refuses_to_start(self, monkeypatch):
+        """NLTK cannot read Turkish: the app says so instead of serving."""
+        from .. import CapabilityError
+        from .._app import create_app
+
+        real = caps._installed_version
+        engines = {"nltk": "3.9", "spacy": None}
+        monkeypatch.setattr(
+            caps,
+            "_installed_version",
+            lambda name: engines[name] if name in engines else real(name),
+        )
+        with pytest.raises(CapabilityError, match="does not support language 'tr'"):
+            create_app(
+                ephemeral_secret_key=True,
+                enable_ner=True,
+                ner_engine="nltk",
+                language="tr",
+            )
+
+    def test_no_ner_builds_nothing(self, monkeypatch):
+        from .. import _engines
+        from .._app import create_app
+
+        calls = []
+        monkeypatch.setattr(_engines, "build_detectors", lambda **kw: calls.append(kw) or [])
+        create_app(ephemeral_secret_key=True)
+        assert calls == []

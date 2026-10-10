@@ -2903,6 +2903,45 @@ ai_assistant_endpoint_profiles = {
 }
 ai_assistant_endpoint_default_profile = "default"
 
+# Generic page feedback is an independent reviewed-feedback subsystem. Its
+# endpoint is explicit rather than inherited from the active Assistant profile,
+# so a chat/share-only Cloudflare Worker cannot accidentally become feedback
+# authority. Override FEEDBACK_PROXY_BASE independently in deployments that
+# separate these services. A site that also enables AI Learn lists those pages
+# in feedback_exclude, because they own section/generation feedback and should
+# not render a competing page controller; this site does not enable AI Learn.
+_FEEDBACK_PROXY_BASE: str = (
+    os.environ.get("FEEDBACK_PROXY_BASE") or _AI_PROXY_BASE
+).rstrip("/")
+feedback_page_enabled = True
+feedback_position = "sidebar"
+feedback_page_main = True
+feedback_position_fallback = "main-bottom"
+feedback_site_id = "scikit-plots"
+feedback_endpoint = _FEEDBACK_PROXY_BASE + "/v1/feedback"
+feedback_counter_enabled = True
+feedback_counter_source = "embedded"
+# Quick reviewed-count placement is independently configurable per button. The
+# balanced default keeps the counts on the outside edges: [0 | 👎] [👍 | 0].
+feedback_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
+# Generic page-feedback counters are build-time reviewed data, and the snapshot
+# must carry this site's feedback_site_id. The packaged
+# "/page-feedback-aggregate.json" (leading slash = inside _sphinx_feedback/_static)
+# belongs to the scikit-plots-learn site, so this site keeps its own snapshot
+# beside conf.py (no leading slash = inside this directory). It is a complete
+# V3 snapshot with no rows: until this change the proxy allowlist accepted only
+# "scikit-plots-learn", so no reviewed "scikit-plots" event existed. Regenerate
+# it from the full reviewed "scikit-plots" event set as feedback is merged;
+# never mark a partial export complete merely to make zero counters visible.
+# The proxy must list this site_id in FEEDBACK_ALLOWED_SITE_IDS (its default
+# lists "scikit-plots-learn,scikit-plots").
+feedback_aggregate_file = "_page_feedback/aggregate.json"
+feedback_include = ["**"]
+feedback_exclude = ["search", "genindex", "py-modindex", "404"]
+
 # Legacy flat endpoint/token keys are intentionally NOT set when explicit
 # profiles are present. Explicit profiles take precedence, and static token
 # config is deprecated/ignored by the latest extension.

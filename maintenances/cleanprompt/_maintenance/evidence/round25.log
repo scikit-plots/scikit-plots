@@ -1,0 +1,21 @@
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
+
+## round-25 reproductions, final tree
+$ python -B .../probe_round25.py
+2026-10-10 05:42:49.115922: W scikitplot 140499625930880 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+CP-095 image installs : ['&& python -m spacy download en_core_web_sm']
+CP-095 runtime default: en_core_web_sm
+CP-095 image requests : ['CMD ["--ner", "--ner-engine", "spacy", "--ner-model", "en_core_web_sm"]']
+CP-096 docker run     : ['# Run:    docker run --rm -p 127.0.0.1:5000:5000 \\', 'docker run --rm -p 127.0.0.1:5000:5000 -e CLEANPROMPT_SECRET_KEY cleanprompt']
+CP-096 unread env     : False
+CP-097 debug guarded  : True
+CP-094 create_app     : [{'mode': 'nltk', 'language': 'tr', 'model': None, 'size': 'lg', 'required': True}]
+CP-098 'mail ada\u200b@example.com now' -> 'mail [EMAIL-1] now'
+CP-098 'mail \uff41\uff44\uff41\uff20\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45\uff0e\uff43\uff4f\uff4d now' -> 'mail [EMAIL-1] now'
+CP-098 'call +1 555\xa00100' -> 'call [PHONE-1]'
+CP-098 'call +1\u2011555\u20110100' -> 'call [PHONE-1]'
+CP-098 'ip 192.0.2.\u200b10' -> 'ip [IPV4-1]'
+CP-098 'card 4111\u200b1111 1111 1111' -> 'card [CREDIT_CARD-1]'
+CP-093 doctor --ner healthy=False ner_ready=False remedy=pip install "spacy>=3.4,<5"
+CP-093 doctor --ner --ner-engine nltk healthy=False ner_ready=False remedy=pip install "nltk>=3.6,<4"
+EXIT=0

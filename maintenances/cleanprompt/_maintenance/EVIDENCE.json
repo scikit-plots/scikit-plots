@@ -263,10 +263,45 @@
       "status": "PASS",
       "artifact": "evidence/negative-probes.log, evidence/maintenance-tests.log",
       "result": "no text file in the runtime package, the maintenance plane, the skill or the gallery holds a whole value a secrets-pack pattern accepts (I14, CP-REST-001); the compiler refuses the pre-round files with 15 findings; an unarmed check is an error"
+    },
+    {
+      "artifact": "evidence/focused-tests.log, evidence/round25.log",
+      "id": "entity_readiness",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/negative-probes.log, evidence/focused-tests.log",
+      "id": "detection_view",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round25.log, evidence/focused-tests.log",
+      "id": "generated_deployment",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/maintenance-tests.log",
+      "id": "documented_commands",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/round26.log, evidence/focused-tests.log",
+      "id": "pattern_risk",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/focused-tests.log, evidence/gallery-examples.log",
+      "id": "surrogate_sets",
+      "status": "PASS"
+    },
+    {
+      "artifact": "evidence/maintenance-tests.log",
+      "id": "regex_fixtures",
+      "status": "PASS"
     }
   ],
-  "runtime_tree_fingerprint": "ad6d37e39a11064aebc33155fc0f134709198b261eff8db828e504e6d8ab37f2",
+  "runtime_tree_fingerprint": "b67aa2aedbfb79de61f3ed3d0b7421927d04710efdb06c186190b58db9747949",
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-02"
+  "updated_at": "2026-10-10"
 }

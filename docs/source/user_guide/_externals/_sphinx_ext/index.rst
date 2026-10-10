@@ -19,6 +19,170 @@ integration APIs rather than as the stable plotting API of Scikit-Plots.
 Pin Scikit-Plots when a documentation deployment depends on their exact
 configuration or generated markup.
 
+..
+  .. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    ANSI Sanitizer <_ansi_sanitizer/index>
+    PyData Component List <_pydata_component_list/index>
+    Sphinx AI Assistant <_sphinx_ai_assistant/index>
+    Sphinx AI Learn <_sphinx_ai_learn/index>
+    Sphinx Collection <_sphinx_collection/index>
+    Sphinx Feedback <_sphinx_feedback/index>
+    Sphinx Gallery Grid <_sphinx_gallery_grid/index>
+    Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
+    Sphinx Jinja Render <_sphinx_jinja_render/index>
+    Sphinx LLM <_sphinx_llm/index>
+    Sphinx YouTube Core <_sphinx_youtube_core/index>
+    Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
+    Sphinx Video Directives <_sphinxcontrib_youtube/index>
+
+.. grid:: 1 1 1 1
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **ansi-sanitizer**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        ANSI Sanitizer <_ansi_sanitizer/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **pydata-component-list**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        PyData Component List <_pydata_component_list/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-ai-assistant**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx AI Assistant <_sphinx_ai_assistant/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-ai-learn**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx AI Learn <_sphinx_ai_learn/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-collection**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Collection <_sphinx_collection/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-feedback**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Feedback <_sphinx_feedback/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-gallery-grid**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Gallery Grid <_sphinx_gallery_grid/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-jupyterlite**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-jinja**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Jinja Render <_sphinx_jinja_render/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-llm**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx LLM <_sphinx_llm/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be-core**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx YouTube Core <_sphinx_youtube_core/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be-gallery**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Video Directives <_sphinxcontrib_youtube/index>
+
 How to enable an extension
 ----------------------------------------------------------------------
 
@@ -119,21 +283,3 @@ or remote-service configuration.  Follow these repository contracts:
 
 The child guides call out additional boundaries where they are part of the
 implemented contract.
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-
-   ANSI Sanitizer <_ansi_sanitizer/index>
-   PyData Component List <_pydata_component_list/index>
-   Sphinx AI Assistant <_sphinx_ai_assistant/index>
-   Sphinx AI Learn <_sphinx_ai_learn/index>
-   Sphinx Collection <_sphinx_collection/index>
-   Sphinx Feedback <_sphinx_feedback/index>
-   Sphinx Gallery Grid <_sphinx_gallery_grid/index>
-   Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
-   Sphinx Jinja Render <_sphinx_jinja_render/index>
-   Sphinx LLM <_sphinx_llm/index>
-   Sphinx YouTube Core <_sphinx_youtube_core/index>
-   Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
-   Sphinx Video Directives <_sphinxcontrib_youtube/index>

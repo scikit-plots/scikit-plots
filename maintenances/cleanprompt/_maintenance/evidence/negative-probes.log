@@ -1,3 +1,8 @@
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
+
+## no optional tier
+$ python -B maintenances/cleanprompt/_maintenance/evidence/probe_negative.py
+2026-10-10 05:41:20.169326: W scikitplot 140395168243840 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
 ==============================================================================
 NEGATIVE PROBES — one per retired upstream defect
 ==============================================================================
@@ -34,6 +39,9 @@ CP-051    PASS one value, one label across prose and record
 CP-052    PASS pack and field detectors run under an explicit-kinds profile
 CP-053    PASS probes import the tree they live in
 R12-ZIP   PASS an unsafe member is refused and never written
+2026-10-10 05:41:20.276700: W scikitplot.cleanprompt._api 140395168243840 probe_negative.py:234:<module>] x <redacted>
+2026-10-10 05:41:20.277694: I scikitplot.cleanprompt.audit 140395168243840 _logging.py:724:audit] encoded
+2026-10-10 05:41:20.277869: W scikitplot.cleanprompt._engine 140395168243840 probe_negative.py:236:<module>] careless <redacted>
 CP-059    PASS child-logger records, extras and held values are scrubbed
 CP-060    PASS 500 random chunkings of a surrogate reply decode like the whole
 CP-061    PASS ask behind a closed pipe exits promptly
@@ -42,9 +50,508 @@ R13-GATE  PASS a recurrence with remember off is refused before the model is cal
 CP-063    PASS a name is hidden in a note sorted before the record naming it
 R14-MCP   PASS no MCP tool result carries a value or the root path; writes restore on disk
 R14-PLAN  PASS a plan whose definitions changed is refused
-ENG-001   PASS every live engine round-trips exactly (spacy,nltk)
-ENG-002   PASS no engine emits an uncanonical label
+ENG-001   SKIP no entity engine usable in this environment
 CP-064    PASS a seed of earlier entries does not use up max_entries
+2026-10-10 05:41:20.968233: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968420: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968512: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968573: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968621: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968663: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968714: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968840: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968889: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968931: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.968969: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969006: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969042: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969078: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969118: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969154: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969190: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969238: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969275: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969325: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969363: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969398: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969434: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969469: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969533: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969575: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969612: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969647: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969682: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969714: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969748: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969782: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969815: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969848: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969881: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969913: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969946: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.969980: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970013: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970047: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970080: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970119: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970153: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970186: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970229: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970266: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970303: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970338: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970373: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970406: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970443: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970498: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970547: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970583: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970620: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970655: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970690: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970724: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970756: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970788: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970822: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970856: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970891: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970925: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970959: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.970992: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971025: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971059: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971091: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971127: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971161: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971197: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971242: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971276: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971311: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971348: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971381: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971415: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971449: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971498: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971545: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971583: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971618: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971652: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971688: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971720: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971755: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971788: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971821: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971853: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971887: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971919: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971950: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.971982: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972013: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972046: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972080: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972111: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972143: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972174: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972205: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972248: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972282: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972320: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972355: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972389: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972422: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972455: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972507: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972553: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972594: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972630: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972665: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972698: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972765: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972817: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972858: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972897: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972934: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.972969: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973005: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973040: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973073: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973107: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973140: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973174: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973207: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973252: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973285: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973320: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973355: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973389: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973423: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973456: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973510: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973552: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973588: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973623: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973657: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973692: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973725: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973758: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973792: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973827: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973862: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973896: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973929: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973963: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.973997: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974030: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974065: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974099: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974133: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974168: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974201: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974245: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974282: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974315: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974352: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974387: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974419: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974452: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974501: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974546: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974583: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974618: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974653: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974688: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974723: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974758: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974793: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974826: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974858: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974892: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974925: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974957: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.974990: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975023: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975059: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975092: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975126: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975159: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975191: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975234: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975269: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975304: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975338: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975371: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975405: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975438: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975472: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975534: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975574: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975610: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975645: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975680: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975713: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975748: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975781: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975814: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975847: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975881: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975914: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975949: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.975983: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976015: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976048: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976081: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976118: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976155: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976189: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976230: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976268: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976305: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976339: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976373: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976407: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976441: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976474: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976536: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976576: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976611: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976646: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976680: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976714: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976786: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976828: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976864: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976899: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976935: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.976970: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977004: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977037: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977070: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977104: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977138: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977172: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977206: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977250: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977284: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977319: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977352: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977386: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977420: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977454: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977507: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977551: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977590: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977625: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977659: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977694: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977728: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977762: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977796: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977831: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977867: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977899: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977933: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.977969: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978004: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978040: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978076: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978111: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978143: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978178: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978216: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978254: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978287: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978320: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978353: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978386: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978419: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978451: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978503: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978550: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978589: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978625: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978659: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978693: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978727: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978760: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978795: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978832: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978865: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978897: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978931: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978965: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.978998: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979032: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979069: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979102: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979136: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979168: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979200: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979242: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979276: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979335: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979372: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979407: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979442: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979490: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979539: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979578: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979614: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979647: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979682: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979717: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979752: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979785: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979818: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979851: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979883: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979915: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979951: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.979988: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980022: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980059: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980092: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980125: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980158: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980191: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980232: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980268: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980302: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980336: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980370: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980402: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980436: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980468: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980528: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980569: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980605: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980641: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980676: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980711: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980785: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980830: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980869: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980905: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980940: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.980975: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981010: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981043: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981078: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981113: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981147: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981180: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981218: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981257: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981291: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981324: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981360: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981395: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981428: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981461: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981518: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981646: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981686: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981722: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981757: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981791: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981826: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981861: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981895: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981928: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.981964: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982000: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982035: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982070: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982105: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982139: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982173: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982207: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982251: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982286: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982318: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982350: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982383: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982416: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982450: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982502: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982551: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982588: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982624: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982660: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982697: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982731: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982765: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982798: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982832: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982865: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982898: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982932: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.982968: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983020: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983054: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983088: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983122: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983155: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983189: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983232: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983267: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983301: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983335: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983367: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983401: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983433: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983466: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983525: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983565: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983601: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983636: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983671: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983707: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983742: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983775: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983809: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983843: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983879: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983917: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983952: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.983987: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984021: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984055: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984089: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984122: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984155: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984188: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984229: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984264: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984298: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984333: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984367: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984400: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984432: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984473: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984554: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984602: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984646: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984690: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984774: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984836: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984875: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984910: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984945: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.984981: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985017: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985052: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985085: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985118: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985153: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985185: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985226: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985266: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985307: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985341: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985375: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985409: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985441: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985474: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985553: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985595: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985631: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985666: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985701: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985736: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985770: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985805: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985838: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985872: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985909: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985945: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.985979: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986013: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986047: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986080: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986115: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986150: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986184: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986224: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986262: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986294: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986327: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986360: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986394: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986427: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986460: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986517: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986565: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986601: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986637: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986671: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986705: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986739: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986774: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986808: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986842: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986875: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986911: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
+2026-10-10 05:41:20.986945: W scikitplot.cleanprompt._probe 140395168243840 probe_negative.py:348:<module>] <redacted>
 CP-065    PASS 500 records against 3000 live holders: scrubbed, in under 5 s
 R15-CHUNK PASS a CSV encoded in 97-char pieces equals one pass
 R15-SURVEY PASS a dry run writes nothing, remembers nothing, and names kinds only
@@ -67,6 +574,26 @@ CP-081    PASS importing the runtime, the gate and the Office reader loads the s
 CP-082    PASS a session turn encodes, and decodes back
 CP-083    PASS the corpus bridge names scikitplot.corpus, and nothing else, in its sibling import
 CP-084    PASS a declared-but-empty section is refused; a fragmented example is joined and tested
+CP-085    PASS under the real parent package, the submodule adds no third-party module to what the parent loaded
+CP-086    PASS no test module runs doctest inside the pytest process; the isolated runner exists
+CP-087    PASS run_command closes the command's input, output and error pipes before it returns
+CP-088    PASS the name-detection remedy names the switch in every installation, and NLTK alone names NLTK
+CP-089    PASS a vault collected inside a redacting block leaves the block's own filter in place, and exit removes it
+2026-10-10 05:41:25.457173: I scikitplot.cleanprompt.audit 140395168243840 _logging.py:724:audit] encoded
+2026-10-10 05:41:25.458007: I scikitplot.cleanprompt.audit 140395168243840 _logging.py:724:audit] decoded
+CP-090    PASS a reply streamed one character at a time records one decoded event, at flush, with the chunk count
+CP-091    PASS pattern timing runs in a killable child, payloads are not test ids, and the suite runs at the default log level
+CP-092    PASS a current cryptography is accepted, one below the floor is refused, and a refused tier is not skipped in silence
+CP-093    PASS an engine without its model or data is not ready: required requests refuse with the download, auto skips it
+CP-088    PASS (round 25) with spaCy but no model, the remedy is the download and still names the switch
+CP-094    PASS the web app builds entity detectors through build_detectors with every argument it was given
+CP-095    PASS the image installs the model it runs with, resolved like the runtime
+CP-096    PASS every generated launch line publishes on loopback and no unread setting is generated
+CP-097    PASS debug mode is refused on every reachable bind and allowed on loopback
+CP-098    PASS values written with invisible or compatibility characters are found and restored as written
+CP-100    PASS NLTK data this NLTK cannot load is not ready, and the remedy names the current and older packages
+CP-102    PASS a zero-width character early in a record file leaves its lines and separators intact
+CP-103    PASS an invisible character inside a field name still names the field
 API-001   PASS encode hides and decode restores exactly
 API-002   PASS handle survives a JSON round trip
 API-003   PASS handle repr discloses nothing
@@ -76,16 +603,27 @@ API-004   PASS placeholders stay stable across session turns
 INVARIANTS AT SCALE
 ==============================================================================
 I1        PASS round trip over 3000 random documents
+V25       PASS 1000 salted values: each found and restored exactly
 I2        PASS no detected surface survives
 I7        PASS idempotent re-redaction
-           (3000 documents in 0.90s)
+           (3000 documents in 0.95s)
 I8        PASS arbitrary printable junk never crashes
 
 ==============================================================================
 PERFORMANCE — linear, not quadratic
 ==============================================================================
-    51000 chars  redact  0.015s  restore  0.007s  entries 2
-   204000 chars  redact  0.098s  restore  0.028s  entries 2
-   816000 chars  redact  0.221s  restore  0.117s  entries 2
+    51000 chars  redact  0.016s  restore  0.008s  entries 2
+   204000 chars  redact  0.064s  restore  0.028s  entries 2
+   816000 chars  redact  0.259s  restore  0.112s  entries 2
 
 TOTAL FAILURES: 0
+EXIT=0
+
+## every tier
+$ NLTK_DATA=... python -B .../probe_negative.py
+    51000 chars  redact  0.017s  restore  0.010s  entries 2
+   204000 chars  redact  0.073s  restore  0.034s  entries 2
+   816000 chars  redact  0.222s  restore  0.096s  entries 2
+
+TOTAL FAILURES: 0
+EXIT=0

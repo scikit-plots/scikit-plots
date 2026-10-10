@@ -106,11 +106,13 @@ from ._languages import *  # noqa: F403
 from ._logging import *  # noqa: F403
 from ._mcp import McpServer
 from ._packs import FieldSpec, PackError, PackSpec
+from ._pattern_risk import PatternRiskWarning, analyse_pattern
 from ._patterns import *  # noqa: F403
 from ._plan import CleanPlan, FluentCleanPrompt
 from ._policy import *  # noqa: F403
 from ._render import *  # noqa: F403
 from ._runtime import Cleaner, Encoded, Item
+from ._surrogate_sets import SurrogateSet, load_surrogate_set
 from ._types import *  # noqa: F403
 from ._vault import *  # noqa: F403
 
@@ -150,6 +152,11 @@ __all__ += [  # ruff: ignore[unsorted-dunder-all]
     "StreamDecoder",
     "builtin_catalog",
     "load_custom",
+    # pattern risk and custom surrogate sets (round 26)
+    "PatternRiskWarning",
+    "SurrogateSet",
+    "analyse_pattern",
+    "load_surrogate_set",
     "redact_documents",
     "register_corpus_readers",
     "with_custom",

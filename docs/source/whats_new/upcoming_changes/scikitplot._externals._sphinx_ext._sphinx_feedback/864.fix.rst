@@ -1,0 +1,8 @@
+- Page feedback now works on any site, with or without the AI assistant: a site
+  can keep its own reviewed counter snapshot beside its ``conf.py``
+  (``feedback_aggregate_file = "dir/name.json"``, no leading slash) instead of
+  the one packaged snapshot every site shared, which stopped the build of any
+  site whose ``feedback_site_id`` differed from it; the Scikit-Plots proxy
+  accepts feedback from both https://scikit-plots.github.io and
+  https://scikit-plots-learn.readthedocs.io; and ``_example_conf.py`` documents
+  every ``feedback_*`` setting.

@@ -242,47 +242,116 @@ When using `pip <https://pip.pypa.io/en/stable/>`_, ensure that *binary wheels* 
 compiling from source. This is particularly important for certain configurations,
 such as running Linux on a Raspberry Pi.
 
-Installing A lightweight version
-================================
+.. _installing-a-lightweight-version
+
+Installing A lightweight version ``scikit-plots-x``
+===================================================
 
 🔜🚀 `README.md <https://github.com/scikit-plots/scikit-plots#----by-----github-urls--->`_
 A lightweight version that is designed to be used in environments where you want to minimize the size of the package.
 
-.. prompt:: bash
+- https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
 
-  pip install scikit-plots-annoy @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy
+scikit-plots-skinny
+--------------------------------------
 
-.. prompt:: bash
-
-  pip install scikit-plots-cleanprompt @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt
-
-.. prompt:: bash
-
-  pip install scikit-plots-corpus @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus
+- ⚠️ ``scikit-plots-skinny`` as base required/dependency remaining ``scikit-plots-x``.
 
 .. prompt:: bash
 
-  pip install scikit-plots-cython @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython
+  pip install scikit-plots-skinny@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
 
 .. prompt:: bash
 
-  pip install scikit-plots-mcp @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-skinny
+
+scikit-plots-annoy
+--------------------------------------
 
 .. prompt:: bash
 
-  pip install scikit-plots-mlflow @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow
+  pip install scikit-plots-annoy@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/annoy
 
 .. prompt:: bash
 
-  pip install scikit-plots-rank-bm25 @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-annoy
+
+scikit-plots-cleanprompt
+--------------------------------------
 
 .. prompt:: bash
 
-  pip install scikit-plots-skinny @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/skinny
+  pip install scikit-plots-cleanprompt@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cleanprompt
 
 .. prompt:: bash
 
-  pip install scikit-plots-sphinx-ext @ git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-cleanprompt
+
+scikit-plots-corpus
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-corpus@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/corpus
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-corpus
+
+scikit-plots-cython
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-cython@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/cython
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-cython
+
+scikit-plots-mcp
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-mcp@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mcp
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-mcp
+
+scikit-plots-mlflow
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-mlflow@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/mlflow
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-mlflow
+
+scikit-plots-rank-bm25
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-rank-bm25@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/rank-bm25
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-rank-bm25
+
+scikit-plots-sphinx-ext
+--------------------------------------
+
+.. prompt:: bash
+
+  pip install scikit-plots-sphinx-ext@git+https://github.com/scikit-plots/scikit-plots.git@main#subdirectory=libs/sphinx-ext
+
+.. prompt:: bash
+
+  pip install -i https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple scikit-plots-sphinx-ext
 
 Dependencies
 ============

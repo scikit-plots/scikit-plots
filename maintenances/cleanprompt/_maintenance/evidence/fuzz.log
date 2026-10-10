@@ -1,2 +1,8 @@
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
+
+## randomized formats
+$ python -B .../probe_fuzz.py
+2026-10-10 05:41:50.778074: W scikitplot 140047782858880 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
 documents: 4000 failures: {'rt': 0, 'json': 0, 'leak': 0, 'det': 0, 'idem': 0, 'crash': 0}
 []
+EXIT=0

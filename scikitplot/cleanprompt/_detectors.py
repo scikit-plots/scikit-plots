@@ -81,6 +81,15 @@ class Detector:
 
     __slots__ = ("confidence", "kind", "name", "priority")
 
+    #: Whether :meth:`detect` is a pure function of the text it is given, so
+    #: that it may also read the detection view (``CP-098``) and have its spans
+    #: mapped back onto the original. ``False`` by default: a detector bound to
+    #: one document — offsets computed in advance from the original, such as a
+    #: field or region detector — would have its spans mapped twice and cut
+    #: through a file's structure (``CP-102``). Opt in only when every offset a
+    #: detector yields indexes the string passed to ``detect``.
+    reads_view = False
+
     def __init__(
         self,
         name: str,
@@ -195,6 +204,9 @@ class RegexDetector(Detector):
     >>> [span.text for span in detector.detect("write to a@b.co", DEFAULT_POLICY)]
     ['a@b.co']
     """
+
+    #: Offsets index the text given to ``detect``: may read the detection view.
+    reads_view = True
 
     __slots__ = ("spec",)
 
@@ -374,6 +386,9 @@ class LiteralDetector(Detector):
     >>> [(s.start, s.text) for s in detector.detect("Ann met Anna", DEFAULT_POLICY)]
     [(0, 'Ann'), (8, 'Anna')]
     """
+
+    #: Offsets index the text given to ``detect``: may read the detection view.
+    reads_view = True
 
     __slots__ = ("_pattern", "ignore_case", "terms", "word_boundary")
 

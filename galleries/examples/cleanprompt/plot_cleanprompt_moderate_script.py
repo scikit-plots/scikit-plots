@@ -186,28 +186,47 @@ for profile in ("balanced", "strict"):
 from scikitplot.cleanprompt import build_detectors, describe_engines  # noqa: E402
 from scikitplot.cleanprompt._exceptions import CapabilityError  # noqa: E402
 
-engines = describe_engines(language="en", mode="auto")
+engines = describe_engines(language="en", mode="auto", check_assets=True)
 
 for name, report in engines["engines"].items():
     print(
-        "{0:<6} {1:<14} usable={2!s:<6} {3}".format(
-            name, report["status"], report["usable"], report["summary"]
+        "{0:<6} installed={1!s:<5} data={2!s:<5} ready={3!s:<5} {4}".format(
+            name,
+            report["installed"],
+            report["assets_ready"],
+            report["ready"],
+            report["remedy"] or report["summary"],
         )
     )
+print("auto would run:", engines["selected"] or "(nothing ready)")
 
 # %%
-# The same sentence, through each mode that is usable here.  Where an engine is
-# absent, the mode reports a specific ``SKIP`` rather than quietly falling back
-# — a redaction that found nothing must never look like one that found nothing
-# to find.
+# **Installed is not ready.**  An engine needs three things: its package, a
+# language it can read, and its data — a spaCy *model*, or NLTK's *data
+# packages*.  The commonest way entity detection fails is the package without
+# the data, so the report shows the three separately and, where one is missing,
+# the one command that supplies it.  ``auto`` picks only an engine that is
+# ready; ``doctor`` reports the same thing from the command line:
 #
-# The ``try`` wraps the **detection**, not just the construction, and that
-# placement is deliberate.  ``build_detectors`` can only see whether the
-# *package* is importable; NLTK additionally needs four data packages that live
-# under ``$HOME/nltk_data``, and their absence is not discovered until a
-# sentence is actually tokenised.  An example that only guarded construction
-# would pass on a developer's machine and crash the documentation build on a
-# fresh one.
+# .. code-block:: bash
+#
+#     python -m scikitplot.cleanprompt doctor --ner --format json
+#
+# and its ``detection.ner_ready`` and ``detection.ner_remedy`` fields are the
+# ones to read.
+
+# %%
+# The same sentence, through each mode that is ready here.  Where an engine is
+# not, the mode reports a specific ``SKIP`` — with the remedy — rather than
+# quietly falling back: a redaction that found nothing must never look like one
+# that found nothing to find.
+#
+# ``build_detectors(required=True)`` is the check: it refuses an engine whose
+# package, language or data is missing, *before* any text is read, and it is
+# the same function ``doctor``, ``inspect``, :func:`encode` and the web app
+# use, so they cannot disagree.  The ``try`` still wraps the detection as well,
+# because a model that is present can still fail to load — a damaged download,
+# say — and an example must not crash a documentation build over that.
 
 from scikitplot.cleanprompt import encode  # noqa: E402
 
@@ -216,7 +235,7 @@ for mode in ("none", "spacy", "nltk", "both"):
         build_detectors(mode=mode, language="en", required=(mode != "none"))
         outcome = encode(SAMPLE, ner=(mode != "none"), engine=mode)
     except CapabilityError as exc:
-        print("[SKIP] {0:<6} {1}".format(mode, str(exc)[:96]))
+        print("[SKIP] {0:<6} {1}".format(mode, exc.install_hint or str(exc)[:96]))
         continue
     print("{0:<6} {1}".format(mode, outcome.text))
 
@@ -390,23 +409,14 @@ print("surrogate  :", fancy.text)
 # ``example.invalid`` is reserved permanently by :rfc:`2606` and the telephone
 # numbers come from the North American fiction block.
 #
-# One thing in that output looks alarming and is not.  The address became
-# ``marion.holt@example.invalid`` while the sentence happens to contain a
-# Marion Holt, which reads like a leak.  It is a collision: a surrogate is
-# chosen from a fixed bank by its **ordinal**, never from the value it
-# replaces, so the first invented address is that one whatever the input was.
-# The original address was ``ada@example.com`` and it is in the vault, not in
-# the text.
-#
-# What produced the coincidence is that both banks are ordered the same way, so
-# the first invented person and the local part of the first invented address
-# come from the same entry.  Collision avoidance is by **exact string**: the
-# person became *Devin Nakamura* because ``Marion Holt`` occurs verbatim in the
-# source, while ``marion.holt@example.invalid`` does not and so was kept.
-#
-# That is a readability wart rather than a disclosure, and the check below is
-# the one that matters: the surrogate depends only on the kind and the ordinal,
-# never on the value.
+# A stand-in is chosen from a fixed list by its **ordinal**, never from the
+# value it replaces, and it is never one that would show a value the text
+# holds. The first invented person, *Marion Holt*, was skipped because the
+# sentence really contains a Marion Holt. The first invented address,
+# ``marion.holt@example.invalid``, was skipped for the same reason: written
+# with a dot it is still that name (``CP-105``; before round 26 only a
+# one-word name was caught this way). Both moved on to the next entry, which
+# is why the person and the address now share it.
 #
 # The round trip is exact either way:
 
@@ -440,6 +450,55 @@ except PolicyError as exc:
 
 run("encode", "--quiet", "--vault-mode", "overwrite", "--style", "surrogate", "Mail ada@example.com")
 run("decode", "I wrote to marion.holt@example.invalid.")
+
+# %%
+# Your own invented names
+# ^^^^^^^^^^^^^^^^^^^^^^^
+# The built-in names are English-sounding. A **surrogate set** supplies your
+# own lists, for a language or a fictional cast your team recognises. The set
+# can change only names: e-mail addresses, telephone numbers and links keep
+# their reserved forms, and credentials keep placeholders. The vault records
+# the set by its identity (``name@version#digest``), so ``decode`` needs no
+# set file, and editing any entry gives a new identity.
+
+from scikitplot.cleanprompt import load_surrogate_set  # noqa: E402
+
+set_path = _HOME / "nordic.json"
+set_path.write_text(
+    json.dumps(
+        {
+            "name": "nordic",
+            "version": 1,
+            "summary": "Nordic-sounding invented names.",
+            "kinds": {
+                "PERSON": {
+                    "first": ["Aino", "Eero", "Liv"],
+                    "last": ["Halvorsen", "Lindgren", "Virtanen"],
+                }
+            },
+        }
+    ),
+    encoding="utf-8",
+)
+nordic = load_surrogate_set(set_path)
+print("set identity:", nordic.identity)
+
+local = DEFAULT_POLICY.evolve(tag_style=TagStyle(style="surrogate", surrogate_set=nordic))
+named = Redactor(policy=local).redact(SAMPLE, extra_terms=["Marion Holt"], extra_kind="PERSON")
+print("with the set:", named.text)
+assert restore(named.text, named.vault, policy=local).text == SAMPLE
+
+# A set that tries to invent a contact form is refused, with the reason.
+try:
+    from scikitplot.cleanprompt import PackError  # noqa: E402
+
+    set_path.write_text(
+        json.dumps({"name": "bad", "version": 1, "summary": "x", "kinds": {"EMAIL": ["Aino"]}}),
+        encoding="utf-8",
+    )
+    load_surrogate_set(set_path)
+except PackError as exc:
+    print("refused:", exc.problems[0][:72], "...")
 
 # %%
 # 10. Cleanup

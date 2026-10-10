@@ -141,6 +141,7 @@ _submodules = sorted(
         "experimental",
         "externals",
         "impute",
+        "levenshtein",
         "mcp",
         "memmap",
         "misc",
@@ -311,7 +312,7 @@ def __dir__() -> list[str]:
 ## Dynamically import submodules only when they are accessed (lazy-loading mechanism).
 ## Avoid loading unnecessary submodules, reducing initial import overhead.
 ## Provide clear error handling and suggestions for unresolved attributes.
-def __getattr__(
+def __getattr__(  # ruff: ignore[too-many-branches, too-many-return-statements]
     name: str,
     package: str | None = None,
     suggestion: bool = False,
@@ -376,6 +377,18 @@ def __getattr__(
         # __import__(f"{__name__}.{name}")                # low-level function, not return submodule directly
         from importlib import import_module
 
+        # Declared package/module names are cheaper and more fundamental than
+        # API-symbol discovery.  Resolve them first so asking for a lightweight
+        # submodule does not import ``scikitplot.api`` (and therefore optional
+        # or compiled dependencies) merely to prove the name is not an API
+        # function.  This is especially important for partial distributions.
+        if name in _submodules:
+            if name in ("visualkeras",):  # noqa: FURB171
+                from ._compat.optional_deps import LazyImport
+
+                return LazyImport(f"{package}.{name}")
+            return import_module(f"{package}.{name}")
+
         if name in _api_names():
             from ._compat.optional_deps import nested_import
 
@@ -383,7 +396,8 @@ def __getattr__(
             return nested_import(f"{package}.api.{name}")
 
         # Lazily load scikitplot flavors to avoid excessive dependencies.
-        if name in ("visualkeras",):  # noqa: FURB171
+        # defensive; visualkeras is in _submodules
+        if name in ("visualkeras",):  # ruff: ignore[single-item-membership-test]
             # Avoiding heavy imports top level module unless actually used
             from ._compat.optional_deps import LazyImport
 

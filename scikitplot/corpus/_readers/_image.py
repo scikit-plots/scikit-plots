@@ -13,18 +13,21 @@ OCR-based text extraction from raster image files.
 
 Supported formats: PNG, JPEG/JPG, GIF, WEBP, TIFF/TIF, BMP.
 
-Backend chain:
+Backend selection:
 
-1. **pytesseract** (primary) — wraps Google's Tesseract OCR engine.
+1. **pytesseract** (default) — wraps Google's Tesseract OCR engine.
    Installed via ``pip install pytesseract``; requires ``tesseract``
-   binary on ``PATH``.  Returns per-word confidence scores that are
-   aggregated to a chunk-level mean confidence.
-2. **easyocr** (secondary) — deep-learning OCR; slower but often more
-   accurate on low-quality scans and non-Latin scripts.
-   Installed via ``pip install easyocr``.
-3. **PIL-only stub** — if neither OCR library is available, the reader
-   raises ``ImportError`` with actionable install instructions rather
-   than silently yielding empty text.
+   binary on ``PATH``. Returns per-word confidence scores that are aggregated
+   to a chunk-level mean confidence.
+2. **easyocr** (explicit) — deep-learning OCR; slower but often more accurate
+   on low-quality scans and non-Latin scripts. It is selected only with
+   ``backend="easyocr"`` because first use may download model weights.
+3. **custom** (explicit) — delegates extraction to ``custom_extractor``.
+
+There is deliberately **no automatic pytesseract -> easyocr fallback**. Missing
+or broken Tesseract is visible unless the caller explicitly chooses another
+backend; a fallback that can download a model would change network/resource
+policy rather than merely change implementation.
 
 Multi-frame support:
 
@@ -68,7 +71,6 @@ from typing import (  # noqa: F401
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
-from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -478,41 +480,14 @@ class ImageReader(DocumentReader):
             If Pillow or the OCR library is not installed.
         """
         # ── Custom extractor path ──────────────────────────────────────
-        if self.backend == _BACKEND_CUSTOM:
-            if self.custom_extractor is None:
-                raise ValueError(
-                    "ImageReader: backend='custom' requires a "
-                    "'custom_extractor' callable.  Pass one via "
-                    "custom_extractor=my_fn, or choose a built-in backend."
-                )
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
+        if self.backend == _BACKEND_CUSTOM and self.custom_extractor is None:
+            raise ValueError(
+                "ImageReader: backend='custom' requires a "
+                "'custom_extractor' callable.  Pass one via "
+                "custom_extractor=my_fn, or choose a built-in backend."
             )
-            logger.info(
-                "ImageReader: using custom extractor %r on %s.",
-                extractor_name,
-                self.file_name,
-            )
-            try:
-                raw = self.custom_extractor(
-                    self.input_path, **self.custom_extractor_kwargs
-                )
-            except Exception as exc:
-                raise RuntimeError(
-                    f"ImageReader: custom extractor {extractor_name!r} raised "
-                    f"an error processing {self.file_name!r}: {exc}"
-                ) from exc
-            chunks = normalize_extractor_output(
-                raw,
-                source_type=SourceType.IMAGE,
-                section_type=SectionType.TEXT,
-            )
-            logger.info(
-                "ImageReader: custom extractor returned %d chunk(s) from %s.",
-                len(chunks),
-                self.file_name,
-            )
-            yield from chunks
+        if self.custom_extractor is not None:
+            yield from self._iter_custom_extractor_chunks()
             return
 
         try:

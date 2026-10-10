@@ -13,9 +13,11 @@ a ``conf.py`` that exists in neither checkout, and failed at collection.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
+from .. import _paths
 from .._paths import DOCS_SOURCE_ROOT, RUNTIME_ROOT, STACK_ROOT
 
 PROXY_APP = RUNTIME_ROOT / "_hf_spaces_proxy" / "app.py"
@@ -36,12 +38,60 @@ def _site_conf_text() -> str:
     return (DOCS_SOURCE_ROOT / "conf.py").read_text(encoding="utf-8")
 
 
-def test_proxy_generic_feedback_site_authority_is_the_public_site_id():
-    assert '"FEEDBACK_ALLOWED_SITE_IDS",\n    "scikit-plots-learn",' in PROXY_TEXT
+def _proxy_default_site_ids() -> set[str]:
+    """Return the proxy's default ``FEEDBACK_ALLOWED_SITE_IDS`` entries."""
+    match = re.search(
+        r'"FEEDBACK_ALLOWED_SITE_IDS",\n    "([^"]*)",', PROXY_TEXT
+    )
+    assert match, "the proxy no longer sets a default feedback site allowlist"
+    return {part.strip() for part in match.group(1).split(",")}
+
+
+def _conf_site_id(conf_text: str) -> str:
+    """Return the literal ``feedback_site_id`` a ``conf.py`` assigns."""
+    match = re.search(r'^feedback_site_id = "([^"]+)"$', conf_text, re.MULTILINE)
+    assert match, "conf.py does not assign a literal feedback_site_id"
+    return match.group(1)
+
+
+def _library_docs_conf():
+    """Return the library checkout's ``docs/source/conf.py``, or skip."""
+    try:
+        root = _paths.REPOSITORY_ROOT
+    except RuntimeError:
+        pytest.skip("no repository plane in this checkout; the library site is not here")
+    conf = root / "docs" / "source" / "conf.py"
+    if not conf.is_file():
+        pytest.skip("this checkout has no docs/source/conf.py")
+    return conf
+
+
+def test_proxy_generic_feedback_site_authority_lists_both_public_sites():
+    # learn: https://scikit-plots-learn.readthedocs.io; library:
+    # https://scikit-plots.github.io. One allowlisted site and the other
+    # rejected with 422 site_not_allowed is the failure this guards.
+    assert {"scikit-plots-learn", "scikit-plots"} <= _proxy_default_site_ids()
 
 
 def test_site_feedback_site_id_matches_the_proxy_authority():
-    assert 'feedback_site_id = "scikit-plots-learn"' in _site_conf_text()
+    assert _conf_site_id(_site_conf_text()) in _proxy_default_site_ids()
+
+
+def test_library_site_feedback_is_served_by_the_proxy():
+    conf = _library_docs_conf()
+    text = conf.read_text(encoding="utf-8")
+    site_id = _conf_site_id(text)
+    assert site_id in _proxy_default_site_ids()
+    # The packaged snapshot belongs to the learn site; the library site keeps
+    # its own beside conf.py, so the build cannot fail on a site_id mismatch.
+    match = re.search(r'^feedback_aggregate_file = "([^"]*)"$', text, re.MULTILINE)
+    assert match, "conf.py does not assign a literal feedback_aggregate_file"
+    selector = match.group(1)
+    assert selector
+    assert not selector.startswith("/")
+    snapshot = json.loads((conf.parent / selector).read_text(encoding="utf-8"))
+    assert snapshot["site_id"] == site_id
+    assert snapshot["contract"] == "page.feedback-aggregate.v3"
 
 
 

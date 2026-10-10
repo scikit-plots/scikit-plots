@@ -27,7 +27,7 @@ import pytest
 from .. import DEFAULT_POLICY, CapabilityError, Redactor, default_registry, restore
 from .. import _capabilities as caps
 from .._ner import DEFAULT_ENTITY_LABELS, DEFAULT_MODEL, NerDetector, spacy_detector
-from ._tiers import skip_reason
+from ._tiers import skip_reason, engine_ready, engine_skip_reason
 
 NER_AVAILABLE = caps.probe("ner").available
 
@@ -270,7 +270,7 @@ class TestCompositionWithStructuralDetectors:
         assert restore(result.text, result.vault).text == text
 
 
-@pytest.mark.skipif(not NER_AVAILABLE, reason=skip_reason("ner"))
+@pytest.mark.skipif(not engine_ready("spacy"), reason=engine_skip_reason("spacy"))
 class TestLiveModel:
     """Exercised only where spaCy and a model are installed."""
 

@@ -84,6 +84,10 @@ class PatternSpec:
         Strings that must produce at least one accepted match.
     examples_no : tuple of str, default=()
         Strings that must produce no accepted match.
+    risk_reason : str, optional
+        Set when the pack accepts this pattern's backtracking risk on purpose
+        (``risk: accepted``), with the reason written beside it. The pattern
+        risk check then lists it as accepted instead of warning.
 
     Raises
     ------
@@ -101,6 +105,7 @@ class PatternSpec:
     enabled_by_default: bool = True
     examples_yes: tuple[str, ...] = ()
     examples_no: tuple[str, ...] = ()
+    risk_reason: str | None = None
 
     def __post_init__(self) -> None:
         if not self.intent:
@@ -109,7 +114,7 @@ class PatternSpec:
             )
         try:
             re.compile(self.pattern, self.flags)
-        except re.error as exc:
+        except (re.error, OverflowError) as exc:
             raise PatternError(
                 f"pattern {self.kind!r} does not compile: {exc}",
                 name=self.kind,

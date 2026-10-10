@@ -553,3 +553,156 @@ class TestRewrittenStandIns:
         result = restore("Devin Holt / devin holt / DEVIN HOLT", vault)
         assert result.text == "A / B / DEVIN HOLT"
         assert not result.unknown
+
+
+class TestDetectionView:
+    """
+    ``CP-098``: a value is found however invisibly it is written, and restored
+    exactly as it was written.
+
+    Notes
+    -----
+    **Developer notes.** Each obfuscation below went to the model in the clear
+    on the tree before this round. The class-level test at the end salts every
+    built-in pattern's own positive examples, the same way
+    ``test__patterns`` runs them in twelve sentence positions: a single
+    hand-picked case per pattern is how ``CP-028`` stayed hidden.
+    """
+
+    OBFUSCATED = [
+        ("mail ada\u200b@example.com now", "EMAIL"),
+        ("mail \uff41\uff44\uff41\uff20\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45\uff0e\uff43\uff4f\uff4d now", "EMAIL"),
+        ("call +1 555\u00a00100 today", "PHONE"),
+        ("call +1\u2011555\u20110100 today", "PHONE"),
+        ("host 192.0.2.\u200b10 is down", "IPV4"),
+        ("card 4111\u200b1111 1111 1111 expires", "CREDIT_CARD"),
+        ("mail ada\u2060@exam\u00adple.com now", "EMAIL"),
+        ("mail ada@example.com\u202e now", "EMAIL"),
+        ("mail \U0001f600ada@example.com\U0001f600 now", "EMAIL"),
+    ]
+
+    @pytest.mark.parametrize("text,kind", OBFUSCATED)
+    def test_obfuscated_values_are_found(self, text, kind):
+        result = Redactor().redact(text)
+        kinds = {entry.kind for entry in result.entries}
+        assert kind in kinds, (text, result.text)
+        assert len(result.entries) == 1, "one value, one placeholder"
+
+    @pytest.mark.parametrize("text,kind", OBFUSCATED)
+    def test_the_original_writing_is_what_comes_back(self, text, kind):
+        result = Redactor().redact(text)
+        assert restore(result.text, result.vault).text == text
+
+    @pytest.mark.parametrize("text,kind", OBFUSCATED)
+    def test_no_visible_part_of_the_value_is_sent(self, text, kind):
+        """Everything left of the value in the output is the surrounding prose."""
+        result = Redactor().redact(text)
+        surface = result.entries[0].original
+        assert surface not in result.text
+        visible = "".join(c for c in surface if c.isalnum())
+        assert visible[:4] not in result.text.replace(" now", "")
+
+    def test_the_vault_keeps_the_invisible_characters(self):
+        text = "mail ada\u200b@example.com now"
+        result = Redactor().redact(text)
+        assert result.entries[0].original == "ada\u200b@example.com"
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Plain English with a@b.co and 192.0.2.10.",
+            "Café crème, naïve résumé, 東京 and Ελλάδα — no values here.",
+            "Don\u2019t worry, it\u2019s fine.",
+        ],
+    )
+    def test_text_without_hidden_values_is_unchanged_by_the_view(self, text):
+        """The view adds spans only where it finds something the text hides."""
+        from .._canonical import detection_view
+
+        result = Redactor().redact(text)
+        view = detection_view(text)
+        if view is None:
+            return
+        plain = Redactor().redact(view.text)
+        assert [e.kind for e in result.entries] == [e.kind for e in plain.entries]
+
+    def test_nfd_and_nfc_writings_redact_the_same_value(self):
+        """Combining marks are not format characters; the value is still found."""
+        import unicodedata
+
+        for form in ("NFC", "NFD"):
+            text = unicodedata.normalize(form, "José écrit à jose@example.com, à bientôt")
+            result = Redactor().redact(text)
+            assert any(entry.kind == "EMAIL" for entry in result.entries), form
+            assert restore(result.text, result.vault).text == text
+
+    def test_a_hidden_literal_term_is_found(self):
+        result = Redactor().redact("Ad\u200ba Lovelace wrote it", extra_terms=["Ada"])
+        assert result.entries and result.entries[0].original == "Ad\u200ba"
+
+    def test_overlap_with_an_original_text_span_merges(self):
+        """The view and the original find parts of one value: one placeholder."""
+        text = "card 4111\u200b1111 1111 1111 expires"
+        result = Redactor().redact(text)
+        assert result.text == "card [CREDIT_CARD-1] expires"
+
+    def test_entity_detectors_never_read_the_view(self):
+        from .._detectors import DetectorRegistry
+        from .._types import Span
+
+        seen = []
+
+        class Probe:
+            name = "probe"
+            kind = "NE"
+            priority = 30
+
+            def kinds(self):
+                return ("PERSON",)
+
+            def detect(self, text, policy):
+                seen.append(text)
+                return iter(())
+
+        registry = DetectorRegistry()
+        registry.add(Probe())
+        Redactor(registry=registry).redact("Ada\u200b Lovelace")
+        assert seen == ["Ada\u200b Lovelace"]
+        del Span
+
+    def test_running_twice_is_stable(self):
+        text = "mail ada\u200b@example.com and +1 555\u00a00100"
+        first = Redactor().redact(text)
+        second = Redactor().redact(first.text)
+        assert second.text == first.text
+        assert not second.entries
+
+    def test_the_span_limit_counts_both_passes(self):
+        from .._exceptions import LimitExceededError
+        from .._policy import Limits, RedactionPolicy
+
+        text = " ".join(f"u{i}\u200b@example.com" for i in range(6))
+        policy = RedactionPolicy(limits=Limits(max_spans=5))
+        with pytest.raises(LimitExceededError):
+            Redactor(policy=policy).redact(text)
+
+    def test_every_pattern_example_is_found_when_salted(self):
+        """Each positive example, a zero-width space after its first character."""
+        from .._patterns import PATTERNS
+
+        failures = []
+        for spec in PATTERNS.values():
+            if not spec.enabled_by_default:
+                continue
+            for example in spec.examples_yes:
+                if len(example) < 2:
+                    continue
+                salted = example[0] + "\u200b" + example[1:]
+                text = f"see {salted} here"
+                result = Redactor().redact(text)
+                found = {entry.kind for entry in result.entries}
+                if spec.kind not in found or salted[1:] in result.text:
+                    failures.append((spec.kind, example, result.text))
+                elif restore(result.text, result.vault).text != text:
+                    failures.append((spec.kind, example, "restore"))
+        assert not failures, failures

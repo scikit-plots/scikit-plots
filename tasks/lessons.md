@@ -302,12 +302,104 @@
 - **Verified by:** the refusal tests still pass, and a test named after the legitimate configuration passes.
 - **Added:** 2026-10-09. Root cause: `check_namespace` took any `_sphinx_ext.` name as a stack root; the docs' unrelated `_sphinx_ext.mpl_ext` helpers tripped it, and the workaround filtered every name away, which switched the guard off and failed 13 tests.
 
+### Rule 51: Shell - text that may contain the heredoc delimiter goes in a file, not a heredoc
+- **When:** a command embeds a document (a README, a transcript, a shell example) in a heredoc, and that document may itself contain the delimiter word on a line of its own (`END`, `EOF`).
+- **Then:** write the content with the file-writing tool to a script in the scratchpad and run the script; never embed such content in `<<'END'`.
+- **Verified by:** no heredoc in the session's commands carries a document that contains its delimiter; `grep -n "^END$" <content>` before embedding.
+- **Added:** 2026-10-09. Root cause: a Python edit of the cleanprompt README was passed in `<<'END'`; the README's own `<<'END'` example ended the heredoc early, the edit did not run, and the shell executed the following lines, one of them a `pip install` (already satisfied; checked, nothing changed).
+
+### Rule 52: Tooling - an escape written through a tool may arrive as the character it names
+- **When:** text written through a tool parameter contains `\uXXXX` meant to stay an escape (invisible characters, confusables, test data for Unicode handling).
+- **Then:** write the backslash doubled inside Python source, or generate the character with `chr()`; after writing, scan the file for categories `Cf`/`Zs`/confusable scripts and convert any literal one to an escape.
+- **Verified by:** `python3 -c "import unicodedata,sys;t=open(sys.argv[1],encoding='utf-8').read();print([ascii(c) for c in t if ord(c)>127 and unicodedata.category(c) in ('Cf','Zs')])" FILE` prints `[]` for every file written in the round.
+- **Added:** 2026-10-09. Root cause: zero-width spaces and a Cyrillic letter landed literally in tests, a probe, a gallery comment and two ledger notes — the exact disguises the round was fixing. Found by the scan, converted before delivery.
+
+### Rule 53: Diagnostics - "ready" is proved by running the thing on a fixed input
+- **When:** a report says an optional component can run (an engine, a model, a data package, a driver).
+- **Then:** decide it with the same code path the real run uses, on a small fixed input; a package's presence, or a file's presence under a guessed name, is not readiness. Keep one function for the report and the run.
+- **Verified by:** a test with the component installed and its data absent (and with data under an outdated name) asserts that the report and the run fail alike, with the same remedy.
+- **Added:** 2026-10-09. Root cause: `doctor` read the package (`CP-093`), then the data's path under either of two names (`CP-100`); the run needed the data, under the new name.
+
+### Rule 54: Documentation - every example is executed before it is published
+- **When:** a guide page, README section or docstring shows a command or a call.
+- **Then:** run each one against the tree being delivered and compare the output; add a mechanical check where the class of error can recur (options per command).
+- **Verified by:** the round's notes list each page with "examples executed"; `test_documented_cli.py` passes.
+- **Added:** 2026-10-09. Root cause: executing the rewritten guide found `encode --pack-file` (`CP-101`, an option that never existed), `encode_tree(source)` without its required target, and `batch --dry-run --out` (refused) — two of them copied from the previous guide.
+
+### Rule 55: Tests - an assertion about process-wide state uses a value no other test uses
+- **When:** a test asserts something about state shared across a process (a log filter, a registry, a cache, an environment variable) that other tests also populate.
+- **Then:** use a value unique to that test (or reset the state explicitly in a fixture); never rely on objects from earlier tests having been garbage-collected.
+- **Verified by:** the full suite passes five times in a row under `-n 8` as well as serially.
+- **Added:** 2026-10-10. Root cause: `test_the_cleaners_values_are_scrubbed_until_cleared` used `ann@example.com`, which other tests also encode; a cleaner waiting for garbage collection in the same xdist worker still held it in the shared scrub filter, so the value stayed scrubbed after `clear()` — 1 run in 3 failed, never serially.
+
+### Rule 56: Analysis - a static check is calibrated on known-bad, known-good and every shipped input
+- **When:** writing a rule that classifies code or data (a regex risk check, a linter rule, a validator).
+- **Then:** run it on a table of cases that must fire, a table that must not, and on *everything the project ships*; a finding on shipped input is a false positive until proved otherwise. Where the property is measurable (run time), measure it and compare with each verdict.
+- **Verified by:** `TestBuiltinsAreClean` and `probe_round26.py` (measured slow == reported, for every case).
+- **Added:** 2026-10-10. Root cause: the first pattern-risk rule flagged the core EMAIL pattern `(?:\.[...]+)+`; it read only the part after the inner repetition and missed that the group's mandatory leading `.` separates repetitions. Running it on the built-ins found it before anything shipped.
+
+### Rule 57: Protection - check the forms your own generator produces, not only the form you were given
+- **When:** a guard decides whether generated text could reveal an input (stand-ins, slugs, file names, IDs built from names).
+- **Then:** list every transformation the generator applies (case, separators, joining, truncation) and make the guard match the input through each of them; test with a multi-word input, not only a one-word one.
+- **Verified by:** a regression test with a two-word held value against e-mail, URL and slug-shaped candidates (`TestCP105...`).
+- **Added:** 2026-10-10. Root cause: `CP-071` matched held values joined by spaces; the generator builds e-mail local parts by joining words with `.`, so `Marion Holt` passed as `marion.holt@example.invalid`. Found by reading the gallery output of a new feature, not by a test.
+
+### Rule 58: Unicode - a normalisation rule is tried on real text in many scripts before it ships
+- **When:** a validator refuses input that is not in some normal form (NFC, NFKC) or restricts characters by category.
+- **Then:** run it on ordinary names or words from at least a dozen scripts (Latin with diacritics, Turkish, Vietnamese, Greek, Cyrillic, Arabic with harakat, Hebrew with niqqud, Devanagari, Thai, Hangul, Japanese, Chinese) and on canonically equivalent spellings; prefer naming the forms to refuse over requiring a normal form, and normalise what is equivalent instead of refusing it.
+- **Verified by:** `test__surrogate_sets.TestEntryFloor.test_names_pass` lists names from those scripts.
+- **Added:** 2026-10-10. Root cause: requiring NFKC to stop full-width look-alikes also refused Thai `\u0e19\u0e49\u0e33\u0e1d\u0e19` (SARA AM has a compatibility decomposition) and Arabic typed shadda-then-fatha; found by re-running the review brief by hand.
+
+### Rule 59: Analysis - a static check of a measurable property is fuzzed against the measurement
+- **When:** a check predicts behaviour that can be measured (run time, memory, output size).
+- **Then:** generate random inputs from a fixed seed, run the check, and measure every input it passes in a killable child; a passed input that misbehaves is a miss. Report precision on the flagged side too, and let it decide the default policy.
+- **Verified by:** `evidence/probe_round26_fuzz.py` ends `TOTAL FAILURES: 0`.
+- **Added:** 2026-10-10. Root cause: after the review's fixes, three classes of exponential pattern still passed (nullable groups read as separators, optional parts trading characters); hand-written cases had not covered them.
+
+### Rule 60: Partial distributions - a part's test never reads a sibling part's files unconditionally
+- **When:** a test in one subpackage (`scikitplot/_cli`) cross-checks another (`scikitplot/cleanprompt`) by importing it or reading its source.
+- **Then:** assert what the part itself promises unconditionally; run the cross-check only where the sibling is installed, and skip with a reason naming the partial distribution otherwise.
+- **Verified by:** `python -m libs._tools verify scikit-plots-skinny` (and `--python 3.8 --skip-build`) report "part's own tests pass".
+- **Added:** 2026-10-10. Root cause: round 25's `_cli/tests/test_registry.py` read `cleanprompt/_capabilities.py` by path; `scikit-plots-skinny` ships `_cli` without cleanprompt, so every Verify leg (3.8–3.15, three OSes) failed with FileNotFoundError. The workflow existed and was not run locally before delivery.
+
+### Rule 61: Scanners - test data that is dangerous on purpose is marked, and a gate keeps it marked
+- **When:** a test needs input that a static analyser rightly flags in program code (a catastrophic regular expression, a credential shape).
+- **Then:** build it through one documented helper (`regex_fixture`, as `I14` fragments do for credentials) and add a gate that fails on an unmarked fixture, using the subsystem's own detector.
+- **Verified by:** `maintenances/cleanprompt/_maintenance/tests/test_regex_fixtures.py`; it fails on the round-26 tree at the line CodeQL reported.
+- **Added:** 2026-10-10. Root cause: CodeQL `py/redos` alert 227 on PR 864 for `_RISKY` in `test__pattern_risk.py`; the fixture flowed into `re.compile` through `analyse_pattern`.
+
+### Rule 62: Tests - an object that owns a resource is used as a context manager in tests
+- **When:** a test creates an object with `close()` / `__exit__` that may own a temporary directory, file or thread pool.
+- **Then:** use `with`, and assert the resource is gone after the block; never rely on garbage collection.
+- **Verified by:** the corpus suite passes with `-W error::ResourceWarning -W error::pytest.PytestUnraisableExceptionWarning`.
+- **Added:** 2026-10-10. Root cause: `test_downloader_factory_is_wired_to_builder_seam` created the builder's temporary directory and dropped the builder; the coverage job, which turns unraisable warnings into errors, failed with "Implicitly cleaning up <TemporaryDirectory>".
+
+### Rule 63: Paths - every tracked path fits the Windows checkout budget
+- **When:** adding or renaming any file, above all deep maintenance notes and tests.
+- **Then:** keep the repository path within the budget `tools/maint_tools/check_path_lengths.py budget` prints (131 today: 259 usable minus the longest pip clone directory); name notes as labels (identifier first, no repeated directory words, title in the heading).
+- **Verified by:** `python tools/maint_tools/check_path_lengths.py check` on every pull request (`pr_check_path_lengths.yml`).
+- **Added:** 2026-10-10. Root cause: a Git-based `pip install ...#subdirectory=libs/skinny` on Windows failed with "Filename too long" on two `_sphinx_ai_assistant` fresh-chat handoff notes (152 and 166 characters under a 108-character clone directory). pip clones the whole repository, so any long path anywhere breaks every Git-based install of every part.
+
+### Rule 64: Shared defaults - every site that consumes a shared default is tested against it
+- **When:** a library ships a value bound to one deployment (a server allowlist default, a packaged data file carrying a `site_id`) that more than one site consumes.
+- **Then:** name every known consumer in a test and assert its configuration agrees with the shared value; give each site a place for its own data (here: `feedback_aggregate_file` without a leading slash, beside `conf.py`) instead of one packaged file; never pin the shared value as a source-text string.
+- **Verified by:** `test_page_feedback_integration_source.py::test_proxy_generic_feedback_site_authority_lists_both_public_sites` and `::test_library_site_feedback_is_served_by_the_proxy`, and `_sphinx_feedback/tests/test_sphinx_build.py` (any site builds; a packaged snapshot of another site fails closed).
+- **Added:** 2026-10-10. Root cause: `_sphinx_feedback` was configured for scikit-plots-learn only. The proxy allowed `site_id` `scikit-plots-learn`, the one packaged snapshot carried `scikit-plots-learn`, and the integration test pinned both as text and ran only in the learn checkout, so https://scikit-plots.github.io/dev/ (`scikit-plots`) failed at build (`site_id does not match`) and at submit (`422 site_not_allowed`) with every check green.
+
+### Rule 65: SQLite - `with sqlite3.connect(...)` does not close the connection
+- **When:** opening a `sqlite3` connection, in product code or tests.
+- **Then:** `with closing(sqlite3.connect(...)) as conn, conn:`: `closing` releases the handle, the inner `with conn` keeps commit/rollback.
+- **Verified by:** `python -m pytest scikitplot/_externals/_sphinx_ext/_sphinx_feedback --confcutdir scikitplot/_externals/_sphinx_ext/_sphinx_feedback -W error` on Python 3.13+, where an unclosed connection raises `ResourceWarning`.
+- **Added:** 2026-10-10. Root cause: `SQLiteFeedbackStore` used the connection's context manager, which only ends the transaction; every `put`/`events` leaked a handle in the long-running service, and the suite failed at random tests under `-W error`. Rule 62 applied to product code.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 50
+- Total lessons: 65
+- Round 29: Rule 62 repeated in product code (SQLite connections), now Rule 65 with the exact idiom.
+- Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.

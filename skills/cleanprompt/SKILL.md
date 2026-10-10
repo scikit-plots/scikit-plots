@@ -37,21 +37,54 @@ scikitplot/cleanprompt/
 
 ## Read first
 
+0. `maintenances/cleanprompt/_maintenance/RESUME.md` — **where the work is**.
+   A session with no history continues from here: the round in progress, a
+   step log whose every "done" names the command that proved it, the last
+   verified numbers, the next action, the open `upcoming_changes` ledger and
+   the decisions waiting for the maintainer.
 1. `maintenances/cleanprompt/_maintenance/DESIGN.md` — the invariants and the
    reasoning; everything else assumes it
 2. `maintenances/cleanprompt/_maintenance/FRESH_CHAT_HANDOFF.md`
 3. `maintenances/cleanprompt/REVIEW.json`
 4. `maintenances/cleanprompt/_maintenance/VERIFICATION.md`
 5. `maintenances/cleanprompt/_maintenance/STATE.json`
+6. `upcoming_changes/scikitplot/cleanprompt/` — verified follow-up work with
+   full designs; report any inconsistency you find there as a new note
+7. `maintenances/cleanprompt/_maintenance/GENERATOR_DESIGN.md` — before
+   touching stand-ins (`_surrogates.py`, `_surrogate_sets.py`, `TagStyle`)
 
 Then run:
 
 ```sh
 python -B maintenances/cleanprompt/_maintenance/check_trackers.py --json
-python -B maintenances/cleanprompt/_maintenance/review_subsystem.py --json
+python -B maintenances/cleanprompt/_maintenance/review_subsystem.py --json   # exit 3 = record is stale
 python -B -m pytest maintenances/cleanprompt/_maintenance/tests -q -p no:cacheprovider
 python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider
+python -B -m pytest docs/source/user_guide/cleanprompt -q -p no:cacheprovider
 ```
+
+If the package suite cannot import `scikitplot` (a source checkout without a
+compiled build), run it under a stand-in parent as `RESUME.md` describes.
+
+## Keeping a fresh session able to continue
+
+This work spans many sessions, and none of them can rely on the last one's
+history. Four habits make that safe:
+
+- **Write the step log as you go.** When a step finishes, its row in
+  `RESUME.md` changes in the same edit as the code, with the command and its
+  result. A log reconstructed from memory at the end is a claim with no
+  evidence.
+- **Keep the ledger equal.** Every note under
+  `upcoming_changes/scikitplot/cleanprompt/` is listed in `RESUME.md` with its
+  status; `tests/test_resume.py` fails otherwise. A finding you will not fix
+  now becomes a note — with reproduction, root cause and acceptance
+  criteria — not a sentence in a chat.
+- **Freeze before verifying.** Run long lanes against a copy of the tree, or
+  do not edit while they run (`tasks/lessons.md` rules 1 and 22).
+- **Close the round.** Move the summary to `HISTORY.md`, refresh `STATE.json`
+  and `EVIDENCE.json` from lanes that actually ran, reset the step log, and
+  leave **Next action** pointing at the first open note.
 
 ## This is a privacy tool, so failure is not symmetric
 
@@ -807,6 +840,89 @@ And the honest limit for `CP-043`: a surrogate is ordinary text, so it gives up
 the one property a bracket label has for free — being obviously not part of the
 document. `placeholder` remains the default for that reason, and it should.
 
+## Installed is not ready (round 25)
+
+`CP-093`: `doctor --ner` called spaCy without a model, or NLTK without its
+data, healthy, and the next `inspect --ner` failed. An engine is ready when it
+reads the language, its package is installed, and its data is present and
+loadable. `_engines.engine_readiness` is that decision; `auto` picks only a
+ready engine; `build_detectors(required=True)` refuses an unready one before
+any text is read, with each engine's reason and remedy. Every surface builds
+through `build_detectors` — the web app used to build its own spaCy detector
+and ignored the engine, language and size it was given (`CP-094`).
+
+spaCy's model is checked from metadata without importing it. NLTK's data can
+only be checked through NLTK, so that check runs under `check_assets` only,
+where NLTK is about to load anyway. And it is a *run*, not a lookup: NLTK 3.9
+moved its tagger and chunker to new packages, and data under the old names
+was found on disk but could not be loaded (`CP-100`). `_nltk.missing_data`
+runs the detector's own tagger and chunker on a fixed sentence, and the remedy
+names every package of a missing group, current and older.
+
+## Generated files are derived (round 25)
+
+`docker --with-ner` installed `en_core_web_lg` while the image asked for the
+default `sm` (`CP-095`), and the Dockerfile's `docker run` line published on
+every interface while compose used loopback (`CP-096`). The model now comes
+from `resolve_model` and is passed back with `--ner-model`; every launch line
+is `127.0.0.1:PORT:PORT`. When you generate a file, compute what it names from
+the code that will read it, and test the two against each other.
+
+`--debug` is refused on every non-loopback bind, container mode included
+(`CP-097`): no acknowledgement flag covers code execution.
+
+## The detection view (round 25)
+
+`CP-098`: `ada\u200b@example.com`, full-width addresses, `+1 555\u00a00100`
+and a card with a zero-width space inside went out in the clear. The fix is a
+second *reading* (`_canonical.detection_view`): `Cf` characters removed,
+non-ASCII characters folded by `canonical`'s one-to-one table, ASCII
+untouched, with a `bisect` offset map back to the original.
+`Redactor._view_spans` adds the mapped spans before overlap resolution;
+entity engines never read the view. Never "fix" a new disguise by normalising
+the input — that breaks `I6` and exact restoration together. Extend the view's
+table instead, keeping it one character to one character or a deletion.
+
+Only a detector that declares `reads_view = True` reads the view — one whose
+every offset indexes the string it was given. Field, region and JSON-token
+detectors are bound to the original document and must not: the first form of
+the view ran them and cut through `.env` lines and CSV columns (`CP-102`).
+Field names go through the view in `normalise_field` (`CP-103`).
+
+## Instructions are tested (round 25)
+
+Remedy strings are computed from declarations (`CP-099`: the spaCy repair hint
+said `<4` after the tier moved to `<5`). Every `cleanprompt <command>
+--option` line in the README, docstrings, skills, guide and gallery is checked
+against `COMMANDS` by `_maintenance/tests/test_documented_cli.py` (`CP-101`:
+`encode --pack-file` was documented and never existed). The user guide is ten
+pages under `docs/source/user_guide/cleanprompt/`, and its sync test reads
+every page and requires the toctree to list exactly the pages that exist.
+
+## Custom patterns are checked; the user sets the policy (round 26)
+
+`CP-104`: a pack pattern like `^(a+)+$` loaded silently and could stall a
+run. `_pattern_risk.analyse_pattern` reads the source with its own small
+parser (never `sre_parse`) and decides overlap with public `re` over a probe
+alphabet. Three rules: `nested-quantifier`, `overlapping-alternation` and
+`adjacent-quantifiers`; anything it cannot read is `not-analysed`. The
+default is **warn** (maintainer decision). Every finding prints its rewrites
+and the ways out: `risk: accepted` + `risk_reason` in the pack,
+`--pattern-risk ignore|warn|refuse`, `pattern_risk` in a plan, or
+`CLEANPROMPT_PATTERN_RISK`. Built-in patterns must report nothing
+(`test__pattern_risk.TestBuiltinsAreClean`). Measured run time must agree
+with every verdict (`evidence/probe_round26.py`).
+
+## Custom surrogate names under a fixed floor (round 26)
+
+A surrogate set (`_surrogate_sets.py`, `--surrogates FILE`) supplies names for
+`PERSON`, `ORG`, `GPE`, `LOC`, `FAC` only. It only *proposes*; the core loop
+keeps every rule. `EMAIL`/`PHONE`/`URL` never reach it. Its identity is
+recorded in `TagStyle.surrogates`, and default digests are pinned. A
+stand-in must not show a held value written with other separators
+(`CP-105`, `_engine._shows_held`). The design and growth plan are in
+`GENERATOR_DESIGN.md`.
+
 ## Registration in the project-wide CLI
 
 `scikitplot/_cli/registry.py` carries a delegated `CommandSpec` pointing at
@@ -1065,6 +1181,13 @@ Python matrix, lane 13, for the first time; `CP-057` and `CP-058` by the
 format fuzz (`probe_fuzz.py`). The suite stands at 2042 passing,
 6 skipped, green on CPython 3.8 to 3.13 (2128 after round fourteen, 2210
 after round fifteen, 2243 after round sixteen, 2258 after round seventeen, 2302 after round eighteen, 2354 after round nineteen, 2381 after round twenty, 2424 after round twenty-one, 2464 after round twenty-two, 2491 after round twenty-three).
+
+Round twenty-five added `CP-093` to `CP-103` (readiness, the web builder,
+generated deployment files, remote debug, the detection view and its
+document-bound detectors, field names, a stale hint, NLTK's renamed data, a
+documented option that never existed): 2654 passing with no tier, 2732
+with every tier, CPython 3.8 to 3.14 green. `DESIGN.md` section 24 is the
+reasoning; `RESUME.md` lists what is open.
 
 Do not reopen any of them from source inspection alone, and do not close a new
 one without both a regression test and a probe.

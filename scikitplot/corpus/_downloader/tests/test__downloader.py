@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import types
+import socket
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
@@ -59,6 +60,7 @@ from .. import (
     AnyDownloader,
     BaseDownloader,
     CustomDownloader,
+    DownloadPolicy,
     DownloadResult,
     GitHubDownloader,
     GoogleDriveDownloader,
@@ -70,6 +72,30 @@ from .. import (
 # ===========================================================================
 # Fixtures
 # ===========================================================================
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_public_dns(monkeypatch):
+    """
+    Keep downloader unit tests independent of external DNS.
+
+    The dedicated ``_url_handler`` tests own DNS/SSRF failure semantics.  This
+    module tests downloader routing and transport behavior, so public hostnames
+    resolve to a deterministic documentation address instead of depending on
+    the test machine's network. IP literals bypass DNS in the runtime guard.
+    """
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        return [
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("93.184.216.34", 0),
+            )
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
 
 
 @pytest.fixture()
@@ -186,6 +212,35 @@ class TestCoerceParam:
             [None, None, None], 3, name="t", default=None, allow_none_items=True
         )
         assert result == [None, None, None]
+
+
+
+
+class TestDownloadPolicy:
+    def test_secure_roundtrip_and_from_policy(self) -> None:
+        policy = DownloadPolicy.secure()
+        dl = AnyDownloader.from_policy("https://example.com/file.txt", policy)
+        assert dl.verify_ssl is True
+        assert dl.block_private_ips is True
+        assert dl.timeout == policy.timeout
+        assert dl.max_bytes == policy.max_bytes
+
+    def test_constrained_and_large_preserve_security(self) -> None:
+        constrained = DownloadPolicy.constrained()
+        large = DownloadPolicy.large_files()
+        assert constrained.max_bytes < DownloadPolicy.secure().max_bytes
+        assert large.max_bytes > DownloadPolicy.secure().max_bytes
+        for policy in (constrained, large):
+            assert policy.verify_ssl is True
+            assert policy.block_private_ips is True
+
+    def test_mapping_rejects_unknown_field(self) -> None:
+        with pytest.raises(ValueError, match="unknown DownloadPolicy"):
+            DownloadPolicy.from_config({"preset": "secure", "typo": 1})
+
+    def test_invalid_security_flag_type_rejected(self) -> None:
+        with pytest.raises(TypeError, match="verify_ssl"):
+            DownloadPolicy(verify_ssl="yes")  # type: ignore[arg-type]
 
 
 # ===========================================================================
@@ -1176,6 +1231,92 @@ class TestCustomDownloader:
         ).download()
         assert captured["timeout"] == 42
 
+    def test_custom_handler_receives_security_policy_kwargs(self, tmp_dir: Path) -> None:
+        captured: dict = {}
+
+        def handler(input_url, output_path, **kwargs):
+            captured.update(kwargs)
+            out = output_path / "f.txt"
+            out.write_text("ok", encoding="utf-8")
+            return out
+
+        CustomDownloader(
+            input_url="https://example.com/f",
+            handler=handler,
+            output_path=tmp_dir,
+            verify_ssl=True,
+            block_private_ips=False,
+            max_redirects=2,
+        ).download()
+        assert captured["verify_ssl"] is True
+        assert captured["block_private_ips"] is False
+        assert captured["max_redirects"] == 2
+        assert "user_agent" in captured
+
+    def test_custom_handler_cannot_escape_output_dir_by_default(
+        self, tmp_dir: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path.parent / "outside-custom-downloader.txt"
+        outside.write_text("outside", encoding="utf-8")
+
+        def handler(input_url, output_path, **kwargs):
+            return outside
+
+        with pytest.raises(ValueError, match="escaped the configured output directory"):
+            CustomDownloader(
+                input_url="https://example.com/f",
+                handler=handler,
+                output_path=tmp_dir,
+                block_private_ips=False,
+            ).download()
+
+    def test_custom_handler_external_output_requires_explicit_opt_in(
+        self, tmp_dir: Path, tmp_path: Path
+    ) -> None:
+        outside = tmp_path.parent / "outside-custom-downloader-opt-in.txt"
+        outside.write_text("outside", encoding="utf-8")
+
+        def handler(input_url, output_path, **kwargs):
+            return outside
+
+        result = CustomDownloader(
+            input_url="https://example.com/f",
+            handler=handler,
+            output_path=tmp_dir,
+            allow_external_output=True,
+            block_private_ips=False,
+        ).download()
+        assert result.output_path == outside.resolve()
+
+    def test_custom_handler_max_bytes_is_enforced_postcondition(
+        self, tmp_dir: Path
+    ) -> None:
+        def handler(input_url, output_path, **kwargs):
+            out = output_path / "large.bin"
+            out.write_bytes(b"x" * 11)
+            return out
+
+        with pytest.raises(ValueError, match="exceeds max_bytes"):
+            CustomDownloader(
+                input_url="https://example.com/f",
+                handler=handler,
+                output_path=tmp_dir,
+                max_bytes=10,
+                block_private_ips=False,
+            ).download()
+
+    def test_custom_handler_directory_result_is_rejected(self, tmp_dir: Path) -> None:
+        def handler(input_url, output_path, **kwargs):
+            return output_path
+
+        with pytest.raises(ValueError, match="regular file"):
+            CustomDownloader(
+                input_url="https://example.com/f",
+                handler=handler,
+                output_path=tmp_dir,
+                block_private_ips=False,
+            ).download()
+
 
 # ===========================================================================
 # Public API surface
@@ -1356,3 +1497,13 @@ class TestEdgeCases:
             github_token="super_secret_xyz",
         )
         assert "super_secret_xyz" not in repr(dl)
+
+
+def test_any_downloader_rejects_string_security_boolean() -> None:
+    with pytest.raises(TypeError, match="verify_ssl"):
+        AnyDownloader("https://example.com/file.txt", verify_ssl="false")
+
+
+def test_any_downloader_rejects_non_mapping_headers() -> None:
+    with pytest.raises(TypeError, match="headers"):
+        AnyDownloader("https://example.com/file.txt", headers="X-Test: yes")

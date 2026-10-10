@@ -1,0 +1,3 @@
+- ``cleanprompt flask --debug`` is now refused on any non-loopback bind,
+  container mode included, and the container files written by
+  ``cleanprompt docker`` publish on ``127.0.0.1`` only.

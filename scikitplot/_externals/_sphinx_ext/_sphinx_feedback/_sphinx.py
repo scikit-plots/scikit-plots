@@ -80,6 +80,9 @@ def _configure(app, config) -> None:
                 expected_site_id=normalized["site_id"],
                 expected_page_revision=normalized["page_revision"],
                 return_metadata=True,
+                # A site's own snapshot lives beside its conf.py; the packaged
+                # one is shared by every site and fits only one site_id.
+                source_root=getattr(app, "confdir", None),
             )
     except FeedbackConfigError as exc:
         raise ConfigError(str(exc)) from exc

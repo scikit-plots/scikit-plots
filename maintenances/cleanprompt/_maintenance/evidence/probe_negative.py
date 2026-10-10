@@ -608,11 +608,19 @@ check("CP-087", "run_command closes the command's input, output and error pipes 
       len(_started23) == 1 and all(getattr(_started23[0], n).closed for n in ("stdin", "stdout", "stderr")))
 from scikitplot.cleanprompt import _diagnostics as _diag23
 from scikitplot.cleanprompt._capabilities import CapabilityStatus as _CS23, probe as _probe23
-def _remedy23(*present):
-    _diag23.probe = lambda name: _probe23(name)._replace(
+from scikitplot.cleanprompt import _engines as _eng23
+def _remedy23(*present, model=True):
+    # CP-093: the remedy also reads whether spaCy's model is present, so the
+    # installation supplied here includes it.
+    fake = lambda name: _probe23(name)._replace(
         status=_CS23.AVAILABLE if name in present else _CS23.ABSENT)
+    real_model = _eng23._spacy_model_ready
+    _diag23.probe = fake; _eng23.probe = fake
+    _eng23._spacy_model_ready = lambda _m: model
     try: return _diag23._entity_remedy()
-    finally: _diag23.probe = _probe23
+    finally:
+        _diag23.probe = _probe23; _eng23.probe = _probe23
+        _eng23._spacy_model_ready = real_model
 check("CP-088", "the name-detection remedy names the switch in every installation, and NLTK alone names NLTK",
       all("--ner" in _remedy23(*p) for p in ((), ("ner",), ("nltk",), ("ner", "nltk")))
       and _remedy23("nltk").startswith("NLTK is installed") and _remedy23("ner", "nltk").startswith("spaCy is installed"))
@@ -661,6 +669,116 @@ check("CP-092", "a current cryptography is accepted, one below the floor is refu
       and "tier is unavailable" not in (_tests23 / "test__crypto.py").read_text(encoding="utf-8"),
       "%s / %s" % (_new25.detail, _old25.detail))
 
+# Round 25: CP-093 .. CP-098 (reproduced on the uploaded tree first: probe_round25.py).
+from scikitplot.cleanprompt import CapabilityError as _CE25, _serve as _serve25
+from scikitplot.cleanprompt import CleanPromptError as _CPE25
+def _machine25(spacy=None, nltk=None, model=True, corpora=()):
+    versions = {"spacy": spacy, "nltk": nltk}
+    _caps25._installed_version = lambda name: versions.get(name, _real25(name))
+    _eng23._spacy_model_ready = lambda _m: model
+    _eng23._nltk_missing_corpora = lambda: tuple(corpora)
+_real_model25, _real_corpora25 = _eng23._spacy_model_ready, _eng23._nltk_missing_corpora
+def _refused25(mode):
+    try:
+        _eng23.build_detectors(mode, required=True)
+    except _CE25 as exc:
+        return exc
+    return None
+try:
+    _machine25(spacy="3.8.16", model=False)
+    _a25 = _refused25("spacy"); _auto_spacy25 = _eng23.resolve_engine("auto")
+    _rep25 = _eng23.describe_engines("en", "spacy")
+    _machine25(nltk="3.10.3", corpora=("punkt",))
+    _b25 = _refused25("nltk")
+    _machine25(spacy="3.8.16", nltk="3.10.3", model=False, corpora=())
+    _auto25 = _eng23.resolve_engine("auto", check_assets=True)
+finally:
+    _caps25._installed_version = _real25
+    _eng23._spacy_model_ready, _eng23._nltk_missing_corpora = _real_model25, _real_corpora25
+check("CP-093", "an engine without its model or data is not ready: required requests refuse with the download, auto skips it",
+      _a25 is not None and _a25.install_hint == "python -m spacy download en_core_web_sm"
+      and _b25 is not None and "nltk.download('punkt')" in _b25.install_hint
+      and _rep25["ready"] is False and _auto25 == ("nltk",) and _auto_spacy25 == ())
+check("CP-088", "(round 25) with spaCy but no model, the remedy is the download and still names the switch",
+      "python -m spacy download" in _remedy23("ner", model=False) and "--ner" in _remedy23("ner", model=False))
+_calls25 = []
+_real_build25 = _eng23.build_detectors
+_eng23.build_detectors = lambda **kw: _calls25.append(kw) or []
+try:
+    from scikitplot.cleanprompt._app import create_app as _create25
+    try:
+        _create25(ephemeral_secret_key=True, enable_ner=True, ner_engine="nltk", language="tr", model_size="lg")
+        _web25 = True
+    except _CE25:
+        _web25 = None  # web tier absent: reported below
+finally:
+    _eng23.build_detectors = _real_build25
+check("CP-094", "the web app builds entity detectors through build_detectors with every argument it was given",
+      _web25 is None or _calls25 == [{"mode": "nltk", "language": "tr", "model": None, "size": "lg", "required": True}],
+      str(_calls25))
+_df25 = _serve25.container_files(with_ner=True)["Dockerfile"]
+check("CP-095", "the image installs the model it runs with, resolved like the runtime",
+      "spacy download en_core_web_sm" in _df25 and '"--ner-model", "en_core_web_sm"' in _df25 and "en_core_web_lg" not in _df25)
+_all25 = "\n".join(_serve25.container_files(with_ner=True).values())
+_runs25 = [l for l in _all25.splitlines() if "docker run" in l]
+check("CP-096", "every generated launch line publishes on loopback and no unread setting is generated",
+      _runs25 and all("-p 127.0.0.1:" in l for l in _runs25) and "CLEANPROMPT_NER" not in _all25)
+_dbg25 = []
+for _args25 in ((None, True, False), ("0.0.0.0", False, True), ("192.0.2.10", False, True)):
+    try:
+        _serve25.resolve_bind(*_args25, debug=True); _dbg25.append(False)
+    except _CPE25:
+        _dbg25.append(True)
+check("CP-097", "debug mode is refused on every reachable bind and allowed on loopback",
+      all(_dbg25) and _serve25.resolve_bind(None, False, False, debug=True)[0] == "127.0.0.1")
+_obf25 = ["mail ada\u200b@example.com", "mail \uff41\uff44\uff41\uff20\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45\uff0e\uff43\uff4f\uff4d",
+          "call +1 555\u00a00100", "call +1\u2011555\u20110100", "ip 192.0.2.\u200b10", "card 4111\u200b1111 1111 1111"]
+_ok25 = []
+for _t25 in _obf25:
+    _r25 = r.redact(_t25)
+    _ok25.append(len(_r25.entries) == 1 and _r25.entries[0].original not in _r25.text
+                 and restore(_r25.text, _r25.vault).text == _t25)
+check("CP-098", "values written with invisible or compatibility characters are found and restored as written",
+      all(_ok25), str(_ok25))
+
+from scikitplot.cleanprompt import _nltk as _nltk25
+_cmd25 = _nltk25.download_command(["averaged_perceptron_tagger", "maxent_ne_chunker"])
+try:
+    import nltk as _real_nltk25  # noqa: F401 - only to know whether the loader can be exercised
+    class _Stale25:
+        data = type("D", (), {"find": staticmethod(lambda path: path)})()
+        @staticmethod
+        def pos_tag(tokens): raise LookupError("averaged_perceptron_tagger_eng")
+        @staticmethod
+        def ne_chunk(tagged): raise LookupError("maxent_ne_chunker_tab")
+    _saved25 = (_nltk25._RESOURCES, _nltk25._build_chunker)
+    _nltk25._RESOURCES, _nltk25._build_chunker = {}, (lambda: None)
+    try:
+        _stale25 = _nltk25.missing_data(_Stale25())
+    finally:
+        _nltk25._RESOURCES, _nltk25._build_chunker = _saved25
+except ImportError:
+    _stale25 = ["averaged_perceptron_tagger", "maxent_ne_chunker"]  # loader not exercisable without NLTK
+check("CP-100", "NLTK data this NLTK cannot load is not ready, and the remedy names the current and older packages",
+      _stale25 == ["averaged_perceptron_tagger", "maxent_ne_chunker"]
+      and all("nltk.download('%s')" % n in _cmd25 for n in ("averaged_perceptron_tagger_eng", "averaged_perceptron_tagger",
+                                                            "maxent_ne_chunker_tab", "maxent_ne_chunker")))
+
+from scikitplot.cleanprompt import FluentCleanPrompt as _FCP26
+from scikitplot.cleanprompt._packs import normalise_field as _nf26
+_c26 = _FCP26().packs("all").materialize()
+_env26 = "NO\u200bTE=x\nDB_PASSWORD=pw-1\nOTHER=y\n"
+_e26 = _c26.encode_text(_env26, "env", name="s.env")
+_ok26 = (_e26.text.count("\n") == _env26.count("\n") and "pw-1" not in _e26.text
+         and _c26.decode(_e26.text) == _env26)
+check("CP-102", "a zero-width character early in a record file leaves its lines and separators intact",
+      _ok26, repr(_e26.text))
+_hdr26 = "n\u200bame,phone\nAnn Lee,+1 555 010 4477\n"
+_h26 = _c26.encode_text(_hdr26, "csv", name="s.csv")
+check("CP-103", "an invisible character inside a field name still names the field",
+      _nf26("n\u200bame") == "name" and "Ann Lee" not in _h26.text and _c26.decode(_h26.text) == _hdr26,
+      repr(_h26.text))
+
 # API: encode/decode and the portable handle.
 safe, handle = encode("Mail ada@example.com about the Acme deal", hide=["Acme"])
 rt = decode(safe, handle)
@@ -683,7 +801,7 @@ rng = random.Random(20260920)
 frag_hot = ["ada@example.com","b.c+d@sub.example.co.uk","https://example.com/a?b=1#c","+1 555 010 4477",
             "4242 4242 4242 4242","192.168.1.10","2001:db8:85a3:0:0:8a2e:370:7334","00:1B:44:11:3A:B7",
             "123-45-6789","GB82 WEST 1234 5698 7654 32","AKIAIOSFODNN7EXAMPLE"]
-frag_cold = ["hello","world","2024-01-15","12345678","numpy 1.26.4","\n","\t"," ","Ünïcodé 🎉","[EMAIL-1]","<<x>>"]
+frag_cold = ["hello","world","2024-01-15","12345678","numpy 1.26.4","\n","\t"," ","Ünïcodé \U0001f389","[EMAIL-1]","<<x>>"]
 bad_rt = bad_leak = bad_idem = 0
 N = 3000
 t0 = time.monotonic()
@@ -696,6 +814,20 @@ for _ in range(N):
     if r.redact(res.text).text != res.text: bad_idem += 1
 dt = time.monotonic() - t0
 check("I1", "round trip over %d random documents" % N, bad_rt == 0, "%d failures" % bad_rt)
+# CP-098 at scale: the same hot values salted with invisible and compatibility
+# characters at random positions. No visible character of a value may survive.
+_salt25 = ("\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\u00ad", "\u202e")
+_v_rt = _v_leak = 0
+for _ in range(1000):
+    value = rng.choice(frag_hot)
+    salted = "".join(c + (rng.choice(_salt25) if rng.random() < .2 and i < len(value) - 1 else "")
+                     for i, c in enumerate(value))
+    text = "before " + salted + " after"
+    res = r.redact(text)
+    if restore(res.text, res.vault).text != text: _v_rt += 1
+    if res.text.replace("before ", "").replace(" after", "").strip() == salted: _v_leak += 1
+check("V25", "1000 salted values: each found and restored exactly", _v_rt == 0 and _v_leak == 0,
+      "%d round-trip, %d leak failures" % (_v_rt, _v_leak))
 check("I2", "no detected surface survives", bad_leak == 0, "%d failures" % bad_leak)
 check("I7", "idempotent re-redaction", bad_idem == 0, "%d failures" % bad_idem)
 print("           (%d documents in %.2fs)" % (N, dt))

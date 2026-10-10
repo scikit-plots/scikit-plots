@@ -7,7 +7,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Test suite for ``scikitplot/__init__.py``.
+"""
+Test suite for ``scikitplot/__init__.py``.
 
 Coverage targets
 ----------------
@@ -767,6 +768,20 @@ class TestPublicSurfaceForPartialSupport:
     def test_rank_bm25_is_a_declared_submodule(self):
         assert "rank_bm25" in sp._submodules
         assert "rank_bm25" in sp.__all__
+
+    def test_levenshtein_is_a_declared_submodule(self):
+        assert "levenshtein" in sp._submodules
+        assert "levenshtein" in sp.__all__
+
+    def test_declared_submodule_resolves_before_api_symbol_discovery(self, monkeypatch):
+        monkeypatch.delitem(sp.__dict__, "levenshtein", raising=False)
+
+        def fail_api_discovery():
+            raise AssertionError("declared submodule should not consult _api_names")
+
+        monkeypatch.setattr(sp, "_api_names", fail_api_discovery)
+        module = sp.__getattr__("levenshtein")
+        assert module.__name__ == "scikitplot.levenshtein"
 
     def test_distribution_map_is_a_declared_module(self):
         assert "_distributions" in sp._submodules

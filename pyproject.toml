@@ -576,8 +576,10 @@ corpus = [
   "datasets",
   "langdetect",
   "pytesseract",
-  "whisper",
   "faster-whisper",
+  # Important:
+  # - Do not install the unrelated PyPI package named `whisper` (Graphite).
+  # - OpenAI Whisper's distribution is `openai-whisper`, imported in Python as `whisper`.
   "openai-whisper",
   "youtube-transcript-api",
   "pypdf",

@@ -110,6 +110,7 @@ from ._exceptions import CleanPromptError
 from ._logging import VaultScrubber, audit, get_logger
 from ._office import OFFICE_EXTENSIONS, OfficeLimits, _Budget, extract_office_text
 from ._packs import pack_detectors
+from ._pattern_risk import enforce, pack_findings
 from ._plan import CleanPlan
 from ._policy import DEFAULT_POLICY, RedactionPolicy
 from ._policy import profile as _profile
@@ -517,9 +518,19 @@ class Cleaner:
         self._plan = plan
         self._limits = limits if limits is not None else OfficeLimits()
         self.catalog = plan.catalog()
+        if plan.custom:
+            # The plan's own mode: validate() already refused under 'refuse';
+            # here 'warn' speaks once per open finding, at the point of use.
+            enforce(
+                pack_findings(self.catalog.packs.values()),
+                plan.pattern_risk_mode(),
+                ", ".join(plan.custom),
+            )
         self._formats = self.catalog.resolve_formats(plan.formats_selection())
         policy = _profile(plan.profile) if plan.profile else DEFAULT_POLICY
-        tag_style = replace(policy.tag_style, style=plan.style)
+        tag_style = replace(
+            policy.tag_style, style=plan.style, surrogate_set=plan.surrogate_set()
+        )
         self._policy = policy.evolve(allow=plan.allow, tag_style=tag_style)
         if plan.hide:
             Redactor._check_terms(  # noqa: SLF001 - same validation as the engine

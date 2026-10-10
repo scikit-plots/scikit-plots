@@ -151,3 +151,32 @@ that the ownership and packaging registries describe the same distributions.
 The page intentionally calls these entries *partial distributions*, not
 independent affiliated projects: they are maintained from the same repository
 and share the `scikitplot` namespace.
+
+## Path-length helper (Windows checkouts)
+
+`check_path_lengths.py` keeps every tracked path short enough for Git on
+Windows, which refuses a full path of 260 characters or more unless
+`core.longpaths` is set. A Git-based `pip install ... #subdirectory=libs/<name>`
+clones the whole repository, so one long file name anywhere breaks every such
+install. The budget is derived, not chosen: 259 usable characters minus the
+longest clone directory pip can create (a 20-character account name and the
+longest distribution name among `scikit-plots` and `libs/*`).
+
+```sh
+python tools/maint_tools/check_path_lengths.py budget                      # the model and the number
+python tools/maint_tools/check_path_lengths.py check                       # exit 1 on a new violation
+python tools/maint_tools/check_path_lengths.py check --prefix-length 108   # one user's prefix
+python tools/maint_tools/check_path_lengths.py suggest                     # rename plan (read-only)
+python tools/maint_tools/check_path_lengths.py fix --apply                 # git mv + rewrite references
+```
+
+Known debt outside the maintenance planes is listed with a reason in
+`path_length_baseline.txt`; a listed path that no longer violates fails the
+check, so the list only shrinks. `fix` renames only Markdown under
+`maintenances/` and `docs/maintenances/`, deterministically (shared directory
+affixes, then filler words, then trailing words; a leading identifier is
+kept), and refuses a name it cannot shorten or that would collide.
+
+Until a checkout is fixed, a Windows user can still install with
+`git config --global core.longpaths true` (Git for Windows), or by enabling
+long paths in Windows itself.

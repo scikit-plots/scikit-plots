@@ -130,9 +130,11 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
     ),
     # Delegated, like `mcp`, but deliberately WITHOUT a `capabilities` gate.
     # The cleanprompt base tier is pure standard library, so the command is
-    # always runnable; its optional tiers (ner, web, crypto) are reported by
-    # its own `doctor` subcommand and each raises with an install hint at the
-    # point of use. Declaring a capability here would make the whole command
+    # always runnable; its optional tiers (ner, nltk, web, crypto) are reported
+    # by its own `doctor` subcommand and each raises with an install hint at
+    # the point of use. Vault encryption itself is base tier; the crypto extra
+    # adds only the optional Fernet cipher. tests/test_registry.py keeps this
+    # hint in step with cleanprompt's TIERS. Declaring a capability here would make the whole command
     # unavailable because an *optional* extra is missing, which is exactly the
     # false unavailability the tier design exists to avoid.
     CommandSpec(
@@ -141,9 +143,11 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
         delegate="scikitplot.cleanprompt.__main__:main",
         aliases=("clean-prompt",),
         install_hint=(
-            "The base tier needs nothing. Optional extras: "
-            "pip install scikit-plots[cleanprompt-ner] (names/places), "
-            "[cleanprompt-web] (browser UI), [cleanprompt-crypto] (vault encryption)"
+            "The base tier needs nothing, vault encryption included. Optional "
+            "extras: pip install scikit-plots[cleanprompt-ner] (names/places, "
+            "spaCy), [cleanprompt-nltk] (names/places, English, NLTK), "
+            "[cleanprompt-web] (browser UI), [cleanprompt-crypto] (Fernet "
+            "vault cipher)"
         ),
     ),
 )

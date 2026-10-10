@@ -55,6 +55,7 @@ def resolve_bind(
     host: str | None,
     docker: bool,
     allow_remote: bool,
+    debug: bool = False,
 ) -> tuple[str, str]:
     """
     Decide the bind address and describe its exposure.
@@ -67,6 +68,8 @@ def resolve_bind(
         Whether container mode was requested.
     allow_remote : bool
         Whether the caller acknowledged a non-loopback bind.
+    debug : bool, default=False
+        Whether Flask's debug mode was requested. Allowed on loopback only.
 
     Returns
     -------
@@ -78,7 +81,19 @@ def resolve_bind(
     Raises
     ------
     CleanPromptError
-        If a non-loopback bind was requested without acknowledgement.
+        If a non-loopback bind was requested without acknowledgement, or
+        debug mode was requested on any address other than loopback.
+
+    Notes
+    -----
+    **Developer notes — debug mode is refused off loopback (``CP-097``).**
+    Flask's debug mode serves Werkzeug's interactive debugger, which runs
+    Python typed into the browser. This app has no authentication and handles
+    pasted personal data, so on a reachable address debug mode hands every
+    visitor a shell. ``--allow-remote`` and ``--docker`` acknowledge that the
+    *page* is reachable; neither is an acknowledgement that *code execution*
+    is, and no flag here offers one. Container mode is included: ``0.0.0.0``
+    inside a container is reachable from every network it is attached to.
 
     Examples
     --------
@@ -86,12 +101,22 @@ def resolve_bind(
     '127.0.0.1'
     >>> resolve_bind(None, True, False)[0]
     '0.0.0.0'
+    >>> resolve_bind(None, False, False, debug=True)[0]
+    '127.0.0.1'
     """
     if host is None:
         host = "0.0.0.0" if docker else "127.0.0.1"  # noqa: S104 - see module notes
 
     if host in LOOPBACK:
         return host, "Reachable only from this machine."
+
+    if debug:
+        raise CleanPromptError(
+            f"refusing --debug on {host!r}: Flask's debug mode serves an "
+            "interactive debugger that runs code typed into the browser, and "
+            "this interface has no authentication. Use --debug only on "
+            "127.0.0.1 (the default without --docker), or drop --debug."
+        )
 
     if not (docker or allow_remote):
         raise CleanPromptError(
@@ -154,7 +179,9 @@ def serve(args: argparse.Namespace, stderr: IO[str]) -> int:
     from ._app import create_app  # noqa: PLC0415 - deferred past the tier check
     from ._diagnostics import diagnose  # noqa: PLC0415
 
-    host, exposure = resolve_bind(args.host, args.docker, args.allow_remote)
+    host, exposure = resolve_bind(
+        args.host, args.docker, args.allow_remote, debug=args.debug
+    )
     policy, settings = _policy_from(args)
 
     if args.docker and not os.environ.get("CLEANPROMPT_SECRET_KEY"):
@@ -227,7 +254,12 @@ def _open_browser(host: str, port: int, stderr: IO[str]) -> None:
         stderr.write(f"could not open a browser ({exc}); visit {target}\n")
 
 
-def container_files(port: int = 5000, with_ner: bool = False) -> dict[str, str]:
+def container_files(  # ruff: ignore[too-many-locals]
+    port: int = 5000,
+    with_ner: bool = False,
+    language: str = "en",
+    model_size: str = "sm",
+) -> dict[str, str]:
     """
     Return the container files for the web interface.
 
@@ -236,7 +268,11 @@ def container_files(port: int = 5000, with_ner: bool = False) -> dict[str, str]:
     port : int, default=5000
         Port to expose.
     with_ner : bool, default=False
-        Install spaCy and a model in the image.
+        Install spaCy and a model in the image, and run with that model.
+    language : str, default='en'
+        Language whose model the image installs, when ``with_ner`` is set.
+    model_size : str, default='sm'
+        Preferred model size, resolved exactly as the runtime resolves it.
 
     Returns
     -------
@@ -254,27 +290,51 @@ def container_files(port: int = 5000, with_ner: bool = False) -> dict[str, str]:
     ``CLEANPROMPT_SECRET_KEY`` is **required**, not defaulted. A default would
     be a published secret, and every deployment would share it.
 
-    The ``ner`` layer is **optional and separate**, because the model is
+    The ``ner`` layer is **optional and separate**, because a model is tens to
     hundreds of megabytes and most users do not need it. Putting it behind a
     flag keeps the default image small rather than making everyone pay for a
     capability they may not use.
+
+    **Developer notes — everything generated derives from the runtime.**
+    Three defects came from writing a deployment file by hand next to the code
+    it deploys (``CP-095``, ``CP-096``):
+
+    - the image installed ``en_core_web_lg`` while the runtime default had
+      moved to ``en_core_web_sm``, so an image built for entity detection
+      paid for a large model and then failed looking for the small one. The
+      model now comes from :func:`~scikitplot.cleanprompt._languages.resolve_model`,
+      and the image passes it back explicitly (``--ner-engine spacy
+      --ner-model <model>``), so a later change of default cannot separate
+      what is installed from what is asked for;
+    - the Dockerfile's ``docker run`` line published ``-p PORT:PORT``, which
+      Docker binds on every host interface, while the compose file published
+      on ``127.0.0.1`` only. Every launch line now uses ``127.0.0.1``;
+    - the compose file set ``CLEANPROMPT_NER: "1"``, which nothing reads. A
+      setting that looks load-bearing and is not is removed, not documented.
     """
+    from ._languages import resolve_model  # ruff: ignore[import-outside-top-level]
+
+    model = resolve_model(language, model_size)[0] if with_ner else None
     ner_layer = (
         (
-            "\n# Optional named-entity tier. Large: the model is several hundred MB.\n"
+            "\n# Optional named-entity tier: spaCy and the model the CMD below runs.\n"
             'RUN pip install --no-cache-dir "spacy>=3.4,<5" \\\n'
-            " && python -m spacy download en_core_web_lg\n"
+            f" && python -m spacy download {model}\n"
         )
         if with_ner
         else "\n"
     )
-    ner_env = '      CLEANPROMPT_NER: "1"\n' if with_ner else ""
+    cmd = (
+        f'"--ner", "--ner-engine", "spacy", "--ner-model", "{model}"'
+        if with_ner
+        else ""
+    )
 
-    dockerfile = """\
+    dockerfile = f"""\
 # CleanPrompt web interface.
 #
 # Build:  docker build -t cleanprompt .
-# Run:    docker run --rm -p {port}:{port} \\
+# Run:    docker run --rm -p 127.0.0.1:{port}:{port} \\
 #           -e CLEANPROMPT_SECRET_KEY="$(python -c 'import secrets;print(secrets.token_hex(32))')" \\
 #           cleanprompt
 FROM python:3.12-slim
@@ -301,11 +361,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \\
 
 ENTRYPOINT ["python", "-m", "scikitplot.cleanprompt", "flask", "--docker", "--port", "{port}"]
 CMD [{cmd}]
-""".format(
-        port=port,
-        ner_layer=ner_layer,
-        cmd='"--ner"' if with_ner else "",
-    )
+"""
 
     compose = f"""\
 services:
@@ -322,7 +378,7 @@ services:
       # Required. Generate with:
       #   python -c "import secrets;print(secrets.token_hex(32))"
       CLEANPROMPT_SECRET_KEY: "${{CLEANPROMPT_SECRET_KEY:?set CLEANPROMPT_SECRET_KEY}}"
-{ner_env}    read_only: true
+    read_only: true
     tmpfs:
       - /tmp
     security_opt:
@@ -353,6 +409,19 @@ docker compose up --build
 ```
 
 Then open <http://127.0.0.1:{port}>.
+
+Without compose, publish on loopback the same way:
+
+```sh
+docker build -t cleanprompt .
+docker run --rm -p 127.0.0.1:{port}:{port} -e CLEANPROMPT_SECRET_KEY cleanprompt
+```
+
+`-p {port}:{port}` without the `127.0.0.1:` prefix publishes on **every**
+interface of the host.
+
+`--debug` is refused in a container: Flask's debugger runs code typed into the
+browser, and it is allowed only on a loopback address.
 
 ## What the flags mean
 

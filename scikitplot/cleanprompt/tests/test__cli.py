@@ -88,6 +88,81 @@ class TestKinds:
         assert entry["enabled_by_default"] is False
 
 
+class TestDoctorAgreesWithTheRun:
+    """
+    ``CP-093``: what ``doctor`` calls ready is what the next run can do.
+
+    Notes
+    -----
+    **Developer notes.** Reproduced before the fix with spaCy 3.8.16 and no
+    model: ``doctor --ner`` printed ``healthy: true`` and "named-entity
+    detection are active", and the next ``inspect --ner`` exited 69 on the
+    missing model. The same with NLTK and no data packages. Each case below
+    runs ``doctor`` and ``inspect`` on one supplied installation and asserts
+    the two agree, through both frontends.
+    """
+
+    @staticmethod
+    def _machine(monkeypatch, *, spacy=None, nltk=None, model=True, corpora=()):
+        from .. import _capabilities as caps
+        from .. import _engines
+
+        versions = {"spacy": spacy, "nltk": nltk}
+        monkeypatch.setattr(caps, "_installed_version", lambda name: versions.get(name))
+        monkeypatch.setattr(_engines, "_spacy_model_ready", lambda _m: model)
+        monkeypatch.setattr(_engines, "_nltk_missing_corpora", lambda: tuple(corpora))
+
+    @staticmethod
+    def _doctor(args):
+        status, out, _ = _run_both(["doctor", "--format", "json", *args])
+        assert status == 0
+        return json.loads(out)
+
+    def test_spacy_without_model(self, monkeypatch):
+        self._machine(monkeypatch, spacy="3.7.2", model=False)
+        report = self._doctor(["--ner", "--ner-engine", "spacy"])
+        assert report["healthy"] is False
+        assert report["detection"]["ner_requested"] is True
+        assert report["detection"]["ner_ready"] is False
+        assert report["detection"]["ner_remedy"] == "python -m spacy download en_core_web_sm"
+        assert report["entity_engines"]["ready"] is False
+        status, _, err = _run_both(["inspect", "--ner", "--ner-engine", "spacy", "Ada Lovelace"])
+        assert status == 69
+        assert "python -m spacy download en_core_web_sm" in err
+
+    def test_nltk_without_data(self, monkeypatch):
+        self._machine(monkeypatch, nltk="3.9", corpora=("punkt", "words"))
+        report = self._doctor(["--ner", "--ner-engine", "nltk"])
+        assert report["healthy"] is False
+        assert report["detection"]["ner_ready"] is False
+        assert "nltk.download('punkt')" in report["detection"]["ner_remedy"]
+        status, _, err = _run_both(["inspect", "--ner", "--ner-engine", "nltk", "Ada Lovelace"])
+        assert status == 69
+        assert "nltk.download('punkt')" in err
+
+    def test_auto_reports_the_engine_it_would_actually_use(self, monkeypatch):
+        """spaCy without a model is skipped; NLTK with data is chosen."""
+        self._machine(monkeypatch, spacy="3.7.2", nltk="3.9", model=False, corpora=())
+        report = self._doctor(["--ner"])
+        assert report["entity_engines"]["selected"] == ["nltk"]
+        assert report["entity_engines"]["engines"]["spacy"]["ready"] is False
+        assert report["entity_engines"]["ready"] is True
+        assert report["detection"]["ner_error"] is None
+
+    def test_auto_with_nothing_ready_is_not_healthy(self, monkeypatch):
+        self._machine(monkeypatch, spacy="3.7.2", nltk="3.9", model=False, corpora=("words",))
+        report = self._doctor(["--ner"])
+        assert report["healthy"] is False
+        assert report["entity_engines"]["selected"] == []
+        assert "no engine is ready" in report["detection"]["ner_error"]
+
+    def test_without_ner_nothing_is_requested(self, monkeypatch):
+        self._machine(monkeypatch, spacy="3.7.2", model=False)
+        report = self._doctor([])
+        assert report["detection"]["ner_requested"] is False
+        assert report["detection"]["ner_error"] is None
+
+
 class TestDoctor:
     """The ``doctor`` subcommand, which replaced ``capabilities``."""
 

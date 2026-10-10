@@ -1,0 +1,11 @@
+- ``doctor``, ``inspect``, ``encode`` and the web interface of
+  ``scikitplot.cleanprompt`` now agree on whether an entity engine can run: an
+  engine installed without its spaCy model or NLTK data is reported as not
+  ready with the exact download command, ``--ner-engine auto`` no longer
+  selects it, and an explicit ``--ner`` request fails before any text is read.
+  NLTK data present only under pre-3.9 names is detected as unloadable. The
+  web interface now honours ``ner_engine``, ``language`` and ``model_size``,
+  and ``docker --with-ner`` installs the model it runs with. Appending to a
+  vault with a different ``--style`` (or surrogate set) than the one it was
+  written with is now refused instead of mixing two kinds of stand-in and
+  re-stamping the vault.

@@ -335,7 +335,7 @@ Live Global Share diagnostics separated two deployment failures. The HF proxy no
 
 ## 2026-08-29 — Run 17 — Dataset contribution purpose separation and conversation records
 
-Dataset contribution is removed from Share → More actions and promoted to a first-class **Contribute to dataset** sheet. Feedback telemetry is renamed truthfully and remains content-free; a separate **Contribute this Q&A…** shortcut routes into the canonical contribution workflow. The sheet supports This Q&A, Rated answers, and Whole conversation, where whole conversation is one schema-v4 ordered `messages[]` record. Inspect, privacy preflight, consent 2.0.0, quarantine, receipt deletion and post-promotion withdrawal are one lifecycle. Endpoint Configuration becomes **Runtime & Data** with separate Feedback telemetry and Dataset contributions sections. Proxy deployment version becomes 6.6.1. Telemetry is additionally ratcheted to a two-sided explicit-permission contract: structured versioned browser consent, self-gated rating/retraction helpers, server consent validation, and content-free public feedback events. The fresh-chat design source is `_maintenance/FRESH_CHAT_DATASET_CONTRIBUTION_UX_HANDOFF.md`.
+Dataset contribution is removed from Share → More actions and promoted to a first-class **Contribute to dataset** sheet. Feedback telemetry is renamed truthfully and remains content-free; a separate **Contribute this Q&A…** shortcut routes into the canonical contribution workflow. The sheet supports This Q&A, Rated answers, and Whole conversation, where whole conversation is one schema-v4 ordered `messages[]` record. Inspect, privacy preflight, consent 2.0.0, quarantine, receipt deletion and post-promotion withdrawal are one lifecycle. Endpoint Configuration becomes **Runtime & Data** with separate Feedback telemetry and Dataset contributions sections. Proxy deployment version becomes 6.6.1. Telemetry is additionally ratcheted to a two-sided explicit-permission contract: structured versioned browser consent, self-gated rating/retraction helpers, server consent validation, and content-free public feedback events. The fresh-chat design source is `_maintenance/DATASET_CONTRIBUTION_UX.md`.
 
 ## 2026-08-30 — Run 18 / B37 lifecycle and privacy closure
 
@@ -653,3 +653,19 @@ the source that the stale tests had stopped reaching.
   only and raced the gossip.
 - Result: 2790 passed, 2 skipped, 0 failed (CPython 3.11, pinned proxy
   requirements, Redis 7.0.15).
+
+## 2026-10-10 — page feedback: the proxy serves both public sites
+
+- **One site rejected.** The proxy's default `FEEDBACK_ALLOWED_SITE_IDS` was
+  `scikit-plots-learn`, so a submission from https://scikit-plots.github.io/dev/
+  (`feedback_site_id = "scikit-plots"`) was answered `422 site_not_allowed`
+  while scikit-plots-learn.readthedocs.io worked. The default is now
+  `scikit-plots-learn,scikit-plots`; both origins were already in
+  `_DEFAULT_ALLOWED_ORIGINS`. Any other `site_id` is still refused.
+- **Pinned string replaced.** The integration test pinned the one-site default
+  as source text; it now parses the allowlist, requires both sites, and checks
+  the library checkout's `docs/source/conf.py` site ID and snapshot against it.
+- **Mirror resynced** with `_utils/sync_page_feedback_runtime.py` after
+  `_sphinx_feedback` 0.7.0 (SQLite connections are now closed).
+- Deployment: the live Space keeps its old default until redeployed, or until
+  the Space sets `FEEDBACK_ALLOWED_SITE_IDS=scikit-plots-learn,scikit-plots`.
