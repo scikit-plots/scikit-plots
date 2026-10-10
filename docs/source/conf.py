@@ -2903,6 +2903,40 @@ ai_assistant_endpoint_profiles = {
 }
 ai_assistant_endpoint_default_profile = "default"
 
+# Generic page feedback is an independent reviewed-feedback subsystem. Its
+# endpoint is explicit rather than inherited from the active Assistant profile,
+# so a chat/share-only Cloudflare Worker cannot accidentally become feedback
+# authority. Override FEEDBACK_PROXY_BASE independently in deployments that
+# separate these services. AI Learn pages are excluded because they already own
+# section/generation feedback and should not render a competing page controller.
+_FEEDBACK_PROXY_BASE: str = (
+    os.environ.get("FEEDBACK_PROXY_BASE") or _AI_PROXY_BASE
+).rstrip("/")
+feedback_page_enabled = True
+feedback_position = "sidebar"
+feedback_page_main = True
+feedback_position_fallback = "main-bottom"
+feedback_site_id = "scikit-plots"
+feedback_endpoint = _FEEDBACK_PROXY_BASE + "/v1/feedback"
+feedback_counter_enabled = True
+feedback_counter_source = "embedded"
+# Quick reviewed-count placement is independently configurable per button. The
+# balanced default keeps the counts on the outside edges: [0 | 👎] [👍 | 0].
+feedback_buttons_ratings = {
+    "left_button_rating": "left",
+    "right_button_rating": "right",
+}
+# Generic page-feedback counters are build-time reviewed data. This complete V3
+# snapshot currently certifies that there are no reviewed generic page-feedback
+# events, so eligible pages may render authoritative 0 / 0 quick counts. Replace
+# or regenerate this packaged extension asset from the full reviewed event set
+# as feedback is merged; never mark a partial export complete merely to make
+# zero counters visible. The leading slash is a logical root-relative asset key;
+# the extension resolves it only inside _sphinx_feedback/_static at build time.
+feedback_aggregate_file = "/page-feedback-aggregate.json"
+feedback_include = ["**"]
+feedback_exclude = ["search", "genindex", "py-modindex", "404"]
+
 # Legacy flat endpoint/token keys are intentionally NOT set when explicit
 # profiles are present. Explicit profiles take precedence, and static token
 # config is deprecated/ignored by the latest extension.
