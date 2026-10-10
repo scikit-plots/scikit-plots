@@ -356,13 +356,37 @@
 - **Verified by:** `evidence/probe_round26_fuzz.py` ends `TOTAL FAILURES: 0`.
 - **Added:** 2026-10-10. Root cause: after the review's fixes, three classes of exponential pattern still passed (nullable groups read as separators, optional parts trading characters); hand-written cases had not covered them.
 
+### Rule 60: Partial distributions - a part's test never reads a sibling part's files unconditionally
+- **When:** a test in one subpackage (`scikitplot/_cli`) cross-checks another (`scikitplot/cleanprompt`) by importing it or reading its source.
+- **Then:** assert what the part itself promises unconditionally; run the cross-check only where the sibling is installed, and skip with a reason naming the partial distribution otherwise.
+- **Verified by:** `python -m libs._tools verify scikit-plots-skinny` (and `--python 3.8 --skip-build`) report "part's own tests pass".
+- **Added:** 2026-10-10. Root cause: round 25's `_cli/tests/test_registry.py` read `cleanprompt/_capabilities.py` by path; `scikit-plots-skinny` ships `_cli` without cleanprompt, so every Verify leg (3.8–3.15, three OSes) failed with FileNotFoundError. The workflow existed and was not run locally before delivery.
+
+### Rule 61: Scanners - test data that is dangerous on purpose is marked, and a gate keeps it marked
+- **When:** a test needs input that a static analyser rightly flags in program code (a catastrophic regular expression, a credential shape).
+- **Then:** build it through one documented helper (`regex_fixture`, as `I14` fragments do for credentials) and add a gate that fails on an unmarked fixture, using the subsystem's own detector.
+- **Verified by:** `maintenances/cleanprompt/_maintenance/tests/test_regex_fixtures.py`; it fails on the round-26 tree at the line CodeQL reported.
+- **Added:** 2026-10-10. Root cause: CodeQL `py/redos` alert 227 on PR 864 for `_RISKY` in `test__pattern_risk.py`; the fixture flowed into `re.compile` through `analyse_pattern`.
+
+### Rule 62: Tests - an object that owns a resource is used as a context manager in tests
+- **When:** a test creates an object with `close()` / `__exit__` that may own a temporary directory, file or thread pool.
+- **Then:** use `with`, and assert the resource is gone after the block; never rely on garbage collection.
+- **Verified by:** the corpus suite passes with `-W error::ResourceWarning -W error::pytest.PytestUnraisableExceptionWarning`.
+- **Added:** 2026-10-10. Root cause: `test_downloader_factory_is_wired_to_builder_seam` created the builder's temporary directory and dropped the builder; the coverage job, which turns unraisable warnings into errors, failed with "Implicitly cleaning up <TemporaryDirectory>".
+
+### Rule 63: Paths - every tracked path fits the Windows checkout budget
+- **When:** adding or renaming any file, above all deep maintenance notes and tests.
+- **Then:** keep the repository path within the budget `tools/maint_tools/check_path_lengths.py budget` prints (131 today: 259 usable minus the longest pip clone directory); name notes as labels (identifier first, no repeated directory words, title in the heading).
+- **Verified by:** `python tools/maint_tools/check_path_lengths.py check` on every pull request (`pr_check_path_lengths.yml`).
+- **Added:** 2026-10-10. Root cause: a Git-based `pip install ...#subdirectory=libs/skinny` on Windows failed with "Filename too long" on two `_sphinx_ai_assistant` fresh-chat handoff notes (152 and 166 characters under a 108-character clone directory). pip clones the whole repository, so any long path anywhere breaks every Git-based install of every part.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 59
+- Total lessons: 63
 - Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)
 - Trend: Windows failures per run: 11 rows, then 5 rows (62 tests), then 1 row (2 tests). The two repeats of round 7 are both rules that were written and then applied too narrowly; their successors carry a mechanical check.

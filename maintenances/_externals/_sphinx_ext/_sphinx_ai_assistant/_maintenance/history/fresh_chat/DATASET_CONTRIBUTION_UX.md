@@ -1,6 +1,6 @@
 > **Run 18 supersession notice (2026-08-30):** This Run-17 handoff remains
 > historical evidence. Continue current work from
-> `FRESH_CHAT_LIFECYCLE_PRIVACY_CLOSURE_HANDOFF.md` and B37.
+> `LIFECYCLE_PRIVACY_CLOSURE.md` and B37.
 
 # Fresh Chat Handoff — Dataset Contribution UX Redesign
 
