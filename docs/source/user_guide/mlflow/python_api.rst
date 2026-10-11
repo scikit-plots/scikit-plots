@@ -1,3 +1,5 @@
+.. Do not use here directive ``autosummary``
+
 .. _mlflow-python-api:
 
 Python API

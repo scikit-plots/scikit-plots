@@ -45,8 +45,6 @@ python -m libs._tools verify     # build, then install and test them
 - Below Python `3.10` these are left out, and the rest of the suite runs: they test an optional tier whose own code needs Python `>=3.10`.
 
   - `scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy`
-  - `scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_app.py`
-  - `scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_service.py`
 
 - 8 test modules are left out of the installed-wheel run: they read files of the repository that a wheel does not contain. Run them from a checkout of the repository root:
 

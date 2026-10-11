@@ -4,5 +4,8 @@
   the one packaged snapshot every site shared, which stopped the build of any
   site whose ``feedback_site_id`` differed from it; the Scikit-Plots proxy
   accepts feedback from both https://scikit-plots.github.io and
-  https://scikit-plots-learn.readthedocs.io; and ``_example_conf.py`` documents
-  every ``feedback_*`` setting.
+  https://scikit-plots-learn.readthedocs.io; ``_example_conf.py`` documents
+  every ``feedback_*`` setting; and the standalone service (``create_app``)
+  starts on Python 3.9 again, its rate limiter no longer creating an
+  ``asyncio`` lock that Python 3.9 ties to an event loop at construction ("There
+  is no current event loop").

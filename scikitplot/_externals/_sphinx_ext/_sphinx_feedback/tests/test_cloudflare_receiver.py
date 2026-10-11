@@ -13,6 +13,7 @@ so a drift in either side fails here. Skipped where Node is not installed.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -103,13 +104,25 @@ def test_worker_stores_once_replays_conflicts_and_checks_signatures():
         _case(1, path="/elsewhere"),
         _case(1, method="GET"),
     ]
+    # Inherit the environment: on Windows a child needs ``SystemRoot`` (and
+    # friends) to initialise its system libraries, as the ``subprocess``
+    # documentation states for ``env``; a two-variable environment failed the
+    # Windows leg only. ``NODE_OPTIONS`` is dropped so a developer's shell
+    # cannot inject flags into the harness.
+    env = {key: value for key, value in os.environ.items() if key != "NODE_OPTIONS"}
+    env["SECRET"] = SECRET
     result = subprocess.run(  # noqa: S603 - fixed argv
         [NODE, "--input-type=module", "-e", HARNESS, str(WORKER), json.dumps(cases)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         timeout=60,
-        env={"SECRET": SECRET, "PATH": str(Path(NODE).parent)},
-        check=True,
+        env=env,
+        check=False,
+    )
+    # Report Node's own error: ``check=True`` showed only the exit status.
+    assert result.returncode == 0, (
+        f"node exited {result.returncode}\n--- stderr ---\n{result.stderr}"
     )
     replies = json.loads(result.stdout)
     statuses = [reply["status"] for reply in replies]

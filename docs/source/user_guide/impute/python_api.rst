@@ -1,16 +1,9 @@
+.. Do not use here directive ``autosummary``
+
 .. _impute-python-api:
 
 Python API
 ==========
-
-Stable imports
---------------
-
-.. autosummary::
-   :nosignatures:
-
-   SimpleImputer
-   MissingIndicator
 
 Experimental import
 -------------------

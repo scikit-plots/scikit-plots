@@ -1,15 +1,9 @@
+.. Do not use here directive ``autosummary``
+
 .. _rank-bm25-python-api:
 
 Python API
 ==========
-
-.. autosummary::
-   :nosignatures:
-
-   BM25
-   BM25Okapi
-   BM25L
-   BM25Plus
 
 The base :class:`BM25` owns corpus statistics, validation, sparse candidate
 state, persistence and identity. Instantiate a concrete scorer for normal use.

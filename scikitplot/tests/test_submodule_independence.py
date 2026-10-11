@@ -30,6 +30,7 @@ scikitplot._utils._indexing
 """
 
 import ast
+import difflib
 import hashlib
 from pathlib import Path
 
@@ -111,15 +112,32 @@ def test_a_submodule_does_not_import_a_sibling_at_module_level(submodule):
 @pytest.mark.parametrize(("filename", "owners"), sorted(DUPLICATED_CONTRACTS.items()))
 def test_a_duplicated_contract_has_not_drifted(filename, owners):
     """Every copy of a shared contract is byte-identical to every other."""
-    digests = {}
+    texts, digests = {}, {}
     for owner in owners:
         path = ROOT / owner / filename
         assert path.is_file(), f"{owner} is missing its copy of {filename}"
-        digests[owner] = hashlib.sha256(path.read_bytes()).hexdigest()
+        data = path.read_bytes()
+        texts[owner] = data.decode("utf-8", errors="replace")
+        digests[owner] = hashlib.sha256(data).hexdigest()
+    # Name the copy that differs and show how: a digest alone says nothing
+    # about whether the drift is a formatter's reflow or a changed rule.
+    reference = owners[0]
+    diffs = [
+        "".join(
+            difflib.unified_diff(
+                texts[reference].splitlines(keepends=True),
+                texts[owner].splitlines(keepends=True),
+                fromfile=f"{reference}/{filename}",
+                tofile=f"{owner}/{filename}",
+            )
+        )
+        for owner in owners[1:]
+        if digests[owner] != digests[reference]
+    ]
     assert len(set(digests.values())) == 1, (
         f"copies of {filename} have drifted apart: {digests}. One concept "
         "answered two ways is the defect this contract removes; change every "
-        "copy together."
+        "copy together.\n" + "\n".join(diffs)
     )
 
 

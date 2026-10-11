@@ -55,7 +55,7 @@ Externals (experimental)
         **jupyter-ext**
         ^^^
         .. toctree::
-            :maxdepth: 1
+            :maxdepth: 2
 
             Jupyter Ext <./_jupyter_ext/index.rst>
 
@@ -66,6 +66,6 @@ Externals (experimental)
         **sphinx-ext**
         ^^^
         .. toctree::
-            :maxdepth: 1
+            :maxdepth: 2
 
             Sphinx Ext <./_sphinx_ext/index.rst>

@@ -434,13 +434,47 @@
 - **Verified by:** `TitleTests` (36 titles, every token) and the referenced-label check in `generate_pr_labeler.py check`.
 - **Added:** 2026-10-11. Root cause: three title vocabularies (`defect`, `00 - Bug`, `Documentation`) gave one prefix two labels; substring regexes labelled `DOCKER` as documentation; issue templates named labels nothing else used.
 
+### Rule 73: Tests - a Sphinx application in a test runs inside `docutils_namespace()` or is a `SphinxTestApp` that is cleaned up
+- **When:** a test constructs `sphinx.application.Sphinx(...)` (or anything that builds one).
+- **Then:** wrap construction and build in `with sphinx.util.docutils.docutils_namespace():`, as `sphinx-build` does; or use `SphinxTestApp` and call `cleanup()`. Never a bare application.
+- **Verified by:** `_sphinx_ext/conftest.py::_sphinx_registries_restored_after_each_test` fails the leaking test at its own teardown (`additional_nodes` grew) and restores the state. Proof: with the round-31 `test_feedback_site_builds.py` put back, 13 teardown errors in that file and 0 failures elsewhere.
+- **Added:** 2026-10-11. Root cause: a bare build in `_sphinx_feedback` left 47 nodes, 48 directives and 23 roles registered; the next real build (gallery grid, alphabetically next) warned "already registered" on every CI leg. Rule 69 covered this in words; this is its mechanical successor.
+
+### Rule 74: Async - no `asyncio` primitive is constructed outside a running loop in code that supports Python 3.9
+- **When:** writing `asyncio.Lock/Event/Condition/Semaphore/Queue()` in `__init__`, at module level, or in a sync test body.
+- **Then:** if the guarded section has no `await`, use `threading.Lock` (no loop binding, thread-safe). Otherwise create the primitive inside the coroutine that uses it.
+- **Verified by:** the `_sphinx_feedback` suite on Python 3.9 (422 tests, incl. `test_app.py`, `test_service.py`); on the old code 22 fail at `app.py:266`.
+- **Added:** 2026-10-11. Root cause: 3.9 binds these primitives to `get_event_loop()` at construction, which raises after any `asyncio.run()`; 3.10+ binds lazily, so only the 3.9 leg failed.
+
+### Rule 75: Gates - a version gate hides a test environment's limit, never a product defect
+- **When:** adding to `test_gated`, `test_ignore`, a `skipif`, or an `xfail`.
+- **Then:** state why the *code* is right on that version; if the reason is a defect in shipped code, fix the code and keep the test running.
+- **Verified by:** review of every `test_gated` comment; the feedback gate is removed and its tests run on 3.9.
+- **Added:** 2026-10-11. Root cause: round 4 gated `test_app.py`/`test_service.py` to >=3.10 for the loop-bound lock; the defect shipped, and a new ungated test (`test_network_policy.py`) hit it.
+
+### Rule 76: Diagnostics - a check that fails prints what differs, not only that it differs
+- **When:** a test compares digests, exit statuses, or opaque values.
+- **Then:** put the evidence in the message: a unified diff for drifted copies, a child's stderr for a non-zero exit (`check=False` + assert), the leaked names for leaked state.
+- **Verified by:** `test_a_duplicated_contract_has_not_drifted` prints the `__all__` reflow diff on the uploaded tree; `test_cloudflare_receiver.py` asserts with node's stderr.
+- **Added:** 2026-10-11. Root cause: the CI line said only "drifted" (two hashes) and "CalledProcessError"; the first was a formatter's reflow, the second could not be diagnosed from the log at all.
+
+### Rule 77: Subprocess - on Windows a child's `env` starts from `os.environ`
+- **When:** passing `env=` to `subprocess`.
+- **Then:** `env = {**os.environ, ...}` minus named variables to withhold; never a hand-built minimal mapping. Python's `subprocess` documentation requires a valid `SystemRoot` on Windows.
+- **Verified by:** `test_cloudflare_receiver.py` (Linux local; Windows leg on the next CI run).
+- **Added:** 2026-10-11. Root cause: `env={"SECRET", "PATH"}` failed only on the Windows leg.
+
 ## Pattern Analysis
+- Pattern: process-wide state changed by a test and observed by a later, unrelated one (root logger, docutils registries).
+- Occurrences: 2 (round 30 root logging, round 32 Sphinx registries). A third form exists but is latent: under pytest < 9, a conftest outside `rootdir` gets base id `""`, so the AI-assistant package's autouse fixtures (and its service root handler) apply to every package; `verify.py` runs with `cwd` = the environment, which keeps `rootdir` above `site-packages`.
+- Root Cause: the victim fails, not the culprit; a guard must fail the test that changed the state.
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 72
+- Total lessons: 77
+- Round 32: Rule 69 repeated (process-wide state, now docutils instead of logging): written as words, applied to one package; Rule 73 carries an autouse guard over every extension. Rule 75 retires a gate that hid a shipped defect.
 - Round 31: no repeat; a semantic bug in the new matcher (elif chain over one object's keys) was caught by writing a test for each documented labeler rule.
 - Round 30: Rule 66's subject recurred through delivery (the renamed file could not be deleted by the archive), now Rule 67 with a CI check.
 - Round 29: Rule 62 repeated in product code (SQLite connections), now Rule 65 with the exact idiom.

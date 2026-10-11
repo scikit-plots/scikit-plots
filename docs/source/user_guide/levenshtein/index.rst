@@ -22,7 +22,6 @@ accelerators are discovered lazily.
    backends_and_fallbacks
    ranking_and_matching
    corpus_integration
-   python_api
    performance_and_limits
    troubleshooting
 

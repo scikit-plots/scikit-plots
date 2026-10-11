@@ -1,5 +1,4 @@
-..
-  docs/source/user_guide/cleanprompt/python_api.rst
+.. Do not use here directive ``autosummary``
 
 .. currentmodule:: scikitplot.cleanprompt
 

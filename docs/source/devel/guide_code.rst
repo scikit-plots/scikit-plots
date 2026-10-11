@@ -1,4 +1,9 @@
 .. doctest-skip-all
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _code-guide:
 
 *****************

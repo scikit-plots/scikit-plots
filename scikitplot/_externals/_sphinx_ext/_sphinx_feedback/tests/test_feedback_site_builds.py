@@ -22,6 +22,7 @@ import pytest
 
 sphinx_application = pytest.importorskip("sphinx.application")
 from sphinx.errors import ConfigError  # noqa: E402
+from sphinx.util.docutils import docutils_namespace  # noqa: E402
 
 PACKAGE = Path(__file__).resolve().parents[1]
 EXAMPLE = PACKAGE / "_example_conf.py"
@@ -58,17 +59,22 @@ def _build(tmp_path: Path, conf: dict, *, extensions=(EXTENSION,), files=None):
         target = src / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(payload), encoding="utf-8")
-    app = sphinx_application.Sphinx(
-        str(src),
-        str(src),
-        str(out),
-        str(tmp_path / "doctrees"),
-        "html",
-        status=None,
-        warning=io.StringIO(),
-        freshenv=True,
-    )
-    app.build()
+    # ``sphinx-build`` runs every application inside ``docutils_namespace``:
+    # the nodes, directives and roles an application registers live in
+    # docutils' process-wide tables. Without it they outlive this test, and the
+    # next real build in the process warns "already registered" (round 32).
+    with docutils_namespace():
+        app = sphinx_application.Sphinx(
+            str(src),
+            str(src),
+            str(out),
+            str(tmp_path / "doctrees"),
+            "html",
+            status=None,
+            warning=io.StringIO(),
+            freshenv=True,
+        )
+        app.build()
     html = (out / "index.html").read_text(encoding="utf-8")
     match = CONFIG_SCRIPT.search(html)
     return (json.loads(match.group(1)) if match else None), html
@@ -180,7 +186,9 @@ def test_site_snapshot_symlink_out_of_the_source_directory_is_refused(tmp_path):
     except OSError:
         pytest.skip("this platform cannot create symlinks")
     # No conf.py: Sphinx then uses the source directory as confdir (-C).
-    with pytest.raises(ConfigError, match="stay inside the documentation source"):
+    with docutils_namespace(), pytest.raises(
+        ConfigError, match="stay inside the documentation source"
+    ):
         sphinx_application.Sphinx(
             str(src),
             None,

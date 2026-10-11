@@ -869,8 +869,10 @@ def test_mirror_children_are_cancelled_and_joined_with_parent(tmp_path, monkeypa
         }
     )
     service = PageFeedbackService(cfg, credential_env={"FEEDBACK_GITHUB_TOKEN": "token"})
-    mirror_started = asyncio.Event()
-    mirror_cancelled = asyncio.Event()
+    # Created inside the loop that awaits them: on Python 3.9 an event built
+    # here, outside any loop, binds to ``get_event_loop()`` and is unusable
+    # (or refused) in the loop ``asyncio.run`` creates.
+    signals = {}
 
     async def fake_write(target_obj, *, request, event, request_hash, http_client=None):
         if target_obj.role == "primary":
@@ -880,16 +882,18 @@ def test_mirror_children_are_cancelled_and_joined_with_parent(tmp_path, monkeypa
                 "feedback_id": event["feedback"]["id"],
                 "request_hash": request_hash,
             }
-        mirror_started.set()
+        signals["started"].set()
         try:
             await asyncio.sleep(3600)
         except asyncio.CancelledError:
-            mirror_cancelled.set()
+            signals["cancelled"].set()
             raise
 
     monkeypatch.setattr(service, "_write_target", fake_write)
 
     async def scenario():
+        mirror_started = signals["started"] = asyncio.Event()
+        mirror_cancelled = signals["cancelled"] = asyncio.Event()
         task = asyncio.create_task(service.submit(request()))
         await asyncio.wait_for(mirror_started.wait(), timeout=1)
         task.cancel()

@@ -1,3 +1,5 @@
+.. Do not use here directive ``autosummary``
+
 .. _cython-python-api:
 
 Python API

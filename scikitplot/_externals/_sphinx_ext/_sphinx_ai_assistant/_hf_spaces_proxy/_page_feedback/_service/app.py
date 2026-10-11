@@ -9,13 +9,13 @@ control identity separate from durable feedback events.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import hmac
 import ipaddress
 import json
 import os
 import secrets
+import threading
 import time
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -263,7 +263,13 @@ class FeedbackASGIApp:
         self._rate_secret = secrets.token_bytes(32)
         self._rate: dict[str, tuple[int, float]] = {}
         self._rate_retries: dict[tuple[str, str], tuple[int, float]] = {}
-        self._rate_lock = asyncio.Lock()
+        # The rate section never awaits, so it needs mutual exclusion only
+        # against other threads, not other coroutines. ``asyncio.Lock`` was
+        # wrong here: on Python 3.9 it binds to ``get_event_loop()`` when
+        # constructed, which raises outside a loop after any ``asyncio.run``
+        # and pins the app to one loop; it is also not thread-safe. A
+        # ``threading.Lock`` binds to nothing and is held for microseconds.
+        self._rate_lock = threading.Lock()
         self._rate_last_prune = 0.0
 
     def _cors_origin(self, scope: dict[str, Any]) -> str:
@@ -365,7 +371,7 @@ class FeedbackASGIApp:
         contains only the HMAC abuse identity plus a request commitment.
         """
         now = time.monotonic()
-        async with self._rate_lock:
+        with self._rate_lock:
             self._prune_rate_locked(now)
 
             retry_key = (identity, request_hash)

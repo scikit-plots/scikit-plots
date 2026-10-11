@@ -1,7 +1,7 @@
 
 .. contents:: On this page
    :local:
-   :depth: 1
+   :depth: 2
    :backlinks: entry
 
 Tag Glossary

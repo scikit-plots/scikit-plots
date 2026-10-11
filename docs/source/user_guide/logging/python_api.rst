@@ -1,3 +1,5 @@
+.. Do not use here directive ``autosummary``
+
 .. _logging-python-api:
 
 Python API

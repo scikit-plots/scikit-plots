@@ -13,6 +13,7 @@ pytest.importorskip("sphinx")
 pytest.importorskip("sphinx_markdown_builder")
 
 from sphinx.application import Sphinx
+from sphinx.util.docutils import docutils_namespace
 
 FIXTURE = Path(__file__).parent / "roots" / "test-primary-config-overrides"
 
@@ -46,24 +47,27 @@ def test_programmatic_config_override_reaches_markdown_subbuild(tmp_path: Path):
     )
     (srcdir / "conf.py").write_text(conf_content, encoding="utf-8")
 
-    app = Sphinx(
-        srcdir=srcdir,
-        confdir=srcdir,
-        outdir=outdir,
-        doctreedir=doctreedir,
-        buildername="html",
-        # confoverrides={
-        #     "project": "sphinx-llm config parity fixture",
-        #     "extensions": [
-        #         "sphinx.ext.ifconfig",
-        #         "scikitplot._externals._sphinx_ext._sphinx_llm",
-        #     ],
-        #     "feature_mode": "override",
-        #     "llms_txt_build_parallel": False,
-        #     "llms_txt_full_build": False,
-        # },
-        freshenv=True,
-    )
-    app.build(force_all=True)
-    assert app.statuscode == 0
+    # Inside ``docutils_namespace`` as ``sphinx-build`` does, so the nodes,
+    # directives and roles this application registers do not outlive the test.
+    with docutils_namespace():
+        app = Sphinx(
+            srcdir=srcdir,
+            confdir=srcdir,
+            outdir=outdir,
+            doctreedir=doctreedir,
+            buildername="html",
+            # confoverrides={
+            #     "project": "sphinx-llm config parity fixture",
+            #     "extensions": [
+            #         "sphinx.ext.ifconfig",
+            #         "scikitplot._externals._sphinx_ext._sphinx_llm",
+            #     ],
+            #     "feature_mode": "override",
+            #     "llms_txt_build_parallel": False,
+            #     "llms_txt_full_build": False,
+            # },
+            freshenv=True,
+        )
+        app.build(force_all=True)
+        assert app.statuscode == 0
     _assert_semantic_parity(outdir)
