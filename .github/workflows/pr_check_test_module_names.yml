@@ -1,0 +1,47 @@
+# Every test file in one pytest session must import under its own name.
+#
+# pytest's default import mode imports a test file in a directory without
+# __init__.py under its bare file name. Two such files with the same name
+# stop the whole session at collection ("import file mismatch"): the test
+# shard reports it only after a long install, and every partial
+# distribution's own test run fails the same way.
+# tools/maint_tools/check_test_module_names.py finds every clash in seconds
+# with nothing installed.
+---
+name: "PRs 🧪 Test Module Names"
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-module-names:
+    name: "Check test module names"
+    runs-on: ubuntu-latest
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: "🔎 No two test files share a module name"
+        run: python tools/maint_tools/check_test_module_names.py scikitplot
+
+      - name: "🧪 Tool tests"
+        run: python -m unittest tools/maint_tools/tests/test_check_test_module_names.py -v

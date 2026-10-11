@@ -41,10 +41,13 @@ def _site_conf_text() -> str:
 def _proxy_default_site_ids() -> set[str]:
     """Return the proxy's default ``FEEDBACK_ALLOWED_SITE_IDS`` entries."""
     match = re.search(
-        r'"FEEDBACK_ALLOWED_SITE_IDS",\n    "([^"]*)",', PROXY_TEXT
+        r"^_PAGE_FEEDBACK_DEFAULT_SITE_IDS: tuple\[str, \.\.\.\] = \(([^)]*)\)$",
+        PROXY_TEXT,
+        re.MULTILINE,
     )
-    assert match, "the proxy no longer sets a default feedback site allowlist"
-    return {part.strip() for part in match.group(1).split(",")}
+    assert match, "the proxy no longer declares its default feedback site allowlist"
+    assert '",".join(_PAGE_FEEDBACK_DEFAULT_SITE_IDS)' in PROXY_TEXT
+    return set(re.findall(r'"([^"]+)"', match.group(1)))
 
 
 def _conf_site_id(conf_text: str) -> str:

@@ -250,7 +250,10 @@ feedback_aggregate_file = ""
 #   local        FEEDBACK_GIT_REPOSITORY_PATH=/srv/feedback/repo   (a commit per
 #                event; no network at all)
 #   provider-pr  FEEDBACK_GITHUB_REPOSITORY=org/repo  (+ FEEDBACK_GITHUB_API_URL
-#                for GitHub Enterprise; token FEEDBACK_GITHUB_TOKEN)
+#                for GitHub Enterprise; token FEEDBACK_GITHUB_TOKEN), or
+#                FEEDBACK_STORAGE_TARGETS with "gitlab" (gitlab.com or
+#                self-managed via "api_url"; FEEDBACK_GITLAB_TOKEN) or
+#                "bitbucket" (Bitbucket Cloud; FEEDBACK_BITBUCKET_TOKEN)
 #   custom       FEEDBACK_WEBHOOK_URL=https://ingest.example/v1/events  (+ signing
 #                secret FEEDBACK_WEBHOOK_TOKEN): Cloudflare Worker + D1 (reference
 #                receiver in _service/receivers/), GitLab/Bitbucket pipelines,
@@ -268,6 +271,10 @@ feedback_aggregate_file = ""
 #
 # Logs: logger "sphinx_feedback.service"; comments, credit, addresses and
 # secrets are never logged (README, "Logging").
+#
+# Before enabling a forge, check it read-only with the service's environment:
+#
+#   python -m scikitplot._externals._sphinx_ext._sphinx_feedback check-provider
 #
 # Counters: after reviewed events are merged, rebuild this site's snapshot:
 #

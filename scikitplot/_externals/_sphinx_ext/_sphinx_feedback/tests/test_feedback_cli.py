@@ -118,3 +118,39 @@ def test_init_refuses_an_endpoint_the_policy_forbids(capsys):
     status = main(["init", "--site-id", "docs", "--endpoint", "http://feedback.internal/v1"])
     assert status == 2
     assert "private-network" in capsys.readouterr().err
+
+
+def test_check_provider_runs_read_only_lookups_against_each_forge(tmp_path):
+    import asyncio  # noqa: PLC0415
+
+    import httpx  # noqa: PLC0415
+    from test_forge_providers import BitbucketFake, GitLabFake, Repo  # noqa: PLC0415
+
+    from _sphinx_ext._sphinx_feedback._cli import check_targets  # noqa: PLC0415
+    from _sphinx_ext._sphinx_feedback._service._config import load_service_config  # noqa: PLC0415
+
+    gitlab_repo, bitbucket_repo = Repo(), Repo()
+    gitlab, bitbucket = GitLabFake(gitlab_repo), BitbucketFake(bitbucket_repo)
+    targets = [
+        {"id": "gl", "provider": "gitlab", "role": "primary", "repo": GitLabFake.project},
+        {"id": "bb", "provider": "bitbucket", "role": "mirror", "repo": BitbucketFake.project},
+        {"id": "hook", "provider": "webhook", "role": "mirror", "url": "https://h.example/x"},
+    ]
+    env = {
+        "FEEDBACK_REVIEW_MODE": "provider-pr",
+        "FEEDBACK_STORAGE_TARGETS": json.dumps(targets),
+        "FEEDBACK_GITLAB_TOKEN": "t",
+        "FEEDBACK_BITBUCKET_TOKEN": "t",
+    }
+
+    def route(request):
+        return (gitlab if request.url.host == "gitlab.com" else bitbucket)(request)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(route)) as client:
+            return await check_targets(load_service_config(env), env, client=client)
+
+    results = asyncio.run(run())
+    assert [(r[0], r[1]) for r in results] == [("gl", "ok"), ("bb", "ok"), ("hook", "skip")]
+    writes = [c for c in gitlab.calls + bitbucket.calls if c[0] != "GET"]
+    assert writes == []

@@ -20,11 +20,14 @@ DEST = PROXY / "_page_feedback"
 TOP_LEVEL_FILES = ("__init__.py", "_contracts.py", "_network.py")
 SERVICE_FILES = (
     "__init__.py",
+    "_bitbucket.py",
     "_config.py",
     "_core.py",
     "_custom.py",
+    "_forge.py",
     "_git.py",
     "_github.py",
+    "_gitlab.py",
     "_sqlite.py",
     "_webhook.py",
     "app.py",

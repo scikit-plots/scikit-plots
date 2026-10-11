@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from dataclasses import dataclass, field
@@ -27,9 +28,21 @@ LOCAL_PROVIDERS = frozenset({"sqlite", "git"})
 REVIEW_PROVIDERS = frozenset({"github", "huggingface", "gitlab", "bitbucket"})
 EXTERNAL_PROVIDERS = frozenset({"webhook", "custom"})
 PROVIDERS = LOCAL_PROVIDERS | REVIEW_PROVIDERS | EXTERNAL_PROVIDERS
-IMPLEMENTED_PROVIDERS = frozenset({"sqlite", "git", "github", "webhook", "custom"})
+IMPLEMENTED_PROVIDERS = frozenset(
+    {"sqlite", "git", "github", "gitlab", "bitbucket", "webhook", "custom"}
+)
 DEFAULT_FEEDBACK_STORAGE_TARGETS: tuple = ()
 DEFAULT_GITHUB_API_URL = "https://api.github.com"
+DEFAULT_GITLAB_API_URL = "https://gitlab.com/api/v4"
+#: Bitbucket Cloud only. Bitbucket Data Center has a different REST API
+#: (``/rest/api/1.0``); reach it through the webhook provider.
+BITBUCKET_CLOUD_API_URL = "https://api.bitbucket.org/2.0"
+#: ``api_url`` default per forge provider.
+DEFAULT_API_URLS = {
+    "github": DEFAULT_GITHUB_API_URL,
+    "gitlab": DEFAULT_GITLAB_API_URL,
+    "bitbucket": BITBUCKET_CLOUD_API_URL,
+}
 ROLES = frozenset({"primary", "mirror"})
 #: ``disabled``: refuse every submission (default).
 #: ``sqlite``: every target is SQLite (one-line local setup).
@@ -75,8 +88,11 @@ _SECRET_WORDS = (
     "api_key",
 )
 _MAX_OPTIONS = 32
+_MAX_OPTION_CHARS = 1024
 _ALLOWED_PATH_KEYS = frozenset({"feedback"})
 _REPO_RE = re.compile(r"[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}\Z")
+#: GitLab projects may sit in nested groups: ``group/subgroup/project``.
+_GITLAB_REPO_RE = re.compile(r"[A-Za-z0-9_.-]{1,255}(?:/[A-Za-z0-9_.-]{1,255}){1,19}\Z")
 _ENV_RE = re.compile(r"[A-Z][A-Z0-9_]{0,127}\Z")
 _ALLOWED_EXACT_TOKEN_ENVS = frozenset(
     {
@@ -361,12 +377,15 @@ def _parse_target(  # ruff: ignore[too-many-branches]
         )
     repo = _target_string(raw, "repo")
     if provider in REVIEW_PROVIDERS:
-        if not _REPO_RE.fullmatch(repo):
+        pattern = _GITLAB_REPO_RE if provider == "gitlab" else _REPO_RE
+        if not pattern.fullmatch(repo):
             raise FeedbackServiceConfigError(
-                f"{provider} storage target requires owner/repo",
+                f"{provider} storage target requires "
+                + (
+                    "group/[subgroup/]project" if provider == "gitlab" else "owner/repo"
+                ),
             )
-        owner, repository = repo.split("/", 1)
-        if owner in {".", ".."} or repository in {".", ".."}:
+        if any(part in {".", ".."} for part in repo.split("/")):
             raise FeedbackServiceConfigError(
                 f"{provider} storage target requires a canonical owner/repo",
             )
@@ -390,9 +409,12 @@ def _parse_target(  # ruff: ignore[too-many-branches]
         raise FeedbackServiceConfigError(
             "storage target branch is invalid",
         )
-    if provider == "github" and branch == "feedback":
+    if provider in REVIEW_PROVIDERS and branch == "feedback":
+        # Git refs cannot hold both "feedback" and "feedback/<nonce>".
         raise FeedbackServiceConfigError(
-            "GitHub base branch 'feedback' conflicts with the deterministic feedback/<nonce> review namespace",
+            ("GitHub" if provider == "github" else provider)
+            + " base branch 'feedback' conflicts with the deterministic "
+            "feedback/<nonce> review namespace",
         )
     paths = raw.get("paths", None)
     if paths is None:
@@ -480,8 +502,12 @@ _PROVIDER_KEYS = {
     "github": frozenset(
         {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
     ),
-    "gitlab": frozenset({"repo", "branch", "paths", "token_env", "expose_links"}),
-    "bitbucket": frozenset({"repo", "branch", "paths", "token_env", "expose_links"}),
+    "gitlab": frozenset(
+        {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
+    ),
+    "bitbucket": frozenset(
+        {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
+    ),
     "huggingface": frozenset({"repo", "branch", "paths", "token_env", "expose_links"}),
     "webhook": frozenset({"url", "allow_http", "token_env"}),
     "custom": frozenset({"factory", "options", "token_env"}),
@@ -559,10 +585,15 @@ def _options(value: Any) -> Mapping[str, Any]:
                 "custom storage target options may not carry secrets; name an "
                 "environment variable in token_env instead"
             )
-        _len = len(item) > 1024  # ruff: ignore[magic-value-comparison]
-        if not isinstance(item, (str, int, float, bool)) or (
-            isinstance(item, str) and _len
-        ):
+        # Type first: len() is defined only for the string case, and a
+        # non-finite float would not survive the JSON the factory may log.
+        if isinstance(item, str):
+            valid = len(item) <= _MAX_OPTION_CHARS
+        elif isinstance(item, float):
+            valid = math.isfinite(item)
+        else:
+            valid = isinstance(item, (int, bool))
+        if not valid:
             raise FeedbackServiceConfigError(
                 "custom storage target option values must be short scalars"
             )
@@ -580,13 +611,17 @@ def _provider_extras(  # ruff: ignore[too-many-branches]
         raise FeedbackServiceConfigError(
             f"expose_links is not valid for {provider} targets"
         )
-    if provider == "github":
-        api_url = _target_string(raw, "api_url", default=DEFAULT_GITHUB_API_URL)
+    if provider in DEFAULT_API_URLS:
+        default = DEFAULT_API_URLS[provider]
+        api_url = _target_string(raw, "api_url", default=default) or default
         extras["api_url"] = _https_url(
-            api_url or DEFAULT_GITHUB_API_URL,
-            name="github api_url",
-            allow_private_http=False,
+            api_url, name=f"{provider} api_url", allow_private_http=False
         )
+        if provider == "bitbucket" and extras["api_url"] != BITBUCKET_CLOUD_API_URL:
+            raise FeedbackServiceConfigError(
+                "bitbucket api_url must be https://api.bitbucket.org/2.0: Bitbucket "
+                "Data Center has a different API; use the webhook provider for it"
+            )
     elif provider == "webhook":
         url = _target_string(raw, "url", allow_empty=False)
         allow_http = raw.get("allow_http", False)

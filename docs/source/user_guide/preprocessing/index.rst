@@ -1,50 +1,75 @@
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-..
-  # https://rsted.info.ucl.ac.be/
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-  # https://documatt.com/restructuredtext-reference/element/admonition.html
-  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-
 .. currentmodule:: scikitplot.preprocessing
 
 .. _preprocessing-index:
 
-======================================================================
-Preprocessing
-======================================================================
+Categorical preprocessing
+=========================
 
-Examples relevant to the :py:mod:`~.preprocessing` module.
+``scikitplot.preprocessing`` currently provides two categorical encoders: ``GetDummies`` for pandas-style dummy expansion and ``DummyCodeEncoder`` for a fitted scikit-learn-style transform/inverse-transform workflow.
 
-.. _dummy_code_encoder-index:
+.. important::
 
-DummyCodeEncoder
-----------------------------------------------------------------------
+   Fit categorical state on training data and reuse it for validation/test data. Creating dummies independently for each split can produce incompatible columns and is a common source of silent model errors.
 
-This module contains some functions related to :py:class:`~.DummyCodeEncoder`.
+.. toctree::
+   :maxdepth: 2
+   :hidden:
 
-Encode categorical features into dummy/indicator 0/1 variables.
+   getting_started
+   get_dummies
+   dummy_code_encoder
+   sklearn_integration
+   python_api
+   known_limits_and_troubleshooting
 
-.. rubric:: Examples
+.. grid:: 1 1 2 2
+   :gutter: 2
 
-* :ref:`sphx_glr_auto_examples_preprocessing_plot_dummy_code_encoder.py`: Example usage of
-  :class:`~.DummyCodeEncoder`.
+   .. grid-item-card:: Getting started
+      :link: preprocessing-getting-started
+      :link-type: ref
 
-.. _get_dummies-index:
+      Choose pandas-style GetDummies or sklearn-style DummyCodeEncoder.
 
-GetDummies
-----------------------------------------------------------------------
+   .. grid-item-card:: GetDummies
+      :link: preprocessing-get-dummies
+      :link-type: ref
 
-This module contains some functions related to :py:class:`~.GetDummies`.
+      Column selection, separators, drop behavior, sparse output, dtype, and unknown categories.
 
-Encode categorical features into dummy/indicator 0/1 variables.
+   .. grid-item-card:: DummyCodeEncoder
+      :link: preprocessing-dummy-code-encoder
+      :link-type: ref
+
+      Fit/transform/inverse-transform categorical encoding with estimator semantics.
+
+   .. grid-item-card:: Scikit-learn integration
+      :link: preprocessing-sklearn-integration
+      :link-type: ref
+
+      Pipelines, feature names, training/test separation, and sparse output.
+
+   .. grid-item-card:: Python API
+      :link: preprocessing-python-api
+      :link-type: ref
+
+      The two public encoder classes and their main contracts.
+
+   .. grid-item-card:: Known limits and troubleshooting
+      :link: preprocessing-known-limits-and-troubleshooting
+      :link-type: ref
+
+      Current correctness findings and validation mismatches.
+
+Which page should I use?
+------------------------
+
+Start with **Getting started**. Then choose the page that owns the decision
+you are making: architecture and lifecycle, configuration, persistence,
+performance, public API, or limits. The guide intentionally separates those
+concerns so examples do not accidentally become policy.
+
+Examples
+--------
+
+See :ref:`preprocessing_examples` for executable examples that accompany this guide.

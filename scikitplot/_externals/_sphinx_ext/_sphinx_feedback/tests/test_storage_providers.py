@@ -489,3 +489,39 @@ def test_readme_storage_example_is_a_valid_configuration():
         {"FEEDBACK_REVIEW_MODE": "provider-pr", "FEEDBACK_STORAGE_TARGETS": block}
     )
     assert config.primary.api_url == "https://ghe.example/api/v3"
+
+
+@pytest.mark.parametrize("value", ["feedback", 10, 2.5, True, 0])
+def test_custom_options_accept_every_scalar(value):
+    target = parse_storage_targets(
+        [
+            {
+                "id": "c",
+                "provider": "custom",
+                "role": "primary",
+                "factory": "pkg.mod:make",
+                "options": {"setting": value},
+            }
+        ]
+    )[0]
+    assert target.options["setting"] == value
+
+
+@pytest.mark.parametrize(
+    "value", [["a"], {"k": "v"}, None, float("inf"), float("nan"), "x" * 1025]
+)
+def test_custom_options_refuse_non_scalars_and_oversize(value):
+    # Regression: len() was taken before the type check, so an int raised
+    # TypeError instead of a configuration error, and a list was not refused.
+    with pytest.raises(FeedbackServiceConfigError, match="short scalars"):
+        parse_storage_targets(
+            [
+                {
+                    "id": "c",
+                    "provider": "custom",
+                    "role": "primary",
+                    "factory": "pkg.mod:make",
+                    "options": {"setting": value},
+                }
+            ]
+        )

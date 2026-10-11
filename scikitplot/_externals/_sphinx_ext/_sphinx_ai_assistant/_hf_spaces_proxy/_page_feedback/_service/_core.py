@@ -17,6 +17,7 @@ from .._contracts import (
     feedback_request_hash,
     parse_feedback_request,
 )
+from ._bitbucket import submit_bitbucket_review
 from ._config import (
     FeedbackServiceConfig,
     FeedbackServiceConfigError,
@@ -26,6 +27,7 @@ from ._config import (
 from ._custom import load_custom_adapter
 from ._git import put_git_event
 from ._github import ProviderWriteError, submit_github_review
+from ._gitlab import submit_gitlab_review
 from ._sqlite import SQLiteFeedbackStore
 from ._webhook import submit_webhook
 
@@ -133,8 +135,8 @@ class PageFeedbackService:
             return await self._write_custom(
                 target, event=event, request_hash=request_hash
             )
-        if target.provider in {"github", "webhook"}:
-            label = "GitHub" if target.provider == "github" else "Webhook"
+        if target.provider in _NETWORK_SUBMITTERS:
+            label, submit = _NETWORK_SUBMITTERS[target.provider]
             try:
                 token, _token_name = target.resolve_token(self._credential_env)
             except FeedbackServiceConfigError as exc:
@@ -142,9 +144,6 @@ class PageFeedbackService:
                     "credential_invalid",
                     f"{label} feedback credential is invalid",
                 ) from exc
-            submit = (
-                submit_github_review if target.provider == "github" else _submit_webhook
-            )
             if http_client is None:
                 try:
                     import httpx  # ruff: ignore[import-outside-top-level]
@@ -484,6 +483,15 @@ async def _submit_webhook(*, client, target, token, event, request_hash):
         event=event,
         request_hash=request_hash,
     )
+
+
+#: Network providers: receipt label and submit coroutine (``token`` keyword).
+_NETWORK_SUBMITTERS = {
+    "github": ("GitHub", submit_github_review),
+    "gitlab": ("GitLab", submit_gitlab_review),
+    "bitbucket": ("Bitbucket", submit_bitbucket_review),
+    "webhook": ("Webhook", _submit_webhook),
+}
 
 
 __all__ = [

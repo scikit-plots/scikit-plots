@@ -682,3 +682,24 @@ the source that the stale tests had stopped reaching.
   `test_root_logging_isolation::test_the_held_handlers_are_installed_while_this_package_runs`;
   four further runs (serial and parallel) passed. Recorded as an open
   observation: the test depends on which xdist worker imported the proxy.
+
+## 2026-10-11 — root-logging isolation flake: cause found and fixed
+
+- **Cause.** `test_root_logging_isolation::test_the_held_handlers_are_installed_while_this_package_runs`
+  failed in about one `-n 8` run in two. Running every test file of
+  `_hf_spaces_proxy`, `_integration` and `_architecture` before it, one at a
+  time, found two offenders: `test_deduplicate_dataset.py` (its tests call
+  `deduplicate_dataset.main()`, which installs CLI root handlers) and
+  `test_bounded_remote_response.py` (imports the proxy app inside a test; the
+  import sets `logging.root.handlers`). Serial runs passed only because
+  `_architecture` sorts before both.
+- **Fix.** `tests/conftest.py` gains the autouse `_root_logging_restored_after_each_test`
+  fixture (snapshot before, restore after, pytest's capture handlers left
+  alone); two tests pin it. The probe finds no offender; three parallel runs
+  and the whole tree (2815 passed) are green.
+- **Live Space check.** `/` and `/health` report `page_feedback`
+  (review mode, primary provider, `default_site_ids_allowed` for
+  `scikit-plots-learn` and `scikit-plots`, a count of other site IDs). The
+  default list is one constant, `_PAGE_FEEDBACK_DEFAULT_SITE_IDS`.
+- Mirror follows `_sphinx_feedback` 0.9.0 (`_forge.py`, `_gitlab.py`,
+  `_bitbucket.py`).

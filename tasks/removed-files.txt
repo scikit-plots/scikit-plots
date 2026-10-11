@@ -1,0 +1,5 @@
+# Delete these paths after unzipping (a zip cannot delete files), then delete this file.
+#   bash:       grep -v '^#' REMOVED_FILES.txt | xargs -r git rm -q --ignore-unmatch && rm REMOVED_FILES.txt
+#   PowerShell: Get-Content REMOVED_FILES.txt | ? { $_ -notmatch '^#' -and $_ } | % { git rm -q --ignore-unmatch $_ }; Remove-Item REMOVED_FILES.txt
+scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_sphinx_build.py
+upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_feedback/native-gitlab-bitbucket-hf-adapters.md

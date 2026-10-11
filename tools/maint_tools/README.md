@@ -180,3 +180,21 @@ kept), and refuses a name it cannot shorten or that would collide.
 Until a checkout is fixed, a Windows user can still install with
 `git config --global core.longpaths true` (Git for Windows), or by enabling
 long paths in Windows itself.
+
+## Test module names (`check_test_module_names.py`)
+
+pytest's default import mode imports a test file in a directory without
+`__init__.py` under its bare file name. Two such files with the same name stop
+the whole session at collection ("import file mismatch"), and every partial
+distribution's own test run fails the same way.
+
+```bash
+python tools/maint_tools/check_test_module_names.py            # scikitplot/
+python tools/maint_tools/check_test_module_names.py scikitplot maintenances/cleanprompt
+```
+
+Each argument is one test session. The check computes the name exactly as
+pytest's `prepend` mode does (dotted package path when the directory has
+`__init__.py`, bare stem otherwise) and lists every clash. CI runs it in
+`pr_check_test_module_names.yml`. A drop-in archive cannot delete files: when
+a file is renamed, delete the old one, or this check fails on the clash.

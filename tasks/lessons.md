@@ -398,13 +398,32 @@
 - **Verified by:** the duplicate-basename scan in `tasks/todo.md` (round 29b) prints `{}`; a collision fails collection of the whole shard ("import file mismatch").
 - **Added:** 2026-10-11. Root cause: round 29 added `_sphinx_feedback/tests/test_sphinx_build.py`; `_sphinx_ai_learn/tests/_integration/test_sphinx_build.py` already existed, so the full test shard stopped at collection and the sphinx-ext partial-distribution leg errored.
 
+### Rule 67: Delivery - a rename ships with the deletion, and a check fails while the old file remains
+- **When:** a change renames or removes a file and is delivered as an archive (a zip can add and replace, never delete).
+- **Then:** list every removed path in `REMOVED_FILES.txt` at the archive root and in the reply; keep a fast check that fails while the stale file is present (`tools/maint_tools/check_test_module_names.py` for test modules).
+- **Verified by:** `pr_check_test_module_names.yml` on every pull request; the archive's `REMOVED_FILES.txt`.
+- **Added:** 2026-10-11. Root cause: round 29b renamed `_sphinx_feedback/tests/test_sphinx_build.py`; the archive could not delete the old file, it stayed in the repository, and the test shard and all nine partial-distribution legs failed at collection again.
+
+### Rule 68: Validation - check the type before any operation that only some types support
+- **When:** validating a value that may be one of several types (`str | int | float | bool`).
+- **Then:** branch on the type first and apply length/range checks inside the branch; test one value of every accepted type and one of each refused shape.
+- **Verified by:** `test_custom_options_accept_every_scalar` and `test_custom_options_refuse_non_scalars_and_oversize` (7 of their cases failed on the regressed code).
+- **Added:** 2026-10-11. Root cause: a lint fix hoisted `len(item) > 1024` above `isinstance(item, str)`, so an integer option raised `TypeError` instead of a configuration error; the tests had only string options.
+
+### Rule 69: Tests - a test that changes process-wide state restores it before the next test
+- **When:** code under test configures the root logger (a CLI `main()`, importing a service app), or any other process-wide state.
+- **Then:** an autouse function fixture snapshots and restores it (`_root_logging_restored_after_each_test`); never rely on test order.
+- **Verified by:** running every test file of the package before `test_root_logging_isolation.py` (probe in `tasks/todo.md`, round 30): no offender; three `-n 8` runs green.
+- **Added:** 2026-10-11. Root cause: `deduplicate_dataset.main()` and a runtime import of the proxy replaced the root handlers inside tests; under xdist the isolation test failed whenever it was scheduled after either on the same worker (about one run in two), while serial runs passed because of alphabetical order.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 66
+- Total lessons: 69
+- Round 30: Rule 66's subject recurred through delivery (the renamed file could not be deleted by the archive), now Rule 67 with a CI check.
 - Round 29: Rule 62 repeated in product code (SQLite connections), now Rule 65 with the exact idiom.
 - Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.
 - Repeat occurrences: 8 (Rule 3 twice before it was written; once more in the form Rule 8 now covers; Rule 1 once, now Rule 14; Rule 1 twice more in round 4, now Rule 22 and a guard script; in round 5 a fix for one reporting mistake made the opposite one, now Rule 33; in round 6 Rule 24's subject, text files across platforms, returned as line endings instead of encodings, now Rule 38; in round 7 Rule 24 again, for pipes, now Rule 45, and Rule 28, for a switch that was never shown a positive, now Rule 47)

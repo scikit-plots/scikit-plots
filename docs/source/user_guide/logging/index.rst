@@ -1,69 +1,69 @@
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-..
-  # https://rsted.info.ucl.ac.be/
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-  # https://documatt.com/restructuredtext-reference/element/admonition.html
-  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-
 .. currentmodule:: scikitplot.logging
 
 .. _logging-index:
 
-======================================================================
-Logging System
-======================================================================
+Logging
+=======
 
-This module contains functions related to :py:mod:`~.logging` (Scikit-plots Logging).
+``scikitplot.logging`` wraps Python's standard logging model with a Scikit-Plots package logger, Google-style formatting, verbosity helpers and rate-limited convenience functions.
 
-.. note::
+.. important::
 
-    The Scikit-plots logging system is meant for internal scikit-plots usage.
-    For use in other packages, we recommend implementing your own ``logger`` instead.
+   The current repository snapshot has several open compatibility findings in this submodule. Prefer the basic ``get_logger`` / ``setLevel`` / standard ``debug``-``critical`` path and read **Known limits** before depending on helper or environment behavior.
 
-.. tip::
+.. toctree::
+   :maxdepth: 2
+   :hidden:
 
-    The Scikit-plots logging system compatible with python logging API system.
-    This module defines a logging class based on the built-in logging module.
+   getting_started
+   levels_and_loggers
+   formatting_and_helpers
+   python_api
+   known_limits_and_troubleshooting
 
-Configuring the logging system
-----------------------------------------------------------------------
+.. grid:: 1 1 2 2
+   :gutter: 2
 
-.. rubric:: Examples
+   .. grid-item-card:: Getting started
+      :link: logging-getting-started
+      :link-type: ref
 
-Get the root ``logger`` from ``module attr``:
+      Use the package logger and set verbosity without configuring duplicate handlers.
 
-.. code-block:: python
+   .. grid-item-card:: Levels and loggers
+      :link: logging-levels-and-loggers
+      :link-type: ref
 
-  >>> from scikitplot import logger
-  >>> logger.setLevel(logger.INFO)  # default WARNING
-  >>> logger.info("This is a info message from the sp logger.")
-  2026-01-23 11:06:27.180474: I scikitplot 140316325247872 3536182465.py:3:<module>] This is a info message from the sp logger.
+      Understand package-level helpers, effective level, verbosity, and stdlib compatibility.
 
-  >>> import scikitplot as sp
-  >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
-  >>> sp.logger.info("This is a info message from the sp logger.")
-  2026-01-23 11:06:27.181338: I scikitplot 140316325247872 3536182465.py:7:<module>] This is a info message from the sp logger.
+   .. grid-item-card:: Formatting and helpers
+      :link: logging-formatting-and-helpers
+      :link-type: ref
 
-Get the root ``logger`` from ``func``:
+      Google-style formatting, sanitization, rate-limited helpers, and stderr behavior.
 
-.. code-block:: python
+   .. grid-item-card:: Python API
+      :link: logging-python-api
+      :link-type: ref
 
-  >>> import scikitplot as sp
+      Public constants, stdlib-compatible objects, and Scikit-Plots helpers.
 
-  >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
-  >>> sp.get_logger().info("This is a info message from the sp logger.")
-  2026-01-23 11:06:27.186634: I scikitplot 140316325247872 interactiveshell.py:3701:run_code] This is a info message from the sp logger.
+   .. grid-item-card:: Known limits and troubleshooting
+      :link: logging-known-limits-and-troubleshooting
+      :link-type: ref
+
+      Current compatibility findings and safe workarounds.
+
+Which page should I use?
+------------------------
+
+Start with **Getting started**. Then choose the page that owns the decision
+you are making: architecture and lifecycle, configuration, persistence,
+performance, public API, or limits. The guide intentionally separates those
+concerns so examples do not accidentally become policy.
+
+Further reading
+---------------
 
 .. note::
 

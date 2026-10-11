@@ -199,6 +199,12 @@ The Scikit-Plots sites are configured this way:
 | `https://scikit-plots-learn.readthedocs.io/en/latest/` | `scikit-plots-learn` | `/page-feedback-aggregate.json` (packaged) |
 | `https://scikit-plots.github.io/dev/` | `scikit-plots` | `_page_feedback/aggregate.json` (in `docs/source`) |
 
+Whether the deployed proxy accepts each site is visible without a submission:
+`GET https://scikit-plots-ai.hf.space/health` returns `page_feedback.default_site_ids_allowed`
+(`{"scikit-plots-learn": true, "scikit-plots": true}` once the Space runs this release or
+sets `FEEDBACK_ALLOWED_SITE_IDS=scikit-plots-learn,scikit-plots`). Other site IDs a
+deployment adds are counted (`allowed_site_id_count`), never listed.
+
 For high-assurance deployments, an optional local authority manifest can also bind
 accepted pages (and optionally exact revisions) without adding browser secrets or page-view
 network calls:
@@ -240,11 +246,12 @@ FEEDBACK_GITHUB_TOKEN
 → AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR
 ```
 
-Hugging Face, GitLab, and Bitbucket are understood by the forward-compatible target
-schema, but service configuration rejects them in this release because their write
-adapters are not yet implemented and adversarially tested. The service never pretends
-that an unsupported provider is safe or available. Until then, reach them through the
-`webhook` or `custom` provider (see "Storage providers").
+GitLab (gitlab.com and self-managed) and Bitbucket Cloud run the same reviewed-change
+engine as GitHub (`_service/_forge.py`): one branch, one immutable event file, one
+review, the branch-scope proof, and reconciliation after a broken connection at every
+step. Hugging Face is understood by the target schema but refused in this release; reach
+it, and Bitbucket Data Center, through the `webhook` or `custom` provider. The service
+never pretends that an unsupported provider is safe or available.
 
 Provider topology is deliberately simple: exactly one primary is authoritative; zero
 or more mirrors are durability-only. Mirrors fan out concurrently and are bounded by
@@ -322,9 +329,11 @@ with `FEEDBACK_STORAGE_TARGETS` (a JSON list) or a one-target shorthand.
 | `sqlite` | one SQLite file | none | `sqlite` + `FEEDBACK_SQLITE_PATH` |
 | `git` | one commit per event in a local working tree | none | `local` + `FEEDBACK_GIT_REPOSITORY_PATH` (+ `FEEDBACK_GIT_PATH`) |
 | `github` | branch + reviewed pull request on github.com or GitHub Enterprise | HTTPS | `provider-pr` + `FEEDBACK_GITHUB_REPOSITORY` (+ `FEEDBACK_GITHUB_API_URL`) |
+| `gitlab` | branch + merge request on gitlab.com or self-managed GitLab | HTTPS | `provider-pr` + `FEEDBACK_STORAGE_TARGETS` |
+| `bitbucket` | branch + pull request on Bitbucket Cloud | HTTPS | `provider-pr` + `FEEDBACK_STORAGE_TARGETS` |
 | `webhook` | HMAC-signed POST to any receiver | HTTP(S) | `custom` + `FEEDBACK_WEBHOOK_URL` (+ `FEEDBACK_WEBHOOK_ALLOW_HTTP`) |
 | `custom` | your own Python adapter (`factory: "pkg.mod:make"`) | yours | `custom` + `FEEDBACK_STORAGE_TARGETS` |
-| `gitlab`, `bitbucket`, `huggingface` | modelled, refused until implemented | | use `webhook` or `custom` |
+| `huggingface`; Bitbucket Data Center | not implemented | | use `webhook` or `custom` |
 
 Review modes bind provider families: `sqlite` (all SQLite), `local` (all SQLite or git:
 the service makes no network request), `provider-pr` (primary opens a reviewed
@@ -343,10 +352,15 @@ keys, so a key meant for another provider fails at start instead of being ignore
 ]
 ```
 
-Defaults: `github.api_url` `https://api.github.com`; `github` token aliases
-`FEEDBACK_GITHUB_TOKEN`, `GITHUB_TOKEN`, `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`; `webhook`
-secret `FEEDBACK_WEBHOOK_TOKEN`; `paths.feedback` `feedback`. GitHub Enterprise review URLs
-must be on the API's host. `git` needs an absolute `repository_path` that is the top of a
+Defaults: `api_url` `https://api.github.com` (github), `https://gitlab.com/api/v4`
+(gitlab), `https://api.bitbucket.org/2.0` (bitbucket, the only accepted value); token
+aliases `FEEDBACK_GITHUB_TOKEN` → `GITHUB_TOKEN` → `AI_RECORD_STORAGE_TOKEN_GITHUB_MIRROR`,
+`FEEDBACK_GITLAB_TOKEN` → `GITLAB_TOKEN` (sent as `PRIVATE-TOKEN`),
+`FEEDBACK_BITBUCKET_TOKEN` → `BITBUCKET_TOKEN` (an access token, sent as
+`Authorization: Bearer`); `webhook` secret `FEEDBACK_WEBHOOK_TOKEN`; `paths.feedback`
+`feedback`; base `branch` `main` (never `feedback`). GitLab `repo` may name nested groups
+(`group/subgroup/project`). Review URLs must be on the forge's own host and under the
+configured repository. `git` needs an absolute `repository_path` that is the top of a
 working tree; commits use the identity `sphinx-feedback <sphinx-feedback@localhost>` and
 leave pushing to you. `custom` options are short non-secret scalars; secrets come from
 `token_env`. The adapter contract is in `_service/_custom.py`.
@@ -415,6 +429,16 @@ python -m scikitplot._externals._sphinx_ext._sphinx_feedback aggregate \
     --site-id my-docs --events review-repo/feedback --sqlite feedback.sqlite3 \
     --out docs/source/_feedback/aggregate.json [--complete] [--revision REV]
 ```
+
+```bash
+python -m scikitplot._externals._sphinx_ext._sphinx_feedback check-provider
+```
+
+`check-provider` reads the same environment as the service and, for every forge target,
+resolves the credential and the base branch and looks up a branch that cannot exist,
+which exercises the calls a submission makes without writing anything; it also checks
+`git` working trees and `sqlite` directories, and skips `webhook`/`custom` (any call would
+deliver). Run it once against a real repository before enabling a forge.
 
 `init` prints a `conf.py` block and the service environment, validated with the same
 rules as the build and the service. `aggregate` reads the provider event layout

@@ -1,59 +1,92 @@
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-..
-  # https://rsted.info.ucl.ac.be/
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-  # https://documatt.com/restructuredtext-reference/element/admonition.html
-  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-
 .. currentmodule:: scikitplot.mlflow
 
 .. _mlflow-index:
 
-MLflow Workflow Automation
-======================================================================
+MLflow project integration
+==========================
 
-Examples relevant to the :py:mod:`~.mlflow` module.
+``scikitplot.mlflow`` is an orchestration layer around the external MLflow package. It centralizes project discovery, shared configuration, environment application, local store layout, server lifecycle, sessions, provider seams and workflow helpers.
 
-Adds a **project-level configuration** mechanism so multiple scripts
-(e.g., `train.py`, `hpo.py`, `predict.py`) share the exact same MLflow settings,
-regardless of current working directory.
+.. important::
 
-.. rubric:: Examples
+   Scikit-Plots does not own MLflow internals. A green unit test of command construction is not proof that every installed MLflow version supports the same CLI/server behavior. Check readiness and CLI capabilities in the deployment environment.
 
-..
-  .. jupyter-execute
-  .. code-block:: python
+.. toctree::
+   :maxdepth: 2
+   :hidden:
 
-.. prompt:: python >>>
+   getting_started
+   project_configuration
+   sessions_and_facades
+   server_and_cli
+   providers_and_workflows
+   security_and_readiness
+   python_api
+   troubleshooting
 
-  import os
-  import scikitplot as sp
+.. grid:: 1 1 2 2
+   :gutter: 2
 
-  # print(sp.mlflow.DEFAULT_PROJECT_MARKERS)
-  # Walk upward from `start` until a directory containing any marker is found.
-  # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
-  os.environ["SCIKITPLOT_PROJECT_MARKERS"]='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
+   .. grid-item-card:: Getting started
+      :link: mlflow-getting-started
+      :link-type: ref
 
-  sp.mlflow.workflow(
-      profile="local",
-      open_ui_seconds=30,
-      experiment_name="my-first-project",
-      fmt="toml",
-      overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
-  )
+      Create or load project configuration and open a managed session.
 
-.. rubric:: Quiskstart Template: Beginner workflow demo
+   .. grid-item-card:: Project configuration
+      :link: mlflow-project-configuration
+      :link-type: ref
 
-* :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
-  :func:`~.workflow` using template.
+      Discover project roots, markers, TOML/YAML config, local stores, and environment overrides.
+
+   .. grid-item-card:: Sessions and facades
+      :link: mlflow-sessions-and-facades
+      :link-type: ref
+
+      Use MlflowHandle, artifact/model facades, and controlled session lifetime.
+
+   .. grid-item-card:: Server and CLI
+      :link: mlflow-server-and-cli
+      :link-type: ref
+
+      Build supported MLflow server commands, spawn a process, and check readiness.
+
+   .. grid-item-card:: Providers and workflows
+      :link: mlflow-providers-and-workflows
+      :link-type: ref
+
+      Customize the integration provider and use reproducible convenience workflows.
+
+   .. grid-item-card:: Security and readiness
+      :link: mlflow-security-and-readiness
+      :link-type: ref
+
+      Separate policy intent, CLI compatibility, installed-package readiness, and actual server readiness.
+
+   .. grid-item-card:: Python API
+      :link: mlflow-python-api
+      :link-type: ref
+
+      Configuration, project, session, provider, workflow, facade, and error surfaces.
+
+   .. grid-item-card:: Troubleshooting
+      :link: mlflow-troubleshooting
+      :link-type: ref
+
+      Missing MLflow, incompatible CLI flags, store paths, server startup, and current security-policy caveat.
+
+Which page should I use?
+------------------------
+
+Start with **Getting started**. Then choose the page that owns the decision
+you are making: architecture and lifecycle, configuration, persistence,
+performance, public API, or limits. The guide intentionally separates those
+concerns so examples do not accidentally become policy.
+
+Examples
+--------
+
+See :ref:`mlflow_examples` for executable examples that accompany this guide.
+
+Further reading
+---------------
