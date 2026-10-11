@@ -1,7 +1,7 @@
 ---
 name: Maintenance
 description: Help improve performance, usability and/or consistency.
-labels: [Maintenance]
+labels: ["03 - Maintenance"]
 title: "[MNT]: "
 
 body:

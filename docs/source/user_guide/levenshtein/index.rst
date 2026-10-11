@@ -1,9 +1,10 @@
+.. currentmodule:: scikitplot.levenshtein
+
+.. _levenshtein-index:
 .. _levenshtein-user-guide:
 
 Levenshtein distance and fuzzy matching
 =======================================
-
-.. currentmodule:: scikitplot.levenshtein
 
 :mod:`scikitplot.levenshtein` provides one small, stable facade for exact
 unit-cost Levenshtein edit distance, normalized similarity, deterministic

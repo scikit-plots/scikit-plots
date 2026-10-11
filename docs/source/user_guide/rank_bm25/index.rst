@@ -1,6 +1,7 @@
 .. currentmodule:: scikitplot.rank_bm25
 
 .. _rank-bm25-index:
+.. _rank_bm25-index:
 
 BM25 lexical ranking
 ====================

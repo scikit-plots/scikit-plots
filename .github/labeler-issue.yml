@@ -1,45 +1,77 @@
-# For a single document, --- is optional and has no effect on parsing but can improve clarity and consistency.
+# GENERATED FILE - DO NOT EDIT.
 #
-# This file contains regexes for automatically adding labels based on issue/PR titles,
-# for use with https://github.com/github/issue-labeler
+# Title labels for https://github.com/github/issue-labeler (v3.5), applied to
+# pull-request titles by .github/workflows/pr_labeler.yml and to issue titles
+# by .github/workflows/issue_labeler.yml.
 #
-# Add/remove 'critical' label if issue contains the words 'urgent' or 'critical'
+# Source of truth: [tool.scikitplot.maintenance.labeler.title_prefixes] and
+# title_keywords in pyproject.toml. One prefix gives exactly one label.
+#
+# Prefix rules match the start of the title, case-insensitively: an optional
+# "[", a list of known prefixes joined by ",", "/" or "+", then an explicit
+# terminator - "]" (optionally ":"), "(scope):" or ":":
+#   "BUG: ...", "[Bug]: ...", "[BUG] ...", "BUG, TST: ...", "MAINT(ci): ..."
+# Without a terminator nothing matches: "Fix typo", "Bug in reader" and
+# "DOCKER image" get no prefix label. Keyword rules match whole words anywhere.
+#
+# Edit the template (tools/maint_tools/templates/labeler-issue.yml.in) or the
+# policy, then regenerate and check:
+#   python tools/maint_tools/generate_pr_labeler.py sync --apply
+#   python tools/maint_tools/generate_pr_labeler.py check
+---
+"00 - Bug":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:BUG|FIX)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-critical:
-  - '(critical|urgent)'
+"01 - Enhancement":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:ENH)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-array types:
-  - 'array types'
+"03 - Maintenance":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:MAINT|MNT|STY)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-Benchmarks:
-  - 'BENCH'
+"04 - Documentation":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:DOCS|DOC)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-Build issues:
-  - 'BLD'
+"05 - Testing":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:TST)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-CI:
-  - 'CI'
+"07 - Deprecation":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:DEP)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-defect:
-  - '(BUG|FIX)'
+"14 - Release":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:REL)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-deprecated:
-  - 'DEP'
+"16 - Development":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:DEV)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-documentation:
-  - 'DOC'
+"25 - WIP":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:WIP)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-DX:
-  - 'DEV'
+"28 - Benchmark":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:BENCH)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-enhancement:
-  - 'ENH'
+"30 - API":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:API)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-maintenance:
-  - '(MAINT|TST)'
+"34 - Reversion":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:REV)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-query:
-  - '(Q|q)uery'
+"36 - Build":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:BLD)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
 
-RFC:
-  - 'RFC'
+"CI":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:CI)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
+
+"RFC":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:RFC)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
+
+"static typing":
+  - '/^\s*(?:\[\s*)?(?:(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI)\s*[,/+]\s*)*(?:TYP)(?:\s*[,/+]\s*(?:BENCH|MAINT|DOCS|API|BLD|BUG|DEP|DEV|DOC|ENH|FIX|MNT|REL|REV|RFC|STY|TST|TYP|WIP|CI))*\s*(?:\]\s*:?|\([^)]*\)\s*:|:)/i'
+
+"critical":
+  - '/\b(?:critical|urgent)\b/i'
+
+"array types":
+  - '/\b(?:array\s+types)\b/i'
+
+"query":
+  - '/\b(?:query)\b/i'

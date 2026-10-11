@@ -1648,6 +1648,97 @@ cross_cutting_sections = [
   "array_api_extra",
 ]
 
+[tool.scikitplot.maintenance.labeler]
+# Policy consumed by tools/maint_tools/generate_pr_labeler.py. Module labels are
+# derived from the Towncrier owners above (one source of truth); title labels
+# come from the registry below. Regenerate and check with:
+#   python tools/maint_tools/generate_pr_labeler.py sync --apply
+#   python tools/maint_tools/generate_pr_labeler.py check
+curated_config = ".github/labeler.yml"            # hand-edited, linted by `check`
+module_config = ".github/labeler-by-module.yml"   # generated
+title_config = ".github/labeler-issue.yml"        # generated
+module_template = "tools/maint_tools/templates/labeler-by-module.yml.in"
+title_template = "tools/maint_tools/templates/labeler-issue.yml.in"
+# Owner roots with one label per owner, and roots rolled up into one label.
+granular_owner_roots = ["scikitplot", "libs"]
+rollup_owner_roots = ["tools"]
+# GitHub refuses longer label names.
+max_label_length = 50
+# Labels applied by people, issue templates or other tools (not by a rule).
+manual_labels = [
+  "Documentation: tags",
+  "no-changelog-entry-needed",
+  "skip-changelog-checks",
+  "whats_new-needed",
+]
+
+# Extra globs per owner root; {rel} is the owner's path below the root
+# (e.g. "corpus" or "_externals/_sphinx_ext/_sphinx_feedback") and {section} its
+# Towncrier section path. A glob is emitted only when it matches a file.
+[tool.scikitplot.maintenance.labeler.satellites]
+scikitplot = [
+  "maintenances/{rel}/**/*",
+  "skills/{rel}/**/*",
+  "docs/source/user_guide/{rel}/**/*",
+  "galleries/examples/{rel}/**/*",
+  "upcoming_changes/scikitplot/{rel}/**/*",
+  "docs/source/whats_new/upcoming_changes/{section}/**/*",
+]
+libs = [
+  "upcoming_changes/libs/{rel}/**/*",
+  "docs/source/whats_new/upcoming_changes/{section}/**/*",
+]
+
+# Owners whose "<root>/<path>" label would exceed max_label_length.
+[tool.scikitplot.maintenance.labeler.label_aliases]
+"scikitplot._externals._sphinx_ext._pydata_component_list" = "scikitplot/_sphinx_ext/_pydata_component_list"
+"scikitplot._externals._sphinx_ext._sphinx_ai_assistant" = "scikitplot/_sphinx_ext/_sphinx_ai_assistant"
+"scikitplot._externals._sphinx_ext._sphinx_ai_learn" = "scikitplot/_sphinx_ext/_sphinx_ai_learn"
+"scikitplot._externals._sphinx_ext._sphinx_collection" = "scikitplot/_sphinx_ext/_sphinx_collection"
+"scikitplot._externals._sphinx_ext._sphinx_feedback" = "scikitplot/_sphinx_ext/_sphinx_feedback"
+"scikitplot._externals._sphinx_ext._sphinx_gallery_grid" = "scikitplot/_sphinx_ext/_sphinx_gallery_grid"
+"scikitplot._externals._sphinx_ext._sphinx_youtube_core" = "scikitplot/_sphinx_ext/_sphinx_youtube_core"
+"scikitplot._externals._sphinx_ext._sphinx_youtube_gallery" = "scikitplot/_sphinx_ext/_sphinx_youtube_gallery"
+"scikitplot._externals._sphinx_ext._sphinxcontrib_youtube" = "scikitplot/_sphinx_ext/_sphinxcontrib_youtube"
+
+# Title prefix -> label, for pull requests and issues ("BUG: ...", "[Bug]: ...").
+# Matching is case-insensitive at the start of the title; one token, one label.
+# "36 - Build" and "14 - Release" are read by .github/workflows/ci_wheels_conda.yml.
+[tool.scikitplot.maintenance.labeler.title_prefixes]
+BUG = "00 - Bug"
+FIX = "00 - Bug"
+ENH = "01 - Enhancement"
+MAINT = "03 - Maintenance"
+MNT = "03 - Maintenance"
+STY = "03 - Maintenance"
+DOC = "04 - Documentation"
+DOCS = "04 - Documentation"
+TST = "05 - Testing"
+DEP = "07 - Deprecation"
+REL = "14 - Release"
+DEV = "16 - Development"
+WIP = "25 - WIP"
+BENCH = "28 - Benchmark"
+API = "30 - API"
+REV = "34 - Reversion"
+BLD = "36 - Build"
+CI = "CI"
+RFC = "RFC"
+TYP = "static typing"
+
+# Whole-word, case-insensitive keywords anywhere in the title.
+[[tool.scikitplot.maintenance.labeler.title_keywords]]
+label = "critical"
+words = ["critical", "urgent"]
+
+[[tool.scikitplot.maintenance.labeler.title_keywords]]
+label = "array types"
+words = ["array types"]
+
+[[tool.scikitplot.maintenance.labeler.title_keywords]]
+label = "query"
+words = ["query"]
+
 [tool.towncrier]
   all_bullets  = false
   single_file  = true
@@ -1951,6 +2042,10 @@ cross_cutting_sections = [
   [[tool.towncrier.section]]
     name = "scikitplot.impute"
     path = "scikitplot.impute"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.levenshtein"
+    path = "scikitplot.levenshtein"
 
   [[tool.towncrier.section]]
     name = "scikitplot.logging"

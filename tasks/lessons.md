@@ -416,13 +416,32 @@
 - **Verified by:** running every test file of the package before `test_root_logging_isolation.py` (probe in `tasks/todo.md`, round 30): no offender; three `-n 8` runs green.
 - **Added:** 2026-10-11. Root cause: `deduplicate_dataset.main()` and a runtime import of the proxy replaced the root handlers inside tests; under xdist the isolation test failed whenever it was scheduled after either on the same worker (about one run in two), while serial runs passed because of alphabetical order.
 
+### Rule 70: Generated configuration - derive it from the existing source of truth and gate it in CI
+- **When:** a configuration file lists repository paths or names that another policy already owns (labels per package, release-note sections, distributions).
+- **Then:** generate it from that policy with a `check`/`sync --apply` tool and a `.in` template; CI runs `check`, which fails on any stale file.
+- **Verified by:** `pr_check_labeler.yml` (`generate_pr_labeler.py check`, `generate_towncrier_sections.py check`).
+- **Added:** 2026-10-11. Root cause: `.github/labeler-by-module.yml` was written by hand beside the Towncrier owners; 20 of 45 packages had no label and one glob named a file that had become a package.
+
+### Rule 71: Labeler globs - a negated glob is true for every other file
+- **When:** writing `!glob` in an `actions/labeler` rule.
+- **Then:** put it only next to a positive glob in `all-globs-to-any-file`, or alone in `all-globs-to-all-files` inside an `all:` group; never in `any-glob-*` or in an all-negated list in an `any` group.
+- **Verified by:** `lint_label` in `generate_pr_labeler.py check`; `test_old_documentation_rule_matched_almost_everything`.
+- **Added:** 2026-10-11. Root cause: the `documentation` rule OR-ed an all-negated option, so a change to `scikitplot/corpus/_base.py` was labelled `documentation`.
+
+### Rule 72: Labels - one vocabulary, one registry, explicit grammar
+- **When:** more than one tool maps titles or templates to labels.
+- **Then:** keep one registry (`title_prefixes`) that generates every title rule; require an explicit terminator for case-insensitive prefixes; check that every label a template or workflow names exists.
+- **Verified by:** `TitleTests` (36 titles, every token) and the referenced-label check in `generate_pr_labeler.py check`.
+- **Added:** 2026-10-11. Root cause: three title vocabularies (`defect`, `00 - Bug`, `Documentation`) gave one prefix two labels; substring regexes labelled `DOCKER` as documentation; issue templates named labels nothing else used.
+
 ## Pattern Analysis
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
 
 ## Effectiveness Metrics
-- Total lessons: 69
+- Total lessons: 72
+- Round 31: no repeat; a semantic bug in the new matcher (elif chain over one object's keys) was caught by writing a test for each documented labeler rule.
 - Round 30: Rule 66's subject recurred through delivery (the renamed file could not be deleted by the archive), now Rule 67 with a CI check.
 - Round 29: Rule 62 repeated in product code (SQLite connections), now Rule 65 with the exact idiom.
 - Round 26: Rule 52 repeated (escapes written through the file tool arrived as the characters in a new module, its tests and a docstring); caught by the Rule 52 scan before any test ran. The scan now runs on every file written in a round before the ladder.

@@ -1,60 +1,40 @@
 # Labeler Pull Request
+#
+# Labels pull requests from three configurations, all checked by
+# tools/maint_tools/generate_pr_labeler.py (see .github/workflows/pr_check_labeler.yml):
+#   .github/labeler.yml            curated cross-cutting file rules
+#   .github/labeler-by-module.yml  generated module/library file rules
+#   .github/labeler-issue.yml      generated title rules ("BUG: ...", "[Bug]: ...")
+# Issues are labelled by .github/workflows/issue_labeler.yml with the same title
+# rules; this workflow handles pull requests only.
+#
+# Try a change locally before pushing:
+#   python tools/maint_tools/generate_pr_labeler.py explain --title "BUG: ..." <paths>
 ---
 name: "PRs 🤖 Labeler/Notifier"
 
 on:
-  issues:
-    types:
-    - opened
-  ## Can write comments / labels on PR from fork?
-  ## Use pull_request_target trigger if you're targeting a pull request from a fork:
-  ## pull_request_target triggers run with the base repo code, and has write permissions.
-  ## pull_request:  Safer alternative to pull_request_target:
-  ## pull_request triggers run with the PR code, but no write access to secrets or repo.
-  #
-  # pull_request_target is only dangerous if combined with an explicit checkout
-  # of the opener's code, which it isn't here. See
-  # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
-    # types: [opened, labeled, edited]  # Triggers only on these events
+  ## pull_request_target runs with the base repository's code and token, so it
+  ## can label pull requests from forks. It is dangerous only together with a
+  ## checkout of the pull request's code, which this workflow never does: every
+  ## configuration is read through the API at the base commit. See
+  ## https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
+    ## edited: a changed title is labelled again.
+    types: [opened, reopened, synchronize, edited, ready_for_review]
 
-## simultaneity
-## This ensures that only one deployment to "production" can happen at a time.
-## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+## One run per pull request at a time; a newer push cancels the older run.
+## Keyed by the pull-request number, not the head branch: two forks can both
+## open a pull request from a branch called "main".
 concurrency:
-  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
-  ## The 'group' key defines a unique concurrency group:
-  ## - github.workflow: Name of the workflow file.
-  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
-  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
-  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
-  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
-  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
-  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
-  ## Canceling previous runs reduces resource usage and speeds up feedback.
-  ## If a new run is triggered for the same group, cancel the in-progress one.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-## Top-level permissions (outside jobs)
-## Job-level permissions (inside a specific job)
-## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
-## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  ## only required for workflows in private repositories
-  contents: read  # for actions/checkout to fetch code
-  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
-  issues: write   # Full access to read and modify PRs (e.g., labels, comments)
-
-## Global environment variables (available to all jobs and steps)
-## Job-level environment variables (override global, scoped to this job)
-## Step-level environment variables (override job + global, scoped to this step)
-# env:
-#   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#   GH_REPO: ${{ github.repository }}
-#   PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
-
+  contents: read  # read the configuration files through the API
+  pull-requests: write  # add labels and comments to pull requests
+  issues: write   # create a label that does not exist yet
 
 jobs:
   labeler:
@@ -64,8 +44,6 @@ jobs:
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
 
-    # Optional: Restrict to Safe Users (e.g., internal team only)
-    # if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: 'Reviewer Checklist'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
@@ -88,89 +66,49 @@ jobs:
               - [ ] Are tests added/updated as required? If so, do they follow the [scikit-plots testing guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
               - [ ] Are docs added/updated as required? If so, do they follow the [scikit-plots documentation guidelines](https://scikit-plots.github.io/dev/devel/index.html)?
               - [ ] Is rebase and/or squash necessary? If so, please provide the author with appropriate instructions. Also see instructions for [rebase](https://scikit-plots.github.io/dev/devel/index.html) and [squash](https://scikit-plots.github.io/dev/devel/index.html).
-              - [ ] Did the CI pass? If no, are the failures related? If you need to run daily and weekly cron jobs as part of the PR, please apply the "Extra CI" label. Codestyle issues can be fixed by the [bot](https://scikit-plots.github.io/dev/devel/index.html).
+              - [ ] Did the CI pass? If no, are the failures related? Codestyle issues can be fixed by the [bot](https://scikit-plots.github.io/dev/devel/index.html).
               - [ ] Is a change log needed? If yes, did the change log check pass? If no, add the "no-changelog-entry-needed" label. If this is a manual backport, use the "skip-changelog-checks" label unless special changelog handling is necessary.
-              - [ ] Is this a big PR that makes a "What's new?" entry worthwhile and if so, is (1) a "what's new" entry included in this PR and (2) the "whatsnew-needed" label applied?
+              - [ ] Is this a big PR that makes a "What's new?" entry worthwhile and if so, is (1) a "what's new" entry included in this PR and (2) the "whats_new-needed" label applied?
               - [ ] At the time of adding the milestone, if the milestone set requires a backport to release branch(es), apply the appropriate "backport-X.Y.x" label(s) *before* merge.`
             })
 
-      # label based on PR glob files
+      # Curated cross-cutting rules (CI, documentation, languages, tests, ...).
       - name: label based on changed files
-        # uses: thomasjpfan/labeler@v2.5.1
         uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
-        # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           sync-labels: false
           dot: true
-          # max-labels: "4"  # thomasjpfan
-          configuration-path: ".github/labeler.yml"  # ".github/labeler.yml"
+          configuration-path: ".github/labeler.yml"
 
-      # label based on PR glob files
+      # Generated module and library rules.
       - name: label based on module changed files
         uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
-        # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           sync-labels: false
           dot: true
-          # max-labels: "4"  # thomasjpfan
-          configuration-path: ".github/labeler-by-module.yml"  # ".github/labeler.yml"
+          configuration-path: ".github/labeler-by-module.yml"
 
-      # label based on Issue title
+      # Generated title rules: prefixes ("BUG:", "[Bug]:", "BUG, TST:") and
+      # keywords. One prefix gives one label; "36 - Build" and "14 - Release"
+      # are read by .github/workflows/ci_wheels_conda.yml.
       - name: label based on PR title
         uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
-        # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
-          # repo-token: ${{ github.token }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           enable-versioned-regex: 0
           include-body: 0
           include-title: 1
-          configuration-path: ".github/labeler-issue.yml"  # ".github/labeler.yml"
-
-      # label based on PR Prefix
-      - name: Labeler PR Prefix
-        # https://github.com/gerrymanoim/pr-prefix-labeler
-        # pr-prefix-labeler.yml
-        uses: gerrymanoim/pr-prefix-labeler@c8062327f6de59a9ae1c19f7f07cacd0b976b6fa # v3
-        # if: github.repository == 'scikit-plots/scikit-plots'
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          configuration-path: ".github/pr-prefix-labeler.yml"
-
-      # label based on PR regex title
-      #- name: Checkout (cloned) repository with full history
-      #  uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      #  with:
-      #    persist-credentials: false  # Prevents accidental credential exposure
-      #    # submodules: true  # Fetch Hugo themes (true OR recursive)
-      #    fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
-
-      # - name: "Debug: Check file existence"
-      #   run: ls -lR .github/
-
-      # - name: Python Setup
-      #   uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
-      #   with:
-      #     python-version: '3.11'
-
-      # - name: Install PyGithub
-      #   run: |
-      #     pip install -Uq PyGithub
-
-      # - name: Label pull request
-      #   run: python .github/scripts/label_title_regex.py
-      #   env:
-      #     CONTEXT_GITHUB: ${{ toJson(github) }}
+          configuration-path: ".github/labeler-issue.yml"
 
       - name: 'Comment Draft PR'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
-        if: github.event.pull_request.draft == true
+        # Once, when a draft is opened; not again on every push to it.
+        if: github.event.action == 'opened' && github.event.pull_request.draft == true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

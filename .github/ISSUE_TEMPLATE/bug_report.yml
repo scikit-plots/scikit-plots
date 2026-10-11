@@ -1,6 +1,7 @@
 ---
 name: Bug Report
 description: Report a bug or issue with scikit-plots.
+labels: ["00 - Bug"]
 title: "[Bug]: "
 
 body:

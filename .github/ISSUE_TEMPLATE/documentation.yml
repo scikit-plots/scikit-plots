@@ -1,7 +1,7 @@
 ---
 name: Documentation
 description: Create a report to help us improve the documentation
-labels: [Documentation]
+labels: ["04 - Documentation"]
 title: "[Doc]: "
 
 body:
