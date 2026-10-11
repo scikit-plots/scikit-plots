@@ -1,0 +1,10 @@
+- New ``tools/maint_tools/generate_pr_labeler.py`` generates the module,
+  library and title labeler configurations from the Towncrier owner sections,
+  ``scikitplot/_distributions.py`` and one title registry in
+  ``pyproject.toml``, and checks all three labeler files against the real
+  ``actions/labeler`` v7 and ``github/issue-labeler`` semantics in CI. Every
+  package now has a label (78, previously 33), the ``documentation`` label no
+  longer fires on nearly every pull request, ``*.pyi`` stubs are labelled
+  ``static typing`` instead of ``lang:cython``, and ``BUG:``, ``[Bug]:`` and
+  ``BUG, TST:`` titles map to one numbered label each, for issues and pull
+  requests alike.

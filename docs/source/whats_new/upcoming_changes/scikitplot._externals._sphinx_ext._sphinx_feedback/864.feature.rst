@@ -1,0 +1,15 @@
+- Page feedback adapts to any deployment: ``feedback_endpoint`` accepts a
+  same-origin path (``/v1/feedback``) and, under
+  ``feedback_endpoint_policy = "private-network"`` or ``"any"``, intranet and
+  plain-HTTP services (the service mirrors this with
+  ``FEEDBACK_ORIGIN_POLICY``); the feedback service gains a local ``git``
+  provider (one commit per event, no network), native ``gitlab`` (gitlab.com
+  and self-managed) and ``bitbucket`` (Cloud) reviewed providers on the same
+  retry-safe engine as GitHub, GitHub Enterprise through ``api_url``, an
+  HMAC-signed ``webhook`` provider with a reference Cloudflare
+  Worker + D1 receiver, and ``custom`` Python adapters; service outcomes are
+  logged to ``sphinx_feedback.service`` without comments, credit or addresses;
+  and ``python -m scikitplot._externals._sphinx_ext._sphinx_feedback``
+  generates counter snapshots (``aggregate``), ready-to-paste settings
+  (``init``) and a read-only check of the configured storage
+  (``check-provider``).

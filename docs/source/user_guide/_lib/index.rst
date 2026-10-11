@@ -16,7 +16,12 @@
   # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
   # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. currentmodule:: scikitplot
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
+
+.. currentmodule:: scikitplot._lib
 
 .. admonition:: Template
 

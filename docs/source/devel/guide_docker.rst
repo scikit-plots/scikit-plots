@@ -1,9 +1,13 @@
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _docker-index:
 
 ======================================================================
 Docker Containerization Guidelines
 ======================================================================
-
 
 .. important::
 
@@ -16,14 +20,12 @@ Docker Containerization Guidelines
 
       scikitplot -V
 
-
 .. important::
 
    Once the **Docker environment** is ready to use, you can proceed to the
    quickstart section to verify the build:
 
    See :ref:`Checking the scikit-plots build <contributing_check_build>`.
-
 
 .. seealso::
 
@@ -32,7 +34,6 @@ Docker Containerization Guidelines
    * `"🐋 docker/README.md" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/README.md>`__
 
    * `"💡 bash-first-run-notice.txt" <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`__
-
 
 🐋 Docker Containerization
 ---------------------------------------
@@ -49,7 +50,6 @@ Here's how containerization works:
 
 - **Consistency**: The application inside the container runs the same way regardless of where it's deployed, ensuring consistency across environments.
 
-
 🏷️ Github Codespaces Guide
 ----------------------------
 
@@ -62,7 +62,6 @@ Here's how containerization works:
    <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-jupyter%2Fdevcontainer.json&geo=EuropeWest" target="_blank">
    <img style="display:auto;width:auto;height:auto;" alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg">
    </a>
-
 
 **Step by step:**
 
@@ -182,14 +181,12 @@ You can run containers with either host-installed CUDA or pre-installed CUDA ins
    .. literalinclude:: ../../../docker/scripts/bash-first-run-notice.txt
       :language: none
 
-
 🚯 Stop Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
    docker compose down
-
 
 🐳 Docker Compose Configuration
 --------------------------------
@@ -232,7 +229,6 @@ Runs on port ``8890``
 If you need more control, you can use Docker CLI commands.
 
 ▶️ Build & Run the Container Manually
-
 
 .. code-block:: sh
 

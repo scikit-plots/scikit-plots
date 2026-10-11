@@ -3,19 +3,53 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any, Mapping
+from urllib.parse import urlsplit
 
 from .._contracts import normalize_page_id, normalize_page_revision, normalize_site_id
+from .._network import is_loopback_host, is_private_host
 
-PROVIDERS = frozenset({"sqlite", "github", "huggingface", "gitlab", "bitbucket"})
-IMPLEMENTED_PROVIDERS = frozenset({"sqlite", "github"})
+#: Storage providers, grouped by where an event goes.
+#:
+#: * local (no network): ``sqlite`` database file, ``git`` working tree commit;
+#: * reviewed hosting (pull/merge request): ``github`` (github.com or GitHub
+#:   Enterprise via ``api_url``); ``gitlab``, ``bitbucket`` and ``huggingface``
+#:   are modelled for forward compatibility and refused until implemented;
+#: * external: ``webhook`` (HMAC-signed POST to any receiver, for example a
+#:   Cloudflare Worker or an intranet service) and ``custom`` (an operator's
+#:   own Python adapter named by ``factory``).
+LOCAL_PROVIDERS = frozenset({"sqlite", "git"})
+REVIEW_PROVIDERS = frozenset({"github", "huggingface", "gitlab", "bitbucket"})
+EXTERNAL_PROVIDERS = frozenset({"webhook", "custom"})
+PROVIDERS = LOCAL_PROVIDERS | REVIEW_PROVIDERS | EXTERNAL_PROVIDERS
+IMPLEMENTED_PROVIDERS = frozenset(
+    {"sqlite", "git", "github", "gitlab", "bitbucket", "webhook", "custom"}
+)
 DEFAULT_FEEDBACK_STORAGE_TARGETS: tuple = ()
+DEFAULT_GITHUB_API_URL = "https://api.github.com"
+DEFAULT_GITLAB_API_URL = "https://gitlab.com/api/v4"
+#: Bitbucket Cloud only. Bitbucket Data Center has a different REST API
+#: (``/rest/api/1.0``); reach it through the webhook provider.
+BITBUCKET_CLOUD_API_URL = "https://api.bitbucket.org/2.0"
+#: ``api_url`` default per forge provider.
+DEFAULT_API_URLS = {
+    "github": DEFAULT_GITHUB_API_URL,
+    "gitlab": DEFAULT_GITLAB_API_URL,
+    "bitbucket": BITBUCKET_CLOUD_API_URL,
+}
 ROLES = frozenset({"primary", "mirror"})
-REVIEW_MODES = frozenset({"disabled", "sqlite", "provider-pr"})
+#: ``disabled``: refuse every submission (default).
+#: ``sqlite``: every target is SQLite (one-line local setup).
+#: ``local``: every target is local (SQLite or git); no network egress.
+#: ``provider-pr``: the primary opens a reviewed pull/merge request.
+#: ``custom``: any implemented providers, for webhook/custom primaries.
+REVIEW_MODES = frozenset({"disabled", "sqlite", "local", "provider-pr", "custom"})
 PAGE_AUTHORITY_CONTRACT = "page.feedback-authority.v1"
 _MAX_PAGE_AUTHORITY_BYTES = 4 * 1024 * 1024
 _MAX_PAGE_AUTHORITY_SITES = 32
@@ -33,10 +67,32 @@ _ALLOWED_TARGET_KEYS = frozenset(
         "token_env",
         "database",
         "expose_links",
+        "api_url",
+        "url",
+        "allow_http",
+        "repository_path",
+        "factory",
+        "options",
     }
 )
+_FACTORY_RE = re.compile(
+    r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*:[A-Za-z_][A-Za-z0-9_]*\Z"
+)
+_SECRET_WORDS = (
+    "token",
+    "secret",
+    "password",
+    "authorization",
+    "credential",
+    "apikey",
+    "api_key",
+)
+_MAX_OPTIONS = 32
+_MAX_OPTION_CHARS = 1024
 _ALLOWED_PATH_KEYS = frozenset({"feedback"})
 _REPO_RE = re.compile(r"[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}\Z")
+#: GitLab projects may sit in nested groups: ``group/subgroup/project``.
+_GITLAB_REPO_RE = re.compile(r"[A-Za-z0-9_.-]{1,255}(?:/[A-Za-z0-9_.-]{1,255}){1,19}\Z")
 _ENV_RE = re.compile(r"[A-Z][A-Z0-9_]{0,127}\Z")
 _ALLOWED_EXACT_TOKEN_ENVS = frozenset(
     {
@@ -84,6 +140,12 @@ class StorageTarget:
     token_env: tuple[str, ...] = ()
     database: str = ""
     expose_links: bool = False
+    api_url: str = ""
+    url: str = ""
+    allow_http: bool = False
+    repository_path: str = ""
+    factory: str = ""
+    options: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def resolve_token(self, env: Mapping[str, str] = os.environ) -> tuple[str, str]:
         for name in self.token_env:
@@ -150,6 +212,11 @@ def _token_envs(value: Any, provider: str) -> tuple[str, ...]:
                 "FEEDBACK_BITBUCKET_TOKEN",
                 "BITBUCKET_TOKEN",
             ),
+            # The webhook secret signs each delivery (HMAC-SHA256); it is never
+            # sent. The name must still match the feedback credential allowlist.
+            "webhook": ("FEEDBACK_WEBHOOK_TOKEN",),
+            "custom": (),
+            "git": (),
             "sqlite": (),
         }
         return defaults[provider]
@@ -163,7 +230,7 @@ def _token_envs(value: Any, provider: str) -> tuple[str, ...]:
         raise FeedbackServiceConfigError(
             "token_env must be a string or list of environment-variable names",
         )
-    if provider != "sqlite" and not values:
+    if provider in REVIEW_PROVIDERS | {"webhook"} and not values:
         raise FeedbackServiceConfigError(
             f"{provider} storage target requires at least one token_env credential alias",
         )
@@ -309,13 +376,16 @@ def _parse_target(  # ruff: ignore[too-many-branches]
             "storage target label is invalid",
         )
     repo = _target_string(raw, "repo")
-    if provider != "sqlite":
-        if not _REPO_RE.fullmatch(repo):
+    if provider in REVIEW_PROVIDERS:
+        pattern = _GITLAB_REPO_RE if provider == "gitlab" else _REPO_RE
+        if not pattern.fullmatch(repo):
             raise FeedbackServiceConfigError(
-                f"{provider} storage target requires owner/repo",
+                f"{provider} storage target requires "
+                + (
+                    "group/[subgroup/]project" if provider == "gitlab" else "owner/repo"
+                ),
             )
-        owner, repository = repo.split("/", 1)
-        if owner in {".", ".."} or repository in {".", ".."}:
+        if any(part in {".", ".."} for part in repo.split("/")):
             raise FeedbackServiceConfigError(
                 f"{provider} storage target requires a canonical owner/repo",
             )
@@ -339,9 +409,12 @@ def _parse_target(  # ruff: ignore[too-many-branches]
         raise FeedbackServiceConfigError(
             "storage target branch is invalid",
         )
-    if provider == "github" and branch == "feedback":
+    if provider in REVIEW_PROVIDERS and branch == "feedback":
+        # Git refs cannot hold both "feedback" and "feedback/<nonce>".
         raise FeedbackServiceConfigError(
-            "GitHub base branch 'feedback' conflicts with the deterministic feedback/<nonce> review namespace",
+            ("GitHub" if provider == "github" else provider)
+            + " base branch 'feedback' conflicts with the deterministic "
+            "feedback/<nonce> review namespace",
         )
     paths = raw.get("paths", None)
     if paths is None:
@@ -398,6 +471,8 @@ def _parse_target(  # ruff: ignore[too-many-branches]
             raise FeedbackServiceConfigError(
                 "expose_links is not valid for sqlite targets",
             )
+    _reject_foreign_keys(raw, provider)
+    extras = _provider_extras(raw, provider)
     token_env = _token_envs(raw.get("token_env"), provider)
     expose_links = raw.get("expose_links", False)
     if not isinstance(expose_links, bool):
@@ -416,7 +491,168 @@ def _parse_target(  # ruff: ignore[too-many-branches]
         token_env=token_env,
         database=database,
         expose_links=expose_links,
+        **extras,
     )
+
+
+#: Keys each provider accepts beyond id/label/authority/provider/role.
+_PROVIDER_KEYS = {
+    "sqlite": frozenset({"database"}),
+    "git": frozenset({"repository_path", "paths"}),
+    "github": frozenset(
+        {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
+    ),
+    "gitlab": frozenset(
+        {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
+    ),
+    "bitbucket": frozenset(
+        {"repo", "branch", "paths", "token_env", "expose_links", "api_url"}
+    ),
+    "huggingface": frozenset({"repo", "branch", "paths", "token_env", "expose_links"}),
+    "webhook": frozenset({"url", "allow_http", "token_env"}),
+    "custom": frozenset({"factory", "options", "token_env"}),
+}
+
+
+def _reject_foreign_keys(raw: dict[str, Any], provider: str) -> None:
+    """
+    Refuse a key that belongs to another provider.
+
+    A key such as ``url`` on a ``github`` target would otherwise be silently
+    ignored, and the operator would believe it took effect.
+    """
+    common = {"id", "label", "authority", "provider", "role"}
+    foreign = sorted(set(raw) - common - _PROVIDER_KEYS[provider])
+    # Keys sqlite rejects by name were already refused with a specific message.
+    if foreign:
+        raise FeedbackServiceConfigError(
+            f"{provider} storage target does not accept: " + ", ".join(foreign)
+        )
+
+
+def _https_url(value: str, *, name: str, allow_private_http: bool) -> str:
+    """Return a credential-free http(s) URL, or raise ``FeedbackServiceConfigError``."""
+    text = value.strip()
+    if len(text) > 2048 or any(  # ruff: ignore[magic-value-comparison]
+        ord(ch) < 33 or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+        for ch in text
+    ):
+        raise FeedbackServiceConfigError(f"{name} is invalid")
+    try:
+        parsed = urlsplit(text)
+        parsed.port  # noqa: B018 - validates the port
+    except ValueError as exc:
+        raise FeedbackServiceConfigError(f"{name} is invalid") from exc
+    host = (parsed.hostname or "").lower()
+    if (
+        not host
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise FeedbackServiceConfigError(
+            f"{name} must be an http(s) URL without credentials, query or fragment"
+        )
+    if parsed.scheme == "https":
+        return text.rstrip("/")
+    if parsed.scheme == "http" and is_loopback_host(host):
+        return text.rstrip("/")
+    if parsed.scheme == "http" and allow_private_http and is_private_host(host):
+        return text.rstrip("/")
+    raise FeedbackServiceConfigError(
+        f"{name} must use HTTPS (HTTP is accepted for a loopback host"
+        + (", or a private host with allow_http" if name == "webhook url" else "")
+        + ")"
+    )
+
+
+def _options(value: Any) -> Mapping[str, Any]:
+    """Validate the JSON object handed to a custom adapter factory."""
+    if value in (None, {}):
+        return MappingProxyType({})
+    if not isinstance(value, dict) or len(value) > _MAX_OPTIONS:
+        raise FeedbackServiceConfigError(
+            f"custom storage target options must be an object with at most {_MAX_OPTIONS} keys"
+        )
+    for key, item in value.items():
+        if not isinstance(key, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", key):
+            raise FeedbackServiceConfigError(
+                "custom storage target option names must be lowercase identifiers"
+            )
+        if any(word in key for word in _SECRET_WORDS):
+            raise FeedbackServiceConfigError(
+                "custom storage target options may not carry secrets; name an "
+                "environment variable in token_env instead"
+            )
+        # Type first: len() is defined only for the string case, and a
+        # non-finite float would not survive the JSON the factory may log.
+        if isinstance(item, str):
+            valid = len(item) <= _MAX_OPTION_CHARS
+        elif isinstance(item, float):
+            valid = math.isfinite(item)
+        else:
+            valid = isinstance(item, (int, bool))
+        if not valid:
+            raise FeedbackServiceConfigError(
+                "custom storage target option values must be short scalars"
+            )
+    return MappingProxyType(dict(value))
+
+
+def _provider_extras(  # ruff: ignore[too-many-branches]
+    raw: dict[str, Any], provider: str
+) -> dict[str, Any]:
+    """Validate and return the provider-specific StorageTarget fields."""
+    extras: dict[str, Any] = {}
+    if provider not in REVIEW_PROVIDERS | {"sqlite"} and raw.get(
+        "expose_links", False
+    ) not in (False, None):
+        raise FeedbackServiceConfigError(
+            f"expose_links is not valid for {provider} targets"
+        )
+    if provider in DEFAULT_API_URLS:
+        default = DEFAULT_API_URLS[provider]
+        api_url = _target_string(raw, "api_url", default=default) or default
+        extras["api_url"] = _https_url(
+            api_url, name=f"{provider} api_url", allow_private_http=False
+        )
+        if provider == "bitbucket" and extras["api_url"] != BITBUCKET_CLOUD_API_URL:
+            raise FeedbackServiceConfigError(
+                "bitbucket api_url must be https://api.bitbucket.org/2.0: Bitbucket "
+                "Data Center has a different API; use the webhook provider for it"
+            )
+    elif provider == "webhook":
+        url = _target_string(raw, "url", allow_empty=False)
+        allow_http = raw.get("allow_http", False)
+        if not isinstance(allow_http, bool):
+            raise FeedbackServiceConfigError("webhook allow_http must be a boolean")
+        extras["url"] = _https_url(
+            url, name="webhook url", allow_private_http=allow_http
+        )
+        extras["allow_http"] = allow_http
+    elif provider == "git":
+        path = _target_string(raw, "repository_path", allow_empty=False)
+        if len(path) > 1024 or any(  # ruff: ignore[magic-value-comparison]
+            ord(ch) < 32 or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
+            for ch in path
+        ):
+            raise FeedbackServiceConfigError("git repository_path is invalid")
+        if not Path(path).is_absolute():
+            raise FeedbackServiceConfigError(
+                "git repository_path must be absolute, so the target does not "
+                "depend on the server's working directory"
+            )
+        extras["repository_path"] = path
+    elif provider == "custom":
+        factory = _target_string(raw, "factory", allow_empty=False)
+        if not _FACTORY_RE.fullmatch(factory):
+            raise FeedbackServiceConfigError(
+                "custom storage target factory must be 'package.module:callable'"
+            )
+        extras["factory"] = factory
+        extras["options"] = _options(raw.get("options"))
+    return extras
 
 
 def parse_storage_targets(raw: Any) -> tuple[StorageTarget, ...]:
@@ -653,25 +889,25 @@ def _allowed_site_ids(value: Any) -> tuple[str, ...]:
     return tuple(result)
 
 
-def load_service_config(
-    env: Mapping[str, str] = os.environ,
-) -> FeedbackServiceConfig:
-    mode = (
-        str(
-            env.get("FEEDBACK_REVIEW_MODE", "disabled") or "disabled",
-        )
-        .strip()
-        .lower()
-    )
-    if mode not in REVIEW_MODES:
-        raise FeedbackServiceConfigError(
-            f"FEEDBACK_REVIEW_MODE must be one of {sorted(REVIEW_MODES)}",
-        )
+def _configured_targets(  # ruff: ignore[too-many-return-statements]
+    mode: str, env: Mapping[str, str]
+) -> tuple[StorageTarget, ...]:
+    """
+    Return ``FEEDBACK_STORAGE_TARGETS``, or the one-target shorthand for *mode*.
+
+    Shorthands, used only when ``FEEDBACK_STORAGE_TARGETS`` is blank:
+
+    * ``sqlite``: ``FEEDBACK_SQLITE_PATH`` (default ``feedback.sqlite3``);
+    * ``provider-pr``: ``FEEDBACK_GITHUB_REPOSITORY`` (+ ``_DEFAULT_BRANCH``,
+      ``_PATH``, ``_API_URL`` for GitHub Enterprise);
+    * ``local``: ``FEEDBACK_GIT_REPOSITORY_PATH`` (+ ``FEEDBACK_GIT_PATH``);
+    * ``custom``: ``FEEDBACK_WEBHOOK_URL`` (+ ``FEEDBACK_WEBHOOK_ALLOW_HTTP``).
+    """
     raw_targets = env.get("FEEDBACK_STORAGE_TARGETS", "")
     if raw_targets:
-        targets = parse_storage_targets(raw_targets)
-    elif mode == "sqlite":
-        targets = parse_storage_targets(
+        return parse_storage_targets(raw_targets)
+    if mode == "sqlite":
+        return parse_storage_targets(
             [
                 {
                     "id": "sqlite-primary",
@@ -688,11 +924,11 @@ def load_service_config(
                 }
             ]
         )
-    elif (
+    if (
         mode == "provider-pr"
         and str(env.get("FEEDBACK_GITHUB_REPOSITORY", "") or "").strip()
     ):
-        targets = parse_storage_targets(
+        return parse_storage_targets(
             [
                 {
                     "id": "github-primary",
@@ -711,11 +947,75 @@ def load_service_config(
                     },
                     "token_env": None,
                     "expose_links": False,
+                    "api_url": (
+                        str(
+                            env.get("FEEDBACK_GITHUB_API_URL", "")
+                            or DEFAULT_GITHUB_API_URL
+                        ).strip()
+                    ),
                 }
             ]
         )
-    else:
-        targets = DEFAULT_FEEDBACK_STORAGE_TARGETS
+    if (
+        mode == "local"
+        and str(env.get("FEEDBACK_GIT_REPOSITORY_PATH", "") or "").strip()
+    ):
+        return parse_storage_targets(
+            [
+                {
+                    "id": "git-primary",
+                    "label": "Local Git Feedback",
+                    "provider": "git",
+                    "role": "primary",
+                    "repository_path": str(env["FEEDBACK_GIT_REPOSITORY_PATH"]).strip(),
+                    "paths": {"feedback": env.get("FEEDBACK_GIT_PATH", "feedback")},
+                }
+            ]
+        )
+    if mode == "custom" and str(env.get("FEEDBACK_WEBHOOK_URL", "") or "").strip():
+        return parse_storage_targets(
+            [
+                {
+                    "id": "webhook-primary",
+                    "label": "Feedback Webhook",
+                    "provider": "webhook",
+                    "role": "primary",
+                    "url": str(env["FEEDBACK_WEBHOOK_URL"]).strip(),
+                    "allow_http": _env_bool(
+                        env.get("FEEDBACK_WEBHOOK_ALLOW_HTTP"),
+                        name="FEEDBACK_WEBHOOK_ALLOW_HTTP",
+                    ),
+                }
+            ]
+        )
+    return DEFAULT_FEEDBACK_STORAGE_TARGETS
+
+
+def _env_bool(value: Any, *, name: str) -> bool:
+    """Parse ``true``/``false``/``1``/``0``/blank strictly; blank is ``False``."""
+    text = str(value or "").strip().lower()
+    if text in {"", "0", "false", "no"}:
+        return False
+    if text in {"1", "true", "yes"}:
+        return True
+    raise FeedbackServiceConfigError(f"{name} must be true or false")
+
+
+def load_service_config(
+    env: Mapping[str, str] = os.environ,
+) -> FeedbackServiceConfig:
+    mode = (
+        str(
+            env.get("FEEDBACK_REVIEW_MODE", "disabled") or "disabled",
+        )
+        .strip()
+        .lower()
+    )
+    if mode not in REVIEW_MODES:
+        raise FeedbackServiceConfigError(
+            f"FEEDBACK_REVIEW_MODE must be one of {sorted(REVIEW_MODES)}",
+        )
+    targets = _configured_targets(mode, env)
     if mode == "disabled" and targets:
         raise FeedbackServiceConfigError(
             "feedback storage targets must be empty when FEEDBACK_REVIEW_MODE=disabled"
@@ -733,7 +1033,14 @@ def load_service_config(
         raise FeedbackServiceConfigError(
             "FEEDBACK_REVIEW_MODE=sqlite is local-only and requires every storage target to use sqlite"
         )
-    if mode == "provider-pr" and primary and primary.provider == "sqlite":
+    if mode == "local" and any(
+        target.provider not in LOCAL_PROVIDERS for target in targets
+    ):
+        raise FeedbackServiceConfigError(
+            "FEEDBACK_REVIEW_MODE=local makes no network requests and requires "
+            "every storage target to be sqlite or git"
+        )
+    if mode == "provider-pr" and primary and primary.provider not in REVIEW_PROVIDERS:
         raise FeedbackServiceConfigError(
             "FEEDBACK_REVIEW_MODE=provider-pr requires a provider primary target"
         )

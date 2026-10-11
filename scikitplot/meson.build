@@ -363,6 +363,7 @@ subdir('cexternals')
 subdir('memmap')
 subdir('random')
 subdir('annoy')
+subdir('levenshtein')
 
 subdir('nc')  # defined use in dep_numcpp
 

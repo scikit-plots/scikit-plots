@@ -1,0 +1,7 @@
+- ``scikitplot.cleanprompt``: custom pack patterns are now checked for shapes
+  that can backtrack catastrophically (nested or overlapping repetition) when
+  they load, and each finding prints concrete rewrites. The check warns by
+  default; ``--pattern-risk ignore|warn|refuse`` (or ``pattern_risk`` in a
+  plan file, or ``CLEANPROMPT_PATTERN_RISK``) tunes it, a pattern can be
+  accepted in its pack with ``risk: accepted`` and a ``risk_reason``, and
+  ``packs --check`` lists every finding, accepted ones included.

@@ -1,164 +1,630 @@
+# GENERATED FILE - DO NOT EDIT.
+#
+# Module and library labels for https://github.com/actions/labeler (v7),
+# applied by .github/workflows/pr_labeler.yml.
+#
+# Source of truth:
+#   * owners      - [tool.scikitplot.maintenance.towncrier] in pyproject.toml
+#                   (the same owners as the release-note sections), so a new
+#                   package gets its label when it gets its section;
+#   * label names - "<root>/<path>", or [tool.scikitplot.maintenance.labeler]
+#                   label_aliases where GitHub's 50-character limit needs it;
+#   * satellites  - [tool.scikitplot.maintenance.labeler.satellites]: a module
+#                   label also fires for its maintenance plane, user guide,
+#                   gallery, follow-up ledger and release-note fragments;
+#   * libraries   - "libs/<dist>" also fires for every path the distribution
+#                   ships (scikitplot/_distributions.py), so a PR shows which
+#                   partial distributions it affects.
+#
+# Edit the template (tools/maint_tools/templates/labeler-by-module.yml.in) or
+# the policy, then regenerate and check:
+#   python tools/maint_tools/generate_pr_labeler.py sync --apply
+#   python tools/maint_tools/generate_pr_labeler.py check
+---
+"tools":
+- changed-files:
+  - any-glob-to-any-file:
+    - "tools/**/*"
+
+"libs/_tools":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/_tools/**/*"
+    - "upcoming_changes/libs/_tools/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs._tools/**/*"
+
+"libs/annoy":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/annoy/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.annoy/**/*"
+    - "scikitplot/annoy/**/*"
+    - "scikitplot/cexternals/_annoy/**/*"
+    - "scikitplot/cexternals/__init__.py"
+
+"libs/cleanprompt":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/cleanprompt/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.cleanprompt/**/*"
+    - "scikitplot/cleanprompt/**/*"
+
+"libs/corpus":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/corpus/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.corpus/**/*"
+    - "scikitplot/corpus/**/*"
+
+"libs/cython":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/cython/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.cython/**/*"
+    - "scikitplot/cython/**/*"
+
+"libs/mcp":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/mcp/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.mcp/**/*"
+    - "scikitplot/mcp/**/*"
+
+"libs/mlflow":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/mlflow/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.mlflow/**/*"
+    - "scikitplot/mlflow/**/*"
+
+"libs/rank-bm25":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/rank-bm25/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.rank-bm25/**/*"
+    - "scikitplot/rank_bm25/**/*"
+
+"libs/skinny":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/skinny/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.skinny/**/*"
+    - "scikitplot/_cli/**/*"
+    - "scikitplot/logging/**/*"
+    - "scikitplot/__init__.py"
+    - "scikitplot/__init__.pyi"
+    - "scikitplot/__main__.py"
+    - "scikitplot/_distributions.py"
+    - "scikitplot/environment_variables.py"
+    - "scikitplot/exceptions.py"
+    - "scikitplot/exceptions.pyi"
+    - "scikitplot/py.typed"
+
+"libs/sphinx-ext":
+- changed-files:
+  - any-glob-to-any-file:
+    - "libs/sphinx-ext/**/*"
+    - "docs/source/whats_new/upcoming_changes/libs.sphinx-ext/**/*"
+    - "scikitplot/_externals/_sphinx_ext/**/*"
+    - "scikitplot/_externals/__init__.py"
+
+"scikitplot (top-level)":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/*"
+
 "scikitplot/_api":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_api/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._api/**/*"
+
+"scikitplot/_brand":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_brand/**/*"
+    - "maintenances/_brand/**/*"
+    - "skills/_brand/**/*"
+    - "docs/source/user_guide/_brand/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._brand/**/*"
 
 "scikitplot/_build_utils":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_build_utils/**/*"
+    - "maintenances/_build_utils/**/*"
+    - "skills/_build_utils/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._build_utils/**/*"
 
 "scikitplot/_cli":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_cli/**/*"
+    - "maintenances/_cli/**/*"
+    - "skills/_cli/**/*"
+    - "upcoming_changes/scikitplot/_cli/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._cli/**/*"
 
 "scikitplot/_compat":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_compat/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._compat/**/*"
+
+"scikitplot/_core":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_core/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._core/**/*"
+
+"scikitplot/_decorates":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_decorates/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._decorates/**/*"
 
 "scikitplot/_docstrings":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_docstrings/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._docstrings/**/*"
+
+"scikitplot/_env":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_env/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._env/**/*"
+
+"scikitplot/_externals":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/**/*"
+    - "maintenances/_externals/**/*"
+    - "skills/_externals/**/*"
+    - "docs/source/user_guide/_externals/**/*"
+    - "upcoming_changes/scikitplot/_externals/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals/**/*"
+
+"scikitplot/_sphinx_ext/_pydata_component_list":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_pydata_component_list/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_pydata_component_list/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._pydata_component_list/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_ai_assistant":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "skills/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_ai_assistant/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_ai_learn":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_ai_learn/**/*"
+    - "skills/_externals/_sphinx_ext/_sphinx_ai_learn/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_ai_learn/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_ai_learn/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_collection":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_collection/**/*"
+    - "skills/_externals/_sphinx_ext/_sphinx_collection/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_collection/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_collection/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_feedback":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_feedback/**/*"
+    - "skills/_externals/_sphinx_ext/_sphinx_feedback/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_feedback/**/*"
+    - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_feedback/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_feedback/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_gallery_grid":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_gallery_grid/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_gallery_grid/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_gallery_grid/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_youtube_core":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_core/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_youtube_core/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_youtube_core/**/*"
+
+"scikitplot/_sphinx_ext/_sphinx_youtube_gallery":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_gallery/**/*"
+    - "maintenances/_externals/_sphinx_ext/_sphinx_youtube_gallery/**/*"
+    - "skills/_externals/_sphinx_ext/_sphinx_youtube_gallery/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_youtube_gallery/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_youtube_gallery/**/*"
+
+"scikitplot/_sphinx_ext/_sphinxcontrib_youtube":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/_externals/_sphinx_ext/_sphinxcontrib_youtube/**/*"
+    - "docs/source/user_guide/_externals/_sphinx_ext/_sphinxcontrib_youtube/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinxcontrib_youtube/**/*"
 
 "scikitplot/_factory_api":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_factory_api/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._factory_api/**/*"
 
 "scikitplot/_lib":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_lib/**/*"
+    - "docs/source/user_guide/_lib/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._lib/**/*"
 
 "scikitplot/_testing":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_testing/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._testing/**/*"
 
 "scikitplot/_typing":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_typing/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._typing/**/*"
 
 "scikitplot/_utils":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot._utils/**/*"
 
 "scikitplot/annoy":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/annoy/**/*"
+    - "maintenances/annoy/**/*"
+    - "skills/annoy/**/*"
+    - "docs/source/user_guide/annoy/**/*"
+    - "galleries/examples/annoy/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.annoy/**/*"
 
 "scikitplot/api":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/api/**/*"
+    - "docs/source/user_guide/api/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.api/**/*"
 
 "scikitplot/cexperimental":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/cexperimental/**/*"
+    - "docs/source/user_guide/cexperimental/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexperimental/**/*"
 
 "scikitplot/cexternals":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/cexternals/**/*"
+    - "maintenances/cexternals/**/*"
+    - "skills/cexternals/**/*"
+    - "docs/source/user_guide/cexternals/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals/**/*"
+
+"scikitplot/cexternals/_annoy":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/_annoy/**/*"
+    - "maintenances/cexternals/_annoy/**/*"
+    - "skills/cexternals/_annoy/**/*"
+    - "docs/source/user_guide/cexternals/_annoy/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals._annoy/**/*"
 
 "scikitplot/cexternals/_astropy":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/cexternals/_astropy/**/*"
+    - "docs/source/user_guide/cexternals/_astropy/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals._astropy/**/*"
+
+"scikitplot/cexternals/_editdistance":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/_editdistance/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals._editdistance/**/*"
 
 "scikitplot/cexternals/_f2py":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/cexternals/_f2py/**/*"
+    - "docs/source/user_guide/cexternals/_f2py/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals._f2py/**/*"
+
+"scikitplot/cexternals/_numcpp":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cexternals/_numcpp/**/*"
+    - "docs/source/user_guide/cexternals/_numcpp/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cexternals._numcpp/**/*"
+
+"scikitplot/cleanprompt":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cleanprompt/**/*"
+    - "maintenances/cleanprompt/**/*"
+    - "skills/cleanprompt/**/*"
+    - "docs/source/user_guide/cleanprompt/**/*"
+    - "galleries/examples/cleanprompt/**/*"
+    - "upcoming_changes/scikitplot/cleanprompt/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cleanprompt/**/*"
 
 "scikitplot/config":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/config/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.config/**/*"
+
+"scikitplot/corpus":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/corpus/**/*"
+    - "maintenances/corpus/**/*"
+    - "skills/corpus/**/*"
+    - "docs/source/user_guide/corpus/**/*"
+    - "galleries/examples/corpus/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.corpus/**/*"
+
+"scikitplot/cython":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/cython/**/*"
+    - "maintenances/cython/**/*"
+    - "skills/cython/**/*"
+    - "docs/source/user_guide/cython/**/*"
+    - "galleries/examples/cython/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.cython/**/*"
+
+"scikitplot/datasets":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/datasets/**/*"
+    - "maintenances/datasets/**/*"
+    - "skills/datasets/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.datasets/**/*"
 
 "scikitplot/decile":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/decile/**/*"
+    - "maintenances/decile/**/*"
+    - "skills/decile/**/*"
+    - "docs/source/user_guide/decile/**/*"
+    - "galleries/examples/decile/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.decile/**/*"
 
 "scikitplot/experimental":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/experimental/**/*"
-
-"scikitplot/experimental/_clv":
-- changed-files:
-  - any-glob-to-any-file:
-    - "scikitplot/experimental/_clv/**/*"
+    - "maintenances/experimental/**/*"
+    - "docs/source/user_guide/experimental/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.experimental/**/*"
 
 "scikitplot/externals":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/**/*"
+    - "docs/source/user_guide/externals/**/*"
+    - "upcoming_changes/scikitplot/externals/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals/**/*"
+
+"scikitplot/externals/_packaging":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_packaging/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._packaging/**/*"
+
+"scikitplot/externals/_platformdirs":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_platformdirs/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._platformdirs/**/*"
 
 "scikitplot/externals/_probscale":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/_probscale/**/*"
+    - "docs/source/user_guide/externals/_probscale/**/*"
+    - "upcoming_changes/scikitplot/externals/_probscale/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._probscale/**/*"
+
+"scikitplot/externals/_scipy":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/_scipy/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._scipy/**/*"
 
 "scikitplot/externals/_seaborn":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/_seaborn/**/*"
+    - "docs/source/user_guide/externals/_seaborn/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._seaborn/**/*"
 
 "scikitplot/externals/_sphinxext":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/_sphinxext/**/*"
+    - "docs/source/user_guide/externals/_sphinxext/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._sphinxext/**/*"
 
 "scikitplot/externals/_tweedie":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/externals/_tweedie/**/*"
+    - "docs/source/user_guide/externals/_tweedie/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals._tweedie/**/*"
+
+"scikitplot/externals/array_api_compat":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/array_api_compat/**/*"
+    - "docs/source/user_guide/externals/array_api_compat/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals.array_api_compat/**/*"
+
+"scikitplot/externals/array_api_extra":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/externals/array_api_extra/**/*"
+    - "docs/source/user_guide/externals/array_api_extra/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.externals.array_api_extra/**/*"
 
 "scikitplot/impute":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/impute/**/*"
+    - "maintenances/impute/**/*"
+    - "skills/impute/**/*"
+    - "docs/source/user_guide/impute/**/*"
+    - "galleries/examples/impute/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.impute/**/*"
+
+"scikitplot/levenshtein":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/levenshtein/**/*"
+    - "maintenances/levenshtein/**/*"
+    - "skills/levenshtein/**/*"
+    - "docs/source/user_guide/levenshtein/**/*"
+    - "galleries/examples/levenshtein/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.levenshtein/**/*"
+
+"scikitplot/logging":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/logging/**/*"
+    - "maintenances/logging/**/*"
+    - "skills/logging/**/*"
+    - "docs/source/user_guide/logging/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.logging/**/*"
+
+"scikitplot/mcp":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/mcp/**/*"
+    - "maintenances/mcp/**/*"
+    - "skills/mcp/**/*"
+    - "docs/source/user_guide/mcp/**/*"
+    - "galleries/examples/mcp/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.mcp/**/*"
+
+"scikitplot/memmap":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/memmap/**/*"
+    - "maintenances/memmap/**/*"
+    - "skills/memmap/**/*"
+    - "docs/source/user_guide/memmap/**/*"
+    - "galleries/examples/memmap/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.memmap/**/*"
 
 "scikitplot/misc":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/misc/**/*"
+    - "galleries/examples/misc/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.misc/**/*"
+
+"scikitplot/mlflow":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/mlflow/**/*"
+    - "docs/source/user_guide/mlflow/**/*"
+    - "galleries/examples/mlflow/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.mlflow/**/*"
 
 "scikitplot/nc":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/nc/**/*"
+    - "docs/source/user_guide/nc/**/*"
+    - "galleries/examples/nc/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.nc/**/*"
+
+"scikitplot/neighbors":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/neighbors/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.neighbors/**/*"
 
 "scikitplot/preprocessing":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/preprocessing/**/*"
+    - "maintenances/preprocessing/**/*"
+    - "skills/preprocessing/**/*"
+    - "docs/source/user_guide/preprocessing/**/*"
+    - "galleries/examples/preprocessing/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.preprocessing/**/*"
+
+"scikitplot/random":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/random/**/*"
+    - "maintenances/random/**/*"
+    - "skills/random/**/*"
+    - "docs/source/user_guide/random/**/*"
+    - "galleries/examples/random/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.random/**/*"
+
+"scikitplot/rank_bm25":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/rank_bm25/**/*"
+    - "docs/source/user_guide/rank_bm25/**/*"
+    - "galleries/examples/rank_bm25/**/*"
+    - "upcoming_changes/scikitplot/rank_bm25/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/**/*"
 
 "scikitplot/seaborn":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/seaborn/**/*"
+    - "maintenances/seaborn/**/*"
+    - "skills/seaborn/**/*"
+    - "docs/source/user_guide/seaborn/**/*"
+    - "galleries/examples/seaborn/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.seaborn/**/*"
 
 "scikitplot/stats":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/stats/**/*"
+    - "docs/source/user_guide/stats/**/*"
+    - "galleries/examples/stats/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.stats/**/*"
 
 "scikitplot/utils":
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/utils/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.utils/**/*"
 
 "scikitplot/visualkeras":
 - changed-files:
   - any-glob-to-any-file:
-    - "scikitplot/visualkeras.py"
+    - "scikitplot/visualkeras/**/*"
+    - "maintenances/visualkeras/**/*"
+    - "skills/visualkeras/**/*"
+    - "docs/source/user_guide/visualkeras/**/*"
+    - "galleries/examples/visualkeras/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.visualkeras/**/*"

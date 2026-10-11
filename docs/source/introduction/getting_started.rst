@@ -1,9 +1,14 @@
-.. _getting_started:
-
 .. scikit-plots documentation master file, created by
    sphinx-quickstart on Sun August 25 01:25:01 2024.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
+
+.. _getting_started:
 
 ======================================================================
 Getting Started Guide

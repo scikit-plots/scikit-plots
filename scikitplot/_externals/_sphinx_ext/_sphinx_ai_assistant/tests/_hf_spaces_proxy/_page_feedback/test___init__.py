@@ -20,11 +20,18 @@ SOURCE = STACK_ROOT / "_sphinx_feedback"
 EXPECTED_VENDORED = {
     "__init__.py",
     "_contracts.py",
+    "_network.py",
     "_service/__init__.py",
+    "_service/_bitbucket.py",
     "_service/_config.py",
     "_service/_core.py",
+    "_service/_custom.py",
+    "_service/_forge.py",
+    "_service/_git.py",
     "_service/_github.py",
+    "_service/_gitlab.py",
     "_service/_sqlite.py",
+    "_service/_webhook.py",
     "_service/app.py",
 }
 

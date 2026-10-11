@@ -1,0 +1,22 @@
+# GENERATED FILE - DO NOT EDIT.
+#
+# Title labels for https://github.com/github/issue-labeler (v3.5), applied to
+# pull-request titles by .github/workflows/pr_labeler.yml and to issue titles
+# by .github/workflows/issue_labeler.yml.
+#
+# Source of truth: [tool.scikitplot.maintenance.labeler.title_prefixes] and
+# title_keywords in pyproject.toml. One prefix gives exactly one label.
+#
+# Prefix rules match the start of the title, case-insensitively: an optional
+# "[", a list of known prefixes joined by ",", "/" or "+", then an explicit
+# terminator - "]" (optionally ":"), "(scope):" or ":":
+#   "BUG: ...", "[Bug]: ...", "[BUG] ...", "BUG, TST: ...", "MAINT(ci): ..."
+# Without a terminator nothing matches: "Fix typo", "Bug in reader" and
+# "DOCKER image" get no prefix label. Keyword rules match whole words anywhere.
+#
+# Edit the template (tools/maint_tools/templates/labeler-issue.yml.in) or the
+# policy, then regenerate and check:
+#   python tools/maint_tools/generate_pr_labeler.py sync --apply
+#   python tools/maint_tools/generate_pr_labeler.py check
+---
+@GENERATED_RULES@

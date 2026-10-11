@@ -27,21 +27,29 @@ Start here
 ----------
 
 1. **Configure Corpus declaratively** — learn :class:`FluentCorpus`, immutable
-   plans, validation, branching, fingerprints, and the ``materialize()``
-   boundary.
-2. **Build and search a real Hamlet corpus** — use
+   plans, validation, branching, fingerprints, bounded lazy configuration
+   variants, and the ``materialize()`` boundary.
+2. **Compose policy families explicitly** — use :class:`CorpusPolicyBundle`
+   for reusable local/strict/networked/docs presets without collapsing runtime,
+   backend, downloader, and per-document error semantics.
+3. **Customize optional backends safely** — preflight the exact reader chain,
+   inspect readiness, order backends with :class:`BackendPolicy`, and plug in a
+   user-side :class:`ASRBackend` without model downloads.
+4. **Use lexical edit distance** — use :mod:`scikitplot.levenshtein` directly
+   and as a deterministic Corpus retrieval scorer.
+5. **Build and search a real Hamlet corpus** — use
    :class:`RuntimeCorpus` end to end: ``run()``, ``add()``, storage, retrieval,
    export, and lifecycle.
-3. **Compare chunking strategies** — compare sentence, word, fixed-window, and
+6. **Compare chunking strategies** — compare sentence, word, fixed-window, and
    morphological semantic chunking on the same OCR text.
-4. **Process an MP3** — learn audio provenance and companion-transcript
+7. **Process an MP3** — learn audio provenance and companion-transcript
    precedence without requiring Whisper in the normal gallery path.
-5. **Process a mixed-media ZIP** — inspect archive-member routing,
+8. **Process a mixed-media ZIP** — inspect archive-member routing,
    ``archive.zip/member.ext`` provenance, and per-extension reader settings.
-6. **Process a YouTube transcript** — execute a deterministic local proxy,
+9. **Process a YouTube transcript** — execute a deterministic local proxy,
    configure the real YouTube reader, and keep the live transcript request
    explicit and optional.
-7. **Build a multi-source WHO corpus** — see the explicit stage-by-stage
+10. **Build a multi-source WHO corpus** — see the explicit stage-by-stage
    integration path, partial source success, keyword retrieval, adapters, and
    where :class:`CorpusBuilder` fits.
 
@@ -84,6 +92,19 @@ configuration-only examples.
      - local/core
      - none
      - not applicable
+   * - Policy bundle
+     - local/core
+     - none
+     - composes existing policies; performs no I/O by itself
+   * - Backend policy and custom ASR
+     - local/core
+     - none; capability probes only
+     - preflight and execution use the same candidate chain; no model is loaded
+       or downloaded by preflight
+   * - Levenshtein retrieval
+     - bundled/pure Python
+     - RapidFuzz acceleration
+     - facade remains importable through safe fallback
    * - Hamlet RuntimeCorpus
      - local/core + NumPy
      - native Annoy branch
@@ -119,8 +140,15 @@ The examples distinguish optional capability absence from real defects:
     Report a visible, specific ``SKIP`` and continue when the example can
     remain truthful.
 
-``invalid public API / security-policy failure / installed-backend defect``
-    Fail visibly. The gallery must not convert a real regression into a skip.
+``invalid public API / security-policy failure``
+    Fail visibly. The gallery must not convert these into a skip.
+
+``optional ASR backend defect``
+    Remain observable. Audio/video readers warn and try the next Whisper backend;
+    their default ``strict=False`` policy yields no ASR chunks only after the
+    fallback chain is exhausted. ``reader.backend_reports`` keeps a structured,
+    JSON-compatible ``degraded``/``failed`` record for programmatic inspection.
+    Use ``strict=True`` for fail-fast validation.
 
 A missing local sidecar never silently enables public-network access.
 

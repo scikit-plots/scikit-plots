@@ -50,11 +50,18 @@ python -m scikitplot.cleanprompt doctor
 scikitplot cleanprompt doctor
 ```
 
-Ten subcommands, grouped by what you are trying to do:
+The commands, grouped by what you are trying to do. Every one, with its
+aliases, is listed by `python -m scikitplot.cleanprompt --help`; the list
+below is grouped by task rather than counted, so it cannot drift out of step:
 
 ```sh
+# the conversation: text in, paste the prompt, paste the answer back, end it
+python -m scikitplot.cleanprompt encode "your text"           # aliases: clean, prompt
+python -m scikitplot.cleanprompt decode "the model's answer"  # alias: restore
+python -m scikitplot.cleanprompt forget --force               # alias: clear-vault
+
 # see the whole thing work, in one command
-python -m scikitplot.cleanprompt roundtrip "Ada Lovelace mailed ada@example.com"
+python -m scikitplot.cleanprompt roundtrip "Ada Lovelace mailed ada@example.com"  # alias: demo
 
 # look before you leap
 python -m scikitplot.cleanprompt doctor --format json    # what is active, what is blind
@@ -63,8 +70,18 @@ python -m scikitplot.cleanprompt kinds                   # the pattern library
 
 # one-shot, scriptable
 python -m scikitplot.cleanprompt redact  --in prompt.txt --vault v.json
-python -m scikitplot.cleanprompt restore --in reply.txt  --vault v.json
+python -m scikitplot.cleanprompt decode  --in reply.txt  --vault v.json
 python -m scikitplot.cleanprompt scan    --in prompt.txt   # CI gate, exit 3 if found
+
+# files, folders and teams
+python -m scikitplot.cleanprompt packs                        # packs and formats
+python -m scikitplot.cleanprompt batch project/ --out safe/   # a folder or zip
+python -m scikitplot.cleanprompt plan --write team.plan.json  # pin a configuration
+
+# models and agents
+python -m scikitplot.cleanprompt ask --via "ollama run llama3" "your text"
+python -m scikitplot.cleanprompt mcp --root ./project         # MCP over stdio
+python -m scikitplot.cleanprompt skill                        # agent instructions
 
 # interactive
 python -m scikitplot.cleanprompt cli                       # paste-and-go session
@@ -82,9 +99,9 @@ $ python -m scikitplot.cleanprompt encode --ner <<'END'
 Mustafa Kemal Atatürk[e] (c. 1881[f] – 10 November 1938) was a Turkish
 field marshal who founded the Republic of Turkey. He's at ataturk@example.com.
 END
-[PERSON-1]] (c. 1881[f] – 10 November 1938) was a [NORP-1]
+[PERSON-1][e] (c. 1881[f] – 10 November 1938) was a [NORP-1]
 field marshal who founded [GPE-1]. He's at [EMAIL-1].
-vault: ~/.local/state/cleanprompt/vault.json (append, 4 values)
+vault: ~/.local/state/cleanprompt/vault.json (append, 4 value(s))
 ```
 
 Standard output carries the redacted text and nothing else — that `vault:`
@@ -95,10 +112,10 @@ Paste that into the chat. When the answer comes back, paste it at `decode`:
 
 ```console
 $ python -m scikitplot.cleanprompt decode <<'END'
-[PERSON-1]] led the reforms, and [GPE-1] was proclaimed in 1923.
+[PERSON-1] led the reforms, and [GPE-1] was proclaimed in 1923.
 You can write to [EMAIL-1] for the archive.
 END
-Mustafa Kemal Atatürk[e] led the reforms, and the Republic of Turkey was proclaimed in 1923.
+Mustafa Kemal Atatürk led the reforms, and the Republic of Turkey was proclaimed in 1923.
 You can write to ataturk@example.com for the archive.
 ```
 
@@ -209,6 +226,22 @@ act on.
 
 The style is part of the placeholder grammar, so a vault written one way cannot
 be read the other — `decode` refuses rather than half-restoring.
+
+**Your own names.** `--surrogates nordic.yaml` (with `--style surrogate`)
+draws people, organisations and places from a set file you write:
+
+```yaml
+name: nordic
+version: 1
+summary: Nordic-sounding invented names.
+kinds:
+  PERSON: {first: [Aino, Eero, Liv], last: [Halvorsen, Lindgren, Virtanen]}
+  GPE:    [Granvik, Solberga]
+```
+
+A set cannot touch the reserved forms of addresses, numbers and links, or give
+a credential a surrogate; every entry must read as a name, and the vault
+records the set's identity, so `decode` needs nothing extra.
 
 ### Encrypting the vault
 
@@ -734,6 +767,14 @@ person. Redefining a built-in needs `--replace-builtins`.
 A section you declare must have something in it: `fields: []` or a bare
 `patterns:` is reported as an unfinished pack rather than read as "none".
 
+**A pattern that could stall a run is reported when it loads.** Nested or
+overlapping repetition (`(\w+\s?)*`, `(a|ab)+`) can backtrack for exponential
+time on a near-match. Such a pattern prints a `warning:` with rewrites on
+standard error and still loads. `--pattern-risk refuse` stops instead and
+`--pattern-risk ignore` stays quiet. Add `risk: accepted` with a
+`risk_reason:` in the pack to accept one pattern. `cleanprompt packs
+--pack-file hr.yaml --check` lists every finding.
+
 **An example that looks like a real credential is written in pieces.** An
 example may be a list of fragments, which are joined before the pattern is
 tested:
@@ -919,7 +960,8 @@ with an allowlist (`--allow`), or add a whole detector of your own through
 ## Optional tiers
 
 ```sh
-pip install "spacy>=3.4,<5" && python -m spacy download en_core_web_lg   # ner
+pip install "spacy>=3.4,<5" && python -m spacy download en_core_web_sm   # ner
+pip install "nltk>=3.6,<4"   # nltk; then `doctor --ner --ner-engine nltk` names the data to download
 pip install "flask>=2.2,<4"                                             # web
 pip install "cryptography>=41"                                          # crypto
 ```

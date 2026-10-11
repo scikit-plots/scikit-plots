@@ -24,7 +24,7 @@ Python compatibility: 3.8 - 3.15+.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, List, Optional, Union  # noqa: F401
 
@@ -43,7 +43,43 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "AnyDownloader",
     "CustomDownloader",
+    "DownloadPlan",
 ]
+
+
+@dataclass(frozen=True)
+class DownloadPlan:
+    """
+    Side-effect-free dispatch plan for one URL.
+
+    The plan contains only non-secret policy/provenance data. It does not
+    resolve DNS, probe content type, allocate a temporary directory, import a
+    remote SDK, or contact the network. Credential/header *presence* is visible
+    without serializing their contents.
+    """
+
+    index: int
+    input_url: str
+    url_kind: str
+    downloader: str
+    output_path: str | None
+    timeout: float
+    max_bytes: int
+    verify_ssl: bool
+    block_private_ips: bool
+    max_redirects: int
+    youtube_mode: str | None = None
+    youtube_language: str | None = None
+    youtube_include_auto: bool | None = None
+    github_token_configured: bool = False
+    headers_configured: bool = False
+    max_retries: int | None = None
+    retry_backoff: float | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a JSON-compatible representation without secret values."""
+        return asdict(self)
+
 
 # Sentinel for required-but-unfilled fields.
 # Because BaseDownloader fields all have defaults, any non-default field in a
@@ -161,6 +197,27 @@ class AnyDownloader(BaseDownloader):
     max_retries: object = 3
     retry_backoff: object = 1.0
 
+    @classmethod
+    def from_policy(
+        cls,
+        input_url,
+        policy="secure",
+        /,
+        **overrides,
+    ):
+        """
+        Construct with a :class:`DownloadPolicy` plus explicit overrides.
+
+        Credentials, headers, destination paths and service-specific options are
+        intentionally not part of ``DownloadPolicy`` and remain ordinary
+        explicit keyword arguments.
+        """
+        from ._policy import download_policy  # noqa: PLC0415
+
+        kwargs = download_policy(policy).to_kwargs()
+        kwargs.update(overrides)
+        return cls(input_url=input_url, **kwargs)
+
     def __post_init__(self) -> None:
         """
         Validate input_url (str | list[str]) and all list-capable parameters.
@@ -221,6 +278,29 @@ class AnyDownloader(BaseDownloader):
         _check_nonneg("max_retries", 3, "max_retries")
         _check_positive("retry_backoff", 1.0, "retry_backoff")
 
+        def _check_bool(attr, default):
+            values = _coerce_param(getattr(self, attr), n, name=attr, default=default)
+            for i, value in enumerate(values):
+                if not isinstance(value, bool):
+                    raise TypeError(
+                        f"AnyDownloader: {attr}[{i}] must be bool; "
+                        f"got {type(value).__name__!r}."
+                    )
+
+        _check_bool("verify_ssl", True)
+        _check_bool("block_private_ips", True)
+        _check_bool("youtube_include_auto", True)
+
+        header_values = _coerce_param(
+            self.headers, n, name="headers", default=None, allow_none_items=True
+        )
+        for i, value in enumerate(header_values):
+            if value is not None and not isinstance(value, dict):
+                raise TypeError(
+                    f"AnyDownloader: headers[{i}] must be dict or None; "
+                    f"got {type(value).__name__!r}."
+                )
+
         # Validate youtube_mode values
         _valid_modes = ("transcript", "audio", "video")
         mode_list = _coerce_param(
@@ -275,39 +355,20 @@ class AnyDownloader(BaseDownloader):
             allow_none_items=allow_none_items,
         )
 
-    def _build_specialist(self, idx: int) -> BaseDownloader:
-        """
-        Classify URL at index *idx* and build the appropriate specialist.
-
-        Parameters
-        ----------
-        idx : int
-            Index into ``self._urls``.
-
-        Returns
-        -------
-        BaseDownloader
-            Concrete specialist with all per-URL parameters applied.
-        """
+    def _resolved_spec(self, idx: int):
+        """Resolve classification and per-URL settings without doing I/O."""
         from .._url_handler import URLKind, classify_url  # noqa: PLC0415
-        from ._gdrive import GoogleDriveDownloader  # noqa: PLC0415
-        from ._github import GitHubDownloader  # noqa: PLC0415
-        from ._web import WebDownloader  # noqa: PLC0415
-        from ._youtube import YouTubeDownloader  # noqa: PLC0415
 
         urls = self._urls
         url = urls[idx]
-        n = len(urls)
-
         kind = classify_url(url)
         logger.debug(
             "AnyDownloader[%d/%d]: %s classified as %s",
             idx + 1,
-            n,
+            len(urls),
             url,
             kind.value,
         )
-
         common = {
             "input_url": url,
             "output_path": self.output_path,
@@ -315,39 +376,101 @@ class AnyDownloader(BaseDownloader):
             "max_bytes": self._param_list("max_bytes", _DEFAULT_MAX_BYTES)[idx],
             "verify_ssl": self._param_list("verify_ssl", True)[idx],
             "block_private_ips": self._param_list("block_private_ips", True)[idx],
-            "max_redirects": self._param_list("max_redirects", _DEFAULT_MAX_REDIRECTS)[
-                idx
-            ],
+            "max_redirects": self._param_list(
+                "max_redirects",
+                _DEFAULT_MAX_REDIRECTS,
+            )[idx],
             "user_agent": self._param_list("user_agent", _DEFAULT_USER_AGENT)[idx],
         }
+        service = {
+            "youtube_mode": self._param_list("youtube_mode", "transcript")[idx],
+            "youtube_language": self._param_list("youtube_language", "en")[idx],
+            "youtube_include_auto": self._param_list("youtube_include_auto", True)[idx],
+            "github_token": self._param_list(
+                "github_token", None, allow_none_items=True
+            )[idx],
+            "headers": self._param_list("headers", None, allow_none_items=True)[idx],
+            "max_retries": self._param_list("max_retries", 3)[idx],
+            "retry_backoff": self._param_list("retry_backoff", 1.0)[idx],
+        }
+        if kind in (URLKind.YOUTUBE, URLKind.YOUTUBE_CHANNEL, URLKind.YOUTUBE_PLAYLIST):
+            downloader = "YouTubeDownloader"
+        elif kind == URLKind.GOOGLE_DRIVE:
+            downloader = "GoogleDriveDownloader"
+        elif kind in (URLKind.GITHUB_BLOB, URLKind.GITHUB_RAW):
+            downloader = "GitHubDownloader"
+        else:
+            downloader = "WebDownloader"
+        return kind, downloader, common, service
 
+    def plan(self):
+        """
+        Return side-effect-free dispatch plan(s) matching :meth:`download`.
+
+        This is a string/classification preflight only. It intentionally does
+        not perform SSRF DNS resolution or content-type probing because those
+        operations can touch external state.
+        """
+        plans = [self._plan_single(i) for i in range(len(self._urls))]
+        return plans[0] if isinstance(self.input_url, str) else plans
+
+    def plan_all(self) -> list[DownloadPlan]:
+        """Return one :class:`DownloadPlan` per input URL, always as a list."""
+        return [self._plan_single(i) for i in range(len(self._urls))]
+
+    def _plan_single(self, idx: int) -> DownloadPlan:
+        kind, downloader, common, service = self._resolved_spec(idx)
+        youtube = downloader == "YouTubeDownloader"
+        web = downloader == "WebDownloader"
+        return DownloadPlan(
+            index=idx,
+            input_url=common["input_url"],
+            url_kind=kind.value,
+            downloader=downloader,
+            output_path=(
+                None if common["output_path"] is None else str(common["output_path"])
+            ),
+            timeout=float(common["timeout"]),
+            max_bytes=int(common["max_bytes"]),
+            verify_ssl=bool(common["verify_ssl"]),
+            block_private_ips=bool(common["block_private_ips"]),
+            max_redirects=int(common["max_redirects"]),
+            youtube_mode=str(service["youtube_mode"]) if youtube else None,
+            youtube_language=str(service["youtube_language"]) if youtube else None,
+            youtube_include_auto=(
+                bool(service["youtube_include_auto"]) if youtube else None
+            ),
+            github_token_configured=service["github_token"] is not None,
+            headers_configured=service["headers"] is not None,
+            max_retries=int(service["max_retries"]) if web else None,
+            retry_backoff=float(service["retry_backoff"]) if web else None,
+        )
+
+    def _build_specialist(self, idx: int) -> BaseDownloader:
+        """Build the specialist from the same resolved spec used by preflight."""
+        from .._url_handler import URLKind  # noqa: PLC0415
+        from ._gdrive import GoogleDriveDownloader  # noqa: PLC0415
+        from ._github import GitHubDownloader  # noqa: PLC0415
+        from ._web import WebDownloader  # noqa: PLC0415
+        from ._youtube import YouTubeDownloader  # noqa: PLC0415
+
+        kind, _downloader, common, service = self._resolved_spec(idx)
         if kind in (URLKind.YOUTUBE, URLKind.YOUTUBE_CHANNEL, URLKind.YOUTUBE_PLAYLIST):
             return YouTubeDownloader(
                 **common,
-                mode=self._param_list("youtube_mode", "transcript")[idx],
-                language=self._param_list("youtube_language", "en")[idx],
-                include_auto_generated=self._param_list("youtube_include_auto", True)[
-                    idx
-                ],
+                mode=service["youtube_mode"],
+                language=service["youtube_language"],
+                include_auto_generated=service["youtube_include_auto"],
             )
-
         if kind == URLKind.GOOGLE_DRIVE:
             return GoogleDriveDownloader(**common)
-
         if kind in (URLKind.GITHUB_BLOB, URLKind.GITHUB_RAW):
-            return GitHubDownloader(
-                **common,
-                token=self._param_list("github_token", None, allow_none_items=True)[
-                    idx
-                ],
-            )
-
-        # Default: WebDownloader (DOWNLOADABLE, WEB_PAGE, extensionless, etc.)
+            return GitHubDownloader(**common, token=service["github_token"])
         return WebDownloader(
             **common,
-            max_retries=self._param_list("max_retries", 3)[idx],
-            retry_backoff=self._param_list("retry_backoff", 1.0)[idx],
-            headers=self._param_list("headers", None, allow_none_items=True)[idx],
+            max_retries=service["max_retries"],
+            retry_backoff=service["retry_backoff"],
+            headers=service["headers"],
         )
 
     # ------------------------------------------------------------------
@@ -422,6 +545,13 @@ class CustomDownloader(BaseDownloader):
         Required — raises ``TypeError`` at construction if not supplied.
     handler_kwargs : dict or None, optional
         Extra keyword arguments forwarded to ``handler``.  Default: ``None``.
+    allow_external_output : bool, optional
+        By default the handler must return a regular file inside the resolved
+        downloader output directory. Set ``True`` only when the handler
+        intentionally writes to a separately managed location.
+    enforce_max_bytes : bool, optional
+        Validate the returned file size against ``max_bytes`` even when the
+        custom handler ignored that hint. Default: ``True``.
     output_path : pathlib.Path or None, optional
         Directory for the downloaded file.  Default: ``None`` (temp dir).
     timeout : float, optional
@@ -453,6 +583,8 @@ class CustomDownloader(BaseDownloader):
 
     handler: object = field(default=_MISSING, repr=False)
     handler_kwargs: dict | None = field(default=None, repr=False)
+    allow_external_output: bool = False
+    enforce_max_bytes: bool = True
 
     def __post_init__(self) -> None:
         """Validate that handler was supplied and is callable."""
@@ -490,8 +622,16 @@ class CustomDownloader(BaseDownloader):
 
         dest = self._resolve_dest_dir()
         kwargs = dict(self.handler_kwargs or {})
+        # Custom handlers are still user code, but give them the same transfer
+        # policy inputs as built-ins. setdefault preserves an explicit handler
+        # override while the postconditions below enforce what the wrapper can
+        # verify independently (output locality and size).
         kwargs.setdefault("timeout", self.timeout)
         kwargs.setdefault("max_bytes", self.max_bytes)
+        kwargs.setdefault("verify_ssl", self.verify_ssl)
+        kwargs.setdefault("block_private_ips", self.block_private_ips)
+        kwargs.setdefault("max_redirects", self.max_redirects)
+        kwargs.setdefault("user_agent", self.user_agent)
 
         raw_path = self.handler(self.input_url, dest, **kwargs)  # type: ignore[operator]
 
@@ -510,6 +650,40 @@ class CustomDownloader(BaseDownloader):
                 f"but the file does not exist."
             )
 
+        try:
+            resolved_path = raw_path.resolve(strict=True)
+            resolved_dest = dest.resolve(strict=True)
+        except OSError as exc:
+            raise ValueError(
+                f"CustomDownloader: could not resolve handler output {raw_path!r}"
+            ) from exc
+
+        if not resolved_path.is_file():
+            raise ValueError(
+                f"CustomDownloader: handler output must be a regular file; "
+                f"got {resolved_path!r}."
+            )
+
+        if not self.allow_external_output:
+            try:
+                resolved_path.relative_to(resolved_dest)
+            except ValueError as exc:
+                raise ValueError(
+                    "CustomDownloader: handler output escaped the configured "
+                    f"output directory: {resolved_path!s}. Set "
+                    "allow_external_output=True only for intentionally "
+                    "externally-managed files."
+                ) from exc
+
+        if self.enforce_max_bytes:
+            size = resolved_path.stat().st_size
+            if size > self.max_bytes:
+                raise ValueError(
+                    "CustomDownloader: handler output exceeds max_bytes "
+                    f"({size} > {self.max_bytes})."
+                )
+
+        raw_path = resolved_path
         suffix = raw_path.suffix.lower() or ".bin"
         logger.info(
             "CustomDownloader: %s → %s (via %s)",

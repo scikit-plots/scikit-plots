@@ -1,7 +1,7 @@
-..
-    .. contents::
-       :local:
-       :depth: 2
+
+.. contents:: On this page
+   :local:
+   :depth: 2
 
 ======================================================================
 How to Add ``scikit-plots`` to conda-forge Guidelines

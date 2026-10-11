@@ -803,7 +803,8 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
     },
     "scikitplot.cleanprompt": {
         "short_summary": "Anonymize sensitive information in text prompts before sending them to LLM applications.",
-        "description": None,
+        # "description": None,
+        "description": _get_guide("cleanprompt-index"),
         "sections": [
             {
                 "title": "API Encode Prompt",
@@ -2561,6 +2562,35 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.levenshtein": {
+        "short_summary": "Levenshtein edit distance, normalized similarity.",
+        "description": _get_guide("levenshtein-index"),
+        "sections": [
+            {
+                "title": "Backend-neutral Levenshtein edit distance helpers.",
+                # "description": (
+                #     _get_submodule("scikitplot.levenshtein", "__init__")
+                #     + "\n\n" +
+                #     _get_guide("levenshtein-index")
+                # ),
+                "autosummary": [
+                    "BackendInfo",
+                    "Match",
+                    "available_backends",
+                    "backend_info",
+                    "closest",
+                    "distance",
+                    "make_corpus_scorer",
+                    "normalized_distance",
+                    "normalized_similarity",
+                    "rank",
+                    "similarity",
+                ],
+                # for inheritance-diagram
+                "classes": [],
+            },
+        ],
+    },
     "scikitplot.logging": {
         "short_summary": "Scikit-plots Logging.",
         "description": _get_guide("logging-index"),
@@ -2611,28 +2641,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "TaskLevelStatusMessage",
                     "critical",
                     "fatal",
-                ],
-            },
-        ],
-    },
-    "scikitplot.memmap": {
-        "short_summary": "Cross-platform memory mapping module.",
-        "description": _get_guide("memmap-index"),
-        "sections": [
-            {
-                "title": "MemMap: file-backed or anonymous memory mapping.",
-                "description": (
-                    # _get_submodule("scikitplot.memmap", "_memmap.mem_map")
-                    # + "\n\n" +
-                    _get_guide("memmap-index")
-                ),
-                "autosummary": [
-                    'MemoryMap',
-                    'mmap_region',
-                ],
-                # for inheritance-diagram
-                "classes": [
-                    "MemoryMap",
                 ],
             },
         ],
@@ -2748,6 +2756,28 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
                 # for inheritance-diagram
                 "classes": [],
+            },
+        ],
+    },
+    "scikitplot.memmap": {
+        "short_summary": "Cross-platform memory mapping module.",
+        "description": _get_guide("memmap-index"),
+        "sections": [
+            {
+                "title": "MemMap: file-backed or anonymous memory mapping.",
+                "description": (
+                    # _get_submodule("scikitplot.memmap", "_memmap.mem_map")
+                    # + "\n\n" +
+                    _get_guide("memmap-index")
+                ),
+                "autosummary": [
+                    'MemoryMap',
+                    'mmap_region',
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "MemoryMap",
+                ],
             },
         ],
     },
@@ -3032,6 +3062,42 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     'random',
                     'shuffle',
                     'uniform',
+                ],
+            },
+        ],
+    },
+    "scikitplot.rank_bm25": {
+        "short_summary": "Lexical document ranking with three BM25 recipes.",
+        "description": _get_guide("rank_bm25-index"),
+        "sections": [
+            {
+                "title": "Identities for a lexical build",
+                "description": None,
+                "autosummary": [
+                    "RECIPES",
+                    "Analyzer",
+                    "Recipe",
+                    "lexical_identity",
+                ],
+            },
+            {
+                "title": "BM25 Variations",
+                "description": None,
+                "autosummary": [
+                    "BM25",
+                    "BM25Okapi",
+                    "BM25L",
+                    "BM25Plus",
+                    # "BM25Adpt",
+                    # "BM25T",
+                ],
+            },
+            {
+                "title": "Validation",
+                "description": None,
+                "autosummary": [
+                    "require_count",
+                    "require_index",
                 ],
             },
         ],

@@ -1,5 +1,9 @@
 # BXX — Checkpoint Template
 
+<!-- File name: `<ID>_<FEW_WORDS>.md`, short enough for a Windows checkout:
+     `python tools/maint_tools/check_path_lengths.py check` must pass. Put the
+     full title in the heading below, not in the file name. -->
+
 Status: **NOT_STARTED**
 Type: **bounded maintenance/change campaign checkpoint**
 Subsystem: **_sphinx_ai_assistant**

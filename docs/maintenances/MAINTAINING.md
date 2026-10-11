@@ -140,6 +140,27 @@ the tree. This prevents a newly added top-level or configured nested owner from
 silently falling outside changelog coverage while keeping deletion of populated
 stale sections manual.
 
+### File names and path length
+
+A Git-based install (`pip install "<dist> @ git+https://...#subdirectory=libs/<name>"`)
+clones the whole repository, and Git on Windows refuses a file whose full path
+reaches 260 characters. Every tracked path must therefore fit the budget that
+`tools/maint_tools/check_path_lengths.py` derives from the longest clone
+directory pip can create (131 characters today):
+
+```sh
+python tools/maint_tools/check_path_lengths.py check      # fails on a new long path
+python tools/maint_tools/check_path_lengths.py suggest    # rename plan, read-only
+python tools/maint_tools/check_path_lengths.py fix --apply  # rename + rewrite references
+```
+
+Name maintenance notes as labels, not titles: keep the title in the first
+heading, keep a checkpoint's identifier first (`B44_…`, so `<ID>_*.md` lookups
+work), and do not repeat the directory in the name (`history/fresh_chat/X.md`,
+not `history/fresh_chat/FRESH_CHAT_X_HANDOFF.md`). Markdown under
+`maintenances/` and `docs/maintenances/` has at most 64 characters in its file
+name. The check runs on every pull request (`pr_check_path_lengths.yml`).
+
 Module-specific maintenance instructions may impose stronger checks. Follow the
 stronger rule when it does not conflict with repository policy.
 

@@ -135,7 +135,7 @@ decision tree, read:
 11. `_maintenance/checkpoints/B17_EXPORT_SHARE_CONTENT_ISOLATION.md` when export/Share is involved
 12. `_maintenance/checkpoints/B18_PRIVACY_SECRETS_IDENTITY_ABUSE.md` when user data/secrets/logging/identity/retention is involved
 13. `_maintenance/APP_STREAMING_RUNBOOK.md` when chat/proxy behavior is involved
-14. `_maintenance/checkpoints/B41_SEPARATE_ORIGIN_ISOLATION_CAPABILITY_MESSAGING.md` when separate-origin assistant isolation is involved
+14. `_maintenance/checkpoints/B41_SEPARATE_ORIGIN_ISOLATION_CAPABILITY.md` when separate-origin assistant isolation is involved
 15. `_maintenance/checkpoints/B42_HOSTILE_PARENT_EGRESS_BOUNDARY_HARDENING.md` when frame navigation, parent-origin authority, cookies, or cross-origin capabilities are involved
 16. `_maintenance/checkpoints/B43_BOUNDED_REMOTE_RESPONSE_CONTEXT_INGESTION.md` when remote responses, SSE, canonical context, Share viewers, or response-memory limits are involved
 17. `_maintenance/SECURITY_MODEL.md`

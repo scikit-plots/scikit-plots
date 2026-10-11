@@ -1,4 +1,3 @@
-.. docs/source/user_guide/annoy/index.rst
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -21,154 +20,91 @@
 
 .. _annoy-index:
 
-======================================================================
-ANNoy Vector Database
-======================================================================
+Annoy vector search
+===================
 
-ANNOY (Approximate Nearest Neighbors Oh Yeah): The core data structure are random projection trees,
-a set of binary trees where each non-leaf node represents a hyperplane splitting the input space into half
-and each leaf stores one data point. Trees are built independently and at random, so to some extent,
-it mimics a hashing function. ANNOY search happens in all the trees to iteratively search through the half
-that is closest to the query and then aggregates the results.
-The idea is quite related to KD tree but a lot more scalable.
-`LLM Powered Autonomous Agents <https://lilianweng.github.io/posts/2023-06-23-agent/>`
+``scikitplot.annoy`` wraps Spotify Annoy-style approximate nearest-neighbor
+search with a higher-level ``Index`` facade. It is designed for immutable or
+build-once vector indexes where memory-mapped persistence, predictable query
+semantics, and process sharing matter more than online mutation.
 
-ANNoy helps you find *similar items* fast.
+.. important::
 
-You give your data as **vectors** (arrays of numbers). Then you can search for
-the **nearest neighbors** (the most similar vectors).
+   Approximate nearest-neighbor search is a retrieval strategy, not a proof of
+   semantic relevance. Vector dimensionality and metric are index invariants; add
+   items before building, and treat saved indexes as data artifacts with their own
+   lifecycle.
 
-This page documents the Annoy [1]_ user guide integration shipped with scikit-plots.
-
-- Low-level bindings C-API: :py:mod:`~scikitplot.cexternals._annoy`
-- High-level Python-API: :py:mod:`~scikitplot.annoy`
-
-..
-  toctree::
+.. toctree::
    :maxdepth: 2
-   :caption: Pages
+   :hidden:
 
-   vector_databases
+   getting_started
+   architecture
+   persistence_and_io
+   performance_and_threads
+   python_api
+   limits_and_troubleshooting
+   annoy_index_vector_database
    annoy_index_inheritance_diagrams
+   _annoy
 
 .. grid:: 1 1 2 2
-
-    .. grid-item-card::
-        :padding: 2
-
-        **VectorDB**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
-
-            Vector Similarity Search <./annoy_index_vector_database.rst>
-
-    .. grid-item-card::
-        :padding: 2
-
-        **Architecture**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
-
-            Index Inheritance <./annoy_index_inheritance_diagrams.rst>
-
-.. grid:: 1 1 2 2
-   :class-row: sf-fs-1
    :gutter: 2
 
-   .. grid-item-card::
-      :shadow: none
+   .. grid-item-card:: Getting started
+      :link: annoy-getting-started
+      :link-type: ref
 
-      **cython**
-      ^^^
-      .. toctree::
-         :maxdepth: 2
+      Build a small index, add vectors, build trees, and query neighbors.
 
-         _annoy.rst
+   .. grid-item-card:: Architecture
+      :link: annoy-architecture
+      :link-type: ref
 
-Public Python API
-----------------------------------------------------------------------
+      Understand the compiled backend, high-level ``Index`` facade, and mixins.
 
-This module exports:
+   .. grid-item-card:: Persistence and I/O
+      :link: annoy-persistence-and-io
+      :link-type: ref
 
-- :class:`~Annoy`:
-  Low-level C-extension type (stable, picklable).
-- :class:`~AnnoyIndex`:
-  Public alias of the Low-level :class:`~Annoy` index.
-- :class:`~Index`:
-  High-level Python wrapper subclass (stable, picklable).
+      Choose native files, bundles, bytes, metadata, or pickle deliberately.
 
-.. note::
-   For backend and C-extension details, see :ref:`cexternals-annoy-index`.
+   .. grid-item-card:: Performance and threads
+      :link: annoy-performance-and-threads
+      :link-type: ref
 
-High-level Python interface for the C++ Annoy backend.
+      Tune tree count, search effort, metrics, and build concurrency.
 
-This page documents :py:mod:`~scikitplot.annoy`. It provides a stable import path
-and a small, user-facing API built on the low-level bindings in
-:py:mod:`~scikitplot.cexternals._annoy`.
+   .. grid-item-card:: Python API
+      :link: annoy-python-api
+      :link-type: ref
 
-Workflow
+      Map the high-level public surface and advanced mixins.
+
+   .. grid-item-card:: Limits and troubleshooting
+      :link: annoy-limits-and-troubleshooting
+      :link-type: ref
+
+      Compiled-backend requirements, mmap lifetime, vector rules, and build caveats.
+
+Deep dives
+----------
+
+* :doc:`annoy_index_vector_database` -- vector-database concepts and similarity search.
+* :doc:`annoy_index_inheritance_diagrams` -- wrapper/backend inheritance diagrams.
+* :doc:`_annoy` -- private Cython-backend notes for advanced maintainers.
+
+Examples
 --------
 
-1. Create an :class:`~AnnoyIndex` with a fixed vector length ``f`` and a metric.
-2. Add items with :py:obj:`~AnnoyIndex.add_item`.
-3. Build the forest with :py:obj:`~AnnoyIndex.build`.
-4. Save and load with :py:obj:`~AnnoyIndex.save` and :py:obj:`~AnnoyIndex.load`.
+See :ref:`annoy_examples` for executable examples that accompany this guide.
 
-Quick start
------------
+See also
+--------
 
-.. rubric:: Examples
-
-..
-  .. code-block:: python
-  .. code-block:: bash
-  .. jupyter-execute
-  .. prompt:: python >>>
-
-.. prompt:: python >>>
-
-    import random; random.seed(0)
-    # from annoy import Annoy, AnnoyIndex
-    # from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
-    from scikitplot.annoy import Annoy, AnnoyIndex, Index
-
-    f = 40  # Length of item vector that will be indexed
-    t = AnnoyIndex(f, 'angular')
-
-    for i in range(1000):
-        v = [random.gauss(0, 1) for z in range(f)]
-        t.add_item(i, v)
-
-    t.build(10)  # 10 trees
-    t.save('test.ann')
-
-    u = AnnoyIndex(f, 'angular')
-    u.load('test.ann')  # memory-mapped
-
-    print(u.get_nns_by_item(0, 1000))
-
-Notes
------
-
-* Every added vector must have length ``f``.
-* Add items before calling :py:obj:`~AnnoyIndex.build`.
-* Item ids are integers. Storage is allocated up to ``max(id) + 1``.
-
-High-level wrapper: :class:`~Index`
------------------------------------
-
-:class:`~Index` is a Pythonic wrapper for Annoy-like objects.
-
-It is designed for higher-level workflows where you want a Python object that is
-safe to serialize and move between processes.
-
-Mixins used by the high-level wrapper
--------------------------------------
-
-The wrapper uses mixins :py:mod:`~scikitplot.annoy._mixins`
-to keep features separate and explicit.
+* :ref:`cexternals-annoy-index`
+* :ref:`corpus-index`
 
 Further reading
 ---------------

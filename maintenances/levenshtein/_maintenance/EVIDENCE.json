@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.levenshtein",
+  "updated_at": "2026-10-10",
+  "runtime_tree_fingerprint": "b329f11d23d281a8eebeb02cafb59b6e141f41cb5bee9d733e248361d580f84c",
+  "lanes": {
+    "focused_runtime": {
+      "status": "PASS",
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -c /dev/null scikitplot/levenshtein/tests/test_levenshtein.py -q -p no:cacheprovider --confcutdir=scikitplot/levenshtein",
+      "result": "23 passed"
+    },
+    "maintenance": {
+      "status": "PASS",
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -c /dev/null maintenances/levenshtein/_maintenance/tests -q -p no:cacheprovider --confcutdir=maintenances/levenshtein",
+      "result": "8 passed"
+    },
+    "user_guide_sync": {
+      "status": "PASS",
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -c /dev/null docs/source/user_guide/levenshtein -q -p no:cacheprovider --confcutdir=docs/source/user_guide/levenshtein",
+      "result": "7 passed"
+    },
+    "gallery": {
+      "status": "PASS",
+      "command": "execute galleries/examples/levenshtein/plot_levenshtein_*_script.py with local PYTHONPATH",
+      "result": "5/5 scripts passed"
+    },
+    "sphinx_gallery": {
+      "status": "UNVERIFIED"
+    },
+    "wheel_build": {
+      "status": "UNVERIFIED"
+    },
+    "python_matrix": {
+      "status": "UNVERIFIED"
+    },
+    "import_isolation": {
+      "status": "PASS",
+      "result": "covered by maintenance test_import_isolation.py"
+    }
+  }
+}

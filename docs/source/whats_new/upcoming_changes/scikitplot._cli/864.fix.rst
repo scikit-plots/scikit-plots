@@ -1,0 +1,3 @@
+- The ``scikitplot cleanprompt`` install hint now names the NLTK extra and
+  says that vault encryption needs no optional package; the
+  ``cleanprompt-crypto`` extra adds only the Fernet cipher.

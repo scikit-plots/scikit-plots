@@ -1,5 +1,3 @@
-.. _faq:
-
 .. currentmodule:: scikiplot
 
 .. raw:: html
@@ -31,6 +29,8 @@
     }
   </style>
 
+.. _faq:
+
 ==========================
 Frequently Asked Questions
 ==========================
@@ -40,7 +40,6 @@ Here we try to give some answers to questions that regularly pop up on the maili
 .. contents:: Table of Contents
   :local:
   :depth: 2
-
 
 About the project
 -----------------

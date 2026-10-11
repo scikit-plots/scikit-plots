@@ -5,6 +5,9 @@
   .. include:: guide_python_env_manager.rst
       :start-after: :orphan:
 
+.. contents:: On this page
+   :local:
+   :depth: 2
 
 .. _python_env_manager:
 

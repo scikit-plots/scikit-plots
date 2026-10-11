@@ -1,4 +1,8 @@
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 *********************************
 Command-Line Scripts Guidelines
 *********************************

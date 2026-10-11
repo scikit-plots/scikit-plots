@@ -40,23 +40,67 @@ __all__ = [
     "RuntimeCorpus",
     "RuntimePolicy",
     "materialize_plan",
+    "runtime_policy",
 ]
 
 
 @dataclasses.dataclass(frozen=True)
 class RuntimePolicy:
-    """Execution policy applied by :class:`RuntimeCorpus`.
-
-    Parameters
-    ----------
-    allow_network : bool, optional
-        Allow ``http://`` / ``https://`` sources at execution time.  The
-        offline-safe default is ``False``.  This policy is checked before the
-        existing reader/URL security layer; it does not replace SSRF, redirect,
-        size, timeout, or archive protections.
-    """
+    """Execution-boundary policy applied by :class:`RuntimeCorpus`."""
 
     allow_network: bool = False
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.allow_network, bool):
+            raise TypeError("RuntimePolicy.allow_network must be bool")
+
+    @classmethod
+    def offline(cls) -> RuntimePolicy:
+        """Return the default local-only execution policy."""
+        return cls(allow_network=False)
+
+    @classmethod
+    def networked(cls) -> RuntimePolicy:
+        """Return a policy that explicitly permits URL source execution."""
+        return cls(allow_network=True)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-compatible representation."""
+        return {"allow_network": self.allow_network}
+
+    @classmethod
+    def from_config(cls, config: Mapping[str, Any]) -> RuntimePolicy:
+        """Build from JSON/YAML-shaped data, rejecting unknown fields."""
+        if not isinstance(config, Mapping):
+            raise TypeError("RuntimePolicy config must be a mapping")
+        data = dict(config)
+        unknown = sorted(set(data) - {"allow_network"})
+        if unknown:
+            raise ValueError(
+                f"unknown RuntimePolicy config field(s) {unknown}; "
+                "expected only 'allow_network'"
+            )
+        return cls(**data)
+
+
+def runtime_policy(
+    value: RuntimePolicy | str | Mapping[str, Any] | None,
+) -> RuntimePolicy:
+    """Resolve a runtime policy object, preset name, or mapping."""
+    if value is None:
+        return RuntimePolicy.offline()
+    if isinstance(value, RuntimePolicy):
+        return value
+    if isinstance(value, Mapping):
+        return RuntimePolicy.from_config(value)
+    key = str(value).strip().lower()
+    if key in {"offline", "local", "default"}:
+        return RuntimePolicy.offline()
+    if key in {"networked", "network", "online"}:
+        return RuntimePolicy.networked()
+    raise ValueError(
+        f"unknown RuntimePolicy preset {value!r}; expected 'offline' or 'networked'"
+    )
 
 
 def _is_url(value: Any) -> bool:
@@ -535,7 +579,7 @@ class RuntimeCorpus:
 def materialize_plan(
     plan: CorpusPlan,
     *,
-    policy: RuntimePolicy | None = None,
+    policy: RuntimePolicy | str | Mapping[str, Any] | None = None,
     registry: ComponentRegistry | None = None,
 ) -> RuntimeCorpus:
     """Resolve a validated :class:`CorpusPlan` into runtime components.
@@ -595,6 +639,6 @@ def materialize_plan(
         index_config=index_config,
         retrieval_config=retrieval_config,
         export_format=export_format,
-        policy=policy or RuntimePolicy(),
+        policy=runtime_policy(policy),
         _owns_storage=owns_storage,
     )

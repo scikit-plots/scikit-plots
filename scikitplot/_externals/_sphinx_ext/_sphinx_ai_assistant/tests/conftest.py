@@ -812,6 +812,62 @@ def _service_logging_inside_this_package():
         root.setLevel(outside_level)
 
 
+@pytest.fixture(autouse=True)
+def _root_logging_restored_after_each_test():
+    """
+    Undo any root-logger change a test makes, after that test.
+
+    Notes
+    -----
+    **Developer notes.** Some code under test configures the root logger as a
+    side effect: ``deduplicate_dataset.main()`` installs CLI handlers, and
+    importing a service app replaces the handlers outright. Inside a test that
+    change outlived the test, so the next test on the same xdist worker ran
+    with the wrong handlers; ``test_root_logging_isolation`` failed whenever
+    the scheduler put it after ``test_deduplicate_dataset`` or
+    ``test_bounded_remote_response``. Each test now starts from, and leaves,
+    the root logger it was given.
+    """
+    import logging
+
+    root = logging.getLogger()
+    handlers = list(root.handlers)
+    level = root.level
+    try:
+        yield
+    finally:
+        _restore_root_logging(handlers, level)
+
+
+def _restore_root_logging(handlers: list, level: int) -> None:
+    """
+    Put the root logger back to *handlers* and *level*.
+
+    Parameters
+    ----------
+    handlers : list of logging.Handler
+        The root handlers to restore, in order.
+    level : int
+        The root level to restore.
+
+    Notes
+    -----
+    pytest's own capture handlers come and go around each test phase and are
+    left alone.
+    """
+    import logging
+
+    root = logging.getLogger()
+    for handler in list(root.handlers):
+        ours = type(handler).__module__.startswith("_pytest.")
+        if handler not in handlers and not ours:
+            root.removeHandler(handler)
+    for index, handler in enumerate(handlers):
+        if handler not in root.handlers:
+            root.handlers.insert(min(index, len(root.handlers)), handler)
+    root.setLevel(level)
+
+
 def _remove_handlers_added_since(outside: list) -> None:
     """
     Remove root handlers that are neither in ``outside`` nor pytest's own.

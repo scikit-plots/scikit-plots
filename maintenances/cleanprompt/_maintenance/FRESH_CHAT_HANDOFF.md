@@ -2,12 +2,21 @@
 
 ## Read in this order
 
+0. `RESUME.md` — **where the work is**: the round in progress, its step log
+   with evidence, the last verified numbers, the next action, the open
+   `upcoming_changes` ledger and the decisions waiting for the maintainer. A
+   session with no history starts here; `tests/test_resume.py` keeps it equal
+   to the ledger.
 1. `DESIGN.md` — the whole picture, and the reasoning. Everything else assumes it.
 2. `SUBMODULE_STRUCTURE.md` — where things live and which rules are enforced.
-3. `REVIEW.json` — the defect register; `CP-001` … `CP-078` are all closed,
+3. `REVIEW.json` — the defect register; `CP-001` … `CP-101` are all closed,
    each with a named regression test and an executable probe.
 4. `VERIFICATION.md` — which lanes are green and which are `UNAVAILABLE`.
 5. `STATE.json` — current status per plane.
+
+Then run `python -B maintenances/cleanprompt/_maintenance/review_subsystem.py`:
+since round 25 it exits 3 and prints `STALE` when the recorded state
+describes another tree, so a record cannot be mistaken for a current fact.
 
 ## Then run
 
@@ -19,7 +28,13 @@ python -B maintenances/cleanprompt/_maintenance/evidence/probe_engines.py
 python -B maintenances/cleanprompt/_maintenance/evidence/probe_gallery.py
 python -B maintenances/cleanprompt/_maintenance/evidence/probe_fuzz.py
 python -B maintenances/cleanprompt/_maintenance/evidence/probe_scale.py
+python -B maintenances/cleanprompt/_maintenance/evidence/probe_round25.py
 ```
+
+The package suite needs `scikitplot` importable; in a source checkout without
+a compiled build, run it under a stand-in parent (an empty
+`scikitplot/__init__.py` beside a copy of `cleanprompt/`), as `RESUME.md`
+describes.
 
 `probe_engines.py` is the only one that needs an entity engine installed; it
 reports which are usable and exits cleanly when none are. `probe_gallery.py`
@@ -28,8 +43,11 @@ all nine published examples in sandboxed homes.
 
 ## What is actually open
 
-Nothing in the runtime: 2513 tests pass, 10 skipped, the maintenance plane's
-tests pass, and both the maintenance and the runtime contract are `PASS`. One
+Nothing closed is reopened: as of round 25, 2654 tests pass with no optional
+tier (2732 with every tier), the maintenance plane's 88 tests pass, and both
+the maintenance and the runtime contract are `PASS`. Verified follow-up work
+is in `upcoming_changes/scikitplot/cleanprompt/`, listed in order in
+`RESUME.md`. One
 thing is *not proven*, which is different:
 
 - other platforms (lane 27). Lane 13, the Python matrix, is now measured —
@@ -409,3 +427,72 @@ a sentence so it went to the model in the clear, and `CP-029`, where a URL
 swallowed the sentence's full stop into the placeholder. Write a trailing guard
 that says exactly what it means. One known cost stands: a URL genuinely ending
 in `)` has that bracket left in the clear, which discloses nothing.
+
+## Every surface says what it does (round twenty-five)
+
+`DESIGN.md` section 24 is the reasoning. The rules:
+
+15. **Readiness is one decision.** Anything that builds entity detectors goes
+    through `_engines.build_detectors`, and a path that came from an explicit
+    request passes `required=True`. Never construct `spacy_detector` or
+    `nltk_detector` directly in a new surface — the web app did, and ignored
+    the engine, language and size it was given (`CP-094`). Never report an
+    engine as active from its package alone (`CP-093`).
+16. **NLTK readiness is a run.** If you touch `_nltk`'s data handling, keep
+    `missing_data` (path lookup, then `_load_pipeline` on a fixed sentence) the
+    only check, used by the detector, `corpora_status` and `engine_readiness`
+    alike, and keep remedies naming every package of a group (`CP-100`).
+17. **Generated files derive from the runtime.** A model name, a flag or a
+    port in a generated file is computed from the code that consumes it, and a
+    test compares the two (`CP-095`, `CP-096`). Launch lines publish on
+    `127.0.0.1`.
+18. **No flag unlocks code execution off loopback.** `--debug` stays refused on
+    every non-loopback bind (`CP-097`).
+19. **The detection view is a reading, not a rewrite.** Do not normalise the
+    source text. A new kind of disguise is handled by extending the view's
+    table (one character to one character, or a deletion, so the offset map
+    stays exact), never by rewriting the input. Entity engines do not read the
+    view (`CP-098`).
+20. **A documented command line is tested.** Any `cleanprompt <command>
+    --option` you write in the README, a docstring, a skill, the guide or the
+    gallery must use an option that command declares;
+    `tests/test_documented_cli.py` fails otherwise (`CP-101`). Remedy strings
+    are computed from declarations, never typed (`CP-099`, as `CP-025`).
+21. **Continuity.** Update `RESUME.md` in the same change as the work it
+    records, and keep its ledger equal to `upcoming_changes`.
+
+### Round 26 rules
+
+`DESIGN.md` section 25 and `GENERATOR_DESIGN.md` are the reasoning. The
+rules:
+
+22. **Pattern risk is a warning by default, and the user tunes it.** Never
+    make `refuse` the default and never drop the rewrites or the ways out
+    from a finding's message (maintainer decision, round 26). New policy
+    levels go through `resolve_pattern_risk` and the plan; a new rule in
+    `_pattern_risk` needs a calibration case in `tests/test__pattern_risk.py`
+    *and* a measured case in `evidence/probe_round26.py`, the soundness fuzz
+    (`evidence/probe_round26_fuzz.py`) must still end `TOTAL FAILURES: 0`,
+    and every built-in pattern must still report nothing (`CP-104`).
+23. **The generator's floor is not configurable.** A set, a plan, a flag or a
+    future provider may change *which names* are used, never whether a kind
+    gets a surrogate, never the reserved forms of `EMAIL`/`PHONE`/`URL`, and
+    never skip a check of the core loop (`GENERATOR_DESIGN.md` §3).
+24. **A new setting keeps old digests.** A field added to `TagStyle`,
+    `RedactionPolicy` or `CleanPlan` is left out of its serialised form while
+    it has its default value, and a test pins the default digests
+    (`test__surrogate_sets.TestIdentity.test_default_digests_are_unchanged`).
+25. **Tests that read process-wide state use values no other test uses.**
+    The log scrub filter is shared by every live cleaner; a common sample
+    value held by a cleaner awaiting garbage collection made a test fail
+    under xdist only (round 26, `tasks/lessons.md` rule 55).
+
+26. **Slow regular expressions in tests are wrapped.** A test or probe that
+    needs a catastrophic pattern writes `regex_fixture(r"...")`
+    (`scikitplot/cleanprompt/tests/_regex_fixtures.py`); the gate
+    `tests/test_regex_fixtures.py` fails otherwise, because CodeQL reports
+    such literals on the pull request (round 27).
+27. **A test in one part does not read another part's files.** `scikitplot/_cli`
+    ships alone in `scikit-plots-skinny`; cross-checks with cleanprompt skip
+    where it is not installed. Run `python -m libs._tools verify
+    scikit-plots-skinny` before delivering a change to such a test.

@@ -1,6 +1,12 @@
-.. _quick_start:
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
 
 .. title:: scikit-plots: Machine Learning Visualization with Python
+
+.. _quick_start:
 
 ======================================================================
 Quick Start Guide

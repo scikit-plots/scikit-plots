@@ -1,0 +1,36 @@
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
+
+## round-26 pattern-risk verdicts against measured run time
+$ python -B .../probe_round26.py
+2026-10-10 05:42:54.577915: W scikitplot 140417209720960 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+ok   R26-RISK ^(a+)+$                      measured slow   reported=True sizes=(12, 18, 26) times=['0.0002s', '0.0092s', '2.4332s']
+ok   R26-RISK ^(a*)*$                      measured slow   reported=True sizes=(12, 18, 26) times=['0.0002s', '0.0152s', 'killed']
+ok   R26-RISK ^(a|aa)+$                    measured slow   reported=True sizes=(12, 18, 26) times=['0.0077s', '2.6381s', 'killed']
+ok   R26-RISK ^(\w+\s?)*$                  measured slow   reported=True sizes=(12, 18, 26) times=['0.0003s', '0.0192s', 'killed']
+ok   R26-RISK ^(?:[A-Z]+\d*)+-\d+$         measured slow   reported=True sizes=(12, 18, 26) times=['0.0002s', '0.0107s', '2.5976s']
+ok   R26-RISK ^(\w+,)+$                    measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:\.\w+)+$                 measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:[A-Z]+-)+\d+$            measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^\bEMP-\d{6}\b$              measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK (?x) ^ (?: \w+ \s? )+ $  # verbose measured slow   reported=True sizes=(12, 18, 26) times=['0.0002s', '0.0136s', '3.6123s']
+ok   R26-RISK ^(?:\w+,\w+)+$               measured slow   reported=True sizes=(12, 18, 26) times=['0.0874s', 'killed', 'killed']
+ok   R26-RISK (?i)^(?:a+A)+$               measured slow   reported=True sizes=(12, 18, 26) times=['0.0025s', '0.7305s', 'killed']
+ok   R26-RISK ^(?:[\x41-\x5a]+\x4b)+$      measured slow   reported=True sizes=(12, 18, 26) times=['0.0027s', '0.7229s', 'killed']
+ok   R26-RISK ^(?:\w+\s?){1,40}$           measured slow   reported=True sizes=(12, 18, 26) times=['0.0002s', '0.0139s', '3.1408s']
+ok   R26-RISK ^(?:(?:\w+)-)+$              measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:([a-z0-9]+)\.)+[a-z]{2,}$ measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:[ ]?[A-Z0-9]{4}){2,7}$   measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:\w++\s?)+$               measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-RISK ^(?:(?>\w+)\s?)+$            measured linear reported=False sizes=(12, 18, 26) times=['0.0000s', '0.0000s', '0.0000s']
+ok   R26-CORE core patterns report nothing {}
+ok   R26-PACKS built-in packs report nothing []
+ok   R26-COST analysing every built-in pattern takes under a second 0.011s
+TOTAL FAILURES: 0
+EXIT=0
+
+## round-26 soundness/precision fuzz (90 s)
+$ python -B .../probe_round26_fuzz.py 90
+soundness: 2233 passed patterns timed, 0 slow
+precision: 60 reported patterns timed, 21 slow on generic inputs
+TOTAL FAILURES: 0
+EXIT=0

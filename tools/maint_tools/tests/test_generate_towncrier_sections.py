@@ -34,7 +34,7 @@ class TowncrierSectionsTests(unittest.TestCase):
         self.assertEqual(status, 0, stderr.getvalue())
         payload = json.loads(stdout.getvalue())
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["counts"]["expected_sections"], 103)
+        self.assertEqual(payload["counts"]["expected_sections"], 104)
 
         stdout = io.StringIO()
         status = MODULE.main(

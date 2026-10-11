@@ -327,10 +327,11 @@ else:
 #
 #    SCIKITPLOT_GALLERY_RUN_ASR=1 python plot_corpus_a_tale_of_two_cities_mp3_script.py
 #
-# When opted in, the example requires an installed Whisper backend.  Model
-# availability is then the responsibility of that explicitly enabled runtime;
-# an unexpected ASR failure is allowed to surface rather than being mislabeled
-# as a missing-package skip.
+# When opted in, the reader tries faster-whisper first and then openai-whisper.
+# Optional backend failures remain visible as warnings.  The gallery keeps the
+# default ``strict=False`` policy so an unavailable or incompatible ASR stack
+# yields no transcription chunks instead of failing the entire documentation
+# build; use ``strict=True`` when fail-fast ASR is required.
 
 whisper_ready, whisper_reason = _probe_whisper_backend()
 asr_documents = ()
@@ -355,6 +356,7 @@ else:
         asr_audio,
         transcribe=True,
         whisper_model="base",
+        strict=False,
         default_language="en",
     )
     asr_documents = tuple(asr_reader.get_documents())

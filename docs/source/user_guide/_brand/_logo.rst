@@ -1,6 +1,11 @@
 
 .. currentmodule:: scikitplot._brand._logo
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
+
 .. _logo-index:
 
 Logo API

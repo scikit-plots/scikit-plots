@@ -9,23 +9,28 @@ control identity separate from durable feedback events.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import hmac
 import ipaddress
 import json
 import os
 import secrets
+import threading
 import time
 from collections.abc import Mapping, Sequence
 from typing import Any
-from urllib.parse import urlsplit
 
 from .._contracts import (
     FeedbackConflictError,
     FeedbackValidationError,
     decode_feedback_request,
     feedback_request_hash,
+)
+from .._network import (
+    NetworkPolicyError,
+    normalize_origin,
+    normalize_policy,
+    normalize_private_suffixes,
 )
 from ._config import FeedbackServiceConfig, load_service_config
 from ._core import FeedbackServiceUnavailable, PageFeedbackService
@@ -47,68 +52,47 @@ class FeedbackASGIConfigError(ValueError):
     """Raised for unsafe standalone-adapter configuration."""
 
 
-def _origin(value: str) -> str:
-    text = str(value or "").strip()
-    _len = len(text) > 2048  # ruff: ignore[magic-value-comparison]
-    if (
-        not text
-        or _len
-        or any(
-            ord(ch) < 32 or ord(ch) == 127  # ruff: ignore[magic-value-comparison]
-            for ch in text
-        )
-    ):
-        raise FeedbackASGIConfigError(
-            "feedback allowed origin is invalid",
-        )
+def _origin(
+    value: str,
+    *,
+    policy: str = "strict",
+    private_suffixes: Sequence[str] = (),
+) -> str:
+    """Return a canonical origin allowed by *policy*; see ``_network``."""
     try:
-        parsed = urlsplit(text)
-        port = parsed.port
-    except ValueError as exc:
-        raise FeedbackASGIConfigError(
-            "feedback allowed origin is invalid",
-        ) from exc
-    host = (parsed.hostname or "").lower()
-    local_http = parsed.scheme == "http" and host in {"127.0.0.1", "localhost", "::1"}
-    if parsed.scheme != "https" and not local_http:
-        raise FeedbackASGIConfigError(
-            "feedback allowed origins must use HTTPS or localhost HTTP",
-        )
-    if (
-        not host
-        or parsed.username
-        or parsed.password
-        or parsed.path not in {"", "/"}
-        or parsed.query
-        or parsed.fragment
-    ):
-        raise FeedbackASGIConfigError(
-            "feedback allowed origin must contain only scheme and authority",
-        )
-    if parsed.scheme == "https" and port not in (None, 443):
-        raise FeedbackASGIConfigError(
-            "feedback allowed HTTPS origins must use port 443",
-        )
-    authority = host
-    if ":" in host and not host.startswith("["):
-        authority = f"[{host}]"
-    if (
-        port is not None
-        and not (
-            parsed.scheme == "https"  # lint
-            and port == 443  # ruff: ignore[magic-value-comparison]
-        )
-        and not (
-            parsed.scheme == "http"  # lint
-            and port == 80  # ruff: ignore[magic-value-comparison]
-        )
-    ):
-        authority += f":{port}"
-    return f"{parsed.scheme}://{authority}"
+        return normalize_origin(value, policy=policy, private_suffixes=private_suffixes)
+    except NetworkPolicyError as exc:
+        raise FeedbackASGIConfigError(str(exc)) from exc
 
 
-def parse_allowed_origins(value: str | Sequence[str] | None) -> tuple[str, ...]:
-    """Normalize an optional exact CORS allowlist; blank means no CORS headers."""
+def parse_allowed_origins(
+    value: str | Sequence[str] | None,
+    *,
+    policy: str = "strict",
+    private_suffixes: Sequence[str] = (),
+) -> tuple[str, ...]:
+    """
+    Normalize an optional exact CORS allowlist; blank means no CORS headers.
+
+    Parameters
+    ----------
+    value : str, sequence of str or None
+        Comma-separated string or sequence of origins.
+    policy : {"strict", "private-network", "any"}, default "strict"
+        ``FEEDBACK_ORIGIN_POLICY``: which origins may be listed at all.
+    private_suffixes : sequence of str, default ()
+        ``FEEDBACK_PRIVATE_HOST_SUFFIXES`` for ``"private-network"``.
+
+    Returns
+    -------
+    tuple of str
+        Canonical, de-duplicated origins.
+
+    Raises
+    ------
+    FeedbackASGIConfigError
+        For a malformed entry, one the policy forbids, or more than 64 entries.
+    """
     if value in (None, ""):
         return ()
     if isinstance(value, Sequence) and not isinstance(value, str) and len(value) == 0:
@@ -127,7 +111,9 @@ def parse_allowed_origins(value: str | Sequence[str] | None) -> tuple[str, ...]:
         )
     result: list[str] = []
     for item in items:
-        normalized = _origin(str(item))
+        normalized = _origin(
+            str(item), policy=policy, private_suffixes=private_suffixes
+        )
         if normalized not in result:
             result.append(normalized)
     return tuple(result)
@@ -260,10 +246,16 @@ class FeedbackASGIApp:
         allowed_origins: Sequence[str] = (),
         service: PageFeedbackService | None = None,
         trusted_proxy_cidrs: Sequence[str] = (),
+        origin_policy: str = "strict",
+        private_host_suffixes: Sequence[str] = (),
     ) -> None:
         self.config = config
         self.service = service or PageFeedbackService(config)
-        self.allowed_origins = parse_allowed_origins(allowed_origins)
+        self.allowed_origins = parse_allowed_origins(
+            allowed_origins,
+            policy=origin_policy,
+            private_suffixes=private_host_suffixes,
+        )
         self.trusted_proxy_cidrs = parse_trusted_proxy_cidrs(trusted_proxy_cidrs)
         self._trusted_proxy_networks = tuple(
             ipaddress.ip_network(item, strict=True) for item in self.trusted_proxy_cidrs
@@ -271,7 +263,13 @@ class FeedbackASGIApp:
         self._rate_secret = secrets.token_bytes(32)
         self._rate: dict[str, tuple[int, float]] = {}
         self._rate_retries: dict[tuple[str, str], tuple[int, float]] = {}
-        self._rate_lock = asyncio.Lock()
+        # The rate section never awaits, so it needs mutual exclusion only
+        # against other threads, not other coroutines. ``asyncio.Lock`` was
+        # wrong here: on Python 3.9 it binds to ``get_event_loop()`` when
+        # constructed, which raises outside a loop after any ``asyncio.run``
+        # and pins the app to one loop; it is also not thread-safe. A
+        # ``threading.Lock`` binds to nothing and is held for microseconds.
+        self._rate_lock = threading.Lock()
         self._rate_last_prune = 0.0
 
     def _cors_origin(self, scope: dict[str, Any]) -> str:
@@ -279,7 +277,9 @@ class FeedbackASGIApp:
         if not origin or not self.allowed_origins:
             return ""
         try:
-            normalized = _origin(origin)
+            # The configured list is the authority; any well-formed request
+            # origin is canonicalized only to compare it with that list.
+            normalized = _origin(origin, policy="any")
         except FeedbackASGIConfigError:
             return "!"
         return normalized if normalized in self.allowed_origins else "!"
@@ -371,7 +371,7 @@ class FeedbackASGIApp:
         contains only the HMAC abuse identity plus a request commitment.
         """
         now = time.monotonic()
-        async with self._rate_lock:
+        with self._rate_lock:
             self._prune_rate_locked(now)
 
             retry_key = (identity, request_hash)
@@ -670,9 +670,23 @@ def create_app(
     trusted_proxies = parse_trusted_proxy_cidrs(
         source.get("FEEDBACK_TRUSTED_PROXY_CIDRS", "")
     )
+    try:
+        origin_policy = normalize_policy(
+            source.get("FEEDBACK_ORIGIN_POLICY", ""), name="FEEDBACK_ORIGIN_POLICY"
+        )
+        suffixes = normalize_private_suffixes(
+            source.get("FEEDBACK_PRIVATE_HOST_SUFFIXES", ""),
+            name="FEEDBACK_PRIVATE_HOST_SUFFIXES",
+        )
+    except NetworkPolicyError as exc:
+        raise FeedbackASGIConfigError(str(exc)) from exc
     return FeedbackASGIApp(
         config,
-        allowed_origins=parse_allowed_origins(origins),
+        origin_policy=origin_policy,
+        private_host_suffixes=suffixes,
+        allowed_origins=parse_allowed_origins(
+            origins, policy=origin_policy, private_suffixes=suffixes
+        ),
         service=PageFeedbackService(config, credential_env=source),
         trusted_proxy_cidrs=trusted_proxies,
     )

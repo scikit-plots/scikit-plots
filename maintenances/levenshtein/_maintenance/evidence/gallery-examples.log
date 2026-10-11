@@ -1,0 +1,35 @@
+RUN plot_levenshtein_backends_script.py
+2026-10-10 15:48:36.306630: W scikitplot 140019665172352 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+internal    available=False license=MIT
+rapidfuzz   available=True  license=MIT
+levenshtein available=False license=GPL-2.0-or-later
+python      available=True  license=BSD-3-Clause
+auto selected: rapidfuzz
+PASS plot_levenshtein_backends_script.py
+RUN plot_levenshtein_basics_script.py
+2026-10-10 15:48:37.517432: W scikitplot 140661436430208 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+'kitten' -> 'sitting'
+distance: 3
+similarity: 4
+normalized distance: 0.429
+normalized similarity: 0.571
+PASS plot_levenshtein_basics_script.py
+RUN plot_levenshtein_corpus_script.py
+2026-10-10 15:48:38.588187: W scikitplot 140619566507904 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+kitten     score=1.000 backend=levenshtein:python
+bitten     score=0.833 backend=levenshtein:python
+sitting    score=0.571 backend=levenshtein:python
+PASS plot_levenshtein_corpus_script.py
+RUN plot_levenshtein_ranking_script.py
+2026-10-10 15:48:39.877489: W scikitplot 139800072484736 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+kitten                 distance=0 similarity=1.000
+bitten                 distance=1 similarity=0.833
+written                distance=2 similarity=0.714
+sitting                distance=3 similarity=0.571
+closest: Levenshtein
+PASS plot_levenshtein_ranking_script.py
+RUN plot_levenshtein_sequences_script.py
+2026-10-10 15:48:40.957724: W scikitplot 140023031584640 __init__.py:93:<module>] ⚠︎ BOOM! :: Error importing scikitplot: you cannot import scikitplot while being in scikitplot source directory; please exit the scikitplot source tree first and relaunch your Python interpreter.
+raw Unicode distance: 2
+normalized distance: 0
+PASS plot_levenshtein_sequences_script.py

@@ -151,3 +151,99 @@ that the ownership and packaging registries describe the same distributions.
 The page intentionally calls these entries *partial distributions*, not
 independent affiliated projects: they are maintained from the same repository
 and share the `scikitplot` namespace.
+
+## Path-length helper (Windows checkouts)
+
+`check_path_lengths.py` keeps every tracked path short enough for Git on
+Windows, which refuses a full path of 260 characters or more unless
+`core.longpaths` is set. A Git-based `pip install ... #subdirectory=libs/<name>`
+clones the whole repository, so one long file name anywhere breaks every such
+install. The budget is derived, not chosen: 259 usable characters minus the
+longest clone directory pip can create (a 20-character account name and the
+longest distribution name among `scikit-plots` and `libs/*`).
+
+```sh
+python tools/maint_tools/check_path_lengths.py budget                      # the model and the number
+python tools/maint_tools/check_path_lengths.py check                       # exit 1 on a new violation
+python tools/maint_tools/check_path_lengths.py check --prefix-length 108   # one user's prefix
+python tools/maint_tools/check_path_lengths.py suggest                     # rename plan (read-only)
+python tools/maint_tools/check_path_lengths.py fix --apply                 # git mv + rewrite references
+```
+
+Known debt outside the maintenance planes is listed with a reason in
+`path_length_baseline.txt`; a listed path that no longer violates fails the
+check, so the list only shrinks. `fix` renames only Markdown under
+`maintenances/` and `docs/maintenances/`, deterministically (shared directory
+affixes, then filler words, then trailing words; a leading identifier is
+kept), and refuses a name it cannot shorten or that would collide.
+
+Until a checkout is fixed, a Windows user can still install with
+`git config --global core.longpaths true` (Git for Windows), or by enabling
+long paths in Windows itself.
+
+## Test module names (`check_test_module_names.py`)
+
+pytest's default import mode imports a test file in a directory without
+`__init__.py` under its bare file name. Two such files with the same name stop
+the whole session at collection ("import file mismatch"), and every partial
+distribution's own test run fails the same way.
+
+```bash
+python tools/maint_tools/check_test_module_names.py            # scikitplot/
+python tools/maint_tools/check_test_module_names.py scikitplot maintenances/cleanprompt
+```
+
+Each argument is one test session. The check computes the name exactly as
+pytest's `prepend` mode does (dotted package path when the directory has
+`__init__.py`, bare stem otherwise) and lists every clash. CI runs it in
+`pr_check_test_module_names.yml`. A drop-in archive cannot delete files: when
+a file is renamed, delete the old one, or this check fails on the clash.
+
+
+## Labeler generator (`generate_pr_labeler.py`)
+
+Three files drive labeling, all checked by one tool and by CI
+(`pr_check_labeler.yml`):
+
+| file | edited | used by |
+|------|--------|---------|
+| `.github/labeler-by-module.yml` | generated | `pr_labeler.yml` (`actions/labeler`) |
+| `.github/labeler-issue.yml` | generated | `pr_labeler.yml` and `issue_labeler.yml` (`github/issue-labeler`) |
+| `.github/labeler.yml` | by hand | `pr_labeler.yml` (`actions/labeler`) |
+
+```bash
+python tools/maint_tools/generate_pr_labeler.py check            # read-only; CI runs this
+python tools/maint_tools/generate_pr_labeler.py sync             # preview
+python tools/maint_tools/generate_pr_labeler.py sync --apply     # write the generated files
+python tools/maint_tools/generate_pr_labeler.py explain --title "BUG, TST: x" scikitplot/corpus/_base.py
+python tools/maint_tools/generate_pr_labeler.py list --json
+```
+
+Sources of truth, all in the repository:
+
+- **Module and library labels** come from the Towncrier owner sections
+  (`[tool.scikitplot.maintenance.towncrier]`, the same discovery as
+  `generate_towncrier_sections.py`): a new package gets its label as soon as it
+  gets its release-note section. Run the Towncrier `sync --apply` first, then
+  this one. A `libs/<dist>` label also fires for every path the distribution
+  ships (`scikitplot/_distributions.py`). Satellites (user guide, gallery,
+  maintenance plane, fragments) are added only when they exist.
+- **Title labels** come from one registry,
+  `[tool.scikitplot.maintenance.labeler.title_prefixes]` and `title_keywords`.
+  A prefix needs an explicit terminator (`BUG: x`, `[Bug]: x`, `[BUG] x`,
+  `MAINT(ci): x`, `BUG, TST: x`), case-insensitive; `Fix typo`, `Bug in reader`
+  and `DOCKER image` get nothing. Keywords match whole words.
+- **Templates** `tools/maint_tools/templates/*.yml.in` hold the file headers;
+  `@GENERATED_RULES@` is replaced by the rules, so a deleted generated file is
+  recreated exactly by `sync --apply`.
+
+`check` fails on: a stale generated file; a glob outside the supported subset
+(`[A-Za-z0-9._-]`, `*`, `?`, whole `**` segments, one leading `!`, no
+trailing `/**`); an unknown key (the labeler only logs it); a negated glob in
+`any-glob-*` (true for every other file, so the label fires on almost every
+pull request); a curated label that is also a module label; a label longer
+than GitHub's 50 characters (use `label_aliases`); a label named by an issue
+template, a workflow `contains(...labels.*.name, '...')` or the gilesbot
+changelog settings that no rule defines (`manual_labels` lists the ones set
+by hand). Curated globs that match no file are warnings (errors with
+`--strict`).

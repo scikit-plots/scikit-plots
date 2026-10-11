@@ -71,10 +71,13 @@ def _cli() -> list[str]:
 CLI = _cli()
 
 
-def run(*arguments: str, limit: int = 0):
+def run(*arguments: str, limit: int = 0, env: dict | None = None):
     """Run one CLI command and show both streams, with paths masked."""
+    environment = dict(os.environ)
+    if env:
+        environment.update(env)
     completed = subprocess.run(
-        [*CLI, *arguments], input="", capture_output=True, text=True
+        [*CLI, *arguments], input="", capture_output=True, text=True, env=environment
     )
     shown = " ".join(
         ('"{0}"'.format(one) if " " in one else one).replace(
@@ -415,8 +418,39 @@ assert CUSTOMER_REFERENCE not in written
 # ``--docker`` binds ``0.0.0.0`` because a container's port mapping needs it.
 # Outside a container that exposes an unauthenticated page to the network, so
 # any other non-loopback bind additionally requires ``--allow-remote``.
+#
+# Three things in the generated files are worth checking, and each is derived
+# from the runtime rather than written by hand:
+#
+# - every launch line publishes on **loopback** (``-p 127.0.0.1:5000:5000``).
+#   ``-p 5000:5000`` without an address publishes on every interface of the
+#   host;
+# - with ``--with-ner`` the image installs the model the runtime resolves and
+#   runs with exactly that model, named explicitly, so the two cannot drift;
+# - ``--debug`` is refused on any address but loopback, container mode
+#   included, because Flask's debugger runs code typed into the browser.
 
-run("docker", "--port", "5000", limit=10)
+files = run("docker", "--port", "5000", "--with-ner")
+launches = [line.strip() for line in files.stdout.splitlines() if "docker run" in line]
+print("launch lines:", launches)
+assert launches and all("-p 127.0.0.1:" in line for line in launches)
+installed = [line.strip() for line in files.stdout.splitlines() if "spacy download" in line]
+requested = [line.strip() for line in files.stdout.splitlines() if line.startswith("CMD")]
+print("installed:", installed)
+print("requested:", requested)
+
+# %%
+# The debugger refusal, with a secret key set so that is the only obstacle
+# left.  It fails before any server starts:
+
+refused = run(
+    "flask", "--docker", "--debug", env={"CLEANPROMPT_SECRET_KEY": "k" * 64}
+)
+assert refused.returncode != 0
+if "refusing --debug" not in refused.stderr:
+    # The web tier is checked first; without Flask the command stops there.
+    assert "pip install" in refused.stderr, refused.stderr
+    print("[SKIP] the 'web' tier (Flask) is not installed, so the bind check is not reached")
 
 # %%
 # **The interactive session.** ``cleanprompt cli`` is a paste-and-go terminal
@@ -433,7 +467,7 @@ run("docker", "--port", "5000", limit=10)
 #       Commands: :hide TERM   :allow TERM   :suggest   :why   :again   :quit
 #       12 structural detectors are active. Names, organisations and places are NOT being detected.
 #       ! Names, organisations, places and other named entities
-#         fix: spaCy is installed; enable it for this run (--ner ...)
+#         fix: spaCy is installed with its model; enable it for this run (--ner ...)
 #
 #     Paste your text, then Ctrl-D:
 #     Mail ada@example.com about the outage

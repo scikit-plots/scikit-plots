@@ -23,18 +23,22 @@ case through :data:`re.IGNORECASE`, which is length-preserving, rather than
 See Also
 --------
 scikitplot.cleanprompt._runtime : Remembered values and the leak check.
-scikitplot.cleanprompt._engine : Surrogate stand-ins.
+scikitplot.cleanprompt._engine : Surrogate stand-ins, and the detection view.
 """
 
 from __future__ import annotations
 
 import re
 import unicodedata
+from bisect import bisect_right
 from collections.abc import Iterable
+from dataclasses import dataclass
 from functools import lru_cache
 
 __all__ = [
+    "DetectionView",
     "canonical",
+    "detection_view",
     "normal_form",
     "value_pattern",
 ]
@@ -175,3 +179,184 @@ def value_pattern(values: Iterable[str], max_gap: int | None = None) -> re.Patte
     ordered = sorted(forms, key=lambda one: (-len(one), one))
     body = "|".join(ordered) if ordered else "(?!)"
     return re.compile(rf"(?<!\w)(?:{body})(?!\w)", re.IGNORECASE)
+
+
+#: The first code point outside ASCII; the view leaves ASCII exactly as written.
+_FIRST_NON_ASCII = 0x80
+
+#: Code-point ranges searched for format characters (Unicode category ``Cf``).
+#: Every ``Cf`` character in the Unicode versions CPython ships lies in the
+#: Basic and Supplementary Multilingual Planes or in plane 14 (the tag
+#: characters, ``U+E0000``-``U+E007F``); scanning these is complete for them
+#: and keeps the one-time table build fast.
+_FORMAT_PLANES = (range(0x20000), range(0xE0000, 0xE1000))
+
+
+@lru_cache(maxsize=1)
+def _view_tables() -> tuple[dict[int, str | None], re.Pattern]:
+    """
+    Return the detection view's translation table and its deletion matcher.
+
+    Notes
+    -----
+    **Developer notes.** Two rules, both fixed and both deterministic for a
+    given :mod:`unicodedata` version:
+
+    - every **format character** (category ``Cf``: zero-width space and
+      joiners, word joiner, byte-order mark, soft hyphen, bidirectional
+      controls, tag characters) is deleted. None of them is visible, and each
+      can be put inside a value to break a pattern while the value still reads
+      the same to a person — and to a language model;
+    - every other **non-ASCII** character is folded by the same table
+      :func:`canonical` uses: compatibility forms that are one character
+      (full-width, mathematical letters), Unicode whitespace, apostrophes and
+      dashes. ASCII is left exactly as it is, so a line break stays a line
+      break and code stays code.
+
+    The translation deletes or replaces one character with one character, so
+    the only offset change is a deletion, which :class:`DetectionView` maps
+    back.
+    """
+    table: dict[int, str | None] = {
+        point: char
+        for point, char in _canonical_table().items()
+        if point >= _FIRST_NON_ASCII
+    }
+    deleted = []
+    for block in _FORMAT_PLANES:
+        for point in block:
+            if unicodedata.category(chr(point)) == "Cf":
+                table[point] = None
+                deleted.append(point)
+    ranges = []
+    for point in deleted:
+        if ranges and ranges[-1][1] == point - 1:
+            ranges[-1][1] = point
+        else:
+            ranges.append([point, point])
+    body = "".join(
+        (
+            re.escape(chr(low))
+            if low == high
+            else f"{re.escape(chr(low))}-{re.escape(chr(high))}"
+        )
+        for low, high in ranges
+    )
+    return table, re.compile(f"[{body}]")
+
+
+@dataclass(frozen=True)
+class DetectionView:
+    """
+    A second reading of a text, for detection only, with the way back.
+
+    Parameters
+    ----------
+    text : str
+        The view: format characters removed, non-ASCII compatibility forms
+        folded.
+    shifts : tuple of int
+        For the ``j``-th removed character, the number of view characters in
+        front of it (non-decreasing). Empty when nothing was removed.
+
+    Notes
+    -----
+    **Developer notes.** A view index ``v`` belongs to the original index
+    ``v + k``, where ``k`` counts the removed characters that precede it —
+    the ones whose ``shifts`` entry is at most ``v``. :func:`bisect.bisect_right`
+    finds ``k`` in logarithmic time, so a text salted with a zero-width
+    character between every letter costs no more per span than a clean one.
+    """
+
+    text: str
+    shifts: tuple[int, ...] = ()
+
+    def source_index(self, index: int) -> int:
+        """
+        Return the original offset of view character ``index``.
+
+        Parameters
+        ----------
+        index : int
+            Offset into :attr:`text`.
+
+        Returns
+        -------
+        int
+            Offset into the original text.
+        """
+        return index + bisect_right(self.shifts, index)
+
+    def source_span(self, start: int, end: int) -> tuple[int, int]:
+        """
+        Map a non-empty view span ``[start, end)`` onto the original text.
+
+        Parameters
+        ----------
+        start, end : int
+            Offsets into :attr:`text`, ``start < end``.
+
+        Returns
+        -------
+        tuple of int
+            ``(start, end)`` in the original. Removed characters *inside* the
+            span are included, so the original slice is the value exactly as
+            it was written; removed characters at its edges are not.
+        """
+        return self.source_index(start), self.source_index(end - 1) + 1
+
+
+def detection_view(text: str) -> DetectionView | None:
+    r"""
+    Return the text as detectors should also read it, or ``None`` if identical.
+
+    Parameters
+    ----------
+    text : str
+        The original text.
+
+    Returns
+    -------
+    DetectionView or None
+        ``None`` when the view would equal ``text`` — always for ASCII — so
+        the common case costs one check.
+
+    Notes
+    -----
+    **User notes.** Nothing to configure. A value written with an invisible
+    character inside it (``ada\u200b@example.com``), in full-width letters, or
+    with a non-breaking space or hyphen inside a telephone number is found as
+    if it were written plainly, and the original — invisible characters
+    included — is what the vault keeps and what restoration puts back.
+
+    **Developer notes — the source is never rewritten (``CP-098``).** Detectors
+    read the original text; structural and literal detectors *also* read this
+    view, and their spans are mapped back onto the original before overlap
+    resolution. Nothing downstream sees the view: the vault holds original
+    surfaces, the rewrite indexes the original, and restoration is exact. A
+    view span can only add to what the original-text pass found, and overlaps
+    merge, so the view can widen redaction but never narrow it.
+
+    Examples
+    --------
+    >>> detection_view("plain ascii") is None
+    True
+    >>> view = detection_view("ada\u200b@example.com")
+    >>> view.text
+    'ada@example.com'
+    >>> view.source_span(0, len(view.text))
+    (0, 16)
+    """
+    if text.isascii():
+        return None
+    table, deleted = _view_tables()
+    folded = text.translate(table)
+    if folded == text:
+        return None
+    if len(folded) == len(text):
+        return DetectionView(folded)
+    shifts = tuple(
+        match.start() - position
+        for position, match in enumerate(deleted.finditer(text))
+    )
+    return DetectionView(folded, shifts)

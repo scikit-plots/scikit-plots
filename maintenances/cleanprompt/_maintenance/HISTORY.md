@@ -1,5 +1,116 @@
 # History
 
+## 2026-10-10 — round twenty-seven: the pull request's CI, three failures
+
+PR 864's checks failed in three places after rounds 25–26 were applied:
+
+- **CodeQL `py/redos` (alert 227):** the deliberately catastrophic test
+  pattern `_RISKY` in `test__pattern_risk.py` reached `re.compile` through
+  `analyse_pattern`. Every slow fixture in the tests and the round-26 probe
+  (47 literals) is now built through `tests/_regex_fixtures.regex_fixture`,
+  an equal string computed from the literal, and
+  `_maintenance/tests/test_regex_fixtures.py` fails on any unwrapped one
+  (checked with the subsystem's own analyser; it fails on the round-26 tree
+  at the reported line).
+- **Partial distributions (every Verify leg):** round 25's
+  `scikitplot/_cli/tests/test_registry.py` read `cleanprompt/_capabilities.py`
+  by path; `scikit-plots-skinny` ships `_cli` without cleanprompt. The hint
+  is now checked against the extras it promises everywhere, and against
+  cleanprompt's tier table only where it is installed. `libs._tools verify
+  scikit-plots-skinny` passes on 3.13 and 3.8.
+- **Coverage job (corpus):** `test_downloader_factory_is_wired_to_builder_seam`
+  dropped a builder owning a temporary directory; the job turns unraisable
+  ResourceWarnings into failures. The test now uses the builder as a context
+  manager and asserts the directory is removed.
+
+## 2026-10-10 — round twenty-six: the user decides, and the floor does not move
+
+Maintainer decisions: PR **864** for every round-25/26 fragment; risky custom
+patterns are always warned about, with quick options and policy tuning, never
+refused by default; the generator's scope was delegated.
+
+- `CP-104`: a custom pattern such as `^(a+)+$` loaded silently and could
+  stall a run. `_pattern_risk.py` reads the source as Python runs it (own
+  parser, no `sre_parse`; overlap decided by public `re` over a probe
+  alphabet) and reports `nested-quantifier`, `overlapping-alternation`,
+  `adjacent-quantifiers`, or `not-analysed`. Warn by default; `ignore` /
+  `refuse` per run (`--pattern-risk`, five commands), per team (plan file),
+  per machine (`CLEANPROMPT_PATTERN_RISK`); `risk: accepted` +
+  `risk_reason` per pattern; `packs --check` lists every finding.
+- Custom surrogate sets (slice A, `GENERATOR_DESIGN.md`): `PERSON`, `ORG`,
+  `GPE`, `LOC`, `FAC` names from a YAML/JSON file (`--surrogates`); contact
+  forms and credentials stay the core's; entries must read as names and
+  cannot look alike; identity recorded, default digests unchanged.
+- `CP-105` (found writing the gallery): a surrogate address spelled a held
+  two-word name with a dot. Both sides are now word-split.
+- The independent review found twelve issues in the new code before
+  release (eight analyser misses or false positives, invisible and look-alike
+  set entries, `TITLE_CASE` refusing the design's own example, `-W error`
+  tracebacks) and `CP-106` on the old tree (appending with another style
+  mixed two grammars). All fixed; ordinary-word entries are a recorded limit
+  (new note). Re-running the review's brief by hand found `CP-107`
+  (`x{99999999999999999999}` crashed pack validation with OverflowError)
+  and that requiring NFKC refused ordinary Thai and Arabic names. A
+  soundness fuzz then found three more analyser misses (nullable groups,
+  optional parts); after the fix none in thousands of passed patterns.
+- A test that failed one run in three under xdist only was root-caused to
+  the process-wide scrub filter and a shared sample value (lessons rule 55).
+- Verified: 2888/88 (no tier), 2899/77 (engines, no data), 2966/10 (every
+  tier); CPython 3.8–3.14; all probes 0 failures; gallery 9/9 twice.
+
+## 2026-10-10 — round twenty-five: every surface says what it does
+
+Inputs: an internal review (findings CP-NEW-01..08) and an external comparison,
+both read-only and outside the tree. Every finding taken from them was
+reproduced on the uploaded tree first (`evidence/probe_round25.py`).
+
+- `CP-093`: `doctor --ner` called spaCy without a model, and NLTK without its
+  data, healthy; `auto` chose such an engine. `_engines.engine_readiness`
+  decides from package, language and data; `build_detectors(required=True)`
+  refuses an unready engine before any text, with each engine's remedy; every
+  surface builds through it. `CP-094`: the web app built its own spaCy detector
+  and ignored engine, language and size; it now uses the shared builder.
+- `CP-100`, found by measuring `CP-093` live: NLTK 3.10.3 with data only under
+  pre-3.9 names was reported ready and failed at the first sentence. NLTK
+  readiness now runs the detector's own tagger and chunker on a fixed
+  sentence; remedies name every package of a group.
+- `CP-095`/`CP-096`: the image installed `en_core_web_lg` and ran asking for
+  `sm`; `docker run` published on every interface; compose set a variable
+  nothing read. All derived from the runtime now. `CP-097`: `--debug` is
+  refused on every non-loopback bind.
+- `CP-098`: values with invisible or compatibility characters inside them went
+  out in the clear (a card with a zero-width space came out
+  `4111\u200b[PHONE-1]`). A detection *view* — a second reading with an offset
+  map, never a rewrite — closes it. `CP-102`: the view's first form also ran
+  document-bound detectors and cut through `.env` lines and CSV columns; the
+  round's independent review caught it before delivery, and only detectors
+  declaring `reads_view` read the view. `CP-103` (older than the round): one
+  invisible character in a field name hid its column; `normalise_field` reads
+  names through the view.
+- `CP-099` (a hand-written reinstall hint with a stale range) and `CP-101`
+  (`encode --pack-file`, documented and never real) led to computed hints and
+  `tests/test_documented_cli.py`, which checks every documented option.
+- The reviewer now reports whether its record describes the tree on disk and
+  exits 3 when it does not (the review's CP-NEW-01, where a stale record read
+  as PASS).
+- The user guide is ten pages plus an index; every example in it was executed.
+  The README carries no hand-counted command total; its `encode` transcript is
+  the real output.
+- Continuity: `RESUME.md` holds the step log, numbers, next action, ledger and
+  pending decisions; `tests/test_resume.py` keeps it equal to
+  `upcoming_changes`. Ten notes are open there with full designs (and one
+  blocked on a pull-request number), including
+  the customisable surrogate generator and per-kind actions.
+- Found pre-existing and recorded rather than fixed: PHONE partial redaction of
+  `+33 1 …` and year ranges, a near-placeholder in the source rewritten on
+  restore, non-ASCII email addresses, invisible characters in key-value and
+  code names, look-alike letters, custom-pattern run time.
+- 2654 passed, 88 skipped with no tier; 2665/77 with spaCy and NLTK but no data;
+  2732/10 with every tier; CPython 3.8–3.14 green; 3 repeated and 2 shuffled
+  runs agree; every probe 0 failures; gallery 9/9 in both installations;
+  maintenance 88 passed; maintenance and runtime `PASS`, release `UNVERIFIED`
+  (Windows and macOS not measured).
+
 ## 2026-10-05 — round twenty-four: a ceiling that expired
 
 The sharded CI run passed and reported

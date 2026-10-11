@@ -55,7 +55,6 @@ runtime objects; run() starts source processing.``
 # first plan is used only to demonstrate configuration identity; it is not
 # materialized.
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -67,21 +66,6 @@ from scikitplot.corpus import (
     ParagraphChunkerConfig,
     RuntimePolicy,
 )
-
-# os.environ["SCIKITPLOT_GALLERY_RUN_ASR"] = "1"
-# os.environ["SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS"] = "1"
-_RUN_ASR = os.environ.get("SCIKITPLOT_GALLERY_RUN_ASR", "1").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-_SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS = os.getenv("SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS", "1").strip().lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
 
 basic = FluentCorpus().embedder("E").storage("S")
 
@@ -441,6 +425,60 @@ for name, builder in [
     print("  configured:", builder.plan().configured)
 
 # %%
+# Build a plan from user-side configuration data
+# ----------------------------------------------
+# ``from_config`` and ``configure`` are useful at application boundaries where
+# configuration comes from TOML/YAML/JSON, a CLI, or a settings UI.  They use
+# the same canonical conflict and validation rules as fluent method calls.
+
+from_mapping = FluentCorpus.from_config(
+    {
+        "reader": "auto",
+        "chunker": ParagraphChunkerConfig(min_length=1, max_length=500),
+        "storage": "memory",
+    }
+)
+
+print("from mapping:", from_mapping.plan().configured)
+print("explain:", from_mapping.explain())
+
+# %%
+# Apply several settings atomically and compare plans
+# ---------------------------------------------------
+# ``configure`` applies multiple domains in canonical order.  ``with_overrides``
+# makes intentional replacement explicit, while ``without`` creates a branch
+# with selected domains removed.
+
+configured = FluentCorpus().configure(reader="auto", storage="memory")
+overridden = configured.with_overrides(storage="sqlite")
+stripped = overridden.without("storage")
+
+print("configured:", configured.plan().configured)
+print("diff:", configured.diff(overridden))
+print("without storage:", stripped.plan().configured)
+
+# %%
+# Generate a bounded configuration matrix
+# ---------------------------------------
+# ``variants`` is a deterministic configuration generator, not a hidden search
+# engine.  It refuses an empty choice and bounds the Cartesian product before
+# creating plans, which makes tuning/test matrices explicit and reproducible.
+
+variant_base = FluentCorpus().reader("auto")
+variants = variant_base.variants(
+    storage=("memory", "sqlite"),
+    retrieval=("keyword", "hybrid"),
+    max_variants=8,
+)
+
+for variant in variants:
+    plan = variant.plan()
+    print(plan.fingerprint, plan.get("storage"), plan.get("retrieval"))
+
+assert len(variants) == 4
+assert len({variant.plan().fingerprint for variant in variants}) == 4
+
+# %%
 # Optional-capability rule for the rest of the Corpus gallery
 # -----------------------------------------------------------
 # This example intentionally has no optional dependency in its executed path.
@@ -472,3 +510,20 @@ for name, builder in [
 #    plot-type: text
 #    level: beginner
 #    purpose: showcase
+
+# %%
+# Generate bounded tuning variants lazily
+# ---------------------------------------
+# ``iter_variants`` proves the full Cartesian-product bound before yielding the
+# first plan, then materializes plans one at a time in canonical domain order.
+
+variant_source = FluentCorpus().storage("memory")
+variant_iter = variant_source.iter_variants(
+    max_variants=4,
+    chunker=["sentence", "paragraph"],
+    retrieval=["lexical", "hybrid"],
+)
+variant_fingerprints = [item.plan().fingerprint for item in variant_iter]
+print("variant fingerprints:", variant_fingerprints)
+assert len(variant_fingerprints) == 4
+assert len(set(variant_fingerprints)) == 4

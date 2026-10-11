@@ -1,53 +1,68 @@
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-..
-  # https://rsted.info.ucl.ac.be/
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-  # https://documatt.com/restructuredtext-reference/element/admonition.html
-  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-
-..
-  .. currentmodule:: scikitplot.api
+.. currentmodule:: scikitplot.decile
 
 .. _decile-index:
 
-======================================================================
-Decile-Wise Performance
-======================================================================
+Decile analysis
+===============
 
-This module contains functions related to :py:mod:`~.kds` and :py:mod:`~.modelplotpy`.
-For model evaluation decile-wise performance.
+``scikitplot.decile`` groups model scores into ordered quantiles/ntiles so you can explain response concentration, lift, cumulative gain, KS separation and business value to technical and non-technical stakeholders.
+
+.. important::
+
+   A decile plot only makes sense when the score column and positive-class semantics are correct. Verify ``pos_label``/``class_index`` and score ordering before interpreting lift, gain, or financial curves.
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   getting_started
+   kds
+   modelplotpy
+   business_plots_and_financial
+   compatibility_and_limits
 
 .. grid:: 1 1 2 2
+   :gutter: 2
 
-    .. grid-item-card::
-        :columns: 12 12 6 6
-        :padding: 2
+   .. grid-item-card:: Getting started
+      :link: decile-getting-started
+      :link-type: ref
 
-        **kds**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
+      Create a decile table or model plot from labels and predicted scores.
 
-            kds.rst
+   .. grid-item-card:: KDS functions
+      :link: decile-kds
+      :link-type: ref
 
-    .. grid-item-card::
-        :columns: 12 12 6 6
-        :padding: 2
+      Decile tables, lift, cumulative gain, KS statistic, and reports.
 
-        **modelplotpy**
-        ^^^
-        .. toctree::
-            :maxdepth: 2
+   .. grid-item-card:: ModelPlotPy
+      :link: decile-modelplotpy
+      :link-type: ref
 
-            modelplotpy.rst
+      Current top-level ModelPlotPy surface and legacy compatibility namespace.
+
+   .. grid-item-card:: Business and financial plots
+      :link: decile-business-plots-and-financial
+      :link-type: ref
+
+      Response, cumulative lift/gain, costs, profit, ROI, and selection summaries.
+
+   .. grid-item-card:: Compatibility and limits
+      :link: decile-compatibility-and-limits
+      :link-type: ref
+
+      Positive-label semantics, legacy behavior, RNG side effects, and current snapshot limitations.
+
+Which page should I use?
+------------------------
+
+Start with **Getting started**. Then choose the page that owns the decision
+you are making: architecture and lifecycle, configuration, persistence,
+performance, public API, or limits. The guide intentionally separates those
+concerns so examples do not accidentally become policy.
+
+Examples
+--------
+
+See :ref:`decile_examples` for executable examples that accompany this guide.

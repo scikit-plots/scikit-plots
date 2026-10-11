@@ -482,20 +482,20 @@ PACKAGES: tuple[Package, ...] = (
         #   in four extensions, in the code (``str.removeprefix``); the code
         #   is fixed, see ``tasks/todo.md`` (round 4).
         test_python=">=3.9",
-        # The hosted services (``_hf_spaces_proxy`` and the feedback service)
-        # create ``asyncio`` locks and events in constructors. Python 3.9
-        # binds those to the current event loop at creation and refuses when
-        # there is none ("There is no current event loop in thread
-        # 'MainThread'": 46 tests), and two tests use the built-in ``anext``
-        # (3.10). The proxy is deployed on Python 3.11 (its Dockerfile). The
-        # Sphinx extensions do not go through any of this.
-        test_gated=tuple(
-            ("_externals/_sphinx_ext/" + path, ">=3.10")
-            for path in (
-                "_sphinx_ai_assistant/tests/_hf_spaces_proxy",
-                "_sphinx_feedback/tests/test_app.py",
-                "_sphinx_feedback/tests/test_service.py",
-            )
+        # The HF proxy creates ``asyncio`` locks and events in constructors.
+        # Python 3.9 binds those to the current event loop at creation and
+        # refuses when there is none ("There is no current event loop in
+        # thread 'MainThread'"), and two of its tests use the built-in
+        # ``anext`` (3.10). The proxy is deployed on Python 3.11 (its
+        # Dockerfile), so its suite is gated, not its code changed.
+        # The feedback service is not gated: it ships in this distribution
+        # for every supported Python, so the same defect there was fixed in
+        # the code (a ``threading.Lock``, round 32) instead of hidden here.
+        test_gated=(
+            (
+                "_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy",
+                ">=3.10",
+            ),
         ),
         # Each entry was added for a collection error, a failure or a skipped
         # module it removed (``markdownify``: 644 tests were skipped with

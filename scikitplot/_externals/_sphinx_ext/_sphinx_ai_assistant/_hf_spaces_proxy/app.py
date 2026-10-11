@@ -1397,9 +1397,20 @@ _page_feedback_env.setdefault(
     "FEEDBACK_GITHUB_PATH",
     "docs/source/_feedback",
 )
+# Every public site that posts to this proxy must be listed: the service
+# answers 422 ``site_not_allowed`` for any other ``feedback_site_id``. The
+# two Scikit-Plots sites are https://scikit-plots-learn.readthedocs.io
+# (``scikit-plots-learn``) and https://scikit-plots.github.io (``scikit-plots``);
+# both origins are already in ``_DEFAULT_ALLOWED_ORIGINS``. A deployment that
+# hosts other sites sets FEEDBACK_ALLOWED_SITE_IDS (and ALLOWED_ORIGINS) itself.
+#: Site IDs this proxy accepts when the Space sets no FEEDBACK_ALLOWED_SITE_IDS.
+_PAGE_FEEDBACK_DEFAULT_SITE_IDS: tuple[str, ...] = (
+    "scikit-plots",
+    "scikit-plots-learn",
+)
 _page_feedback_env.setdefault(
     "FEEDBACK_ALLOWED_SITE_IDS",
-    "scikit-plots-learn",
+    ",".join(_PAGE_FEEDBACK_DEFAULT_SITE_IDS),
 )
 try:
     PAGE_FEEDBACK_SERVICE_CONFIG = load_page_feedback_service_config(_page_feedback_env)
@@ -4112,6 +4123,31 @@ def _cors_public_status() -> dict[str, Any]:
     }
 
 
+def _page_feedback_public_status() -> dict[str, Any]:
+    """
+    Return page-feedback readiness without exposing custom site IDs.
+
+    Answers "will this Space accept feedback from each Scikit-Plots site?"
+    from a browser (``GET /health``), the check a redeploy or a Space variable
+    change needs. Like ``_cors_public_status``, it names only the built-in
+    defaults; a deployment's other site IDs are counted, not listed.
+    """
+    allowed = tuple(PAGE_FEEDBACK_SERVICE_CONFIG.allowed_site_ids)
+    primary = PAGE_FEEDBACK_SERVICE_CONFIG.primary
+    return {
+        "review_mode": PAGE_FEEDBACK_SERVICE_CONFIG.review_mode,
+        "primary_provider": primary.provider if primary else None,
+        "mirror_count": len(PAGE_FEEDBACK_SERVICE_CONFIG.mirrors),
+        "any_site_id": not allowed,
+        "default_site_ids_allowed": {
+            site_id: (not allowed) or site_id in allowed
+            for site_id in _PAGE_FEEDBACK_DEFAULT_SITE_IDS
+        },
+        "allowed_site_id_count": len(allowed) if allowed else None,
+        "page_authority": PAGE_FEEDBACK_SERVICE_CONFIG.page_authority is not None,
+    }
+
+
 @app.get("/")
 async def root() -> JSONResponse:
     """Public status/discovery with privacy-minimized collection capabilities."""
@@ -4174,6 +4210,7 @@ async def root() -> JSONResponse:
             },
             "limits": {"max_upstream_response_bytes": MAX_UPSTREAM_RESPONSE_BYTES},
             "cors": _cors_public_status(),
+            "page_feedback": _page_feedback_public_status(),
         },
         headers={"Cache-Control": "no-store"},
     )
@@ -4524,6 +4561,7 @@ async def health() -> JSONResponse:
             },
             "limits": {"max_upstream_response_bytes": MAX_UPSTREAM_RESPONSE_BYTES},
             "cors": _cors_public_status(),
+            "page_feedback": _page_feedback_public_status(),
         },
         headers={"Cache-Control": "no-store"},
     )

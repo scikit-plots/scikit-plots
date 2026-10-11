@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -99,7 +100,9 @@ class SQLiteFeedbackStore:
         if request_hash != expected_hash:
             raise ValueError("request_hash does not match the durable feedback event")
         event_json = canonical_event_bytes(normalized).decode("utf-8").rstrip("\n")
-        with self._connect() as conn:
+        # closing() releases the handle; the inner `with conn` keeps the
+        # rollback-on-error transaction semantics.
+        with closing(self._connect()) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 "SELECT request_hash, event_json FROM feedback_events WHERE feedback_id = ?",
@@ -139,7 +142,9 @@ class SQLiteFeedbackStore:
     def events(self, *, site_id: str | None = None) -> list[dict[str, Any]]:
         if site_id is not None:
             site_id = normalize_site_id(site_id)
-        with self._connect() as conn:
+        # closing() releases the handle; the inner `with conn` keeps the
+        # rollback-on-error transaction semantics.
+        with closing(self._connect()) as conn, conn:
             if site_id is None:
                 rows = conn.execute(
                     "SELECT feedback_id, request_hash, site_id, page_id, event_json "

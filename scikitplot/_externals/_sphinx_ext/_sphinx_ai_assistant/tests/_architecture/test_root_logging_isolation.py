@@ -73,3 +73,28 @@ def test_the_fixture_is_automatic_and_covers_the_whole_package():
 def test_the_root_logger_is_recorded_before_any_service_import():
     source = Path(conftest.__file__).read_text(encoding="utf-8")
     assert source.index("_ROOT_LOGGING_AT_IMPORT: dict") < source.index("def _bootstrap_submodule")
+
+
+
+def test_a_test_that_reconfigures_root_logging_is_undone():
+    root = logging.getLogger()
+    handlers, level = list(root.handlers), root.level
+    replacement = logging.NullHandler()
+    root.handlers = [replacement]
+    root.setLevel(logging.DEBUG)
+    conftest._restore_root_logging(handlers, level)
+    assert replacement not in root.handlers
+    assert all(handler in root.handlers for handler in handlers)
+    assert root.level == level
+
+
+def test_the_restoring_fixture_runs_for_every_test():
+    tree = ast.parse(Path(conftest.__file__).read_text(encoding="utf-8"))
+    (function,) = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_root_logging_restored_after_each_test"
+    ]
+    (decorator,) = function.decorator_list
+    assert {item.arg: item.value.value for item in decorator.keywords} == {"autouse": True}

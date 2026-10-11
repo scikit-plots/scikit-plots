@@ -335,7 +335,7 @@ Live Global Share diagnostics separated two deployment failures. The HF proxy no
 
 ## 2026-08-29 — Run 17 — Dataset contribution purpose separation and conversation records
 
-Dataset contribution is removed from Share → More actions and promoted to a first-class **Contribute to dataset** sheet. Feedback telemetry is renamed truthfully and remains content-free; a separate **Contribute this Q&A…** shortcut routes into the canonical contribution workflow. The sheet supports This Q&A, Rated answers, and Whole conversation, where whole conversation is one schema-v4 ordered `messages[]` record. Inspect, privacy preflight, consent 2.0.0, quarantine, receipt deletion and post-promotion withdrawal are one lifecycle. Endpoint Configuration becomes **Runtime & Data** with separate Feedback telemetry and Dataset contributions sections. Proxy deployment version becomes 6.6.1. Telemetry is additionally ratcheted to a two-sided explicit-permission contract: structured versioned browser consent, self-gated rating/retraction helpers, server consent validation, and content-free public feedback events. The fresh-chat design source is `_maintenance/FRESH_CHAT_DATASET_CONTRIBUTION_UX_HANDOFF.md`.
+Dataset contribution is removed from Share → More actions and promoted to a first-class **Contribute to dataset** sheet. Feedback telemetry is renamed truthfully and remains content-free; a separate **Contribute this Q&A…** shortcut routes into the canonical contribution workflow. The sheet supports This Q&A, Rated answers, and Whole conversation, where whole conversation is one schema-v4 ordered `messages[]` record. Inspect, privacy preflight, consent 2.0.0, quarantine, receipt deletion and post-promotion withdrawal are one lifecycle. Endpoint Configuration becomes **Runtime & Data** with separate Feedback telemetry and Dataset contributions sections. Proxy deployment version becomes 6.6.1. Telemetry is additionally ratcheted to a two-sided explicit-permission contract: structured versioned browser consent, self-gated rating/retraction helpers, server consent validation, and content-free public feedback events. The fresh-chat design source is `_maintenance/DATASET_CONTRIBUTION_UX.md`.
 
 ## 2026-08-30 — Run 18 / B37 lifecycle and privacy closure
 
@@ -653,3 +653,53 @@ the source that the stale tests had stopped reaching.
   only and raced the gossip.
 - Result: 2790 passed, 2 skipped, 0 failed (CPython 3.11, pinned proxy
   requirements, Redis 7.0.15).
+
+## 2026-10-10 — page feedback: the proxy serves both public sites
+
+- **One site rejected.** The proxy's default `FEEDBACK_ALLOWED_SITE_IDS` was
+  `scikit-plots-learn`, so a submission from https://scikit-plots.github.io/dev/
+  (`feedback_site_id = "scikit-plots"`) was answered `422 site_not_allowed`
+  while scikit-plots-learn.readthedocs.io worked. The default is now
+  `scikit-plots-learn,scikit-plots`; both origins were already in
+  `_DEFAULT_ALLOWED_ORIGINS`. Any other `site_id` is still refused.
+- **Pinned string replaced.** The integration test pinned the one-site default
+  as source text; it now parses the allowlist, requires both sites, and checks
+  the library checkout's `docs/source/conf.py` site ID and snapshot against it.
+- **Mirror resynced** with `_utils/sync_page_feedback_runtime.py` after
+  `_sphinx_feedback` 0.7.0 (SQLite connections are now closed).
+- Deployment: the live Space keeps its old default until redeployed, or until
+  the Space sets `FEEDBACK_ALLOWED_SITE_IDS=scikit-plots-learn,scikit-plots`.
+
+## 2026-10-11 — page feedback mirror follows `_sphinx_feedback` 0.8.0
+
+- `_utils/sync_page_feedback_runtime.py` now copies `_network.py` (shared
+  endpoint/origin policy) and the new service modules `_git.py`,
+  `_webhook.py` and `_custom.py`; `EXPECTED_VENDORED` lists them. The proxy's
+  own defaults are unchanged: GitHub review in the AI Learn repository.
+- The vendored service logs to `sphinx_feedback.service` (no comment text,
+  credit, addresses or secrets).
+- One `-n 8` run of `_hf_spaces_proxy + _integration + _architecture` failed
+  `test_root_logging_isolation::test_the_held_handlers_are_installed_while_this_package_runs`;
+  four further runs (serial and parallel) passed. Recorded as an open
+  observation: the test depends on which xdist worker imported the proxy.
+
+## 2026-10-11 — root-logging isolation flake: cause found and fixed
+
+- **Cause.** `test_root_logging_isolation::test_the_held_handlers_are_installed_while_this_package_runs`
+  failed in about one `-n 8` run in two. Running every test file of
+  `_hf_spaces_proxy`, `_integration` and `_architecture` before it, one at a
+  time, found two offenders: `test_deduplicate_dataset.py` (its tests call
+  `deduplicate_dataset.main()`, which installs CLI root handlers) and
+  `test_bounded_remote_response.py` (imports the proxy app inside a test; the
+  import sets `logging.root.handlers`). Serial runs passed only because
+  `_architecture` sorts before both.
+- **Fix.** `tests/conftest.py` gains the autouse `_root_logging_restored_after_each_test`
+  fixture (snapshot before, restore after, pytest's capture handlers left
+  alone); two tests pin it. The probe finds no offender; three parallel runs
+  and the whole tree (2815 passed) are green.
+- **Live Space check.** `/` and `/health` report `page_feedback`
+  (review mode, primary provider, `default_site_ids_allowed` for
+  `scikit-plots-learn` and `scikit-plots`, a count of other site IDs). The
+  default list is one constant, `_PAGE_FEEDBACK_DEFAULT_SITE_IDS`.
+- Mirror follows `_sphinx_feedback` 0.9.0 (`_forge.py`, `_gitlab.py`,
+  `_bitbucket.py`).

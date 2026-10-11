@@ -16,7 +16,7 @@ pip install scikit-plots-corpus
 
 Optional extras:
 
-- `pip install "scikit-plots-corpus[corpus]"`: `lxml`, `nltk`, `gensim`, `datasets`, `langdetect`, `pytesseract`, `whisper`, `faster-whisper`, `openai-whisper`, `youtube-transcript-api`, `pypdf`, `pdfminer`, `pdfminer.six`, `sentence-transformers`, `langchain-core`
+- `pip install "scikit-plots-corpus[corpus]"`: `lxml`, `nltk`, `gensim`, `datasets`, `langdetect`, `pytesseract`, `faster-whisper`, `openai-whisper`, `youtube-transcript-api`, `pypdf`, `pdfminer`, `pdfminer.six`, `sentence-transformers`, `langchain-core`
 - `pip install "scikit-plots-corpus[annoy]"`: `scikit-plots-annoy>=0.5.dev0`
 
 Every spelling an installer accepts names the same project, so `scikit_plots_corpus` installs it too.

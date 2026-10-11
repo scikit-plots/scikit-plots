@@ -1,132 +1,29 @@
-..
-  https://devguide.python.org/documentation/markup/#sections
-  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
-  # with overline, for parts    : ######################################################################
-  * with overline, for chapters : **********************************************************************
-  = for sections                : ======================================================================
-  - for subsections             : ----------------------------------------------------------------------
-  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.. _decile-kds:
 
-.. _decile-kds-index:
+KDS functions
+=============
 
-KeyToDataScience
-======================================================================
+The ``scikitplot.decile.kds`` namespace provides array-oriented decile
+statistics and plots.
 
-This module contains functions related to :py:mod:`~.kds`.
+.. autosummary::
+   :nosignatures:
 
-.. seealso::
+   scikitplot.decile.kds.decile_table
+   scikitplot.decile.kds.plot_lift
+   scikitplot.decile.kds.plot_lift_decile_wise
+   scikitplot.decile.kds.plot_cumulative_gain
+   scikitplot.decile.kds.plot_ks_statistic
+   scikitplot.decile.kds.report
+   scikitplot.decile.kds.print_labels
 
-   * https://github.com/tensorbored/kds/blob/master/kds/metrics.py
+``decile_table`` is the shared statistical core. Plot/report helpers should be
+interpreted from the same positive-class definition and decile count.
 
+.. warning::
 
-kds Plots
-----------------------------------------------------------------------
-
-* Let's introduce the Gains, Lift and (cumulative) Response plots.
-
-.. _plot_cumulative_gain:
-
-plot cumulative gain
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:py:func:`~.kds.plot_cumulative_gain`
-
-The mathematical formulation is the following:
-
-.. math::
-
-    \hat{K}
-
-Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
-:class:`~sklearn.ensemble.RandomForestClassifier`. For an example of
-performing image:
-
-.. rubric:: Examples
-
-* :ref:`sphx_glr_auto_examples_decile_plot_cumulative_gain_script.py`: Example usage of
-  :class:`~sklearn.linear_model.LogisticRegression` using the iris dataset
-
-* :ref:`sphx_glr_auto_examples_decile_plot_cumulative_gain_script.py`: Example usage of
-  :class:`~sklearn.ensemble.RandomForestClassifier` using the iris dataset
-
-
-.. dropdown:: References
-
-  * cumulative_gain
-
-
-
-.. _plot_lift:
-
-plot lift
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:py:func:`~.kds.plot_lift`
-
-.. note:: **Lift Curve**
-
-Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
-:class:`~sklearn.ensemble.RandomForestClassifier`. For an example of
-performing image:
-
-.. rubric:: Examples
-
-* :ref:`sphx_glr_auto_examples_decile_plot_lift_script.py`: Example usage of
-  :class:`~sklearn.linear_model.LogisticRegression` using the iris dataset
-
-* :ref:`sphx_glr_auto_examples_decile_plot_lift_script.py`: Example usage of
-  :class:`~sklearn.ensemble.RandomForestClassifier` using the iris dataset
-
-
-.. dropdown:: References
-
-  * lift_curve
-
-
-
-.. _plot_ks_statistic:
-
-plot_ks_statistic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:py:func:`~.kds.plot_ks_statistic`
-
-Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
-:class:`~sklearn.ensemble.RandomForestClassifier`. For an example of
-performing image:
-
-.. rubric:: Examples
-
-* :ref:`sphx_glr_auto_examples_decile_plot_ks_statistic_script.py`: Example usage of
-  :class:`~sklearn.linear_model.LogisticRegression` using the iris dataset
-
-* :ref:`sphx_glr_auto_examples_decile_plot_ks_statistic_script.py`: Example usage of
-  :class:`~sklearn.ensemble.RandomForestClassifier` using the iris dataset
-
-
-.. dropdown:: References
-
-  * ks_statistic
-
-
-
-.. _report:
-
-report
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:py:func:`~.kds.report`
-
-Trained model of :class:`~sklearn.linear_model.LogisticRegression` and
-:class:`~sklearn.ensemble.RandomForestClassifier`. For an example of
-performing image:
-
-.. rubric:: Examples
-
-* report
-
-
-.. dropdown:: References
-
-  * report
+   The repository maintenance review records a current KDS contract issue where
+   some documented class/positive-label/precision arguments are dropped by
+   internal calls. Until that finding is closed, validate non-default
+   ``class_index``, ``pos_label`` and precision-sensitive workflows with focused
+   tests rather than assuming every wrapper forwards every option.

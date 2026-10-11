@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.levenshtein",
+  "findings": [
+    {
+      "id": "LV-001",
+      "status": "open",
+      "severity": "low",
+      "class": "fallback-architecture",
+      "summary": "Runtime failure skips remaining safe accelerators.",
+      "evidence": "_distance_with_backend resolves one accelerator and on runtime failure falls directly to pure Python.",
+      "impact": "Correctness is preserved, but the advertised safe preference order is not fully used after a runtime-only backend failure.",
+      "root_cause": "Backend selection and backend execution are coupled as a single selected name rather than one per-call execution plan.",
+      "acceptance": [
+        "auto builds one safe ordered execution plan per top-level operation",
+        "runtime failure tries the next safe candidate exactly once",
+        "pure Python remains the terminal fallback",
+        "actual backend provenance stays correct",
+        "strict behavior for explicit backend requests remains documented and tested"
+      ]
+    },
+    {
+      "id": "LV-002",
+      "status": "open",
+      "severity": "low",
+      "class": "performance-observability",
+      "summary": "rank resolves backend capability for every candidate.",
+      "evidence": "rank calls _distance_with_backend inside the candidate loop.",
+      "impact": "Large rankings can repeat metadata/import capability probes and repeated runtime warnings.",
+      "root_cause": "There is no per-operation resolved backend execution object.",
+      "acceptance": [
+        "rank resolves the execution plan once",
+        "one broken accelerator emits at most one warning per top-level rank call",
+        "streaming choices and O(limit) top-k behavior remain intact"
+      ]
+    }
+  ]
+}

@@ -2,6 +2,10 @@
   # https://overbits.herokuapp.com/rsteditor/
   # https://rsted.info.ucl.ac.be/
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _python_nogil:
 
 Python Implementations and Free-Threading (No-GIL) Support

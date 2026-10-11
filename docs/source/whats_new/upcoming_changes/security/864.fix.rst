@@ -1,0 +1,9 @@
+- ``scikitplot.cleanprompt`` now detects values written with invisible format
+  characters (zero-width spaces and joiners, bidirectional controls, soft
+  hyphens), full-width or other compatibility forms, or Unicode spaces and
+  dashes inside them, and restores them exactly as written; previously they
+  were sent unredacted. Field names written that way in CSV and TSV headers,
+  JSON keys and email headers now still name their field. A surrogate e-mail
+  address or link also no longer spells a held multi-word name with another
+  separator (``marion.holt@example.invalid`` while the text names Marion
+  Holt).

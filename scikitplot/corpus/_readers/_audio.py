@@ -26,8 +26,10 @@ Three strategies are attempted in order, stopping at the first success:
 
 2. **Whisper transcription** (opt-in, requires ``openai-whisper`` or
    ``faster-whisper``). Set ``transcribe=True`` to enable.
-   ``faster-whisper`` is tried first (faster, lower VRAM); falls back to
-   ``openai-whisper`` (reference implementation).
+   ``faster-whisper`` is tried first (faster, lower VRAM); import *and runtime*
+   failures fall back to ``openai-whisper`` (reference implementation).
+   With the default ``strict=False``, failure of both optional backends is
+   logged and yields no transcription chunks instead of aborting ingestion.
 
 3. **Audio classification** (opt-in, requires a user-supplied callable
    or a ``librosa``-backed feature extractor). Set ``classify=True`` and
@@ -66,20 +68,25 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import (
+from typing import (  # noqa: F401
     Any,
     Callable,
     ClassVar,
-    Dict,  # noqa: F401
+    Dict,
     Generator,
-    List,  # noqa: F401
-    Optional,  # noqa: F401
-    Tuple,  # noqa: F401
+    List,
+    Mapping,
+    Optional,
+    Tuple,
 )
 
+from .._backends import BackendCandidate, BackendPolicy, run_backend_chain
 from .._base import DocumentReader
+from .._capabilities import CapabilityRegistry
 from .._schema import SectionType, SourceType
-from ._custom import normalize_extractor_output
+from ._whisper import WHISPER_MODELS, ASRBackend, asr_segment_metadata
+from ._whisper import plan_whisper_backends as _shared_plan_whisper_backends
+from ._whisper import transcribe_whisper as _shared_transcribe_whisper
 
 logger = logging.getLogger(__name__)
 
@@ -131,13 +138,6 @@ _HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 # VTT header
 _VTT_HEADER = "WEBVTT"
-
-# Whisper backend identifiers
-# BUG-04: These constants are duplicated in _video.py. Both files must stay
-# in sync; a future refactor should extract them to a shared _whisper_common module.
-_WHISPER_BACKEND_FASTER = "faster-whisper"
-_WHISPER_BACKEND_OPENAI = "openai-whisper"
-
 
 # =========================================================================
 # Companion file detection
@@ -606,114 +606,28 @@ def _transcribe_whisper(
     audio_path: Path,
     model_size: str,
     language: str | None,
+    *,
+    strict: bool = False,
+    report: Callable[[Any], None] | None = None,
+    policy: BackendPolicy | str | dict[str, Any] | None = None,
+    custom_backends: tuple[ASRBackend, ...] = (),
+    capability_registry: CapabilityRegistry | None = None,
 ) -> list[dict[str, Any]]:
-    """
-    Transcribe an audio file using Whisper ASR.
-
-    Parameters
-    ----------
-    audio_path : pathlib.Path
-        Path to the audio file.
-    model_size : str
-        Whisper model size (``"tiny"``, ``"base"``, ``"small"``, etc.).
-    language : str or None
-        ISO 639-1 language hint. ``None`` = auto-detect.
-
-    Returns
-    -------
-    list of dict
-        Each dict has keys: ``"text"``, ``"timecode_start"``,
-        ``"timecode_end"``, ``"confidence"`` (when available).
-
-    Raises
-    ------
-    ImportError
-        If neither ``faster-whisper`` nor ``openai-whisper`` is installed.
-
-    Notes
-    -----
-    ``faster-whisper`` is tried first (CTranslate2-based, lower VRAM,
-    faster inference). Falls back to ``openai-whisper`` (reference
-    implementation, PyTorch-based).
-
-    **User-facing note:** For batch processing, pre-generate transcript
-    files offline and place them next to the audio files::
-
-        $ whisper audio.mp3 --output_format srt --output_dir .
-
-    This avoids downloading model weights at corpus-build time.
-    """
-    # Try faster-whisper first
-    try:
-        from faster_whisper import WhisperModel  # noqa: PLC0415
-
-        logger.info(
-            "AudioReader: transcribing with faster-whisper (model=%s).",
-            model_size,
-        )
-        model = WhisperModel(model_size, device="auto")
-        segments, _info = model.transcribe(
-            str(audio_path),
-            language=language,
-            beam_size=5,
-        )
-        result: list[dict[str, Any]] = []
-        for seg in segments:
-            text = seg.text.strip()
-            if text:
-                chunk: dict[str, Any] = {
-                    "text": text,
-                    # raw_text: ASR output is already the verbatim
-                    # transcription — no pre-processing to undo.
-                    "raw_text": text,
-                    "timecode_start": round(seg.start, 3),
-                    "timecode_end": round(seg.end, 3),
-                }
-                if hasattr(seg, "avg_logprob"):
-                    # Convert log probability to [0, 1] confidence
-                    import math  # noqa: PLC0415
-
-                    chunk["confidence"] = round(math.exp(seg.avg_logprob), 4)
-                result.append(chunk)
-        return result
-    except ImportError:
-        pass  # faster-whisper not installed; try openai-whisper
-
-    # Try openai-whisper
-    try:
-        import whisper  # noqa: PLC0415
-
-        logger.info(
-            "AudioReader: transcribing with openai-whisper (model=%s).",
-            model_size,
-        )
-        model = whisper.load_model(model_size)
-        wresult = model.transcribe(str(audio_path), language=language)
-        result = []
-        for seg in wresult.get("segments", []):
-            text = seg.get("text", "").strip()
-            if text:
-                chunk = {
-                    "text": text,
-                    "raw_text": text,
-                    "timecode_start": round(seg["start"], 3),
-                    "timecode_end": round(seg["end"], 3),
-                }
-                if "avg_logprob" in seg:
-                    import math  # noqa: PLC0415
-
-                    chunk["confidence"] = round(math.exp(seg["avg_logprob"]), 4)
-                result.append(chunk)
-        return result
-    except ImportError:
-        pass  # openai-whisper not installed
-
-    raise ImportError(
-        "AudioReader: transcribe=True requires either faster-whisper or"
-        " openai-whisper.\n"
-        "Install one of:\n"
-        "  pip install faster-whisper   # recommended (faster, lower VRAM)\n"
-        "  pip install openai-whisper   # reference implementation\n"
+    """Transcribe audio through the shared Whisper backend cascade."""
+    return _shared_transcribe_whisper(
+        audio_path,
+        model_size,
+        language,
+        component="AudioReader",
+        logger=logger,
+        strict=strict,
+        faster_model_kwargs={"device": "auto"},
+        faster_transcribe_kwargs={"beam_size": 5},
+        include_confidence=True,
+        report=report,
+        policy=policy,
+        custom_backends=custom_backends,
+        capability_registry=capability_registry,
     )
 
 
@@ -848,66 +762,68 @@ def _classify_audio(
 
 def _get_audio_duration(audio_path: Path) -> float | None:
     """
-    Get the duration of an audio file in seconds.
+    Return audio duration using a shared best-effort backend chain.
 
-    Parameters
-    ----------
-    audio_path : pathlib.Path
-        Path to the audio file.
-
-    Returns
-    -------
-    float or None
-        Duration in seconds, or ``None`` if detection fails.
-
-    Notes
-    -----
-    Tries backends in order: ``mutagen`` (metadata-only, fast) →
-    ``librosa`` (loads audio, slower) → ``soundfile`` (loads header).
-    Returns ``None`` without error if no backend is available.
+    Backends are attempted in order: mutagen -> librosa -> soundfile.  A
+    missing/failed backend is DEBUG-level evidence and does not abort duration
+    probing; ``None`` means every backend failed or returned no duration.
     """
-    # Try mutagen (fast, metadata-only)
-    try:
+
+    def _mutagen() -> float | None:
         import mutagen  # type: ignore[] # noqa: PLC0415
 
         audio = mutagen.File(str(audio_path))
-        if audio is not None and audio.info is not None:
-            return float(audio.info.length)
-    except Exception:  # noqa: BLE001
-        logger.debug(
-            "AudioReader: mutagen failed for %s; trying next backend.",
-            audio_path.name,
-        )
+        if audio is None or audio.info is None:
+            return None
+        return float(audio.info.length)
 
-    # Try librosa
-    try:
+    def _librosa() -> float:
         import librosa  # type: ignore[] # noqa: PLC0415
 
         return float(librosa.get_duration(path=str(audio_path)))
-    except Exception:  # noqa: BLE001
-        logger.debug(
-            "AudioReader: librosa failed for %s; trying next backend.",
-            audio_path.name,
-        )
 
-    # Try soundfile
-    try:
+    def _soundfile() -> float:
         import soundfile as sf  # type: ignore[] # noqa: PLC0415
 
-        info = sf.info(str(audio_path))
-        return float(info.duration)
-    except Exception:  # noqa: BLE001
+        return float(sf.info(str(audio_path)).duration)
+
+    outcome = run_backend_chain(
+        (
+            BackendCandidate(
+                "mutagen",
+                _mutagen,
+                accept=lambda value: value is not None,
+                failure_level=logging.DEBUG,
+                capability="audio:mutagen",
+            ),
+            BackendCandidate(
+                "librosa",
+                _librosa,
+                failure_level=logging.DEBUG,
+                capability="audio:librosa",
+            ),
+            BackendCandidate(
+                "soundfile",
+                _soundfile,
+                failure_level=logging.DEBUG,
+                capability="audio:soundfile",
+            ),
+        ),
+        default=None,
+        logger=logger,
+        component="AudioReader",
+        operation="duration detection",
+        subject=audio_path.name,
+        error_code="AUDIO_DURATION_BACKEND_FAILED",
+        stage="probe",
+    )
+    if outcome.backend is None:
         logger.debug(
-            "AudioReader: soundfile failed for %s.",
+            "AudioReader: could not detect duration of %s. "
+            "Install mutagen, librosa, or soundfile for duration detection.",
             audio_path.name,
         )
-
-    logger.debug(
-        "AudioReader: could not detect duration of %s. "
-        "Install mutagen, librosa, or soundfile for duration detection.",
-        audio_path.name,
-    )
-    return None
+    return outcome.value
 
 
 # =========================================================================
@@ -1066,6 +982,10 @@ class AudioReader(DocumentReader):
         Whisper model size. One of ``"tiny"``, ``"base"``, ``"small"``,
         ``"medium"``, ``"large"``, ``"large-v2"``, ``"large-v3"``.
         Default: ``"base"``.
+    strict : bool, optional
+        Whisper failure policy. ``False`` (default) logs backend failures,
+        tries the next backend, and yields no ASR chunks if all backends fail.
+        ``True`` raises after the fallback cascade is exhausted.
     classify : bool, optional
         When ``True``, apply audio classification using the
         ``classifier`` callable. Can be combined with ``transcribe``:
@@ -1122,7 +1042,11 @@ class AudioReader(DocumentReader):
     ValueError
         If ``segment_duration <= segment_overlap``.
     ImportError
-        If ``transcribe=True`` and no Whisper backend is installed.
+        If ``transcribe=True``, ``strict=True``, and neither Whisper backend
+        can be imported.
+    RuntimeError
+        If ``transcribe=True``, ``strict=True``, and all available Whisper
+        backends fail at runtime.
 
     See Also
     --------
@@ -1216,15 +1140,7 @@ class AudioReader(DocumentReader):
     file_type: ClassVar[str | None] = None
     file_types: ClassVar[list[str] | None] = _AUDIO_EXTENSIONS
 
-    _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = (
-        "tiny",
-        "base",
-        "small",
-        "medium",
-        "large",
-        "large-v2",
-        "large-v3",
-    )
+    _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = WHISPER_MODELS
 
     transcribe: bool = field(default=False)
     """Enable Whisper ASR fallback when no companion file is found."""
@@ -1261,6 +1177,21 @@ class AudioReader(DocumentReader):
 
     max_file_bytes: int = field(default=5 * 1024 * 1024 * 1024)
     """Maximum audio file size. Default: 5 GB."""
+
+    strict: bool = field(default=False)
+    """Raise when all Whisper backends fail instead of yielding no ASR chunks."""
+
+    backend_policy: BackendPolicy | str | Mapping[str, Any] | None = field(
+        default=None,
+        repr=False,
+    )
+    """Optional backend policy preset/object/config mapping."""
+
+    asr_backends: tuple[ASRBackend, ...] = field(default_factory=tuple, repr=False)
+    """User-provided ASR backends appended to the built-in backend registry."""
+
+    capability_registry: CapabilityRegistry | None = field(default=None, repr=False)
+    """Optional private readiness registry for custom ASR capabilities."""
 
     # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
     # inherited from DocumentReader. Redeclaring them here changed the
@@ -1325,6 +1256,22 @@ class AudioReader(DocumentReader):
         """Return :attr:`~scikitplot.corpus._schema.SourceType.AUDIO` for custom-extractor chunks."""
         return SourceType.AUDIO
 
+    def plan_asr_backends(self):
+        """Return the exact side-effect-free ASR backend preflight plan."""
+        return _shared_plan_whisper_backends(
+            self.input_path,
+            self.whisper_model,
+            self.default_language,
+            component="AudioReader",
+            strict=self.strict,
+            faster_model_kwargs={"device": "auto"},
+            faster_transcribe_kwargs={"beam_size": 5},
+            include_confidence=True,
+            policy=self.backend_policy,
+            custom_backends=self.asr_backends,
+            capability_registry=self.capability_registry,
+        )
+
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
         Attempts companion detection first. Falls back to Whisper only
@@ -1344,7 +1291,11 @@ class AudioReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes``.
         ImportError
-            If ``transcribe=True`` and Whisper is not installed.
+            If ``transcribe=True``, ``strict=True``, and neither Whisper backend
+            can be imported.
+        RuntimeError
+            If ``transcribe=True``, ``strict=True``, and all available Whisper
+            backends fail at runtime.
         """  # noqa: D205, D401
         file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
@@ -1355,34 +1306,7 @@ class AudioReader(DocumentReader):
 
         # ── Strategy 0: custom extractor (highest priority) ───────────
         if self.custom_extractor is not None:
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
-            )
-            logger.info(
-                "AudioReader: using custom extractor %r on %s.",
-                extractor_name,
-                self.file_name,
-            )
-            try:
-                raw = self.custom_extractor(
-                    self.input_path, **self.custom_extractor_kwargs
-                )
-            except Exception as exc:
-                raise RuntimeError(
-                    f"AudioReader: custom extractor {extractor_name!r} raised "
-                    f"an error processing {self.file_name!r}: {exc}"
-                ) from exc
-            chunks = normalize_extractor_output(
-                raw,
-                source_type=SourceType.AUDIO,
-                section_type=SectionType.TEXT,
-            )
-            logger.info(
-                "AudioReader: custom extractor returned %d chunk(s) from %s.",
-                len(chunks),
-                self.file_name,
-            )
-            yield from chunks
+            yield from self._iter_custom_extractor_chunks()
             return
 
         yielded_any = False
@@ -1463,6 +1387,11 @@ class AudioReader(DocumentReader):
                 self.input_path,
                 self.whisper_model,
                 self.default_language,
+                strict=self.strict,
+                report=self._record_backend_outcome,
+                policy=self.backend_policy,
+                custom_backends=self.asr_backends,
+                capability_registry=self.capability_registry,
             )
             logger.info(
                 "AudioReader: transcription produced %d segments for %s.",
@@ -1481,6 +1410,11 @@ class AudioReader(DocumentReader):
                 }
                 if "confidence" in seg:
                     chunk["confidence"] = seg["confidence"]
+                if seg.get("asr_backend") is not None:
+                    chunk["asr_backend"] = seg["asr_backend"]
+                extra_asr_metadata = asr_segment_metadata(seg)
+                if extra_asr_metadata:
+                    chunk["asr_metadata"] = extra_asr_metadata
                 # Add audio features if requested
                 if self.extract_features:
                     features = _extract_audio_features(
@@ -1538,14 +1472,23 @@ class AudioReader(DocumentReader):
 
         # --- No strategy produced output ---
         if not yielded_any:
+            if self.transcribe or self.classify:
+                # The enabled optional strategy already emitted its own backend
+                # diagnostics.  Do not add a contradictory warning telling the
+                # caller to enable a feature that was already attempted.
+                logger.info(
+                    "AudioReader: enabled optional extraction produced no chunks "
+                    "for %s (transcribe=%s, classify=%s).",
+                    self.file_name,
+                    self.transcribe,
+                    self.classify,
+                )
+                return
+
             logger.warning(
-                "AudioReader: no companion file found for %s,"
-                " transcribe=%s, classify=%s."
-                " Yielding no chunks."
+                "AudioReader: no companion file found for %s; yielding no chunks."
                 " To enable transcription, set transcribe=True."
                 " To enable classification, set classify=True with a"
                 " classifier callable.",
                 self.file_name,
-                self.transcribe,
-                self.classify,
             )

@@ -1,5 +1,9 @@
 .. highlight:: bash
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _release-guide:
 
 ======================================================================

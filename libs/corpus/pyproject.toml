@@ -73,7 +73,6 @@ corpus = [
   "datasets",
   "langdetect",
   "pytesseract",
-  "whisper",
   "faster-whisper",
   "openai-whisper",
   "youtube-transcript-api",

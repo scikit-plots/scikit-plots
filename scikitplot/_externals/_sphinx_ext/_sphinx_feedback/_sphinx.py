@@ -10,12 +10,14 @@ from typing import ClassVar
 from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx.errors import ConfigError
+from sphinx.util import logging as sphinx_logging
 from sphinx.util.docutils import SphinxDirective
 
 from . import __version__
 from ._config import FeedbackConfigError, load_aggregate, page_enabled, validate_config
 
 _ASSETS = Path(__file__).parent / "_static"
+logger = sphinx_logging.getLogger(__name__)
 _ENV_VERSION = 2
 
 
@@ -80,9 +82,23 @@ def _configure(app, config) -> None:
                 expected_site_id=normalized["site_id"],
                 expected_page_revision=normalized["page_revision"],
                 return_metadata=True,
+                # A site's own snapshot lives beside its conf.py; the packaged
+                # one is shared by every site and fits only one site_id.
+                source_root=getattr(app, "confdir", None),
             )
     except FeedbackConfigError as exc:
         raise ConfigError(str(exc)) from exc
+    if normalized["page_enabled"]:
+        # Visible with ``sphinx-build -v``; one line answers "what did this
+        # build publish?" without opening the HTML.
+        logger.verbose(
+            "[feedback] site_id=%s endpoint=%s counters=%s snapshot=%s complete=%s",
+            normalized["site_id"],
+            normalized["endpoint"] or "-",
+            normalized["counter_source"] if normalized["counter_enabled"] else "off",
+            str(getattr(config, "feedback_aggregate_file", "") or "-"),
+            aggregate_meta.get("complete", False),
+        )
     app._sphinx_feedback_config = normalized
     app._sphinx_feedback_aggregate = aggregate
     app._sphinx_feedback_aggregate_meta = aggregate_meta
@@ -211,6 +227,9 @@ def setup_extension(app):
     app.add_config_value("feedback_counter_enabled", True, "html")
     app.add_config_value("feedback_counter_source", "embedded", "html")
     app.add_config_value("feedback_endpoint", "", "html")
+    # "strict" | "private-network" | "any"; see _network.py.
+    app.add_config_value("feedback_endpoint_policy", "strict", "html")
+    app.add_config_value("feedback_private_host_suffixes", [], "html")
     app.add_config_value("feedback_site_id", "docs", "html")
     app.add_config_value("feedback_page_revision", "", "html")
     app.add_config_value("feedback_aggregate_file", "", "html")

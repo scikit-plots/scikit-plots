@@ -121,13 +121,24 @@ def test_sphinx_assets_are_external_not_inline_executable_script():
 
 
 def test_extension_does_not_import_ai_learn_or_ai_assistant():
+    # _example_conf.py names the AI assistant to show a combined conf.py; it
+    # is documentation and imports nothing (checked below).
     package_sources = "\n".join(
         path.read_text(encoding="utf-8")
         for path in ROOT.rglob("*.py")
-        if "tests" not in path.parts
+        if "tests" not in path.parts and path.name != "_example_conf.py"
     )
     assert "_sphinx_ai_learn" not in package_sources
     assert "_sphinx_ai_assistant" not in package_sources
+
+
+def test_example_conf_imports_nothing():
+    import ast  # noqa: PLC0415
+
+    tree = ast.parse((ROOT / "_example_conf.py").read_text(encoding="utf-8"))
+    assert not [
+        node for node in ast.walk(tree) if isinstance(node, (ast.Import, ast.ImportFrom))
+    ]
 
 
 def test_readme_states_event_not_person_invariant():

@@ -266,7 +266,9 @@ def create_app(  # ruff: ignore[too-many-positional-arguments]
     store : SessionStore, optional
         Vault store. A new bounded store is created when omitted.
     enable_ner : bool, default=False
-        Also run named-entity detection. Requires the ``ner`` tier.
+        Also run named-entity detection, with the engine ``ner_engine``
+        selects. Every selected engine must be ready (package, language and
+        data), or the app refuses to start.
     ner_model : str, optional
         Explicit spaCy model, overriding ``language`` and ``model_size``.
     ner_engine : str, default='auto'
@@ -295,8 +297,9 @@ def create_app(  # ruff: ignore[too-many-positional-arguments]
     Raises
     ------
     CapabilityError
-        If the ``web`` tier — or, with ``enable_ner``, the ``ner`` tier — is
-        unavailable.
+        If the ``web`` tier is unavailable, or ``enable_ner`` is set and the
+        requested entity engine is not ready; the message names each engine's
+        reason and remedy.
     PolicyError
         If no secret key is configured and ``ephemeral_secret_key`` is not set.
 
@@ -334,12 +337,25 @@ def create_app(  # ruff: ignore[too-many-positional-arguments]
     sessions = store if store is not None else SessionStore()
 
     from ._detectors import default_registry  # ruff: ignore[import-outside-top-level]
+    from ._engines import build_detectors  # ruff: ignore[import-outside-top-level]
 
     registry = default_registry(kinds=active_policy.kinds)
     if enable_ner:
-        from ._ner import spacy_detector  # ruff: ignore[import-outside-top-level]
-
-        registry.add(spacy_detector(model=ner_model))
+        # The same builder the command line, encode() and the file runtime use
+        # (CP-094). This app used to construct a spaCy detector directly and
+        # ignore ner_engine, language and model_size, so the page could report
+        # one configuration while every request ran another. required=True:
+        # switching entity detection on is a request, and one that cannot be
+        # met refuses to start with the remedy rather than serving a page
+        # whose banner claims names are being found.
+        for detector in build_detectors(
+            mode=ner_engine,
+            language=language,
+            model=ner_model,
+            size=model_size,
+            required=True,
+        ):
+            registry.add(detector)
     redactor = Redactor(policy=active_policy, registry=registry)
 
     from ._diagnostics import (  # ruff: ignore[import-outside-top-level]
@@ -356,7 +372,15 @@ def create_app(  # ruff: ignore[too-many-positional-arguments]
     from ._engines import describe_engines  # ruff: ignore[import-outside-top-level]
     from ._languages import language_report  # ruff: ignore[import-outside-top-level]
 
-    standing_engines = describe_engines(language, ner_engine)
+    standing_engines = describe_engines(
+        language,
+        ner_engine,
+        model=ner_model,
+        size=model_size,
+        # Data packages are looked at only when entity detection is on, which
+        # is also the only case where the engine is about to be loaded.
+        check_assets=enable_ner,
+    )
     standing_language = language_report(language, model_size)
 
     app = Flask(__name__, template_folder="_templates", static_folder="_static")

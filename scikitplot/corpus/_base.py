@@ -846,6 +846,9 @@ class DocumentReader(abc.ABC):
         )
     """
 
+    _backend_outcomes: list[Any] = field(default_factory=list, init=False, repr=False)
+    """Internal structured reports from optional backend cascades."""
+
     # ------------------------------------------------------------------
     # Post-init: resolve defaults
     # ------------------------------------------------------------------
@@ -902,6 +905,37 @@ class DocumentReader(abc.ABC):
     # ------------------------------------------------------------------
     # Computed properties
     # ------------------------------------------------------------------
+
+    @property
+    def backend_reports(self) -> tuple[dict[str, Any], ...]:
+        """Return structured optional-backend reports from the current run.
+
+        Reports are JSON-compatible dictionaries.  They intentionally retain
+        exception *type/message strings* rather than live exception objects,
+        so fail-soft readers remain observable without retaining traceback
+        object graphs.  :meth:`get_documents` clears old reports at the start
+        of each run.
+
+        Returns
+        -------
+        tuple of dict
+            One report per backend operation that opted into central
+            orchestration.  Empty when no optional backend operation ran.
+        """
+        reports: list[dict[str, Any]] = []
+        for outcome in self._backend_outcomes:
+            to_dict = getattr(outcome, "to_dict", None)
+            if callable(to_dict):
+                reports.append(to_dict())
+        return tuple(reports)
+
+    def clear_backend_reports(self) -> None:
+        """Clear structured optional-backend reports on this reader instance."""
+        self._backend_outcomes.clear()
+
+    def _record_backend_outcome(self, outcome: Any) -> None:
+        """Record one safe backend outcome without exposing live exceptions."""
+        self._backend_outcomes.append(outcome)
 
     @property
     def file_name(self) -> str:
@@ -1033,33 +1067,60 @@ class DocumentReader(abc.ABC):
         changes needed.
         """  # noqa: D205
         if self.custom_extractor is not None:
-            from ._readers._custom import (  # noqa: PLC0415
-                normalize_extractor_output,
-            )
-
-            extractor_name = getattr(
-                self.custom_extractor, "__name__", repr(self.custom_extractor)
-            )
-            logger.info(
-                "%s: _iter_raw_chunks dispatching to custom_extractor %r.",
-                self.file_name,
-                extractor_name,
-            )
-            kw: dict[str, Any] = self.custom_extractor_kwargs or {}
-            try:
-                raw = self.custom_extractor(self.input_path, **kw)
-            except Exception as exc:
-                raise RuntimeError(
-                    f"{self.file_name}: custom_extractor {extractor_name!r} "
-                    f"raised an error: {exc}"
-                ) from exc
-            yield from normalize_extractor_output(
-                raw,
-                source_type=self._custom_extractor_source_type(),
-                section_type=self._custom_extractor_section_type(),
-            )
+            yield from self._iter_custom_extractor_chunks()
         else:
             yield from self.get_raw_chunks()
+
+    def _iter_custom_extractor_chunks(
+        self,
+        *,
+        source_type: SourceType | None = None,
+        section_type: SectionType | None = None,
+    ) -> Generator[dict[str, Any], None, None]:
+        """Run and normalise :attr:`custom_extractor` in one shared place.
+
+        This helper is used by :meth:`_iter_raw_chunks` and may also be used by
+        concrete readers that intentionally preserve direct ``get_raw_chunks``
+        support for custom extractors.  Centralising it keeps exception
+        wrapping, logging, kwargs forwarding, and output normalisation
+        identical across reader classes.
+        """
+        if self.custom_extractor is None:
+            return
+
+        from ._readers._custom import (  # noqa: PLC0415
+            normalize_extractor_output,
+        )
+
+        extractor_name = getattr(
+            self.custom_extractor, "__name__", repr(self.custom_extractor)
+        )
+        logger.info(
+            "%s: dispatching to custom_extractor %r.",
+            self.file_name,
+            extractor_name,
+        )
+        kw: dict[str, Any] = self.custom_extractor_kwargs or {}
+        try:
+            raw = self.custom_extractor(self.input_path, **kw)
+        except Exception as exc:
+            raise RuntimeError(
+                f"{self.file_name}: custom_extractor {extractor_name!r} "
+                f"raised an error: {exc}"
+            ) from exc
+        yield from normalize_extractor_output(
+            raw,
+            source_type=(
+                self._custom_extractor_source_type()
+                if source_type is None
+                else source_type
+            ),
+            section_type=(
+                self._custom_extractor_section_type()
+                if section_type is None
+                else section_type
+            ),
+        )
 
     def _custom_extractor_source_type(self) -> SourceType:
         """
@@ -1155,6 +1216,9 @@ class DocumentReader(abc.ABC):
         True
         """  # noqa: D205
         self.validate_input()
+        # Reports describe the current reader run only; stale degradation from
+        # a previous iteration must never be mistaken for this run's outcome.
+        self.clear_backend_reports()
 
         chunk_index: int = 0
         omitted: int = 0
@@ -1658,8 +1722,8 @@ class DocumentReader(abc.ABC):
 
         **Reader-specific kwargs** (forwarded via ``**kwargs``):
 
-        - ``transcribe=True``, ``whisper_model="small"`` → :class:`AudioReader`,
-          :class:`VideoReader`
+        - ``transcribe=True``, ``whisper_model="small"``, ``strict=False`` →
+          :class:`AudioReader`, :class:`VideoReader`
         - ``backend="easyocr"`` → :class:`ImageReader`
         - ``prefer_backend="pypdf"`` → :class:`PDFReader`
         - ``classify=True``, ``classifier=fn`` → :class:`AudioReader`

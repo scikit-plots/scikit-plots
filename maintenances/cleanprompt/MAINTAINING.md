@@ -7,7 +7,8 @@ code sending prompts to a model actually touches — `encode`, `decode` and
 `Session` — and `_engines.py` decides which of the two entity engines, spaCy
 or NLTK, runs behind it.
 
-Start with `_maintenance/DESIGN.md` — it states the invariants, the failure
+Start with `_maintenance/RESUME.md` (where the work is), then
+`_maintenance/DESIGN.md` — it states the invariants, the failure
 modes and the reasoning behind every structural choice — then
 `_maintenance/FRESH_CHAT_HANDOFF.md` and `REVIEW.json`.
 
@@ -32,8 +33,8 @@ request may not. An explicit `--ner` that cannot
 be met raises rather than running no engine and exiting 0.
 
 Run the checker, the reviewer and the focused suite before touching evidence —
-1521 tests pass and 6 are skipped as of this round, alongside 44 on the
-maintenance plane — and run
+as of round 25, 2654 tests pass with no optional tier (2732 with every tier),
+alongside 88 on the maintenance plane — and run
 `_maintenance/evidence/probe_engines.py` for anything touching entity
 detection, since it is the only lane that exercises a real spaCy model and a
 real NLTK. Runtime changes and maintenance-plane updates are separate commits.

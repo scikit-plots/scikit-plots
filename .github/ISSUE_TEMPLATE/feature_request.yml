@@ -1,7 +1,7 @@
 ---
 name: Feature Request
 description: Suggest something to add to scikit-plots!
-labels: [New feature]
+labels: ["01 - Enhancement"]
 title: "[ENH]: "
 
 body:

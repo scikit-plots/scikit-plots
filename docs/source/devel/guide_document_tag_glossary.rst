@@ -1,15 +1,15 @@
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
+
 Tag Glossary
 ============
 
 .. admonition:: Template
 
    Template for further usage, template belong to matplotlib.
-
-.. contents::
-    :depth: 1
-    :local:
-    :backlinks: entry
-
 
 API tags: what content from the API reference is in the example?
 ----------------------------------------------------------------

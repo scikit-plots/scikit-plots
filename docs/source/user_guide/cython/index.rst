@@ -20,191 +20,94 @@
 
 .. _cython-index:
 
-Cython User Guide
-======================================================================
+Runtime Cython compilation
+==========================
 
-Instant PKG/MOD Generation
-----------------------------------------------------------------------
-
-The :mod:`~scikitplot.cython` submodule provides runtime Cython compilation,
-artifact caching, template-based examples, controlled loading, and cache
-maintenance utilities.
-
-This guide separates the main concepts into reusable diagrams so that each
-workflow can be reviewed and maintained independently.
-
-Examples relevant to the :py:mod:`~.cython` module.
-
-A lightweight runtime Cython development kit with caching, pinning,
-garbage collection, and templating support. ``"Simple Foundation. Truly Sovereign."``
-
-:mod:`~scikitplot.cython` enables real-time, in-place (in-situ) live, on demand
-generation of low-level Cython packages and modules for immediate use and testing, at runtime.
-
-* :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
-  :func:`~.compile_and_load` using template.
-
-.. seealso::
-  * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
-  * https://github.com/cython/cython
-  * https://cython.readthedocs.io/en/latest/index.html
-
-.. rubric:: Examples
-
-..
-  .. jupyter-execute
-  .. code-block:: python
-
-.. prompt:: python >>>
-
-  from scikitplot.cython import compile_and_load
-
-  m = compile_and_load("def f(int n):\n    return n*n")
-  m.f(10)
-
-
-.. rubric:: The new ownership model is:
-
-::
-
-  caller-supplied Python / Cython source
-                  |
-                  v
-          scikitplot.cython
-                  |
-        +----------+-----------+
-        |                      |
-  security validation     runtime/toolchain policy
-        |                      |
-        +----------+-----------+
-                  |
-          deterministic cache key
-                  |
-            per-key lock
-                  |
-            staging build
-                  |
-        Cython / setuptools
-                  |
-            C/C++ compiler
-                  |
-          validate artifact
-                  |
-            atomic publish
-                  |
-          transactional import
-
-..
-  # https://mermaid.js.org/community/contributing.html
-  # https://www.mermaideditor.io/
-  # https://pypi.org/project/sphinxcontrib-mermaid
-
-..
-  # Mermain diagrams for future imp
-  Architecture
-  ------------
-  .. include:: _diagrams/architecture_overview.rst
-    :start-after: :orphan:
-
-  Public API flow
-  ---------------
-  .. include:: _diagrams/public_api_flow.rst
-    :start-after: :orphan:
-
-  Build workflows
-  ---------------
-  Single-module build
-  ~~~~~~~~~~~~~~~~~~~
-  .. include:: _diagrams/single_module_build_flow.rst
-    :start-after: :orphan:
-
-  Package build
-  ~~~~~~~~~~~~~
-  .. include:: _diagrams/package_build_flow.rst
-    :start-after: :orphan:
-
-  Lifecycle and state
-  -------------------
-  Cache lifecycle
-  ~~~~~~~~~~~~~~~
-  .. include:: _diagrams/cache_lifecycle_state.rst
-    :start-after: :orphan:
-
-  Lock lifecycle
-  ~~~~~~~~~~~~~~
-  .. include:: _diagrams/lock_lifecycle_state.rst
-    :start-after: :orphan:
-
-  Security validation
-  -------------------
-  .. include:: _diagrams/security_validation_flow.rst
-    :start-after: :orphan:
-
-  Templates
-  ---------
-  .. include:: _diagrams/templates_flow.rst
-    :start-after: :orphan:
-
-  Garbage collection and pins
-  ---------------------------
-  .. include:: _diagrams/gc_and_pins_flow.rst
-    :start-after: :orphan:
-
-  Failure and recovery
-  --------------------
-  .. include:: _diagrams/failure_recovery_state.rst
-    :start-after: :orphan:
-
-  Further reading
-  ---------------
-  .. grid:: 1 1 1 1
-    .. grid-item-card::
-      :padding: 2
-      :shadow: none
-
-      **architecture**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
-
-        architecture
-
-    .. grid-item-card::
-      :padding: 2
-      :shadow: none
-
-      **workflows**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
-
-        workflows
-
-    .. grid-item-card::
-      :padding: 2
-      :shadow: none
-
-      **lifecycle**
-      ^^^
-      .. toctree::
-        :maxdepth: 2
-
-        lifecycle
-
-
-.. grid:: 1 1 1 1
-
-  .. grid-item-card::
-    :padding: 2
-    :shadow: none
-
-    .. python -c 'from scikitplot import cython;cython.generate_sphinx_template_docs("./")'
-
-    **cython templates**
-    ^^^
-    .. toctree::
-      :maxdepth: 2
-
-      _templates/templates_index.rst
+``scikitplot.cython`` is a runtime native-code build service: it validates
+caller-supplied Cython source, resolves a toolchain, builds in a bounded staging
+area, publishes deterministic cache entries, and imports the resulting
+extension.
 
 .. youtube:: rxy_9I8967Q
+
+.. important::
+
+   Compiling caller-supplied Cython means compiling executable native code. The
+   security policy reduces accidental or disallowed build inputs; it is not a
+   sandbox for hostile source code. Only compile code you are willing to execute
+   with the current process privileges.
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   getting_started
+   trust_and_security
+   build_cache_import
+   profiles_and_toolchains
+   packages_templates_workflows
+   cache_pins_gc
+   python_api
+   troubleshooting
+   _templates/templates_index
+
+.. grid:: 1 1 2 2
+   :gutter: 2
+
+   .. grid-item-card:: Getting started
+      :link: cython-getting-started
+      :link-type: ref
+
+      Compile and load one small Cython module through the public runtime service.
+
+   .. grid-item-card:: Trust and security
+      :link: cython-trust-and-security
+      :link-type: ref
+
+      Understand executable-code trust, validation policy, and build budgets.
+
+   .. grid-item-card:: Build, cache, and import
+      :link: cython-build-cache-import
+      :link-type: ref
+
+      Follow keys, locks, staging, atomic publication, and transactional import.
+
+   .. grid-item-card:: Profiles and toolchains
+      :link: cython-profiles-and-toolchains
+      :link-type: ref
+
+      Inspect compiler/runtime capability before selecting a profile.
+
+   .. grid-item-card:: Packages and templates
+      :link: cython-packages-templates-workflows
+      :link-type: ref
+
+      Build multi-module packages and use validated template/workflow assets.
+
+   .. grid-item-card:: Cache, pins, and GC
+      :link: cython-cache-pins-gc
+      :link-type: ref
+
+      Operate executable cache artifacts without violating coordination rules.
+
+   .. grid-item-card:: Python API
+      :link: cython-python-api
+      :link-type: ref
+
+      Use stability tiers and structured result objects.
+
+   .. grid-item-card:: Troubleshooting
+      :link: cython-troubleshooting
+      :link-type: ref
+
+      Diagnose compiler, security, timeout, cache, and platform failures.
+
+Template reference
+------------------
+
+See :doc:`_templates/templates_index` for the existing shipped template reference.
+
+Examples
+--------
+
+See :ref:`cython_examples` for executable examples that accompany this guide.

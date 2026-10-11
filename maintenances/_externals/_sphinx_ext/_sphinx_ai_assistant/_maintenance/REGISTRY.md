@@ -51,7 +51,7 @@ Security authority and producer/consumer boundaries precede monolith refactoring
 ## Run 24 / B43
 
 - checkpoint: `checkpoints/B43_BOUNDED_REMOTE_RESPONSE_CONTEXT_INGESTION.md`
-- fresh-chat handoff: `FRESH_CHAT_BOUNDED_REMOTE_RESPONSE_CONTEXT_INGESTION_HANDOFF.md`
+- fresh-chat handoff: `BOUNDED_REMOTE_RESPONSE_CONTEXT.md`
 - primary executable gates: `tests/test_run24_bounded_remote_response.py`, `tests/test_run24_bounded_remote_response.mjs`
 - scope: pre-buffer remote-response limits across browser chat/control/canonical reads, isolation reads, Global Share viewer, HF/dev chat relay and Worker chat relay
 

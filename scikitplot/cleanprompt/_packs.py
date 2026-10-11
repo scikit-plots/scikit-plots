@@ -84,6 +84,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from ._canonical import detection_view
 from ._detectors import RegexDetector
 from ._exceptions import CleanPromptError
 from ._hooks import get_validator, validator_names
@@ -151,8 +152,14 @@ _PATTERN_KEYS = frozenset(
         "confidence",
         "examples_yes",
         "examples_no",
+        "risk",
+        "risk_reason",
     }
 )
+
+#: The only value ``risk`` may take: the pack accepts the pattern's shape.
+RISK_ACCEPTED = "accepted"
+
 _CODE_KEYS = frozenset({"column_keywords", "column_methods", "dtype_roles"})
 
 #: Splits camelCase so ``DateOfBirth`` and ``date_of_birth`` are one field.
@@ -209,6 +216,14 @@ def normalise_field(name: str) -> str:
     field, and a rule that listed every spelling would be a rule that missed
     the next one.
 
+    The name is read through the detection view first (``CP-103``): an
+    invisible character inside it (``n\u200bame``) or full-width letters
+    (``\uff4e\uff41\uff4d\uff45``) still name the field. Without that, one
+    zero-width space in a header turned ``name`` into ``n_ame``, the field
+    rule did not apply, and the column's values went out in the clear. The
+    same function builds the index and looks names up, so the two cannot
+    disagree.
+
     Examples
     --------
     >>> normalise_field("DateOfBirth")
@@ -217,8 +232,12 @@ def normalise_field(name: str) -> str:
     'date_of_birth'
     >>> normalise_field("patientMRN")
     'patient_mrn'
+    >>> normalise_field("n\u200bame")
+    'name'
     """
-    split = _CAMEL.sub("_", str(name).strip())
+    written = str(name)
+    view = detection_view(written)
+    split = _CAMEL.sub("_", (view.text if view is not None else written).strip())
     return _SEPARATORS.sub("_", split.lower()).strip("_")
 
 
@@ -534,6 +553,47 @@ def _check_examples(spec: PatternSpec, path: str, problems: list[str]) -> None:
             )
 
 
+def _risk_acceptance(
+    item: Mapping[str, Any], path: str, problems: list[str]
+) -> str | None:
+    """
+    Validate ``risk`` and ``risk_reason`` together; return the reason or None.
+
+    Notes
+    -----
+    **User notes.** Accepting a pattern's backtracking risk takes both keys::
+
+        risk: accepted
+        risk_reason: inputs are single ticket ids, never prose
+
+    **Developer notes.** The pair is all or nothing. ``risk`` without a reason
+    is an acceptance nobody can review; a reason without ``risk: accepted``
+    is a comment that silences nothing and would mislead the reader into
+    thinking it did. ``accepted`` is the only value so that a future value
+    (a per-pattern mode, say) is an explicit schema change, not a typo that
+    happens to load.
+    """
+    has_risk, has_reason = "risk" in item, "risk_reason" in item
+    if not (has_risk or has_reason):
+        return None
+    risk, reason = item.get("risk"), item.get("risk_reason")
+    if has_risk and risk != RISK_ACCEPTED:
+        problems.append(f"{path}.risk: {risk!r} must be {RISK_ACCEPTED!r}")
+        return None
+    if not has_risk:
+        problems.append(
+            f"{path}.risk_reason: add `risk: {RISK_ACCEPTED}` too, or remove the reason"
+        )
+        return None
+    if not isinstance(reason, str) or not reason.strip():
+        problems.append(
+            f"{path}.risk_reason: `risk: {RISK_ACCEPTED}` needs a non-empty reason "
+            "saying why this pattern's inputs are safe"
+        )
+        return None
+    return reason.strip()
+
+
 def _parse_patterns(  # ruff: ignore[too-many-branches]
     value: Any,
     problems: list[str],
@@ -604,8 +664,11 @@ def _parse_patterns(  # ruff: ignore[too-many-branches]
         if isinstance(source, str) and source and len(source) <= _MAX_PATTERN:
             try:
                 re.compile(source, flags)
-            except re.error as exc:
+            # A count such as {99999999999999999999} raises OverflowError, not
+            # re.error; it is a problem in the pack like any other (CP-107).
+            except (re.error, OverflowError) as exc:
                 problems.append(f"{path}.pattern: does not compile: {exc}")
+        risk_reason = _risk_acceptance(item, path, problems)
         if len(problems) != before:
             continue
         spec = PatternSpec(
@@ -618,6 +681,7 @@ def _parse_patterns(  # ruff: ignore[too-many-branches]
             confidence=float(confidence),
             examples_yes=yes,
             examples_no=no,
+            risk_reason=risk_reason,
         )
         _check_examples(spec, path, problems)
         if len(problems) == before:

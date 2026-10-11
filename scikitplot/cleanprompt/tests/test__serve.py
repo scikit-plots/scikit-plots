@@ -51,6 +51,63 @@ class TestResolveBind:
             assert resolve_bind(*args)[1].endswith((".", "you need it."))
 
 
+class TestDebugIsLoopbackOnly:
+    """
+    ``CP-097``: Werkzeug's debugger runs code, so it never leaves loopback.
+
+    Notes
+    -----
+    **Developer notes.** Before the fix ``--docker --debug`` reached
+    ``app.run(host="0.0.0.0", debug=True)``: an unauthenticated page handling
+    pasted personal data, serving a browser shell to every network the
+    container was attached to. The acknowledgements that exist
+    (``--allow-remote``, ``--docker``) are about the page being reachable,
+    not about code execution, so none of them unlocks this.
+    """
+
+    @pytest.mark.parametrize("host", sorted(LOOPBACK))
+    def test_loopback_allows_debug(self, host):
+        assert resolve_bind(host, False, False, debug=True)[0] == host
+
+    def test_default_local_bind_allows_debug(self):
+        assert resolve_bind(None, False, False, debug=True)[0] == "127.0.0.1"
+
+    @pytest.mark.parametrize(
+        "host,docker,allow_remote",
+        [
+            (None, True, False),          # container default, 0.0.0.0
+            ("0.0.0.0", False, True),     # acknowledged remote  # noqa: S104
+            ("192.0.2.10", False, True),  # a specific address
+            ("::", True, False),
+        ],
+    )
+    def test_any_reachable_bind_refuses_debug(self, host, docker, allow_remote):
+        with pytest.raises(CleanPromptError, match="refusing --debug"):
+            resolve_bind(host, docker, allow_remote, debug=True)
+
+    def test_the_refusal_names_the_way_out(self):
+        with pytest.raises(CleanPromptError) as caught:
+            resolve_bind(None, True, False, debug=True)
+        message = str(caught.value)
+        assert "127.0.0.1" in message and "drop --debug" in message
+
+    def test_without_debug_nothing_changes(self):
+        assert resolve_bind(None, True, False)[0] == "0.0.0.0"  # noqa: S104
+
+    def test_the_command_line_refuses_it(self, monkeypatch):
+        import io
+
+        from .._cli import main
+
+        monkeypatch.setenv("CLEANPROMPT_SECRET_KEY", "k" * 32)
+        if not WEB:
+            pytest.skip(skip_reason("web"))
+        err = io.StringIO()
+        status = main(["flask", "--docker", "--debug"], stdin=io.StringIO(), stdout=io.StringIO(), stderr=err)
+        assert status != 0
+        assert "refusing --debug" in err.getvalue()
+
+
 class TestContainerFiles:
     """The emitted container files."""
 
@@ -111,6 +168,62 @@ class TestContainerFiles:
     def test_files_are_non_empty_text(self):
         for name, body in container_files().items():
             assert isinstance(body, str) and body.strip(), name
+
+
+class TestContainerFilesDeriveFromTheRuntime:
+    """
+    ``CP-095`` and ``CP-096``: generated files say what the runtime does.
+    """
+
+    def test_installed_model_is_the_model_requested(self):
+        """The image installs one model and runs with that same model."""
+        from .._languages import resolve_model
+
+        dockerfile = container_files(with_ner=True)["Dockerfile"]
+        model = resolve_model("en", "sm")[0]
+        assert f"python -m spacy download {model}" in dockerfile
+        assert f'"--ner-model", "{model}"' in dockerfile
+        assert '"--ner-engine", "spacy"' in dockerfile
+        assert "en_core_web_lg" not in dockerfile
+
+    @pytest.mark.parametrize("language,size", [("de", "lg"), ("tr", "sm"), ("en", "trf")])
+    def test_language_and_size_resolve_like_the_runtime(self, language, size):
+        from .._languages import resolve_model
+
+        dockerfile = container_files(with_ner=True, language=language, model_size=size)["Dockerfile"]
+        model = resolve_model(language, size)[0]
+        assert dockerfile.count(model) == 2, "installed once, requested once"
+
+    def test_without_ner_no_model_is_named(self):
+        dockerfile = container_files()["Dockerfile"]
+        assert "spacy download" not in dockerfile
+        assert "--ner" not in dockerfile
+        assert "CMD []" in dockerfile
+
+    @pytest.mark.parametrize("with_ner", [False, True])
+    def test_every_launch_line_is_loopback(self, with_ner):
+        """``-p HOST:CONTAINER`` without an address publishes on every interface."""
+        import re
+
+        files = container_files(port=8123, with_ner=with_ner)
+        launches = [
+            line
+            for body in files.values()
+            for line in body.splitlines()
+            if "docker run" in line
+        ]
+        published = [spec for line in launches for spec in re.findall(r"-p\s+(\S+)", line)]
+        assert published, "a launch line is expected"
+        assert all(spec.startswith("127.0.0.1:") for spec in published), published
+        assert '"127.0.0.1:8123:8123"' in files["docker-compose.yml"]
+
+    def test_no_setting_that_nothing_reads(self):
+        """``CLEANPROMPT_NER`` was set in compose and read by no code."""
+        for with_ner in (False, True):
+            assert "CLEANPROMPT_NER" not in container_files(with_ner=with_ner)["docker-compose.yml"]
+
+    def test_readme_says_debug_is_refused(self):
+        assert "--debug" in container_files()["README.md"]
 
 
 class TestServe:

@@ -1,9 +1,9 @@
 {
   "schema_version": 3,
   "subsystem": "scikitplot.cleanprompt",
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-10-10",
   "status": "CLOSED",
-  "note": "All findings are closed by construction, each with a named regression test and an executable negative probe. CP-015 and CP-016 were found by this rewrite's own scale verification; CP-024 to CP-029 were found by round three's verification, and CP-030 and CP-031 by a user report of the command line being unusable for a pasted paragraph, rather than inherited from upstream - by the suite, by the import-isolation probe once its harness was strengthened, by the live-engine probe's runtime, and by exercising every pattern's own examples in ordinary sentence positions. CP-041 to CP-043 share one root cause: the hop between redaction and restoration is a language model, not a lossless channel, and the design had treated it as one. CP-044 and CP-045 were found while writing the published gallery examples: CP-044 by checking the documented rewrite table against the implementation instead of against itself, and CP-045 by piping a report into head in an example of how to explore the output. CP-064 and CP-065 were found by round 15's scale verification (evidence/scale.log). CP-067 was found by round 16's concurrency probe. CP-068 and CP-069 were found by round 17's multi-process probe. CP-070 was found by round 18's variant probe, and CP-071 by the stricter check CP-070 introduced. CP-072 was found by round 19's restoration probe. CP-073 to CP-075 were found by round 20's agent-threat review. CP-076 to CP-078 were found by round 21's review of the tool loop. CP-079 was found by a refused push in round 22; CP-080 by reviewing the reader its fix relies on; CP-081 to CP-083 by running the suite on the tree as committed, after a lint pass; CP-084 by a test that had been asserting it.",
+  "note": "All findings are closed by construction, each with a named regression test and an executable negative probe. CP-015 and CP-016 were found by this rewrite's own scale verification; CP-024 to CP-029 were found by round three's verification, and CP-030 and CP-031 by a user report of the command line being unusable for a pasted paragraph, rather than inherited from upstream - by the suite, by the import-isolation probe once its harness was strengthened, by the live-engine probe's runtime, and by exercising every pattern's own examples in ordinary sentence positions. CP-041 to CP-043 share one root cause: the hop between redaction and restoration is a language model, not a lossless channel, and the design had treated it as one. CP-044 and CP-045 were found while writing the published gallery examples: CP-044 by checking the documented rewrite table against the implementation instead of against itself, and CP-045 by piping a report into head in an example of how to explore the output. CP-064 and CP-065 were found by round 15's scale verification (evidence/scale.log). CP-067 was found by round 16's concurrency probe. CP-068 and CP-069 were found by round 17's multi-process probe. CP-070 was found by round 18's variant probe, and CP-071 by the stricter check CP-070 introduced. CP-072 was found by round 19's restoration probe. CP-073 to CP-075 were found by round 20's agent-threat review. CP-076 to CP-078 were found by round 21's review of the tool loop. CP-079 was found by a refused push in round 22; CP-080 by reviewing the reader its fix relies on; CP-081 to CP-083 by running the suite on the tree as committed, after a lint pass; CP-084 by a test that had been asserting it. Round 25 added CP-093 to CP-101: six from the internal review of 2026-10-10 (each reproduced on the tree first: readiness false green, the web app's own detector construction, the image's model, the published port, remote debug, obfuscated values) and five found by round 25's own verification (CP-099 a drifted repair hint, CP-100 NLTK data under pre-3.9 names, CP-101 a documented option that does not exist, CP-102 the first detection view cutting through record files — introduced and caught within the round — and CP-103 an invisible character in a field name hiding its column).",
   "findings": [
     {
       "id": "CP-001",
@@ -869,6 +869,146 @@
       "retired_by": "_TierSpec.below may be None and the crypto tier has no ceiling; the floor stays at 41. The supported string and the install hint follow the declaration. The command line's Fernet-vault error quotes the probe's detail and hint instead of a hard-coded command. tests/_tiers.py gives every tier skip a reason with the status and detail, and TestInstalledTiers fails when a distribution is installed and its tier is not usable.",
       "honest_limit": "Measured against cryptography 41.0.0 and 50.0.2 only, on CPython 3.11, Linux: 157 tests of the crypto lane pass on both with warnings as errors. A future release that removes Fernet would be reported as BROKEN at use, not as INCOMPATIBLE at probe; cryptography's policy announces a removal two majors ahead with CryptographyDeprecationWarning, which fails this suite when it is run against that release. The spacy, nltk and flask ceilings are unchanged and were not re-examined.",
       "regression": "test__capabilities.TestCryptoRange (12 cases), TestInstalledTiers (5 cases), TestTierTable.test_no_exact_pin, test__cli.TestFernetVaultWithoutTheTier (3 cases); evidence/probe_negative.py CP-092"
+    },
+    {
+      "id": "CP-093",
+      "severity": "high",
+      "status": "closed",
+      "title": "doctor --ner called an entity engine healthy when its model or data was missing, and auto chose it",
+      "detail": "Reproduced on the uploaded tree with spaCy 3.8.16 and no model: `doctor --ner` printed healthy: true and 'named-entity detection are active', and the next `inspect --ner` exited 69 on the missing model. The same with NLTK 3.10.3 and no data packages. `auto` chose spaCy over a ready NLTK on a machine with spaCy installed and no model. resolve_engine and describe_engines read the package (tier probe) and never the data, and doctor swallowed the CapabilityError from the registry build. Found by the internal review of 2026-10-10 (CP-NEW-02).",
+      "retired_by": "_engines.engine_readiness decides readiness from three conditions in remedy order (language, package, data): the spaCy model from distribution metadata, find_spec or a directory, without importing it; NLTK data by running the detector's own pipeline (see CP-100), only when check_assets is set. resolve_engine('auto') selects only a ready engine; build_detectors(required=True) refuses any selected engine that is not ready, before any text is read, naming each engine's reason and remedy. doctor builds through the same function, reports detection.ner_requested/ner_ready/ner_error/ner_remedy and entity_engines.ready, and calls describe_engines(check_assets=True). _diagnostics._entity_remedy names the model download when spaCy has no model.",
+      "honest_limit": "Readiness proves the model or data can be found and, for NLTK, loaded on one fixed sentence. It says nothing about recognition quality, and a damaged spaCy model that is present still fails at load, with the existing MISCONFIGURED message.",
+      "regression": "test__engines.TestReadiness (21 cases), TestSpacyModelLookup (4), TestResolveEngine.test_auto_skips_spacy_without_its_model / test_auto_skips_nltk_without_its_data_when_checked; test__cli.TestDoctorAgreesWithTheRun (5, both frontends); test__diagnostics.TestEntityRemedyFollowsWhatIsInstalled (model cases); test_regressions.TestCP093InstalledIsNotReady; evidence/probe_negative.py CP-093; live: evidence/probe_round25.py with spaCy and NLTK installed without and with data"
+    },
+    {
+      "id": "CP-094",
+      "severity": "high",
+      "status": "closed",
+      "title": "The web app ignored ner_engine, language and model_size and always built a default spaCy detector",
+      "detail": "create_app(enable_ner=True, ner_engine='nltk', language='tr', model_size='lg') called spacy_detector(model=None). The page described one configuration (describe_engines with the arguments) while every request ran another. Found by the internal review (CP-NEW-03), reproduced with a recording stand-in for spacy_detector.",
+      "retired_by": "create_app builds entity detectors through _engines.build_detectors(mode, language, model, size, required=True), the builder the CLI, encode() and the file runtime use; describe_engines receives the same model and size and checks data when NER is on. An unmeetable request refuses to start with the remedy.",
+      "honest_limit": "The app is still Flask's development server with no authentication; this finding concerns configuration truthfulness only.",
+      "regression": "test__app.TestEntityDetectionUsesTheSharedBuilder (3); test_regressions.TestCP094WebBuildsLikeEverythingElse; evidence/probe_negative.py CP-094"
+    },
+    {
+      "id": "CP-095",
+      "severity": "high",
+      "status": "closed",
+      "title": "docker --with-ner installed en_core_web_lg while the image ran asking for the default en_core_web_sm",
+      "detail": "container_files(with_ner=True) wrote `python -m spacy download en_core_web_lg` and an entrypoint passing only --ner, whose default resolves to en_core_web_sm: an image built for entity detection paid for the large model and failed looking for the small one. The CP-025 drift, in a generated file. Found by the internal review (CP-NEW-04).",
+      "retired_by": "container_files takes language and model_size, resolves the model with _languages.resolve_model, installs it, and passes it back explicitly: CMD [\"--ner\", \"--ner-engine\", \"spacy\", \"--ner-model\", <model>].",
+      "honest_limit": "The generated Dockerfile was checked as text; no image was built in this environment.",
+      "regression": "test__serve.TestContainerFilesDeriveFromTheRuntime (installed == requested, three language/size pairs); test_regressions.TestCP095ImageRunsTheModelItInstalls; evidence/probe_negative.py CP-095"
+    },
+    {
+      "id": "CP-096",
+      "severity": "high",
+      "status": "closed",
+      "title": "The Dockerfile's docker run line published the unauthenticated page on every host interface, and compose set a variable nothing read",
+      "detail": "The Dockerfile comment said `docker run --rm -p PORT:PORT`, which Docker binds on every interface, while the compose file beside it published 127.0.0.1:PORT:PORT and the README said the page must not be exposed. The compose file also set CLEANPROMPT_NER: \"1\", read by no code. Found by the internal review (CP-NEW-05).",
+      "retired_by": "Every generated launch line publishes 127.0.0.1:PORT:PORT; the generated README shows the loopback docker run form, warns that the shortened form publishes on every interface, and says --debug is refused in a container; the unread variable is removed.",
+      "honest_limit": "Checked as text; no container was started here.",
+      "regression": "test__serve.TestContainerFilesDeriveFromTheRuntime.test_every_launch_line_is_loopback / test_no_setting_that_nothing_reads; test_regressions.TestCP096LaunchLinesAreLoopback; evidence/probe_negative.py CP-096"
+    },
+    {
+      "id": "CP-097",
+      "severity": "high",
+      "status": "closed",
+      "title": "Flask debug mode could be combined with a remote or container bind",
+      "detail": "--debug was independent of --docker and --allow-remote, so `flask --docker --debug` reached app.run(host='0.0.0.0', debug=True): Werkzeug's interactive debugger, which runs code typed into the browser, served by an unauthenticated page that handles pasted personal data. Found by the internal review (CP-NEW-06).",
+      "retired_by": "resolve_bind(host, docker, allow_remote, debug=False) raises CleanPromptError for debug on any non-loopback host, container mode included; serve passes args.debug. No acknowledgement flag unlocks it.",
+      "honest_limit": "Refused at the CLI and resolve_bind; a caller building the app with create_app and calling app.run(debug=True) itself is outside this guard.",
+      "regression": "test__serve.TestDebugIsLoopbackOnly (9); test_regressions.TestCP097NoDebuggerOffLoopback; evidence/probe_negative.py CP-097"
+    },
+    {
+      "id": "CP-098",
+      "severity": "high",
+      "status": "closed",
+      "title": "A value written with an invisible or compatibility character inside it went to the model in the clear",
+      "detail": "Measured on the uploaded tree: ada\\u200b@example.com, a full-width address, +1 555\\u00a00100, +1\\u2011555\\u20110100 and 192.0.2.\\u200b10 were sent unchanged, and 4111\\u200b1111 1111 1111 became 4111\\u200b[PHONE-1], sending the card's first group and mislabelling the rest. Each reads the same to a person and to a model. Found by the internal review (CP-NEW-08), which also noted the remembered-value equivalence's acknowledged zero-width limit.",
+      "retired_by": "_canonical.detection_view returns a second reading of the text: Unicode Cf characters removed and non-ASCII characters folded by the same same-length table canonical() uses (ASCII untouched), with an offset map (bisect over removal positions). Redactor._view_spans runs structural and literal detectors (never entity engines) over the view, maps each span back onto the original and adds it before overlap resolution; the source is never rewritten, the vault keeps the original surface, and restoration is exact. No view pass when the view equals the text. The span limit counts both passes.",
+      "honest_limit": "Covers format characters and single-character compatibility forms. Look-alike letters from other scripts and values broken with ordinary spaces are not folded (upcoming_changes: look-alike-characters-in-detection-view.md). Determined by the interpreter's unicodedata version.",
+      "regression": "test__canonical.TestDetectionView (11 incl. 20 randomised salted texts); test__engine.TestDetectionView (every built-in pattern example salted, NFC/NFD, overlap merge, entity engines not given the view, idempotence, span limit); test_regressions.TestCP098InvisibleCharactersInsideValues; evidence/probe_negative.py CP-098 and V25 (1000 salted values, 0 failures)"
+    },
+    {
+      "id": "CP-099",
+      "severity": "low",
+      "status": "closed",
+      "title": "The spaCy repair hint said spacy<4 while the tier declared <5",
+      "detail": "_ner._REINSTALL_SPACY was a hand-written 'pip install --force-reinstall \"spacy>=3.4,<4\"'; the tier's range had moved to <5, so a user with a broken spaCy 4 installation would have been told to reinstall within spaCy 3. The NLTK hint was hand-written the same way. Found in round 25 while reading the readiness messages; the engine-error fallback hint carried the same stale <4.",
+      "retired_by": "_ner._reinstall_spacy() and _nltk._reinstall_nltk() compute the command from probe(tier).supported; the engine-error fallback uses probe('ner').install_hint.",
+      "honest_limit": "",
+      "regression": "test_regressions.TestCP099ReinstallHintsFollowTheTier (2)"
+    },
+    {
+      "id": "CP-100",
+      "severity": "high",
+      "status": "closed",
+      "title": "NLTK data present only under pre-3.9 names was reported ready, and the remedy downloaded only those names",
+      "detail": "Found while verifying CP-093 against real NLTK 3.10.3: with punkt, averaged_perceptron_tagger, maxent_ne_chunker and words on disk, doctor --ner --ner-engine nltk said ready, and inspect failed with 'NLTK chunking failed: LookupError: averaged_perceptron_tagger_eng' (exit 1, not 69). _missing_corpora accepts either name of a group, and the printed remedy named only the older packages, so following it led back to the failure. NLTK 3.9 moved the tagger to averaged_perceptron_tagger_eng and the chunker to maxent_ne_chunker_tab.",
+      "retired_by": "_nltk.missing_data runs the path check, then _load_pipeline: the detector's own tagger and chunker on a fixed sentence, each step probed independently so both are reported at once; LookupError is the only exception treated as missing data; success caches the machinery the detector uses, failure is not cached. download_command names every package that can satisfy a group (current and older). The detector, corpora_status and engine_readiness all call missing_data.",
+      "honest_limit": "Measured on NLTK 3.10.3. Older releases in the declared range are covered by naming both package forms, not by a run of each release.",
+      "regression": "test__nltk.TestLoadability (8); test_regressions.TestCP100PresentIsNotLoadable (2); evidence/probe_negative.py CP-100; live: legacy-only data dir -> doctor not ready, inspect exit 69 with the _eng remedy; after downloading the named packages, inspect redacts"
+    },
+    {
+      "id": "CP-101",
+      "severity": "low",
+      "status": "closed",
+      "title": "Documentation showed `cleanprompt encode --pack-file`, an option encode does not have",
+      "detail": "_custom.py's module docstring (and the user guide copied from it) told users to run `cleanprompt encode --pack-file hr_pack.yaml --pack hr --in roster.csv`; encode has never accepted --pack-file and the line failed with 'No such option'. Found in round 25 by executing every example in the rewritten guide. Instructions that cannot be followed read as reassurance (CP-039).",
+      "retired_by": "The docstring and guide use `packs --pack-file ... --check` and `batch DIR --out DIR --pack-file ... --pack hr`. _maintenance/tests/test_documented_cli.py scans the README, module docstrings, skill files, the guide and the gallery for `cleanprompt <command> --option` lines and fails on any option the command does not declare; two intentional mentions are listed with reasons, and a stale exemption fails too.",
+      "honest_limit": "Checks long options on lines naming a command; prose that names an option without the command is not checked.",
+      "regression": "_maintenance/tests/test_documented_cli.py (3, including a can-fail check)"
+    },
+    {
+      "id": "CP-102",
+      "severity": "high",
+      "status": "closed",
+      "title": "The first detection view mapped document-bound detectors twice and cut through record files",
+      "detail": "Introduced during round 25 by CP-098's first form and caught by the round's independent review before delivery. The view ran every non-entity detector, including FieldDetector, the JSON _TokenBound wrapper and _artifacts._RegionDetector, whose offsets were computed from the original document; reading the view, their spans were mapped back a second time. With one zero-width space early in a .env file, DB_PASSWORD and the next two lines merged into one placeholder (newlines lost); a CSV row lost a column; JSON failed closed with 'no longer valid JSON'. Recorded as a finding although it never shipped, because the review is what caught it.",
+      "retired_by": "Detector.reads_view (default False) declares that detect() is a pure function of the text it is given; RegexDetector, LiteralDetector and PackPatternDetector set it; Redactor._view_spans runs only detectors that declare it. Document-bound detectors keep reading the original only.",
+      "honest_limit": "Because token-bound JSON detectors do not read the view, a salted value inside a JSON string is not caught yet (upcoming_changes: invisible-characters-in-keyvalue-and-code-names.md).",
+      "regression": "test__runtime.TestInvisibleCharactersKeepStructure (every round-trip sample salted, structural equivalence plus exact round trip; NOT_YET lists the recorded exceptions); test_regressions.TestCP102DocumentBoundDetectorsDoNotReadTheView; evidence/probe_negative.py CP-102"
+    },
+    {
+      "id": "CP-103",
+      "severity": "high",
+      "status": "closed",
+      "title": "One invisible character in a field name hid the whole column or key",
+      "detail": "Present on the uploaded tree, found in round 25 while testing CP-102: normalise_field('n\\u200bame') gave 'n_ame', so the field rule for 'name' did not apply and every value in the column went out in the clear; the same for a JSON key ('m\\u200brn' with its MRN), a TSV header and an email header ('F\\u200brom'). Full-width header letters behaved the same.",
+      "retired_by": "_packs.normalise_field reads the name through _canonical.detection_view before splitting and folding; the one function builds the field index and looks names up, so the two cannot disagree.",
+      "honest_limit": "Covers formats whose splitter hands over the whole key string. Shell/.env-style keys and code identifiers are tokenised with an identifier class first and are still open (upcoming_changes: invisible-characters-in-keyvalue-and-code-names.md).",
+      "regression": "test__runtime.TestInvisibleCharactersKeepStructure.test_a_salted_field_name_still_names_the_field (csv, tsv, json, email, full-width csv); test_regressions.TestCP103InvisibleCharactersInFieldNames; evidence/probe_negative.py CP-103"
+    },
+    {
+      "id": "CP-104",
+      "severity": "medium",
+      "status": "closed",
+      "title": "A custom pack pattern that backtracks catastrophically loaded silently",
+      "detail": "From the internal review (CP-NEW-07), reproduced in round 25: a pack with '^(a+)+$' passed validation and on 'a'*22+'b' took 0.16 s, doubling per character; nothing reported the shape. One document could stall batch, the MCP server or the web app.",
+      "retired_by": "_pattern_risk.analyse_pattern compiles the pattern, reads it as Python runs it (verbose stripped, inline i/s flags, escaped characters probed) with its own parser (no sre_parse), and decides overlap with public re over a probe alphabet; repetition means more than three choices; possessive/atomic parts are never the inner part. load_custom, CleanPlan.validate (refuse) and Cleaner (warn) apply the mode: warn by default (maintainer decision, round 26), ignore, or refuse; per-pattern 'risk: accepted' + 'risk_reason'; --pattern-risk on packs/batch/plan/ask/mcp; CLEANPROMPT_PATTERN_RISK; packs --check lists every finding; under -W error the CLI reports an error line, not a traceback. The round's independent review found eight misses and false positives in the first version (verbose, inline flags, escapes, equal units, bounded outer repetition, separators one group up, possessive forms); each is now a test and a measured probe case.",
+      "honest_limit": "A warning, not a proof: shapes outside the three rules, runs separated only by an optional element (at most quadratic), and scoped (?x:...) groups (reported not-analysed) are not proven; no time bound exists (upcoming_changes: bound-custom-pattern-runtime-with-a-timeout.md).",
+      "regression": "test__pattern_risk (analysis, built-ins clean, policy, surfaces, both frontends); test_regressions.TestCP104RiskyCustomPatternsLoadedSilently; evidence/probe_round26.py R26-RISK/R26-CORE/R26-PACKS"
+    },
+    {
+      "id": "CP-105",
+      "severity": "high",
+      "status": "closed",
+      "title": "A surrogate e-mail address spelled a held two-word name with a dot",
+      "detail": "Present on the round-25 tree, found in round 26 while writing the surrogate-set gallery section: with 'Marion Holt' in the text the person became 'Devin Nakamura' but the address became 'marion.holt@example.invalid', putting the real name in front of the model. CP-071 matched held values as whole tokens joined by spaces, so one-word names were caught and multi-word names joined by '.', '-' or '/' were not.",
+      "retired_by": "_engine._held_forms adds each held value's word-split form (separator runs and lower-to-upper case changes become spaces) to the held-value pattern, and _shows_held also searches the word-split candidate; Marion Holt, marion.holt, Marion-Holt and MarionHolt are one value in both directions (the reverse direction was found by the round-26 independent review). Adding forms can only reject more stand-ins.",
+      "honest_limit": "Catches a held value whose words appear in the same order; a reordered name (holt.marion) is not caught. Built-in and set candidates never produce that order for the value they replace.",
+      "regression": "test_regressions.TestCP105StandInShowedAHeldNameWithADot; galleries moderate example section 9"
+    },
+    {
+      "id": "CP-106",
+      "severity": "high",
+      "status": "closed",
+      "title": "Appending with another --style or surrogate set mixed two grammars in one vault",
+      "detail": "Found by the round-26 independent review; present on the round-25 tree for styles: encode --style surrogate into a vault, then a plain encode (append is encode's default) issued [EMAIL-2] into the surrogate vault and re-stamped its grammar fingerprint, so text from the first turn no longer decoded as written. The same with a surrogate set and without it.",
+      "retired_by": "_cli._check_append_grammar compares the vault's recorded grammar_fingerprint with the run's before seeding (redact, encode, batch) and refuses, naming the recorded style and set and the two ways forward; the vault is not touched.",
+      "honest_limit": "A vault written before the grammar was recorded is not checked (nothing to compare). Python API callers who seed a Redactor themselves are responsible for passing a matching policy.",
+      "regression": "test_regressions.TestCP106AppendingMixedGrammars; test__surrogate_sets.TestCommandLine.test_appending_with_another_grammar_is_refused (both frontends)"
     }
   ],
   "investigated_and_rejected": [

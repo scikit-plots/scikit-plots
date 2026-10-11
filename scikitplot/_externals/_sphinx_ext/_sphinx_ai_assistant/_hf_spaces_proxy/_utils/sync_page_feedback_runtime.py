@@ -17,12 +17,19 @@ PROXY = HERE.parents[1]
 EXT_ROOT = PROXY.parents[1]
 SOURCE = EXT_ROOT / "_sphinx_feedback"
 DEST = PROXY / "_page_feedback"
+TOP_LEVEL_FILES = ("__init__.py", "_contracts.py", "_network.py")
 SERVICE_FILES = (
     "__init__.py",
+    "_bitbucket.py",
     "_config.py",
     "_core.py",
+    "_custom.py",
+    "_forge.py",
+    "_git.py",
     "_github.py",
+    "_gitlab.py",
     "_sqlite.py",
+    "_webhook.py",
     "app.py",
 )
 
@@ -30,8 +37,8 @@ SERVICE_FILES = (
 def sync() -> None:
     DEST.mkdir(parents=True, exist_ok=True)
     (DEST / "_service").mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(SOURCE / "__init__.py", DEST / "__init__.py")
-    shutil.copyfile(SOURCE / "_contracts.py", DEST / "_contracts.py")
+    for name in TOP_LEVEL_FILES:
+        shutil.copyfile(SOURCE / name, DEST / name)
     for name in SERVICE_FILES:
         shutil.copyfile(SOURCE / "_service" / name, DEST / "_service" / name)
 

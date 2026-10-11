@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "subsystem": "scikitplot.levenshtein",
+  "owner": "scikitplot/levenshtein",
+  "maintenance_root": "maintenances/levenshtein",
+  "skill": "skills/levenshtein/SKILL.md",
+  "user_guide": "docs/source/user_guide/levenshtein/index.rst",
+  "gallery": "galleries/examples/levenshtein/README.txt",
+  "runtime_invariants": [
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "L7",
+    "L8",
+    "L9",
+    "L10"
+  ],
+  "optional_backends": [
+    "rapidfuzz",
+    "levenshtein"
+  ],
+  "auto_backends": [
+    "internal",
+    "rapidfuzz",
+    "python"
+  ]
+}

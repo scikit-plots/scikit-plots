@@ -1,0 +1,8 @@
+- ``scikitplot.cleanprompt``: ``--style surrogate`` can now use your own
+  invented names from a small YAML or JSON *surrogate set*
+  (``--surrogates FILE``, :func:`~scikitplot.cleanprompt.load_surrogate_set`,
+  ``FluentCleanPrompt().surrogates(...)``). A set covers people,
+  organisations and places only; e-mail addresses, telephone numbers and links
+  keep their reserved forms and credentials keep placeholders. Every entry is
+  validated, the vault records the set's identity so ``decode`` needs no set
+  file, and grammars and plans without a set keep their existing fingerprints.

@@ -1,0 +1,59 @@
+# Every repository path must check out on Windows.
+#
+# `pip install "<dist> @ git+https://github.com/scikit-plots/scikit-plots.git#subdirectory=libs/<name>"`
+# clones the whole repository. Without `core.longpaths`, Git on Windows refuses
+# a file whose full path reaches 260 characters, and the install fails with
+# "Filename too long". tools/maint_tools/check_path_lengths.py derives the
+# longest repository path that fits under the longest clone directory pip can
+# create, and fails on any new path beyond it.
+#
+# No path filter: a long name can be added anywhere, and the check takes
+# seconds with nothing installed.
+#
+# Until it is merged
+#
+# A Windows user can install today with:
+#
+#     git config --global core.longpaths true
+---
+name: "PRs 📏 Path Lengths (Windows checkout)"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  path-lengths:
+    name: "Check path lengths"
+    runs-on: ubuntu-latest
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: "📏 Budget"
+        run: python tools/maint_tools/check_path_lengths.py budget
+
+      - name: "🔎 Every tracked path fits the budget"
+        run: python tools/maint_tools/check_path_lengths.py check
+
+      - name: "🧪 Tool tests"
+        run: python -m unittest tools/maint_tools/tests/test_check_path_lengths.py -v

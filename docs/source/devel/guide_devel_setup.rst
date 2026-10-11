@@ -1,5 +1,9 @@
 .. highlight:: bash
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _installing_for_devs:
 
 ======================================================================
@@ -11,9 +15,6 @@ Development Setup Guidelines
    Template for further usage, template belong to matplotlib.
 
 To set up scikit-plots for development follow these steps:
-
-.. contents::
-   :local:
 
 Fork the scikit-plots repository
 ================================

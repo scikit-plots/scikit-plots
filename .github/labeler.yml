@@ -1,15 +1,26 @@
-# For a single document, --- is optional and has no effect on parsing but can improve clarity and consistency.
-
-# This file contains globs for automatically adding labels based on changed files,
-# for use with https://github.com/actions/labeler.
+# Cross-cutting labels from changed files, for https://github.com/actions/labeler
+# (v7), applied by .github/workflows/pr_labeler.yml. Module and library labels
+# are generated into .github/labeler-by-module.yml; title labels into
+# .github/labeler-issue.yml.
+#
+# This file is edited by hand. Check it after every edit:
+#   python tools/maint_tools/generate_pr_labeler.py check
+#   python tools/maint_tools/generate_pr_labeler.py explain <changed paths...>
+#
+# Semantics (actions/labeler v7, minimatch with dot: true):
+#   * a bare list under a label is "any": the label applies if one entry matches;
+#   * inside one changed-files list every option is a separate check (OR-ed);
+#   * a "!glob" is true for every file it does not name, so it belongs only next
+#     to a positive glob in all-globs-to-any-file ("docs except fragments"), or
+#     alone in all-globs-to-all-files inside an "all:" group; `check` refuses
+#     any other use, because it would label almost every pull request.
+#   * globs use [A-Za-z0-9._-], "*", "?", whole "**" segments and one leading
+#     "!"; end directory globs with "/**/*".
+---
 
 ######################################################################
-## CI
+## Build, CI and release
 ######################################################################
-
-# "CI: Run wheels":
-# - changed-files:
-#   - any-glob-to-any-file: ['.github/workflows/wheels.yml']
 
 "build/ci":
 - changed-files:
@@ -21,10 +32,11 @@
     - .spin/*
     - docker/**/*
 
+# Generated-source templates (Tempita/meson): *.py.in, *.pyx.in, *.h.in, ...
 build:templates:
 - changed-files:
   - any-glob-to-any-file:
-    - scikitplot/**/*.tp
+    - scikitplot/**/*.in
 
 build:meson:
 - changed-files:
@@ -32,75 +44,68 @@ build:meson:
     - pyproject.toml
     - meson.build
     - meson.options
+    - meson_cpu/**/*
     - scikitplot/**/meson.build
     - setup.cfg
 
 release:
 - changed-files:
   - any-glob-to-any-file:
-    - .github/workflows/wheels.yml
-    - .github/workflows/publish_to_pypi.yml
-    - docs/source/devel/maintainers*
+    - .github/workflows/ci_wheels_*pypi.yml
+    - docs/source/devel/maintainers/**/*
+
+installation:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/install/**/*
+    - MANIFEST.in
+    - pyproject.toml
+    - requirements/**/*
+    - setup.cfg
+    - setup.py
 
 ######################################################################
 ## Documentation
 ######################################################################
 
-DX:
-- changed-files:
-  - any-glob-to-any-file:
-    - docs/source/devel/**/*
-
+# Documentation pages, but not release-note fragments (every pull request
+# adds one; they are labelled by their owner module instead).
 documentation:
 - changed-files:
   - any-glob-to-any-file:
-    # Add 'Documentation' label to any changes within 'docs' folder or any subfolders
-    # Add 'Documentation' label to any file changes within 'docs' folder
-    - docs/**/*
     - CITATION*
     - COPYING
     - LICENSE
     - LICENSE.txt
     - LICENSE.rst
     - LICENSES/*
-    # Add 'Documentation' label to any change to .md files within the entire repository
-    # - '**/*.md'
-    # Add 'Documentation' label to any change to .rst files within the entire repository
-    # - '**/*.rst'
   - all-globs-to-any-file:
-    - '!CHANGES.rst'
-    - '!docs/changes/*'
+    - docs/**/*
+    - '!docs/source/whats_new/upcoming_changes/**/*'
+
+DX:
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/source/devel/**/*
 
 "doc:examples":
 - changed-files:
   - any-glob-to-any-file:
-    - 'galleries/**/*'
+    - galleries/**/*
 
 ######################################################################
-## Language
+## Languages
 ######################################################################
 
 lang:c/c++:
 - changed-files:
   - any-glob-to-any-file:
     - scikitplot/**/*.c
-    - scikitplot/**/*.c.in
-    - scikitplot/**/*.c.old
     - scikitplot/**/*.h
     - scikitplot/**/*.h.in
     - scikitplot/**/*.cpp
     - scikitplot/**/*.cc
-    - scikitplot/**/*.cxx
     - scikitplot/**/*.hpp
-
-lang:fortran:
-- changed-files:
-  - any-glob-to-any-file:
-    - scikitplot/**/*.f
-    - scikitplot/**/*.f.src
-    - scikitplot/**/*.F
-    - scikitplot/**/*.f90
-    - scikitplot/**/*.pyf
 
 lang:cython:
 - changed-files:
@@ -108,34 +113,25 @@ lang:cython:
     - scikitplot/**/*.pyx*
     - scikitplot/**/*.pxd*
     - scikitplot/**/*.pxi*
-    - scikitplot/**/*.pyi*
-    - scikitplot/**/_generate_pyx.py
+
+# Type stubs and the PEP 561 marker (not Cython: *.pyi are Python stubs).
+static typing:
+- changed-files:
+  - any-glob-to-any-file:
+    - scikitplot/**/*.pyi
+    - scikitplot/**/py.typed
 
 ######################################################################
-## Modules separated
-######################################################################
-
-# config:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - '**/config/**/*'
-#     - scikitplot/extern/configobj/**/*
-
-# "scikitplot/logging":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - scikitplot/logging/**/*
-
-######################################################################
-## Testing
+## Testing and tooling configuration
 ######################################################################
 
 tests:
 - changed-files:
   - any-glob-to-any-file:
-    - scikitplot/tests/**/*
+    - '**/tests/**/*'
+    - '**/test_*.py'
     - '**/conftest.py'
-    - conftest.py
+    - pytest.ini
     - codecov.yml
     - tox.ini
     - .flake8
@@ -143,55 +139,3 @@ tests:
     - .pre-commit-config.yaml
     - .pre-commit-hooks.yaml
     - .ruff.toml
-
-installation:
-- changed-files:
-  - any-glob-to-any-file:
-    - docs/source/install/*
-    - MANIFEST.in
-    - pyproject.toml
-    - setup.cfg
-    - setup.py
-
-######################################################################
-## dev-automation
-######################################################################
-
-# dev-automation:
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - .github/**/*
-#     - .github/ISSUE_TEMPLATE/**
-#     - .github/workflows/stalebot.
-#     - .github/workflows/open_actions.yml
-#     - .github/workflows/update_astropy_iers_data_pin.*
-#     - .devcontainer/**/*
-#     - .pre-commit-config.yaml
-#     - .ruff.toml
-
-######################################################################
-## Topics
-######################################################################
-
-# "topic: sphinx extension":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - 'scikitplot/sphinxext/**/*'
-
-# "backend: agg":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - 'lib/matplotlib/backends/backend_agg.py*'
-
-# "GUI: tk":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     - 'src/_tkagg.cpp'
-#     - 'src/_tkmini.h'
-
-# "topic: axes":
-# - changed-files:
-#   - any-glob-to-any-file:
-#     # Note, axes.py is not included here because it contains many plotting
-#     # methods, for which changes would not be considered on topic.
-#     - 'lib/matplotlib/axes/_base.py*'

@@ -154,6 +154,7 @@ from . import (
     _adapters,
     _archive_handler,
     _base,
+    _backends,
     _chunkers,
     _corpus_builder,
     _custom_hooks,
@@ -164,6 +165,7 @@ from . import (
     _metadata,
     _normalizers,
     _pipeline,
+    _policies,
     _readers,  # Readers -- import triggers registry population for all 24 extensions
     _registry,
     _runtime,
@@ -178,6 +180,7 @@ from . import (
 from ._adapters import *  # noqa: F403  # --- Adapters (LangChain / LangGraph / MCP / HuggingFace / RAG) ---
 from ._archive_handler import *  # noqa: F403  # --- Archive handling (zip / tar extraction) ---
 from ._base import *  # noqa: F403  # Base classes
+from ._backends import *  # noqa: F403  # Optional-backend policies/orchestration
 from ._chunkers import *  # noqa: F403
 from ._corpus_builder import *  # noqa: F403  # --- Unified builder (the user-friendly orchestration API) ---
 from ._custom_hooks import *  # noqa: F403
@@ -188,6 +191,7 @@ from ._export import *  # noqa: F403
 from ._metadata import *  # noqa: F403
 from ._normalizers import *  # noqa: F403  # --- Text normaliser ---
 from ._pipeline import *  # noqa: F403
+from ._policies import *  # noqa: F403  # Composable policy bundles
 from ._readers import *  # noqa: F403
 from ._registry import *  # noqa: F403  # Registry
 from ._runtime import *  # noqa: F403  # Plan -> operational runtime materialization
@@ -240,6 +244,7 @@ __all__ = []
 __all__ += _adapters.__all__
 __all__ += _archive_handler.__all__
 __all__ += _base.__all__
+__all__ += _backends.__all__
 __all__ += _chunkers.__all__
 __all__ += _corpus_builder.__all__
 __all__ += _custom_hooks.__all__
@@ -250,6 +255,7 @@ __all__ += _export.__all__
 __all__ += _metadata.__all__
 __all__ += _normalizers.__all__
 __all__ += _pipeline.__all__
+__all__ += _policies.__all__
 __all__ += _readers.__all__
 __all__ += _registry.__all__
 __all__ += _runtime.__all__

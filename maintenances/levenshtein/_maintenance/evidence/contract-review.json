@@ -1,0 +1,22 @@
+{
+  "maintenance_errors": [],
+  "maintenance_status": "PASS",
+  "public_names": [
+    "BackendInfo",
+    "Match",
+    "available_backends",
+    "backend_info",
+    "closest",
+    "distance",
+    "make_corpus_scorer",
+    "normalized_distance",
+    "normalized_similarity",
+    "rank",
+    "similarity"
+  ],
+  "release_status": "UNVERIFIED",
+  "runtime_errors": [],
+  "runtime_status": "PASS",
+  "runtime_tree_fingerprint": "b329f11d23d281a8eebeb02cafb59b6e141f41cb5bee9d733e248361d580f84c",
+  "subsystem": "scikitplot.levenshtein"
+}

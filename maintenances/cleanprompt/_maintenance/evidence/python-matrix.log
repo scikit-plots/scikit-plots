@@ -1,23 +1,11 @@
-# Python matrix, round 22. Linux x86-64. Bare environments: pytest only,
-# no optional tier installed, PyYAML where stated (5.1, the declared floor, on 3.8).
-# 3.11 is the full environment. Run from an isolated root whose parent package is an
-# empty scikitplot/__init__.py, so the four scikitplot.corpus bridge tests skip in every row.
-# Reproduce:  uv venv -p 3.8 venv38; uv pip install -p venv38/bin/python 'pytest>=7'
-#             venv38/bin/python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider
---- CPython 3.8.20 bare: pyyaml 5.1
-2298 passed, 176 skipped in 24.97s
---- CPython 3.9.25 bare: no pyyaml
-2291 passed, 183 skipped in 23.38s
---- CPython 3.10.20 bare: no pyyaml
-2292 passed, 182 skipped in 24.33s
---- CPython 3.12.3 bare: pyyaml 6.0.3
-2300 passed, 174 skipped in 22.78s
---- CPython 3.14.6 bare: pyyaml 6.0.3
-2300 passed, 174 skipped in 19.16s
---- CPython 3.13.15, system site-packages (not bare): pyyaml 6.0.3
-2375 passed, 99 skipped in 24.61s
---- CPython 3.11.16 full (spaCy 3.8.16, NLTK 3.10.3, Flask 3.1.3, click 8.5.0, cryptography 49.0.0, PyYAML 6.0.3)
-2464 passed, 10 skipped in 25.61s
---- PyYAML floor and latest: the test files that load YAML (scikitplot/cleanprompt/tests/test__catalog.py scikitplot/cleanprompt/tests/test__custom.py scikitplot/cleanprompt/tests/test__formats.py scikitplot/cleanprompt/tests/test__packs.py scikitplot/cleanprompt/tests/test__runtime.py scikitplot/cleanprompt/tests/test__structured.py)
-py3.8 pyyaml 5.1 -> 345 passed in 1.80s
-py3.13 pyyaml 6.0.3 -> 345 passed in 1.66s
+# round 26, 2026-10-10. Tree: the final round-26 package, frozen copy identical to the work tree (diff -rq).
+
+## CPython 3.8 to 3.14, pytest only (no optional tier, no PyYAML)
+$ uv venv -p X.Y; uv pip install pytest; python -B -m pytest scikitplot/cleanprompt/tests -q -p no:cacheprovider (stand-in parent, filterwarnings=error)
+3.8: 2762 passed, 214 skipped in 38.21s
+3.9: 2763 passed, 213 skipped in 36.72s
+3.10: 2765 passed, 211 skipped in 38.06s
+3.11: 2767 passed, 209 skipped in 33.94s
+3.12: 2767 passed, 209 skipped in 35.64s
+3.13: 2767 passed, 209 skipped in 34.20s
+3.14: 2767 passed, 209 skipped in 34.49s

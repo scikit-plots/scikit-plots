@@ -97,8 +97,22 @@ REQUIRED_CORPORA: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("words", ("corpora/words",)),
 )
 
-#: Remedy offered when NLTK is present in metadata but will not import.
-_REINSTALL_NLTK = 'pip install --force-reinstall "nltk>=3.6,<4"'
+
+def _reinstall_nltk() -> str:
+    """
+    Return the command that repairs an installed-but-unimportable nltk tier.
+
+    Notes
+    -----
+    **Developer notes.** Computed from the tier's declared range rather than
+    written down: a hand-written copy said ``<4`` for spaCy after the tier had
+    moved to ``<5``, which would have reinstalled an older major (round 25,
+    the ``CP-025`` rule applied again).
+    """
+    from ._capabilities import probe  # ruff: ignore[import-outside-top-level]
+
+    return f'pip install --force-reinstall "{probe("nltk").supported}"'
+
 
 #: Cached NLTK machinery: the two tokenizers and the chunker. All three are
 #: stateless with respect to the text and expensive to build, so they are built
@@ -226,43 +240,25 @@ class NltkDetector(Detector):
             raise CapabilityError(
                 "NLTK reports itself installed but cannot be imported "
                 f"({type(exc).__name__}: {exc}). The installation is broken; reinstall it with: "
-                f"{_REINSTALL_NLTK}",
+                f"{_reinstall_nltk()}",
                 tier="nltk",
                 status="BROKEN",
-                install_hint=_REINSTALL_NLTK,
+                install_hint=_reinstall_nltk(),
             ) from exc
 
-        missing = _missing_corpora(nltk)
+        missing = missing_data(nltk)
         if missing:
+            command = download_command(missing)
             msg = (
-                "NLTK is installed but {} data package(s) are missing: {}. "
-                'Download them with: python -c "import nltk; {}"'.format(
-                    len(missing),
-                    ", ".join(missing),
-                    "; ".join(f"nltk.download('{m}')" for m in missing),
-                )
+                f"NLTK is installed but {len(missing)} data package(s) are missing "
+                f"or cannot be loaded by this NLTK: {', '.join(missing)}. "
+                f"Download them with: {command}"
             )
             raise CapabilityError(
                 msg,
                 tier="nltk",
                 status="MISCONFIGURED",
-                install_hint=(
-                    'python -c "import nltk; '
-                    + "; ".join(f"nltk.download('{m}')" for m in missing)
-                    + '"'
-                ),
-            )
-
-        if "sentence" not in _RESOURCES:
-            from nltk.tokenize.punkt import PunktSentenceTokenizer  # noqa: PLC0415
-            from nltk.tokenize.treebank import TreebankWordTokenizer  # noqa: PLC0415
-
-            _RESOURCES["sentence"] = PunktSentenceTokenizer()
-            _RESOURCES["word"] = TreebankWordTokenizer()
-            _RESOURCES["chunker"] = _build_chunker()
-            logger.debug(
-                "nltk resources built (chunker cached: %s)",
-                _RESOURCES["chunker"] is not None,
+                install_hint=command,
             )
 
         return (
@@ -434,6 +430,153 @@ def _missing_corpora(nltk: Any) -> list[str]:
     return missing
 
 
+#: A fixed sentence the pipeline is run on once, to prove it can run. The
+#: chunker is probed with fixed tags, so a missing tagger does not hide a
+#: missing chunker: both are reported in one message.
+_PROBE_TOKENS = ("Ada", "Lovelace", "visited", "London", ".")
+_PROBE_TAGGED = (
+    ("Ada", "NNP"),
+    ("Lovelace", "NNP"),
+    ("visited", "VBD"),
+    ("London", "NNP"),
+    (".", "."),
+)
+
+
+def _load_pipeline(nltk: Any) -> list[str]:
+    """
+    Build the detector's machinery and run it once; return what failed to load.
+
+    Parameters
+    ----------
+    nltk : module
+        The imported :mod:`nltk` module.
+
+    Returns
+    -------
+    list of str
+        Data-package groups (names from :data:`REQUIRED_CORPORA`) that NLTK
+        could not load; empty when the pipeline ran. On success the tokenizers
+        and the chunker are cached in ``_RESOURCES`` for the detector.
+
+    Notes
+    -----
+    **Developer notes — why a run and not a lookup (``CP-100``).** Which data
+    package a given NLTK release loads is the release's decision: NLTK 3.9
+    moved the tagger to ``averaged_perceptron_tagger_eng`` and the chunker to
+    ``maxent_ne_chunker_tab``. :func:`_missing_corpora` accepts either name of
+    a group, so on NLTK 3.10.3 with only the older packages it reported
+    nothing missing — and the first sentence then failed inside
+    :func:`nltk.pos_tag` with ``LookupError``. Asking NLTK to do the work, on a
+    fixed sentence, is the only check that cannot disagree with the run,
+    because it *is* the run. A failure is caught as :class:`LookupError` only:
+    that is NLTK's documented signal for absent data, and anything else is a
+    real error that must surface as one.
+
+    The chunker built here is the one the detector uses (``CP-027``), so the
+    check costs nothing extra the first time and nothing at all afterwards.
+    A failure is not cached: a user who downloads the data mid-process is
+    believed on the next call.
+    """
+    if "chunker" in _RESOURCES:
+        return []
+    from nltk.tokenize.punkt import PunktSentenceTokenizer  # noqa: PLC0415
+    from nltk.tokenize.treebank import TreebankWordTokenizer  # noqa: PLC0415
+
+    failed: list[str] = []
+    try:
+        nltk.pos_tag(list(_PROBE_TOKENS))
+    except LookupError:
+        failed.append("averaged_perceptron_tagger")
+    chunker = _build_chunker()
+    try:
+        if chunker is not None:
+            chunker.parse(list(_PROBE_TAGGED))
+        else:
+            nltk.ne_chunk(list(_PROBE_TAGGED))
+    except LookupError:
+        # Every path was found before this runs, the word list included, so a
+        # failure here is the chunker's own data in a form this NLTK no longer
+        # loads.
+        failed.append("maxent_ne_chunker")
+    if failed:
+        return failed
+    _RESOURCES["sentence"] = PunktSentenceTokenizer()
+    _RESOURCES["word"] = TreebankWordTokenizer()
+    _RESOURCES["chunker"] = chunker
+    logger.debug("nltk resources built (chunker cached: %s)", chunker is not None)
+    return []
+
+
+def missing_data(nltk: Any) -> list[str]:
+    """
+    Return the data-package groups NLTK lacks or cannot load, in declaration order.
+
+    Parameters
+    ----------
+    nltk : module
+        The imported :mod:`nltk` module.
+
+    Returns
+    -------
+    list of str
+        Group names from :data:`REQUIRED_CORPORA`; empty when NLTK is ready.
+
+    Notes
+    -----
+    **Developer notes.** Two steps: the cheap path lookup first, which names
+    every absent group at once; then, only when nothing is absent, one run of
+    the pipeline (:func:`_load_pipeline`), which catches the data that is
+    present under a name this NLTK no longer loads. The detector, ``doctor``
+    and :func:`~scikitplot.cleanprompt._engines.engine_readiness` all call
+    this one function, so they cannot disagree.
+    """
+    absent = _missing_corpora(nltk)
+    if absent:
+        return absent
+    return _load_pipeline(nltk)
+
+
+def download_command(groups: Iterable[str]) -> str:
+    """
+    Return the one command that downloads every package able to satisfy ``groups``.
+
+    Parameters
+    ----------
+    groups : iterable of str
+        Group names from :data:`REQUIRED_CORPORA`.
+
+    Returns
+    -------
+    str
+        A ``python -c "import nltk; nltk.download(...)"`` command naming, for
+        each group, every package that provides it — the current name and the
+        older one.
+
+    Notes
+    -----
+    **Developer notes.** Both names, always. Which one an installed NLTK
+    loads is its decision (see :func:`_load_pipeline`); downloading both is
+    what makes the instruction right on every release in the declared range,
+    instead of right on the one it was written against (``CP-100``).
+
+    Examples
+    --------
+    >>> print(download_command(["averaged_perceptron_tagger"]))
+    python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng'); nltk.download('averaged_perceptron_tagger')"
+    """
+    wanted = set(groups)
+    names: list[str] = []
+    for group, paths in REQUIRED_CORPORA:
+        if group in wanted:
+            names.extend(path.rsplit("/", 1)[-1] for path in paths)
+    return (
+        'python -c "import nltk; '
+        + "; ".join(f"nltk.download('{name}')" for name in names)
+        + '"'
+    )
+
+
 def corpora_status() -> dict[str, Any]:
     """
     Report whether NLTK's data packages are present.
@@ -461,19 +604,11 @@ def corpora_status() -> dict[str, Any]:
             "install_hint": 'pip install "nltk>=3.6,<4"',
         }
 
-    missing = _missing_corpora(nltk)
+    missing = missing_data(nltk)
     return {
         "available": not missing,
         "missing": missing,
-        "install_hint": (
-            (
-                'python -c "import nltk; '
-                + "; ".join(f"nltk.download('{m}')" for m in missing)
-                + '"'
-            )
-            if missing
-            else ""
-        ),
+        "install_hint": download_command(missing) if missing else "",
     }
 
 

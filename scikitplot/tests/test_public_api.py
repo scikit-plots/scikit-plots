@@ -71,6 +71,8 @@ PUBLIC_MODULES = [
         "externals.array_api_extra",
         "externals.array_api_extra.testing",
         "impute",
+        "levenshtein",
+        "logging",
         "mcp",
         "memmap",
         "misc",
@@ -91,7 +93,6 @@ PUBLIC_MODULES = [
         "environment_variables",
         "exceptions",
         "ml_package_versions",
-        "logging",
         "version",
     ]
 ]

@@ -59,7 +59,9 @@ scikitplot.corpus._diagnostics.ErrorRecord : what validation returns.
 from __future__ import annotations
 
 import dataclasses
-from typing import TYPE_CHECKING, Any
+import itertools
+import math
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from ._canonical import canonical_digest
 
@@ -425,6 +427,164 @@ class FluentCorpus:
 
     # -- construction --------------------------------------------------------
 
+    @classmethod
+    def from_config(
+        cls,
+        config: Mapping[str, Any] | None = None,
+        *,
+        stages: tuple[str, ...] | list[str] | None = None,
+        **fragments: Any,
+    ) -> FluentCorpus:
+        """Generate a fluent plan from a user mapping plus keyword fragments.
+
+        This is the data-driven counterpart to chained setters. It is useful for
+        configuration files, notebooks and generated experiment matrices while
+        preserving the same canonical conflict/validation rules.
+        """
+        combined = dict(config or {})
+        overlap = sorted(set(combined) & set(fragments))
+        if overlap:
+            raise ConfigConflictError(
+                f"configuration domain(s) supplied twice: {overlap}"
+            )
+        combined.update(fragments)
+        unknown = sorted(set(combined) - set(CONFIG_DOMAINS))
+        if unknown:
+            raise ValueError(
+                f"unknown configuration domain(s) {unknown}; "
+                f"expected one of {list(CONFIG_DOMAINS)}"
+            )
+        plan = CorpusPlan.of(**combined)
+        if stages is not None:
+            plan = CorpusPlan(fragments=dict(plan.fragments), stages=tuple(stages))
+        return cls(plan)
+
+    def configure(
+        self,
+        config: Mapping[str, Any] | None = None,
+        *,
+        conflict: str = "error",
+        **fragments: Any,
+    ) -> FluentCorpus:
+        """Set several domains atomically using the normal conflict contract.
+
+        Domains are applied in canonical :data:`CONFIG_DOMAINS` order, never in
+        mapping insertion order; fluent configuration therefore remains
+        declarative and order-independent.
+        """
+        combined = dict(config or {})
+        overlap = sorted(set(combined) & set(fragments))
+        if overlap:
+            raise ConfigConflictError(
+                f"configuration domain(s) supplied twice: {overlap}"
+            )
+        combined.update(fragments)
+        unknown = sorted(set(combined) - set(CONFIG_DOMAINS))
+        if unknown:
+            raise ValueError(
+                f"unknown configuration domain(s) {unknown}; "
+                f"expected one of {list(CONFIG_DOMAINS)}"
+            )
+        result = self
+        for domain in CONFIG_DOMAINS:
+            if domain in combined and combined[domain] is not None:
+                result = result._with(domain, combined[domain], conflict)
+        return result
+
+    def with_overrides(
+        self,
+        config: Mapping[str, Any] | None = None,
+        **fragments: Any,
+    ) -> FluentCorpus:
+        """Return a copy with explicit multi-domain replacements."""
+        return self.configure(config, conflict="replace", **fragments)
+
+    def without(self, *domains: str) -> FluentCorpus:
+        """Return a copy with selected configuration domains removed."""
+        unknown = sorted(set(domains) - set(CONFIG_DOMAINS))
+        if unknown:
+            raise ValueError(
+                f"unknown configuration domain(s) {unknown}; "
+                f"expected one of {list(CONFIG_DOMAINS)}"
+            )
+        remove = set(domains)
+        fragments = {k: v for k, v in self._plan.fragments.items() if k not in remove}
+        return FluentCorpus(CorpusPlan(fragments=fragments, stages=self._plan.stages))
+
+    def _variant_axes(
+        self,
+        choices: Mapping[str, Any],
+        *,
+        max_variants: int,
+    ) -> tuple[list[str], list[tuple[Any, ...]], int]:
+        """Normalize variant axes and prove the grid is bounded."""
+        if max_variants < 1:
+            raise ValueError("max_variants must be >= 1")
+        unknown = sorted(set(choices) - set(CONFIG_DOMAINS))
+        if unknown:
+            raise ValueError(
+                f"unknown configuration domain(s) {unknown}; "
+                f"expected one of {list(CONFIG_DOMAINS)}"
+            )
+        domains = [domain for domain in CONFIG_DOMAINS if domain in choices]
+        values: list[tuple[Any, ...]] = []
+        for domain in domains:
+            raw = choices[domain]
+            # Strings/bytes/mappings are configuration fragments, not axes.
+            if isinstance(raw, (str, bytes, Mapping)):
+                options = (raw,)
+            else:
+                try:
+                    options = tuple(raw)
+                except TypeError:
+                    options = (raw,)
+            if not options:
+                raise ValueError(f"variants for {domain!r} must not be empty")
+            values.append(options)
+        count = math.prod(len(options) for options in values) if values else 1
+        if count > max_variants:
+            raise ValueError(
+                f"configuration grid would generate {count} variants, exceeding "
+                f"max_variants={max_variants}"
+            )
+        return domains, values, count
+
+    def iter_variants(
+        self,
+        *,
+        max_variants: int = 256,
+        **choices: Iterable[Any],
+    ) -> Iterable[FluentCorpus]:
+        """Lazily generate a deterministic bounded configuration grid.
+
+        The full Cartesian size is validated *before* the first value is
+        yielded.  This preserves the existing safety bound while letting
+        callers stream variants into CI/tuning loops without materializing
+        every :class:`FluentCorpus` instance at once.
+        """
+        domains, values, _count = self._variant_axes(
+            choices,
+            max_variants=max_variants,
+        )
+        if not domains:
+            yield self
+            return
+        for combination in itertools.product(*values):
+            yield self.with_overrides(**dict(zip(domains, combination)))
+
+    def variants(
+        self,
+        *,
+        max_variants: int = 256,
+        **choices: Iterable[Any],
+    ) -> tuple[FluentCorpus, ...]:
+        """Materialize :meth:`iter_variants` as a convenience tuple.
+
+        Use :meth:`iter_variants` when the consumer itself is streaming or when
+        constructing every variant object at once is unnecessary.
+        """
+        return tuple(self.iter_variants(max_variants=max_variants, **choices))
+
     def _with(self, domain: str, value: Any, conflict: str) -> FluentCorpus:
         """Return a new builder with ``domain`` set to ``value``."""
         if domain not in CONFIG_DOMAINS:
@@ -476,6 +636,47 @@ class FluentCorpus:
         """Return cross-fragment problems, empty when coherent."""
         return self._plan.validate()
 
+    def explain(self) -> dict[str, Any]:
+        """Return a JSON-compatible explanation of configuration and validity."""
+        problems = self.validate()
+        data = self._plan.to_dict()
+        data["ingest_fingerprint"] = self._plan.ingest_fingerprint
+        data["query_fingerprint"] = self._plan.query_fingerprint
+        data["valid"] = not problems
+        data["problems"] = [problem.to_dict() for problem in problems]
+        return data
+
+    def diff(self, other: FluentCorpus | CorpusPlan) -> dict[str, Any]:
+        """Describe domain/stage differences without constructing components."""
+        other_plan = other.plan() if isinstance(other, FluentCorpus) else other
+        if not isinstance(other_plan, CorpusPlan):
+            raise TypeError("other must be FluentCorpus or CorpusPlan")
+        changed: dict[str, dict[str, str | None]] = {}
+        for domain in CONFIG_DOMAINS:
+            left = self._plan.fragments.get(domain)
+            right = other_plan.fragments.get(domain)
+            if (domain in self._plan.fragments) != (domain in other_plan.fragments) or (
+                domain in self._plan.fragments
+                and domain in other_plan.fragments
+                and _describe(left) != _describe(right)
+            ):
+                changed[domain] = {
+                    "left": _describe(left) if domain in self._plan.fragments else None,
+                    "right": (
+                        _describe(right) if domain in other_plan.fragments else None
+                    ),
+                }
+        return {
+            "changed": changed,
+            "stages_changed": (
+                self._plan.effective_stages != other_plan.effective_stages
+            ),
+            "left_stages": list(self._plan.effective_stages),
+            "right_stages": list(other_plan.effective_stages),
+            "left_fingerprint": self._plan.fingerprint,
+            "right_fingerprint": other_plan.fingerprint,
+        }
+
     def build(self) -> CorpusPlan:
         """Validate and return the plan, raising on any problem.
 
@@ -500,7 +701,7 @@ class FluentCorpus:
     def materialize(
         self,
         *,
-        policy: RuntimePolicy | None = None,
+        policy: RuntimePolicy | str | Mapping[str, Any] | None = None,
         registry: ComponentRegistry | None = None,
     ) -> RuntimeCorpus:
         """Validate this plan and construct a :class:`RuntimeCorpus`.

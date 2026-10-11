@@ -1362,6 +1362,9 @@ class BuilderFactories:
 
             def filter_factory() -> FilterBase | None: ...
 
+    downloader_factory : callable or None, optional
+        Factory for URL downloaders. Called for each downloadable URL.
+
     normalizer_factory : callable or None, optional
         Factory for the
         :class:`~scikitplot.corpus._normalizers.NormalizationPipeline`.
@@ -1400,13 +1403,14 @@ class BuilderFactories:
 
 
         factories = BuilderFactories(reader_factory=smart_reader_factory)
-        builder = FactoryCorpusBuilder(factories=factories)
+        builder = CorpusBuilder(factories=factories)
         result = builder.build("./data/")
     """
 
     reader_factory: Callable[..., Any] | None = None
     chunker_factory: Callable[[], Any] | None = None
     filter_factory: Callable[[], Any] | None = None
+    downloader_factory: Callable[..., Any] | None = None
     normalizer_factory: Callable[[], Any] | None = None
     enricher_factory: Callable[[], Any] | None = None
     embedding_engine_factory: Callable[[], Any] | None = None
@@ -1423,6 +1427,7 @@ class BuilderFactories:
             "reader_factory",
             "chunker_factory",
             "filter_factory",
+            "downloader_factory",
             "normalizer_factory",
             "enricher_factory",
             "embedding_engine_factory",
@@ -1455,14 +1460,15 @@ class FactoryCorpusBuilder:
 
     Notes
     -----
-    **User note:** Use :class:`FactoryCorpusBuilder` when you need to
-    inject components that cannot be described by configuration alone —
-    custom readers with per-source state, enrichers backed by remote APIs,
-    embedding engines with non-standard initialisation, etc.
+    **User note:** New code can pass :class:`BuilderFactories` directly to
+    :class:`~scikitplot.corpus._corpus_builder.CorpusBuilder`. This facade is
+    retained for compatibility and delegates to the same native construction
+    seams; it no longer owns a second customization mechanism.
 
-    **Developer note:** Factory injection is performed by overriding the
-    private ``_get_*`` lazy-init methods inherited from
-    :class:`~scikitplot.corpus._corpus_builder.CorpusBuilder`.
+    **Developer note:** Factory injection is owned natively by the wrapped
+    builder's protected construction seams (``_get_*`` / ``_make_*``). Reader,
+    filter and downloader factories therefore affect every ingestion branch
+    without monkey-patching bound methods.
 
     Examples
     --------
@@ -1499,81 +1505,24 @@ class FactoryCorpusBuilder:
         """
         from ._corpus_builder import BuilderConfig, CorpusBuilder  # noqa: PLC0415
 
-        self._inner = CorpusBuilder(config=config or BuilderConfig())
         self.factories = factories or BuilderFactories()
+        # CorpusBuilder owns factory dispatch natively.  Keeping a wrapped
+        # instance preserves FactoryCorpusBuilder's historical delegation API
+        # without runtime monkey-patching of protected methods.
+        self._inner = CorpusBuilder(
+            config=config or BuilderConfig(),
+            factories=self.factories,
+        )
         self.config = self._inner.config
-        # Patch lazy-init methods on inner builder
-        self._patch_inner()
 
     def _patch_inner(self) -> None:
+        """Compatibility no-op retained for private callers.
+
+        Factory dispatch moved into :class:`CorpusBuilder`; mutating bound
+        methods at runtime made subclassing/introspection fragile and could
+        leave newly added ingestion branches outside customization policy.
         """
-        Monkey-patch factory overrides onto the inner CorpusBuilder.
-
-        Each non-None factory in ``self.factories`` replaces the
-        corresponding ``_get_*`` method on the inner builder instance,
-        ensuring that existing pipeline code paths invoke the factory.
-        """
-        factories = self.factories
-
-        if factories.chunker_factory is not None:
-            inner = self._inner
-            _factory = factories.chunker_factory
-
-            def _get_chunker_custom() -> Any:
-                if inner._chunker is None:
-                    inner._chunker = _factory()
-                return inner._chunker
-
-            import types  # noqa: PLC0415
-
-            inner._get_chunker = types.MethodType(  # type: ignore[method-assign]
-                lambda self: _get_chunker_custom(), inner
-            )
-
-        if factories.normalizer_factory is not None:
-            inner = self._inner
-            _nfac = factories.normalizer_factory
-
-            def _get_norm_custom() -> Any:
-                if inner._normalizer_pipeline is None:
-                    inner._normalizer_pipeline = _nfac()
-                return inner._normalizer_pipeline
-
-            import types  # noqa: PLC0415
-
-            inner._get_normalizer_pipeline = types.MethodType(  # type: ignore[method-assign]
-                lambda self: _get_norm_custom(), inner
-            )
-
-        if factories.enricher_factory is not None:
-            inner = self._inner
-            _efac = factories.enricher_factory
-
-            def _get_enrich_custom() -> Any:
-                if inner._enricher is None:
-                    inner._enricher = _efac()
-                return inner._enricher
-
-            import types  # noqa: PLC0415
-
-            inner._get_enricher = types.MethodType(  # type: ignore[method-assign]
-                lambda self: _get_enrich_custom(), inner
-            )
-
-        if factories.embedding_engine_factory is not None:
-            inner = self._inner
-            _embfac = factories.embedding_engine_factory
-
-            def _get_embed_custom() -> Any:
-                if inner._embedding_engine is None:
-                    inner._embedding_engine = _embfac()
-                return inner._embedding_engine
-
-            import types  # noqa: PLC0415
-
-            inner._get_embedding_engine = types.MethodType(  # type: ignore[method-assign]
-                lambda self: _get_embed_custom(), inner
-            )
+        return
 
     # ------------------------------------------------------------------
     # Delegate all public methods to inner builder

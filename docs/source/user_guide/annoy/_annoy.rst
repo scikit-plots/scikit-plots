@@ -1,4 +1,5 @@
-.. docs/source/user_guide/annoy/_annoy.rst
+:html_theme.sidebar_secondary.remove:
+
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections

@@ -52,6 +52,10 @@
   # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
   # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _developers-guide-index:
 
 ======================================================================

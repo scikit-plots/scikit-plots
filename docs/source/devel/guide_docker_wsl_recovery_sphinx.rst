@@ -1,3 +1,8 @@
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _docker-recovery-index:
 
 ======================================================================
@@ -9,7 +14,6 @@ Windows WSL + Cross-Platform Notes
 
 Canonical, safe, production-grade recovery procedure for restoring Docker
 environments when backend storage is intact but runtime layer is broken.
-
 
 1. Situation Overview (Windows WSL2 Case)
 -----------------------------------------
@@ -30,7 +34,6 @@ Interpretation:
 - UI cannot attach backend
 - Container data still exists on disk
 
-
 2. Architecture Model (Critical Understanding)
 ----------------------------------------------
 
@@ -45,7 +48,6 @@ Docker Desktop WSL2 stores state in virtual disks:
 +------------+----------------------+--------------------------+
 
 These are full filesystem images (not archives).
-
 
 3. Critical Safety Rules
 ------------------------
@@ -77,7 +79,6 @@ Expected:
 - WSL installed
 - Virtualization enabled
 
-
 5. Recovery Strategy (Preferred Method)
 ---------------------------------------
 
@@ -100,7 +101,6 @@ Step 3 — Restore data disk
 
    wsl --import-in-place docker-desktop-data "E:\DockerDesktopWSL\DockerDesktopWSL\disk\docker_data.vhdx"
 
-
 6. Fallback Method (Compatibility Mode)
 ---------------------------------------
 
@@ -119,7 +119,6 @@ Data:
 
    wsl --import docker-desktop-data E:\DockerDesktopWSL\recovery\docker-desktop-data \
    "E:\DockerDesktopWSL\DockerDesktopWSL\disk\docker_data.vhdx" --vhd
-
 
 7. Verification
 ---------------
@@ -155,7 +154,6 @@ Typical failures:
 
 .vhdx files remain intact unless deleted manually.
 
-
 10. Failure Handling
 --------------------
 
@@ -171,7 +169,6 @@ WSL missing:
 
    wsl --install
 
-
 11. Recovery Outcome
 --------------------
 
@@ -181,7 +178,6 @@ If .vhdx intact:
 - Images restored
 - Volumes preserved
 - No data loss
-
 
 12. Key Principle
 -----------------
@@ -193,7 +189,6 @@ If storage exists:
 - Data is safe
 - Only mapping must be rebuilt
 
-
 13. Summary Flow
 ----------------
 
@@ -202,7 +197,6 @@ If storage exists:
 3. Import docker_data.vhdx
 4. Verify WSL distros
 5. Restart Docker Desktop
-
 
 14. Linux Recovery Notes
 ------------------------
@@ -223,7 +217,6 @@ Inspect:
 
    sudo du -sh /var/lib/docker
 
-
 15. macOS Recovery Notes
 ------------------------
 
@@ -237,7 +230,6 @@ Actions:
 - Restart Docker Desktop
 - Use Troubleshoot reset if needed
 
-
 Cross-platform model:
 
 +---------+--------------------------+
@@ -247,7 +239,6 @@ Cross-platform model:
 | Linux   | Native filesystem        |
 | macOS   | VM disk image            |
 +---------+--------------------------+
-
 
 Final Warning
 -------------

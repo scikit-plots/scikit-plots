@@ -69,6 +69,7 @@ from typing import Any
 from ._catalog import ALL, AUTO, NONE, Catalog, builtin_catalog, canonical
 from ._engines import ENGINE_MODES
 from ._exceptions import CleanPromptError
+from ._pattern_risk import PATTERN_RISK_MODES, pack_findings, resolve_pattern_risk
 from ._policy import PROFILES
 from ._schema import ROLES
 from ._surrogates import STYLES
@@ -131,12 +132,28 @@ class CleanPlan:
         Once a value is hidden, hide it wherever it appears later — in prose,
         in another file, in the next turn — not only where a pattern or field
         rule finds it again.
+    pattern_risk : {'warn', 'ignore', 'refuse'} or None
+        What a custom pattern with a catastrophic-backtracking shape does.
+        ``None`` (default) defers to ``CLEANPROMPT_PATTERN_RISK``, else
+        ``'warn'``. Pin ``'refuse'`` in a team plan file to make the check a
+        gate.
+    surrogates : str or None
+        Path of a custom surrogate set
+        (:mod:`~scikitplot.cleanprompt._surrogate_sets`) whose names replace
+        the built-in ones. Requires ``style='surrogate'``. The set's identity
+        joins the fingerprint, so editing the set file makes a saved plan
+        stale.
 
     Notes
     -----
     **Developer notes.** Tuples, never lists or sets, so a plan is hashable and
     its canonical form does not depend on iteration order: every collection is
     sorted when it enters, by :class:`FluentCleanPrompt`.
+
+    ``pattern_risk`` and ``surrogates`` are left out of :meth:`as_dict` while
+    they are ``None``, so every plan saved before the fields existed keeps its
+    fingerprint (``I12``): adding a setting must not invalidate approved plan
+    files.
     """
 
     packs: tuple[str, ...] = (AUTO,)
@@ -154,6 +171,8 @@ class CleanPlan:
     hide: tuple[str, ...] = ()
     allow: tuple[str, ...] = ()
     remember: bool = True
+    pattern_risk: str | None = None
+    surrogates: str | None = None
     configured: tuple[str, ...] = field(default=(), compare=False)
 
     def as_dict(self) -> dict[str, Any]:
@@ -164,11 +183,14 @@ class CleanPlan:
         -------
         dict
             JSON-safe. ``configured`` is left out: it records how the plan was
-            built, not what it means.
+            built, not what it means. ``pattern_risk`` and ``surrogates`` are
+            left out while they are ``None``.
         """
         out = {}
         for item in fields(self):
             if item.name == "configured":
+                continue
+            if item.name in _OMITTED_WHEN_NONE and getattr(self, item.name) is None:
                 continue
             value = getattr(self, item.name)
             out[item.name] = (
@@ -207,9 +229,68 @@ class CleanPlan:
             return builtin_catalog()
         from ._custom import with_custom  # ruff: ignore[import-outside-top-level]
 
-        return with_custom(self.custom, conflict=self.conflict)
+        # The plan applies its own pattern-risk mode (validate refuses, the
+        # cleaner warns once); loading here stays silent so validating,
+        # fingerprinting and materialising do not each warn again.
+        return with_custom(self.custom, conflict=self.conflict, pattern_risk="ignore")
 
-    def validate(self) -> list[str]:
+    def surrogate_set(self):
+        """
+        Return the plan's custom surrogate set, loaded and validated, or None.
+
+        Returns
+        -------
+        SurrogateSet or None
+            ``None`` when the plan names no set.
+
+        Raises
+        ------
+        PackError
+            If the set document is invalid.
+        CleanPromptError
+            If the file is missing, too large, or of an unknown type.
+        """
+        if self.surrogates is None:
+            return None
+        from ._surrogate_sets import (  # ruff: ignore[import-outside-top-level]
+            load_surrogate_set,
+        )
+
+        return load_surrogate_set(self.surrogates)
+
+    def pattern_findings(self) -> list:
+        """
+        Return every pattern-risk finding in this plan's custom packs.
+
+        Returns
+        -------
+        list of PackFinding
+            Accepted findings included (``accepted`` set), so a review can
+            list what was waived. Built-in packs are proven clean by the test
+            suite and are not analysed.
+        """
+        if not self.custom:
+            return []
+        return pack_findings(self.catalog().packs.values())
+
+    def pattern_risk_mode(self) -> str:
+        """
+        Return the pattern-risk mode in force for this plan.
+
+        Returns
+        -------
+        str
+            ``pattern_risk`` when set, else ``CLEANPROMPT_PATTERN_RISK``, else
+            ``'warn'``.
+
+        Raises
+        ------
+        ValueError
+            If the mode, set or from the environment, is not a known one.
+        """
+        return resolve_pattern_risk(self.pattern_risk)
+
+    def validate(self) -> list[str]:  # ruff: ignore[too-many-branches]
         """
         Return every problem with this plan, without raising.
 
@@ -239,11 +320,40 @@ class CleanPlan:
             problems.append(
                 f"ner: {self.ner!r} is not one of {', '.join(ENGINE_MODES)}"
             )
+        if self.surrogates is not None:
+            if self.style != "surrogate":
+                problems.append(
+                    f"surrogates: {self.surrogates!r} needs style 'surrogate' "
+                    f"(the plan's style is {self.style!r})"
+                )
+            try:
+                self.surrogate_set()
+            except CleanPromptError as exc:
+                problems.append(f"surrogates: {exc}")
+        try:
+            mode = self.pattern_risk_mode()
+        except ValueError as exc:
+            problems.append(f"pattern_risk: {exc}")
+            mode = None
         try:
             catalog = self.catalog()
         except CleanPromptError as exc:
             problems.append(f"custom: {exc}")
             return problems
+        if mode == "refuse" and self.custom:
+            from ._pattern_risk import (  # ruff: ignore[import-outside-top-level]
+                refusal_lines,
+            )
+
+            open_findings = [
+                item
+                for item in pack_findings(catalog.packs.values())
+                if item.accepted is None
+            ]
+            if open_findings:
+                problems.extend(
+                    f"pattern_risk: {line}" for line in refusal_lines(open_findings)
+                )
         try:
             formats = catalog.resolve_formats(self.formats_selection())
         except CleanPromptError as exc:
@@ -282,12 +392,18 @@ class CleanPlan:
             "definitions": catalog.fingerprint(packs, formats),
             "schema": "cleanplan1",
         }
+        if self.surrogates is not None:
+            # The set's content, not its path: editing the file is a change.
+            payload["surrogate_set"] = self.surrogate_set().identity
         return hashlib.sha256(canonical(payload).encode("utf-8")).hexdigest()
 
 
 _BOOL_FIELDS = ("core", "infer_roles", "remember")
 _TUPLE_FIELDS = ("packs", "formats", "custom", "keep", "hide", "allow")
 _TEXT_FIELDS = ("conflict", "style", "ner", "language")
+_OPTIONAL_TEXT_FIELDS = ("profile", "pattern_risk", "surrogates")
+#: Fields :meth:`CleanPlan.as_dict` leaves out while ``None`` (``I12``).
+_OMITTED_WHEN_NONE = ("pattern_risk", "surrogates")
 
 
 def plan_from_dict(  # ruff: ignore[too-many-branches]
@@ -347,11 +463,17 @@ def plan_from_dict(  # ruff: ignore[too-many-branches]
                 problems.append(f"{key}: must be a string")
             else:
                 values[key] = document[key]
-    if "profile" in document:
-        if document["profile"] is not None and not isinstance(document["profile"], str):
-            problems.append("profile: must be a string or null")
-        else:
-            values["profile"] = document["profile"]
+    for key in _OPTIONAL_TEXT_FIELDS:
+        if key in document:
+            if document[key] is not None and not isinstance(document[key], str):
+                problems.append(f"{key}: must be a string or null")
+            else:
+                values[key] = document[key]
+    if values.get("pattern_risk") not in (None, *PATTERN_RISK_MODES):
+        problems.append(
+            f"pattern_risk: {values['pattern_risk']!r} is not one of "
+            f"{', '.join(PATTERN_RISK_MODES)}"
+        )
     if "roles" in document:
         raw = document["roles"]
         if not isinstance(raw, list) or not all(
@@ -680,6 +802,54 @@ class FluentCleanPrompt:
         output to be independent of what was encoded before.
         """
         return self._with("remember", bool(enabled), conflict)
+
+    def surrogates(self, path: str, conflict: str = "error") -> FluentCleanPrompt:
+        """
+        Use a custom surrogate set's names (needs ``style('surrogate')``).
+
+        Parameters
+        ----------
+        path : str
+            A ``.yaml``, ``.yml`` or ``.json`` surrogate set.
+        conflict : {'error', 'replace'}, default='error'
+            What to do if a set was already chosen.
+
+        Returns
+        -------
+        FluentCleanPrompt
+            A new builder. The set is loaded and checked by :meth:`validate`.
+        """
+        (name,) = _names((path,), "surrogates")
+        return self._with("surrogates", name, conflict)
+
+    def pattern_risk(self, mode: str, conflict: str = "error") -> FluentCleanPrompt:
+        """
+        Choose what a risky custom pattern does: ``warn``, ``ignore`` or ``refuse``.
+
+        Parameters
+        ----------
+        mode : {'warn', 'ignore', 'refuse'}
+            ``warn`` loads the pattern and says what was found and how to fix
+            or accept it; ``ignore`` loads it silently; ``refuse`` makes the
+            plan invalid until the pattern is rewritten or accepted in its
+            pack (``risk: accepted`` with a ``risk_reason``).
+        conflict : {'error', 'replace'}, default='error'
+            What to do if a mode was already chosen.
+
+        Returns
+        -------
+        FluentCleanPrompt
+            A new builder.
+
+        Raises
+        ------
+        CleanPromptError
+            If ``mode`` is not one of the three.
+        """
+        if mode not in PATTERN_RISK_MODES:
+            msg = f"pattern_risk must be one of {', '.join(PATTERN_RISK_MODES)}, got {mode!r}"
+            raise CleanPromptError(msg)
+        return self._with("pattern_risk", mode, conflict)
 
     # -- terminal operations ---------------------------------------------
 

@@ -23,9 +23,11 @@ the package would silently undo all of them -- while every existing test kept
 passing.  That is precisely the kind of property that decays unnoticed, so it is
 made a gate here (proposal P-I0-12).
 
-Each check runs in a fresh subprocess: once a heavyweight is in
-:data:`sys.modules` from an unrelated test, an in-process check cannot tell who
-imported it.
+Each check runs in a fresh subprocess.  The subprocess first imports the
+parent :mod:`scikitplot` package and snapshots the watched modules, because
+Python necessarily imports a parent package before ``scikitplot.corpus``.  The
+gate therefore measures what Corpus itself *adds* rather than attributing
+pre-existing parent-package imports to the submodule.
 
 Compatibility
 -------------
@@ -72,7 +74,7 @@ OPTIONAL_HEAVYWEIGHTS = (
 
 
 def _loaded_after(statement):
-    """Import in a fresh interpreter and report which heavyweights loaded.
+    """Report heavyweights newly loaded by Corpus beyond its parent package.
 
     Parameters
     ----------
@@ -82,7 +84,8 @@ def _loaded_after(statement):
     Returns
     -------
     list of str
-        Names from :data:`OPTIONAL_HEAVYWEIGHTS` present in ``sys.modules``.
+        Names from :data:`OPTIONAL_HEAVYWEIGHTS` newly loaded by the
+        requested Corpus import beyond the unavoidable parent-package baseline.
 
     Raises
     ------
@@ -92,9 +95,12 @@ def _loaded_after(statement):
     source = textwrap.dedent(
         """
         import sys
-        {statement}
+        import scikitplot
         watched = {watched!r}
-        print(",".join(sorted(m for m in watched if m in sys.modules)))
+        before = {{m for m in watched if m in sys.modules}}
+        {statement}
+        after = {{m for m in watched if m in sys.modules}}
+        print(",".join(sorted(after - before)))
         """
     ).format(statement=statement, watched=OPTIONAL_HEAVYWEIGHTS)
 

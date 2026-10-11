@@ -8,9 +8,19 @@ Notes
     --ner --ner-engine spacy   # the default: best quality where installed
     --ner --ner-engine nltk    # lighter, English only
     --ner --ner-engine both    # union of the two: higher recall, more noise
-    --ner --ner-engine auto    # spaCy if usable, else NLTK, else nothing
+    --ner --ner-engine auto    # spaCy if ready, else NLTK, else nothing
 
-``doctor`` reports which engines are usable and which one ``auto`` would pick.
+``doctor`` reports which engines are ready and which one ``auto`` would pick.
+
+**User notes — installed is not ready.** An engine is *ready* when three
+things hold: its package is installed, it handles the language asked for, and
+its data is present — a spaCy model, or NLTK's data packages. Having the
+package without the data is the commonest way entity detection fails, so
+``doctor`` reports the three separately and names the one missing step::
+
+    entity_engines.engines.spacy.installed     true
+    entity_engines.engines.spacy.assets_ready  false
+    entity_engines.engines.spacy.remedy        python -m spacy download en_core_web_sm
 
 **Developer notes — why a canonical vocabulary exists.**
 
@@ -54,6 +64,8 @@ scikitplot.cleanprompt._nltk : The NLTK detector.
 
 from __future__ import annotations
 
+import importlib.util
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -68,10 +80,12 @@ __all__ = [
     "DEFAULT_ENGINE",
     "ENGINES",
     "ENGINE_MODES",
+    "EngineReadiness",
     "EngineSpec",
     "build_detectors",
     "canonical_label",
     "describe_engines",
+    "engine_readiness",
     "resolve_engine",
     "trim_entity_span",
 ]
@@ -365,7 +379,343 @@ def canonical_label(label: str) -> str:
     return _LABEL_MAP.get(label.upper(), "MISC")
 
 
-def resolve_engine(mode: str = DEFAULT_ENGINE, language: str = "en") -> tuple[str, ...]:
+@dataclass(frozen=True)
+class EngineReadiness:
+    """
+    Whether one engine can run here, now, and if not, the one step that fixes it.
+
+    Parameters
+    ----------
+    name : str
+        Engine name, as used by ``--ner-engine``.
+    installed : bool
+        Whether the engine's capability tier reports ``AVAILABLE``: the
+        package is installed, inside the declared range, and importable
+        according to its metadata.
+    language_supported : bool
+        Whether the engine handles the language asked for.
+    assets_checked : bool
+        Whether the engine's data was looked at. ``False`` only for NLTK when
+        the caller chose not to import it (see the notes).
+    assets_ready : bool or None
+        Whether the model or data packages are present; ``None`` when they
+        were not checked.
+    ready : bool
+        ``installed and language_supported and assets_ready is not False`` —
+        nothing known stands in the way of running.
+    status : str
+        A :class:`~scikitplot.cleanprompt.CapabilityStatus` value describing
+        the first obstacle, or ``"AVAILABLE"``.
+    reason : str
+        One sentence saying what was found.
+    remedy : str
+        The command or flag that removes the first obstacle; empty when ready.
+    model : str or None
+        For spaCy, the model this configuration loads; otherwise ``None``.
+    missing : tuple of str
+        For NLTK, the data packages that were not found.
+    version : str or None
+        The installed distribution version, when known.
+
+    Notes
+    -----
+    **User notes.** Read ``ready`` to decide, and ``remedy`` to act. ``reason``
+    is for a person: it says which of the three conditions failed.
+
+    **Developer notes — why NLTK's data may be unchecked.** spaCy models are
+    ordinary installed distributions, so their presence is read from metadata
+    without importing anything. NLTK's data packages live in directories that
+    only ``nltk.data.find`` can resolve — the search path depends on
+    environment variables, the interpreter prefix and the platform, and
+    copying that logic here would be a guess about NLTK's internals. So the
+    check imports NLTK, and it runs only where the caller is about to load
+    NLTK anyway: an explicit request, ``doctor``, or the web app with entity
+    detection switched on. Everywhere else the field says ``None`` rather than
+    pretending to know.
+    """
+
+    name: str
+    installed: bool
+    language_supported: bool
+    assets_checked: bool
+    assets_ready: bool | None
+    ready: bool
+    status: str
+    reason: str
+    remedy: str
+    model: str | None = None
+    missing: tuple[str, ...] = ()
+    version: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """Return a JSON-safe dictionary."""
+        return {
+            "installed": self.installed,
+            "language_supported": self.language_supported,
+            "assets_checked": self.assets_checked,
+            "assets_ready": self.assets_ready,
+            "ready": self.ready,
+            "status": self.status,
+            "reason": self.reason,
+            "remedy": self.remedy,
+            "model": self.model,
+            "missing": list(self.missing),
+            "version": self.version,
+        }
+
+
+def _spacy_model_ready(model: str) -> bool:
+    """
+    Return whether the spaCy model ``model`` can be found, without importing it.
+
+    Parameters
+    ----------
+    model : str
+        A model package name (``en_core_web_sm``) or a directory path, the two
+        forms :func:`spacy.load` accepts.
+
+    Returns
+    -------
+    bool
+        ``True`` when the model is an installed distribution, an importable
+        top-level package, or an existing directory.
+
+    Notes
+    -----
+    **Developer notes.** Three lookups, all free of side effects:
+    distribution metadata (how ``python -m spacy download`` installs a model),
+    :func:`importlib.util.find_spec` for a package installed some other way
+    (it locates a top-level module without executing it), and the filesystem
+    for a model saved with ``nlp.to_disk``. A name that fails all three is
+    absent, which is what :func:`spacy.load` would conclude with an
+    ``OSError`` a moment later.
+    """
+    from ._languages import installed_models  # ruff: ignore[import-outside-top-level]
+
+    if model in installed_models():
+        return True
+    if os.sep in model or (os.altsep and os.altsep in model) or model.startswith("."):
+        return os.path.isdir(model)
+    if not model.isidentifier():
+        return False
+    try:
+        return importlib.util.find_spec(model) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _nltk_missing_corpora() -> tuple[str, ...]:
+    """
+    Return NLTK's missing data packages, importing NLTK to find out.
+
+    Returns
+    -------
+    tuple of str
+        Package names that ``nltk.download`` would fetch; empty when complete.
+
+    Raises
+    ------
+    ImportError
+        If NLTK's metadata says installed but the import fails.
+    """
+    import nltk  # noqa: PLC0415 - only on an explicit, about-to-load path
+
+    from ._nltk import missing_data  # ruff: ignore[import-outside-top-level]
+
+    return tuple(missing_data(nltk))
+
+
+def _corpora_command(missing: tuple[str, ...]) -> str:
+    """Return the one command that downloads ``missing`` (see ``_nltk``)."""
+    from ._nltk import download_command  # ruff: ignore[import-outside-top-level]
+
+    return download_command(missing)
+
+
+def engine_readiness(  # ruff: ignore[too-many-return-statements]
+    name: str,
+    language: str = "en",
+    model: str | None = None,
+    size: str = "sm",
+    check_assets: bool = False,
+) -> EngineReadiness:
+    """
+    Decide whether one engine can run for a language, and how to fix it if not.
+
+    Parameters
+    ----------
+    name : str
+        ``"spacy"`` or ``"nltk"``.
+    language : str, default='en'
+        Language code.
+    model : str, optional
+        Explicit spaCy model, overriding ``language`` and ``size``.
+    size : str, default='sm'
+        Preferred spaCy model size.
+    check_assets : bool, default=False
+        Also check NLTK's data packages, which imports NLTK. spaCy's model is
+        always checked, because that check imports nothing.
+
+    Returns
+    -------
+    EngineReadiness
+        The decision, its reason and its remedy.
+
+    Raises
+    ------
+    PolicyError
+        If ``name`` is not a known engine, or ``size`` is not a known size.
+
+    Notes
+    -----
+    **Developer notes — the order of the checks is the order of the remedies.**
+    Language first, because no installation fixes an engine that cannot read
+    the language. Then the package, because a model cannot be downloaded into
+    a library that is not there. Then the data. The first failure decides the
+    status and the remedy, so a user is told the next step rather than all of
+    them at once.
+
+    This is ``CP-093``. ``doctor --ner`` reported entity detection as active
+    on a machine with spaCy installed and no model, and the next ``inspect
+    --ner`` failed on the missing model; the same for NLTK without its data.
+    Both decisions read the package and never the data. A diagnosis that
+    disagrees with the run it describes is worse than none, because the run is
+    where the user finds out — after deciding the text was safe to send.
+
+    Examples
+    --------
+    >>> engine_readiness("nltk", "de").reason
+    "nltk does not support language 'de'; it handles en"
+    """
+    spec = ENGINES.get(name)
+    if spec is None:
+        msg = "unknown NER engine {!r}; choose from {}".format(name, ", ".join(ENGINES))
+        raise PolicyError(msg)
+
+    resolved_model = None
+    if name == "spacy":
+        from ._languages import resolve_model  # ruff: ignore[import-outside-top-level]
+
+        resolved_model, _note = resolve_model(language, size, explicit=model)
+
+    report = probe(spec.tier)
+    installed = report.available
+    supported = spec.supports(language)
+    common = {
+        "name": name,
+        "installed": installed,
+        "language_supported": supported,
+        "model": resolved_model,
+        "version": report.version,
+    }
+
+    if not supported:
+        return EngineReadiness(
+            assets_checked=False,
+            assets_ready=None,
+            ready=False,
+            status=CapabilityStatus.MISCONFIGURED.value,
+            reason="{} does not support language {!r}; it handles {}".format(
+                name, language, ", ".join(spec.languages)
+            ),
+            remedy=(
+                f"choose another engine for {language!r} (--ner-engine spacy)"
+                if name == "nltk"
+                else ""
+            ),
+            **common,
+        )
+    if not installed:
+        return EngineReadiness(
+            assets_checked=False,
+            assets_ready=None,
+            ready=False,
+            status=report.status.value,
+            reason=report.detail,
+            remedy=report.install_hint,
+            **common,
+        )
+
+    if name == "spacy":
+        present = _spacy_model_ready(resolved_model)
+        download = f"python -m spacy download {resolved_model}"
+        return EngineReadiness(
+            assets_checked=True,
+            assets_ready=present,
+            ready=present,
+            status=(
+                CapabilityStatus.AVAILABLE.value
+                if present
+                else CapabilityStatus.MISCONFIGURED.value
+            ),
+            reason=(
+                f"spaCy {report.version} with model {resolved_model!r}"
+                if present
+                else f"spaCy is installed but model {resolved_model!r} is not"
+            ),
+            remedy="" if present else download,
+            **common,
+        )
+
+    if not check_assets:
+        return EngineReadiness(
+            assets_checked=False,
+            assets_ready=None,
+            ready=True,
+            status=CapabilityStatus.AVAILABLE.value,
+            reason=(
+                f"NLTK {report.version} is installed; its data packages are "
+                "checked when it loads (doctor checks them now)"
+            ),
+            remedy="",
+            **common,
+        )
+    try:
+        missing = _nltk_missing_corpora()
+    except ImportError as exc:
+        from ._nltk import _reinstall_nltk  # ruff: ignore[import-outside-top-level]
+
+        return EngineReadiness(
+            assets_checked=True,
+            assets_ready=None,
+            ready=False,
+            status=CapabilityStatus.BROKEN.value,
+            reason=(
+                "NLTK reports itself installed but cannot be imported "
+                f"({type(exc).__name__}: {exc})"
+            ),
+            remedy=_reinstall_nltk(),
+            **common,
+        )
+    return EngineReadiness(
+        assets_checked=True,
+        assets_ready=not missing,
+        ready=not missing,
+        status=(
+            CapabilityStatus.AVAILABLE.value
+            if not missing
+            else CapabilityStatus.MISCONFIGURED.value
+        ),
+        reason=(
+            f"NLTK {report.version} with its data packages"
+            if not missing
+            else "NLTK is installed but {} data package(s) are missing: {}".format(
+                len(missing), ", ".join(missing)
+            )
+        ),
+        remedy="" if not missing else _corpora_command(missing),
+        missing=missing,
+        **common,
+    )
+
+
+def resolve_engine(  # ruff: ignore[too-many-positional-arguments]
+    mode: str = DEFAULT_ENGINE,
+    language: str = "en",
+    model: str | None = None,
+    size: str = "sm",
+    check_assets: bool = False,
+) -> tuple[str, ...]:
     """
     Resolve an engine mode into the engines that will actually run.
 
@@ -375,6 +725,13 @@ def resolve_engine(mode: str = DEFAULT_ENGINE, language: str = "en") -> tuple[st
         One of :data:`ENGINE_MODES`.
     language : str, default='en'
         Language code, used to rule out engines that cannot handle it.
+    model : str, optional
+        Explicit spaCy model, used when judging whether spaCy is ready.
+    size : str, default='sm'
+        Preferred spaCy model size, used the same way.
+    check_assets : bool, default=False
+        Also check NLTK's data packages when ``auto`` considers NLTK. See
+        :func:`engine_readiness`.
 
     Returns
     -------
@@ -388,15 +745,18 @@ def resolve_engine(mode: str = DEFAULT_ENGINE, language: str = "en") -> tuple[st
 
     Notes
     -----
-    **Developer notes.** ``auto`` resolves by *usability*, not by presence:
-    an engine whose tier reports ``BROKEN`` is skipped exactly as one that
-    reports ``ABSENT``, because an installed-but-failing engine detects nothing
-    either way.
+    **Developer notes.** ``auto`` resolves by *readiness*, not by presence:
+    an engine whose package is absent, broken, unable to read the language or
+    missing its data is skipped, because it would detect nothing either way.
+    Before ``CP-093`` it resolved by package presence alone, so a machine with
+    spaCy installed and no model chose spaCy over a working NLTK and then
+    failed on the first sentence.
 
-    An explicitly named engine is **not** silently dropped when unusable — the
-    caller asked for it by name, and quietly running without it would be the
-    silent degradation this submodule exists to prevent. It is returned, and the
-    detector raises with an install hint at the point of use.
+    An explicitly named engine is **not** silently dropped when it is not
+    ready — the caller asked for it by name, and quietly running without it
+    would be the silent degradation this submodule exists to prevent. It is
+    returned; :func:`build_detectors` with ``required=True`` refuses it with
+    its own remedy, and without ``required`` the detector raises on first use.
 
     Examples
     --------
@@ -419,19 +779,24 @@ def resolve_engine(mode: str = DEFAULT_ENGINE, language: str = "en") -> tuple[st
     if mode in ENGINES:
         return (mode,)
 
-    # auto: prefer spaCy, fall back to NLTK, in both cases only if usable here.
+    # auto: prefer spaCy, fall back to NLTK, in both cases only if ready here.
     for name in ("spacy", "nltk"):
-        spec = ENGINES[name]
-        if spec.supports(language) and probe(spec.tier).available:
+        if engine_readiness(
+            name, language, model=model, size=size, check_assets=check_assets
+        ).ready:
             return (name,)
     return ()
 
 
-def describe_engines(
-    language: str = "en", mode: str = DEFAULT_ENGINE
+def describe_engines(  # ruff: ignore[too-many-positional-arguments]
+    language: str = "en",
+    mode: str = DEFAULT_ENGINE,
+    model: str | None = None,
+    size: str = "sm",
+    check_assets: bool = False,
 ) -> dict[str, Any]:
     """
-    Report every engine's usability, and what ``mode`` would select.
+    Report every engine's readiness, and what ``mode`` would select.
 
     Parameters
     ----------
@@ -439,68 +804,79 @@ def describe_engines(
         Language code to report against.
     mode : str, default='auto'
         The mode being asked about.
+    model : str, optional
+        Explicit spaCy model.
+    size : str, default='sm'
+        Preferred spaCy model size.
+    check_assets : bool, default=False
+        Also check NLTK's data packages, which imports NLTK. ``doctor`` passes
+        ``True``.
 
     Returns
     -------
     dict
-        JSON-safe report with one entry per engine plus a ``selected`` key.
+        JSON-safe report with one entry per engine, a ``selected`` list, and
+        ``ready``: whether every selected engine is ready.
 
     Notes
     -----
-    **User notes.** The ``language_supported`` field is the one to read when an
-    engine looks installed but finds nothing: NLTK's chunker is English-only, so
-    asking it for German names is a configuration error rather than a quiet
-    zero result.
+    **User notes.** Per engine, ``installed``, ``language_supported`` and
+    ``assets_ready`` are the three conditions, ``ready`` is their conjunction,
+    and ``remedy`` is the next step. ``usable`` is kept as a synonym of
+    ``ready``. The top-level ``ready`` is ``False`` when a selected engine is
+    known not to be able to run, which is the case ``doctor`` must not call
+    healthy.
     """
     engines: dict[str, Any] = {}
     for name, spec in ENGINES.items():
-        report = probe(spec.tier)
-        supported = spec.supports(language)
-        if not supported:
-            status = CapabilityStatus.MISCONFIGURED.value
-            detail = "{} does not support language {!r}; it handles {}".format(
-                name, language, ", ".join(spec.languages)
-            )
-        else:
-            status = report.status.value
-            detail = report.detail
-        engines[name] = {
-            "status": status,
-            "usable": supported and report.available,
-            "language_supported": supported,
-            "languages": list(spec.languages),
-            "needs_model": spec.needs_model,
-            "summary": spec.summary,
-            "install_hint": report.install_hint,
-            "version": report.version,
-            "detail": detail,
-        }
+        readiness = engine_readiness(
+            name, language, model=model, size=size, check_assets=check_assets
+        )
+        engines[name] = dict(
+            readiness.as_dict(),
+            usable=readiness.ready,
+            languages=list(spec.languages),
+            needs_model=spec.needs_model,
+            summary=spec.summary,
+            install_hint=probe(spec.tier).install_hint,
+            detail=readiness.reason,
+        )
 
-    selected = resolve_engine(mode, language)
+    selected = resolve_engine(
+        mode, language, model=model, size=size, check_assets=check_assets
+    )
     return {
         "mode": mode,
         "language": language,
         "selected": list(selected),
+        "ready": all(engines[name]["ready"] for name in selected),
         "engines": engines,
         "canonical_labels": list(CANONICAL_LABELS),
     }
 
 
-def _no_engine_error(mode: str, language: str) -> CapabilityError:
+def _not_ready_error(
+    mode: str, language: str, report: dict[str, Any], names: tuple[str, ...]
+) -> CapabilityError:
     """
-    Build the failure for "entity detection was asked for and none is usable".
+    Build the failure for "entity detection was asked for and cannot run".
 
     Parameters
     ----------
     mode : str
-        The engine mode that resolved to nothing.
+        The engine mode asked for.
     language : str
-        The language that was asked for.
+        The language asked for.
+    report : dict
+        :func:`describe_engines` output for the same configuration.
+    names : tuple of str
+        The engines that were required: the selection for a named mode or
+        ``both``, every engine for ``auto``.
 
     Returns
     -------
     CapabilityError
-        Carrying every engine's status and the command that would fix the
+        Carrying every engine's status and reason, and the remedy of the
         nearest one.
 
     Notes
@@ -508,25 +884,36 @@ def _no_engine_error(mode: str, language: str) -> CapabilityError:
     **Developer notes.** The message names *each* engine and its own reason,
     because the two fail for different reasons and a combined "install
     something" would send a user with NLTK installed off to install spaCy. The
-    ``install_hint`` carries the first engine that a language supports, since
-    that is the one a caller can act on; the full picture is in the message.
+    ``install_hint`` carries the remedy of the first required engine that can
+    handle the language, since that is the one a caller can act on.
     """
-    report = describe_engines(language=language, mode=mode)
     lines = []
     hint = ""
-    for name, engine in report["engines"].items():
-        lines.append("  {}: {} — {}".format(name, engine["status"], engine["detail"]))
-        if engine["language_supported"] and not hint:
-            hint = engine["install_hint"]
+    status = CapabilityStatus.ABSENT.value
+    for name in names:
+        engine = report["engines"][name]
+        line = "  {}: {} — {}".format(name, engine["status"], engine["reason"])
+        if engine["remedy"]:
+            line += "\n      fix: {}".format(engine["remedy"])
+        lines.append(line)
+        if engine["language_supported"] and not hint and engine["remedy"]:
+            hint = engine["remedy"]
+            status = engine["status"]
     return CapabilityError(
-        "entity detection was requested (--ner) with engine mode {!r}, but no "
-        "engine is usable for language {!r}:\n{}\n"
-        "Install one, or pass --ner-engine none to proceed without entity "
+        "entity detection was requested (--ner) with engine mode {!r}, but {} "
+        "for language {!r}:\n{}\n"
+        "Fix one, or pass --ner-engine none to proceed without entity "
         "detection. Structural detectors (email, card, IBAN, …) are "
-        "unaffected.".format(mode, language, "\n".join(lines)),
+        "unaffected.".format(
+            mode,
+            "no engine is ready" if mode == "auto" else "it is not ready",
+            language,
+            "\n".join(lines),
+        ),
         tier="ner",
-        status=CapabilityStatus.ABSENT.value,
-        install_hint=hint or 'pip install "spacy>=3.4,<4"',
+        status=status,
+        # Computed, never written down (CP-025): the tier's own declaration.
+        install_hint=hint or probe("ner").install_hint,
     )
 
 
@@ -554,47 +941,64 @@ def build_detectors(  # ruff: ignore[too-many-positional-arguments]
     size : str, default='sm'
         Preferred spaCy model size.
     required : bool, default=False
-        Whether the caller explicitly asked for entity detection. When true, a
-        mode that resolves to no engine raises instead of returning an empty
-        list. See the notes.
+        Whether the caller explicitly asked for entity detection. When true,
+        every engine that will run must be ready, data included, or this
+        raises. See the notes.
 
     Returns
     -------
     list of Detector
-        Constructed detectors, in engine priority order. Construction imports
-        nothing: each detector loads its engine on first use.
+        Constructed detectors, in engine priority order. Construction loads no
+        model: each detector loads its engine on first use.
 
     Raises
     ------
     PolicyError
         If ``mode`` is unknown.
     CapabilityError
-        If ``required`` is true and no engine is usable. ``mode="none"`` is
-        exempt: it is an explicit instruction to run no engine.
+        If ``required`` is true and the request cannot be met: ``auto`` found
+        no ready engine, or a named engine (or either of ``both``) is not
+        ready. ``mode="none"`` is exempt: it is an explicit instruction to run
+        no engine.
 
     Notes
     -----
-    **Developer notes.** Nothing here imports spaCy or NLTK. A detector is a
-    description until its first ``detect`` call, which is what keeps
-    ``--help`` and ``doctor`` free of a multi-second model load.
+    **Developer notes.** Without ``required`` nothing here imports spaCy or
+    NLTK, which is what keeps ``--help`` free of a multi-second load. With
+    ``required`` NLTK may be imported to check its data — only when NLTK is
+    about to run, so the import is paid once and early rather than once and
+    late.
 
     **Why ``required`` exists.** ``auto`` degrades by design: it is the default,
     and a default that refused to run on a base installation would make the
     base tier unusable. But ``--ner`` is not a default, it is a request. With
     ``auto`` resolving to nothing, honouring that request by adding no detector
     and exiting successfully tells a user their text was scanned for names when
-    nothing looked — the silent degradation that prompted this rewrite, arrived
-    at from the opposite direction. ``required`` separates the two: the same
-    resolution, but an explicit ask that cannot be met fails loudly, with every
-    engine's status and install command in the message.
+    nothing looked (``CP-024``). And a request for an engine that is installed
+    but has no data must fail *here*, with the remedy, not at the first
+    sentence — otherwise ``doctor``, which builds through this function too,
+    calls the configuration healthy (``CP-093``).
 
-    This lives here rather than in each caller because there are two callers
-    (the CLI and :func:`~scikitplot.cleanprompt.encode`) and a third would make
-    the same omission.
+    This lives here rather than in each caller because there are four callers
+    (the command line, :func:`~scikitplot.cleanprompt.encode`, the file
+    runtime and the web app) and a fifth would make the same omission. The web
+    app built its own spaCy detector until ``CP-094`` and ignored the engine,
+    language and model size it was given.
     """
-    selected = resolve_engine(mode, language)
-    if required and not selected and mode != "none":
-        raise _no_engine_error(mode, language)
+    selected = resolve_engine(
+        mode, language, model=model, size=size, check_assets=required
+    )
+    if required and mode != "none":
+        report = describe_engines(
+            language, mode, model=model, size=size, check_assets=True
+        )
+        if not selected:
+            raise _not_ready_error(mode, language, report, tuple(ENGINES))
+        not_ready = tuple(
+            name for name in selected if not report["engines"][name]["ready"]
+        )
+        if not_ready:
+            raise _not_ready_error(mode, language, report, not_ready)
 
     detectors: list[Detector] = []
     for name in selected:

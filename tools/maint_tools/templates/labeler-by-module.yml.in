@@ -1,0 +1,24 @@
+# GENERATED FILE - DO NOT EDIT.
+#
+# Module and library labels for https://github.com/actions/labeler (v7),
+# applied by .github/workflows/pr_labeler.yml.
+#
+# Source of truth:
+#   * owners      - [tool.scikitplot.maintenance.towncrier] in pyproject.toml
+#                   (the same owners as the release-note sections), so a new
+#                   package gets its label when it gets its section;
+#   * label names - "<root>/<path>", or [tool.scikitplot.maintenance.labeler]
+#                   label_aliases where GitHub's 50-character limit needs it;
+#   * satellites  - [tool.scikitplot.maintenance.labeler.satellites]: a module
+#                   label also fires for its maintenance plane, user guide,
+#                   gallery, follow-up ledger and release-note fragments;
+#   * libraries   - "libs/<dist>" also fires for every path the distribution
+#                   ships (scikitplot/_distributions.py), so a PR shows which
+#                   partial distributions it affects.
+#
+# Edit the template (tools/maint_tools/templates/labeler-by-module.yml.in) or
+# the policy, then regenerate and check:
+#   python tools/maint_tools/generate_pr_labeler.py sync --apply
+#   python tools/maint_tools/generate_pr_labeler.py check
+---
+@GENERATED_RULES@

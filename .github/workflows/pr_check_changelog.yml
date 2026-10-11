@@ -4,7 +4,9 @@ name: "PRs 📄 Changelog File"  # 🗸 🗹 ✔️ ☑️ ✅ 📝 📄 🗒️
 
 ## This check makes sure that the changelog is properly updated
 ## when a PR introduces a change in a test file.
-## To bypass this check, label the PR with "No Changelog Needed".
+## To bypass this check, label the PR with "no-changelog-entry-needed" (no entry
+## needed) or "skip-changelog-checks" (manual backport); both are configured in
+## pyproject.toml [tool.gilesbot.towncrier_changelog].
 on:
   pull_request:
     types: [opened, synchronize, labeled, unlabeled]

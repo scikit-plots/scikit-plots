@@ -2,6 +2,10 @@
   # https://docs.astropy.org/en/latest/development/quickstart.html
   # https://github.com/astropy/astropy/blob/main/docs/index_dev.rst
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _quickstart_contributing:
 
 ======================================================================

@@ -5,6 +5,10 @@
   .. include:: dependencies.rst
       :start-after: :orphan:
 
+.. contents:: On this page
+   :local:
+   :depth: 2
+
 .. _documentation-guidelines:
 
 ************************

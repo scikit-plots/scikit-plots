@@ -1,5 +1,596 @@
 # Active Tasks
 
+## Task: round 32 - CI red on PR 864: leaked Sphinx state, a py3.9 loop-bound lock, contract drift, a Windows env
+
+### Context (CI run 38111914441 / 38111914423, 2026-10-11)
+- Shard: `TestBuildCards::test_cards_render_title_header_image_content_and_link`
+  and `test_a_duplicated_contract_has_not_drifted[_validation.py]`.
+- Nine partial legs: the same gallery-grid test; py3.9 also
+  `test_network_policy.py::test_create_app_reads_origin_policy_from_the_environment`
+  ("There is no current event loop"); Windows also
+  `test_cloudflare_receiver.py` (`node` exit status, stderr not shown).
+
+### Root causes (each reproduced before any change)
+1. **Victim, not culprit.** The gallery-grid assertion is correct; the warning
+   is `while setting up extension sphinx.addnodes: node class 'toctree' is
+   already registered` (+ 55 lines). A per-test probe of
+   `sphinx.util.docutils.additional_nodes` names the culprit:
+   `_sphinx_feedback/tests/test_feedback_site_builds.py::test_example_conf_builds_a_standalone_site`
+   (0 -> 47 nodes, 48 directives, 23 roles). It builds with a bare
+   `sphinx.application.Sphinx(...)`; `sphinx-build` always runs that inside
+   `sphinx.util.docutils.docutils_namespace()`, which snapshots and restores
+   docutils' process-global registries. The next real build in the process
+   (gallery grid, alphabetically next) inherits the state; its
+   `SphinxTestApp.cleanup()` clears it, so only the first build fails.
+   Same defect, latent: `_sphinx_llm/tests/test_primary_config_override_integration.py`
+   (skipped in CI: no `sphinx_markdown_builder`); with it installed, it breaks
+   `_sphinx_youtube_gallery` the same way. Rule 69 already said "restore
+   process-wide state"; nothing enforced it.
+2. **Production defect on 3.9.** `FeedbackASGIApp.__init__` built
+   `asyncio.Lock()`. On 3.9 a lock binds to `get_event_loop()` when
+   constructed, which raises after any `asyncio.run()` (that ends with
+   `set_event_loop(None)`), and is pinned to that loop if it succeeds. 3.10+
+   binds lazily. 22 of 23 py3.9 failures point at `app.py:266`; the 23rd is a
+   test building `asyncio.Event()` outside its loop. `registry.py` had gated
+   `test_app.py`/`test_service.py` to >=3.10 for this, a workaround that hid
+   the bug until `test_network_policy.py` (ungated) called `create_app`.
+   The guarded section has no `await`: a `threading.Lock` is the exact
+   primitive (no loop binding, also safe if a host drives the app from threads).
+3. **Contract drift.** `rank_bm25/_validation.py` was edited 2026-10-11 04:09;
+   the only change is `__all__` reflowed to four lines. Two of three copies
+   (and their history) use one line.
+4. **Windows env.** The test runs `node` with `env={"SECRET", "PATH"}` only.
+   Python's `subprocess` documentation: on Windows `env` "must include a valid
+   `SystemRoot`". Linux and macOS have no such requirement, matching the one
+   failing leg. `check=True` hid node's stderr, which is why the CI line could
+   not say more.
+
+### Implementation Steps
+- [x] 1. `rank_bm25/_validation.py` = `corpus/_validation.py` (byte copy); the
+      drift test names the differing copy and prints a unified diff
+- [x] 2. `_service/app.py`: `threading.Lock`, `with`; drop unused `asyncio`
+- [x] 3. `test_service.py`: create the two `asyncio.Event`s inside the loop
+- [x] 4. `libs/_tools/registry.py`: lift the 3.9 gate for the feedback tests
+- [x] 5. `test_feedback_site_builds.py`, `_sphinx_llm` integration test: build
+      inside `docutils_namespace()`
+- [x] 6. `_sphinx_ext/conftest.py`: autouse guard; a test that leaves Sphinx
+      nodes registered fails at its own teardown (state restored, no cascade)
+- [x] 7. `test_cloudflare_receiver.py`: inherit the environment, add `SECRET`;
+      report node's stderr on failure
+- [x] 8. Lessons, fragment if user-visible
+
+### Acceptance Criteria
+- Full `_sphinx_ext` suite from the installed wheel (CI command and ignores):
+  the gallery-grid test passes; guard reports 0 leakers.
+- Guard proven: re-introducing the bare build makes the leaker fail, not the
+  victim.
+- Python 3.9: whole `_sphinx_feedback` suite incl. `test_app.py`,
+  `test_service.py` passes; the old code fails the same tests.
+- `test_submodule_independence.py` passes; the four local gates pass.
+
+
+### Results Review - round 32 - 2026-10-11
+
+#### Verification evidence
+- CI harness `python -m libs._tools verify scikit-plots-skinny scikit-plots-sphinx-ext
+  --python 3.9 --python 3.13`: **150 passed, 0 failed, 0 skipped**.
+  `part's own tests pass [sphinx-ext]`: py3.9 5209 passed (CI: 5097 passed,
+  2 failed); py3.13 6330 passed (CI: 6329 passed, 1 failed).
+- Guard proof (round-31 `test_feedback_site_builds.py` put back): 13 teardown
+  errors in that file, gallery grid green; fixed file: 0. Loads under CI's
+  `--pyargs` invocation and when only one sub-package is targeted.
+- Lock proof, Python 3.9, feedback + gallery grid: old `app.py` 22 failed;
+  new 730 passed. AST check: no `await` inside `with self._rate_lock:`.
+- Proxy mirror re-synced with `sync_page_feedback_runtime.py`; every mirrored
+  file byte-identical to its source.
+- Drift test: green; on the uploaded `rank_bm25/_validation.py` it fails and
+  prints the `__all__` reflow as a unified diff.
+- Gates: towncrier PASS (104); labeler PASS after `sync --apply`; test module
+  names ok; path lengths 0 failing; `libs._tools check` up to date;
+  `libs/_tools/tests` 696 passed; ruff: no new finding in any changed file;
+  py3.9 byte-compile ok.
+- Windows (`test_cloudflare_receiver.py`): passes on Linux; the Windows leg is
+  the confirmation (stderr is now in the failure message if it does not).
+
+#### Deviations from plan
+- `.github/labeler-by-module.yml` was stale in the upload, independent of this
+  round: `maintenances/mlflow/**` and `skills/mlflow/**` (present since
+  2026-09-12) were missing, so round 31 generated it in a tree without them.
+  Regenerated. `check --strict` here: 8 root globs match nothing
+  (`setup.py`, `setup.cfg`, `tox.ini`, `codecov.yml`, `CITATION*`, `COPYING`,
+  `LICENSE`, `LICENSE.rst`); 7 dotfile globs cannot be decided because the
+  archive carries no root dotfiles (not even `.gitignore`). `labeler.yml` is
+  curated by hand and was not changed.
+- Not a defect, left alone: `_sphinx_collection/tests/test_sections.py` grows
+  `directives._directives` by docutils' own lazy cache (`.. note::`).
+- Found, out of scope: under pytest < 9 with `rootdir` not above
+  `site-packages`, the AI-assistant conftest's autouse fixtures apply to every
+  package and its redacting root handler breaks 3 `_sphinx_youtube_gallery`
+  caplog tests. CI is unaffected (`verify.py` runs with `cwd` = the
+  environment); reproduced and confirmed both ways.
+- Found, out of scope: `_sphinx_llm/core/generator.py:233` uses
+  `Node.traverse()` (docutils DeprecationWarning; `findall`).
+
+#### Files changed
+- `scikitplot/rank_bm25/_validation.py` (byte copy of the contract)
+- `scikitplot/tests/test_submodule_independence.py` (diff in message)
+- `scikitplot/_externals/_sphinx_ext/conftest.py` (new guard)
+- `_sphinx_feedback/_service/app.py` + proxy mirror `_page_feedback/_service/app.py`
+- `_sphinx_feedback/tests/test_feedback_site_builds.py`, `test_service.py`,
+  `test_cloudflare_receiver.py`; `_sphinx_llm/tests/test_primary_config_override_integration.py`
+- `libs/_tools/registry.py`, generated `libs/README.md`
+- `.github/labeler-by-module.yml` (regenerated)
+- `docs/.../scikitplot._externals._sphinx_ext._sphinx_feedback/864.fix.rst`
+- `tasks/todo.md`, `tasks/lessons.md` (Rules 73-77)
+
+## Task: round 31 - PR/issue labeling: one policy, generated configs, semantic checks
+
+### Context (facts, grounded in the pinned action sources)
+- `actions/labeler@bf12e9b` (v7): a label's bare match list is `any`; inside one
+  `changed-files` list every option is a separate check, OR-ed
+  (`src/changedFiles.ts::checkAnyChangedFiles`). Globs use minimatch, `dot: true`.
+- `github/issue-labeler@ccca1e1` (v3.5): each config value is a JS regex,
+  case-sensitive unless written `/re/flags`; several entries for one label are
+  AND-ed; title text is `title + "\n\n"`; works for issues and PRs.
+- `gerrymanoim/pr-prefix-labeler@c806232`: `title.startsWith(key)`, first match
+  only, no word boundary, input `configuration-path` (read via `with:`), throws
+  on non-PR events.
+- GitHub label names: at most 50 characters (github/docs#32156).
+
+### Root causes
+1. Module labels hand-maintained beside the towncrier owner policy: 20 of 45
+   packages unlabeled (cleanprompt, corpus, mcp, mlflow, rank_bm25, ...), no
+   libs/ or tools/ labels, `scikitplot/visualkeras.py` glob dead (now a package).
+2. `labeler.yml` semantics: `documentation` OR-s an all-negated
+   `all-globs-to-any-file` -> nearly every PR is labelled `documentation`;
+   `lang:cython` matches `*.pyi` stubs; `build:templates` matches `*.tp`
+   (none) while templates are `*.in`; `release` names workflows that do not
+   exist and a `maintainers*` file glob that misses the directory; tests label
+   misses every `*/tests/` except `scikitplot/tests`.
+3. Three title vocabularies (issue-labeler `defect`/`Build issues`/...,
+   prefix labeler `00 - Bug`/`36 - Build`/..., dead `label_title_regex.py`
+   `Documentation`/`Build / CI`): one prefix gives two labels; substring regexes
+   without boundaries (`DOC` in `DOCKER`); `[Bug]:` template titles get no label.
+4. `pr_labeler.yml`: also triggered by `issues: opened` (PR checklist posted on
+   every new issue; PR-only steps fail silently; duplicates issue_labeler.yml);
+   concurrency keyed by head branch (fork PRs named `main` cancel each other);
+   draft comment on every push; prefix labeler config passed via `env:`;
+   checklist names labels that do not exist (`whatsnew-needed`, `Extra CI`);
+   title edits never re-label (no `edited`).
+5. No generator, no CI gate -> drift (towncrier check also failing:
+   `scikitplot.levenshtein` missing).
+
+### Plan
+- [x] `tools/maint_tools/generate_pr_labeler.py` (check/sync/explain/list),
+      policy `[tool.scikitplot.maintenance.labeler]`, templates `*.yml.in`
+- [x] module labels from towncrier owners + satellites + distribution ownership
+- [x] title labels from one prefix/keyword registry (issue-labeler regexes)
+- [x] curated `labeler.yml`: schema, glob subset, negation, unmatched checks; fix rules
+- [x] workflow fixes; drop pr-prefix-labeler + dead script; issue templates labels;
+      `issue_labeler.yml` without checkout; changelog comment names the real labels
+- [x] CI workflow `pr_check_labeler.yml`; 41 tests incl. minimatch cross-check;
+      towncrier sync (104 sections, test expectation 103 -> 104)
+
+### Results Review - 2026-10-11
+- `generate_pr_labeler.py check`: PASS (curated 12, module 78 (was 33), title 19);
+  warnings only for root files absent from the uploaded archive (verify on a
+  real checkout with `check --strict`).
+- `test_generate_pr_labeler.py`: 41 tests OK on Python 3.12 and 3.8 (minimatch
+  cross-check runs when Node + minimatch are installed: OK with minimatch 10).
+- Earlier cross-checks: 356 globs x 6069 paths equal to minimatch; 52 titles
+  equal between Node and Python regex engines.
+- `generate_towncrier_sections.py check`: PASS (104); its tests: 7 OK.
+- All workflow YAML parses; test module names unique; path lengths 0 failing.
+- Found while writing tests: `label_matches` stopped at the first key of an
+  `any:` object holding several keys (elif chain); labeler v7 checks each key.
+  Fixed; `test_one_any_object_with_several_keys_checks_each_key`.
+- Removed: `.github/pr-prefix-labeler.yml`, `.github/scripts/label_title_regex.py`
+  (listed in `REMOVED_FILES.txt`).
+
+## Task: round 30 - CI collision (again), options regression, forge engine, GitLab, Bitbucket, live-Space check, logging flake
+
+### Context
+- CI (PR 864, 2026-10-11): shard and nine partial legs still fail on
+  `_sphinx_feedback/tests/test_sphinx_build.py`: the uploaded tree still has
+  it (round 29b's archive could not delete it).
+- Uploaded tree also carries a lint edit in `_service/_config.py` that made
+  numeric custom options raise `TypeError` (`len()` before the type check).
+- Maintainer asks to continue the open items: native forge storage and the
+  live Space.
+
+### Implementation Steps
+- [x] 1. Delete the stale file; `tools/maint_tools/check_test_module_names.py`
+      (pytest prepend-mode names) + tests + `pr_check_test_module_names.yml`;
+      `REMOVED_FILES.txt` in the archive
+- [x] 2. Options: type-first validation, finite floats; 11 tests (7 fail on
+      the uploaded code)
+- [x] 3. Proxy `/` and `/health`: `page_feedback` status; one default constant
+- [x] 4. `_service/_forge.py`: engine extracted from GitHub (GitHub's 27 tests
+      unchanged and green); `GitHubOps`
+- [x] 5. `_gitlab.py` (docs-checked calls), `_bitbucket.py` (Cloud);
+      config (api_url, nested GitLab groups, Bitbucket Cloud only); core
+      dispatch; 31 parity tests over both; mutation checks caught
+- [x] 6. CLI `check-provider` (read-only); test asserts zero writes
+- [x] 7. Logging flake: probe found two offenders; autouse restore fixture
+- [x] 8. README, `_example_conf.py`, tools README, ledger narrowed to HF +
+      Bitbucket DC, fragment, lessons 67-69, assistant HISTORY, mirror, 0.9.0
+
+### Verification
+- `check_test_module_names.py scikitplot`: ok (and CLASH when the stale file
+  is put back).
+- `_sphinx_feedback` suite `-W error`: 422 passed.
+- AI-assistant whole tree `-n 8`: 2815 passed, 2 skipped; proxy+integration+
+  architecture `-n 8` x3: green after the fix (was 1 failure in 2).
+- Probe: each of 80 test files before `test_root_logging_isolation.py`:
+  offenders before = 2, after = 0.
+
+## Task: round 29b - CI collision fix; feedback for any deployment and storage
+
+### Context
+- CI (PR 864): `_sphinx_feedback/tests/test_sphinx_build.py` collided with
+  `_sphinx_ai_learn/tests/_integration/test_sphinx_build.py` (same top-level
+  module name) -> shard collection error and sphinx-ext partial leg error.
+  Renamed to `test_feedback_site_builds.py` (delivered as round29b_ci_fix).
+- Maintainer asked for wide customization: intranet/local endpoints, git,
+  GitHub(+Enterprise), GitLab, Bitbucket, Cloudflare; defaults and notes;
+  logging guide; generators. Answers: "support wide area ... customizable
+  options and policy ... logging guide", "fully customizable ... default
+  setting and notes", Cloudflare "best practice, future proof".
+
+### Implementation Steps
+- [x] 1. `_network.py`: strict / private-network / any; same-origin path;
+      explicit private ranges; lexical suffixes (+ operator suffixes)
+- [x] 2. Sphinx `feedback_endpoint_policy`, `feedback_private_host_suffixes`;
+      service `FEEDBACK_ORIGIN_POLICY`, `FEEDBACK_PRIVATE_HOST_SUFFIXES`
+- [x] 3. Providers: `git` (local commits), `webhook` (HMAC-signed), `custom`
+      (factory), GitHub `api_url` (Enterprise); per-provider key allowlists;
+      modes `local`, `custom`; env shorthands
+- [x] 4. Logging: `sphinx_feedback.service` structured records; Sphinx `-v` line
+- [x] 5. CLI `aggregate` / `init`
+- [x] 6. Cloudflare reference Worker (D1) + Node test
+- [x] 7. README, `_example_conf.py`, mirror sync (+ file-set test), ledger note
+      for native GitLab/Bitbucket/HF adapters, fragment `864.feature.rst`,
+      lesson 66, version 0.8.0
+- Not done: native GitLab/Bitbucket/HF adapters (ledger note; webhook/custom
+  cover them meanwhile).
+
+### Verification
+- Duplicate test basename scan (no `__init__.py` dirs under `scikitplot/`): `{}`.
+- `pytest _sphinx_feedback --confcutdir ... -W error`: 379 passed (was 314).
+- Doctests `_network.py`, `_service/_webhook.py`: 2 passed.
+- Proxy + integration + architecture (`-n 8`): 2118 passed, 2 skipped; one
+  earlier identical run failed `test_root_logging_isolation` once, four reruns
+  passed (recorded in the assistant HISTORY).
+- Node 22: reference Worker test passed (202/202/409/401/404/405).
+- Python 3.8: all changed modules compile; `_network`, config and CLI smoke-run.
+- `ruff check` clean on production modules; mirror byte-identical
+  (`receivers/` JS is source-only by design); new paths <= 131 characters.
+
+## Task: round 29 - page feedback on any site, with or without the AI assistant
+
+### Context
+- Goal: https://scikit-plots.github.io/dev/ feedback works like
+  https://scikit-plots-learn.readthedocs.io/en/latest/; any site can use
+  `_sphinx_feedback`; add `_sphinx_feedback/_example_conf.py`; check
+  `docs/source/conf.py`.
+- Root cause (reproduced): the library site sets `feedback_site_id = "scikit-plots"`.
+  (1) Build: the one packaged snapshot `_static/page-feedback-aggregate.json`
+  carries `site_id` `scikit-plots-learn` -> `load_aggregate` raises
+  "feedback aggregate site_id does not match feedback_site_id" at
+  `config-inited`. (2) Submit: proxy default `FEEDBACK_ALLOWED_SITE_IDS` was
+  `scikit-plots-learn` -> `422 site_not_allowed`. CORS was not a cause: both
+  origins are in `_DEFAULT_ALLOWED_ORIGINS`. The JS and the Python package
+  import nothing from the AI assistant.
+- Found on the way: `SQLiteFeedbackStore` never closed connections
+  (`with conn` only ends the transaction); the suite failed at random tests
+  under `-W error` on Python 3.13.
+
+### Implementation Steps
+- [x] 1. `_config.load_aggregate(source_root=)` + `_resolve_aggregate_path`: no
+      leading `/` = file inside the site's `confdir`, confined (`..`, `\`, `:`,
+      `?`, `#`, empty segments, symlink escape refused); `/` form unchanged
+- [x] 2. `_sphinx._configure` passes `app.confdir`
+- [x] 3. Proxy default allowlist `scikit-plots-learn,scikit-plots`
+- [x] 4. `docs/source/conf.py`: `feedback_aggregate_file = "_page_feedback/aggregate.json"`;
+      new complete V3 snapshot (`site_id` `scikit-plots`, no rows); corrected the
+      AI Learn comment (this site does not enable AI Learn)
+- [x] 5. `_example_conf.py` (every `feedback_*` value; AI assistant, two-site,
+      service variants)
+- [x] 6. SQLite `closing()` in store and tests; mirror resynced; version 0.7.0
+- [x] 7. Tests: `test_feedback_site_builds.py` (10 real builds incl. with the AI
+      assistant), loader unit test, example-imports-nothing, integration test
+      parses allowlist and checks the library conf
+- [x] 8. README, assistant HISTORY, fragment `864.fix.rst`, lessons 64-65
+
+### Acceptance Criteria
+- [x] Library conf values validate and its snapshot loads (`scikit-plots`, complete)
+- [x] Proxy accepts `scikit-plots-learn` and `scikit-plots`, refuses others
+- [x] Any `site_id` builds with no snapshot; another site's packaged snapshot fails closed
+- [x] Feedback suite green under `-W error`; proxy + integration suites green
+
+### Risks & Mitigation
+- Live HF Space keeps the old default until redeployed -> set
+  `FEEDBACK_ALLOWED_SITE_IDS=scikit-plots-learn,scikit-plots` on the Space.
+- `complete: true` for `scikit-plots` rests on the code default never having
+  allowed that site; if the Space ever set the variable to include it,
+  regenerate the snapshot from the reviewed events before publishing.
+
+### Results Review - 2026-10-10
+- Files: 17 (4 new: `_example_conf.py`, `tests/test_feedback_site_builds.py`,
+  `docs/source/_page_feedback/aggregate.json`, fragment `864.fix.rst`).
+- Evidence (CPython 3.13, Sphinx 9.1.0):
+  - `pytest scikitplot/_externals/_sphinx_ext/_sphinx_feedback --confcutdir ... -W error`
+    -> 314 passed (before: 297 passed + random ResourceWarning errors).
+  - `pytest .../_sphinx_ai_assistant/tests/_hf_spaces_proxy .../tests/_integration -n 8`
+    -> 1361 passed, 2 skipped (the two learn-checkout-only conf tests).
+  - Proxy imported with no `FEEDBACK_ALLOWED_SITE_IDS` set: allowlist
+    `('scikit-plots-learn', 'scikit-plots')`; both accepted, `someone-else`
+    refused `site_not_allowed`.
+  - Library `docs/source/conf.py` feedback values validate; snapshot loads
+    `complete: True` for `scikit-plots`.
+  - Python 3.8: changed modules compile; loader accepts the source form and
+    refuses `../`, `_f/../../`, `C:` selectors.
+  - `ruff check` clean on changed production modules and new tests; new paths
+    <= 77 characters (budget 131).
+- Deviation: SQLite connection leak fixed in scope (it made the suite
+  nondeterministic under `-W error`).
+- Not done here: redeploying the HF Space (or setting its variable).
+
+## Task: cleanprompt round 26 - pattern-risk check (warn by default, user-tuned), custom surrogate sets, generator design
+
+### Context
+- Goal: close `guard-custom-pattern-runtime.md` step 1 and
+  `customizable-surrogate-generator.md` slice A, with the maintainer's
+  decisions: PR number **864**; risky custom patterns are **always warned
+  about**, with quick options and policy tuning (ignore / warn / refuse,
+  per pattern, per run, per team, per machine); the generator scope is
+  Claude's call — a sectioned, future-oriented design, then slice A.
+- Rationale: one custom pattern could stall a run silently; surrogates were
+  English-only and closed.
+- Affected systems: `_pattern_risk.py` (new), `_surrogate_sets.py` (new),
+  `_packs.py`, `_patterns.py`, `_custom.py`, `_plan.py`, `_runtime.py`,
+  `_policy.py`, `_engine.py`, `_surrogates.py`, `_cli.py`, `__init__.py`,
+  README, guide (5 pages), gallery (2 examples), maintenance plane, ledger.
+
+### Implementation Steps
+- [x] 1. Release fragments for round 25 under PR 864; promote the two notes
+- [x] 2. `_pattern_risk.py`: parser, overlap by public `re`, three rules,
+      `not-analysed`; calibration (EMAIL false positive found and fixed by
+      reading round to the group's leading separator)
+- [x] 3. Pack schema `risk: accepted` + `risk_reason`; `PatternSpec.risk_reason`
+- [x] 4. Policy surfaces: `load_custom/with_custom(pattern_risk=)`,
+      `CleanPlan.pattern_risk` (+ validate refuse, cleaner warn),
+      `FluentCleanPrompt.pattern_risk`, `--pattern-risk` (5 commands, both
+      frontends), stderr `warning:` block, `packs --check` listing
+- [x] 5. `GENERATOR_DESIGN.md` (floor, invariants G1-G6, slices, locale,
+      growth paths, rejected alternatives)
+- [x] 6. Slice A: `_surrogate_sets.py`, `TagStyle.surrogates/surrogate_set`,
+      engine refusal without the set, plan/CLI `--surrogates` (7 commands)
+- [x] 7. `CP-105` (held two-word name shown with a dot) found via the gallery
+      and fixed in `_engine._shows_held`
+- [x] 8. Tests: `test__pattern_risk.py`, `test__surrogate_sets.py`,
+      regressions CP-104/CP-105; flaky xdist test root-caused (Rule 55)
+- [x] 9. Docs, gallery, README, fragments, ledger (2 promoted, 2 new open)
+- [x] 10. Verification ladder, evidence refresh, drop-in
+
+### Acceptance Criteria
+- [x] Built-in patterns and packs report no finding; measured run time agrees
+      with every verdict (`probe_round26.py`)
+- [x] Default grammar, policy and plan digests unchanged (pinned)
+- [x] Every pre-existing test passes; no expectation deleted
+- [x] Both frontends agree; abbreviations refused
+- [x] Every new doc example executed
+
+### Risks & Mitigation
+- Risk: false positives annoy users -> warn (never refuse) by default,
+  acceptance in the pack, `ignore` mode; quadratic optional-separator case
+  deliberately not reported.
+- Risk: a set weakens safety -> fixed floor; set only proposes; run-time
+  re-check of every candidate.
+- Risk: new fields invalidate saved vaults/plans -> omitted while default;
+  digests pinned.
+
+## Results Review - cleanprompt round 26 - 2026-10-10
+
+### Implementation Summary
+- Findings closed: `CP-104` (pattern risk), `CP-105` (held name with a
+  dot), `CP-106` (append mixed grammars), `CP-107` (OverflowError in pack
+  validation); slice A of the generator.
+- New modules: `_pattern_risk.py`, `_surrogate_sets.py`; changed: `_packs`,
+  `_patterns`, `_custom`, `_plan`, `_runtime`, `_policy`, `_engine`,
+  `_surrogates`, `_cli`, `__init__`, README; tests: `test__pattern_risk`,
+  `test__surrogate_sets` (new), `test_regressions`, `test__runtime`.
+- Docs: files_and_packs, how_it_works, python_api, troubleshooting,
+  security_and_limits; gallery: packs, moderate; fragments: security
+  feature/fix, cleanprompt feature/fix.
+- Maintenance: `GENERATOR_DESIGN.md` (new), DESIGN §25, handoff rules 22–25,
+  REVIEW, STATE, EVIDENCE lanes 46–47, VERIFICATION, HISTORY, RESUME, skill,
+  lessons 55–57; probes `probe_round26.py`, `probe_round26_fuzz.py`; ledger:
+  2 promoted, 3 new open notes.
+
+### Verification Evidence
+- Suite: 2888/88 (no tier; 2 runs, 2 shuffled orders, xdist), 2899/77
+  (engines without data), 2966/10 (every tier); CPython 3.8–3.14 green.
+- Probes: negative (both installations), isolation, fuzz 4000, scale,
+  engines, round 25, round 26 (22 measured verdicts), round-26 fuzz: 0
+  failures. Gallery 9/9 twice. Guide 9 passed.
+- `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED.
+
+### Deviations from Plan
+- The independent review (12 findings) and a hand re-run of its brief
+  (`CP-107`, NFKC over-refusal) and a soundness fuzz (3 misses) each forced
+  a re-plan of the analyser or the floor; recorded in DESIGN §25.
+- A second review pass was cut off by a rate limit.
+
+### Technical Debt / decisions for the maintainer
+- Ordinary-word set entries (new note), runtime bound (new note), provider
+  protocol (new note); GitHub handle for fragments.
+
+### Approval Checklist
+- [x] Meets all acceptance criteria
+- [x] No regression; no expectation deleted (one test's sample value changed, root cause recorded)
+- [x] Documentation updated
+- [x] Tests added for every finding, each able to fail on the old tree
+- [x] Evidence refreshed only from lanes that ran on this tree
+
+## Task: cleanprompt round 25 - truthful readiness, safe deployment files, Unicode detection view, multi-page guide
+
+> Fresh chat? Read `maintenances/cleanprompt/_maintenance/RESUME.md` first: it holds the
+> step-by-step state of this task, the last verified numbers and the next action, so the work
+> continues without this chat's history.
+
+### Context
+- Goal: make every surface of `scikitplot.cleanprompt` say what it actually does before adding
+  capability (the review's governing principle), then close one leak class and expand the docs.
+- Inputs (read-only, not in the tree): `scikit_plots_cleanprompt_review_2026-10-10` (internal
+  review, findings CP-NEW-01..08) and `cleanprompt_external_research_2026-10-09` (external
+  comparison; a backlog, not a target to clone).
+- Affected: `scikitplot/cleanprompt/{_engines,_diagnostics,_app,_serve,_cli,_canonical,_engine}.py`
+  and tests; `galleries/examples/cleanprompt/`; `docs/source/user_guide/cleanprompt/`;
+  `maintenances/cleanprompt/`; `skills/cleanprompt/SKILL.md`; `upcoming_changes/`.
+
+### Baseline (measured 2026-10-09 on the uploaded tree, frozen copy, stand-in parent)
+- Suite: 2468 passed, 79 skipped (spaCy and NLTK absent), 38.6 s.
+- `check_trackers.py --json`: runtime PASS, maintenance FAIL, release BLOCKED -
+  `EVIDENCE runtime_tree_fingerprint does not match` (review CP-NEW-01 confirmed).
+- Reproduced on the untouched tree (`repro_p0.py`, see RESUME.md):
+  - `container_files(with_ner=True)` installs `en_core_web_lg`; runtime default is `en_core_web_sm`.
+  - Dockerfile run comment publishes `-p 5000:5000` (all interfaces); compose uses `127.0.0.1:`.
+  - compose sets `CLEANPROMPT_NER: "1"`, which no code reads.
+  - `resolve_bind` has no notion of `debug`; `--docker --debug` reaches `app.run(debug=True)` on 0.0.0.0.
+  - `create_app(enable_ner=True, ner_engine="nltk", language="tr", model_size="lg")` calls
+    `spacy_detector(model=None)`.
+  - `encode()` leaves `ada\u200b@example.com`, full-width addresses, `+1 555\u00a00100`,
+    `+1‑555‑0100` and `192.0.2.\u200b10` unredacted; `4111\u200b1111 1111 1111` becomes
+    `4111\u200b[PHONE-1]` (card prefix leaked, rest mislabelled).
+
+### Design decisions (what / why)
+- **Readiness is not installation (CP-093).** An engine is *ready* when its tier is installed,
+  it supports the language, and its assets exist. spaCy assets are checked from distribution
+  metadata (no import); NLTK corpora can only be checked by importing NLTK, so that check runs
+  only where the caller is about to load NLTK anyway (`check_assets=True`: explicit requests,
+  `doctor`, the web app with NER on). `auto` never selects an engine known to be unready;
+  `build_detectors(required=True)` refuses any requested engine that is not ready, naming each
+  engine's reason and remedy. One function decides, so `doctor`, `inspect`, `encode` and the web
+  app cannot disagree.
+- **One builder (CP-094).** `create_app` builds entity detectors through `build_detectors`, the
+  same call the CLI and API use; no web-specific construction remains.
+- **Generated files derive from the runtime (CP-095, CP-096).** The model the image installs is
+  `resolve_model(language, size)`, and the image passes it explicitly (`--ner-engine spacy
+  --ner-model <model>`), so a later default change cannot split them. Every generated launch
+  line publishes on `127.0.0.1`. Dead configuration is removed, not documented.
+- **Debug is refused off loopback (CP-097).** Werkzeug's debugger executes code; the app has no
+  authentication. `resolve_bind(..., debug=True)` raises for any non-loopback host, including
+  container mode.
+- **Detection view (CP-098).** Structural and literal detectors also run over a *view* of the
+  text: format characters (Unicode category Cf: zero-width, bidi controls, soft hyphen) removed
+  and each remaining character folded by the same same-length table `_canonical` already uses
+  for "the same value" (ASCII control whitespace kept, so lines stay lines). View spans are
+  mapped back through an offset map onto the original text and joined to the original-text
+  spans before overlap resolution. The source is never rewritten; the vault holds the original
+  surface, so restoration is exact. Adding spans can only widen redaction (overlaps merge).
+  Entity engines keep reading the original text. No view pass when the view equals the text.
+- **Docs.** The single 649-line page becomes a guide of several pages; the sync test reads all
+  of them. The README stops carrying a hand-counted command total.
+- **Continuity.** `RESUME.md` in the maintenance plane is the step log a fresh chat starts from;
+  a maintenance test fails when it and the `upcoming_changes` ledger disagree.
+- **Not this round (recorded as upcoming_changes notes with full designs):** customizable
+  surrogate generator, per-kind action policy, VIN and locale packs, custom-regex time guard,
+  generated coverage matrix.
+
+### Implementation Steps
+- [x] 1. Plan, RESUME.md, skill read-first, continuity test (Est 30 min)
+- [x] 2. CP-093 readiness + CP-094 web builder, tests first (Est 90 min)
+- [x] 3. CP-095/096/097 container files and debug guard, tests first (Est 45 min)
+- [x] 4. CP-098 detection view, tests per class first (Est 120 min)
+- [x] 5. Regression tests + negative probes for CP-093..CP-098 (Est 45 min)
+- [x] 6. Gallery updates (Est 60 min)
+- [x] 7. Multi-page user guide + README inventory + sync test (Est 120 min)
+- [x] 8. upcoming_changes: close the two implemented notes, add next-slice notes (Est 45 min)
+- [x] 9. Verification ladder; refresh REVIEW/STATE/EVIDENCE/HISTORY/DESIGN/VERIFICATION (Est 90 min)
+- [x] 10. Independent review by a fresh agent; drop-in package (Est 45 min)
+
+### Acceptance Criteria
+- [x] With spaCy installed and no model, `doctor --ner` is not healthy and names the model
+      download; `inspect --ner` fails with the same remedy; `auto` does not pick spaCy.
+- [x] With NLTK installed and no corpora, `doctor --ner --ner-engine nltk` is not healthy and
+      names the corpora; `inspect` agrees.
+- [x] `create_app` constructs exactly the detectors `build_detectors` would for its arguments.
+- [x] Generated image: installed model == requested model; every launch line is loopback.
+- [x] `--debug` with any non-loopback bind exits with a clear refusal.
+- [x] Every obfuscation in the baseline list is redacted and restores byte-exact; ordinary text
+      produces byte-identical output to the baseline.
+- [x] Suite green in repeated runs and both frontends; contract checker maintenance + runtime PASS.
+- [x] Gallery executes hermetically; guide sync test covers every page.
+
+### Risks & Mitigation
+- Risk: readiness check makes `build_detectors` import NLTK where it did not → Mitigation:
+  only under `check_assets=True`; `test_construction_imports_nothing` stays.
+- Risk: view pass changes output for ordinary text → Mitigation: no pass when view == text;
+  byte-identity test against fixed expectations; additive spans only.
+- Risk: test stubs assumed "installed == ready" → Mitigation: rewrite those tests to the
+  corrected contract (a stubbed model), never delete.
+
+### Verification Steps
+- Focused files, then whole suite x3 + shuffled order; engines venv with and without assets;
+  probes (`probe_negative`, `probe_isolation`, `probe_gallery`); `check_trackers --json`.
+
+## Results Review - cleanprompt round 25 - 2026-10-10
+
+### Implementation Summary
+- Findings closed: `CP-093` … `CP-103` (six from the internal review, each
+  reproduced first; five found by this round's own verification, one of which —
+  `CP-102` — the round introduced and its independent review caught).
+- Runtime files changed: `_engines.py`, `_nltk.py`, `_ner.py`, `_canonical.py`,
+  `_engine.py`, `_detectors.py`, `_packs.py`, `_diagnostics.py`, `_cli.py`,
+  `_app.py`, `_serve.py`, `_custom.py` (docstring), `README.md`; project CLI:
+  `scikitplot/_cli/registry.py`.
+- Tests: new or extended in `test__engines`, `test__cli`, `test__app`,
+  `test__serve`, `test__canonical`, `test__engine`, `test__nltk`, `test__ner`,
+  `test__diagnostics`, `test__runtime`, `test_regressions`, `tests/_tiers.py`;
+  `scikitplot/_cli/tests/test_registry.py` (new); maintenance
+  `test_resume.py`, `test_documented_cli.py`, `test_review.py` (new).
+- Docs: guide split into index + ten pages; gallery: moderate, advanced,
+  recipes, packs, README.txt.
+- Maintenance: `RESUME.md` (new), DESIGN §24, REVIEW, STATE, EVIDENCE,
+  VERIFICATION lanes 42–45 and lane 13, HISTORY, handoff, skill, reviewer
+  staleness check; ledger: two notes closed or blocked, eleven added.
+
+### Verification Evidence
+- Suite: 2654 passed / 88 skipped (no tier; 3 runs + 2 shuffled + live
+  logging agree), 2665 / 77 (engines without data), 2732 / 10 (every tier).
+- CPython 3.8–3.14: green.
+- Probes: negative (both installations), isolation, fuzz 4000, scale, engines,
+  round 25: 0 failures. Gallery 9/9 twice. Maintenance 88 passed. Guide 9 passed.
+- `check_trackers.py`: maintenance PASS, runtime PASS, release UNVERIFIED.
+- Logs: `maintenances/cleanprompt/_maintenance/evidence/*.log` (round 25 headers).
+
+### Deviations from Plan
+- `CP-099`…`CP-103` were not in the plan; each was found by executing a step
+  (live engines, executing every doc example, the independent review).
+- The independent review agents were cut off by a rate limit; the runtime
+  agent's last lead was followed by hand and was a real regression (`CP-102`).
+- Six live-model tests that failed with spaCy installed but no model (present
+  on the uploaded tree) now skip on readiness with the remedy in the reason.
+
+### Technical Debt / decisions for the maintainer
+- Towncrier fragments drafted, blocked on a PR number
+  (`upcoming_changes/scikitplot/cleanprompt/round-25-release-fragments.md`).
+- Open, with designs: key-value/code names and JSON strings through the view;
+  non-ASCII email addresses; PHONE groupings; near-placeholders on restore;
+  custom-pattern run time; surrogate generator; per-kind actions;
+  vehicle/locale packs; look-alike characters; coverage matrix.
+- Decisions: refuse vs warn for nested unbounded custom patterns; whether the
+  surrogate generator gets a Python provider protocol (slice B).
+
+### Approval Checklist
+- [x] Meets all acceptance criteria
+- [x] No regression: every pre-existing test passes; changed expectations
+      rewritten to the corrected contract, none deleted
+- [x] Documentation updated (guide, gallery, README, skill, maintenance plane)
+- [x] Tests added for every finding, each able to fail on the old tree
+- [x] Evidence refreshed only from lanes that ran on this tree
+
 ## Task: Partial distributions of scikit-plots (`libs/<name>`), in the manner of mlflow-skinny
 
 ### Context

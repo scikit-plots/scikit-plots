@@ -1,3 +1,43 @@
+..
+   "navigation_depth": 3,  # Allow up to four levels in the left sidebar
+   "show_nav_level": 1,    # as the initially shown levels left-hand, in-page TOC, to set how many levels are expanded initially.
+   "show_toc_level": 1,    # as the initially shown levels right-hand, in-page TOC, to set how many levels are expanded initially.
+   For the left .bd-sidebar-primary, set PyData’s navigation_depth to the deepest level you want anywhere—4 in your case.
+   That option is site-wide. Then use :maxdepth: on each section’s toctree to limit particular branches to 3 or 4 levels.
+   Sphinx uses :maxdepth: to limit the document tree; :tocdepth: is for the page’s right-hand, within-page TOC.
+   https://www.sphinx-doc.org/en/master/usage/restructuredtext/field-lists.html#special-metadata-fields
+
+.. Navigation tree:
+   Put :maxdepth: inside a .. toctree:: directive.
+   It controls how many levels of linked pages appear in that navigation tree.
+   For example, :maxdepth: 4 shows up to four levels.
+   It only changes what is displayed; it does not remove or disable deeper pages.
+   :tocdepth: 2 → document links:  X → Y → Z → T
+
+.. This page's table of contents:
+   Put :tocdepth: near the top of this .rst file.
+   It controls how many levels of this page's headings appear in its table of contents.
+   It does not change the navigation tree or limit child pages.
+   :tocdepth: 2 → headings inside a page:  up to 2 heading levels
+
+..
+  https://devguide.python.org/documentation/markup/#sections
+  https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
+  # with overline, for parts    : ######################################################################
+  * with overline, for chapters : **********************************************************************
+  = for sections                : ======================================================================
+  - for subsections             : ----------------------------------------------------------------------
+  ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+..
+  # https://rsted.info.ucl.ac.be/
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://documatt.com/restructuredtext-reference/element/admonition.html
+  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+
 .. currentmodule:: scikitplot._externals._sphinx_ext
 
 .. _externals-sphinx-ext-index:
@@ -18,6 +58,170 @@ stack, but the leading underscore is significant.  Treat them as experimental
 integration APIs rather than as the stable plotting API of Scikit-Plots.
 Pin Scikit-Plots when a documentation deployment depends on their exact
 configuration or generated markup.
+
+..
+  .. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    ANSI Sanitizer <_ansi_sanitizer/index>
+    PyData Component List <_pydata_component_list/index>
+    Sphinx AI Assistant <_sphinx_ai_assistant/index>
+    Sphinx AI Learn <_sphinx_ai_learn/index>
+    Sphinx Collection <_sphinx_collection/index>
+    Sphinx Feedback <_sphinx_feedback/index>
+    Sphinx Gallery Grid <_sphinx_gallery_grid/index>
+    Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
+    Sphinx Jinja Render <_sphinx_jinja_render/index>
+    Sphinx LLM <_sphinx_llm/index>
+    Sphinx YouTube Core <_sphinx_youtube_core/index>
+    Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
+    Sphinx Video Directives <_sphinxcontrib_youtube/index>
+
+.. grid:: 1 1 1 1
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **ansi-sanitizer**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        ANSI Sanitizer <_ansi_sanitizer/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **pydata-component-list**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        PyData Component List <_pydata_component_list/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-ai-assistant**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx AI Assistant <_sphinx_ai_assistant/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-ai-learn**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx AI Learn <_sphinx_ai_learn/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-collection**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Collection <_sphinx_collection/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-feedback**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Feedback <_sphinx_feedback/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-gallery-grid**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Gallery Grid <_sphinx_gallery_grid/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-jupyterlite**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-jinja**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Jinja Render <_sphinx_jinja_render/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **sphinx-llm**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx LLM <_sphinx_llm/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be-core**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx YouTube Core <_sphinx_youtube_core/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be-gallery**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **youtu.be**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        Sphinx Video Directives <_sphinxcontrib_youtube/index>
 
 How to enable an extension
 ----------------------------------------------------------------------
@@ -119,21 +323,3 @@ or remote-service configuration.  Follow these repository contracts:
 
 The child guides call out additional boundaries where they are part of the
 implemented contract.
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-
-   ANSI Sanitizer <_ansi_sanitizer/index>
-   PyData Component List <_pydata_component_list/index>
-   Sphinx AI Assistant <_sphinx_ai_assistant/index>
-   Sphinx AI Learn <_sphinx_ai_learn/index>
-   Sphinx Collection <_sphinx_collection/index>
-   Sphinx Feedback <_sphinx_feedback/index>
-   Sphinx Gallery Grid <_sphinx_gallery_grid/index>
-   Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
-   Sphinx Jinja Render <_sphinx_jinja_render/index>
-   Sphinx LLM <_sphinx_llm/index>
-   Sphinx YouTube Core <_sphinx_youtube_core/index>
-   Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
-   Sphinx Video Directives <_sphinxcontrib_youtube/index>
