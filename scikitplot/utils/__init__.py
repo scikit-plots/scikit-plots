@@ -28,9 +28,9 @@ Various utilities to help with development.
 #     └── tests/               ← 3 existing, 7 new created below
 from __future__ import annotations
 
-import logging
+import logging as _logging
 
 from ._path import PathNamer, get_path, make_path, remove_path  # noqa: F401
 from ._time import Timer  # noqa: F401
 
-logger = logging.getLogger(__name__)
+logger = _logging.getLogger(__name__)

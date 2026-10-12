@@ -16,12 +16,12 @@ masked statistics, and additional tools.
 
 from __future__ import annotations
 
-import logging
+import logging as _logging
 from contextlib import suppress as _suppress
 
 from ..exceptions import ScikitplotException as _ScikitplotException
 
-logger = logging.getLogger(__name__)
+logger = _logging.getLogger(__name__)
 
 try:
     with _suppress(ImportError):
