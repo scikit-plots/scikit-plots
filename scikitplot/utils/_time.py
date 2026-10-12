@@ -64,7 +64,7 @@ class Timer:
     ):
         self.message = message
         self.precision = precision
-        self.logging_level = logging_level
+        self.logging_level = logging_level.lower()
         self.verbose = verbose
 
         self._start: float = 0.0

@@ -520,7 +520,7 @@ class BaseDecorator(metaclass=DecorateMeta):
         # Set logging level if verbose is enabled
         if self.verbose:
             # logger.setLevel(logging.DEBUG)
-            logger.setLevel(logger.INFO)
+            logger.setLevel(logging.INFO)
             logger.debug(f"{self.__class__.__name__} initialized with verbose logging.")
 
     def __call__(
@@ -917,10 +917,10 @@ class BaseDecorator(metaclass=DecorateMeta):
                 filename = kwargs.get("log_filename", f"log_{func.__name__}.txt")
                 ## Log file named after the function
                 log_file = filename
-                log_file_handler = logger.FileHandler(log_file)
-                # log_file_handler.setLevel(logger.DEBUG)
-                log_file_handler.setLevel(logger.INFO)
-                formatter = logger.Formatter(
+                log_file_handler = logging.FileHandler(log_file)
+                # log_file_handler.setLevel(logging.DEBUG)
+                log_file_handler.setLevel(logging.INFO)
+                formatter = logging.Formatter(
                     "%(asctime)s - %(levelname)s - %(message)s"
                 )
                 log_file_handler.setFormatter(formatter)
