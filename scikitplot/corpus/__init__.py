@@ -163,6 +163,7 @@ from . import (
     _enrichers,
     _export,
     _metadata,
+    _metrics,
     _normalizers,
     _pipeline,
     _policies,
@@ -189,6 +190,7 @@ from ._embeddings import *  # noqa: F403  # Embeddings by sentence-transformer
 from ._enrichers import *  # noqa: F403  # --- NLP enricher ---
 from ._export import *  # noqa: F403
 from ._metadata import *  # noqa: F403
+from ._metrics import *  # noqa: F403  # --- Evaluation: metrics, scorers, harness ---
 from ._normalizers import *  # noqa: F403  # --- Text normaliser ---
 from ._pipeline import *  # noqa: F403
 from ._policies import *  # noqa: F403  # Composable policy bundles
@@ -253,6 +255,7 @@ __all__ += _embeddings.__all__
 __all__ += _enrichers.__all__
 __all__ += _export.__all__
 __all__ += _metadata.__all__
+__all__ += _metrics.__all__
 __all__ += _normalizers.__all__
 __all__ += _pipeline.__all__
 __all__ += _policies.__all__

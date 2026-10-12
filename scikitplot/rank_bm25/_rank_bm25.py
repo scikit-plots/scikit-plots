@@ -358,10 +358,74 @@ class BM25:
         return tokens
 
     def get_scores(self, query):
-        raise NotImplementedError()
+        """
+        Score every document in the corpus against ``query``.
+
+        Parameters
+        ----------
+        query : sequence of str
+            Query tokens.
+
+        Returns
+        -------
+        numpy.ndarray
+            One score per document, in row order.
+
+        Raises
+        ------
+        TypeError
+            If ``query`` is a string or holds a non-string token.
+
+        Notes
+        -----
+        **Developer.** Every scoring path -- this one, :meth:`get_batch_scores`
+        and the sparse path behind :meth:`get_top_ids` -- evaluates the one
+        recipe formula, :meth:`_term_contribution`, term by term in query
+        order, so all three produce the same floating-point values.
+        """
+        query = self._require_query_tokens(query)
+        score = np.zeros(self.corpus_size)
+        doc_len = np.array(self.doc_len)
+        for q in query:
+            q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
+            score += self._term_contribution(self.idf.get(q) or 0, q_freq, doc_len)
+        return score
 
     def get_batch_scores(self, query, doc_ids):
-        raise NotImplementedError()
+        """
+        Score the documents at the row positions ``doc_ids`` against ``query``.
+
+        Parameters
+        ----------
+        query : sequence of str
+            Query tokens.
+        doc_ids : iterable of int
+            Row positions (not stable identities) to score: a list, a tuple,
+            an array or any iterable, read once.
+
+        Returns
+        -------
+        list of float
+            One score per requested position, in the order given.
+
+        Raises
+        ------
+        TypeError
+            If ``query`` is a string or holds a non-string token. This path used
+            to skip the check, so a bare string was scored one character at a
+            time -- the defect the check exists to prevent.
+        """
+        query = self._require_query_tokens(query)
+        # One list, used for every step: NumPy reads a tuple index as one
+        # index per axis, so ``doc_ids=(0, 2)`` raised IndexError.
+        positions = list(doc_ids)
+        _require_valid_positions(positions, len(self.doc_freqs))
+        score = np.zeros(len(positions))
+        doc_len = np.array(self.doc_len)[positions]
+        for q in query:
+            q_freq = np.array([(self.doc_freqs[di].get(q) or 0) for di in positions])
+            score += self._term_contribution(self.idf.get(q) or 0, q_freq, doc_len)
+        return score.tolist()
 
     @property
     def recipe(self) -> Recipe:
@@ -486,6 +550,7 @@ class BM25:
         while that sequence is in the same order as the corpus the index was
         built from -- a precondition nothing can check for you.
         """
+        query = self._require_query_tokens(query)
         n = require_count(n, name="n")
         if self._doc_ids is None:
             raise ValueError(
@@ -539,10 +604,14 @@ class BM25:
         value per document in the corpus whatever the query, which is a
         diagnostic rather than a retrieval path.
         """  # ruff: ignore[non-imperative-mood]
+        return len(self._candidate_rows(self._require_query_tokens(query)))
+
+    def _candidate_rows(self, query):
+        """Return the set of rows that contain at least one query term."""
         rows = set()
         for term in query:
             rows.update(row for row, _ in self._postings.get(term, ()))
-        return len(rows)
+        return rows
 
     def _sparse_scores(self, query):
         """
@@ -550,21 +619,65 @@ class BM25:
 
         Notes
         -----
-        **Developer.** Identical arithmetic to :meth:`get_scores`, evaluated only
-        where a term occurs. A document with no query term scores zero under
-        every recipe here, and the two paths are held to agreement by test.
+        **Developer.** Each candidate's score is the full :meth:`get_scores`
+        value: every query term is evaluated, in query order, absent terms
+        included. An absent term contributes ``_term_contribution(idf, 0, ...)``,
+        which is zero for Okapi but positive for the delta recipes (BM25L, BM25+)
+        that lower-bound every term. The previous version added only the terms a
+        document contains, which dropped exactly those contributions; because
+        they differ with *which* terms a document lacks, ``get_top_ids`` ranked
+        differently from ``get_scores`` in about one random BM25L/BM25+ query in
+        nine.
+
+        Documents with no query term are not candidates. They all score the
+        same zero-frequency baseline (a zero-frequency contribution does not
+        depend on document length in any recipe here). For BM25L and BM25+
+        every IDF is positive, so that baseline is the lowest score there is and
+        leaving those documents out removes a tie at the bottom, not a ranked
+        hit. Okapi's epsilon floor is negative when the corpus-average IDF is
+        negative (tiny corpora where most terms occur in over half the
+        documents); a matching document can then score below a non-matching
+        one, and ``get_top_ids`` still returns matching documents only.
         """
         doc_len = self.doc_len
+        doc_freqs = self.doc_freqs
+        idfs = [self.idf.get(term) or 0 for term in query]
         scores: dict[int, float] = {}
-        for term in query:
-            idf = self.idf.get(term) or 0
-            for row, frequency in self._postings.get(term, ()):
-                contribution = self._term_contribution(idf, frequency, doc_len[row])
-                scores[row] = scores.get(row, 0.0) + contribution
+        for row in self._candidate_rows(query):
+            frequencies = doc_freqs[row]
+            length = doc_len[row]
+            score = 0.0
+            for term, idf in zip(query, idfs):
+                score += self._term_contribution(
+                    idf, frequencies.get(term) or 0, length
+                )
+            scores[row] = score
         return scores
 
     def _term_contribution(self, idf, frequency, length):
-        """One term's contribution to one document, per this recipe."""
+        """
+        Return one term's contribution to one document, per this recipe.
+
+        Parameters
+        ----------
+        idf : float
+            The term's inverse document frequency (0 for an unseen term).
+        frequency : int or numpy.ndarray
+            The term's frequency in the document(s); 0 where it is absent.
+        length : int or numpy.ndarray
+            The document length(s), in tokens.
+
+        Returns
+        -------
+        float or numpy.ndarray
+            Shaped like ``frequency``.
+
+        Notes
+        -----
+        **Developer.** This is the only place a recipe's formula is written.
+        Scalars and arrays evaluate the same expression tree, so the dense and
+        sparse paths agree to the last bit rather than within a tolerance.
+        """
         raise NotImplementedError
 
     # -- persistence -------------------------------------------------------
@@ -753,10 +866,23 @@ class BM25:
 
 
 class BM25Okapi(BM25):
+    """
+    Okapi BM25 with an epsilon floor on negative IDFs (ATIRE-style IDF).
+
+    Notes
+    -----
+    The IDF is ``log((N - n + 0.5) / (n + 0.5))``; terms in more than half of
+    the documents get a negative value, which is floored to
+    ``epsilon * average_idf``. See Trotman, Jia and Crane, "Towards an
+    Efficient and Effective Search Engine".
+    """
+
     def _term_contribution(self, idf, frequency, length):
-        """Okapi contribution for one term in one document."""
-        return (idf * frequency * (self.k1 + 1)) / (
-            frequency + self.k1 * (1 - self.b + self.b * length / self.avgdl)
+        """Okapi contribution; the expression tree of the historic dense formula."""
+        return idf * (
+            frequency
+            * (self.k1 + 1)
+            / (frequency + self.k1 * (1 - self.b + self.b * length / self.avgdl))
         )
 
     def __init__(  # ruff: ignore[too-many-positional-arguments]
@@ -797,52 +923,14 @@ class BM25Okapi(BM25):
         for word in negative_idfs:
             self.idf[word] = eps
 
-    def get_scores(self, query):
-        """
-        ATIRE BM25 variant uses an idf function which uses a log(idf) score.
-
-        To prevent negative idf scores,
-        this algorithm also adds a floor to the idf value of epsilon.
-        See [Trotman, A., X. Jia, M. Crane, Towards an Efficient and Effective Search Engine] for more info
-        :param query:
-        :return:
-        """
-        query = self._require_query_tokens(query)
-        score = np.zeros(self.corpus_size)
-        doc_len = np.array(self.doc_len)
-        for q in query:
-            q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-            score += (self.idf.get(q) or 0) * (
-                q_freq
-                * (self.k1 + 1)
-                / (q_freq + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl))
-            )
-        return score
-
-    def get_batch_scores(self, query, doc_ids):
-        """
-        Calculate bm25 scores between query and subset of all docs.
-        """
-        _require_valid_positions(doc_ids, len(self.doc_freqs))
-        score = np.zeros(len(doc_ids))
-        doc_len = np.array(self.doc_len)[doc_ids]
-        for q in query:
-            q_freq = np.array([(self.doc_freqs[di].get(q) or 0) for di in doc_ids])
-            score += (self.idf.get(q) or 0) * (
-                q_freq
-                * (self.k1 + 1)
-                / (q_freq + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl))
-            )
-        return score.tolist()
-
 
 class BM25L(BM25):
     RECIPE_ID: str = "bm25l-delta/1"
 
     def _term_contribution(self, idf, frequency, length):
-        """BM25L contribution for one term in one document."""
+        """BM25L contribution; positive even where ``frequency`` is 0."""
         ctd = frequency / (1 - self.b + self.b * length / self.avgdl)
-        return (idf * (self.k1 + 1) * (ctd + self.delta)) / (self.k1 + ctd + self.delta)
+        return idf * (self.k1 + 1) * (ctd + self.delta) / (self.k1 + ctd + self.delta)
 
     def __init__(  # ruff: ignore[too-many-positional-arguments]
         self,
@@ -865,45 +953,12 @@ class BM25L(BM25):
             idf = math.log(self.corpus_size + 1) - math.log(freq + 0.5)
             self.idf[word] = idf
 
-    def get_scores(self, query):
-        query = self._require_query_tokens(query)
-        score = np.zeros(self.corpus_size)
-        doc_len = np.array(self.doc_len)
-        for q in query:
-            q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-            ctd = q_freq / (1 - self.b + self.b * doc_len / self.avgdl)
-            score += (
-                (self.idf.get(q) or 0)
-                * (self.k1 + 1)
-                * (ctd + self.delta)
-                / (self.k1 + ctd + self.delta)
-            )
-        return score
-
-    def get_batch_scores(self, query, doc_ids):
-        """
-        Calculate bm25 scores between query and subset of all docs.
-        """
-        _require_valid_positions(doc_ids, len(self.doc_freqs))
-        score = np.zeros(len(doc_ids))
-        doc_len = np.array(self.doc_len)[doc_ids]
-        for q in query:
-            q_freq = np.array([(self.doc_freqs[di].get(q) or 0) for di in doc_ids])
-            ctd = q_freq / (1 - self.b + self.b * doc_len / self.avgdl)
-            score += (
-                (self.idf.get(q) or 0)
-                * (self.k1 + 1)
-                * (ctd + self.delta)
-                / (self.k1 + ctd + self.delta)
-            )
-        return score.tolist()
-
 
 class BM25Plus(BM25):
     RECIPE_ID: str = "bm25plus-delta/1"
 
     def _term_contribution(self, idf, frequency, length):
-        """BM25+ contribution for one term in one document."""
+        """BM25+ contribution; ``idf * delta`` even where ``frequency`` is 0."""
         return idf * (
             self.delta
             + (frequency * (self.k1 + 1))
@@ -930,35 +985,6 @@ class BM25Plus(BM25):
         for word, freq in nd.items():
             idf = math.log(self.corpus_size + 1) - math.log(freq)
             self.idf[word] = idf
-
-    def get_scores(self, query):
-        query = self._require_query_tokens(query)
-        score = np.zeros(self.corpus_size)
-        doc_len = np.array(self.doc_len)
-        for q in query:
-            q_freq = np.array([(doc.get(q) or 0) for doc in self.doc_freqs])
-            score += (self.idf.get(q) or 0) * (
-                self.delta
-                + (q_freq * (self.k1 + 1))
-                / (self.k1 * (1 - self.b + self.b * doc_len / self.avgdl) + q_freq)
-            )
-        return score
-
-    def get_batch_scores(self, query, doc_ids):
-        """
-        Calculate bm25 scores between query and subset of all docs.
-        """
-        _require_valid_positions(doc_ids, len(self.doc_freqs))
-        score = np.zeros(len(doc_ids))
-        doc_len = np.array(self.doc_len)[doc_ids]
-        for q in query:
-            q_freq = np.array([(self.doc_freqs[di].get(q) or 0) for di in doc_ids])
-            score += (self.idf.get(q) or 0) * (
-                self.delta
-                + (q_freq * (self.k1 + 1))
-                / (self.k1 * (1 - self.b + self.b * doc_len / self.avgdl) + q_freq)
-            )
-        return score.tolist()
 
 
 # BM25Adpt and BM25T are a bit more complicated than the previous algorithms here. Here a term-specific k1

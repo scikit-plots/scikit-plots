@@ -590,10 +590,22 @@ execution are skipped.
 
 ```python
 from scikitplot import levenshtein
+from scikitplot.corpus import CustomRetrievalIndex, make_levenshtein_ranker
 
 assert levenshtein.distance("kitten", "sitting") == 3
-scorer = levenshtein.make_corpus_scorer(score_cutoff=0.70)
+index = CustomRetrievalIndex(
+    custom_scorer_fn=make_levenshtein_ranker(score_cutoff=0.70)
+)
 ```
+
+Corpus owns this adapter; `scikitplot.levenshtein` never imports Corpus. To
+measure a retriever (Recall@K, MRR, nDCG ...) or use one in scikit-learn model
+selection, see `evaluate_retrieval` and `make_corpus_scorer`. To judge
+generated answers (faithfulness, answer relevance, context precision and
+recall, answer correctness, head-to-head preference) with OpenAI, Anthropic,
+Gemini or any callable model, see `make_llm`, `LLMJudge`, `evaluate_answers`
+and `evaluate_preference`; `krippendorff_alpha` measures how far several
+judges agree.
 
 Automatic selection is deliberately license-aware and remains importable even
 without optional packages:

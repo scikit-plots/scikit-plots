@@ -87,7 +87,12 @@ bool edit_distancec_dp(T const *str1, size_t const size1, T const *str2, size_t 
         bool below_thr = false;
         for (size_t j = 1; j < size2 + 1; j++) {
             d[i&1][j] = min(min(d[(i-1)&1][j], d[i&1][j-1]) + 1, d[(i-1)&1][j-1] + (str1[i-1] == str2[j-1] ? 0 : 1));
-            if (d[i%1][j] <= thr) {
+            // The early exit must inspect the row just computed, d[i&1].
+            // Upstream read d[i%1] (always row 0): on odd rows that is the
+            // previous row, which misses the diagonal from column 0, so an
+            // exact match such as ("a", "a", thr=0) returned false.
+            // Columns >= 1 suffice: d[i][1] <= d[i-1][0] + 1 = i = d[i][0].
+            if (d[i&1][j] <= thr) {
                 below_thr = true;
             }
         }

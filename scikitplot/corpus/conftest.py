@@ -178,3 +178,20 @@ def captured_logger(
             logger.removeHandler(caplog.handler)
 
     return _capture
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Register the markers corpus tests use, for runs without the root conftest.
+
+    Notes
+    -----
+    Developer note: the root ``scikitplot/conftest.py`` registers
+    ``thread_unsafe`` only for full-package runs. The ``scikit-plots-corpus``
+    partial distribution ships this tree alone, so without this registration
+    ``pytest --pyargs scikitplot.corpus`` warns ``PytestUnknownMarkWarning``
+    (and fails under ``--strict-markers``). Registering a marker twice is
+    harmless.
+    """
+    config.addinivalue_line(
+        "markers", "thread_unsafe: mark the test function as single-threaded"
+    )

@@ -212,7 +212,12 @@ class MemoryMap:
     # ----- protection & sync -----
 
     def mprotect(self, prot: int) -> None:
-        """Change memory-protection flags for the entire mapping."""
+        """
+        Change memory-protection flags for the entire mapping.
+
+        Raises ``BufferError`` if *prot* removes a protection bit while views
+        of the mapping are alive; adding bits is always allowed.
+        """
         ...
 
     def msync(self, flags: int = ...) -> None:
@@ -260,7 +265,8 @@ class MemoryMap:
         -------
         numpy.ndarray
             1-D array sharing the mapped buffer.  ``WRITEABLE`` is set
-            only when the mapping carries ``PROT_WRITE``.
+            only when the mapping carries ``PROT_WRITE``. The array holds a
+            buffer export, so it stays valid after :py:meth:`close`.
 
         Raises
         ------
@@ -271,6 +277,14 @@ class MemoryMap:
         """
         ...
 
+    # ----- buffer protocol -----
+
+    def __buffer__(self, flags: int, /) -> memoryview:
+        """Export the mapped bytes (1-D, format ``"B"``); keeps the region mapped."""
+        ...
+
+    def __release_buffer__(self, buffer: memoryview, /) -> None: ...
+
     # ----- lifecycle -----
 
     def close(self) -> None:
@@ -278,7 +292,11 @@ class MemoryMap:
         Unmap and release the region.
 
         Idempotent: calling ``close()`` on an already-closed mapping is
-        a silent no-op.
+        a silent no-op. While buffer exports (``as_numpy_array`` arrays,
+        ``memoryview`` objects) are alive, or another thread is inside a
+        method that runs without the GIL (``read``, ``write``, ...), the unmap
+        is deferred until the last of them is released; this object's own API
+        is closed at once.
         """
         ...
 

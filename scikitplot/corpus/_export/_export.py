@@ -27,12 +27,26 @@ All values of :class:`~scikitplot.corpus._schema.ExportFormat`:
     :meth:`~scikitplot.corpus._schema.CorpusDocument.to_flat_dict`.
 
 :attr:`ExportFormat.JSONL`
-    One JSON object per line (newline-delimited JSON). Zero optional
-    dependencies. Metadata dict is preserved as a nested object.
+    One JSON object per line (JSON Lines). Zero optional dependencies.
+    Metadata dict is preserved as a nested object.
 
 :attr:`ExportFormat.JSON`
-    JSON array of document dicts. Zero optional dependencies. Indented
+    JSON array of document objects. Zero optional dependencies. Indented
     by default for readability.
+
+:attr:`ExportFormat.YAML`
+    YAML sequence of document mappings. Requires ``pip install pyyaml``.
+
+:attr:`ExportFormat.TOML`
+    TOML document whose ``documents`` key holds an array of tables (TOML
+    has no top-level array). Requires ``pip install tomli-w``; reading uses
+    :mod:`tomllib` (Python 3.11+) or ``tomli``.
+
+The four text formats go through :mod:`scikitplot.corpus._serialize`, the
+same contract as evaluation reports: strict JSON (``NaN`` written as
+``null``, an infinity refused), line-break characters escaped, YAML read
+without aliases. A document with an embedding also records
+``embedding_dtype``, so :func:`load_documents` restores the vector exactly.
 
 :attr:`ExportFormat.PICKLE`
     Python ``pickle`` of the full ``list[CorpusDocument]``. Preserves
@@ -70,9 +84,19 @@ All values of :class:`~scikitplot.corpus._schema.ExportFormat`:
     Requires ``pip install mlflow`` and an active MLflow run
     (``mlflow.start_run()``).
 
+Loading back
+------------
+:func:`load_documents` reads JSON, JSON Lines, YAML and TOML exports
+(safe: no code runs; every record is checked field by field, see
+:mod:`._records`) and, with ``trusted=True``, pickle and joblib. Tabular
+formats (CSV, pandas, Parquet, polars) and NumPy cannot rebuild every field
+and HuggingFace is a dataset directory, so loading them is refused rather
+than returned empty. An MLflow export is a JSON Lines artifact of a run:
+download ``corpus_documents.jsonl`` and load that file.
+
 Python compatibility
 --------------------
-Python 3.8-3.15. Only ``csv``, ``json``, and ``pickle`` (all stdlib)
+Python 3.9-3.15. Only ``csv``, ``json``, and ``pickle`` (all stdlib)
 and ``numpy`` are hard requirements. All other backends are optional.
 """  # noqa: D205, D400
 
@@ -81,16 +105,25 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 import logging
 import pathlib
 import pickle
+from collections.abc import Mapping
 from typing import Any, Dict, List, Optional  # noqa: F401
 
 import numpy as np
 
+from .. import _serialize
 from .._atomic import atomic_write_bytes, atomic_write_path
 from .._schema import CorpusDocument, ExportFormat
+from ._records import (
+    EMBEDDING_DTYPE_KEY,
+    EMBEDDING_DTYPES,  # noqa: F401 - re-exported for callers of this module
+    embedding_array,
+    embedding_dtype,
+    export_problem,
+    record_problem,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +141,34 @@ _JSON_INDENT: int = 2
 
 #: CSV encoding used by all text-based exporters.
 _CSV_ENCODING: str = "utf-8"
+
+#: Export formats written and read through :mod:`.._serialize`.
+TEXT_FORMATS: dict[ExportFormat, str] = {
+    ExportFormat.JSON: "json",
+    ExportFormat.JSONL: "jsonl",
+    ExportFormat.YAML: "yaml",
+    ExportFormat.TOML: "toml",
+}
+
+#: Top-level key of a TOML export (TOML has no top-level array).
+TOML_DOCUMENTS_KEY = "documents"
+
+#: File suffix to format, for :func:`load_documents` without ``format``.
+LOAD_SUFFIXES: dict[str, ExportFormat] = {
+    ".json": ExportFormat.JSON,
+    ".jsonl": ExportFormat.JSONL,
+    ".ndjson": ExportFormat.JSONL,
+    ".yaml": ExportFormat.YAML,
+    ".yml": ExportFormat.YAML,
+    ".toml": ExportFormat.TOML,
+    ".pkl": ExportFormat.PICKLE,
+    ".pickle": ExportFormat.PICKLE,
+    ".joblib": ExportFormat.JOBLIB,
+    # Recognised so that loading them is refused with the reason, not "unknown suffix".
+    ".csv": ExportFormat.CSV,
+    ".parquet": ExportFormat.PARQUET,
+    ".npy": ExportFormat.NUMPY,
+}
 
 #: Stable, identity-first column ordering for CSV/pandas exports.
 #:
@@ -166,8 +227,8 @@ def export_documents(
           Parquet, Polars): path to the output file.
         - Directory formats (HuggingFace, MLflow): path to the root
           directory / artifact path.
-    format : ExportFormat
-        Target export format.
+    format : ExportFormat or str
+        Target export format, or its string value (``"jsonl"``).
     include_embedding : bool, optional
         When ``True`` (default), embedding vectors are included in the
         output where the format supports them (JSONL, JSON, Pickle,
@@ -190,7 +251,14 @@ def export_documents(
     ------
     ValueError
         If ``format`` is :attr:`ExportFormat.NUMPY` and no documents have
-        embeddings, or if the embedding dimensions are inconsistent.
+        embeddings, or if the embedding dimensions are inconsistent; for a
+        text format, if a value cannot be represented (an infinity in JSON,
+        ``None`` in a TOML array or in metadata for TOML). The message names
+        the document.
+    TypeError
+        For a text format, if a metadata value is not serialisable (a
+        ``set``, a ``datetime``, a custom object); the message names the
+        document.
     ImportError
         If the required optional library for the format is not installed.
     OSError
@@ -209,36 +277,55 @@ def export_documents(
 
     **Embedding in tabular formats:** CSV and Parquet omit embeddings
     because storing a float32 vector per row in a tabular cell is
-    impractical. Use PICKLE, JOBLIB, or NUMPY to preserve embeddings.
+    impractical. Use JSON, JSON Lines, YAML or TOML (safe to load back) or
+    PICKLE/JOBLIB to preserve embeddings.
+
+    **Text formats:** metadata must hold JSON-like values (``str``,
+    numbers, ``bool``, ``None``, lists, string-keyed mappings; NumPy scalars
+    are converted). Tuples come back as lists. JSON has no ``NaN``: a ``NaN``
+    in metadata is written as ``null`` and reads back as ``None`` (YAML and
+    TOML keep ``NaN``; embeddings restore it in every format).
 
     Examples
     --------
-    CSV export (zero dependencies):
-
+    >>> import tempfile
     >>> from pathlib import Path
-    >>> export_documents(docs, Path("corpus.csv"), ExportFormat.CSV)
-    PosixPath('corpus.csv')
+    >>> import numpy as np
+    >>> from scikitplot.corpus import CorpusDocument, ExportFormat
+    >>> docs = [
+    ...     CorpusDocument.create(
+    ...         "notes.txt", i, f"Paragraph {i}.", embedding=np.full(3, i, np.float32)
+    ...     )
+    ...     for i in range(2)
+    ... ]
+    >>> out = Path(tempfile.mkdtemp())
 
-    JSONL with embeddings:
+    CSV (zero dependencies; no embeddings):
 
-    >>> export_documents(
-    ...     docs,
-    ...     Path("corpus.jsonl"),
-    ...     ExportFormat.JSONL,
-    ...     include_embedding=True,
-    ... )
+    >>> export_documents(docs, out / "corpus.csv", ExportFormat.CSV).name
+    'corpus.csv'
+
+    JSON Lines with embeddings, loadable back exactly:
+
+    >>> path = export_documents(docs, out / "corpus.jsonl", ExportFormat.JSONL)
+    >>> load_documents(path)[1].embedding
+    array([1., 1., 1.], dtype=float32)
 
     NumPy embedding matrix:
 
-    >>> export_documents(docs, Path("embeddings.npy"), ExportFormat.NUMPY)
-    PosixPath('embeddings.npy')
+    >>> export_documents(docs, out / "embeddings.npy", ExportFormat.NUMPY).name
+    'embeddings.npy'
     """
     output_path = pathlib.Path(output_path)
+    if not isinstance(format, ExportFormat) and isinstance(format, str):
+        format = _as_format(format, "export_documents")  # noqa: A001
 
     dispatch: dict[ExportFormat, Any] = {
         ExportFormat.CSV: _export_csv,
-        ExportFormat.JSONL: _export_jsonl,
-        ExportFormat.JSON: _export_json,
+        ExportFormat.JSONL: _export_text,
+        ExportFormat.JSON: _export_text,
+        ExportFormat.YAML: _export_text,
+        ExportFormat.TOML: _export_text,
         ExportFormat.PICKLE: _export_pickle,
         ExportFormat.JOBLIB: _export_joblib,
         ExportFormat.NUMPY: _export_numpy,
@@ -273,6 +360,7 @@ def export_documents(
         include_embedding=include_embedding,
         json_indent=json_indent,
         parquet_compression=parquet_compression,
+        export_format=format,
     )
 
     logger.info("export_documents: wrote %s.", output_path)
@@ -282,6 +370,22 @@ def export_documents(
 # ---------------------------------------------------------------------------
 # Atomic write helpers
 # ---------------------------------------------------------------------------
+
+
+def _as_format(value: Any, caller: str) -> ExportFormat:
+    """Return ``value`` as an :class:`ExportFormat` (a member or its string value)."""
+    if isinstance(value, ExportFormat):
+        return value
+    if isinstance(value, str):
+        try:
+            return ExportFormat(value.strip().lower())
+        except ValueError:
+            raise ValueError(
+                f"{caller}: unknown format {value!r}; choose from {[f.value for f in ExportFormat]}."
+            ) from None
+    raise TypeError(
+        f"{caller}: format must be an ExportFormat or its string value, got {type(value).__name__!r}."
+    )
 
 
 def _atomic_write_bytes(path: pathlib.Path, data: bytes) -> None:
@@ -399,72 +503,131 @@ def _export_csv(  # noqa: D417
     _atomic_write_text(output_path, buf.getvalue())
 
 
+def document_records(
+    documents: list[CorpusDocument], *, include_embedding: bool, fmt: str = "json"
+) -> list[dict[str, Any]]:
+    """
+    Return each document as a record of the serialisation data model.
+
+    Parameters
+    ----------
+    documents : list of CorpusDocument
+        Documents to convert.
+    include_embedding : bool
+        Include ``embedding`` (a list of floats) and ``embedding_dtype``.
+    fmt : {"json", "jsonl", "yaml", "toml"}, default="json"
+        Format the records are checked against
+        (:func:`._records.export_problem`).
+
+    Returns
+    -------
+    list of dict
+
+    Raises
+    ------
+    TypeError
+        If a value is not serialisable; the message names the document.
+    ValueError
+        If a value cannot be represented in ``fmt``, the embedding cannot be
+        written exactly (not one-dimensional, or a dtype outside
+        :data:`._records.EMBEDDING_DTYPES`), or the metadata is nested too
+        deeply; the message names the document.
+    """
+    records = []
+    for index, doc in enumerate(documents):
+        label = f"export_documents ({fmt}): document {index} (doc_id={doc.doc_id!r})"
+        record = doc.to_dict(include_embedding=False)
+        if include_embedding and doc.embedding is not None:
+            try:
+                record[EMBEDDING_DTYPE_KEY] = embedding_dtype(doc.embedding)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"{label}: {exc}.") from None
+            record["embedding"] = [float(v) for v in np.asarray(doc.embedding).tolist()]
+        try:
+            record = _serialize.to_builtin(record)
+        except TypeError as exc:
+            raise TypeError(f"{label} cannot be exported: {exc}") from None
+        except RecursionError:
+            raise ValueError(
+                f"{label}: the metadata is nested too deeply to export."
+            ) from None
+        problem = export_problem(record, fmt)
+        if problem:
+            raise ValueError(f"{label}: {problem}.")
+        records.append(record)
+    return records
+
+
+def _export_text(  # noqa: D417
+    documents: list[CorpusDocument],
+    output_path: pathlib.Path,
+    *,
+    include_embedding: bool,
+    json_indent: int | None,
+    export_format: ExportFormat,
+    **_kwargs: Any,
+) -> None:
+    """
+    Export as JSON, JSON Lines, YAML or TOML through :mod:`.._serialize`.
+
+    Parameters
+    ----------
+    documents : list of CorpusDocument
+    output_path : pathlib.Path
+    include_embedding : bool
+        When ``True``, embedding vectors are written as lists of floats with
+        their dtype name.
+    json_indent : int or None
+        Indentation for JSON; JSON Lines is always one compact line per
+        document; other formats ignore it.
+    export_format : ExportFormat
+        One of :data:`TEXT_FORMATS`.
+
+    Notes
+    -----
+    **Developer note.** :func:`document_records` checks each record before
+    anything is written. A serialiser limit it does not model (an integer
+    with more digits than Python converts to text) is found after the fact:
+    each record is serialised alone until the failing one is named.
+    """
+    fmt = TEXT_FORMATS[export_format]
+    records = document_records(documents, include_embedding=include_embedding, fmt=fmt)
+    payload: Any = {TOML_DOCUMENTS_KEY: records} if fmt == "toml" else records
+    try:
+        _serialize.write(output_path, payload, fmt, indent=json_indent)
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        for index, record in enumerate(records):
+            try:
+                _serialize.dumps(
+                    {TOML_DOCUMENTS_KEY: [record]} if fmt == "toml" else [record], fmt
+                )
+            except (  # noqa: PERF203 - failure path only
+                ValueError,
+                UnicodeError,
+                RecursionError,
+            ) as record_exc:
+                raise ValueError(
+                    f"export_documents ({fmt}): document {index} (doc_id={record.get('doc_id')!r}) "
+                    f"cannot be written: {record_exc}"
+                ) from exc
+        raise
+
+
 def _export_jsonl(  # noqa: D417
     documents: list[CorpusDocument],
     output_path: pathlib.Path,
     *,
     include_embedding: bool,
-    json_indent: int | None,
     **_kwargs: Any,
 ) -> None:
-    """
-    Export as newline-delimited JSON (one object per line).
-
-    Parameters
-    ----------
-    documents : list of CorpusDocument
-    output_path : pathlib.Path
-    include_embedding : bool
-        When ``True``, embedding vectors are serialised as JSON arrays.
-    json_indent : int or None
-        Indentation per line. ``None`` produces compact single-line JSON.
-        For JSONL, ``None`` is strongly recommended (each line must be
-        exactly one JSON object).
-    """
-    lines = []
-    for doc in documents:
-        d = doc.to_dict(include_embedding=include_embedding)
-        # to_dict() already converts the embedding to a Python list;
-        # ensure any residual ndarray is serialised safely
-        if "embedding" in d and d["embedding"] is not None:
-            emb = d["embedding"]
-            if hasattr(emb, "tolist"):
-                d["embedding"] = emb.tolist()
-        lines.append(json.dumps(d, indent=None))
-
-    _atomic_write_text(output_path, "\n".join(lines) + ("\n" if lines else ""))
-
-
-def _export_json(  # noqa: D417
-    documents: list[CorpusDocument],
-    output_path: pathlib.Path,
-    *,
-    include_embedding: bool,
-    json_indent: int | None,
-    **_kwargs: Any,
-) -> None:
-    """
-    Export as a JSON array.
-
-    Parameters
-    ----------
-    documents : list of CorpusDocument
-    output_path : pathlib.Path
-    include_embedding : bool
-    json_indent : int or None
-        Indentation for the JSON output. Default: 2.
-    """
-    records = []
-    for doc in documents:
-        d = doc.to_dict(include_embedding=include_embedding)
-        if "embedding" in d and d["embedding"] is not None:
-            emb = d["embedding"]
-            if hasattr(emb, "tolist"):
-                d["embedding"] = emb.tolist()
-        records.append(d)
-
-    text = json.dumps(records, indent=json_indent, ensure_ascii=False)
-    _atomic_write_text(output_path, text)
+    """Export as JSON Lines (used by the MLflow exporter)."""
+    _export_text(
+        documents,
+        output_path,
+        include_embedding=include_embedding,
+        json_indent=None,
+        export_format=ExportFormat.JSONL,
+    )
 
 
 def _export_pickle(  # noqa: D417
@@ -986,9 +1149,59 @@ def _validate_loaded_documents(obj, path):
     return obj
 
 
+def _document_from_record(
+    record: Any, index: int, path: pathlib.Path
+) -> CorpusDocument:
+    """Rebuild one document from a text-format record, refusing anything off contract."""
+    label = f"load_documents: {str(path)!r} record {index}"
+    problem = record_problem(record)
+    if problem:
+        raise ValueError(f"{label}: {problem}.")
+    data = dict(record)
+    dtype_name = data.pop(EMBEDDING_DTYPE_KEY, None)
+    try:
+        if data.get("embedding") is not None:
+            data["embedding"] = embedding_array(
+                data["embedding"], dtype_name or "float64"
+            )
+        return CorpusDocument.from_dict(data)
+    except (TypeError, ValueError, KeyError, AttributeError, ArithmeticError) as exc:
+        raise ValueError(f"{label}: {exc}") from exc
+
+
+def _load_text(path: pathlib.Path, export_format: ExportFormat) -> list[CorpusDocument]:
+    """Read a JSON, JSON Lines, YAML or TOML export."""
+    fmt = TEXT_FORMATS[export_format]
+    try:
+        data = _serialize.read(path, fmt)
+    except ValueError as exc:  # parse errors, NaN tokens, aliases, encoding errors
+        hint = (
+            " (earlier versions of export_documents could write NaN tokens; re-export the corpus)"
+            if "NaN" in str(exc)
+            else ""
+        )
+        raise ValueError(
+            f"load_documents: {str(path)!r} is not valid {fmt}: {exc}{hint}"
+        ) from exc
+    if fmt == "toml":
+        if not isinstance(data, Mapping) or set(data) != {TOML_DOCUMENTS_KEY}:
+            raise ValueError(
+                f"load_documents: {str(path)!r} is not a document export: a TOML export has "
+                f"exactly one key, {TOML_DOCUMENTS_KEY!r}."
+            )
+        data = data[TOML_DOCUMENTS_KEY]
+    if not isinstance(data, list):
+        raise ValueError(  # noqa: TRY004 - malformed file content, as json.loads reports it
+            f"load_documents: {str(path)!r} holds {type(data).__name__}, expected a list of documents."
+        )
+    return [
+        _document_from_record(record, index, path) for index, record in enumerate(data)
+    ]
+
+
 def load_documents(
     path: pathlib.Path | str,
-    format: ExportFormat | None = None,
+    format: ExportFormat | None = None,  # noqa: A002
     *,
     trusted: bool = False,
     expected_sha256: str | None = None,
@@ -997,99 +1210,122 @@ def load_documents(
     Load :class:`~scikitplot.corpus._schema.CorpusDocument` instances
     from a previously exported file.
 
-    Supported round-trip formats: :attr:`ExportFormat.PICKLE`,
-    :attr:`ExportFormat.JOBLIB`. For all other formats, returns an empty
-    list with a warning (full deserialization from CSV/JSON/Parquet is
-    handled separately by the pipeline).
-
     Parameters
     ----------
-    path : pathlib.Path
+    path : pathlib.Path or str
         Path to the exported file.
-    format : ExportFormat or None, optional
-        Format hint. When ``None``, the format is inferred from the
-        file extension (``.pkl`` → PICKLE, ``.joblib`` → JOBLIB).
-    trusted : bool
-        Whether the user has explicitly opted in to unsafe loading.
+    format : ExportFormat, str or None, optional
+        The export format, or its string value (``"jsonl"``). When ``None``,
+        it is inferred from the suffix:
+        ``.json``, ``.jsonl``/``.ndjson``, ``.yaml``/``.yml``, ``.toml``,
+        ``.pkl``/``.pickle``, ``.joblib``.
+    trusted : bool, default=False
+        Required for pickle and joblib, whose loading can execute code.
+        JSON, JSON Lines, YAML and TOML never need it.
     expected_sha256 : str or None, optional
-        When provided, the artifact's SHA-256 is verified **before**
-        deserialization; a mismatch raises :class:`ValueError` before any
-        pickle code runs (tamper/wrong-artifact detection). Default ``None``.
+        When provided, the file's SHA-256 is verified **before** it is
+        parsed or deserialized; a mismatch raises :class:`ValueError`.
 
     Returns
     -------
     list of CorpusDocument
+        In file order. Embeddings come back as NumPy arrays of the recorded
+        ``embedding_dtype`` (``float64`` when a record names none).
 
     Raises
     ------
+    ValueError
+        If the format cannot be inferred or cannot be loaded back (CSV,
+        pandas, Parquet, polars, NumPy, HuggingFace; for MLflow, load the
+        downloaded ``corpus_documents.jsonl``); if loading pickle or joblib
+        is not ``trusted``; if ``expected_sha256`` does not match; if the
+        file is not valid in its format (the message names the file); or if
+        a record breaks the record contract: an unknown key, a field of the
+        wrong type, a YAML or TOML date where a string belongs, an embedding
+        value that overflows its dtype (the message names the record).
     ImportError
-        If ``joblib`` is not installed and the file is a joblib dump.
+        If the library a format needs is not installed.
     OSError
         If the file cannot be read.
-    ValueError
-        If loading is not ``trusted`` for a pickle/joblib file, or if
-        ``expected_sha256`` does not match the artifact.
     TypeError
-        If the deserialized object is not a list of
-        :class:`~scikitplot.corpus._schema.CorpusDocument` (a trusted-but-wrong
-        artifact is rejected rather than returned).
+        If a trusted pickle or joblib file does not hold a list of
+        :class:`~scikitplot.corpus._schema.CorpusDocument`.
+
+    See Also
+    --------
+    export_documents : The writer.
+
+    Notes
+    -----
+    **User note.** Text formats are the safe way to keep a corpus: loading
+    runs no code, the files are diffable, and every field the exporter wrote
+    comes back. Tabular and directory formats cannot rebuild every field
+    (metadata is flattened, embeddings are dropped), so loading them is
+    refused instead of returning a partial or empty result.
 
     Examples
     --------
+    >>> import tempfile
+    >>> from pathlib import Path
+    >>> from scikitplot.corpus import CorpusDocument, ExportFormat, export_documents
+    >>> doc = CorpusDocument.create("notes.txt", 0, "Hello.")
+    >>> out = export_documents(
+    ...     [doc], Path(tempfile.mkdtemp()) / "corpus.jsonl", ExportFormat.JSONL
+    ... )
+    >>> [d.text for d in load_documents(out)]
+    ['Hello.']
+
     Loading a pickle/joblib export requires an explicit trust decision, because
-    deserialization can execute arbitrary code. By default it is refused:
-
-    >>> load_documents(Path("corpus.pkl"))  # doctest: +SKIP
-    Traceback (most recent call last):
-        ...
-    ValueError: Loading pickle files is disabled by default ...
-
-    Opt in only for a source you trust — and, when you have a known-good digest,
-    pin it so a tampered artifact is rejected before it is deserialized:
+    deserialization can execute arbitrary code. Pin a known digest when you
+    have one:
 
     >>> docs = load_documents(  # doctest: +SKIP
     ...     Path("corpus.pkl"),
     ...     trusted=True,
     ...     expected_sha256="e3b0c44298fc1c149afbf4c8996fb924...",
     ... )
-    >>> len(docs)  # doctest: +SKIP
-    312
-
-    Prefer a safe, code-execution-free format (Parquet or JSON) whenever you
-    control the export.
     """  # noqa: D205
     path = pathlib.Path(path)
-
     if format is None:
-        ext = path.suffix.lower()
-        format = {
-            ".pkl": ExportFormat.PICKLE,
-            ".joblib": ExportFormat.JOBLIB,
-        }.get(ext)
-    _pickle_safety_guard(format.value if format else "", trusted)
-    # Integrity gate runs BEFORE deserialization: a tampered/wrong artifact is
-    # rejected before pickle can execute code (CORPUS-SEC-001).
+        format = LOAD_SUFFIXES.get(path.suffix.lower())  # noqa: A001
+        if format is None:
+            raise ValueError(
+                f"load_documents: cannot infer the format of {str(path)!r} from its suffix; "
+                f"pass format= (loadable: {[f.value for f in (*TEXT_FORMATS, ExportFormat.PICKLE, ExportFormat.JOBLIB)]})."
+            )
+    format = _as_format(format, "load_documents")  # noqa: A001
+    if format == ExportFormat.MLFLOW:
+        raise ValueError(
+            "load_documents: an MLflow export is a JSON Lines artifact of a run; download "
+            "corpus_documents.jsonl from the run and load that file (format jsonl)."
+        )
+    if format not in TEXT_FORMATS and format not in (
+        ExportFormat.PICKLE,
+        ExportFormat.JOBLIB,
+    ):
+        raise ValueError(
+            f"load_documents: {format.value!r} exports cannot be loaded back as documents "
+            "(they do not keep every field); export as json, jsonl, yaml or toml to load them."
+        )
+    _pickle_safety_guard(format.value, trusted)
+    # Integrity gate runs BEFORE parsing or deserialization: a tampered/wrong
+    # artifact is rejected before pickle can execute code (CORPUS-SEC-001).
     _verify_artifact_integrity(path, expected_sha256)
+
+    if format in TEXT_FORMATS:
+        return _load_text(path, format)
 
     if format == ExportFormat.PICKLE:
         with path.open("rb") as fh:
             obj = pickle.load(fh)  # noqa: S301
         return _validate_loaded_documents(obj, path)
 
-    if format == ExportFormat.JOBLIB:
-        try:
-            import joblib  # noqa: PLC0415
-        except ImportError as exc:
-            raise ImportError(
-                "joblib is required to load a JOBLIB export."
-                " Install it with:\n"
-                "  pip install joblib"
-            ) from exc
-        return _validate_loaded_documents(joblib.load(path), path)
-
-    logger.warning(
-        "load_documents: format %r does not support CorpusDocument"
-        " deserialization. Returning empty list.",
-        format,
-    )
-    return []
+    try:
+        import joblib  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            "joblib is required to load a JOBLIB export."
+            " Install it with:\n"
+            "  pip install joblib"
+        ) from exc
+    return _validate_loaded_documents(joblib.load(path), path)

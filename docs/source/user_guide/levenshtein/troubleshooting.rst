@@ -46,14 +46,15 @@ in this facade:
 
    distance("kitten", "sitting", backend="levenshtein")
 
-A warning appears repeatedly during a large rank
-------------------------------------------------
+A warning appears during a large rank
+-------------------------------------
 
-Current ranking resolves backend state per choice. If a selected accelerator
-fails at runtime, repeated choices can therefore repeat fallback work/warnings.
-
-This is tracked as ``LV-002``. Until the per-operation execution plan lands,
-prefer a known-ready backend explicitly in performance-sensitive loops.
+One ``rank()`` call emits at most one warning for an unavailable requested
+backend and at most one per backend that fails at runtime; each match still
+names the backend that computed it. Repeated warnings across many ``rank()``
+calls mean the backend is unavailable or failing in every call: pass a backend
+that :func:`available_backends` reports as available. (Before ``LV-002`` was
+resolved, one call could warn once per choice.)
 
 My strings look the same but distance is non-zero
 -------------------------------------------------

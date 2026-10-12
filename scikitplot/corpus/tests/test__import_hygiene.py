@@ -72,14 +72,34 @@ OPTIONAL_HEAVYWEIGHTS = (
     "PIL",
 )
 
+#: Libraries of the evaluation layer (round 33). Scorers resolve scikit-learn on
+#: first use, report formats load their library on first write, and LLM judges
+#: load their provider SDK only when one is constructed, so importing Corpus
+#: loads none of them.
+#:
+#: Not applied to ``capability_snapshot()``: probing the Annoy backend imports
+#: ``scikitplot.annoy``, whose mixins import scikit-learn and SciPy (finding
+#: F-50, assigned to Run 2 / R2-5 with the rest of the capability vocabulary).
+EVALUATION_LIBRARIES = (
+    "sklearn",
+    "scipy",
+    "yaml",
+    "tomli_w",
+    "openai",
+    "anthropic",
+    "google.genai",
+)
 
-def _loaded_after(statement):
+
+def _loaded_after(statement, watched=OPTIONAL_HEAVYWEIGHTS):
     """Report heavyweights newly loaded by Corpus beyond its parent package.
 
     Parameters
     ----------
     statement : str
         Python source executed in the child process.
+    watched : tuple of str, optional
+        Module names to watch.
 
     Returns
     -------
@@ -102,7 +122,7 @@ def _loaded_after(statement):
         after = {{m for m in watched if m in sys.modules}}
         print(",".join(sorted(after - before)))
         """
-    ).format(statement=statement, watched=OPTIONAL_HEAVYWEIGHTS)
+    ).format(statement=statement, watched=watched)
 
     proc = subprocess.run(
         [sys.executable, "-c", source],
@@ -126,7 +146,7 @@ def _loaded_after(statement):
 )
 def test_no_optional_backend_is_imported(statement):
     """Importing Corpus must not load any optional heavyweight."""
-    loaded = _loaded_after(statement)
+    loaded = _loaded_after(statement, OPTIONAL_HEAVYWEIGHTS + EVALUATION_LIBRARIES)
     assert loaded == [], (
         "P-I0-12 regression: importing Corpus loaded optional "
         "dependencies {0}. Corpus keeps these out of the import path via "

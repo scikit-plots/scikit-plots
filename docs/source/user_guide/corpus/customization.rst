@@ -66,10 +66,15 @@ reader dispatch separate.
 Custom retrieval
 ----------------
 
-:class:`CustomRetrievalIndex` accepts a scorer callback. The independent
-:mod:`scikitplot.levenshtein` facade provides :func:`scikitplot.levenshtein.make_corpus_scorer`
-for edit-distance ranking without coupling the Levenshtein module back to
-Corpus.
+:class:`CustomRetrievalIndex` accepts a ranking callback
+(``custom_scorer_fn``). :func:`make_pairwise_ranker` builds one from any
+pairwise function, such as :func:`edit_similarity` or a cross-encoder, with
+scikit-learn's ``greater_is_better`` sign convention, and
+:func:`make_levenshtein_ranker` ranks by :mod:`scikitplot.levenshtein` similarity
+with the backend that ran recorded on each hit. The Levenshtein module itself
+does not import Corpus.
+
+To *evaluate* any retriever, see :ref:`corpus-evaluation`.
 
 Custom registries
 -----------------

@@ -464,6 +464,244 @@
 - **Verified by:** `test_cloudflare_receiver.py` (Linux local; Windows leg on the next CI run).
 - **Added:** 2026-10-11. Root cause: `env={"SECRET", "PATH"}` failed only on the Windows leg.
 
+### Rule 78: Native kernels - elements are compared by equality, never by their hash
+- **When:** C, C++ or Cython code compares Python elements through an integer encoding.
+- **Then:** encode `str` by code point; encode anything else through one `dict` shared by both operands, so two elements get one code exactly when the container would call them equal (identity, then `==`). A test feeds colliding values: `[-1]`/`[-2]`, `[0]`/`[2**61 - 1]`, and tuples of them.
+- **Verified by:** `_editdistance/test/test_bycython.py::test_equal_hashes_do_not_make_elements_equal`; the levenshtein collision tests run on every available backend.
+- **Added:** 2026-10-12. Root cause: `bycython` passed `hash(element)` to the kernel. CPython gives `hash(-1) == hash(-2)`, so `levenshtein.distance([-1], [-2])` was 0 on the default backend and 1 with `backend="python"`.
+
+### Rule 79: Thresholds - a cutoff API is held to the uncut function at every threshold, 0 included
+- **When:** a function takes a threshold, cutoff or maximum distance and exits early.
+- **Then:** a randomised differential test asserts `criterion(a, b, t) == (distance(a, b) <= t)` for `t` from 0 upward, on odd and even lengths and on exact matches.
+- **Verified by:** `test_criterion_agrees_with_the_distance_for_every_threshold` (4,500 cases) and `test_an_exact_match_is_within_threshold_zero` (lengths 0 to 8).
+- **Added:** 2026-10-12. Root cause: the early exit read `d[i%1]`, which is always row 0, instead of `d[i&1]`. This made 91 of 20,000 random cases wrong, all exact matches rejected at threshold 0. No test used threshold 0.
+
+### Rule 80: Native memory - nothing is allocated by hand before a call that can raise
+- **When:** Cython code allocates memory and then calls the Python API (`hash`, iteration, `__eq__`), or calls C++ that can throw.
+- **Then:** hold the memory in `libcpp.vector`, whose destructor runs on every exit, or free it in `try/finally`. Declare every C++ function that can throw with `except +`, and check every remaining allocation for failure.
+- **Verified by:** `test_a_raising_hash_does_not_leak`: 1,000 failing calls grow the glibc heap by less than 1 MB (`mallinfo2`). Before the fix the leak was 16 KB per call.
+- **Added:** 2026-10-12. Root cause: `malloc`, then `hash()` raised, then return. Each failing call leaked `len(a) * 8` bytes, and `levenshtein.distance` reached this path with unhashable elements. `malloc` was never checked for `NULL`.
+
+### Rule 81: Caches - the key names everything that changes the value, the provider included
+- **When:** a persistent cache stores the output of a pluggable function (a callable, a model, a remote API).
+- **Then:**
+  - The key includes a stable provider id the caller declares (`custom_fn_id`).
+  - A provider without an id bypasses the persistent cache, and this is logged once.
+  - A hit returns the stored value at its stored dtype, bit-identical to a miss.
+  - The cache does not depend on unrelated arguments such as `input_path`.
+- **Verified by:** `TestCustomProviderIdentity`, `TestCachePrecision` and `test_without_input_path_still_caches` in `corpus/_embeddings/tests/test__embedding.py`.
+- **Added:** 2026-10-12. Root cause: the key was `texts + model_name + backend`. Provider B was served provider A's vectors and never called. A float64 engine got float32 values back from a hit.
+
+### Rule 82: Guards - a guard over provenance tags is tested from the producer, end to end
+- **When:** a consumer refuses mixed provenance (manifest ids, schema versions, model fingerprints).
+- **Then:** the test builds both inputs through the public producer API, never by hand-setting the tag, and asserts that the guard fires. Every producer path, including convenience wrappers, delegates to the one that stamps the tag.
+- **Verified by:** `TestEmbeddingManifestProvenance::test_an_index_refuses_two_providers_vectors` and `test__builder_customization_seams.py::test_builder_embeddings_are_cached_and_carry_their_manifest`.
+- **Added:** 2026-10-12. Root cause: `_reject_mixed_manifests` compared `embedding_manifest_id`, which no producer ever set. The guard's tests set the tag by hand, and `CorpusBuilder` re-implemented embedding without the engine's cache or provenance. Rule 41 in another form: a fixture must hold what the producer actually stores.
+
+### Rule 83: Scoring - one formula per recipe, and every scoring path calls it
+- **When:** a ranker has more than one scoring path (dense, batch, sparse, cached).
+- **Then:** keep one per-term function per recipe. A sparse path adds every query term's contribution at frequency 0, unless the recipe proves that contribution is 0. A randomised differential test holds the ranks and the scores of all paths bit-identical.
+- **Verified by:** `test_sparse_ranking_and_scores_equal_the_dense_path`, which runs 200 random corpora for each of the 3 recipes, and `test_batch_scores_equal_the_dense_path`.
+- **Added:** 2026-10-12. Root cause: the sparse path assumed that a document without a query term scores 0. BM25L and BM25+ add a delta lower bound, so rankings differed in 34 and 35 of 300 random queries. The one agreement test used a single-term Okapi query.
+
+### Rule 84: Validation - every public entry point validates, not only the first one written
+- **When:** several public methods accept the same argument (a query, a path, a config).
+- **Then:** route all of them through one validator, and keep one parametrised test over every entry point and every refused shape.
+- **Verified by:** `test__rank_bm25_input_contract.py`: 3 scorers, 5 entry points and 3 refused queries.
+- **Added:** 2026-10-12. Root cause: `get_batch_scores`, `get_top_ids` and `candidate_count` skipped `_require_query_tokens`, so a `str` query was scored one character at a time. Rule 68 tested refused shapes for one entry point only.
+
+### Rule 85: Fallbacks - a result names the backend that ran, the one requested, and why they differ
+- **When:** a component can fall back to another implementation (a model, a native backend, an optional package).
+- **Then:**
+  - The result reports `requested_backend`, the effective `backend` and a `fallback_reason`.
+  - Provenance is decided after the run, never at construction.
+  - Model fields are set only when a model ran: in the result and in every record it contains.
+  - Every fallback path is covered: a missing package, a model that fails to load, and a model that fails at run time.
+  - The missing-package fallback is warned once per instance.
+  - `allow_fallback=False` raises on every path.
+- **Verified by:** `corpus/_chunkers/tests/test__semantic.py`: 16 tests with offline fake models (working, failing to encode, failing to load, absent).
+  - On the uploaded code all 16 fail.
+  - On this round's first fix 8 fail: it covered the result level and the missing package only.
+  - On its second fix 2 fail: it missed the load failure.
+- **Added:** 2026-10-12.
+- **Root cause:**
+  - After falling back, `SemanticChunker` reported `backend="hybrid"`, `chunking_strategy="semantic_hybrid"` and a model name with no model run.
+  - The constructor wrote the model name into every chunk's metadata, MORPHOLOGICAL runs included.
+  - A model that failed while encoding was swallowed inside the refinement step, so even `allow_fallback=False` returned "hybrid".
+  - A model that failed to load escaped on the first call; later calls fell back under "sentence_transformers_unavailable", with the package installed.
+
+### Rule 86: Native memory - a view of native memory holds a buffer export, and closing defers the free
+- **When:** an object owns native memory (`mmap`, `malloc`) and hands out views (NumPy arrays, `memoryview`), or releases the GIL while it uses that memory.
+- **Then:**
+  - Implement the buffer protocol with an export count.
+  - `close()` with live exports ends the object's API and defers the free to the last `__releasebuffer__`.
+  - Every method that releases the GIL around the memory holds the same count while it runs (pin before the first operation that can release the GIL, unpin in `finally`).
+  - `close()` takes the address while it holds the GIL, so a second `close()` cannot free it twice.
+  - Refuse to remove a right (a protection bit, a size) that a live export was handed out with: `BufferError`, as CPython does for a resize under exports.
+  - Make NumPy views from `memoryview(self)`, because `np.frombuffer(obj)` releases its export at once.
+- **Verified by:** `memmap/_memmap/tests/test_mman.py`.
+  - Two subprocess reproductions exited with 139/-11 before the fix: a view returned from a `with` block, and `close()` during another thread's `read()`.
+  - A `/proc/self/maps` check shows the region unmapped after the last view.
+  - On the uploaded code 8 of the 9 lifetime tests fail; the ninth is a guard.
+- **Added:** 2026-10-12.
+- **Root cause:**
+  - `as_numpy_array()` wrapped the raw address, and `close()` unmapped it underneath.
+  - `read()` copied with the GIL released, so `close()` on another thread could unmap mid-copy.
+  - `mprotect(PROT_READ)` left a writable array that faulted on its next write.
+
+### Rule 87: Verification - a background run verifies a snapshot, and is checked by its process id
+- **When:** a long run (`libs._tools verify`, a suite) is started in the background while work continues.
+- **Then:**
+  - Run it on a copy of the tree (`cp -a work verify-tree`, or `git worktree add`), never on the tree being edited.
+  - Record its id when it starts (`echo $! > run.pid`).
+  - Decide whether it is alive with `kill -0 "$(cat run.pid)"`, never with `pgrep -f <pattern>`.
+- **Verified by:** the round's notes name the snapshot directory and the pid file of every background run.
+- **Added:** 2026-10-12.
+- **Root cause:**
+  - `mem_map.pyx` was edited while a verify run was alive. Its builds had finished and the tested distributions do not contain `memmap`, so the result stands, but only by the timing.
+  - `pgrep -f "libs._tools verify"` matched the shell that ran it, so a finished run was reported as running for two hours.
+  - Rules 1, 3, 8 and 22 all repeated. They were rules to remember; the snapshot and the pid file are mechanisms.
+
+### Rule 88: Concurrency - a check, the action it permits and the record of the action happen together
+- **When:** a method checks state, acts (a system call, a load) and then records the result, and another thread can call into the same object.
+- **Then:**
+  - Keep the GIL (or one lock) from the check to the record. Release it only around work whose effect no other method reads.
+  - Lazy initialisation publishes its "done" flag last, under a lock, after the outcome (success or a remembered failure) is stored.
+  - `KeyboardInterrupt` and `SystemExit` are not outcomes: they leave the flag unset, so the next call tries again.
+- **Verified by:**
+  - `test_mprotect_and_an_export_on_another_thread_do_not_race`, a gated child process. Against the first fix it failed at attempt 0.
+  - `test_concurrent_first_calls_share_one_load`, `test_an_interrupted_first_load_is_tried_again` and `test_a_broken_package_import_falls_back_and_says_so`.
+- **Added:** 2026-10-12.
+- **Root cause (found by an independent review of Run 1):**
+  - `mprotect` checked the views, released the GIL for the system call, and only then recorded `_prot`. Another thread exported writable views over pages that were already read-only.
+  - `SemanticChunker` set "loaded" before loading. A non-`ImportError` import failure, an interrupt or a second thread left a chunker whose every later call raised `TypeError`.
+
+### Rule 89: Interfaces - a new path to existing state inherits every precondition and convention of the old paths
+- **When:** adding an access path (a buffer export, an iterator, an overload) or a field to an existing class.
+- **Then:**
+  - List the preconditions the existing paths check (here: closed, readable, writable) and enforce each on the new path.
+  - Add a dataclass field last, so positional construction keeps its meaning.
+  - A remembered exception keeps its traceback but drops the frames' locals (`traceback.clear_frames`).
+- **Verified by:**
+  - `test_an_unreadable_mapping_exports_nothing_and_cannot_be_read`, a child process.
+  - `test_positional_construction_keeps_its_meaning`.
+  - `test_a_failed_load_does_not_keep_the_half_loaded_model`, which uses a weakref.
+- **Added:** 2026-10-12.
+- **Root cause:**
+  - The buffer export checked "closed" and "writable" but not "readable": `bytes(m)` on a `PROT_NONE` mapping raised SIGSEGV.
+  - `custom_fn_id` was inserted before `cache_dir`.
+  - A stored load error held the half-loaded model alive.
+
+### Rule 90: Numerics - compute in float64, cast to the storage dtype last, and let non-finite values reach their guard
+- **When:** normalising, summing or dividing vectors whose output dtype may be narrow (`float16`), or whose input may be non-finite.
+- **Then:** do the arithmetic in `float64` and cast at the end. Never map NaN or inf to zeros: a zero row passes the finiteness check that a NaN row would fail.
+- **Verified by:** `test_float16_is_normalised_before_the_cast` (768 components of 10 gave rows of zeros before) and `test_a_non_finite_vector_is_not_hidden`.
+- **Added:** 2026-10-12. Root cause: Run 1 normalised after `astype(self.dtype)`; in `float16` the sum of squares overflowed above 65504.
+
+### Rule 91: Evidence - a claim about a third-party behaviour names the versions it was checked on
+- **When:** a comment or docstring states how NumPy, Cython, CPython or another dependency behaves.
+- **Then:** check it on the oldest and the newest version the project allows, and write the boundary into the text ("NumPy 1.23+ …; older NumPy, still allowed on Python 3.8, …").
+- **Verified by:** a `bytearray` resize under `np.frombuffer` (an export blocks resizing): NumPy 1.21.6 holds no export; 1.23.5, 1.24.4 and 2.5.4 hold one.
+- **Added:** 2026-10-12. Root cause: Run 1 wrote "`numpy.frombuffer(m)` does not hold an export" from one observation. It is false for every NumPy a Python 3.9+ install can have, and true only for NumPy before 1.23.
+
+### Rule 92: Delivery - native, concurrent or provenance changes get an independent review before they ship
+- **When:** a change touches native memory, thread interaction, a fallback state machine or provenance fields.
+- **Then:**
+  - Before delivery, a reviewer who has not seen the work probes the diff, read-only and with reproductions.
+  - Each finding is fixed with a test that fails on the reviewed version, or is recorded with its reason.
+- **Verified by:** the round's notes list the review, its 12 findings and each disposition.
+- **Added:** 2026-10-12. Root cause: Run 1's own probes passed. The review then found 4 more crash or permanent-failure paths in the same change (`mprotect` race, `PROT_NONE` export, the chunker's load state, `float16` zeros) and 8 lesser issues.
+
+### Rule 93: Inputs - an object with `keys()` and `items()` is a mapping or is refused, never iterated as a collection
+- **When:** a public function accepts "a mapping or a sequence" for one row (judgments, a ranking, labels per query).
+- **Then:** test `collections.abc.Mapping` first; an object that is not one but has callable `keys` and `items` (a pandas `Series`, a `dict`-like store) is refused with advice (`.to_dict()`, `.tolist()`), or converted explicitly. Top-level containers keyed by id align by key; two keyed containers whose keys differ are refused.
+- **Verified by:** `TestMappingLikes` in `corpus/_metrics/tests/test__inputs.py`, with a real pandas `Series` where pandas is installed.
+- **Added:** 2026-10-12. Root cause: the `Mapping` check failed for a `Series`, and the fallback branch iterated it, which yields the values. A perfect MS MARCO-shaped run scored MRR 0.1667 with no warning.
+
+### Rule 94: Optional dependencies - any exception while importing or probing an optional library is a recorded fallback, not a crash
+- **When:** code chooses between an installed library's implementation and a vendored or pure-Python one.
+- **Then:** catch `Exception` (not only `ImportError`) around the import, the subclassing and a contract probe; record the reason where the user can read it (`fallback_reason`); resolve once per process under a lock.
+- **Verified by:** `test_a_broken_scikit_learn_falls_back_to_the_vendored_base[ValueError|AttributeError]` (fake `sklearn` packages) and `test_resolution_runs_once_under_racing_threads`.
+- **Added:** 2026-10-12. Root cause: a NumPy ABI mismatch raises `ValueError` from `import sklearn`; only `ImportError` was caught, so every scorer raised although a vendored base was present.
+
+### Rule 95: Serialisation - a round-trip test uses the format's full character repertoire and adversarial structure
+- **When:** writing or reading JSON, JSON Lines, YAML or TOML.
+- **Then:** fuzz strings over every code point class, including U+0085, U+2028, U+2029, lone surrogates and NUL; test aliases, deep nesting, huge and non-finite numbers, NumPy scalars and `None` in every container. Each format's limits are explicit errors (`ValueError` naming the value), never a silent rewrite.
+- **Verified by:** `TestLineBreakCharacters`, `TestUntrustedInput` and `TestNumpyScalars` in `corpus/tests/test__serialize.py`.
+- **Added:** 2026-10-12. Root cause: the first tests used ASCII and the happy path. YAML rewrote NEL as a space (598 of 3,000 fuzz trees), JSON Lines split under `str.splitlines()`, a 1,119-byte YAML file expanded to 1,166 MB through aliases.
+
+### Rule 96: Timing - time the work, not the call
+- **When:** measuring latency of a callable whose result may be lazy (a generator, an iterator, a lazy frame).
+- **Then:** stop the clock only after the result is consumed into the form the caller uses.
+- **Verified by:** `test_latency_includes_a_lazy_retriever` (150 ms of work in a generator).
+- **Added:** 2026-10-12. Root cause: the clock stopped when the generator was created, so latency read 0.000001 s.
+
+### Rule 97: Numerics - compare floating sums with a tolerance scaled to the terms, not to the result
+- **When:** deciding equality or "at least as extreme" between sums of floats (permutation and sign-flip tests, ties in scores).
+- **Then:** use an absolute tolerance of the order `n * eps * sum(|terms|)`, or exact arithmetic (`fractions`, `math.fsum` plus a bound).
+- **Verified by:** `test_flips_equal_for_the_represented_values_count` (`0.3 + 0.4` against `0.7`).
+- **Added:** 2026-10-12. Root cause: a tolerance relative to the observed statistic missed rounding error that scales with the per-query differences; an exact test reported 0.875 instead of 1.0.
+
+### Rule 98: Files - a published file gets the permissions `open()` would give it
+- **When:** writing through a staging file and `os.replace` (atomic publish).
+- **Then:** create the staging file with mode `0o666` (the umask applies) and copy a replaced target's mode; never inherit `mkstemp`'s `0o600`.
+- **Verified by:** `TestPermissions` in `corpus/tests/test__atomic.py` (umask 022 fixture: a new file is `0o644`; a replaced `0o640` file keeps `0o640`).
+- **Added:** 2026-10-12. Root cause: `tempfile.mkstemp` creates `0o600` by design; every report, export and cache file became private to its owner.
+
+### Rule 99: Verification - a marker file and `find -newer` list every file edited while a background run used the tree
+- **When:** a suite or harness runs in the background on a tree that may still be edited (Rule 87).
+- **Then:** `touch` a marker when the run starts; before recording its result, `find <tree> -newer <marker> -type f` and re-run the modules those files belong to, or re-run on a snapshot taken after the last edit.
+- **Verified by:** the round's notes name the listed files and the re-run (117 passed) for increment 2a.
+- **Added:** 2026-10-12. Root cause: Rule 87 was applied to the harness but not to the plain suites; three files were edited during them. Rule 87's reminder became a listing step.
+
+### Rule 100: Delivery - a fragment's PR number is confirmed for the round, never inherited from the previous round
+- **When:** creating `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst`.
+- **Then:** use the PR number the user gave for this round; if none was given, ask once before the first fragment and record it in `tasks/todo.md`. Rename only this round's fragments (those absent from the uploaded tree); earlier rounds' fragments keep their number.
+- **Verified by:** `find docs/source/whats_new/upcoming_changes -name "<PR>.*"` lists exactly this round's fragments, none of them in the uploaded tree; towncrier check PASS.
+- **Added:** 2026-10-12. Root cause: round 33 reused round 32's PR 864 by assumption (it was recorded as a decision to reverse, not asked); the user corrected it to 865 before applying. Nine fragments renamed.
+
+### Rule 101: Verification - a recorded fingerprint is refreshed after the last edit to what it covers, and the final snapshot re-runs its checker
+- **When:** a maintenance record holds a hash of a tree (`runtime_tree_fingerprint`, TRACKER inventory) and that tree is edited later in the same round (a review fix, a test change).
+- **Then:** refresh the record after the last edit, and run every maintenance checker against the final snapshot as a delivery gate; a fingerprint quoted in notes names the snapshot it was computed on.
+- **Verified by:** `maintenances/levenshtein` tests (8) and `check_contract.py` (PASS/PASS) run on the delivered tree; the 2b notes record the refresh.
+- **Added:** 2026-10-12. Root cause: 2a refreshed the levenshtein fingerprint, then the review fixes (LV-001/LV-002) changed `_core.py` and the tests; the delivered STATE/EVIDENCE were stale and `test_structural_contract_is_current` failed in the applied tree. A repeat of Rules 87 and 99 for records rather than test runs.
+
+### Rule 102: Optional SDKs - check request arguments against the installed client at construction, and test the oldest and newest SDK
+- **When:** an adapter calls a third-party SDK whose keyword arguments change between versions (`max_completion_tokens` exists from openai 1.45).
+- **Then:** read the client function's explicit signature when the model is made and refuse an argument it does not take (a `**kwargs` function is trusted); run the adapter tests against an old and the newest SDK, through the real SDK over HTTP to a local server.
+- **Verified by:** `test_arguments_the_client_cannot_take_fail_at_construction`, `test_real_sdk_over_http` in venvs with openai 1.40/3.29, anthropic 0.34/1.13, google-genai 1.0/2.29.
+- **Added:** 2026-10-12. Root cause: the adapter was written against the newest SDK only; on openai 1.40 every call would have raised `TypeError`.
+
+### Rule 103: Responses - read the status before the payload
+- **When:** a response has a status (finish reason, HTTP status, stop reason) and a payload (text).
+- **Then:** decide complete/incomplete from the status first; an abnormal end with an empty payload is still "incomplete" (with its token counts), never a type error about the payload.
+- **Verified by:** `test_cut_off_without_text_is_incomplete_not_a_type_error` (six provider shapes), `test_callable_completion_is_checked_too`.
+- **Added:** 2026-10-12. Root cause: the text check ran inside each adapter, before `complete` looked at the finish reason; a thinking model that spent its budget looked like a provider bug and its tokens vanished from `usage`.
+
+### Rule 104: Untrusted structured output - store only the validated schema
+- **When:** parsing model output (or any untrusted JSON) that is stored or exported.
+- **Then:** validate the required fields with exact types, then keep only those fields; refuse what no export format can hold (non-finite numbers, lone surrogates, nesting too deep) as a parse failure of that one item.
+- **Verified by:** `test_unstorable_verdicts_are_refused`, `test_only_the_schema_is_kept`, `test_deep_nesting_is_a_parse_failure`.
+- **Added:** 2026-10-12. Root cause: extra fields were kept verbatim; one reply with `1e400`, a lone surrogate or `[null]` made a whole run's report unwritable in JSON or TOML.
+
+### Rule 105: Caller-supplied resources - classify their failures apart from the remote's, and count from the source
+- **When:** a caller passes a resource used on worker threads (a cache mapping), or a report summarises something an option can drop (verdicts).
+- **Then:** wrap the resource's operations so their failure raises a distinct error that stops the run (a configuration problem), never a recorded remote failure; compute summary counters (errors, tokens) when the work happens, and do not count cached work as spent.
+- **Verified by:** `test_a_failing_cache_is_a_cache_error`, `test_a_broken_cache_stops_the_run`, `test_errors_are_counted_without_verdicts`, `test_cached_responses_cost_no_tokens`.
+- **Added:** 2026-10-12. Root cause: on Python 3.13 a `shelve` cache is SQLite-backed and thread-bound; with `n_jobs > 1` every judgement was recorded as a provider error. Error counts were derived from verdicts that `keep_verdicts=False` drops.
+
+### Rule 106: Loaders - a record is checked against an explicit per-field contract before an object is built from it
+- **When:** rebuilding objects from text (JSON, YAML, TOML) that may be malformed or hostile.
+- **Then:** check every field's type (bool is not an int; a YAML/TOML date is not a string), refuse unknown keys, and check numeric ranges (a value that overflows its dtype) before calling the constructor; keep the contract table equal to the dataclass by a test. A permissive constructor (`from_dict` coercing `"7"` to 7) is not a validator.
+- **Verified by:** `test_off_contract_records_are_refused`, `test_yaml_and_toml_dates_are_refused`, `test_record_contract_lists_every_field`.
+- **Added:** 2026-10-12. Root cause: 2c's first loader trusted `from_dict`; `chunk_index: "7"` loaded as 7, `tokens: "abc"` as three tokens, a list `text` crashed with `AttributeError`.
+
+### Rule 107: Exporters - refuse at write time what the loader cannot read back
+- **When:** an exporter and a loader share a format.
+- **Then:** every value the exporter accepts must load back equal (or with a documented, tested change such as JSON metadata `NaN` -> `None`); anything else is refused at export, naming the document and field. Test with a round-trip fuzz over every dtype and value class, not one happy path.
+- **Verified by:** `TestRoundTrip` (four formats), `test_embeddings_that_cannot_round_trip_are_refused`, `test_json_refuses_nan_outside_metadata`, `probes/r4c/p_roundtrip.py`.
+- **Added:** 2026-10-12. Root cause: an int8 embedding exported with `embedding_dtype: int8` that the loader refused; a 2-D embedding was dropped with a log line; a `NaN` bbox exported to JSON and could not be loaded.
+
 ## Pattern Analysis
 - Pattern: process-wide state changed by a test and observed by a later, unrelated one (root logger, docutils registries).
 - Occurrences: 2 (round 30 root logging, round 32 Sphinx registries). A third form exists but is latent: under pytest < 9, a conftest outside `rootdir` gets base id `""`, so the AI-assistant package's autouse fixtures (and its service root handler) apply to every package; `verify.py` runs with `cwd` = the environment, which keeps `rootdir` above `site-packages`.
@@ -471,9 +709,49 @@
 - Pattern: a declaration (dependency floor, Python floor, licence, "pure Python") that nothing executes.
 - Occurrences: 8 (scikit-learn floor, Python floors, missing extras named by a CLI hint, two root floors that cannot be combined, a test suite's Python floor; round 4: Python 3.8 for four Sphinx extensions, `n_jobs` behind a macro no build defined, a script that exits on import).
 - Root Cause: metadata is written once by hand and only the newest environment is ever installed.
+- Pattern: two paths that must compute the same thing, written separately and never compared.
+- Occurrences in round 33, all silent wrong answers that every existing test passed:
+  - sparse vs dense BM25;
+  - native vs Python edit distance (hash vs equality);
+  - the builder's embedding vs the engine's;
+  - three RRF implementations with different tie orders (reported, Run 2).
+- Root Cause: the second path was added for speed or convenience, and each path got its own example test, not a test against the other.
+- Prevention: one implementation, or a randomised differential test that holds the paths equal (Rules 79, 83).
+- Pattern: a declaration that nothing executes. Round 33 adds 2 occurrences (10 in all): a provenance guard whose tag no producer set (Rule 82), and CLI capability declarations that nothing enforces (reported, Run 2).
+
+- Pattern: an input or output path tested only with the shapes the author had in mind. Round 33 increment 2a: a pandas `Series` row (Rule 93), a broken rather than absent optional library (Rule 94), line-break characters and aliases in reports (Rule 95), lazy results (Rule 96). All four were found by the independent review, none by the author's tests.
+- Root Cause: tests were written from the implementation's branches, not from the set of values the public signature admits.
+- Prevention: for each public input, list the admitted types and the format's full value space before writing tests; fuzz where the space is large.
 
 ## Effectiveness Metrics
-- Total lessons: 77
+- Total lessons: 107
+- Round 33:
+  - Product near-repeats: Rule 68 (validation tested at one entry point; Rule 84 covers all of them) and Rule 41 (a guard's fixture tagged by hand; Rule 82 builds it through the producer).
+  - Seven new product subjects: native equality, threshold boundaries, native allocation, cache identity, scoring paths, fallback provenance and native-memory lifetime. Each one has a test that fails on the uploaded code.
+  - Process repeats: Rules 1 and 22 (the tree was edited during a run) and Rules 3 and 8 (a process pattern matched its own command). Their successor is Rule 87, a mechanism instead of a reminder.
+  - Two first fixes were incomplete and were completed in the same round after a probe:
+    - the semantic chunker covered the result but not each chunk, nor a failing model;
+    - the memmap fix covered views but not GIL-free methods or `mprotect`.
+  - Rules 85 and 86 now name the whole surface.
+  - An independent review of Run 1 (Rule 92) found 12 issues.
+    - 8 are fixed with tests that fail on the reviewed version.
+    - 3 were documentation or changelog errors and are corrected: the NumPy `frombuffer` claim (Rule 91), the declared-model precedence, and the free-threading caveat in the memmap fragment.
+    - 1 is user misuse, now documented: calling `arr.base.release()` on an array in use.
+    - Fixing them found one more: `model_revision` was recorded but never loaded.
+- Round 33, increment 2c (document export and load-back):
+  - Independent review found 9 issues (2 medium, 7 low); all fixed, 41 tests fail on the reviewed version.
+  - Process repeat: Rule 87. A test file was copied into the CI-harness snapshot while the harness ran, so two wheel-equality checks failed; the run was repeated on a fresh, untouched snapshot. A snapshot is never edited; a change means a new snapshot.
+  - Process repeat: Rule 52. The file tool decoded `\u2028`/`\u2029` escapes in a new test into the characters, and the character scan (Cf/Zs only) missed them; the scan now covers Zl, Zp and Cc, and found nothing else in any file of the round.
+- Round 33, increment 2b (LLM judges, answer harness, agreement):
+  - Independent review (Rule 92) found 10 issues (3 medium, 7 low); all fixed, 26 tests fail on the reviewed version.
+  - The old-SDK run found what tests against one SDK version could not (Rule 102).
+  - Process repeat: Rules 87/99 in a new form: a maintenance fingerprint refreshed before the last review fix shipped stale in 2a (Rule 101).
+  - Rule 54 held: two guide values written before execution were wrong (0.75, 0.818) and were corrected by running the page.
+- Round 33, increment 2a (evaluation harness, scorers, reports, rankers):
+  - Independent review (Rule 92) of new, non-native code found 21 issues (1 high, 6 medium); all fixed, each with a test that fails on the reviewed version except one wording correction.
+  - Process repeats: Rule 52 (a literal NBSP and a combining accent reached a test module; rewritten as escapes), Rule 54 (three comment values in the new guide were wrong until the blocks were executed), Rule 87 (files edited during background suites; now Rule 99), Rule 91 (a copyright year cited from memory, checked against the commit).
+  - User correction: fragments reused round 32's PR number (864); renamed to 865 (Rule 100).
+  - The CI harness found one more: a marker registered only by the root conftest warned in the partial distribution (fixed in `corpus/conftest.py`).
 - Round 32: Rule 69 repeated (process-wide state, now docutils instead of logging): written as words, applied to one package; Rule 73 carries an autouse guard over every extension. Rule 75 retires a gate that hid a shipped defect.
 - Round 31: no repeat; a semantic bug in the new matcher (elif chain over one object's keys) was caught by writing a test for each documented labeler rule.
 - Round 30: Rule 66's subject recurred through delivery (the renamed file could not be deleted by the archive), now Rule 67 with a CI check.

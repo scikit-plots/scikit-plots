@@ -1,0 +1,9 @@
+- An array from ``MemoryMap.as_numpy_array`` stays valid after ``close()``
+  (including the ``with`` block exit): the mapping now exports its bytes
+  through the buffer protocol and unmaps only when the last view is released.
+  ``close()`` from another thread likewise waits for a running ``read``,
+  ``write``, ``msync``, ``mlock`` or ``munlock``; ``mprotect`` refuses
+  (``BufferError``) to remove a right that a live view was exported with; and
+  a mapping without ``PROT_READ`` exports nothing and refuses ``read``. Each
+  of these used to crash the interpreter (SIGSEGV). On free-threaded Python,
+  share one mapping between threads only with external synchronization.

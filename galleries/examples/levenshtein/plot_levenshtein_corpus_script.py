@@ -2,12 +2,12 @@
 Use Levenshtein with Corpus
 ===========================
 
-Build a local deterministic retrieval scorer without making Corpus an import
-requirement of the Levenshtein facade.
+Rank Corpus documents by edit distance. Corpus owns the adapter,
+:func:`scikitplot.corpus.make_levenshtein_ranker`, so the Levenshtein facade
+never imports Corpus.
 """
 
-from scikitplot.corpus import CorpusDocument, RetrievalConfig
-from scikitplot.levenshtein import make_corpus_scorer
+from scikitplot.corpus import CorpusDocument, RetrievalConfig, make_levenshtein_ranker
 
 documents = [
     CorpusDocument.create("a.txt", 0, "kitten"),
@@ -16,11 +16,11 @@ documents = [
     CorpusDocument.create("d.txt", 0, "unrelated"),
 ]
 
-scorer = make_corpus_scorer(
+ranker = make_levenshtein_ranker(
     backend="python",
     score_cutoff=0.5,
 )
-hits = scorer("kitten", documents, RetrievalConfig(top_k=3))
+hits = ranker("kitten", documents, RetrievalConfig(top_k=3))
 
 assert [hit.doc.text for hit in hits] == ["kitten", "bitten", "sitting"]
 assert all(hit.match_mode == "levenshtein" for hit in hits)

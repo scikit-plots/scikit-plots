@@ -2028,10 +2028,32 @@ class CorpusBuilder:
         self,
         documents: list[Any],
     ) -> tuple[list[Any], int]:
-        """Embed documents, returning (updated_docs, n_embedded)."""
+        """Embed documents, returning (updated_docs, n_embedded).
+
+        Notes
+        -----
+        **Developer.** An :class:`EmbeddingEngine` embeds through its own
+        ``embed_documents``, which is where the disk cache and the embedding
+        manifest live. This method used to call ``engine.embed`` and attach
+        the vectors itself, so builder corpora were never cached and never
+        stamped with ``embedding_manifest_id``. Engines from a factory that are
+        not an ``EmbeddingEngine`` keep the plain ``embed`` path.
+        """
         engine = self._get_embedding_engine()
         if engine is None:
             return documents, 0
+
+        from ._embeddings import EmbeddingEngine  # noqa: PLC0415
+
+        if isinstance(engine, EmbeddingEngine):
+            try:
+                out = engine.embed_documents(list(documents))
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Embedding failed: %s", exc)
+                return documents, 0
+            return out, sum(
+                1 for doc in out if getattr(doc, "embedding", None) is not None
+            )
 
         texts = []
         for doc in documents:

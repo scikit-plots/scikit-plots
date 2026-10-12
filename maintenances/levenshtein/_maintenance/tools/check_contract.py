@@ -64,6 +64,18 @@ def _public_names() -> list[str]:
     raise AssertionError("_core.__all__ not found")
 
 
+def _corpus_boundary_errors() -> list[str]:
+    """Corpus depends on Levenshtein, never the reverse (invariant L8)."""
+    errors = []
+    if "make_corpus_scorer" in _public_names():
+        errors.append("make_corpus_scorer is back; the Corpus adapter belongs to Corpus")
+    for path in sorted(RUNTIME.rglob("*.py")):
+        if "tests" in path.relative_to(RUNTIME).parts:
+            continue
+        if "scikitplot.corpus" in path.read_text(encoding="utf-8"):
+            errors.append(f"{path.relative_to(ROOT).as_posix()} mentions scikitplot.corpus")
+    return errors
+
 def check() -> dict[str, object]:
     runtime_errors: list[str] = []
     maintenance_errors: list[str] = []
@@ -80,8 +92,7 @@ def check() -> dict[str, object]:
     source = (RUNTIME / "_core.py").read_text(encoding="utf-8")
     if '("internal", "rapidfuzz", "python")' not in source:
         runtime_errors.append("auto backend order no longer visibly excludes GPL Levenshtein")
-    if "make_corpus_scorer" not in _public_names():
-        runtime_errors.append("make_corpus_scorer missing from public surface")
+    runtime_errors.extend(_corpus_boundary_errors())
 
     docs_files = {p.name for p in DOCS.glob("*") if p.is_file()}
     gallery_files = {p.name for p in GALLERY.glob("*") if p.is_file()}

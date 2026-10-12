@@ -24,6 +24,7 @@ from __future__ import annotations
 import multiprocessing as mp
 import os
 import pathlib
+import stat
 
 import pytest
 
@@ -161,14 +162,14 @@ class TestAtomicWritePath:
         import scikitplot.corpus._atomic as mod
 
         seen: list[str] = []
-        orig = mod.tempfile.mkstemp
+        orig = mod._create_staging_file
 
         def _spy(*a, **k):
-            fd, name = orig(*a, **k)
-            seen.append(name)
-            return fd, name
+            path = orig(*a, **k)
+            seen.append(str(path))
+            return path
 
-        monkeypatch.setattr(mod.tempfile, "mkstemp", _spy)
+        monkeypatch.setattr(mod, "_create_staging_file", _spy)
         t = tmp_path / "same.bin"
         atomic_write_bytes(t, b"a")
         atomic_write_bytes(t, b"b")
@@ -278,3 +279,48 @@ class TestRefusedReplace:
 
         assert all(pause > 0 for pause in _atomic._REPLACE_PAUSES)
         assert sum(_atomic._REPLACE_PAUSES) <= 2.0
+
+
+
+#: Modes under umask 022: a new file, a deliberately restricted file, a directory.
+NEW_FILE_MODE = 0o644
+RESTRICTED_MODE = 0o640
+NEW_DIR_MODE = 0o755
+
+
+@pytest.fixture
+def umask_022():
+    """Run with umask 022 and restore the caller's umask afterwards."""
+    previous = os.umask(0o022)
+    try:
+        yield
+    finally:
+        os.umask(previous)
+
+
+@pytest.mark.thread_unsafe  # the umask is process-wide
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+class TestPermissions:
+    """A published file has the mode a plain open() would give it."""
+
+    def test_new_file_follows_the_umask(self, tmp_path: pathlib.Path, umask_022) -> None:
+        target = atomic_write_bytes(tmp_path / "new.bin", b"x")
+        assert stat.S_IMODE(target.stat().st_mode) == NEW_FILE_MODE
+
+    def test_replaced_file_keeps_its_mode(self, tmp_path: pathlib.Path, umask_022) -> None:
+        target = tmp_path / "kept.bin"
+        target.write_bytes(b"old")
+        target.chmod(RESTRICTED_MODE)
+        atomic_write_bytes(target, b"new")
+        assert stat.S_IMODE(target.stat().st_mode) == RESTRICTED_MODE
+        assert target.read_bytes() == b"new"
+
+    def test_directory_publication_is_unaffected(self, tmp_path: pathlib.Path, umask_022) -> None:
+        def writer(staging: pathlib.Path) -> None:
+            staging.unlink()
+            staging.mkdir()
+            (staging / "part").write_bytes(b"x")
+
+        target = atomic_write_path(tmp_path / "artifact", writer)
+        assert (target / "part").read_bytes() == b"x"
+        assert stat.S_IMODE(target.stat().st_mode) == NEW_DIR_MODE

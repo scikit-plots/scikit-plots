@@ -164,6 +164,7 @@ Map a file into memory:
 # Imports
 # ===========================================================================
 
+from cpython.buffer cimport PyBUF_FORMAT, PyBUF_ND, PyBUF_STRIDES, PyBUF_WRITABLE
 from cpython.bytearray cimport PyByteArray_AS_STRING
 from cpython.bytes cimport PyBytes_AsStringAndSize
 
@@ -765,6 +766,32 @@ cdef class MemoryMap:
     - Always use factory methods (create_*) to create instances
     - Use as context manager for automatic cleanup
     - Accessing closed mapping raises ValueError
+    - The mapping exports its bytes through the buffer protocol, so
+      ``memoryview(m)`` views it without copying. A ``memoryview`` and an
+      array from :meth:`as_numpy_array` each hold an export, which keeps the
+      mapped region alive: :meth:`close` ends this object's own API at once,
+      and the region is unmapped when the last export is released. Using such
+      a view after ``close()`` is therefore safe.
+    - ``numpy.frombuffer(m)`` called directly holds an export from NumPy
+      1.23 on (NumPy keeps a memoryview of its own as the array's base);
+      older NumPy, still allowed on Python 3.8, releases it at once, and
+      ``close()`` may then unmap under the array. :meth:`as_numpy_array`
+      holds one with every NumPy.
+    - An array's ``base`` memoryview is its export: calling
+      ``arr.base.release()`` while the array is still used invalidates the
+      array, as it does for any NumPy array over a released buffer.
+    - A mapping without ``PROT_READ`` exports nothing (``BufferError``) and
+      cannot be read; access through it would crash the process.
+    - Methods that release the GIL around a system call or a copy
+      (:meth:`read`, :meth:`write`, :meth:`msync`, :meth:`mlock`,
+      :meth:`munlock`) hold the same kind of export while they run, so a
+      :meth:`close` from another thread defers the unmap instead of unmapping
+      under them. :meth:`mprotect` keeps the GIL for its system call, so the
+      protection and the recorded flags change together, and it refuses to
+      remove a protection bit while exports are alive (``BufferError``): a
+      view exported as writable would crash the process on its next write.
+    - On free-threaded CPython builds the export count is not atomic: share
+      one mapping between threads only with external synchronization.
 
     Examples
     --------
@@ -779,6 +806,12 @@ cdef class MemoryMap:
     cdef bint _is_valid
     cdef int _prot
     cdef int _flags
+    # Exports that still point at _addr: buffer exports (memoryviews, NumPy
+    # arrays) and pins held by methods while they run without the GIL.
+    # close() with exports alive defers munmap to the last release (_unpin).
+    cdef Py_ssize_t _exports
+    cdef bint _unmap_pending
+    cdef Py_ssize_t _buffer_shape[1]
 
     def __cinit__(self):
         """
@@ -796,6 +829,8 @@ cdef class MemoryMap:
         self._is_valid = False
         self._prot = 0
         self._flags = 0
+        self._exports = 0
+        self._unmap_pending = False
 
     def __dealloc__(self):
         """
@@ -807,12 +842,61 @@ cdef class MemoryMap:
         -----
         - Called automatically when Python object is garbage collected
         - Must not raise exceptions
-        - Always unmaps if region is valid
+        - Unmaps whatever is still mapped, including a region whose
+          ``close()`` was deferred (no view can outlive this object: every
+          view holds a reference to it)
         """
-        if self._is_valid and self._addr is not NULL:
+        if self._addr is not NULL:
             munmap(self._addr, self._size)
             self._addr = NULL
             self._is_valid = False
+
+    def __getbuffer__(self, Py_buffer *buffer, int flags):
+        """Export the mapped bytes as a 1-D unsigned-byte buffer."""
+        cdef bint writable = (self._prot & PROT_WRITE) != 0
+        if not self._is_valid:
+            raise BufferError("Mapping is closed")
+        if (self._prot & PROT_READ) == 0:
+            raise BufferError("Mapping is not readable (created without PROT_READ)")
+        if (flags & PyBUF_WRITABLE) == PyBUF_WRITABLE and not writable:
+            raise BufferError("Mapping is read-only (created without PROT_WRITE)")
+        self._buffer_shape[0] = <Py_ssize_t>self._size
+        buffer.buf = self._addr
+        buffer.obj = self
+        buffer.len = self._buffer_shape[0]
+        buffer.readonly = not writable
+        buffer.itemsize = 1
+        buffer.ndim = 1
+        buffer.format = NULL
+        buffer.shape = NULL
+        buffer.strides = NULL
+        if (flags & PyBUF_FORMAT) == PyBUF_FORMAT:
+            buffer.format = b"B"
+        if (flags & PyBUF_ND) == PyBUF_ND:
+            buffer.shape = self._buffer_shape
+        if (flags & PyBUF_STRIDES) == PyBUF_STRIDES:
+            buffer.strides = &buffer.itemsize
+        buffer.suboffsets = NULL
+        buffer.internal = NULL
+        self._pin()
+
+    def __releasebuffer__(self, Py_buffer *buffer):
+        """Release one export; perform a deferred unmap after the last one."""
+        self._unpin()
+
+    cdef inline void _pin(self) noexcept:
+        """Hold the region mapped: a buffer export, or a GIL-free section."""
+        self._exports += 1
+
+    cdef void _unpin(self) noexcept:
+        """Release one hold; perform a deferred unmap after the last one."""
+        self._exports -= 1
+        if self._exports == 0 and self._unmap_pending:
+            self._unmap_pending = False
+            # Nothing can raise here; a failed munmap leaves the region to
+            # __dealloc__, which retries.
+            if self._addr is not NULL and munmap(self._addr, self._size) == 0:
+                self._addr = NULL
 
     def __init__(self):
         """
@@ -1087,16 +1171,20 @@ cdef class MemoryMap:
 
         Raises
         ------
-        ValueError
-            If mapping is already closed
         MMapError
-            If munmap() fails
+            If munmap() fails; the mapping then stays open.
 
         Notes
         -----
         - After closing, the mapping cannot be used
         - Called automatically by __dealloc__ or context manager
         - Safe to call multiple times (idempotent)
+        - If views (``as_numpy_array``, ``memoryview``) are still alive, or
+          another thread is inside a method that runs without the GIL
+          (``read``, ``write``, ...), the unmap is deferred until the last of
+          them is released. It used to unmap at once: reading such a view --
+          for instance an array returned from a ``with`` block -- or a
+          ``read`` running on another thread killed the process with SIGSEGV.
 
         Examples
         --------
@@ -1107,17 +1195,28 @@ cdef class MemoryMap:
         """
         if not self._is_valid:
             return  # Already closed, idempotent
+        self._is_valid = False
+
+        if self._exports > 0:
+            self._unmap_pending = True
+            return
+
+        # Take the region while holding the GIL, before releasing it for
+        # munmap: a concurrent close() then finds the mapping closed instead
+        # of unmapping the same address a second time.
+        cdef void* addr = self._addr
+        cdef size_t size = self._size
+        self._addr = NULL
 
         cdef int result
         with nogil:
-            result = munmap(self._addr, self._size)
+            result = munmap(addr, size)
 
         if result != 0:
             err = errno
+            self._addr = addr
+            self._is_valid = True
             raise MMapError(f"Failed to unmap memory: errno={err}")
-
-        self._addr = NULL
-        self._is_valid = False
 
     def read(self, size: int, offset: int = 0) -> bytes:
         """
@@ -1138,18 +1237,22 @@ cdef class MemoryMap:
         Raises
         ------
         ValueError
-            If mapping is closed or parameters are invalid
+            If mapping is closed, not readable, or parameters are invalid
 
         Examples
         --------
         >>> with MemoryMap.create_anonymous(4096) as m:
-        ...     m.write(b"Hello")
+        ...     _ = m.write(b"Hello")
         ...     data = m.read(5)
         ...     print(data)
         b'Hello'
         """
         if not self._is_valid:
             raise ValueError("Mapping is closed")
+        if not (self._prot & PROT_READ):
+            # Reading a mapping without PROT_READ faults (SIGSEGV); refuse it
+            # the way write() refuses a mapping without PROT_WRITE.
+            raise ValueError("Mapping is not readable")
         if size < 0:
             raise ValueError(f"Size must be non-negative, got {size}")
         if offset < 0:
@@ -1160,24 +1263,26 @@ cdef class MemoryMap:
                 f"offset={offset}, size={size}, mapping_size={self._size}"
             )
 
-        # 1. Snapshot mmap base pointer FIRST (CRITICAL for safety)
-        cdef void* base_addr = self._addr
-
-        # 2. Allocate Python-owned buffer (GIL held)
-        cdef bytearray buf = bytearray(size)
-        cdef char* dst = PyByteArray_AS_STRING(buf)
-
-        # 3. Convert address to pure C integer (explicit lifetime boundary)
-        cdef uintptr_t addr = <uintptr_t>base_addr
-        cdef char* src = <char*>(addr + <uintptr_t>offset)
-
         cdef size_t c_size = size
+        cdef uintptr_t c_offset = offset
+        cdef bytearray buf
+        cdef char* dst
+        cdef const char* src
 
-        # 4. Pure C operation (no Python interaction)
-        with nogil:
-            memcpy(dst, src, c_size)
+        # Pin the region before anything can release the GIL (the allocation
+        # may run a garbage collection; the copy releases it): a close() from
+        # another thread then defers the unmap until this copy is done. It
+        # used to unmap under the running memcpy (SIGSEGV).
+        self._pin()
+        try:
+            buf = bytearray(c_size)
+            dst = PyByteArray_AS_STRING(buf)
+            src = <const char*>(<uintptr_t>self._addr + c_offset)
+            with nogil:
+                memcpy(dst, src, c_size)
+        finally:
+            self._unpin()
 
-        # 5. Convert to immutable bytes
         return bytes(buf)
 
     def write(self, data: bytes, offset: int = 0) -> int:
@@ -1225,16 +1330,17 @@ cdef class MemoryMap:
         if offset + n > self._size:
             raise ValueError("Write beyond mapping bounds")
 
-        # 2. Snapshot base pointer FIRST (CRITICAL for safety)
-        cdef void* base_addr = self._addr
+        cdef uintptr_t c_offset = offset
+        cdef char* dst
 
-        # 3. Derive destination via uintptr_t (matches read() path exactly)
-        cdef uintptr_t addr = <uintptr_t>base_addr
-        cdef char* dst = <char*>(addr + <uintptr_t>offset)
-
-        # 4. Pure C copy
-        with nogil:
-            memcpy(dst, src, <size_t>n)
+        # Pinned for the GIL-free copy; see ``read``.
+        self._pin()
+        try:
+            dst = <char*>(<uintptr_t>self._addr + c_offset)
+            with nogil:
+                memcpy(dst, src, <size_t>n)
+        finally:
+            self._unpin()
 
         return n
 
@@ -1251,6 +1357,11 @@ cdef class MemoryMap:
         ------
         ValueError
             If mapping is closed or flags invalid
+        BufferError
+            If *prot* removes a protection bit while views of the mapping
+            (``memoryview``, :meth:`as_numpy_array`) are alive: a view exported
+            as writable or readable would crash the process on its next access.
+            Adding bits is always allowed.
         MMapError
             If mprotect() fails
 
@@ -1265,15 +1376,19 @@ cdef class MemoryMap:
 
         validate_prot_flags(prot)
 
-        # ---- SNAPSHOT Python-derived values under the GIL
-        cdef void* addr = self._addr
-        cdef size_t size = self._size
         cdef int c_prot = prot
+        if self._exports > 0 and (c_prot & self._prot) != self._prot:
+            raise BufferError(
+                f"Cannot remove protection while {self._exports} view(s) of "
+                "the mapping are alive: an access through one of them would "
+                "crash the process. Release the views first."
+            )
 
-        cdef int result
-        with nogil:
-            result = mprotect(addr, size, c_prot)
-
+        # The system call runs with the GIL held, unlike the other methods:
+        # the check above, the call and the recorded flags must change
+        # together. Released, another thread could export a writable view
+        # (or write) from the stale flags into pages already read-only.
+        cdef int result = mprotect(self._addr, self._size, c_prot)
         if result != 0:
             err = errno
             raise MMapError(f"Failed to change protection: errno={err}")
@@ -1312,14 +1427,18 @@ cdef class MemoryMap:
         if not self._is_valid:
             raise ValueError("Mapping is closed")
 
-        # ---- SNAPSHOT under GIL (REQUIRED)
-        cdef void* addr = self._addr
-        cdef size_t size = self._size
         cdef int c_flags = flags
-
+        cdef void* addr
+        cdef size_t size
         cdef int result
-        with nogil:
-            result = msync(addr, size, c_flags)
+        self._pin()
+        try:
+            addr = self._addr
+            size = self._size
+            with nogil:
+                result = msync(addr, size, c_flags)
+        finally:
+            self._unpin()
 
         if result != 0:
             err = errno
@@ -1384,12 +1503,17 @@ cdef class MemoryMap:
         if not self._is_valid:
             raise ValueError("Mapping is closed")
 
-        cdef void* c_addr = self._addr
-        cdef size_t c_size = self._size
-
+        cdef void* c_addr
+        cdef size_t c_size
         cdef int result
-        with nogil:
-            result = mlock(c_addr, c_size)
+        self._pin()
+        try:
+            c_addr = self._addr
+            c_size = self._size
+            with nogil:
+                result = mlock(c_addr, c_size)
+        finally:
+            self._unpin()
 
         if result != 0:
             err = errno
@@ -1425,12 +1549,17 @@ cdef class MemoryMap:
         if not self._is_valid:
             raise ValueError("Mapping is closed")
 
-        cdef void* c_addr = self._addr
-        cdef size_t c_size = self._size
-
+        cdef void* c_addr
+        cdef size_t c_size
         cdef int result
-        with nogil:
-            result = munlock(c_addr, c_size)
+        self._pin()
+        try:
+            c_addr = self._addr
+            c_size = self._size
+            with nogil:
+                result = munlock(c_addr, c_size)
+        finally:
+            self._unpin()
 
         if result != 0:
             err = errno
@@ -1444,9 +1573,9 @@ cdef class MemoryMap:
         """
         Return a NumPy array that shares memory with this mapping.
 
-        No data is copied.  The returned array's lifetime is tied to
-        this ``MemoryMap`` instance: using the array after the mapping
-        is closed is undefined behaviour.
+        No data is copied. The array holds a buffer export of this mapping,
+        so the mapped region stays alive as long as the array (or any view of
+        it) does, even after :meth:`close`.
 
         Parameters
         ----------
@@ -1459,9 +1588,8 @@ cdef class MemoryMap:
         Returns
         -------
         numpy.ndarray
-            A 1-D array viewing the mapped memory.  The ``WRITEABLE``
-            flag is set only when the mapping was created with
-            ``PROT_WRITE``.
+            A 1-D array viewing the mapped memory. It is writeable only when
+            the mapping was created with ``PROT_WRITE``.
 
         Raises
         ------
@@ -1473,19 +1601,13 @@ cdef class MemoryMap:
 
         Notes
         -----
-        Lifetime management follows the same pattern used by
-        ``numpy.memmap``: a ctypes buffer object is created from the
-        raw pointer via ``from_address`` (zero-copy), then passed as
-        the ``buffer=`` argument to ``numpy.ndarray``.  NumPy sets
-        ``arr.base`` to that buffer object, which in turn holds a
-        ``_mmap_ref`` back-reference to this ``MemoryMap``.  The chain
-        ``arr  →  arr.base (ctypes buf)  →  buf._mmap_ref (MemoryMap)``
-        keeps everything alive as long as the array exists.
-
-        Plain ``numpy.ndarray`` is a C-extension type with **no**
-        ``__dict__``; you cannot attach arbitrary attributes to it.
-        The ctypes array *does* have a ``__dict__``, which is why the
-        back-reference is stored there and not on the ndarray itself.
+        **Developer.** The array is built with ``numpy.frombuffer`` over this
+        object's buffer protocol, which counts exports; ``close`` defers the
+        ``munmap`` while any export is alive. The previous implementation
+        wrapped the raw address in a ``ctypes`` buffer: that kept this object
+        alive but not the region, because ``close`` (called by every ``with``
+        block) unmapped it regardless, and touching the array afterwards
+        dereferenced unmapped memory (SIGSEGV).
 
         Examples
         --------
@@ -1495,6 +1617,8 @@ cdef class MemoryMap:
         ...     arr[:5] = [72, 101, 108, 108, 111]
         ...     print(m.read(5))
         b'Hello'
+        >>> int(arr[0])  # still valid after the with block closed m
+        72
 
         Reinterpret as 32-bit floats:
 
@@ -1502,7 +1626,6 @@ cdef class MemoryMap:
         ...     arr = m.as_numpy_array(dtype=np.float32)
         ...     arr[0] = 3.14
         """
-        import ctypes
         import numpy as np
 
         if not self._is_valid:
@@ -1519,44 +1642,13 @@ cdef class MemoryMap:
                 f"by dtype itemsize {dtype.itemsize}"
             )
 
-        cdef size_t n_elements = self._size // dtype.itemsize
-
-        # -----------------------------------------------------------
-        # 1. Build a ctypes buffer that points at the mapped memory.
-        #    from_address does NOT copy — it is a thin C-pointer view.
-        #    ctypes arrays have a __dict__, so we can store our
-        #    back-reference on them (plain ndarray cannot do this).
-        # -----------------------------------------------------------
-        cdef uintptr_t raw_addr = <uintptr_t>self._addr
-        buf = (ctypes.c_char * self._size).from_address(raw_addr)
-
-        # -----------------------------------------------------------
-        # 2. Attach back-reference to self on the ctypes buffer.
-        #    This keeps the MemoryMap (and therefore the mmap region)
-        #    alive as long as buf is alive.  buf stays alive because
-        #    ndarray.base will point to it (step 3).
-        # -----------------------------------------------------------
-        buf._mmap_ref = self
-
-        # -----------------------------------------------------------
-        # 3. Construct ndarray using buffer= (the canonical numpy
-        #    pattern; see numpy.memmap source).  ndarray.__new__ sets
-        #    arr.base = buf automatically — no copy, no ambiguity.
-        # -----------------------------------------------------------
-        arr = np.ndarray(
-            shape=(n_elements,),
-            dtype=dtype,
-            buffer=buf,
-        )
-
-        # -----------------------------------------------------------
-        # 4. Set WRITEABLE to match the actual kernel protection.
-        #    ndarray constructed from a buffer defaults to writeable;
-        #    force it off when the mapping is read-only.
-        # -----------------------------------------------------------
-        arr.flags.writeable = bool(self._prot & PROT_WRITE)
-
-        return arr
+        # NumPy before 1.23 releases the buffer frombuffer obtains at once and
+        # keeps only a reference to its argument (1.23+ keeps a memoryview of
+        # its own). Passing a memoryview makes the export holder explicit with
+        # every supported NumPy: arr.base is the memoryview, which holds one
+        # export of this mapping for as long as the array lives. Its readonly
+        # flag follows PROT_WRITE, and so does the array's.
+        return np.frombuffer(memoryview(self), dtype=dtype)
 
     def __enter__(self) -> MemoryMap:
         """Context manager entry."""

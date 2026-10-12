@@ -1,0 +1,4 @@
+- Files that Corpus publishes atomically (exports, evaluation reports, cached
+  embeddings, artifacts) are no longer made private to their owner: a new file
+  gets the mode a plain ``open()`` would give it (``0o666`` minus the umask)
+  and a replaced file keeps its mode, where ``0o600`` was forced before.

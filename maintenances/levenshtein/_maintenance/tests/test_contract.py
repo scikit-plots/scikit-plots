@@ -28,10 +28,10 @@ def test_recorded_open_findings_are_explicit() -> None:
     data = json.loads(
         (ROOT / "maintenances" / "levenshtein" / "REVIEW.json").read_text(encoding="utf-8")
     )
-    assert {f["id"] for f in data["findings"] if f["status"] == "open"} == {
-        "LV-001",
-        "LV-002",
-    }
+    assert {f["id"] for f in data["findings"] if f["status"] == "open"} == set()
+    closed = {f["id"]: f for f in data["findings"] if f["status"] == "closed"}
+    assert set(closed) == {"LV-001", "LV-002"}
+    assert all(f.get("resolution") and f.get("closed_at") for f in closed.values())
 
 
 def test_auto_backend_policy_excludes_gpl_backend_statically() -> None:

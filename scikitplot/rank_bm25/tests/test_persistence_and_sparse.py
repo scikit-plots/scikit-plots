@@ -14,7 +14,9 @@ scikitplot.rank_bm25._rank_bm25.BM25.load
 """
 
 import json
+import random
 
+import numpy as np
 import pytest
 
 from .._identity import Analyzer
@@ -113,6 +115,53 @@ def test_sparse_and_rank_all_agree():
     for position, doc_id in enumerate(IDS):
         if doc_id in by_id:
             assert by_id[doc_id] == pytest.approx(float(scores[position]))
+
+
+@pytest.mark.parametrize("scorer", CLASSES)
+def test_sparse_ranking_and_scores_equal_the_dense_path(scorer):
+    """
+    ``get_top_ids`` is ``get_scores`` restricted to matching documents.
+
+    BM25L and BM25+ lower-bound every term with ``delta``, so a term a document
+    lacks still contributes. The sparse path used to drop those contributions:
+    on random corpora it ranked differently from ``get_scores`` for about one
+    query in nine and reported different scores for about two in three. Scores
+    are now compared exactly, not within a tolerance.
+    """
+    rng = random.Random(20261012)  # noqa: S311 - seeded, reproducible
+    vocabulary = list("abcdefgh")
+    for _ in range(200):
+        corpus = [rng.choices(vocabulary, k=rng.randint(1, 8)) for _ in range(6)]
+        ids = [f"d{i}" for i in range(6)]
+        index = scorer(corpus, doc_ids=ids)
+        query = rng.sample(vocabulary, k=rng.randint(1, 3)) * rng.randint(1, 2)
+        dense = index.get_scores(query)
+        sparse = index.get_top_ids(query, n=len(ids))
+        matching = {
+            ids[row]
+            for row, document in enumerate(corpus)
+            if set(query) & set(document)
+        }
+        assert {doc_id for doc_id, _ in sparse} == matching
+        for doc_id, score in sparse:
+            assert score == dense[ids.index(doc_id)]  # bit-identical
+        order = [ids[row] for row in np.argsort(-dense, kind="stable")]
+        assert [doc_id for doc_id, _ in sparse] == [d for d in order if d in matching]
+
+
+@pytest.mark.parametrize("scorer", CLASSES)
+def test_batch_scores_equal_the_dense_path(scorer):
+    index = scorer([["a", "b"], ["b", "c", "c"], ["d"]])
+    dense = index.get_scores(["b", "c", "x"])
+    batch = index.get_batch_scores(["b", "c", "x"], [2, 0])
+    assert batch == [dense[2], dense[0]]
+
+
+@pytest.mark.parametrize("scorer", [BM25L, BM25Plus])
+def test_a_delta_recipe_scores_an_absent_term(scorer):
+    """The premise of the fix: a lacking term still adds ``delta`` evidence."""
+    index = scorer([["a"], ["b"]], doc_ids=["x", "y"])
+    assert index.get_scores(["a", "b"])[0] > index.get_scores(["a"])[0]
 
 
 def test_an_out_of_vocabulary_query_returns_nothing():

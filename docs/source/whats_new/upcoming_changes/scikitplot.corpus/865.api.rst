@@ -1,0 +1,16 @@
+- ``export_documents`` gains ``ExportFormat.YAML`` and ``ExportFormat.TOML``
+  and accepts a format's string value (``"jsonl"``); JSON, JSON Lines (also
+  inside the MLflow artifact), YAML and TOML go through the strict
+  serialiser of the evaluation reports: no ``NaN`` or ``Infinity`` token
+  (an infinity, or a ``NaN`` outside metadata and embeddings, is refused and
+  the document named), NumPy scalars in metadata accepted, line-break
+  characters escaped, each one-dimensional ``float16``/``float32``/``float64``
+  embedding stored with its ``embedding_dtype`` (other embeddings are refused
+  rather than written so they cannot load back); ``load_documents`` now loads
+  these four formats back exactly, without ``trusted=True``, checking every
+  record field by field, and raises ``ValueError`` for formats that cannot
+  rebuild every field (CSV, pandas, Parquet, polars, NumPy, HuggingFace; for
+  MLflow, load the downloaded ``corpus_documents.jsonl``) or whose format it
+  cannot infer, where it used to return an empty list with a log warning.
+  JSON files written by earlier versions that hold ``NaN`` tokens must be
+  re-exported.

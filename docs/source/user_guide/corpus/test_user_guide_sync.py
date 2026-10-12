@@ -21,6 +21,8 @@ def test_index_lists_every_guide_page() -> None:
         "customization",
         "downloads_and_network",
         "retrieval_and_similarity",
+        "evaluation",
+        "llm_evaluation",
         "formats_and_export",
         "security_and_limits",
         "troubleshooting",
@@ -106,3 +108,43 @@ def test_policy_and_generator_docs_cover_new_contracts() -> None:
     assert "plan_asr_backends" in readers
     assert "BackendPlan" in readers
     assert "score_cutoff" in retrieval
+
+
+def test_evaluation_page_names_resolve() -> None:
+    """Every evaluation function the guide links is a public Corpus name."""
+    text = _text("evaluation.rst")
+    names = {
+        "anls_score", "edit_similarity_score", "evaluate_retrieval", "exact_match_score",
+        "get_corpus_scorer", "hit_rate_at_k", "make_corpus_scorer",
+        "make_levenshtein_ranker", "make_pairwise_ranker", "mean_average_precision",
+        "mean_reciprocal_rank", "ndcg_at_k", "precision_at_k", "r_precision",
+        "ranking_metrics", "recall_at_k", "scorer_backend_info", "token_f1_score",
+    }
+    for name in names:
+        assert f":func:`{name}`" in text, name
+        assert hasattr(corpus, name), name
+
+
+def test_llm_evaluation_page_names_resolve() -> None:
+    """Every judge, harness and agreement name the LLM page links is public."""
+    text = _text("llm_evaluation.rst")
+    names = {
+        "cohen_kappa", "context_texts", "evaluate_answers", "evaluate_preference",
+        "fleiss_kappa", "krippendorff_alpha", "make_llm", "parse_verdict",
+    }
+    for name in names:
+        assert f":func:`{name}`" in text, name
+        assert hasattr(corpus, name), name
+    for name in ("AnswerEvaluation", "CacheError", "IncompleteCompletionError", "JudgeResult", "LLMJudge"):
+        assert hasattr(corpus, name), name
+
+
+def test_export_page_lists_the_loadable_formats() -> None:
+    """The load-back table names every text format and the functions exist."""
+    text = _text("formats_and_export.rst")
+    for name in ("export_documents", "load_documents"):
+        assert f":func:`{name}`" in text, name
+        assert hasattr(corpus, name), name
+    for member in ("JSON", "JSONL", "YAML", "TOML"):
+        assert f"``{member}``" in text, member
+        assert hasattr(corpus.ExportFormat, member), member

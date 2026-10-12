@@ -1,0 +1,25 @@
+- Corpus can now measure retrieval and answers. Ranking metrics
+  (``precision_at_k``, ``recall_at_k``, ``hit_rate_at_k``,
+  ``mean_reciprocal_rank``, ``mean_average_precision``, ``r_precision``,
+  ``ndcg_at_k`` and ``ranking_metrics``) and answer metrics
+  (``exact_match_score``, ``token_f1_score``, ``edit_similarity_score``,
+  ``anls_score``) take scikit-learn's ``(y_true, y_pred)`` signature;
+  ``make_corpus_scorer`` and ``get_corpus_scorer`` turn them into scorers
+  for ``cross_validate`` and ``GridSearchCV`` that can also score a corpus
+  index directly (``response_method="search"``), on scikit-learn's own
+  ``_BaseScorer`` or a vendored copy when scikit-learn is absent;
+  ``evaluate_retrieval`` runs a retriever over a query set and returns a
+  report of per-query and mean metrics, rankings, latency and response
+  statuses, written as strict JSON, JSON Lines, YAML or TOML and compared
+  with a baseline by a paired randomisation test; ``make_pairwise_ranker``
+  and ``make_levenshtein_ranker`` build ``CustomRetrievalIndex`` rankers.
+  Generated answers can be judged by language models: ``make_llm`` puts
+  OpenAI, Anthropic, Gemini or any callable behind one call (SDKs imported
+  only when used, nothing sent that was not asked for); ``LLMJudge`` scores
+  faithfulness, answer relevance, context precision and recall, answer
+  correctness, a custom rubric and order-swapped pairwise preference from
+  strictly parsed JSON verdicts; ``evaluate_answers`` and
+  ``evaluate_preference`` run one judge or a panel over a dataset (your
+  system, or stored answers from any model) with token usage, judge
+  identities and failures recorded; ``cohen_kappa``, ``fleiss_kappa`` and
+  ``krippendorff_alpha`` measure agreement between judges.

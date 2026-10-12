@@ -71,5 +71,6 @@ Backend probing
 ---------------
 
 Capability discovery should not be placed inside extremely hot application
-loops. `rank()` currently resolves backend state per candidate; maintenance
-finding ``LV-002`` tracks a future per-operation execution plan.
+loops. ``rank()`` resolves the backend once per call, not once per candidate:
+this resolved maintenance finding ``LV-002``. A call per item in your own loop
+still resolves once per call.

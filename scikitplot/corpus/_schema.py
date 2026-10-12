@@ -450,37 +450,43 @@ class ExportFormat(_StrEnumBase):
     """
 
     CSV = "csv"
-    """Comma-separated values; universal but loses numpy embedding arrays."""
+    """Comma-separated values; metadata flattened into columns, no embeddings. Not loadable back."""
 
     PARQUET = "parquet"
-    """Column-oriented binary format via ``pyarrow`` or ``polars``."""
+    """Apache Parquet via ``pandas`` (``pyarrow`` or ``fastparquet``); no embeddings. Not loadable back."""
 
     JSON = "json"
-    """JSON-lines (one document per line) for maximum interoperability."""
+    """Strict JSON (RFC 8259): one array of document objects. Loadable back."""
 
     JSONL = "jsonl"
-    """Alias for JSON-lines format."""
+    """JSON Lines: one document object per line. Loadable back."""
+
+    YAML = "yaml"
+    """YAML sequence of document mappings (needs PyYAML). Loadable back."""
+
+    TOML = "toml"
+    """TOML table ``documents`` holding an array of document tables (needs ``tomli-w``). Loadable back."""
 
     HUGGINGFACE = "huggingface"
-    """HuggingFace ``datasets.Dataset`` object or saved dataset directory."""
+    """HuggingFace ``datasets`` dataset saved to a directory (needs ``datasets``)."""
 
     MLFLOW = "mlflow"
-    """MLflow artifact (logs corpus + metadata to active or specified run)."""
+    """JSON Lines logged as an artifact of the active MLflow run (needs ``mlflow``)."""
 
     PICKLE = "pickle"
-    """Python pickle — fastest round-trip; not portable across Python versions."""
+    """Python pickle; loadable back only with ``trusted=True`` (it can run code)."""
 
     JOBLIB = "joblib"
-    """joblib dump — efficient for large numpy arrays inside documents."""
+    """joblib dump; loadable back only with ``trusted=True`` (it can run code)."""
 
     NUMPY = "numpy"
-    """``numpy.savez_compressed`` — embeddings only, loses text/metadata."""
+    """``numpy.save`` of the embedding matrix (``.npy``); embeddings only."""
 
     POLARS = "polars"
-    """In-memory ``polars.DataFrame``; returned, not written to disk."""
+    """Apache Parquet written through ``polars``; no embeddings. Not loadable back."""
 
     PANDAS = "pandas"
-    """In-memory ``pandas.DataFrame``; returned, not written to disk."""
+    """CSV written through ``pandas``; no embeddings. Not loadable back."""
 
 
 class SourceType(_StrEnumBase):

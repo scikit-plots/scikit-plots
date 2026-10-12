@@ -1599,6 +1599,93 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Evaluation: Retrieval and Answer Metrics, Scorers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _metrics._ranking
+                    "hit_rate_at_k",
+                    "mean_average_precision",
+                    "mean_reciprocal_rank",
+                    "ndcg_at_k",
+                    "precision_at_k",
+                    "r_precision",
+                    "ranking_metrics",
+                    "recall_at_k",
+                    # _metrics._text
+                    "anls_score",
+                    "edit_similarity",
+                    "edit_similarity_score",
+                    "exact_match_score",
+                    "normalize_answer",
+                    "token_f1_score",
+                    # _metrics._scorer (scikit-learn compatible)
+                    "ScorerBackendInfo",
+                    "get_corpus_scorer",
+                    "get_corpus_scorer_names",
+                    "make_corpus_scorer",
+                    "scorer_backend_info",
+                    # _metrics._evaluate (harness and reports)
+                    "EvaluationComparison",
+                    "MetricComparison",
+                    "QueryEvaluation",
+                    "RetrievalEvaluation",
+                    "evaluate_retrieval",
+                    # _metrics._inputs
+                    "UndefinedMetricWarning",
+                    "ranked_ids",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "EvaluationComparison",
+                    "MetricComparison",
+                    "QueryEvaluation",
+                    "RetrievalEvaluation",
+                    "ScorerBackendInfo",
+                ],
+            },
+            {
+                "title": "Evaluation: LLM Judges, Answer Harness, Agreement",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _metrics._llm (provider adapters)
+                    "CacheError",
+                    "Completion",
+                    "IncompleteCompletionError",
+                    "LLM",
+                    "make_llm",
+                    # _metrics._judge
+                    "JudgeParseError",
+                    "JudgeResult",
+                    "LLMJudge",
+                    "context_texts",
+                    "parse_verdict",
+                    # _metrics._answers (harness and reports)
+                    "AnswerEvaluation",
+                    "AnswerItem",
+                    "PreferenceEvaluation",
+                    "evaluate_answers",
+                    "evaluate_preference",
+                    # _metrics._agreement
+                    "cohen_kappa",
+                    "fleiss_kappa",
+                    "krippendorff_alpha",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "AnswerEvaluation",
+                    "AnswerItem",
+                    "Completion",
+                    "JudgeResult",
+                    "LLM",
+                    "LLMJudge",
+                    "PreferenceEvaluation",
+                ],
+            },
+            {
                 "title": "Export",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -1889,6 +1976,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "RetrievalConfig",
                     "RetrievalHit",
                     "RetrievalIndex",
+                    # _pairwise (rankers for CustomRetrievalIndex)
+                    "LevenshteinRanker",
+                    "PairwiseRanker",
+                    "make_levenshtein_ranker",
+                    "make_pairwise_ranker",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "LevenshteinRanker",
+                    "PairwiseRanker",
                 ],
             },
             {
@@ -2580,7 +2677,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "backend_info",
                     "closest",
                     "distance",
-                    "make_corpus_scorer",
                     "normalized_distance",
                     "normalized_similarity",
                     "rank",

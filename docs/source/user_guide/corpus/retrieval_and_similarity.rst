@@ -41,17 +41,18 @@ Corpus compatibility is lazy:
 
 .. code-block:: python
 
-   from scikitplot.levenshtein import make_corpus_scorer
-   from scikitplot.corpus import CustomRetrievalIndex
+   from scikitplot.corpus import CustomRetrievalIndex, make_levenshtein_ranker
 
    index = CustomRetrievalIndex(
-       custom_scorer_fn=make_corpus_scorer(
+       custom_scorer_fn=make_levenshtein_ranker(
            backend="auto",
            score_cutoff=0.70,
        )
    )
 
-Importing :mod:`scikitplot.levenshtein` alone does not import Corpus.
+Corpus owns the adapter: importing :mod:`scikitplot.levenshtein` never imports
+Corpus. :func:`make_pairwise_ranker` does the same for any pairwise function,
+``make_pairwise_ranker(edit_similarity)`` included.
 
 ``score_cutoff`` uses the same normalized similarity scale ``[0, 1]`` for every
 backend, so switching between bundled, RapidFuzz and pure-Python implementations

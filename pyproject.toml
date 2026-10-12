@@ -1125,6 +1125,7 @@ ignore = [
   "ARG001", "ARG002", "ARG005",             # Unused method argument
   "D200",                                   # One-line docstring should fit on one line
   "D202",                                   # No blank lines allowed after function docstring
+  "D213",                                   # multi-line-summary-second-line (D213)
   "EM101",                                  # Exception must not use a string literal, assign to variable first
   "EM102",                                  # Exception must not use an f-string literal, assign to variable first
   "EXE002",                                 # Ignore shebang missing warning

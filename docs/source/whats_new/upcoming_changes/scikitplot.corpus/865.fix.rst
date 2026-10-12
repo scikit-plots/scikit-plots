@@ -1,0 +1,15 @@
+- ``EmbeddingEngine`` no longer serves one custom provider's cached vectors to
+  another (a custom provider is cached only under a ``custom_fn_id``), loads
+  the ``model_revision`` it records, applies ``normalize=True`` to every
+  backend before the ``dtype`` cast (``float16`` rows no longer come back as
+  zeros, and a non-finite vector is no longer hidden as one), returns
+  ``float64`` cache hits without rounding, caches URL sources like files, and
+  stamps every embedded document with its embedding manifest so an index
+  refuses to rank vectors from two embedding generations together
+  (``CorpusBuilder`` now embeds through the same path); ``SemanticChunker``
+  reports the backend that actually ran, with the requested one and the
+  fallback reason beside it, names a model on the result and on each chunk
+  only when the model was called, falls back (or, with
+  ``allow_fallback=False``, raises) when the model fails to load or to encode
+  as well as when ``sentence-transformers`` is missing, and no longer encodes
+  every chunk a second time.

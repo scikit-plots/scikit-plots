@@ -26,8 +26,8 @@ ignore =
     D301,
     D400, D401, D403, D404,
     # ignored by pydocstyle numpy docstring convention
-    D107, D203, D212, D402, D413, D415, D416, D417,
-    # while D213 is ignored by the numpy docstring convention, it's left out above,
+    D107, D203, D212, D213, D402, D413, D415, D416, D417,
+    # (Optionally) while D213 is ignored by the numpy docstring convention, it's left out above,
     # because we want to enforce it.
 
 # it's not a bug that we aren't using all of hacking

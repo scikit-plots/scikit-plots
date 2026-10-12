@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "subsystem": "scikitplot.levenshtein",
-  "updated_at": "2026-10-10",
-  "runtime_tree_fingerprint": "b329f11d23d281a8eebeb02cafb59b6e141f41cb5bee9d733e248361d580f84c",
+  "updated_at": "2026-10-12",
+  "runtime_tree_fingerprint": "54b674e0131293741188656a754b693cb6ab75525743ea0aaa76fb98dca1c089",
   "lanes": {
     "focused_runtime": {
       "status": "PASS",
       "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -c /dev/null scikitplot/levenshtein/tests/test_levenshtein.py -q -p no:cacheprovider --confcutdir=scikitplot/levenshtein",
-      "result": "23 passed"
+      "result": "34 passed"
     },
     "maintenance": {
       "status": "PASS",
@@ -35,7 +35,7 @@
     },
     "import_isolation": {
       "status": "PASS",
-      "result": "covered by maintenance test_import_isolation.py"
+      "result": "covered by maintenance test_import_isolation.py and runtime test_levenshtein_never_imports_corpus"
     }
   }
 }

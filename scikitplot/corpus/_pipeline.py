@@ -1167,6 +1167,8 @@ _FORMAT_SUFFIX: dict[ExportFormat, str] = {
     ExportFormat.PARQUET: ".parquet",
     ExportFormat.JSON: ".json",
     ExportFormat.JSONL: ".jsonl",
+    ExportFormat.YAML: ".yaml",
+    ExportFormat.TOML: ".toml",
     ExportFormat.PICKLE: ".pkl",
     ExportFormat.JOBLIB: ".joblib",
     ExportFormat.NUMPY: ".npy",

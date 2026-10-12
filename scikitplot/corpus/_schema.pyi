@@ -143,6 +143,8 @@ class ExportFormat(_StrEnumBase):
     PARQUET: str
     JSON: str
     JSONL: str
+    YAML: str
+    TOML: str
     HUGGINGFACE: str
     MLFLOW: str
     PICKLE: str

@@ -8,7 +8,6 @@
     "backend_info",
     "closest",
     "distance",
-    "make_corpus_scorer",
     "normalized_distance",
     "normalized_similarity",
     "rank",
@@ -17,6 +16,6 @@
   "release_status": "UNVERIFIED",
   "runtime_errors": [],
   "runtime_status": "PASS",
-  "runtime_tree_fingerprint": "b329f11d23d281a8eebeb02cafb59b6e141f41cb5bee9d733e248361d580f84c",
+  "runtime_tree_fingerprint": "54b674e0131293741188656a754b693cb6ab75525743ea0aaa76fb98dca1c089",
   "subsystem": "scikitplot.levenshtein"
 }
