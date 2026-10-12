@@ -5,19 +5,23 @@
 
 """visualkeras _graph.py"""
 
+from __future__ import annotations
+
+import logging
 from math import ceil
 from typing import TYPE_CHECKING
 
-import numpy as np
 # import aggdraw
 # from PIL import Image
+import numpy as np
 
-# from .. import logger
 from .._compat.optional_deps import LazyImport
 from .._docstrings import _docstring
 from ..utils._pil import get_font, save_image_pil_decorator
 from ._layer_utils import *
 from ._utils import *
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     # Only imported during type checking

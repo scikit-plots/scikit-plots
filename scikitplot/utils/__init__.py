@@ -26,7 +26,11 @@ Various utilities to help with development.
 #     ├── _mlflow.py           ← MLflow gateway config loader
 #     ├── _streamlit.py        ← Streamlit secrets helpers
 #     └── tests/               ← 3 existing, 7 new created below
+from __future__ import annotations
 
-from .. import logger  # noqa: F401
+import logging
+
 from ._path import PathNamer, get_path, make_path, remove_path  # noqa: F401
 from ._time import Timer  # noqa: F401
+
+logger = logging.getLogger(__name__)

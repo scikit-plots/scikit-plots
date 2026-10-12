@@ -1,11 +1,17 @@
-"""_inspect.py."""
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""_inspect.py."""
+
+from __future__ import annotations
+
+# import functools
+# import importlib
+import inspect as _inspect
 
 # import os
 # import re
@@ -14,14 +20,10 @@
 # from datetime import datetime
 # from collections.abc import Sequence
 # from contextlib import nullcontext
-
-# import functools
-# import importlib
-import inspect as _inspect
+import logging
 from typing import TYPE_CHECKING
 
-# import logging
-from .. import logger as _logger
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from typing import TypeVar
@@ -91,7 +93,7 @@ def _get_args_kwargs(
 def _get_param_w_index(
     *args,
     **kwargs,
-) -> "tuple[str, int, any]":
+) -> tuple[str, int, any]:
     """
     Retrieve the parameter and its param_index from the function signature.
 
@@ -224,7 +226,7 @@ def _resolve_args_and_kwargs(
 
     # In non-strict mode, optionally log unknown kwargs if 'verbose' was passed
     if not strict and kwargs.get("verbose", False) and extra_kwargs:
-        _logger.debug(f"Unexpected kwargs logged: {extra_kwargs}")
+        logger.debug(f"Unexpected kwargs logged: {extra_kwargs}")
     # In strict mode, raise an error for any unknown extra kwargs
     if strict and extra_kwargs:
         raise TypeError(f"⚠️ Unexpected keyword arguments: {extra_kwargs}")

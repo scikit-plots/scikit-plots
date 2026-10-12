@@ -10,14 +10,16 @@
 
 from __future__ import annotations
 
+import logging
 import os as _os
 from collections.abc import Generator
 
 # from typing import Union
-from .. import logger as _logger
 from .._compat.optional_deps import HAS_STREAMLIT, safe_import
 from ..exceptions import ScikitplotException
 from ._toml import read_toml
+
+logger = logging.getLogger(__name__)
 
 
 def streamlit_stream_or_return(
@@ -88,7 +90,7 @@ def load_st_secrets(
         try:
             return read_toml(path)
         except ScikitplotException:
-            _logger.error("Failed to load streamlit secrets to file at.")
+            logger.error("Failed to load streamlit secrets to file at.")
     return {}
 
 
@@ -115,7 +117,7 @@ def save_st_secrets(
         write_toml(path, secrets_dict)
     except ScikitplotException:
         # 🔒 Updated save_st_secrets (secure):
-        _logger.error("Failed to save secrets to file at.")
+        logger.error("Failed to save secrets to file at.")
 
 
 def get_env_st_secrets(

@@ -7,10 +7,11 @@ Lightweight timing context manager with :py:obj:`~.logger` support.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Self
 
-from .. import logger
+logger = logging.getLogger(__name__)
 
 
 class Timer:

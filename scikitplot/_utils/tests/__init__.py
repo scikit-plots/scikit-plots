@@ -16,10 +16,8 @@ Developer note
 --------------
 The stub satisfies the relative imports inside ``_utils``:
 
-* ``from .. import logger``                     → ``scikitplot.logger``
 * ``from ..exceptions import ScikitplotException``
 * ``from ..environment_variables import SKPLT_LOGGING_LEVEL``
-* ``from .. import logging``                    → thin wrapper around stdlib
 """
 
 from __future__ import annotations

@@ -6,27 +6,23 @@
 """
 Tests for :mod:`scikitplot._utils` (__init__.py helpers).
 
-Because ``_utils/__init__.py`` does ``from .. import logger``, a minimal
-``scikitplot`` stub is injected into sys.modules before the import so that
-the test file works in isolation as well as inside the full package.
+Coverage map:
 
-Coverage map
-------------
-set_module              decorates class & function, no-op for None  → TestSetModule
-_rename_parameter       rename, deprecation warning, TypeError      → TestRenameParameter
-AttrDict                getattr, setattr, delattr, nested, missing  → TestAttrDict
-merge_dicts             normal, duplicate raise, duplicate override → TestMergeDicts
-chunk_list              even, uneven, empty                         → TestChunkList
-_chunk_dict             even, uneven, empty                         → TestChunkDict
-_truncate_and_ellipsize short, long, exact boundary                 → TestTruncateAndEllipsize
-_truncate_dict          max_key_length, max_value_length, both      → TestTruncateDict
-is_iterator             iterators, non-iterators                    → TestIsIterator
-is_uuid                 valid UUID4, invalid strings                → TestIsUuid
-get_major_minor_py_ver  '3.9.1' → '3.9'                           → TestGetMajorMinorPyVersion
-reraise                 re-raises exception with traceback          → TestReraise
-find_free_port          returns int, port > 0, usable              → TestFindFreePort
-_get_fully_qualified    class and instance                          → TestGetFullyQualifiedClassName
-get_results_paginated   collects pages, respects max_results       → TestGetResultsFromPaginatedFn
+* set_module              decorates class & function, no-op for None  → TestSetModule
+* _rename_parameter       rename, deprecation warning, TypeError      → TestRenameParameter
+* AttrDict                getattr, setattr, delattr, nested, missing  → TestAttrDict
+* merge_dicts             normal, duplicate raise, duplicate override → TestMergeDicts
+* chunk_list              even, uneven, empty                         → TestChunkList
+* _chunk_dict             even, uneven, empty                         → TestChunkDict
+* _truncate_and_ellipsize short, long, exact boundary                 → TestTruncateAndEllipsize
+* _truncate_dict          max_key_length, max_value_length, both      → TestTruncateDict
+* is_iterator             iterators, non-iterators                    → TestIsIterator
+* is_uuid                 valid UUID4, invalid strings                → TestIsUuid
+* get_major_minor_py_ver  '3.9.1' → '3.9'                             → TestGetMajorMinorPyVersion
+* reraise                 re-raises exception with traceback          → TestReraise
+* find_free_port          returns int, port > 0, usable               → TestFindFreePort
+* _get_fully_qualified    class and instance                          → TestGetFullyQualifiedClassName
+* get_results_paginated   collects pages, respects max_results        → TestGetResultsFromPaginatedFn
 
 Run standalone::
 

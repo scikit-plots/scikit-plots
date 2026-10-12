@@ -6,6 +6,7 @@
 """
 scikitplot.stats
 ================
+
 Elegant statistical tools for intuitive and insightful data visualization and interpretation.
 
 The :py:mod:`~scikitplot.stats` module offers a wide range of probability distributions, summary
@@ -15,21 +16,25 @@ masked statistics, and additional tools.
 
 from __future__ import annotations
 
+import logging
 from contextlib import suppress as _suppress
 
-from .. import logger as _logger
 from ..exceptions import ScikitplotException as _ScikitplotException
+
+logger = logging.getLogger(__name__)
 
 try:
     with _suppress(ImportError):
         from ..cexternals._astropy.stats import *  # noqa: F401,F403
 except _ScikitplotException:
-    _logger.warning(
-        "Failed to import astropy.stats. Some features may not work as expected."
+    logger.warning(
+        "Failed to import astropy.stats. Some features may not work as expected.",
     )
 
 try:
     with _suppress(ImportError):
         from ..externals._tweedie import *  # noqa: F401,F403
 except _ScikitplotException:
-    _logger.warning("Failed to import tweedie. Some features may not work as expected.")
+    logger.warning(
+        "Failed to import tweedie. Some features may not work as expected.",
+    )

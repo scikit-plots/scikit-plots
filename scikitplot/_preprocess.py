@@ -9,11 +9,14 @@
 
 """_preprocess."""
 
+from __future__ import annotations
+
+import logging
 import functools
 import inspect
 from inspect import Parameter
 
-from . import logger
+logger = logging.getLogger(__name__)
 
 # cbook must import matplotlib only within function
 # definitions, so it is safe to import from it here.

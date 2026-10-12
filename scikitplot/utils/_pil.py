@@ -12,9 +12,9 @@
 from __future__ import annotations
 
 # import inspect
-# import logging
 # import warnings
 import functools as _functools
+import logging
 import os as _os
 import platform as _platform
 from typing import TYPE_CHECKING
@@ -27,11 +27,12 @@ from PIL import (
     ImageFont,
 )
 
-from .. import logger as _logger
 from .._docstrings import _docstring
 from ..exceptions import ScikitplotException
 from ._matplotlib import safe_tight_layout
 from ._path import get_path
+
+logger = logging.getLogger(__name__)
 
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
@@ -176,9 +177,9 @@ def load_font(
                     print(f"Using custom font: {font_path}")  # noqa: T201
                 return _cached_truetype(font_path, font_size)
             except OSError as e:
-                _logger.error(f"Failed to load font from '{font_path}': {e}")
+                logger.error(f"Failed to load font from '{font_path}': {e}")
         else:
-            _logger.warning(f"Invalid font path or unsupported font file: {font_path}")
+            logger.warning(f"Invalid font path or unsupported font file: {font_path}")
 
     # Platform-specific fallback
     try:
@@ -202,9 +203,9 @@ def load_font(
                 print(f"Using system font: {system_font_path}")  # noqa: T201
             return _cached_truetype(system_font_path, font_size)
     except (OSError, ValueError) as e:
-        _logger.warning(f"Error loading system font: {e}")
+        logger.warning(f"Error loading system font: {e}")
 
-    _logger.warning("Falling back to PIL default font.")
+    logger.warning("Falling back to PIL default font.")
     return load_default_font(font_size=font_size)
 
 
@@ -300,7 +301,7 @@ def save_image_with_pil(
             img.show()
 
     except ScikitplotException as e:
-        _logger.warning(
+        logger.warning(
             f"[ERROR] Could not saved image using PIL to '{to_file}': {e}",
             stacklevel=1,
         )
@@ -436,7 +437,7 @@ def save_image_pil_kwargs(
     # Warn if 'verbose' exists but is not a bool
     # verbose: bool = kwargs.get("verbose", False)
     if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-        _logger.warning(
+        logger.warning(
             "'verbose' parameter should be of type bool.",
             stacklevel=1,
         )
@@ -480,10 +481,10 @@ def save_image_pil_kwargs(
                         # _plt.gcf().clear()  # Clear the figure after saving
                         # _plt.close()
                     return ax
-                except ScikitplotException as e:
-                    _logger.exception(
-                        "Could not saved image using Matplotlib to "
-                        f"'{save_path}': {e}. Falling back to PIL.",
+                except ScikitplotException:
+                    logger.exception(
+                        "Could not save image using Matplotlib to '%s'. Falling back to PIL.",
+                        save_path,
                         stacklevel=1,
                     )
                     # Using PIL to save the image (PIL fallback)
@@ -500,9 +501,9 @@ def save_image_pil_kwargs(
                     show_os_viewer=show_os_viewer,
                 )
         else:
-            _logger.info("Could not saved pil image or Axes plot.")
-    except ScikitplotException as e:
-        _logger.exception(f"Failed to save pil image: {e}")
+            logger.info("Could not saved pil image or Axes plot.")
+    except ScikitplotException:
+        logger.exception("Failed to save pil image")
     return result
 
 
@@ -597,7 +598,7 @@ def save_image_pil_decorator(
                 **kwargs,
             )
             if ax_or_im:
-                _logger.debug(f"Returned object {type(ax_or_im)}")
+                logger.debug(f"Returned object {type(ax_or_im)}")
             return ax_or_im or result
 
         return wrapper

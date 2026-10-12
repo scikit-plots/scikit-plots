@@ -8,11 +8,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import logging
 import os as _os
 
 # from pathlib import Path
-from .. import logger as _logger
 from ..exceptions import ScikitplotException
+
+logger = logging.getLogger(__name__)
 
 
 def load_mlflow_gateway_config(
@@ -80,7 +82,7 @@ def load_mlflow_gateway_config(
         for idx, endpoint in enumerate(endpoints):
             model = endpoint.get("model", {})
             if not isinstance(model, dict):
-                _logger.warning(f"Skipping endpoint[{idx}]: 'model' must be a dict.")
+                logger.warning(f"Skipping endpoint[{idx}]: 'model' must be a dict.")
                 continue
 
             provider = model.get("provider", "").lower()
@@ -88,13 +90,13 @@ def load_mlflow_gateway_config(
             config = model.get("config", {})
 
             if not provider or not model_id:
-                _logger.warning(
+                logger.warning(
                     f"Skipping endpoint[{idx}]: Missing 'provider' or 'name'."
                 )
                 continue
 
             if not isinstance(config, dict):
-                _logger.warning(f"Skipping endpoint[{idx}]: 'config' must be a dict.")
+                logger.warning(f"Skipping endpoint[{idx}]: 'config' must be a dict.")
                 continue
 
             # get api key
@@ -109,7 +111,7 @@ def load_mlflow_gateway_config(
                 expanded = _os.path.expandvars(api_key)
                 api_key = expanded if expanded != api_key else ""
                 if api_key:
-                    _logger.info(f"Loaded {key_name} from environment variables.")
+                    logger.info(f"Loaded {key_name} from environment variables.")
 
             # Initialize provider list if not already present
             configs.setdefault(provider, []).append(
@@ -119,5 +121,5 @@ def load_mlflow_gateway_config(
         return configs
 
     except (yaml.YAMLError, FileNotFoundError, OSError) as exc:
-        _logger.exception(f"Failed to load or parse config: {exc}")
+        logger.error("Failed to load or parse config: %s", exc)
         raise ScikitplotException(f"Error loading config: {exc}") from exc

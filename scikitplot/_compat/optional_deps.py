@@ -15,8 +15,12 @@ from __future__ import annotations
 
 import contextlib
 import inspect
+import logging
 import sys
 
+# import_module(f".{name}", package=package)  # high-level function
+# __import__(f'{__name__}.{name}')  # low-level function, not, not the submodule
+# __import__(module_name, fromlist=[class_name])  # Return submodule directly
 # from functools import lru_cache
 from importlib import import_module
 from importlib.util import find_spec
@@ -26,14 +30,19 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Callable
 
-from .. import logger
 from .._compat.python import lru_cache
 from .._globals import _NoValue
 from ..exceptions import ScikitplotException
 
-# import_module(f".{name}", package=package)  # high-level function
-# __import__(f'{__name__}.{name}')  # low-level function, not, not the submodule
-# __import__(module_name, fromlist=[class_name])  # Return submodule directly
+logger = logging.getLogger(__name__)
+
+
+def _validate_error_policy(error: str) -> None:
+    """Validate the import error-handling mode used throughout this module."""
+    if error not in {"raise", "ignore"}:
+        raise ValueError(
+            f"Invalid error value {error!r}; expected 'raise' or 'ignore'."
+        )
 
 
 # --- nested module or attribute Import ---
@@ -116,10 +125,7 @@ def nested_import(  # noqa: PLR0912  # ruff: ignore[too-many-positional-argument
     >>> nested_import("non.existing.module", default=fallback) is fallback
     True
     """
-    if error not in {"raise", "ignore"}:
-        raise ValueError(
-            f"Invalid error value {error!r}; expected 'raise' or 'ignore'."
-        )
+    _validate_error_policy(error)
 
     # 1. Basic validation and normalization
     is_relative = name.startswith(".")
@@ -192,15 +198,14 @@ def nested_import(  # noqa: PLR0912  # ruff: ignore[too-many-positional-argument
     try:
         for attr in parts[imported_prefix_index:]:
             obj = getattr(obj, attr)
-    except (AttributeError, RecursionError) as e:
+    except (AttributeError, RecursionError):
         attr_name = (
             parts[imported_prefix_index]
             if imported_prefix_index < len(parts)
             else "<?>"
         )
         logger.exception(
-            f"Attribute {attr_name!r} not found while resolving {name!r} "
-            f"starting from module {module!r} ({type(e).__name__!r}: {e})"
+            f"Attribute {attr_name!r} not found while resolving {name!r} starting from module {module!r}",
         )
         if error == "ignore":
             return default
@@ -413,10 +418,7 @@ class LazyImport(ModuleType):
         verbose: bool = False,
     ) -> None:
         super().__init__(str(name))
-        if error not in {"raise", "ignore"}:
-            raise ValueError(
-                f"Invalid error value {error!r}; expected 'raise' or 'ignore'."
-            )
+        _validate_error_policy(error)
 
         self._name = name
         self._package = package
@@ -625,8 +627,6 @@ class LazyImport(ModuleType):
                 return False
 
         # Not loaded yet: cheap availability check via find_spec
-        import importlib.util  # noqa: PLC0415
-
         dotted = self._name.lstrip(".")
         root = dotted.split(".", 1)[0]
 
@@ -636,8 +636,8 @@ class LazyImport(ModuleType):
             candidate = f"{self._package}.{root}"
 
         try:
-            spec = importlib.util.find_spec(candidate)
-        except Exception:  # noqa: BLE001
+            spec = find_spec(candidate)
+        except (ImportError, AttributeError, TypeError, ValueError):
             return False
 
         return spec is not None
@@ -729,10 +729,7 @@ def safe_import(
     >>> maybe_mod is None
     True
     """
-    if error not in {"raise", "ignore"}:
-        raise ValueError(
-            f"Invalid error value {error!r}; expected 'raise' or 'ignore'."
-        )
+    _validate_error_policy(error)
 
     try:
         return import_module(module_name)

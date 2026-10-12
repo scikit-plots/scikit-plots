@@ -52,9 +52,9 @@ if TYPE_CHECKING:
         Union,
     )
 
-# import logging
-# logger = logging.getLogger(__name__)
-from .. import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
