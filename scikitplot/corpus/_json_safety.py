@@ -17,11 +17,7 @@ __all__ = [
 MAX_JSON_NESTING = 128
 
 
-def check_json_nesting(
-    text: str,
-    *,
-    max_depth: int = MAX_JSON_NESTING,
-) -> None:
+def check_json_nesting(text: str, *, max_depth: int = MAX_JSON_NESTING) -> None:
     """Reject JSON text whose object/array nesting exceeds ``max_depth``.
 
     This lexical pass runs *before* ``json.loads`` builds a Python object, so

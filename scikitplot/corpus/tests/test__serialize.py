@@ -88,6 +88,19 @@ class TestJson:
         data = {"literal": '[{]} " [', "other": "brackets ] }"}
         assert s.loads(json.dumps(data), "json") == data
 
+    def test_json_nesting_limit_is_explicit(self):
+        allowed = "[" * 128 + "0" + "]" * 128
+        rejected = "[" * 129 + "0" + "]" * 129
+
+        value = s.loads(allowed, "json")
+        for _ in range(128):
+            assert isinstance(value, list)
+            value = value[0]
+        assert value == 0
+
+        with pytest.raises(ValueError, match="maximum JSON container depth is 128"):
+            s.loads(rejected, "json")
+
     @pytest.mark.parametrize("token", ["NaN", "Infinity", "-Infinity"])
     def test_non_standard_tokens_are_refused_on_read(self, token):
         with pytest.raises(ValueError, match="Non-standard JSON token"):

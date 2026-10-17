@@ -322,17 +322,34 @@ class TestReviewFixes:
     """Increment 2b independent review."""
 
     @pytest.mark.parametrize(
-        ("text", "match"),
+        ("text_factory", "match"),
         [
-            ('{"score": 4, "reason": "ok", "x": 1e400}', "overflows"),
-            ('{"score": 4, "reason": "\\ud800"}', "lone surrogate"),
-            ('{"score": 4, "reason": "ok", "x": ' + "[" * 100000 + "]" * 100000 + "}", "nesting too deep|not valid JSON"),
+            pytest.param(
+                lambda: '{"score": 4, "reason": "ok", "x": 1e400}',
+                "overflows",
+                id="overflowing-number",
+            ),
+            pytest.param(
+                lambda: '{"score": 4, "reason": "\\ud800"}',
+                "lone surrogate",
+                id="lone-surrogate",
+            ),
+            pytest.param(
+                lambda: (
+                    '{"score": 4, "reason": "ok", "x": '
+                    + "[" * 100000
+                    + "]" * 100000
+                    + "}"
+                ),
+                "nesting too deep|not valid JSON",
+                id="deep-nesting",
+            ),
         ],
     )
-    def test_unstorable_verdicts_are_refused(self, text, match):
+    def test_unstorable_verdicts_are_refused(self, text_factory, match):
         """Review #3 and #10: these verdicts were accepted and later blocked the report write."""
         with pytest.raises(JudgeParseError, match=match):
-            parse_verdict(text, SCORE)
+            parse_verdict(text_factory(), SCORE)
 
     def test_only_the_schema_is_kept(self):
         """Review #3: extra fields (null, inf, anything) were stored in the report."""
