@@ -168,7 +168,7 @@ jobs:
         run: python -m twine check --strict dist/libs/*.whl dist/libs/*.tar.gz
 
       - name: "📤 Keep the distributions for the other jobs"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: libs-pure
           path: |
@@ -219,7 +219,7 @@ jobs:
           persist-credentials: false
 
       - name: "📥 Fetch the sdist and the core wheel"
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: libs-pure
           path: dist/libs
@@ -291,7 +291,7 @@ jobs:
             assert threads is (${{ env.ANNOY_THREADS }} == 1), threads"
 
       - name: "📤 Keep the wheels for the upload job"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: libs-annoy-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
           path: wheelhouse/*.whl
@@ -364,7 +364,7 @@ jobs:
           persist-credentials: false
 
       - name: "📥 Fetch the sdist and the core wheel"
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: libs-pure
           path: dist/libs
@@ -410,7 +410,7 @@ jobs:
           fi
 
       - name: "📤 Keep the wheel for the upload job"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: libs-annoy-pyodide-${{ matrix.python }}-${{ matrix.pyodide_version }}
           path: wheelhouse/*.whl
@@ -456,7 +456,7 @@ jobs:
       # Every artifact of this run: the pure job's distributions and each
       # platform's wheels, side by side in one directory.
       - name: "📥 Collect every distribution"
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: libs-*
           path: wheelhouse
