@@ -98,6 +98,8 @@ import sys
 import time
 import platform
 # import struct
+import operator
+import struct
 import threading
 import secrets
 import warnings
@@ -134,6 +136,94 @@ from cpython.pycapsule cimport PyCapsule_New
 
 # C-level Import C++ classes from our .pxd declarations
 from scikitplot.random._kiss.kiss_random cimport CKiss32Random, CKiss64Random
+
+# ===========================================================================
+# Unbiased bounded draws (R6-1, F-33)
+# ===========================================================================
+
+#: Largest value of the platform's ``size_t``, the type ``index`` returns.
+_SIZE_MAX = (1 << (8 * struct.calcsize("N"))) - 1
+# C constants the nogil draws compare with (a Python literal is an object).
+cdef uint64_t _U32_MAX = 0xFFFFFFFF
+cdef uint64_t _U32_COUNT = _U32_MAX + 1
+
+
+def _index_bound(n):
+    """Return ``n`` as an int for ``index``, or raise as documented (F-34)."""
+    if isinstance(n, (bool, np.bool_)):
+        raise TypeError("index(n) needs an integer, got bool")
+    try:
+        bound = operator.index(n)
+    except TypeError:
+        raise TypeError(
+            f"index(n) needs an integer, got {type(n).__name__}"
+        ) from None
+    if bound < 0:
+        raise ValueError(f"index(n) needs n >= 0, got {bound}")
+    if bound > _SIZE_MAX:
+        raise OverflowError(
+            f"index(n) needs n <= {_SIZE_MAX} (the platform's size_t), got {bound}"
+        )
+    return bound
+
+
+cdef inline uint64_t _below_64(CKiss64Random* rng, uint64_t n) noexcept nogil:
+    """
+    Return a uniform draw in ``[0, n)``, ``n >= 1``: rejection, then modulo.
+
+    ``threshold = 2**64 mod n``; a draw below it is rejected, so each of the
+    ``n`` residues is reached by exactly ``(2**64 - threshold) / n`` values.
+    A draw that is not rejected returns what ``kiss() % n`` returned.
+    """
+    cdef uint64_t threshold = (<uint64_t>0 - n) % n
+    cdef uint64_t value
+    while True:
+        value = rng.kiss()
+        if value >= threshold:
+            return value % n
+
+
+cdef inline uint64_t _below_32(CKiss32Random* rng, uint64_t n) noexcept nogil:
+    """
+    Return a uniform draw in ``[0, n)``, ``n >= 1``, from a 32-bit generator.
+
+    Up to ``2**32`` the 32-bit rule of :func:`_below_64`; above it, two draws
+    (the high word first) make one 64-bit value and the 64-bit rule applies,
+    so every index below ``n`` is reached.
+    """
+    cdef uint32_t small, threshold32, value32
+    cdef uint64_t threshold, high, low, value
+    if n <= _U32_MAX:
+        small = <uint32_t>n
+        threshold32 = (<uint32_t>(<uint32_t>0 - small)) % small
+        while True:
+            value32 = rng.kiss()
+            if value32 >= threshold32:
+                return value32 % small
+    if n == _U32_COUNT:
+        return rng.kiss()
+    threshold = (<uint64_t>0 - n) % n
+    while True:
+        high = rng.kiss()
+        low = rng.kiss()
+        value = (high << 32) | low
+        if value >= threshold:
+            return value % n
+
+
+def _below_raw(draw, range_size):
+    """Return a uniform int in ``[0, range_size)`` from ``draw() -> uint64``."""
+    if range_size > (1 << 64):
+        raise ValueError(
+            f"a range of {range_size} values exceeds the 2**64 a 64-bit draw "
+            "can reach"
+        )
+    threshold = ((1 << 64) - range_size) % range_size
+    while True:
+        value = int(draw())
+        if value >= threshold:
+            return value % range_size
+
 
 # ===========================================================================
 # Module metadata
@@ -516,6 +606,8 @@ class KissSeedSequence:
         self.spawn_key = tuple(spawn_key)
         self.pool_size = pool_size
         self.n_children_spawned = n_children_spawned
+        # R6-2 (F-35): serialises reading and advancing n_children_spawned.
+        self._spawn_lock = threading.RLock()
 
         # Initialize entropy
         if entropy is None:
@@ -690,19 +782,21 @@ class KissSeedSequence:
         if n_children < 1:
             raise ValueError(f"n_children must be >= 1, got {n_children}")
 
-        children = []
-        for i in range(n_children):
-            child_spawn_key = self.spawn_key + (self.n_children_spawned + i,)
-            child = KissSeedSequence(
+        # Reserve the range under the lock (R6-2): two threads never read the
+        # same counter, so no two children share a spawn key. The children
+        # are built outside it, from the reserved range.
+        with self._spawn_lock:
+            first = self.n_children_spawned
+            self.n_children_spawned = first + n_children
+        return [
+            KissSeedSequence(
                 entropy=self.entropy,
-                spawn_key=child_spawn_key,
+                spawn_key=self.spawn_key + (first + i,),
                 pool_size=self.pool_size,
-                n_children_spawned=0
+                n_children_spawned=0,
             )
-            children.append(child)
-
-        self.n_children_spawned += n_children
-        return children
+            for i in range(n_children)
+        ]
 
     # ===================================================================
     # Serialization Support
@@ -822,6 +916,10 @@ class KissSeedSequence:
         self.spawn_key = tuple(state.get("spawn_key", ()))
         self.pool_size = state.get("pool_size", 4)
         self.n_children_spawned = state.get("n_children_spawned", 0)
+        if "_spawn_lock" not in self.__dict__:
+            # Restored without __init__ (__new__ + __setstate__): the lock is
+            # not part of the state.
+            self._spawn_lock = threading.RLock()
 
     def get_params(self, deep: bool = True) -> dict:
         """
@@ -1349,7 +1447,7 @@ cdef class Kiss32Random:
             return self._rng.flip()
 
     # def index(self, n: int) -> int:
-    cpdef size_t index(self, size_t n):
+    cpdef size_t index(self, object n):
         """
         Generate random index in range [0, n-1].
 
@@ -1369,12 +1467,21 @@ cdef class Kiss32Random:
             If n < 0
         TypeError
             If n not an integer
+        OverflowError
+            If n is larger than the platform's ``size_t``
 
         Notes
         -----
         - Handles n==0 gracefully (returns 0)
-        - Uses modulo for simplicity (suitable for non-crypto use)
-        - Slight modulo bias exists but negligible for non-crypto applications
+        - Unbiased: a draw below ``2**32 mod n`` is rejected before the
+          modulo, so every index is equally likely. For ``n <= 2**32`` a
+          seeded stream equals the plain modulo's until the first rejection
+          (probability below ``n / 2**32`` per draw); every later output is
+          then shifted by one draw.
+        - For ``n > 2**32`` two 32-bit draws make one 64-bit value, so every
+          index below ``n`` is reachable; such a stream differs from the old
+          one, which drew once.
+        - ``n`` is any integer except ``bool``.
 
         Examples
         --------
@@ -1390,8 +1497,11 @@ cdef class Kiss32Random:
         >>> rng = Kiss32Random(42)
         >>> random_element = arr[rng.index(len(arr))]
         """
+        cdef uint64_t bound = _index_bound(n)
+        if bound == 0:
+            return 0
         with self.lock:
-            return self._rng.index(<size_t>n)
+            return <size_t>_below_32(self._rng, bound)
 
     # ===================================================================
     # Serialization Support
@@ -1761,10 +1871,38 @@ cdef class Kiss64Random:
             return self._rng.flip()
 
     # def index(self, n: int) -> int:
-    cpdef size_t index(self, size_t n):
-        """Generate random index in range [0, n-1]."""
+    cpdef size_t index(self, object n):
+        """
+        Generate random index in range [0, n-1].
+
+        Parameters
+        ----------
+        n : int
+            Upper bound (exclusive). Must be >= 0; ``0`` returns 0.
+
+        Returns
+        -------
+        int
+
+        Raises
+        ------
+        ValueError
+            If n < 0
+        TypeError
+            If n is not an integer
+        OverflowError
+            If n is larger than the platform's ``size_t``
+
+        Notes
+        -----
+        Unbiased: a draw below ``2**64 mod n`` is rejected before the modulo
+        (see :meth:`Kiss32Random.index`).
+        """
+        cdef uint64_t bound = _index_bound(n)
+        if bound == 0:
+            return 0
         with self.lock:
-            return self._rng.index(<size_t>n)
+            return <size_t>_below_64(self._rng, bound)
 
     # ===================================================================
     # Serialization Support
@@ -3269,6 +3407,22 @@ cdef class KissGenerator:
         int or ndarray
             Random integers
 
+        Raises
+        ------
+        TypeError
+            If a bound is not an integer (a Python or numpy integer; ``bool``
+            is refused, as in ``index``).
+        ValueError
+            If ``low >= high``, or the range holds more than ``2**64`` values
+            (more than one 64-bit draw can reach).
+
+        Notes
+        -----
+        Unbiased (R6-1): a raw draw below ``2**64 mod (high - low)`` is
+        rejected before the modulo. A seeded stream equals the plain modulo's
+        until the first rejection (probability below ``(high - low) / 2**64``
+        per draw); every later output is then shifted by one draw.
+
         Examples
         --------
         >>> gen = KissGenerator(42)
@@ -3278,6 +3432,19 @@ cdef class KissGenerator:
         if high is None:
             low, high = 0, low
 
+        # Exact Python ints: numpy scalars (int64, uint64) would overflow the
+        # 2**64 arithmetic of the unbiased draw, and a float bound has no
+        # exact integer range.
+        try:
+            if isinstance(low, (bool, np.bool_)) or isinstance(high, (bool, np.bool_)):
+                raise TypeError
+            low, high = operator.index(low), operator.index(high)
+        except TypeError:
+            raise TypeError(
+                "integers needs integer bounds, got "
+                f"{type(low).__name__} and {type(high).__name__}"
+            ) from None
+
         if endpoint:
             high += 1
 
@@ -3285,11 +3452,12 @@ cdef class KissGenerator:
             raise ValueError(f"low >= high: {low} >= {high}")
 
         range_size = high - low
+        draw = self.bit_generator.random_raw
 
         if size is None:
             with self.lock:
-                raw = self.bit_generator.random_raw()
-                return low + (raw % range_size)
+                # Unbiased (R6-1): rejection before the modulo.
+                return low + _below_raw(draw, range_size)
 
         if isinstance(size, int):
             size = (size,)
@@ -3299,8 +3467,7 @@ cdef class KissGenerator:
 
         with self.lock:
             for i in range(n_total):
-                raw = self.bit_generator.random_raw()
-                result[i] = low + (raw % range_size)
+                result[i] = low + _below_raw(draw, range_size)
 
         return result.reshape(size)
 
@@ -3704,6 +3871,14 @@ cdef class KissRandomState(KissGenerator):
         -------
         int or ndarray
             Random integers
+
+        Raises
+        ------
+        TypeError
+            If a bound is not an integer (or is a ``bool``); array bounds are
+            not supported.
+        ValueError
+            As :meth:`KissGenerator.integers`.
 
         Examples
         --------

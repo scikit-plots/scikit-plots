@@ -42,4 +42,18 @@ else:  # pragma: <3.11
 
         Ensures ``str(member) == member.value`` and that members are
         valid ``str`` instances — the same contract as the stdlib version.
+
+        Notes
+        -----
+        ``(str, Enum)`` alone gives ``str(member) == "Class.MEMBER"`` before
+        Python 3.11; ``__str__`` and ``__format__`` are what make the
+        promise above true, as :class:`enum.StrEnum` defines them.
         """
+
+        def __str__(self) -> str:
+            """Return the member's value, as :class:`enum.StrEnum` does."""
+            return str.__str__(self)
+
+        def __format__(self, format_spec: str) -> str:
+            """Format the member's value, as :class:`enum.StrEnum` does."""
+            return str.__format__(str.__str__(self), format_spec)

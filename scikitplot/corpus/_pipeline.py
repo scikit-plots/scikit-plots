@@ -68,6 +68,7 @@ from ._chunkers._chunker_bridge import (  # MEDIUM-01a: always needed; not optio
 )
 from ._embeddings._embedding import EmbeddingEngine
 from ._enrichers._nlp_enricher import NLPEnricher
+from ._identity import DocIdScheme, assign_doc_ids
 from ._normalizers._text_normalizer import TextNormalizer
 from ._schema import CorpusDocument, ExportFormat
 
@@ -257,6 +258,12 @@ class CorpusPipeline:
         (used by :meth:`run` and :meth:`run_batch`) and
         :meth:`~scikitplot.corpus._base.DocumentReader.from_url`
         (used by :meth:`run_url`).  Default: ``None``.
+    doc_id_scheme : DocIdScheme or str, optional
+        How documents are named: ``"sha256"`` (default) keeps the
+        content-addressed 64-hex ids; ``"uuid7"`` mints one RFC 9562 UUIDv7
+        per document, in reading order, as soon as a source has been read,
+        so normalisation, enrichment, embedding and export see one id.
+        Validated when set, at construction or later. Default: ``"sha256"``.
 
         **Audio / video URL transcription** — forward Whisper kwargs
         directly so ``run_url`` on an ``.mp3`` URL transcribes it::
@@ -383,7 +390,10 @@ class CorpusPipeline:
         default_language: str | list[str] | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
+        doc_id_scheme: DocIdScheme | str = DocIdScheme.SHA256,
     ) -> None:
+        # R2-3: the property coerces, so an unknown scheme fails here.
+        self.doc_id_scheme = doc_id_scheme
         # Bridge new-style chunkers (SentenceChunker, ParagraphChunker,
         # FixedWindowChunker, WordChunker) to the ChunkerBase contract.
         # CRITICAL-02 (Phase 2): bridge.chunk() now returns ChunkResult directly.
@@ -418,6 +428,15 @@ class CorpusPipeline:
     # interface.  Callers can now use `pipeline.filter` cleanly.
     # `pipeline.filter_` still works for backward compatibility.
     # ------------------------------------------------------------------
+
+    @property
+    def doc_id_scheme(self) -> DocIdScheme:
+        """How documents are named (R2-3); validated whenever it is set."""
+        return self._doc_id_scheme
+
+    @doc_id_scheme.setter
+    def doc_id_scheme(self, value: DocIdScheme | str) -> None:
+        self._doc_id_scheme = DocIdScheme.coerce(value)
 
     @property
     def filter(self) -> FilterBase:
@@ -1050,6 +1069,9 @@ class CorpusPipeline:
         # each DocumentReader.get_documents() after all yields complete, so
         # they are fully populated once list() returns.
         documents: list[CorpusDocument] = list(reader.get_documents())
+        # R2-3: every read path (run, run_batch, run_url) passes here, so the
+        # scheme is applied once per source before any later stage.
+        documents = assign_doc_ids(documents, self.doc_id_scheme)
 
         if isinstance(reader, _MultiSourceReader):
             # Aggregate counters from every sub-reader.  Fallback to
@@ -1195,6 +1217,7 @@ def create_corpus(
     filename_override: str | None = None,
     format: ExportFormat = ExportFormat.CSV,
     default_language: str | list | None = None,
+    doc_id_scheme: DocIdScheme | str = DocIdScheme.SHA256,
 ) -> PipelineResult:
     """Create and export a corpus from a single source file.
 
@@ -1230,6 +1253,9 @@ def create_corpus(
         ISO 639-1 code(s) or NLTK language name(s) applied when the reader
         cannot detect language.  Accepts ``"en"``, ``"english"``,
         ``["en", "ar"]``, or ``None`` (auto-detect).  Default: ``None``.
+    doc_id_scheme : DocIdScheme or str, optional
+        How documents are named: ``"sha256"`` (default) or ``"uuid7"``; see
+        :class:`CorpusPipeline`.
 
     Returns
     -------
@@ -1281,6 +1307,7 @@ def create_corpus(
         normalizer=normalizer,
         enricher=enricher,
         default_language=default_language,
+        doc_id_scheme=doc_id_scheme,
     )
     return pipeline.run(
         input_path=pathlib.Path(input_path),

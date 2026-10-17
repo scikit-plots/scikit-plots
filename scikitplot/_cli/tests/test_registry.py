@@ -22,6 +22,7 @@ with ``FileNotFoundError``.
 from __future__ import annotations
 
 import ast
+import dataclasses
 from pathlib import Path
 
 import pytest
@@ -72,5 +73,11 @@ class TestCleanpromptInstallHint:
         assert "encryption included" in hint
 
     def test_the_command_stays_ungated(self):
-        """An optional extra must never make the base command unavailable."""
-        assert not BY_NAME["cleanprompt"].capabilities
+        """An optional extra must never make the base command unavailable.
+
+        F-32: no command declares an availability gate; ``CommandSpec`` has no
+        field for one, so none can be declared without being enforced.
+        """
+        assert "capabilities" not in {
+            field.name for field in dataclasses.fields(type(BY_NAME["cleanprompt"]))
+        }

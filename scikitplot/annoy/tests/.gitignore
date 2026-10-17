@@ -1,12 +1,9 @@
-# 32 bit int indexing testing
-# < v2
-!test.tree
-# >= v2
-!test_v2.tree
-# 64 bit uint indexing
-!test64.tree
+# Indexes and data a test run may write; tests write them to tmp_path.
 *.ann
 *.tree
 *.annoy
 *.idx
 *.hdf5
+# The committed fixture (64-bit item ids), read by index_test.py. A negation
+# must follow the pattern it undoes: the last matching line wins.
+!test64.tree

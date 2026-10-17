@@ -11,17 +11,18 @@ Version 0.5
 ===========
 
 ..
-  -- UNCOMMENT WHEN 0.5.0 IS RELEASED --
+  -- UNCOMMENT WHEN 1.10.0 IS RELEASED --
   For a short description of the main highlights of the release, please refer to
-  :ref:`sphx_glr_auto_examples_release_highlights_plot_release_highlights_0_5_0.py`.
+  :ref:`sphx_glr_auto_examples_release_highlights_plot_release_highlights_1_10_0.py`.
+
 
 ..
-  DELETE WHEN 0.5.0 IS RELEASED
-  Since November 2024, DO NOT add your changelog entry in this file.
+  DELETE WHEN 1.10.0 IS RELEASED
+  Since October 2024, DO NOT add your changelog entry in this file.
 ..
   Instead, create a file named `<PR_NUMBER>.<TYPE>.rst` in the relevant sub-folder in
-  `docs/source/whats_new/upcoming_changes/`. For the repository-specific workflow, see
-  `docs/source/whats_new/upcoming_changes/README.md`.
+  `doc/whats_new/upcoming_changes/`. For full details, see:
+  https://github.com/scikit-learn/scikit-learn/blob/main/doc/whats_new/upcoming_changes/README.md
 
 .. towncrier release notes start
 

@@ -54,6 +54,7 @@ from enum import unique
 from typing import Any, Iterator
 
 from ._diagnostics import ErrorRecord
+from ._filters import Filter, FilterCapability, filter_to_dict
 from ._schema import _StrEnumBase
 
 __all__: list[str] = [
@@ -159,12 +160,24 @@ class LegOutcome:
         Outcome for this leg.
     hit_count : int, optional
         Hits contributed *before* fusion.
-    generation : int or None, optional
-        Index generation the leg ran against, for provenance.
+    generation : IndexGeneration or None, optional
+        Index generation the leg ran against, for provenance;
+        :meth:`to_dict` writes its own ``to_dict()``.
     backend : str or None, optional
         Backend that served the leg, when applicable.
     error : ErrorRecord or None, optional
         Required when ``status`` is ``DEGRADED`` or ``FAILED``.
+    filter_capability : FilterCapability or None, optional
+        How the leg answered the query's filter (R2-2): every operator
+        ``SUPPORTED`` or ``EMULATED``; ``None`` when no filter was applied or
+        the leg did not run. A leg never runs with a filter it ignored.
+    requested_backend : str or None, optional
+        What the configuration asked to serve the leg (``"auto"``, a backend
+        name), when a backend served it (R2-5).
+    fallback_reason : str or None, optional
+        Why ``backend`` is not what was requested, when it is not: a closed
+        vocabulary of the backend (``"annoy_broken"``,
+        ``"option_unsupported"``, ...); ``None`` otherwise.
 
     Raises
     ------
@@ -181,9 +194,12 @@ class LegOutcome:
     leg: LegKind
     status: LegStatus
     hit_count: int = 0
-    generation: int | None = None
+    generation: Any = None
     backend: str | None = None
     error: ErrorRecord | None = None
+    filter_capability: FilterCapability | None = None
+    requested_backend: str | None = None
+    fallback_reason: str | None = None
 
     def __post_init__(self) -> None:
         """Enforce that a degraded or failed leg explains itself."""
@@ -204,9 +220,20 @@ class LegOutcome:
             "leg": self.leg.value,
             "status": self.status.value,
             "hit_count": self.hit_count,
-            "generation": self.generation,
+            "generation": (
+                self.generation.to_dict()
+                if hasattr(self.generation, "to_dict")
+                else self.generation
+            ),
             "backend": self.backend,
+            "requested_backend": self.requested_backend,
+            "fallback_reason": self.fallback_reason,
             "error": self.error.to_dict() if self.error is not None else None,
+            "filter": (
+                self.filter_capability.to_dict()
+                if self.filter_capability is not None
+                else None
+            ),
         }
 
 
@@ -226,6 +253,13 @@ class RetrievalResponse:
         Normally left ``None`` so it is **derived** from ``legs`` and ``hits``.
         Pass a value only for terminal outcomes the legs cannot express, such as
         ``CANCELLED``.
+    filter : Filter or None, optional
+        The caller's own filter as every leg applied it (R2-2), checked and
+        frozen, or ``None``.
+    scope : str or None, optional
+        The label of the index's security filter, which every leg also applied,
+        or ``None``. The scope's expression itself is not reported: it may
+        enumerate what a caller is not allowed to see.
 
     Notes
     -----
@@ -262,6 +296,8 @@ class RetrievalResponse:
     legs: list[LegOutcome] = dataclasses.field(default_factory=list)
     query: str | None = None
     status: RetrievalStatus | None = None
+    filter: Filter | None = None
+    scope: str | None = None
 
     def __post_init__(self) -> None:
         """Derive :attr:`status` unless a terminal value was supplied."""
@@ -353,4 +389,6 @@ class RetrievalResponse:
             "query": self.query,
             "hit_count": len(self.hits),
             "legs": [leg.to_dict() for leg in self.legs],
+            "filter": filter_to_dict(self.filter) if self.filter is not None else None,
+            "scope": self.scope,
         }

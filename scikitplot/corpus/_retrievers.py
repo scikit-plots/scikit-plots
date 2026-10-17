@@ -18,8 +18,8 @@ Notes
     result = lexical.retrieve("quantum", config)
     result.hits, result.outcome.status
 
-    fused = fuse_by_rank([lexical_result, dense_result], config)
-    fused[0].contributions  # which legs found it, and at what rank
+    fused = fuse_by_rank([lexical_result, dense_result], top_k=5)
+    hit, score, contributions = fused[0]  # which legs found it, and at what rank
 
 **Developer-focused.**  Two findings shape this module.
 
@@ -37,10 +37,11 @@ not distinguish a hit that ranked #1 in both legs from one that ranked #1 and
 #40 -- very different confidence signals collapsed into a single float, and a
 fused score that could not be recomputed or explained from the result.
 
-The fusion arithmetic is **lifted unchanged** from the reviewed implementation:
-standard-form ``1/(k + rank + 1)`` weighted by ``hybrid_alpha``, keyed on
-``doc_id`` rather than row offset.  Review run R09 verified it correct (disproof
-D-17); only the leg gating and the provenance moved.
+The fusion rule is :class:`~scikitplot.corpus.FusionPolicy` (R2-1), the one
+weighted reciprocal rank fusion that :meth:`RetrievalIndex.search` and the MCP
+hybrid retriever also call: ``w / (k + rank)`` with ranks from 1, keyed on
+``doc_id`` rather than row offset, a document once per leg at its best rank,
+weight-0 legs adding nothing, exact ties to the lower identity.
 
 See Also
 --------
@@ -53,6 +54,7 @@ import dataclasses
 from typing import Any, Iterable
 
 from ._diagnostics import ErrorCategory, ErrorRecord
+from ._fusion import FusionPolicy
 from ._retrieval import LegKind, LegOutcome, LegStatus
 
 __all__: list[str] = [
@@ -189,11 +191,15 @@ class DenseRetriever(Retriever):
         if reason is not None:
             return self._failed(reason, generation=self._index.index_generation)
         hits = self._index._search_semantic(query, query_embedding, config)
-        return self._ok(
-            hits,
-            generation=self._index.index_generation,
-            backend=self._index.backend_name,
+        # R2-5: the leg says what was asked for and why something else ran,
+        # from the same source as RetrievalIndex's own dense legs.
+        fields = getattr(self._index, "_backend_fields", None)
+        extra = (
+            fields()
+            if callable(fields)
+            else {"backend": getattr(self._index, "backend_name", None)}
         )
+        return self._ok(hits, generation=self._index.index_generation, **extra)
 
 
 class GraphRetriever(Retriever):
@@ -243,6 +249,19 @@ class GraphRetriever(Retriever):
         return self._ok(response.nodes)
 
 
+def _fusion_key(hit: Any, leg: Any, rank: int) -> str:
+    """Return the identity a hit is fused under: ``doc_id``, else ``node_id``."""
+    key = getattr(getattr(hit, "doc", hit), "doc_id", None) or getattr(
+        hit, "node_id", None
+    )
+    if not isinstance(key, str) or not key:
+        raise ValueError(
+            f"leg {leg!s} rank {rank}: a hit has no doc_id or node_id, so it has "
+            "no identity to fuse under"
+        )
+    return key
+
+
 def fuse_by_rank(
     results: Iterable[LegResult],
     *,
@@ -250,57 +269,93 @@ def fuse_by_rank(
     weights: dict[LegKind, float] | None = None,
     top_k: int = 10,
 ) -> list[tuple[Any, float, tuple[LegContribution, ...]]]:
-    """Combine leg results by reciprocal rank fusion.
+    """Combine leg results by weighted reciprocal rank fusion.
 
     Parameters
     ----------
     results : iterable of LegResult
         One entry per leg. Failed legs contribute nothing but are harmless.
     rrf_k : int, optional
-        The standard RRF constant. Default 60.
+        The standard RRF constant, at least 1. Default 60.
     weights : dict, optional
-        Per-leg weight; unlisted legs weigh ``1.0``.
+        Per-leg weight, finite and non-negative; unlisted legs weigh ``1.0``.
+        A weight-0 leg contributes nothing and adds no document.
     top_k : int, optional
         Number of fused hits to return.
 
     Returns
     -------
     list of (hit, fused_score, contributions)
-        Sorted by descending fused score.
+        Descending fused score; ties by ascending identity (``doc_id`` or
+        ``node_id``). ``hit`` is the first hit seen for that identity.
+
+    Raises
+    ------
+    ValueError
+        If a hit has neither a ``doc_id`` nor a ``node_id``, or a weight or
+        ``rrf_k`` is out of range.
+    TypeError
+        If a weight or ``rrf_k`` has the wrong type.
 
     Notes
     -----
-    **Developer.**  Rank fusion is the default combiner because score-space
-    fusion needs a validated normalization that does not exist for most metrics
-    (ADR-R07-003).  The arithmetic is unchanged from the implementation review
-    run R09 verified; what is new is that each hit's contributions are
-    **returned** rather than discarded, so the fused score can be recomputed and
+    **Developer.**  R2-1: the arithmetic and the tie-break are
+    :class:`~scikitplot.corpus.FusionPolicy`, the one rule shared with
+    :meth:`RetrievalIndex.search` and the MCP hybrid retriever. Rank fusion is
+    the default combiner because score-space fusion needs a validated
+    normalization that does not exist for most metrics (ADR-R07-003). Each
+    hit's contributions are returned, so the fused score can be recomputed and
     explained from the result.
 
     Fusion keys on ``doc_id``, never on a row offset -- the property that kept
-    F-R01-07's positional coupling out of the fusion path.
+    F-R01-07's positional coupling out of the fusion path. A hit without an
+    identity is refused: an object address is not stable across processes.
     """
-    weights = weights or {}
-    scores: dict[str, float] = {}
-    seen: dict[str, Any] = {}
-    contributions: dict[str, list[LegContribution]] = {}
-
-    for result in results:
-        weight = weights.get(result.outcome.leg, 1.0)
-        for rank, hit in enumerate(result.hits):
-            key = getattr(getattr(hit, "doc", hit), "doc_id", None) or getattr(
-                hit, "node_id", str(id(hit))
-            )
-            scores[key] = scores.get(key, 0.0) + weight / (rrf_k + rank + 1)
-            seen.setdefault(key, hit)
-            contributions.setdefault(key, []).append(
+    policy = FusionPolicy(
+        k=rrf_k,
+        weights={LegKind(kind).value: w for kind, w in (weights or {}).items()},
+        default_weight=1.0,
+        top_k=top_k,
+    )
+    # A weight-0 leg adds nothing, so its hits are not asked for an identity.
+    legs = [
+        (
+            result.outcome.leg,
+            (
+                list(result.hits)
+                if policy.weight(LegKind(result.outcome.leg).value)
+                else []
+            ),
+        )
+        for result in results
+    ]
+    first_hit: list[dict[str, Any]] = []
+    keys: list[list[str]] = []
+    for kind, leg_hits in legs:
+        by_key: dict[str, Any] = {}
+        leg_keys = []
+        for rank, hit in enumerate(leg_hits, start=1):
+            key = _fusion_key(hit, kind, rank)
+            leg_keys.append(key)
+            by_key.setdefault(key, hit)
+        first_hit.append(by_key)
+        keys.append(leg_keys)
+    fused = policy.fuse(
+        (LegKind(kind).value, leg_keys) for (kind, _hits), leg_keys in zip(legs, keys)
+    )
+    out = []
+    for item in fused:
+        contributions = []
+        for part in item.contributions:
+            hit = first_hit[part.position][item.key]
+            contributions.append(
                 LegContribution(
-                    leg=result.outcome.leg,
-                    rank=rank,
+                    leg=LegKind(part.leg),
+                    rank=part.rank - 1,
                     native_score=getattr(hit, "native_score", None),
                     native_metric=getattr(hit, "native_metric", None),
                 )
             )
-
-    ordered = sorted(scores, key=lambda k: (-scores[k], k))[:top_k]
-    return [(seen[k], scores[k], tuple(contributions[k])) for k in ordered]
+        hit = first_hit[item.contributions[0].position][item.key]
+        out.append((hit, item.score, tuple(contributions)))
+    return out

@@ -38,7 +38,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-TIER1 = frozenset({"corpus", "rank_bm25", "annoy", "_cli", "mcp"})
+TIER1 = frozenset({"corpus", "rank_bm25", "annoy", "_cli", "mcp", "agent"})
 SUBMODULES = TIER1 | frozenset({"_utils", "config", "cexternals", "_lib"})
 
 #: Contracts that several submodules need and none may import from another.
@@ -47,6 +47,8 @@ SUBMODULES = TIER1 | frozenset({"_utils", "config", "cexternals", "_lib"})
 #: rather than becoming divergence.
 DUPLICATED_CONTRACTS = {
     "_validation.py": ("corpus", "rank_bm25", "mcp"),
+    # R2-1: one rank-fusion rule for every hybrid retriever.
+    "_fusion.py": ("corpus", "mcp"),
 }
 
 #: Module-level dependencies that are part of a submodule's definition rather
@@ -57,31 +59,71 @@ ALLOWED_MODULE_LEVEL = {
 }
 
 
+_FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _is_type_checking(node):
+    """Whether ``node`` is ``if TYPE_CHECKING:`` (or ``typing.TYPE_CHECKING``)."""
+    if not isinstance(node, ast.If):
+        return False
+    test = node.test
+    return (isinstance(test, ast.Name) and test.id == "TYPE_CHECKING") or (
+        isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+    )
+
+
+def _import_targets(node, depth):
+    """Return the ``scikitplot`` submodules an import statement names."""
+    targets = []
+    if isinstance(node, ast.Import):
+        targets = [
+            alias.name.split(".")[1]
+            for alias in node.names
+            if alias.name.startswith("scikitplot.")
+        ]
+    elif isinstance(node, ast.ImportFrom):
+        module = node.module or ""
+        names = [alias.name for alias in node.names]
+        if node.level and node.level > depth:
+            # Leaves the submodule: ``from ..corpus import x``, ``from .. import corpus``.
+            targets = [module.split(".")[0]] if module else names
+        elif not node.level and module == "scikitplot":
+            targets = names  # ``from scikitplot import corpus``
+        elif not node.level and module.startswith("scikitplot."):
+            targets = [module.split(".")[1]]
+    return targets
+
+
 def _cross_submodule_imports(path, owner):
-    """Yield ``(target, is_module_level, lineno)`` for imports of other submodules."""
+    """Yield ``(target, is_module_level, lineno)`` for imports of other submodules.
+
+    Module level means "runs when the module is imported": anything outside a
+    function body (class bodies and module-level ``if``/``try`` blocks
+    included), except the body of ``if TYPE_CHECKING:``. ``import x.y``,
+    ``from x.y import z``, ``from scikitplot import y`` and relative imports
+    that leave the submodule all count.
+    """
     depth = len(path.relative_to(ROOT).parts) - 1
     try:
         tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
     except SyntaxError:  # pragma: no cover - vendored or templated sources
         return
 
-    def walk(node, at_module_level):
-        for child in ast.iter_child_nodes(node):
-            if isinstance(child, ast.ImportFrom):
-                module = child.module or ""
-                if child.level and child.level > depth:
-                    target = module.split(".")[0] if module else None
-                elif child.level:
-                    target = None
-                elif module.startswith("scikitplot."):
-                    target = module.split(".")[1]
-                else:
-                    target = None
+    def walk(nodes, at_module_level):
+        for child in nodes:
+            for target in _import_targets(child, depth):
                 if target in SUBMODULES and target != owner:
                     yield target, at_module_level, child.lineno
-            yield from walk(child, at_module_level and isinstance(node, ast.Module))
+            if _is_type_checking(child):
+                yield from walk(child.body, False)
+                yield from walk(child.orelse, at_module_level)
+                continue
+            yield from walk(
+                ast.iter_child_nodes(child),
+                at_module_level and not isinstance(child, _FUNCTION_NODES),
+            )
 
-    yield from walk(tree, True)
+    yield from walk(tree.body, True)
 
 
 def _sources(submodule):
@@ -156,3 +198,53 @@ def test_every_copy_of_a_duplicated_contract_is_tested(filename, owners):
 def test_every_submodule_is_declared(submodule):
     """A new submodule joins this rule deliberately, rather than by default."""
     assert (ROOT / submodule).is_dir()
+
+
+def test_the_scanner_tells_function_imports_from_module_imports(tmp_path, monkeypatch):
+    """Only code that runs at import time counts as module level (R2-5).
+
+    A function's own statements used to count as module level, and the body
+    of a module-level ``try`` nested one block deeper did not.
+    """
+    source = tmp_path / "corpus" / "probe.py"
+    source.parent.mkdir()
+    source.write_text(
+        "from scikitplot.annoy import A\n"
+        "try:\n"
+        "    if True:\n"
+        "        from scikitplot.annoy import B\n"
+        "except ImportError:\n"
+        "    pass\n"
+        "class C:\n"
+        "    from scikitplot.annoy import D\n"
+        "def f():\n"
+        "    from scikitplot.annoy import E\n"
+        "    if True:\n"
+        "        from scikitplot.annoy import F\n"
+        "g = lambda: __import__('x')\n"
+        "import scikitplot.annoy\n"
+        "import scikitplot.annoy as G\n"
+        "from scikitplot import annoy\n"
+        "if TYPE_CHECKING:\n"
+        "    from scikitplot.annoy import H\n"
+        "else:\n"
+        "    from scikitplot.annoy import I\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)  # the scanner's base
+    found = sorted(
+        (lineno, module_level)
+        for _, module_level, lineno in _cross_submodule_imports(source, "corpus")
+    )
+    assert found == [
+        (1, True),
+        (4, True),
+        (8, True),
+        (10, False),
+        (12, False),
+        (14, True),
+        (15, True),
+        (16, True),
+        (18, False),
+        (20, True),
+    ]

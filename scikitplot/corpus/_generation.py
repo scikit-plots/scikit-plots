@@ -60,13 +60,17 @@ import dataclasses
 import hashlib
 from typing import Any, Iterable
 
+from ._identity import require_full_width
+
 __all__: list[str] = [
     "IndexGeneration",
     "derive_generation",
 ]
 
 _FIELD_SEP = "\x1f"
-_GENERATION_SCHEMA = "gen2"  # S-5: the digest binds content and row order
+# S-5 (gen2): the digest binds content and row order. R2-3 (gen3): the full
+# 64-hex digest is kept; gen2 kept 16 hex characters.
+_GENERATION_SCHEMA = "gen3"
 
 
 def _document_digest(documents: Iterable[Any]) -> str:
@@ -105,10 +109,12 @@ def _document_digest(documents: Iterable[Any]) -> str:
         content = getattr(document, "content_digest", None)
         if content is None:
             text = str(getattr(document, "text", "") or "")
-            content = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            content = hashlib.sha256(
+                text.encode("utf-8", errors="surrogatepass")
+            ).hexdigest()
         parts.append(f"{position}:{len(doc_id)}:{doc_id}:{content}")
     joined = _FIELD_SEP.join(parts)
-    body = hashlib.sha256(joined.encode("utf-8")).hexdigest()
+    body = hashlib.sha256(joined.encode("utf-8", errors="surrogatepass")).hexdigest()
     return f"{len(rows)}-{body}"
 
 
@@ -145,7 +151,7 @@ class IndexGeneration:
 
     @property
     def fingerprint(self) -> str:
-        """Stable content-derived identifier, 16 hex characters."""
+        """Stable content-derived identifier, 64 hex characters."""
         parts = [
             _GENERATION_SCHEMA,
             self.schema_version,
@@ -154,7 +160,7 @@ class IndexGeneration:
             self.backend or "",
         ]
         raw = _FIELD_SEP.join(f"{len(p)}:{p}" for p in parts)
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256(raw.encode("utf-8", errors="surrogatepass")).hexdigest()
 
     @property
     def document_count(self) -> int:
@@ -179,11 +185,15 @@ class IndexGeneration:
         ------
         ValueError
             If a declared fingerprint disagrees with the fields supplied, which
-            means the payload was altered.
+            means the payload was altered, or is narrower than 64 hex
+            characters, which means a build before identities were widened
+            wrote it (rebuild the index).
         """
         known = {f.name for f in dataclasses.fields(cls)}
         generation = cls(**{k: v for k, v in data.items() if k in known})
         declared = data.get("fingerprint")
+        if declared is not None:
+            require_full_width(declared, "IndexGeneration.from_dict")
         if declared is not None and declared != generation.fingerprint:
             raise ValueError(
                 f"IndexGeneration.from_dict: declared fingerprint {declared!r} "

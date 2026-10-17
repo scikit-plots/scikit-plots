@@ -125,13 +125,30 @@ def _validate_runtime_stages(plan: CorpusPlan) -> None:
 
 
 def _component_registry(registry: ComponentRegistry | None) -> ComponentRegistry:
+    """Return the caller's registry, or the shared one with its built-ins.
+
+    The shared ``registry`` is the one ``CorpusBuilder`` reads, so a component
+    registered there is reachable by name from a plan too: one name table
+    (review of R3-1, F2; a fresh registry used to be built here).
+    """
     if registry is not None:
         return registry
-    from ._registry import ComponentRegistry  # noqa: PLC0415
+    from ._registry import registry as shared  # noqa: PLC0415
 
-    resolved = ComponentRegistry()
-    resolved.register_builtins()
-    return resolved
+    shared.register_builtins()
+    return shared
+
+
+def _resolve_doc_id_scheme(value: Any) -> Any:
+    """Resolve the plan's identity fragment to a :class:`DocIdScheme` (R2-3).
+
+    ``None`` (not configured) is the default ``"sha256"``; anything else must
+    name a scheme, and an unknown one raises ``ValueError`` naming the valid
+    values.
+    """
+    from ._identity import DocIdScheme  # noqa: PLC0415
+
+    return DocIdScheme.SHA256 if value is None else DocIdScheme.coerce(value)
 
 
 def _resolve_reader_kwargs(value: Any) -> dict[str, Any]:
@@ -183,29 +200,40 @@ def _resolve_chunker(value: Any, registry: ComponentRegistry | None) -> Any:
         return None
 
     from ._base import ChunkerBase  # noqa: PLC0415
-    from ._chunkers import (  # noqa: PLC0415
-        FixedWindowChunker,
-        FixedWindowChunkerConfig,
-        ParagraphChunker,
-        ParagraphChunkerConfig,
-        SemanticChunker,
-        SemanticChunkerConfig,
-        SentenceChunker,
-        SentenceChunkerConfig,
-        WordChunker,
-        WordChunkerConfig,
-    )
+    from ._types import ChunkerConfig  # noqa: PLC0415
 
-    config_pairs = (
-        (SentenceChunkerConfig, SentenceChunker),
-        (ParagraphChunkerConfig, ParagraphChunker),
-        (FixedWindowChunkerConfig, FixedWindowChunker),
-        (WordChunkerConfig, WordChunker),
-        (SemanticChunkerConfig, SemanticChunker),
+    # A config selects its chunker through the registry's (chunker, config)
+    # pairs -- the one name table (R3-1) -- exact type first, then subclass.
+    # The caller's registry is consulted first; a built-in config also
+    # resolves when that registry lacks the built-ins.
+    tables = [_component_registry(registry)]
+    if registry is not None:
+        tables.append(_component_registry(None))
+    registered = tuple(
+        config_cls
+        for components in tables
+        for name in components.list_chunkers()
+        if (config_cls := components.get_chunker_config(name)) is not None
     )
-    for config_type, chunker_type in config_pairs:
-        if isinstance(value, config_type):
-            return chunker_type(value)
+    if isinstance(value, ChunkerConfig) or (
+        registered and isinstance(value, registered)
+    ):
+        for components in tables:
+            names = components.list_chunkers()
+            configs = {name: components.get_chunker_config(name) for name in names}
+            for exact in (True, False):
+                for name in names:
+                    config_cls = configs[name]
+                    if config_cls is not None and (
+                        type(value) is config_cls
+                        if exact
+                        else isinstance(value, config_cls)
+                    ):
+                        return components.build_chunker(name, config=value)
+        raise TypeError(
+            f"no registered chunker takes a {type(value).__name__}; register one "
+            "with registry.register_chunker(name, cls, config=...)."
+        )
 
     if isinstance(value, str):
         return _component_registry(registry).build_chunker(value)
@@ -511,8 +539,18 @@ class RuntimeCorpus:
         self._commit(merged, new_documents=new_documents)
         return result
 
-    def search(self, query: str, *, config: Any = None) -> Any:
-        """Search the current runtime index using the configured retrieval policy."""
+    def search(
+        self,
+        query: str,
+        *,
+        config: Any = None,
+        filter: Any = None,  # noqa: A002
+    ) -> Any:
+        """Search the current runtime index using the configured retrieval policy.
+
+        ``filter`` (a ``Filter`` or its JSON form) restricts the search to
+        matching documents (R2-2); see ``RetrievalIndex.search``.
+        """
         self._ensure_open()
         if self._index is None:
             raise RuntimeError(
@@ -532,7 +570,9 @@ class RuntimeCorpus:
             and self.pipeline.embedding_engine is not None
         ):
             query_embedding = self.pipeline.embedding_engine.embed([query])[0]
-        return self._index.search(query, config=cfg, query_embedding=query_embedding)
+        return self._index.search(
+            query, config=cfg, query_embedding=query_embedding, filter=filter
+        )
 
     def query_storage(self, query: Any) -> Any:
         """Query the configured storage backend."""
@@ -608,6 +648,7 @@ def materialize_plan(
     )
     enricher = _resolve_enricher(plan.get("enricher")) if "enrich" in stages else None
     embedder = _resolve_embedder(plan.get("embedder")) if "embed" in stages else None
+    doc_id_scheme = _resolve_doc_id_scheme(plan.get("identity"))
 
     from ._pipeline import CorpusPipeline  # noqa: PLC0415
 
@@ -619,11 +660,9 @@ def materialize_plan(
         output_path=None,
         format=None,
         reader_kwargs=reader_kwargs,
+        doc_id_scheme=doc_id_scheme,
     )
 
-    storage, owns_storage = (
-        _resolve_storage(plan.get("storage")) if "store" in stages else (None, False)
-    )
     index_config = (
         _resolve_index_config(plan.get("index")) if "retrieve" in stages else None
     )
@@ -631,14 +670,26 @@ def materialize_plan(
     if retrieval_config is None:
         retrieval_config = index_config
     export_format = _resolve_export_format(plan.get("export"))
+    resolved_policy = runtime_policy(policy)
 
-    return RuntimeCorpus(
-        plan=plan,
-        pipeline=pipeline,
-        storage=storage,
-        index_config=index_config,
-        retrieval_config=retrieval_config,
-        export_format=export_format,
-        policy=runtime_policy(policy),
-        _owns_storage=owns_storage,
+    # R3-8: the store is opened last, after every setting that can be refused,
+    # and closed again if constructing the runtime fails: an owned store that
+    # nothing can reach used to stay open (a SQLite connection) on any error.
+    storage, owns_storage = (
+        _resolve_storage(plan.get("storage")) if "store" in stages else (None, False)
     )
+    try:
+        return RuntimeCorpus(
+            plan=plan,
+            pipeline=pipeline,
+            storage=storage,
+            index_config=index_config,
+            retrieval_config=retrieval_config,
+            export_format=export_format,
+            policy=resolved_policy,
+            _owns_storage=owns_storage,
+        )
+    except BaseException:
+        if owns_storage and storage is not None:
+            storage.close()
+        raise

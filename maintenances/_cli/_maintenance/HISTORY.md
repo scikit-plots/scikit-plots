@@ -21,3 +21,12 @@ The archive is also intentionally incomplete for full command tests: project
 `scikitplot.config` and `scikitplot.utils` are absent, and no TOML writer is
 installed in the review environment. Those environmental/snapshot gaps are kept
 separate from `_cli`-owned defects.
+
+## 2026-10-13 - CLI-MAINT-001 resolved (round 33, R2-5 / F-32)
+
+`CommandSpec.capabilities` was removed rather than enforced: nothing read it,
+and the delegate import already reports a missing part as
+`CapabilityMissingError` with the command's install hint. The runtime check
+no longer reports it; `test_current_runtime_reports_known_contract_findings`
+now asserts its absence. The plane's other failures (missing `EXTENDING.md`,
+stale fingerprints) predate this change and are unchanged.

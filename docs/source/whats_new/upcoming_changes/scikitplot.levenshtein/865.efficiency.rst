@@ -1,7 +1,0 @@
-- ``rank()`` and ``closest()`` resolve their backend once per call instead of
-  once per candidate, so an unavailable backend warns once per call rather
-  than once per choice; a backend that fails at runtime warns once and is
-  replaced for the rest of the call by the next available safe backend
-  (``internal``, ``rapidfuzz``, then pure Python) instead of jumping to pure
-  Python. An unknown backend name, or an unavailable one with ``strict=True``,
-  now raises even when there are no choices.

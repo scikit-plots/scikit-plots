@@ -61,7 +61,6 @@ optional and raise ``ImportError`` at call time when missing.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import pathlib
 import threading
@@ -73,7 +72,21 @@ import numpy.typing as npt
 
 from .._atomic import atomic_write_bytes, atomic_write_path
 from .._schema import CorpusDocument
-from ._embedding import EmbeddingEngine
+from ._cache_policy import (
+    CachePolicy,
+    CacheStatus,
+    enforce_bounds,
+    hash_fields,
+    touch_entry,
+)
+from ._embedding import (
+    _FLOAT_DTYPES,
+    DEFAULT_CACHE_DIR,
+    EmbeddingEngine,
+    _cache_path,
+    _load_from_cache,
+    _save_to_cache,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -693,6 +706,11 @@ class MultimodalEmbeddingEngine:
         default cache.  Default: ``None``.
     enable_cache : bool, optional
         Enable/disable embedding cache.  Default: ``True``.
+    cache_policy : CachePolicy or None, optional
+        The disk-cache policy of :meth:`embed_documents_with_cache`. ``None``
+        (default) is ``CachePolicy()``. The image and audio models have no
+        revision, so they are cached only with ``unpinned="allow"``; a custom
+        backend or projection has no identity and is never cached.
 
     Notes
     -----
@@ -701,8 +719,11 @@ class MultimodalEmbeddingEngine:
     ``text-embedding-3-large`` this is 3072; for
     ``text-embedding-3-small`` / ``all-MiniLM-L6-v2`` it is 384-768.
 
-    **Cache key** includes modality + backend + model name + source path
-    + mtime + n_items — changing any of these invalidates the cache.
+    **Cache key** is content-addressed: every backend and model, the fusion,
+    projection and normalisation, and each document's modality, text and
+    ``raw_tensor`` (dtype, shape and bytes). The source path and its mtime
+    are not part of it (they let changed content, another custom function or
+    another ``normalize`` be served old vectors).
 
     **Thread safety:** Backends are lazily loaded and protected by a
     ``threading.Lock`` per backend. Safe for concurrent reads after warm-up.
@@ -785,6 +806,7 @@ class MultimodalEmbeddingEngine:
     device: str | None = field(default=None)
     cache_dir: pathlib.Path | None = field(default=None)
     enable_cache: bool = field(default=True)
+    cache_policy: CachePolicy | None = field(default=None)
 
     # Internal — lazy backends, protected by individual locks
     _text_engine: EmbeddingEngine | None = field(default=None, init=False, repr=False)
@@ -845,6 +867,13 @@ class MultimodalEmbeddingEngine:
                 f"MultimodalEmbeddingEngine: batch_size must be > 0; "
                 f"got {self.batch_size!r}."
             )
+        if self.cache_policy is not None and not isinstance(
+            self.cache_policy, CachePolicy
+        ):
+            raise TypeError(
+                "MultimodalEmbeddingEngine: cache_policy must be a CachePolicy"
+                f" or None; got {type(self.cache_policy).__name__}."
+            )
 
     # ------------------------------------------------------------------
     # Primary public API
@@ -875,8 +904,8 @@ class MultimodalEmbeddingEngine:
             A single :class:`CorpusDocument` is wrapped in a list automatically.
             ``None`` entries inside a list are silently filtered out.
         input_path : pathlib.Path or None, optional
-            Used as the cache-key anchor.  Pass the source file path for
-            per-file caching.  Default: ``None`` (no file cache).
+            Source of the documents, for diagnostics only. This method does
+            not cache; see :meth:`embed_documents_with_cache`.
 
         Returns
         -------
@@ -1149,20 +1178,19 @@ class MultimodalEmbeddingEngine:
     def embed_documents_with_cache(
         self,
         documents: CorpusDocument | list[CorpusDocument] | None,
-        input_path: pathlib.Path,
+        input_path: pathlib.Path | None = None,
     ) -> list[CorpusDocument]:
         """
-        Embed documents with SHA-256 cache keyed to *input_path*.
-
-        Cache key: ``SHA256(modality_tag + backend + model + path + mtime + N)[:24]``.
+        Embed documents through the content-addressed disk cache.
 
         Parameters
         ----------
         documents : CorpusDocument | list[CorpusDocument] | None
             Documents to embed. ``None``, a single doc, or a list (with
             optional ``None`` entries that are silently filtered).
-        input_path : pathlib.Path
-            Source file path.  Used to build the cache key (path + mtime).
+        input_path : pathlib.Path or None, optional
+            Source of the documents, for diagnostics only; it is not part of
+            the cache key.
 
         Returns
         -------
@@ -1171,69 +1199,141 @@ class MultimodalEmbeddingEngine:
             Documents with usable modality evidence receive an embedding.
             IMAGE, AUDIO, or VIDEO documents lacking ``raw_tensor`` are
             returned unchanged and a warning is emitted.
+
+        See Also
+        --------
+        CachePolicy : When the cache is used, and its bounds.
+
+        Notes
+        -----
+        **User.** The cache is used only when a hit is provable (see
+        ``cache_policy``), and an entry is stored only when every document
+        received an embedding of one shape and dtype; otherwise the call
+        computes, which is always correct.
         """
-        # Normalize to clean list[CorpusDocument] before any logic.
+        return self._embed_documents_cached(documents, input_path)[0]
+
+    def _cache_bypass(self) -> CacheStatus | None:
+        """Return why the disk cache cannot prove a hit, or ``None``."""
+        customs = (self.text_backend, self.image_backend, self.audio_backend)
+        if "custom" in customs or self.custom_projection_fn is not None:
+            return CacheStatus.BYPASS_UNIDENTIFIED
+        if (self.cache_policy or CachePolicy()).unpinned != "allow":
+            return CacheStatus.BYPASS_UNPINNED
+        return None
+
+    def _cache_key(self, documents: list[CorpusDocument]) -> str | None:
+        """Return the content-addressed key of ``documents``, or ``None``.
+
+        ``None`` when a ``raw_tensor`` has no byte identity (an object or
+        ragged array).
+        """
+        fields = [
+            b"multimodal-v1",
+            *(
+                str(value).encode("utf-8")
+                for value in (
+                    self.text_backend,
+                    self.text_model,
+                    self.image_backend,
+                    self.image_model,
+                    self.audio_backend,
+                    self.audio_model,
+                    self.multimodal_fusion,
+                    self.projection_dim,
+                    self.normalize,
+                    _VIDEO_FRAME_SAMPLE,
+                    len(documents),
+                )
+            ),
+        ]
+        for doc in documents:
+            text = getattr(doc, "normalized_text", None) or getattr(doc, "text", None)
+            fields.append(str(getattr(doc, "modality", "text")).encode("utf-8"))
+            fields.append((text or "").encode("utf-8"))
+            tensor = getattr(doc, "raw_tensor", None)
+            if tensor is None:
+                fields.append(b"no-tensor")
+                continue
+            try:
+                array = np.ascontiguousarray(tensor)
+            except (TypeError, ValueError):
+                return None  # not an array (ragged): computing reports it
+            if array.dtype.hasobject:
+                return None
+            fields.append(array.dtype.str.encode("ascii"))
+            fields.append(repr(array.shape).encode("ascii"))
+            fields.append(array.tobytes())
+        return hash_fields(fields)
+
+    def _embed_documents_cached(
+        self,
+        documents: CorpusDocument | list[CorpusDocument] | None,
+        input_path: pathlib.Path | None,
+    ) -> tuple[list[CorpusDocument], CacheStatus]:
+        """Return the embedded documents and what the cache did."""
         documents = _coerce_documents(documents)
         if not documents:
-            return []
-
-        cache_dir = self.cache_dir or (
-            pathlib.Path.home() / ".cache" / "scikitplot" / "embeddings"
-        )
+            return [], CacheStatus.NOT_STORABLE
         if not self.enable_cache:
-            return self.embed_documents(documents, input_path=input_path)
-
-        # Build modality-aware cache key
-        modalities = sorted({str(getattr(d, "modality", "text")) for d in documents})
-        tag = "+".join(modalities)
-        try:
-            mtime = input_path.stat().st_mtime
-        except OSError:
-            return self.embed_documents(documents, input_path=input_path)
-
-        raw_key = (
-            f"{tag}:{self.text_model}:{self.image_model}:"
-            f"{self.audio_model}:{input_path!s}:{mtime}:{len(documents)}"
-        )
-        key = hashlib.sha256(raw_key.encode()).hexdigest()[:24]
-        cache_path = cache_dir / f"{key}.npy"
-
-        # Try cache load
-        if cache_path.exists():
-            try:
-                cached = np.load(str(cache_path), allow_pickle=False)
-                if cached.shape[0] == len(documents):
-                    logger.info(
-                        "MultimodalEmbeddingEngine: cache hit for %s (%d docs).",
-                        input_path.name,
-                        len(documents),
-                    )
-                    return [
-                        doc.replace(embedding=cached[i])
-                        for i, doc in enumerate(documents)
-                    ]
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("MultimodalEmbeddingEngine: cache load failed: %s", exc)
-
-        # Compute
-        docs_out = self.embed_documents(documents, input_path=input_path)
-        embeddings = np.stack(
-            [d.embedding for d in docs_out],
-            axis=0,  # noqa: B009
-        ).astype(np.float32)
-
-        # Save
-        try:
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            atomic_write_path(
-                cache_path,
-                lambda p: np.save(str(p), embeddings),
-                suffix=".npy",
+            return self.embed_documents(documents, input_path), CacheStatus.DISABLED
+        bypass = self._cache_bypass()
+        key = None if bypass is not None else self._cache_key(documents)
+        if key is None:
+            status = bypass or CacheStatus.BYPASS_UNIDENTIFIED
+            logger.debug(
+                "MultimodalEmbeddingEngine: cache %s for %s.", status.value, input_path
             )
+            return self.embed_documents(documents, input_path), status
+
+        cache_dir = pathlib.Path(self.cache_dir or DEFAULT_CACHE_DIR)
+        path = _cache_path(cache_dir, key)
+        cached = _load_from_cache(path, expected_n=len(documents))
+        if cached is not None:
+            touch_entry(path)
+            logger.info(
+                "MultimodalEmbeddingEngine: cache hit for %s (%d docs).",
+                input_path,
+                len(documents),
+            )
+            return [
+                doc.replace(embedding=cached[i]) for i, doc in enumerate(documents)
+            ], CacheStatus.HIT
+
+        docs_out = self.embed_documents(documents, input_path=input_path)
+        return docs_out, self._store(docs_out, cache_dir, path)
+
+    def _store(
+        self,
+        docs_out: list[CorpusDocument],
+        cache_dir: pathlib.Path,
+        path: pathlib.Path,
+    ) -> CacheStatus:
+        """Store the embeddings of ``docs_out`` as one entry, when they can be.
+
+        One entry needs every document embedded, one shape and one float
+        dtype; the entry keeps that dtype, so a hit equals the miss.
+        """
+        vectors = [getattr(d, "embedding", None) for d in docs_out]
+        if any(v is None for v in vectors):
+            return CacheStatus.NOT_STORABLE
+        arrays = [np.asarray(v) for v in vectors]
+        if len({(a.shape, a.dtype) for a in arrays}) != 1:
+            return CacheStatus.NOT_STORABLE
+        embeddings = np.stack(arrays, axis=0)
+        _ndim = embeddings.ndim != 2  # ruff: ignore[magic-value-comparison]
+        if _ndim or embeddings.dtype not in _FLOAT_DTYPES:  # noqa: PLR2004
+            return CacheStatus.NOT_STORABLE
+        try:
+            _save_to_cache(embeddings, path)
         except OSError as exc:
             logger.warning("MultimodalEmbeddingEngine: cache write failed: %s", exc)
-
-        return docs_out
+            return CacheStatus.STORE_FAILED
+        if not enforce_bounds(
+            cache_dir, self.cache_policy or CachePolicy(), stored=path
+        ):
+            return CacheStatus.TOO_LARGE
+        return CacheStatus.STORED
 
     # ------------------------------------------------------------------
     # Internal routing helpers

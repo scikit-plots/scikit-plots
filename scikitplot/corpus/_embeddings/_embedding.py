@@ -47,7 +47,6 @@ call time when not installed.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import pathlib
 import threading
@@ -70,6 +69,15 @@ import numpy.typing as npt
 
 from .._atomic import atomic_write_path
 from .._embedding_manifest import EmbeddingManifest
+from ._cache_policy import (
+    CachedEmbeddings,
+    CachePolicy,
+    CacheStatus,
+    enforce_bounds,
+    hash_fields,
+    is_commit,
+    touch_entry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -169,27 +177,18 @@ def _make_cache_key(
     >>> len(a)
     64
     """
-    h = hashlib.sha256()
-
-    def _field(value: str) -> None:
-        b = value.encode("utf-8")
-        # length-prefix each field so field boundaries are unambiguous
-        h.update(str(len(b)).encode("ascii"))
-        h.update(b"\x1f")
-        h.update(b)
-        h.update(b"\x1e")
-
-    _field(_CACHE_KEY_SCHEMA)
-    _field(model_name)
-    _field(model_revision)
-    _field(backend)
-    _field(provider_id)
-    _field("1" if normalize else "0")
-    _field(dtype)
-    _field(str(len(texts)))
-    for t in texts:
-        _field(t)
-    return h.hexdigest()
+    fields = [
+        _CACHE_KEY_SCHEMA,
+        model_name,
+        model_revision,
+        backend,
+        provider_id,
+        "1" if normalize else "0",
+        dtype,
+        str(len(texts)),
+        *texts,
+    ]
+    return hash_fields([value.encode("utf-8") for value in fields])
 
 
 def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
@@ -235,6 +234,47 @@ def _save_to_cache(
     logger.debug("EmbeddingEngine: cached %d embeddings to %s.", len(embeddings), path)
 
 
+def _read_entry(path: pathlib.Path) -> npt.NDArray[Any] | None:
+    """Read a cache entry, ``None`` when there is none to read.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The entry's path.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        The stored array; ``None`` when the entry is missing, empty, or
+        unreadable.
+
+    Notes
+    -----
+    **Developer.** One stat, no ``exists()`` first: a concurrent evictor may
+    remove the entry at any moment (also between the stat and the load), and
+    a vanished entry is a miss, logged at debug level. A path that cannot be
+    read at all (``cache_dir`` is a file, permission denied) is a miss too;
+    the store that follows reports its own failure. A corrupt entry is logged
+    as a warning and regenerated.
+    """
+    try:
+        if path.stat().st_size == 0:
+            return None
+        return np.load(str(path), allow_pickle=False)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        logger.debug("EmbeddingEngine: cannot read cache %s: %s", path, exc)
+        return None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "EmbeddingEngine: failed to load cache %s — will regenerate. %s",
+            path,
+            exc,
+        )
+        return None
+
+
 def _load_from_cache(
     path: pathlib.Path,
     expected_n: int,
@@ -263,16 +303,8 @@ def _load_from_cache(
     ``float32``-rounded values back from every hit (``1 + 1e-12`` came back as
     ``1.0``) -- a hit that was not equivalent to recomputation.
     """
-    if not path.exists() or path.stat().st_size == 0:
-        return None
-    try:
-        arr = np.load(str(path), allow_pickle=False)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "EmbeddingEngine: failed to load cache %s — will regenerate. %s",
-            path,
-            exc,
-        )
+    arr = _read_entry(path)
+    if arr is None:
         return None
 
     # Validate shape
@@ -515,8 +547,12 @@ class EmbeddingEngine:
         Model revision (commit, tag or branch). The sentence_transformers
         backend loads exactly this revision; every backend records it in the
         cache key and the embedding manifest. ``""`` (default) is unpinned:
-        the hub's current version is loaded, and a cache entry can outlive an
-        upstream change of the model.
+        the hub's current version is loaded. Only a commit hash makes the disk
+        cache exact for sentence_transformers; an empty value or a branch or
+        tag (which can move) uses the cache only as ``cache_policy`` allows
+        (by default it does not). For other backends the value is recorded,
+        not sent: it is your statement of which model version the name stands
+        for.
     custom_fn_id : str or None, optional
         Stable identity of ``custom_fn``, e.g. ``"my-embedder/v3"``; change it
         whenever the function's output changes. It is what the disk cache and
@@ -525,6 +561,10 @@ class EmbeddingEngine:
         manifest it stamps is unique to this engine instance, so documents
         embedded by two engines cannot be indexed together by accident. Only
         valid with ``backend="custom"``.
+    cache_policy : CachePolicy or None, optional
+        How the disk cache treats an unpinned model and how big it may grow.
+        ``None`` (default) is ``CachePolicy()``: an unpinned model's
+        embeddings are computed, not cached, and the cache is unbounded.
 
     Attributes
     ----------
@@ -538,6 +578,9 @@ class EmbeddingEngine:
         ``custom_fn_id`` is given with another backend or is empty.
     ValueError
         If ``batch_size`` or ``dtype`` are invalid.
+    TypeError
+        If ``model_revision`` is not a str, or ``cache_policy`` is neither a
+        :class:`CachePolicy` nor ``None``.
     ImportError
         At call time if the required backend library is not installed.
 
@@ -626,6 +669,7 @@ class EmbeddingEngine:
     model_revision: str = field(default="")
     # Last, so that positional construction keeps its meaning.
     custom_fn_id: str | None = field(default=None)
+    cache_policy: CachePolicy | None = field(default=None)
 
     # Internal: lazily-initialised embed function + lock
     _embed_fn: EmbedFn | None = field(default=None, init=False, repr=False)
@@ -633,11 +677,17 @@ class EmbeddingEngine:
         default_factory=threading.Lock, init=False, repr=False
     )
     # Internal: identity of an unidentified custom provider, unique to this
-    # instance (see ``embedding_manifest``), and the once-only cache notice.
+    # instance (see ``embedding_manifest``), the cache notices already logged
+    # (once each), and the revision ``cache_policy`` resolved (``None``: not
+    # yet asked; ``""``: resolution failed).
     _instance_token: str = field(
         default_factory=lambda: uuid.uuid4().hex, init=False, repr=False
     )
-    _bypass_reported: bool = field(default=False, init=False, repr=False)
+    _reported: set = field(default_factory=set, init=False, repr=False)
+    _resolved_revision: str | None = field(default=None, init=False, repr=False)
+    _revision_lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         """Validate constructor fields after dataclass ``__init__``.
@@ -674,6 +724,11 @@ class EmbeddingEngine:
             raise ValueError(
                 f"EmbeddingEngine: batch_size must be > 0; got {self.batch_size!r}."
             )
+        if not isinstance(self.model_revision, str):
+            raise TypeError(
+                'EmbeddingEngine: model_revision must be a str ("" when'
+                f" unpinned); got {self.model_revision!r}."
+            )
         if self.dtype not in _FLOAT_DTYPES:
             raise ValueError(
                 f"EmbeddingEngine: dtype must be one of"
@@ -682,6 +737,13 @@ class EmbeddingEngine:
             )
         if self.cache_dir is None:
             object.__setattr__(self, "cache_dir", DEFAULT_CACHE_DIR)
+        if self.cache_policy is None:
+            object.__setattr__(self, "cache_policy", CachePolicy())
+        elif not isinstance(self.cache_policy, CachePolicy):
+            raise TypeError(
+                "EmbeddingEngine: cache_policy must be a CachePolicy or None;"
+                f" got {type(self.cache_policy).__name__}."
+            )
 
     # ------------------------------------------------------------------
     # Public API
@@ -789,34 +851,84 @@ class EmbeddingEngine:
         ------
         ValueError
             If ``texts`` is empty.
-        OSError
-            If the cache directory cannot be created.
+
+        See Also
+        --------
+        embed_cached : The same call, reporting what it did.
 
         Examples
         --------
-        >>> vecs, cached = engine.embed_with_cache(texts, Path("corpus.txt"))
-        >>> cached  # True on second call with same inputs
+        >>> engine = EmbeddingEngine(
+        ...     backend="custom",
+        ...     custom_fn=lambda t: np.ones((len(t), 4), dtype=np.float32),
+        ...     custom_fn_id="ones/v1",
+        ...     enable_cache=False,
+        ... )
+        >>> engine.embed_with_cache(["Hello."])[1]
         False
         """
-        if not texts:
-            raise ValueError(
-                "EmbeddingEngine.embed_with_cache: texts must be non-empty."
-            )
+        result = self.embed_cached(texts, input_path)
+        return result.embeddings, result.status is CacheStatus.HIT
 
+    def embed_cached(
+        self,
+        texts: list[str],
+        input_path: pathlib.Path | None = None,
+    ) -> CachedEmbeddings:
+        """
+        Compute embeddings through the disk cache, and say what happened.
+
+        Parameters
+        ----------
+        texts : list of str
+            Text strings to embed.
+        input_path : pathlib.Path or None, optional
+            Source of ``texts``, for diagnostics only.
+
+        Returns
+        -------
+        CachedEmbeddings
+            ``(embeddings, status, key, revision)``; ``status`` is a
+            :class:`CacheStatus`.
+
+        Raises
+        ------
+        ValueError
+            If ``texts`` is empty.
+
+        Notes
+        -----
+        **User.** The cache is consulted only when a hit is what this engine
+        would compute: a sentence-transformers model pinned to a commit
+        (``model_revision``, or resolved with ``CachePolicy(unpinned=
+        "resolve")``), a custom provider's ``custom_fn_id``, the stated
+        ``model_revision`` of another backend, or, by your choice,
+        ``CachePolicy(unpinned="allow")``. Otherwise the embeddings are
+        computed and the status says why the cache was bypassed (logged once
+        per engine). A failed write is reported as ``STORE_FAILED``, never
+        raised.
+
+        **Developer.** A hit refreshes the entry's modification time; after a
+        store, :func:`enforce_bounds` evicts least recently used entries.
+
+        Examples
+        --------
+        >>> engine = EmbeddingEngine(
+        ...     backend="custom",
+        ...     custom_fn=lambda t: np.ones((len(t), 4), dtype=np.float32),
+        ...     enable_cache=False,
+        ... )
+        >>> engine.embed_cached(["Hello."]).status.value
+        'disabled'
+        """
+        if not texts:
+            raise ValueError("EmbeddingEngine.embed_cached: texts must be non-empty.")
         if not self.enable_cache:
-            return self.embed(texts), False
-        if self.backend == "custom" and self.custom_fn_id is None:
-            # Without an identity two different custom functions would share
-            # one key: the second was served the first one's vectors and never
-            # called. Computing is always correct; the cache waits for an id.
-            if not self._bypass_reported:
-                logger.info(
-                    "EmbeddingEngine: custom provider has no custom_fn_id;"
-                    " its embeddings are computed, not disk-cached. Pass"
-                    " custom_fn_id='name/version' to cache them."
-                )
-                object.__setattr__(self, "_bypass_reported", True)
-            return self.embed(texts), False
+            return CachedEmbeddings(self.embed(texts), CacheStatus.DISABLED, None, None)
+        revision, bypass = self._cache_identity()
+        if bypass is not None:
+            self._report_bypass(bypass)
+            return CachedEmbeddings(self.embed(texts), bypass, None, None)
 
         # Content-addressed key: identity is the texts + model/backend/params,
         # NOT the source path or mtime. ``input_path`` is advisory (diagnostics
@@ -827,7 +939,7 @@ class EmbeddingEngine:
             normalize=self.normalize,
             dtype=np.dtype(self.dtype).name,
             backend=self.backend,
-            model_revision=self.model_revision,
+            model_revision=revision,
             provider_id=self.custom_fn_id or "",
         )
         path = _cache_path(self.cache_dir, key)
@@ -837,18 +949,20 @@ class EmbeddingEngine:
             len(texts),
             path.name,
         )
+        named = revision or None
 
-        # Try cache load
         cached = _load_from_cache(path, expected_n=len(texts))
         if cached is not None:
+            touch_entry(path)
             logger.info(
                 "EmbeddingEngine: loaded %d embeddings from cache %s.",
                 len(cached),
                 path.name,
             )
-            return cached.astype(self.dtype, copy=False), True
+            return CachedEmbeddings(
+                cached.astype(self.dtype, copy=False), CacheStatus.HIT, key, named
+            )
 
-        # Compute and save
         embeddings = self.embed(texts)
         try:
             _save_to_cache(embeddings, path)
@@ -856,8 +970,10 @@ class EmbeddingEngine:
             logger.warning(
                 "EmbeddingEngine: could not write cache to %s. %s", path, exc
             )
-
-        return embeddings, False
+            return CachedEmbeddings(embeddings, CacheStatus.STORE_FAILED, key, named)
+        if not enforce_bounds(self.cache_dir, self.cache_policy, stored=path):
+            return CachedEmbeddings(embeddings, CacheStatus.TOO_LARGE, key, named)
+        return CachedEmbeddings(embeddings, CacheStatus.STORED, key, named)
 
     def embed_documents(
         self,
@@ -874,7 +990,8 @@ class EmbeddingEngine:
             Documents to embed. Each must have a non-empty ``text`` field.
         input_path : pathlib.Path or None, optional
             Source of the documents, for diagnostics only. Caching follows
-            ``enable_cache`` alone; the key is content-addressed.
+            ``enable_cache`` and ``cache_policy`` (see :meth:`embed_cached`);
+            the key is content-addressed.
 
         Returns
         -------
@@ -902,10 +1019,7 @@ class EmbeddingEngine:
 
         texts = [doc.normalized_text or doc.text for doc in documents]
 
-        if self.enable_cache:
-            embeddings, _ = self.embed_with_cache(texts, input_path)
-        else:
-            embeddings = self.embed(texts)
+        embeddings = self.embed_cached(texts, input_path).embeddings
 
         manifest_id = self.embedding_manifest(int(embeddings.shape[1])).fingerprint
         return [
@@ -959,7 +1073,7 @@ class EmbeddingEngine:
         return EmbeddingManifest(
             provider=self.backend,
             model=model,
-            revision=self.model_revision or None,
+            revision=self._effective_revision() or None,
             dimension=dimension,
             dtype=np.dtype(self.dtype).name,
             normalization="l2" if self.normalize else "none",
@@ -968,6 +1082,129 @@ class EmbeddingEngine:
     # ------------------------------------------------------------------
     # Private
     # ------------------------------------------------------------------
+
+    def _effective_revision(self) -> str:
+        """Return the pinned or resolved revision, ``""`` when there is none.
+
+        Returns
+        -------
+        str
+            ``model_revision`` when set; for sentence_transformers with
+            ``CachePolicy(unpinned="resolve")`` the resolver's commit (asked
+            once per engine, before the model is loaded, so the loaded model
+            is that commit); else ``""``.
+        """
+        if self.model_revision or self.backend != "sentence_transformers":
+            return self.model_revision
+        if self.cache_policy.unpinned != "resolve":
+            return ""
+        if self._resolved_revision is None:
+            # Its own lock: _get_embed_fn calls this while holding _lock.
+            with self._revision_lock:
+                if self._resolved_revision is None:
+                    object.__setattr__(
+                        self, "_resolved_revision", self._resolve_revision()
+                    )
+        return self._resolved_revision  # type: ignore[return-value]
+
+    def _resolve_revision(self) -> str:
+        """Ask ``cache_policy.revision_resolver``; ``""`` when it fails.
+
+        Returns
+        -------
+        str
+            The commit, or ``""`` (logged) when the resolver raised or did not
+            return a commit hash (a branch or tag can move).
+        """
+        resolver = self.cache_policy.revision_resolver
+        try:
+            revision = resolver(self.model_name)  # type: ignore[misc]
+        except Exception as exc:  # noqa: BLE001
+            # Any failure (offline, unknown id, a resolver bug) leaves the
+            # model unpinned: it still loads, the cache is bypassed and says so.
+            logger.warning(
+                "EmbeddingEngine: could not resolve the revision of %r (%s: %s);"
+                " the model loads unpinned and the disk cache is bypassed.",
+                self.model_name,
+                type(exc).__name__,
+                exc,
+            )
+            return ""
+        if not is_commit(revision):
+            logger.warning(
+                "EmbeddingEngine: revision_resolver returned %r for %r, not a"
+                " commit hash; the model loads unpinned and the disk cache is"
+                " bypassed.",
+                revision,
+                self.model_name,
+            )
+            return ""
+        return revision
+
+    def _cache_identity(self) -> tuple[str, CacheStatus | None]:
+        """Return the revision the key names, or why the cache is bypassed.
+
+        Returns
+        -------
+        revision : str
+            The key's revision field (``""`` for an identified custom
+            provider or an allowed unpinned model).
+        bypass : CacheStatus or None
+            ``None`` when a hit is provable.
+
+        Notes
+        -----
+        **Developer.** For sentence_transformers only a commit hash is exact
+        (a branch or tag such as ``"main"`` moves, so it follows
+        ``unpinned`` like an empty revision, and is not resolved); other
+        backends do not load a revision, so a non-empty ``model_revision`` is
+        the caller's statement and is trusted as such.
+        """
+        if self.backend == "custom":
+            if self.custom_fn_id is None:
+                return "", CacheStatus.BYPASS_UNIDENTIFIED
+            return self.model_revision, None
+        revision = self._effective_revision()
+        if self.backend != "sentence_transformers" and revision:
+            # Recorded, not loaded: the caller's statement of the version.
+            return revision, None
+        if is_commit(revision):
+            return revision, None
+        # Unpinned, or a branch or tag (which can move upstream).
+        if self.cache_policy.unpinned == "allow":
+            return revision, None
+        return revision, CacheStatus.BYPASS_UNPINNED
+
+    def _report_bypass(self, status: CacheStatus) -> None:
+        """Log, once per engine and status, why the cache was bypassed."""
+        if status in self._reported:
+            return
+        self._reported.add(status)
+        if status is CacheStatus.BYPASS_UNIDENTIFIED:
+            logger.info(
+                "EmbeddingEngine: custom provider has no custom_fn_id;"
+                " its embeddings are computed, not disk-cached. Pass"
+                " custom_fn_id='name/version' to cache them."
+            )
+        elif self.model_revision:
+            logger.info(
+                "EmbeddingEngine: model %r revision %r is not a commit (a branch"
+                " or tag can move, and is not resolved); its embeddings are"
+                " computed, not disk-cached. Pin model_revision to a lowercase"
+                " commit hash, or pass cache_policy=CachePolicy(unpinned='allow').",
+                self.model_name,
+                self.model_revision,
+            )
+        else:
+            logger.info(
+                "EmbeddingEngine: model %r is not pinned to a commit; its"
+                " embeddings are computed, not disk-cached (an entry could"
+                " outlive an upstream change). Pin model_revision, or pass"
+                " cache_policy=CachePolicy(unpinned='resolve',"
+                " revision_resolver=resolve_hub_revision) or"
+                " CachePolicy(unpinned='allow').",
+                self.model_name,
+            )
 
     def _get_embed_fn(self) -> EmbedFn:
         """
@@ -994,7 +1231,7 @@ class EmbeddingEngine:
                     normalize=self.normalize,
                     show_progress_bar=self.show_progress_bar,
                     device=self.device,
-                    revision=self.model_revision or None,
+                    revision=self._effective_revision() or None,
                 )
             elif self.backend == "openai":
                 fn = _make_openai_fn(

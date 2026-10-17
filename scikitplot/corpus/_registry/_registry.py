@@ -35,7 +35,9 @@ annotations`` throughout.
 
 from __future__ import annotations
 
+import dataclasses
 import importlib
+import inspect
 import logging
 import threading
 from types import ModuleType
@@ -118,12 +120,16 @@ class ComponentRegistry:
     --------
     >>> from scikitplot.corpus._registry import registry
     >>> registry.register_builtins()
-    >>> cls = registry.get_chunker("paragraph")
-    >>> chunker = cls(min_chars=20)
+    >>> chunker = registry.build_chunker("paragraph", min_length=20)
+    >>> type(chunker).__name__, chunker.config.min_length
+    ('ParagraphChunker', 20)
     """
 
     def __init__(self) -> None:
         self._chunkers: dict[str, type] = {}
+        #: Config dataclass per chunker name (R3-1); a chunker registered
+        #: without one is constructed from keyword arguments directly.
+        self._chunker_configs: dict[str, type] = {}
         self._filters: dict[str, type] = {}
         self._readers: dict[str, type] = {}
         self._normalizers: dict[str, type] = {}
@@ -155,22 +161,48 @@ class ComponentRegistry:
         Importing ``scikitplot.corpus._readers`` as a side effect here
         is intentional: it populates the ``DocumentReader._registry``
         extension map used by :meth:`~scikitplot.corpus._base.DocumentReader.create`.
+
+        A name already registered is kept: a component you registered before
+        this call is never replaced by the built-in of the same name (the
+        builder calls this on the shared registry when a build starts).
         """
         with self._lock:
             if self._builtins_registered:
                 return
 
-            # --- Chunkers ---
+            # --- Chunkers (R3-1: every built-in, each with its config) ---
             try:
                 from .._chunkers import (  # noqa: PLC0415
                     FixedWindowChunker,
+                    FixedWindowChunkerConfig,
                     ParagraphChunker,
+                    ParagraphChunkerConfig,
+                    ParentChildChunker,
+                    ParentChildChunkerConfig,
+                    RecursiveChunker,
+                    RecursiveChunkerConfig,
+                    SemanticChunker,
+                    SemanticChunkerConfig,
                     SentenceChunker,
+                    SentenceChunkerConfig,
+                    StructureChunker,
+                    StructureChunkerConfig,
+                    WordChunker,
+                    WordChunkerConfig,
                 )
 
-                self._chunkers["sentence"] = SentenceChunker
-                self._chunkers["paragraph"] = ParagraphChunker
-                self._chunkers["fixed_window"] = FixedWindowChunker
+                for name, chunker_cls, config_cls in (
+                    ("sentence", SentenceChunker, SentenceChunkerConfig),
+                    ("paragraph", ParagraphChunker, ParagraphChunkerConfig),
+                    ("fixed_window", FixedWindowChunker, FixedWindowChunkerConfig),
+                    ("word", WordChunker, WordChunkerConfig),
+                    ("semantic", SemanticChunker, SemanticChunkerConfig),
+                    ("recursive", RecursiveChunker, RecursiveChunkerConfig),
+                    ("parent_child", ParentChildChunker, ParentChildChunkerConfig),
+                    ("structure", StructureChunker, StructureChunkerConfig),
+                ):
+                    if self._add_builtin("chunker", self._chunkers, name, chunker_cls):
+                        self._chunker_configs[name] = config_cls
             except ImportError as exc:
                 logger.warning("ComponentRegistry: could not import chunkers: %s.", exc)
 
@@ -178,7 +210,7 @@ class ComponentRegistry:
             try:
                 from .._base import DefaultFilter  # noqa: PLC0415
 
-                self._filters["default"] = DefaultFilter
+                self._add_builtin("filter", self._filters, "default", DefaultFilter)
             except ImportError as exc:
                 logger.warning("ComponentRegistry: could not import filters: %s.", exc)
 
@@ -188,7 +220,7 @@ class ComponentRegistry:
                 from .._base import DocumentReader  # noqa: PLC0415
 
                 for ext, cls in DocumentReader.subclass_by_type().items():
-                    self._readers[ext] = cls
+                    self._add_builtin("reader", self._readers, ext, cls)
             except ImportError as exc:
                 logger.warning("ComponentRegistry: could not import readers: %s.", exc)
 
@@ -203,12 +235,17 @@ class ComponentRegistry:
                     WhitespaceNormalizer,
                 )
 
-                self._normalizers["unicode"] = UnicodeNormalizer
-                self._normalizers["whitespace"] = WhitespaceNormalizer
-                self._normalizers["html_strip"] = HTMLStripNormalizer
-                self._normalizers["lowercase"] = LowercaseNormalizer
-                self._normalizers["dedup_lines"] = DedupLinesNormalizer
-                self._normalizers["language_detect"] = LanguageDetectionNormalizer
+                for name, normalizer_cls in (
+                    ("unicode", UnicodeNormalizer),
+                    ("whitespace", WhitespaceNormalizer),
+                    ("html_strip", HTMLStripNormalizer),
+                    ("lowercase", LowercaseNormalizer),
+                    ("dedup_lines", DedupLinesNormalizer),
+                    ("language_detect", LanguageDetectionNormalizer),
+                ):
+                    self._add_builtin(
+                        "normalizer", self._normalizers, name, normalizer_cls
+                    )
             except ImportError as exc:
                 logger.warning(
                     "ComponentRegistry: could not import normalizers: %s.", exc
@@ -224,6 +261,29 @@ class ComponentRegistry:
                 len(self._normalizers),
             )
 
+    def _add_builtin(
+        self, kind: str, store: dict[str, type], name: str, cls: type
+    ) -> bool:
+        """Insert a built-in unless ``name`` is taken; return whether it was.
+
+        Called under ``self._lock``. A registration made before
+        :meth:`register_builtins` wins, and the built-in is recorded only when
+        it is the one stored (review of R3-1, F1).
+        """
+        if name in store:
+            logger.debug(
+                "ComponentRegistry: %s %r already registered to %r; keeping it "
+                "over the built-in %r.",
+                kind,
+                name,
+                store[name].__name__,
+                cls.__name__,
+            )
+            return False
+        store[name] = cls
+        self._builtin_keys[kind].add(name)
+        return True
+
     # ------------------------------------------------------------------
     # Chunker registration / retrieval
     # ------------------------------------------------------------------
@@ -233,6 +293,7 @@ class ComponentRegistry:
         name: str,
         cls: type,
         *,
+        config: type | None = None,
         replace: bool = False,
     ) -> None:
         """
@@ -244,22 +305,85 @@ class ComponentRegistry:
             Registry key (lowercase, underscore-separated). Must be
             non-empty.
         cls : type
-            Concrete class inheriting from
-            :class:`~scikitplot.corpus._base.ChunkerBase`.
-        replace : bool
-            False
+            A class satisfying ``ChunkerProtocol`` (``chunk`` and
+            ``chunk_batch``).
+        config : type or None, optional
+            The chunker's configuration dataclass. When given (or declared by
+            the class as ``config_class``, as every built-in does),
+            :meth:`build_chunker` (and ``BuilderConfig.chunker_kwargs``)
+            build this config from keyword arguments and pass it as
+            ``cls(config=...)``; unknown keys raise. When neither, keyword
+            arguments go to ``cls`` directly. A class declaring
+            ``config_class`` accepts only that class or a subclass.
+        replace : bool, optional
+            Replace an existing registration deliberately. Default ``False``.
 
         Raises
         ------
         ValueError
-            If ``name`` is empty.
+            If ``name`` is empty, or already registered and ``replace`` is
+            ``False``.
         TypeError
-            If ``cls`` is not a type.
+            If ``cls`` is not a conforming class, its ``chunk`` cannot take
+            ``extra_metadata``, or ``config`` is not a dataclass type (or not
+            the class's declared ``config_class``).
         """
         self._validate_registration(name, cls, _lazy_protocol("ChunkerProtocol"))
+        if not _accepts_extra_metadata(cls):
+            raise TypeError(
+                f"ComponentRegistry: {cls.__name__}.chunk must accept "
+                "chunk(text, extra_metadata=...) (ChunkerProtocol); the pipeline "
+                "calls it that way."
+            )
+        declared = getattr(cls, "config_class", None)
+        if config is None:
+            config = declared
+        if config is not None and not (
+            isinstance(config, type) and dataclasses.is_dataclass(config)
+        ):
+            raise TypeError(
+                f"ComponentRegistry: config for chunker {name!r} must be a "
+                f"dataclass type, got {config!r}."
+            )
+        if (
+            config is not None
+            and isinstance(declared, type)
+            and not issubclass(config, declared)
+        ):
+            raise TypeError(
+                f"ComponentRegistry: {cls.__name__} takes a "
+                f"{declared.__name__}, not {config.__name__} (chunker {name!r})."
+            )
         with self._lock:
             self._check_overwrite("chunker", name, self._chunkers, cls, replace)
             self._chunkers[name] = cls
+            if config is None:
+                self._chunker_configs.pop(name, None)
+            else:
+                self._chunker_configs[name] = config
+
+    def get_chunker_config(self, name: str) -> type | None:
+        """
+        Return the configuration dataclass registered for chunker ``name``.
+
+        Parameters
+        ----------
+        name : str
+            Registry key.
+
+        Returns
+        -------
+        type or None
+            The config class, or ``None`` when the chunker takes keyword
+            arguments directly.
+
+        Raises
+        ------
+        KeyError
+            If no chunker is registered under ``name``.
+        """
+        self.get_chunker(name)
+        return self._chunker_configs.get(name)
 
     def get_chunker(self, name: str) -> type:
         """
@@ -429,8 +553,16 @@ class ComponentRegistry:
             :class:`~scikitplot.corpus._normalizers.NormalizerBase`.
         replace : bool
             False
+
+        Notes
+        -----
+        **Developer.** Checked against ``NormalizerBase``, the type
+        ``NormalizationPipeline`` accepts. ``NormalizerProtocol``
+        (``normalize(text)``) describes a text-level interface no built-in
+        normalizer has, so the old check refused every built-in, and with it
+        every snapshot round trip (R3-1).
         """
-        self._validate_registration(name, cls, _lazy_protocol("NormalizerProtocol"))
+        self._validate_registration(name, cls, _normalizer_base())
         with self._lock:
             self._check_overwrite("normalizer", name, self._normalizers, cls, replace)
             self._normalizers[name] = cls
@@ -477,22 +609,86 @@ class ComponentRegistry:
         name : str
             Registry key.
         **kwargs
-            Constructor keyword arguments.
+            For a chunker registered with a config class: the config's fields,
+            plus any other keyword option the chunker's constructor takes
+            (``gensim_dictionary`` for ``word``, ``adapter`` for
+            ``semantic``); a name that is both goes to the config. Or
+            ``config=`` (a ready config, ``None`` for the default) with only
+            constructor options beside it. Without a config class: the
+            constructor's keyword arguments.
 
         Returns
         -------
-        ChunkerBase instance
+        object
+            The chunker instance.
 
         Raises
         ------
         KeyError
             If ``name`` is not registered.
+        TypeError
+            If a keyword is neither a config field nor a constructor option
+            (the message lists both), a field is given beside ``config=``, or
+            ``config=`` is not that config type.
+
+        Notes
+        -----
+        **Developer.** Raw keyword arguments used to reach chunkers whose
+        constructor takes only ``config=``, so every named chunker raised
+        ``TypeError`` for any option (R3-1).
 
         Examples
         --------
-        >>> chunker = registry.build_chunker("paragraph", min_chars=20)
+        >>> chunker = registry.build_chunker(
+        ...     "fixed_window", window_size=50, step_size=25
+        ... )
+        >>> chunker.config.window_size, chunker.config.step_size
+        (50, 25)
         """
-        return self.get_chunker(name)(**kwargs)
+        cls = self.get_chunker(name)
+        config_cls = self._chunker_configs.get(name)
+        if config_cls is None:
+            return cls(**kwargs)
+        options = dict(kwargs)
+        constructor = _constructor_options(cls)
+        fields = sorted(f.name for f in dataclasses.fields(config_cls) if f.init)
+        if "config" in options:
+            config = options.pop("config")
+            if config is None:
+                config = config_cls()
+            elif not isinstance(config, config_cls):
+                raise TypeError(
+                    f"chunker {name!r}: config must be a {config_cls.__name__}, "
+                    f"got {type(config).__name__}."
+                )
+            stray = sorted(
+                key
+                for key in options
+                if constructor is not None and key not in constructor
+            )
+            if stray:
+                raise TypeError(
+                    f"chunker {name!r}: with config=, only the constructor's own "
+                    f"options {sorted(constructor or ())} may be given; got {stray} "
+                    f"(set {config_cls.__name__} fields on the config itself)."
+                )
+            return cls(config=config, **options)
+        field_options = {k: v for k, v in options.items() if k in fields}
+        rest = {k: v for k, v in options.items() if k not in fields}
+        unknown = sorted(
+            key for key in rest if constructor is not None and key not in constructor
+        )
+        if unknown:
+            raise TypeError(
+                f"chunker {name!r}: unknown option(s) {unknown}; "
+                f"{config_cls.__name__} accepts {fields}"
+                + (
+                    f" and {cls.__name__} also takes {sorted(constructor)}."
+                    if constructor
+                    else "."
+                )
+            )
+        return cls(config=config_cls(**field_options), **rest)
 
     def build_filter(self, name: str, **kwargs: Any) -> Any:  # noqa: D417
         """
@@ -535,8 +731,9 @@ class ComponentRegistry:
         Returns
         -------
         dict[str, dict[str, str]]
-            Keys: ``"chunkers"``, ``"filters"``, ``"readers"``,
-            ``"normalizers"``. Values: dicts mapping name → class qualname.
+            Keys: ``"chunkers"``, ``"chunker_configs"``, ``"filters"``,
+            ``"readers"``, ``"normalizers"``. Values: dicts mapping name to
+            the fully qualified class name.
         """
         with self._lock:
             # class = fqcn.split('.')[-1]
@@ -544,6 +741,9 @@ class ComponentRegistry:
             # qualname = fqcn[len(module)+1:]
             return {
                 "chunkers": {k: _fqcn(v) for k, v in self._chunkers.items()},
+                "chunker_configs": {
+                    k: _fqcn(v) for k, v in self._chunker_configs.items()
+                },
                 "filters": {k: _fqcn(v) for k, v in self._filters.items()},
                 "readers": {k: _fqcn(v) for k, v in self._readers.items()},
                 "normalizers": {k: _fqcn(v) for k, v in self._normalizers.items()},
@@ -584,6 +784,8 @@ class ComponentRegistry:
             If resolved class does not match expected base type.
         """
         required_keys = {"chunkers", "filters", "readers", "normalizers"}
+        # Optional since R3-1: snapshots written before have no config section.
+        optional_keys = {"chunker_configs"}
 
         if isinstance(allowed_module_prefixes, str):
             allowed_module_prefixes = [allowed_module_prefixes]
@@ -591,13 +793,14 @@ class ComponentRegistry:
         if not isinstance(snapshot, dict):
             raise TypeError("Snapshot must be a dict.")
 
-        if set(snapshot.keys()) != required_keys:
+        keys = set(snapshot.keys())
+        if not required_keys <= keys or keys - required_keys - optional_keys:
             raise ValueError(
-                f"Snapshot keys must be exactly {required_keys}, "
-                f"got {set(snapshot.keys())}."
+                f"Snapshot keys must be {sorted(required_keys)} plus optionally "
+                f"{sorted(optional_keys)}, got {sorted(keys)}."
             )
 
-        for section in required_keys:
+        for section in sorted(keys):
             if not isinstance(snapshot[section], dict):
                 raise TypeError(f"Snapshot[{section!r}] must be a dict.")
 
@@ -622,14 +825,23 @@ class ComponentRegistry:
             return cls_obj
 
         # Load and validate each component type
-        from .._base import ChunkerBase, DocumentReader, FilterBase  # noqa: PLC0415
+        from .._base import DocumentReader, FilterBase  # noqa: PLC0415
         from .._normalizers import NormalizerBase  # noqa: PLC0415
 
+        configs = snapshot.get("chunker_configs", {})
+        unknown_configs = sorted(set(configs) - set(snapshot["chunkers"]))
+        if unknown_configs:
+            raise ValueError(
+                f"chunker_configs names chunkers the snapshot does not register: "
+                f"{unknown_configs}."
+            )
         for name, fqcn in snapshot["chunkers"].items():
             cls_obj = _safe_load(fqcn)
-            if not issubclass(cls_obj, ChunkerBase):
-                raise TypeError(f"{fqcn} is not a ChunkerBase.")
-            registry.register_chunker(name, cls_obj)
+            # Structural, as at registration: the built-in chunkers satisfy
+            # ChunkerProtocol without inheriting ChunkerBase, so a nominal
+            # check refused every snapshot of the built-ins (R3-1).
+            config_cls = _safe_load(configs[name]) if name in configs else None
+            registry.register_chunker(name, cls_obj, config=config_cls)
 
         for name, fqcn in snapshot["filters"].items():
             cls_obj = _safe_load(fqcn)
@@ -750,6 +962,54 @@ class ComponentRegistry:
             + f"; refusing to replace it with {cls.__name__!r} silently. "
             f"Pass replace=True to substitute it deliberately."
         )
+
+
+def _constructor_options(cls: type) -> frozenset[str] | None:
+    """Return the keyword options ``cls(...)`` takes besides ``config``.
+
+    ``None`` means the constructor takes ``**kwargs`` (anything goes to it).
+    """
+    try:
+        parameters = inspect.signature(cls).parameters.values()
+    except (TypeError, ValueError):  # pragma: no cover - builtins, C classes
+        return frozenset()
+    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters):
+        return None
+    return frozenset(
+        p.name
+        for p in parameters
+        if p.name != "config"
+        and p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        )
+    )
+
+
+def _accepts_extra_metadata(cls: type) -> bool:
+    """Whether ``cls.chunk`` binds ``(text, extra_metadata=...)`` (static look-up)."""
+    chunk = inspect.getattr_static(cls, "chunk", None)
+    if chunk is None:
+        return False
+    if isinstance(chunk, (staticmethod, classmethod)):
+        chunk = chunk.__func__
+    try:
+        inspect.signature(chunk).bind(None, "text", extra_metadata=None)
+    except TypeError:
+        return False
+    except ValueError:  # pragma: no cover - no signature available
+        return True
+    return True
+
+
+def _normalizer_base() -> type | None:
+    """Resolve ``NormalizerBase`` lazily (see the header note on imports)."""
+    try:
+        from .._normalizers import NormalizerBase  # noqa: PLC0415
+    except Exception:  # ruff: ignore[blind-except]  # pragma: no cover
+        return None
+    return NormalizerBase
 
 
 def _lazy_protocol(name: str) -> type | None:

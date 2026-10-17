@@ -1937,6 +1937,10 @@ words = ["query"]
     path = "scikitplot._utils"
 
   [[tool.towncrier.section]]
+    name = "scikitplot.agent"
+    path = "scikitplot.agent"
+
+  [[tool.towncrier.section]]
     name = "scikitplot.annoy"
     path = "scikitplot.annoy"
 

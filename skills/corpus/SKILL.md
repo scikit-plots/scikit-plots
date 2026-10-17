@@ -5,6 +5,11 @@ description: Maintain, review, debug and continue the scikitplot.corpus submodul
 
 # `scikitplot.corpus` maintainer
 
+> **Current state (2026-10-16).** The runtime is present; the active round 33
+> plan and open decisions are in `maintenances/corpus/todo/todo.md`, and the
+> engineering rules in `skills/_engineering/SKILL.md`. The "runtime missing"
+> statements below predate round 33 (open decision D6).
+
 Use the wide checkout containing `scikitplot/`, `maintenances/`, and `skills/`. Corpus owns protocol-neutral evidence/retrieval contracts; it does not absorb MCP wire concerns, Annoy native mechanics, or CLI presentation policy.
 
 ## Start from current evidence

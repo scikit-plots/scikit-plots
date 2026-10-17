@@ -8,8 +8,8 @@
 #
 # Git Context            Example tags generated
 # Push to main           :latest  :latest-runtime  :latest-jupyter  :latest-runtime-jupyter  :latest-devel
-#                         (3.14 is the current default version, so its interpreter
-#                         segment collapses -- it is NOT :latest-runtime-python3.14;
+#                         (3.15 is the current default version, so its interpreter
+#                         segment collapses -- it is NOT :latest-runtime-python3.15;
 #                         that explicit-version form only appears for non-default
 #                         versions, e.g. :latest-runtime-python3.9.)
 # Push to maintenance    :0.3.x  :0.3.x-python3.11  :0.3.x-devel-jupyter-python3.11
@@ -43,7 +43,7 @@
 #
 # python - <<'PY'
 # import yaml, sys
-# yaml.safe_load(open("ci_docker_image.yml","r",encoding="utf-8"))
+# yaml.safe_load(open("ci_docker_image_builder.yml","r",encoding="utf-8"))
 # print("OK: YAML parses")
 # PY
 #
@@ -52,8 +52,8 @@
 # export GITHUB_SHA=0123456789abcdef0123456789abcdef01234567
 # export REF_TYPE=branch VERSION="" BRANCH=main
 # export IMAGE_NAMESPACE=scikitplot IMAGE_REPO=scikit-plots GHCR_ORG=scikit-plots
-# export PY_VERSIONS_JSON='["3.9","3.11","3.12","3.14"]'
-# export VARIANT=runtime INTERPRETER=python PYTHON_VERSION=3.14
+# export PY_VERSIONS_JSON='["3.8","3.9","3.10","3.11","3.12","3.13","3.14","3.15"]'
+# export VARIANT=runtime INTERPRETER=python PYTHON_VERSION=3.15
 # bash -euxo pipefail -c '...paste the run: | script body here...'
 # ─────────────────────────────────────────────────────────────────────────────
 # 🛠️ How Docker resolves image names
@@ -206,7 +206,38 @@ permissions:
 # https://github.com/jupyterhub/binderhub/blob/main/helm-chart/chartpress.yaml
 # https://github.com/jupyterhub/chartpress
 jobs:
+  # Fail ONCE, before any build row starts or pushes, when strategy.matrix.include and
+  # PY_VERSIONS_JSON have drifted apart. Without this, a mismatch only surfaces per row
+  # (fail-fast is false), so the rows that DO pass still push -> partial publish.
+  # Requires .github/scripts/check_py_versions_consistency.py in the repository.
+  preflight:
+    name: Preflight (python_version matrix vs PY_VERSIONS_JSON)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    ## To enable this workflow on a fork, comment out (must mirror the docker job):
+    if: github.repository == 'scikit-plots/scikit-plots'
+    steps:
+      - name: "⬇️ Checkout (shallow; workflow + lint script only)"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🔎 Lint python_version matrix vs PY_VERSIONS_JSON
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          # Lint THIS workflow file wherever it lives/whatever it is renamed to:
+          # GITHUB_WORKFLOW_REF = <owner>/<repo>/<path>@<ref>
+          WORKFLOW_PATH="${GITHUB_WORKFLOW_REF#"${GITHUB_REPOSITORY}"/}"
+          WORKFLOW_PATH="${WORKFLOW_PATH%%@*}"
+          python3 -m venv "${RUNNER_TEMP}/lint-venv"
+          "${RUNNER_TEMP}/lint-venv/bin/python" -m pip install --quiet "PyYAML>=6.0"
+          "${RUNNER_TEMP}/lint-venv/bin/python" \
+            .github/scripts/check_py_versions_consistency.py "${WORKFLOW_PATH}"
+
   docker:
+    needs: preflight
     # Per-row display name for the Actions UI / status checks — mirrors the
     # build_wheels job's "Wheel-<py>-<platform>" pattern. Job id stays `docker`
     # (unchanged) so this is purely cosmetic and doesn't rename any existing
@@ -232,30 +263,53 @@ jobs:
       fail-fast: false  # Allow all jobs to run even if one fails
       matrix:
         # Flat enumeration (GitHub Actions' canonical "explicit list" pattern) — zero
-        # cross-product, zero `exclude:` entries. Scales by adding one row per new
-        # version. `python_version` is always quoted: unquoted YAML floats silently
+        # `exclude:` entries. It MUST be the full cross-product: every
+        # (variant, interpreter) pair needs a row for EVERY version in
+        # PY_VERSIONS_JSON (below), because the default-version tag alias
+        # (:latest, :latest-jupyter, :latest-devel, ...) is only published by the row
+        # whose python_version equals the default. A staggered matrix (each version in
+        # only some pairs) silently stops publishing some aliases.
+        # To add a version: add one row per pair here AND append it to PY_VERSIONS_JSON.
+        # `python_version` is always quoted: unquoted YAML floats silently
         # truncate trailing zeros (3.10 -> 3.1).
+        # Enforced by .github/scripts/check_py_versions_consistency.py (`preflight` job).
         include:
           # ---------- runtime · python ----------
+          - { variant: runtime, interpreter: python,  python_version: "3.8"  }
           - { variant: runtime, interpreter: python,  python_version: "3.9"  }
+          - { variant: runtime, interpreter: python,  python_version: "3.10" }
           - { variant: runtime, interpreter: python,  python_version: "3.11" }
           - { variant: runtime, interpreter: python,  python_version: "3.12" }
+          - { variant: runtime, interpreter: python,  python_version: "3.13" }
           - { variant: runtime, interpreter: python,  python_version: "3.14" }
+          - { variant: runtime, interpreter: python,  python_version: "3.15" }
           # ---------- runtime · jupyter ----------
+          - { variant: runtime, interpreter: jupyter, python_version: "3.8"  }
           - { variant: runtime, interpreter: jupyter, python_version: "3.9"  }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.10" }
           - { variant: runtime, interpreter: jupyter, python_version: "3.11" }
           - { variant: runtime, interpreter: jupyter, python_version: "3.12" }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.13" }
           - { variant: runtime, interpreter: jupyter, python_version: "3.14" }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.15" }
           # ---------- devel · python ----------
+          - { variant: devel,   interpreter: python,  python_version: "3.8"  }
           - { variant: devel,   interpreter: python,  python_version: "3.9"  }
+          - { variant: devel,   interpreter: python,  python_version: "3.10" }
           - { variant: devel,   interpreter: python,  python_version: "3.11" }
           - { variant: devel,   interpreter: python,  python_version: "3.12" }
+          - { variant: devel,   interpreter: python,  python_version: "3.13" }
           - { variant: devel,   interpreter: python,  python_version: "3.14" }
+          - { variant: devel,   interpreter: python,  python_version: "3.15" }
           # ---------- devel · jupyter ----------
+          - { variant: devel,   interpreter: jupyter, python_version: "3.8"  }
           - { variant: devel,   interpreter: jupyter, python_version: "3.9"  }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.10" }
           - { variant: devel,   interpreter: jupyter, python_version: "3.11" }
           - { variant: devel,   interpreter: jupyter, python_version: "3.12" }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.13" }
           - { variant: devel,   interpreter: jupyter, python_version: "3.14" }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.15" }
 
     # Set your DockerHub username as a fixed env var
     # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
@@ -276,11 +330,13 @@ jobs:
       IMAGE_NAMESPACE: scikitplot
       IMAGE_REPO: scikit-plots
       # Single source of truth for supported Python versions — ordered oldest -> newest.
-      # The matrix `include:` rows above must enumerate exactly this set (4 versions x
-      # 2 variants x 2 interpreters = 16 rows). The *default* (unversioned-alias)
-      # version is always the LAST element here, never a separately hardcoded literal,
-      # so it advances automatically the day this list is extended (currently 3.14).
-      PY_VERSIONS_JSON: '["3.9","3.11","3.12","3.14"]'
+      # The matrix `include:` rows above must enumerate exactly this set for every
+      # (variant, interpreter) pair (8 versions x 2 variants x 2 interpreters = 32
+      # rows). The *default* (unversioned-alias) version is always the LAST element
+      # here, never a separately hardcoded literal, so it advances automatically the
+      # day this list is extended (currently 3.15). Contract (enforced by `preflight`
+      # and the docker_plan guard): unique "X.Y" strings, numeric oldest -> newest.
+      PY_VERSIONS_JSON: '["3.8","3.9","3.10","3.11","3.12","3.13","3.14","3.15"]'
       # SCIKITPLOT_VERSION: 0.4.0.post11  # install latest release on PyPI
       # COMPOSE_FILE: docker/docker-compose.yml
 
@@ -391,15 +447,18 @@ jobs:
           # row (e.g. a real new "latest" version wrongly getting an explicit
           # "-pythonX.Y" suffix instead of collapsing to the bare alias). Fail fast
           # with an actionable message instead of producing a wrong tag silently.
-          # NOT caught by this (no per-row signal exists for it): the opposite drift,
-          # a version added HERE but never given a matrix.include row — that version
-          # then simply never builds, and if it's the new last element, the collapse
-          # rule stops matching ANY row (every row gets an explicit version suffix,
-          # including what used to be "latest"/"-runtime" with no suffix at all).
-          # Closing that direction needs either generating matrix.include dynamically
-          # from this same JSON (single source of truth, larger refactor) or a
-          # separate static-lint job that parses this workflow file's own YAML —
-          # left as a deliberate follow-up decision, not silently unaddressed.
+          # NOT caught per row (no per-row signal exists for it): the opposite drift,
+          # a version added HERE but never given a matrix.include row, and a matrix that
+          # lacks the default version for some (variant, interpreter) pair. Both are
+          # caught BEFORE any row starts by the `preflight` job
+          # (.github/scripts/check_py_versions_consistency.py) that this job `needs:`.
+          #
+          # Contract check first: the default is the LAST element, so the list must be
+          # a non-empty array of unique "X.Y" strings ordered oldest -> newest by NUMERIC
+          # comparison (3.9 < 3.10); membership alone would accept a mis-ordered list
+          # and silently pick the wrong default.
+          jq -e 'type=="array" and length>0 and all(.[]; type=="string" and test("^[0-9]+\\.[0-9]+$")) and (length == (unique|length)) and (. == sort_by(split(".")|map(tonumber)))' <<<"${PY_VERSIONS_JSON}" >/dev/null \
+            || { echo "PY_VERSIONS_JSON must be a non-empty array of unique \"X.Y\" strings ordered oldest -> newest (last = default): ${PY_VERSIONS_JSON}" >&2; exit 2; }
           jq -e --arg v "${PYTHON_VERSION}" 'index($v) != null' <<<"${PY_VERSIONS_JSON}" >/dev/null \
             || { echo "PYTHON_VERSION='${PYTHON_VERSION}' (this matrix row) is not present in PY_VERSIONS_JSON=${PY_VERSIONS_JSON}. strategy.matrix.include and PY_VERSIONS_JSON have drifted out of sync -- update both to the same version set." >&2; exit 2; }
 
@@ -426,7 +485,7 @@ jobs:
           esac
 
           # ── Channel (resolved ONCE per run from the git ref / trigger — NOT a matrix
-          #    axis; every one of the 16 rows shares the same channel on a given run) ──
+          #    axis; every matrix row shares the same channel on a given run) ──
           # Rules, checked in order:
           #   schedule trigger (cron)                   → "latest" or "nightly" (prefer latest)
           #   Git tag  (refs/tags/vX.Y.Z)               → "<X.Y.Z>"  (release channel)
@@ -495,6 +554,11 @@ jobs:
           if [[ "${VARIANT}" == "runtime" ]]; then
             ALIASES+=("$(assemble_tag "runtime" "${INTERP_SEG}")")
           fi
+          # Build-only runs have an empty CHANNEL, so assemble_tag would yield a malformed
+          # value ("-python3.12", "-devel", or "" for runtime/python @ default). It is only
+          # consumed by the image `version` label (never pushed), so use the same
+          # deterministic local label as the ci-<sha> tag. ALIASES is only read when pushing.
+          if [[ "${SHOULD_PUSH}" != "true" ]]; then PRIMARY_ALIAS="ci-${GITHUB_SHA::12}"; fi
 
           # ── Tag list (newline-delimited for docker/build-push-action) ─────────────
           # docker/build-push-action accepts tags from multiple registries in one list;
@@ -576,9 +640,9 @@ jobs:
 
       # ── Build-plan tracking log ──────────────────────────────────────────────
       # GitHub concatenates every job's $GITHUB_STEP_SUMMARY onto ONE Summary tab
-      # for the whole workflow run, so each of the 16 matrix rows appending its
+      # for the whole workflow run, so each matrix row appending its
       # own block here gives a single place to inspect what every row decided —
-      # no need to open 16 separate job logs to compare variant/tag/push choices.
+      # no need to open every separate job log to compare variant/tag/push choices.
       - name: 📝 Log build plan to job summary
         env:
           MATRIX_VARIANT: ${{ matrix.variant }}
@@ -728,7 +792,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.created=${{ steps.docker_plan.outputs.created }}
           # Canonical cache backend for GitHub Actions runners. Scope includes the
-          # matrix axes (variant/interpreter/python_version) — without them all 16
+          # matrix axes (variant/interpreter/python_version) — without them all
           # rows on a given branch would share ONE cache scope and thrash each other.
           cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref_name }}-${{ matrix.variant }}-${{ matrix.interpreter }}-${{ matrix.python_version }}
           cache-from: type=gha,scope=${{ github.workflow }}-${{ github.ref_name }}-${{ matrix.variant }}-${{ matrix.interpreter }}-${{ matrix.python_version }}
@@ -857,7 +921,7 @@ jobs:
       # ── Build-result tracking log ────────────────────────────────────────────
       # if: always() — log the outcome even when build/inspect/smoke-test failed,
       # so a failure is something you can SEE on the Summary tab per row, not
-      # something you have to go dig out of a 16-job log list.
+      # something you have to go dig out of the per-row job log list.
       - name: 📝 Log build result to job summary
         if: always()
         env:

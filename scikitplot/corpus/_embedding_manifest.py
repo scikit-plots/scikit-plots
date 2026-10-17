@@ -67,6 +67,8 @@ import dataclasses
 import hashlib
 from typing import Any
 
+from ._identity import require_full_width
+
 __all__: list[str] = [
     "EmbeddingManifest",
     "IncompatibleEmbeddingsError",
@@ -78,8 +80,9 @@ __all__: list[str] = [
 _FIELD_SEP = "\x1f"
 
 #: Fingerprint scheme generation.  Bump when the preimage changes, so old and
-#: new fingerprints cannot be mistaken for one another.
-_FINGERPRINT_SCHEMA = "em1"
+#: new fingerprints cannot be mistaken for one another.  ``em2`` (R2-3): the
+#: full 64-hex digest is kept; ``em1`` kept 16 hex characters.
+_FINGERPRINT_SCHEMA = "em2"
 
 
 class IncompatibleEmbeddingsError(ValueError):
@@ -152,7 +155,7 @@ class EmbeddingManifest:
         Returns
         -------
         str
-            16 hex characters of a SHA-256 over every semantically relevant
+            The 64-character hex SHA-256 over every semantically relevant
             field, length-prefixed.
 
         Notes
@@ -179,7 +182,7 @@ class EmbeddingManifest:
             parts.extend((str(key), str(self.extra[key])))
 
         raw = _FIELD_SEP.join(f"{len(p)}:{p}" for p in parts)
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256(raw.encode("utf-8", errors="surrogatepass")).hexdigest()
 
     def is_compatible(
         self,
@@ -307,12 +310,16 @@ class EmbeddingManifest:
         ------
         ValueError
             If the payload carries a fingerprint that does not match the fields
-            it accompanies -- which means the payload was edited or corrupted.
+            it accompanies -- which means the payload was edited or corrupted --
+            or a fingerprint narrower than 64 hex characters, written by a build
+            before identities were widened (rebuild with this build).
         """
         known = {field.name for field in dataclasses.fields(cls)}
         manifest = cls(**{k: v for k, v in data.items() if k in known})
 
         declared = data.get("fingerprint")
+        if declared is not None:
+            require_full_width(declared, "EmbeddingManifest.from_dict")
         if declared is not None and declared != manifest.fingerprint:
             raise ValueError(
                 f"EmbeddingManifest.from_dict: declared fingerprint {declared!r} "

@@ -1,3 +1,0 @@
-- Every backend now compares elements by equality: the default bundled backend
-  and RapidFuzz compared element hashes, so ``distance([-1], [-2])`` and
-  ``distance([0], [2**61 - 1])`` were 0 there and 1 with ``backend="python"``.

@@ -96,6 +96,7 @@ import glob as _glob
 import logging
 import os  # noqa: F401
 import tempfile
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -127,6 +128,7 @@ if TYPE_CHECKING:
     from ._base import ChunkerBase
     from ._similarity import RetrievalConfig
 from ._diagnostics import ErrorCategory, ErrorRecord
+from ._identity import DocIdScheme, assign_doc_ids
 from ._schema import SourceType
 
 logger = logging.getLogger(__name__)
@@ -156,22 +158,30 @@ class BuilderConfig:
     Parameters
     ----------
     chunker : str or object
-        Chunker to use.  One of ``"sentence"``, ``"paragraph"``,
-        ``"fixed_window"``, ``"word"``; or a pre-configured chunker
-        instance (either ``ChunkerBase`` subclass or new-style
-        chunker — auto-bridged).
+        Chunker to use: a name registered in the component registry
+        (``"sentence"``, ``"paragraph"``, ``"fixed_window"``, ``"word"``,
+        ``"semantic"``, or one added with ``registry.register_chunker``), or a
+        pre-configured chunker instance (``ChunkerBase`` subclass or
+        new-style chunker, auto-bridged).
     chunker_kwargs : dict[str, Any]
-        Keyword arguments passed to the chunker constructor
-        (ignored if *chunker* is already an instance).
+        Fields of the named chunker's config (for example
+        ``{"overlap": 1}`` for ``"sentence"``); an unknown field raises
+        ``TypeError`` listing the valid ones. Refused (``ValueError``) when
+        *chunker* is an instance.
     normalize : bool
         Run normalisation pipeline after filtering.
     normalizer_steps : list[str]
-        Normaliser names: ``"unicode"``, ``"whitespace"``,
-        ``"html_strip"``, ``"lowercase"``, ``"dedup_lines"``.
+        Normaliser names registered in the component registry:
+        ``"unicode"``, ``"whitespace"``, ``"html_strip"``, ``"lowercase"``,
+        ``"dedup_lines"``, ``"language_detect"``, or one added with
+        ``registry.register_normalizer``. An unknown name raises
+        ``ValueError`` when the build starts.
         Default: ``["unicode", "whitespace"]``.
-    normalizer_kwargs : dict[str, Any]
-        Run ``TextNormalizer`` after filtering.
-        Kwargs for ``TextNormalizerConfig``.
+    normalizer_kwargs : dict[str, dict[str, Any]]
+        Options per normaliser step, ``{step: {option: value}}`` (for
+        example ``{"unicode": {"form": "NFKC"}}``). A key that is not in
+        *normalizer_steps* raises ``ValueError``; an option the step does not
+        take raises ``TypeError``.
     enrich : bool
         Run ``NLPEnricher`` after normalisation.
     enricher_kwargs : dict[str, Any]
@@ -222,6 +232,17 @@ class BuilderConfig:
         Optional immutable transport/resource preset.  When supplied it becomes
         the authority for timeout/size/TLS/SSRF/redirect/retry defaults;
         ``downloader_kwargs`` still provides deliberate per-build overrides.
+    doc_id_scheme : DocIdScheme or str
+        How documents are named. ``"sha256"`` (default): the content-addressed
+        64-hex :meth:`CorpusDocument.make_doc_id`, identical on every rebuild.
+        ``"uuid7"``: one RFC 9562 UUIDv7 per document, minted per source in
+        reading order right after the source is read; time-ordered, but new on
+        every build (deduplicate by ``content_hash``). An unknown value raises
+        ``ValueError`` when it is set, at construction or later.
+    security_filter : SecurityFilter or None
+        Scope bound to every index this builder builds (R2-2): AND-ed with
+        every search's ``filter``, so a caller can narrow but never widen what
+        it sees. Default ``None``.
 
     Notes
     -----
@@ -238,9 +259,9 @@ class BuilderConfig:
 
     # Normalisation
     normalize: bool = True
-    normalizer_steps: list[
-        Literal["unicode", "whitespace", "html_strip", "lowercase", "dedup_lines"]
-    ] = field(default_factory=lambda: ["unicode", "whitespace"])
+    normalizer_steps: list[str] = field(
+        default_factory=lambda: ["unicode", "whitespace"]
+    )
     normalizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # NLP enrichment
@@ -314,6 +335,24 @@ class BuilderConfig:
     # Immutable transport/resource preset. Appended to preserve the historical
     # positional order of every pre-existing BuilderConfig field.
     download_policy: object | None = None
+
+    # Document identity scheme (R2-3). Appended last, like the two above.
+    doc_id_scheme: DocIdScheme | str = DocIdScheme.SHA256
+
+    # Retrieval scope (R2-2), bound to every index the builder builds.
+    security_filter: object | None = None
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Coerce ``doc_id_scheme`` whenever it is set.
+
+        Notes
+        -----
+        The dataclass ``__init__`` assigns through here too, so a typo fails at
+        construction or at the assignment, never after an ingestion.
+        """
+        if name == "doc_id_scheme":
+            value = DocIdScheme.coerce(value)
+        super().__setattr__(name, value)
 
     def __post_init__(self) -> None:
         """Reject ambiguous legacy/new download policy configuration.
@@ -675,6 +714,14 @@ class CorpusBuilder:
         author = source_author or cfg.source_author
         coll_id = collection_id or cfg.collection_id
 
+        # Resolve the configured components before any source is read (R3-1,
+        # R3-4): a bad chunker name or option, or an unknown normaliser step,
+        # raises here instead of failing once per source inside the per-source
+        # error handler (which logged it and returned no documents).
+        self._get_chunker()
+        if cfg.normalize:
+            self._get_normalizer_pipeline()
+
         # Normalise sources to a list
         if isinstance(input_path, (str, Path)):  # noqa: SIM108
             source_list = [input_path]
@@ -709,7 +756,7 @@ class CorpusBuilder:
 
             def _ingest_one(src: Any) -> tuple[Any, list[Any], Exception | None]:
                 try:
-                    docs = self._ingest_source(
+                    docs = self._ingest_named(
                         src,
                         source_title=title,
                         source_author=author,
@@ -743,7 +790,7 @@ class CorpusBuilder:
             # Serial ingestion (default, max_workers=1).
             for src in expanded:
                 try:
-                    docs = self._ingest_source(
+                    docs = self._ingest_named(
                         src,
                         source_title=title,
                         source_author=author,
@@ -806,7 +853,9 @@ class CorpusBuilder:
             )
 
             idx_cfg = self._get_index_config()
-            self._index = RetrievalIndex(config=idx_cfg)
+            self._index = RetrievalIndex(
+                config=idx_cfg, security_filter=self.config.security_filter
+            )
             self._index.build(documents)
             result.index = self._index
 
@@ -928,7 +977,9 @@ class CorpusBuilder:
             )
 
             idx_cfg = self._get_index_config()
-            self._index = RetrievalIndex(config=idx_cfg)
+            self._index = RetrievalIndex(
+                config=idx_cfg, security_filter=self.config.security_filter
+            )
             self._index.build(merged_docs)
             new_result.index = self._index
 
@@ -951,6 +1002,7 @@ class CorpusBuilder:
         *,
         top_k: int = 10,
         match_mode: str = "hybrid",
+        filter: Any | None = None,  # noqa: A002
         **kwargs: Any,
     ) -> list[Any]:
         """Search the built corpus.
@@ -964,6 +1016,9 @@ class CorpusBuilder:
         match_mode : str, optional
             ``"strict"``, ``"keyword"``, ``"semantic"``, or
             ``"hybrid"``.
+        filter : Filter, mapping or None, optional
+            Restrict the search to matching documents (R2-2); see
+            :meth:`~scikitplot.corpus.RetrievalIndex.search`.
         **kwargs
             Additional ``RetrievalConfig`` parameters.
 
@@ -1012,6 +1067,7 @@ class CorpusBuilder:
             query,
             config=cfg,
             query_embedding=qe,
+            filter=filter,
         )
 
     # ==================================================================
@@ -1307,6 +1363,20 @@ class CorpusBuilder:
     # ==================================================================
     # Internal: source ingestion
     # ==================================================================
+
+    def _ingest_named(self, src: Any, **kwargs: Any) -> list[Any]:
+        """Ingest one source and name its documents by ``config.doc_id_scheme``.
+
+        Notes
+        -----
+        **Developer.**  R2-3: the scheme is applied once per source, right
+        after reading and before any later stage can record an id, the same
+        scope as :class:`CorpusPipeline`. ``"sha256"`` keeps the readers'
+        content addresses; a failure here is that source's ingest error.
+        """
+        return assign_doc_ids(
+            self._ingest_source(src, **kwargs), self.config.doc_id_scheme
+        )
 
     def _ingest_source(
         self,
@@ -1851,90 +1921,60 @@ class CorpusBuilder:
 
         factory = self._factory("chunker_factory")
         if factory is not None:
+            if self.config.chunker_kwargs:
+                # R3-1: an option is never silently ignored.
+                raise ValueError(
+                    "BuilderConfig.chunker_kwargs cannot apply when a "
+                    "chunker_factory is set; configure the chunker in the "
+                    f"factory. Got {sorted(self.config.chunker_kwargs)}."
+                )
             self._chunker = factory()
             return self._chunker
 
         cfg = self.config
         chunker_spec = cfg.chunker
+        kwargs = dict(cfg.chunker_kwargs)
+
+        from ._chunkers._chunker_bridge import bridge_chunker  # noqa: PLC0415
+
+        if chunker_spec is None:
+            # No chunker: each reader's own default chunking applies.
+            if kwargs:
+                raise ValueError(
+                    "BuilderConfig.chunker_kwargs needs a chunker name; "
+                    f"chunker is None. Got {sorted(kwargs)}."
+                )
+            return None
 
         # Already an instance
         if not isinstance(chunker_spec, str):
-            from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-                bridge_chunker,
-            )
-
+            if kwargs:
+                # R3-1: an option is never silently ignored.
+                raise ValueError(
+                    "BuilderConfig.chunker_kwargs cannot apply to a chunker "
+                    f"instance ({type(chunker_spec).__name__}); configure the "
+                    f"instance itself, or pass a name. Got {sorted(kwargs)}."
+                )
             self._chunker = bridge_chunker(chunker_spec)
             return self._chunker
 
-        # Create by name
-        kwargs = cfg.chunker_kwargs
+        # By name, through the one name table (R3-1): the ComponentRegistry,
+        # where `word` and `semantic` are registered too, and where a user's
+        # register_chunker(...) makes a chunker reachable by name. Its config
+        # class is built from chunker_kwargs; an unknown key raises TypeError
+        # naming the valid fields.
+        from ._registry import registry  # noqa: PLC0415
 
-        if chunker_spec == "sentence":
-            try:
-                from ._chunkers import SentenceChunker  # noqa: PLC0415
-                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-                    SentenceChunkerBridge,
-                )
-
-                inner = SentenceChunker(**kwargs)
-                self._chunker = SentenceChunkerBridge(inner)
-            except ImportError:
-                # Fall back to old chunker
-                logger.info(
-                    "New SentenceChunker not available; "
-                    "using ChunkerBase sentence chunker."
-                )
-                self._chunker = None  # Pipeline will use default
-
-        elif chunker_spec == "paragraph":
-            try:
-                from ._chunkers import (  # noqa: PLC0415
-                    ParagraphChunker,
-                )
-                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-                    ParagraphChunkerBridge,
-                )
-
-                inner = ParagraphChunker(**kwargs)
-                self._chunker = ParagraphChunkerBridge(inner)
-            except ImportError:
-                self._chunker = None
-
-        elif chunker_spec == "fixed_window":
-            try:
-                from ._chunkers import (  # noqa: PLC0415
-                    FixedWindowChunker,
-                )
-                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-                    FixedWindowChunkerBridge,
-                )
-
-                inner = FixedWindowChunker(**kwargs)
-                self._chunker = FixedWindowChunkerBridge(inner)
-            except ImportError:
-                self._chunker = None
-
-        elif chunker_spec == "word":
-            try:
-                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-                    WordChunkerBridge,
-                )
-                from ._chunkers._word import (  # noqa: PLC0415
-                    WordChunker,
-                )
-
-                inner = WordChunker(**kwargs)
-                self._chunker = WordChunkerBridge(inner)
-            except ImportError:
-                self._chunker = None
-
-        else:
+        registry.register_builtins()
+        try:
+            registry.get_chunker(chunker_spec)
+        except KeyError:
             raise ValueError(
-                f"Unknown chunker: {chunker_spec!r}. "
-                f"Use 'sentence', 'paragraph', 'fixed_window', "
-                f"'word', or pass an instance."
-            )
-
+                f"Unknown chunker: {chunker_spec!r}. Registered: "
+                f"{registry.list_chunkers()}; register one with "
+                "registry.register_chunker(...), or pass an instance."
+            ) from None
+        self._chunker = bridge_chunker(registry.build_chunker(chunker_spec, **kwargs))
         return self._chunker
 
     def _get_normalizer_pipeline(self) -> Any:
@@ -1947,31 +1987,45 @@ class CorpusBuilder:
             self._normalizer_pipeline = factory()
             return self._normalizer_pipeline
 
-        from ._normalizers import (  # noqa: PLC0415
-            DedupLinesNormalizer,
-            HTMLStripNormalizer,
-            LowercaseNormalizer,
-            NormalizationPipeline,
-            UnicodeNormalizer,
-            WhitespaceNormalizer,
-        )
+        from ._normalizers import NormalizationPipeline  # noqa: PLC0415
+        from ._registry import registry  # noqa: PLC0415
 
-        step_map = {
-            "unicode": UnicodeNormalizer,
-            "whitespace": WhitespaceNormalizer,
-            "html_strip": HTMLStripNormalizer,
-            "lowercase": LowercaseNormalizer,
-            "dedup_lines": DedupLinesNormalizer,
-        }
-
-        steps = []
-        for name in self.config.normalizer_steps:
-            cls = step_map.get(name)
-            if cls is None:
-                logger.warning("Unknown normalizer step: %r", name)
-                continue
-            steps.append(cls())
-
+        # R3-4: step names resolve through the registry (the one table, which
+        # also has `language_detect` and the user's own normalizers); an
+        # unknown step raises instead of being dropped with a warning
+        # (`["unicode", "lowercsae"]` used to lose `lowercase` silently).
+        registry.register_builtins()
+        known = registry.list_normalizers()
+        unknown = [
+            name
+            for name in self.config.normalizer_steps
+            if not isinstance(name, str) or name not in known
+        ]
+        if unknown:
+            raise ValueError(
+                f"Unknown normalizer step(s) {unknown}; registered: {known}."
+            )
+        # normalizer_kwargs: {step: {option: value}} for the steps listed
+        # (review of R3-1, F4: the field existed, was documented, and was read
+        # nowhere). A key that is not a listed step raises; an option the
+        # step's constructor does not take raises its own TypeError.
+        options = dict(self.config.normalizer_kwargs)
+        stray = sorted(map(str, set(options) - set(self.config.normalizer_steps)))
+        if stray:
+            raise ValueError(
+                f"normalizer_kwargs names step(s) {stray} that are not in "
+                f"normalizer_steps {list(self.config.normalizer_steps)}; it maps "
+                "a step name to that step's options."
+            )
+        bad = sorted(k for k, v in options.items() if not isinstance(v, Mapping))
+        if bad:
+            raise TypeError(
+                f"normalizer_kwargs[{bad[0]!r}] must be a mapping of options."
+            )
+        steps = [
+            registry.build_normalizer(name, **dict(options.get(name, {})))
+            for name in self.config.normalizer_steps
+        ]
         self._normalizer_pipeline = NormalizationPipeline(steps=steps)
         return self._normalizer_pipeline
 

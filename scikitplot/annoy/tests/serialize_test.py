@@ -1,5 +1,4 @@
 
-import os
 import random
 
 # assert i.get_distance(0, 1) == pytest.approx(0.0, rel=1e-12, abs=0.0)
@@ -9,8 +8,6 @@ import numpy.testing as npt
 
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
-
-HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_serialize_index():
@@ -50,7 +47,7 @@ def test_deserialize_index():
     assert index.get_n_trees() == index2.get_n_trees()
     assert index.get_nns_by_item(0, index_item_count) == index2.get_nns_by_item(0, index_item_count)
 
-def test_serialize_after_load():
+def test_serialize_after_load(tmp_path):
     f = 32
 
     index1 = AnnoyIndex(f, 'angular')
@@ -61,7 +58,7 @@ def test_serialize_after_load():
 
     index1.build(10)
 
-    save_path = f"{HERE}/test_serialize.tree"
+    save_path = str(tmp_path / "test_serialize.tree")
     index1.save(save_path)
 
     index2 = AnnoyIndex(f, 'angular')

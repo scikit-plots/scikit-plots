@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.mlflow",
+  "runtime_fingerprint": "bcb81d740f0a37b203d972656343205d6f188f1b7fd30df811fa264908df78b5",
+  "gates": {
+    "structural_runtime": {
+      "status": "RED",
+      "log": "maintenances/mlflow/_maintenance/evidence/contract-review.json",
+      "sha256": "c66639452a94838cb7211f2cfbe56b256080daba93d77349ec94a33cd80f8379",
+      "note": "Maintenance plane is healthy; runtime structural review records security-policy wiring, YAML exception-scope and typing-stub findings."
+    },
+    "maintenance_regressions": {
+      "status": "GREEN",
+      "log": "maintenances/mlflow/_maintenance/evidence/maintenance-tests.log",
+      "sha256": "c6754ebaee016c9325590170ea6e475303a9f95f84c1f43cd547ea065f7fd7d0",
+      "note": "19 mutation/regression tests passed, including a clean synthetic runtime case."
+    },
+    "sdk_free_unit_batch": {
+      "status": "GREEN",
+      "log": "maintenances/mlflow/_maintenance/evidence/sdk-free-unit-batch.log",
+      "sha256": "a5b0a4dbd125b7e3d4c3750cbcee78f39eb05cf96e5d7db4c15e7e32b2946353",
+      "note": "657 tests passed with only TestRunDemo deselected."
+    },
+    "run_demo_isolated": {
+      "status": "GREEN",
+      "log": "maintenances/mlflow/_maintenance/evidence/run-demo-isolated.log",
+      "sha256": "915484294b05eba33deccad42aa399a97a8ac3b2595e460d2ee6148449dabf83",
+      "note": "All 6 RunDemo tests pass separately; four retain the real 10-second default sleep."
+    },
+    "test_hygiene": {
+      "status": "RED",
+      "log": "maintenances/mlflow/_maintenance/evidence/run-demo-isolated.log",
+      "sha256": "915484294b05eba33deccad42aa399a97a8ac3b2595e460d2ee6148449dabf83",
+      "note": "MLF-TEST-001: accidental sleeps make nominal unit tests unnecessarily slow."
+    },
+    "optional_import": {
+      "status": "GREEN",
+      "log": "maintenances/mlflow/_maintenance/evidence/import-optional.log",
+      "sha256": "eb8fcf4814bd90377f6c23b1daf12fb8ae87882e2b919f6a1434d989d27c0e3e",
+      "note": "scikitplot.mlflow imports without the upstream mlflow distribution installed."
+    },
+    "bundled_configs": {
+      "status": "GREEN",
+      "log": "maintenances/mlflow/_maintenance/evidence/bundled-config-parse.log",
+      "sha256": "57f3c3c5c4cd2e17f3f7555c458da8d84181bba5d718d5feb5d2e4ce25c70e67",
+      "note": "Bundled TOML/YAML both parse and contain local/remote profiles."
+    },
+    "security_enforcement": {
+      "status": "RED",
+      "log": "maintenances/mlflow/_maintenance/evidence/security-enforcement-probe.log",
+      "sha256": "24209c0e79f02dd6b5f8def7c03ad6739846db74e95ddeb9704b1da4f9365c88",
+      "note": "Active DEFAULT_SECURITY_POLICY did not block disable_security_middleware at the real server-args entrypoint."
+    },
+    "ownership_audit": {
+      "status": "RED",
+      "log": "maintenances/mlflow/_maintenance/evidence/ownership-audit.log",
+      "sha256": "371c12eacc3022fcba222b371da9bb55c0d483346b7e724e2bf7f31b0dcb0799",
+      "note": "Tracks MLF-SEC-001, MLF-OPT-001, MLF-TYP-001 and MLF-TEST-001."
+    },
+    "real_mlflow_integration": {
+      "status": "UNAVAILABLE",
+      "note": "The external mlflow distribution is not installed in this environment; no real server/client/artifact/registry round-trip was claimed."
+    },
+    "type_checker": {
+      "status": "UNAVAILABLE",
+      "note": "mypy and pyright are not installed; the .pyi issue is statically evident but release typing evidence is unavailable."
+    },
+    "release_matrix": {
+      "status": "BLOCKED",
+      "note": "Needs runtime-finding disposition, real supported-version MLflow integration, packaging/type-checking and POSIX/Windows lifecycle evidence."
+    }
+  }
+}

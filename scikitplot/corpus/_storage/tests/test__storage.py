@@ -99,6 +99,11 @@ class BackendContract:
 
     store: object  # subclasses set this
 
+    def teardown_method(self) -> None:
+        # R3-8: every store is closed; an unclosed SQLite connection is a
+        # ResourceWarning on Python 3.13.
+        self.store.close()
+
     def _fresh_doc(self, idx: int = 0) -> CorpusDocument:
         return _make_doc(chunk_index=idx, text=f"Document number {idx} here.")
 
@@ -337,8 +342,17 @@ class TestSQLiteStorage(BackendContract):
 class TestSQLiteAtomicity:
     """CORPUS-STO-001: save_batch / save are all-or-nothing (docs + FTS)."""
 
+    def setup_method(self) -> None:
+        self._opened: list[SQLiteStorage] = []
+
+    def teardown_method(self) -> None:
+        for store in self._opened:
+            store.close()
+
     def _store(self) -> SQLiteStorage:
-        return SQLiteStorage(":memory:")
+        store = SQLiteStorage(":memory:")
+        self._opened.append(store)
+        return store
 
     @staticmethod
     def _doc(idx: int, text: str, **md) -> CorpusDocument:
@@ -503,6 +517,9 @@ _FORMERLY_BROKEN = [
 
 
 class TestFreeTextSearch:
+    def teardown_method(self) -> None:
+        self.store.close()
+
     def setup_method(self) -> None:
         self.store = SQLiteStorage(":memory:")
         self.docs = [CorpusDocument.create("t.md", i, t) for i, t in enumerate(_TECH_DOCS)]

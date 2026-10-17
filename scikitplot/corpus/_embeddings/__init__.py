@@ -17,15 +17,18 @@ call time when not installed.
 from __future__ import annotations
 
 from . import (
+    _cache_policy,
     _embedding,
     _hashing,
     _multimodal_embedding,
 )
+from ._cache_policy import *  # noqa: F403
 from ._embedding import *  # noqa: F403
 from ._hashing import *  # noqa: F403
 from ._multimodal_embedding import *  # noqa: F403
 
 __all__ = []
+__all__ += _cache_policy.__all__
 __all__ += _embedding.__all__
 __all__ += _hashing.__all__
 __all__ += _multimodal_embedding.__all__

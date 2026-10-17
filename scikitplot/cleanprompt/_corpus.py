@@ -36,10 +36,13 @@ bytes and tensor, character offsets and counts. Each is a copy or a function
 of the text that was just hidden; keeping one keeps the secret. They are
 recomputed downstream from the safe text if wanted.
 
-*Identity is recomputed.* ``content_hash`` and ``doc_id`` are digests of the
-original text, and a digest of a short secret can be reversed by guessing, so
-both are recomputed from the redacted text, and ``parent_doc_id`` is mapped to
-the parent's new id — or cleared when the parent is not in the batch.
+*Identity is recomputed.* ``content_hash`` and a content-addressed ``doc_id``
+are digests of the original text, and a digest of a short secret can be
+reversed by guessing, so both are recomputed from the redacted text. A
+``doc_id`` that Corpus minted as a UUIDv7 holds no content: it is kept when the
+text did not change and replaced by a new UUIDv7 when it did, the rule a
+content address follows by construction. ``parent_doc_id`` is mapped to the
+parent's new id — or cleared when the parent is not in the batch.
 
 *Corpus's pipeline hooks are not used.* They fail open — a hook that raises is
 logged and skipped — which is the right behaviour for enrichment and the wrong
@@ -274,12 +277,19 @@ def redact_documents(
     Returns
     -------
     list of CorpusDocument
-        New documents, in the same order. The inputs are unchanged.
+        New documents, in the same order. The inputs are unchanged. Each
+        ``doc_id`` stays in its own scheme: the content-addressed SHA-256 of
+        the redacted text, or, for a document named by
+        ``doc_id_scheme="uuid7"``, the same UUIDv7 when the text is unchanged
+        and a newly minted one when it is not. Parent links within the batch
+        follow.
 
     Raises
     ------
     CleanPromptError
-        If any field cannot be redacted. Nothing is returned partly redacted.
+        If any field cannot be redacted, or a ``parent_doc_id`` names two
+        documents of the batch that were renamed differently. Nothing is
+        returned partly redacted.
 
     Examples
     --------
@@ -297,6 +307,7 @@ def redact_documents(
     make = corpus.CorpusDocument
     staged = []
     renamed: dict[str, str] = {}
+    ambiguous: set[str] = set()
     for document in documents:
         name = f"{document.input_path}#{document.chunk_index}"
         changes: dict[str, Any] = dict.fromkeys(DERIVED_FIELDS)
@@ -309,14 +320,31 @@ def redact_documents(
         )
         text = changes.get("text", document.text)
         changes["content_hash"] = make.make_content_hash(text=text)
-        changes["doc_id"] = make.make_doc_id(
-            document.input_path, document.chunk_index, text, document.source_type
-        )
-        renamed[document.doc_id] = changes["doc_id"]
+        if corpus.doc_id_scheme_of(document.doc_id) is corpus.DocIdScheme.UUID7:
+            # A minted UUIDv7 carries no content. Like a content address, it
+            # changes exactly when the text does.
+            changes["doc_id"] = (
+                document.doc_id if text == document.text else str(corpus.uuid7())
+            )
+        else:
+            changes["doc_id"] = make.make_doc_id(
+                document.input_path, document.chunk_index, text, document.source_type
+            )
+        old = document.doc_id
+        if renamed.get(old, changes["doc_id"]) != changes["doc_id"]:
+            ambiguous.add(old)
+        renamed[old] = changes["doc_id"]
         staged.append((document, changes))
     out = []
     for document, changes in staged:
         parent = document.parent_doc_id
+        if parent in ambiguous:
+            msg = (
+                f"{document.input_path}#{document.chunk_index}: parent_doc_id "
+                f"{parent!r} names two documents of the batch that were renamed "
+                "differently, so the redacted parent is ambiguous"
+            )
+            raise CleanPromptError(msg)
         changes["parent_doc_id"] = renamed.get(parent) if parent else None
         out.append(document.replace(**changes))
     return out

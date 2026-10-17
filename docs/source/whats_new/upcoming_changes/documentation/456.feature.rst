@@ -1,3 +1,0 @@
-- Tagging directive was introduced for galleries/examples ``'tags::'`` in plots.
-  More details in `Tagging Guidelines <https://scikit-plots.github.io/dev/devel/guide_document_tag.html>`_.
-  By :user:`muce <celik-muhammed>`

@@ -70,9 +70,11 @@ from .._types import (  # noqa: F401
 from ._custom_tokenizer import ScriptSegmenter, ScriptType, detect_script  # noqa: F401
 from ._multilang_mixin import MultilangConfig, MultilangMixin
 from ._sentence import _validate_text_input
+from ._spans import cover, locate
 from ._writing_system import (
     WritingSystemAdapter,
     WritingSystemAdapterConfig,
+    check_adapter_unit,
 )
 
 logger = logging.getLogger(__name__)
@@ -197,6 +199,11 @@ class SemanticChunkerConfig(ChunkerConfig):
     device: str = "cpu"
     allow_fallback: bool = True
 
+    def __post_init__(self) -> None:
+        """Coerce enum fields (R3-2) and refuse an unknown ``adapter_unit``."""
+        super().__post_init__()
+        check_adapter_unit(self.adapter_unit, "SemanticChunkerConfig.adapter_unit")
+
 
 # ===========================================================================
 # Section 3 — SemanticChunker
@@ -263,12 +270,24 @@ class SemanticChunker(MultilangMixin):
     >>> chunker_sent = SemanticChunker(adapter=adapter)
     """
 
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = SemanticChunkerConfig
+
+    #: Whether each chunk's text is ``source[context_span]`` (R3-3).
+    text_is_source_slice = True
+
     def __init__(
         self,
         config: SemanticChunkerConfig | None = None,
         *,
         adapter: WritingSystemAdapter | None = None,
     ) -> None:
+        if config is not None and not isinstance(config, SemanticChunkerConfig):
+            raise TypeError(
+                f"SemanticChunker: config must be a SemanticChunkerConfig or None, "
+                f"got {type(config).__name__}."
+            )
         self._cfg = config if config is not None else SemanticChunkerConfig()
         self._validate_config()
         # Accept the enum or its value ("hybrid"): a string used to pass
@@ -311,6 +330,15 @@ class SemanticChunker(MultilangMixin):
         # instead of reading a half-set state.
         self._model_lock = threading.Lock()
         self._fallback_reported: bool = False
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> SemanticChunkerConfig:
+        """The resolved :class:`SemanticChunkerConfig` for this instance (read-only)."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -471,6 +499,7 @@ class SemanticChunker(MultilangMixin):
     def _refine_boundaries(
         self,
         chunks: list[Chunk],
+        source: str,
     ) -> list[Chunk]:
         """Merge adjacent chunks with high embedding similarity.
 
@@ -483,6 +512,9 @@ class SemanticChunker(MultilangMixin):
         ----------
         chunks : list[Chunk]
             Morphological chunks from Layer 2.
+        source : str
+            The text the chunks' spans index; a merged chunk's text is its
+            slice (R3-3), not the parts joined with ``" "``.
 
         Returns
         -------
@@ -508,10 +540,12 @@ class SemanticChunker(MultilangMixin):
         for i in range(1, len(chunks)):
             sim = self._cosine_similarity(merged_vecs[-1], vectors[i])
             if sim >= self._cfg.similarity_threshold:
-                # Merge: concatenate text, keep start of first / end of last
+                # Merge: the source from the start of the first to the end of
+                # the last (R3-3; a " " join is not the source in CJK or
+                # across newlines).
                 prev = merged[-1]
                 curr = chunks[i]
-                new_text = prev.text + " " + curr.text
+                new_text = source[prev.start_char : curr.end_char]
                 new_meta = {
                     **dict(prev.metadata),
                     "merged_from": [
@@ -608,13 +642,17 @@ class SemanticChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
 
         # ── Step 3+4: Layer 1 → Layer 2 ──────────────────────────────────
         layer2_chunks = self._adapter.adapt_text(text)
 
         # ── Step 5: Token count filtering ────────────────────────────────
         if self._cfg.min_chunk_tokens > 1 or self._cfg.max_chunk_tokens is not None:
-            layer2_chunks = self._enforce_token_limits(layer2_chunks)
+            layer2_chunks = self._enforce_token_limits(layer2_chunks, text)
 
         # ── Step 6: Boundary refinement ───────────────────────────────────
         # ``requested`` is configuration; ``backend`` is what actually ran.
@@ -659,7 +697,7 @@ class SemanticChunker(MultilangMixin):
                 # With one unit there is nothing to refine: the model is not
                 # called, so it is not named either (see ``model_invoked``).
                 try:
-                    layer2_chunks = self._refine_boundaries(layer2_chunks)
+                    layer2_chunks = self._refine_boundaries(layer2_chunks, text)
                     model_invoked = True
                 except Exception as exc:  # noqa: BLE001 - any model failure
                     if not self._cfg.allow_fallback:
@@ -693,10 +731,14 @@ class SemanticChunker(MultilangMixin):
             if doc_id is not None:
                 chunk_meta["doc_id"] = doc_id
 
+            # Honour include_offsets (review F7): (0, 0) when disabled.
+            start, end = (
+                (ch.start_char, ch.end_char) if self._cfg.include_offsets else (0, 0)
+            )
             enriched = Chunk(
                 text=ch.text,
-                start_char=ch.start_char,
-                end_char=ch.end_char,
+                start_char=start,
+                end_char=end,
                 metadata=chunk_meta,
             )
 
@@ -704,6 +746,7 @@ class SemanticChunker(MultilangMixin):
                 chunk_raw = (
                     raw_text[ch.start_char : ch.end_char]
                     if self._ml_cfg.include_raw_text
+                    and span_basis == "input"
                     and 0 <= ch.start_char < ch.end_char <= len(raw_text)
                     else None
                 )
@@ -738,6 +781,7 @@ class SemanticChunker(MultilangMixin):
             final_chunks.append(enriched)
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "semantic",
             "backend": backend.value,
             "requested_backend": requested.value,
@@ -759,13 +803,16 @@ class SemanticChunker(MultilangMixin):
     # Section E — Token limit enforcement
     # ------------------------------------------------------------------
 
-    def _enforce_token_limits(self, chunks: list[Chunk]) -> list[Chunk]:
+    def _enforce_token_limits(self, chunks: list[Chunk], source: str) -> list[Chunk]:
         """Enforce min/max token limits on Layer 2 chunks.
 
         Parameters
         ----------
         chunks : list[Chunk]
             Input chunk list.
+        source : str
+            The text the chunks' spans index (merged and split chunks are
+            slices of it, R3-3).
 
         Returns
         -------
@@ -783,9 +830,9 @@ class SemanticChunker(MultilangMixin):
                 self._cfg.max_chunk_tokens is not None
                 and token_count > self._cfg.max_chunk_tokens
             ):
-                sub_chunks = self._split_oversized(ch)
+                sub_chunks = self._split_oversized(ch, source)
                 for sub in sub_chunks:
-                    self._maybe_flush_buf(merge_buf, result)
+                    self._maybe_flush_buf(source, merge_buf, result)
                     merge_buf = []
                     result.append(sub)
                 continue
@@ -795,7 +842,7 @@ class SemanticChunker(MultilangMixin):
                 merge_buf.append(ch)
             else:  # noqa: PLR5501
                 if merge_buf:
-                    result.append(self._merge_buf(merge_buf, ch))
+                    result.append(self._merge_buf(source, merge_buf, ch))
                     merge_buf = []
                 else:
                     result.append(ch)
@@ -803,45 +850,56 @@ class SemanticChunker(MultilangMixin):
         # Flush remaining buffer into the last chunk
         if merge_buf:
             if result:
-                result[-1] = self._merge_buf([result[-1]], *merge_buf)
+                result[-1] = self._merge_buf(source, [result[-1]], *merge_buf)
             else:
-                result.append(self._merge_buf(merge_buf))
+                result.append(self._merge_buf(source, merge_buf))
 
         return result or chunks
 
-    def _split_oversized(self, chunk: Chunk) -> list[Chunk]:
-        """Split an oversized chunk by max_chunk_tokens."""
+    def _split_oversized(self, chunk: Chunk, source: str) -> list[Chunk]:
+        """Split an oversized chunk into pieces of at most max_chunk_tokens.
+
+        Each piece is the source from its first token to its last (R3-3):
+        pieces used to be the tokens joined with ``" "`` and every piece
+        carried the whole chunk's span.
+        """
         max_t = self._cfg.max_chunk_tokens or 9999
-        words = chunk.text.split()
+        start, end = chunk.start_char, chunk.end_char
+        region = source[start:end]
+        words = region.split()
+        spans = [
+            (start + s, start + e)
+            for s, e in locate(region, words, where="SemanticChunker")
+        ]
         result: list[Chunk] = []
-        for i in range(0, len(words), max_t):
-            part = " ".join(words[i : i + max_t])
+        for i in range(0, len(spans), max_t):
+            piece_start, piece_end = cover(spans[i : i + max_t])
             result.append(
                 Chunk(
-                    text=part,
-                    start_char=chunk.start_char,
-                    end_char=chunk.end_char,
+                    text=source[piece_start:piece_end],
+                    start_char=piece_start,
+                    end_char=piece_end,
                     metadata={**dict(chunk.metadata), "oversized_split": True},
                 )
             )
         return result or [chunk]
 
     @staticmethod
-    def _merge_buf(buf: list[Chunk], *extra: Chunk) -> Chunk:
-        """Merge a buffer of chunks into one."""
+    def _merge_buf(source: str, buf: list[Chunk], *extra: Chunk) -> Chunk:
+        """Merge a buffer of chunks into one: the source slice they cover."""
         all_chunks = list(buf) + list(extra)
-        merged_text = " ".join(c.text for c in all_chunks)
+        start, end = all_chunks[0].start_char, all_chunks[-1].end_char
         return Chunk(
-            text=merged_text,
-            start_char=all_chunks[0].start_char,
-            end_char=all_chunks[-1].end_char,
+            text=source[start:end],
+            start_char=start,
+            end_char=end,
             metadata={**dict(all_chunks[0].metadata), "undersized_merge": True},
         )
 
     @staticmethod
-    def _maybe_flush_buf(buf: list[Chunk], result: list[Chunk]) -> None:
+    def _maybe_flush_buf(source: str, buf: list[Chunk], result: list[Chunk]) -> None:
         if buf:
-            result.append(SemanticChunker._merge_buf(buf))
+            result.append(SemanticChunker._merge_buf(source, buf))
 
     # ------------------------------------------------------------------
     # Section F — Batch API

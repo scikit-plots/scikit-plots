@@ -452,7 +452,10 @@ class TestBridgeChunker:
         """
 
         class WeirdChunker:
-            def chunk(self, text, extra_metadata=None):
+            # Neither the ChunkerBase call (``metadata=``) nor the protocol
+            # call (``extra_metadata=``) binds; since R3-1 a chunker that
+            # accepts ``extra_metadata`` gets ProtocolChunkerBridge instead.
+            def chunk(self, text):
                 return ChunkResult(chunks=[])
 
         obj = WeirdChunker()
@@ -685,14 +688,14 @@ class TestUnregisterBridge:
         with pytest.raises(KeyError):
             unregister_bridge(_NeverRegistered)
 
-    def test_unregister_then_bridge_chunker_falls_through_to_warning(self) -> None:
+    def test_unregister_then_bridge_falls_through_to_the_protocol_bridge(self) -> None:
         """After unregistering, :func:`bridge_chunker` must not use the old bridge."""
         from .._chunker_bridge import (  # noqa: PLC0415
+            ProtocolChunkerBridge,
             bridge_chunker,
             register_bridge,
             unregister_bridge,
         )
-        from unittest.mock import patch  # noqa: PLC0415
 
         class _ChunkerX:
             def chunk(self, text, extra_metadata=None):
@@ -707,9 +710,8 @@ class TestUnregisterBridge:
         register_bridge(_ChunkerX, _BridgeX)
         unregister_bridge(_ChunkerX)
 
-        obj = _ChunkerX()
-        patch_path = "scikitplot.corpus._chunkers._chunker_bridge.logger"
-        with patch(patch_path) as mock_logger:
-            result = bridge_chunker(obj)
-        assert result is obj
-        assert mock_logger.warning.called
+        # The removed bridge is not used; since R3-1 a chunker satisfying the
+        # protocol call falls through to the generic ProtocolChunkerBridge.
+        result = bridge_chunker(_ChunkerX())
+        assert not isinstance(result, _BridgeX)
+        assert isinstance(result, ProtocolChunkerBridge)

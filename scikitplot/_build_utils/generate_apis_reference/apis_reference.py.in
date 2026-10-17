@@ -575,6 +575,68 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.agent": {
+        "short_summary": "Bounded, audited tool use: a planner proposes, the runtime disposes.",
+        "description": _get_guide("agent-index"),
+        "sections": [
+            {
+                "title": "Agent loop",
+                "autosummary": [
+                    "Agent",
+                    "Decision",
+                    "Action",
+                    "Usage",
+                ],
+            },
+            {
+                "title": "Tools, policy and limits",
+                "autosummary": [
+                    "Tool",
+                    "ToolEffect",
+                    "Toolset",
+                    "Policy",
+                    "Limits",
+                    "GateKind",
+                    "GateResult",
+                ],
+            },
+            {
+                "title": "Run state and approval",
+                "autosummary": [
+                    "RunState",
+                    "RunStatus",
+                    "StopReason",
+                    "Step",
+                    "StepOutcome",
+                    "Spent",
+                    "ApprovalRequest",
+                    "Approval",
+                    "StateStore",
+                    "MemoryStore",
+                    "JsonFileStore",
+                ],
+            },
+            {
+                "title": "Audit trail",
+                "autosummary": [
+                    "AuditSink",
+                    "MemoryAuditSink",
+                    "JsonlAuditSink",
+                    "read_audit",
+                    "verify_audit",
+                ],
+            },
+            {
+                "title": "Errors",
+                "autosummary": [
+                    "AgentError",
+                    "ErrorCode",
+                    "SchemaError",
+                    "StateError",
+                ],
+            },
+        ],
+    },
     "scikitplot.annoy": {
         "short_summary": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
         "description": _get_guide("annoy-index"),
@@ -1382,6 +1444,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ChunkerBridge",
                     "FixedWindowChunkerBridge",
                     "ParagraphChunkerBridge",
+                    "ProtocolChunkerBridge",
                     "SemanticChunkerBridge",
                     "SentenceChunkerBridge",
                     "WordChunkerBridge",
@@ -1442,6 +1505,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # _paragraph
                     "ParagraphChunker",
                     "ParagraphChunkerConfig",
+                    # _recursive
+                    "ParentChildChunker",
+                    "ParentChildChunkerConfig",
+                    "RecursiveChunker",
+                    "RecursiveChunkerConfig",
                     # _semantic
                     "SemanticBackend",
                     "SemanticChunker",
@@ -1451,6 +1519,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SentenceChunker",
                     "SentenceChunkerConfig",
                     "_validate_text_input",
+                    # _structure
+                    "StructureChunker",
+                    "StructureChunkerConfig",
                     # _word
                     "LemmatizationBackend",
                     "StemmingBackend",
@@ -1559,6 +1630,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # _cache_policy
+                    "CachePolicy",
+                    "CacheStatus",
+                    "CachedEmbeddings",
+                    "resolve_hub_revision",
                     # _embedding
                     "DEFAULT_CACHE_DIR",
                     "DEFAULT_MODEL",
@@ -1713,7 +1789,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "NotIn",
                     "Or",
                     "Range",
+                    "SecurityFilter",
                     "UnsupportedOperatorError",
+                    "filter_from_dict",
+                    "filter_to_dict",
+                    "filterable_fields",
+                    "validate_filter",
                 ],
             },
             {
@@ -1724,6 +1805,21 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "IndexGeneration",
                     "derive_generation",
+                ],
+            },
+            {
+                "title": "Document Identity",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "DocIdScheme",
+                    "IncompatibleSchemaError",
+                    "UUID7Generator",
+                    "assign_doc_ids",
+                    "doc_id_scheme_of",
+                    "uuid7",
+                    "uuid7_unix_ms",
                 ],
             },
             {
@@ -1907,12 +2003,41 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "DenseRetriever",
+                    "FusedItem",
+                    "FusionContribution",
+                    "FusionPolicy",
                     "GraphRetriever",
                     "LegContribution",
                     "LegResult",
                     "LexicalRetriever",
                     "Retriever",
                     "fuse_by_rank",
+                ],
+            },
+            {
+                "title": "Retrieval Execution Plan",
+                "autosummary": [
+                    "CharBudgetCompressor",
+                    "ContextPassage",
+                    "ExecutionResult",
+                    "PlannedHit",
+                    "RetrievalExecutionPlan",
+                    "StageBudget",
+                    "StageKind",
+                    "StageOutcome",
+                    "StageStatus",
+                ],
+            },
+            {
+                "title": "Corrective Retrieval",
+                "autosummary": [
+                    "CorrectionResult",
+                    "CorrectionRound",
+                    "CorrectionVerdict",
+                    "CorrectiveRetrieval",
+                    "EvidenceGrade",
+                    "GradeResult",
+                    "TermCoverageGrader",
                 ],
             },
             {
@@ -1968,6 +2093,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "AnnoyBackend",
                     "BruteForceBackend",
                     "FaissBackend",
+                    "FallbackRefusedError",
                     "VectorIndexBackend",
                     "VoyagerBackend",
                     "list_available_backends",

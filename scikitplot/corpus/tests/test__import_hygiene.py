@@ -77,9 +77,9 @@ OPTIONAL_HEAVYWEIGHTS = (
 #: load their provider SDK only when one is constructed, so importing Corpus
 #: loads none of them.
 #:
-#: Not applied to ``capability_snapshot()``: probing the Annoy backend imports
-#: ``scikitplot.annoy``, whose mixins import scikit-learn and SciPy (finding
-#: F-50, assigned to Run 2 / R2-5 with the rest of the capability vocabulary).
+#: Also applied to ``capability_snapshot()`` since R2-5: it no longer probes
+#: Annoy by importing ``scikitplot.annoy`` (whose mixins import scikit-learn and
+#: SciPy) unless asked with ``load=True`` (finding F-50).
 EVALUATION_LIBRARIES = (
     "sklearn",
     "scipy",
@@ -170,7 +170,8 @@ def test_capability_snapshot_loads_no_optional_backend():
     """
     loaded = _loaded_after(
         "from scikitplot.corpus._capabilities import capability_snapshot\n"
-        "capability_snapshot()"
+        "capability_snapshot()",
+        OPTIONAL_HEAVYWEIGHTS + EVALUATION_LIBRARIES + ("scikitplot.annoy",),
     )
     assert loaded == [], (
         "capability_snapshot() imported {0}; availability must be probed "

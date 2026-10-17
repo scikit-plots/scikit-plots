@@ -216,11 +216,15 @@ from . import _diagnostics  # noqa: F401
 # capability contract.
 from . import _capabilities  # noqa: F401
 from . import _embedding_manifest  # noqa: F401
+from . import _execution  # noqa: F401
+from . import _correction  # noqa: F401
 from . import _catalog  # noqa: F401
 from . import _agentic  # noqa: F401
 from . import _artifact  # noqa: F401
 from . import _filters  # noqa: F401
+from . import _fusion  # noqa: F401
 from . import _generation  # noqa: F401
+from . import _identity  # noqa: F401
 from . import _graph  # noqa: F401
 from . import _plan  # noqa: F401
 from . import _hierarchy  # noqa: F401
@@ -229,11 +233,15 @@ from . import _retrievers  # noqa: F401
 from ._diagnostics import *  # noqa: F403
 from ._capabilities import *  # noqa: F403
 from ._embedding_manifest import *  # noqa: F403
+from ._execution import *  # noqa: F403
+from ._correction import *  # noqa: F403
 from ._catalog import *  # noqa: F403
 from ._agentic import *  # noqa: F403
 from ._artifact import *  # noqa: F403
 from ._filters import *  # noqa: F403
+from ._fusion import *  # noqa: F403
 from ._generation import *  # noqa: F403
+from ._identity import *  # noqa: F403
 from ._graph import *  # noqa: F403
 from ._plan import *  # noqa: F403
 from ._hierarchy import *  # noqa: F403
@@ -266,11 +274,15 @@ __all__ += _samples.__all__
 __all__ += _diagnostics.__all__
 __all__ += _capabilities.__all__
 __all__ += _embedding_manifest.__all__
+__all__ += _execution.__all__
+__all__ += _correction.__all__
 __all__ += _catalog.__all__
 __all__ += _agentic.__all__
 __all__ += _artifact.__all__
 __all__ += _filters.__all__
+__all__ += _fusion.__all__
 __all__ += _generation.__all__
+__all__ += _identity.__all__
 __all__ += _graph.__all__
 __all__ += _plan.__all__
 __all__ += _hierarchy.__all__

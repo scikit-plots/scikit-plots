@@ -340,14 +340,14 @@ class TestPromotedRawKeys:
 
 
 class TestMakeContentHash:
-    def test_text_returns_32_hex_chars(self):
+    def test_text_returns_64_hex_chars(self):
         h = CorpusDocument.make_content_hash(text="Hello world")
-        assert isinstance(h, str) and len(h) == 32
+        assert isinstance(h, str) and len(h) == 64
         assert all(c in "0123456789abcdef" for c in h)
 
     def test_raw_bytes_path(self):
         h = CorpusDocument.make_content_hash(raw_bytes=b"\x89PNG\r\n")
-        assert len(h) == 32
+        assert len(h) == 64
 
     def test_raw_bytes_beats_text(self):
         h_t = CorpusDocument.make_content_hash(text="Hello")
@@ -363,7 +363,7 @@ class TestMakeContentHash:
                 CorpusDocument.make_content_hash(text="B"))
 
     def test_empty_returns_zeros(self):
-        assert CorpusDocument.make_content_hash() == "0" * 32
+        assert CorpusDocument.make_content_hash() == "0" * 64
 
 
 # ===========================================================================
@@ -376,11 +376,11 @@ class TestCreate:
 
     def test_doc_id_auto(self):
         doc = CorpusDocument.create("f.txt", 0, "Hello.")
-        assert len(doc.doc_id) == 16
+        assert len(doc.doc_id) == 64
 
     def test_content_hash_auto(self):
         doc = CorpusDocument.create("f.txt", 0, "Hello.")
-        assert doc.content_hash is not None and len(doc.content_hash) == 32
+        assert doc.content_hash is not None and len(doc.content_hash) == 64
 
     def test_same_text_same_hash(self):
         d1 = CorpusDocument.create("a.txt", 0, "Same.")

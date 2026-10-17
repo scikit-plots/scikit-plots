@@ -1,7 +1,0 @@
-- ``get_top_ids`` ranks and scores exactly like ``get_scores`` for ``BM25L`` and
-  ``BM25Plus`` (it dropped the delta contribution of query terms a document
-  lacks, which reordered about one random query in nine), every query
-  method -- ``get_batch_scores``, ``get_top_ids`` and ``candidate_count``
-  included -- refuses a bare string instead of scoring it one character at a
-  time, and ``get_batch_scores`` accepts positions as any iterable of ints (a
-  tuple raised ``IndexError``).

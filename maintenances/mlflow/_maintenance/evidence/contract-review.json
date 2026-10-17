@@ -1,0 +1,22 @@
+{
+  "subsystem": "scikitplot.mlflow",
+  "maintenance_status": "FAIL",
+  "runtime_status": "FAIL",
+  "runtime_fingerprint": "bcb81d740f0a37b203d972656343205d6f188f1b7fd30df811fa264908df78b5",
+  "inventory": {
+    "tracked_files": 47,
+    "production_python_files": 18,
+    "stub_files": 3,
+    "test_python_files": 23
+  },
+  "maintenance_errors": [
+    "evidence log hash mismatch for structural_runtime"
+  ],
+  "runtime_errors": [
+    "SecurityPolicy is not consulted by session/server/project/env/workflow runtime entrypoints despite enforcement documentation",
+    "_project.py:840 catches Exception around optional PyYAML import; broken dependency can be mislabeled as missing",
+    "_project.py:984 catches Exception around optional PyYAML import; broken dependency can be mislabeled as missing",
+    "_workflow.py:272 catches Exception around optional PyYAML import; broken dependency can be mislabeled as missing",
+    "_session.pyi uses absolute `from _facade import ...` instead of package-relative `from ._facade import ...`"
+  ]
+}

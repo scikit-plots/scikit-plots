@@ -12,7 +12,6 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-import os
 import random
 
 import numpy as np; np.random.seed(0)  # reproducibility
@@ -20,8 +19,6 @@ import pytest
 
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
-
-HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_get_nns_by_vector():
@@ -149,7 +146,7 @@ def test_precision_1000():
     assert precision(1000) >= 0.98
 
 
-def test_load_save_get_item():
+def test_load_save_get_item(tmp_path):
     f = 3
     i = AnnoyIndex(f, "angular")
     i.add_item(0, [1.1, 2.2, 3.3])
@@ -158,10 +155,10 @@ def test_load_save_get_item():
 
     np.testing.assert_array_almost_equal(i.get_item(0), [1.1, 2.2, 3.3])
     assert i.build(10)
-    assert i.save(f"{HERE}/blah.ann")
+    assert i.save(str(tmp_path / "blah.ann"))
     np.testing.assert_array_almost_equal(i.get_item(1), [4.4, 5.5, 6.6])
     j = AnnoyIndex(f, "angular")
-    assert j.load(f"{HERE}/blah.ann")
+    assert j.load(str(tmp_path / "blah.ann"))
     np.testing.assert_array_almost_equal(j.get_item(2), [7.7, 8.8, 9.9])
 
 

@@ -242,6 +242,9 @@ scikitplot.corpus._base.DocumentReader.get_documents : Uses this registry.
 # CorpusDocument
 # ---------------------------------------------------------------------------
 
+class IncompatibleSchemaError(ValueError):
+    """Data written by another generation of the document schema; rebuild it."""  # ruff: ignore[docstring-in-stub]
+
 @dataclass
 class CorpusDocument:
     REQUIRED_FIELDS: ClassVar[tuple[str, ...]]

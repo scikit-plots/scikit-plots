@@ -440,7 +440,11 @@ class TestExportPickle:
         out = tmp_path / "out.pkl"
         docs = _docs(3)
         export_documents(docs, out, ExportFormat.PICKLE)
-        loaded = pickle.loads(out.read_bytes())
+        payload = pickle.loads(out.read_bytes())
+        # R2-3: the pickle records the generation beside the document list.
+        assert payload["format"] == "scikitplot.corpus.documents"
+        assert payload["schema_version"] == "3.0"
+        loaded = payload["documents"]
         assert isinstance(loaded, list)
         assert len(loaded) == len(docs)
 
@@ -448,13 +452,13 @@ class TestExportPickle:
         out = tmp_path / "out.pkl"
         docs = _docs(2)
         export_documents(docs, out, ExportFormat.PICKLE)
-        loaded = pickle.loads(out.read_bytes())
+        loaded = pickle.loads(out.read_bytes())["documents"]
         assert {d.doc_id for d in loaded} == {d.doc_id for d in docs}
 
     def test_pickle_empty_list(self, tmp_path: pathlib.Path) -> None:
         out = tmp_path / "empty.pkl"
         export_documents([], out, ExportFormat.PICKLE)
-        loaded = pickle.loads(out.read_bytes())
+        loaded = pickle.loads(out.read_bytes())["documents"]
         assert loaded == []
 
     def test_pickle_file_is_binary(self, tmp_path: pathlib.Path) -> None:

@@ -70,7 +70,7 @@ from __future__ import annotations
 
 import logging
 import threading
-import unicodedata  # noqa: F401
+import unicodedata
 
 # Python 3.7 shim (not needed at 3.8+ but harmless)
 # Only imports when type checking
@@ -94,10 +94,75 @@ from typing import (  # noqa: F401
     runtime_checkable,
 )
 
+from .._notices import notice_once
+
 if TYPE_CHECKING:
     from typing_extensions import Self  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+
+#: Words that end the script part of a Unicode character name
+#: ("OLD ITALIC LETTER A" -> "OLD ITALIC").
+_NAME_KINDS = (
+    " LETTER",
+    " SYLLABLE",
+    " SIGN",
+    " DIGIT",
+    " NUMBER",
+    " VOWEL",
+    " CONSONANT",
+    " CHARACTER",
+    " MARK",
+    " PUNCTUATION",
+    " SYMBOL",
+    " LIGATURE",
+    " IDEOGRAPH",
+)
+
+
+def _unmapped_key(char: str) -> str:
+    """Return the notice key for a character of an unmapped script.
+
+    Parameters
+    ----------
+    char : str
+        One character.
+
+    Returns
+    -------
+    str
+        The script part of its Unicode name (the name up to its first kind
+        word: "OLD ITALIC LETTER A" -> "OLD ITALIC"), or, for a character
+        without a name (private use, surrogate, unassigned), its general
+        category ("Co", "Cs", "Cn"), so one notice covers each script, and
+        unnamed characters cannot produce one notice each.
+    """
+    name = unicodedata.name(char, "")
+    if not name:
+        return unicodedata.category(char)
+    cut = min((name.find(kind) for kind in _NAME_KINDS if kind in name), default=-1)
+    return name[:cut] if cut > 0 else name
+
+
+def _joins(left: str, right: str) -> bool:
+    """Return whether two adjacent span texts meet letter to letter.
+
+    Parameters
+    ----------
+    left, right : str
+        The texts of two adjacent spans.
+
+    Returns
+    -------
+    bool
+        ``True`` when the last character of ``left`` and the first of
+        ``right`` are letters or marks (no space or punctuation between).
+    """
+    return bool(left and right) and all(
+        unicodedata.category(ch)[0] in "LM" for ch in (left[-1], right[0])
+    )
+
 
 __all__: Final[list[str]] = [  # noqa: RUF022
     # Protocols
@@ -1494,9 +1559,8 @@ from dataclasses import dataclass  # noqa: E402 (after top-level imports)
 class ScriptSpan:
     r"""A contiguous span of text in a single Unicode script.
 
-    Produced by :class:`ScriptSegmenter` from NFC-normalised text.
-    All index fields refer to grapheme cluster indices (as produced by
-    ``regex.findall(r'\X', nfc_text)``), not raw codepoint offsets.
+    Produced by :class:`ScriptSegmenter` from NFC-normalised text. The
+    index fields are character (codepoint) offsets into the segmented text.
 
     Parameters
     ----------
@@ -1507,17 +1571,18 @@ class ScriptSpan:
     direction : str
         Writing direction: ``"ltr"`` | ``"rtl"`` | ``"ttb"``.
     start : int
-        Grapheme cluster index in the parent document (inclusive).
+        Character offset of the span in the segmented text (inclusive).
     end : int
-        Grapheme cluster index in the parent document (exclusive).
+        Character offset of the span in the segmented text (exclusive);
+        ``text == segmented_text[start:end]``.
 
     Notes
     -----
-    **Developer note:** Grapheme cluster indices (start, end) refer to the
-    ``regex.findall(r'\\X', nfc_text)`` list produced by
-    :class:`~._normalizers._normalizer.GraphemeClusterNormalizer`, not
-    codepoint offsets.  A single emoji with ZWJ may span 3+ codepoints
-    but occupies exactly 1 grapheme cluster index slot.
+    **Developer note:** The offsets are character (codepoint) offsets, the
+    unit every :class:`~.._types.Chunk` built from a span uses. They used to
+    be documented as grapheme-cluster indices, which no consumer used as
+    such: a span after an emoji or a combining mark pointed at the wrong
+    characters. A span never splits a grapheme cluster.
 
     Examples
     --------
@@ -1649,6 +1714,13 @@ class ScriptSegmenter:
         "Ethiopic": "ethiopic",
         "Myanmar": "myanmar",
         "Khmer": "khmer",
+        # Documented members of SOUTH_ASIAN and SOUTHEAST_ASIAN (ScriptType).
+        "Tamil": "south_asian",
+        "Telugu": "south_asian",
+        "Kannada": "south_asian",
+        "Malayalam": "south_asian",
+        "Sinhala": "south_asian",
+        "Lao": "southeast_asian",
         "Mongolian": "mongolian",
         "Egyptian_Hieroglyphs": "egyptian_hieroglyphs",
         "Coptic": "egyptian",
@@ -1682,9 +1754,17 @@ class ScriptSegmenter:
         self._min_span_chars = min_span_chars
         self._inherit_direction = inherit_direction
         self._unknown_script_warning = unknown_script_warning
+        # R3-7: one alternation of ``\p{Script=X}`` groups; the group that
+        # matches names the script. ``regex`` caches compiled patterns, so
+        # constructing a segmenter per call stays cheap.
+        self._script_re = _regex.compile(
+            "|".join(
+                rf"(?P<{name}>\p{{Script={name}}})" for name in self.SCRIPT_PROPERTY_MAP
+            )
+        )
 
     def _get_cluster_script(self, cluster: str) -> str:
-        """Return the Script property name for the first codepoint of *cluster*.
+        """Return the script key of the first codepoint of *cluster*.
 
         Parameters
         ----------
@@ -1694,27 +1774,23 @@ class ScriptSegmenter:
         Returns
         -------
         str
-            One of the ``SCRIPT_PROPERTY_MAP`` keys, ``"_common"``,
-            ``"_inherited"``, or ``"_unknown"`` for unmapped scripts.
+            A ``SCRIPT_PROPERTY_MAP`` value (``"_common"`` and
+            ``"_inherited"`` included), or ``"_unmapped"`` for a script the
+            map does not name.
+
+        Notes
+        -----
+        **Developer.** This used to call ``regex.get_script``, which the
+        ``regex`` library does not have; the ``AttributeError`` was swallowed,
+        every cluster became Common, and every text came back as one
+        ``ScriptType.UNKNOWN`` span (with a warning about ``'_unknown'``).
         """
         if not cluster:
             return "_common"
-        first_cp = cluster[0]
-        try:
-            prop = self._regex.regex.get_script(first_cp)  # type: ignore[attr-defined]
-        except Exception:  # noqa: BLE001
-            prop = None
-
-        if prop is None:
-            # Fallback: use Unicode general category for Common/Inherited.
-            import unicodedata  # noqa: PLC0415
-
-            cat = unicodedata.category(first_cp)
-            if cat in ("Cf", "Mn", "Mc", "Me"):
-                return "_inherited"
-            return "_common"
-
-        return self.SCRIPT_PROPERTY_MAP.get(prop, "_unknown")
+        match = self._script_re.match(cluster[0])
+        if match is None:
+            return "_unmapped"
+        return self.SCRIPT_PROPERTY_MAP[match.lastgroup]
 
     def segment(self, text: str) -> list[ScriptSpan]:  # noqa: PLR0912
         r"""Segment *text* into contiguous :class:`ScriptSpan` objects.
@@ -1753,99 +1829,169 @@ class ScriptSegmenter:
 
         clusters: list[str] = self._regex.findall(r"\X", text)
         n_clusters = len(clusters)
+        # Character offset of each cluster: spans index the text by
+        # character, like every Chunk built from them (R3-3).
+        offsets = [0] * (n_clusters + 1)
+        for k, cluster in enumerate(clusters):
+            offsets[k + 1] = offsets[k] + len(cluster)
 
-        # Build a parallel script-key list — one entry per grapheme cluster.
-        cluster_scripts: list[str] = [
-            self._get_cluster_script(cluster) for cluster in clusters
-        ]
-
-        # Resolve Common / Inherited: attach to adjacent known script.
-        # Pass 1 — forward pass: attach to preceding.
-        resolved: list[str] = list(cluster_scripts)
-        last_known = "_common"
-        for i, sc in enumerate(cluster_scripts):
-            if sc not in ("_common", "_inherited", "_unknown"):
-                last_known = sc
+        # Common / Inherited clusters (punctuation, digits, spaces, combining
+        # marks) attach to an adjacent script: the preceding one, else the
+        # following one. A script the map does not name ("_unmapped") is a
+        # script of its own: it is not absorbed by its neighbours.
+        attachable = ("_common", "_inherited")
+        resolved = [self._get_cluster_script(cluster) for cluster in clusters]
+        last_known: str | None = None
+        for k, key in enumerate(resolved):
+            if key in attachable:
+                if last_known is not None:
+                    resolved[k] = last_known
             else:
-                resolved[i] = last_known  # may still be "_common" at start
-
-        # Pass 2 — backward pass: attach leading Common/Inherited to first
-        # known script that follows.
-        first_known = "_common"
-        for sc in reversed(resolved):
-            if sc not in ("_common", "_inherited", "_unknown"):
-                first_known = sc
-                break
-        for i, sc in enumerate(resolved):
-            if sc in ("_common", "_inherited", "_unknown"):
-                resolved[i] = first_known
+                last_known = key
+        next_known: str | None = None
+        for k in range(n_clusters - 1, -1, -1):
+            if resolved[k] in attachable:
+                if next_known is not None:
+                    resolved[k] = next_known
             else:
-                break
+                next_known = resolved[k]
+        # Still attachable here: the text holds no script at all (digits,
+        # punctuation, spaces only). That is UNKNOWN, and expected: no notice.
+        # One key for both, so such text is one span, not Inherited | Common.
+        resolved = ["_common" if key in attachable else key for key in resolved]
 
-        # Edge case: if first_known is still "_common" after both passes, the
-        # ENTIRE text contains only Common/Inherited characters (all punctuation,
-        # digits, spaces, symbols — no letters from any known script).
-        # Replace remaining "_common" sentinels with "_unknown" so the span-build
-        # loop below maps them to ScriptType.UNKNOWN cleanly without emitting the
-        # "unrecognised script property" warning (which was designed for NEW Unicode
-        # scripts, not for this expected Common-only edge case).
-        if first_known == "_common":
-            resolved = [
-                "_unknown" if sc in ("_common", "_inherited", "_unknown") else sc
-                for sc in resolved
-            ]
-
-        # Build runs of identical resolved script keys.
         spans: list[ScriptSpan] = []
         i = 0
         while i < n_clusters:
-            run_script_key = resolved[i]
+            key = resolved[i]
             j = i
-            while j < n_clusters and resolved[j] == run_script_key:
+            while j < n_clusters and resolved[j] == key:
                 j += 1
-
-            run_text = "".join(clusters[i:j])
-
-            # Map script key → ScriptType (with unknown-script warning).
-            # NOTE: "_common" should no longer appear here after the resolution
-            # passes above.  If it does, it means a NEWLY ADDED Unicode script
-            # that shares the "Common" script property — warn as before.
-            try:
-                script_enum = ScriptType(run_script_key)
-            except ValueError:
+            if key == "_unmapped":
                 if self._unknown_script_warning:
-                    logger.warning(
-                        "ScriptSegmenter: unrecognised script property %r "
-                        "at grapheme cluster index %d. Falling back to "
-                        "ScriptType.UNKNOWN. If this is a recently added "
-                        "Unicode script, update SCRIPT_PROPERTY_MAP.",
-                        run_script_key,
-                        i,
+                    notice_once(
+                        logger,
+                        f"script:unmapped:{_unmapped_key(clusters[i][0])}",
+                        "ScriptSegmenter: the text contains a Unicode script that"
+                        " SCRIPT_PROPERTY_MAP does not name (first seen at"
+                        " U+%04X); it is segmented as ScriptType.UNKNOWN.",
+                        ord(clusters[i][0]),
                     )
                 script_enum = ScriptType.UNKNOWN
-
-            direction = self.DIRECTION_MAP.get(script_enum.value, "ltr")
+            elif key in attachable:
+                script_enum = ScriptType.UNKNOWN
+            else:
+                script_enum = ScriptType(key)
             spans.append(
                 ScriptSpan(
-                    text=run_text,
+                    text="".join(clusters[i:j]),
                     script=script_enum,
-                    direction=direction,
-                    start=i,
-                    end=j,
+                    direction=self.DIRECTION_MAP.get(script_enum.value, "ltr"),
+                    start=offsets[i],
+                    end=offsets[j],
                 )
             )
             i = j
 
+        spans = self._group_writing_systems(spans)
+
         # Merge very short spans into the adjacent dominant span.
         if self._min_span_chars > 1 and len(spans) > 1:
-            spans = self._merge_short_spans(spans, self._min_span_chars)
+            spans = self._merge_short_spans(
+                spans,
+                self._min_span_chars,
+                count=lambda t: len(self._regex.findall(r"\X", t)),
+            )
 
         return spans
+
+    @staticmethod
+    def _group_writing_systems(spans: list[ScriptSpan]) -> list[ScriptSpan]:
+        """Join the scripts of one writing system into one span.
+
+        Parameters
+        ----------
+        spans : list[ScriptSpan]
+            Adjacent spans covering the text, one per script run.
+
+        Returns
+        -------
+        list[ScriptSpan]
+            The spans, with each maximal sequence of adjacent Han, Hiragana
+            and Katakana spans that meet letter to letter and contain kana
+            joined into one span (the script of its first kana span), then
+            each such sequence of Han and Hangul spans that contains Hangul
+            joined into one ``HANGUL`` span; neighbours of one script are then
+            one span.
+
+        Notes
+        -----
+        **User.** Without this, "東京都に住んでいます" was cut at every
+        kanji/kana boundary (住 | んでいます) and its kanji were sent to the
+        Chinese strategy, so a Japanese morphological analyser never saw a
+        whole word. A Han run that meets kana letter to letter (no space or
+        punctuation between them) is taken as Japanese, and one that meets
+        Hangul so as Korean; a sentence boundary or a space separates them, so
+        a Chinese sentence next to a Korean or Japanese one keeps its own span.
+        """
+        groups = (
+            (
+                frozenset({ScriptType.HAN, ScriptType.HIRAGANA, ScriptType.KATAKANA}),
+                (ScriptType.HIRAGANA, ScriptType.KATAKANA),
+            ),
+            (frozenset({ScriptType.HAN, ScriptType.HANGUL}), (ScriptType.HANGUL,)),
+        )
+        for members, markers in groups:
+            grouped: list[ScriptSpan] = []
+            k = 0
+            while k < len(spans):
+                m = k + 1
+                if spans[k].script in members:
+                    while (
+                        m < len(spans)
+                        and spans[m].script in members
+                        and _joins(spans[m - 1].text, spans[m].text)
+                    ):
+                        m += 1
+                run = spans[k:m]
+                marker = next((s.script for s in run if s.script in markers), None)
+                if marker is None or len(run) == 1:
+                    grouped.extend(run)
+                else:
+                    grouped.append(
+                        ScriptSpan(
+                            text="".join(s.text for s in run),
+                            script=marker,
+                            direction=run[0].direction,
+                            start=run[0].start,
+                            end=run[-1].end,
+                        )
+                    )
+                k = m
+            spans = grouped
+        # Joining can leave two neighbours of one script (Korean text on both
+        # sides of a full stop): one span per run.
+        coalesced: list[ScriptSpan] = []
+        for span in spans:
+            if coalesced and coalesced[-1].script == span.script:
+                prev = coalesced[-1]
+                coalesced[-1] = ScriptSpan(
+                    text=prev.text + span.text,
+                    script=prev.script,
+                    direction=prev.direction,
+                    start=prev.start,
+                    end=span.end,
+                )
+            else:
+                coalesced.append(span)
+        return coalesced
 
     @staticmethod
     def _merge_short_spans(
         spans: list[ScriptSpan],
         min_chars: int,
+        *,
+        count: Callable[[str], int] = len,
     ) -> list[ScriptSpan]:
         """Merge spans shorter than *min_chars* into adjacent dominant span.
 
@@ -1855,6 +2001,9 @@ class ScriptSegmenter:
             Spans to merge.
         min_chars : int
             Minimum grapheme count threshold.
+        count : callable, default=len
+            Length of a span's text in the threshold's unit; the segmenter
+            passes its grapheme-cluster count (span offsets are characters).
 
         Returns
         -------
@@ -1863,17 +2012,42 @@ class ScriptSegmenter:
         """
         merged: list[ScriptSpan] = []
         for span in spans:
-            span_len = span.end - span.start
-            if span_len < min_chars and merged:
+            # A short span joins the previous one; so does a span of the same
+            # script as the previous one (left adjacent by an earlier merge),
+            # so the result stays one span per run.
+            if merged and (
+                count(span.text) < min_chars or span.script == merged[-1].script
+            ):
                 prev = merged[-1]
-                # Merge into previous span, keep previous script/direction.
+                # Merge into the previous span and keep its script, except
+                # that Han absorbing kana or Hangul becomes that writing
+                # system (Japanese, Korean), as _group_writing_systems does.
+                script = prev.script
+                if prev.script == ScriptType.HAN and span.script in (
+                    ScriptType.HIRAGANA,
+                    ScriptType.KATAKANA,
+                    ScriptType.HANGUL,
+                ):
+                    script = span.script
                 merged[-1] = ScriptSpan(
                     text=prev.text + span.text,
-                    script=prev.script,
+                    script=script,
                     direction=prev.direction,
                     start=prev.start,
                     end=span.end,
                 )
+                # A relabelled span (Han -> Hangul) can now match the span
+                # before it: keep one span per run.
+                if len(merged) > 1 and merged[-2].script == merged[-1].script:
+                    last = merged.pop()
+                    first = merged[-1]
+                    merged[-1] = ScriptSpan(
+                        text=first.text + last.text,
+                        script=first.script,
+                        direction=first.direction,
+                        start=first.start,
+                        end=last.end,
+                    )
             else:
                 merged.append(span)
         return merged

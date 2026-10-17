@@ -49,11 +49,14 @@ without aliases. A document with an embedding also records
 ``embedding_dtype``, so :func:`load_documents` restores the vector exactly.
 
 :attr:`ExportFormat.PICKLE`
-    Python ``pickle`` of the full ``list[CorpusDocument]``. Preserves
-    embeddings and all metadata exactly. Zero optional dependencies.
+    Python ``pickle`` of ``{"format": "scikitplot.corpus.documents",
+    "schema_version": ..., "documents": list[CorpusDocument]}``. Preserves
+    embeddings and all metadata exactly. Zero optional dependencies. The
+    recorded ``schema_version`` lets :func:`load_documents` refuse a file of
+    another generation; a bare list (written before schema 3.0) is refused.
 
 :attr:`ExportFormat.JOBLIB`
-    ``joblib.dump`` of the document list. Faster than pickle for large
+    ``joblib.dump`` of the same mapping. Faster than pickle for large
     NumPy embedding arrays. Requires ``pip install joblib``.
 
 :attr:`ExportFormat.NUMPY`
@@ -115,7 +118,13 @@ import numpy as np
 
 from .. import _serialize
 from .._atomic import atomic_write_bytes, atomic_write_path
-from .._schema import CorpusDocument, ExportFormat
+from .._schema import (
+    _SCHEMA_VERSION,
+    _SCHEMA_VERSION_KEY,
+    CorpusDocument,
+    ExportFormat,
+    IncompatibleSchemaError,
+)
 from ._records import (
     EMBEDDING_DTYPE_KEY,
     EMBEDDING_DTYPES,  # noqa: F401 - re-exported for callers of this module
@@ -655,7 +664,7 @@ def _export_pickle(  # noqa: D417
     if not include_embedding:
         objs = [doc.replace(embedding=None) for doc in documents]
 
-    data = pickle.dumps(objs, protocol=pickle.HIGHEST_PROTOCOL)
+    data = pickle.dumps(_binary_payload(objs), protocol=pickle.HIGHEST_PROTOCOL)
     _atomic_write_bytes(output_path, data)
 
 
@@ -696,7 +705,7 @@ def _export_joblib(  # noqa: D417
     if not include_embedding:
         objs = [doc.replace(embedding=None) for doc in documents]
 
-    atomic_write_path(output_path, lambda p: joblib.dump(objs, p))
+    atomic_write_path(output_path, lambda p: joblib.dump(_binary_payload(objs), p))
 
 
 def _export_numpy(  # noqa: D417
@@ -1110,6 +1119,56 @@ def _verify_artifact_integrity(path, expected_sha256):
         )
 
 
+#: Marks a pickle/joblib export, so its generation can be read before use.
+_BINARY_FORMAT = "scikitplot.corpus.documents"
+
+
+def _binary_payload(documents: list[CorpusDocument]) -> dict[str, Any]:
+    """Return the mapping a pickle or joblib export holds (R2-3)."""
+    return {
+        "format": _BINARY_FORMAT,
+        _SCHEMA_VERSION_KEY: _SCHEMA_VERSION,
+        "documents": documents,
+    }
+
+
+def _unwrap_binary(obj: Any, path: pathlib.Path) -> Any:
+    """
+    Return the document list a pickle or joblib export holds.
+
+    Parameters
+    ----------
+    obj : Any
+        The deserialized object.
+    path : pathlib.Path
+        Source path, for error messages.
+
+    Returns
+    -------
+    Any
+        The ``documents`` entry, for :func:`_validate_loaded_documents` to hold
+        to the ``list[CorpusDocument]`` contract; any other object unchanged.
+
+    Raises
+    ------
+    IncompatibleSchemaError
+        For a bare list (an export written before document schema 3.0, whose
+        ids are 16 hex characters) or a mapping of another major generation.
+    """
+    where = f"load_documents: {str(path)!r}"
+    if isinstance(obj, dict) and obj.get("format") == _BINARY_FORMAT:
+        CorpusDocument._check_schema_version(obj, where)
+        return obj.get("documents")
+    if isinstance(obj, list):
+        raise IncompatibleSchemaError(
+            f"{where} holds a bare list: an export written before document "
+            f"schema {_SCHEMA_VERSION} (16-character ids), or not by "
+            "export_documents. It records no generation, so it is not loaded; "
+            "rebuild the corpus and export it with this build."
+        )
+    return obj
+
+
 def _validate_loaded_documents(obj, path):
     """Validate a deserialized object matches the documented return contract.
 
@@ -1165,6 +1224,8 @@ def _document_from_record(
                 data["embedding"], dtype_name or "float64"
             )
         return CorpusDocument.from_dict(data)
+    except IncompatibleSchemaError as exc:  # keep the type: the remedy differs
+        raise IncompatibleSchemaError(f"{label}: {exc}") from exc
     except (TypeError, ValueError, KeyError, AttributeError, ArithmeticError) as exc:
         raise ValueError(f"{label}: {exc}") from exc
 
@@ -1243,6 +1304,11 @@ def load_documents(
         a record breaks the record contract: an unknown key, a field of the
         wrong type, a YAML or TOML date where a string belongs, an embedding
         value that overflows its dtype (the message names the record).
+    IncompatibleSchemaError
+        A subclass of :class:`ValueError`, if the file was written by another
+        major generation of the document schema: a text record or a pickle or
+        joblib mapping with another ``schema_version``, or a pickle or joblib
+        bare list (written before schema 3.0). Rebuild and export again.
     ImportError
         If the library a format needs is not installed.
     OSError
@@ -1318,7 +1384,7 @@ def load_documents(
     if format == ExportFormat.PICKLE:
         with path.open("rb") as fh:
             obj = pickle.load(fh)  # noqa: S301
-        return _validate_loaded_documents(obj, path)
+        return _validate_loaded_documents(_unwrap_binary(obj, path), path)
 
     try:
         import joblib  # noqa: PLC0415
@@ -1328,4 +1394,4 @@ def load_documents(
             " Install it with:\n"
             "  pip install joblib"
         ) from exc
-    return _validate_loaded_documents(joblib.load(path), path)
+    return _validate_loaded_documents(_unwrap_binary(joblib.load(path), path), path)

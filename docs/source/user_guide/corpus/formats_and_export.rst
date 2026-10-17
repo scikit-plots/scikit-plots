@@ -12,6 +12,56 @@ Important provenance fields include the source path/URI, chunk identity,
 section/type metadata and reader-specific metadata such as timecodes or archive
 member paths.
 
+Document identity
+-----------------
+
+Every durable identity is a full SHA-256 digest of 64 lowercase hex characters:
+``doc_id``, ``content_hash``, the :class:`EmbeddingManifest` fingerprint and
+the :class:`IndexGeneration` fingerprint. A document can be named by one of two
+schemes (:class:`DocIdScheme`):
+
+==============  ==================================  ==================================
+Scheme          ``doc_id``                          The same source built twice
+==============  ==================================  ==================================
+``"sha256"``    SHA-256 of source type, path,       the same ids: rebuilds replace,
+(default)       chunk index and the full content    qrels and checkpoints stay valid
+``"uuid7"``     an RFC 9562 UUIDv7, minted per      new ids: deduplicate by
+                source in reading order (36 chars)  ``content_hash``, never ``doc_id``
+==============  ==================================  ==================================
+
+Choose ``"uuid7"`` when the store that receives the documents wants
+time-ordered keys: ids sort by creation and carry the millisecond they were
+minted. They are not secrets: the time is readable by anyone who sees the id.
+
+.. code-block:: python
+
+    from scikitplot.corpus import (
+        BuilderConfig, CorpusDocument, DocIdScheme, assign_doc_ids,
+        doc_id_scheme_of, uuid7_unix_ms,
+    )
+
+    doc = CorpusDocument.create("notes.txt", 0, "Hello world.")
+    len(doc.doc_id), doc_id_scheme_of(doc.doc_id)  # (64, <DocIdScheme.SHA256: 'sha256'>)
+
+    (named,) = assign_doc_ids([doc], "uuid7")
+    doc_id_scheme_of(named.doc_id) is DocIdScheme.UUID7  # True
+    named.content_hash == doc.content_hash               # True
+    uuid7_unix_ms(named.doc_id) > 0                      # True: milliseconds since 1970
+
+    config = BuilderConfig(doc_id_scheme="uuid7")  # CorpusPipeline takes the same
+    # FluentCorpus: .identity("uuid7"); create_corpus(..., doc_id_scheme="uuid7")
+
+:func:`assign_doc_ids` keeps parent links: a child's ``parent_doc_id`` follows
+its parent to the new id, and a link to a document outside the batch is kept as
+it is. Within one process every :func:`uuid7` is greater than the one before,
+even when the clock steps back; across processes ids are unique, not ordered.
+
+Data written before identities were widened carries 16-character ids: document
+exports, ``JSONLStorage`` and ``SQLiteStorage`` stores, pickle and joblib
+exports, ``PipelineGuard`` checkpoints, embedding manifests and index
+artifacts. Each is refused with :class:`IncompatibleSchemaError` or a "rebuild"
+message, never read as empty or as current: rebuild it with this version.
+
 Archives
 --------
 

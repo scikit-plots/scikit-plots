@@ -62,7 +62,8 @@ class CLIContractTests(unittest.TestCase):
         r = self.inspect()
         self.assertEqual(r["runtime_status"], "FAIL")
         joined = "\n".join(r["errors"]["contracts"])
-        self.assertIn("spec.capabilities", joined)
+        # CLI-MAINT-001 resolved (round 33, F-32): the field is gone.
+        self.assertNotIn("spec.capabilities", joined)
         self.assertIn("EXTENDING.md", joined)
 
     def test_release_is_blocked(self):

@@ -1,0 +1,5 @@
+active_policy=DEFAULT_SECURITY_POLICY
+disable_security_middleware_config=True
+result_contains_forbidden_flag= True
+args= ['--host', '127.0.0.1', '--port', '5000', '--disable-security-middleware']
+verdict=RED: active policy was not enforced by server argument construction

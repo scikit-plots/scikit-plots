@@ -62,6 +62,7 @@ from .._types import Chunk, ChunkerConfig, ChunkResult
 from ._custom_tokenizer import ScriptType, detect_script, split_cjk_chars
 from ._multilang_mixin import MultilangConfig, MultilangMixin
 from ._sentence import _validate_text_input
+from ._spans import cover, locate, strip_span
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ def _windows_tokens(
 ) -> list[tuple[str, int, int]]:
     """Generate token-based windows over *text*.
 
-    Reconstructs approximate character offsets from token positions.
+    Each window is the source text from its first token to its last.
 
     Parameters
     ----------
@@ -226,29 +227,21 @@ def _windows_tokens(
         Each element is ``(window_text, start_char, end_char)``.
     """
     tokens = _tokenize_whitespace(text)
-    n = len(tokens)
+    # R3-3: each token is located in the source and a window is the source
+    # from its first token to its last, separators included (re-joining with
+    # " " put spaces between CJK characters and collapsed runs of
+    # whitespace, and the window's end was estimated from that join).
+    spans = locate(text, tokens, where="FixedWindowChunker (tokens)")
+    n = len(spans)
     results: list[tuple[str, int, int]] = []
     start = 0
-
     while start < n:
         end = min(start + window_size, n)
-        window_tokens = tokens[start:end]
-        window_text = " ".join(window_tokens)
-
-        # Approximate char offsets by searching in source.
-        first_token = window_tokens[0] if window_tokens else ""
-        char_start = text.find(
-            first_token, 0 if start == 0 else results[-1][1] if results else 0
-        )
-        if char_start == -1:
-            char_start = 0
-        char_end = char_start + len(window_text)
-
-        results.append((window_text, char_start, char_end))
+        char_start, char_end = cover(spans[start:end])
+        results.append((text[char_start:char_end], char_start, char_end))
         if end == n:
             break
         start += step_size
-
     return results
 
 
@@ -295,11 +288,23 @@ class FixedWindowChunker(MultilangMixin):
     'The quick brown fox '
     """
 
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = FixedWindowChunkerConfig
+
+    #: Whether each chunk's text is ``source[context_span]`` (R3-3).
+    text_is_source_slice = True
+
     def __init__(
         self,
         config: FixedWindowChunkerConfig | None = None,
         multilang_config: MultilangConfig | None = None,
     ) -> None:
+        if config is not None and not isinstance(config, FixedWindowChunkerConfig):
+            raise TypeError(
+                f"FixedWindowChunker: config must be a FixedWindowChunkerConfig or None, "
+                f"got {type(config).__name__}."
+            )
         self._cfg = config if config is not None else FixedWindowChunkerConfig()
         self._validate_config()
         ml_cfg = multilang_config or (
@@ -308,6 +313,15 @@ class FixedWindowChunker(MultilangMixin):
             else None
         )
         self._ml_init(ml_cfg)
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> FixedWindowChunkerConfig:
+        """The resolved :class:`FixedWindowChunkerConfig` for this instance (read-only)."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -389,6 +403,10 @@ class FixedWindowChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
 
         if self._cfg.unit == WindowUnit.CHARS:
             raw_windows = _windows_chars(
@@ -402,7 +420,9 @@ class FixedWindowChunker(MultilangMixin):
         chunks: list[Chunk] = []
         for idx, (win_text, start, end) in enumerate(raw_windows):
             if self._cfg.strip_whitespace:
-                win_text = win_text.strip()  # noqa: PLW2901
+                # R3-3: narrow the span with the text, so text == source[span].
+                start, end = strip_span(text, start, end)  # noqa: PLW2901
+                win_text = text[start:end]  # noqa: PLW2901
             if len(win_text) < self._cfg.min_length:
                 continue
 
@@ -423,7 +443,9 @@ class FixedWindowChunker(MultilangMixin):
             if self._ml_cfg.enabled:
                 win_raw = (
                     raw_text[start:end]
-                    if self._ml_cfg.include_raw_text and start < end
+                    if self._ml_cfg.include_raw_text
+                    and start < end
+                    and span_basis == "input"
                     else None
                 )
                 ml_meta = self._ml_build_meta(
@@ -437,6 +459,7 @@ class FixedWindowChunker(MultilangMixin):
             chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "fixed_window",
             "unit": self._cfg.unit.value,
             "window_size": self._cfg.window_size,

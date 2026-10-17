@@ -187,6 +187,51 @@ def test_bm25_from_corpus_uses_current_storage_api(monkeypatch):
     ]
 
 
+def test_bm25_from_corpus_closes_its_store(monkeypatch):
+    """R3-8: the leg held a SQLite connection that nothing could close."""
+    closed = []
+
+    class FakeSQLiteStorage:
+        def __init__(self, path):
+            pass
+
+        def close(self):
+            closed.append(True)
+
+    fake_corpus = types.ModuleType("scikitplot.corpus")
+    fake_corpus.SQLiteStorage = FakeSQLiteStorage
+    monkeypatch.setitem(sys.modules, "scikitplot.corpus", fake_corpus)
+
+    with Bm25Retriever.from_corpus_sqlite("store.db") as retriever:
+        assert closed == []
+    retriever.close()
+    assert closed == [True]
+
+
+def test_hybrid_closes_every_leg_that_can_close():
+    """R3-8 review: a caller holding only the hybrid could not close BM25."""
+    closed = []
+
+    def failing():
+        closed.append("bad")
+        raise RuntimeError("close failed")
+
+    def leg(close=None):
+        return Bm25Retriever(lambda q, k: [], lambda d: {}, close=close)
+
+    legs = [
+        leg(lambda: closed.append("a")),
+        leg(failing),
+        leg(lambda: closed.append("c")),
+        leg(),
+    ]
+    with pytest.raises(RuntimeError, match="close failed"), HybridRetriever(legs):
+        pass
+    assert closed == ["a", "bad", "c"]
+    HybridRetriever(legs).close()  # every leg's close is idempotent
+    assert closed == ["a", "bad", "c"]
+
+
 def test_bm25_empty_query():
     r = Bm25Retriever(lambda q, k: [("x", 1.0)], lambda d: {"text": "t", "source_uri": "https://d.io/x"})
     assert r.search("", k=3) == []
@@ -212,11 +257,11 @@ def test_hybrid_rejects_invalid_rrf_k(rrf_k):
         HybridRetriever([_Fixed([])], rrf_k=rrf_k)
 
 
-def test_hybrid_tie_order_is_deterministic_by_first_seen_then_id():
+def test_hybrid_tie_order_is_deterministic_by_id():
     first = _Fixed([_chunk("B"), _chunk("A")])
     second = _Fixed([_chunk("A"), _chunk("B")])
     retriever = HybridRetriever([first, second])
-    expected = ["B", "A"]
+    expected = ["A", "B"]  # R2-1 (D2): an exact tie falls to the lower id
     for _ in range(5):
         assert [chunk.doc_id for chunk in retriever.search("q", k=2)] == expected
 

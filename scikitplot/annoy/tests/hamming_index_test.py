@@ -12,15 +12,12 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-import os
 
 import numpy
 import pytest
 
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
-
-HERE = os.path.dirname(__file__)  # "tests"
 
 
 def test_basic_conversion():
@@ -56,7 +53,7 @@ def test_basic_nns():
     assert ds[1] == pytest.approx(numpy.dot(u - v, u - v))
 
 
-def test_save_load():
+def test_save_load(tmp_path):
     f = 100
     i = AnnoyIndex(f, "hamming")
     u = numpy.random.binomial(1, 0.5, f)
@@ -64,9 +61,9 @@ def test_save_load():
     i.add_item(0, u)
     i.add_item(1, v)
     i.build(10)
-    i.save(f"{HERE}/blah.ann")
+    i.save(str(tmp_path / "blah.ann"))
     j = AnnoyIndex(f, "hamming")
-    j.load(f"{HERE}/blah.ann")
+    j.load(str(tmp_path / "blah.ann"))
     rs, ds = j.get_nns_by_item(0, 99, include_distances=True)
     assert rs == [0, 1]
     assert ds[0] == pytest.approx(0)
@@ -95,7 +92,7 @@ def test_many_vectors():
 
 
 # @pytest.mark.skip  # will fix later
-def test_zero_vectors():
+def test_zero_vectors(tmp_path):
     # Mentioned on the annoy-user list
     bitstrings = [
         "0000000000011000001110000011111000101110111110000100000100000000",
@@ -119,9 +116,9 @@ def test_zero_vectors():
         idx.add_item(i, v)
 
     idx.build(10)
-    idx.save(f"{HERE}/idx.ann")
+    idx.save(str(tmp_path / "idx.ann"))
     idx = AnnoyIndex(f, "hamming")
-    idx.load(f"{HERE}/idx.ann")
+    idx.load(str(tmp_path / "idx.ann"))
     js, ds = idx.get_nns_by_item(0, 5, include_distances=True)
     assert js[0] == 0
     assert ds[:4] == [0, 1, 1, 22]

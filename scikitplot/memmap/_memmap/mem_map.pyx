@@ -228,6 +228,23 @@ cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
     """
     size_t cy_get_page_size() nogil
 
+
+# The lock of one mapping: a PyMutex on a free-threaded CPython, nothing with
+# the GIL (see the header). Sections under it are plain C only.
+cdef extern from "mem_map_lock.h" nogil:
+    ctypedef struct skplt_mm_lock:
+        pass
+    void skplt_mm_acquire(skplt_mm_lock* lock)
+    void skplt_mm_release(skplt_mm_lock* lock)
+
+
+# What MemoryMap._acquire found.
+cdef enum:
+    _ACQUIRED = 0
+    _CLOSED = 1
+    _NOT_READABLE = 2
+    _NOT_WRITABLE = 3
+
 # ===========================================================================
 # Module metadata
 # ===========================================================================
@@ -790,8 +807,12 @@ cdef class MemoryMap:
       protection and the recorded flags change together, and it refuses to
       remove a protection bit while exports are alive (``BufferError``): a
       view exported as writable would crash the process on its next write.
-    - On free-threaded CPython builds the export count is not atomic: share
-      one mapping between threads only with external synchronization.
+    - Threads may share one mapping, on free-threaded CPython builds too:
+      the open/closed state, the export count and the protection flags
+      change under a lock of the mapping, so an export or a method never
+      starts on a closed mapping, and the region is unmapped once, after
+      the last export. What the threads write into the mapped bytes is
+      theirs to order, as for any shared memory.
 
     Examples
     --------
@@ -812,6 +833,11 @@ cdef class MemoryMap:
     cdef Py_ssize_t _exports
     cdef bint _unmap_pending
     cdef Py_ssize_t _buffer_shape[1]
+    # Guards _is_valid, _addr, _prot, _exports and _unmap_pending; _size,
+    # _flags and _buffer_shape are fixed once the mapping exists. _addr
+    # changes only while no hold is taken, so code holding one (an export,
+    # or a method between _pin and _unpin) reads it without the lock.
+    cdef skplt_mm_lock _lock
 
     def __cinit__(self):
         """
@@ -853,14 +879,21 @@ cdef class MemoryMap:
 
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         """Export the mapped bytes as a 1-D unsigned-byte buffer."""
-        cdef bint writable = (self._prot & PROT_WRITE) != 0
-        if not self._is_valid:
+        cdef int prot = 0
+        cdef int need = PROT_READ
+        if (flags & PyBUF_WRITABLE) == PyBUF_WRITABLE:
+            need = need | PROT_WRITE
+        # The checks and the export count change together (_acquire): a
+        # close() or mprotect() on another thread cannot come between them.
+        cdef int status = self._acquire(need, &prot)
+        if status == _CLOSED:
             raise BufferError("Mapping is closed")
-        if (self._prot & PROT_READ) == 0:
+        if status == _NOT_READABLE:
             raise BufferError("Mapping is not readable (created without PROT_READ)")
-        if (flags & PyBUF_WRITABLE) == PyBUF_WRITABLE and not writable:
+        if status == _NOT_WRITABLE:
             raise BufferError("Mapping is read-only (created without PROT_WRITE)")
-        self._buffer_shape[0] = <Py_ssize_t>self._size
+        cdef bint writable = (prot & PROT_WRITE) != 0
+        # From here on nothing can fail: the export is counted.
         buffer.buf = self._addr
         buffer.obj = self
         buffer.len = self._buffer_shape[0]
@@ -878,25 +911,72 @@ cdef class MemoryMap:
             buffer.strides = &buffer.itemsize
         buffer.suboffsets = NULL
         buffer.internal = NULL
-        self._pin()
 
     def __releasebuffer__(self, Py_buffer *buffer):
         """Release one export; perform a deferred unmap after the last one."""
         self._unpin()
 
-    cdef inline void _pin(self) noexcept:
-        """Hold the region mapped: a buffer export, or a GIL-free section."""
-        self._exports += 1
+    cdef int _acquire(self, int need, int* prot) noexcept:
+        """
+        Hold the region mapped, if the mapping is open and has ``need``.
+
+        A buffer export, or a method's GIL-free section. The checks and the
+        count change under the lock, together: no ``close()`` or
+        ``mprotect()`` comes between them. Returns ``_ACQUIRED`` (and the
+        protection in ``prot``, unless NULL) or why not; raises nothing.
+        """
+        cdef int status = _ACQUIRED
+        skplt_mm_acquire(&self._lock)
+        if not self._is_valid:
+            status = _CLOSED
+        elif (need & PROT_READ) and not (self._prot & PROT_READ):
+            status = _NOT_READABLE
+        elif (need & PROT_WRITE) and not (self._prot & PROT_WRITE):
+            status = _NOT_WRITABLE
+        else:
+            self._exports += 1
+            if prot is not NULL:
+                prot[0] = self._prot
+        skplt_mm_release(&self._lock)
+        return status
+
+    cdef int _pin(self, int need) except -1:
+        """Hold the region for a method; raise its documented error if not."""
+        cdef int status = self._acquire(need, NULL)
+        if status == _CLOSED:
+            raise ValueError("Mapping is closed")
+        if status == _NOT_READABLE:
+            raise ValueError("Mapping is not readable")
+        if status == _NOT_WRITABLE:
+            raise ValueError("Mapping is not writable")
+        return 0
 
     cdef void _unpin(self) noexcept:
         """Release one hold; perform a deferred unmap after the last one."""
+        cdef void* addr = NULL
+        skplt_mm_acquire(&self._lock)
         self._exports -= 1
         if self._exports == 0 and self._unmap_pending:
             self._unmap_pending = False
-            # Nothing can raise here; a failed munmap leaves the region to
-            # __dealloc__, which retries.
-            if self._addr is not NULL and munmap(self._addr, self._size) == 0:
-                self._addr = NULL
+            addr = self._addr
+            self._addr = NULL
+        skplt_mm_release(&self._lock)
+        # Nothing can raise here; a failed munmap gives the region back to
+        # __dealloc__, which retries.
+        if addr is not NULL and munmap(addr, self._size) != 0:
+            skplt_mm_acquire(&self._lock)
+            self._addr = addr
+            skplt_mm_release(&self._lock)
+
+    cdef bint _snapshot(self, int* prot) noexcept:
+        """Return whether the mapping is open, and its protection in ``prot``."""
+        cdef bint valid
+        skplt_mm_acquire(&self._lock)
+        valid = self._is_valid
+        if prot is not NULL:
+            prot[0] = self._prot
+        skplt_mm_release(&self._lock)
+        return valid
 
     def __init__(self):
         """
@@ -1110,6 +1190,7 @@ cdef class MemoryMap:
         self._size = size
         self._prot = prot
         self._flags = flags
+        self._buffer_shape[0] = <Py_ssize_t>size
         self._is_valid = True
 
     @property
@@ -1127,10 +1208,15 @@ cdef class MemoryMap:
         ValueError
             If mapping is closed
         """
-        if not self._is_valid:
+        cdef bint valid
+        cdef uintptr_t addr
+        skplt_mm_acquire(&self._lock)
+        valid = self._is_valid
+        addr = <uintptr_t>self._addr
+        skplt_mm_release(&self._lock)
+        if not valid:
             raise ValueError("Mapping is closed")
-        # return <size_t>self._addr
-        return <uintptr_t>self._addr
+        return addr
 
     @property
     def size(self) -> int:
@@ -1147,7 +1233,7 @@ cdef class MemoryMap:
         ValueError
             If mapping is closed
         """
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
         return self._size
 
@@ -1161,7 +1247,7 @@ cdef class MemoryMap:
         bool
             True if valid, False if closed
         """
-        return self._is_valid
+        return self._snapshot(NULL)
 
     def close(self) -> None:
         """
@@ -1185,6 +1271,9 @@ cdef class MemoryMap:
           them is released. It used to unmap at once: reading such a view --
           for instance an array returned from a ``with`` block -- or a
           ``read`` running on another thread killed the process with SIGSEGV.
+        - If ``munmap`` fails, the mapping is open again when this raises.
+          Until then other threads see it closed: their exports and methods
+          are refused, and a second ``close()`` returns at once.
 
         Examples
         --------
@@ -1193,29 +1282,40 @@ cdef class MemoryMap:
         >>> m.is_valid
         False
         """
-        if not self._is_valid:
-            return  # Already closed, idempotent
-        self._is_valid = False
-
-        if self._exports > 0:
-            self._unmap_pending = True
-            return
-
-        # Take the region while holding the GIL, before releasing it for
-        # munmap: a concurrent close() then finds the mapping closed instead
-        # of unmapping the same address a second time.
-        cdef void* addr = self._addr
+        cdef void* addr = NULL
         cdef size_t size = self._size
-        self._addr = NULL
-
+        cdef bint take = False
         cdef int result
+        cdef int err = 0
+
+        # Mark closed, then defer or take the region, under the lock: a
+        # concurrent close() finds the mapping closed instead of unmapping
+        # the same address a second time, and an export or a method either
+        # finished taking its hold before (the unmap is deferred to its
+        # release) or finds the mapping closed.
+        skplt_mm_acquire(&self._lock)
+        if self._is_valid:
+            self._is_valid = False
+            if self._exports > 0:
+                self._unmap_pending = True
+            else:
+                addr = self._addr
+                self._addr = NULL
+                take = True
+        skplt_mm_release(&self._lock)
+        if not take:
+            return  # already closed (idempotent), or deferred
+
         with nogil:
             result = munmap(addr, size)
+            if result != 0:
+                err = errno
 
         if result != 0:
-            err = errno
+            skplt_mm_acquire(&self._lock)
             self._addr = addr
             self._is_valid = True
+            skplt_mm_release(&self._lock)
             raise MMapError(f"Failed to unmap memory: errno={err}")
 
     def read(self, size: int, offset: int = 0) -> bytes:
@@ -1247,9 +1347,10 @@ cdef class MemoryMap:
         ...     print(data)
         b'Hello'
         """
-        if not self._is_valid:
+        cdef int prot = 0
+        if not self._snapshot(&prot):
             raise ValueError("Mapping is closed")
-        if not (self._prot & PROT_READ):
+        if not (prot & PROT_READ):
             # Reading a mapping without PROT_READ faults (SIGSEGV); refuse it
             # the way write() refuses a mapping without PROT_WRITE.
             raise ValueError("Mapping is not readable")
@@ -1272,8 +1373,9 @@ cdef class MemoryMap:
         # Pin the region before anything can release the GIL (the allocation
         # may run a garbage collection; the copy releases it): a close() from
         # another thread then defers the unmap until this copy is done. It
-        # used to unmap under the running memcpy (SIGSEGV).
-        self._pin()
+        # used to unmap under the running memcpy (SIGSEGV). The pin checks
+        # again, with the count: the checks above were a snapshot.
+        self._pin(PROT_READ)
         try:
             buf = bytearray(c_size)
             dst = PyByteArray_AS_STRING(buf)
@@ -1313,9 +1415,10 @@ cdef class MemoryMap:
         ...     print(n)
         13
         """
-        if not self._is_valid:
+        cdef int prot = 0
+        if not self._snapshot(&prot):
             raise ValueError("Mapping is closed")
-        if not (self._prot & PROT_WRITE):
+        if not (prot & PROT_WRITE):
             raise ValueError("Mapping is not writable")
         if offset < 0:
             raise ValueError(f"Offset must be non-negative, got {offset}")
@@ -1334,7 +1437,7 @@ cdef class MemoryMap:
         cdef char* dst
 
         # Pinned for the GIL-free copy; see ``read``.
-        self._pin()
+        self._pin(PROT_WRITE)
         try:
             dst = <char*>(<uintptr_t>self._addr + c_offset)
             with nogil:
@@ -1359,9 +1462,11 @@ cdef class MemoryMap:
             If mapping is closed or flags invalid
         BufferError
             If *prot* removes a protection bit while views of the mapping
-            (``memoryview``, :meth:`as_numpy_array`) are alive: a view exported
-            as writable or readable would crash the process on its next access.
-            Adding bits is always allowed.
+            (``memoryview``, :meth:`as_numpy_array`) are alive, or while
+            another thread runs :meth:`read`, :meth:`write`, :meth:`msync`,
+            :meth:`mlock` or :meth:`munlock` on it: a view exported as writable
+            or readable, or the running copy, would crash the process on its
+            next access. Adding bits is always allowed.
         MMapError
             If mprotect() fails
 
@@ -1371,29 +1476,44 @@ cdef class MemoryMap:
         ...     m.mprotect(PROT_READ | PROT_WRITE)
         ...     m.write(b"Now writable!")
         """
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
 
         validate_prot_flags(prot)
 
         cdef int c_prot = prot
-        if self._exports > 0 and (c_prot & self._prot) != self._prot:
-            raise BufferError(
-                f"Cannot remove protection while {self._exports} view(s) of "
-                "the mapping are alive: an access through one of them would "
-                "crash the process. Release the views first."
-            )
+        cdef int status = 0  # 0 done, 1 closed, 2 a right under exports, 3 failed
+        cdef Py_ssize_t exports = 0
+        cdef int err = 0
 
-        # The system call runs with the GIL held, unlike the other methods:
-        # the check above, the call and the recorded flags must change
-        # together. Released, another thread could export a writable view
-        # (or write) from the stale flags into pages already read-only.
-        cdef int result = mprotect(self._addr, self._size, c_prot)
-        if result != 0:
+        # The check, the system call and the recorded flags change together,
+        # under the lock (and with the GIL held, unlike the other methods).
+        # Apart, another thread could export a writable view (or write) from
+        # the stale flags into pages already read-only.
+        skplt_mm_acquire(&self._lock)
+        if not self._is_valid:
+            status = 1
+        elif self._exports > 0 and (c_prot & self._prot) != self._prot:
+            status = 2
+            exports = self._exports
+        elif mprotect(self._addr, self._size, c_prot) != 0:
+            status = 3
             err = errno
-            raise MMapError(f"Failed to change protection: errno={err}")
+        else:
+            self._prot = c_prot
+        skplt_mm_release(&self._lock)
 
-        self._prot = c_prot
+        if status == 1:
+            raise ValueError("Mapping is closed")
+        if status == 2:
+            raise BufferError(
+                f"Cannot remove protection while {exports} view(s) of the "
+                "mapping or running operation(s) on it (read, write, msync, "
+                "mlock, munlock) are alive: an access through one of them "
+                "would crash the process. Release the views first."
+            )
+        if status == 3:
+            raise MMapError(f"Failed to change protection: errno={err}")
 
     def msync(self, flags: int = MS_SYNC) -> None:
         """
@@ -1424,24 +1544,26 @@ cdef class MemoryMap:
         ...     m.write(b"Data")
         ...     m.msync(MS_SYNC)  # Ensure written to disk
         """
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
 
         cdef int c_flags = flags
         cdef void* addr
         cdef size_t size
         cdef int result
-        self._pin()
+        cdef int err = 0
+        self._pin(0)
         try:
             addr = self._addr
             size = self._size
             with nogil:
                 result = msync(addr, size, c_flags)
+                if result != 0:
+                    err = errno  # before _unpin, whose munmap may set it
         finally:
             self._unpin()
 
         if result != 0:
-            err = errno
             raise MMapError(f"Failed to sync: errno={err}")
 
     # ---------------------------------------------------------------
@@ -1500,23 +1622,25 @@ cdef class MemoryMap:
         ...     m.write(b"latency-critical data")
         ...     m.munlock()     # release the lock
         """
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
 
         cdef void* c_addr
         cdef size_t c_size
         cdef int result
-        self._pin()
+        cdef int err = 0
+        self._pin(0)
         try:
             c_addr = self._addr
             c_size = self._size
             with nogil:
                 result = mlock(c_addr, c_size)
+                if result != 0:
+                    err = errno  # before _unpin, whose munmap may set it
         finally:
             self._unpin()
 
         if result != 0:
-            err = errno
             raise MMapError(
                 f"mlock failed: errno={err} "
                 f"(check RLIMIT_MEMLOCK / SeLockmemoryPrivilege)"
@@ -1546,23 +1670,25 @@ cdef class MemoryMap:
         ...     # … do latency-critical work …
         ...     m.munlock()
         """
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
 
         cdef void* c_addr
         cdef size_t c_size
         cdef int result
-        self._pin()
+        cdef int err = 0
+        self._pin(0)
         try:
             c_addr = self._addr
             c_size = self._size
             with nogil:
                 result = munlock(c_addr, c_size)
+                if result != 0:
+                    err = errno  # before _unpin, whose munmap may set it
         finally:
             self._unpin()
 
         if result != 0:
-            err = errno
             raise MMapError(f"munlock failed: errno={err}")
 
     # ---------------------------------------------------------------
@@ -1628,7 +1754,7 @@ cdef class MemoryMap:
         """
         import numpy as np
 
-        if not self._is_valid:
+        if not self._snapshot(NULL):
             raise ValueError("Mapping is closed")
 
         if dtype is None:
@@ -1660,8 +1786,14 @@ cdef class MemoryMap:
 
     def __repr__(self) -> str:
         """String representation."""
-        if self._is_valid:
-            return f"MemoryMap(addr=0x{<size_t>self._addr:x}, size={self._size})"
+        cdef bint valid
+        cdef size_t addr
+        skplt_mm_acquire(&self._lock)
+        valid = self._is_valid
+        addr = <size_t>self._addr
+        skplt_mm_release(&self._lock)
+        if valid:
+            return f"MemoryMap(addr=0x{addr:x}, size={self._size})"
         else:
             return "MemoryMap(closed)"
 

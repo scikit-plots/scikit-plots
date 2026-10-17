@@ -186,12 +186,30 @@ class CorpusIndexRetriever(DocsRetriever):
         dense, fused by rank inside the corpus.
     strict : bool, optional
         Re-raise failures instead of reporting them as a failed leg.
+    documents : iterable or None, optional
+        The documents ``index`` was built from, for :meth:`get` (the
+        ``docs://chunk/{doc_id}`` resource); the factory passes them. They
+        are served as given, so pass no others. ``None`` serves no document
+        by id.
+    filter : Filter, mapping or None, optional
+        A corpus filter expression (:class:`~scikitplot.corpus.Filter`, or
+        its JSON form) applied to every query: the server's scope. It is
+        checked here by :func:`~scikitplot.corpus.validate_filter` and passed
+        to ``index.search(filter=...)``, where the corpus AND-s it with the
+        index's own ``SecurityFilter``; a query can only narrow it. ``None``
+        (the default) searches the whole index. The same scope applies to
+        :meth:`get`. The scope is server configuration: responses do not
+        echo it.
 
     Raises
     ------
     ValueError
         If ``match_mode`` is not one of the offered modes, or no embedder is
-        given for a mode that needs one.
+        given for a mode that needs one, or ``filter`` is malformed.
+    TypeError
+        If ``filter`` is neither a filter expression nor a mapping.
+    RuntimeError
+        If a ``filter`` is given and :mod:`scikitplot.corpus` is not installed.
 
     Notes
     -----
@@ -217,6 +235,8 @@ class CorpusIndexRetriever(DocsRetriever):
         *,
         match_mode: str = "hybrid",
         strict: bool = False,
+        filter: Any = None,  # noqa: A002 - the corpus contract's own name
+        documents: Any = None,
     ) -> None:
         if match_mode not in _INDEX_MODES:
             raise ValueError(
@@ -228,11 +248,70 @@ class CorpusIndexRetriever(DocsRetriever):
         self._index = index
         self._mode = match_mode
         self._strict = bool(strict)
+        self._filter = None if filter is None else _checked_filter(filter)
+        # Every copy of an id is kept, in order: an index may hold two
+        # documents with one id, and the scope may admit only one of them.
+        self._documents: dict[str, list[Any]] = {}
+        for document in documents or ():
+            doc_id = str(_value(document, "doc_id") or "")
+            if doc_id:
+                self._documents.setdefault(doc_id, []).append(document)
+
+    def get(self, doc_id: str) -> RetrievedChunk | None:
+        """
+        Return one indexed document by id, for the MCP resource route.
+
+        Parameters
+        ----------
+        doc_id : str
+            The document's stable id.
+
+        Returns
+        -------
+        RetrievedChunk or None
+            ``None`` when no ``documents`` were given, the id is unknown, the
+            document has no text, or it is outside the scope: the retriever's
+            ``filter`` or the index's ``security_filter`` does not admit it.
+            Of several documents with the id, the first in scope is returned.
+            An out-of-scope document is indistinguishable from a missing one,
+            so the route reveals nothing about what the scope hides.
+        """
+        if not isinstance(doc_id, str) or not doc_id:
+            return None
+        document = next(
+            (d for d in self._documents.get(doc_id, ()) if self._admits(d)), None
+        )
+        if document is None:
+            return None
+        record = _doc_to_record(document)
+        if not record["text"]:
+            return None
+        return RetrievedChunk(
+            text=str(record["text"]),
+            source_uri=str(record["source_uri"]),
+            score=0.0,
+            doc_id=doc_id,
+            title=str(record["title"]),
+            anchor=str(record["anchor"]),
+        )
+
+    def _admits(self, document: Any) -> bool:
+        """Whether the scope (this filter and the index's) admits ``document``."""
+        security = getattr(self._index, "security_filter", None)
+        expressions = [self._filter]
+        if security is not None:
+            expressions.append(getattr(security, "expression", None))
+        return all(e is None or e.matches(document) for e in expressions)
 
     @property
     def match_mode(self) -> str:
         """str: The evidence paths every query runs."""
         return self._mode
+
+    @property
+    def filter(self) -> Any:
+        """Filter or None: The scope every query is searched in."""
+        return self._filter
 
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Search the corpus index and map its hits and legs for MCP."""
@@ -258,7 +337,10 @@ class CorpusIndexRetriever(DocsRetriever):
             config = dataclasses.replace(
                 self._index.config, match_mode=self._mode, top_k=k
             )
-            response = self._index.search(query, config=config, query_embedding=vector)
+            scope = {} if self._filter is None else {"filter": self._filter}
+            response = self._index.search(
+                query, config=config, query_embedding=vector, **scope
+            )
         except Exception as exc:
             logger.warning("Corpus search failed: %s", exc, exc_info=self._strict)
             if self._strict:
@@ -289,6 +371,41 @@ class CorpusIndexRetriever(DocsRetriever):
                 )
             )
         return RetrievalOutcome(output, legs=_legs_of(response))
+
+
+def _checked_filter(expression: Any) -> Any:
+    """
+    Return ``expression`` validated as a server scope.
+
+    The corpus filter contract (R2-2, :func:`~scikitplot.corpus.validate_filter`)
+    checks it, and one rule is added for a scope: an ``and`` or ``or`` with no
+    clause anywhere in it is refused as a configuration mistake (an empty
+    ``and`` admits every document, an empty ``or`` none).
+    """
+    try:
+        from scikitplot.corpus import (  # ruff: ignore[import-outside-top-level]
+            filter_to_dict,
+            validate_filter,
+        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "a corpus filter needs scikitplot.corpus, which is not installed. "
+            "Install it with: pip install scikit-plots-corpus"
+        ) from exc
+    checked = validate_filter(expression)
+    pending = [filter_to_dict(checked)]
+    while pending:
+        node = pending.pop()
+        if node.get("op") in ("and", "or") and not node.get("args"):
+            raise ValueError(
+                f"a scope filter has an empty {node['op']!r} (an empty 'and' admits "
+                "every document, an empty 'or' none); name the clauses, or give "
+                "no filter"
+            )
+        pending.extend(node.get("args") or ())
+        if isinstance(node.get("arg"), dict):
+            pending.append(node["arg"])
+    return checked
 
 
 def _legs_of(response: Any) -> list[LegRecord]:
@@ -463,6 +580,7 @@ class CorpusAnnoyRetriever(DocsRetriever):
         backend: str = "annoy",
         strict: bool = False,
         mode: str = "semantic",
+        filter: Any = None,  # noqa: A002 - the corpus contract's own name
     ) -> DocsRetriever:
         """
         Build the real retriever from a docs directory (import-guarded).
@@ -504,6 +622,12 @@ class CorpusAnnoyRetriever(DocsRetriever):
             return a :class:`CorpusIndexRetriever` over the same index, which
             already holds a BM25 leg: hybrid fuses BM25 and dense by rank
             inside the corpus (finding CX-04).
+        filter : Filter, mapping or None, optional
+            A corpus filter applied to every query (see
+            :class:`CorpusIndexRetriever`). The vector seam the ``semantic``
+            retriever reads takes no filter, so with a filter every mode
+            returns a :class:`CorpusIndexRetriever` (``semantic`` runs the
+            corpus's dense leg through ``search``). Checked before any build.
 
         Returns
         -------
@@ -514,15 +638,19 @@ class CorpusAnnoyRetriever(DocsRetriever):
         RuntimeError
             If :mod:`scikitplot.corpus` is unavailable, or the build produced
             no queryable semantic index (e.g. embeddings were unavailable).
+        TypeError
+            If *filter* is neither a filter expression nor a mapping.
         ValueError
-            If *mode* is not one of the accepted values (checked before any
-            build), or propagated from :class:`~scikitplot.corpus.CorpusBuilder`
+            If *mode* is not one of the accepted values, or *filter* is
+            malformed (both checked before any build), or propagated from :class:`~scikitplot.corpus.CorpusBuilder`
             when *docs_path* contains no valid input sources.
         """
         if mode not in ("semantic", *_INDEX_MODES):
             raise ValueError(
                 f"mode must be 'semantic', 'hybrid' or 'keyword', got {mode!r}"
             )
+        # Checked before the build, so a malformed scope costs no ingestion.
+        scope = None if filter is None else _checked_filter(filter)
         try:
             from scikitplot.corpus import (  # noqa: PLC0415
                 BuilderConfig,
@@ -645,12 +773,14 @@ class CorpusAnnoyRetriever(DocsRetriever):
         if not table:
             raise RuntimeError("corpus build produced no retrievable documents")
 
-        if mode != "semantic":
+        if mode != "semantic" or scope is not None:
             return CorpusIndexRetriever(
                 query_embedder,
                 index,
                 match_mode=mode,
                 strict=strict,
+                filter=scope,
+                documents=documents,
             )
         return cls(
             query_embedder,

@@ -30,6 +30,20 @@ available pure-``numpy`` ``bruteforce`` floor. An explicitly named backend that
 is unavailable raises :class:`RuntimeError` with an actionable message rather
 than silently degrading.
 
+Fallback vocabulary (R2-5):
+
+Every backend instance reports :meth:`VectorIndexBackend.provenance`: the
+``requested_backend`` (``"auto"``, a name, or a class name), the ``backend``
+that runs, the ``fallback_reason`` when they differ for a reason other than
+plain absence, and the ``allow_fallback`` switch. Under ``"auto"`` an absent
+backend is not a fallback (``auto`` means "the first one installed"); one that
+is installed but cannot be loaded is (``"annoy_broken"``), and
+``allow_fallback=False`` refuses it instead. :class:`AnnoyBackend` reports the
+same names for its binding: ``impl="auto"`` picks a binding that accepts every
+requested option, and an option the chosen binding cannot honour is reported
+as ``"option_unsupported"`` (or refused when ``allow_fallback=False``), never
+dropped silently.
+
 Notes
 -----
 **Developer note:** All semantic backends require ``numpy``. Native ANN
@@ -48,6 +62,7 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import sys
 from typing import Any, ClassVar, Mapping, Sequence
 
 logger = logging.getLogger(__name__)
@@ -57,6 +72,7 @@ __all__ = [
     "AnnoyBackend",
     "BruteForceBackend",
     "FaissBackend",
+    "FallbackRefusedError",
     "VectorIndexBackend",
     "VoyagerBackend",
     "list_available_backends",
@@ -67,6 +83,17 @@ __all__ = [
 # internal scikit-plots dependency and provides a persistent, memory-mapped
 # vector index; ``bruteforce`` is the always-available numpy floor.
 DEFAULT_BACKEND_ORDER = ("annoy", "faiss", "voyager", "bruteforce")
+
+
+class FallbackRefusedError(RuntimeError):
+    """A fallback was needed and ``allow_fallback=False`` refused it (R2-5).
+
+    Raised when the dense backend (or an Annoy binding) cannot run as
+    configured: an installed backend fails to load under ``"auto"``, a
+    preferred binding cannot load, or the running binding cannot honour a
+    requested option. It is a :class:`RuntimeError`, so it is never mistaken
+    for the invalid-data ``ValueError`` that disables a dense index.
+    """
 
 
 # =====================================================================
@@ -131,46 +158,126 @@ def _validate_embeddings(np: Any, embeddings: Any) -> Any:
     return embs
 
 
-def _resolve_annoy_index_cls(impl: str) -> tuple[Any, str]:
-    """Resolve the requested Annoy ``Index`` class.
+#: Constructor options each Annoy binding accepts beyond ``(dim, metric)``.
+#: Declared rather than discovered by trial construction: ``impl="auto"`` must
+#: choose a binding *before* it builds (F-40). ``test__fallback_vocabulary.py``
+#: checks the table against both classes.
+_ANNOY_IMPL_OPTIONS: dict[str, frozenset[str]] = {
+    "highlevel": frozenset(),
+    "cython": frozenset({"dtype", "index_dtype"}),
+}
 
-    Both implementations share the same ``add_item`` / ``build`` /
-    ``get_nns_by_vector`` contract; the Cython class additionally accepts
-    ``dtype`` / ``index_dtype``.
+#: Binding preference under ``impl="auto"`` when every binding accepts the
+#: requested options: the high-level class first (validated bulk ``add_items``).
+_ANNOY_IMPL_ORDER: tuple[str, ...] = ("highlevel", "cython")
+
+
+def _import_annoy_impl(impl: str) -> Any:
+    """Import and return the Annoy ``Index`` class of binding ``impl``."""
+    if impl == "cython":
+        from scikitplot.annoy._annoy import Index  # noqa: PLC0415
+
+        return Index
+    from scikitplot.annoy import Index  # noqa: PLC0415
+
+    return Index
+
+
+def _resolve_annoy_impl(
+    impl: str,
+    options: frozenset[str],
+    *,
+    allow_fallback: bool,
+) -> tuple[Any, str, frozenset[str], str | None]:
+    """Choose the Annoy binding for ``impl`` and the requested ``options``.
 
     Parameters
     ----------
     impl : str
-        ``"auto"`` (high-level first, else Cython), ``"highlevel"``
-        (``scikitplot.annoy.Index``), or ``"cython"``
-        (``scikitplot.annoy._annoy.Index``).
+        ``"auto"``, ``"highlevel"`` (``scikitplot.annoy.Index``) or
+        ``"cython"`` (``scikitplot.annoy._annoy.Index``).
+    options : frozenset of str
+        Names of the binding options requested (``"dtype"``,
+        ``"index_dtype"``).
+    allow_fallback : bool
+        Whether a binding that cannot honour every option (or a second choice
+        under ``"auto"``) may run instead of raising.
 
     Returns
     -------
-    (type, str)
-        The resolved class and the concrete implementation name.
+    tuple
+        ``(index_cls, impl_name, unsupported_options, fallback_reason)``;
+        ``fallback_reason`` is ``None``, ``"option_unsupported"`` or
+        ``"<binding>_unavailable"``.
+
+    Raises
+    ------
+    ValueError
+        If ``impl`` is unknown.
+    FallbackRefusedError
+        If ``allow_fallback`` is ``False`` and an option cannot be honoured,
+        or the preferred binding under ``"auto"`` cannot load.
+    ImportError
+        If the requested binding (or, under ``"auto"``, every binding) cannot
+        be loaded.
+
+    Notes
+    -----
+    **Developer.** Under ``"auto"`` the bindings that accept every requested
+    option come first, in :data:`_ANNOY_IMPL_ORDER`; the first that loads
+    runs. A binding that loads but cannot honour an option is used only when
+    none that can is loadable (F-40: ``dtype="float64"`` used to run on the
+    high-level class, which discarded it, while the Cython class that honours
+    it was installed).
     """
-    impl = (impl or "auto").strip().lower()
-    if impl == "cython":
-        from scikitplot.annoy._annoy import Index  # noqa: PLC0415
-
-        return Index, "cython"
-    if impl == "highlevel":
-        from scikitplot.annoy import Index  # noqa: PLC0415
-
-        return Index, "highlevel"
-    if impl != "auto":
+    key = (impl or "auto").strip().lower()
+    if key != "auto" and key not in _ANNOY_IMPL_OPTIONS:
         raise ValueError(
             f"annoy impl must be 'auto', 'highlevel', or 'cython', got {impl!r}"
         )
-    try:
-        from scikitplot.annoy import Index  # noqa: PLC0415
-
-        return Index, "highlevel"
-    except Exception:  # noqa: BLE001 - fall back to the Cython class
-        from scikitplot.annoy._annoy import Index  # noqa: PLC0415
-
-        return Index, "cython"
+    candidates = (
+        sorted(
+            _ANNOY_IMPL_ORDER,
+            key=lambda name: not options <= _ANNOY_IMPL_OPTIONS[name],
+        )
+        if key == "auto"
+        else [key]
+    )
+    first_error: BaseException | None = None
+    for position, name in enumerate(candidates):
+        try:
+            index_cls = _import_annoy_impl(name)
+        except Exception as exc:  # noqa: BLE001 - classified below
+            if key != "auto":
+                raise
+            first_error = first_error or exc
+            continue
+        unsupported = options - _ANNOY_IMPL_OPTIONS[name]
+        if unsupported:
+            if not allow_fallback:
+                raise FallbackRefusedError(
+                    f"annoy binding {name!r} does not accept {sorted(unsupported)}"
+                    + (
+                        " and no binding that does could be loaded"
+                        if key == "auto"
+                        else ""
+                    )
+                    + "; allow_fallback=False refuses to build without them"
+                ) from first_error
+            return index_cls, name, unsupported, "option_unsupported"
+        if position == 0:
+            return index_cls, name, unsupported, None
+        if not allow_fallback:
+            raise FallbackRefusedError(
+                f"annoy binding {candidates[0]!r} cannot be loaded "
+                f"({type(first_error).__name__}: {first_error}); "
+                "allow_fallback=False refuses another binding"
+            ) from first_error
+        return index_cls, name, unsupported, f"{candidates[0]}_unavailable"
+    raise ImportError(
+        f"no Annoy binding could be loaded ({type(first_error).__name__}: "
+        f"{first_error})"
+    ) from first_error
 
 
 # =====================================================================
@@ -194,13 +301,45 @@ class VectorIndexBackend:
     name: ClassVar[str] = "base"
     dependency_modules: ClassVar[str | tuple[str, ...] | None] = None
 
-    # @classmethod
-    # def is_available(cls) -> bool:
-    #     """Whether this backend's runtime dependencies are importable."""
-    #     raise NotImplementedError
+    # Selection provenance (R2-5), set by :func:`select_backend`; a backend
+    # constructed directly requested itself.
+    _requested_backend: str | None = None
+    _selection_reason: str | None = None
+    _allow_fallback: bool = True
+
+    #: Whether answering :meth:`is_available` imports the backend's packages
+    #: (a native library); ``capability_snapshot(load=False)`` then asks only
+    #: once the modules in :attr:`probe_modules` are already loaded (F-50).
+    loads_on_probe: ClassVar[bool] = False
+    probe_modules: ClassVar[tuple[str, ...]] = ()
+
     @classmethod
     def is_available(cls) -> bool:
-        """Return whether this backend's optional dependencies are discoverable."""
+        """Return whether this backend can be used now: installed and loading."""
+        return cls.is_installed() and cls.load_error() is None
+
+    @classmethod
+    def load_error(cls) -> BaseException | None:
+        """Return the exception that stops this backend loading, or ``None``.
+
+        Imports :attr:`dependency_modules` (when installed) and returns the
+        first failure. An installed backend with a load error is *broken*,
+        never *absent*.
+        """
+        dependency = cls.dependency_modules
+        if dependency is None or not cls.is_installed():
+            return None
+        modules = (dependency,) if isinstance(dependency, str) else dependency
+        try:
+            for module in modules:
+                importlib.import_module(module)
+        except Exception as exc:  # noqa: BLE001 - reported, not raised
+            return exc
+        return None
+
+    @classmethod
+    def is_installed(cls) -> bool:
+        """Return whether this backend's packages can be found, importing none."""
         dependency = cls.dependency_modules
         if dependency is None:
             return True
@@ -301,6 +440,37 @@ class VectorIndexBackend:
         """
         raise NotImplementedError
 
+    @property
+    def requested_backend(self) -> str:
+        """What the configuration asked for: ``"auto"``, a name or a class."""
+        return self._requested_backend or self.name
+
+    @property
+    def fallback_reason(self) -> str | None:
+        """Why the backend that runs is not the one requested, or ``None``."""
+        return self._selection_reason
+
+    @property
+    def allow_fallback(self) -> bool:
+        """Whether a fallback was allowed (``False`` raises instead)."""
+        return self._allow_fallback
+
+    def provenance(self) -> dict[str, Any]:
+        """Return what was requested, what runs, and why they differ (R2-5).
+
+        Returns
+        -------
+        dict
+            ``requested_backend``, ``backend``, ``fallback_reason`` and
+            ``allow_fallback``; JSON-compatible.
+        """
+        return {
+            "requested_backend": self.requested_backend,
+            "backend": self.name,
+            "fallback_reason": self.fallback_reason,
+            "allow_fallback": self.allow_fallback,
+        }
+
     def __repr__(self) -> str:  # pragma: no cover - trivial
         return f"{type(self).__name__}(name={self.name!r})"
 
@@ -376,15 +546,25 @@ class AnnoyBackend(VectorIndexBackend):
     search_k : int, optional
         Query-time node budget passed to Annoy; ``-1`` lets Annoy choose.
     impl : str, optional
-        Which index class to use: ``"auto"`` (default; high-level first, else
-        Cython), ``"highlevel"``, or ``"cython"``.
+        Which index class to use: ``"auto"`` (default: a binding that accepts
+        every requested option, the high-level class first), ``"highlevel"``,
+        or ``"cython"``.
     dtype : str or None, optional
-        Embedding precision (e.g. ``"float32"``, ``"float64"``). Forwarded only
-        to implementations that accept it (the Cython class); silently ignored
-        otherwise.
+        Embedding precision (e.g. ``"float32"``, ``"float64"``). Accepted by
+        the Cython class only; ``impl="auto"`` therefore picks it.
     index_dtype : str or None, optional
         Item-id integer width (e.g. ``"int32"``, ``"uint64"``) for very large
-        corpora. Cython class only; ignored otherwise.
+        corpora. Cython class only, like ``dtype``.
+    allow_fallback : bool, optional
+        What happens when the binding that runs cannot honour ``dtype`` or
+        ``index_dtype`` (``impl="highlevel"``, or no accepting binding
+        loads), or the preferred binding under ``"auto"`` cannot load:
+        ``True`` (default) builds anyway and reports it
+        (:attr:`fallback_reason`, :attr:`discarded_options`, one warning);
+        ``False`` raises :class:`FallbackRefusedError` when :meth:`build` is
+        called. ``dtype`` and ``index_dtype`` spellings are validated by the
+        binding that honours them; a value dropped by a fallback is reported
+        verbatim.
 
     Notes
     -----
@@ -399,6 +579,9 @@ class AnnoyBackend(VectorIndexBackend):
         "scikitplot.annoy",
         "scikitplot.annoy._annoy",
     )
+    # Probing availability imports the bindings (and scikit-learn, SciPy).
+    loads_on_probe = True
+    probe_modules = ("scikitplot.annoy",)
 
     def __init__(
         self,
@@ -409,9 +592,29 @@ class AnnoyBackend(VectorIndexBackend):
         impl: str = "auto",
         dtype: str | None = None,
         index_dtype: str | None = None,
+        allow_fallback: bool = True,
     ) -> None:
         if n_trees < 1:
             raise ValueError(f"n_trees must be >= 1, got {n_trees}")
+        if not isinstance(allow_fallback, bool):
+            raise TypeError(
+                f"allow_fallback must be a bool, got {type(allow_fallback).__name__}"
+            )
+        if impl is None:
+            impl = "auto"  # accepted before R2-5; kept
+        if not isinstance(impl, str):
+            raise TypeError(f"impl must be a str or None, got {type(impl).__name__}")
+        for option, value in (("dtype", dtype), ("index_dtype", index_dtype)):
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise TypeError(
+                    f"{option} must be a non-empty str or None, got {value!r}; the "
+                    "binding that honours it validates the spelling"
+                )
+        key = impl.strip().lower() or "auto"
+        if key != "auto" and key not in _ANNOY_IMPL_OPTIONS:
+            raise ValueError(
+                f"annoy impl must be 'auto', 'highlevel', or 'cython', got {impl!r}"
+            )
         self._metric = metric
         # The instance declares what it ACTUALLY computes, which may differ from
         # the class default.  Annoy's non-cosine metrics return a bounded
@@ -425,55 +628,90 @@ class AnnoyBackend(VectorIndexBackend):
         )
         self._n_trees = int(n_trees)
         self._search_k = int(search_k)
-        self._impl = impl
+        self._impl = key
         self._dtype = dtype
         self._index_dtype = index_dtype
+        self._allow_fallback = allow_fallback
         self._index: Any = None
         self._dim: int = 0
         self._resolved_impl: str | None = None
+        self._impl_reason: str | None = None
+        self._discarded_kwargs: dict[str, Any] = {}
 
     @classmethod
-    def is_available(cls) -> bool:
+    def is_installed(cls) -> bool:
+        """Return whether ``scikitplot.annoy`` can be found, importing nothing.
+
+        Notes
+        -----
+        **Developer.** Only the package is looked up: finding a submodule
+        (``scikitplot.annoy._annoy``) would import the package, whose mixins
+        import scikit-learn and SciPy (F-50).
+        """
+        if "scikitplot.annoy" in sys.modules:
+            return sys.modules["scikitplot.annoy"] is not None
         try:
-            _resolve_annoy_index_cls("auto")
-            return True
-        except Exception:  # noqa: BLE001 - any import/native failure => unavailable
+            return importlib.util.find_spec("scikitplot.annoy") is not None
+        except (ImportError, ValueError):
             return False
 
-    def _construct(self, index_cls: Any) -> Any:
-        """Construct an index, forwarding dtype kwargs only when accepted."""
-        kwargs: dict[str, Any] = {}
+    @classmethod
+    def load_error(cls) -> BaseException | None:
+        """Return why no Annoy binding loads, or ``None`` when one does.
+
+        Notes
+        -----
+        **Developer.** This imports the bindings, so it costs what using them
+        costs; :func:`~scikitplot.corpus.capability_snapshot` calls it only
+        when asked to load (``load=True``) or once Annoy is already loaded.
+        """
+        error: BaseException | None = None
+        for name in _ANNOY_IMPL_ORDER:
+            try:
+                _import_annoy_impl(name)
+            except Exception as exc:  # noqa: BLE001 - reported, not raised
+                error = error or exc
+                continue
+            return None
+        return error
+
+    def _requested_options(self) -> dict[str, Any]:
+        """Return the binding options this backend was asked for."""
+        options: dict[str, Any] = {}
         if self._dtype is not None:
-            kwargs["dtype"] = self._dtype
+            options["dtype"] = self._dtype
         if self._index_dtype is not None:
-            kwargs["index_dtype"] = self._index_dtype
-        try:
-            return index_cls(self._dim, self._metric, **kwargs)
-        except TypeError:
-            if kwargs:
-                # The caller asked for a precision and is about to get another.
-                # At debug level this was invisible: an index built at the
-                # default dtype is not the index that was requested, and nothing
-                # downstream could tell. Warning plus a readable record is the
-                # narrow fix; carrying it as a backend capability outcome is the
-                # correct one and needs a result type this backend lacks.
-                self._discarded_kwargs = dict(kwargs)
-                logger.warning(
-                    "annoy impl %r does not accept %s; building without them, so "
-                    "the requested precision is not what you get. See "
-                    "discarded_options.",
-                    self._resolved_impl,
-                    sorted(kwargs),
-                )
-            return index_cls(self._dim, self._metric)
+            options["index_dtype"] = self._index_dtype
+        return options
 
     def build(self, embeddings: Any) -> None:
         np = _require_numpy()
-        index_cls, impl_name = _resolve_annoy_index_cls(self._impl)
-        self._resolved_impl = impl_name
+        options = self._requested_options()
+        index_cls, impl_name, unsupported, reason = _resolve_annoy_impl(
+            self._impl, frozenset(options), allow_fallback=self._allow_fallback
+        )
         embs = _validate_embeddings(np, embeddings)
+        if reason is not None and reason != self._impl_reason:
+            logger.warning(
+                "AnnoyBackend: binding %r runs (requested %r), fallback_reason=%r%s;"
+                " see provenance().",
+                impl_name,
+                self._impl,
+                reason,
+                f", built without {sorted(unsupported)}" if unsupported else "",
+            )
+        self._resolved_impl = impl_name
+        self._impl_reason = reason
+        # The precision this index holds (F-40 made float64 real).
+        self.dtype = (
+            options["dtype"]
+            if "dtype" in options and "dtype" not in unsupported
+            else VectorIndexBackend.dtype
+        )
+        self._discarded_kwargs = {name: options[name] for name in sorted(unsupported)}
         self._dim = int(embs.shape[1])
-        index = self._construct(index_cls)
+        kwargs = {k: v for k, v in options.items() if k not in unsupported}
+        index = index_cls(self._dim, self._metric, **kwargs)
         n = int(embs.shape[0])
         # Prefer the validated, finiteness-checked bulk path when present
         # (high-level Index); otherwise loop add_item (Cython Index).
@@ -504,16 +742,42 @@ class AnnoyBackend(VectorIndexBackend):
 
     @property
     def discarded_options(self) -> dict[str, Any]:
-        """Options this backend requested and the index class refused.
+        """Options this backend requested and the binding that ran cannot honour.
 
         Returns
         -------
         dict
-            Empty when everything requested was honoured. A non-empty result
-            means the index is not built the way the caller asked, which an
-            index object alone could never tell them.
+            Empty when everything requested was honoured. Non-empty only when
+            ``allow_fallback`` is ``True`` and :attr:`fallback_reason` is
+            ``"option_unsupported"``.
         """
-        return dict(getattr(self, "_discarded_kwargs", {}) or {})
+        return dict(self._discarded_kwargs)
+
+    @property
+    def fallback_reason(self) -> str | None:
+        """Why what runs differs from what was requested, or ``None``.
+
+        The selection reason (``"<backend>_broken"``) first, then the
+        binding's (``"option_unsupported"``, ``"<binding>_unavailable"``).
+        """
+        return self._selection_reason or self._impl_reason
+
+    def provenance(self) -> dict[str, Any]:
+        """Return :meth:`VectorIndexBackend.provenance` plus the binding.
+
+        Returns
+        -------
+        dict
+            Adds ``requested_impl``, ``impl`` (``None`` before :meth:`build`)
+            and ``discarded_options``.
+        """
+        record = super().provenance()
+        record.update(
+            requested_impl=self._impl,
+            impl=self._resolved_impl,
+            discarded_options=self.discarded_options,
+        )
+        return record
 
     def _distance_to_score(self, d: float) -> float:
         """Convert an Annoy distance to the unified cosine score in [-1, 1]."""
@@ -540,6 +804,8 @@ class FaissBackend(VectorIndexBackend):
 
     name = "faiss"
     dependency_modules = "faiss"
+    loads_on_probe = True
+    probe_modules = ("faiss",)
 
     def __init__(self) -> None:
         self._index: Any = None
@@ -591,6 +857,8 @@ class VoyagerBackend(VectorIndexBackend):
 
     name = "voyager"
     dependency_modules = "voyager"
+    loads_on_probe = True
+    probe_modules = ("voyager",)
 
     def __init__(self) -> None:
         self._index: Any = None
@@ -683,6 +951,56 @@ def list_available_backends() -> list[str]:
     return list(seen)
 
 
+def _load_failure(cls: type[VectorIndexBackend]) -> BaseException | None:
+    """Return why an installed backend cannot load, or ``None``.
+
+    ``None`` also when it is not installed, or when nothing is known: a
+    backend is called broken only on evidence of a failed load.
+    """
+    return cls.load_error() if cls.is_installed() else None
+
+
+def _unavailable(cls: type[VectorIndexBackend], label: str) -> str:
+    """Say whether an unavailable backend is absent or failing to load."""
+    error = _load_failure(cls)
+    if error is not None:
+        return (
+            f"backend {label} is installed but cannot be loaded "
+            f"({type(error).__name__}: {error})."
+        )
+    return f"backend {label} is not available in this environment."
+
+
+def _first_usable_backend(*, allow_fallback: bool) -> tuple[str, str | None]:
+    """Resolve ``"auto"``: the first usable backend and the fallback reason.
+
+    An absent backend is passed over silently (``"auto"`` means the first one
+    installed); an installed one that cannot load is a fallback, reported as
+    ``"<name>_broken"`` with a warning, or refused when ``allow_fallback`` is
+    ``False``.
+    """
+    reason: str | None = None
+    for candidate in DEFAULT_BACKEND_ORDER:
+        cls = _BACKENDS[candidate]
+        if cls.is_available():
+            logger.debug("select_backend: auto-selected %r", candidate)
+            return candidate, reason
+        error = _load_failure(cls)
+        if error is None:
+            continue  # absent: "auto" means the first installed one
+        message = _unavailable(cls, repr(candidate))
+        if not allow_fallback:
+            raise FallbackRefusedError(
+                f"{message} allow_fallback=False refuses another backend."
+            ) from error
+        logger.warning("select_backend: %s Trying the next one.", message)
+        reason = reason or f"{candidate}_broken"
+    raise RuntimeError(
+        "No vector backend is available. Semantic search requires numpy; "
+        "install it with `pip install scikit-plots[corpus]`."
+    )
+
+
 def select_backend(
     name: Any = "auto",
     *,
@@ -693,6 +1011,7 @@ def select_backend(
     annoy_impl: str = "auto",
     annoy_dtype: str | None = None,
     annoy_index_dtype: str | None = None,
+    allow_fallback: bool = True,
     **kwargs: Any,
 ) -> VectorIndexBackend:
     """Construct an ANN backend by name.
@@ -712,6 +1031,12 @@ def select_backend(
         Backward-compatible Annoy constructor settings. They are merged only
         when the resolved backend is :class:`AnnoyBackend`; generic
         ``index_kwargs`` win over default legacy values.
+    allow_fallback : bool, optional
+        Under ``"auto"``, whether a backend that is installed but cannot be
+        loaded is skipped (``True``, default; the result reports
+        ``fallback_reason="<name>_broken"``) or refused (``False``). Also
+        passed to :class:`AnnoyBackend`. An explicitly named backend is never
+        replaced, whatever this says.
     **kwargs : Any
         Compatibility form for generic backend constructor keyword arguments.
         Conflicting keys between ``index_kwargs`` and ``kwargs`` raise.
@@ -719,16 +1044,25 @@ def select_backend(
     Returns
     -------
     VectorIndexBackend
-        An unbuilt backend instance.
+        An unbuilt backend instance; :meth:`VectorIndexBackend.provenance`
+        records what was requested and why the result differs.
 
     Raises
     ------
     ValueError
         If *name* is not a known backend or ``"auto"``.
     RuntimeError
-        If an explicitly named backend is unavailable, or if ``"auto"`` finds
-        no available backend (numpy missing).
+        If an explicitly named backend is unavailable (the message says
+        whether it is absent or installed but failing to load), or if
+        ``"auto"`` finds no available backend (numpy missing).
+    FallbackRefusedError
+        If ``"auto"`` meets an installed backend that cannot load and
+        ``allow_fallback`` is ``False`` (a :class:`RuntimeError`).
     """
+    if not isinstance(allow_fallback, bool):
+        raise TypeError(
+            f"allow_fallback must be a bool, got {type(allow_fallback).__name__}"
+        )
     constructor_kwargs = dict(index_kwargs or {})
     if any(not isinstance(key, str) for key in constructor_kwargs):
         raise TypeError(
@@ -745,7 +1079,7 @@ def select_backend(
 
     def _make(cls: type[VectorIndexBackend], resolved_name: str) -> VectorIndexBackend:
         options = dict(constructor_kwargs)
-        if cls is AnnoyBackend:
+        if issubclass(cls, AnnoyBackend):
             legacy = {
                 "metric": (annoy_metric, "angular", "annoy_metric"),
                 "n_trees": (annoy_n_trees, 10, "annoy_n_trees"),
@@ -767,6 +1101,19 @@ def select_backend(
                         )
                 else:
                     options[option] = legacy_value
+            # Same rule as the legacy fields: a non-default selector value
+            # and a different index_kwargs value conflict; otherwise the
+            # index_kwargs value (when given) wins.
+            if (
+                "allow_fallback" in options
+                and allow_fallback is False
+                and options["allow_fallback"] is not False
+            ):
+                raise ValueError(
+                    "conflicting Annoy configuration: allow_fallback=False but "
+                    f"index_kwargs['allow_fallback']={options['allow_fallback']!r}"
+                )
+            options.setdefault("allow_fallback", allow_fallback)
         try:
             return cls(**options)
         except TypeError as exc:
@@ -774,32 +1121,34 @@ def select_backend(
                 f"invalid index_kwargs for backend {resolved_name!r}: {exc}"
             ) from exc
 
+    def _selected(
+        backend: VectorIndexBackend, requested: str, reason: str | None
+    ) -> VectorIndexBackend:
+        # Provenance (R2-5) is recorded on the instance the caller receives.
+        backend._requested_backend = requested
+        backend._selection_reason = reason
+        if not isinstance(backend, AnnoyBackend):
+            # An AnnoyBackend holds its own switch (it also governs its binding).
+            backend._allow_fallback = allow_fallback
+        return backend
+
     if isinstance(name, type):
         if not issubclass(name, VectorIndexBackend):
             raise TypeError(
                 f"backend classes must subclass VectorIndexBackend; got {name!r}"
             )
+        label = f"{name.__module__}.{name.__qualname__}"
         if not name.is_available():
-            raise RuntimeError(
-                f"backend class {name.__module__}.{name.__qualname__} is not "
-                "available in this environment."
-            )
-        return _make(name, getattr(name, "name", name.__name__))
+            raise RuntimeError(_unavailable(name, f"class {label}"))
+        return _selected(_make(name, getattr(name, "name", name.__name__)), label, None)
 
     if not isinstance(name, str):
         raise TypeError("backend must be a backend name or VectorIndexBackend subclass")
     key = (name or "auto").strip().lower()
 
     if key == "auto":
-        for candidate in DEFAULT_BACKEND_ORDER:
-            cls = _BACKENDS[candidate]
-            if cls.is_available():
-                logger.debug("select_backend: auto-selected %r", candidate)
-                return _make(cls, candidate)
-        raise RuntimeError(
-            "No vector backend is available. Semantic search requires numpy; "
-            "install it with `pip install scikit-plots[corpus]`."
-        )
+        candidate, reason = _first_usable_backend(allow_fallback=allow_fallback)
+        return _selected(_make(_BACKENDS[candidate], candidate), "auto", reason)
 
     key = canonical_backend_name(key)
     if key not in _BACKENDS:
@@ -809,7 +1158,7 @@ def select_backend(
     cls = _BACKENDS[key]
     if not cls.is_available():
         raise RuntimeError(
-            f"backend {key!r} is not available in this environment. "
-            f"Install the corresponding package or use backend='auto'."
+            f"{_unavailable(cls, repr(key))} Install the corresponding package "
+            "or use backend='auto'."
         )
-    return _make(cls, key)
+    return _selected(_make(cls, key), key, None)

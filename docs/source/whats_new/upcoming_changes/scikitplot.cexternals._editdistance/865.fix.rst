@@ -1,4 +1,0 @@
-- ``eval_criterion`` (``distance_le_than``) no longer rejects exact matches at
-  threshold 0 (its early exit read the wrong row of the DP table); elements are
-  compared by equality rather than by ``hash()``, so ``eval([-1], [-2])`` is 1,
-  not 0; and an element whose ``hash`` raises no longer leaks the input buffer.

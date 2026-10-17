@@ -591,7 +591,20 @@ def plan_backend_chain(  # ruff: ignore[too-many-branches]
 
 @dataclasses.dataclass(frozen=True)
 class BackendOutcome(Generic[_T]):
-    """Structured, serialisable outcome from :func:`run_backend_chain`."""
+    """Structured, serialisable outcome from :func:`run_backend_chain`.
+
+    Notes
+    -----
+    **User.** The fallback vocabulary (R2-5) shared with the vector backends
+    and ``SemanticChunker``: ``requested_backend`` is the first candidate the
+    policy allows to run (a candidate the policy skips -- network disabled,
+    not ready -- was never eligible, like an absent backend under
+    ``"auto"``; ``skipped`` and ``skip_details`` record it), ``backend`` the
+    one that produced the value, ``allow_fallback`` the policy's switch
+    (``False``: no other candidate is attempted), and :attr:`fallback_reason`
+    why they differ: ``"failed"`` (it raised) or ``"no_result"`` (it returned
+    nothing usable).
+    """
 
     status: BackendStatus
     value: _T
@@ -604,6 +617,28 @@ class BackendOutcome(Generic[_T]):
     selected_capabilities: tuple[str, ...] = ()
     active_capability: str | None = None
     skip_details: tuple[BackendSkip, ...] = ()
+    requested_backend: str | None = None
+    allow_fallback: bool = True
+
+    @property
+    def fallback_reason(self) -> str | None:
+        """Why ``backend`` is not ``requested_backend``, or ``None``.
+
+        Returns
+        -------
+        str or None
+            ``"failed"`` or ``"no_result"`` for the requested candidate's fate;
+            ``None`` when it produced the value, or when no candidate was
+            eligible.
+        """
+        requested = self.requested_backend
+        if requested is None or self.backend == requested:
+            return None
+        if any(record.details.get("backend") == requested for record in self.errors):
+            return "failed"
+        if requested in self.missed:
+            return "no_result"
+        return None
 
     @property
     def succeeded(self) -> bool:
@@ -619,6 +654,9 @@ class BackendOutcome(Generic[_T]):
         return {
             "status": self.status.value,
             "backend": self.backend,
+            "requested_backend": self.requested_backend,
+            "fallback_reason": self.fallback_reason,
+            "allow_fallback": self.allow_fallback,
             "attempted": list(self.attempted),
             "missed": list(self.missed),
             "skipped": list(self.skipped),
@@ -718,6 +756,7 @@ def run_backend_chain(  # ruff: ignore[undocumented-param]
     skipped = list(plan.skipped)
     skip_details = list(plan.skip_details)
     selected_capabilities = plan.selected_capabilities
+    requested = plan.eligible[0] if plan.eligible else None
 
     attempted: list[str] = []
     missed: list[str] = []
@@ -807,6 +846,8 @@ def run_backend_chain(  # ruff: ignore[undocumented-param]
             selected_capabilities=selected_capabilities,
             active_capability=candidate.capability,
             skip_details=tuple(skip_details),
+            requested_backend=requested,
+            allow_fallback=resolved_policy.allow_fallback,
         )
 
     if errors:
@@ -834,4 +875,6 @@ def run_backend_chain(  # ruff: ignore[undocumented-param]
         selected_capabilities=selected_capabilities,
         active_capability=None,
         skip_details=tuple(skip_details),
+        requested_backend=requested,
+        allow_fallback=resolved_policy.allow_fallback,
     )

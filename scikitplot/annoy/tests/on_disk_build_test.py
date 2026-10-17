@@ -12,20 +12,9 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-import os
-
-import pytest
 
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
-
-HERE = os.path.dirname(__file__)  # "tests"
-
-
-@pytest.fixture(scope="module", autouse=True)
-def setUp():
-    if os.path.exists(f"{HERE}/on_disk.ann"):
-        os.remove(f"{HERE}/on_disk.ann")
 
 
 def add_items(i):
@@ -40,16 +29,16 @@ def check_nns(i):
     assert i.get_nns_by_vector([4, 2], 3) == [1, 2, 0]
 
 
-def test_on_disk():
+def test_on_disk(tmp_path):
     f = 2
     i = AnnoyIndex(f, "euclidean")
-    i.on_disk_build(f"{HERE}/on_disk.ann")
+    i.on_disk_build(str(tmp_path / "on_disk.ann"))
     add_items(i)
     i.build(10)
     check_nns(i)
     i.unload()
-    i.load(f"{HERE}/on_disk.ann")
+    i.load(str(tmp_path / "on_disk.ann"))
     check_nns(i)
     j = AnnoyIndex(f, "euclidean")
-    j.load(f"{HERE}/on_disk.ann")
+    j.load(str(tmp_path / "on_disk.ann"))
     check_nns(j)

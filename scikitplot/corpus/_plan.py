@@ -83,6 +83,7 @@ __all__: list[str] = [
 CONFIG_DOMAINS = (
     "source",
     "reader",
+    "identity",
     "normalizer",
     "chunker",
     "enricher",
@@ -98,6 +99,9 @@ CONFIG_DOMAINS = (
 INGEST_DOMAINS = (
     "source",
     "reader",
+    # R2-3: the document id scheme ("sha256" or "uuid7") decides the ids a
+    # build stores, so it belongs to what gets built.
+    "identity",
     "normalizer",
     "chunker",
     "enricher",

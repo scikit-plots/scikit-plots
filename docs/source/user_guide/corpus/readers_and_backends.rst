@@ -45,6 +45,69 @@ records contain safe error metadata, not live exception/traceback objects.
 capability status, readiness) so an ``unavailable`` result is diagnosable without
 replaying the operation or scraping debug logs.
 
+What ran, what was asked, and why they differ
+---------------------------------------------
+
+The components that choose between implementations -- reader backend chains
+(:class:`BackendOutcome`), vector backends and their Annoy bindings, and
+``SemanticChunker`` -- report the same four names:
+
+``requested_backend``
+    What the configuration asked for (``"auto"``, a backend name, a binding).
+
+``backend``
+    What actually ran.
+
+``fallback_reason``
+    Why they differ, from a closed vocabulary per component; ``None`` when they
+    do not. Reader chains (:class:`BackendOutcome`) use ``"failed"`` and
+    ``"no_result"`` (a candidate the policy skips was never eligible, as an
+    absent backend is not a fallback under ``"auto"``); vector backends use
+    ``"<name>_broken"`` (installed but failing to load, skipped under
+    ``"auto"``), ``"option_unsupported"`` and ``"<binding>_unavailable"``;
+    ``SemanticChunker`` uses ``"sentence_transformers_unavailable"``,
+    ``"model_load_failed"`` and ``"embedding_failed"``.
+
+``allow_fallback``
+    The switch: ``True`` (default) runs the fallback and reports it, ``False``
+    raises instead (:class:`FallbackRefusedError` for vector backends; a
+    strict chain attempts only its first eligible candidate). An unknown
+    option name raises in both modes, and an explicitly named vector backend
+    is never replaced. An Annoy ``dtype`` value is checked by the binding that
+    honours it; one dropped by a fallback is reported verbatim.
+
+For the dense index, :attr:`RetrievalIndex.backend_provenance` reports the four
+names (and, for Annoy, the binding and any ``discarded_options``), and every
+dense leg (``RetrievalIndex`` and ``DenseRetriever``) carries
+``requested_backend`` and ``fallback_reason``. Invalid embeddings (non-finite,
+not two-dimensional) still disable the dense index with a warning; a backend
+error, a refused fallback included, propagates from ``build``.
+``AnnoyBackend(impl="auto")`` picks a binding that accepts every requested
+option, so ``annoy_dtype="float64"`` runs on the Cython class rather than being
+dropped by the high-level one:
+
+.. code-block:: python
+
+    from scikitplot.corpus import RetrievalConfig, RetrievalIndex
+
+    config = RetrievalConfig(backend="annoy", annoy_dtype="float64")
+    strict = RetrievalConfig(backend="annoy", annoy_impl="highlevel",
+                             annoy_dtype="float64", allow_fallback=False)
+    # index = RetrievalIndex(config); index.build(documents)
+    # index.backend_provenance
+    #   -> {"requested_backend": "annoy", "backend": "annoy", "impl": "cython",
+    #       "fallback_reason": None, ...}
+    # RetrievalIndex(strict).build(documents) raises FallbackRefusedError: the
+    #   high-level binding cannot honour dtype.
+
+:func:`capability_snapshot` loads no backend by default, so it does not import
+Annoy (or, through it, scikit-learn and SciPy): Annoy reports ``unknown``
+(``not_loaded``, and so ``available`` is ``False``) until this process has
+loaded it; an installed FAISS or Voyager likewise. ``capability_snapshot(load=True)`` loads
+them to tell ``available`` from ``broken``. :func:`probe_backend` reports a
+backend that is installed but fails to load as ``broken``, never as
+``absent``; one with no evidence of a failed load stays ``absent``.
+
 Readiness vocabulary
 --------------------
 

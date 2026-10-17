@@ -215,12 +215,27 @@ class TestCustomBackendHappyPath:
         assert result.metadata["backend"] == "custom"
 
     def test_chunk_count_matches_splitter_output(self) -> None:
-        # Splitter always returns 3 parts
-        chunker = self._make_chunker(
-            lambda t: ["part one", "part two", "part three"]
+        # Splitter always returns 3 parts, none of them in the source: without
+        # offsets the parts are taken as they are...
+        chunker = SentenceChunker(
+            SentenceChunkerConfig(
+                backend=SentenceBackend.CUSTOM,
+                custom_splitter=FunctionSentenceSplitter(
+                    lambda t: ["part one", "part two", "part three"]
+                ),
+                min_length=1,
+                include_offsets=False,
+            )
         )
         result = chunker.chunk("anything goes here since splitter is mocked")
         assert len(result.chunks) == 3
+
+    def test_a_part_not_in_the_source_cannot_get_an_offset(self) -> None:
+        """R3-3: ...with offsets there is no position to give it, so it raises
+        (the old search fell back to the cursor: a wrong span, silently)."""
+        chunker = self._make_chunker(lambda t: ["part one", "part two"])
+        with pytest.raises(ValueError, match="not a substring"):
+            chunker.chunk("anything goes here since splitter is mocked")
 
     def test_min_length_filters_short_chunks(self) -> None:
         chunker = SentenceChunker(
@@ -234,7 +249,7 @@ class TestCustomBackendHappyPath:
                 include_offsets=True,
             )
         )
-        result = chunker.chunk("anything")
+        result = chunker.chunk("hi this is a longer sentence ok")
         # "hi" (2 chars) and "ok" (2 chars) filtered out
         assert len(result.chunks) == 1
         assert "longer" in result.chunks[0].text
@@ -554,7 +569,7 @@ class TestEdgeCases:
                 min_length=100,
             )
         )
-        result = chunker.chunk("anything here to chunk into pieces")
+        result = chunker.chunk("hi yo ok")
         assert len(result.chunks) == 0
 
     def test_whitespace_stripping_applied(self) -> None:
@@ -568,7 +583,7 @@ class TestEdgeCases:
                 strip_whitespace=True,
             )
         )
-        result = chunker.chunk("x")
+        result = chunker.chunk("  hello world    foo bar  ")
         for chunk in result.chunks:
             assert chunk.text == chunk.text.strip()
 
@@ -583,7 +598,7 @@ class TestEdgeCases:
                 overlap=1,
             )
         )
-        result = chunker.chunk("x")
+        result = chunker.chunk("First sentence Second sentence Third sentence")
         # Second chunk should contain "First sentence" as context
         assert "First" in result.chunks[1].text
 
