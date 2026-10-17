@@ -78,6 +78,7 @@ from dataclasses import dataclass, field
 from string import Template
 from typing import Any, Callable
 
+from .._json_safety import check_json_nesting
 from ._llm import LLM, CacheError, Completion, IncompleteCompletionError, make_llm
 
 __all__ = [
@@ -338,7 +339,7 @@ def parse_verdict(text: str, schema: Mapping[str, Any]) -> dict[str, Any]:
     JudgeParseError
         If the response is not exactly one JSON object (optionally inside one
         fenced code block); has duplicate keys, ``NaN``/``Infinity``, a number
-        that overflows to infinity, or nesting too deep to parse; or a
+        that overflows to infinity, or nesting deeper than 128 containers; or a
         required field is missing, of another JSON type or range, or a
         string with a lone surrogate.
 
@@ -358,6 +359,7 @@ def parse_verdict(text: str, schema: Mapping[str, Any]) -> dict[str, Any]:
             "the response is not one JSON object (prose around it, or none)", text
         )
     try:
+        check_json_nesting(body)
         value = json.loads(
             body,
             object_pairs_hook=_no_duplicates,

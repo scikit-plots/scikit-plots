@@ -1167,9 +1167,18 @@ class RetrievalIndex:
         exact backend the result is the filtered prefix of the full ranking,
         the same as ranking only the allowed rows.
         """
+        if top_k <= 0 or not self._documents:
+            return []
         if allowed is None:
-            return self._backend.query(query_embedding, top_k)
-        if not allowed or top_k <= 0:
+            # Some approximate backends (notably Voyager) raise when asked for
+            # more neighbors than the index contains. Others silently clamp k.
+            # Clamp centrally so a backend's API quirk cannot turn an ordinary
+            # small-corpus query into a failed retrieval leg.
+            return self._backend.query(
+                query_embedding,
+                min(top_k, len(self._documents)),
+            )
+        if not allowed:
             return []
         n_rows = len(self._documents)
         k = min(n_rows, max(top_k, 1))

@@ -444,6 +444,7 @@ test_nogil = [
   "pytest-timeout",
   "pytest-xdist",                           # Use Multiple CPUs to speed up
 
+  "tomli-w",                                # Exercise the optional TOML output writer in tests
   "asv",                                    # Benchmarking
   "mpmath",                                 # Arbitrary precision math
   "tenacity",                               # general-purpose retrying library, written in Python

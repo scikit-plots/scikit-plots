@@ -34,7 +34,10 @@ class TestContextManager:
         with pytest.raises(
             AssertionError, match=r"during this module: \['fixture.tree'\]"
         ), guard:
-            os.utime(fixture, ns=(10**18, 10**18 + 1))
+            # Use a delta larger than the timestamp resolution of common
+            # Windows filesystems (and FAT's 2-second granularity); 1 ns can
+            # round to the same persisted mtime and make this test flaky.
+            os.utime(fixture, ns=(10**18, 10**18 + 10_000_000_000))
 
     def test_reading_is_not_a_change(self, tmp_path):
         fixture = tmp_path / "fixture.tree"

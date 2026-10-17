@@ -33,7 +33,8 @@ half-written file, even if the process is interrupted. Every format round-trips
 every string, including the line-break characters U+0085, U+2028 and U+2029,
 which are written escaped. YAML input with aliases is refused: a report never
 contains them, and an untrusted file could use them to expand a small input
-into gigabytes.
+into gigabytes. JSON and each JSON Lines record are limited to 128 nested
+objects/arrays regardless of the Python runtime's own decoder limit.
 
 **Developer note.** :func:`to_builtin` is the only place where Python and
 NumPy values become the data model. Sets are refused rather than ordered by
@@ -53,6 +54,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from ._atomic import atomic_write_bytes
+from ._json_safety import check_json_nesting
 
 __all__: list[str] = []
 
@@ -470,6 +472,7 @@ def loads(text: str, format: str) -> Any:  # noqa: A002
 
 def _loads(text: str, fmt: str) -> Any:
     if fmt == "json":
+        check_json_nesting(text)
         return json.loads(
             text, parse_constant=_reject_constant, parse_float=_parse_float
         )
@@ -482,6 +485,7 @@ def _loads(text: str, fmt: str) -> Any:
             if not line.strip():
                 raise ValueError(f"JSON Lines input has a blank line at line {number}.")
             try:
+                check_json_nesting(line)
                 rows.append(
                     json.loads(
                         line,

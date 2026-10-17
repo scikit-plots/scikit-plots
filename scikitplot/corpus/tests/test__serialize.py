@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import enum
+import json
 import math
 import sys
 from types import MappingProxyType
@@ -82,6 +83,10 @@ class TestJson:
     def test_infinity_is_refused(self):
         with pytest.raises(ValueError, match="infinite"):
             s.dumps({"v": math.inf}, "json")
+
+    def test_container_delimiters_inside_strings_do_not_count_as_nesting(self):
+        data = {"literal": '[{]} " [', "other": "brackets ] }"}
+        assert s.loads(json.dumps(data), "json") == data
 
     @pytest.mark.parametrize("token", ["NaN", "Infinity", "-Infinity"])
     def test_non_standard_tokens_are_refused_on_read(self, token):
