@@ -1,0 +1,14 @@
+- ``Kiss32Random.index``, ``Kiss64Random.index`` and
+  ``KissGenerator.integers`` (with ``KissRandomState.randint``) draw without
+  modulo bias: a raw draw below ``2**w mod n`` is rejected before the modulo
+  (at ``n = 3e9`` the 32-bit ``index`` put 60.3% of draws in the lower 43.2%
+  of the range). A seeded stream equals the old one until the first
+  rejection, which for small ``n`` practically never happens.
+  ``Kiss32Random.index(n)`` reaches indices of ``2**32`` and more (two draws
+  per index for ``n > 2**32``); ``index`` raises ``ValueError`` for
+  ``n < 0`` as documented (it raised ``OverflowError``), ``TypeError`` for
+  a ``bool`` or a non-integer, and ``OverflowError`` above ``size_t``;
+  ``integers`` refuses non-integer bounds and a range wider than ``2**64``.
+  ``KissSeedSequence.spawn`` reserves its spawn keys under a lock, so
+  threads never mint the same key (identical child streams) on
+  free-threaded builds. Annoy, which shares the C++ generator, is unchanged.

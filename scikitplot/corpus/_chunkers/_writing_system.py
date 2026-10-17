@@ -55,6 +55,7 @@ from typing import (  # noqa: F401
     runtime_checkable,
 )
 
+from .._notices import CAPABILITIES_HINT, notice_once
 from .._types import Chunk, ChunkResult  # noqa: F401
 from ._custom_tokenizer import (  # noqa: F401
     CustomTokenizerRegistry,
@@ -145,9 +146,10 @@ class WritingSystemAdapterConfig:
 
     Parameters
     ----------
-    unit : {"word", "sentence", "grapheme_cluster"}, optional
-        Segmentation granularity requested from each strategy.
-        Default ``"word"``.
+    unit : {"word", "sentence", "grapheme_cluster", "morpheme"}, optional
+        Segmentation granularity requested from each strategy (a strategy
+        without morphological analysis treats ``"morpheme"`` as ``"word"``).
+        Any other value raises ``ValueError``. Default ``"word"``.
     max_chunk_size : int or None, optional
         Hard cap on chunk length in grapheme clusters.  Chunks exceeding
         this limit are split further by the strategy.  Default ``None``.
@@ -164,6 +166,24 @@ class WritingSystemAdapterConfig:
     overlap: int = 0
     strip_whitespace: bool = True
     min_chunk_length: int = 1
+
+    def __post_init__(self) -> None:
+        """Refuse a unit no strategy implements (review of R3-1, F10)."""
+        check_adapter_unit(self.unit, "WritingSystemAdapterConfig.unit")
+
+
+#: Units the strategies branch on; anything else used to run as ``"word"``.
+ADAPTER_UNITS: frozenset[str] = frozenset(
+    {"word", "sentence", "grapheme_cluster", "morpheme"}
+)
+
+
+def check_adapter_unit(unit: object, where: str) -> None:
+    """Raise ``ValueError`` unless ``unit`` is one of :data:`ADAPTER_UNITS`."""
+    if unit not in ADAPTER_UNITS:
+        raise ValueError(
+            f"{where} must be one of {sorted(ADAPTER_UNITS)}, got {unit!r}"
+        )
 
 
 # ===========================================================================
@@ -417,10 +437,13 @@ class ArabicMorphologicalStrategy:
                 self.__class__._HAS_CAMEL = True
             except ImportError:
                 self.__class__._HAS_CAMEL = False
-                logger.warning(
+                notice_once(
+                    logger,
+                    "segmenter:camel-tools",
                     "ArabicMorphologicalStrategy: camel-tools not installed. "
                     "Falling back to whitespace segmentation. "
-                    "Install with: pip install camel-tools"
+                    "Install with: pip install camel-tools. %s",
+                    CAPABILITIES_HINT,
                 )
         return bool(self.__class__._HAS_CAMEL)
 
@@ -510,10 +533,13 @@ class CJKCharacterStrategy:
             except ImportError:
                 self.__class__._HAS_JIEBA = False
                 if self._prefer_jieba:
-                    logger.warning(
+                    notice_once(
+                        logger,
+                        "segmenter:jieba",
                         "CJKCharacterStrategy: jieba not installed. "
                         "Falling back to character-level splitting. "
-                        "Install with: pip install jieba"
+                        "Install with: pip install jieba. %s",
+                        CAPABILITIES_HINT,
                     )
 
     def segment(
@@ -667,12 +693,15 @@ class JapaneseStrategy:
         except ImportError:
             pass
 
-        logger.warning(
+        notice_once(
+            logger,
+            "segmenter:japanese",
             "JapaneseStrategy: no Japanese morphological library found "
             "(mecab-python3, fugashi, or sudachipy). "
             "Falling back to grapheme-cluster splitting. "
             "Install one of: pip install mecab-python3 OR pip install fugashi "
-            "OR pip install sudachipy sudachi-dictionary-full"
+            "OR pip install sudachipy sudachi-dictionary-full. %s",
+            CAPABILITIES_HINT,
         )
         return "grapheme"
 
@@ -704,11 +733,16 @@ class JapaneseStrategy:
                     mode_map[self._sudachi_mode],
                 )
         except Exception as exc:  # noqa: BLE001
-            logger.warning(
+            # An installed analyser that cannot start (MeCab without a
+            # dictionary) is an environment fact too: once per process.
+            notice_once(
+                logger,
+                f"segmenter:japanese:init:{self._impl}",
                 "JapaneseStrategy: failed to initialise %r backend (%s). "
-                "Falling back to grapheme-cluster splitting.",
+                "Falling back to grapheme-cluster splitting. %s",
                 self._impl,
                 exc,
+                CAPABILITIES_HINT,
             )
             self._impl = "grapheme"
 
@@ -808,10 +842,13 @@ class KoreanSyllableStrategy:
                 self.__class__._HAS_KSS = True
             except ImportError:
                 self.__class__._HAS_KSS = False
-                logger.warning(
+                notice_once(
+                    logger,
+                    "segmenter:kss",
                     "KoreanSyllableStrategy: kss not installed. "
                     "Sentence splitting unavailable for Korean. "
-                    "Install with: pip install kss"
+                    "Install with: pip install kss. %s",
+                    CAPABILITIES_HINT,
                 )
         return bool(self.__class__._HAS_KSS)
 
@@ -1017,10 +1054,13 @@ class DictionaryBoundaryStrategy:
         self, text: str, base: int, config: WritingSystemAdapterConfig
     ) -> list[Chunk]:
         if not self._probe("pythainlp"):
-            logger.warning(
+            notice_once(
+                logger,
+                "segmenter:pythainlp",
                 "DictionaryBoundaryStrategy: PyThaiNLP not installed. "
                 "Falling back to grapheme-cluster splitting. "
-                "Install with: pip install pythainlp"
+                "Install with: pip install pythainlp. %s",
+                CAPABILITIES_HINT,
             )
             return self._grapheme_fallback.segment(
                 ScriptSpan(text, ScriptType.THAI, "ltr", base, base + len(text)),
@@ -1085,11 +1125,14 @@ class DictionaryBoundaryStrategy:
                     "DictionaryBoundaryStrategy: PyThaiNLP Lao failed (%s).", exc
                 )
 
-        logger.warning(
+        notice_once(
+            logger,
+            f"segmenter:dictionary:{script.value}",
             "DictionaryBoundaryStrategy: no dictionary for %r. "
             "Falling back to grapheme-cluster. "
-            "Install: pip install khmer-nltk  OR  pip install pythainlp",
+            "Install: pip install khmer-nltk  OR  pip install pythainlp. %s",
             script.value,
+            CAPABILITIES_HINT,
         )
         return self._grapheme_fallback.segment(
             ScriptSpan(text, script, "ltr", base, base + len(text)), config
@@ -1109,9 +1152,12 @@ class DictionaryBoundaryStrategy:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("DictionaryBoundaryStrategy: jieba failed (%s).", exc)
 
-        logger.warning(
+        notice_once(
+            logger,
+            "segmenter:jieba",
             "DictionaryBoundaryStrategy: jieba not installed for Chinese. "
-            "Falling back to character-level. Install: pip install jieba"
+            "Falling back to character-level. Install: pip install jieba. %s",
+            CAPABILITIES_HINT,
         )
         from ._custom_tokenizer import split_cjk_chars  # noqa: PLC0415
 

@@ -31,7 +31,6 @@ __all__ = [
     "backend_info",
     "closest",
     "distance",
-    "make_corpus_scorer",
     "normalized_distance",
     "normalized_similarity",
     "rank",
@@ -248,7 +247,12 @@ def _python_distance(
     a: Any,
     b: Any,
 ) -> int:
-    """Memory-bounded Wagner-Fischer distance for arbitrary sequences."""
+    """Memory-bounded Wagner-Fischer distance for arbitrary sequences.
+
+    Elements match under container equality (identity, then ``==``), the rule
+    ``left == right`` already applies, so the same NaN object matches itself
+    here exactly as it does in every accelerated backend.
+    """
     left = _as_sequence(a)
     right = _as_sequence(b)
     if left == right:
@@ -263,10 +267,56 @@ def _python_distance(
         for j, y in enumerate(right, start=1):
             insert = current[j - 1] + 1
             delete = previous[j] + 1
-            replace = previous[j - 1] + (x != y)
+            replace = previous[j - 1] + (0 if (x is y or x == y) else 1)
             current.append(min(insert, delete, replace))
         previous = current
     return previous[-1]
+
+
+#: Argument pairs every backend already compares exactly, element by element.
+_EXACT_PAIRS = ((str, str), (bytes, bytes), (bytearray, bytearray), (bytes, bytearray))
+
+
+def _exact_codes(
+    a: Any,
+    b: Any,
+) -> tuple[Any, Any]:
+    """Return ``(a, b)`` in a form every backend compares by element equality.
+
+    Parameters
+    ----------
+    a, b : sequence-like
+        The two inputs of one distance computation.
+
+    Returns
+    -------
+    tuple
+        ``(a, b)`` unchanged for string or byte pairs; otherwise two tuples of
+        small integers, one code per distinct element under container
+        equality (identity, then ``==``) shared by both sides.
+
+    Notes
+    -----
+    **Developer.** Accelerated backends compare element *hashes*: the bundled
+    kernel always did, and RapidFuzz does for values outside its native integer
+    range. CPython collides ``hash(-1) == hash(-2)`` and
+    ``hash(0) == hash(2**61 - 1)``, so ``distance([0], [2**61 - 1])`` was 0 on
+    the default backend and 1 on the Python one. Coding through one dict makes
+    equality exact for every backend, at O(len(a) + len(b)) beside an
+    O(len(a) * len(b)) computation. An unhashable element leaves the inputs
+    as they are; accelerated backends then raise and the documented fallback to
+    the Python implementation applies, unchanged.
+    """
+    pair = (type(a), type(b))
+    if pair in _EXACT_PAIRS or pair[::-1] in _EXACT_PAIRS:
+        return a, b
+    codes: dict[Any, int] = {}
+    try:
+        left = tuple(codes.setdefault(item, len(codes)) for item in a)
+        right = tuple(codes.setdefault(item, len(codes)) for item in b)
+    except TypeError:  # an unhashable element
+        return a, b
+    return left, right
 
 
 def _distance_impl(
@@ -292,6 +342,80 @@ def _distance_impl(
     raise AssertionError(backend)
 
 
+#: Safe automatic preference order. The GPL ``levenshtein`` backend is never
+#: added to a plan unless it was requested explicitly.
+_SAFE_ORDER = ("internal", "rapidfuzz", "python")
+
+
+class _ExecutionPlan:
+    """
+    The backends one top-level operation uses, resolved once (LV-001, LV-002).
+
+    Parameters
+    ----------
+    selected : str
+        The resolved backend, tried first.
+    strict : bool
+        Raise on a runtime failure instead of falling back.
+
+    Notes
+    -----
+    **Developer.** ``distance()``, ``rank()`` and ``closest()`` each build one
+    plan, so backend capability is resolved once per call, not once per
+    candidate. When the current backend raises at runtime (and ``strict`` is
+    false), the plan warns once, drops that backend for the rest of the call
+    and tries the next available backend of :data:`_SAFE_ORDER`, ending with
+    pure Python, which cannot fail for a supported input. Every result still
+    names the backend that produced it.
+    """
+
+    def __init__(self, selected: str, *, strict: bool) -> None:
+        self._queue = [selected]
+        self._strict = strict
+        self._extended = False
+
+    @classmethod
+    def build(cls, backend: str, *, strict: bool) -> _ExecutionPlan:
+        """Resolve ``backend`` once (warning once if it is unavailable)."""
+        return cls(_resolve_backend_name(backend, strict=strict), strict=strict)
+
+    def _fall_back(self, failed: str, exc: Exception) -> None:
+        if not self._extended:
+            self._queue.extend(
+                name
+                for name in _SAFE_ORDER
+                if name not in self._queue
+                and (name == "python" or _backend_info(name).available)
+            )
+            self._extended = True
+        self._queue.remove(failed)
+        logger.warning(
+            "Levenshtein backend %r failed at runtime (%s: %s); using %r for the "
+            "rest of this call.",
+            failed,
+            type(exc).__name__,
+            exc,
+            self._queue[0],
+        )
+
+    def distance(self, a: Any, b: Any) -> tuple[int, str]:
+        """Return the distance and the backend that produced it."""
+        # Materialise iterators once, then hand every backend the same exact form.
+        a, b = _exact_codes(_as_sequence(a), _as_sequence(b))
+        while True:
+            name = self._queue[0]
+            if name == "python":
+                return _python_distance(a, b), "python"
+            try:
+                return int(_distance_impl(name)(a, b)), name
+            except (KeyboardInterrupt, SystemExit, MemoryError):
+                raise
+            except Exception as exc:
+                if self._strict:
+                    raise
+                self._fall_back(name, exc)
+
+
 def _distance_with_backend(
     a: Any,
     b: Any,
@@ -300,22 +424,7 @@ def _distance_with_backend(
     strict: bool = False,
 ) -> tuple[int, str]:
     """Return distance plus the implementation that actually produced it."""
-    selected = _resolve_backend_name(backend, strict=strict)
-    try:
-        return int(_distance_impl(selected)(a, b)), selected
-    except (KeyboardInterrupt, SystemExit, MemoryError):
-        raise
-    except Exception as exc:
-        if strict or selected == "python":
-            raise
-        logger.warning(
-            "Levenshtein backend %r failed at runtime (%s: %s); "
-            "falling back to pure Python.",
-            selected,
-            type(exc).__name__,
-            exc,
-        )
-        return _python_distance(a, b), "python"
+    return _ExecutionPlan.build(backend, strict=strict).distance(a, b)
 
 
 def distance(
@@ -421,20 +530,27 @@ def rank(
     ``score_cutoff`` is backend-neutral normalized similarity in ``[0, 1]``.
     It is applied after exact distance computation so every backend preserves
     identical ranking semantics and provenance.
+
+    The backend is resolved once per call. A backend that fails at runtime
+    warns once and is replaced, for the rest of the call, by the next available
+    one of ``internal``, ``rapidfuzz``, ``python``; each match records the
+    backend that computed it. An unknown or (with ``strict=True``) unavailable
+    backend raises even when ``choices`` is empty.
     """
     if limit is not None and limit < 0:
         raise ValueError("limit must be >= 0 or None")
     if not 0.0 <= score_cutoff <= 1.0:
         raise ValueError("score_cutoff must be within [0, 1]")
     query_seq = _as_sequence(query)
+    # One plan for the whole call: the backend is resolved once, and a backend
+    # that fails at runtime warns once (LV-002, LV-001).
+    plan = _ExecutionPlan.build(backend, strict=strict)
 
     def iter_matches() -> Iterable[Match]:
         for index, choice in enumerate(choices):
             value = key(choice) if key is not None else choice
             value_seq = _as_sequence(value)
-            d, used_backend = _distance_with_backend(
-                query_seq, value_seq, backend=backend, strict=strict
-            )
+            d, used_backend = plan.distance(query_seq, value_seq)
             denom = max(len(query_seq), len(value_seq))
             sim = 1.0 if denom == 0 else 1.0 - (d / denom)
             if sim < score_cutoff:
@@ -482,51 +598,3 @@ def closest(
         strict=strict,
     )
     return ranked[0] if ranked else None
-
-
-def make_corpus_scorer(
-    *,
-    backend: str = "auto",
-    strict: bool = False,
-    use_normalized_text: bool = True,
-    score_cutoff: float = 0.0,
-) -> Callable[[str, list[Any], Any], list[Any]]:
-    """
-    Return a scorer compatible with ``corpus.CustomRetrievalIndex``.
-
-    The Corpus import is intentionally lazy so :mod:`scikitplot.levenshtein`
-    remains independently importable.
-    """
-
-    def scorer(query: str, documents: list[Any], config: Any) -> list[Any]:
-        from scikitplot.corpus._similarity import RetrievalHit  # noqa: PLC0415
-
-        def _doc_key(doc: Any) -> Any:
-            if use_normalized_text:
-                return getattr(doc, "normalized_text", None) or getattr(doc, "text", "")
-            return getattr(doc, "text", "")
-
-        top_k = int(getattr(config, "top_k", 10))
-        ranked = rank(
-            query,
-            documents,
-            key=_doc_key,
-            limit=top_k,
-            score_cutoff=score_cutoff,
-            backend=backend,
-            strict=strict,
-        )
-        return [
-            RetrievalHit(
-                doc=item.choice,
-                score=item.similarity,
-                match_mode="levenshtein",
-                backend=f"levenshtein:{item.backend}",
-                native_score=item.similarity,
-                native_metric="normalized_levenshtein_similarity",
-                rank=position,
-            )
-            for position, item in enumerate(ranked)
-        ]
-
-    return scorer

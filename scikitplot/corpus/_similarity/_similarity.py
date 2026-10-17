@@ -38,11 +38,19 @@ import logging
 import math
 import re
 from collections import Counter  # noqa: F401
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Iterable, Mapping, Sequence
 
 from .._diagnostics import ErrorCategory, ErrorRecord
 from .._embedding_manifest import IncompatibleEmbeddingsError
+from .._filters import (
+    ALL_OPERATORS,
+    Filter,
+    FilterCapability,
+    SecurityFilter,
+    validate_filter,
+)
+from .._fusion import FusionPolicy
 from .._generation import IndexGeneration, derive_generation
 from .._retrieval import (
     LegKind,
@@ -156,10 +164,13 @@ class RetrievalConfig:
     keyword_threshold : float
         Minimum keyword overlap for KEYWORD results.
     hybrid_alpha : float
-        Weight for semantic scores in HYBRID mode (0 = pure keyword,
-        1 = pure semantic).  Default 0.5 (equal weight).
+        Dense share in HYBRID mode, shorthand for the two leg weights
+        ``{lexical: 1 - alpha, dense: alpha}`` of
+        :class:`~scikitplot.corpus.FusionPolicy` (R2-1): ``0`` returns the
+        lexical leg alone and ``1`` the dense leg alone, exactly.  Default 0.5.
     rrf_k : int
-        Reciprocal rank fusion constant.  Default 60 (standard).
+        Reciprocal rank fusion constant, an ``int`` of at least 1.  Default 60
+        (standard).
     use_normalized_text : bool
         Use ``normalized_text`` for matching when available.
     case_sensitive : bool
@@ -184,16 +195,25 @@ class RetrievalConfig:
     annoy_search_k : int
         Annoy query-time node budget.  ``-1`` (default) lets Annoy choose.
     annoy_impl : str
-        Which Annoy index class to use: ``"auto"`` (default; high-level
+        Which Annoy index class to use: ``"auto"`` (default; a class that
+        accepts every requested option, the high-level
         ``scikitplot.annoy.Index`` first, else the Cython
         ``scikitplot.annoy._annoy.Index``), ``"highlevel"``, or ``"cython"``.
     annoy_dtype : str or None
         Embedding precision for the Cython Annoy class (e.g. ``"float32"``,
-        ``"float64"``).  Ignored by the high-level class.  Default ``None``.
+        ``"float64"``); ``annoy_impl="auto"`` picks that class when it is set.
+        The high-level class cannot honour it (see ``allow_fallback``).
+        Default ``None``.
     annoy_index_dtype : str or None
         Item-id integer width for the Cython Annoy class (e.g. ``"int32"``,
-        ``"uint64"``) for very large corpora.  Ignored otherwise.  Default
-        ``None``.
+        ``"uint64"``) for very large corpora.  Default ``None``.
+    allow_fallback : bool
+        What happens when the dense backend cannot run as configured (R2-5):
+        under ``backend="auto"`` an installed backend that fails to load is
+        skipped, and an Annoy option the running binding cannot honour is
+        dropped, both reported on the dense leg (``requested_backend``,
+        ``fallback_reason``) and in :attr:`RetrievalIndex.backend_provenance`
+        (``True``, default); ``False`` raises at build instead.
 
     Notes
     -----
@@ -219,8 +239,14 @@ class RetrievalConfig:
     annoy_impl: str = "auto"
     annoy_dtype: str | None = None
     annoy_index_dtype: str | None = None
+    allow_fallback: bool = True
 
     def __post_init__(self) -> None:  # ruff: ignore[too-many-branches]
+        if not isinstance(self.allow_fallback, bool):
+            raise TypeError(
+                "allow_fallback must be a bool, got "
+                f"{type(self.allow_fallback).__name__}"
+            )
         valid = ("strict", "keyword", "semantic", "hybrid")
         if self.match_mode not in valid:
             raise ValueError(
@@ -230,6 +256,11 @@ class RetrievalConfig:
             raise ValueError(f"top_k must be >= 1, got {self.top_k}")
         if not 0.0 <= self.hybrid_alpha <= 1.0:
             raise ValueError(f"hybrid_alpha must be in [0, 1], got {self.hybrid_alpha}")
+        # R2-1: the fusion contract owns the rules for k and the weights.
+        try:
+            FusionPolicy.from_alpha(self.hybrid_alpha, k=self.rrf_k)
+        except (TypeError, ValueError) as exc:
+            raise type(exc)(f"RetrievalConfig: {exc}") from None
         valid_backends = ("auto", "annoy", "faiss", "voyager", "bruteforce", "brute")
         if isinstance(self.backend, str):
             if self.backend not in valid_backends:
@@ -388,20 +419,42 @@ class _BM25Index:
         self,
         query_tokens: list[str],
         top_k: int = 10,
+        allowed: frozenset[int] | None = None,
+        scope: frozenset[int] | None = None,
     ) -> list[tuple[int, float]]:
-        """Return ``(doc_index, bm25_score)`` pairs, sorted desc."""
+        """Return ``(doc_index, bm25_score)`` pairs, sorted desc.
+
+        ``allowed`` restricts scoring to those rows (R2-2), so a filtered query
+        returns the top ``top_k`` of the allowed documents, never fewer because
+        disallowed ones took the places. ``scope`` (the rows a security filter
+        admits) is the collection the statistics -- document count, document
+        frequencies, average length -- are computed over, so documents outside
+        the scope cannot change the scores or the order of those inside it.
+        """
         scores: dict[int, float] = {}
-        n = self._n_docs
+        if scope is None:
+            n = self._n_docs
+            avgdl = self._avgdl
+        else:
+            n = len(scope)
+            total = sum(self._doc_lens[i] for i in scope)
+            avgdl = total / n if n else 1.0
 
         for term in query_tokens:
-            df = self._doc_freqs.get(term, 0)
+            postings = self._postings.get(term, ())
+            if scope is None:
+                df = self._doc_freqs.get(term, 0)
+            else:
+                df = sum(1 for i, _tf in postings if i in scope)
             if df == 0:
                 continue
             idf = math.log((n - df + 0.5) / (df + 0.5) + 1.0)
-            for i, tf in self._postings[term]:
+            for i, tf in postings:
+                if allowed is not None and i not in allowed:
+                    continue
                 dl = self._doc_lens[i]
                 num = tf * (self.k1 + 1)
-                den = tf + self.k1 * (1 - self.b + self.b * dl / self._avgdl)
+                den = tf + self.k1 * (1 - self.b + self.b * dl / avgdl)
                 scores[i] = scores.get(i, 0.0) + idf * num / den
 
         # Highest score first; equal scores keep the lower document index first,
@@ -458,8 +511,19 @@ class RetrievalIndex:
     def __init__(
         self,
         config: RetrievalConfig | None = None,
+        *,
+        security_filter: SecurityFilter | None = None,
     ) -> None:
+        if security_filter is not None and not isinstance(
+            security_filter, SecurityFilter
+        ):
+            raise TypeError(
+                "security_filter must be a SecurityFilter or None, got "
+                f"{type(security_filter).__name__}"
+            )
         self.config = config or RetrievalConfig()
+        #: Scope AND-ed with every query's filter (R2-2); fixed for the index.
+        self._security_filter = security_filter
         self._documents: list[Any] = []
         self._bm25: _BM25Index | None = None
         self._token_lists: list[list[str]] = []
@@ -678,9 +742,28 @@ class RetrievalIndex:
         (default ``"auto"`` → Annoy when available, else FAISS, Voyager, or
         exact brute-force).  Selecting an explicitly named backend that is not
         installed raises :class:`RuntimeError` here — a deliberately requested
-        backend must not be silently downgraded.
+        backend must not be silently downgraded — and so does a fallback that
+        ``allow_fallback=False`` refuses (``FallbackRefusedError``).
+        Non-finite or malformed embeddings disable the dense index instead.
         """
-        from ._backends import select_backend  # noqa: PLC0415
+        from ._backends import (  # noqa: PLC0415
+            _require_numpy,
+            _validate_embeddings,
+            select_backend,
+        )
+
+        # Only invalid *data* disables the dense index, so it is checked
+        # first and alone. A backend's own error -- a refused fallback
+        # (``FallbackRefusedError``), a binding rejecting an option value --
+        # propagates: it used to be caught by the same ``except ValueError``
+        # and logged as "invalid embeddings" (review of R2-5, F1).
+        try:
+            _validate_embeddings(_require_numpy(), embeddings)
+        except ValueError as exc:
+            logger.warning("Dense index disabled (invalid embeddings): %s", exc)
+            self._backend = None
+            self._embeddings = None
+            return
 
         cfg = self.config
         # Config errors (unknown/unavailable explicit backend) propagate.
@@ -690,17 +773,10 @@ class RetrievalIndex:
         backend = select_backend(
             cfg.backend,
             index_kwargs=cfg.index_kwargs,
+            allow_fallback=cfg.allow_fallback,
             **cfg._legacy_annoy_selector_kwargs(),
         )
-        try:
-            backend.build(embeddings)
-        except ValueError as exc:
-            # Data-level problem (e.g. non-finite embeddings): disable the dense
-            # index and degrade to sparse rather than failing the whole build.
-            logger.warning("Dense index disabled (invalid embeddings): %s", exc)
-            self._backend = None
-            self._embeddings = None
-            return
+        backend.build(embeddings)
         self._backend = backend
         logger.debug(
             "RetrievalIndex: dense backend=%r (dim=%d)",
@@ -712,12 +788,50 @@ class RetrievalIndex:
     # Search
     # ------------------------------------------------------------------
 
+    @property
+    def security_filter(self) -> SecurityFilter | None:
+        """The scope every query is restricted to, or ``None`` (read-only)."""
+        return self._security_filter
+
+    def _query_filter(self, filter: Any) -> Filter | None:  # noqa: A002
+        """Return the caller's filter checked and frozen (R2-2), or ``None``."""
+        if filter is None:
+            return None
+        if not isinstance(filter, (Filter, Mapping)):
+            raise TypeError(
+                "filter must be a Filter expression, its JSON form (a "
+                f"mapping) or None, got {type(filter).__name__}"
+            )
+        return validate_filter(filter if isinstance(filter, Filter) else dict(filter))
+
+    def _effective_filter(self, filter: Any) -> Filter | None:  # noqa: A002
+        """Return the query filter AND-ed with the security filter (R2-2)."""
+        query_filter = self._query_filter(filter)
+        if self._security_filter is not None:
+            return self._security_filter.combine(query_filter)
+        return query_filter
+
+    def _rows(self, expression: Filter | None) -> frozenset[int] | None:
+        """Return the rows ``expression`` admits, or ``None`` for every row."""
+        if expression is None:
+            return None
+        return frozenset(
+            row for row, doc in enumerate(self._documents) if expression.matches(doc)
+        )
+
+    def _scope_rows(self) -> frozenset[int] | None:
+        """Return the rows the security filter admits, or ``None`` for all."""
+        if self._security_filter is None:
+            return None
+        return self._rows(self._security_filter.expression)
+
     def search(
         self,
         query: str,
         *,
         config: RetrievalConfig | None = None,
         query_embedding: Any | None = None,
+        filter: Filter | Mapping[str, Any] | None = None,  # noqa: A002
     ) -> RetrievalResponse:
         """Search the index.
 
@@ -730,6 +844,15 @@ class RetrievalIndex:
         query_embedding : array-like or None, optional
             Pre-computed query embedding.  Required for SEMANTIC
             mode if no embedding engine is attached.
+        filter : Filter, mapping or None, optional
+            Restrict the search to documents this expression matches (R2-2):
+            a :class:`~scikitplot.corpus.Filter` or its JSON form
+            (:func:`~scikitplot.corpus.filter_from_dict`). It is AND-ed with
+            the index's :attr:`security_filter`, so it can narrow but never
+            widen what a caller sees. Every leg applies it before ranking, so a
+            filtered query returns the best ``top_k`` matching documents; each
+            leg that ran reports its ``filter_capability`` (every operator
+            ``EMULATED``: evaluated in Python over the indexed documents).
 
         Returns
         -------
@@ -750,30 +873,60 @@ class RetrievalIndex:
         the dense leg marked ``FAILED``.
         """
         cfg = config or self.config
+        query_filter = self._query_filter(filter)
+        expression = (
+            self._security_filter.combine(query_filter)
+            if self._security_filter is not None
+            else query_filter
+        )
+        allowed = self._rows(expression)
+        scope = self._scope_rows()
 
         if cfg.match_mode == "strict":
-            hits = self._search_strict(query, cfg)
+            hits = self._search_strict(query, cfg, allowed=allowed)
             legs = [
                 self._leg(LegKind.LEXICAL, hits, backend=None),
                 _skipped(LegKind.DENSE),
             ]
         elif cfg.match_mode == "keyword":  # noqa: RET505
-            hits = self._search_keyword(query, cfg)
+            hits = self._search_keyword(query, cfg, allowed=allowed, scope=scope)
             legs = [
                 self._leg(LegKind.LEXICAL, hits, backend=None),
                 _skipped(LegKind.DENSE),
             ]
         elif cfg.match_mode == "semantic":
             hits, dense_leg = self._run_dense(
-                query, query_embedding, cfg, sole_leg=True
+                query, query_embedding, cfg, sole_leg=True, allowed=allowed
             )
             legs = [_skipped(LegKind.LEXICAL), dense_leg]
         elif cfg.match_mode == "hybrid":
-            hits, legs = self._search_hybrid_with_legs(query, query_embedding, cfg)
+            hits, legs = self._search_hybrid_with_legs(
+                query, query_embedding, cfg, allowed=allowed, scope=scope
+            )
         else:
             raise ValueError(f"Unknown match_mode: {cfg.match_mode!r}")
 
-        return RetrievalResponse(hits=hits, legs=legs, query=query)
+        if expression is not None:
+            # Every operator is evaluated in Python over the indexed documents
+            # before any leg ranks: answered, but not natively.
+            capability = FilterCapability.for_expression(
+                expression, emulated=ALL_OPERATORS
+            )
+            legs = [
+                replace(leg, filter_capability=capability) if leg.ran else leg
+                for leg in legs
+            ]
+        return RetrievalResponse(
+            hits=hits,
+            legs=legs,
+            query=query,
+            filter=query_filter,
+            scope=(
+                self._security_filter.label
+                if self._security_filter is not None
+                else None
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Leg construction (F-R09-01)
@@ -786,14 +939,36 @@ class RetrievalIndex:
         *,
         backend: str | None,
     ) -> LegOutcome:
-        """Build a successful/empty outcome for a leg that ran."""
+        """Build a successful/empty outcome for a leg that ran.
+
+        A leg served by the dense backend also reports what was requested and
+        why it differs (R2-5).
+        """
+        fields = self._backend_fields() if backend is not None else {}
         return LegOutcome(
             leg=kind,
             status=LegStatus.SUCCESS if hits else LegStatus.EMPTY,
             hit_count=len(hits),
             generation=self._generation,
-            backend=backend,
+            **{"backend": backend, **fields},
         )
+
+    def _backend_fields(self) -> dict[str, Any]:
+        """Return the dense backend's ``LegOutcome`` fields (R2-5).
+
+        One source for every dense leg, ``RetrievalIndex`` and
+        :class:`~scikitplot.corpus.DenseRetriever` alike: ``backend``,
+        ``requested_backend`` and ``fallback_reason``; empty when no dense
+        index is built.
+        """
+        provenance = self.backend_provenance
+        if provenance is None:
+            return {}
+        return {
+            "backend": provenance["backend"],
+            "requested_backend": provenance["requested_backend"],
+            "fallback_reason": provenance["fallback_reason"],
+        }
 
     def _dense_unavailable_reason(
         self, query_embedding: Any | None
@@ -842,6 +1017,7 @@ class RetrievalIndex:
         cfg: RetrievalConfig,
         *,
         sole_leg: bool = False,
+        allowed: frozenset[int] | None = None,
     ) -> tuple[list[RetrievalHit], LegOutcome]:
         """Run the dense leg, reporting *why* it could not run when it cannot.
 
@@ -883,7 +1059,7 @@ class RetrievalIndex:
                 error=reason,
             )
         self._check_threshold_scale(cfg)
-        hits = self._search_semantic(query, query_embedding, cfg)
+        hits = self._search_semantic(query, query_embedding, cfg, allowed=allowed)
         return hits, self._leg(LegKind.DENSE, hits, backend=self.backend_name)
 
     # ------------------------------------------------------------------
@@ -894,13 +1070,17 @@ class RetrievalIndex:
         self,
         query: str,
         cfg: RetrievalConfig,
+        *,
+        allowed: frozenset[int] | None = None,
     ) -> list[RetrievalHit]:
-        """Exact substring search."""
+        """Exact substring search over the ``allowed`` rows (all when ``None``)."""
         results: list[RetrievalHit] = []
         use_norm = cfg.use_normalized_text
         q = query if cfg.case_sensitive else query.lower()
 
-        for doc in self._documents:
+        for row, doc in enumerate(self._documents):
+            if allowed is not None and row not in allowed:
+                continue
             text = _get_text(doc, use_norm)
             t = text if cfg.case_sensitive else text.lower()
             if q in t:
@@ -929,8 +1109,15 @@ class RetrievalIndex:
         self,
         query: str,
         cfg: RetrievalConfig,
+        *,
+        allowed: frozenset[int] | None = None,
+        scope: frozenset[int] | None = None,
     ) -> list[RetrievalHit]:
-        """BM25-based keyword search."""
+        """BM25-based keyword search over the ``allowed`` rows (all when ``None``).
+
+        ``scope`` is the collection the BM25 statistics are computed over (the
+        security filter's rows), so nothing outside it changes a score.
+        """
         if self._bm25 is None:
             return []
 
@@ -938,7 +1125,9 @@ class RetrievalIndex:
         if not query_tokens:
             return []
 
-        bm25_results = self._bm25.query(query_tokens, top_k=cfg.top_k)
+        bm25_results = self._bm25.query(
+            query_tokens, top_k=cfg.top_k, allowed=allowed, scope=scope
+        )
         results: list[RetrievalHit] = []
         for idx, score in bm25_results:
             if score < cfg.keyword_threshold:
@@ -962,11 +1151,80 @@ class RetrievalIndex:
     # SEMANTIC search
     # ------------------------------------------------------------------
 
+    def _ranked_rows(
+        self,
+        query_embedding: Any,
+        top_k: int,
+        allowed: frozenset[int] | None,
+    ) -> list[tuple[int, float]]:
+        """Return the backend's best ``top_k`` rows among ``allowed`` (R2-2).
+
+        Notes
+        -----
+        **Developer.**  A vector backend ranks every row, so the filter is
+        applied by asking for more rows (doubling, up to every row) until
+        ``top_k`` allowed ones are found or the backend has none left. For an
+        exact backend the result is the filtered prefix of the full ranking,
+        the same as ranking only the allowed rows.
+        """
+        if top_k <= 0 or not self._documents:
+            return []
+        if allowed is None:
+            # Some approximate backends (notably Voyager) raise when asked for
+            # more neighbors than the index contains. Others silently clamp k.
+            # Clamp centrally so a backend's API quirk cannot turn an ordinary
+            # small-corpus query into a failed retrieval leg.
+            return self._backend.query(
+                query_embedding,
+                min(top_k, len(self._documents)),
+            )
+        if not allowed:
+            return []
+        n_rows = len(self._documents)
+        k = min(n_rows, max(top_k, 1))
+        while True:
+            pairs = self._backend.query(query_embedding, k)
+            picked = [(row, score) for row, score in pairs if row in allowed]
+            if len(picked) >= top_k or k >= n_rows:
+                return picked[:top_k]
+            if len(pairs) < k:
+                # The backend searched less than it was asked (an approximate
+                # index with a bounded search budget): rank the admitted rows
+                # exactly instead of returning fewer than exist.
+                return self._exact_rows(query_embedding, top_k, allowed)
+            k = min(n_rows, k * 2)
+
+    def _exact_rows(
+        self, query_embedding: Any, top_k: int, allowed: frozenset[int]
+    ) -> list[tuple[int, float]]:
+        """Rank ``allowed`` rows by exact cosine, index-ascending on ties."""
+        from ._backends import (  # noqa: PLC0415
+            _require_numpy,
+            _validate_query_vector,
+        )
+
+        np = _require_numpy()
+        rows = np.asarray(sorted(allowed), dtype=np.intp)
+        matrix = np.asarray(self._embeddings, dtype=np.float64)[rows]
+        query = _validate_query_vector(np, query_embedding, matrix.shape[1])
+        norm_q = float(np.linalg.norm(query))
+        if norm_q == 0.0:
+            return []
+        norms = np.linalg.norm(matrix, axis=1)
+        sims = np.zeros(len(rows), dtype=np.float64)
+        nonzero = norms > 0
+        sims[nonzero] = (matrix[nonzero] @ (query / norm_q)) / norms[nonzero]
+        sims = np.clip(sims, -1.0, 1.0)
+        order = np.argsort(-sims, kind="stable")[:top_k]
+        return [(int(rows[i]), float(sims[i])) for i in order]
+
     def _search_semantic(
         self,
         query: str,
         query_embedding: Any | None,
         cfg: RetrievalConfig,
+        *,
+        allowed: frozenset[int] | None = None,
     ) -> list[RetrievalHit]:
         """Dense vector cosine similarity search via the unified backend.
 
@@ -991,7 +1249,7 @@ class RetrievalIndex:
             )
 
         results: list[RetrievalHit] = []
-        for idx, score in self._backend.query(query_embedding, cfg.top_k):
+        for idx, score in self._ranked_rows(query_embedding, cfg.top_k, allowed):
             if score < cfg.semantic_threshold:
                 continue
             results.append(
@@ -1019,6 +1277,9 @@ class RetrievalIndex:
         query: str,
         query_embedding: Any | None,
         cfg: RetrievalConfig,
+        *,
+        allowed: frozenset[int] | None = None,
+        scope: frozenset[int] | None = None,
     ) -> tuple[list[RetrievalHit], list[LegOutcome]]:
         """Run both legs, record each outcome, then fuse.
 
@@ -1028,24 +1289,38 @@ class RetrievalIndex:
         recorded *before* fusion, so a hybrid query whose dense leg could not run
         yields ``DEGRADED`` with a naming ``ErrorRecord`` instead of silently
         fused lexical-only results still labelled ``hybrid``.
+
+        R2-1: a leg whose weight is 0 (``hybrid_alpha`` 0 or 1) adds nothing to
+        the fusion, so it is not run and is reported ``SKIPPED``; its failure
+        cannot degrade a complete one-leg answer.
         """
         fetch_k = min(cfg.top_k * 3, max(len(self._documents), 1))
 
-        kw_cfg = RetrievalConfig(
-            top_k=fetch_k,
-            match_mode="keyword",
-            use_normalized_text=cfg.use_normalized_text,
-        )
-        keyword_results = self._search_keyword(query, kw_cfg)
-        lexical_leg = self._leg(LegKind.LEXICAL, keyword_results, backend=None)
+        keyword_results: list[RetrievalHit] = []
+        lexical_leg = _skipped(LegKind.LEXICAL)
+        if cfg.hybrid_alpha < 1.0:
+            kw_cfg = RetrievalConfig(
+                top_k=fetch_k,
+                match_mode="keyword",
+                use_normalized_text=cfg.use_normalized_text,
+            )
+            keyword_results = self._search_keyword(
+                query, kw_cfg, allowed=allowed, scope=scope
+            )
+            lexical_leg = self._leg(LegKind.LEXICAL, keyword_results, backend=None)
 
-        sem_cfg = RetrievalConfig(
-            top_k=fetch_k,
-            match_mode="semantic",
-            backend=cfg.backend,
-            semantic_threshold=cfg.semantic_threshold,
-        )
-        semantic_results, dense_leg = self._run_dense(query, query_embedding, sem_cfg)
+        semantic_results: list[RetrievalHit] = []
+        dense_leg = _skipped(LegKind.DENSE)
+        if cfg.hybrid_alpha > 0.0:
+            sem_cfg = RetrievalConfig(
+                top_k=fetch_k,
+                match_mode="semantic",
+                backend=cfg.backend,
+                semantic_threshold=cfg.semantic_threshold,
+            )
+            semantic_results, dense_leg = self._run_dense(
+                query, query_embedding, sem_cfg, allowed=allowed
+            )
 
         hits = self._fuse_hybrid(query, keyword_results, semantic_results, cfg)
         return hits, [lexical_leg, dense_leg]
@@ -1099,42 +1374,60 @@ class RetrievalIndex:
         semantic_results: list[RetrievalHit],
         cfg: RetrievalConfig,
     ) -> list[RetrievalHit]:
-        """Reciprocal rank fusion of the supplied leg results.
+        """Weighted reciprocal rank fusion of the two legs (R2-1).
 
         Notes
         -----
-        The fusion arithmetic is unchanged from the reviewed implementation --
-        standard-form ``1/(k + rank + 1)`` weighted by ``hybrid_alpha``, keyed on
-        ``doc_id`` rather than row offset.  Review run R09 verified it correct
-        (disproof D-17); only the *leg gating* around it moved out.
+        The rule is :class:`~scikitplot.corpus.FusionPolicy`, the contract the
+        MCP hybrid retriever shares byte for byte: ``hybrid_alpha`` is the
+        weights ``{lexical: 1 - alpha, dense: alpha}``; a document counts once
+        per leg at its best rank; a weight-0 leg adds no document; ties fall to
+        the lower ``doc_id``. Each hit carries its per-leg contributions.
         """
-        # Reciprocal rank fusion
-        rrf_scores: dict[str, float] = {}
-        doc_map: dict[str, Any] = {}
-        k = cfg.rrf_k
+        from .._retrievers import LegContribution  # noqa: PLC0415
 
-        for rank, res in enumerate(keyword_results):
-            doc_id = getattr(res.doc, "doc_id", id(res.doc))
-            rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + (
-                (1.0 - cfg.hybrid_alpha) / (k + rank + 1)
-            )
-            doc_map[doc_id] = res.doc
-
-        for rank, res in enumerate(semantic_results):
-            doc_id = getattr(res.doc, "doc_id", id(res.doc))
-            rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + (
-                cfg.hybrid_alpha / (k + rank + 1)
-            )
-            doc_map[doc_id] = res.doc
-
-        sorted_ids = sorted(rrf_scores, key=rrf_scores.__getitem__, reverse=True)
+        policy = FusionPolicy.from_alpha(cfg.hybrid_alpha, k=cfg.rrf_k, top_k=cfg.top_k)
+        legs = (
+            (LegKind.LEXICAL, keyword_results),
+            (LegKind.DENSE, semantic_results),
+        )
+        first_hit: list[dict[str, RetrievalHit]] = []
+        keys: list[list[str]] = []
+        for kind, leg_hits in legs:
+            by_key: dict[str, RetrievalHit] = {}
+            leg_keys = []
+            for rank, hit in enumerate(leg_hits, start=1):
+                key = getattr(hit.doc, "doc_id", None)
+                if not isinstance(key, str) or not key:
+                    raise ValueError(
+                        f"hybrid search: the {kind.value} leg's hit at rank {rank} "
+                        f"has doc_id {key!r}; fusion needs a non-empty str doc_id "
+                        "to identify a document across legs"
+                    )
+                leg_keys.append(key)
+                by_key.setdefault(key, hit)
+            first_hit.append(by_key)
+            keys.append(leg_keys)
+        fused = policy.fuse(
+            (kind.value, leg_keys) for (kind, _hits), leg_keys in zip(legs, keys)
+        )
 
         results = []
-        for doc_id in sorted_ids[: cfg.top_k]:
+        for item in fused:
+            contributions = tuple(
+                LegContribution(
+                    leg=LegKind(part.leg),
+                    rank=part.rank - 1,
+                    native_score=first_hit[part.position][item.key].native_score,
+                    native_metric=first_hit[part.position][item.key].native_metric,
+                )
+                for part in item.contributions
+            )
+            doc = first_hit[item.contributions[0].position][item.key].doc
             results.append(
                 RetrievalHit(
-                    doc=doc_map[doc_id],
-                    score=rrf_scores[doc_id],
+                    doc=doc,
+                    score=item.score,
                     match_mode="hybrid",
                     backend=self.backend_name,
                     index_generation=self._generation,
@@ -1143,6 +1436,7 @@ class RetrievalIndex:
                     # value does not have (ADR-R07-003).
                     native_score=None,
                     native_metric="reciprocal_rank_fusion",
+                    contributions=contributions,
                     rank=len(results),
                 )
             )
@@ -1167,6 +1461,33 @@ class RetrievalIndex:
     def backend_name(self) -> str | None:
         """Name of the active dense ANN backend, or ``None`` if unbuilt."""
         return self._backend.name if self._backend is not None else None
+
+    @property
+    def backend_provenance(self) -> dict[str, Any] | None:
+        """What the dense backend was asked to be, what runs, and why (R2-5).
+
+        Returns
+        -------
+        dict or None
+            :meth:`VectorIndexBackend.provenance` of the active backend
+            (``requested_backend``, ``backend``, ``fallback_reason``,
+            ``allow_fallback``, plus Annoy's binding); ``None`` when no dense
+            index is built. A backend object without ``provenance()`` (one
+            assigned directly rather than selected) requested itself.
+        """
+        backend = self._backend
+        if backend is None:
+            return None
+        provenance = getattr(backend, "provenance", None)
+        if callable(provenance):
+            return provenance()
+        name = getattr(backend, "name", type(backend).__name__)
+        return {
+            "requested_backend": name,
+            "backend": name,
+            "fallback_reason": None,
+            "allow_fallback": True,
+        }
 
     @property
     def index_generation(self) -> IndexGeneration | None:
@@ -1227,8 +1548,11 @@ class RetrievalIndex:
         if self._backend is None or self._embeddings is None:
             return []
         top = int(k) if k is not None else self.config.top_k
+        # R2-2: this seam (the MCP vector index) is a read path too, so the
+        # security filter applies to it exactly as to search().
+        allowed = self._scope_rows()
         out: list[tuple[str, float]] = []
-        for idx, score in self._backend.query(vector, top):
+        for idx, score in self._ranked_rows(vector, top, allowed):
             doc = self._documents[idx]
             doc_id = getattr(doc, "doc_id", None)
             out.append((doc_id if doc_id is not None else str(idx), float(score)))

@@ -27,11 +27,16 @@ import pickle
 import pytest
 
 from scikitplot.corpus._export._export import (
+    _binary_payload,
     _validate_loaded_documents,
     _verify_artifact_integrity,
     load_documents,
 )
-from scikitplot.corpus._schema import CorpusDocument, SourceType
+from scikitplot.corpus._schema import (
+    CorpusDocument,
+    IncompatibleSchemaError,
+    SourceType,
+)
 
 
 def _docs(n=3):
@@ -41,9 +46,10 @@ def _docs(n=3):
     ]
 
 
-def _dump(obj, path):
+def _dump(obj, path, *, wrap=True):
+    """Pickle ``obj`` as an export would (the generation-recording mapping)."""
     with open(path, "wb") as fh:
-        pickle.dump(obj, fh)
+        pickle.dump(_binary_payload(obj) if wrap else obj, fh)
 
 
 def _sha256(path: pathlib.Path) -> str:
@@ -113,3 +119,29 @@ class TestIntegrity:
         p = tmp_path / "good.pkl"
         _dump(_docs(1), p)
         assert _verify_artifact_integrity(p, None) is None
+
+
+class TestGeneration:
+    """R2-3: a pickle records the document schema generation that wrote it."""
+
+    def test_a_bare_list_from_before_schema_3_is_refused(self, tmp_path):
+        p = tmp_path / "old.pkl"
+        _dump(_docs(2), p, wrap=False)
+        with pytest.raises(IncompatibleSchemaError, match="bare list"):
+            load_documents(p, trusted=True)
+
+    def test_another_major_generation_is_refused(self, tmp_path):
+        p = tmp_path / "v2.pkl"
+        payload = _binary_payload(_docs(1))
+        payload["schema_version"] = "2.0"
+        _dump(payload, p, wrap=False)
+        with pytest.raises(IncompatibleSchemaError, match="incompatible"):
+            load_documents(p, trusted=True)
+
+    def test_a_mapping_without_a_version_is_refused(self, tmp_path):
+        p = tmp_path / "nov.pkl"
+        payload = _binary_payload(_docs(1))
+        del payload["schema_version"]
+        _dump(payload, p, wrap=False)
+        with pytest.raises(IncompatibleSchemaError, match="declares no"):
+            load_documents(p, trusted=True)

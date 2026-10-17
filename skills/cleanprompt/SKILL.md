@@ -81,7 +81,7 @@ history. Four habits make that safe:
   now becomes a note — with reproduction, root cause and acceptance
   criteria — not a sentence in a chat.
 - **Freeze before verifying.** Run long lanes against a copy of the tree, or
-  do not edit while they run (`tasks/lessons.md` rules 1 and 22).
+  do not edit while they run (`skills/_engineering/rules/verification.md`, rules 1 and 22).
 - **Close the round.** Move the summary to `HISTORY.md`, refresh `STATE.json`
   and `EVIDENCE.json` from lanes that actually ran, reset the step log, and
   leave **Next action** pointing at the first open note.

@@ -47,10 +47,10 @@ call time when not installed.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import pathlib
 import threading
+import uuid
 from dataclasses import dataclass, field
 from timeit import default_timer as timer
 from typing import (  # noqa: F401
@@ -68,6 +68,16 @@ import numpy as np
 import numpy.typing as npt
 
 from .._atomic import atomic_write_path
+from .._embedding_manifest import EmbeddingManifest
+from ._cache_policy import (
+    CachedEmbeddings,
+    CachePolicy,
+    CacheStatus,
+    enforce_bounds,
+    hash_fields,
+    is_commit,
+    touch_entry,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +111,10 @@ _FLOAT_DTYPES = (np.float16, np.float32, np.float64)
 # ---------------------------------------------------------------------------
 
 
-_CACHE_KEY_SCHEMA = "v2"  # bump to invalidate all caches when key semantics change
+#: Bump to invalidate every cache entry when key semantics change. v3 added the
+#: provider identity (a custom provider used to share one key with every other)
+#: and keeps the full SHA-256 digest, the package rule for durable identities.
+_CACHE_KEY_SCHEMA = "v3"
 
 
 def _make_cache_key(
@@ -112,6 +125,7 @@ def _make_cache_key(
     dtype: str,
     backend: str = "",
     model_revision: str = "",
+    provider_id: str = "",
 ) -> str:
     """
     Compute a content-addressed cache key.
@@ -119,9 +133,10 @@ def _make_cache_key(
     A cache hit under this key is semantically equivalent to recomputation:
     the key is a SHA-256 digest over everything that affects the output
     embeddings — the embedding model (``model_name`` + ``model_revision``),
-    the ``backend``, the output ``dtype`` and ``normalize`` flag, and the
-    **full text content** of every input (length-prefixed so that, e.g.,
-    ``["ab", "c"]`` and ``["a", "bc"]`` never collide).
+    the ``backend`` and the provider identity (``provider_id``), the output
+    ``dtype`` and ``normalize`` flag, and the **full text content** of every
+    input (length-prefixed so that, e.g., ``["ab", "c"]`` and ``["a", "bc"]``
+    never collide).
 
     Source path and modification time are deliberately *not* part of the key.
     They are a proxy for content that fails when the text changes without
@@ -143,11 +158,15 @@ def _make_cache_key(
         Embedding backend identifier (e.g. ``"sentence_transformers"``).
     model_revision : str, optional
         Model revision/version pin, when known. Empty when unpinned.
+    provider_id : str, optional
+        Stable identity of a custom provider (``custom_fn_id``). Two different
+        callables must never share a key: before this field existed, a second
+        custom provider was served the first one's vectors and never called.
 
     Returns
     -------
     str
-        32-character lowercase hex digest (128 bits).
+        64-character lowercase hex SHA-256 digest.
 
     Examples
     --------
@@ -156,28 +175,20 @@ def _make_cache_key(
     >>> a != b  # different content -> different key
     True
     >>> len(a)
-    32
+    64
     """
-    h = hashlib.sha256()
-
-    def _field(value: str) -> None:
-        b = value.encode("utf-8")
-        # length-prefix each field so field boundaries are unambiguous
-        h.update(str(len(b)).encode("ascii"))
-        h.update(b"\x1f")
-        h.update(b)
-        h.update(b"\x1e")
-
-    _field(_CACHE_KEY_SCHEMA)
-    _field(model_name)
-    _field(model_revision)
-    _field(backend)
-    _field("1" if normalize else "0")
-    _field(dtype)
-    _field(str(len(texts)))
-    for t in texts:
-        _field(t)
-    return h.hexdigest()[:32]
+    fields = [
+        _CACHE_KEY_SCHEMA,
+        model_name,
+        model_revision,
+        backend,
+        provider_id,
+        "1" if normalize else "0",
+        dtype,
+        str(len(texts)),
+        *texts,
+    ]
+    return hash_fields([value.encode("utf-8") for value in fields])
 
 
 def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
@@ -188,7 +199,7 @@ def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
     cache_dir : pathlib.Path
         Directory holding cached embedding arrays.
     key : str
-        32-character hex cache key from :func:`_make_cache_key`.
+        Hex cache key from :func:`_make_cache_key`.
 
     Returns
     -------
@@ -223,12 +234,53 @@ def _save_to_cache(
     logger.debug("EmbeddingEngine: cached %d embeddings to %s.", len(embeddings), path)
 
 
+def _read_entry(path: pathlib.Path) -> npt.NDArray[Any] | None:
+    """Read a cache entry, ``None`` when there is none to read.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The entry's path.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        The stored array; ``None`` when the entry is missing, empty, or
+        unreadable.
+
+    Notes
+    -----
+    **Developer.** One stat, no ``exists()`` first: a concurrent evictor may
+    remove the entry at any moment (also between the stat and the load), and
+    a vanished entry is a miss, logged at debug level. A path that cannot be
+    read at all (``cache_dir`` is a file, permission denied) is a miss too;
+    the store that follows reports its own failure. A corrupt entry is logged
+    as a warning and regenerated.
+    """
+    try:
+        if path.stat().st_size == 0:
+            return None
+        return np.load(str(path), allow_pickle=False)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        logger.debug("EmbeddingEngine: cannot read cache %s: %s", path, exc)
+        return None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "EmbeddingEngine: failed to load cache %s — will regenerate. %s",
+            path,
+            exc,
+        )
+        return None
+
+
 def _load_from_cache(
     path: pathlib.Path,
     expected_n: int,
-) -> npt.NDArray[np.float32] | None:
+) -> npt.NDArray[np.floating] | None:
     """
-    Load and validate a cached embedding array.
+    Load and validate a cached embedding array, in the dtype it was stored in.
 
     Parameters
     ----------
@@ -242,17 +294,17 @@ def _load_from_cache(
     numpy.ndarray or None
         The loaded array, or ``None`` if the cache is missing, invalid,
         or has the wrong shape.
+
+    Notes
+    -----
+    **Developer.** The array is returned in its stored dtype. The cache key
+    already includes the output dtype, so the stored dtype is the requested
+    one; this used to force ``float32`` here, and a ``float64`` engine got
+    ``float32``-rounded values back from every hit (``1 + 1e-12`` came back as
+    ``1.0``) -- a hit that was not equivalent to recomputation.
     """
-    if not path.exists() or path.stat().st_size == 0:
-        return None
-    try:
-        arr = np.load(str(path), allow_pickle=False)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning(
-            "EmbeddingEngine: failed to load cache %s — will regenerate. %s",
-            path,
-            exc,
-        )
+    arr = _read_entry(path)
+    if arr is None:
         return None
 
     # Validate shape
@@ -280,7 +332,37 @@ def _load_from_cache(
         )
         return None
 
-    return arr.astype(np.float32, copy=False)
+    return arr
+
+
+def _l2_normalise_rows(matrix: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
+    """
+    Return ``matrix`` with every non-zero row scaled to unit L2 norm.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        2-D float array.
+
+    Returns
+    -------
+    numpy.ndarray
+        A new ``float64`` array. Zero rows stay zero rather than NaN; rows
+        with a non-finite value stay non-finite, so the index's finiteness
+        check still refuses them.
+
+    Notes
+    -----
+    **Developer.** The norm is taken in ``float64``, and the caller casts to
+    its dtype afterwards. In ``float16`` the sum of squares overflows above
+    65504 (a 768-d vector with components of 10 already does), and every
+    such row came back as zeros; a NaN row also came back as zeros, which
+    hid the provider error from the index's finiteness check.
+    """
+    work = np.asarray(matrix, dtype=np.float64)
+    norms = np.linalg.norm(work, axis=1, keepdims=True)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return work / np.where(norms == 0, 1.0, norms)
 
 
 # ---------------------------------------------------------------------------
@@ -294,6 +376,8 @@ def _make_sentence_transformers_fn(
     normalize: bool,
     show_progress_bar: bool,
     device: str | None,
+    *,
+    revision: str | None = None,
 ) -> EmbedFn:
     """
     Build an ``EmbedFn`` backed by ``sentence_transformers``.
@@ -314,11 +398,22 @@ def _make_sentence_transformers_fn(
     device : str or None
         PyTorch device string (``"cpu"``, ``"cuda"``, ``"mps"``). ``None``
         lets sentence_transformers choose.
+    revision : str or None, optional
+        Model revision (commit, tag or branch) to load. ``None`` loads the
+        hub's current version.
 
     Returns
     -------
     EmbedFn
         Callable accepting ``list[str]`` and returning ``np.ndarray``.
+
+    Notes
+    -----
+    **Developer.** ``revision`` used to stop at the cache key and the
+    manifest: both recorded a pinned revision while the model loaded was
+    the hub's current one. It is now passed to ``SentenceTransformer``; an
+    installed version that cannot take it raises, rather than loading another
+    revision under the recorded one.
     """
     _model: list[Any] = []  # mutable container for lazy init
 
@@ -337,6 +432,8 @@ def _make_sentence_transformers_fn(
             kwargs: dict[str, Any] = {}
             if device is not None:
                 kwargs["device"] = device
+            if revision:
+                kwargs["revision"] = revision
             _model.append(SentenceTransformer(model_name, **kwargs))
             logger.debug(
                 "EmbeddingEngine: loaded sentence_transformers model %r.", model_name
@@ -437,7 +534,7 @@ class EmbeddingEngine:
         ``sentence_transformers`` and ``openai`` backends. Default: ``64``.
     normalize : bool, optional
         L2-normalise output vectors to unit norm (required for cosine /
-        inner-product similarity search). Default: ``True``.
+        inner-product similarity search), for every backend. Default: ``True``.
     dtype : numpy.dtype, optional
         Output dtype. Default: ``numpy.float32``.
     show_progress_bar : bool, optional
@@ -446,6 +543,28 @@ class EmbeddingEngine:
     device : str or None, optional
         PyTorch device for sentence_transformers (``"cpu"``, ``"cuda"``,
         ``"mps"``). ``None`` lets the library choose. Default: ``None``.
+    model_revision : str, optional
+        Model revision (commit, tag or branch). The sentence_transformers
+        backend loads exactly this revision; every backend records it in the
+        cache key and the embedding manifest. ``""`` (default) is unpinned:
+        the hub's current version is loaded. Only a commit hash makes the disk
+        cache exact for sentence_transformers; an empty value or a branch or
+        tag (which can move) uses the cache only as ``cache_policy`` allows
+        (by default it does not). For other backends the value is recorded,
+        not sent: it is your statement of which model version the name stands
+        for.
+    custom_fn_id : str or None, optional
+        Stable identity of ``custom_fn``, e.g. ``"my-embedder/v3"``; change it
+        whenever the function's output changes. It is what the disk cache and
+        the embedding manifest know the provider by. ``None`` (default) means
+        the provider is unidentified: its vectors are not disk-cached, and the
+        manifest it stamps is unique to this engine instance, so documents
+        embedded by two engines cannot be indexed together by accident. Only
+        valid with ``backend="custom"``.
+    cache_policy : CachePolicy or None, optional
+        How the disk cache treats an unpinned model and how big it may grow.
+        ``None`` (default) is ``CachePolicy()``: an unpinned model's
+        embeddings are computed, not cached, and the cache is unbounded.
 
     Attributes
     ----------
@@ -455,9 +574,13 @@ class EmbeddingEngine:
     Raises
     ------
     ValueError
-        If ``backend="custom"`` but ``custom_fn`` is ``None``.
+        If ``backend="custom"`` but ``custom_fn`` is ``None``, or
+        ``custom_fn_id`` is given with another backend or is empty.
     ValueError
         If ``batch_size`` or ``dtype`` are invalid.
+    TypeError
+        If ``model_revision`` is not a str, or ``cache_policy`` is neither a
+        :class:`CachePolicy` nor ``None``.
     ImportError
         At call time if the required backend library is not installed.
 
@@ -473,16 +596,23 @@ class EmbeddingEngine:
     **Thread safety:** The internal model cache (``_embed_fn``) is
     initialised lazily and protected by a ``threading.Lock``.
 
-    **Cache invalidation:** The cache key includes the source file's
-    modification time. Any write to the source file (even a metadata
-    update via ``touch``) invalidates the cache. If this is undesirable,
-    pass a stable ``input_path`` (e.g. a logical identifier rather than
-    the real path).
+    **Cache identity:** The cache key is content-addressed: the full input
+    text plus model, revision, backend, provider identity, dtype and
+    normalisation (see ``_make_cache_key``). Source path and modification time
+    are not part of it, so the same text is served from cache whether it came
+    from a file or a URL. A custom provider is cached only when it carries a
+    ``custom_fn_id``; without one, two different functions would share a key.
 
-    **Normalisation:** When ``normalize=True``, zero-norm vectors (e.g.
-    empty-string inputs) are left as zero vectors rather than producing
-    NaN. The normalisation guard in :class:`~scikitplot.corpus.similarity.RetrievalIndex`
-    will warn if any zero vectors are detected at search time.
+    **Provenance:** :meth:`embed_documents` stamps every document with the
+    fingerprint of :meth:`embedding_manifest`, so an index refuses to rank
+    vectors from two embedding generations against each other.
+
+    **Normalisation:** When ``normalize=True``, every backend's vectors are
+    L2-normalised; sentence-transformers does it while encoding, the engine
+    does it for the others. Zero-norm vectors (e.g. empty-string inputs) are
+    left as zero vectors rather than producing NaN. The normalisation guard in
+    :class:`~scikitplot.corpus.similarity.RetrievalIndex` will warn if any zero
+    vectors are detected at search time.
 
     Examples
     --------
@@ -504,13 +634,14 @@ class EmbeddingEngine:
     >>> engine.embed(["Hello."]).shape
     (1, 64)
 
-    With source-file cache:
+    With the disk cache (a custom provider needs an identity to be cached):
 
-    >>> from pathlib import Path
-    >>> vecs, from_cache = engine.embed_with_cache(
-    ...     texts,
-    ...     input_path=Path("corpus.txt"),
+    >>> engine = EmbeddingEngine(
+    ...     backend="custom",
+    ...     custom_fn=lambda texts: np.ones((len(texts), 4), dtype=np.float32),
+    ...     custom_fn_id="ones/v1",
     ... )
+    >>> vecs, from_cache = engine.embed_with_cache(["Hello."])
     """
 
     VALID_BACKENDS: ClassVar[tuple[str, ...]] = (
@@ -536,10 +667,25 @@ class EmbeddingEngine:
     show_progress_bar: bool = field(default=False)
     device: str | None = field(default=None)
     model_revision: str = field(default="")
+    # Last, so that positional construction keeps its meaning.
+    custom_fn_id: str | None = field(default=None)
+    cache_policy: CachePolicy | None = field(default=None)
 
     # Internal: lazily-initialised embed function + lock
     _embed_fn: EmbedFn | None = field(default=None, init=False, repr=False)
     _lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False
+    )
+    # Internal: identity of an unidentified custom provider, unique to this
+    # instance (see ``embedding_manifest``), the cache notices already logged
+    # (once each), and the revision ``cache_policy`` resolved (``None``: not
+    # yet asked; ``""``: resolution failed).
+    _instance_token: str = field(
+        default_factory=lambda: uuid.uuid4().hex, init=False, repr=False
+    )
+    _reported: set = field(default_factory=set, init=False, repr=False)
+    _resolved_revision: str | None = field(default=None, init=False, repr=False)
+    _revision_lock: threading.Lock = field(
         default_factory=threading.Lock, init=False, repr=False
     )
 
@@ -563,9 +709,25 @@ class EmbeddingEngine:
                 "EmbeddingEngine: backend='custom' requires a custom_fn"
                 " callable. Pass custom_fn=your_function."
             )
+        if self.custom_fn_id is not None:
+            if self.backend != "custom":
+                raise ValueError(
+                    "EmbeddingEngine: custom_fn_id identifies a custom provider;"
+                    f" it does not apply to backend={self.backend!r}."
+                )
+            if not isinstance(self.custom_fn_id, str) or not self.custom_fn_id.strip():
+                raise ValueError(
+                    "EmbeddingEngine: custom_fn_id must be a non-empty string;"
+                    f" got {self.custom_fn_id!r}."
+                )
         if self.batch_size <= 0:
             raise ValueError(
                 f"EmbeddingEngine: batch_size must be > 0; got {self.batch_size!r}."
+            )
+        if not isinstance(self.model_revision, str):
+            raise TypeError(
+                'EmbeddingEngine: model_revision must be a str ("" when'
+                f" unpinned); got {self.model_revision!r}."
             )
         if self.dtype not in _FLOAT_DTYPES:
             raise ValueError(
@@ -575,6 +737,13 @@ class EmbeddingEngine:
             )
         if self.cache_dir is None:
             object.__setattr__(self, "cache_dir", DEFAULT_CACHE_DIR)
+        if self.cache_policy is None:
+            object.__setattr__(self, "cache_policy", CachePolicy())
+        elif not isinstance(self.cache_policy, CachePolicy):
+            raise TypeError(
+                "EmbeddingEngine: cache_policy must be a CachePolicy or None;"
+                f" got {type(self.cache_policy).__name__}."
+            )
 
     # ------------------------------------------------------------------
     # Public API
@@ -637,6 +806,13 @@ class EmbeddingEngine:
                 f" vectors for {len(texts)} input texts."
             )
 
+        if self.normalize and self.backend != "sentence_transformers":
+            # sentence-transformers normalises while encoding; every other
+            # backend is normalised here, so ``normalize=True`` -- which the
+            # cache key and the manifest both record -- holds for all of them.
+            # A custom provider's vectors used to come back unnormalised.
+            # Normalise before the cast, in float64 (see _l2_normalise_rows).
+            result = _l2_normalise_rows(result)
         result = result.astype(self.dtype, copy=False)
         logger.info(
             "EmbeddingEngine: embedded %d texts → shape %s in %.1fs.",
@@ -649,19 +825,20 @@ class EmbeddingEngine:
     def embed_with_cache(
         self,
         texts: list[str],
-        input_path: pathlib.Path,
+        input_path: pathlib.Path | None = None,
     ) -> tuple[npt.NDArray[np.float32], bool]:
         """
-        Compute embeddings with file caching keyed to ``input_path``.
+        Compute embeddings through the content-addressed disk cache.
 
         Parameters
         ----------
         texts : list of str
             Text strings to embed.
-        input_path : pathlib.Path
-            Path to the source file that generated ``texts``. Advisory only
-            (diagnostics / provenance): the cache key is content-addressed
-            over ``texts`` and model parameters, not the path or its mtime.
+        input_path : pathlib.Path or None, optional
+            Source of ``texts``, for diagnostics only: the cache key is
+            content-addressed over ``texts`` and the model parameters, never the
+            path or its mtime. ``None`` (a URL or in-memory source) is cached
+            exactly like a file.
 
         Returns
         -------
@@ -674,34 +851,96 @@ class EmbeddingEngine:
         ------
         ValueError
             If ``texts`` is empty.
-        OSError
-            If the cache directory cannot be created.
+
+        See Also
+        --------
+        embed_cached : The same call, reporting what it did.
 
         Examples
         --------
-        >>> vecs, cached = engine.embed_with_cache(texts, Path("corpus.txt"))
-        >>> cached  # True on second call with same inputs
+        >>> engine = EmbeddingEngine(
+        ...     backend="custom",
+        ...     custom_fn=lambda t: np.ones((len(t), 4), dtype=np.float32),
+        ...     custom_fn_id="ones/v1",
+        ...     enable_cache=False,
+        ... )
+        >>> engine.embed_with_cache(["Hello."])[1]
         False
         """
-        if not texts:
-            raise ValueError(
-                "EmbeddingEngine.embed_with_cache: texts must be non-empty."
-            )
+        result = self.embed_cached(texts, input_path)
+        return result.embeddings, result.status is CacheStatus.HIT
 
+    def embed_cached(
+        self,
+        texts: list[str],
+        input_path: pathlib.Path | None = None,
+    ) -> CachedEmbeddings:
+        """
+        Compute embeddings through the disk cache, and say what happened.
+
+        Parameters
+        ----------
+        texts : list of str
+            Text strings to embed.
+        input_path : pathlib.Path or None, optional
+            Source of ``texts``, for diagnostics only.
+
+        Returns
+        -------
+        CachedEmbeddings
+            ``(embeddings, status, key, revision)``; ``status`` is a
+            :class:`CacheStatus`.
+
+        Raises
+        ------
+        ValueError
+            If ``texts`` is empty.
+
+        Notes
+        -----
+        **User.** The cache is consulted only when a hit is what this engine
+        would compute: a sentence-transformers model pinned to a commit
+        (``model_revision``, or resolved with ``CachePolicy(unpinned=
+        "resolve")``), a custom provider's ``custom_fn_id``, the stated
+        ``model_revision`` of another backend, or, by your choice,
+        ``CachePolicy(unpinned="allow")``. Otherwise the embeddings are
+        computed and the status says why the cache was bypassed (logged once
+        per engine). A failed write is reported as ``STORE_FAILED``, never
+        raised.
+
+        **Developer.** A hit refreshes the entry's modification time; after a
+        store, :func:`enforce_bounds` evicts least recently used entries.
+
+        Examples
+        --------
+        >>> engine = EmbeddingEngine(
+        ...     backend="custom",
+        ...     custom_fn=lambda t: np.ones((len(t), 4), dtype=np.float32),
+        ...     enable_cache=False,
+        ... )
+        >>> engine.embed_cached(["Hello."]).status.value
+        'disabled'
+        """
+        if not texts:
+            raise ValueError("EmbeddingEngine.embed_cached: texts must be non-empty.")
         if not self.enable_cache:
-            return self.embed(texts), False
+            return CachedEmbeddings(self.embed(texts), CacheStatus.DISABLED, None, None)
+        revision, bypass = self._cache_identity()
+        if bypass is not None:
+            self._report_bypass(bypass)
+            return CachedEmbeddings(self.embed(texts), bypass, None, None)
 
         # Content-addressed key: identity is the texts + model/backend/params,
         # NOT the source path or mtime. ``input_path`` is advisory (diagnostics
-        # / provenance) and no longer affects cache identity, so a missing or
-        # unstattable path no longer disables caching.
+        # / provenance) and never affects cache identity.
         key = _make_cache_key(
             self.model_name,
             texts,
             normalize=self.normalize,
             dtype=np.dtype(self.dtype).name,
             backend=self.backend,
-            model_revision=self.model_revision,
+            model_revision=revision,
+            provider_id=self.custom_fn_id or "",
         )
         path = _cache_path(self.cache_dir, key)
         logger.debug(
@@ -710,18 +949,20 @@ class EmbeddingEngine:
             len(texts),
             path.name,
         )
+        named = revision or None
 
-        # Try cache load
         cached = _load_from_cache(path, expected_n=len(texts))
         if cached is not None:
+            touch_entry(path)
             logger.info(
                 "EmbeddingEngine: loaded %d embeddings from cache %s.",
                 len(cached),
                 path.name,
             )
-            return cached.astype(self.dtype, copy=False), True
+            return CachedEmbeddings(
+                cached.astype(self.dtype, copy=False), CacheStatus.HIT, key, named
+            )
 
-        # Compute and save
         embeddings = self.embed(texts)
         try:
             _save_to_cache(embeddings, path)
@@ -729,8 +970,10 @@ class EmbeddingEngine:
             logger.warning(
                 "EmbeddingEngine: could not write cache to %s. %s", path, exc
             )
-
-        return embeddings, False
+            return CachedEmbeddings(embeddings, CacheStatus.STORE_FAILED, key, named)
+        if not enforce_bounds(self.cache_dir, self.cache_policy, stored=path):
+            return CachedEmbeddings(embeddings, CacheStatus.TOO_LARGE, key, named)
+        return CachedEmbeddings(embeddings, CacheStatus.STORED, key, named)
 
     def embed_documents(
         self,
@@ -746,13 +989,23 @@ class EmbeddingEngine:
         documents : list of CorpusDocument
             Documents to embed. Each must have a non-empty ``text`` field.
         input_path : pathlib.Path or None, optional
-            Source path for cache key. ``None`` disables caching.
+            Source of the documents, for diagnostics only. Caching follows
+            ``enable_cache`` and ``cache_policy`` (see :meth:`embed_cached`);
+            the key is content-addressed.
 
         Returns
         -------
         list of CorpusDocument
-            The same list with ``embedding`` fields populated (via
-            ``replace()`` — originals are not mutated).
+            The same list with ``embedding`` and ``embedding_manifest_id``
+            populated (via ``replace()`` — originals are not mutated).
+
+        Notes
+        -----
+        **Developer.** ``embedding_manifest_id`` is what lets an index refuse
+        vectors from two generations (``RetrievalIndex._reject_mixed_manifests``).
+        Documents used to leave this method untagged, and untagged vectors are
+        never compared, so the guard never fired: two providers' vectors were
+        built into one index and ranked against each other without error.
 
         Examples
         --------
@@ -766,16 +1019,192 @@ class EmbeddingEngine:
 
         texts = [doc.normalized_text or doc.text for doc in documents]
 
-        if input_path is not None and self.enable_cache:
-            embeddings, _ = self.embed_with_cache(texts, input_path)
-        else:
-            embeddings = self.embed(texts)
+        embeddings = self.embed_cached(texts, input_path).embeddings
 
-        return [doc.replace(embedding=embeddings[i]) for i, doc in enumerate(documents)]
+        manifest_id = self.embedding_manifest(int(embeddings.shape[1])).fingerprint
+        return [
+            doc.replace(embedding=embeddings[i], embedding_manifest_id=manifest_id)
+            for i, doc in enumerate(documents)
+        ]
+
+    def embedding_manifest(self, dimension: int) -> EmbeddingManifest:
+        """
+        Describe the vectors this engine produces.
+
+        Parameters
+        ----------
+        dimension : int
+            Vector length, known once the first vectors exist.
+
+        Returns
+        -------
+        EmbeddingManifest
+            ``provider`` is the backend; ``model`` the model name, or for a
+            custom provider its ``custom_fn_id``; ``revision`` the pinned
+            revision or ``None``; plus dimension, dtype and normalisation.
+
+        Raises
+        ------
+        ValueError
+            If ``dimension`` is not a positive integer.
+
+        Notes
+        -----
+        **User.** Give a custom provider a ``custom_fn_id``: an unidentified
+        one is named after this engine *instance* (``custom:unidentified:...``),
+        so documents embedded by two engines -- even two engines wrapping the
+        same function -- are refused as different generations when indexed
+        together. That is the safe reading of "no identity": nothing proves the
+        two produced comparable vectors.
+        """
+        if (
+            isinstance(dimension, bool)
+            or not isinstance(dimension, int)
+            or dimension < 1
+        ):
+            raise ValueError(
+                f"EmbeddingEngine.embedding_manifest: dimension must be a positive"
+                f" integer; got {dimension!r}."
+            )
+        if self.backend == "custom":
+            model = self.custom_fn_id or f"custom:unidentified:{self._instance_token}"
+        else:
+            model = self.model_name
+        return EmbeddingManifest(
+            provider=self.backend,
+            model=model,
+            revision=self._effective_revision() or None,
+            dimension=dimension,
+            dtype=np.dtype(self.dtype).name,
+            normalization="l2" if self.normalize else "none",
+        )
 
     # ------------------------------------------------------------------
     # Private
     # ------------------------------------------------------------------
+
+    def _effective_revision(self) -> str:
+        """Return the pinned or resolved revision, ``""`` when there is none.
+
+        Returns
+        -------
+        str
+            ``model_revision`` when set; for sentence_transformers with
+            ``CachePolicy(unpinned="resolve")`` the resolver's commit (asked
+            once per engine, before the model is loaded, so the loaded model
+            is that commit); else ``""``.
+        """
+        if self.model_revision or self.backend != "sentence_transformers":
+            return self.model_revision
+        if self.cache_policy.unpinned != "resolve":
+            return ""
+        if self._resolved_revision is None:
+            # Its own lock: _get_embed_fn calls this while holding _lock.
+            with self._revision_lock:
+                if self._resolved_revision is None:
+                    object.__setattr__(
+                        self, "_resolved_revision", self._resolve_revision()
+                    )
+        return self._resolved_revision  # type: ignore[return-value]
+
+    def _resolve_revision(self) -> str:
+        """Ask ``cache_policy.revision_resolver``; ``""`` when it fails.
+
+        Returns
+        -------
+        str
+            The commit, or ``""`` (logged) when the resolver raised or did not
+            return a commit hash (a branch or tag can move).
+        """
+        resolver = self.cache_policy.revision_resolver
+        try:
+            revision = resolver(self.model_name)  # type: ignore[misc]
+        except Exception as exc:  # noqa: BLE001
+            # Any failure (offline, unknown id, a resolver bug) leaves the
+            # model unpinned: it still loads, the cache is bypassed and says so.
+            logger.warning(
+                "EmbeddingEngine: could not resolve the revision of %r (%s: %s);"
+                " the model loads unpinned and the disk cache is bypassed.",
+                self.model_name,
+                type(exc).__name__,
+                exc,
+            )
+            return ""
+        if not is_commit(revision):
+            logger.warning(
+                "EmbeddingEngine: revision_resolver returned %r for %r, not a"
+                " commit hash; the model loads unpinned and the disk cache is"
+                " bypassed.",
+                revision,
+                self.model_name,
+            )
+            return ""
+        return revision
+
+    def _cache_identity(self) -> tuple[str, CacheStatus | None]:
+        """Return the revision the key names, or why the cache is bypassed.
+
+        Returns
+        -------
+        revision : str
+            The key's revision field (``""`` for an identified custom
+            provider or an allowed unpinned model).
+        bypass : CacheStatus or None
+            ``None`` when a hit is provable.
+
+        Notes
+        -----
+        **Developer.** For sentence_transformers only a commit hash is exact
+        (a branch or tag such as ``"main"`` moves, so it follows
+        ``unpinned`` like an empty revision, and is not resolved); other
+        backends do not load a revision, so a non-empty ``model_revision`` is
+        the caller's statement and is trusted as such.
+        """
+        if self.backend == "custom":
+            if self.custom_fn_id is None:
+                return "", CacheStatus.BYPASS_UNIDENTIFIED
+            return self.model_revision, None
+        revision = self._effective_revision()
+        if self.backend != "sentence_transformers" and revision:
+            # Recorded, not loaded: the caller's statement of the version.
+            return revision, None
+        if is_commit(revision):
+            return revision, None
+        # Unpinned, or a branch or tag (which can move upstream).
+        if self.cache_policy.unpinned == "allow":
+            return revision, None
+        return revision, CacheStatus.BYPASS_UNPINNED
+
+    def _report_bypass(self, status: CacheStatus) -> None:
+        """Log, once per engine and status, why the cache was bypassed."""
+        if status in self._reported:
+            return
+        self._reported.add(status)
+        if status is CacheStatus.BYPASS_UNIDENTIFIED:
+            logger.info(
+                "EmbeddingEngine: custom provider has no custom_fn_id;"
+                " its embeddings are computed, not disk-cached. Pass"
+                " custom_fn_id='name/version' to cache them."
+            )
+        elif self.model_revision:
+            logger.info(
+                "EmbeddingEngine: model %r revision %r is not a commit (a branch"
+                " or tag can move, and is not resolved); its embeddings are"
+                " computed, not disk-cached. Pin model_revision to a lowercase"
+                " commit hash, or pass cache_policy=CachePolicy(unpinned='allow').",
+                self.model_name,
+                self.model_revision,
+            )
+        else:
+            logger.info(
+                "EmbeddingEngine: model %r is not pinned to a commit; its"
+                " embeddings are computed, not disk-cached (an entry could"
+                " outlive an upstream change). Pin model_revision, or pass"
+                " cache_policy=CachePolicy(unpinned='resolve',"
+                " revision_resolver=resolve_hub_revision) or"
+                " CachePolicy(unpinned='allow').",
+                self.model_name,
+            )
 
     def _get_embed_fn(self) -> EmbedFn:
         """
@@ -802,6 +1231,7 @@ class EmbeddingEngine:
                     normalize=self.normalize,
                     show_progress_bar=self.show_progress_bar,
                     device=self.device,
+                    revision=self._effective_revision() or None,
                 )
             elif self.backend == "openai":
                 fn = _make_openai_fn(

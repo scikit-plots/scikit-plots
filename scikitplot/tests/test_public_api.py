@@ -35,6 +35,7 @@ def test_dir_testing():
 PUBLIC_MODULES = [
     "scikitplot." + s
     for s in [
+        "agent",
         "annoy",  # "annoy.annoylib",
         "api",
         "api.plotters",

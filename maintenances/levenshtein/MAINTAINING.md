@@ -111,9 +111,11 @@ must not consume the choices iterable.
 `Match.backend` and Corpus retrieval metadata must report the actual backend,
 including runtime fallback to Python.
 
-### L8 — Corpus is an optional bridge, not an import dependency
+### L8 — Corpus depends on Levenshtein, never the reverse
 
-`make_corpus_scorer()` imports Corpus only inside the returned scorer.
+No module here imports `scikitplot.corpus`. The adapter is
+`scikitplot.corpus.make_levenshtein_ranker`, owned by Corpus, which reads
+`Match.backend` into each hit (L7).
 
 ### L9 — top-level discovery stays lazy
 
@@ -128,17 +130,13 @@ from runtime code.
 
 ## Known open work
 
-`REVIEW.json` is authoritative.
+`REVIEW.json` is authoritative. No finding is open.
 
-Two current items are intentionally left open rather than hidden by the docs:
-
-- `LV-001`: a runtime failure of the chosen safe accelerator falls directly to
-  pure Python instead of trying the next remaining safe accelerator.
-- `LV-002`: `rank()` resolves the selected backend for each choice; this can
-  repeat capability probes and warnings.
-
-Neither changes result correctness today. Both should be solved with one
-per-call execution plan rather than ad-hoc exception nesting.
+`LV-001` and `LV-002` were closed together by one per-call execution plan
+(`_ExecutionPlan` in `_core.py`): the backend is resolved once per top-level
+call, a runtime failure warns once and moves to the next available safe
+backend, and pure Python is the terminal fallback. Keep that single object as
+the only place backends are chosen; do not add exception nesting in `rank()`.
 
 ## When adding a backend
 

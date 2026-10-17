@@ -125,18 +125,18 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
         name="mcp",
         summary="Run or probe the scikit-plots documentation MCP server.",
         delegate="scikitplot.mcp.__main__:main",
-        capabilities=("mcp",),
         install_hint="Install the MCP extra: pip install scikit-plots[mcp]",
     ),
-    # Delegated, like `mcp`, but deliberately WITHOUT a `capabilities` gate.
-    # The cleanprompt base tier is pure standard library, so the command is
-    # always runnable; its optional tiers (ner, nltk, web, crypto) are reported
-    # by its own `doctor` subcommand and each raises with an install hint at
-    # the point of use. Vault encryption itself is base tier; the crypto extra
-    # adds only the optional Fernet cipher. tests/test_registry.py keeps this
-    # hint in step with cleanprompt's TIERS. Declaring a capability here would make the whole command
-    # unavailable because an *optional* extra is missing, which is exactly the
-    # false unavailability the tier design exists to avoid.
+    # Delegated, like `mcp`. A delegated command has no availability gate: a
+    # missing submodule or dependency surfaces when the delegate is imported,
+    # as CapabilityMissingError with the hint below (F-32 removed the
+    # `capabilities` field, declared and read nowhere). The cleanprompt base
+    # tier is pure standard library, so the command is always runnable; its
+    # optional tiers (ner, nltk, web, crypto) are reported by its own `doctor`
+    # subcommand and each raises with an install hint at the point of use.
+    # Vault encryption itself is base tier; the crypto extra adds only the
+    # optional Fernet cipher. tests/test_registry.py keeps this hint in step
+    # with cleanprompt's TIERS.
     CommandSpec(
         name="cleanprompt",
         summary="Redact sensitive values from a prompt before sending it to an LLM.",

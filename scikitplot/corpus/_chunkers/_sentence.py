@@ -81,6 +81,7 @@ from ._custom_tokenizer import (
 )
 from ._language_data import coerce_language
 from ._multilang_mixin import MultilangConfig, MultilangMixin
+from ._spans import locate
 
 logger = logging.getLogger(__name__)
 
@@ -419,6 +420,11 @@ def _split_regex(text: str, multi_script: bool = False) -> list[str]:
     if multi_script:
         # Multi-script: no abbreviation protection needed (covers all scripts)
         parts = pattern.split(text)
+    elif _ABBREV_PLACEHOLDER in text:
+        # The source already holds the sentinel, so protecting and restoring
+        # would turn it into "." and the pieces would not be source text
+        # (R3-3 review, F6): split without abbreviation protection.
+        parts = pattern.split(text)
     else:
         protected = _protect_abbreviations(text)
         parts = pattern.split(protected)
@@ -553,29 +559,27 @@ def _split_spacy(
 
 
 def _compute_char_offsets(source: str, segments: list[str]) -> list[tuple[int, int]]:
-    """Compute ``(start_char, end_char)`` offsets for *segments* in *source*.
+    """Return ``(start_char, end_char)`` for each segment, found in order.
 
     Parameters
     ----------
     source : str
         Original document string used as the search space.
     segments : list[str]
-        Ordered text segments whose positions are needed.
+        Ordered substrings of *source*.
 
     Returns
     -------
     list[tuple[int, int]]
-        Parallel list of ``(start, end)`` character index pairs.
+        Parallel list of ``(start, end)`` with ``source[start:end] == segment``.
+
+    Raises
+    ------
+    ValueError
+        If a segment is not the next substring of *source* (R3-3: the old
+        fallback placed it at the search cursor, a silently wrong span).
     """
-    offsets: list[tuple[int, int]] = []
-    cursor: int = 0
-    for seg in segments:
-        idx = source.find(seg, cursor)
-        if idx == -1:
-            idx = cursor  # fallback: positional estimate
-        offsets.append((idx, idx + len(seg)))
-        cursor = idx + len(seg)
-    return offsets
+    return locate(source, segments, where="SentenceChunker")
 
 
 # ---------------------------------------------------------------------------
@@ -647,6 +651,13 @@ class SentenceChunker(MultilangMixin):
     >>> cfg = SentenceChunkerConfig(backend=SentenceBackend.NLTK, min_length=5)
     >>> chunker = SentenceChunker(cfg)
     """
+
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = SentenceChunkerConfig
+
+    #: Whether each chunk's text is ``source[context_span]`` (R3-3).
+    text_is_source_slice = True
 
     def __init__(
         self,
@@ -759,7 +770,7 @@ class SentenceChunker(MultilangMixin):
                 script = detect_script(text[:300])
                 use_multi = script not in (ScriptType.LATIN, ScriptType.UNKNOWN)
             raw = _split_regex(text, multi_script=use_multi)
-            if use_multi:
+            if use_multi or _ABBREV_PLACEHOLDER in text:
                 return raw
             return [_restore_abbreviations(s) for s in raw]
         if self._cfg.backend == SentenceBackend.NLTK:
@@ -787,6 +798,23 @@ class SentenceChunker(MultilangMixin):
         raise ValueError(
             f"Unsupported backend: {self._cfg.backend!r}."
         )  # pragma: no cover
+
+    @staticmethod
+    def _context_text(
+        text: str, context: list[str], sent: str, span: tuple[int, int] | None
+    ) -> str:
+        """Return a chunk's text: the anchor, or the source from its context.
+
+        The context runs from the first context sentence to the anchor, so it
+        includes any sentence ``min_length`` dropped in between (it is the
+        source). Without a span (a splitter that changed the text, offsets
+        disabled) the sentences are joined with ``" "``.
+        """
+        if not context:
+            return sent
+        if span is not None:
+            return text[span[0] : span[1]]
+        return " ".join([*context, sent])
 
     # ------------------------------------------------------------------
     # Public API
@@ -835,18 +863,39 @@ class SentenceChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
         preproc_ms = round((time.perf_counter() - preproc_start) * 1000, 3)
 
         raw = self._raw_sentences(text)
 
         if self._cfg.strip_whitespace:
             raw = [s.strip() for s in raw]
+        raw = [s for s in raw if s]
 
-        filtered: list[str] = [s for s in raw if len(s) >= self._cfg.min_length]
-
+        # R3-3: every sentence is located in the source (all of them, before
+        # filtering, so a dropped short sentence cannot shift a later match),
+        # and an overlap chunk's text is the source from its first context
+        # sentence to its anchor -- the separators the source really has, not
+        # a " " join (which inserted a space into CJK text).
+        kept = [i for i, s in enumerate(raw) if len(s) >= self._cfg.min_length]
+        filtered: list[str] = [raw[i] for i in kept]
+        # Spans are located whether or not they are reported, so an overlap
+        # chunk is a source slice either way (review F3). Only a splitter that
+        # changes the text has no spans: an error with offsets enabled, the
+        # documented " " join without.
+        try:
+            all_offsets = _compute_char_offsets(text, raw)
+            spans: list[tuple[int, int]] | None = [all_offsets[i] for i in kept]
+        except ValueError:
+            if self._cfg.include_offsets:
+                raise
+            spans = None
         offsets: list[tuple[int, int]] = (
-            _compute_char_offsets(text, filtered)
-            if self._cfg.include_offsets
+            spans
+            if self._cfg.include_offsets and spans is not None
             else [(0, 0)] * len(filtered)
         )
 
@@ -855,7 +904,13 @@ class SentenceChunker(MultilangMixin):
             chunk_start_t = time.perf_counter()
             overlap_start = max(0, idx - self._cfg.overlap)
             context = filtered[overlap_start:idx]
-            full_text = " ".join([*context, sent]) if context else sent
+            context_start = offsets[overlap_start][0]
+            full_text = self._context_text(
+                text,
+                context,
+                sent,
+                None if spans is None else (spans[overlap_start][0], spans[idx][1]),
+            )
 
             meta: dict[str, Any] = {
                 "chunk_index": idx,
@@ -867,13 +922,22 @@ class SentenceChunker(MultilangMixin):
                 meta["doc_id"] = doc_id
 
             start, end = offsets[idx]
-            chunk = Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
+            chunk = Chunk(
+                text=full_text,
+                start_char=start,
+                end_char=end,
+                metadata=meta,
+                context_start=context_start if context else None,
+            )
 
             # Multilang enrichment
             if self._ml_cfg.enabled:
+                # The context's raw text, as the document spans the context.
                 sent_raw = (
-                    raw_text[start:end]
-                    if self._ml_cfg.include_raw_text and start < end
+                    raw_text[(context_start if context else start) : end]
+                    if self._ml_cfg.include_raw_text
+                    and start < end
+                    and span_basis == "input"
                     else None
                 )
                 ml_meta = self._ml_build_meta(
@@ -891,6 +955,7 @@ class SentenceChunker(MultilangMixin):
             chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "sentence",
             "backend": self._cfg.backend.value,
             "total_chunks": len(chunks),

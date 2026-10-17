@@ -4,12 +4,13 @@
 
 """git_utils.py."""
 
-# import logging
+from __future__ import annotations
+
+import logging
 import os as _os
 from typing import Optional
 
-# _logger = logging.getLogger(__name__)
-from .. import logger as _logger
+logger = logging.getLogger(__name__)
 
 
 def get_git_repo_url(path: str) -> Optional[str]:
@@ -22,7 +23,7 @@ def get_git_repo_url(path: str) -> Optional[str]:
     try:
         from git import Repo
     except ImportError as e:
-        _logger.warning(
+        logger.warning(
             "Failed to import Git (the Git executable is probably not on your PATH),"
             " so Git SHA is not available. Error: %s",
             e,
@@ -46,7 +47,7 @@ def get_git_commit(path: str) -> Optional[str]:
     try:
         from git import Repo
     except ImportError as e:
-        _logger.warning(
+        logger.warning(
             "Failed to import Git (the Git executable is probably not on your PATH),"
             " so Git SHA is not available. Error: %s",
             e,
@@ -73,7 +74,7 @@ def get_git_branch(path: str) -> Optional[str]:
     try:
         from git import Repo
     except ImportError as e:
-        _logger.warning(
+        logger.warning(
             "Failed to import Git (the Git executable is probably not on your PATH),"
             " so Git SHA is not available. Error: %s",
             e,

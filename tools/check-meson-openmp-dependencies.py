@@ -1,7 +1,19 @@
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+#
+# Authors: The scikit-learn developers
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/scikit-learn/scikit-learn/blob/main/build_tools/check-meson-openmp-dependencies.py
+
 """
 Check that OpenMP dependencies are correctly defined in meson.build files.
 
-This is based on trying to make sure the the following two things match:
+This is based on trying to make sure the following two things match:
 - the Cython files using OpenMP (based on a git grep regex)
 - the Cython extension modules that are built with OpenMP compiler flags (based
   on meson introspect json output)

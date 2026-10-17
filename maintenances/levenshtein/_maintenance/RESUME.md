@@ -7,14 +7,11 @@ guide and gallery are present.
 
 ## Open findings
 
-- LV-001 — per-call safe execution plan for runtime fallback.
-- LV-002 — resolve once per top-level ranking operation.
+None. LV-001 and LV-002 were closed together on 2026-10-12 by the per-call
+`_ExecutionPlan` (see `HISTORY.md`).
 
 ## Next action
 
-Design one internal resolved execution-plan object that can close LV-001 and
-LV-002 together without changing public metric semantics.
-
-Do not add weighted edit operations or Damerau distance while those two
-architecture findings remain open; that would multiply execution paths before
-the current one is centralized.
+Keep backend choice inside `_ExecutionPlan`. A new metric (weighted edits,
+Damerau distance) must route through it rather than add a second execution
+path.

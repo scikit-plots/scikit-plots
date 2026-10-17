@@ -51,7 +51,9 @@ Python compatibility: 3.8-3.15.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field  # noqa: F401
+import threading
+import traceback
+from dataclasses import dataclass, field, replace  # noqa: F401
 from enum import Enum, unique
 from typing import Any, Callable, Final, Optional, Sequence  # noqa: F401
 
@@ -68,9 +70,11 @@ from .._types import (  # noqa: F401
 from ._custom_tokenizer import ScriptSegmenter, ScriptType, detect_script  # noqa: F401
 from ._multilang_mixin import MultilangConfig, MultilangMixin
 from ._sentence import _validate_text_input
+from ._spans import cover, locate
 from ._writing_system import (
     WritingSystemAdapter,
     WritingSystemAdapterConfig,
+    check_adapter_unit,
 )
 
 logger = logging.getLogger(__name__)
@@ -152,14 +156,35 @@ class SemanticChunkerConfig(ChunkerConfig):
     device : str
         Torch device for embeddings: ``"cpu"``, ``"cuda"``, ``"mps"``.
         Default ``"cpu"``.
+    allow_fallback : bool
+        When ``sentence-transformers`` is unavailable, the model fails to
+        load, or the model fails while refining boundaries, EMBEDDING and
+        HYBRID fall back to MORPHOLOGICAL (``True``, default) or raise
+        (``False``): ``ImportError`` for the missing package, ``RuntimeError``
+        (chained from the cause) for a load failure, the model's own exception
+        for an encode failure. Either way the result reports what actually
+        ran: ``metadata["backend"]`` is the *effective* backend,
+        ``metadata["requested_backend"]`` the configured one, and
+        ``metadata["fallback_reason"]`` why they differ
+        (``"sentence_transformers_unavailable"``, ``"model_load_failed"`` or
+        ``"embedding_failed"``).
 
     Notes
     -----
-    **Developer note:** ``model_name`` and ``model_version`` populate
-    ``CorpusDocument.script_model_version`` via ``MultilangChunkMeta``.
-    This is the idempotency verification field — always set it when
-    running EMBEDDING or HYBRID to detect model-version drift across
-    pipeline re-runs.
+    **Developer note:** ``model_name`` and ``model_version`` are recorded
+    only when the model was called for the text: in the result metadata
+    (``model_name``, ``model_version``, and ``model_invoked``) and in each
+    chunk's ``metadata["multilang"]`` (``model_name``,
+    ``script_model_version`` = ``"name@version"`` or ``"name"``).
+    ``script_model_version`` is the idempotency verification field -- set
+    ``model_version`` when running EMBEDDING or HYBRID to detect
+    model-version drift across pipeline re-runs. A MORPHOLOGICAL run,
+    requested or fallen back to, calls no model, and neither does a text
+    with a single unit (nothing to refine: the requested backend is
+    reported, ``model_invoked`` is ``False``). A model you declare yourself in
+    ``multilang_config.embedding_model_name`` is recorded on every chunk as
+    declared, as in every chunker with multilang metadata; when the semantic
+    model is called, its name replaces the declared one.
     """
 
     backend: SemanticBackend = SemanticBackend.HYBRID
@@ -172,6 +197,12 @@ class SemanticChunkerConfig(ChunkerConfig):
     adapter_unit: str = "word"
     multilang_config: Any = None  # MultilangConfig or None
     device: str = "cpu"
+    allow_fallback: bool = True
+
+    def __post_init__(self) -> None:
+        """Coerce enum fields (R3-2) and refuse an unknown ``adapter_unit``."""
+        super().__post_init__()
+        check_adapter_unit(self.adapter_unit, "SemanticChunkerConfig.adapter_unit")
 
 
 # ===========================================================================
@@ -239,14 +270,35 @@ class SemanticChunker(MultilangMixin):
     >>> chunker_sent = SemanticChunker(adapter=adapter)
     """
 
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = SemanticChunkerConfig
+
+    #: Whether each chunk's text is ``source[context_span]`` (R3-3).
+    text_is_source_slice = True
+
     def __init__(
         self,
         config: SemanticChunkerConfig | None = None,
         *,
         adapter: WritingSystemAdapter | None = None,
     ) -> None:
+        if config is not None and not isinstance(config, SemanticChunkerConfig):
+            raise TypeError(
+                f"SemanticChunker: config must be a SemanticChunkerConfig or None, "
+                f"got {type(config).__name__}."
+            )
         self._cfg = config if config is not None else SemanticChunkerConfig()
         self._validate_config()
+        # Accept the enum or its value ("hybrid"): a string used to pass
+        # construction and then fail at ``backend.value`` inside ``chunk``.
+        try:
+            self._backend = SemanticBackend(self._cfg.backend)
+        except ValueError:
+            raise ValueError(
+                f"SemanticChunkerConfig.backend must be one of "
+                f"{[b.value for b in SemanticBackend]}; got {self._cfg.backend!r}."
+            ) from None
 
         # Layer 2 adapter — DI pattern (Q5)
         if adapter is not None:
@@ -256,31 +308,37 @@ class SemanticChunker(MultilangMixin):
                 WritingSystemAdapterConfig(unit=self._cfg.adapter_unit)
             )
 
-        # Multilang mixin init
+        # Multilang mixin init. The boundary model is deliberately not written
+        # into this config: whether it runs is known only inside ``chunk``
+        # (Step 6), which records it on each chunk when, and only when, it
+        # ran. Writing it here stamped every chunk -- MORPHOLOGICAL and
+        # fallen-back runs included -- with a model that never ran.
         ml_cfg = (
             self._cfg.multilang_config
             if isinstance(getattr(self._cfg, "multilang_config", None), MultilangConfig)
             else MultilangConfig(include_semantemes=True)
         )
-        # Override model fields from config
-        if ml_cfg.embedding_model_name is None and self._cfg.model_name:
-            ml_cfg = MultilangConfig(
-                enabled=ml_cfg.enabled,
-                include_raw_text=ml_cfg.include_raw_text,
-                include_preprocessing_trace=ml_cfg.include_preprocessing_trace,
-                include_semantemes=ml_cfg.include_semantemes,
-                include_script_spans=ml_cfg.include_script_spans,
-                include_grapheme_counts=ml_cfg.include_grapheme_counts,
-                include_embedding_hook=ml_cfg.include_embedding_hook,
-                embedding_model_name=self._cfg.model_name,
-                embedding_model_version=self._cfg.model_version,
-                language_hint=ml_cfg.language_hint,
-            )
         self._ml_init(ml_cfg)
 
         # Embedding model — lazy loaded on first use
         self._embed_model: Any = None
         self._embed_model_loaded: bool = False
+        # Why the model is not loaded: (fallback_reason, cause). The cause is
+        # None when the package is missing, else the exception the model raised.
+        self._model_failure: tuple[str, BaseException | None] | None = None
+        # Serialises the first load: a second thread waits for its outcome
+        # instead of reading a half-set state.
+        self._model_lock = threading.Lock()
+        self._fallback_reported: bool = False
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> SemanticChunkerConfig:
+        """The resolved :class:`SemanticChunkerConfig` for this instance (read-only)."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -325,35 +383,57 @@ class SemanticChunker(MultilangMixin):
         Returns
         -------
         bool
-            ``True`` if model is available and loaded; ``False`` if
-            ``sentence-transformers`` is not installed.
-        """
-        if self._embed_model_loaded:
-            return self._embed_model is not None
-        self._embed_model_loaded = True
-        try:
-            from sentence_transformers import (  # type: ignore[import-not-found]  # noqa: PLC0415
-                SentenceTransformer,
-            )
+            ``True`` if the model is loaded. ``False`` if it is not, with the
+            reason in ``self._model_failure``: ``sentence-transformers`` is not
+            installed, or the model itself failed to load (a wrong name, no
+            network for the first download, ...).
 
-            self._embed_model = SentenceTransformer(
-                self._cfg.model_name,
-                device=self._cfg.device,
-            )
-            logger.debug(
-                "SemanticChunker: loaded model %r on device %r.",
-                self._cfg.model_name,
-                self._cfg.device,
-            )
-            return True
-        except ImportError:
-            logger.warning(
-                "SemanticChunker: sentence-transformers not installed. "
-                "EMBEDDING and HYBRID backends unavailable. "
-                "Install with: pip install sentence-transformers\n"
-                "Falling back to MORPHOLOGICAL backend."
-            )
-            return False
+        Notes
+        -----
+        **Developer.** Both failures are remembered for the life of the
+        chunker, so a fallback does not retry a download on every ``chunk``.
+        ``chunk`` reports them: the reason is part of the result, and with
+        ``allow_fallback=False`` they raise. A load failure used to escape on
+        the first call only; later calls then fell back under the reason
+        "sentence_transformers_unavailable", with the package installed.
+
+        The outcome is published only once it is known, under a lock: the
+        "loaded" flag used to be set first, so an import failing with another
+        exception, an interrupted first download, or a second thread arriving
+        mid-load left a chunker whose every later call raised ``TypeError``.
+        ``KeyboardInterrupt`` and ``SystemExit`` are not outcomes: the next
+        call tries again. A remembered exception keeps its traceback but not
+        the frames' locals, which would hold a half-loaded model.
+        """
+        with self._model_lock:
+            if self._embed_model_loaded:
+                return self._embed_model is not None
+            try:
+                from sentence_transformers import (  # type: ignore[import-not-found]  # noqa: PLC0415
+                    SentenceTransformer,
+                )
+            except ImportError:
+                self._model_failure = ("sentence_transformers_unavailable", None)
+            except Exception as exc:  # noqa: BLE001 - a broken install; see ``chunk``
+                traceback.clear_frames(exc.__traceback__)
+                self._model_failure = ("model_load_failed", exc)
+            else:
+                try:
+                    self._embed_model = SentenceTransformer(
+                        self._cfg.model_name,
+                        device=self._cfg.device,
+                    )
+                except Exception as exc:  # noqa: BLE001 - reported by ``chunk``
+                    traceback.clear_frames(exc.__traceback__)
+                    self._model_failure = ("model_load_failed", exc)
+                else:
+                    logger.debug(
+                        "SemanticChunker: loaded model %r on device %r.",
+                        self._cfg.model_name,
+                        self._cfg.device,
+                    )
+            self._embed_model_loaded = True
+            return self._embed_model is not None
 
     def _embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Embed a list of texts, returning a parallel list of vectors.
@@ -419,6 +499,7 @@ class SemanticChunker(MultilangMixin):
     def _refine_boundaries(
         self,
         chunks: list[Chunk],
+        source: str,
     ) -> list[Chunk]:
         """Merge adjacent chunks with high embedding similarity.
 
@@ -431,25 +512,27 @@ class SemanticChunker(MultilangMixin):
         ----------
         chunks : list[Chunk]
             Morphological chunks from Layer 2.
+        source : str
+            The text the chunks' spans index; a merged chunk's text is its
+            slice (R3-3), not the parts joined with ``" "``.
 
         Returns
         -------
         list[Chunk]
             Boundary-refined list (always non-empty for non-empty input).
+
+        Raises
+        ------
+        Exception
+            Whatever the embedding model raises. :meth:`chunk` decides
+            between falling back (and reporting it) and re-raising; this
+            method used to return the unrefined chunks itself, so a run whose
+            model failed was still reported as EMBEDDING/HYBRID.
         """
         if len(chunks) <= 1:
             return chunks
 
-        texts = [c.text for c in chunks]
-        try:
-            vectors = self._embed_texts(texts)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(
-                "SemanticChunker: embedding failed during boundary refinement "
-                "(%s). Returning unrefined morphological chunks.",
-                exc,
-            )
-            return chunks
+        vectors = self._embed_texts([c.text for c in chunks])
 
         merged: list[Chunk] = [chunks[0]]
         merged_vecs: list[list[float]] = [vectors[0]]
@@ -457,10 +540,12 @@ class SemanticChunker(MultilangMixin):
         for i in range(1, len(chunks)):
             sim = self._cosine_similarity(merged_vecs[-1], vectors[i])
             if sim >= self._cfg.similarity_threshold:
-                # Merge: concatenate text, keep start of first / end of last
+                # Merge: the source from the start of the first to the end of
+                # the last (R3-3; a " " join is not the source in CJK or
+                # across newlines).
                 prev = merged[-1]
                 curr = chunks[i]
-                new_text = prev.text + " " + curr.text
+                new_text = source[prev.start_char : curr.end_char]
                 new_meta = {
                     **dict(prev.metadata),
                     "merged_from": [
@@ -518,6 +603,15 @@ class SemanticChunker(MultilangMixin):
         ValueError
             If *text* is empty or whitespace-only, or contains NUL bytes
             or lone surrogates.
+        ImportError
+            If EMBEDDING or HYBRID is configured, ``sentence-transformers``
+            is not installed and ``allow_fallback=False``.
+        RuntimeError
+            If the model failed to load and ``allow_fallback=False`` (chained
+            from the load error).
+        Exception
+            Whatever the embedding model raised while encoding, when
+            ``allow_fallback=False``.
 
         Notes
         -----
@@ -528,8 +622,12 @@ class SemanticChunker(MultilangMixin):
         3. Layer 1: ScriptSegmenter → ScriptSpan list.
         4. Layer 2: WritingSystemAdapter → per-script Chunk list.
         5. Min/max token filtering and enforcement.
-        6. EMBEDDING / HYBRID: boundary refinement via cosine similarity.
-        7. MultilangMixin: enrich each chunk with MultilangChunkMeta.
+        6. EMBEDDING / HYBRID: boundary refinement via cosine similarity; a
+           missing package, a model that fails to load or a model that fails
+           to encode falls back to MORPHOLOGICAL (see
+           ``SemanticChunkerConfig.allow_fallback``).
+        7. MultilangMixin: enrich each chunk with MultilangChunkMeta; the
+           model is recorded only when it was called for this text.
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, got {type(text).__name__!r}.")
@@ -544,25 +642,85 @@ class SemanticChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
 
         # ── Step 3+4: Layer 1 → Layer 2 ──────────────────────────────────
         layer2_chunks = self._adapter.adapt_text(text)
 
         # ── Step 5: Token count filtering ────────────────────────────────
         if self._cfg.min_chunk_tokens > 1 or self._cfg.max_chunk_tokens is not None:
-            layer2_chunks = self._enforce_token_limits(layer2_chunks)
+            layer2_chunks = self._enforce_token_limits(layer2_chunks, text)
 
         # ── Step 6: Boundary refinement ───────────────────────────────────
-        backend = self._cfg.backend
-        if backend in (SemanticBackend.EMBEDDING, SemanticBackend.HYBRID):
-            model_ok = self._load_embed_model()
-            if model_ok:
-                layer2_chunks = self._refine_boundaries(layer2_chunks)
-            else:
-                logger.warning(
-                    "SemanticChunker: falling back to MORPHOLOGICAL "
-                    "because sentence-transformers is unavailable."
-                )
+        # ``requested`` is configuration; ``backend`` is what actually ran.
+        # Results used to report the requested backend (and a model name)
+        # after falling back -- for a missing package and for a model that
+        # failed at encode time alike -- so a morphological run read as
+        # "semantic_hybrid".
+        requested = self._backend
+        backend = requested
+        fallback_reason: str | None = None
+        model_invoked = False
+        if requested in (SemanticBackend.EMBEDDING, SemanticBackend.HYBRID):
+            if not self._load_embed_model():
+                fallback_reason, cause = self._model_failure
+                if cause is None:
+                    problem = (
+                        "sentence-transformers is not installed. Install it"
+                        " with: pip install sentence-transformers"
+                    )
+                else:
+                    problem = (
+                        f"model {self._cfg.model_name!r} failed to load"
+                        f" ({type(cause).__name__}: {cause})"
+                    )
+                if not self._cfg.allow_fallback:
+                    message = (
+                        f"SemanticChunker: backend {requested.value!r} cannot"
+                        f" run and allow_fallback=False: {problem}"
+                    )
+                    if cause is None:
+                        raise ImportError(message)
+                    raise RuntimeError(message) from cause
+                if not self._fallback_reported:
+                    logger.warning(
+                        "SemanticChunker: backend %r runs as 'morphological'"
+                        " (reported in result metadata): %s",
+                        requested.value,
+                        problem,
+                    )
+                    self._fallback_reported = True
+            elif len(layer2_chunks) > 1:
+                # With one unit there is nothing to refine: the model is not
+                # called, so it is not named either (see ``model_invoked``).
+                try:
+                    layer2_chunks = self._refine_boundaries(layer2_chunks, text)
+                    model_invoked = True
+                except Exception as exc:  # noqa: BLE001 - any model failure
+                    if not self._cfg.allow_fallback:
+                        raise
+                    fallback_reason = "embedding_failed"
+                    logger.warning(
+                        "SemanticChunker: the embedding model failed (%s: %s);"
+                        " backend %r ran as 'morphological' for this text"
+                        " (reported in result metadata).",
+                        type(exc).__name__,
+                        exc,
+                        requested.value,
+                    )
+            if fallback_reason is not None:
+                backend = SemanticBackend.MORPHOLOGICAL
+        # A model is provenance only when it was called for this text.
+        model_name = self._cfg.model_name if model_invoked else None
+        model_version = self._cfg.model_version if model_invoked else None
+        model_tag = (
+            f"{model_name}@{model_version}"
+            if model_name and model_version
+            else model_name
+        )
 
         # ── Step 7: Multilang enrichment ──────────────────────────────────
         final_chunks: list[Chunk] = []
@@ -573,10 +731,14 @@ class SemanticChunker(MultilangMixin):
             if doc_id is not None:
                 chunk_meta["doc_id"] = doc_id
 
+            # Honour include_offsets (review F7): (0, 0) when disabled.
+            start, end = (
+                (ch.start_char, ch.end_char) if self._cfg.include_offsets else (0, 0)
+            )
             enriched = Chunk(
                 text=ch.text,
-                start_char=ch.start_char,
-                end_char=ch.end_char,
+                start_char=start,
+                end_char=end,
                 metadata=chunk_meta,
             )
 
@@ -584,6 +746,7 @@ class SemanticChunker(MultilangMixin):
                 chunk_raw = (
                     raw_text[ch.start_char : ch.end_char]
                     if self._ml_cfg.include_raw_text
+                    and span_basis == "input"
                     and 0 <= ch.start_char < ch.end_char <= len(raw_text)
                     else None
                 )
@@ -601,32 +764,31 @@ class SemanticChunker(MultilangMixin):
                         ch.metadata.get("layer2_strategy") if ch.metadata else None
                     ),
                 )
-                # Attach embedding if EMBEDDING / HYBRID backend was used
-                if (
-                    backend in (SemanticBackend.EMBEDDING, SemanticBackend.HYBRID)
-                    and self._embed_model is not None
-                ):
-                    try:
-                        vec = self._embed_texts([ch.text])[0]
-                        ml_meta = ml_meta.with_embedding(
-                            vec,
-                            model_name=self._cfg.model_name,
-                            model_version=self._cfg.model_version,
-                        )
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning(
-                            "SemanticChunker: per-chunk embedding failed (%s).", exc
-                        )
+                if model_invoked:
+                    # The boundary model ran: it is this chunk's provenance.
+                    # (A per-chunk ``encode`` used to run here, one call per
+                    # chunk, only to set these two fields: ``_ml_enrich_chunk``
+                    # drops the vector. Vectors are attached on request with
+                    # ``attach_embedding_batch``.)
+                    ml_meta = replace(
+                        ml_meta,
+                        model_name=model_name,
+                        script_model_version=model_tag,
+                    )
 
                 enriched = self._ml_enrich_chunk(enriched, ml_meta)
 
             final_chunks.append(enriched)
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "semantic",
             "backend": backend.value,
-            "model_name": self._cfg.model_name,
-            "model_version": self._cfg.model_version,
+            "requested_backend": requested.value,
+            "fallback_reason": fallback_reason,
+            "model_name": model_name,
+            "model_version": model_version,
+            "model_invoked": model_invoked,
             "similarity_threshold": self._cfg.similarity_threshold,
             "total_chunks": len(final_chunks),
         }
@@ -641,13 +803,16 @@ class SemanticChunker(MultilangMixin):
     # Section E — Token limit enforcement
     # ------------------------------------------------------------------
 
-    def _enforce_token_limits(self, chunks: list[Chunk]) -> list[Chunk]:
+    def _enforce_token_limits(self, chunks: list[Chunk], source: str) -> list[Chunk]:
         """Enforce min/max token limits on Layer 2 chunks.
 
         Parameters
         ----------
         chunks : list[Chunk]
             Input chunk list.
+        source : str
+            The text the chunks' spans index (merged and split chunks are
+            slices of it, R3-3).
 
         Returns
         -------
@@ -665,9 +830,9 @@ class SemanticChunker(MultilangMixin):
                 self._cfg.max_chunk_tokens is not None
                 and token_count > self._cfg.max_chunk_tokens
             ):
-                sub_chunks = self._split_oversized(ch)
+                sub_chunks = self._split_oversized(ch, source)
                 for sub in sub_chunks:
-                    self._maybe_flush_buf(merge_buf, result)
+                    self._maybe_flush_buf(source, merge_buf, result)
                     merge_buf = []
                     result.append(sub)
                 continue
@@ -677,7 +842,7 @@ class SemanticChunker(MultilangMixin):
                 merge_buf.append(ch)
             else:  # noqa: PLR5501
                 if merge_buf:
-                    result.append(self._merge_buf(merge_buf, ch))
+                    result.append(self._merge_buf(source, merge_buf, ch))
                     merge_buf = []
                 else:
                     result.append(ch)
@@ -685,45 +850,56 @@ class SemanticChunker(MultilangMixin):
         # Flush remaining buffer into the last chunk
         if merge_buf:
             if result:
-                result[-1] = self._merge_buf([result[-1]], *merge_buf)
+                result[-1] = self._merge_buf(source, [result[-1]], *merge_buf)
             else:
-                result.append(self._merge_buf(merge_buf))
+                result.append(self._merge_buf(source, merge_buf))
 
         return result or chunks
 
-    def _split_oversized(self, chunk: Chunk) -> list[Chunk]:
-        """Split an oversized chunk by max_chunk_tokens."""
+    def _split_oversized(self, chunk: Chunk, source: str) -> list[Chunk]:
+        """Split an oversized chunk into pieces of at most max_chunk_tokens.
+
+        Each piece is the source from its first token to its last (R3-3):
+        pieces used to be the tokens joined with ``" "`` and every piece
+        carried the whole chunk's span.
+        """
         max_t = self._cfg.max_chunk_tokens or 9999
-        words = chunk.text.split()
+        start, end = chunk.start_char, chunk.end_char
+        region = source[start:end]
+        words = region.split()
+        spans = [
+            (start + s, start + e)
+            for s, e in locate(region, words, where="SemanticChunker")
+        ]
         result: list[Chunk] = []
-        for i in range(0, len(words), max_t):
-            part = " ".join(words[i : i + max_t])
+        for i in range(0, len(spans), max_t):
+            piece_start, piece_end = cover(spans[i : i + max_t])
             result.append(
                 Chunk(
-                    text=part,
-                    start_char=chunk.start_char,
-                    end_char=chunk.end_char,
+                    text=source[piece_start:piece_end],
+                    start_char=piece_start,
+                    end_char=piece_end,
                     metadata={**dict(chunk.metadata), "oversized_split": True},
                 )
             )
         return result or [chunk]
 
     @staticmethod
-    def _merge_buf(buf: list[Chunk], *extra: Chunk) -> Chunk:
-        """Merge a buffer of chunks into one."""
+    def _merge_buf(source: str, buf: list[Chunk], *extra: Chunk) -> Chunk:
+        """Merge a buffer of chunks into one: the source slice they cover."""
         all_chunks = list(buf) + list(extra)
-        merged_text = " ".join(c.text for c in all_chunks)
+        start, end = all_chunks[0].start_char, all_chunks[-1].end_char
         return Chunk(
-            text=merged_text,
-            start_char=all_chunks[0].start_char,
-            end_char=all_chunks[-1].end_char,
+            text=source[start:end],
+            start_char=start,
+            end_char=end,
             metadata={**dict(all_chunks[0].metadata), "undersized_merge": True},
         )
 
     @staticmethod
-    def _maybe_flush_buf(buf: list[Chunk], result: list[Chunk]) -> None:
+    def _maybe_flush_buf(source: str, buf: list[Chunk], result: list[Chunk]) -> None:
         if buf:
-            result.append(SemanticChunker._merge_buf(buf))
+            result.append(SemanticChunker._merge_buf(source, buf))
 
     # ------------------------------------------------------------------
     # Section F — Batch API

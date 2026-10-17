@@ -77,8 +77,10 @@ from . import (
     _language_data,
     _multilang_mixin,
     _paragraph,
+    _recursive,
     _semantic,
     _sentence,
+    _structure,
     _word,
     _writing_system,
 )
@@ -88,8 +90,10 @@ from ._fixed_window import *  # noqa: F403
 from ._language_data import *  # noqa: F403
 from ._multilang_mixin import *  # noqa: F403
 from ._paragraph import *  # noqa: F403
+from ._recursive import *  # noqa: F403
 from ._semantic import *  # noqa: F403
 from ._sentence import *  # noqa: F403
+from ._structure import *  # noqa: F403
 from ._word import *  # noqa: F403
 from ._writing_system import *  # noqa: F403
 
@@ -100,7 +104,9 @@ __all__ += _fixed_window.__all__
 __all__ += _language_data.__all__
 __all__ += _multilang_mixin.__all__
 __all__ += _paragraph.__all__
+__all__ += _recursive.__all__
 __all__ += _semantic.__all__
 __all__ += _sentence.__all__
+__all__ += _structure.__all__
 __all__ += _word.__all__
 __all__ += _writing_system.__all__

@@ -58,7 +58,9 @@ def _backends(tmp_path: pathlib.Path):
     }
     for store in made.values():
         store.save_batch(_corpus())
-    return made
+    yield made
+    for store in made.values():
+        store.close()  # R3-8
 
 
 class TestFilterIsNeverIgnored:

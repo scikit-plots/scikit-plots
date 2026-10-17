@@ -1,0 +1,86 @@
+- ``EmbeddingEngine`` no longer serves one custom provider's cached vectors to
+  another (a custom provider is cached only under a ``custom_fn_id``), loads
+  the ``model_revision`` it records, applies ``normalize=True`` to every
+  backend before the ``dtype`` cast (``float16`` rows no longer come back as
+  zeros, and a non-finite vector is no longer hidden as one), returns
+  ``float64`` cache hits without rounding, caches URL sources like files, and
+  stamps every embedded document with its embedding manifest so an index
+  refuses to rank vectors from two embedding generations together
+  (``CorpusBuilder`` now embeds through the same path); ``SemanticChunker``
+  reports the backend that actually ran, with the requested one and the
+  fallback reason beside it, names a model on the result and on each chunk
+  only when the model was called, falls back (or, with
+  ``allow_fallback=False``, raises) when the model fails to load or to encode
+  as well as when ``sentence-transformers`` is missing, and no longer encodes
+  every chunk a second time.
+  ``CorpusBuilder`` resolves chunker names and normaliser steps through the
+  shared component ``registry``, the same table plans and ``RuntimeCorpus``
+  now use: ``chunker_kwargs`` now build the named chunker's config (a config
+  option used to raise ``TypeError`` for every built-in chunker), go on to
+  the chunker's constructor when it takes them (``gensim_dictionary``,
+  ``adapter``), and an unknown key raises naming the valid ones; ``"word"``
+  and ``"semantic"`` are registered; a chunker added with
+  ``registry.register_chunker`` is reachable by name and is never replaced
+  by a built-in of the same name; an unknown normaliser step raises instead
+  of being dropped with a warning; ``normalizer_kwargs``, documented but read
+  nowhere, now maps a step to its options; options given with a chunker
+  instance, without a chunker, or beside a ``chunker_factory`` are refused,
+  and so is a chunker class given instead of an instance; a configuration
+  error raises from ``build`` before any source is read instead of failing
+  once per source. ``ComponentRegistry.load_from_snapshot`` accepts the
+  built-in chunkers and normalisers it used to refuse, a subclass of a
+  built-in chunker uses that chunker's bridge, a chunker config's enum option
+  given by value (``SentenceChunkerConfig(backend="regex")``) is converted at
+  construction (an unknown value raises there) instead of failing inside
+  ``chunk()``, and an unknown ``SemanticChunkerConfig.adapter_unit`` raises.
+  Chunk text is a slice of the source: overlap chunks (sentence,
+  paragraph), merged and split chunks (paragraph ``merge_short`` /
+  ``max_length``, the semantic merges and splits) and fixed windows
+  (``strip_whitespace``, token windows) used to re-join parts with a space
+  or a newline (inserting a space into CJK text) or keep an unstripped span;
+  ``Chunk`` gains ``context_start``/``context_end`` (``context_span``, the
+  region its text comes from) beside the anchor ``start_char``/``end_char``
+  (``anchor_span``), ``WordChunker`` sentence chunks span their own sentence
+  instead of ``(0, len(sentence))``, a sentence splitter whose output is not
+  in the source raises when offsets are enabled instead of being placed at a
+  guessed position, and a document built from a chunk spans the chunk's
+  context (it used to span the anchor start plus the text length, the wrong
+  region for an overlap chunk, and its ``raw_text`` with it), with the
+  anchor in ``metadata["anchor_span"]`` when they differ, and no span when
+  the chunker reports no offsets. A document's ``raw_text`` is ``None`` when
+  its region is unknown instead of the whole parent text for every chunk of a
+  split parent with offsets disabled, an overlap chunk's
+  multilang ``raw_text`` covers its context instead of its anchor, and no
+  ``raw_text`` is sliced by spans that do not index it (a reader's HTML or
+  XML markup, or text that multilang preprocessing changed:
+  ``metadata["span_basis"]`` is then ``"preprocessed"``). ``WordChunker``
+  honours ``include_offsets`` (``False`` by default: no span), and
+  ``SemanticChunker`` with ``include_offsets=False`` reports ``(0, 0)``. An
+  overlap chunk's context includes a unit ``min_length`` dropped inside it.
+  An unpinned embedding model's cached vectors were served after an upstream
+  change of the model, and the embedding cache grew without bound.
+  ``MultimodalEmbeddingEngine.embed_documents_with_cache`` keyed its cache on
+  the source path, its modification time and the document count: changed
+  text, another custom function or another ``normalize`` setting were served
+  the first vectors, and a document left without an embedding made it raise;
+  the key is now the content and every setting that changes the output
+  (entries written under the old key are not found again).
+  ``ScriptSegmenter`` called ``regex.get_script``, which the ``regex``
+  library does not have, so with ``regex`` installed every text came back as
+  one span of unknown script (with a warning about ``'_unknown'``); it now
+  detects scripts with ``\p{Script=...}``, its ``start``/``end`` are
+  character offsets (they were grapheme-cluster indices, which every
+  consumer read as character offsets), a script the map does not name is a
+  span of its own instead of being absorbed by its neighbours, short spans
+  merged by ``min_span_chars`` leave one span per run, Tamil, Telugu,
+  Kannada, Malayalam and Sinhala map to ``SOUTH_ASIAN`` and Lao to
+  ``SOUTHEAST_ASIAN`` (as documented), and Han that meets kana (Japanese)
+  or Hangul (Korean) letter to letter stays in one span. With ``regex`` installed,
+  ``SemanticChunker`` and ``WritingSystemAdapter`` therefore dispatch each
+  span to its script's strategy, so their chunks change: Chinese without
+  ``jieba`` becomes one chunk per character, and Arabic, Hebrew,
+  Devanagari, the Dravidian scripts and others use their own strategies.
+  ``RetrievalResponse.to_dict()`` and ``LegOutcome.to_dict()`` now return a
+  JSON-compatible mapping as documented: a leg's ``generation`` is written as
+  its ``IndexGeneration.to_dict()``, where it used to be the object itself
+  and ``json.dumps`` raised.

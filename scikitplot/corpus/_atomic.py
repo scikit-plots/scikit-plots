@@ -17,8 +17,14 @@ CORPUS-TMP-001 predictable-temp race).
 Guarantees:
 
 * **Unique staging file.** Each publish stages to a unique same-directory temp
-  created with :func:`tempfile.mkstemp`, so two processes publishing the same
-  target do not share (and cannot delete) each other's temp.
+  created exclusively (``O_CREAT | O_EXCL``) under a random name, so two
+  processes publishing the same target do not share (and cannot delete) each
+  other's temp.
+* **Ordinary permissions.** The published file has the mode a plain ``open()``
+  would give it: an existing target keeps its mode, and a new one gets
+  ``0o666`` minus the process umask. (:func:`tempfile.mkstemp` creates ``0o600``
+  files, which used to turn every published file, and every file it replaced,
+  private to its owner.)
 * **Durable.** The staging file is ``fsync``-ed before it is published, and the
   containing directory is ``fsync``-ed after (best-effort; a no-op where the
   platform cannot sync a directory).
@@ -43,8 +49,8 @@ import errno
 import logging
 import os
 import pathlib
+import secrets
 import shutil
-import tempfile
 import time
 from typing import Callable, Union
 
@@ -226,6 +232,60 @@ def _replace(source: pathlib.Path, target: pathlib.Path) -> None:
             return
 
 
+#: Random staging names tried before giving up (as :data:`tempfile.TMP_MAX`).
+_STAGING_ATTEMPTS = 10_000
+
+#: Flags of the exclusive staging-file creation.
+_STAGING_FLAGS = (
+    os.O_WRONLY
+    | os.O_CREAT
+    | os.O_EXCL
+    | getattr(os, "O_BINARY", 0)
+    | getattr(os, "O_NOFOLLOW", 0)
+)
+
+
+def _create_staging_file(target: pathlib.Path, suffix: str) -> pathlib.Path:
+    """
+    Create an empty, uniquely named staging file beside ``target``.
+
+    Parameters
+    ----------
+    target : pathlib.Path
+        The path being published.
+    suffix : str
+        Staging-file suffix.
+
+    Returns
+    -------
+    pathlib.Path
+
+    Raises
+    ------
+    FileExistsError
+        If no free random name is found after :data:`_STAGING_ATTEMPTS` tries.
+
+    Notes
+    -----
+    The file is created with mode ``0o666`` and the kernel applies the umask,
+    exactly as for a plain ``open()``; reading the umask instead would mean
+    setting it, which is process-wide and races with other threads.
+    """
+    for _ in range(_STAGING_ATTEMPTS):
+        candidate = target.parent / f"{target.name}.{secrets.token_hex(8)}{suffix}"
+        try:
+            fd = os.open(candidate, _STAGING_FLAGS, 0o666)
+        except FileExistsError:
+            continue
+        os.close(fd)  # the writer opens the path itself
+        return candidate
+    raise FileExistsError(
+        errno.EEXIST,
+        f"No free staging name for {target.name!r} after {_STAGING_ATTEMPTS} attempts",
+        str(target.parent),
+    )
+
+
 def atomic_write_path(
     target: StrPath,
     writer: Callable[[pathlib.Path], None],
@@ -236,7 +296,8 @@ def atomic_write_path(
 
     Creates a unique staging file beside *target*, invokes ``writer(tmp_path)``
     to populate it, ``fsync``s it, then atomically replaces *target*. On any
-    error the staging file is removed and the error re-raised.
+    error the staging file is removed and the error re-raised. A replaced file
+    keeps its permission bits; a new file gets ``0o666`` minus the umask.
 
     Parameters
     ----------
@@ -261,13 +322,13 @@ def atomic_write_path(
     """
     target = pathlib.Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(
-        dir=str(target.parent), prefix=target.name + ".", suffix=suffix
-    )
-    os.close(fd)  # the writer opens the path itself
-    tmp_path = pathlib.Path(tmp_name)
+    tmp_path = _create_staging_file(target, suffix)
     try:
         writer(tmp_path)
+        if tmp_path.is_file() and target.is_file():
+            # Replacing a file keeps its permissions, as rewriting it in place
+            # would; a new file keeps the umask-derived mode it was created with.
+            shutil.copymode(target, tmp_path)
         # A writer may replace the empty staging file with a populated
         # *directory* (the artifact writer does). A directory is synced as a
         # directory: opening one the way a file is opened is refused on

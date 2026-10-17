@@ -64,6 +64,17 @@ User Guide
         :columns: 12 12 6 6
         :padding: 2
 
+        **bounded, audited tool use**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Agent <./agent/index.rst>
+
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
         **nearest neighbor**
         ^^^
         .. toctree::

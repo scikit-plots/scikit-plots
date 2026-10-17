@@ -1,5 +1,11 @@
 # Maintaining `scikitplot.corpus`
 
+> **Current state (2026-10-16).** The runtime is present and under the round 33
+> review; its active plan, open decisions and results are in
+> [`todo/todo.md`](todo/todo.md). The trackers below predate round 33 (stale
+> fingerprints and inventories); refreshing them is open decision D6 there.
+> Where every other record lives: [`tasks/README.md`](../../tasks/README.md).
+
 This is the live human entry point for Corpus maintenance. The supplied `corpus.zip` snapshot is **not a complete Corpus runtime snapshot**: `scikitplot/corpus/` is empty, while the inherited maintenance records describe a much larger historical implementation. Therefore historical “COMPLETE” claims are provenance, not current truth.
 
 ## First commands

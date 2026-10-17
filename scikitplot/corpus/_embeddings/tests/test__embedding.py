@@ -29,8 +29,10 @@ Covers
 from __future__ import annotations
 
 import pathlib
+import sys
 import tempfile
 import threading
+import types
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
@@ -77,10 +79,17 @@ class _Doc:
 
 
 def _make_custom_engine(dim: int = 32, **kwargs: Any) -> EmbeddingEngine:
-    """Return an EmbeddingEngine backed by a zero-vector custom_fn."""
+    """Return an EmbeddingEngine backed by a zero-vector custom_fn.
+
+    The provider carries a stable identity (``zeros/<dim>``): it is a truthful
+    one -- the function returns zeros of a fixed width -- and only an
+    identified custom provider is disk-cached. Pass ``custom_fn_id=None`` for
+    an unidentified one.
+    """
     def _fn(texts: list[str]) -> np.ndarray:
         return np.zeros((len(texts), dim), dtype=np.float32)
 
+    kwargs.setdefault("custom_fn_id", f"zeros/{dim}")
     return EmbeddingEngine(backend="custom", custom_fn=_fn, **kwargs)
 
 
@@ -137,10 +146,18 @@ class TestMakeCacheKey:
             model_revision=kw.get("rev", ""),
         )
 
-    def test_returns_32_hex_chars(self) -> None:
+    def test_returns_the_full_sha256_hex_digest(self) -> None:
+        # The package rule for durable identities is the full digest; the key
+        # used to be truncated to 32 hex characters.
         key = self._k()
-        assert len(key) == 32  # noqa: PLR2004
+        assert len(key) == 64  # noqa: PLR2004
         assert all(c in "0123456789abcdef" for c in key)
+
+    def test_provider_identity_changes_key(self) -> None:
+        # Two custom providers used to share one key and so one cache entry.
+        a = _make_cache_key("m", ["t"], normalize=True, dtype="float32", provider_id="a/1")
+        b = _make_cache_key("m", ["t"], normalize=True, dtype="float32", provider_id="b/1")
+        assert a != b
 
     def test_deterministic_same_inputs(self) -> None:
         assert self._k() == self._k()
@@ -181,11 +198,11 @@ class TestMakeCacheKey:
 
     def test_empty_texts_ok(self) -> None:
         key = self._k(texts=[])
-        assert isinstance(key, str) and len(key) == 32  # noqa: PLR2004
+        assert isinstance(key, str) and len(key) == 64  # noqa: PLR2004
 
     def test_unicode_texts_ok(self) -> None:
         key = self._k(texts=["café ☕", "naïve"])
-        assert isinstance(key, str) and len(key) == 32  # noqa: PLR2004
+        assert isinstance(key, str) and len(key) == 64  # noqa: PLR2004
 
 
 # ===========================================================================
@@ -315,21 +332,24 @@ class TestLoadFromCache:
         assert result is not None
         np.testing.assert_array_equal(result, arr)
 
-    def test_loads_float64_and_casts_to_float32(self, tmp_path: pathlib.Path) -> None:
-        arr = np.ones((3, 4), dtype=np.float64)
+    def test_loads_float64_without_losing_precision(self, tmp_path: pathlib.Path) -> None:
+        # The key includes the dtype, so the stored dtype is the requested one.
+        # Load used to force float32: a float64 hit came back rounded.
+        arr = np.full((3, 4), 1.0 + 1e-12, dtype=np.float64)
         path = tmp_path / "test.npy"
         np.save(str(path), arr, allow_pickle=False)
         result = _load_from_cache(path, 3)
         assert result is not None
-        assert result.dtype == np.float32
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(result, arr)
 
-    def test_loads_float16_and_casts_to_float32(self, tmp_path: pathlib.Path) -> None:
+    def test_loads_float16_in_its_stored_dtype(self, tmp_path: pathlib.Path) -> None:
         arr = np.ones((2, 8), dtype=np.float16)
         path = tmp_path / "test.npy"
         np.save(str(path), arr, allow_pickle=False)
         result = _load_from_cache(path, 2)
         assert result is not None
-        assert result.dtype == np.float32
+        assert result.dtype == np.float16
 
     def test_shape_preserved_after_load(self, tmp_path: pathlib.Path) -> None:
         arr = np.zeros((5, 128), dtype=np.float32)
@@ -631,10 +651,15 @@ class TestEmbeddingEngineEmbed:
 
     def test_openai_backend_via_injected_fn(self) -> None:
         expected = np.ones((1, 16), dtype=np.float32)
-        e = EmbeddingEngine(backend="openai")
+        e = EmbeddingEngine(backend="openai", normalize=False)
         object.__setattr__(e, "_embed_fn", lambda texts: expected)
         result = e.embed(["openai text"])
         np.testing.assert_array_equal(result, expected)
+
+    def test_openai_backend_is_normalised_when_asked(self) -> None:
+        e = EmbeddingEngine(backend="openai")  # normalize=True by default
+        object.__setattr__(e, "_embed_fn", lambda texts: np.ones((1, 16), dtype=np.float32))
+        np.testing.assert_allclose(np.linalg.norm(e.embed(["t"]), axis=1), [1.0], rtol=1e-6)
 
 
 # ===========================================================================
@@ -811,11 +836,14 @@ class TestEmbeddingEngineEmbedDocuments:
         # A .npy cache file should have been created
         assert len(list(tmp_path.glob("*.npy"))) == 1
 
-    def test_without_input_path_no_cache_file(self, tmp_path: pathlib.Path) -> None:
+    def test_without_input_path_still_caches(self, tmp_path: pathlib.Path) -> None:
+        # The key is content-addressed, so a URL or in-memory source (no path)
+        # is cached like a file. ``input_path=None`` used to disable the cache
+        # on the obsolete assumption that the key held a path and mtime.
         e = _make_custom_engine(dim=4, cache_dir=tmp_path)
         docs = [_Doc("hello")]
         e.embed_documents(docs, input_path=None)
-        assert len(list(tmp_path.glob("*.npy"))) == 0
+        assert len(list(tmp_path.glob("*.npy"))) == 1
 
     def test_single_doc(self) -> None:
         e = _make_custom_engine(dim=16)
@@ -996,3 +1024,213 @@ class TestEmbeddingEngineIntegration:
         out2 = e.embed_documents(docs, input_path=src)
         for d1, d2 in zip(out1, out2):
             np.testing.assert_array_equal(d1.embedding, d2.embedding)
+
+
+# ===========================================================================
+# Provider identity, normalisation, precision and provenance (Run 1)
+# ===========================================================================
+
+
+class TestCustomProviderIdentity:
+    """A custom provider is known by ``custom_fn_id``, or not cached at all."""
+
+    @staticmethod
+    def _counting(value: float, calls: dict, name: str):
+        def fn(texts: list[str]) -> np.ndarray:
+            calls[name] = calls.get(name, 0) + 1
+            return np.full((len(texts), 2), value, dtype=np.float32)
+
+        return fn
+
+    def test_two_identified_providers_never_share_vectors(self, tmp_path: pathlib.Path) -> None:
+        # The reproduction: B used to receive A's cached vector and never run.
+        calls: dict = {}
+        a = EmbeddingEngine(backend="custom", custom_fn=self._counting(1.0, calls, "a"),
+                            custom_fn_id="a/1", cache_dir=tmp_path, normalize=False)
+        b = EmbeddingEngine(backend="custom", custom_fn=self._counting(9.0, calls, "b"),
+                            custom_fn_id="b/1", cache_dir=tmp_path, normalize=False)
+        va, _ = a.embed_with_cache(["hello"])
+        vb, hit = b.embed_with_cache(["hello"])
+        assert hit is False
+        assert calls == {"a": 1, "b": 1}
+        np.testing.assert_array_equal(va, [[1.0, 1.0]])
+        np.testing.assert_array_equal(vb, [[9.0, 9.0]])
+
+    def test_an_identified_provider_is_served_from_cache(self, tmp_path: pathlib.Path) -> None:
+        calls: dict = {}
+        e = EmbeddingEngine(backend="custom", custom_fn=self._counting(1.0, calls, "a"),
+                            custom_fn_id="a/1", cache_dir=tmp_path)
+        e.embed_with_cache(["hello"])
+        _, hit = e.embed_with_cache(["hello"])
+        assert hit is True
+        assert calls == {"a": 1}
+
+    def test_an_unidentified_provider_is_computed_never_cached(
+        self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        calls: dict = {}
+        e = EmbeddingEngine(backend="custom", custom_fn=self._counting(1.0, calls, "a"),
+                            cache_dir=tmp_path)
+        with caplog.at_level("INFO", logger="scikitplot.corpus._embeddings._embedding"):
+            for _ in range(3):
+                _, hit = e.embed_with_cache(["hello"])
+                assert hit is False
+        assert calls == {"a": 3}
+        assert list(tmp_path.glob("*.npy")) == []
+        notices = [r for r in caplog.records if "custom_fn_id" in r.getMessage()]
+        assert len(notices) == 1  # said once, not per call
+
+    @pytest.mark.parametrize("bad", ["", "   "])
+    def test_an_empty_identity_is_refused(self, bad: str) -> None:
+        with pytest.raises(ValueError, match="custom_fn_id"):
+            EmbeddingEngine(backend="custom", custom_fn=lambda t: None, custom_fn_id=bad)
+
+    def test_an_identity_for_a_named_backend_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="custom_fn_id"):
+            EmbeddingEngine(backend="openai", custom_fn_id="x/1")
+
+
+class TestNormalisationContract:
+    """``normalize=True`` holds for every backend, as the key and manifest say."""
+
+    def test_custom_vectors_are_unit_length(self) -> None:
+        e = EmbeddingEngine(backend="custom",
+                            custom_fn=lambda t: np.full((len(t), 2), 3.0, dtype=np.float32))
+        np.testing.assert_allclose(np.linalg.norm(e.embed(["x", "y"]), axis=1), [1.0, 1.0],
+                                   rtol=1e-6)
+
+    def test_zero_vectors_stay_zero(self) -> None:
+        e = EmbeddingEngine(backend="custom",
+                            custom_fn=lambda t: np.zeros((len(t), 3), dtype=np.float32))
+        out = e.embed(["", "x"])
+        assert np.all(out == 0)
+        assert not np.isnan(out).any()
+
+    def test_normalize_false_returns_raw_vectors(self) -> None:
+        e = EmbeddingEngine(backend="custom", normalize=False,
+                            custom_fn=lambda t: np.full((len(t), 2), 3.0, dtype=np.float32))
+        np.testing.assert_array_equal(e.embed(["x"]), [[3.0, 3.0]])
+
+    def test_float16_is_normalised_before_the_cast(self) -> None:
+        # The norm was taken in float16: a sum of squares above 65504 (here
+        # 768 * 10**2) overflowed, and every such row came back as zeros.
+        e = EmbeddingEngine(backend="custom", dtype=np.float16,
+                            custom_fn=lambda t: np.full((len(t), 768), 10.0))
+        out = e.embed(["x", "y"])
+        assert out.dtype == np.float16
+        np.testing.assert_allclose(
+            np.linalg.norm(out.astype(np.float64), axis=1), [1.0, 1.0], rtol=1e-2
+        )
+
+    def test_a_non_finite_vector_is_not_hidden(self) -> None:
+        # A NaN row used to come back as zeros, which the index's finiteness
+        # check accepts; it must stay non-finite so the index refuses it.
+        e = EmbeddingEngine(backend="custom",
+                            custom_fn=lambda t: np.array([[np.nan, 1.0], [3.0, 4.0]]))
+        out = e.embed(["x", "y"])
+        assert not np.isfinite(out[0]).all()
+        np.testing.assert_allclose(out[1], [0.6, 0.8], rtol=1e-6)
+
+
+class TestConstructionAndRevision:
+    """Field order and the pinned model revision."""
+
+    def test_positional_construction_keeps_its_meaning(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        # ``custom_fn_id`` was inserted before ``cache_dir`` and took the
+        # fourth positional argument; it is now the last field.
+        e = EmbeddingEngine("m", "custom", lambda t: np.ones((len(t), 2)), tmp_path)
+        assert (e.cache_dir, e.custom_fn_id) == (tmp_path, None)
+
+    @pytest.mark.parametrize(
+        ("revision", "expected"), [("abc123", {"revision": "abc123"}), ("", {})]
+    )
+    def test_the_pinned_revision_is_the_one_loaded(
+        self, monkeypatch: pytest.MonkeyPatch, revision: str, expected: dict
+    ) -> None:
+        # The revision used to reach the cache key and the manifest only; the
+        # model loaded was the hub's current one.
+        loaded = []
+
+        class _Model:
+            def __init__(self, name: str, **kwargs: Any) -> None:
+                loaded.append(kwargs)
+
+            def encode(self, texts: list, **kwargs: Any) -> Any:
+                return np.ones((len(texts), 2), dtype=np.float32)
+
+        module = types.ModuleType("sentence_transformers")
+        module.SentenceTransformer = _Model
+        monkeypatch.setitem(sys.modules, "sentence_transformers", module)
+        e = EmbeddingEngine(model_revision=revision, enable_cache=False)
+        e.embed(["x"])
+        assert loaded == [expected]
+
+
+class TestCachePrecision:
+    def test_a_float64_hit_equals_the_miss(self, tmp_path: pathlib.Path) -> None:
+        value = 1.0 + 1e-12
+        e = EmbeddingEngine(backend="custom", custom_fn_id="f64/1", dtype=np.float64,
+                            normalize=False, cache_dir=tmp_path,
+                            custom_fn=lambda t: np.full((len(t), 1), value, dtype=np.float64))
+        miss, cached_miss = e.embed_with_cache(["p"])
+        hit, cached_hit = e.embed_with_cache(["p"])
+        assert (cached_miss, cached_hit) == (False, True)
+        assert hit.dtype == np.float64
+        np.testing.assert_array_equal(hit, miss)
+        assert hit[0, 0] == value
+
+
+class TestEmbeddingManifestProvenance:
+    """``embed_documents`` stamps the generation every vector belongs to."""
+
+    def test_documents_carry_the_engine_manifest(self) -> None:
+        e = _make_custom_engine(dim=4)
+        out = e.embed_documents([_Doc("a"), _Doc("b")])
+        expected = e.embedding_manifest(4).fingerprint
+        assert [d.embedding_manifest_id for d in out] == [expected, expected]
+
+    def test_the_manifest_describes_the_vectors(self) -> None:
+        e = _make_custom_engine(dim=4, normalize=False, dtype=np.float64)
+        m = e.embedding_manifest(4)
+        assert (m.provider, m.model, m.dimension, m.dtype, m.normalization) == (
+            "custom", "zeros/4", 4, "float64", "none"
+        )
+        assert m.revision is None
+
+    def test_identified_engines_share_one_generation(self) -> None:
+        a, b = _make_custom_engine(dim=4), _make_custom_engine(dim=4)
+        assert a.embedding_manifest(4).fingerprint == b.embedding_manifest(4).fingerprint
+
+    def test_unidentified_engines_are_different_generations(self) -> None:
+        def fn(texts: list[str]) -> np.ndarray:
+            return np.ones((len(texts), 2), dtype=np.float32)
+
+        a = EmbeddingEngine(backend="custom", custom_fn=fn)
+        b = EmbeddingEngine(backend="custom", custom_fn=fn)
+        assert a.embedding_manifest(2).fingerprint == a.embedding_manifest(2).fingerprint
+        assert a.embedding_manifest(2).fingerprint != b.embedding_manifest(2).fingerprint
+
+    @pytest.mark.parametrize("bad", [0, -1, 2.0, True, None])
+    def test_a_bad_dimension_is_refused(self, bad: Any) -> None:
+        with pytest.raises(ValueError, match="dimension"):
+            _make_custom_engine().embedding_manifest(bad)
+
+    def test_an_index_refuses_two_providers_vectors(self) -> None:
+        # The R05 guard only compares tagged vectors. Engine output used to be
+        # untagged, so two providers' vectors were indexed and ranked together.
+        # Local imports: this module avoids the full schema at import time.
+        from ... import CorpusDocument, RetrievalConfig, RetrievalIndex  # noqa: PLC0415
+        from ..._embedding_manifest import IncompatibleEmbeddingsError  # noqa: PLC0415
+
+        first = EmbeddingEngine(backend="custom",
+                                custom_fn=lambda t: np.tile([1.0, 0.0], (len(t), 1)))
+        second = EmbeddingEngine(backend="custom",
+                                 custom_fn=lambda t: np.tile([0.0, 1.0], (len(t), 1)))
+        docs = first.embed_documents([CorpusDocument.create("p.txt", 0, "alpha")])
+        docs += second.embed_documents([CorpusDocument.create("p.txt", 1, "gamma")])
+        index = RetrievalIndex(config=RetrievalConfig(match_mode="semantic",
+                                                      backend="bruteforce"))
+        with pytest.raises(IncompatibleEmbeddingsError):
+            index.build(docs)

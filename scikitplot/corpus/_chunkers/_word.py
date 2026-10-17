@@ -350,7 +350,9 @@ class WordChunkerConfig(ChunkerConfig):
         ``"sentence"`` splits on sentence boundaries first, then
         processes each sentence as a separate chunk.
     include_offsets : bool
-        Store character offsets in each chunk.
+        Store character offsets in each chunk: its span in the input, the
+        sentence for ``chunk_by="sentence"``. ``False`` (the default) reports
+        ``(0, 0)``, so a document built from the chunk has no span.
     build_gensim_corpus : bool
         If ``True``, attach a ``gensim``-compatible ``(token_id, count)``
         BoW representation to each chunk's metadata (requires Gensim).
@@ -1111,12 +1113,27 @@ class WordChunker(MultilangMixin):
     True
     """
 
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = WordChunkerConfig
+
+    #: ``False``: each chunk's text is derived from the source (tokens,
+    #: lowercase, stems, stopwords removed), so ``text`` is not
+    #: ``source[context_span]``; the context span is the source region
+    #: it was derived from (R3-3).
+    text_is_source_slice = False
+
     def __init__(
         self,
         config: WordChunkerConfig | None = None,
         gensim_dictionary: Any | None = None,
         multilang_config: MultilangConfig | None = None,
     ) -> None:
+        if config is not None and not isinstance(config, WordChunkerConfig):
+            raise TypeError(
+                f"WordChunker: config must be a WordChunkerConfig or None, "
+                f"got {type(config).__name__}."
+            )
         self._cfg = config if config is not None else WordChunkerConfig()
         self._gensim_dict = gensim_dictionary
         self._stopwords: frozenset[str] = frozenset()
@@ -1129,6 +1146,15 @@ class WordChunker(MultilangMixin):
             else None
         )
         self._ml_init(ml_cfg)
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> WordChunkerConfig:
+        """The resolved :class:`WordChunkerConfig` for this instance (read-only)."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -1274,6 +1300,8 @@ class WordChunker(MultilangMixin):
         raw_text: str | None = None,
         preprocessing_trace: Any = None,
         preproc_ms: float | None = None,
+        span: tuple[int, int] | None = None,
+        raw_is_input: bool = True,
     ) -> Chunk:
         """Process a single text segment into a :class:`~.._types.Chunk`.
 
@@ -1291,6 +1319,13 @@ class WordChunker(MultilangMixin):
             Audit trail from preprocessing pass.
         preproc_ms : float or None
             Preprocessing wall-clock duration in milliseconds.
+        span : tuple of (int, int) or None
+            The segment's position in the chunked text; ``None`` means
+            ``(0, len(text))``.
+        raw_is_input : bool
+            Whether ``text`` is the input's own text. ``False`` when
+            preprocessing changed it (``span_basis == "preprocessed"``): no
+            ``multilang.raw_text`` is recorded, since the segment is not raw.
 
         Returns
         -------
@@ -1350,10 +1385,11 @@ class WordChunker(MultilangMixin):
         if self._cfg.build_gensim_corpus and self._gensim_dict is not None:
             meta["bow"] = _to_gensim_bow(processed, self._gensim_dict)
 
+        start, end = span if span is not None else (0, len(text))
         chunk = Chunk(
             text=chunk_text,
-            start_char=0,
-            end_char=len(text),
+            start_char=start,
+            end_char=end,
             metadata=meta,
         )
 
@@ -1370,7 +1406,11 @@ class WordChunker(MultilangMixin):
             raw_token_map: dict[str, str] | None = None
             if raw_text and self._ml_cfg.include_raw_text:
                 raw_token_map = {t: t for t in processed}
-            seg_raw = text if raw_text and self._ml_cfg.include_raw_text else None
+            seg_raw = (
+                text
+                if raw_text and raw_is_input and self._ml_cfg.include_raw_text
+                else None
+            )
             ml_meta = self._ml_build_meta(
                 chunk_text,
                 chunking_unit="word",
@@ -1437,6 +1477,10 @@ class WordChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
         preproc_ms = round((time.perf_counter() - preproc_start) * 1000, 3)
 
         if self._cfg.chunk_by == "sentence":
@@ -1445,13 +1489,20 @@ class WordChunker(MultilangMixin):
                 SentenceChunkerConfig,
             )
 
+            # R3-3: with offsets, so each sentence chunk spans its own sentence
+            # (every chunk used to report (0, len(sentence))).
             sent_chunker = SentenceChunker(
-                SentenceChunkerConfig(min_length=1, include_offsets=False)
+                SentenceChunkerConfig(min_length=1, include_offsets=True)
             )
             sent_result = sent_chunker.chunk(text, doc_id=doc_id)
             segments = [c.text for c in sent_result.chunks]
+            spans = [c.anchor_span for c in sent_result.chunks]
         else:
             segments = [text]
+            spans = [(0, len(text))]
+        if not self._cfg.include_offsets:
+            # Honour the flag (review F7): no offsets reported.
+            spans = [(0, 0)] * len(segments)
 
         chunks: list[Chunk] = [
             self._process_segment(
@@ -1461,11 +1512,14 @@ class WordChunker(MultilangMixin):
                 raw_text=raw_text,
                 preprocessing_trace=preprocessing_trace,
                 preproc_ms=preproc_ms,
+                span=spans[idx],
+                raw_is_input=span_basis == "input",
             )
             for idx, seg in enumerate(segments)
         ]
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "word",
             "tokenizer": self._cfg.tokenizer.value,
             "stemmer": self._cfg.stemmer.value,

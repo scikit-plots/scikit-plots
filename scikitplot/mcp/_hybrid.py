@@ -34,12 +34,14 @@ for hybrid search. A document found by several legs is naturally boosted.
 from __future__ import annotations
 
 import logging
-import math
-from collections import defaultdict
 from dataclasses import replace
-from typing import Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
+from ._fusion import FusionPolicy
 from ._outcome import (
     DEGRADED,
     EMPTY,
@@ -69,9 +71,13 @@ logger = logging.getLogger(__name__)
 
 
 def _chunk_key(chunk: RetrievedChunk) -> str:
-    """Stable identity for dedup/fusion: doc_id, else (uri + text prefix)."""
+    """Stable identity for dedup/fusion: doc_id, else (uri + text prefix).
+
+    ``doc_id`` is read as text, as :class:`Bm25Retriever` stores it, so a leg
+    whose chunks carry an ``int`` id still fuses (R2-1 review M1).
+    """
     if chunk.doc_id:
-        return chunk.doc_id
+        return str(chunk.doc_id)
     return (chunk.source_uri or "") + "::" + (chunk.text or "")[:128]
 
 
@@ -103,34 +109,44 @@ def reciprocal_rank_fusion(
     ranked_lists : sequence of (weight, items)
         Each leg's weight and its best-first ranked items.
     k : int, optional
-        RRF constant (default :data:`DEFAULT_RRF_K`).
+        RRF constant, an ``int`` of at least 1 (default :data:`DEFAULT_RRF_K`).
     key : callable, optional
-        Maps an item to its fusion identity (default :func:`_chunk_key`).
+        Maps an item to its fusion identity, a non-empty ``str`` (default
+        :func:`_chunk_key`).
 
     Returns
     -------
     dict
-        ``identity -> fused score`` (higher is better).
-    """
-    k = int(k)
-    if k < 1:
-        raise ValueError("rrf k must be >= 1")
+        ``identity -> fused score`` (higher is better), in fused order:
+        descending score, ties by ascending identity.
 
-    fused: dict[str, float] = defaultdict(float)
-    for raw_weight, items in ranked_lists:
-        weight = _coerce_finite_score(raw_weight)
-        if weight < 0:
-            raise ValueError("RRF weights must be non-negative")
-        if weight == 0:
-            continue
-        seen_in_leg: set[str] = set()
-        for rank, item in enumerate(items or (), start=1):
-            identity = key(item)
-            if identity in seen_in_leg:
-                continue
-            seen_in_leg.add(identity)
-            fused[identity] += weight / (k + rank)
-    return dict(fused)
+    Raises
+    ------
+    TypeError
+        If ``k`` or a weight has the wrong type, or ``key`` returns a non-str.
+    ValueError
+        If ``k < 1``, a weight is negative or not finite, or an identity is
+        empty.
+
+    Notes
+    -----
+    R2-1: a thin adapter over :class:`FusionPolicy`, the rule shared byte for
+    byte with ``scikitplot.corpus``. Each leg is named by its position, so legs
+    of equal weight stay distinct. The per-leg contributions the contract
+    returns are not carried: an MCP result is a :class:`RetrievedChunk`, which
+    has no field for them.
+    """
+    legs = list(ranked_lists)
+    policy = FusionPolicy(
+        k=k,
+        weights={str(i): weight for i, (weight, _items) in enumerate(legs)},
+        default_weight=0.0,
+    )
+    fused = policy.fuse(
+        (str(i), [key(item) for item in items or ()])
+        for i, (_weight, items) in enumerate(legs)
+    )
+    return {item.key: item.score for item in fused}
 
 
 def _metadata_richness(chunk: RetrievedChunk) -> tuple[int, int, int, int]:
@@ -165,7 +181,38 @@ class HybridRetriever(DocsRetriever):
     Resilient: a leg that raises is skipped, not fatal — one broken backend must
     not take down retrieval. Read-only; results are sanitised downstream by
     :func:`~scikitplot.mcp._core.build_search_docs_result`.
+
+    **User.** :meth:`close` (or ``with``) closes every leg that has a
+    ``close`` (a :class:`Bm25Retriever` built on a SQLite store, R3-8).
     """
+
+    def close(self) -> None:
+        """Close every leg that has a ``close``; safe to call more than once.
+
+        Notes
+        -----
+        **Developer.** Every leg is closed even when one raises; the first
+        error is then re-raised.
+        """
+        first: BaseException | None = None
+        for leg in self._retrievers:
+            close = getattr(leg, "close", None)
+            if not callable(close):
+                continue
+            try:
+                close()
+            except BaseException as exc:  # noqa: BLE001 (re-raised below)
+                first = first or exc
+        if first is not None:
+            raise first
+
+    def __enter__(self) -> Self:
+        """Return the retriever, for ``with``."""
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Close the legs when the ``with`` block ends."""
+        self.close()
 
     def __init__(
         self,
@@ -185,17 +232,25 @@ class HybridRetriever(DocsRetriever):
         if len(weights) != len(self._retrievers):
             raise ValueError("weights length must match retrievers length")
 
-        self._weights = [
-            _coerce_finite_score(weight, float("nan")) for weight in weights
-        ]
-        if any(not math.isfinite(weight) or weight < 0 for weight in self._weights):
-            raise ValueError("weights must be finite and non-negative")
+        # R2-1: the fusion contract validates the weights and rrf_k, so the
+        # retriever and reciprocal_rank_fusion refuse the same inputs.
+        try:
+            FusionPolicy(k=rrf_k)
+        except (TypeError, ValueError) as exc:
+            raise type(exc)(f"rrf_k: {exc}") from None
+        try:
+            policy = FusionPolicy(
+                k=rrf_k,
+                weights={str(i): weight for i, weight in enumerate(weights)},
+                default_weight=0.0,
+            )
+        except (TypeError, ValueError) as exc:
+            raise type(exc)(f"weights: {exc}") from None
+        self._weights = [policy.weight(str(i)) for i in range(len(weights))]
         if not any(weight > 0 for weight in self._weights):
             raise ValueError("at least one weight must be positive")
 
-        self._rrf_k = int(rrf_k)
-        if self._rrf_k < 1:
-            raise ValueError("rrf_k must be >= 1")
+        self._rrf_k = policy.k
         self._fanout = max(1, min(int(fanout), 20))
         self._strict = bool(strict)
 
@@ -214,8 +269,6 @@ class HybridRetriever(DocsRetriever):
 
         ranked_lists: list[tuple[float, list[RetrievedChunk]]] = []
         best_chunk: dict[str, RetrievedChunk] = {}
-        first_seen: dict[str, int] = {}
-        sequence = 0
 
         for index, (retriever, weight) in enumerate(
             zip(self._retrievers, self._weights)
@@ -285,20 +338,14 @@ class HybridRetriever(DocsRetriever):
             ranked_lists.append((weight, hits))
             for hit in hits:
                 identity = _chunk_key(hit)
-                if identity not in first_seen:
-                    first_seen[identity] = sequence
-                    sequence += 1
                 current = best_chunk.get(identity)
                 if current is None or _metadata_richness(hit) > _metadata_richness(
                     current
                 ):
                     best_chunk[identity] = hit
 
-        fused = reciprocal_rank_fusion(ranked_lists, k=self._rrf_k)
-        ordered = sorted(
-            fused.items(),
-            key=lambda item: (-item[1], first_seen.get(item[0], 10**12), item[0]),
-        )[:k]
+        # R2-1: FusionPolicy orders the result (exact score, then identity).
+        ordered = list(reciprocal_rank_fusion(ranked_lists, k=self._rrf_k).items())[:k]
         return RetrievalOutcome(
             [
                 replace(best_chunk[identity], score=score)
@@ -321,11 +368,21 @@ class Bm25Retriever(DocsRetriever):
         is BM25).
     doc_lookup : callable
         ``doc_id -> mapping`` with at least ``text`` and ``source_uri``.
+    strict : bool, default=False
+        Re-raise a search failure instead of returning no hits.
+    close : callable or None, default=None
+        Releases what the seams hold (the store of
+        :meth:`from_corpus_sqlite`); called once by :meth:`close`.
 
     Notes
     -----
     BM25 complements dense retrieval on exact tokens — API symbols, flags, error
     messages — that embeddings often blur.
+
+    **User.** A retriever from :meth:`from_corpus_sqlite` holds a SQLite
+    connection: use ``with Bm25Retriever.from_corpus_sqlite(path) as leg:`` or
+    call :meth:`close` (R3-8; Python 3.13 reports an unclosed connection as a
+    ``ResourceWarning``).
     """
 
     def __init__(
@@ -334,10 +391,26 @@ class Bm25Retriever(DocsRetriever):
         doc_lookup: Callable[[str], dict[str, Any]],
         *,
         strict: bool = False,
+        close: Callable[[], None] | None = None,
     ) -> None:
         self._fts = fts_search
         self._lookup = doc_lookup
         self._strict = bool(strict)
+        self._close = close
+
+    def close(self) -> None:
+        """Release what the retriever holds; safe to call more than once."""
+        close, self._close = self._close, None
+        if close is not None:
+            close()
+
+    def __enter__(self) -> Self:
+        """Return the retriever, for ``with``."""
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Close the retriever when the ``with`` block ends."""
+        self.close()
 
     def search(self, query: str, k: int = 5) -> list[RetrievedChunk]:
         """Run FTS5/BM25 and map hits to :class:`RetrievedChunk`."""
@@ -477,4 +550,4 @@ class Bm25Retriever(DocsRetriever):
             row = store.get(doc_id)
             return {} if row is None else _record(row)
 
-        return cls(_fts, _lookup, strict=strict)
+        return cls(_fts, _lookup, strict=strict, close=getattr(store, "close", None))

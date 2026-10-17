@@ -12,11 +12,12 @@
 from __future__ import annotations
 
 # import importlib
+# from sys import version_info
 import functools
+import logging
 import sys
 
-# from sys import version_info
-from .. import logger
+logger = logging.getLogger(__name__)
 
 PYTHON_VERSION = (
     f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"

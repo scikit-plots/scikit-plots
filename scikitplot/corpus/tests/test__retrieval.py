@@ -229,3 +229,18 @@ class TestHybridDegradationGate:
         )
         assert response.status in (RetrievalStatus.SUCCESS, RetrievalStatus.EMPTY)
         assert response.leg(LegKind.DENSE).status is LegStatus.SKIPPED
+
+
+def test_a_response_with_a_generation_is_json():
+    """4c: LegOutcome.to_dict() put the IndexGeneration object in the mapping."""
+    index = RetrievalIndex()
+    index.build(
+        [
+            CorpusDocument.create(
+                input_path="a.txt", chunk_index=0, text="quantum", embedding=[1.0, 0.0]
+            )
+        ]
+    )
+    response = index.search("quantum", config=RetrievalConfig(match_mode="keyword"))
+    data = json.loads(json.dumps(response.to_dict()))
+    assert data["legs"][0]["generation"] == response.legs[0].generation.to_dict()

@@ -9,10 +9,10 @@
     {
       "id": "CLI-MAINT-001",
       "severity": "medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "owner": "scikitplot._cli",
       "summary": "CommandSpec.capabilities is normative but not enforced",
-      "detail": "_spec.py says capabilities are checked before dispatch and the mcp command declares ('mcp',), but no frontend/dispatcher consumes spec.capabilities. Either implement one explicit capability gate or remove/redefine the field so metadata does not promise behavior that does not exist."
+      "detail": "_spec.py says capabilities are checked before dispatch and the mcp command declares ('mcp',), but no frontend/dispatcher consumes spec.capabilities. Either implement one explicit capability gate or remove/redefine the field so metadata does not promise behavior that does not exist. Resolved 2026-10-13 (round 33, R2-5 / F-32): the field is removed; a delegated command's missing part is reported when its entry point is imported, with its install hint."
     },
     {
       "id": "CLI-MAINT-002",

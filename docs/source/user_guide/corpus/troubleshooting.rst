@@ -59,3 +59,51 @@ it is intentionally different from ``EMPTY``, where a backend really ran and
 produced a valid empty result. For faster-whisper, the offline policy forces a
 local-files-only load so a cached model may still work even when preflight
 readiness is ``UNKNOWN``.
+
+A segmenter warning appears once, then never again
+--------------------------------------------------
+
+A missing optional segmenter (``jieba``, MeCab/fugashi/SudachiPy, ``kss``,
+PyThaiNLP, ``khmer-nltk``, ``camel-tools``, or ``regex`` for script detection)
+is a fact about the environment, so its warning is logged once per process,
+not once per text or per chunker; so is an installed analyser that fails to
+start (MeCab without a dictionary). A warning suppressed by the logger's level
+or by ``logging.disable`` when it first occurs is not used up (one dropped by
+a handler's level or a filter is). To see every optional segmenter and whether it is
+importable, ask for the report instead of reading the log:
+
+.. code-block:: python
+
+   from scikitplot.corpus import component_capabilities
+
+   for name, record in component_capabilities(role="segmentation").items():
+       print(name, record["status"], record["remedy"])
+
+With ``regex`` installed, ``ScriptSegmenter`` detects the script of each span
+that ``ScriptSegmenter.SCRIPT_PROPERTY_MAP`` names (Latin, Han, Arabic, ...),
+and its ``start``/``end`` are character offsets into the text. Han next to
+kana stays in one Japanese span, and Han next to Hangul in one Korean span,
+when they meet letter to letter (a space or punctuation separates them).
+Text with no script at all (digits, punctuation) is ``ScriptType.UNKNOWN``
+without a warning; a script the map does not name (Bengali, for example) is
+its own ``UNKNOWN`` span, noted once per process for each such script (as
+its Unicode character names call it; characters without a name, such as
+private-use icons, share one notice per general category).
+
+``ResourceWarning: unclosed database``
+--------------------------------------
+
+Python 3.13 and later report a SQLite connection that is garbage-collected
+while open. Close every store you open, preferably with ``with``:
+
+.. code-block:: python
+
+   from scikitplot.corpus import SQLiteStorage
+
+   with SQLiteStorage("corpus.db") as store:
+       store.save_batch(documents)
+
+Every storage backend supports ``with`` and an idempotent ``close()``. A
+``RuntimeCorpus`` closes the store it created itself when it is closed
+(``close()`` or ``with``), and a materialisation that fails closes it at once;
+a ``HybridRetriever`` closes its legs the same way.

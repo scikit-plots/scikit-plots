@@ -1,0 +1,84 @@
+- Corpus can now measure retrieval and answers. Ranking metrics
+  (``precision_at_k``, ``recall_at_k``, ``hit_rate_at_k``,
+  ``mean_reciprocal_rank``, ``mean_average_precision``, ``r_precision``,
+  ``ndcg_at_k`` and ``ranking_metrics``) and answer metrics
+  (``exact_match_score``, ``token_f1_score``, ``edit_similarity_score``,
+  ``anls_score``) take scikit-learn's ``(y_true, y_pred)`` signature;
+  ``make_corpus_scorer`` and ``get_corpus_scorer`` turn them into scorers
+  for ``cross_validate`` and ``GridSearchCV`` that can also score a corpus
+  index directly (``response_method="search"``), on scikit-learn's own
+  ``_BaseScorer`` or a vendored copy when scikit-learn is absent;
+  ``evaluate_retrieval`` runs a retriever over a query set and returns a
+  report of per-query and mean metrics, rankings, latency and response
+  statuses, written as strict JSON, JSON Lines, YAML or TOML and compared
+  with a baseline by a paired randomisation test; ``make_pairwise_ranker``
+  and ``make_levenshtein_ranker`` build ``CustomRetrievalIndex`` rankers.
+  Generated answers can be judged by language models: ``make_llm`` puts
+  OpenAI, Anthropic, Gemini or any callable behind one call (SDKs imported
+  only when used, nothing sent that was not asked for); ``LLMJudge`` scores
+  faithfulness, answer relevance, context precision and recall, answer
+  correctness, a custom rubric and order-swapped pairwise preference from
+  strictly parsed JSON verdicts; ``evaluate_answers`` and
+  ``evaluate_preference`` run one judge or a panel over a dataset (your
+  system, or stored answers from any model) with token usage, judge
+  identities and failures recorded; ``cohen_kappa``, ``fleiss_kappa`` and
+  ``krippendorff_alpha`` measure agreement between judges.
+  Documents can be named by time-ordered RFC 9562 UUIDv7 instead of the
+  content-addressed SHA-256 default:
+  ``BuilderConfig(doc_id_scheme="uuid7")``, ``CorpusPipeline``,
+  ``HookableCorpusPipeline`` and ``create_corpus`` (keyword
+  ``doc_id_scheme``) and ``FluentCorpus().identity("uuid7")`` mint one id
+  per document, per source in reading order, right after the source is read,
+  with parent links inside the source kept. ``uuid7()``, ``UUID7Generator``
+  (thread-safe, monotonic within a process, reseeded in a forked child,
+  injectable clock and random source), ``uuid7_unix_ms``,
+  ``doc_id_scheme_of``, ``assign_doc_ids`` and ``DocIdScheme`` are public. A
+  UUIDv7 is new on every build, so deduplicate by ``content_hash`` and keep
+  qrels for the build that minted the ids.
+  Searches can be filtered: ``RetrievalIndex.search``,
+  ``CorpusBuilder.search``, ``RuntimeCorpus.search`` and
+  ``CustomRetrievalIndex.search`` take ``filter=`` (a ``Filter`` expression
+  of scalar document fields or ``metadata.<key>``, or its JSON form),
+  applied by every leg before ranking so a filtered query returns the best
+  ``top_k`` matching documents, and each leg reports how it answered the
+  filter (``LegOutcome.filter_capability``, every operator ``EMULATED``); a
+  ``SecurityFilter`` bound to an index (``RetrievalIndex``,
+  ``CustomRetrievalIndex``, ``BuilderConfig(security_filter=...)``) is
+  AND-ed with every query and with the vector seam ``RetrievalIndex.query``,
+  keeps BM25 statistics inside the scope, and is reported by its label;
+  callers can narrow but never widen what they see; ``filter_to_dict``,
+  ``filter_from_dict`` and ``validate_filter`` carry and check filters
+  through JSON with strict validation and size limits.
+  ``RecursiveChunker`` cuts a text by a separator hierarchy (blank line,
+  line, sentence end, space, character) until every piece fits
+  ``chunk_size``, and ``ParentChildChunker`` produces large parents for
+  context with small children inside them for retrieval; documents built
+  from a child carry ``parent_doc_id``, the first producer of that field.
+  Both are registered by name (``"recursive"``, ``"parent_child"``), keep
+  every chunk a slice of its source, and are not defaults.
+  ``StructureChunker`` chunks Markdown or reStructuredText by its headings
+  and code blocks: code blocks are chunks of their own, the prose of each
+  section is split by the recursive rule, a heading not followed by prose
+  is a chunk of its own, and every chunk and its document carry
+  ``heading_path``, ``section_level`` and ``block``; registered as
+  ``"structure"``, not a default.
+  ``RetrievalExecutionPlan`` runs retrieval through typed stages, in a fixed
+  order: transform (multi-query, rewrites), retrieve (``index.search`` per
+  query, unchanged), fuse (by ``FusionPolicy``), rerank and compress
+  (character spans of each hit's text). Each stage reports a
+  ``StageOutcome`` with its status, calls, seconds and budget; a stage that
+  fails or is stopped says why, and the result's status is derived. A
+  ``StageBudget`` limits the calls and seconds of retrieve, the one stage of
+  several calls, and ``deadline_seconds`` stops any later stage from
+  starting. An empty plan returns exactly what ``index.search``
+  returns, and ``evaluate_retrieval(plan.bind(index), ...)`` measures a plan.
+  ``CharBudgetCompressor`` keeps context within a character budget.
+  ``CorrectiveRetrieval`` grades what a search returned and then accepts it,
+  retries with a caller's rewritten query within ``max_rounds`` and
+  ``deadline_seconds``, returns the ambiguous rounds fused as partial
+  evidence, or abstains with no hit; every round is graded against the
+  original query, reported in a ``CorrectionResult`` (verdict, rounds,
+  grades with the grader's name), and measured by ``evaluate_retrieval``
+  like an index. ``TermCoverageGrader`` is the deterministic grader (the
+  share of query words in the top hits, against two thresholds); a model
+  grader is any callable returning a ``GradeResult``.

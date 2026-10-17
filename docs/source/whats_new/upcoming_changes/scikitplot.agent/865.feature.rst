@@ -1,0 +1,16 @@
+- New submodule ``scikitplot.agent``: bounded, audited tool use. ``Agent``
+  runs a goal with a caller-supplied planner (a model adapter or a rule) that
+  returns a ``Decision`` (call a ``Tool``, or finish); the runtime alone
+  decides whether an action runs, through five gates in order: Validation
+  (the tool's JSON Schema, a declared subset checked against ``jsonschema``),
+  Permissions and Scope (``Policy``, least privilege by default: ``read``
+  tools without scopes only), Budget (``Limits``: ``max_steps``, which ends
+  every run, tool calls, cost, tokens the planner must report, running time)
+  and Approval (``write`` and ``external`` tools need a person's
+  ``Approval``, bound to the digest of the exact action and re-checked at
+  resume). A denied action is the step's outcome, not an exception. Every
+  decision, denial, approval and tool call is written to a hash-chained
+  audit trail (``MemoryAuditSink``, ``JsonlAuditSink``, ``verify_audit``),
+  and the ``RunState`` is saved after every step (``MemoryStore``,
+  ``JsonFileStore``), so a paused or crashed run resumes; a non-idempotent
+  call in flight at a crash is not repeated. Standard library only.

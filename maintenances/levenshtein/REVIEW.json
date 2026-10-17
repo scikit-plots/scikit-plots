@@ -4,7 +4,7 @@
   "findings": [
     {
       "id": "LV-001",
-      "status": "open",
+      "status": "closed",
       "severity": "low",
       "class": "fallback-architecture",
       "summary": "Runtime failure skips remaining safe accelerators.",
@@ -17,11 +17,13 @@
         "pure Python remains the terminal fallback",
         "actual backend provenance stays correct",
         "strict behavior for explicit backend requests remains documented and tested"
-      ]
+      ],
+      "closed_at": "2026-10-12",
+      "resolution": "One per-call _ExecutionPlan: a runtime failure warns once, drops the failed backend for the rest of the call and tries the next available backend of internal -> rapidfuzz -> python. Tests: test_a_broken_accelerator_warns_once_per_rank_call, test_a_runtime_failure_tries_the_next_safe_backend, test_strict_runtime_failure_still_raises."
     },
     {
       "id": "LV-002",
-      "status": "open",
+      "status": "closed",
       "severity": "low",
       "class": "performance-observability",
       "summary": "rank resolves backend capability for every candidate.",
@@ -32,7 +34,9 @@
         "rank resolves the execution plan once",
         "one broken accelerator emits at most one warning per top-level rank call",
         "streaming choices and O(limit) top-k behavior remain intact"
-      ]
+      ],
+      "closed_at": "2026-10-12",
+      "resolution": "rank() builds the _ExecutionPlan once, so the backend is resolved once per call and an unavailable or failing backend warns once per call. Tests: test_rank_resolves_the_backend_once_per_call, test_an_unavailable_backend_warns_once_per_rank_call; streaming and O(limit) tests unchanged."
     }
   ]
 }

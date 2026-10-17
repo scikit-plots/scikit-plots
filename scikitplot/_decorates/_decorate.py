@@ -32,14 +32,13 @@ Example usage:
 from __future__ import annotations
 
 ## Standard library imports
+# import psutil
 import asyncio
 import contextlib  # noqa: F401
 import functools
 import inspect
 import io  # noqa: F401
-
-## Standard library imports
-# import logging
+import logging
 import os  # noqa: F401
 import re  # noqa: F401
 import sys  # noqa: F401
@@ -53,13 +52,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path  # noqa: F401
 from typing import TYPE_CHECKING
 
-## Third-party imports
-import joblib  # type: ignore[reportMissingModuleSource]
+import joblib
 
-# import psutil  # type: ignore[reportMissingModuleSource]
-## Local application/library imports
-from .. import logger
 from ..utils._inspect import _resolve_args_and_kwargs
+
+logger = logging.getLogger(__name__)
 
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
@@ -89,11 +86,6 @@ if TYPE_CHECKING:
     ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
     # Later, use Union for functions that accept either
     DecoratorLike = TypeVar("DecoratorLike", bound="F | FuncDec | ClsDec")
-
-## Set up basic logger configuration
-# logging.basicConfig(level=_logging.INFO)
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
 
 __all__ = [
     "BaseDecorator",
@@ -528,7 +520,7 @@ class BaseDecorator(metaclass=DecorateMeta):
         # Set logging level if verbose is enabled
         if self.verbose:
             # logger.setLevel(logging.DEBUG)
-            logger.setLevel(logger.INFO)
+            logger.setLevel(logging.INFO)
             logger.debug(f"{self.__class__.__name__} initialized with verbose logging.")
 
     def __call__(
@@ -925,10 +917,10 @@ class BaseDecorator(metaclass=DecorateMeta):
                 filename = kwargs.get("log_filename", f"log_{func.__name__}.txt")
                 ## Log file named after the function
                 log_file = filename
-                log_file_handler = logger.FileHandler(log_file)
-                # log_file_handler.setLevel(logger.DEBUG)
-                log_file_handler.setLevel(logger.INFO)
-                formatter = logger.Formatter(
+                log_file_handler = logging.FileHandler(log_file)
+                # log_file_handler.setLevel(logging.DEBUG)
+                log_file_handler.setLevel(logging.INFO)
+                formatter = logging.Formatter(
                     "%(asctime)s - %(levelname)s - %(message)s"
                 )
                 log_file_handler.setFormatter(formatter)
@@ -978,9 +970,9 @@ class BaseDecorator(metaclass=DecorateMeta):
                     result = func(*args_f, **kwargs_f)
                     # BaseDecorator do noting
                     return result  # noqa: RET504
-                except Exception as e:
-                    # Log any exceptions
-                    logger.exception(f"'{func.__name__}' function error in : {e}")
+                except Exception:
+                    # Log any exceptions without including the exception object in the message.
+                    logger.exception(f"'{func.__name__}' function error")
                     raise
                     # BaseDecorator.wrapper_exception_handler(e, func)
                 finally:
@@ -1053,7 +1045,6 @@ class BaseDecorator(metaclass=DecorateMeta):
             thread_id = threading.get_ident()
             logger.error(
                 f"Error occurred in thread {thread_id}: {e}",
-                exc_info=True,
             )
         except Exception:  # noqa: BLE001
             # Log any exceptions
@@ -1104,7 +1095,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                 func(*args, **kwargs)  # Execute the function
             except Exception as e:  # noqa: BLE001
                 # Log errors
-                logger.exception(f"Threaded execution error in '{func.__name__}': {e}")
+                logger.exception(f"Threaded execution error in '{func.__name__}'")
 
         cls._executor.submit(_thread_wrapper)  # Submit to the thread pool for execution
 
@@ -1141,7 +1132,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                 await func(*args, **kwargs)  # Execute the async function
             except Exception as e:  # noqa: BLE001
                 logger.exception(
-                    f"Async execution error in '{func.__name__}': {e}"
+                    f"Async execution error in '{func.__name__}'"
                 )  # Log errors
 
         try:
@@ -1152,10 +1143,9 @@ class BaseDecorator(metaclass=DecorateMeta):
                 task.add_done_callback(lambda t: t.exception())
             else:
                 asyncio.run(_async_wrapper())  # Run async task in new loop
-        except Exception as e:  # noqa: BLE001
-            logger.exception(
-                f"Failed to run async task: {e}"
-            )  # Log if running async fails
+        except Exception:  # noqa: BLE001
+            # Log if running async fails
+            logger.exception("Failed to run async task")
 
     # --- Context Manager Support for Resource Management --- (optional)
     # from contextlib import contextmanager
@@ -1202,12 +1192,13 @@ class BaseDecorator(metaclass=DecorateMeta):
                     joblib.dump(cls._instance[cls], filename, *args, **kwargs)
                     # Log success
                     logger.info(f"Serialized {cls.__name__} instance to '{filename}'")
-                except Exception as e:  # noqa: BLE001
-                    logger.exception(f"Serialization failed: {e}")  # Log failure
+                except Exception:  # noqa: BLE001
+                    logger.exception("Serialization failed")
             else:
+                # Log if no instance is found
                 logger.warning(
-                    "No instance to serialize."
-                )  # Log if no instance is found
+                    "No instance to serialize.",
+                )
 
     @classmethod
     def deserialize(
@@ -1248,9 +1239,10 @@ class BaseDecorator(metaclass=DecorateMeta):
                     f"File not found: {filename}"
                 )  # Log if file doesn't exist
             except Exception as e:  # noqa: BLE001
+                # Log if deserialization fails
                 logger.exception(
-                    f"Deserialization error: {e}"
-                )  # Log if deserialization fails
+                    "Deserialization error",
+                )
         return None
 
 

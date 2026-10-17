@@ -18,11 +18,11 @@ from .bycython import eval, eval_criterion
 
 
 def distance(*args, **kwargs):
-    """"An alias to eval"""
+    """Alias of :func:`eval`: the Levenshtein distance of two sequences."""
     return eval(*args, **kwargs)
 
 def distance_le_than(*args, **kwargs):
-    """"An alias to eval"""
+    """Alias of :func:`eval_criterion`: whether the distance is at most ``thr``."""
     return eval_criterion(*args, **kwargs)
 
 __all__ = (

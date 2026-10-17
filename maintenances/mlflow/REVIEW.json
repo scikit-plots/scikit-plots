@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.mlflow",
+  "lanes": [
+    {
+      "name": "static_contract",
+      "checks": [
+        "runtime_presence",
+        "public_api",
+        "security_boundary",
+        "optional_dependencies",
+        "typing",
+        "process_boundary",
+        "planes",
+        "handoff",
+        "inventory",
+        "evidence"
+      ]
+    },
+    {
+      "name": "runtime_tests",
+      "checks": [
+        "tests"
+      ]
+    },
+    {
+      "name": "integration",
+      "checks": [
+        "integration"
+      ]
+    },
+    {
+      "name": "release",
+      "checks": [
+        "release"
+      ]
+    }
+  ],
+  "known_findings": [
+    {
+      "id": "MLF-SEC-001",
+      "severity": "high",
+      "summary": "SecurityPolicy is exported/documented as guarding session()/spawn_server(), but active policy state is never consulted by runtime operations; prohibited server options still pass through."
+    },
+    {
+      "id": "MLF-OPT-001",
+      "severity": "medium",
+      "summary": "Optional PyYAML imports in _project.py and _workflow.py catch Exception rather than ImportError, so a broken installed dependency can be misreported as not installed."
+    },
+    {
+      "id": "MLF-TYP-001",
+      "severity": "medium",
+      "summary": "_session.pyi imports ArtifactsFacade/ModelsFacade with `from _facade import ...` instead of a package-relative import despite py.typed shipping."
+    },
+    {
+      "id": "MLF-TEST-001",
+      "severity": "low",
+      "summary": "RunDemo tests claim side effects are mocked but several call run_demo() with the 10-second default UI sleep, making the nominal unit suite needlessly slow and awkward to run monolithically."
+    }
+  ]
+}

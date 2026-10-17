@@ -27,7 +27,7 @@ from .._corpus import (
     redact_documents,
     register_corpus_readers,
 )
-from .._exceptions import CapabilityError
+from .._exceptions import CapabilityError, CleanPromptError
 from .._plan import FluentCleanPrompt
 
 
@@ -101,6 +101,50 @@ class TestRedactDocuments:
             text=safe_parent.text
         )
         assert cleaner.decode(safe_parent.text) == parent.text
+
+    def test_a_uuid7_document_keeps_its_scheme(self, corpus):
+        make = corpus.CorpusDocument.create
+        parent = make("n.txt", 0, "Mail ann@example.com")
+        child = make("n.txt", 1, "Again ann@example.com", parent_doc_id=parent.doc_id)
+        parent, child = corpus.assign_doc_ids([parent, child], "uuid7")
+        cleaner = FluentCleanPrompt().packs("patient").materialize()
+        safe_parent, safe_child = redact_documents([parent, child], cleaner)
+        uuid7 = corpus.DocIdScheme.UUID7
+        assert corpus.doc_id_scheme_of(safe_parent.doc_id) is uuid7
+        assert corpus.doc_id_scheme_of(safe_child.doc_id) is uuid7
+        assert safe_parent.doc_id not in (parent.doc_id, child.doc_id)
+        assert safe_child.parent_doc_id == safe_parent.doc_id
+        assert safe_parent.content_hash == corpus.CorpusDocument.make_content_hash(
+            text=safe_parent.text
+        )
+
+    def test_a_uuid7_document_with_nothing_redacted_keeps_its_id(self, corpus):
+        (doc,) = corpus.assign_doc_ids(
+            [corpus.CorpusDocument.create("n.txt", 0, "Nothing secret here.")], "uuid7"
+        )
+        cleaner = FluentCleanPrompt().packs("patient").materialize()
+        (safe,) = redact_documents([doc], cleaner)
+        assert safe.text == doc.text
+        assert safe.doc_id == doc.doc_id
+
+    def test_a_parent_renamed_two_ways_is_refused(self, corpus):
+        make = corpus.CorpusDocument.create
+        parent = make("n.txt", 0, "Mail ann@example.com")
+        (parent,) = corpus.assign_doc_ids([parent], "uuid7")
+        twin = parent.replace(text="Mail bob@example.com")  # same UUIDv7
+        child = make("n.txt", 1, "Again", parent_doc_id=parent.doc_id)
+        cleaner = FluentCleanPrompt().packs("patient").materialize()
+        with pytest.raises(CleanPromptError, match="ambiguous"):
+            redact_documents([parent, twin, child], cleaner)
+
+    def test_a_content_addressed_document_stays_content_addressed(self, corpus):
+        doc = corpus.CorpusDocument.create("n.txt", 0, "Mail ann@example.com")
+        (safe,) = redact_documents(
+            [doc], FluentCleanPrompt().packs("patient").materialize()
+        )
+        assert safe.doc_id == corpus.CorpusDocument.make_doc_id(
+            doc.input_path, doc.chunk_index, safe.text, doc.source_type
+        )
 
     def test_a_parent_outside_the_batch_is_cleared(self, corpus):
         child = corpus.CorpusDocument.create("n.txt", 1, "x", parent_doc_id="0" * 16)

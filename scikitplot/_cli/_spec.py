@@ -126,8 +126,6 @@ class CommandSpec:
         Hide from help listings.
     deprecated : bool
         Mark as deprecated (still runnable; emits a stderr notice).
-    capabilities : tuple of str
-        Capability keys this command requires (checked before dispatch).
     delegate : str or None
         For DELEGATED (pass-through) commands: a target the submodule owns.
         ``"module:attr"`` calls ``attr(argv) -> int``; a bare ``"module"`` is
@@ -146,7 +144,6 @@ class CommandSpec:
     aliases: tuple[str, ...] = ()
     hidden: bool = False
     deprecated: bool = False
-    capabilities: tuple[str, ...] = ()
     delegate: str | None = None
     install_hint: str | None = None
 

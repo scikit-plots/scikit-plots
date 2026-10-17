@@ -72,9 +72,12 @@ There is an important implementation distinction:
 - **availability fallback** chooses a usable backend before computation;
 - **runtime fallback** handles an accelerator that fails while computing.
 
-Today a runtime accelerator failure falls directly to pure Python. Maintenance
-finding ``LV-001`` tracks a future per-operation execution plan that can try
-the remaining safe accelerator first.
+Each ``distance()``, ``rank()`` or ``closest()`` call uses one execution plan.
+When the chosen accelerator fails at runtime, the plan warns once, stops using
+it for the rest of the call and tries the next available safe backend
+(``internal``, then ``rapidfuzz``), with pure Python last. This resolved
+maintenance finding ``LV-001``, which recorded that a runtime failure used to
+jump straight to pure Python.
 
 Provenance
 ----------

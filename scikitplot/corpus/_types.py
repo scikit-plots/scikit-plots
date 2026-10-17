@@ -282,18 +282,31 @@ class Chunk:
     text : str
         The chunk's text content (possibly including overlap context).
     start_char : int
-        Zero-based character offset of this chunk's start in the source
-        document.  Set to ``0`` when offsets are disabled.
+        Zero-based character offset of the chunk's *anchor* in the source:
+        the region the chunk stands for (a sentence, without the sentences
+        repeated before it as overlap). Set to ``0`` when offsets are
+        disabled.
     end_char : int
-        Zero-based exclusive character offset of this chunk's end.
-        Set to ``0`` when offsets are disabled.
+        Zero-based exclusive end of the anchor. Set to ``0`` when offsets are
+        disabled.
     metadata : MetadataDict
         Arbitrary per-chunk key/value pairs (e.g. ``chunk_index``,
         ``doc_id``, ``backend``, ``tokens``).  Always a dict — never
         ``None``.
+    context_start : int or None, optional
+        Start of the *context* span: the source region ``text`` is taken
+        from, which covers the anchor (overlap context included). ``None``
+        means the anchor start.
+    context_end : int or None, optional
+        Exclusive end of the context span; ``None`` means the anchor end.
 
     Notes
     -----
+    * **Span invariant (R3-3).** For every built-in chunker whose
+      ``text_is_source_slice`` is ``True`` (all but ``WordChunker``, whose
+      text is a token transformation), ``text == source[context_start:
+      context_end]`` when offsets are enabled, and the context span covers
+      the anchor: ``context_start <= start_char <= end_char <= context_end``.
     * ``text`` must be a non-empty string.  Validation is the chunker's
       responsibility; :class:`Chunk` itself does not re-validate to keep
       it a pure value object.
@@ -305,11 +318,32 @@ class Chunk:
     start_char: CharOffset
     end_char: CharOffset
     metadata: MetadataDict = field(default_factory=dict, compare=False)
+    context_start: CharOffset | None = None
+    context_end: CharOffset | None = None
 
     def __post_init__(self):
         # MappingProxyType → immutable dictionary wrapper
         object.__setattr__(
             self, "metadata", types.MappingProxyType(dict(self.metadata))
+        )
+        context_start, context_end = self.context_span
+        if not context_start <= self.start_char <= self.end_char <= context_end:
+            raise ValueError(
+                f"Chunk: the context span ({context_start}, {context_end}) must "
+                f"cover the anchor ({self.start_char}, {self.end_char})."
+            )
+
+    @property
+    def anchor_span(self) -> tuple[int, int]:
+        """``(start_char, end_char)``: the region this chunk stands for."""
+        return (self.start_char, self.end_char)
+
+    @property
+    def context_span(self) -> tuple[int, int]:
+        """The source region ``text`` is taken from (covers the anchor)."""
+        return (
+            self.start_char if self.context_start is None else self.context_start,
+            self.end_char if self.context_end is None else self.context_end,
         )
 
     # def __hash__(self) -> int:
@@ -350,7 +384,9 @@ class Chunk:
         str
             64-character lowercase hex string.
         """
-        return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
+        return hashlib.sha256(
+            self.text.encode("utf-8", errors="surrogatepass")
+        ).hexdigest()
 
     def with_metadata(self, **kwargs: Any) -> Chunk:
         """Return a new :class:`Chunk` with additional metadata keys.
@@ -455,7 +491,46 @@ class ChunkerConfig:
     -----
     All concrete configs must remain ``frozen=True`` dataclasses.
     Mutable config objects create non-deterministic pipeline behaviour.
+
+    **Enum fields (R3-2).** A field whose default is an :class:`~enum.Enum`
+    member accepts that member or its value (``backend="regex"``) and holds
+    the member after construction; any other value raises ``ValueError``
+    listing the valid values. It used to construct and then fail inside
+    ``chunk()`` (``'str' object has no attribute 'value'``). A subclass that
+    defines ``__post_init__`` must call ``super().__post_init__()``.
     """
+
+    def __post_init__(self) -> None:
+        """Coerce each enum-typed field from its value, or refuse it."""
+        for name, enum_cls in _enum_fields(type(self)):
+            value = getattr(self, name)
+            if isinstance(value, enum_cls):
+                continue
+            try:
+                member = enum_cls(value)
+            except (ValueError, TypeError):
+                valid = [member.value for member in enum_cls]
+                raise ValueError(
+                    f"{type(self).__name__}.{name} must be one of {valid} "
+                    f"(or a {enum_cls.__name__} member), got {value!r}"
+                ) from None
+            object.__setattr__(self, name, member)
+
+
+def _enum_fields(config_cls: type) -> tuple[tuple[str, type], ...]:
+    """Return ``(name, enum class)`` for each field whose default is an enum.
+
+    The enum type is read from the default, not the annotation: under
+    ``from __future__ import annotations`` annotations are strings, and
+    resolving ``X | None`` fails on Python 3.9.
+    """
+    import dataclasses  # noqa: PLC0415
+
+    return tuple(
+        (f.name, type(f.default))
+        for f in dataclasses.fields(config_cls)
+        if isinstance(f.default, Enum)
+    )
 
 
 @dataclass(frozen=True)
@@ -1276,17 +1351,17 @@ class PreprocessingStep:
         Configuration parameters used for this step.  Must be
         JSON-serialisable.  ``None`` if the step has no parameters.
     input_hash : str or None
-        MD5 hex of the text *before* this step.  Allows exact change
+        SHA-256 hex (64 characters) of the text *before* this step.  Allows exact change
         detection without storing the full text.  ``None`` if not tracked.
     output_hash : str or None
-        MD5 hex of the text *after* this step.
+        SHA-256 hex (64 characters) of the text *after* this step.
 
     Notes
     -----
     **Developer note:** Hash all PreprocessingStep objects into a stable
     fingerprint to build a preprocessing fingerprint for idempotency
     verification on pipeline re-runs.  The fingerprint is:
-    ``hashlib.md5(",".join(s.name for s in trace.steps).encode()).hexdigest()``
+    ``hashlib.sha256(",".join(s.name for s in trace.steps).encode()).hexdigest()``
     """
 
     name: str
@@ -1346,7 +1421,8 @@ class PreprocessingTrace:
     final_text : str
         The normalised text after all steps.
     pipeline_fingerprint : str
-        MD5 hex digest of step names (``",".join(s.name for s in steps)``).
+        SHA-256 hex digest (64 characters) of the step names
+        (``",".join(s.name for s in steps)``).
         Use this to detect preprocessing pipeline changes across corpus
         versions or pipeline runs.
     total_char_delta : int
@@ -1376,8 +1452,8 @@ class PreprocessingTrace:
     >>> trace = PreprocessingTrace.build(
     ...     raw_text="café", steps=[step], final_text="café"
     ... )
-    >>> trace.pipeline_fingerprint
-    '...'
+    >>> len(trace.pipeline_fingerprint)
+    64
     """
 
     raw_text: str | None
@@ -1409,9 +1485,8 @@ class PreprocessingTrace:
         """
         # HIGH-05 fix: hashlib is already imported at module top (line ~40).
         # The in-body import was redundant and triggered noqa: PLC0415.
-        fp = hashlib.md5(  # noqa: S324
-            ",".join(s.name for s in steps).encode("utf-8")
-        ).hexdigest()
+        # R2-3: the full SHA-256 (64 hex), like every other fingerprint here.
+        fp = hashlib.sha256(",".join(s.name for s in steps).encode("utf-8")).hexdigest()
         delta = sum(s.char_delta for s in steps)
         return PreprocessingTrace(
             raw_text=raw_text,

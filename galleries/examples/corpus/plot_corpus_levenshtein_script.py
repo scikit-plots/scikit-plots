@@ -22,7 +22,7 @@ so low-quality candidates can be rejected consistently across accelerators.
 from __future__ import annotations
 
 from scikitplot import levenshtein
-from scikitplot.corpus import CorpusDocument, RetrievalConfig
+from scikitplot.corpus import CorpusDocument, RetrievalConfig, make_levenshtein_ranker
 
 # %%
 # Basic distance
@@ -51,11 +51,12 @@ for match in levenshtein.rank(
     print(match.choice, round(match.similarity, 3), match.distance)
 
 # %%
-# Adapt the scorer to Corpus
-# --------------------------
-# The adapter is lazy: importing :mod:`scikitplot.levenshtein` does not import
-# Corpus.  When used with Corpus it returns normal ``RetrievalHit`` records
-# with explicit lexical provenance.
+# Rank Corpus documents
+# ---------------------
+# Corpus owns the adapter, :func:`~scikitplot.corpus.make_levenshtein_ranker`;
+# :mod:`scikitplot.levenshtein` never imports Corpus. The ranker returns normal
+# ``RetrievalHit`` records with explicit lexical provenance, and is what
+# ``CustomRetrievalIndex(custom_scorer_fn=...)`` expects.
 
 documents = [
     CorpusDocument(
@@ -81,8 +82,8 @@ documents = [
     ),
 ]
 
-scorer = levenshtein.make_corpus_scorer(score_cutoff=0.60)
-hits = scorer(
+ranker = make_levenshtein_ranker(score_cutoff=0.60)
+hits = ranker(
     "hemoglobin concentration",
     documents,
     RetrievalConfig(top_k=3),

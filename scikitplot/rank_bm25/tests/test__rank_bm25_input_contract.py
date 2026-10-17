@@ -13,6 +13,7 @@ See Also
 scikitplot.rank_bm25._rank_bm25.BM25
 """
 
+import numpy as np
 import pytest
 
 from .._rank_bm25 import BM25L, BM25Okapi, BM25Plus
@@ -79,3 +80,49 @@ def test_tokenizer_path_still_accepts_strings():
     index = BM25Okapi(["hello there", "quite windy"], tokenizer=str.split)
     assert index.corpus_size == 2
     assert index.doc_len == [2, 2]
+
+
+# -- every query entry point refuses a bare string ---------------------------
+#
+# ``get_scores`` refused a string query, but ``get_batch_scores``,
+# ``get_top_ids`` and ``candidate_count`` reached the scoring loop directly,
+# so ``get_top_ids("windy")`` scored the characters w, i, n, d, y and ranked a
+# document of single letters above the one containing "windy".
+
+_QUERY_ENTRY_POINTS = (
+    ("get_scores", lambda index, query: index.get_scores(query)),
+    ("get_batch_scores", lambda index, query: index.get_batch_scores(query, [0, 1])),
+    ("get_top_ids", lambda index, query: index.get_top_ids(query, n=2)),
+    ("candidate_count", lambda index, query: index.candidate_count(query)),
+    ("get_top_n", lambda index, query: index.get_top_n(query, ["x", "y", "z"], n=1)),
+)
+
+
+@pytest.mark.parametrize("scorer", [BM25Okapi, BM25L, BM25Plus])
+@pytest.mark.parametrize(
+    ("name", "call"), _QUERY_ENTRY_POINTS, ids=[n for n, _ in _QUERY_ENTRY_POINTS]
+)
+@pytest.mark.parametrize("query", ["windy", b"windy", ["windy", 3]])
+def test_every_query_entry_point_refuses_a_non_token_query(scorer, name, call, query):
+    corpus = [["windy", "london"], ["hello"], ["w", "i", "n", "d", "y"]]
+    index = scorer(corpus, doc_ids=["a", "b", "c"])
+    with pytest.raises(TypeError):
+        call(index, query)
+
+
+@pytest.mark.parametrize("scorer", [BM25Okapi, BM25L, BM25Plus])
+def test_a_token_query_finds_the_document_that_contains_it(scorer):
+    corpus = [["windy", "london"], ["hello"], ["w", "i", "n", "d", "y"]]
+    index = scorer(corpus, doc_ids=["a", "b", "c"])
+    assert index.get_top_ids(["windy"], n=3)[0][0] == "a"
+    assert index.candidate_count(iter(["windy"])) == 1  # iterators are accepted
+
+
+@pytest.mark.parametrize("scorer", CLASSES)
+def test_batch_positions_may_be_any_iterable_of_int(scorer):
+    """A tuple used to raise IndexError: NumPy reads it as one index per axis."""
+    model = scorer([*GOOD, ["hello", "windy"]])
+    query = ["hello", "windy"]
+    expected = model.get_batch_scores(query, [0, 2])
+    for positions in ((0, 2), np.array([0, 2]), iter([0, 2]), range(0, 3, 2)):
+        assert model.get_batch_scores(query, positions) == expected

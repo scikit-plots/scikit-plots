@@ -41,6 +41,8 @@ front of you.
     customization
     downloads_and_network
     retrieval_and_similarity
+    evaluation
+    llm_evaluation
     formats_and_export
     security_and_limits
     troubleshooting
@@ -123,6 +125,18 @@ front of you.
          :maxdepth: 2
 
         retrieval_and_similarity
+
+   .. grid-item-card::
+      :columns: 12 12 6 6
+      :padding: 2
+
+      **evaluate**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+        evaluation
+        llm_evaluation
 
    .. grid-item-card::
       :columns: 12 12 6 6

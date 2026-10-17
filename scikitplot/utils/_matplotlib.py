@@ -21,6 +21,7 @@ import functools as _functools
 # import inspect
 # import tempfile
 # from functools import wraps
+import logging
 import warnings
 import warnings as _warnings
 from typing import TYPE_CHECKING
@@ -29,9 +30,10 @@ import matplotlib as _mpl  # noqa: ICN001
 import matplotlib.pyplot as _plt  # noqa: ICN001
 import numpy as _np  # noqa: ICN001
 
-from .. import logger as _logger
 from .._docstrings import _docstring
 from ._path import get_path
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     # Only imported during type checking
@@ -40,11 +42,6 @@ if TYPE_CHECKING:
         Optional,
         # Union,
     )
-
-# import logging
-# Set up logging
-# logging.basicConfig(level=logging.INFO)
-# _logger = logging.getLogger(__name__)
 
 
 ######################################################################
@@ -115,7 +112,7 @@ def safe_tight_layout(fig=None, *, warn=True):
                 if _is_tight_layout_compatible(fig):
                     fig.tight_layout()
                 else:
-                    _logger.debug("Skipping tight_layout due to incompatible axes")
+                    logger.debug("Skipping tight_layout due to incompatible axes")
                 # Detect specific failure mode deterministically
                 incompatible = [
                     w
@@ -124,13 +121,13 @@ def safe_tight_layout(fig=None, *, warn=True):
                 ]
 
                 if incompatible and warn:
-                    _logger.warning(
+                    logger.warning(
                         "tight_layout() skipped due to incompatible Axes: %s",
                         incompatible[0].message,
                     )
         except Exception as e:  # noqa: BLE001
             if warn:
-                _logger.warning("tight_layout() failed: %s", e)
+                logger.warning("tight_layout() failed: %s", e)
 
 
 class SafeTightLayout:
@@ -188,7 +185,7 @@ class SafeTightLayout:
             self.fig.tight_layout()
         except Exception as e:  # noqa: BLE001
             if self.warn:
-                _logger.warning("tight_layout() failed: %s", e)
+                logger.warning("tight_layout() failed: %s", e)
 
 
 ######################################################################

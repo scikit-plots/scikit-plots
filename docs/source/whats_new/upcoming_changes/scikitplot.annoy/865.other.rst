@@ -1,0 +1,13 @@
+- The Annoy test suite writes nothing into the package: every index a test
+  saves goes to ``tmp_path``, and a guard fails a test module, or the
+  session for a write at a module's import, that adds or changes a file in
+  the test directory (every file there is shipped in the wheel).
+  ``index_test.py`` no longer downloads ``test.tree`` at import, which no
+  test read; without the network the module was a collection error that
+  stopped the whole directory. The fixture ``test64.tree`` is committed
+  (its ``.gitignore`` negation now follows the patterns it undoes). The
+  ann-benchmarks accuracy tests are opt-in: set
+  ``SKPLT_ANNOY_ACCURACY_DATA`` to a cache directory to run them. They
+  were all ``xfail``, which hid that ``test_lastfm_angular`` builds a
+  65-dimensional index from 64-dimensional rows; it is now a strict
+  ``xfail`` on that ``ValueError``.

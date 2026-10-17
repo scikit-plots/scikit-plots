@@ -1,0 +1,13 @@
+- The Corpus+Annoy retriever can be scoped by the corpus filter contract:
+  ``CorpusIndexRetriever(..., filter=...)`` and
+  ``CorpusAnnoyRetriever.from_corpus_annoy(..., filter=...)`` take a
+  ``scikitplot.corpus`` filter expression (or its JSON form), checked by
+  ``validate_filter`` before anything is built and passed to every
+  ``index.search``, where the corpus applies it in every leg and AND-s it
+  with the index's ``SecurityFilter``; ``scikitplot mcp --corpus-filter
+  PATH`` reads it from a JSON file. With a filter, ``semantic`` mode runs
+  the corpus's dense leg through ``search``, the seam that takes one; a
+  filter that narrows nothing is refused, and the ``docs://chunk/{doc_id}``
+  resource serves only documents in scope. ``CorpusIndexRetriever`` gains
+  ``get`` (and ``documents=``), so the server also starts in ``hybrid`` and
+  ``keyword`` corpus modes, where it used to stop with an ``AttributeError``.

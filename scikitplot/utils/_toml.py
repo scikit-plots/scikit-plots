@@ -35,14 +35,15 @@ from __future__ import annotations
 
 import importlib
 import importlib.util as _importlib_util
+import logging
 import os as _os
 import pathlib as _pathlib
 import sys as _sys
 from typing import Any, Mapping, Union
 
-from .. import logger as _logger  # noqa: F401
 from ..exceptions import ScikitplotException
 
+logger = logging.getLogger(__name__)
 _PathLike = Union[str, _os.PathLike]
 
 

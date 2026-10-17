@@ -28,7 +28,7 @@ import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Mapping, TextIO
+from typing import Any, Mapping, TextIO
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, build_opener
 
@@ -114,6 +114,7 @@ class RuntimeConfig:
     self_test_query: str
     self_test_require_match: bool
     self_test_expected_doc_id: str | None
+    corpus_filter: str | None = None
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -184,6 +185,16 @@ def _parser() -> argparse.ArgumentParser:
             "default), hybrid (BM25 + dense fused by rank, so identifiers and "
             "error strings are found as well as paraphrases), or keyword "
             "(BM25 only, no embedding at query time)"
+        ),
+    )
+    parser.add_argument(
+        "--corpus-filter",
+        default=None,
+        metavar="PATH",
+        help=(
+            "JSON file holding a scikitplot.corpus filter expression (its JSON "
+            "form, filter_to_dict) applied to every --corpus-annoy query: the "
+            "server's scope. Checked before the corpus is built."
         ),
     )
     parser.add_argument("--host", default=None, help="HTTP bind host")
@@ -447,6 +458,9 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
 
     if args.docs_jsonl and corpus_annoy:
         raise SystemExit("--docs-jsonl and --corpus-annoy are mutually exclusive")
+    corpus_filter = getattr(args, "corpus_filter", None)
+    if corpus_filter is not None and not corpus_annoy:
+        raise SystemExit("--corpus-filter applies to --corpus-annoy only")
     if not 8 <= hash_dimension <= 65536:  # ruff: ignore[magic-value-comparison]
         raise SystemExit("--hash-dimension must be between 8 and 65536")
     if not 1 <= annoy_n_trees <= 10000:  # ruff: ignore[magic-value-comparison]
@@ -526,6 +540,7 @@ def _resolve_config(  # ruff: ignore[too-many-branches]
         annoy_metric=annoy_metric,
         annoy_n_trees=annoy_n_trees,
         corpus_mode=corpus_mode,
+        corpus_filter=corpus_filter,
         host=host,
         port=port,
         path=path,
@@ -627,6 +642,16 @@ def _write_json(payload: object, *, stream: TextIO) -> None:
     stream.flush()
 
 
+def _read_filter(path: Path) -> Any:
+    """Read the JSON filter expression of ``--corpus-filter``."""
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise SystemExit(f"--corpus-filter does not exist: {path}") from None
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"--corpus-filter {path}: not a JSON file: {exc}") from None
+
+
 def _build_corpus_annoy_retriever(config: RuntimeConfig):
     """Build the optional Corpus+Annoy retriever without importing it at CLI import time."""
     if config.corpus_annoy is None:
@@ -646,6 +671,16 @@ def _build_corpus_annoy_retriever(config: RuntimeConfig):
         "strict": True,
         "mode": config.corpus_mode,
     }
+    if config.corpus_filter is not None:
+        from ._corpus_annoy import (  # ruff: ignore[import-outside-top-level]
+            _checked_filter,
+        )
+
+        filter_path = Path(config.corpus_filter)
+        try:
+            kwargs["filter"] = _checked_filter(_read_filter(filter_path))
+        except (TypeError, ValueError, RuntimeError) as exc:
+            raise SystemExit(f"--corpus-filter {filter_path}: {exc}") from None
     if config.corpus_embedding_model is not None:
         kwargs["embedding_model"] = config.corpus_embedding_model
     else:

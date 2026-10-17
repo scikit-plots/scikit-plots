@@ -575,6 +575,68 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.agent": {
+        "short_summary": "Bounded, audited tool use: a planner proposes, the runtime disposes.",
+        "description": _get_guide("agent-index"),
+        "sections": [
+            {
+                "title": "Agent loop",
+                "autosummary": [
+                    "Agent",
+                    "Decision",
+                    "Action",
+                    "Usage",
+                ],
+            },
+            {
+                "title": "Tools, policy and limits",
+                "autosummary": [
+                    "Tool",
+                    "ToolEffect",
+                    "Toolset",
+                    "Policy",
+                    "Limits",
+                    "GateKind",
+                    "GateResult",
+                ],
+            },
+            {
+                "title": "Run state and approval",
+                "autosummary": [
+                    "RunState",
+                    "RunStatus",
+                    "StopReason",
+                    "Step",
+                    "StepOutcome",
+                    "Spent",
+                    "ApprovalRequest",
+                    "Approval",
+                    "StateStore",
+                    "MemoryStore",
+                    "JsonFileStore",
+                ],
+            },
+            {
+                "title": "Audit trail",
+                "autosummary": [
+                    "AuditSink",
+                    "MemoryAuditSink",
+                    "JsonlAuditSink",
+                    "read_audit",
+                    "verify_audit",
+                ],
+            },
+            {
+                "title": "Errors",
+                "autosummary": [
+                    "AgentError",
+                    "ErrorCode",
+                    "SchemaError",
+                    "StateError",
+                ],
+            },
+        ],
+    },
     "scikitplot.annoy": {
         "short_summary": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
         "description": _get_guide("annoy-index"),
@@ -1382,6 +1444,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ChunkerBridge",
                     "FixedWindowChunkerBridge",
                     "ParagraphChunkerBridge",
+                    "ProtocolChunkerBridge",
                     "SemanticChunkerBridge",
                     "SentenceChunkerBridge",
                     "WordChunkerBridge",
@@ -1442,6 +1505,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     # _paragraph
                     "ParagraphChunker",
                     "ParagraphChunkerConfig",
+                    # _recursive
+                    "ParentChildChunker",
+                    "ParentChildChunkerConfig",
+                    "RecursiveChunker",
+                    "RecursiveChunkerConfig",
                     # _semantic
                     "SemanticBackend",
                     "SemanticChunker",
@@ -1451,6 +1519,9 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SentenceChunker",
                     "SentenceChunkerConfig",
                     "_validate_text_input",
+                    # _structure
+                    "StructureChunker",
+                    "StructureChunkerConfig",
                     # _word
                     "LemmatizationBackend",
                     "StemmingBackend",
@@ -1559,6 +1630,11 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # _cache_policy
+                    "CachePolicy",
+                    "CacheStatus",
+                    "CachedEmbeddings",
+                    "resolve_hub_revision",
                     # _embedding
                     "DEFAULT_CACHE_DIR",
                     "DEFAULT_MODEL",
@@ -1599,6 +1675,93 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Evaluation: Retrieval and Answer Metrics, Scorers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _metrics._ranking
+                    "hit_rate_at_k",
+                    "mean_average_precision",
+                    "mean_reciprocal_rank",
+                    "ndcg_at_k",
+                    "precision_at_k",
+                    "r_precision",
+                    "ranking_metrics",
+                    "recall_at_k",
+                    # _metrics._text
+                    "anls_score",
+                    "edit_similarity",
+                    "edit_similarity_score",
+                    "exact_match_score",
+                    "normalize_answer",
+                    "token_f1_score",
+                    # _metrics._scorer (scikit-learn compatible)
+                    "ScorerBackendInfo",
+                    "get_corpus_scorer",
+                    "get_corpus_scorer_names",
+                    "make_corpus_scorer",
+                    "scorer_backend_info",
+                    # _metrics._evaluate (harness and reports)
+                    "EvaluationComparison",
+                    "MetricComparison",
+                    "QueryEvaluation",
+                    "RetrievalEvaluation",
+                    "evaluate_retrieval",
+                    # _metrics._inputs
+                    "UndefinedMetricWarning",
+                    "ranked_ids",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "EvaluationComparison",
+                    "MetricComparison",
+                    "QueryEvaluation",
+                    "RetrievalEvaluation",
+                    "ScorerBackendInfo",
+                ],
+            },
+            {
+                "title": "Evaluation: LLM Judges, Answer Harness, Agreement",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _metrics._llm (provider adapters)
+                    "CacheError",
+                    "Completion",
+                    "IncompleteCompletionError",
+                    "LLM",
+                    "make_llm",
+                    # _metrics._judge
+                    "JudgeParseError",
+                    "JudgeResult",
+                    "LLMJudge",
+                    "context_texts",
+                    "parse_verdict",
+                    # _metrics._answers (harness and reports)
+                    "AnswerEvaluation",
+                    "AnswerItem",
+                    "PreferenceEvaluation",
+                    "evaluate_answers",
+                    "evaluate_preference",
+                    # _metrics._agreement
+                    "cohen_kappa",
+                    "fleiss_kappa",
+                    "krippendorff_alpha",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "AnswerEvaluation",
+                    "AnswerItem",
+                    "Completion",
+                    "JudgeResult",
+                    "LLM",
+                    "LLMJudge",
+                    "PreferenceEvaluation",
+                ],
+            },
+            {
                 "title": "Export",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -1626,7 +1789,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "NotIn",
                     "Or",
                     "Range",
+                    "SecurityFilter",
                     "UnsupportedOperatorError",
+                    "filter_from_dict",
+                    "filter_to_dict",
+                    "filterable_fields",
+                    "validate_filter",
                 ],
             },
             {
@@ -1637,6 +1805,21 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "IndexGeneration",
                     "derive_generation",
+                ],
+            },
+            {
+                "title": "Document Identity",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "DocIdScheme",
+                    "IncompatibleSchemaError",
+                    "UUID7Generator",
+                    "assign_doc_ids",
+                    "doc_id_scheme_of",
+                    "uuid7",
+                    "uuid7_unix_ms",
                 ],
             },
             {
@@ -1820,12 +2003,41 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "DenseRetriever",
+                    "FusedItem",
+                    "FusionContribution",
+                    "FusionPolicy",
                     "GraphRetriever",
                     "LegContribution",
                     "LegResult",
                     "LexicalRetriever",
                     "Retriever",
                     "fuse_by_rank",
+                ],
+            },
+            {
+                "title": "Retrieval Execution Plan",
+                "autosummary": [
+                    "CharBudgetCompressor",
+                    "ContextPassage",
+                    "ExecutionResult",
+                    "PlannedHit",
+                    "RetrievalExecutionPlan",
+                    "StageBudget",
+                    "StageKind",
+                    "StageOutcome",
+                    "StageStatus",
+                ],
+            },
+            {
+                "title": "Corrective Retrieval",
+                "autosummary": [
+                    "CorrectionResult",
+                    "CorrectionRound",
+                    "CorrectionVerdict",
+                    "CorrectiveRetrieval",
+                    "EvidenceGrade",
+                    "GradeResult",
+                    "TermCoverageGrader",
                 ],
             },
             {
@@ -1881,6 +2093,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "AnnoyBackend",
                     "BruteForceBackend",
                     "FaissBackend",
+                    "FallbackRefusedError",
                     "VectorIndexBackend",
                     "VoyagerBackend",
                     "list_available_backends",
@@ -1889,6 +2102,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "RetrievalConfig",
                     "RetrievalHit",
                     "RetrievalIndex",
+                    # _pairwise (rankers for CustomRetrievalIndex)
+                    "LevenshteinRanker",
+                    "PairwiseRanker",
+                    "make_levenshtein_ranker",
+                    "make_pairwise_ranker",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "LevenshteinRanker",
+                    "PairwiseRanker",
                 ],
             },
             {
@@ -2580,7 +2803,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "backend_info",
                     "closest",
                     "distance",
-                    "make_corpus_scorer",
                     "normalized_distance",
                     "normalized_similarity",
                     "rank",

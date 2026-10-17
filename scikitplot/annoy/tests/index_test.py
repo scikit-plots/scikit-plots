@@ -16,29 +16,13 @@ import os
 import random
 
 import pytest
-try:
-    from urllib import urlretrieve
-except ImportError:
-    from urllib.request import urlretrieve  # Python 3
 
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
 
+# Read only: the committed fixture ``test64.tree``. Every file a test writes
+# goes to ``tmp_path`` (Rule 30), and nothing is downloaded.
 HERE = os.path.dirname(__file__)  # "tests"
-
-
-def _get_test_data(url=None):
-    # 'https://github.com/spotify/annoy/raw/refs/heads/main/test/test.tree'  # 32-bit
-    url = url or 'https://github.com/spotify/annoy/raw/main/test/test.tree'
-    filename = os.path.join(HERE, os.path.basename(url))
-
-    if not os.path.exists(filename):
-        print("downloading", url, "->", filename)
-        urlretrieve(url, filename)
-
-
-_get_test_data()
-# _get_test_data('https://github.com/spotify/annoy/raw/main/test/test64.tree')
 
 
 def test_not_found_tree():
@@ -81,22 +65,22 @@ def test_construct_destruct():
         i.add_item(1000, [random.gauss(0, 1) for z in range(10)])
 
 
-def test_save_twice():
+def test_save_twice(tmp_path):
     # Issue #100
     t = AnnoyIndex(10, "angular")
     for i in range(100):
         t.add_item(i, [random.gauss(0, 1) for z in range(10)])
     t.build(10)
-    t.save(f"{HERE}/t1.ann")
-    t.save(f"{HERE}/t2.ann")
+    t.save(str(tmp_path / "t1.ann"))
+    t.save(str(tmp_path / "t2.ann"))
 
 
-def test_load_save():
+def test_load_save(tmp_path):
     # Issue #61
     i = AnnoyIndex(10, "angular")
     i.load(f"{HERE}/test64.tree")
     u = i.get_item(99)
-    i.save(f"{HERE}/i.tree")
+    i.save(str(tmp_path / "i.tree"))
     v = i.get_item(99)
     assert u == v
     j = AnnoyIndex(10, "angular")
@@ -104,25 +88,25 @@ def test_load_save():
     w = i.get_item(99)
     assert u == w
     # Ensure specifying if prefault is allowed does not impact result
-    j.save(f"{HERE}/j.tree", True)
+    j.save(str(tmp_path / "j.tree"), True)
     k = AnnoyIndex(10, "angular")
-    k.load(f"{HERE}/j.tree", True)
+    k.load(str(tmp_path / "j.tree"), True)
     x = k.get_item(99)
     assert u == x
-    k.save(f"{HERE}/k.tree", False)
+    k.save(str(tmp_path / "k.tree"), False)
     l = AnnoyIndex(10, "angular")
-    l.load(f"{HERE}/k.tree", False)
+    l.load(str(tmp_path / "k.tree"), False)
     y = l.get_item(99)
     assert u == y
 
 
-def test_save_without_build():
+def test_save_without_build(tmp_path):
     t = AnnoyIndex(10, "angular")
     for i in range(100):
         t.add_item(i, [random.gauss(0, 1) for z in range(10)])
     # Note: in earlier version, this was allowed (see eg #61)
     with pytest.raises(Exception):
-        t.save(f"{HERE}/x.tree")
+        t.save(str(tmp_path / "x.tree"))
 
 
 def test_unbuild_with_loaded_tree():
@@ -156,7 +140,7 @@ def test_metric_f_kwargs():
     AnnoyIndex(f=3, metric="euclidean")
 
 
-def test_item_vector_after_save():
+def test_item_vector_after_save(tmp_path):
     # Issue #279
     a = AnnoyIndex(3, "angular")
     a.set_verbose(True)
@@ -167,7 +151,7 @@ def test_item_vector_after_save():
     assert a.get_n_items() == 4
     assert a.get_item(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
-    a.save(f"{HERE}/something.annoy")
+    a.save(str(tmp_path / "something.annoy"))
     assert a.get_n_items() == 4
     assert a.get_item(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
@@ -188,7 +172,7 @@ def test_fail_save():
         t.save("")
 
 
-def test_overwrite_index():
+def test_overwrite_index(tmp_path):
     # Issue #335
     f = 40
 
@@ -198,11 +182,11 @@ def test_overwrite_index():
         v = [random.gauss(0, 1) for z in range(f)]
         t.add_item(i, v)
     t.build(10)
-    t.save(f"{HERE}/test.ann")
+    t.save(str(tmp_path / "test.ann"))
 
     # Load index file
     t2 = AnnoyIndex(f, "angular")
-    t2.load(f"{HERE}/test.ann")
+    t2.load(str(tmp_path / "test.ann"))
 
     # Overwrite index file
     t3 = AnnoyIndex(f, "angular")
@@ -213,9 +197,9 @@ def test_overwrite_index():
     if os.name == "nt":
         # Can't overwrite on Windows
         with pytest.raises(IOError):
-            t3.save(f"{HERE}/test.ann")
+            t3.save(str(tmp_path / "test.ann"))
     else:
-        t3.save(f"{HERE}/test.ann")
+        t3.save(str(tmp_path / "test.ann"))
         # Get nearest neighbors
         v = [random.gauss(0, 1) for z in range(f)]
         t2.get_nns_by_vector(v, 1000)  # Should not crash
@@ -246,28 +230,28 @@ def test_write_failed():
         t.save(path)
 
 
-def test_dimension_mismatch():
+def test_dimension_mismatch(tmp_path):
     t = AnnoyIndex(100, "angular")
     for i in range(1000):
         t.add_item(i, [random.gauss(0, 1) for z in range(100)])
     t.build(10)
-    t.save(f"{HERE}/test.annoy")
+    t.save(str(tmp_path / "test.annoy"))
 
     u = AnnoyIndex(200, "angular")
     with pytest.raises(IOError):
-        u.load(f"{HERE}/test.annoy")
+        u.load(str(tmp_path / "test.annoy"))
     u = AnnoyIndex(50, "angular")
     with pytest.raises(IOError):
-        u.load(f"{HERE}/test.annoy")
+        u.load(str(tmp_path / "test.annoy"))
 
 
-def test_add_after_save():
+def test_add_after_save(tmp_path):
     # 398
     t = AnnoyIndex(100, "angular")
     for i in range(1000):
         t.add_item(i, [random.gauss(0, 1) for z in range(100)])
     t.build(10)
-    t.save(f"{HERE}/test.annoy")
+    t.save(str(tmp_path / "test.annoy"))
 
     # Used to segfault:
     v = [random.gauss(0, 1) for z in range(100)]

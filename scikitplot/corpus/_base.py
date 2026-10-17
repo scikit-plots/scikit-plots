@@ -87,6 +87,8 @@ if TYPE_CHECKING:
 
 from ._schema import (
     _PROMOTED_RAW_KEYS,
+    _SCHEMA_VERSION,
+    _SCHEMA_VERSION_KEY,
     ChunkingStrategy,
     CorpusDocument,
     Modality,  # HIGH-03: needed for supported_modalities ClassVar
@@ -138,66 +140,97 @@ _F = TypeVar("_F", bound="FilterBase")  # noqa: PYI018
 def _slice_raw_text(
     parent_raw: str | None,
     per_chunk_meta: dict[str, Any],
-    char_start: int,
-    char_end: int,
+    span: tuple[int, int] | None,
+    *,
+    chunked_text: str,
+    spans_index_parent: bool,
+    only_chunk: bool,
+    chunk_text: str,
+    text_is_source_slice: bool,
 ) -> str | None:
-    """Return the per-sub-chunk slice of *parent_raw* using character offsets.
+    """Return the verbatim source text of one sub-chunk, or ``None``.
 
     Called from :meth:`DocumentReader.get_documents` to assign ``raw_text``
     on each :class:`~._schema.CorpusDocument` when the MultilangMixin did
     not already supply a sub-chunk-granular ``ml["raw_text"]``.
 
-    **Priority chain**:
+    **Chain** (first that applies):
 
-    1. ``per_chunk_meta["_raw_segment"]`` — set unconditionally by
-       :class:`~._chunkers._word.WordChunker` (pre-stemmed segment text).
-       WordChunker's ``char_start`` is always 0 for sentence-mode chunks
-       (offsets are relative to the segment, not the document), so slicing
-       ``parent_raw`` by those offsets produces the wrong content.
-       ``_raw_segment`` bypasses this by carrying the correct segment text.
-    2. ``parent_raw[char_start:char_end]`` — for chunkers with proper
-       absolute offsets in the source text (SentenceChunker, FixedWindow,
-       Paragraph, SemanticChunker).  The slice exactly covers this chunk.
-    3. ``parent_raw`` in full — single-chunk case (no splitting occurred,
-       ``char_start=0`` and ``char_end=len(parent_raw)``).
+    1. ``parent_raw`` is ``None``: ``None``.
+    2. The spans index ``parent_raw`` (``spans_index_parent``):
+
+       a. a known ``span``: ``parent_raw[start:end]`` (``None`` when the span
+          is outside ``parent_raw``);
+       b. no span, ``text_is_source_slice``: ``chunk_text``, which is that
+          slice;
+       c. no span, derived text: ``per_chunk_meta["_raw_segment"]`` (the
+          segment :class:`~._chunkers._word.WordChunker` took its tokens
+          from), else ``None``.
+
+    3. The spans do not index ``parent_raw`` (a reader's markup, or text
+       preprocessing changed): ``parent_raw`` in full when this is the only
+       chunk and it covers the whole chunked text, else ``None``.
 
     Parameters
     ----------
     parent_raw : str or None
         Verbatim reader output (``provenance["raw_text"]``).
     per_chunk_meta : dict
-        Per-chunk metadata dict from :class:`~._chunkers._chunker_bridge.
-        ChunkedTextList`.  May contain ``"_raw_segment"`` from WordChunker.
-    char_start : int
-        Start character offset of this sub-chunk within the source text.
-    char_end : int
-        Exclusive end offset (``char_start + len(chunk_text)``).
+        The chunk's metadata. May contain ``"_raw_segment"``.
+    span : (int, int) or None
+        The chunk's context span (R3-3), or ``None`` when the chunker
+        reported no offsets.
+    chunked_text : str
+        The text the chunker was given.
+    spans_index_parent : bool
+        Whether spans index ``parent_raw``: it is ``chunked_text`` (or
+        absent) and the chunker did not preprocess it
+        (``span_basis == "input"``).
+    only_chunk : bool
+        Whether this is the only chunk the parent produced.
+    chunk_text : str
+        The chunk's text.
+    text_is_source_slice : bool
+        The chunker's ``text_is_source_slice``.
 
     Returns
     -------
     str or None
-        Per-chunk raw text, or ``None`` if ``parent_raw`` is ``None``.
+        Per-chunk raw text.
 
     Notes
     -----
-    **Developer note:** This function is the single source of truth for
-    raw_text slicing.  Every code path that computes ``raw_text`` for a
-    sub-chunk must go through here.  Direct slicing of ``parent_raw``
-    outside this function is an error.
+    **User note.** ``raw_text`` is ``None`` when its region is unknown. It
+    used to fall back to the whole parent, so every chunk of a split parent
+    claimed the full source as its raw text (review F1, Rule 117), and a
+    reader's ``raw_text`` that is not the chunked text (HTML markup, an XML
+    element) was sliced by spans that do not index it. A single chunk is the
+    whole parent only when it covers the whole chunked text: a chunk left
+    after ``min_length`` dropped the rest is not.
+
+    **Developer note.** This function is the single source of truth for
+    raw_text slicing; direct slicing of ``parent_raw`` elsewhere is an error.
     """
     if parent_raw is None:
         return None
-    # Priority 1: WordChunker embeds pre-stemmed segment unconditionally.
     raw_seg = per_chunk_meta.get("_raw_segment")
-    if raw_seg is not None:
-        return str(raw_seg)
-    # Priority 2: slice by absolute char offsets (SentenceChunker et al.)
-    if 0 <= char_start < char_end <= len(parent_raw):
-        sliced = parent_raw[char_start:char_end]
-        if sliced:
-            return sliced
-    # Priority 3: single chunk or offset out of bounds — return full text.
-    return parent_raw
+    if spans_index_parent:
+        if span is not None:
+            start, end = span
+            in_range = 0 <= start <= end <= len(parent_raw)
+            return parent_raw[start:end] if in_range else None
+        if text_is_source_slice:
+            return chunk_text
+        return None if raw_seg is None else str(raw_seg)
+    covered = (
+        chunk_text
+        if text_is_source_slice
+        else (None if raw_seg is None else str(raw_seg))
+    )
+    whole = (
+        only_chunk and covered is not None and covered.strip() == chunked_text.strip()
+    )
+    return parent_raw if whole else None
 
 
 # ===========================================================================
@@ -1277,25 +1310,100 @@ class DocumentReader(abc.ABC):
                     raw_text, metadata=raw_chunk
                 )
                 _sub_chunk_items: list[Chunk] = chunk_result.chunks
+                # R3-3: spans index the chunker's input unless it preprocessed
+                # the text first (review F2); a derived text (WordChunker) is
+                # not a slice even when its span is known.
+                _span_basis = (chunk_result.metadata or {}).get("span_basis", "input")
+                _inner = getattr(self.chunker, "inner", self.chunker)
+                _text_is_slice = bool(getattr(_inner, "text_is_source_slice", False))
             elif raw_text.strip():
                 # No chunker — single synthetic Chunk preserving the raw text
                 _sub_chunk_items = [
                     Chunk(text=raw_text, start_char=0, end_char=len(raw_text))
                 ]
+                _span_basis, _text_is_slice = "input", True
             else:
                 _sub_chunk_items = []
+                _span_basis, _text_is_slice = "input", True
+            _spans_index_parent = _span_basis == "input" and (
+                provenance.get("raw_text") in (None, raw_text)
+            )
 
+            # R4-2: doc_id of each yielded sub-chunk by its position, so a child
+            # chunk that names its parent (metadata "parent_chunk") gets that
+            # document's id as parent_doc_id; positions whose document the
+            # filter dropped are remembered apart, so a child never names a
+            # document that was not yielded.
+            _sub_doc_ids: dict[int, str] = {}
+            _sub_omitted: set[int] = set()
             for _sub_idx, _chunk in enumerate(_sub_chunk_items):
-                char_start: int = _chunk.start_char
                 chunk_text: str = _chunk.text
                 if not chunk_text.strip():
                     omitted += 1
                     continue
+                # R3-3: the document's span is the chunk's *context* span, the
+                # region its text comes from (it used to be the anchor start
+                # plus len(text), the wrong region for an overlap chunk). The
+                # anchor is recorded when it differs. A chunker with offsets
+                # disabled reports (0, 0): the span is unknown, not (0, len).
+                span_start, span_end = getattr(
+                    _chunk, "context_span", (_chunk.start_char, _chunk.end_char)
+                )
+                if span_start == span_end == 0 and chunk_text:
+                    char_start: int | None = None
+                    char_end: int | None = None
+                else:
+                    char_start, char_end = span_start, span_end
+                doc_metadata = dict(chunk_metadata)
+                anchor = (_chunk.start_char, _chunk.end_char)
+                if char_start is not None and anchor != (char_start, char_end):
+                    doc_metadata["anchor_span"] = list(anchor)
+                if _span_basis != "input":
+                    # The spans index the preprocessed text (NFC, stripped
+                    # controls), not this document's source text.
+                    doc_metadata["span_basis"] = _span_basis
 
                 # Per-chunk metadata from the bridge (includes "multilang")
                 per_chunk_meta: dict[str, Any] = (
                     dict(_chunk.metadata) if _chunk.metadata else {}
                 )
+                parent_doc_id = provenance.get("parent_doc_id")
+                if "parent_chunk" in per_chunk_meta:
+                    position = per_chunk_meta["parent_chunk"]
+                    if (
+                        isinstance(position, int)
+                        and not isinstance(position, bool)
+                        and position in _sub_omitted
+                    ):
+                        # The filter dropped the parent: no link to a document
+                        # that is not yielded (nor to the source's own parent,
+                        # which would skip a level); say so instead.
+                        doc_metadata["parent_omitted"] = True
+                        parent_doc_id = None
+                    elif (
+                        isinstance(position, bool)
+                        or not isinstance(position, int)
+                        or position not in _sub_doc_ids
+                    ):
+                        raise ValueError(
+                            f"{self.file_name}: chunk {_sub_idx} names parent chunk"
+                            f" {position!r}, which is not an earlier chunk with a"
+                            " document of this result."
+                        )
+                    else:
+                        parent_doc_id = _sub_doc_ids[position]
+                for key in (
+                    "chunk_role",
+                    "parent_span",
+                    "heading_path",
+                    "section_level",
+                    "block",
+                ):
+                    if key in per_chunk_meta:
+                        value = per_chunk_meta[key]
+                        doc_metadata[key] = (
+                            list(value) if isinstance(value, tuple) else value
+                        )
 
                 # Coerce source_type from string to enum if needed
                 raw_st = provenance.get("source_type", SourceType.UNKNOWN)
@@ -1328,8 +1436,8 @@ class DocumentReader(abc.ABC):
                     chunking_strategy=chunking_strategy,
                     language=self.default_language,
                     char_start=char_start,
-                    char_end=char_start + len(chunk_text),
-                    metadata=dict(chunk_metadata),
+                    char_end=char_end,
+                    metadata=doc_metadata,
                     source_type=resolved_source_type,
                     source_title=provenance.get("source_title"),
                     source_author=provenance.get("source_author"),
@@ -1341,7 +1449,7 @@ class DocumentReader(abc.ABC):
                     page_number=provenance.get("page_number"),
                     paragraph_index=provenance.get("paragraph_index"),
                     line_number=provenance.get("line_number"),
-                    parent_doc_id=provenance.get("parent_doc_id"),
+                    parent_doc_id=parent_doc_id,
                     act=provenance.get("act"),
                     scene_number=provenance.get("scene_number"),
                     timecode_start=provenance.get("timecode_start"),
@@ -1349,27 +1457,22 @@ class DocumentReader(abc.ABC):
                     confidence=provenance.get("confidence"),
                     ocr_engine=provenance.get("ocr_engine"),
                     bbox=provenance.get("bbox"),
-                    # raw_text: per-chunk verbatim source text.
-                    #
-                    # Priority chain (see _slice_raw_text docstring):
-                    #   1. ml["raw_text"]           — MultilangMixin, most granular
-                    #   2. per_chunk_meta["_raw_segment"] — WordChunker pre-stemmed seg
-                    #   3. parent_raw[char_start:char_end] — offset-based slice
-                    #   4. parent_raw in full       — single-chunk fallback
-                    #
-                    # BUG FIX: previously the fallback was always provenance["raw_text"]
-                    # (the FULL parent raw text), so every sub-chunk got the ENTIRE
-                    # source text in raw_text regardless of how many chunks were produced.
-                    # The fix: slice by char_start:char_end for all properly-offset
-                    # chunkers; WordChunker supplies _raw_segment for char_start=0 cases.
+                    # raw_text: per-chunk verbatim source text: ml["raw_text"]
+                    # (MultilangMixin) when the spans index the parent, else
+                    # _slice_raw_text's chain. None when the chunk's region of
+                    # the parent is unknown (Rule 117).
                     raw_text=(
                         ml["raw_text"]
-                        if "raw_text" in ml
+                        if "raw_text" in ml and _spans_index_parent
                         else _slice_raw_text(
                             provenance.get("raw_text"),
                             per_chunk_meta,
-                            char_start,
-                            char_start + len(chunk_text),
+                            None if char_start is None else (char_start, char_end),
+                            chunked_text=raw_text,
+                            spans_index_parent=_spans_index_parent,
+                            only_chunk=len(_sub_chunk_items) == 1,
+                            chunk_text=chunk_text,
+                            text_is_source_slice=_text_is_slice,
                         )
                     ),
                     # normalized_text: populated ONLY by TextNormalizer post-pipeline.
@@ -1456,7 +1559,9 @@ class DocumentReader(abc.ABC):
                 )  # always set in __post_init__  # noqa: S101
                 if not self.filter_.include(doc):
                     omitted += 1
+                    _sub_omitted.add(_sub_idx)
                     continue
+                _sub_doc_ids[_sub_idx] = doc.doc_id
 
                 included += 1
                 yield doc
@@ -2844,7 +2949,13 @@ class PipelineGuard:
     checkpoint_path : pathlib.Path or None, optional
         Path to a JSONL file for checkpoint/resume.  When set, every
         ``checkpoint_every`` documents are written; on restart, already-seen
-        ``doc_id`` values are skipped.  Default: ``None`` (no checkpoint).
+        ``doc_id`` values are skipped.  Each line records the document
+        ``schema_version``; a checkpoint written by another generation (or
+        before lines carried one) raises ``IncompatibleSchemaError`` on load,
+        because its ids would match nothing.  Under ``doc_id_scheme="uuid7"``
+        the ids are new on every build, so apply the guard to documents
+        before ids are minted, or resume by ``content_hash`` (``dedup``).
+        Default: ``None`` (no checkpoint).
     checkpoint_every : int, optional
         Flush checkpoint every N yielded documents.  Default: 500.
     max_retries : int, optional
@@ -3191,16 +3302,6 @@ class PipelineGuard:
                         continue
                     try:
                         obj = json.loads(line)
-                        did = obj.get("doc_id")
-                        h = obj.get("content_hash")
-                        if did:
-                            self._seen_ids.add(did)
-                            # _checkpoint_ids is the authoritative set for
-                            # resume skip — kept separate from _seen_ids so
-                            # the dedup block cannot pollute it.
-                            self._checkpoint_ids.add(did)
-                        if h:
-                            self._seen_hashes.add(h)
                     except json.JSONDecodeError as _json_exc:
                         # SEV-1.4: Malformed checkpoint line — log at DEBUG so
                         # operators can diagnose corrupted checkpoint files.
@@ -3210,6 +3311,32 @@ class PipelineGuard:
                             self.checkpoint_path,
                             _json_exc,
                         )
+                        continue
+                    if not isinstance(obj, dict):
+                        logger.debug(
+                            "PipelineGuard: skipping malformed checkpoint"
+                            " line in %s: not a JSON object",
+                            self.checkpoint_path,
+                        )
+                        continue
+                    # R2-3: a line written by another schema generation holds
+                    # ids that match nothing now, so a resume would silently
+                    # redo everything; refuse the checkpoint instead.
+                    CorpusDocument._check_schema_version(
+                        obj,
+                        f"PipelineGuard checkpoint {self.checkpoint_path} "
+                        "(delete it to start the run afresh)",
+                    )
+                    did = obj.get("doc_id")
+                    h = obj.get("content_hash")
+                    if did:
+                        self._seen_ids.add(did)
+                        # _checkpoint_ids is the authoritative set for
+                        # resume skip — kept separate from _seen_ids so
+                        # the dedup block cannot pollute it.
+                        self._checkpoint_ids.add(did)
+                    if h:
+                        self._seen_hashes.add(h)
             logger.info(
                 "PipelineGuard: loaded checkpoint with %d seen doc_ids from %s",
                 len(self._seen_ids),
@@ -3236,6 +3363,8 @@ class PipelineGuard:
                 "doc_id": getattr(doc, "doc_id", None),
                 "content_hash": getattr(doc, "content_hash", None),
                 "input_path": getattr(doc, "input_path", None),
+                # R2-3: the generation that wrote the ids, read back on resume.
+                _SCHEMA_VERSION_KEY: _SCHEMA_VERSION,
             }
             self._ckpt_file.write(json.dumps(record, ensure_ascii=False) + "\n")
             self._ckpt_file.flush()

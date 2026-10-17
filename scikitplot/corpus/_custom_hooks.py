@@ -1006,6 +1006,9 @@ class HookableCorpusPipeline:
         Progress notification callback.
     reader_kwargs : dict or None, optional
         Extra kwargs forwarded to each reader.
+    doc_id_scheme : DocIdScheme or str, optional
+        How documents are named (``"sha256"`` or ``"uuid7"``), as for
+        :class:`~scikitplot.corpus._pipeline.CorpusPipeline`.
 
     Notes
     -----
@@ -1051,6 +1054,7 @@ class HookableCorpusPipeline:
         default_language: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
+        doc_id_scheme: Any = "sha256",
     ) -> None:
         """
         Initialise the hookable pipeline.
@@ -1074,6 +1078,8 @@ class HookableCorpusPipeline:
         progress_callback : Callable or None, optional
             progress_callback.
         reader_kwargs : dict or None, optional
+            Forwarded to :class:`~scikitplot.corpus._pipeline.CorpusPipeline`.
+        doc_id_scheme : DocIdScheme or str, optional
             Forwarded to :class:`~scikitplot.corpus._pipeline.CorpusPipeline`.
         """
         import pathlib  # noqa: PLC0415
@@ -1104,6 +1110,7 @@ class HookableCorpusPipeline:
             default_language=default_language,
             progress_callback=progress_callback,
             reader_kwargs=reader_kwargs,
+            doc_id_scheme=doc_id_scheme,
         )
         # Expose pipeline attrs directly
         self.chunker = self._pipeline.chunker
@@ -1113,6 +1120,7 @@ class HookableCorpusPipeline:
         self.format = self._pipeline.format
         self.default_language = default_language
         self.reader_kwargs = self._pipeline.reader_kwargs
+        self.doc_id_scheme = self._pipeline.doc_id_scheme
 
     # ------------------------------------------------------------------
     # Public API — identical to CorpusPipeline
@@ -1687,6 +1695,7 @@ class CustomRetrievalIndex:
         config: Any | None = None,
         *,
         custom_scorer_fn: Callable[[str, list[Any], Any], list[Any]] | None = None,
+        security_filter: Any | None = None,
     ) -> None:
         """
         Initialise with search config and optional custom scorer.
@@ -1697,6 +1706,9 @@ class CustomRetrievalIndex:
             config.
         custom_scorer_fn : callable or None, optional
             ``(query, documents, config) -> list[RetrievalHit]``.
+        security_filter : SecurityFilter or None, optional
+            Scope AND-ed with every query's filter, on both paths (R2-2): the
+            custom scorer is only ever given the documents it admits.
 
         Raises
         ------
@@ -1714,7 +1726,9 @@ class CustomRetrievalIndex:
                 f"got {type(custom_scorer_fn).__name__!r}."
             )
 
-        self._inner = RetrievalIndex(config=config or RetrievalConfig())
+        self._inner = RetrievalIndex(
+            config=config or RetrievalConfig(), security_filter=security_filter
+        )
         self.config = self._inner.config
         self.custom_scorer_fn = custom_scorer_fn
         self._scorer_name = (
@@ -1753,6 +1767,7 @@ class CustomRetrievalIndex:
         *,
         config: Any | None = None,
         query_embedding: Any | None = None,
+        filter: Any | None = None,  # noqa: A002
     ) -> list[Any]:
         """
         Search the index using the custom scorer or built-in modes.
@@ -1770,6 +1785,11 @@ class CustomRetrievalIndex:
             Per-query config override.
         query_embedding : array-like or None, optional
             Pre-computed query embedding for semantic/hybrid modes.
+        filter : Filter, mapping or None, optional
+            Restrict the search to matching documents, AND-ed with the
+            security filter (R2-2). The custom scorer receives only the
+            documents the combined filter admits; the built-in path is
+            :meth:`~scikitplot.corpus.RetrievalIndex.search`.
 
         Returns
         -------
@@ -1788,10 +1808,16 @@ class CustomRetrievalIndex:
                 "CustomRetrievalIndex: calling custom_scorer_fn %r.",
                 self._scorer_name,
             )
+            expression = self._inner._effective_filter(filter)
+            documents = (
+                self._inner._documents
+                if expression is None
+                else [d for d in self._inner._documents if expression.matches(d)]
+            )
             try:
                 return self.custom_scorer_fn(
                     query,
-                    self._inner._documents,
+                    documents,
                     resolved_cfg,
                 )
             except Exception as exc:
@@ -1804,6 +1830,7 @@ class CustomRetrievalIndex:
             query,
             config=resolved_cfg,
             query_embedding=query_embedding,
+            filter=filter,
         )
 
     # ------------------------------------------------------------------

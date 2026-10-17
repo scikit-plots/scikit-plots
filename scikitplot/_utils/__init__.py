@@ -40,12 +40,15 @@ in ``numpy._core``.
 # │   ├── logging_utils.py ← ScikitplotFormatter (needs ..logging, env_vars)
 # │   └── tests/
 # │       └── __init__.py  ← ⚠ EMPTY — zero tests, zero coverage
+from __future__ import annotations
 
+import logging
 import functools
 import warnings
 
-from .. import logger as _logger
 from ._convertions import asbytes, asunicode
+
+logger = logging.getLogger(__name__)
 
 SKPLT_API_NAME = "scikitplot"
 
@@ -146,9 +149,6 @@ from sys import version_info
 PYTHON_VERSION = f"{version_info.major}.{version_info.minor}.{version_info.micro}"
 
 
-# _logger = logging.getLogger(__name__)
-
-
 def get_major_minor_py_version(py_version):
     return ".".join(py_version.split(".")[:2])
 
@@ -213,13 +213,13 @@ def _truncate_dict(d, max_key_length=None, max_value_length=None):
         if should_truncate_key:
             # Use the truncated key for warning logs to avoid noisy printing to stdout
             msg = f"Truncated the key `{new_k}`"
-            _logger.warning(msg)
+            logger.warning(msg)
 
         new_v = _truncate_and_ellipsize(v, max_value_length) if should_truncate_val else v
         if should_truncate_val:
             # Use the truncated key and value for warning logs to avoid noisy printing to stdout
             msg = f"Truncated the value of the key `{new_k}`. Truncated value: `{new_v}`"
-            _logger.warning(msg)
+            logger.warning(msg)
 
         truncated[new_k] = new_v
 
@@ -321,7 +321,7 @@ def check_port_connectivity():
                 server.terminate()
                 return client.returncode == 0
     except Exception as e:
-        _logger.warning("Failed to check port connectivity: %s", e)
+        logger.warning("Failed to check port connectivity: %s", e)
         return False
 
 

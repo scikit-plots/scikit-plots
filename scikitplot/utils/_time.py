@@ -7,10 +7,11 @@ Lightweight timing context manager with :py:obj:`~.logger` support.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Self
 
-from .. import logger
+logger = logging.getLogger(__name__)
 
 
 class Timer:
@@ -63,7 +64,7 @@ class Timer:
     ):
         self.message = message
         self.precision = precision
-        self.logging_level = logging_level
+        self.logging_level = logging_level.lower()
         self.verbose = verbose
 
         self._start: float = 0.0

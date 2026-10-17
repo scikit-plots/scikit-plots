@@ -11,11 +11,14 @@
 
 """Functions related to Python runtime introspection."""
 
+from __future__ import annotations
+
+import logging
 import importlib
 import inspect
 import pkgutil
 
-from .. import logger
+logger = logging.getLogger(__name__)
 
 
 # def inspect_module(module_name):

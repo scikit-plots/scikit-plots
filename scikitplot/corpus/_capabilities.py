@@ -18,7 +18,8 @@ present and at what version.
 suitable for embedding in a run/build manifest: the Python/platform identity, the
 availability of each registered ANN backend, and the installed version (or
 ``None``) of the optional distributions that affect corpus behaviour. It changes
-no state and imports nothing heavy, so it is safe to call anywhere.
+no state and, by default, imports no backend (``load=False``; F-50), so it is
+safe to call anywhere.
 
 Notes
 -----
@@ -33,6 +34,7 @@ import importlib.metadata as _md
 import importlib.util as _iu
 import platform
 import shutil
+import sys
 from collections.abc import Callable, Iterable
 from enum import unique
 from typing import Any
@@ -180,13 +182,56 @@ class CapabilityStatus(_StrEnumBase):
     """Not probed. Never a guess -- see :func:`probe_backend`."""
 
 
-def probe_backend(cls: Any) -> tuple[CapabilityStatus, str | None]:
+def _installed(cls: Any) -> bool | None:
+    """Return ``cls.is_installed()``, or ``None`` when it has no such probe."""
+    probe = getattr(cls, "is_installed", None)
+    if probe is None:
+        return None
+    try:
+        return bool(probe())
+    except Exception:  # noqa: BLE001 - a probe must never propagate
+        return None
+
+
+def _load_error(cls: Any) -> BaseException | None:
+    """Return ``cls.load_error()``; a probe that raises is its own evidence."""
+    probe = getattr(cls, "load_error", None)
+    if probe is None:
+        return None
+    try:
+        return probe()
+    except Exception as exc:  # noqa: BLE001 - a probe must never propagate
+        return exc
+
+
+def _unloaded_status(cls: Any) -> tuple[CapabilityStatus, str] | None:
+    """Classify a backend without loading it, or ``None`` if it is loaded.
+
+    ``ABSENT`` when it is not installed, ``UNKNOWN`` (``"not_loaded"``) when it
+    is installed (or cannot say) but this process has not loaded its modules.
+    """
+    if _installed(cls) is False:
+        return CapabilityStatus.ABSENT, "not_installed"
+    if all(name in sys.modules for name in getattr(cls, "probe_modules", ())):
+        return None
+    return CapabilityStatus.UNKNOWN, "not_loaded"
+
+
+def probe_backend(
+    cls: Any, *, load: bool = True
+) -> tuple[CapabilityStatus, str | None]:
     """Classify one backend's availability.
 
     Parameters
     ----------
     cls : type
-        A backend class exposing ``is_available()``.
+        A backend class exposing ``is_available()`` and, optionally,
+        ``is_installed()`` (no import) and ``load_error()``.
+    load : bool, optional
+        ``True`` (default) answers by asking ``is_available()``, which may
+        import the backend. ``False`` imports nothing: a backend declaring
+        ``loads_on_probe`` that is installed but not yet loaded in this
+        process is reported ``UNKNOWN`` with reason ``"not_loaded"``.
 
     Returns
     -------
@@ -201,7 +246,15 @@ def probe_backend(cls: Any) -> tuple[CapabilityStatus, str | None]:
     means it is installed enough to try and failed -- which is ``BROKEN``.
     Review disproof D-13 confirmed the probes themselves are correctly
     fail-safe; the defect was that both outcomes collapsed to one boolean.
+    A backend whose ``is_available()`` swallows a load failure (Annoy) is
+    told apart by ``is_installed()`` and ``load_error()``: installed with a
+    failed load is ``BROKEN`` with reason ``"load_failed: <type>"`` (F-50);
+    without that evidence it stays ``ABSENT``.
     """
+    if not load and getattr(cls, "loads_on_probe", False):
+        unloaded = _unloaded_status(cls)
+        if unloaded is not None:
+            return unloaded
     try:
         usable = bool(cls.is_available())
     except ImportError as exc:
@@ -210,10 +263,14 @@ def probe_backend(cls: Any) -> tuple[CapabilityStatus, str | None]:
         return CapabilityStatus.BROKEN, f"probe_raised: {type(exc).__name__}"
     if usable:
         return CapabilityStatus.AVAILABLE, None
+    # BROKEN needs evidence: installed *and* a load that failed (review F6).
+    error = _load_error(cls) if _installed(cls) else None
+    if error is not None:
+        return CapabilityStatus.BROKEN, f"load_failed: {type(error).__name__}"
     return CapabilityStatus.ABSENT, "not_installed"
 
 
-def _ann_backends() -> dict[str, dict[str, Any]]:
+def _ann_backends(*, load: bool = False) -> dict[str, dict[str, Any]]:
     """Availability + version for each registered ANN backend (read-only)."""
     try:
         from ._similarity._backends import (  # noqa: PLC0415
@@ -225,7 +282,7 @@ def _ann_backends() -> dict[str, dict[str, Any]]:
 
     result: dict[str, dict[str, Any]] = {}
     for name, cls in sorted(_BACKENDS.items()):
-        status, reason = probe_backend(cls)
+        status, reason = probe_backend(cls, load=load)
         dist = _BACKEND_DISTRIBUTION.get(name)
         result[name] = {
             "status": status.value,
@@ -243,6 +300,8 @@ def _ann_backends() -> dict[str, dict[str, Any]]:
 
 def capability_snapshot(
     extra_distributions: Iterable[str] = (),
+    *,
+    load: bool = False,
 ) -> dict[str, Any]:
     """
     Return a read-only snapshot of the runtime corpus capabilities.
@@ -251,6 +310,11 @@ def capability_snapshot(
     ----------
     extra_distributions : iterable of str, optional
         Additional distribution names to record beyond the built-in set.
+    load : bool, optional
+        ``False`` (default) imports no backend: one whose probe would load it
+        (Annoy, which loads scikit-learn and SciPy) reports ``"unknown"`` /
+        ``"not_loaded"`` unless this process already loaded it. ``True``
+        loads it to tell ``"available"`` from ``"broken"`` (F-50).
 
     Returns
     -------
@@ -264,8 +328,10 @@ def capability_snapshot(
         ``platform`` : str
             Platform identifier from :func:`platform.platform`.
         ``ann_backends`` : dict
-            ``{name: {"available": bool, "version": str | None}}`` for every
-            registered ANN backend.
+            ``{name: {"status", "reason_code", "available", "version",
+            "aliases"}}`` for every registered ANN backend; ``status`` is a
+            :class:`CapabilityStatus` value and ``available`` is derived from
+            it.
         ``distributions`` : dict
             ``{distribution: version | None}`` for the relevant optional
             packages (plus any *extra_distributions*).
@@ -284,7 +350,7 @@ def capability_snapshot(
         "python": platform.python_version(),
         "implementation": platform.python_implementation(),
         "platform": platform.platform(),
-        "ann_backends": _ann_backends(),
+        "ann_backends": _ann_backends(load=load),
         "distributions": dists,
     }
 
@@ -740,7 +806,74 @@ def _builtin_capability_specs() -> tuple[CapabilitySpec, ...]:
             "edit-distance",
             remedy="The dependency-free Python fallback is always available.",
         ),
+        # R3-7: optional segmenters. A missing one is logged once per process;
+        # these specs are the on-demand report.
+        *(
+            CapabilitySpec(
+                f"segmenter:{name}",
+                "segmentation",
+                module=module,
+                distributions=distributions,
+                remedy=remedy,
+            )
+            for name, module, distributions, remedy in _SEGMENTER_SPECS
+        ),
     )
+
+
+#: ``(name, module, distributions, remedy)`` of each optional segmenter.
+_SEGMENTER_SPECS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
+    (
+        "regex",
+        "regex",
+        ("regex",),
+        (
+            "pip install regex: script detection (ScriptSegmenter); without it"
+            " a text is one span of unknown script."
+        ),
+    ),
+    (
+        "jieba",
+        "jieba",
+        ("jieba",),
+        "pip install jieba: Chinese word segmentation; without it, characters.",
+    ),
+    (
+        "mecab",
+        "MeCab",
+        ("mecab-python3",),
+        (
+            "pip install mecab-python3 (or fugashi, or sudachipy): Japanese"
+            " morphology; without any, grapheme clusters."
+        ),
+    ),
+    ("fugashi", "fugashi", ("fugashi",), "pip install fugashi: Japanese morphology."),
+    (
+        "sudachipy",
+        "sudachipy",
+        ("sudachipy",),
+        "pip install sudachipy sudachi-dictionary-full: Japanese morphology.",
+    ),
+    ("kss", "kss", ("kss",), "pip install kss: Korean sentence splitting."),
+    (
+        "pythainlp",
+        "pythainlp",
+        ("pythainlp",),
+        "pip install pythainlp: Thai (and Lao) word segmentation.",
+    ),
+    (
+        "khmer-nltk",
+        "khmernltk",
+        ("khmer-nltk",),
+        "pip install khmer-nltk: Khmer word segmentation.",
+    ),
+    (
+        "camel-tools",
+        "camel_tools",
+        ("camel-tools",),
+        "pip install camel-tools: Arabic morphology; without it, whitespace.",
+    ),
+)
 
 
 _DEFAULT_COMPONENT_REGISTRY: CapabilityRegistry | None = None

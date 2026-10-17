@@ -11,8 +11,11 @@
 
 """file_utils."""
 
+from __future__ import annotations
+
 # import errno
 # import uuid
+import logging
 import atexit as _atexit
 import codecs as _codecs
 import concurrent as _concurrent
@@ -41,8 +44,6 @@ from typing import Optional, Union
 
 import requests as _requests
 
-# import logging
-from .. import logger as _logger
 from ..environment_variables import (
     _SKPLT_MPD_NUM_RETRIES,
     _SKPLT_MPD_RETRY_INTERVAL_SECONDS,
@@ -60,6 +61,8 @@ from .request_utils import (
     cloud_storage_http_request,
     download_chunk,
 )
+
+logger = logging.getLogger(__name__)
 
 # from ..protos.databricks_artifacts_pb2 import ArtifactCredentialType
 # from ..protos.databricks_pb2 import INVALID_PARAMETER_VALUE
@@ -1107,10 +1110,10 @@ def mkdir(
     except OSError as e:
         # If mkdir fails and the path is not a directory, re-raise
         if not target.is_dir():
-            _logger.error(f"Failed to create directory: {target} — {e}")
+            logger.error(f"Failed to create directory: {target} — {e}")
             raise
 
-    _logger.debug(f"Directory ensured: {target}")
+    logger.debug(f"Directory ensured: {target}")
     return target
 
 
@@ -1154,9 +1157,9 @@ def mkdir_parent(
         # Recursively create parent directories if they don't exist
         dir_path.mkdir(parents=True, exist_ok=True)
 
-        _logger.debug(f"Ensured parent directory: {dir_path}")
+        logger.debug(f"Ensured parent directory: {dir_path}")
     except Exception as e:
-        _logger.error(f"Failed to ensure parent directory for {path}: {e}")
+        logger.error(f"Failed to ensure parent directory for {path}: {e}")
         raise
 
 
@@ -1217,9 +1220,9 @@ def mv(
 
     try:
         _shutil.move(str(target_path), str(new_parent_path))
-        _logger.info(f"Moved: {target_path} -> {new_parent_path}")
+        logger.info(f"Moved: {target_path} -> {new_parent_path}")
     except Exception as e:
-        _logger.error(f"Failed to move {target_path} to {new_parent_path}: {e}")
+        logger.error(f"Failed to move {target_path} to {new_parent_path}: {e}")
         raise
 
 
@@ -1273,21 +1276,21 @@ def rmtree_on_error(
             try:
                 onerror(exc)
             except Exception as cb_err:
-                _logger.warning(f"onerror callback raised an exception: {cb_err}")
+                logger.warning(f"onerror callback raised an exception: {cb_err}")
 
         # Attempt to remove the file or directory
         try:
             if _path.exists():
                 if _path.is_file() or _path.is_symlink():
                     _path.unlink()
-                    _logger.warning(f"Removed file after error: {_path}")
+                    logger.warning(f"Removed file after error: {_path}")
                 elif _path.is_dir():
                     _shutil.rmtree(_path)
-                    _logger.warning(f"Removed directory after error: {_path}")
+                    logger.warning(f"Removed directory after error: {_path}")
             else:
-                _logger.debug(f"No cleanup needed; path does not exist: {_path}")
+                logger.debug(f"No cleanup needed; path does not exist: {_path}")
         except Exception as cleanup_err:
-            _logger.warning(f"Cleanup failed for path '{_path}': {cleanup_err}")
+            logger.warning(f"Cleanup failed for path '{_path}': {cleanup_err}")
 
         # Re-raise the original exception after cleanup attempt
         raise
@@ -1381,23 +1384,23 @@ def copytree_without_file_permissions(  # noqa: PLR0912
     def _copy_file(source: _pathlib.Path, dest: _pathlib.Path) -> int:
         """Copy file from `source` to `dest` and return the size in bytes."""
         if dry_run:
-            _logger.info(f"[Dry-run] Would copy: {source} -> {dest}")
+            logger.info(f"[Dry-run] Would copy: {source} -> {dest}")
             return 0
         try:
             dest.parent.mkdir(parents=True, exist_ok=True)
             _shutil.copyfile(source, dest)
             size = source.stat().st_size
-            _logger.info(f"Copied: {source} -> {dest} ({size} bytes)")
+            logger.info(f"Copied: {source} -> {dest} ({size} bytes)")
             return size
         except Exception as e:
-            _logger.error(f"Error copying {source} -> {dest}: {e}")
+            logger.error(f"Error copying {source} -> {dest}: {e}")
             raise
 
     # Traverse source directory
     for path in src_path.rglob("*"):
         # Handle symbolic links
         if path.is_symlink() and not follow_symlinks:
-            _logger.info(f"Skipped symlink: {path}")
+            logger.info(f"Skipped symlink: {path}")
             files_skipped += 1
             continue
 
@@ -1407,18 +1410,18 @@ def copytree_without_file_permissions(  # noqa: PLR0912
         # Create directories (dry_run safe)
         if path.is_dir():
             if dry_run:
-                _logger.info(f"[Dry-run] Would create directory: {target_path}")
+                logger.info(f"[Dry-run] Would create directory: {target_path}")
             else:
                 try:
                     target_path.mkdir(parents=True, exist_ok=True)
                 except Exception as e:
-                    _logger.error(f"Failed to create directory {target_path}: {e}")
+                    logger.error(f"Failed to create directory {target_path}: {e}")
             continue
 
         # Skip files with ignored extensions
         if path.is_file():
             if path.suffix in skip_exts:
-                _logger.info(f"Skipped file due to extension: {path}")
+                logger.info(f"Skipped file due to extension: {path}")
                 files_skipped += 1
                 continue
             file_tasks.append((path, target_path))
@@ -1434,15 +1437,15 @@ def copytree_without_file_permissions(  # noqa: PLR0912
                 total_bytes += future.result()
                 files_copied += 1
             except Exception:
-                _logger.error(f"Failed to copy file: {src} -> {dst}")
+                logger.error(f"Failed to copy file: {src} -> {dst}")
 
     # Log summary
-    _logger.info("---- Copy Summary ----")
-    _logger.info(f"Files copied:  {files_copied}")
-    _logger.info(f"Files skipped: {files_skipped}")
-    _logger.info(f"Total bytes:   {total_bytes:,}")
+    logger.info("---- Copy Summary ----")
+    logger.info(f"Files copied:  {files_copied}")
+    logger.info(f"Files skipped: {files_skipped}")
+    logger.info(f"Total bytes:   {total_bytes:,}")
     if dry_run:
-        _logger.info("[Dry-run] No files were copied.")
+        logger.info("[Dry-run] No files were copied.")
 
 
 def _copy_file_or_tree(
@@ -1759,7 +1762,7 @@ def get_total_file_size(
 
     except Exception as e:
         # Log error and return None if anything unexpected happens
-        _logger.info(f"Failed to get total size for {path}: {e}")
+        logger.info(f"Failed to get total size for {path}: {e}")
         return None
 
 
@@ -2909,7 +2912,7 @@ def parallelized_download_file(
         try:
             download_chunk_direct(chunk, headers, http_uri)
         except Exception as e:
-            _logger.warning(f"Chunk {chunk.index} failed: {e}")
+            logger.warning(f"Chunk {chunk.index} failed: {e}")
             raise
 
     futures = {executor.submit(_download, c): c for c in chunks}
@@ -3066,7 +3069,7 @@ def parallelized_download_file(
 #                 # Raises exception if occurred in the thread
 #                 future.result()
 #             except Exception as e:
-#                 _logger.debug(
+#                 logger.debug(
 #                     f"Failed to download chunk {chunk.index} for {chunk.path}: {e}. "
 #                     f"The download of this chunk will be retried later."
 #                 )
@@ -3110,14 +3113,14 @@ def retry_failed_chunks(
     retry_interval = _SKPLT_MPD_RETRY_INTERVAL_SECONDS.get() or retry_interval
 
     for chunk in failed_chunks:
-        _logger.info(f"Retrying chunk {chunk.index}")
+        logger.info(f"Retrying chunk {chunk.index}")
         for attempt in range(max_retries):
             try:
                 download_chunk_direct(chunk, headers, http_uri)
-                _logger.info(f"Chunk {chunk.index} succeeded on attempt {attempt + 1}")
+                logger.info(f"Chunk {chunk.index} succeeded on attempt {attempt + 1}")
                 break
             except Exception as e:
-                _logger.warning(
+                logger.warning(
                     f"Attempt {attempt + 1} failed for chunk {chunk.index}: {e}"
                 )
                 if attempt == max_retries - 1:
@@ -3159,7 +3162,7 @@ def download_chunk_retries(
     max_retries = _SKPLT_MPD_NUM_RETRIES.get() or max_retries
     retry_interval = _SKPLT_MPD_RETRY_INTERVAL_SECONDS.get() or retry_interval
     for chunk in chunks:
-        _logger.info(f"Retrying download of chunk {chunk.index} for {chunk.path}")
+        logger.info(f"Retrying download of chunk {chunk.index} for {chunk.path}")
         for attempt in range(max_retries):
             try:
                 download_chunk(
@@ -3169,12 +3172,12 @@ def download_chunk_retries(
                     download_path=download_path,
                     http_uri=http_uri,
                 )
-                _logger.info(
+                logger.info(
                     f"Successfully downloaded chunk {chunk.index} for {chunk.path}"
                 )
                 break  # Success: break retry loop
             except Exception as e:
-                _logger.warning(
+                logger.warning(
                     f"Attempt {attempt + 1} failed for chunk {chunk.index}: {e}"
                 )
                 if attempt == max_retries - 1:

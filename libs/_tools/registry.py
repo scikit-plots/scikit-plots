@@ -287,7 +287,8 @@ _CYTHON_CPP_MACROS: tuple[tuple[str, str], ...] = (
 #: ===================  =========  ==========================================
 #:
 #: Both annoy suites pass on a wheel built with the macro. Two findings of
-#: the first measurement are settled (``tasks/todo.md``, round 5):
+#: the first measurement are settled (round 5, archived in
+#: ``maintenances/_repo/_maintenance/history/r05_second_ci.md``):
 #: ANNOY-MT-002, files that differed in a few bytes, was uninitialised
 #: padding copied from the stack into every split node; ANNOY-MT-003,
 #: ``n_jobs=-1`` running on one thread, is now stated by the run-time rule
@@ -480,7 +481,8 @@ PACKAGES: tuple[Package, ...] = (
         #   own path class, the tests are written for the ``pathlib`` paths
         #   of later releases. The others were Python 3.9 API in tests and,
         #   in four extensions, in the code (``str.removeprefix``); the code
-        #   is fixed, see ``tasks/todo.md`` (round 4).
+        #   is fixed, see round 4 in
+        #   ``maintenances/_repo/_maintenance/history/r04_windows_leg.md``.
         test_python=">=3.9",
         # The HF proxy creates ``asyncio`` locks and events in constructors.
         # Python 3.9 binds those to the current event loop at creation and

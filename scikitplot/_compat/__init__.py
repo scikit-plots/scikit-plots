@@ -12,15 +12,17 @@ packages or code.
 from __future__ import annotations
 
 import contextlib as _contextlib
+import logging
 
-from .. import logger as _logger
 from ..exceptions import ScikitplotException as _ScikitplotException
 from ..externals._seaborn._compat import *  # noqa: F403
+
+logger = logging.getLogger(__name__)
 
 try:
     with _contextlib.suppress(ImportError):
         from .numpycompat import *  # noqa: F403
 except _ScikitplotException:
-    _logger.warning(
+    logger.warning(
         "Failed to import numpycompat. Some features may not work as expected."
     )

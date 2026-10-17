@@ -8,7 +8,7 @@ Levenshtein distance and fuzzy matching
 
 :mod:`scikitplot.levenshtein` provides one small, stable facade for exact
 unit-cost Levenshtein edit distance, normalized similarity, deterministic
-ranking and optional Corpus retrieval.
+ranking. Corpus ranks documents with it through its own adapter.
 
 The base behavior never depends on a third-party package. Optional
 accelerators are discovered lazily.
@@ -22,6 +22,7 @@ accelerators are discovered lazily.
    backends_and_fallbacks
    ranking_and_matching
    corpus_integration
+   python_api
    performance_and_limits
    troubleshooting
 
@@ -56,7 +57,13 @@ accelerators are discovered lazily.
       :link: levenshtein-corpus
       :link-type: ref
 
-      Use normalized edit similarity as a retrieval scorer.
+      Rank Corpus documents by normalized edit similarity.
+
+   .. grid-item-card:: Python API
+      :link: levenshtein-python-api
+      :link-type: ref
+
+      Every public name and what it is for.
 
    .. grid-item-card:: Performance and limits
       :link: levenshtein-performance

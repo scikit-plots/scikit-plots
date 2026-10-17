@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ..._normalizers import NormalizerBase, UnicodeNormalizer
 from .._registry import ComponentRegistry, registry, _fqcn
 
 
@@ -164,17 +165,33 @@ class TestNormalizerRegistration:
     def test_register_and_get(self) -> None:
         r = ComponentRegistry()
 
-        class FakeNorm:
-            """Minimal structurally-conforming normalizer (P-I0-08)."""
+        class FakeNorm(NormalizerBase):
+            """Minimal normalizer the pipeline accepts (R3-1)."""
 
+            def normalize_doc(self, doc):
+                return doc
+
+        r.register_normalizer("fake_norm", FakeNorm)
+        assert r.get_normalizer("fake_norm") is FakeNorm
+
+    def test_a_class_the_pipeline_cannot_run_is_refused(self) -> None:
+        """
+        R3-1: registration is checked against what NormalizationPipeline
+        accepts (``NormalizerBase``), not the text-level protocol no built-in
+        normalizer implements (which refused every built-in).
+        """
+        r = ComponentRegistry()
+
+        class TextOnly:
             def normalize(self, text, **kwargs):
                 return text
 
             def normalize_batch(self, texts, **kwargs):
                 return list(texts)
 
-        r.register_normalizer("fake_norm", FakeNorm)
-        assert r.get_normalizer("fake_norm") is FakeNorm
+        with pytest.raises(TypeError, match="does not satisfy"):
+            r.register_normalizer("text_only", TextOnly)
+        r.register_normalizer("unicode", UnicodeNormalizer)
 
     def test_get_missing_raises(self) -> None:
         r = ComponentRegistry()
@@ -221,15 +238,12 @@ class TestBuildMethods:
     def test_build_normalizer_instantiates(self) -> None:
         r = ComponentRegistry()
 
-        class FakeNorm:
+        class FakeNorm(NormalizerBase):
             def __init__(self, form: str = "NFC") -> None:
                 self.form = form
 
-            def normalize(self, text, **kwargs):
-                return text
-
-            def normalize_batch(self, texts, **kwargs):
-                return list(texts)
+            def normalize_doc(self, doc):
+                return doc
 
         r.register_normalizer("fake_norm", FakeNorm)
         instance = r.build_normalizer("fake_norm", form="NFKC")

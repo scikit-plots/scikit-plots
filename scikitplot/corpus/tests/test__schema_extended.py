@@ -67,6 +67,8 @@ from .._schema import (
     CorpusDocument,
     # Promoted-key registry (used by _base.py get_documents routing)
     _PROMOTED_RAW_KEYS,
+    # Serialisation generation written by to_dict
+    _SCHEMA_VERSION,
     # Bulk helpers
     documents_to_pandas,
     documents_to_polars,
@@ -471,13 +473,13 @@ class TestValidateExtended:
 class TestMakeDocIdExtended:
     """make_doc_id edge cases."""
 
-    def test_returns_16_chars_always(self) -> None:
-        assert len(CorpusDocument.make_doc_id("f.txt", 0, "Hi")) == 16
+    def test_returns_64_chars_always(self) -> None:
+        assert len(CorpusDocument.make_doc_id("f.txt", 0, "Hi")) == 64
 
     def test_text_none_raw_media(self) -> None:
-        """text=None must not crash — returns deterministic 16-char id."""
+        """text=None must not crash — returns deterministic 64-char id."""
         result = CorpusDocument.make_doc_id("img.jpg", 0, None)
-        assert isinstance(result, str) and len(result) == 16
+        assert isinstance(result, str) and len(result) == 64
 
     def test_text_none_deterministic(self) -> None:
         a = CorpusDocument.make_doc_id("img.jpg", 0, None)
@@ -638,20 +640,20 @@ class TestFromDictExtended:
     def test_missing_doc_id_raises(self) -> None:
         with pytest.raises(ValueError, match="doc_id"):
             CorpusDocument.from_dict(
-                {"schema_version": "2.0", "input_path": "f.txt", "chunk_index": 0}
+                {"schema_version": _SCHEMA_VERSION, "input_path": "f.txt", "chunk_index": 0}
             )
 
     def test_missing_input_path_raises(self) -> None:
         with pytest.raises(ValueError, match="input_path"):
             CorpusDocument.from_dict(
-                {"schema_version": "2.0", "doc_id": "abc1234567890abc", "chunk_index": 0}
+                {"schema_version": _SCHEMA_VERSION, "doc_id": "abc1234567890abc", "chunk_index": 0}
             )
 
     def test_missing_chunk_index_raises(self) -> None:
         with pytest.raises(ValueError, match="chunk_index"):
             CorpusDocument.from_dict(
                 {
-                    "schema_version": "2.0",
+                    "schema_version": _SCHEMA_VERSION,
                     "doc_id": "abc1234567890abc",
                     "input_path": "f.txt",
                 }

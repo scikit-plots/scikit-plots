@@ -142,6 +142,7 @@ Flags and their environment-variable equivalents (flags win):
 | `--annoy-metric` | `SCIKITPLOT_MCP_ANNOY_METRIC` | `angular` | Annoy metric for the Corpus+Annoy profile |
 | `--annoy-n-trees` | `SCIKITPLOT_MCP_ANNOY_N_TREES` | `10` | Annoy tree count for the Corpus+Annoy profile |
 | `--corpus-mode` | `SCIKITPLOT_MCP_CORPUS_MODE` | `semantic` | `semantic` (dense only), `hybrid` (BM25 + dense fused by rank) or `keyword` (BM25 only, no query embedding) |
+| `--corpus-filter` | (none) | none | JSON file of a `scikitplot.corpus` filter expression applied to every Corpus+Annoy query (the server's scope) |
 | `--host` | `SCIKITPLOT_MCP_HOST` | localhost | HTTP bind host |
 | `--port` | `SCIKITPLOT_MCP_PORT` | `8000` | HTTP bind port |
 | `--path` | `SCIKITPLOT_MCP_PATH` | `/mcp` | Streamable HTTP endpoint path |
@@ -165,6 +166,27 @@ index.
 The profile also implements the MCP `docs://chunk/{doc_id}` resource lookup, so
 the same indexed document can be returned both from `search_docs` and by stable
 resource id.
+
+`--corpus-filter PATH` scopes every query to the documents a
+`scikitplot.corpus` filter expression matches, for example
+`{"op": "in", "field": "input_path", "values": ["metrics.md", "build.md"]}`
+(paths relative to the `--corpus-annoy` folder). Fields the build does not
+fill never match: the default offline build does not enrich documents, so
+`language` is unset there. The file holds the
+filter's JSON form (`filter_to_dict`); it is checked by the corpus filter
+contract before the corpus is built, and the corpus applies it in every leg
+before ranking, AND-ed with any `SecurityFilter` bound to the index; the
+`docs://chunk/{doc_id}` resource serves only documents in the same scope (one
+outside it reads as missing). The Corpus+Annoy profile has no fusion or
+filter of its own: it calls the corpus contracts (R5-3). An empty `and`
+(which admits everything) or `or` (which admits nothing) is refused as a
+configuration mistake. With a filter,
+`semantic` mode runs the corpus's dense leg through `search`, the seam that
+takes a filter. There is no environment variable for it: a scope is set
+where the server is started, and responses do not echo it. The library's
+`HybridRetriever` and `Bm25Retriever` (including
+`Bm25Retriever.from_corpus_sqlite`) take no filter: a scoped retriever fused
+with one of them is scoped only in its own leg.
 
 `--corpus-mode` chooses which evidence paths answer a query. `semantic` keeps
 the original dense-only behaviour. `hybrid` asks the corpus `RetrievalIndex` to

@@ -44,7 +44,7 @@ or link of the real package), with a `pytest.ini` that sets
 `filterwarnings = error`. That is how rounds 23–25 were verified, and
 `tests/_isolated.py` measures import isolation the same way.
 
-**Never edit the tree while a run reads it** (`tasks/lessons.md`, rules 1 and
+**Never edit the tree while a run reads it** (`skills/_engineering/rules/verification.md`, rules 1 and
 22): verify against a frozen copy, or wait for the run to finish.
 
 ## Current round
@@ -53,8 +53,8 @@ Round twenty-six is **complete** (2026-10-10): *the user decides, and the
 floor does not move* — a pattern-risk check for custom packs (warn by
 default, tuned per pattern, run, team or machine), custom surrogate name
 sets under a fixed safety floor, and the generator's design and growth plan.
-Summary in `HISTORY.md`; plan and results in `tasks/todo.md` under
-"cleanprompt round 26"; reasoning in `DESIGN.md` section 25 and
+Summary in `HISTORY.md`; plan and results in `history/r26_pattern_risk.md`
+(archived from `tasks/todo.md`, "cleanprompt round 26"); reasoning in `DESIGN.md` section 25 and
 `GENERATOR_DESIGN.md`. Findings `CP-104` … `CP-107` are closed in
 `REVIEW.json`. PR number for all round-25/26 fragments: **864**.
 

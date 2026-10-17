@@ -871,14 +871,15 @@ class TestMultimodalEmbeddingEngineEmbedDocumentsWithCache:
         out = e.embed_documents_with_cache(docs, missing)
         assert out[0].embedding is not None
 
-    def test_cache_miss_creates_file(self, tmp_path: pathlib.Path) -> None:
+    def test_a_custom_backend_is_not_cached(self, tmp_path: pathlib.Path) -> None:
+        """R3-5: a custom function has no identity, so no entry is stored
+        (another function used to be served its vectors)."""
         e = _custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
         src.write_text("data", encoding="utf-8")
         docs = [_Doc("hello"), _Doc("world")]
         e.embed_documents_with_cache(docs, src)
-        npy_files = list(tmp_path.glob("*.npy"))
-        assert len(npy_files) == 1
+        assert list(tmp_path.glob("*.npy")) == []
 
     def test_cache_hit_reloads(self, tmp_path: pathlib.Path) -> None:
         e = _custom_engine(text_dim=8, normalize=False, cache_dir=tmp_path)

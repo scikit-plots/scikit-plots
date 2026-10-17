@@ -9,11 +9,13 @@
 
 from __future__ import annotations
 
+import logging
 import os as _os
 import pathlib as _pathlib
 
-from .. import logger as _logger
 from ..exceptions import ScikitplotException
+
+logger = logging.getLogger(__name__)
 
 
 def run_load_dotenv(
@@ -54,7 +56,7 @@ def run_load_dotenv(
         )
     except ImportError as e:
         msg = "Missing required package 'python-dotenv'. Install with `pip install python-dotenv`."
-        _logger.exception(msg)
+        logger.exception(msg)
         raise ScikitplotException(msg) from e
 
     try:
@@ -67,10 +69,10 @@ def run_load_dotenv(
             dotenv_path = find_dotenv(usecwd=True)
 
         # Load .env
-        _logger.info(f"Loading environment variables from: {dotenv_path}")
+        logger.info(f"Loading environment variables from: {dotenv_path}")
         return load_dotenv(dotenv_path=dotenv_path, override=override, verbose=verbose)
 
     except Exception as e:
         msg = f"Failed to load .env file: {e}"
-        _logger.exception(msg)
+        logger.exception(msg)
         raise ScikitplotException(msg) from e

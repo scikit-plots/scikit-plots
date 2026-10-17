@@ -19,6 +19,7 @@ That is why such a test can pass locally and fail in CI with no code change.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 
 # Update the return type annotation from Iterator[logging.Logger] to Generator[logging.Logger, None, None]
@@ -178,3 +179,89 @@ def captured_logger(
             logger.removeHandler(caplog.handler)
 
     return _capture
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Register the markers corpus tests use, for runs without the root conftest.
+
+    Notes
+    -----
+    Developer note: the root ``scikitplot/conftest.py`` registers
+    ``thread_unsafe`` only for full-package runs. The ``scikit-plots-corpus``
+    partial distribution ships this tree alone, so without this registration
+    ``pytest --pyargs scikitplot.corpus`` warns ``PytestUnknownMarkWarning``
+    (and fails under ``--strict-markers``). Registering a marker twice is
+    harmless.
+    """
+    config.addinivalue_line(
+        "markers", "thread_unsafe: mark the test function as single-threaded"
+    )
+
+
+class SQLiteLeakGuard:
+    """Record the SQLite connections opened while active (R3-8).
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Patches ``sqlite3.connect`` for the guard's lifetime.
+
+    Notes
+    -----
+    Developer note: Python 3.13 reports an unclosed ``sqlite3.Connection`` as a
+    ``ResourceWarning`` only when it is garbage-collected, usually during a
+    later, unrelated test, or not at all (the suite left 80 open at exit). The
+    victim is then the wrong test; the autouse fixture below fails the test that
+    opened the connection, and names where.
+    """
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import sqlite3  # noqa: PLC0415
+        import traceback  # noqa: PLC0415
+
+        self._sqlite = sqlite3
+        self.opened: list[tuple[object, list[str]]] = []
+        real_connect = sqlite3.connect
+
+        def _connect(*args, **kwargs):
+            conn = real_connect(*args, **kwargs)
+            site = [
+                f"{frame.filename}:{frame.lineno}"
+                for frame in traceback.extract_stack()[:-1]
+                if "scikitplot" in frame.filename
+            ]
+            self.opened.append((conn, site[-4:]))
+            return conn
+
+        monkeypatch.setattr(sqlite3, "connect", _connect)
+
+    def close_leaks(self) -> list[list[str]]:
+        """Close every connection still open; return where each was opened."""
+        leaked = []
+        for conn, site in self.opened:
+            try:
+                conn.total_changes  # noqa: B018 (raises once closed)
+            except self._sqlite.ProgrammingError:
+                continue
+            # Opened in another thread (check_same_thread), it cannot be closed
+            # from here, but it is still a leak to report.
+            with contextlib.suppress(self._sqlite.ProgrammingError):
+                conn.close()
+            leaked.append(site)
+        return leaked
+
+
+@pytest.fixture(autouse=True)
+def _sqlite_connections_are_closed(monkeypatch: pytest.MonkeyPatch):
+    """Fail the test that leaves a SQLite connection open (R3-8).
+
+    The leaked connections are closed first, so one failure does not cascade.
+    """
+    guard = SQLiteLeakGuard(monkeypatch)
+    yield
+    leaked = guard.close_leaks()
+    if leaked:
+        pytest.fail(
+            f"{len(leaked)} SQLite connection(s) left open; opened at: {leaked}",
+            pytrace=False,
+        )

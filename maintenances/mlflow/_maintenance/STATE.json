@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "subsystem": "scikitplot.mlflow",
+  "reviewed_on": "2026-09-12",
+  "maintenance_status": "PASS",
+  "runtime_status": "FAIL",
+  "integration_status": "UNAVAILABLE",
+  "release_status": "BLOCKED",
+  "runtime_findings": [
+    "MLF-SEC-001 active SecurityPolicy is not consulted by session/server runtime entrypoints",
+    "MLF-OPT-001 optional PyYAML imports catch Exception and can misdiagnose broken dependencies",
+    "MLF-TYP-001 _session.pyi uses an absolute _facade import despite py.typed shipping"
+  ],
+  "test_findings": [
+    "MLF-TEST-001 four TestRunDemo unit tests retain the real 10-second default sleep"
+  ],
+  "evidence_summary": {
+    "maintenance_regressions": "19 passed",
+    "sdk_free_unit_batch": "657 passed, 6 deselected",
+    "run_demo_isolated": "6/6 passed separately",
+    "package_import_without_mlflow": "PASS",
+    "bundled_config_parse": "PASS",
+    "security_negative_probe": "RED / policy not enforced",
+    "real_mlflow_integration": "UNAVAILABLE"
+  }
+}

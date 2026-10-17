@@ -5,16 +5,20 @@
 # pylint: disable=no-name-in-module
 # pylint: disable=import-outside-toplevel
 # pylint: disable=broad-exception-caught
-
-"""huggingface helper."""
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""huggingface helper."""
+
+from __future__ import annotations
+
+import logging
 import os as _os
 
-from .. import logger as _logger
 from ..exceptions import ScikitplotException
+
+logger = logging.getLogger(__name__)
 
 # from openai import OpenAI
 # from groq import Groq
@@ -25,7 +29,7 @@ from ..exceptions import ScikitplotException
 
 def hf_login(
     cli: bool = False,
-    token: "str | None" = None,
+    token: str | None = None,
 ) -> None:
     """
     Authenticate with Hugging Face using the `huggingface_hub` login utility.
@@ -57,9 +61,9 @@ def hf_login(
 
         if cli:
             ## This prompts you interactively for your token
-            _logger.info("Starting interactive Hugging Face login via CLI...")
+            logger.info("Starting interactive Hugging Face login via CLI...")
             login()
-            _logger.info("Successfully logged in via CLI.")
+            logger.info("Successfully logged in via CLI.")
         else:
             # Prefer explicitly provided token over environment (non-interactive)
             token = token or _os.getenv("HUGGINGFACE_TOKEN")
@@ -70,7 +74,7 @@ def hf_login(
                     "pass it directly to `hf_login(token=...)`."
                 )
 
-            _logger.info("Logging in to Hugging Face Hub via token...")
+            logger.info("Logging in to Hugging Face Hub via token...")
             ## Log in using the token (non-interactive)
             login(token=token)
             ## Or configure a HfApi client
@@ -78,7 +82,7 @@ def hf_login(
             #     token=token, # Token is not persisted on the machine.
             #     # endpoint="https://huggingface.co", # Can be a Private Hub endpoint.
             # )
-            _logger.info("Hugging Face login successful.")
+            logger.info("Hugging Face login successful.")
 
         # logout()
         ## Use root method
@@ -90,10 +94,10 @@ def hf_login(
             "huggingface_hub is not installed. "
             "Run `pip install huggingface_hub` to use this feature."
         )
-        _logger.exception(msg)
+        logger.exception(msg)
         raise ScikitplotException(msg) from e
 
     except Exception as e:
         msg = f"Failed to log in to Hugging Face Hub: {e}"
-        _logger.exception(msg)
+        logger.exception(msg)
         raise ScikitplotException(msg) from e

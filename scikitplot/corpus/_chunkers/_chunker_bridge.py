@@ -45,6 +45,7 @@ __all__ = [
     "ChunkerBridge",
     "FixedWindowChunkerBridge",
     "ParagraphChunkerBridge",
+    "ProtocolChunkerBridge",
     "SemanticChunkerBridge",
     "SentenceChunkerBridge",
     "WordChunkerBridge",
@@ -245,7 +246,14 @@ class ChunkerBridge(abc.ABC):
 
         for ch in chunks:
             ch_text: str = ch.text
-            ch_start = getattr(ch, "start_char", None)
+            # R3-3: the pair's offset is where ch_text starts, the context
+            # start (an overlap chunk's anchor starts later; review F8).
+            context_span = getattr(ch, "context_span", None)
+            ch_start = (
+                context_span[0]
+                if isinstance(context_span, tuple)
+                else getattr(ch, "start_char", None)
+            )
             if ch_start is None:
                 ch_start = getattr(ch, "char_start", None)
 
@@ -377,6 +385,39 @@ class SemanticChunkerBridge(ChunkerBridge):
         return self.inner.chunk(text, extra_metadata=metadata)
 
 
+class ProtocolChunkerBridge(ChunkerBridge):
+    """Bridge for any chunker satisfying ``ChunkerProtocol`` (R3-1).
+
+    A chunker registered in the ``ComponentRegistry`` is checked against
+    ``ChunkerProtocol`` (``chunk(text, doc_id=None, extra_metadata=None)``
+    returning a ``ChunkResult``). This bridge lets every such chunker run in
+    the pipeline; a class with a specific bridge (or a subclass of one) gets
+    that bridge instead.
+
+    Notes
+    -----
+    The strategy is the inner chunker's own ``strategy`` when it declares one
+    (a :class:`ChunkingStrategy` member or value), else ``CUSTOM``: nothing is
+    known about the boundaries a third-party chunker draws.
+    """
+
+    strategy: ClassVar[ChunkingStrategy] = ChunkingStrategy.CUSTOM
+
+    def __init__(self, inner: Any) -> None:
+        super().__init__(inner)
+        declared = getattr(inner, "strategy", None)
+        if declared is not None:
+            # An instance attribute shadows the class default for this bridge.
+            self.strategy = ChunkingStrategy(declared)  # type: ignore[misc]
+
+    def _call_inner(
+        self,
+        text: str,
+        metadata: dict[str, Any] | None,
+    ) -> Any:
+        return self.inner.chunk(text, extra_metadata=metadata)
+
+
 # ---------------------------------------------------------------------------
 # Auto-detect factory
 # ---------------------------------------------------------------------------
@@ -399,9 +440,9 @@ def register_bridge(chunker_class: type, bridge_class: type[ChunkerBridge]) -> N
     Parameters
     ----------
     chunker_class : type
-        The user-defined chunker class to register.  Matched by exact
-        ``type(chunker).__name__`` string so subclasses must be registered
-        separately if needed.
+        The user-defined chunker class to register.  Matched by class name
+        along the chunker's MRO, so a subclass uses its nearest registered
+        base's bridge unless it is registered itself.
     bridge_class : type[ChunkerBridge]
         A :class:`ChunkerBridge` subclass that wraps *chunker_class*.
 
@@ -466,6 +507,19 @@ def unregister_bridge(chunker_class: type) -> None:
     logger.debug("unregister_bridge: removed bridge for %r.", key)
 
 
+def _satisfies_chunker_protocol(chunker: Any) -> bool:
+    """Whether ``chunker``'s class defines ``chunk(text, extra_metadata=...)``.
+
+    A static look-up on the class, not ``isinstance(x, ChunkerProtocol)``:
+    the runtime protocol check only tests that attributes exist, so a
+    ``MagicMock`` passed it on Python 3.9-3.11 and not on 3.12, and a
+    ``chunk(text, metadata=None)`` passed and then failed per source.
+    """
+    from .._registry._registry import _accepts_extra_metadata  # noqa: PLC0415
+
+    return _accepts_extra_metadata(type(chunker))
+
+
 def bridge_chunker(chunker: Any) -> ChunkerBridge | Any:
     """Wrap *chunker* in a bridge if it is a new-style chunker.
 
@@ -486,9 +540,18 @@ def bridge_chunker(chunker: Any) -> ChunkerBridge | Any:
     >>> bridged = bridge_chunker(SentenceChunker())
     >>> hasattr(bridged, "strategy")
     True
-    >>> isinstance(bridged.chunk("Hello world. Goodbye.", metadata={}), list)
-    True
+    >>> [
+    ...     chunk.text
+    ...     for chunk in bridged.chunk("Hello world. Goodbye.", metadata={}).chunks
+    ... ]
+    ['Hello world.', 'Goodbye.']
     """
+    if isinstance(chunker, type):
+        raise TypeError(
+            f"bridge_chunker: got the class {chunker.__name__}, not an instance; "
+            "pass an instance, or the chunker's registered name."
+        )
+
     # Already has the ChunkerBase interface
     if hasattr(chunker, "strategy") and callable(getattr(chunker, "chunk", None)):
         sig_ok = True
@@ -503,10 +566,17 @@ def bridge_chunker(chunker: Any) -> ChunkerBridge | Any:
             return chunker
 
     cls_name = type(chunker).__name__
-    bridge_cls = _BRIDGE_MAP.get(cls_name)
-    if bridge_cls is not None:
-        logger.debug("Auto-bridging %s → %s", cls_name, bridge_cls.__name__)
-        return bridge_cls(chunker)
+    # The class itself first, then its bases: a subclass of a built-in
+    # chunker uses the built-in's bridge (R3-1).
+    for klass in type(chunker).__mro__:
+        bridge_cls = _BRIDGE_MAP.get(klass.__name__)
+        if bridge_cls is not None:
+            logger.debug("Auto-bridging %s → %s", cls_name, bridge_cls.__name__)
+            return bridge_cls(chunker)
+
+    if _satisfies_chunker_protocol(chunker):
+        logger.debug("Auto-bridging %s → ProtocolChunkerBridge", cls_name)
+        return ProtocolChunkerBridge(chunker)
 
     # Unknown chunker — return as-is with a warning
     logger.warning(

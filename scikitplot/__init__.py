@@ -128,6 +128,7 @@ _submodules = sorted(
         "_testing",
         "_typing",
         "_utils",
+        "agent",
         "annoy",
         "api",
         "cexperimental",

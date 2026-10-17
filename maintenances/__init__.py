@@ -7,6 +7,9 @@ Maintenance tracking helper files like pytest `tests` logic structure.
 
 runtime never depends on maintenance
 
+`_repo/` is the one area without a ``scikitplot/`` counterpart: the
+repository as a whole (CI, ``libs/``, labeling, the work records).
+
 Main paclage and each submodule (nested) structure sync with
 library::
 

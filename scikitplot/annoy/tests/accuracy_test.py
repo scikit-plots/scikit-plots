@@ -15,6 +15,8 @@
 from __future__ import print_function
 import os
 import sys
+import uuid
+
 import pytest
 
 h5py = pytest.importorskip("h5py")
@@ -26,7 +28,23 @@ except ImportError:
 # from annoy import AnnoyIndex
 from scikitplot.annoy import AnnoyIndex
 
-HERE = os.path.dirname(__file__)  # "tests"
+#: Opt-in: the directory that caches the ann-benchmarks data and the indexes
+#: built from it. Unset (the default), every test here is skipped: the data
+#: is hundreds of MB, downloaded once, and never written into the package
+#: (Rule 30).
+DATA_ENV = "SKPLT_ANNOY_ACCURACY_DATA"
+
+
+@pytest.fixture(scope="module")
+def data_dir():
+    """Return the opt-in cache directory, or skip when it is not set."""
+    value = os.environ.get(DATA_ENV, "")
+    if not value:
+        pytest.skip(f"set {DATA_ENV} to a cache directory to run the accuracy tests")
+    value = os.path.abspath(os.path.expanduser(value))
+    if not os.path.isdir(value):
+        raise NotADirectoryError(f"{DATA_ENV}={value!r} is not a directory")
+    return value
 
 # np = pytest.importorskip("numpy")
 
@@ -56,16 +74,50 @@ HERE = os.path.dirname(__file__)  # "tests"
 # # Using pytest.xfail() Inside a Test Function
 # pytest.xfail("This test is currently broken")
 
-def _get_index(dataset, custom_distance=None, custom_dim=None):
+def _complete(path, write):
+    """
+    Create ``path`` through ``write(partial_path)``, then rename it into place.
+
+    A cache holds complete files only: an interrupted write is not mistaken
+    for the data on the next run, and two processes (``pytest-xdist``)
+    writing one file each use a partial file of their own. The partial name
+    is only chosen here, not created (``mkstemp`` would make it mode 0600,
+    and the cache could not be shared): ``write`` creates it.
+    """
+    partial = f"{path}.{os.getpid()}.{uuid.uuid4().hex}.part"
+    try:
+        write(partial)
+        os.replace(partial, path)
+    finally:
+        if os.path.exists(partial):
+            os.remove(partial)
+
+
+def _get_index(data_dir, dataset, custom_distance=None, custom_dim=None):
     url = 'http://ann-benchmarks.com/%s.hdf5' % dataset
-    vectors_fn = os.path.join(HERE, dataset + ".hdf5")
-    index_fn = os.path.join(HERE, dataset + ".annoy")
+    vectors_fn = os.path.join(data_dir, dataset + ".hdf5")
+    index_fn = os.path.join(data_dir, dataset + ".annoy")
 
     if not os.path.exists(vectors_fn):
         print("downloading", url, "->", vectors_fn)
-        urlretrieve(url, vectors_fn)
+        _complete(vectors_fn, lambda partial: urlretrieve(url, partial))
 
     dataset_f = h5py.File(vectors_fn, "r")
+    try:
+        return _build_index(
+            dataset_f,
+            data_dir,
+            dataset,
+            index_fn,
+            custom_distance=custom_distance,
+            custom_dim=custom_dim,
+        )
+    except BaseException:
+        dataset_f.close()  # the caller owns the file only on success
+        raise
+
+
+def _build_index(dataset_f, data_dir, dataset, index_fn, *, custom_distance, custom_dim):
     distance = dataset_f.attrs["distance"]
     if custom_distance is not None:
         distance = custom_distance
@@ -74,7 +126,7 @@ def _get_index(dataset, custom_distance=None, custom_dim=None):
         f = custom_dim
     if custom_distance:
         dataset = dataset.rsplit('-', 2)[0] + "-%d-%s" % (f, custom_distance)
-        index_fn = os.path.join(HERE, dataset + '.annoy')
+        index_fn = os.path.join(data_dir, dataset + '.annoy')
 
 
     annoy = AnnoyIndex(f, distance)
@@ -88,15 +140,25 @@ def _get_index(dataset, custom_distance=None, custom_dim=None):
 
         print("building index")
         annoy.build(10)
-        annoy.save(index_fn)
+
+        def save(partial):
+            annoy.save(partial)
+            annoy.unload()  # Windows: a mapped file cannot be renamed
+
+        _complete(index_fn, save)
+        annoy.load(index_fn)
     else:
         annoy.load(index_fn)
     return annoy, dataset_f, dataset
 
 
-def _test_index(dataset, exp_accuracy, custom_metric=None, custom_dim=None):
-    annoy, dataset_f, dataset = _get_index(dataset, custom_metric, custom_dim)
+def _test_index(data_dir, dataset, exp_accuracy, custom_metric=None, custom_dim=None):
+    annoy, dataset_f, dataset = _get_index(data_dir, dataset, custom_metric, custom_dim)
+    with dataset_f:
+        _check_accuracy(annoy, dataset_f, dataset, exp_accuracy, custom_dim)
 
+
+def _check_accuracy(annoy, dataset_f, dataset, exp_accuracy, custom_dim):
     n, k = 0, 0
 
     for i, v in enumerate(dataset_f["test"]):
@@ -119,22 +181,26 @@ def _test_index(dataset, exp_accuracy, custom_metric=None, custom_dim=None):
     assert accuracy > exp_accuracy - 1.0  # should be within 1%
 
 
-@pytest.mark.xfail(reason="Test data unavailable.")
-def test_glove_25():
+def test_glove_25(data_dir):
     # with pytest.raises(Exception) as e:
-    _test_index("glove-25-angular", 69.00)
+    _test_index(data_dir, "glove-25-angular", 69.00)
 
 
-@pytest.mark.xfail(reason="Test data unavailable.")
-def test_nytimes_16():
-    _test_index("nytimes-16-angular", 80.00)
+def test_nytimes_16(data_dir):
+    _test_index(data_dir, "nytimes-16-angular", 80.00)
 
 
-@pytest.mark.xfail(reason="Test data unavailable.")
-def test_lastfm_dot():
-    _test_index('lastfm-64-dot', 60.00, 'dot', 64)
+def test_lastfm_dot(data_dir):
+    _test_index(data_dir, 'lastfm-64-dot', 60.00, 'dot', 64)
 
 
-@pytest.mark.xfail(reason="Test data unavailable.")
-def test_lastfm_angular():
-    _test_index('lastfm-64-dot', 60.00, 'angular', 65)
+@pytest.mark.xfail(
+    strict=True,
+    raises=ValueError,
+    reason=(
+        "builds a 65-dimensional index from 64-dimensional rows; add_item "
+        "refuses the length (embedding length mismatch)"
+    ),
+)
+def test_lastfm_angular(data_dir):
+    _test_index(data_dir, 'lastfm-64-dot', 60.00, 'angular', 65)

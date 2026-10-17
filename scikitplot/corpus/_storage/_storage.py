@@ -48,12 +48,24 @@ import sqlite3
 import threading
 from dataclasses import dataclass, field  # noqa: F401
 from enum import unique
-from typing import Any, Dict, Iterator, List, Optional, Sequence  # noqa: F401
+from typing import (  # noqa: F401
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+)
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 from .._atomic import atomic_write_path
 from .._schema import (  # noqa: F401
     ChunkingStrategy,
     CorpusDocument,
+    IncompatibleSchemaError,
     SectionType,
     SourceType,
     _StrEnumBase,
@@ -313,6 +325,28 @@ class StorageBase(abc.ABC):
         int
         """
         return self.query(StorageQuery(limit=0, offset=0)).total
+
+    def close(self) -> None:  # noqa: B027 (optional hook; default holds nothing)
+        """Release the backend's resources; safe to call more than once.
+
+        The default holds nothing and does nothing. A backend that holds a
+        connection or a file (:class:`SQLiteStorage`) overrides it.
+
+        Notes
+        -----
+        **User.** Prefer ``with SQLiteStorage(path) as store: ...``: the
+        connection is closed when the block ends, also on an error. An
+        unclosed SQLite connection is reported as a ``ResourceWarning`` by
+        Python 3.13 and later when it is garbage-collected (R3-8).
+        """
+
+    def __enter__(self) -> Self:
+        """Return the store, for ``with``."""
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Close the store when the ``with`` block ends."""
+        self.close()
 
     def __repr__(self) -> str:  # noqa: D105
         return f"{self.__class__.__name__}()"
@@ -580,6 +614,12 @@ class JSONLStorage(StorageBase):
                     continue
                 try:
                     data = json.loads(line)
+                    # R2-3: a row of another schema generation makes the
+                    # whole file unreadable; refuse at open (IncompatibleSchemaError
+                    # is not caught below), never skip it as malformed.
+                    CorpusDocument._check_schema_version(
+                        data, f"JSONLStorage {self._path.as_posix()} line {lineno}"
+                    )
                     self._index[data["doc_id"]] = data
                     n += 1
                 except (json.JSONDecodeError, KeyError) as exc:
@@ -708,6 +748,8 @@ class JSONLStorage(StorageBase):
                 doc = _dict_to_doc(data)
                 if _matches_query(doc, q):
                     matching.append(doc)
+            except IncompatibleSchemaError:  # ruff: ignore[try-except-in-loop]
+                raise
             except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning(
                     "JSONLStorage.query: skipping malformed record %r: %s.",
@@ -913,20 +955,23 @@ class SQLiteStorage(StorageBase):
 
     Examples
     --------
-    >>> store = SQLiteStorage(Path("corpus.db"))
-    >>> store.save_batch(docs)
-    >>> result = store.query(StorageQuery(source_type="book", limit=10))
-    >>> result.total
-    487
+    >>> with SQLiteStorage(":memory:") as store:
+    ...     store.count()
+    0
     """
 
     def __init__(self, db_path: pathlib.Path | str = ":memory:") -> None:
         self._db_path: str = str(db_path) if str(db_path) != ":memory:" else ":memory:"
         if self._db_path != ":memory:":
             pathlib.Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn: sqlite3.Connection = self._connect()
         self._lock: threading.Lock = threading.Lock()
-        self._init_schema()
+        self._conn: sqlite3.Connection = self._connect()
+        try:
+            self._init_schema()
+            self._refuse_other_generation()
+        except BaseException:
+            self._conn.close()
+            raise
 
     # ------------------------------------------------------------------
     # Private
@@ -939,9 +984,15 @@ class SQLiteStorage(StorageBase):
             check_same_thread=False,
             isolation_level=None,  # autocommit; we manage transactions explicitly
         )
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA foreign_keys=ON;")
-        conn.execute("PRAGMA synchronous=NORMAL;")
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA foreign_keys=ON;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+        except BaseException:
+            # A file that is not a database fails here (R3-8): close the
+            # connection instead of leaving it to the garbage collector.
+            conn.close()
+            raise
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -963,6 +1014,35 @@ class SQLiteStorage(StorageBase):
                 self._conn.execute(_DEDUP_FTS_SQL)
             for idx_sql in _CREATE_INDEXES_SQL:
                 self._conn.execute(idx_sql)
+
+    def _refuse_other_generation(self) -> None:
+        """Refuse, at open, a store whose rows another schema generation wrote.
+
+        Raises
+        ------
+        IncompatibleSchemaError
+            If the first stored row declares no ``schema_version`` or another
+            MAJOR generation (R2-3: 3.0 widened every id to 64 hex characters).
+
+        Notes
+        -----
+        **Developer.**  One row is read so that opening stays O(1); a builder
+        writes a store with one generation. Every read path re-raises the same
+        error for any row it decodes, so a mixed store cannot be read as a
+        partial or empty one either.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT json_data FROM corpus_documents LIMIT 1"
+            ).fetchone()
+        if row is None:
+            return
+        try:
+            data = json.loads(row["json_data"])
+        except json.JSONDecodeError:
+            return  # a malformed row is reported by the read that meets it
+        if isinstance(data, dict):
+            CorpusDocument._check_schema_version(data, f"SQLiteStorage {self._db_path}")
 
     def _doc_to_row(self, doc: CorpusDocument) -> dict[str, Any]:
         """Convert doc to a sqlite row dict."""
@@ -1166,6 +1246,8 @@ class SQLiteStorage(StorageBase):
         for row in rows:
             try:
                 document = _dict_to_doc(json.loads(row["json_data"]))
+            except IncompatibleSchemaError:
+                raise
             except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning(
                     "SQLiteStorage.search_text: skipping malformed row: %s.", exc
@@ -1233,6 +1315,8 @@ class SQLiteStorage(StorageBase):
         for row in rows:
             try:
                 docs.append(_dict_to_doc(json.loads(row["json_data"])))
+            except IncompatibleSchemaError:  # ruff: ignore[try-except-in-loop]
+                raise
             except Exception as exc:  # noqa: BLE001  # ruff: ignore[try-except-in-loop]
                 logger.warning("SQLiteStorage.query: skipping malformed row: %s.", exc)
 
@@ -1260,7 +1344,14 @@ class SQLiteStorage(StorageBase):
             ).fetchone()[0]
 
     def close(self) -> None:
-        """Close the database connection."""
+        """Close the database connection; safe to call more than once.
+
+        Notes
+        -----
+        **Developer.** ``sqlite3.Connection.close`` is itself idempotent; any
+        call that needs the connection afterwards raises
+        ``sqlite3.ProgrammingError`` ("Cannot operate on a closed database").
+        """
         with self._lock:
             self._conn.close()
 

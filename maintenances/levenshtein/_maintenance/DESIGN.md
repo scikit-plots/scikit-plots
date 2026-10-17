@@ -18,7 +18,6 @@ The canonical public names are exported by `_core.__all__`:
 - `backend_info`
 - `closest`
 - `distance`
-- `make_corpus_scorer`
 - `normalized_distance`
 - `normalized_similarity`
 - `rank`
@@ -52,11 +51,13 @@ Availability failure for an explicitly named backend:
 
 Runtime failure for a selected accelerator:
 
-- `strict=False`: warning + pure Python fallback;
+- `strict=False`: one warning, then the next available backend of the safe
+  order `internal -> rapidfuzz -> python` for the rest of the call;
 - `strict=True`: re-raise.
 
-Open finding `LV-001` tracks the difference between this runtime path and the
-full safe preference order.
+Both paths live in one per-call `_ExecutionPlan`, which closed `LV-001` (the
+safe order is now used after a runtime failure) and `LV-002` (resolution once
+per call).
 
 ## Ranking policy
 
@@ -84,8 +85,9 @@ through `key=` for ranking when they want such semantics.
 
 ## Corpus boundary
 
-`make_corpus_scorer` imports `scikitplot.corpus` only when the returned scorer
-is called. Levenshtein stays independently importable.
+Levenshtein imports nothing from `scikitplot.corpus`. Corpus owns the adapter,
+`scikitplot.corpus.make_levenshtein_ranker`, and imports this module only when
+that ranker is built.
 
 ## Non-goals
 

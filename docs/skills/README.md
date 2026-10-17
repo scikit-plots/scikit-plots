@@ -8,6 +8,11 @@ The authoritative skill content is `skills/<area>/SKILL.md`. Files under
 `docs/skills/` are navigation and repository-wide policy only; do not duplicate
 module-specific instructions here.
 
+`skills/_engineering/SKILL.md` is the one skill for every area: the numbered
+engineering rules (verification, delivery, tests, contracts, packaging and
+more). Load it with the area's own skill. Where plans, results and lessons are
+written: `tasks/README.md`.
+
 ## Select a skill by ownership, not by keyword
 
 Start from the files the task actually touches and identify their maintenance

@@ -50,6 +50,7 @@ from typing import Any, Final
 from .._types import Chunk, ChunkerConfig, ChunkResult
 from ._multilang_mixin import MultilangConfig, MultilangMixin
 from ._sentence import _validate_text_input
+from ._spans import Span, cover, strip_span
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ _DEFAULT_OVERLAP: Final[int] = 0  # no by default
 
 # One or more blank lines (optional CR) separate paragraphs.
 _PARA_SPLIT_RE: Final[re.Pattern[str]] = re.compile(r"\r?\n\s*\r?\n+")
+_SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = re.compile(r"(?<=[.!?])\s+")
 
 
 # ---------------------------------------------------------------------------
@@ -112,126 +114,107 @@ class ParagraphChunkerConfig(ChunkerConfig):
 # ---------------------------------------------------------------------------
 
 
-def _split_paragraphs(text: str, strip: bool) -> list[str]:
-    """Split *text* on blank lines.
+def _paragraph_spans(text: str, strip: bool) -> list[Span]:
+    """Return the span of each paragraph (text between blank lines).
 
     Parameters
     ----------
     text : str
         Input document.
     strip : bool
-        Whether to strip each paragraph.
+        Narrow each span to exclude surrounding whitespace.
 
     Returns
     -------
-    list[str]
-        Non-empty paragraph strings.
+    list of (int, int)
+        Non-empty paragraph spans in source order (R3-3: spans, not strings,
+        so every later step can slice the source instead of re-joining).
     """
-    parts = _PARA_SPLIT_RE.split(text)
+    spans: list[Span] = []
+    position = 0
+    for separator in _PARA_SPLIT_RE.finditer(text):
+        spans.append((position, separator.start()))
+        position = separator.end()
+    spans.append((position, len(text)))
     if strip:
-        parts = [p.strip() for p in parts]
-    return [p for p in parts if p]
+        spans = [strip_span(text, start, end) for start, end in spans]
+    return [(start, end) for start, end in spans if end > start]
 
 
-def _split_long_paragraph(para: str, max_len: int) -> list[str]:
-    """Divide an oversized paragraph at sentence boundaries.
+def _split_long_span(text: str, span: Span, max_len: int) -> list[Span]:
+    """Divide an oversized paragraph span at sentence boundaries.
 
-    Falls back to hard character splitting when no sentence boundary
-    is found within *max_len* characters.
+    Sentences (ending in ``.``, ``!`` or ``?``) are grouped greedily while the
+    group's source length stays within *max_len*. A single sentence longer
+    than *max_len* stays whole: there is no character-level split.
 
     Parameters
     ----------
-    para : str
-        Single paragraph text.
+    text : str
+        Source document.
+    span : (int, int)
+        The paragraph's span.
     max_len : int
-        Target maximum length for sub-paragraphs.
+        Target maximum length, in source characters.
 
     Returns
     -------
-    list[str]
-        Sub-paragraph strings, each ``<= max_len`` characters when possible.
+    list of (int, int)
+        Sub-spans covering the sentences of *span*, in order.
     """
-    sentence_boundary = re.compile(r"(?<=[.!?])\s+")
-    sentences = sentence_boundary.split(para)
-    chunks: list[str] = []
-    current: list[str] = []
-    current_len: int = 0
+    start, end = span
+    sentences: list[Span] = []
+    position = start
+    for boundary in _SENTENCE_BOUNDARY_RE.finditer(text, start, end):
+        sentences.append((position, boundary.start()))
+        position = boundary.end()
+    sentences.append((position, end))
+    sentences = [(s, e) for s, e in sentences if e > s]
 
-    for sent in sentences:
-        candidate_len = current_len + len(sent) + (1 if current else 0)
-        if current and candidate_len > max_len:
-            chunks.append(" ".join(current))
-            current = [sent]
-            current_len = len(sent)
+    groups: list[Span] = []
+    group: list[Span] = []
+    for sentence in sentences:
+        if group and sentence[1] - group[0][0] > max_len:
+            groups.append(cover(group))
+            group = [sentence]
         else:
-            current.append(sent)
-            current_len += len(sent) + (1 if len(current) > 1 else 0)
-
-    if current:
-        chunks.append(" ".join(current))
-
-    return [c for c in chunks if c]
+            group.append(sentence)
+    if group:
+        groups.append(cover(group))
+    return groups
 
 
-def _merge_short_paragraphs(paragraphs: list[str], min_length: int) -> list[str]:
-    """Merge consecutive short paragraphs into one.
+def _merge_short_spans(text: str, spans: list[Span], min_length: int) -> list[Span]:
+    """Merge each run of short paragraphs into the next one.
 
     Parameters
     ----------
-    paragraphs : list[str]
-        Input paragraph list.
+    text : str
+        Source document (a merged span keeps its real separators).
+    spans : list of (int, int)
+        Paragraph spans.
     min_length : int
-        Paragraphs shorter than this are merged with their successor.
+        Paragraphs shorter than this join the following paragraph; a
+        trailing run joins into one span.
 
     Returns
     -------
-    list[str]
-        Merged paragraph list.
+    list of (int, int)
+        Merged spans.
     """
-    merged: list[str] = []
-    buffer: list[str] = []
-
-    for para in paragraphs:
-        if len(para) < min_length:
-            buffer.append(para)
-        else:  # noqa: PLR5501
-            if buffer:
-                buffer.append(para)
-                merged.append("\n".join(buffer))
-                buffer = []
-            else:
-                merged.append(para)
-
+    merged: list[Span] = []
+    buffer: list[Span] = []
+    for span in spans:
+        if span[1] - span[0] < min_length:
+            buffer.append(span)
+        elif buffer:
+            merged.append(cover([*buffer, span]))
+            buffer = []
+        else:
+            merged.append(span)
     if buffer:
-        merged.append("\n".join(buffer))
-
+        merged.append(cover(buffer))
     return merged
-
-
-def _compute_char_offsets(source: str, segments: list[str]) -> list[tuple[int, int]]:
-    """Compute ``(start_char, end_char)`` for each segment in *source*.
-
-    Parameters
-    ----------
-    source : str
-        Original document string.
-    segments : list[str]
-        Ordered paragraph strings.
-
-    Returns
-    -------
-    list[tuple[int, int]]
-        Character index pairs.
-    """
-    offsets: list[tuple[int, int]] = []
-    cursor: int = 0
-    for seg in segments:
-        idx = source.find(seg, cursor)
-        if idx == -1:
-            idx = cursor
-        offsets.append((idx, idx + len(seg)))
-        cursor = idx + len(seg)
-    return offsets
 
 
 # ---------------------------------------------------------------------------
@@ -283,11 +266,23 @@ class ParagraphChunker(MultilangMixin):
     'arabic'
     """
 
+    #: The configuration dataclass this chunker takes as ``config=``; the
+    #: component registry pairs them by it (R3-1).
+    config_class = ParagraphChunkerConfig
+
+    #: Whether each chunk's text is ``source[context_span]`` (R3-3).
+    text_is_source_slice = True
+
     def __init__(
         self,
         config: ParagraphChunkerConfig | None = None,
         multilang_config: MultilangConfig | None = None,
     ) -> None:
+        if config is not None and not isinstance(config, ParagraphChunkerConfig):
+            raise TypeError(
+                f"ParagraphChunker: config must be a ParagraphChunkerConfig or None, "
+                f"got {type(config).__name__}."
+            )
         self._cfg = config if config is not None else ParagraphChunkerConfig()
         self._validate_config()
         ml_cfg = multilang_config or (
@@ -296,6 +291,15 @@ class ParagraphChunker(MultilangMixin):
             else None
         )
         self._ml_init(ml_cfg)
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> ParagraphChunkerConfig:
+        """The resolved :class:`ParagraphChunkerConfig` for this instance (read-only)."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -380,37 +384,51 @@ class ParagraphChunker(MultilangMixin):
             self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
         ):
             text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        # R3-3: spans index the text that was split. When preprocessing
+        # (NFC, BOM/control stripping) changed it, they index that text, not
+        # the input: say so, and slice no "raw" text with them (review F2).
+        span_basis = "input" if text == raw_text else "preprocessed"
 
-        paragraphs = _split_paragraphs(text, strip=self._cfg.strip_whitespace)
+        # R3-3: paragraphs are spans of the source; merging and splitting work
+        # on spans, and every chunk's text is a slice (re-joining with "\n" or
+        # " " produced text the source never had, then a failed search fell
+        # back to a wrong position).
+        spans = _paragraph_spans(text, strip=self._cfg.strip_whitespace)
 
         # Optional: merge short paragraphs before filtering.
         if self._cfg.merge_short:
-            paragraphs = _merge_short_paragraphs(paragraphs, self._cfg.min_length)
+            spans = _merge_short_spans(text, spans, self._cfg.min_length)
 
         # Filter by minimum length.
-        paragraphs = [p for p in paragraphs if len(p) >= self._cfg.min_length]
+        spans = [(s, e) for s, e in spans if e - s >= self._cfg.min_length]
 
         # Split overly long paragraphs.
         if self._cfg.max_length is not None:
-            expanded: list[str] = []
-            for para in paragraphs:
-                if len(para) > self._cfg.max_length:
-                    expanded.extend(_split_long_paragraph(para, self._cfg.max_length))
-                else:
-                    expanded.append(para)
-            paragraphs = expanded
+            spans = [
+                piece
+                for span in spans
+                for piece in (
+                    _split_long_span(text, span, self._cfg.max_length)
+                    if span[1] - span[0] > self._cfg.max_length
+                    else [span]
+                )
+            ]
 
+        paragraphs = [text[s:e] for s, e in spans]
         offsets: list[tuple[int, int]] = (
-            _compute_char_offsets(text, paragraphs)
-            if self._cfg.include_offsets
-            else [(0, 0)] * len(paragraphs)
+            list(spans) if self._cfg.include_offsets else [(0, 0)] * len(spans)
         )
 
         chunks: list[Chunk] = []
         for idx, para in enumerate(paragraphs):
             overlap_start = max(0, idx - self._cfg.overlap)
             context = paragraphs[overlap_start:idx]
-            full_text = "\n\n".join([*context, para]) if context else para
+            # The context is the source slice from the first overlapped
+            # paragraph to this one, so a paragraph min_length dropped between
+            # them is part of it (review F5; the text is the source's own).
+            full_text = (
+                text[spans[overlap_start][0] : spans[idx][1]] if context else para
+            )
 
             meta: dict[str, Any] = {
                 "chunk_index": idx,
@@ -421,13 +439,26 @@ class ParagraphChunker(MultilangMixin):
                 meta["doc_id"] = doc_id
 
             start, end = offsets[idx]
-            chunk = Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
+            chunk = Chunk(
+                text=full_text,
+                start_char=start,
+                end_char=end,
+                metadata=meta,
+                context_start=(
+                    spans[overlap_start][0]
+                    if context and self._cfg.include_offsets
+                    else None
+                ),
+            )
             # Multilang enrichment
             if self._ml_cfg.enabled:
-                # Use the paragraph text only (not overlap context) for script
+                # The context's raw text, as the document spans the context;
+                # script detection below still uses the paragraph alone.
                 para_raw = (
-                    raw_text[start:end]
-                    if self._ml_cfg.include_raw_text and start < end
+                    raw_text[(spans[overlap_start][0] if context else start) : end]
+                    if self._ml_cfg.include_raw_text
+                    and start < end
+                    and span_basis == "input"
                     else None
                 )
                 ml_meta = self._ml_build_meta(
@@ -441,6 +472,7 @@ class ParagraphChunker(MultilangMixin):
             chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
+            "span_basis": span_basis,
             "chunker": "paragraph",
             "total_chunks": len(chunks),
             "min_length": self._cfg.min_length,

@@ -1,0 +1,15 @@
+MLFLOW OWNERSHIP AUDIT — 2026-09-12
+
+MLF-SEC-001 HIGH
+SecurityPolicy is exported and its module documentation says active policies guard session()/spawn_server(), but no runtime module outside _security.py imports/consults get_security_policy(). A live negative probe with DEFAULT_SECURITY_POLICY allowed --disable-security-middleware through build_server_args().
+
+MLF-OPT-001 MEDIUM
+Optional PyYAML imports catch Exception in _project.py (load/dump) and _workflow.py. Dependency absence should be distinguished from a broken installed dependency.
+
+MLF-TYP-001 MEDIUM
+_session.pyi uses `from _facade import ArtifactsFacade, ModelsFacade` while the package ships py.typed. The import should be package-relative for type-checker correctness.
+
+MLF-TEST-001 LOW
+TestRunDemo says side effects are patched, but four tests invoke run_demo() with the 10-second default UI sleep. Functional behavior passes; unit-suite latency is accidental.
+
+Ownership boundaries otherwise look coherent: external mlflow is lazy, provider injection is explicit, subprocess construction is argv-based, readiness is bounded, and bundled TOML/YAML parse successfully.

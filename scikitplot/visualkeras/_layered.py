@@ -2,11 +2,14 @@
 
 """visualkeras _layered.py"""
 
+from __future__ import annotations
+
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 
 # import warnings
+import logging
 from math import ceil
 from typing import TYPE_CHECKING
 
@@ -17,12 +20,13 @@ from typing import TYPE_CHECKING
 #     ImageFont,
 # )
 
-from .. import logger
 from .._compat.optional_deps import LazyImport
 from .._docstrings import _docstring
 from ..utils._pil import get_font, save_image_pil_decorator
 from ._layer_utils import *
 from ._utils import *
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     # Only imported during type checking

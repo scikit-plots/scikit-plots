@@ -7,10 +7,9 @@ import pytest
 from .._paragraph import (
     ParagraphChunker,
     ParagraphChunkerConfig,
-    _compute_char_offsets,
-    _merge_short_paragraphs,
-    _split_long_paragraph,
-    _split_paragraphs,
+    _merge_short_spans,
+    _paragraph_spans,
+    _split_long_span,
 )
 from ..._types import Chunk, ChunkResult
 
@@ -228,30 +227,28 @@ class TestBatch:
 
 
 class TestHelpers:
-    def test_split_paragraphs_basic(self) -> None:
-        parts = _split_paragraphs(SIMPLE, strip=True)
-        assert len(parts) == 3
+    """The span helpers (R3-3): every result slices the source."""
 
-    def test_split_paragraphs_windows_linebreak(self) -> None:
+    def test_paragraph_spans_basic(self) -> None:
+        spans = _paragraph_spans(SIMPLE, strip=True)
+        assert len(spans) == 3
+        assert all(SIMPLE[s:e] == SIMPLE[s:e].strip() for s, e in spans)
+
+    def test_paragraph_spans_windows_linebreak(self) -> None:
         text = "Para 1.\r\n\r\nPara 2."
-        parts = _split_paragraphs(text, strip=True)
-        assert len(parts) == 2
+        assert [text[s:e] for s, e in _paragraph_spans(text, strip=True)] == [
+            "Para 1.",
+            "Para 2.",
+        ]
 
-    def test_split_long_paragraph(self) -> None:
+    def test_split_long_span(self) -> None:
         para = ("Word sentence. " * 15).strip()
-        parts = _split_long_paragraph(para, max_len=50)
-        for p in parts:
-            assert len(p) <= 80   # realistic sentence boundary tolerance
+        spans = _split_long_span(para, (0, len(para)), max_len=50)
+        assert all(e - s <= 50 for s, e in spans)
+        assert spans[0][0] == 0
+        assert spans[-1][1] == len(para)
 
-    def test_merge_short_paragraphs(self) -> None:
-        paras = ["Hi.", "Hello.", "This is a much longer paragraph here."]
-        merged = _merge_short_paragraphs(paras, min_length=10)
-        assert len(merged) < len(paras)
-
-    def test_compute_offsets_basic(self) -> None:
-        source = "First.\n\nSecond."
-        segs = ["First.", "Second."]
-        offsets = _compute_char_offsets(source, segs)
-        assert offsets[0] == (0, 6)
-        start, end = offsets[1]
-        assert source[start:end] == "Second."
+    def test_merge_short_spans_keeps_the_real_separators(self) -> None:
+        text = "Hi.\n\nHello.\n\nThis is a much longer paragraph here."
+        spans = _merge_short_spans(text, _paragraph_spans(text, strip=True), 10)
+        assert [text[s:e] for s, e in spans] == [text]

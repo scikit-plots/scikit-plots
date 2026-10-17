@@ -96,6 +96,13 @@ class TestBrokenVersusAbsent:
             "is_available",
             classmethod(lambda cls: False),
         )
+        # R2-5 / F-50: "absent" means not installed; installed but not
+        # available is "broken" (TestReviewF50 in test__fallback_vocabulary).
+        monkeypatch.setattr(
+            backends.AnnoyBackend,
+            "is_installed",
+            classmethod(lambda cls: False),
+        )
         snapshot = capability_snapshot()["ann_backends"]
         broken = snapshot["bruteforce"]
         absent = snapshot["annoy"]

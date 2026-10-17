@@ -1,0 +1,8 @@
+TestRunDemo original-test evidence (executed separately to preserve runtime semantics):
+  test_run_demo_returns_workflow_paths: 1 passed in 10.05s
+  test_run_demo_exports_config: 1 passed in 10.05s
+  test_run_demo_with_experiment_name_patches_toml: 1 passed in 10.05s
+  test_run_demo_respects_overwrite_false: 1 passed in 10.05s
+  test_run_demo_open_ui_seconds_calls_sleep: 1 passed in 0.05s
+  test_run_demo_zero_open_ui_seconds_does_not_sleep: 1 passed in 0.05s
+Observation: four nominal unit tests retain run_demo default open_ui_seconds=10.0.

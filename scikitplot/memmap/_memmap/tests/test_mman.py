@@ -50,8 +50,11 @@ Design Principles
 """
 
 import sys
+import gc
 import os
+import subprocess
 import tempfile
+import textwrap
 import pytest
 from typing import Generator
 
@@ -708,3 +711,304 @@ class TestThreadSafety:
 if __name__ == "__main__":
     # Run tests if executed directly
     pytest.main([__file__, "-v"])
+
+
+# ===========================================================================
+# View lifetime: buffer exports keep the region mapped (Run 1)
+# ===========================================================================
+#
+# close() used to munmap unconditionally. An array from as_numpy_array() --
+# for instance one returned from a ``with`` block, as the docstring example
+# invites -- then pointed at unmapped memory, and reading it killed the
+# process with SIGSEGV (exit 139). The mapping now exports its bytes through
+# the buffer protocol and defers the unmap until the last export is released.
+
+
+def _mapped_on_linux(address: int):
+    """Whether ``address`` lies in a mapping of this process, or None off Linux."""
+    try:
+        with open("/proc/self/maps", encoding="ascii") as maps:
+            lines = maps.read().splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        start, end = (int(part, 16) for part in line.split()[0].split("-"))
+        if start <= address < end:
+            return True
+    return False
+
+
+def test_lifetime_a_view_returned_from_a_with_block_is_readable():
+    """
+    The crash reproduction, in a child process so a regression cannot take
+    the test session down with it.
+    """
+    script = textwrap.dedent(
+        """
+        from scikitplot.memmap import MemoryMap
+
+        def load():
+            with MemoryMap.create_anonymous(4096) as m:
+                arr = m.as_numpy_array()
+                arr[:3] = [7, 8, 9]
+                return arr
+
+        arr = load()
+        print(arr[:3].tolist())
+        """
+    )
+    done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    assert done.returncode == 0, f"exit {done.returncode}; stderr:\n{done.stderr}"
+    assert done.stdout.strip().splitlines()[-1] == "[7, 8, 9]"
+
+
+def test_lifetime_close_ends_the_api_but_not_the_view():
+    m = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
+    arr = m.as_numpy_array()
+    arr[:2] = [1, 2]
+    m.close()
+    assert m.is_valid is False
+    with pytest.raises(ValueError, match="closed"):
+        m.read(1)
+    with pytest.raises(ValueError, match="closed"):
+        m.as_numpy_array()
+    with pytest.raises(BufferError):
+        memoryview(m)
+    arr[2] = 3  # still mapped, still writable
+    assert arr[:3].tolist() == [1, 2, 3]
+    m.close()  # idempotent while the view is alive
+
+
+def test_lifetime_the_region_is_unmapped_after_the_last_view():
+    size = 1 << 20  # large enough to be its own mapping
+    m = MemoryMap.create_anonymous(size, PY_PROT_READ | PY_PROT_WRITE)
+    address = m.addr
+    if _mapped_on_linux(address) is None:
+        pytest.skip("needs /proc/self/maps")
+    first = m.as_numpy_array()
+    second = memoryview(m)
+    m.close()
+    assert _mapped_on_linux(address) is True  # two exports alive
+    del first
+    gc.collect()
+    assert _mapped_on_linux(address) is True  # one export alive
+    second.release()
+    assert _mapped_on_linux(address) is False  # unmapped at the last release
+
+
+def test_lifetime_close_without_views_unmaps_at_once():
+    m = MemoryMap.create_anonymous(1 << 20, PY_PROT_READ | PY_PROT_WRITE)
+    address = m.addr
+    if _mapped_on_linux(address) is None:
+        pytest.skip("needs /proc/self/maps")
+    m.close()
+    assert _mapped_on_linux(address) is False
+
+
+def test_buffer_protocol_exports_the_mapped_bytes():
+    with MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE) as m:
+        m.write(b"abc")
+        view = memoryview(m)
+        assert (len(view), view.format, view.itemsize, view.readonly) == (4096, "B", 1, False)
+        assert bytes(view[:3]) == b"abc"
+        view[3:5] = b"de"
+        assert m.read(5) == b"abcde"
+        view.release()
+
+
+def test_buffer_protocol_a_read_only_mapping_exports_read_only():
+    with MemoryMap.create_anonymous(4096, PY_PROT_READ) as m:
+        assert memoryview(m).readonly is True
+        arr = m.as_numpy_array()
+        assert arr.flags.writeable is False
+        with pytest.raises(ValueError, match="read-only"):
+            arr[0] = 1
+        del arr
+
+
+# ===========================================================================
+# GIL-free sections hold the region as well (Run 1)
+# ===========================================================================
+#
+# read(), write(), mprotect(), msync(), mlock() and munlock() release the GIL
+# around a copy or a system call. close() from another thread used to munmap
+# under a running read() (SIGSEGV), and mprotect() could take away a right
+# that a live view had been exported with (SIGSEGV on its next access).
+
+
+def test_lifetime_close_during_a_read_on_another_thread_does_not_crash():
+    """The race reproduction, in a child process: it used to exit with -11."""
+    script = textwrap.dedent(
+        """
+        import threading
+        import time
+
+        from scikitplot.memmap import MemoryMap
+
+        SIZE = 64 * 1024 * 1024  # a copy long enough to be interrupted
+        for _ in range(10):
+            m = MemoryMap.create_anonymous(SIZE)
+            started = threading.Event()
+
+            def reader():
+                started.set()
+                try:
+                    m.read(SIZE)  # copies with the GIL released
+                except ValueError:
+                    pass  # closed before the copy began: refused, no crash
+
+            thread = threading.Thread(target=reader)
+            thread.start()
+            started.wait()
+            time.sleep(0.001)
+            m.close()
+            thread.join()
+        print("ok")
+        """
+    )
+    done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert done.returncode == 0, f"exit {done.returncode}; stderr:\n{done.stderr}"
+    assert done.stdout.strip().splitlines()[-1] == "ok"
+
+
+def test_mprotect_refuses_to_remove_a_right_a_view_holds():
+    with MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE) as m:
+        arr = m.as_numpy_array()
+        with pytest.raises(BufferError, match="Release the views"):
+            m.mprotect(PY_PROT_READ)
+        arr[0] = 1  # still writable: the refusal kept the view valid
+        del arr
+        gc.collect()
+        m.mprotect(PY_PROT_READ)  # no view left: allowed
+        with pytest.raises(ValueError, match="not writable"):
+            m.write(b"x")
+
+
+def test_mprotect_may_add_a_right_under_a_view():
+    with MemoryMap.create_anonymous(4096, PY_PROT_READ) as m:
+        view = memoryview(m)
+        m.mprotect(PY_PROT_READ | PY_PROT_WRITE)
+        assert view.readonly is True  # exported read-only, stays read-only
+        m.write(b"ok")
+        assert bytes(view[:2]) == b"ok"
+        view.release()
+
+
+def test_mprotect_and_an_export_on_another_thread_do_not_race():
+    """mprotect used to release the GIL before recording the new flags.
+
+    A second thread, woken while the system call ran, exported writable views
+    from the stale flags over pages already read-only (writing through one
+    killed the process). The child below gates the second thread on the call;
+    on the old code it found such a view on the first attempt, three runs out
+    of three.
+    """
+    script = textwrap.dedent(
+        """
+        import threading
+        import time
+
+        from scikitplot.memmap import MemoryMap, PY_PROT_READ, PY_PROT_WRITE
+
+        SIZE = 32 * 1024 * 1024
+        m = MemoryMap.create_anonymous(SIZE, PY_PROT_READ | PY_PROT_WRITE)
+        block = b"\\x01" * (1 << 20)
+        for offset in range(0, SIZE, len(block)):
+            m.write(block, offset)  # touch every page: mprotect takes a while
+
+        in_call = threading.Event()
+        stop = threading.Event()
+        views = []
+
+        def grab():
+            while not stop.is_set():
+                if in_call.is_set():
+                    try:
+                        views.append(memoryview(m))
+                    except BufferError:
+                        pass
+                else:
+                    time.sleep(0)
+
+        thread = threading.Thread(target=grab)
+        thread.start()
+        try:
+            for attempt in range(200):
+                m.mprotect(PY_PROT_READ | PY_PROT_WRITE)
+                in_call.set()
+                try:
+                    m.mprotect(PY_PROT_READ)
+                    changed = True
+                except BufferError:
+                    changed = False  # views were alive: refused, as designed
+                in_call.clear()
+                if changed and any(not view.readonly for view in list(views)):
+                    print(f"attempt {attempt}: writable view over read-only pages")
+                    raise SystemExit(3)
+                for view in list(views):
+                    view.release()
+                views.clear()
+        finally:
+            stop.set()
+            thread.join()
+        print("ok")
+        """
+    )
+    done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert done.returncode == 0, (
+        f"exit {done.returncode}; stdout: {done.stdout}; stderr:\n{done.stderr}"
+    )
+    assert done.stdout.strip().splitlines()[-1] == "ok"
+
+
+def test_an_unreadable_mapping_exports_nothing_and_cannot_be_read():
+    """In a child process: before the fix, ``read`` and ``bytes`` faulted."""
+    script = textwrap.dedent(
+        """
+        from scikitplot.memmap import MemoryMap, PY_PROT_NONE, PY_PROT_READ, PY_PROT_WRITE
+
+        def refused(call, error, text):
+            try:
+                call()
+            except error as exc:
+                assert text in str(exc), exc
+                return
+            raise AssertionError(f"{call} did not raise {error.__name__}")
+
+        with MemoryMap.create_anonymous(4096, PY_PROT_NONE) as m:
+            refused(lambda: memoryview(m), BufferError, "not readable")
+            refused(m.as_numpy_array, BufferError, "not readable")
+            refused(lambda: m.read(1), ValueError, "not readable")
+        with MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE) as m:
+            m.mprotect(PY_PROT_NONE)  # no view alive: allowed
+            refused(lambda: bytes(m), BufferError, "not readable")
+        print("ok")
+        """
+    )
+    done = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    assert done.returncode == 0, f"exit {done.returncode}; stderr:\n{done.stderr}"
+    assert done.stdout.strip().splitlines()[-1] == "ok"

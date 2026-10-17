@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio  # noqa: F401
 import io
+import logging
 import mimetypes
 import os
 import re
@@ -33,8 +34,9 @@ from urllib.request import urlopen
 
 import pandas as pd
 
-from .. import logger
 from .._compat.optional_deps import safe_import
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from typing import (  # noqa: F401
@@ -51,8 +53,6 @@ if TYPE_CHECKING:
 
 
 # ---------------------- Helpers ----------------------
-
-
 def detect_file_type(
     url_or_path,
     strict: bool = True,

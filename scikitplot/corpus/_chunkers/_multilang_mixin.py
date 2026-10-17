@@ -51,6 +51,7 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Final, Optional, Sequence  # noqa: F401
 
+from .._notices import CAPABILITIES_HINT, notice_once
 from .._types import (
     Chunk,
     MetadataDict,
@@ -262,9 +263,12 @@ class MultilangMixin:
             try:
                 self._ml_segmenter = ScriptSegmenter()
             except ImportError:
-                logger.warning(
+                notice_once(
+                    logger,
+                    "segmenter:regex",
                     "MultilangMixin: regex library not available. "
-                    "Script segmentation disabled. pip install regex"
+                    "Script segmentation disabled. pip install regex. %s",
+                    CAPABILITIES_HINT,
                 )
 
     # ------------------------------------------------------------------
@@ -300,8 +304,8 @@ class MultilangMixin:
         """
         steps: list[PreprocessingStep] = []
         current = raw_text
-        raw_hash = hashlib.md5(  # noqa: S324
-            raw_text.encode("utf-8", errors="replace")
+        raw_hash = hashlib.sha256(
+            raw_text.encode("utf-8", errors="surrogatepass")
         ).hexdigest()
 
         # ── Step 1: BOM strip ────────────────────────────────────────────
@@ -310,8 +314,8 @@ class MultilangMixin:
             before = current
             current = current.lstrip("\ufeff")
             dur = time.perf_counter() - t0
-            after_hash = hashlib.md5(  # noqa: S324
-                current.encode("utf-8", errors="replace")
+            after_hash = hashlib.sha256(
+                current.encode("utf-8", errors="surrogatepass")
             ).hexdigest()
             steps.append(
                 PreprocessingStep(
@@ -345,8 +349,8 @@ class MultilangMixin:
             before = current
             current = _CTRL_STRIP_RE.sub("", current)
             dur = time.perf_counter() - t0
-            after_hash = hashlib.md5(  # noqa: S324
-                current.encode("utf-8", errors="replace")
+            after_hash = hashlib.sha256(
+                current.encode("utf-8", errors="surrogatepass")
             ).hexdigest()
             steps.append(
                 PreprocessingStep(
@@ -373,8 +377,8 @@ class MultilangMixin:
         t0 = time.perf_counter()
         current = unicodedata.normalize(nfc_form, current)
         dur = time.perf_counter() - t0
-        after_hash = hashlib.md5(  # noqa: S324
-            current.encode("utf-8", errors="replace")
+        after_hash = hashlib.sha256(
+            current.encode("utf-8", errors="surrogatepass")
         ).hexdigest()
         steps.append(
             PreprocessingStep(

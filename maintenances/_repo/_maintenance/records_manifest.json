@@ -1,0 +1,1138 @@
+{
+ "source_commit": "471e46c",
+ "sources": {
+  "tasks/todo.md": {
+   "sha256": "a871e33face1328561f51da39241276bada30bae0c7306346dcd61706f41b4e3",
+   "chars": 197256,
+   "parts": [
+    {
+     "line": 1,
+     "heading": "# Active Tasks",
+     "chars": 16,
+     "sha256": "0505f45638c5ba580faa3780dd9501f3fc730f4a51d68ad6ae788204bacaf891",
+     "dest": "preamble"
+    },
+    {
+     "line": 3,
+     "heading": "## Task: round 33 / Run 4 - structured chunking measured by the harness (R4-2, R4-3)",
+     "chars": 10731,
+     "sha256": "f7d36c01a49d2e16e71c5a15afd9e117cc203cb6f3990bce546b681520688e2f",
+     "dest": "maintenances/corpus/todo/todo.md"
+    },
+    {
+     "line": 177,
+     "heading": "## Task: round 33 / Run 3 - ingestion contract (chunker registry, config strictness, spans, cache, logs, resources)",
+     "chars": 24984,
+     "sha256": "9e7c0a4021a153f8c2766fa02a1a7cfe5b5e906bf031044c46627593b9de95a4",
+     "dest": "maintenances/corpus/_maintenance/history/r33_run3_ingestion.md"
+    },
+    {
+     "line": 578,
+     "heading": "## Task: round 33 / Run 2 - retrieval contract (one fusion, one filter, durable identities, one fallback rule)",
+     "chars": 18044,
+     "sha256": "1c1c8731d93d96c8c9bc26c81fc29a4a547014aeebdbd94124d3966706bd8919",
+     "dest": "maintenances/corpus/_maintenance/history/r33_run2_retrieval.md"
+    },
+    {
+     "line": 860,
+     "heading": "## Task: round 33 / Run 4-A (pulled forward) - corpus evaluation: metrics, sklearn scorers, LLM judges, exportable reports",
+     "chars": 20102,
+     "sha256": "d722907e479a3f0ab260c9bc24a0e084b630502b096667e1852de24cb922500a",
+     "dest": "maintenances/corpus/_maintenance/history/r33_run4a_evaluation.md"
+    },
+    {
+     "line": 1187,
+     "heading": "## Task: round 33 / AI-plane Run 1 - correctness floor (silent wrong answers, a crash, a leak)",
+     "chars": 12962,
+     "sha256": "9344979436691764cecddad9fde025137faa050131ec89bfe486c05105759b38",
+     "dest": "maintenances/corpus/_maintenance/history/r33_run1_correctness.md"
+    },
+    {
+     "line": 1378,
+     "heading": "## Task: round 32 - CI red on PR 864: leaked Sphinx state, a py3.9 loop-bound lock, contract drift, a Windows env",
+     "chars": 7557,
+     "sha256": "306bdbc103e92d14dd7f971dcc7fbfdbe900f62d30e72f1f1ef6f40927457a5a",
+     "dest": "maintenances/_repo/_maintenance/history/r32_ci_pr864.md"
+    },
+    {
+     "line": 1501,
+     "heading": "## Task: round 31 - PR/issue labeling: one policy, generated configs, semantic checks",
+     "chars": 4085,
+     "sha256": "0426a5fbb76c22c4bf4e79e4ae1bb498f2b7e0ea0f6082e61b5ed0c7c391461d",
+     "dest": "maintenances/_repo/_maintenance/history/r31_labeling.md"
+    },
+    {
+     "line": 1565,
+     "heading": "## Task: round 30 - CI collision (again), options regression, forge engine, GitLab, Bitbucket, live-Space check, logging flake",
+     "chars": 2017,
+     "sha256": "e322837ef989559161b73b0851da9d97f33de12610b050cd668e2d56f648830a",
+     "dest": "maintenances/_externals/_sphinx_ext/_sphinx_feedback/_maintenance/history/r30_feedback_forges.md"
+    },
+    {
+     "line": 1602,
+     "heading": "## Task: round 29b - CI collision fix; feedback for any deployment and storage",
+     "chars": 2459,
+     "sha256": "9df9c44a8ee24563c6f33072340e9d57639647747d687ca80823f1ffae98660b",
+     "dest": "maintenances/_externals/_sphinx_ext/_sphinx_feedback/_maintenance/history/r29b_feedback_storage.md"
+    },
+    {
+     "line": 1644,
+     "heading": "## Task: round 29 - page feedback on any site, with or without the AI assistant",
+     "chars": 4141,
+     "sha256": "12bbdb5e547cc8362ec058926c59e1a25407b288736d29cb14a1ea916cc973e0",
+     "dest": "maintenances/_externals/_sphinx_ext/_sphinx_feedback/_maintenance/history/r29_page_feedback.md"
+    },
+    {
+     "line": 1714,
+     "heading": "## Task: cleanprompt round 26 - pattern-risk check (warn by default, user-tuned), custom surrogate sets, generator design",
+     "chars": 3032,
+     "sha256": "df057693f8414cb19dd42ec830b02062e51620be82c2d465b334bc5a18b4200e",
+     "dest": "maintenances/cleanprompt/_maintenance/history/r26_pattern_risk.md"
+    },
+    {
+     "line": 1768,
+     "heading": "## Results Review - cleanprompt round 26 - 2026-10-10",
+     "chars": 2218,
+     "sha256": "dc8fecc7c7345cc610e7bf433de7b205ec463583832dfb6fc569103b545d52fc",
+     "dest": "maintenances/cleanprompt/_maintenance/history/r26_pattern_risk.md"
+    },
+    {
+     "line": 1811,
+     "heading": "## Task: cleanprompt round 25 - truthful readiness, safe deployment files, Unicode detection view, multi-page guide",
+     "chars": 7323,
+     "sha256": "477c286406688f86ef429615c143c606b54ecb59b7ce350d88743a38d7431298",
+     "dest": "maintenances/cleanprompt/_maintenance/history/r25_readiness.md"
+    },
+    {
+     "line": 1913,
+     "heading": "## Results Review - cleanprompt round 25 - 2026-10-10",
+     "chars": 3268,
+     "sha256": "fc38f22cb15fb057f421fa03cd67f0d5d08c8e93109f19770923fcb8dea7c726",
+     "dest": "maintenances/cleanprompt/_maintenance/history/r25_readiness.md"
+    },
+    {
+     "line": 1969,
+     "heading": "## Task: Partial distributions of scikit-plots (`libs/<name>`), in the manner of mlflow-skinny",
+     "chars": 3777,
+     "sha256": "ed403eeca6580f8d8b2a6ea3e263725d97236dacacb4a6d9b13e0edc5c1c07fe",
+     "dest": "maintenances/_repo/_maintenance/history/partial_distributions.md"
+    },
+    {
+     "line": 2023,
+     "heading": "## Task: Round 2 - version-free declarations, scikit-learn 1.3+, Python 3.15, Sphinx extensions, WebAssembly",
+     "chars": 2011,
+     "sha256": "00ba28200c182e66d5e6810129dd7f23aef1534d2fe2ab7531f6cb735ba0ccc2",
+     "dest": "maintenances/_repo/_maintenance/history/r02_declarations.md"
+    },
+    {
+     "line": 2054,
+     "heading": "## Results Review - 2026-10-06",
+     "chars": 4132,
+     "sha256": "684f401ffa9f191547a68deddf2d806e55dcfeb14abdcf58b9e682e21a131305",
+     "dest": "maintenances/_repo/_maintenance/history/partial_distributions.md"
+    },
+    {
+     "line": 2121,
+     "heading": "## Results Review - Round 2 - 2026-10-06",
+     "chars": 4715,
+     "sha256": "ba9609b708ce816a89fb1c72c080ac4b78a11c658e03ddfb5dd66a31065c8f85",
+     "dest": "maintenances/_repo/_maintenance/history/r02_declarations.md"
+    },
+    {
+     "line": 2197,
+     "heading": "## Task: Round 3 - first CI run: zizmor, verify legs, full test job, Cython annotation report",
+     "chars": 5232,
+     "sha256": "020fd9a9d4547db4717904fda72545ddfd490ab1491ef458fcf33cb713aee0bb",
+     "dest": "maintenances/_repo/_maintenance/history/r03_first_ci.md"
+    },
+    {
+     "line": 2244,
+     "heading": "## Results Review - Round 3 - 2026-10-07",
+     "chars": 2222,
+     "sha256": "35b81b9fcddfc3bdc9a5074b8ac65f5664767ac9d78bbd0a82dc5f07ddf226d9",
+     "dest": "maintenances/_repo/_maintenance/history/r03_first_ci.md"
+    },
+    {
+     "line": 2285,
+     "heading": "## Task: Round 4 - Windows leg, core/parts compatibility number, staging wheels for every platform",
+     "chars": 11279,
+     "sha256": "f4f2d5e28bf1573f9af377dfbc353b32c4fd322205d06f80d90b19755ef97d36",
+     "dest": "maintenances/_repo/_maintenance/history/r04_windows_leg.md"
+    },
+    {
+     "line": 2405,
+     "heading": "## Results Review - Round 4 - 2026-10-07",
+     "chars": 4744,
+     "sha256": "1086b8d070088837a3d3bb00cdbde4d39ef80513080cf34b90f4fe44f078f17a",
+     "dest": "maintenances/_repo/_maintenance/history/r04_windows_leg.md"
+    },
+    {
+     "line": 2482,
+     "heading": "## Task: Round 5 - second CI run: what the Windows leg still names, threads at run time, bundle manifest",
+     "chars": 9042,
+     "sha256": "44525584576bee6427aae89a1682bde232acec0bfc7fb91e7891f678ab41b011",
+     "dest": "maintenances/_repo/_maintenance/history/r05_second_ci.md"
+    },
+    {
+     "line": 2582,
+     "heading": "## Results Review - Round 5 - 2026-10-07",
+     "chars": 3941,
+     "sha256": "6fda89712529507ac013bc545b32bca840d63a9241873f9527f4a4b1cba4ed75",
+     "dest": "maintenances/_repo/_maintenance/history/r05_second_ci.md"
+    },
+    {
+     "line": 2648,
+     "heading": "## Task: Round 6 - third CI run: the Windows leg only",
+     "chars": 8780,
+     "sha256": "cc92375c172c6475dfd7c33d962f1872c856d93222b83a535d01e5cc742b2f55",
+     "dest": "maintenances/_repo/_maintenance/history/r06_third_ci.md"
+    },
+    {
+     "line": 2755,
+     "heading": "## Results Review - Round 6 - 2026-10-07",
+     "chars": 2647,
+     "sha256": "b315b85f262764c7f705ed4a7fa772bcc07c8b32b1424cd8ede5f8d903410431",
+     "dest": "maintenances/_repo/_maintenance/history/r06_third_ci.md"
+    },
+    {
+     "line": 2800,
+     "heading": "## Task: Round 7 - fourth CI run: two tests left on Windows",
+     "chars": 3467,
+     "sha256": "d7f5b949d13d0849c9bd3f7ecae1388d4db5743de3cf6603fb91a5a18a781e99",
+     "dest": "maintenances/_repo/_maintenance/history/r07_fourth_ci.md"
+    },
+    {
+     "line": 2849,
+     "heading": "## Results Review - Round 7 - 2026-10-08",
+     "chars": 1242,
+     "sha256": "ccd7caae9301e375ed7225ce3cdb4a5ef72e9ee8507850c41b581f7c92c0f230",
+     "dest": "maintenances/_repo/_maintenance/history/r07_fourth_ci.md"
+    },
+    {
+     "line": 2876,
+     "heading": "## Task: Round 8 - the annoy wheels: the test step cannot find scikit-plots-skinny",
+     "chars": 2921,
+     "sha256": "f171e269b49435d4c54c4362c04416b90f265573ab3f4080433aada94e15bb23",
+     "dest": "maintenances/_repo/_maintenance/history/r08_annoy_wheels.md"
+    },
+    {
+     "line": 2926,
+     "heading": "## Task: Round 9 - `_sphinx_ext`: one stack, two import roots, 15 failures",
+     "chars": 4165,
+     "sha256": "8b7e54f78ad768ba27081485007d9fe51b9e36fb492ba573341ebec43cc97151",
+     "dest": "maintenances/_externals/_sphinx_ext/_maintenance/history/r09_sphinx_ext_stack.md"
+    }
+   ],
+   "preamble": "# Active Tasks\n\n"
+  },
+  "tasks/lessons.md": {
+   "sha256": "afc81b63c76c712e237c9f1796e0321a85bfe9ee0294346e69db92cdcb350931",
+   "chars": 107593,
+   "parts": [
+    {
+     "line": 1,
+     "heading": "# Lessons Learned",
+     "chars": 19,
+     "sha256": "621daa14f9c5208d19ebc15136829ca1472412e654f149687810e24e1d7b7d57",
+     "dest": "preamble"
+    },
+    {
+     "line": 3,
+     "heading": "## Active Rules (Currently Applied)",
+     "chars": 37,
+     "sha256": "cef1b72d0b5b8650b9f7634b65c0fdb07f69e4f432a881b76779c0437799a81e",
+     "dest": "preamble"
+    },
+    {
+     "line": 5,
+     "heading": "### Rule 1: Verification - never change the tree while a verification run is in progress",
+     "chars": 670,
+     "sha256": "cb1df0a77f999e3c8924b30f333584347c319794dd3a49c4424c1bcd55b04ffa",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 11,
+     "heading": "### Rule 2: Verification - a wheel that was rebuilt must be reinstalled, not re-read from a cache",
+     "chars": 627,
+     "sha256": "5734fff0fc0b98c80d76263d42b805c2e2e4394fc83f2d16f4ba1519f5ceec17",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 17,
+     "heading": "### Rule 3: Shell - a process pattern must not match the command that searches for it",
+     "chars": 435,
+     "sha256": "98dadc6411316c223a98f7af32d80357dbc6e6153fe89575de85aac0e2a434fb",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 23,
+     "heading": "### Rule 4: Packaging - a declared dependency floor is a claim; test it",
+     "chars": 607,
+     "sha256": "8094b895834f677000b1d2f6ff8f418407bfcc91340116cf6caeb5a62f4a0b81",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 29,
+     "heading": "### Rule 5: Packaging - a declared Python floor is a claim; test it",
+     "chars": 649,
+     "sha256": "3c28d1ff6b9100c1982c9efa2a27ee7a94b9393c9069fa0c53517a0b482cda03",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 35,
+     "heading": "### Rule 6: Tooling - generated files must be what the repository's formatter would write",
+     "chars": 618,
+     "sha256": "5f5a2ccd65eb816133501171bca98417c3f9c63b0d1f3415a437fe22f9ee2ea5",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 41,
+     "heading": "### Rule 7: Tooling - reading the source tree must not write into it",
+     "chars": 506,
+     "sha256": "5184dd7f4dc4a862182678f71facc1153afdc7606eb3bd4aaf055fcdb748aa87",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 47,
+     "heading": "### Rule 8: Shell - a process pattern must not occur anywhere else on the same command line",
+     "chars": 655,
+     "sha256": "4f822be9a05a512ab54f68040369cb5eb34515ac44eee9bd3221ed228a6e715c",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 53,
+     "heading": "### Rule 9: Verification - a long run goes to the background, never under the tool's time limit",
+     "chars": 546,
+     "sha256": "6bd83cd917d1c369a6e6e5d1bb96ae6f4a97c961e458ee33075ba2a917d418c1",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 59,
+     "heading": "### Rule 10: Packaging - \"lowest version\" is only defined for a requirement that declares a floor",
+     "chars": 649,
+     "sha256": "3724a24b3a89de2d38f547d9d398ffb1f9333f1b3cf87ddd04c660777dbc1931",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 65,
+     "heading": "### Rule 11: Packaging - two floors must be installable *together*",
+     "chars": 741,
+     "sha256": "4e388d73bbc5e9ffdfd3dd151ed4f5df132a242e41b5b5e36690628e4cbc4316",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 71,
+     "heading": "### Rule 12: Process - stop after two failed attempts at the same idea",
+     "chars": 596,
+     "sha256": "fe01c02b4e2778e77ed622264be43085a9db21713d7a406803ae85c1ec89d2e8",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 77,
+     "heading": "### Rule 13: Tests - a skipped module is not a passed module",
+     "chars": 515,
+     "sha256": "e0690b6dc59d5244712ada3d8213525f81740c874d0e40ff763d9965d1f784f7",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 83,
+     "heading": "### Rule 14: Verification - a fix found while a run is in progress is written down, not applied",
+     "chars": 708,
+     "sha256": "9246b020179acaa470e7e349fcb74f2c2c0ba20fc289348eed850c5b5da84e21",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 89,
+     "heading": "### Rule 15: Tests - a child interpreter that must import a copy runs without `site`",
+     "chars": 786,
+     "sha256": "ecad1aa2121d4090ef1df3d3ca45f0c58449ad8c5f29af316b094140da79512b",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 95,
+     "heading": "### Rule 16: Tests - assert a contract, not a cache",
+     "chars": 533,
+     "sha256": "0955ff1a2611ba44a0be77badd9b7ef14eb77955597d4b4e9ff9081999c58eb4",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 101,
+     "heading": "### Rule 17: Tests - a \"first result\" assertion needs a strict winner",
+     "chars": 515,
+     "sha256": "f3c99752c5bbad43572686db8cf389cd757b4aa25dd42ad8245e3b226346fe9a",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 107,
+     "heading": "### Rule 18: Portability - emulate the other platform's condition before calling a failure \"theirs\"",
+     "chars": 742,
+     "sha256": "85b3f7608902cad40ae470da6d9a3ce1449fbfd718e25d37f2c06fc86a824874",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 113,
+     "heading": "### Rule 19: C++ - a count is not stored in the id type without a bound",
+     "chars": 520,
+     "sha256": "faf54e968303eb83e83ed0600b9615156addcca16d15875491f4c7d5096a6d09",
+     "dest": "skills/_engineering/rules/native.md"
+    },
+    {
+     "line": 119,
+     "heading": "### Rule 20: Paths - a path recorded during a staged write is recorded relative to the entry",
+     "chars": 590,
+     "sha256": "4654ba3433bbc7c031368065c18de275dba8f8aa759fd3cc460d66bc8f11d7f8",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 125,
+     "heading": "### Rule 21: Git - an ignore rule ending in `/` does not cover a symbolic link",
+     "chars": 445,
+     "sha256": "9754c70ea2ed824d6c10f3f60b8e7dcbf47a84ebc0dd94651da5fcdfd1533db9",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 131,
+     "heading": "### Rule 22: Verification - nothing reads or rewrites the working tree while a run reads it",
+     "chars": 1273,
+     "sha256": "3a1fd7c616a81c59dbd6c29b2902902ba6a4b45261e3ed4475541d3ab03998d2",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 137,
+     "heading": "### Rule 23: Verification - a probe that stops at the first missing package proves nothing beyond it",
+     "chars": 718,
+     "sha256": "9c101a0c7474848b48ae825a7a01a22eca8b2a81cbbac045d98a4877026a871b",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 143,
+     "heading": "### Rule 24: Portability - text is read and written with a named encoding",
+     "chars": 558,
+     "sha256": "9a9b645e0c65665e77bdd24b5eee78c35f6a3f20e04f9d37e3be7ee7b841721a",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 149,
+     "heading": "### Rule 25: Portability - a mapped file pins itself and its directory on Windows",
+     "chars": 820,
+     "sha256": "88eba2188c1292af89ff812226899f5b0c911eab4fcd4e5c5c949d4f4d8093e5",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 155,
+     "heading": "### Rule 26: Errors - report the error of the API that failed",
+     "chars": 490,
+     "sha256": "75e8bd8b8e68be22335060917a565477ae674a2aca1e97ca2c60a80f2ac6724b",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 161,
+     "heading": "### Rule 27: Build - a code path behind a macro no build defines is not compiled code",
+     "chars": 595,
+     "sha256": "84ae87de5e58c69eea0d74a1a9ef7daab2b31bd7c153e2fdcb50a9da74990107",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 167,
+     "heading": "### Rule 28: Tests - an emulation must first be shown to refuse what the real platform refuses",
+     "chars": 640,
+     "sha256": "79039b306beb9c12a5fc76aa38e322ad4ee6d72facc7c40a8d8c28758721d8fb",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 173,
+     "heading": "### Rule 29: Packaging - \"it imports\" is not \"it works\" on a Python version",
+     "chars": 725,
+     "sha256": "e452337e91946474b102314a359814707ec59d70d2b942e90667479b8acd8211",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 179,
+     "heading": "### Rule 30: Tests - a test does not write into the package it tests, and removes what it writes",
+     "chars": 674,
+     "sha256": "45bdcd630a6e60ff9ae12e4da49c4798ee06327eccc6997ec70429ce33d2c511",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 185,
+     "heading": "### Rule 31: Verification - run the suite the way the repository runs it, too",
+     "chars": 802,
+     "sha256": "87078e99cf278ecb9df72666d0def3473004712d05a7c4bf486117452be60c16",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 191,
+     "heading": "### Rule 32: Verification - a child process is started with the environment's interpreter first on PATH",
+     "chars": 634,
+     "sha256": "b3145f38f24186fe3792f9b53d71a1034a367da657eb84210396f30325264ad7",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 197,
+     "heading": "### Rule 33: Parsing - read a tool's output by its grammar, not by where it happens to stop",
+     "chars": 745,
+     "sha256": "4e7d6b838691ca0bc03abf5a20f571a1adaf0c9632b94d56f4f73ff0af5f1d7b",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 203,
+     "heading": "### Rule 34: Proof - a confirmation must be able to fail when the claim is true",
+     "chars": 654,
+     "sha256": "402517f99b7534b6ea313b17a19ff6ab7ba2ac338636513e73599a2ecf6150d4",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 209,
+     "heading": "### Rule 35: C++ - what is copied as bytes is initialised as bytes",
+     "chars": 684,
+     "sha256": "7756221efdbe897b897c584e7b8488b457dc0d8d187be006b6ed4b9cc8d18f9d",
+     "dest": "skills/_engineering/rules/native.md"
+    },
+    {
+     "line": 215,
+     "heading": "### Rule 36: Design - what a binary can do and what a run does are two switches",
+     "chars": 739,
+     "sha256": "e631a93ac4e891aed93b783cfdc0011f3643150d1b2284515a4e74fbbf3d0fd6",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 221,
+     "heading": "### Rule 37: Data - a relocatable artefact records names, not locations",
+     "chars": 717,
+     "sha256": "3f2fa8b50865e96fc87931f48e73e2830d2b94be589fdd4f292d0127826f32dd",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 227,
+     "heading": "### Rule 38: Portability - what is compared byte for byte is written as bytes",
+     "chars": 771,
+     "sha256": "bdeb5205fe887cabffaf184189f62c5b882fdd05681958c7eb2075ce546e20a2",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 233,
+     "heading": "### Rule 39: Tests - the platform is an argument, never a patch of the process",
+     "chars": 752,
+     "sha256": "011053120f3d19ec60454a6842957b8d271d350d4d9c5e8ed9c12b703b06b66b",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 239,
+     "heading": "### Rule 40: Tests - a test of a platform contract names what the platform may refuse",
+     "chars": 815,
+     "sha256": "0af4cbfeddb3900fcb105e6e05ddcd945e45cbbffc187127b536e698e86fa23b",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 245,
+     "heading": "### Rule 41: Tests - a fixture built through a library holds what the library stored",
+     "chars": 661,
+     "sha256": "e4c6d74f38046aa0d6f288f07cdc4efe18c776aeffaa45e34f98dd85aae25c0e",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 251,
+     "heading": "### Rule 42: Evidence - an identifier is copied from the source it names",
+     "chars": 612,
+     "sha256": "f0959a6b2d69495cabdef13664c3150975e6444f9f9a1fe5aece6258d82aae29",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 257,
+     "heading": "### Rule 43: Delivery - run the repository's own hooks on the changed files before packaging",
+     "chars": 712,
+     "sha256": "30dbfb2d926e138e7cc1951723a80cc2e596c0e99864c0e2bc12061f3ebbb69e",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 263,
+     "heading": "### Rule 44: Verification - when the log is cut off, emulate the platform's rules one at a time",
+     "chars": 677,
+     "sha256": "343c1e719afda5c5491f474b0b944067ab62400633220f3a1472f50ce1eafdc2",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 269,
+     "heading": "### Rule 45: Portability - a pipe read as text names its encoding",
+     "chars": 791,
+     "sha256": "8e6078bbab480d2dc3a6f49b0e199b22446a866e86c1438c4ea76ccfcd2f7c91",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 275,
+     "heading": "### Rule 46: Messages - a path in a message is written in POSIX form",
+     "chars": 665,
+     "sha256": "f46952b41949e95fd6d84da9fe834795b54c9cf388f2722fc1359755dbe1d037",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 281,
+     "heading": "### Rule 47: Verification - a silent emulation switch proves nothing until it has failed something",
+     "chars": 733,
+     "sha256": "e32bdccf659b12b48297a73d2a6c11f3d0bcb65b737dd0a63d4c69d21d2c8c9f",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 287,
+     "heading": "### Rule 48: Docstrings - a backslash makes the docstring raw, and is then written once",
+     "chars": 516,
+     "sha256": "f4d70084bafd5e57a9d7e003105ee0b3a50ee306735b8b1cb7dcd37ce0d85a67",
+     "dest": "skills/_engineering/rules/documentation.md"
+    },
+    {
+     "line": 293,
+     "heading": "### Rule 49: CI - a tool's placeholder is read in the tool's source, for the mode in use",
+     "chars": 809,
+     "sha256": "3dd2b4da6acb1f2d86d412e858d77bf3b9c910bdfd0935baab7e14b2addf7c19",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 299,
+     "heading": "### Rule 50: Guards - a false positive is fixed in the classifier, never by emptying its input",
+     "chars": 748,
+     "sha256": "4830b4fa8ca0990f536851625c0a875f89c230216da13381d5f16b1f721a2dea",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 305,
+     "heading": "### Rule 51: Shell - text that may contain the heredoc delimiter goes in a file, not a heredoc",
+     "chars": 884,
+     "sha256": "b7258138510a9578e722d7ea87d1e9f22338746357439466363f868a1b6804f4",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 311,
+     "heading": "### Rule 52: Tooling - an escape written through a tool may arrive as the character it names",
+     "chars": 955,
+     "sha256": "0c4ea1b998c6b77d720d99bcf2f0e896c3c8f16bab6a7b1f27a51c975c2fdbfc",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 317,
+     "heading": "### Rule 53: Diagnostics - \"ready\" is proved by running the thing on a fixed input",
+     "chars": 769,
+     "sha256": "8011f6bae170b07e4ad7e1085a6c21740d5cde7cd4917eccb620cc7c1b19c4a3",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 323,
+     "heading": "### Rule 54: Documentation - every example is executed before it is published",
+     "chars": 705,
+     "sha256": "1674bdc999ba43e6aca1cc5e18f5e06755111ac875fcab7c959c50b73ba143b2",
+     "dest": "skills/_engineering/rules/documentation.md"
+    },
+    {
+     "line": 329,
+     "heading": "### Rule 55: Tests - an assertion about process-wide state uses a value no other test uses",
+     "chars": 851,
+     "sha256": "ecdffebea273225fa0f17074b0d556ad56c8c603a87c32c5423f70c879d39e56",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 335,
+     "heading": "### Rule 56: Analysis - a static check is calibrated on known-bad, known-good and every shipped input",
+     "chars": 891,
+     "sha256": "eab7020c891c6e31dd2920f59121426de3fb4493444d09929347a9f0e9bfd31f",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 341,
+     "heading": "### Rule 57: Protection - check the forms your own generator produces, not only the form you were given",
+     "chars": 851,
+     "sha256": "f644b43057819e3e504f1282aaed198dbceae5043981f69f362141fe2ef2be8f",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 347,
+     "heading": "### Rule 58: Unicode - a normalisation rule is tried on real text in many scripts before it ships",
+     "chars": 969,
+     "sha256": "afcee298895e01c084d59743061d38c5af706b7a3a74ab69ec02376cd9dcfad0",
+     "dest": "skills/_engineering/rules/text.md"
+    },
+    {
+     "line": 353,
+     "heading": "### Rule 59: Analysis - a static check of a measurable property is fuzzed against the measurement",
+     "chars": 743,
+     "sha256": "3b0ab56aafdfd16a592a65bf5567b75c17536f5845af3047d856c385649ca161",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 359,
+     "heading": "### Rule 60: Partial distributions - a part's test never reads a sibling part's files unconditionally",
+     "chars": 887,
+     "sha256": "ca63dd9787483af5575169cbef49550ac93ecdf2d7b4127a4e9d9957c673ebbf",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 365,
+     "heading": "### Rule 61: Scanners - test data that is dangerous on purpose is marked, and a gate keeps it marked",
+     "chars": 765,
+     "sha256": "db88355df9e87efda7fe20bb4a7a01d03242de7c345e8f20904d1c7c816fb6b0",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 371,
+     "heading": "### Rule 62: Tests - an object that owns a resource is used as a context manager in tests",
+     "chars": 724,
+     "sha256": "c4a7c4b7ee89c89ca0af13a6fbf18171b5486bb56beacf2308ae2e14fd36b327",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 377,
+     "heading": "### Rule 63: Paths - every tracked path fits the Windows checkout budget",
+     "chars": 911,
+     "sha256": "2ebfeae90a725ff4f5eafd347b7e1ffa5cb5708a76792d785e3471964070c0b2",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 383,
+     "heading": "### Rule 64: Shared defaults - every site that consumes a shared default is tested against it",
+     "chars": 1331,
+     "sha256": "97ad4b6d144e321201049f7bc0eca490fc4c9ee224600ccad2b094a1c05df3a4",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 389,
+     "heading": "### Rule 65: SQLite - `with sqlite3.connect(...)` does not close the connection",
+     "chars": 811,
+     "sha256": "0026072f7fca52a061b241361471a22fb34c65d6bd8a13861aa3f03c661606de",
+     "dest": "skills/_engineering/rules/state.md"
+    },
+    {
+     "line": 395,
+     "heading": "### Rule 66: Tests - a test module basename is unique wherever pytest imports it as a top-level module",
+     "chars": 843,
+     "sha256": "a6f69d2902602d355d20140bf58a2e35ecd84d01fecf85a2a404845211646094",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 401,
+     "heading": "### Rule 67: Delivery - a rename ships with the deletion, and a check fails while the old file remains",
+     "chars": 820,
+     "sha256": "54ef3a169d1056e6ce70ff3377626f3d04e4ef7639ca5f8351492a4d6cf56975",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 407,
+     "heading": "### Rule 68: Validation - check the type before any operation that only some types support",
+     "chars": 724,
+     "sha256": "96eb8e32cc765424a266c4696a9ef1be19fe8d0c530b20c3dc27480c2326fcf7",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 413,
+     "heading": "### Rule 69: Tests - a test that changes process-wide state restores it before the next test",
+     "chars": 852,
+     "sha256": "515c710302d4da2dd44ccae6a238c89b5a12830203d3fceaab67e9a65f69aec5",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 419,
+     "heading": "### Rule 70: Generated configuration - derive it from the existing source of truth and gate it in CI",
+     "chars": 724,
+     "sha256": "d8e59a92b57fdff154a114b346b667baeef957643aca1fa469054e0aaa534ab9",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 425,
+     "heading": "### Rule 71: Labeler globs - a negated glob is true for every other file",
+     "chars": 625,
+     "sha256": "215497eb330607801339f9417372ae9b3b7f0ed2394c9242810b17e3218ed742",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 431,
+     "heading": "### Rule 72: Labels - one vocabulary, one registry, explicit grammar",
+     "chars": 696,
+     "sha256": "65c51efc65b318dde33dd0a76ec891c191b3595fa4a8faea05fc50b908528b60",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 437,
+     "heading": "### Rule 73: Tests - a Sphinx application in a test runs inside `docutils_namespace()` or is a `SphinxTestApp` that is cleaned up",
+     "chars": 1013,
+     "sha256": "2e830d4b5308de43db513a1177efa3837eb6ccb9bbd391f1e7643deb99c3e21c",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 443,
+     "heading": "### Rule 74: Async - no `asyncio` primitive is constructed outside a running loop in code that supports Python 3.9",
+     "chars": 758,
+     "sha256": "fdbef49be6edbdd6edfdf7e936843d3e62049118ec0303c6396fb71c2028d041",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 449,
+     "heading": "### Rule 75: Gates - a version gate hides a test environment's limit, never a product defect",
+     "chars": 622,
+     "sha256": "7ca7660bdd368dfff915a27dcf1ece231aa6f64cf2bef61b07ac7c91f090c117",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 455,
+     "heading": "### Rule 76: Diagnostics - a check that fails prints what differs, not only that it differs",
+     "chars": 717,
+     "sha256": "1bba3d7f2484819a6326252313205d458a9cdb7427b0291184f238c216bb3b0e",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 461,
+     "heading": "### Rule 77: Subprocess - on Windows a child's `env` starts from `os.environ`",
+     "chars": 502,
+     "sha256": "df9ff326030c18bb46cedb856e70ad0969ac81f97b948cd2ff27c1e4adc09009",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 467,
+     "heading": "### Rule 78: Native kernels - elements are compared by equality, never by their hash",
+     "chars": 857,
+     "sha256": "46471ebc84ef400070193284123ad799cd10e1de4c9098fb2e444c5d69a6b05b",
+     "dest": "skills/_engineering/rules/numerics.md"
+    },
+    {
+     "line": 473,
+     "heading": "### Rule 79: Thresholds - a cutoff API is held to the uncut function at every threshold, 0 included",
+     "chars": 740,
+     "sha256": "3d96b8e6c7b8cb74f2724ca9dd21bd48da624485cf560418b84e7831c0310239",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 479,
+     "heading": "### Rule 80: Native memory - nothing is allocated by hand before a call that can raise",
+     "chars": 852,
+     "sha256": "d866c0780a76fce7366ae5c97b3ecd5deb8382473863ce85deefe7f94561d50c",
+     "dest": "skills/_engineering/rules/native.md"
+    },
+    {
+     "line": 485,
+     "heading": "### Rule 81: Caches - the key names everything that changes the value, the provider included",
+     "chars": 895,
+     "sha256": "4ee63ddbb43d49271c765143ccde51023caffdca7b0c37cb2e9c895c0cc66eb3",
+     "dest": "skills/_engineering/rules/state.md"
+    },
+    {
+     "line": 495,
+     "heading": "### Rule 82: Guards - a guard over provenance tags is tested from the producer, end to end",
+     "chars": 960,
+     "sha256": "8f26b28844311243ebd06d6baa0e63820b634d34ebee06893f83de08956e1a04",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 501,
+     "heading": "### Rule 83: Scoring - one formula per recipe, and every scoring path calls it",
+     "chars": 859,
+     "sha256": "3ffc037ed88e5f80d0dbd71da1efddfb56ffcd6cb9b3380983e244f45054f269",
+     "dest": "skills/_engineering/rules/numerics.md"
+    },
+    {
+     "line": 507,
+     "heading": "### Rule 84: Validation - every public entry point validates, not only the first one written",
+     "chars": 655,
+     "sha256": "765ca8e32c52026ee650c4ecbd582e0abd1d6249f9b86652356cc1f5593f3c13",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 513,
+     "heading": "### Rule 85: Fallbacks - a result names the backend that ran, the one requested, and why they differ",
+     "chars": 1624,
+     "sha256": "03d7383396f9124b30c3fbe6ea6b687972543c12ee3796371544e2c5d71e7ff7",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 533,
+     "heading": "### Rule 86: Native memory - a view of native memory holds a buffer export, and closing defers the free",
+     "chars": 1638,
+     "sha256": "50cf433536e09af34b63fb22d1ea57c8a38fbbad38766b74dfd296fffc930590",
+     "dest": "skills/_engineering/rules/native.md"
+    },
+    {
+     "line": 552,
+     "heading": "### Rule 87: Verification - a background run verifies a snapshot, and is checked by its process id",
+     "chars": 1058,
+     "sha256": "ee77b9168ad3028e44e5256d7f845b3b16c0e3c90d2655b3ac078ffed30ac768",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 565,
+     "heading": "### Rule 88: Concurrency - a check, the action it permits and the record of the action happen together",
+     "chars": 1388,
+     "sha256": "20197d14d62a1667aafecb33907759071206e66854b5966b8dc268a32bd5d79b",
+     "dest": "skills/_engineering/rules/state.md"
+    },
+    {
+     "line": 579,
+     "heading": "### Rule 89: Interfaces - a new path to existing state inherits every precondition and convention of the old paths",
+     "chars": 1064,
+     "sha256": "0b5155ef234d30b97d765a0482275ae32ad6986c3da16147e90ab867bc8b0bed",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 595,
+     "heading": "### Rule 90: Numerics - compute in float64, cast to the storage dtype last, and let non-finite values reach their guard",
+     "chars": 712,
+     "sha256": "6c45f9db43caf3d660396ab6ca1dadc24244b7a0a490c3fe8582ba1bb0efffb4",
+     "dest": "skills/_engineering/rules/numerics.md"
+    },
+    {
+     "line": 601,
+     "heading": "### Rule 91: Evidence - a claim about a third-party behaviour names the versions it was checked on",
+     "chars": 751,
+     "sha256": "90080ceb4418aba520f28b3ffa08f82d93cc44d06364499cd726ffea64a0bf49",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 607,
+     "heading": "### Rule 92: Delivery - native, concurrent or provenance changes get an independent review before they ship",
+     "chars": 786,
+     "sha256": "3de30ab3d06b60bc23797cd777504c09b563613304478c3a225f2ba3f8146704",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 615,
+     "heading": "### Rule 93: Inputs - an object with `keys()` and `items()` is a mapping or is refused, never iterated as a collection",
+     "chars": 911,
+     "sha256": "8438e040ded5f60d771e9afc1fa411581676f3cf9966cfa4d2d829e24d17f586",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 621,
+     "heading": "### Rule 94: Optional dependencies - any exception while importing or probing an optional library is a recorded fallback, not a crash",
+     "chars": 838,
+     "sha256": "a6182fa2aad00f510b0391ea169dd46bf191f14be7dd80ab8d156647a35c71f4",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 627,
+     "heading": "### Rule 95: Serialisation - a round-trip test uses the format's full character repertoire and adversarial structure",
+     "chars": 865,
+     "sha256": "639e0a44116036bd96e1bb3a3a3e1d0e042cedf0bb057ac8bc3a57b3029befe4",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 633,
+     "heading": "### Rule 96: Timing - time the work, not the call",
+     "chars": 462,
+     "sha256": "a8e547d6eac49bb992082a71e281888e8d82f30f68734c470c355ac87ebdb3e2",
+     "dest": "skills/_engineering/rules/testing.md"
+    },
+    {
+     "line": 639,
+     "heading": "### Rule 97: Numerics - compare floating sums with a tolerance scaled to the terms, not to the result",
+     "chars": 665,
+     "sha256": "2bfd4b4c11684d487091a6069e189f5ee019bbb95d49d3ecd14e529c221740ff",
+     "dest": "skills/_engineering/rules/numerics.md"
+    },
+    {
+     "line": 645,
+     "heading": "### Rule 98: Files - a published file gets the permissions `open()` would give it",
+     "chars": 607,
+     "sha256": "30fa2c50d26d42e7bd34ca994d92e704c19dadebdfae67631cd46e83671029dd",
+     "dest": "skills/_engineering/rules/portability.md"
+    },
+    {
+     "line": 651,
+     "heading": "### Rule 99: Verification - a marker file and `find -newer` list every file edited while a background run used the tree",
+     "chars": 720,
+     "sha256": "0b3ea73d49f91004392480505b9b9a33cc3b34ecf2ed1907c798e43fe11e94b6",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 657,
+     "heading": "### Rule 100: Delivery - a fragment's PR number is confirmed for the round, never inherited from the previous round",
+     "chars": 858,
+     "sha256": "3e1e3c1d41b6956a1a993223568832a0cb0d56a4d6f8d9b1c84568dd2560026f",
+     "dest": "skills/_engineering/rules/delivery.md"
+    },
+    {
+     "line": 663,
+     "heading": "### Rule 101: Verification - a recorded fingerprint is refreshed after the last edit to what it covers, and the final snapshot re-runs its checker",
+     "chars": 1009,
+     "sha256": "e8dd0502a2e3c4187ddab0bf6fe711fbf898192d95f6df4b1df890d6075622d1",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 669,
+     "heading": "### Rule 102: Optional SDKs - check request arguments against the installed client at construction, and test the oldest and newest SDK",
+     "chars": 876,
+     "sha256": "8820fc7b95fa1842256fdc777ced54ff5cef09ef5405766bbdd68e102e784857",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 675,
+     "heading": "### Rule 103: Responses - read the status before the payload",
+     "chars": 719,
+     "sha256": "de9131e00663549cd24b5ae23e0b020daef10e5796402ccf508c29823daa323a",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 681,
+     "heading": "### Rule 104: Untrusted structured output - store only the validated schema",
+     "chars": 689,
+     "sha256": "6392bccd386179e41c898bb04122c2e170e772888acc02a239f525ccfd7f7348",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 687,
+     "heading": "### Rule 105: Caller-supplied resources - classify their failures apart from the remote's, and count from the source",
+     "chars": 957,
+     "sha256": "bfca26c08ba3e1a1439fb6a713fe3d46fccbe9942ef8dc8c4881a62609969dea",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 693,
+     "heading": "### Rule 106: Loaders - a record is checked against an explicit per-field contract before an object is built from it",
+     "chars": 883,
+     "sha256": "ba1bee26289222120d2a7e706b5a76c6bb0b7c4b382e1c3960a59d7af92b0559",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 699,
+     "heading": "### Rule 107: Exporters - refuse at write time what the loader cannot read back",
+     "chars": 820,
+     "sha256": "3173f0c4caa4637411bf8ed8d2bf7e11dae84ecc264f8fcdf9a05193fb7375ec",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 705,
+     "heading": "### Rule 108: Identities - a reader of persisted data refuses another generation by its own error, never by the \"malformed row\" path",
+     "chars": 1098,
+     "sha256": "cd4adaf6b06ad7dcbc052e6fc6fecbdee78edb4f1569dc24e9b19a7f17eb27d7",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 711,
+     "heading": "### Rule 109: Concurrency - per-process state is fork-safe per instance, not by a module hook",
+     "chars": 798,
+     "sha256": "158da0cf27dc96b45dad1b60ea7f534ca287d4e40603428e6d88a646d297d0dc",
+     "dest": "skills/_engineering/rules/state.md"
+    },
+    {
+     "line": 717,
+     "heading": "### Rule 110: Options - a new option is validated on assignment and reaches every producer, wrappers and plans included",
+     "chars": 820,
+     "sha256": "2dc4af796139c6bcc7f97987aece1e844f8f0bc636b62bae2f03d275c9d4816b",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 723,
+     "heading": "### Rule 111: Identities - text is hashed with `surrogatepass`, never `replace`",
+     "chars": 678,
+     "sha256": "5c5427f9c486e0a92cee906d57ab124b9542f12a51e65c7a628b03327eba55d4",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 729,
+     "heading": "### Rule 112: Contracts - a shared value object is hashable, picklable and copyable, and a contract runs inside each caller's resilience boundary",
+     "chars": 915,
+     "sha256": "16419c00d111385871a8fa7c5bb5a3cd4089d715978dbdea5d55df817559f8f3",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 735,
+     "heading": "### Rule 113: Exactness - sort on floats, decide near ties exactly",
+     "chars": 744,
+     "sha256": "82dd85d6b5359cfbf73ff80710ad4daa7b54661a1cd8a33d2aaa367dc04897ce",
+     "dest": "skills/_engineering/rules/numerics.md"
+    },
+    {
+     "line": 741,
+     "heading": "### Rule 114: Scope - a scope applies at every read seam and to every statistic that ranks",
+     "chars": 1292,
+     "sha256": "b03ae612093d3531052fd783c631d1aa60fa0b5b156c529396e396c66f6af883",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 747,
+     "heading": "### Rule 115: Fallbacks - a refusal has its own error type, and \"broken\" needs evidence",
+     "chars": 1255,
+     "sha256": "284700ef65538317a72f6b3d13fdec45c1f034d15d7f6573719efced829730ae",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 753,
+     "heading": "### Rule 116: Name tables - one shared instance is the default everywhere, and built-ins never displace a user's entry",
+     "chars": 1091,
+     "sha256": "88c0aabacbdd3fef3f2ac256767887c39375008694d9998b42164a186b2feab2",
+     "dest": "skills/_engineering/rules/contracts.md"
+    },
+    {
+     "line": 759,
+     "heading": "### Rule 117: Spans - an unknown or foreign region is reported as unknown, never as the whole parent",
+     "chars": 1131,
+     "sha256": "7f710ab0e0f40545505ee673210658d6358b5af58250f5d96950c40b845c7409",
+     "dest": "skills/_engineering/rules/text.md"
+    },
+    {
+     "line": 765,
+     "heading": "### Rule 118: Stores that gain deletion - every reader treats a vanished entry as a miss, and a bound never evicts for an entry it then refuses",
+     "chars": 1233,
+     "sha256": "ca9f231d29221884b99e5e495261646260a6f0dcb0343702574d7dcb8a6ae0be",
+     "dest": "skills/_engineering/rules/state.md"
+    },
+    {
+     "line": 771,
+     "heading": "### Rule 119: Optional dependencies - prove each called API exists in a real install, and test with the dependency present",
+     "chars": 1249,
+     "sha256": "b8e9f7b6132bce12f8f843b74f455693a86d36e4bdcdd8c6f4796ff0148a8dd8",
+     "dest": "skills/_engineering/rules/packaging.md"
+    },
+    {
+     "line": 777,
+     "heading": "### Rule 120: Waiting on a background process - never match its name with a command whose own text contains it",
+     "chars": 1085,
+     "sha256": "1e263851efe028bc2a642040860968c683fb51044ec54d5ca2256bf4e149282e",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 783,
+     "heading": "### Rule 121: Tooling - the escape conversion of Rule 52 also happens in shell heredocs, and to visible characters",
+     "chars": 1163,
+     "sha256": "72f825b97c76f521797387aafa40ca6335bf86ebec589697a8b3a1dad48bed13",
+     "dest": "skills/_engineering/rules/tooling.md"
+    },
+    {
+     "line": 789,
+     "heading": "### Rule 122: Markup parsers - a parser that claims a reference syntax is tested against the reference implementation",
+     "chars": 1221,
+     "sha256": "0bc28e9a970be12f8d1ec3c02be6360bf2e5aed3e6dfae2f0d851f1c26105915",
+     "dest": "skills/_engineering/rules/text.md"
+    },
+    {
+     "line": 795,
+     "heading": "### Rule 123: Gates - a missing base makes every old finding look new",
+     "chars": 650,
+     "sha256": "62facc8e930776da98aa0ae7775ea6d4477308e5495fc13f6887d2f8e567bf4b",
+     "dest": "skills/_engineering/rules/verification.md"
+    },
+    {
+     "line": 801,
+     "heading": "## Pattern Analysis",
+     "chars": 2566,
+     "sha256": "c98d2859983056b9d4b3448f6847117596eb96c7d180ddfc7fc33f7dddc04a47",
+     "dest": "skills/_engineering/PATTERNS.md"
+    },
+    {
+     "line": 822,
+     "heading": "## Effectiveness Metrics",
+     "chars": 6504,
+     "sha256": "03fb58b13e1e542bb7ce41242077f2442b3cb49ae0c8b149c3acad70823fdb04",
+     "dest": "skills/_engineering/PATTERNS.md"
+    }
+   ],
+   "preamble": "# Lessons Learned\n\n## Active Rules (Currently Applied)\n\n"
+  },
+  "tasks/removed-files.txt": {
+   "sha256": "8b23286371250ea05992e0534be79476d81905f029e20984da780119b937774e",
+   "chars": 532,
+   "parts": [
+    {
+     "line": 1,
+     "heading": "# Delete these paths after unzipping (a zip cannot delete files), then delete this file.",
+     "chars": 532,
+     "sha256": "8b23286371250ea05992e0534be79476d81905f029e20984da780119b937774e",
+     "dest": "maintenances/_repo/_maintenance/history/partial_distributions_removed_files.txt"
+    }
+   ]
+  }
+ }
+}

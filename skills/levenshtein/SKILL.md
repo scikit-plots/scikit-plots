@@ -63,8 +63,10 @@ transpositions or weighted costs into these functions.
 `import scikitplot.levenshtein` must not import RapidFuzz, external
 `Levenshtein`, or Corpus.
 
-`make_corpus_scorer` owns a lazy adapter. Keep the Corpus import inside the
-returned scorer.
+No module of `scikitplot.levenshtein` imports Corpus, lazily or not. The Corpus
+adapter is `scikitplot.corpus.make_levenshtein_ranker`, owned by Corpus
+(`corpus/_similarity/_pairwise.py`); `test_levenshtein_never_imports_corpus`
+holds the boundary.
 
 ## Backend failure contract
 
@@ -73,13 +75,11 @@ An explicitly requested unavailable backend:
 - `strict=False`: warn and use the safe automatic fallback;
 - `strict=True`: raise.
 
-A selected accelerator that crashes at runtime currently warns and falls back
-to pure Python. `LV-001` tracks the fact that the next safe accelerator is not
-tried.
-
-Do not close `LV-001` by adding nested try/except blocks in `rank()`. Build one
-per-operation execution plan so `LV-002` (repeated resolution in ranking) is
-closed by the same architecture.
+A selected accelerator that crashes at runtime warns once and is replaced, for
+the rest of the call, by the next available backend of `internal -> rapidfuzz
+-> python`. One `_ExecutionPlan` per top-level call owns resolution and
+fallback; it closed `LV-001` and `LV-002`. Change backend choice there, never
+with nested try/except blocks in `rank()`.
 
 ## Ranking contract
 

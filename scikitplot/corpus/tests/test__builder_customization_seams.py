@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from scikitplot.corpus import (
@@ -183,3 +184,40 @@ def test_builder_download_policy_mapping_is_supported() -> None:
     assert downloader.timeout == 9.0
     assert downloader.max_bytes == 12345
     builder.close()
+
+
+def test_builder_embeddings_are_cached_and_carry_their_manifest(tmp_path: Path) -> None:
+    """
+    The builder embeds through the engine's own ``embed_documents``.
+
+    It used to call ``engine.embed`` and attach the vectors itself, so builder
+    corpora were never disk-cached and never stamped with the embedding
+    generation that the index uses to refuse mixed vectors.
+    """
+    calls = {"n": 0}
+
+    def provider(texts):
+        calls["n"] += 1
+        return np.ones((len(texts), 2), dtype=np.float32)
+
+    path = tmp_path / "a.txt"
+    path.write_text("One sentence here. Another sentence there.", encoding="utf-8")
+    config = BuilderConfig(
+        embed=True,
+        filter_kwargs={"min_words": 1, "min_chars": 1},
+        embedding_kwargs={
+            "backend": "custom",
+            "custom_fn": provider,
+            "custom_fn_id": "ones/2",
+            "cache_dir": tmp_path / "cache",
+        },
+    )
+    first = CorpusBuilder(config).build(path)
+    builder = CorpusBuilder(config)
+    second = builder.build(path)
+    expected = builder._get_embedding_engine().embedding_manifest(2).fingerprint
+    assert first.documents
+    assert second.documents
+    assert {doc.embedding_manifest_id for doc in second.documents} == {expected}
+    assert calls["n"] == 1  # the second build was served from the disk cache
+    assert len(list((tmp_path / "cache").glob("*.npy"))) == 1

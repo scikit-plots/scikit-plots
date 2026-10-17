@@ -9,6 +9,8 @@
 # This module was copied from the visualkeras project.
 # https://github.com/paulgavrikov/visualkeras
 
+from __future__ import annotations
+
 # Your package/module initialization code goes here
 # pip install tensorflow will also install the corresponding version of Keras
 # pip install tf-keras keras Use If not compatibility

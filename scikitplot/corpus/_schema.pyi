@@ -143,6 +143,8 @@ class ExportFormat(_StrEnumBase):
     PARQUET: str
     JSON: str
     JSONL: str
+    YAML: str
+    TOML: str
     HUGGINGFACE: str
     MLFLOW: str
     PICKLE: str
@@ -239,6 +241,9 @@ scikitplot.corpus._base.DocumentReader.get_documents : Uses this registry.
 # ---------------------------------------------------------------------------
 # CorpusDocument
 # ---------------------------------------------------------------------------
+
+class IncompatibleSchemaError(ValueError):
+    """Data written by another generation of the document schema; rebuild it."""  # ruff: ignore[docstring-in-stub]
 
 @dataclass
 class CorpusDocument:

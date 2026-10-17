@@ -1,0 +1,148 @@
+{
+  "schema_version": 4,
+  "subsystem": "scikitplot.mlflow",
+  "runtime_root": "scikitplot/mlflow",
+  "maintenance_root": "maintenances/mlflow",
+  "skill": "skills/mlflow/SKILL.md",
+  "ownership": {
+    "owns": "The scikitplot.mlflow integration layer: project/session configuration, provider injection, MLflow import compatibility, managed server command/process lifecycle, readiness probing, session-scoped environment/global-state restoration, security policy integration, facades, workflow/CLI composition, bundled configs, typing surface, and subsystem tests.",
+    "does_not_own": "The upstream mlflow package/server implementation, Docker/network infrastructure, generic scikitplot CLI ownership, external PyYAML behavior, OS process semantics, or project packaging outside the mlflow submodule."
+  },
+  "tiers": {
+    "public": {
+      "modules": [
+        "__init__.py",
+        "py.typed"
+      ],
+      "description": "Stable integration API and typing marker."
+    },
+    "config_project": {
+      "modules": [
+        "_config.py",
+        "_config.pyi",
+        "_project.py",
+        "_project.pyi",
+        "_env.py",
+        "_container.py"
+      ],
+      "description": "Configuration, project discovery/serialization, environment and container context."
+    },
+    "integration": {
+      "modules": [
+        "_custom.py",
+        "_compat.py",
+        "_utils.py",
+        "_facade.py"
+      ],
+      "description": "Injected-provider seam, upstream MLflow import/version compatibility and thin facades."
+    },
+    "runtime": {
+      "modules": [
+        "_server.py",
+        "_readiness.py",
+        "_session.py",
+        "_session.pyi",
+        "_security.py"
+      ],
+      "description": "Managed server lifecycle, readiness, session state, security-policy enforcement and typing."
+    },
+    "workflow": {
+      "modules": [
+        "_workflow.py",
+        "__main__.py",
+        "_cli_caps.py"
+      ],
+      "description": "Demo workflow, module CLI and installed-version flag compatibility."
+    }
+  },
+  "runtime_contract": {
+    "required_files": [
+      "scikitplot/mlflow/__init__.py",
+      "scikitplot/mlflow/__main__.py",
+      "scikitplot/mlflow/_cli_caps.py",
+      "scikitplot/mlflow/_compat.py",
+      "scikitplot/mlflow/_config.py",
+      "scikitplot/mlflow/_config.pyi",
+      "scikitplot/mlflow/_container.py",
+      "scikitplot/mlflow/_custom.py",
+      "scikitplot/mlflow/_env.py",
+      "scikitplot/mlflow/_errors.py",
+      "scikitplot/mlflow/_facade.py",
+      "scikitplot/mlflow/_project.py",
+      "scikitplot/mlflow/_project.pyi",
+      "scikitplot/mlflow/_readiness.py",
+      "scikitplot/mlflow/_security.py",
+      "scikitplot/mlflow/_server.py",
+      "scikitplot/mlflow/_session.py",
+      "scikitplot/mlflow/_session.pyi",
+      "scikitplot/mlflow/_utils.py",
+      "scikitplot/mlflow/_workflow.py",
+      "scikitplot/mlflow/py.typed",
+      "scikitplot/mlflow/_configs/mlflow.toml",
+      "scikitplot/mlflow/_configs/mlflow.yaml"
+    ],
+    "required_symbols": {
+      "scikitplot/mlflow/_security.py": [
+        "SecurityPolicy",
+        "DEFAULT_SECURITY_POLICY",
+        "RELAXED_SECURITY_POLICY",
+        "get_security_policy",
+        "set_security_policy",
+        "security_policy"
+      ],
+      "scikitplot/mlflow/_server.py": [
+        "SpawnedServer",
+        "build_server_args",
+        "build_server_command",
+        "spawn_server"
+      ],
+      "scikitplot/mlflow/_session.py": [
+        "MlflowHandle",
+        "session",
+        "session_from_file",
+        "session_from_toml"
+      ],
+      "scikitplot/mlflow/_project.py": [
+        "ProjectConfig",
+        "find_project_root",
+        "load_project_config",
+        "dump_project_config_yaml"
+      ],
+      "scikitplot/mlflow/_workflow.py": [
+        "WorkflowPaths",
+        "run_demo",
+        "workflow"
+      ],
+      "scikitplot/mlflow/_custom.py": [
+        "MlflowProvider",
+        "get_provider",
+        "set_provider",
+        "use_provider"
+      ]
+    },
+    "tests_root": "scikitplot/mlflow/tests"
+  },
+  "boundary_contract": {
+    "upstream_owner": "external mlflow distribution",
+    "optional_yaml_owner": "external PyYAML",
+    "forbid_runtime_roots": [
+      "maintenances",
+      "skills"
+    ],
+    "security_entrypoints": [
+      "session",
+      "spawn_server",
+      "build_server_args"
+    ],
+    "provider_seam": "scikitplot.mlflow._custom.MlflowProvider",
+    "process_rule": "No shell=True; managed server command is argv-based and uses current sys.executable.",
+    "typing_rule": "py.typed is shipped; .pyi files must use package-correct imports."
+  },
+  "read_order": [
+    "maintenances/mlflow/MAINTAINING.md",
+    "maintenances/mlflow/_maintenance/FRESH_CHAT_HANDOFF.md",
+    "maintenances/mlflow/_maintenance/STATE.json",
+    "maintenances/mlflow/_maintenance/FAMILY.md",
+    "maintenances/mlflow/_maintenance/VERIFICATION.md"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+ "tasks": 82,
+ "one_shot": {
+  "success": 0.9146,
+  "decisions": 2.0,
+  "tool_calls": 1.0,
+  "cost": 1.0,
+  "audit_chains_whole": 82,
+  "calls_all_audited": 82
+ },
+ "verify": {
+  "success": 0.939,
+  "decisions": 7.52,
+  "tool_calls": 6.52,
+  "cost": 2.38,
+  "audit_chains_whole": 82,
+  "calls_all_audited": 82
+ },
+ "verify_k3": {
+  "success": 0.939,
+  "decisions": 4.02,
+  "tool_calls": 3.02,
+  "cost": 1.51,
+  "audit_chains_whole": 82,
+  "calls_all_audited": 82
+ },
+ "no_scope": {
+  "runs_all_denied": 82,
+  "tool_executions": 0
+ },
+ "write_without_approver": {
+  "paused": 82,
+  "written": 0
+ }
+}

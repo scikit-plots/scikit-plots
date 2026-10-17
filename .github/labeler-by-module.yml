@@ -221,6 +221,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_externals/_sphinx_ext/_sphinx_feedback/**/*"
+    - "maintenances/_externals/_sphinx_ext/_sphinx_feedback/**/*"
     - "skills/_externals/_sphinx_ext/_sphinx_feedback/**/*"
     - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_feedback/**/*"
     - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_feedback/**/*"
@@ -286,6 +287,15 @@
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._utils/**/*"
+
+"scikitplot/agent":
+- changed-files:
+  - any-glob-to-any-file:
+    - "scikitplot/agent/**/*"
+    - "maintenances/agent/**/*"
+    - "skills/agent/**/*"
+    - "docs/source/user_guide/agent/**/*"
+    - "docs/source/whats_new/upcoming_changes/scikitplot.agent/**/*"
 
 "scikitplot/annoy":
 - changed-files:
@@ -548,6 +558,8 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/mlflow/**/*"
+    - "maintenances/mlflow/**/*"
+    - "skills/mlflow/**/*"
     - "docs/source/user_guide/mlflow/**/*"
     - "galleries/examples/mlflow/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.mlflow/**/*"

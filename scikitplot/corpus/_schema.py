@@ -26,10 +26,12 @@ Design invariants:
   instance via :meth:`CorpusDocument.replace`.
 * ``CorpusDocument.validate()`` must succeed before a document leaves any
   pipeline stage. Fail fast with actionable ``ValueError`` messages.
-* ``doc_id`` is a deterministic 16-character SHA-256 prefix derived from
+* ``doc_id`` is, by default, the full 64-character SHA-256 hex digest of
   ``(schema, source_type, input_path, chunk_index, full_content_hash)``
-  (id schema v2). Identical inputs always yield the same id, and any text
+  (id schema v3). Identical inputs always yield the same id, and any text
   difference yields a different id, making deduplication and caching reliable.
+  A build may instead mint time-ordered RFC 9562 UUIDv7 ids
+  (``doc_id_scheme="uuid7"``, see :mod:`scikitplot.corpus._identity`).
 * The ``embedding`` field is typed ``Optional[Any]`` at runtime so that numpy
   is **not** imported here. The companion ``_schema.pyi`` stub provides full
   ``numpy.typing.NDArray`` typing for static type checkers.
@@ -92,8 +94,11 @@ logger = logging.getLogger(__name__)
 #: Version tag baked into the ``make_doc_id`` hash preimage. Bump this whenever
 #: the doc-id derivation changes so that ids from different schema versions are
 #: distinguishable and old ids are not silently reused. ``v2`` (CORPUS-ID-001)
-#: hashes the *full* text content instead of a 64-character prefix.
-_DOC_ID_SCHEMA = "v2"
+#: hashes the *full* text content instead of a 64-character prefix. ``v3``
+#: (R2-3, decision D3) keeps the full 64-hex digest instead of a 16-hex prefix,
+#: over a 64-hex content hash; the new tag also keeps a v3 id from starting with
+#: the 16 characters of the v2 id of the same document.
+_DOC_ID_SCHEMA = "v3"
 
 #: Serialisation format generation emitted by :meth:`CorpusDocument.to_dict`.
 #:
@@ -105,7 +110,11 @@ _DOC_ID_SCHEMA = "v2"
 #:
 #: Bump MAJOR when a change would make an older payload mis-read; bump MINOR for
 #: purely additive fields, which stay loadable.
-_SCHEMA_VERSION = "2.0"
+#:
+#: ``3.0`` (R2-3): ``doc_id`` and ``content_hash`` widened to 64 hex characters
+#: under id schema v3. A 2.x payload carries ids that no current derivation
+#: reproduces, so it is refused and must be re-exported (rebuilt).
+_SCHEMA_VERSION = "3.0"
 _SCHEMA_VERSION_KEY = "schema_version"
 
 __all__ = [  # noqa: RUF022
@@ -120,6 +129,7 @@ __all__ = [  # noqa: RUF022
     "ErrorPolicy",
     # Core document type
     "CorpusDocument",
+    "IncompatibleSchemaError",
     # Bulk helpers
     "documents_to_pandas",
     "documents_to_polars",
@@ -450,37 +460,43 @@ class ExportFormat(_StrEnumBase):
     """
 
     CSV = "csv"
-    """Comma-separated values; universal but loses numpy embedding arrays."""
+    """Comma-separated values; metadata flattened into columns, no embeddings. Not loadable back."""
 
     PARQUET = "parquet"
-    """Column-oriented binary format via ``pyarrow`` or ``polars``."""
+    """Apache Parquet via ``pandas`` (``pyarrow`` or ``fastparquet``); no embeddings. Not loadable back."""
 
     JSON = "json"
-    """JSON-lines (one document per line) for maximum interoperability."""
+    """Strict JSON (RFC 8259): one array of document objects. Loadable back."""
 
     JSONL = "jsonl"
-    """Alias for JSON-lines format."""
+    """JSON Lines: one document object per line. Loadable back."""
+
+    YAML = "yaml"
+    """YAML sequence of document mappings (needs PyYAML). Loadable back."""
+
+    TOML = "toml"
+    """TOML table ``documents`` holding an array of document tables (needs ``tomli-w``). Loadable back."""
 
     HUGGINGFACE = "huggingface"
-    """HuggingFace ``datasets.Dataset`` object or saved dataset directory."""
+    """HuggingFace ``datasets`` dataset saved to a directory (needs ``datasets``)."""
 
     MLFLOW = "mlflow"
-    """MLflow artifact (logs corpus + metadata to active or specified run)."""
+    """JSON Lines logged as an artifact of the active MLflow run (needs ``mlflow``)."""
 
     PICKLE = "pickle"
-    """Python pickle — fastest round-trip; not portable across Python versions."""
+    """Python pickle; loadable back only with ``trusted=True`` (it can run code)."""
 
     JOBLIB = "joblib"
-    """joblib dump — efficient for large numpy arrays inside documents."""
+    """joblib dump; loadable back only with ``trusted=True`` (it can run code)."""
 
     NUMPY = "numpy"
-    """``numpy.savez_compressed`` — embeddings only, loses text/metadata."""
+    """``numpy.save`` of the embedding matrix (``.npy``); embeddings only."""
 
     POLARS = "polars"
-    """In-memory ``polars.DataFrame``; returned, not written to disk."""
+    """Apache Parquet written through ``polars``; no embeddings. Not loadable back."""
 
     PANDAS = "pandas"
-    """In-memory ``pandas.DataFrame``; returned, not written to disk."""
+    """CSV written through ``pandas``; no embeddings. Not loadable back."""
 
 
 class SourceType(_StrEnumBase):
@@ -986,6 +1002,26 @@ key names when yielding promoted fields.
 """
 
 
+class IncompatibleSchemaError(ValueError):
+    """
+    Raised for data written by another generation of the document schema.
+
+    A payload, a store row, a pickled export or a checkpoint line that declares
+    no ``schema_version``, or a MAJOR version this build cannot read.
+
+    Notes
+    -----
+    **User-focused.**  The remedy is always to rebuild from the sources with
+    this build: a major generation changes what fields mean (3.0 widened every
+    identity to 64 hex characters), so nothing is converted or guessed.
+
+    **Developer-focused.**  A subclass of :exc:`ValueError` so existing handlers
+    still catch it. Readers that skip a *malformed* row must re-raise this one:
+    a whole store from another generation is not a malformed row, and skipping
+    every row would present it as empty.
+    """
+
+
 # ===========================================================================
 # CorpusDocument — the canonical output unit
 # ===========================================================================
@@ -1003,9 +1039,11 @@ class CorpusDocument:
     Parameters
     ----------
     doc_id : str
-        Stable 16-character hex identifier. Generated deterministically from
-        ``(source_type, input_path, chunk_index, full_content_hash)`` via
-        :meth:`make_doc_id` (id schema v2) if not supplied. Must be non-empty.
+        Stable identifier. Generated deterministically, as 64 lowercase hex
+        characters, from ``(source_type, input_path, chunk_index,
+        full_content_hash)`` via :meth:`make_doc_id` (id schema v3) if not
+        supplied; a build with ``doc_id_scheme="uuid7"`` assigns an RFC 9562
+        UUIDv7 in canonical text form instead. Must be non-empty.
     input_path : str
         Name or relative path of the original source file. Must be non-empty.
         Set from ``input_path.name`` by readers; do **not** include absolute
@@ -1174,7 +1212,7 @@ class CorpusDocument:
     # ------------------------------------------------------------------
 
     doc_id: str
-    """Stable 16-character hex identifier for this chunk."""
+    """Stable identifier: 64 hex characters (sha256 scheme) or a UUIDv7."""
 
     input_path: str
     """Name of the original source file (not an absolute path)."""
@@ -1234,7 +1272,7 @@ class CorpusDocument:
     """Zero-based frame index in a video or multi-frame image.  Default: ``None``."""
 
     content_hash: str | None = field(default=None)
-    """SHA-256 hex digest (32 chars) of canonical content.  Dedup key."""
+    """SHA-256 hex digest (64 chars) of canonical content.  Dedup key."""
 
     metadata: dict[str, Any] = field(default_factory=dict, compare=False)
     """Truly ad-hoc format-specific metadata."""
@@ -1446,12 +1484,12 @@ class CorpusDocument:
             "text": str,        # span text (NFC)
             "script": str,      # ScriptType value string
             "direction": str,   # "ltr" | "rtl" | "ttb"
-            "start": int,       # grapheme cluster index (inclusive)
-            "end": int,         # grapheme cluster index (exclusive)
+            "start": int,       # character offset in the chunk text (inclusive)
+            "end": int,         # character offset in the chunk text (exclusive)
         }
 
-    Integer indices refer to the grapheme cluster list produced by
-    :class:`~._normalizers._normalizer.GraphemeClusterNormalizer`.
+    The offsets are characters (codepoints) of the chunk's text:
+    ``text[start:end] == span["text"]``.
     ``None`` for single-script chunks or when script analysis was skipped.
     """
 
@@ -1840,9 +1878,9 @@ class CorpusDocument:
         source_type: SourceType = SourceType.UNKNOWN,
     ) -> str:
         """
-        Compute a deterministic 16-character hex document identifier (v2).
+        Compute a deterministic 64-character hex document identifier (v3).
 
-        The id is a SHA-256 prefix of
+        The id is the full SHA-256 hex digest of
         ``"{schema}:{source_type}:{input_path}:{chunk_index}:{content_hash}"``,
         where ``content_hash`` is the **full-content** digest from
         :meth:`make_content_hash`. Identical inputs always produce the same id;
@@ -1869,7 +1907,7 @@ class CorpusDocument:
         Returns
         -------
         str
-            16-character lowercase hexadecimal string.
+            64-character lowercase hexadecimal string.
 
         Notes
         -----
@@ -1879,26 +1917,34 @@ class CorpusDocument:
         content. This is a one-time breaking change: corpora built before v2
         must be re-indexed (their ids differ).
 
-        **Collision bound (P-I0-11 / finding O-12).**  The digest is truncated to
-        16 hex characters, i.e. **64 bits**.  By the birthday bound the collision
-        probability is approximately ``n**2 / 2**65``:
+        **v3 (R2-3, decision D3):** the id is the full 256-bit digest; v2 kept
+        16 hex characters (64 bits). Corpora built before v3 must be rebuilt:
+        their ids differ, and :meth:`from_dict` refuses their payloads.
+
+        **Collision bound (P-I0-11 / finding O-12).**  By the birthday bound
+        the chance that ``n`` distinct documents share an id is at most
+        ``n**2 / 2**257``:
 
         =================  =========================
-        documents (``n``)  approx. collision chance
+        documents (``n``)  collision chance at most
         =================  =========================
-        1e6                2.7e-8
-        1e8                2.7e-4
-        4.3e9 (2**32)      ~50%
+        1e9                4.3e-60
+        1e12               4.3e-54
+        1e15               4.3e-48
         =================  =========================
 
-        This is ample for the corpus scales this package targets, but it is a
-        *bound*, not a guarantee.  A deployment approaching 1e9 documents in one
-        collection should widen the truncation rather than assume uniqueness.
+        The 64-bit v2 prefix gave 2.7e-2 at 1e9 documents.
+
+        **Other scheme.**  This method is the ``"sha256"`` scheme. A build with
+        ``doc_id_scheme="uuid7"`` names its documents with
+        :func:`~scikitplot.corpus.uuid7` instead (see
+        :func:`~scikitplot.corpus.assign_doc_ids`); ``content_hash`` stays this
+        content's SHA-256 under both schemes.
 
         Examples
         --------
-        >>> CorpusDocument.make_doc_id("file.txt", 0, "Hello world.")
-        '...'  # deterministic 16-char hex
+        >>> len(CorpusDocument.make_doc_id("file.txt", 0, "Hello world."))
+        64
         >>> a = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "X")
         >>> b = CorpusDocument.make_doc_id("f.txt", 0, "A" * 64 + "Y")
         >>> a != b  # full-content identity: no 64-char-prefix collision
@@ -1915,13 +1961,13 @@ class CorpusDocument:
             if isinstance(source_type, SourceType)
             else str(source_type)
         )
-        # v2 identity (CORPUS-ID-001): cover the FULL text, not a 64-char
-        # prefix. ``make_content_hash`` digests the entire text and returns a
-        # fixed sentinel for text=None, preserving raw-media uniqueness by
-        # (source_type, input_path, chunk_index).
+        # Identity v3: cover the FULL text (CORPUS-ID-001) and keep the FULL
+        # digest (R2-3). ``make_content_hash`` digests the entire text and
+        # returns a fixed sentinel for text=None, preserving raw-media
+        # uniqueness by (source_type, input_path, chunk_index).
         content = cls.make_content_hash(text=text)
         raw = f"{_DOC_ID_SCHEMA}:{st_val}:{input_path}:{chunk_index}:{content}"
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256(raw.encode("utf-8", errors="surrogatepass")).hexdigest()
 
     @staticmethod
     def make_content_hash(
@@ -1929,7 +1975,7 @@ class CorpusDocument:
         raw_bytes: bytes | None = None,
     ) -> str:
         """
-        Compute a 32-char SHA-256 hex digest for deduplication.
+        Compute the 64-character SHA-256 hex digest used for deduplication.
 
         Parameters
         ----------
@@ -1941,21 +1987,26 @@ class CorpusDocument:
         Returns
         -------
         str
-            32-character hex SHA-256 prefix.
+            The full 64-character lowercase hex SHA-256 digest.
 
         Notes
         -----
-        Empty / ``None`` inputs return a fixed sentinel value
-        ``"0" * 32`` (32 zeros) to ensure ``content_hash`` is always
-        populated and the dedup logic is deterministic.
+        Both inputs ``None`` returns the fixed sentinel ``"0" * 64`` so that
+        ``content_hash`` is always populated and the dedup logic is
+        deterministic. An empty string or ``b""`` is hashed like any other
+        content.
+
+        **R2-3:** the digest is no longer truncated to 32 characters; hashes
+        recorded before (checkpoints, exports) do not match and are refused
+        with their payloads by :meth:`from_dict`.
         """
         if raw_bytes is not None:
-            return hashlib.sha256(raw_bytes).hexdigest()[:32]
+            return hashlib.sha256(raw_bytes).hexdigest()
         if text is not None:
-            return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()[
-                :32
-            ]
-        return "0" * 32
+            return hashlib.sha256(
+                text.encode("utf-8", errors="surrogatepass")
+            ).hexdigest()
+        return "0" * 64
 
     @classmethod
     def create(  # noqa: D417  # ruff: ignore[too-many-positional-arguments]
@@ -2508,24 +2559,31 @@ class CorpusDocument:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _check_schema_version(data: dict[str, Any]) -> None:
+    def _check_schema_version(
+        data: dict[str, Any], where: str = "CorpusDocument.from_dict"
+    ) -> None:
         """Validate the payload's serialisation generation.
 
         Parameters
         ----------
         data : dict
-            Payload as produced by :meth:`to_dict`.
+            Payload as produced by :meth:`to_dict`, or any record that carries
+            ``schema_version`` (a pickled export, a checkpoint line).
+        where : str, optional
+            What is being read, for the message (a store and its row, a file).
 
         Raises
         ------
-        ValueError
+        IncompatibleSchemaError
             If the payload declares no version, or declares a MAJOR generation
             this build cannot read.
+        ValueError
+            If the declared version is malformed.
 
         Notes
         -----
         **User-focused.**  A payload written before schema versioning existed is
-        **refused**, not guessed at.  Re-export it with a current build.
+        **refused**, not guessed at.  Rebuild it with a current build.
 
         **Developer-focused.**  Refusing a version-less payload is deliberate
         (decision DEC-119).  Assuming such a payload is the current generation is
@@ -2540,28 +2598,28 @@ class CorpusDocument:
         """
         raw = data.get(_SCHEMA_VERSION_KEY)
         if raw is None:
-            raise ValueError(
-                "CorpusDocument.from_dict: payload declares no "
-                f"{_SCHEMA_VERSION_KEY!r}. Payloads written before schema "
-                "versioning cannot be safely assumed to match the current "
-                f"format ({_SCHEMA_VERSION}); re-export them with a current "
-                "build rather than loading them blind."
+            raise IncompatibleSchemaError(
+                f"{where}: payload declares no {_SCHEMA_VERSION_KEY!r}. Payloads "
+                "written before schema versioning cannot be safely assumed to "
+                f"match the current format ({_SCHEMA_VERSION}); rebuild them "
+                "with a current build rather than loading them blind."
             )
         try:
             major = int(str(raw).split(".", 1)[0])
         except (TypeError, ValueError):
             raise ValueError(
-                f"CorpusDocument.from_dict: malformed {_SCHEMA_VERSION_KEY!r} "
+                f"{where}: malformed {_SCHEMA_VERSION_KEY!r} "
                 f"{raw!r}; expected a 'MAJOR.MINOR' string."
             ) from None
 
         expected_major = int(_SCHEMA_VERSION.split(".", 1)[0])
         if major != expected_major:
-            raise ValueError(
-                f"CorpusDocument.from_dict: payload schema version {raw!r} is "
-                f"incompatible with this build ({_SCHEMA_VERSION}). Major "
-                "generations differ, so field meanings may have changed; "
-                "migrate or re-export the corpus."
+            raise IncompatibleSchemaError(
+                f"{where}: payload schema version {raw!r} is incompatible with "
+                f"this build ({_SCHEMA_VERSION}). Major generations differ, so "
+                "field meanings may have changed (3.0 widened every id to 64 "
+                "hex characters); rebuild the corpus from its sources with this "
+                "build. No migration exists: old ids cannot be widened."
             )
 
     @classmethod
