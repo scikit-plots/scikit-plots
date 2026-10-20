@@ -2764,6 +2764,112 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.feature_selection": {
+        "short_summary": "Feature profiling, policy-backed assessments, pipeline lineage and drift.",
+        "description": _get_guide("feature_selection-index"),
+        "sections": [
+            {
+                "title": "Profiling and the fitted schema",
+                "autosummary": [
+                    "profile_features",
+                    "FeatureSchema",
+                    "FeatureSpec",
+                    "FeatureStats",
+                ],
+            },
+            {
+                "title": "Policy and configuration",
+                "autosummary": [
+                    "FeaturePolicy",
+                    "ColumnRule",
+                    "AssessmentSpec",
+                    "BinningPolicy",
+                    "DriftPolicy",
+                    "DEFAULT_ASSESSMENTS",
+                    "load_policy",
+                    "dump_policy",
+                ],
+            },
+            {
+                "title": "Assessments",
+                "autosummary": [
+                    "Assessment",
+                    "AssessmentContext",
+                    "AssessmentOutcome",
+                    "AssessmentProvider",
+                    "AssessmentRegistry",
+                    "default_registry",
+                    "register_assessment",
+                    "list_assessment_providers",
+                ],
+            },
+            {
+                "title": "Binning",
+                "autosummary": [
+                    "BinningRecommendation",
+                    "knuth_bin_count",
+                    "make_kbins_discretizer",
+                ],
+            },
+            {
+                "title": "Scikit-learn estimators",
+                "autosummary": [
+                    "FeatureProfiler",
+                    "FeatureFilter",
+                    "FeatureColumnSelector",
+                    "FeatureRenamer",
+                    "RenamePlan",
+                ],
+                "classes": [
+                    "FeatureProfiler",
+                    "FeatureFilter",
+                    "FeatureRenamer",
+                ],
+            },
+            {
+                "title": "Pipeline lineage",
+                "autosummary": [
+                    "trace_pipeline",
+                    "FeatureLineage",
+                    "FeatureMapping",
+                    "Attribution",
+                ],
+            },
+            {
+                "title": "Drift",
+                "autosummary": [
+                    "ReferenceProfile",
+                    "FeatureReference",
+                ],
+            },
+            {
+                "title": "Analysis routing",
+                "autosummary": [
+                    "analysis_plan",
+                    "recommend_treatments",
+                    "treatment_groups",
+                    "DEFAULT_ANALYSIS_RULES",
+                ],
+            },
+            {
+                "title": "Vocabularies and errors",
+                "autosummary": [
+                    "AssessmentState",
+                    "DtypeFamily",
+                    "FeatureKind",
+                    "FeatureRole",
+                    "LineageQuality",
+                    "Relation",
+                    "FeatureSelectionError",
+                    "PolicyError",
+                    "SchemaMismatchError",
+                    "SchemaMismatchWarning",
+                    "IncompatibleSchemaError",
+                    "LineageError",
+                ],
+            },
+        ],
+    },
     "scikitplot.impute": {
         "short_summary": "Missing value imputation.",
         "description": _get_guide("impute-index"),

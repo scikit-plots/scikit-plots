@@ -141,6 +141,17 @@ User Guide
         :columns: 12 12 6 6
         :padding: 2
 
+        **feature profiling, lineage and drift**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            ./feature_selection/index.rst
+
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
         **data imputation**
         ^^^
         .. toctree::

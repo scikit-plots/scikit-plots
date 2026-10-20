@@ -71,6 +71,7 @@ PUBLIC_MODULES = [
         "externals.array_api_compat.torch.linalg",
         "externals.array_api_extra",
         "externals.array_api_extra.testing",
+        "feature_selection",
         "impute",
         "levenshtein",
         "logging",

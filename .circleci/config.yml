@@ -839,6 +839,11 @@ commands:
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
             export SCIKITPLOT_GALLERY_RUN_ASR=1
             export SCIKITPLOT_GALLERY_RUN_NETWORK=1
+
+            # docs/source/whats_new/v0.5.rst
+            # towncrier build --yes --version="$(python -c 'import scikitplot as sp; print(sp.version._version)')"
+            towncrier build --yes
+
             cd docs
             # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
             make html 2>&1 | tee ~/sphinx_html_log.txt

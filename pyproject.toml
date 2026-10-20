@@ -178,6 +178,7 @@ classifiers = [
   # "Programming Language :: Python :: Implementation :: PyPy",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Software Development :: Documentation",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Multimedia :: Graphics",
@@ -778,6 +779,14 @@ dev = [
     "scikit-plots[test]",
     "scikit-plots[doc]",
 ]
+
+## All development dependencies (excludes demo)
+#all-dev = [
+#    { include-group = "dev" },
+#    { include-group = "docs" },
+#    { include-group = "lint" },
+#    { include-group = "test" },
+#]
 
 ######################################################################
 ## pip, uv
@@ -2044,6 +2053,10 @@ words = ["query"]
   [[tool.towncrier.section]]
     name = "scikitplot.externals.array_api_extra"
     path = "scikitplot.externals.array_api_extra"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.feature_selection"
+    path = "scikitplot.feature_selection"
 
   [[tool.towncrier.section]]
     name = "scikitplot.impute"

@@ -14,9 +14,10 @@ Tools for turning files, URLs, media, and text sources into canonical
 searched, adapted, and exported.
 
 .. seealso::
-  * https://github.com/modelcontextprotocol/python-sdk
-  * https://github.com/semantica-agi/semantica
   * https://docs.getsemantica.ai/guides/distance-intelligence/#common-pitfalls
+  * https://github.com/semantica-agi/semantica
+  * https://github.com/Graphify-Labs/graphify
+  * https://github.com/modelcontextprotocol/python-sdk
 
 Choose the API that matches the job
 -----------------------------------
