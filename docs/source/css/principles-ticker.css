@@ -1,0 +1,539 @@
+/* ==========================================================================
+   Project principles ticker
+
+   Framework neutral:
+   - PyData Sphinx Theme
+   - Furo
+   - plain Sphinx
+   - MkDocs
+   - Hugo
+   - other static HTML documentation systems
+
+   Public configuration:
+   - --sp-principles-speed
+   - --sp-principles-separator-gap
+   - data-sp-menu-placement="up|down"
+   ========================================================================== */
+
+.sp-principles {
+  --sp-principles-speed: 28s;
+  --sp-principles-separator-gap: 0.9rem;
+
+  position: relative;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+
+  width: 100%;
+  min-width: 0;
+
+  margin-top: auto;
+  margin-bottom: auto;
+
+  font-size: 1.2rem;
+  font-weight: 500;
+
+  color: currentColor;
+}
+
+
+/* --------------------------------------------------------------------------
+   Sliding region
+   -------------------------------------------------------------------------- */
+
+.sp-principles__viewport {
+  min-width: 0;
+  width: 100%;
+
+  overflow: hidden;
+  white-space: nowrap;
+
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+}
+
+
+.sp-principles__track {
+  display: flex;
+  width: max-content;
+
+  will-change: transform;
+
+  animation:
+    sp-principles-scroll
+    var(--sp-principles-speed)
+    linear
+    infinite;
+}
+
+
+.sp-principles__group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+
+  white-space: nowrap;
+}
+
+
+.sp-principles__item {
+  display: inline-flex;
+  align-items: center;
+
+  white-space: nowrap;
+}
+
+
+.sp-principles__item::before {
+  content: "|";
+
+  margin-inline:
+    var(--sp-principles-separator-gap);
+
+  opacity: 0.4;
+  font-weight: 400;
+}
+
+
+.sp-principles__group::after {
+  content: "|";
+
+  margin-inline:
+    var(--sp-principles-separator-gap);
+
+  opacity: 0.4;
+  font-weight: 400;
+}
+
+
+/* --------------------------------------------------------------------------
+   Infinite animation
+   -------------------------------------------------------------------------- */
+
+@keyframes sp-principles-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   Runtime state
+   -------------------------------------------------------------------------- */
+
+.sp-principles__track[data-paused="true"] {
+  animation-play-state: paused;
+}
+
+
+.sp-principles__track[data-reverse="true"] {
+  animation-direction: reverse;
+}
+
+
+/* --------------------------------------------------------------------------
+   Compact hamburger menu
+   -------------------------------------------------------------------------- */
+
+.sp-principles__menu {
+  position: relative;
+
+  flex-shrink: 0;
+
+  margin: 0;
+  padding: 0;
+}
+
+
+.sp-principles__menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+
+  padding: 0;
+
+  border:
+    1px solid
+    rgba(128, 128, 128, 0.35);
+
+  border-radius: 0.45rem;
+
+  background:
+    rgba(128, 128, 128, 0.05);
+
+  color: inherit;
+
+  cursor: pointer;
+  list-style: none;
+}
+
+
+.sp-principles__menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+
+.sp-principles__menu-trigger::marker {
+  content: "";
+}
+
+
+/* Dependency-free three-line menu icon. */
+.sp-principles__menu-icon,
+.sp-principles__menu-icon::before,
+.sp-principles__menu-icon::after {
+  display: block;
+
+  width: 15px;
+  height: 1.5px;
+
+  border-radius: 999px;
+
+  background: currentColor;
+}
+
+
+.sp-principles__menu-icon {
+  position: relative;
+}
+
+
+.sp-principles__menu-icon::before,
+.sp-principles__menu-icon::after {
+  position: absolute;
+  left: 0;
+
+  content: "";
+}
+
+
+.sp-principles__menu-icon::before {
+  top: -5px;
+}
+
+
+.sp-principles__menu-icon::after {
+  top: 5px;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  .sp-principles__menu-trigger:hover {
+    background:
+      rgba(128, 128, 128, 0.11);
+  }
+}
+
+
+.sp-principles__menu-trigger:focus-visible {
+  outline:
+    2px solid currentColor;
+
+  outline-offset: 2px;
+}
+
+
+.sp-principles__menu[open]
+.sp-principles__menu-trigger {
+  background:
+    rgba(128, 128, 128, 0.16);
+
+  border-color: currentColor;
+}
+
+
+/*
+ * Footer-friendly default: open upward.
+ */
+.sp-principles__menu-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 40;
+
+  display: grid;
+  gap: 0.3rem;
+
+  width: max-content;
+  min-width: 240px;
+  max-width: min(280px, calc(100vw - 1.5rem));
+
+  padding: 0.4rem;
+
+  border:
+    1px solid
+    var(
+      --bd-border-color,
+      rgba(128, 128, 128, 0.4)
+    );
+
+  border-radius: 0.6rem;
+
+  background:
+    var(--bd-content-bg, Canvas);
+
+  color:
+    var(--bd-text-color, CanvasText);
+
+  box-shadow:
+    0 8px 24px
+    rgba(0, 0, 0, 0.14);
+
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+
+/*
+ * Optional top-of-page placement.
+ */
+.sp-principles[data-sp-menu-placement="down"]
+.sp-principles__menu-panel {
+  top: calc(100% + 0.45rem);
+  bottom: auto;
+}
+
+
+/* --------------------------------------------------------------------------
+   Menu content
+   -------------------------------------------------------------------------- */
+
+.sp-principles__menu-section {
+  display: grid;
+  gap: 0.2rem;
+}
+
+
+.sp-principles__menu-heading {
+  padding:
+    0.25rem
+    0.55rem
+    0.15rem;
+
+  font-size: 0.66rem;
+  font-weight: 700;
+
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  opacity: 0.62;
+}
+
+
+.sp-principles__menu-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.1rem;
+
+  width: 100%;
+  min-height: 44px;
+
+  padding:
+    0.45rem
+    0.6rem;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius: 0.42rem;
+
+  background: transparent;
+  color: inherit;
+
+  text-align: left;
+
+  font: inherit;
+
+  cursor: pointer;
+}
+
+
+.sp-principles__menu-button-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+
+.sp-principles__menu-button-desc {
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.25;
+
+  opacity: 0.72;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  .sp-principles__menu-button:hover,
+  .sp-principles__speed-button:hover {
+    background:
+      rgba(128, 128, 128, 0.09);
+  }
+}
+
+
+.sp-principles__menu-button:focus-visible,
+.sp-principles__speed-button:focus-visible {
+  outline:
+    2px solid currentColor;
+
+  outline-offset: 1px;
+}
+
+
+.sp-principles__menu-button[aria-pressed="true"] {
+  border-color:
+    rgba(128, 128, 128, 0.35);
+
+  background:
+    rgba(128, 128, 128, 0.14);
+}
+
+
+.sp-principles__menu-button[aria-pressed="true"]
+.sp-principles__menu-button-title::before {
+  content: "✓";
+
+  margin-right: 0.4rem;
+}
+
+
+/* --------------------------------------------------------------------------
+   Speed presets
+   -------------------------------------------------------------------------- */
+
+.sp-principles__speed-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+
+  padding:
+    0
+    0.35rem
+    0.2rem;
+}
+
+
+.sp-principles__speed-button {
+  min-width: 0;
+  min-height: 36px;
+
+  padding:
+    0.35rem
+    0.45rem;
+
+  border:
+    1px solid
+    rgba(128, 128, 128, 0.28);
+
+  border-radius: 0.38rem;
+
+  background: transparent;
+  color: inherit;
+
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 550;
+
+  cursor: pointer;
+}
+
+
+.sp-principles__speed-button[aria-pressed="true"] {
+  border-color: currentColor;
+
+  background:
+    rgba(128, 128, 128, 0.14);
+
+  font-weight: 700;
+}
+
+
+.sp-principles__menu-separator {
+  height: 1px;
+
+  margin:
+    0.1rem
+    0.25rem;
+
+  background:
+    rgba(128, 128, 128, 0.25);
+}
+
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .sp-principles {
+    gap: 0.35rem;
+
+    font-size: 1rem;
+  }
+
+
+  .sp-principles__menu-trigger {
+    width: 34px;
+    height: 34px;
+  }
+
+
+  .sp-principles__menu-panel {
+    max-width:
+      min(
+        260px,
+        calc(100vw - 1rem)
+      );
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   Accessibility
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-principles__track {
+    animation: none;
+  }
+
+
+  .sp-principles__viewport {
+    overflow-x: auto;
+
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+
+  .sp-principles__group[aria-hidden="true"] {
+    display: none;
+  }
+}
