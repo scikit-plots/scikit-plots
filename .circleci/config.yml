@@ -671,7 +671,8 @@ commands:
               jupyterlite-xeus \
               jupyterlite-terminal
 
-            pip install nltk
+            pip install nltk spacy
+
             # Verify whether installed Python packages have compatible dependencies.
             pip check || true
 

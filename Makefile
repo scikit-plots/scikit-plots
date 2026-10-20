@@ -1442,3 +1442,14 @@ precom:
 	@pre-commit run --files \
 		scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/__init__.py \
 		--show-diff-on-failure
+
+## Run the exact test case without coverage first, then with coverage. This is the most useful first experiment.
+## A. Without coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --tb=long
+#
+## B. With coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --cov=scikitplot --cov-branch --cov-report=
