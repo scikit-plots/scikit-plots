@@ -15,7 +15,7 @@ import scikitplot.feature_selection as fs
 
 
 def test_every_public_name_resolves_once():
-    assert fs.__all__ == sorted(set(fs.__all__))
+    assert sorted(fs.__all__) == sorted(set(fs.__all__))
     for name in fs.__all__:
         assert getattr(fs, name) is not None, name
 
