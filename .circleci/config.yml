@@ -642,13 +642,14 @@ commands:
             pip install -r ./requirements/corpus.txt
             pip install -r ./requirements/cleanprompt.txt
 
-            # pip install voyager==2.1.0
-            pip install beautifulsoup4 markdownify
-
+            # Resolve distutils conflict before any setuptools-dependent install
             # export SETUPTOOLS_USE_DISTUTILS=local
             # pip install "setuptools>=69"
             # ✅ It’s a distutils override conflict, pythran cause setuptools<60
             pip install -U setuptools
+
+            # pip install voyager==2.1.0
+            pip install beautifulsoup4 markdownify
 
             # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"

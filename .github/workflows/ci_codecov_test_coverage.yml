@@ -224,10 +224,21 @@ jobs:
 
       - name: "🔨 Build library"
         run: |
-          # install your project if it's a package
+          set -Eeuo pipefail
+          # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          # pip install -r ./requirements/build.txt
           pip install -r requirements/all.txt
 
+          # tf need for documentation examples
+          # pip install -r ./requirements/gpu.txt
+          pip install -r ./requirements/cpu.txt
+          pip install -r ./requirements/mlflow.txt
+          pip install -r ./requirements/corpus.txt
+          pip install -r ./requirements/cleanprompt.txt
+
           # Resolve distutils conflict before any setuptools-dependent install
+          # export SETUPTOOLS_USE_DISTUTILS=local
+          # pip install "setuptools>=69"
           # ✅ It’s a distutils override conflict, pythran cause setuptools<60
           pip install -U setuptools
 
