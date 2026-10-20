@@ -50,7 +50,7 @@ caller intentionally needs a per-transfer exception.
 
 
 Plan dispatch without touching the network
------------------------------------------
+------------------------------------------
 
 Use :meth:`AnyDownloader.plan` when code, CI or a user interface needs to show
 what **would** happen before any transfer starts.  The returned

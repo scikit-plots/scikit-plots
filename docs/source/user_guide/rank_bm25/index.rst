@@ -95,3 +95,4 @@ See also
 
 * :ref:`mcp-index`
 * :ref:`corpus-index`
+* https://github.com/dorianbrown/rank_bm25

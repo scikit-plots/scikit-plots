@@ -217,6 +217,9 @@ jobs:
                       faster-whisper openai-whisper \
                       pytesseract youtube-transcript-api
 
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check
+
           # The same two scripts serve Docker images, the devcontainer and
           # the documentation build; see their headers for the options.
           bash docker/scripts/install_nltk.sh
@@ -227,6 +230,9 @@ jobs:
           # install your project if it's a package
           pip install -r requirements/all.txt
           pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
+
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check
 
       - name: "☂️ Run tests with coverage"
         env:

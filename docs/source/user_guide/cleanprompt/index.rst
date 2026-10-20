@@ -64,7 +64,7 @@ front of you.
       **getting-started**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         getting_started
 
@@ -75,7 +75,7 @@ front of you.
       **how**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         how_it_works
 
@@ -86,7 +86,7 @@ front of you.
       **python**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         python_api
 
@@ -97,7 +97,7 @@ front of you.
       **cli**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         command_line
 
@@ -108,7 +108,7 @@ front of you.
       **entity**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         entity_detection
 
@@ -119,7 +119,7 @@ front of you.
       **files**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         files_and_packs
 
@@ -130,7 +130,7 @@ front of you.
       **agents**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         agents_and_models
 
@@ -141,7 +141,7 @@ front of you.
       **web**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         web_and_containers
 
@@ -152,7 +152,7 @@ front of you.
       **security**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         security_and_limits
 
@@ -163,7 +163,7 @@ front of you.
       **troubleshooting**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         troubleshooting
 

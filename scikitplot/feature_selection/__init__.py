@@ -87,6 +87,7 @@ from . import (
     _policy,
     _rename,
     _schema,
+    _serialize,
     _stats,
     _types,
 )
@@ -100,6 +101,7 @@ from ._lineage import *  # noqa: F403
 from ._policy import *  # noqa: F403
 from ._rename import *  # noqa: F403
 from ._schema import *  # noqa: F403
+from ._serialize import *  # noqa: F403
 from ._stats import *  # noqa: F403
 from ._types import *  # noqa: F403
 
@@ -114,5 +116,6 @@ __all__ += _lineage.__all__
 __all__ += _policy.__all__
 __all__ += _rename.__all__
 __all__ += _schema.__all__
+__all__ += _serialize.__all__
 __all__ += _stats.__all__
 __all__ += _types.__all__

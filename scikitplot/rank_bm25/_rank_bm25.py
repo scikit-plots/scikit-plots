@@ -1,5 +1,10 @@
 # scikitplot/rank_bm25/_rank_bm25.py
 #
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
 # Authors: D. Brown
 # SPDX-License-Identifier: Apache License 2.0
 
@@ -8,6 +13,9 @@ All of these algorithms have been taken from the paper:
 Trotmam et al, Improvements to BM25 and Language Models Examined.
 
 Here we implement all the BM25 variations mentioned.
+
+.. seealso::
+  * https://github.com/dorianbrown/rank_bm25
 """  # ruff: ignore[missing-blank-line-after-summary]
 
 from __future__ import annotations

@@ -1,3 +1,10 @@
+# scikitplot/rank_bm25/_identity.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Declared identities for a lexical build: the analyzer and the recipe.
 

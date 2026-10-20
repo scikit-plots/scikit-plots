@@ -91,6 +91,7 @@ Model Context Protocol Retrieval
       :link-type: ref
 
       Use the dependency-light retrieval core before adding an MCP server.
+
 Which page should I use?
 ------------------------
 

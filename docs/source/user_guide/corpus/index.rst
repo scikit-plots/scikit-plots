@@ -56,7 +56,7 @@ front of you.
       **getting-started**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         getting_started
 
@@ -67,7 +67,7 @@ front of you.
       **architect**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         architecture
 
@@ -78,7 +78,7 @@ front of you.
       **reader**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         readers_and_backends
 
@@ -89,7 +89,7 @@ front of you.
       **fluent**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         fluent_and_policies
 
@@ -100,7 +100,7 @@ front of you.
       **customize**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         customization
 
@@ -111,7 +111,7 @@ front of you.
       **download**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         downloads_and_network
 
@@ -122,7 +122,7 @@ front of you.
       **retrieval**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         retrieval_and_similarity
 
@@ -133,7 +133,7 @@ front of you.
       **evaluate**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         evaluation
         llm_evaluation
@@ -145,7 +145,7 @@ front of you.
       **format**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         formats_and_export
 
@@ -156,7 +156,7 @@ front of you.
       **security**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         security_and_limits
 
@@ -167,7 +167,7 @@ front of you.
       **troubleshoot**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         troubleshooting
 

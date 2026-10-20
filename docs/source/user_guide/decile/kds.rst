@@ -1,4 +1,5 @@
 .. _decile-kds:
+.. _decile-kds-index:
 
 KDS functions
 =============

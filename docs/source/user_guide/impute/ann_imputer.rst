@@ -1,4 +1,5 @@
 .. _impute-ann-imputer:
+.. _ann_imputer-index:
 
 ANNImputer
 ==========

@@ -149,7 +149,7 @@ scoped by semantic role while keeping probes side-effect free:
    distance = component_capabilities(role="edit-distance")
 
 Plan the exact reader backend chain before running
-------------------------------------------------
+--------------------------------------------------
 
 Audio and video readers expose :meth:`AudioReader.plan_asr_backends` /
 :meth:`VideoReader.plan_asr_backends`. The plan is built by the **same**
