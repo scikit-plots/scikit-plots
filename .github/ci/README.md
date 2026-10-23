@@ -13,6 +13,8 @@ runs, how to run it by hand, and how to change it.
 | What does a push to `main` test? | Everything |
 | Where is the configuration? | `.github/ci/test_plan.json` |
 | Which check do I require in branch protection? | `CI Test and Coverage Codecov Reports` |
+| Where do I see what was slow, and why? | the `test-perf` artifact and the run summary (section 12) |
+| How do I measure one submodule, or the package itself, without this workflow? | locally with `make test-perf` and `make bench`; on a clean runner with **CI ⏱️ Performance (on demand)** (section 13) |
 
 The workflow has three stages:
 
@@ -78,8 +80,9 @@ needs changing.
 | `mode` | `auto`, `all`, `custom` | `auto` | see section 2 |
 | `submodules` | names separated by spaces or commas | empty | for `custom`: `corpus`, `scikitplot/cleanprompt`, or a whole container such as `_externals/_sphinx_ext` |
 | `max_shards` | a whole number | empty: the value in `test_plan.json` | the most parallel test jobs for this run |
-| `test_gc` | `young`, `module`, `test`, `off` | `young` | garbage collection between tests, see section 8 |
+| `test_gc` | `young`, `frozen`, `module`, `test`, `off` | `young` | garbage collection between tests, see section 8 |
 | `max_failures` | a whole number | empty: `50` | failures after which the job stops; `0` means never |
+| `profile_tests` | a regular expression of node ids | empty | profile these tests one by one with cProfile, see section 12 |
 
 `pytest.ini` stops at the first failure, which suits a local run. The
 workflow overrides that so one run reports everything that is wrong.
@@ -175,7 +178,7 @@ a hung run sooner.
 | `package_root` | `scikitplot` | the package directory |
 | `pytest_ini` | `pytest.ini` | where `norecursedirs` is read from. `""` if the project has no such file; a file that is named but missing is an error |
 | `containers` | 5 paths | directories whose children are independent submodules |
-| `full_run_globs` | 12 globs | changed files that make everything run |
+| `full_run_globs` | 13 globs | changed files that make everything run |
 | `ignore_globs` | none | changed files inside the package that select nothing |
 | `loose_test_globs` | `test_*.py`, `*_test.py` | names of test files |
 | `default_mode` | see section 2 | `auto` or `all` per event; an event not listed runs `all` |
@@ -198,8 +201,10 @@ The current file comes from the run of 5 October 2026 (23 049 tests).
 
 ## 7. Coverage and Codecov
 
-- Each test job writes `.coverage.<job name>` and a JUnit report, kept as the
-  artifact `coverage-<job name>` for 7 days.
+- Each test job writes `.coverage.<job name>`, a JUnit report and its
+  performance record (section 12), kept as the artifact
+  `coverage-<job name>` for 7 days, also when the job failed or reached its
+  time limit.
 - The report job combines them into `coverage.xml`, kept as the artifact
   `coverage-report` for 14 days, and writes the total in the run summary.
 - **Codecov receives a report only from a complete, successful `all` run.**
@@ -219,9 +224,21 @@ figures and reference cycles do not reach the next. `SKPLT_TEST_GC` (the
 | Value | After each test | After each test file | Cost |
 |---|---|---|---|
 | `young` (default) | young generations only | full collection | about 0.76 s per test file: 403 s of the suite's 1482 s (measured) |
+| `frozen` (opt-in) | young generations only | full collection of what the module created, then `gc.freeze()` | measured on 4 134 tests in 93 files: 1.1 s of full collections instead of 21 s (below) |
 | `module` | nothing | full collection | the same |
 | `test` | full collection, before and after | — | about 1 second per test: hours |
 | `off` | nothing | nothing | none |
+
+`frozen` keeps everything `young` collects and freezes what outlives
+collection and each module, so a full collection no longer walks the
+scientific stack. On five submodules (4 134 tests, 93 files; young, frozen,
+frozen, young on an idle machine) the session took 144–151 s instead of
+165–172 s, full collections 1.1 s instead of 21 s, the outcomes were the
+same, and peak memory was lower (373–375 MiB instead of 402–403 MiB). It is opt-in because an object frozen at a module boundary that
+later becomes garbage in a reference cycle stays until the session ends, and
+`gc.get_objects()` no longer sees frozen objects; see `_FreezeSurvivors` in
+`scikitplot/conftest.py`. Try it with `test_gc: frozen` and compare the two
+runs (section 12) before making it the default.
 
 Use `test` only while chasing a memory leak, and only with `custom` mode on
 one submodule. It was the old behaviour and the reason the single job needed
@@ -292,7 +309,8 @@ Only the report job uses a secret: `CODECOV_TOKEN`, for the upload.
 | `no tests were collected for: ...` (a notice) | the selected submodules have no tests | nothing; the run succeeds |
 | `ERROR: every test costs at least ... s before it does any work`, all tests passed | something that runs once per test became expensive: a hook or an `autouse` fixture | see *The check that keeps it from coming back*; find it with `pytest --durations=0 -vv` on a few skipped tests. If the selection really has slow tests only, raise `SKPLT_TEST_FLOOR_BUDGET` in the workflow for that case |
 | A test passes on the pull request and fails after the merge, on `main` | the two runs did not have the same environment | see section 9; compare the `env:` block at the top of the two *Run tests* steps |
-| The report job fails with *at least one test job did not succeed* | a test job failed or was cancelled | open that test job |
+| The report job fails with *at least one test job did not succeed* | a test job failed or was cancelled | open that test job; its `coverage-<job>` artifact still has the JUnit report and the performance record |
+| A test job reached its time limit | the shard took longer than `shard_timeout_minutes` | the `test-perf` artifact lists every test that finished in that shard, and the last one; see section 12 |
 
 ### Warnings from third-party packages
 
@@ -317,7 +335,12 @@ case it is:
 | `.github/ci/test_durations.json` | measured time per submodule |
 | `.github/scripts/ci_test_plan.py` | the planner |
 | `.github/scripts/ci_test_durations.py` | turns JUnit reports into `test_durations.json` |
-| `.github/scripts/tests/` | tests of both scripts; the plan job runs them first |
+| `.github/scripts/ci_test_perf.py` | analyses test performance evidence (section 12) |
+| `.github/scripts/ci_bench.py` | runs the package benchmarks without asv, and compares results (section 13) |
+| `.github/workflows/ci_performance.yml` | the on-demand performance workflow (section 13) |
+| `benchmarks/` | the package benchmarks, in asv conventions (`benchmarks/README.md`) |
+| `.github/scripts/tests/` | tests of these scripts; the plan job runs them first |
+| `scikitplot/_testing/_perf_telemetry.py` | the performance recorder, registered by `scikitplot/conftest.py` when `SKPLT_TEST_PERF_DIR` is set |
 | `docker/scripts/install_nltk.sh`, `install_spacy.sh` | install NLTK data and spaCy models; shared with Docker and the documentation build |
 | `pytest.ini` | pytest options, `norecursedirs`, `filterwarnings` |
 | `scikitplot/conftest.py` | the garbage-collection policy and the cost-per-test check |
@@ -328,3 +351,170 @@ The planner's tests run with the standard library alone:
 ```bash
 python -m unittest discover -s .github/scripts/tests -p "test_*.py"
 ```
+
+## 12. Test performance: where the time and memory go
+
+Every test job records, test by test, where the time and memory went. The
+report job turns all shards into one report, published as the artifact
+**`test-perf`** (30 days) with a short table in the run summary.
+
+### What is recorded
+
+`scikitplot/_testing/_perf_telemetry.py` writes one JSON line per test, as the
+test finishes, into `reports/perf/` of the job:
+
+| Per test | From |
+|---|---|
+| wall and CPU time of setup, call and teardown | clocks around pytest's phase hooks |
+| CPU of child processes, and the programs they ran | `getrusage(RUSAGE_CHILDREN)`, audit events |
+| resident memory at start and end, growth of its peak | `/proc/self/statm`, `ru_maxrss` |
+| garbage collections per generation, and their time | `gc.callbacks` |
+| every fixture setup of 1 ms or more: scope, time, where it is defined | pytest's `pytest_fixture_setup` |
+| files opened (for writing), directories made, network connections | Python audit events |
+| module files whose body ran although it had already run in the process | the `exec` audit event |
+
+Per test file: collection (import) time. Per session: the machine, the
+Python and package versions, and a fixed speed probe (a CPU loop, `stat`,
+`mkdir`, `fsync`), so that runs on different machines can be compared.
+
+It costs about 0.2 ms per test (0.22 ms over 4 134 tests), measured by the
+recorder itself (the session's last line, `recorder_seconds`). It is off unless
+`SKPLT_TEST_PERF_DIR` is set; then nothing is imported or registered.
+
+### On your machine
+
+```bash
+# Record a selection (any pytest arguments).
+SKPLT_TEST_PERF_DIR=build/test-perf python -m pytest scikitplot/_externals
+
+# Profile chosen tests from the start of their setup to the end of their
+# teardown, with no edit to the tests. This replaces timing a fixture by
+# hand: the report lists what each fixture called, and for how long.
+SKPLT_TEST_PERF_DIR=build/test-perf \
+SKPLT_TEST_PERF_PROFILE='test_run168_preserves_three_generation' \
+python -m pytest scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security
+
+# Python allocation peaks per test (slower while it is on).
+SKPLT_TEST_PERF_DIR=build/test-perf SKPLT_TEST_PERF_TRACEMALLOC=1 python -m pytest <paths>
+
+# Analyse.
+python .github/scripts/ci_test_perf.py report build/test-perf --out build/test-perf/report --bundle
+```
+
+`make test-perf` does the first and the last step (`PERF_PATHS`, `PERF_PROFILE`
+and `PERF_DIR` choose what and where).
+
+### Any evidence, at any time
+
+`report` reads files, folders and zips in any mix, and recognises each file
+by its content: the recorder's lines, JUnit XML, cProfile `.prof` files,
+`coverage.xml` and `test_durations.json`. Give it a downloaded GitHub
+artifact as it is (`coverage-shard-1-of-2.zip`, `test-perf.zip`), an older
+run's JUnit reports, or a `.prof` from `python -m cProfile -m pytest`. Archives
+are read in memory, never extracted, with limits on size and nesting.
+
+It writes:
+
+| File | For |
+|---|---|
+| `report.md` | every table: units, test files, slowest tests and setups, child processes, memory, fixtures, collection, re-executed modules, JUnit, profiles |
+| `summary.json` | the same as data, versioned; it holds every test, so a later `compare` needs nothing else |
+| `ANALYZE_ME.md` | a brief that needs no repository and no chat history: how to read the numbers, the findings with their evidence, and what to run next. Give it, or the bundle, to an AI assistant in a new chat as it is |
+| `test-perf-bundle.zip` | (`--bundle`) all of the above, the inputs, and the analyzer itself: `python tool/ci_test_perf.py report raw --out again` analyses it again anywhere (the same numbers; input names then start with `raw/`) |
+
+The same inputs, given by the same paths, always give the same files, byte for byte, on any platform. No output holds an absolute path: an input is named by the path you gave, or by its last part when that path is absolute. The output directory and the bundle are never read as inputs, so running the same command again reads the same evidence. Limits: 256 MiB per file, 1 GiB in all, 100 000 files, zips nested three deep, and a member may not expand more than 200 times.
+
+### Findings
+
+A finding is a fixed rule with a fixed threshold, printed with its evidence
+and the next thing to run. The thresholds are in `summary.json`.
+
+| Rule | Fires when |
+|---|---|
+| `incomplete-session` | a process ended without its last line: killed, crashed or out of time; the last test that finished is named |
+| `invalid-lines` | lines of a recorder file were not records of a known version, or had fields of unexpected types; they are in no total |
+| `cost-per-test` | the fastest 5% of tests take 0.05 s or more: something runs once per test |
+| `gc-full-collections` | full garbage collections take 10% or more of a session |
+| `module-re-executed` | a module file ran more than once in one process (imported under two names, loaded by path, or a failed import retried) |
+| `profile-records-incomplete` | a cProfile record cannot be trusted because of the above (see below) |
+| `setup-dominated` | setup takes 1 s or more and twice the call or more |
+| `repeated-fixture` | a function-scoped fixture is set up 10 times or more at 0.1 s or more each |
+| `subprocess-dominated` | child processes use half the time or more of a test of 1 s or more |
+| `waiting` | CPU is less than half the time of a test of 1 s or more |
+| `slow-collection` | importing one test file takes 2 s or more |
+| `memory` | a test keeps 100 MB or more, or raises the peak by 200 MB or more |
+| `sleeps` | a test asks to sleep 1 s or more (Python 3.13 and later only) |
+| `network` | a test opens a connection or resolves a name |
+
+**Why a profile can mislead.** cProfile keeps one record per (file, line,
+function). When a module is executed twice in one process (two names for one
+file), the record describes one copy while the call edges of both are added
+up. The cumulative time of such a function is then wrong, and calls into it
+can disappear from its callers. `report` and `profile` say so where it
+happens; profiling the test in a run of its own file avoids it.
+
+### Comparing runs
+
+```bash
+python .github/scripts/ci_test_perf.py compare --base before/ --head after/ --out build/test-perf/compare
+```
+
+As `asv compare` does for benchmarks: a test or unit changed when its time
+moved by `--factor` (1.2) or more *and* by `--min-seconds` (0.5) or more;
+`+` slower, `-` faster, `!` its outcome changed. A side is any evidence, or a
+`summary.json` of a run with the same kind of evidence: recorder against
+recorder, or JUnit against JUnit (their test names differ, so a mixed
+comparison is refused). JUnit class names do not say where a module ends, so
+a test class in a file directly in a container (`scikitplot/test_x.py`) is
+grouped under its module's name rather than `scikitplot (loose files)`; the
+recorder's grouping is exact. `--fail-on-slower` exits with 1, for a gate. Compare runs of
+the same machine, or read the speed probe of both.
+
+### In CI
+
+- Every shard records (`SKPLT_TEST_PERF_DIR=reports/perf`), and its
+  `coverage-<job>` artifact keeps the record even when the job failed or
+  reached its time limit.
+- `profile_tests` (section 3) profiles the tests it matches, in that shard.
+- The report job runs `ci_test_perf.py report` on every shard's record,
+  JUnit report and `coverage.xml`, beside the planner's
+  `test_durations.json`, and publishes `test-perf`. Its result does not
+  decide the run.
+
+## 13. Measuring without this workflow
+
+The coverage run is the final check. Measuring while you work needs neither
+it nor Codecov.
+
+| What | Locally, offline | On a clean runner |
+|---|---|---|
+| where the tests of a submodule spend time and memory | `make test-perf PERF_PATHS=scikitplot/<submodule>` | **CI ⏱️ Performance (on demand)**, `test_paths` |
+| how fast the package itself is (import, plotting API, annoy) | `make bench`; `make bench-pair BENCH_BASE_PYTHON=<other venv>/bin/python` | the same workflow, `benchmarks: true`, against `base_ref` |
+| whether a change made it slower | `ci_test_perf.py compare`, `ci_bench.py compare` | both, in the workflow's artifacts |
+
+**Two kinds of evidence.** The test recorder (section 12) answers "where
+does the test suite's time go"; it measures tests, fixtures and imports as
+they run. The benchmarks in `benchmarks/` answer "how fast is scikit-plots for
+its users"; they are written for [asv](https://asv.readthedocs.io/), as SciPy's
+and scikit-learn's are (their suites are kept in `benchmarks/zz_yanked/` for
+reference), so `asv continuous main HEAD` works where asv is installed.
+`.github/scripts/ci_bench.py` runs the same files with the standard library
+only, against the scikit-plots installed in any environment
+(`benchmarks/README.md`).
+
+**One rule for a change.** Both `compare` commands mark a result `+` slower or
+`-` faster by a fixed factor; `ci_bench.py` also requires every round (worker
+process) of one side to be slower than every round of the other (`x` when
+the ratio is reached without it), and `pair` alternates the two environments (base, head, head, base) so
+that a machine slowing down during the run does not show as a change.
+Measured here: the whole suite run against the same environment on both
+sides gave no change.
+
+**The on-demand workflow** (`.github/workflows/ci_performance.yml`) runs only
+when started by hand. With `test_paths` it installs the requirement files you
+name, records those tests (no coverage) and publishes `test-perf-on-demand`;
+`test_gc` and `profile_tests` work as in section 3. With `benchmarks` it builds
+`base_ref` and this branch into separate virtual environments (installed, not
+editable, so an import measures the installed package), runs them
+alternately on the one runner and publishes `benchmarks-on-demand` with
+`compare.md` in the run summary.

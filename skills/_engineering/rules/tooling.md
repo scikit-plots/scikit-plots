@@ -76,3 +76,15 @@ free number (see [`../SKILL.md`](../SKILL.md)).
 - **Then:** put the venv's `bin` first on `PATH` (`PATH=<venv>/bin:$PATH <venv>/bin/python ...`); the import runs `ninja`, which calls `cython` and `meson` by name, not through the interpreter that imported.
 - **Verified by:** every editable run in 6a and 6c carries the `PATH` prefix; an import after a `.pyx` change rebuilds and the tests see the new code.
 - **Added:** 2026-10-17. Root cause: in 6a, calling the venv's `python` directly after editing `kiss_random.pyx` failed the import with "cython: not found": the rebuild ran with the system `PATH`.
+
+### Rule 136: Tooling - refusing XML by searching its bytes needs the encoding pinned first
+- **When:** untrusted XML is refused or accepted by looking for a construct in its bytes (`<!ENTITY`, `<!DOCTYPE`), then parsed with `xml.etree` / expat.
+- **Then:** decode it as strict UTF-8 first, refuse it if that fails or if it holds a NUL character, search the decoded text, and parse that text (a `str`, which pyexpat parses as UTF-8). Do not rely on `XMLParser(encoding=...)`: expat still recognises UTF-16 from the first bytes.
+- **Verified by:** `test_xml_that_hides_an_entity_in_another_encoding_is_refused` (`.github/scripts/tests/test_ci_test_perf.py`): a UTF-16-LE document with an entity declaration and a Latin-1 document are both refused with their reason.
+- **Added:** 2026-10-23. Root cause: the analyzer refused `b"<!ENTITY"` in the raw bytes; a UTF-16-LE file without a byte-order mark starts with `<` like any XML, holds the declaration as `<\x00!\x00E...`, and was parsed with its entity expanded, also when the parser was told `encoding="utf-8"` (expat 2.6.1, measured).
+
+### Rule 137: Tooling - a script that claims a Python floor is run on that floor
+- **When:** writing or changing a standard-library script or module that states a minimum Python (the package's `requires-python`, a bundle "that runs anywhere").
+- **Then:** run its tests on the floor version itself (`uv python install 3.8`), not only on the versions at hand; `pathlib.Path.write_text(newline=)` (3.10), `str.removeprefix` (3.9) and `zip(strict=)` (3.10) pass every newer interpreter.
+- **Verified by:** `.github/scripts/tests` pass on 3.8, 3.9, 3.11, 3.12 and 3.13 (TP-1).
+- **Added:** 2026-10-23. Root cause: the analyzer and the benchmark runner passed on 3.11-3.13 and failed eleven tests on 3.8 and 3.9: `write_text` had no `newline` argument before 3.10.

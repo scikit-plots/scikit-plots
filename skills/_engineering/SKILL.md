@@ -32,6 +32,9 @@ number ("Rule 52").
 | [`rules/native.md`](rules/native.md) | C++ and native memory |
 | [`rules/text.md`](rules/text.md) | Unicode, spans, markup parsing |
 | [`rules/documentation.md`](rules/documentation.md) | guides, docstrings, examples |
+| [`rules/numpydocstr.md`](rules/numpydocstr.md) | writing or changing any docstring: sections, parameters, cross-references |
+| [`rules/logging.md`](rules/logging.md) | code that logs, and tests that assert on logs |
+| [`rules/module_submodule_actual_mock_patch.md`](rules/module_submodule_actual_mock_patch.md) | imports inside the package, `sys.path`, mocks and patches in tests |
 
 ## Adding a lesson (after any correction, failed check or review finding)
 

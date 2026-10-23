@@ -33,12 +33,14 @@ import sys
 import tempfile
 import threading
 import types
+import logging
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import numpy as np
 import pytest
 
+from .. import _embedding
 from .._embedding import (
     DEFAULT_CACHE_DIR,
     DEFAULT_MODEL,
@@ -51,6 +53,8 @@ from .._embedding import (
     _make_sentence_transformers_fn,
     _save_to_cache,
 )
+
+logger = _embedding.logger  # logging.getLogger(_embedding.__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -743,16 +747,18 @@ class TestEmbeddingEngineEmbedWithCache:
     def test_cache_write_failure_logs_warning(
         self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
     ) -> None:
-        import logging
-
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
         src.write_text("data", encoding="utf-8")
 
-        with patch("scikitplot.corpus._embeddings._embedding._save_to_cache") as mock_save:
+        with patch(f"{_embedding.__name__}._save_to_cache") as mock_save:
             mock_save.side_effect = OSError("disk full")
-            with caplog.at_level(logging.WARNING):
-                result, flag = e.embed_with_cache(["text"], src)
+            with caplog.at_level(logging.WARNING, logger=logger.name):
+                logger.addHandler(caplog.handler)
+                try:
+                    result, flag = e.embed_with_cache(["text"], src)
+                finally:
+                    logger.removeHandler(caplog.handler)
 
         assert flag is False
         assert result is not None
@@ -1069,12 +1075,20 @@ class TestCustomProviderIdentity:
         self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
     ) -> None:
         calls: dict = {}
-        e = EmbeddingEngine(backend="custom", custom_fn=self._counting(1.0, calls, "a"),
-                            cache_dir=tmp_path)
-        with caplog.at_level("INFO", logger="scikitplot.corpus._embeddings._embedding"):
-            for _ in range(3):
-                _, hit = e.embed_with_cache(["hello"])
-                assert hit is False
+        e = EmbeddingEngine(
+            backend="custom",
+            custom_fn=self._counting(1.0, calls, "a"),
+            cache_dir=tmp_path,
+        )
+        with caplog.at_level("INFO", logger=logger.name):
+            logger.addHandler(caplog.handler)
+            try:
+                for _ in range(3):
+                    _, hit = e.embed_with_cache(["hello"])
+                    assert hit is False
+            finally:
+                logger.removeHandler(caplog.handler)
+
         assert calls == {"a": 3}
         assert list(tmp_path.glob("*.npy")) == []
         notices = [r for r in caplog.records if "custom_fn_id" in r.getMessage()]

@@ -1,4 +1,4 @@
-# scikitplot/logging.py
+# scikitplot/logging/_logging.py
 #
 # ruff: noqa: PLC0415
 # pylint: disable=import-error
@@ -108,6 +108,11 @@ WARN = WARNING  # logging WARN deprecated
 # else fallback to datetime.timezone.utc, time.timezone.utc
 # for datetime.datetime.now(tz=UTC)
 UTC = getattr(datetime, "UTC", datetime.timezone.utc)
+
+# scikitplot/logging/_logging.py
+# logger = __import__("logging").getLogger(__name__)
+# LOGGER_NAME = __name__.rsplit(r".", 2)[0]  # for inside tests
+# logger = logging.getLogger(LOGGER_NAME)
 
 __all__ = [  # noqa: RUF022
     "BASIC_FORMAT",
@@ -361,7 +366,7 @@ def __dir__() -> Iterable[str]:
 ######################################################################
 
 
-def _is_jupyter_notebook() -> bool:
+def _is_jupyter_notebook() -> bool:  # ruff: ignore[too-many-return-statements]
     """
     Detect whether the current Python environment is a Jupyter notebook.
 
@@ -401,20 +406,16 @@ def _is_jupyter_notebook() -> bool:
     if "ipykernel" in sys.modules:
         return True  # Jupyter notebooks always use ipykernel
     ## Fallback: try importing and inspecting the IPython shell
-    try:
-        from IPython import get_ipython
-    except Exception:  # noqa: BLE001
-        return False
+    # from IPython import get_ipython
+    ipython = sys.modules.get("IPython")
     ## Check if the IPython shell is configured as a kernel app (notebook backend)
-    try:
-        ip = get_ipython()
-        if ip is None:
-            return False
-        cfg = getattr(ip, "config", None)
-        # shell = get_ipython().__class__.__name__
-        return bool(cfg and "IPKernelApp" in cfg)
-    except Exception:  # noqa: BLE001
+    shell = getattr(ipython, "get_ipython", None)
+    if shell is None:
         return False
+    if getattr(shell, "__class__.__name__", None) == "ZMQInteractiveShell":
+        return True
+    cfg = getattr(shell, "config", None)
+    return bool(cfg and "IPKernelApp" in cfg)
 
 
 def _coerce_level(level: int | str) -> int:

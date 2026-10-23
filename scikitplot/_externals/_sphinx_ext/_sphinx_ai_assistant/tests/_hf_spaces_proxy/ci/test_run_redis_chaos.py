@@ -216,7 +216,7 @@ class _ClusterNode:
                 with socket.create_connection(("127.0.0.1", self.port), timeout=0.1):
                     return
             except OSError:
-                time.sleep(0.03)
+                time.sleep(0.01)
         raise RuntimeError("redis cluster node startup timed out")
 
     def stop(self, *, kill: bool = False) -> None:
@@ -228,14 +228,14 @@ class _ClusterNode:
             else:
                 self.proc.terminate()
             try:
-                self.proc.wait(timeout=4)
+                self.proc.wait(timeout=5.0)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
-                self.proc.wait(timeout=4)
+                self.proc.wait(timeout=5.0)
         self.proc = None
 
 
-async def _wait_until(predicate, *, timeout: float = 15.0, interval: float = 0.05):
+async def _wait_until(predicate, *, timeout: float = 5.0, interval: float = 0.05):
     deadline = time.monotonic() + timeout
     last = None
     while time.monotonic() < deadline:
@@ -297,7 +297,7 @@ async def _bootstrap_cluster(nodes: list[_ClusterNode]) -> dict[int, int]:
                 return False
         return True
 
-    await _wait_until(cluster_ok, timeout=20)
+    await _wait_until(cluster_ok, timeout=5.0)
     return {nodes[i].port: nodes[i + 3].port for i in range(3)}
 
 
@@ -382,7 +382,7 @@ def test_live_standalone_ci_requires_real_server_and_executes_actual_lua() -> No
     # 147 deliberately invokes the same test under a mandatory no-skip flag in
     # the portable CI runner; this local smoke proves the exact binary itself.
     result = subprocess.run(
-        [binary, "--version"], capture_output=True, text=True, timeout=10, check=False
+        [binary, "--version"], capture_output=True, text=True, timeout=5.0, check=False
     )
     assert result.returncode == 0
     rendered = result.stdout + result.stderr
@@ -437,7 +437,7 @@ def test_live_cluster_six_nodes_cross_process_race_and_primary_failover() -> Non
             ]
             rows = []
             for proc in workers:
-                stdout, stderr = proc.communicate(timeout=30)
+                stdout, stderr = proc.communicate(timeout=5.0)
                 assert proc.returncode in {0, 3}, stderr
                 rows.append(json.loads(stdout.strip().splitlines()[-1]))
             winners = [row for row in rows if row.get("ok")]
@@ -463,7 +463,7 @@ def test_live_cluster_six_nodes_cross_process_race_and_primary_failover() -> Non
                 current = _slot_owner(await _slots(survivor_client), slot)
                 return current == replica
 
-            await _wait_until(promoted, timeout=20, interval=0.1)
+            await _wait_until(promoted, timeout=5.0, interval=0.1)
 
             # A new production RedisCluster client discovers the promoted owner.
             post = RedisProviderArtifactLifecycleRegistry(

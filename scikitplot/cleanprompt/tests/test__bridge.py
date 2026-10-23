@@ -76,7 +76,7 @@ def test_a_missing_command_is_reported():
 
 def test_a_timeout_stops_the_command():
     with pytest.raises(CleanPromptError, match="ran past"):
-        _run([sys.executable, "-c", "import time; time.sleep(30)"], "hi", timeout=0.5)
+        _run([sys.executable, "-c", "import time; time.sleep(0.01)"], "hi", timeout=0.5)
 
 
 def test_a_leak_is_refused_before_the_command_starts(tmp_path):
@@ -257,5 +257,5 @@ class TestPipesAreClosed:
     def test_after_a_timeout(self, monkeypatch):
         started = self._started(monkeypatch)
         with pytest.raises(CleanPromptError, match="ran past"):
-            _run([sys.executable, "-c", "import time; time.sleep(30)"], "hi", timeout=0.5)
+            _run([sys.executable, "-c", "import time; time.sleep(0.01)"], "hi", timeout=0.5)
         self._assert_closed(started)

@@ -2854,7 +2854,7 @@ def download_chunk_direct(chunk: _Chunk, headers: dict, http_uri: str) -> None:
     headers = headers.copy()
     headers["Range"] = f"bytes={chunk.start}-{chunk.end}"
 
-    response = _requests.get(http_uri, headers=headers, stream=True, timeout=99)
+    response = _requests.get(http_uri, headers=headers, stream=True, timeout=5.0)
     response.raise_for_status()
 
     with open(chunk.path, "r+b") as f:

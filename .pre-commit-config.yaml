@@ -115,11 +115,12 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
+        # The 'exclude' field in hook 'check-json' is a regex, not a glob -- matching '/*'
         # exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
         exclude: "^(\
             \\.devcontainer/.*\\.json\
             |\\.vscode/.*\\.json*\
-            |benchmarks/asv\\.conf\\.json\
+            |benchmarks/.*yanked/.*\\.json\
           )$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
         # exclude: ".*(.github.*)$"
@@ -274,7 +275,7 @@ repos:
               |\\.git\
               |\\.mypy_cache\
               |\\.vscode\
-              |benchmarks\
+              |benchmarks/.*yanked\
               |build\
               |dist\
               |docs/build\

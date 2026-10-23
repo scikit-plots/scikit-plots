@@ -24,7 +24,6 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-# from ...conftest import captured_logger
 from .._xml import _clark_to_prefix, _xpath_elements
 
 
@@ -139,8 +138,8 @@ class TestXpathElementsStdlib:
             "scikitplot.corpus._readers._xml"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             results = _xpath_elements(
                 root,
@@ -195,8 +194,8 @@ class TestXpathElementsStdlib:
             "scikitplot.corpus._readers._xml"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             results = _xpath_elements(
                 root,

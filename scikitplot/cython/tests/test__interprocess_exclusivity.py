@@ -64,7 +64,7 @@ try:
                 raise TimeoutError(
                     "parent did not release holder within 60 seconds"
                 )
-            time.sleep(0.02)
+            time.sleep(0.01)
 except BaseException:
     traceback.print_exc()
     raise
@@ -195,7 +195,7 @@ def _wait_until_holder_ready(
                 )
             )
 
-        time.sleep(0.02)
+        time.sleep(0.01)
 
     pytest.fail(
         "holder produced no readiness signal within "
@@ -310,7 +310,7 @@ class TestInterprocessExclusivity:
             )
 
             # Confirm that the waiter remains blocked while ownership is live.
-            time.sleep(0.25)
+            time.sleep(0.01)
             assert waiter.poll() is None, (
                 "waiter exited before the holder released the lock"
             )

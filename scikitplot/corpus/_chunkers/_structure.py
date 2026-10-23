@@ -159,6 +159,12 @@ _RST_ITEMS = re.compile(
 )
 
 
+def _rst_items_match(text: str) -> re.Match[str] | None:
+    """Match a reStructuredText list marker after leading indentation."""
+    start = len(text) - len(text.lstrip())
+    return _RST_ITEMS.match(text, start)
+
+
 class _Line(NamedTuple):
     start: int  # offset of the first character
     end: int  # offset after the line break
@@ -315,7 +321,8 @@ def _rst_blocks(lines: list[_Line]) -> list[_Block]:
     def unmarked(index: int) -> str:
         """Line *index* with its list markers blanked (columns kept)."""
         text = expanded[index]
-        items = _RST_ITEMS.match(text)
+        # items = _RST_ITEMS.match(text)
+        items = _rst_items_match(text)
         return " " * items.end() + text[items.end() :] if items else text
 
     def body_indent(after: int, indent: int) -> int | None:
@@ -358,7 +365,8 @@ def _rst_blocks(lines: list[_Line]) -> list[_Block]:
             # field or an option, docutils takes the least indentation of
             # the lines that follow; on a list item's first line the text
             # starts after the markers; otherwise it is the line's own.
-            items = _RST_ITEMS.match(last) if single else None
+            # items = _RST_ITEMS.match(last) if single else None
+            items = _rst_items_match(last) if single else None
             if not literal_next:
                 literal_indent = 0
             elif single and (explicit or _RST_FIELD_OR_OPTION.match(head)):

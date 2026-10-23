@@ -762,7 +762,7 @@ class TestThreadIsolation(unittest.TestCase):
             try:
                 with config_context(display="text", working_memory=256):
                     barrier.wait()  # sync: main checks config while worker is inside
-                    time.sleep(0.02)
+                    time.sleep(0.01)
             except Exception as exc:
                 errors.append(exc)
 
@@ -811,7 +811,7 @@ class TestThreadIsolation(unittest.TestCase):
 
         def thread_a():
             set_config(display="text", working_memory=256)
-            time.sleep(0.02)
+            time.sleep(0.01)
             with lock:
                 results["a"] = get_config()
 

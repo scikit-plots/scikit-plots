@@ -98,7 +98,7 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
         locked = "index.lock" in (result.stderr or "")
         if result.returncode == 0 or not locked or time.monotonic() >= deadline:
             return result
-        time.sleep(0.05)
+        time.sleep(0.01)
 
 
 def _checked(repo: Path, code: str, *args: str) -> str:

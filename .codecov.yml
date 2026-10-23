@@ -130,18 +130,16 @@ ignore:
   # - "path/to/folder"  # ignore folders and all its contents
   # - "test_*.rb"       # wildcards accepted
   # - "**/*.py"         # glob accepted
+  ## scikitplot module
   - "**/conftest.py"
   - "scikitplot/_build_utils"
   - "scikitplot/_min_dependencies.py"
   - "scikitplot/ml_package_versions.py"
   - "scikitplot/cexperimental"
-
   # cexternals: ignore only private (_*) parts, not the whole package
   - "scikitplot/cexternals/_*"  # → matches any directory starting with _
   - "scikitplot/cexternals/_*/**/*"  # → recursively ignore everything inside those directories
-
   - "scikitplot/experimental"
-
   # Ignore everything in externals
   - "scikitplot/externals/**"  # ❌ closed everything
   # ✅ Re-include step-by-step (IMPORTANT)

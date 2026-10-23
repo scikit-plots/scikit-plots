@@ -136,3 +136,24 @@ titles, then open the file that holds the rules you need.
 | 128 | Tooling | black given a folder skips what its configuration excludes; give it the files | [tooling.md](rules/tooling.md) |
 | 129 | Contracts | a value that authorises an action is bound to the history it was given in | [contracts.md](rules/contracts.md) |
 | 130 | Tooling | an editable meson build rebuilds on import; the venv's `bin` is on `PATH` | [tooling.md](rules/tooling.md) |
+| 131 | Analysis | a cProfile record covers one copy of a module that ran twice | [verification.md](rules/verification.md) |
+| 132 | CI | a required gate job runs whatever its needs did, and decides in its last step | [delivery.md](rules/delivery.md) |
+| 133 | Diagnostics | one profiler per process: check before enabling another | [verification.md](rules/verification.md) |
+| 134 | Evidence | a long run writes its evidence as it goes, and CI keeps it from failed jobs | [verification.md](rules/verification.md) |
+| 135 | Evidence | a benchmark comparison is trusted only after an A/A run of the same method finds nothing | [verification.md](rules/verification.md) |
+| 136 | Tooling | refusing XML by searching its bytes needs the encoding pinned first | [tooling.md](rules/tooling.md) |
+| 137 | Tooling | a script that claims a Python floor is run on that floor | [tooling.md](rules/tooling.md) |
+| 138 | Logging | a module's logger is `logging.getLogger(__name__)`, and the module configures nothing | [logging.md](rules/logging.md) |
+| 139 | Log capture | a test captures a package logger through a handler on that logger, not with `caplog.at_level` alone | [logging.md](rules/logging.md) |
+| 140 | Log capture | the logger name in a test comes from the module under test | [logging.md](rules/logging.md) |
+| 141 | Logging | a log record carries identifiers and sizes, never secrets or whole payloads | [logging.md](rules/logging.md) |
+| 142 | Imports | code and tests inside the package import package modules relatively | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
+| 143 | Imports | no `sys.path` edit and no loading of a package file by path, in code or in tests | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
+| 144 | Mocking | patch the module object, at the name the code under test looks up | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
+| 145 | Mocking | a mock of a callable has the real signature | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
+| 146 | Mocking | an absent optional dependency is `sys.modules[name] = None`, set with `monkeypatch` | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
+| 147 | NumPyDoc | only the template's sections, under their exact titles | [numpydocstr.md](rules/numpydocstr.md) |
+| 148 | NumPyDoc | sections in the template's order | [numpydocstr.md](rules/numpydocstr.md) |
+| 149 | NumPyDoc | the documented parameters, returns and yields are the code's, with types | [numpydocstr.md](rules/numpydocstr.md) |
+| 150 | Cross-references | a role on every link, `~.name` for the package's own objects | [numpydocstr.md](rules/numpydocstr.md) |
+| 151 | NumPyDoc | a docstring is checked against the code it describes, also when an assistant wrote it | [numpydocstr.md](rules/numpydocstr.md) |

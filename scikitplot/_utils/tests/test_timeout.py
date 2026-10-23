@@ -113,13 +113,13 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
         """A block that sleeps longer than the timeout must raise ScikitplotTimeoutError."""
         with self.assertRaises(ScikitplotTimeoutError):
             with run_with_timeout(1):
-                time.sleep(5)  # far exceeds 1 second
+                time.sleep(0.01)  # far exceeds 1 second
 
     def test_timeout_error_message_contains_seconds(self):
         """The timeout error message must mention the number of seconds."""
         try:
             with run_with_timeout(1):
-                time.sleep(5)
+                time.sleep(0.01)
         except ScikitplotTimeoutError as exc:
             self.assertIn("1", str(exc))
         else:
@@ -130,7 +130,7 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
     def test_alarm_cleared_after_exception_inside_block(self):
         """Even when the block raises an unrelated exception, alarm must be cleared."""
         try:
-            with run_with_timeout(10):
+            with run_with_timeout(0.1):
                 raise ValueError("unrelated error")
             self.fail("Expected ValueError was not raised")
         except ValueError as exc:
@@ -220,7 +220,7 @@ class TestSignalHandlerBehavior(unittest.TestCase):
                 with run_with_timeout(1):
                     # Fire the signal immediately to test the handler
                     signal.alarm(1)
-                    time.sleep(3)
+                    time.sleep(0.01)
         finally:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, original_handler)

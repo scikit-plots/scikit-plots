@@ -130,9 +130,11 @@ RUN apt-get update \
     curl \
     procps \
     locales \
+    zip \
     unzip \
     jq \
     git \
+    ripgrep \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
   if [ "${VARIANT}" = "devel" ]; then \

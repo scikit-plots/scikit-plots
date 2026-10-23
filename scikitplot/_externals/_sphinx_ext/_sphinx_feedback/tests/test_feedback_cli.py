@@ -124,10 +124,11 @@ def test_check_provider_runs_read_only_lookups_against_each_forge(tmp_path):
     import asyncio  # noqa: PLC0415
 
     import httpx  # noqa: PLC0415
-    from test_forge_providers import BitbucketFake, GitLabFake, Repo  # noqa: PLC0415
 
     from _sphinx_ext._sphinx_feedback._cli import check_targets  # noqa: PLC0415
     from _sphinx_ext._sphinx_feedback._service._config import load_service_config  # noqa: PLC0415
+
+    from .test_forge_providers import BitbucketFake, GitLabFake, Repo  # noqa: PLC0415
 
     gitlab_repo, bitbucket_repo = Repo(), Repo()
     gitlab, bitbucket = GitLabFake(gitlab_repo), BitbucketFake(bitbucket_repo)

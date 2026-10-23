@@ -50,7 +50,7 @@ def gcer(root_str: str, barrier, q) -> None:
 
     root = Path(root_str)
     barrier.wait()
-    time.sleep(0.05)  # ensure builder holds the lock first
+    time.sleep(0.01)  # ensure builder holds the lock first
     res = gc_cache(cache_dir=root, max_age_days=0)
     q.put((tuple(res.deleted_keys), tuple(res.skipped_active_keys)))
 

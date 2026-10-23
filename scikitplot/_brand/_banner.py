@@ -188,7 +188,7 @@ def _figlet_font_dir() -> pathlib.Path:
             capture_output=True,
             text=True,
             check=True,
-            timeout=10,
+            timeout=0.1,
         )
         return pathlib.Path(result.stdout.strip())
     except Exception:  # noqa: BLE001
@@ -314,7 +314,7 @@ def figlet(text: str, font: str, kerning: bool = False) -> str:
             capture_output=True,
             text=True,
             check=True,
-            timeout=10,
+            timeout=0.1,
         )
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or "").strip()

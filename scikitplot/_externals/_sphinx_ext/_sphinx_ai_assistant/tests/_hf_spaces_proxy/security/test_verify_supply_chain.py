@@ -115,13 +115,13 @@ def test_redis_transport_policy_rejects_downgrades_and_forces_verification():
     policy, kwargs = redis_security.redis_connection_kwargs(
         "rediss://user:secret@cache.internal:6380/2",
         require_tls=True,
-        socket_timeout_seconds=99,
+        socket_timeout_seconds=0.1,
     )
     assert policy.tls is True and policy.database == 2
     assert policy.manifest()["transport"] == "tls_verified"
     assert kwargs["ssl_cert_reqs"] == "required"
     assert kwargs["ssl_check_hostname"] is True
-    assert kwargs["socket_timeout"] == 10.0
+    assert kwargs["socket_timeout"] == 0.25
     # Public manifest contains transport facts only, never connection authority.
     assert "cache.internal" not in json.dumps(policy.manifest())
     assert "secret" not in json.dumps(policy.manifest())

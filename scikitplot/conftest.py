@@ -69,6 +69,20 @@ def pytest_configure(config):
             config._skplt_test_gc_policy, _test_floor_budget()
         )
         config.pluginmanager.register(config._skplt_test_cost, "skplt-test-cost")
+    # Under SKPLT_TEST_GC=frozen, in every process that runs tests (xdist
+    # workers too): freeze what survives collection and each module.
+    if config._skplt_test_gc_policy == "frozen" and not config.pluginmanager.has_plugin(
+        "skplt-test-gc-freeze"
+    ):
+        config.pluginmanager.register(_FreezeSurvivors(), "skplt-test-gc-freeze")
+    # Record where the session spends time and memory, one line per test,
+    # when SKPLT_TEST_PERF_DIR names a directory (the coverage workflow sets
+    # it). Off by default, and then nothing is imported or registered: rule 4
+    # of the developer notes below. See scikitplot/_testing/_perf_telemetry.py.
+    if _os.environ.get("SKPLT_TEST_PERF_DIR", "").strip():
+        from ._testing import _perf_telemetry
+
+        _perf_telemetry.register(config)
     try:
         import pytest_timeout  # noqa:F401
     except Exception:
@@ -146,6 +160,11 @@ def pytest_configure(config):
 # * ``scikitplot/tests/test_conftest_gc_policy.py`` pins what each policy
 #   collects, and fails if any ``conftest.py`` of the package calls
 #   ``gc.collect`` by itself.
+#
+# To find *which* test, fixture or file costs the time, record a run with
+# ``SKPLT_TEST_PERF_DIR=<dir>`` (``scikitplot/_testing/_perf_telemetry.py``,
+# an opt-in diagnostic under rule 4) and read it with
+# ``python .github/scripts/ci_test_perf.py report <dir>``.
 
 
 #: Environment variable selecting how often the test session collects garbage.
@@ -158,11 +177,15 @@ SKPLT_TEST_GC_ENV = "SKPLT_TEST_GC"
 #: ``young``
 #:     The default. A young-generation collection after every test and a full
 #:     collection after the last test of each module.
+#: ``frozen``
+#:     ``young``, and every object that survives collection, and then each
+#:     module, is frozen (``gc.freeze``): a full collection walks only what
+#:     the current module created. Opt-in; see :class:`_FreezeSurvivors`.
 #: ``module``
 #:     A full collection after the last test of each module, nothing per test.
 #: ``off``
 #:     No collection beyond the interpreter's own.
-SKPLT_TEST_GC_POLICIES = ("test", "young", "module", "off")
+SKPLT_TEST_GC_POLICIES = ("test", "young", "frozen", "module", "off")
 
 
 def _test_gc_policy():
@@ -206,7 +229,9 @@ def _test_gc_policy():
     measured in the single-job run of 5 October 2026, 531 full collections
     took 403 s, about 0.76 s each, of the 1482 s the tests ran (and the
     22 792 young collections took 1.9 s). ``module`` costs the same and
-    ``off`` removes it; the monitor below prints the total after every run.
+    ``off`` removes it; ``frozen`` keeps what ``young`` collects and skips
+    the objects that outlived earlier modules (:class:`_FreezeSurvivors`).
+    The monitor below prints the total after every run.
     """
     value = _os.environ.get(SKPLT_TEST_GC_ENV, "").strip().lower() or "young"
     if value not in SKPLT_TEST_GC_POLICIES:
@@ -217,11 +242,66 @@ def _test_gc_policy():
     return value
 
 
+class _FreezeSurvivors:
+    """
+    Freeze the objects that survive collection and each test module.
+
+    Notes
+    -----
+    **User notes.** Opt-in with ``SKPLT_TEST_GC=frozen``; the default policy
+    stays ``young``. Measured on 4 134 tests of five submodules (93 test
+    files, CPython 3.11, runs in the order young, frozen, frozen, young on
+    an otherwise idle machine): all full collections took 21.0-21.4 s under
+    ``young`` and 1.1 s under ``frozen``, the session 144-151 s instead of
+    165-172 s, with a lower peak resident memory (373-375 MiB instead of
+    402-403 MiB) and the same outcomes. Compare on your selection with the recorder
+    (``SKPLT_TEST_PERF_DIR``) and ``ci_test_perf.py compare``.
+
+    **Developer notes.** A full collection walks every container object
+    alive; with the scientific stack imported that is millions of objects
+    that no test will release. ``gc.freeze()`` moves them to the permanent
+    generation, which collections skip. It runs after collection (the test
+    modules and what they import) and after the last test of each module has
+    been torn down, module fixtures included (this wrapper runs after
+    pytest's own teardown), so what is frozen is what outlived its module.
+
+    What this gives up, and why it is opt-in:
+
+    * an object frozen at a module boundary that later becomes part of
+      an unreachable cycle is not freed before the session ends (the
+      session's peak memory above did not grow);
+    * ``gc.get_objects()`` and ``gc.get_referrers()`` do not see frozen
+      objects, so a leak hunt across modules needs ``young`` or ``test``.
+
+    Everything is unfrozen when the session ends.
+    """
+
+    def pytest_collection_finish(self, session):
+        _collect_garbage(session.config, 2)
+        _gc.freeze()
+
+    @_pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_teardown(self, item, nextitem):
+        yield
+        if _is_last_test_of_its_module(item, nextitem):
+            _collect_garbage(item.config, 2)
+            _gc.freeze()
+
+    def pytest_unconfigure(self, config):
+        _gc.unfreeze()
+
+
+def _module_of(item):
+    # A doctest item has no ``module``; its parent is the file it came from.
+    module = getattr(item, "module", None)
+    return module if module is not None else getattr(item, "parent", None)
+
+
 def _is_last_test_of_its_module(item, nextitem):
-    """Return True when ``nextitem`` belongs to another module, or is absent."""
+    """Return True when ``nextitem`` belongs to another module or file, or is absent."""
     if nextitem is None:
         return True
-    return getattr(nextitem, "module", None) is not getattr(item, "module", None)
+    return _module_of(nextitem) is not _module_of(item)
 
 
 #: Environment variable holding the most, in seconds, that every test of a
@@ -518,9 +598,11 @@ def pytest_runtest_teardown(item, nextitem):
     if policy == "test":
         _collect_garbage(item.config, 2)
         return
-    if policy == "young":
+    if policy in ("young", "frozen"):
         _collect_garbage(item.config, 1)
-    if policy != "off" and _is_last_test_of_its_module(item, nextitem):
+    # Under "frozen", _FreezeSurvivors collects at the module boundary,
+    # after the module's fixtures are torn down: once, not twice.
+    if policy in ("young", "module") and _is_last_test_of_its_module(item, nextitem):
         _collect_garbage(item.config, 2)
 
 

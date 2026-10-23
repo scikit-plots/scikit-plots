@@ -419,7 +419,7 @@ def test_custom_factory_import_failure_stops_the_service_at_start():
 
 
 def test_github_enterprise_api_url_and_review_host(tmp_path):
-    from test_github_provider import GitHubState  # noqa: PLC0415 - shared fake
+    from .test_github_provider import GitHubState  # noqa: PLC0415 - shared fake
 
     state = GitHubState()
     ghe_pull = "https://ghe.example/org/repo/pull/1"

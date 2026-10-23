@@ -105,7 +105,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-LOGGER = logging.getLogger("autoscout24_tasks")
+logger = logging.getLogger(__name__)
 
 
 def _infer_format(path: str) -> Literal["csv", "parquet"]:
@@ -134,7 +134,7 @@ def savefig(fig, out_dir: Path, name: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     p = out_dir / name
     fig.savefig(p, dpi=150, bbox_inches="tight")
-    LOGGER.info("Saved figure: %s", p)
+    logger.info("Saved figure: %s", p)
 
 
 def eda(df: pd.DataFrame, *, out_dir: Path) -> None:
@@ -238,7 +238,7 @@ def regression_price(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
     pred = pipe.predict(X_te)
 
     mae = mean_absolute_error(y_te, pred)
-    LOGGER.info("Regression(price) MAE=%.4f (test_size=%.2f rows=%d)", mae, test_size, len(y_te))
+    logger.info("Regression(price) MAE=%.4f (test_size=%.2f rows=%d)", mae, test_size, len(y_te))
 
 
 def classification_dealer(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
@@ -271,7 +271,7 @@ def classification_dealer(df: pd.DataFrame, *, test_size: float, seed: int) -> N
     except ValueError:
         auc = float("nan")
 
-    LOGGER.info("Classification(seller_is_dealer) ACC=%.4f AUC=%.4f (test_size=%.2f rows=%d)", acc, auc, test_size, len(y_te))
+    logger.info("Classification(seller_is_dealer) ACC=%.4f AUC=%.4f (test_size=%.2f rows=%d)", acc, auc, test_size, len(y_te))
 
 
 def ann_price(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
@@ -330,7 +330,7 @@ def ann_price(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
     pred = pipe.predict(X_te)
 
     mae = mean_absolute_error(y_te, pred)
-    LOGGER.info("ANN Regression(price) MAE=%.4f (test_size=%.2f rows=%d)", mae, test_size, len(y_te))
+    logger.info("ANN Regression(price) MAE=%.4f (test_size=%.2f rows=%d)", mae, test_size, len(y_te))
 
 
 def nlp_dealer(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
@@ -370,7 +370,7 @@ def nlp_dealer(df: pd.DataFrame, *, test_size: float, seed: int) -> None:
     acc = accuracy_score(y_te, pred)
     auc = roc_auc_score(y_te, proba) if y_te.nunique() > 1 else float("nan")
 
-    LOGGER.info("NLP Classification(dealer) ACC=%.4f AUC=%.4f (rows=%d)", acc, auc, len(y_te))
+    logger.info("NLP Classification(dealer) ACC=%.4f AUC=%.4f (rows=%d)", acc, auc, len(y_te))
 
 
 def rag_demo(df: pd.DataFrame, *, query: str, top_k: int = 5) -> None:
@@ -432,9 +432,9 @@ def rag_demo(df: pd.DataFrame, *, query: str, top_k: int = 5) -> None:
     q = np.asarray(q, dtype="float32")
     scores, idx = index.search(q, top_k)
 
-    LOGGER.info("RAG query=%r top_k=%d", query, top_k)
+    logger.info("RAG query=%r top_k=%d", query, top_k)
     for rank, (i, s) in enumerate(zip(idx[0], scores[0]), start=1):
-        LOGGER.info("#%d score=%.4f id=%s doc=%s", rank, float(s), ids[int(i)], docs[int(i)][:240].replace("\n", " "))
+        logger.info("#%d score=%.4f id=%s doc=%s", rank, float(s), ids[int(i)], docs[int(i)][:240].replace("\n", " "))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -466,7 +466,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     df = load_data(str(args.data))
-    LOGGER.info("Loaded rows=%d cols=%d from %s", len(df), df.shape[1], args.data)
+    logger.info("Loaded rows=%d cols=%d from %s", len(df), df.shape[1], args.data)
 
     out_dir = Path(args.out_dir)
 

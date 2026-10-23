@@ -397,13 +397,13 @@ class TestWebDownloader:
         with patch("scikitplot.corpus._url_handler.download_url", return_value=fake) as m:
             dl = WebDownloader(
                 "https://example.com/paper.pdf",
-                output_path=tmp_dir, timeout=60.0, max_bytes=9999,
+                output_path=tmp_dir, timeout=0.01, max_bytes=9999,
                 max_redirects=3, max_retries=0, retry_backoff=0.5,
             )
             result = dl.download()
         m.assert_called_once_with(
             "https://example.com/paper.pdf",
-            output_path=tmp_dir, max_bytes=9999, timeout=60,
+            output_path=tmp_dir, max_bytes=9999, timeout=0.01,
             max_redirects=3, max_retries=0, retry_backoff=0.5,
             skip_ssrf_check=False,
         )
@@ -772,19 +772,19 @@ class TestAnyDownloaderValidation:
         assert dl._param_list("timeout", _DEFAULT_TIMEOUT) == [_DEFAULT_TIMEOUT]
 
     def test_timeout_scalar_broadcast(self) -> None:
-        dl = AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=60.0)
-        assert dl._param_list("timeout", _DEFAULT_TIMEOUT) == [60.0, 60.0]
+        dl = AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=0.01)
+        assert dl._param_list("timeout", _DEFAULT_TIMEOUT) == [0.01, 0.01]
 
     def test_timeout_per_url_list(self) -> None:
         dl = AnyDownloader(
             ["https://a.com/f", "https://b.com/g", "https://c.com/h"],
-            timeout=[10.0, 20.0, 30.0],
+            timeout=[0.01, 0.02, 0.03],
         )
-        assert dl._param_list("timeout", _DEFAULT_TIMEOUT) == [10.0, 20.0, 30.0]
+        assert dl._param_list("timeout", _DEFAULT_TIMEOUT) == [0.01, 0.02, 0.03]
 
     def test_timeout_wrong_length_raises(self) -> None:
         with pytest.raises(ValueError, match="list length"):
-            AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=[10.0])
+            AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=[1.0])
 
     def test_timeout_zero_raises(self) -> None:
         with pytest.raises(ValueError, match="timeout"):
@@ -792,7 +792,7 @@ class TestAnyDownloaderValidation:
 
     def test_timeout_list_with_zero_raises(self) -> None:
         with pytest.raises(ValueError, match="timeout"):
-            AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=[30.0, 0])
+            AnyDownloader(["https://a.com/f", "https://b.com/g"], timeout=[3.0, 0])
 
     # ── max_bytes: int | list[int] | None ────────────────────────────────
 
@@ -1047,12 +1047,12 @@ class TestAnyDownloaderRouting:
     def test_per_url_timeout_forwarded(self, tmp_dir: Path) -> None:
         dl = AnyDownloader(
             ["https://a.com/f.pdf", "https://b.com/g.pdf"],
-            timeout=[10.0, 90.0], output_path=tmp_dir,
+            timeout=[0.01, 0.02], output_path=tmp_dir,
         )
         s0 = dl._build_specialist(0)
         s1 = dl._build_specialist(1)
-        assert s0.timeout == 10.0
-        assert s1.timeout == 90.0
+        assert s0.timeout == 0.01
+        assert s1.timeout == 0.02
 
     def test_security_params_forwarded(self, tmp_dir: Path) -> None:
         dl = AnyDownloader(
@@ -1208,9 +1208,9 @@ class TestCustomDownloader:
             return out
 
         CustomDownloader(
-            input_url="https://example.com/f", handler=handler, output_path=tmp_dir, timeout=99.0
+            input_url="https://example.com/f", handler=handler, output_path=tmp_dir, timeout=0.01
         ).download()
-        assert captured["timeout"] == 99.0
+        assert captured["timeout"] == 0.01
 
     def test_handler_kwargs_timeout_not_overridden(self, tmp_dir: Path) -> None:
         """handler_kwargs timeout takes priority (setdefault semantics)."""
@@ -1225,11 +1225,11 @@ class TestCustomDownloader:
         CustomDownloader(
             input_url="https://example.com/f",
             handler=handler,
-            handler_kwargs={"timeout": 42},
+            handler_kwargs={"timeout": 0.01},
             output_path=tmp_dir,
             timeout=30.0,
         ).download()
-        assert captured["timeout"] == 42
+        assert captured["timeout"] == 0.01
 
     def test_custom_handler_receives_security_policy_kwargs(self, tmp_dir: Path) -> None:
         captured: dict = {}

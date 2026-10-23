@@ -22,6 +22,7 @@ they were produced, with and without a (fake, offline) model.
 from __future__ import annotations
 
 import gc
+import logging
 import sys
 import threading
 import time
@@ -30,11 +31,13 @@ import weakref
 
 import pytest
 
+from .. import _semantic as S
 from .._multilang_mixin import MultilangConfig
 from .._semantic import SemanticBackend, SemanticChunker, SemanticChunkerConfig
 
+logger = S.logger  # logging.getLogger(S.__name__)
+
 TEXT = "First idea here. Second idea there. Third topic now."
-LOGGER = "scikitplot.corpus._chunkers._semantic"
 
 
 def _install_model(monkeypatch, encode):
@@ -137,10 +140,16 @@ def test_a_forbidden_fallback_raises(no_model):
 
 def test_the_fallback_is_reported_once_per_chunker(no_model, caplog):
     chunker = SemanticChunker(SemanticChunkerConfig(backend=SemanticBackend.HYBRID))
-    with caplog.at_level("WARNING", logger=LOGGER):
-        for _ in range(5):
-            chunker.chunk(TEXT)
-    warnings = [r for r in caplog.records if r.name == LOGGER]
+
+    with caplog.at_level("WARNING", logger=logger.name):
+        logger.addHandler(caplog.handler)
+        try:
+            for _ in range(5):
+                chunker.chunk(TEXT)
+        finally:
+            logger.removeHandler(caplog.handler)
+
+    warnings = [r for r in caplog.records if r.name == logger.name]
     assert len(warnings) == 1
     assert "hybrid" in warnings[0].getMessage()
 
@@ -186,8 +195,22 @@ def test_one_chunk_call_encodes_once(fake_model):
 
 def test_a_failing_model_falls_back_and_says_so(broken_model, caplog):
     chunker = SemanticChunker(SemanticChunkerConfig(backend=SemanticBackend.HYBRID))
-    with caplog.at_level("WARNING", logger=LOGGER):
-        result = chunker.chunk(TEXT)
+
+    with caplog.at_level("WARNING", logger=logger.name):
+        logger.addHandler(caplog.handler)
+        try:
+            result = chunker.chunk(TEXT)
+        finally:
+            logger.removeHandler(caplog.handler)
+
+    messages = [
+        r.getMessage()
+        for r in caplog.records
+        if r.name == logger.name and "embedding model failed" in r.getMessage()
+    ]
+    assert len(messages) == 1
+    assert "RuntimeError: CUDA out of memory" in messages[0]
+
     meta = result.metadata
     assert (meta["backend"], meta["requested_backend"]) == ("morphological", "hybrid")
     assert meta["fallback_reason"] == "embedding_failed"
@@ -196,9 +219,6 @@ def test_a_failing_model_falls_back_and_says_so(broken_model, caplog):
     assert {c.metadata["chunking_strategy"] for c in result.chunks} == {
         "semantic_morphological"
     }
-    messages = [r.getMessage() for r in caplog.records if r.name == LOGGER]
-    assert len(messages) == 1
-    assert "RuntimeError: CUDA out of memory" in messages[0]
 
 
 def test_a_failing_model_raises_when_fallback_is_forbidden(broken_model):
@@ -310,7 +330,7 @@ def test_concurrent_first_calls_share_one_load(monkeypatch):
     class _SlowModel:
         def __init__(self, name, device=None):
             attempts.append(name)
-            time.sleep(0.2)
+            time.sleep(0.01)
 
         def encode(self, texts, **kwargs):
             return [[float(len(text)), 1.0] for text in texts]

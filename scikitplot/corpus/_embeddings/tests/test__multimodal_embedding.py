@@ -53,8 +53,6 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-# from ...conftest import captured_logger
-
 from .._multimodal_embedding import (
     DEFAULT_AUDIO_MODEL,
     DEFAULT_IMAGE_MODEL,
@@ -597,8 +595,8 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             out = e.embed_documents(
                 [_Doc("", modality="image", raw_tensor=None)]
@@ -623,8 +621,8 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             out = e.embed_documents(
                 [_Doc("", modality="audio", raw_tensor=None)]
@@ -649,8 +647,8 @@ class TestMultimodalEmbeddingEngineEmbedDocuments:
             "scikitplot.corpus._embeddings._multimodal_embedding"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             out = e.embed_documents(
                 [_Doc("", modality="video", raw_tensor=None)]

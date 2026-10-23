@@ -19,7 +19,7 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 from sphinx import addnodes
 from sphinx.errors import ConfigError
-from sphinx.util import logging as sphinx_logging
+from sphinx.util import logging as logging_sphinx
 from sphinx.util.docutils import SphinxDirective
 
 from .._search_variant import SEARCH_VARIANTS
@@ -35,6 +35,8 @@ from ._schema import (
     LearnValidationError,
 )
 
+logger_sphinx = logging_sphinx.getLogger(__name__)
+
 _MAX_DOMAINS = 100
 _MAX_SECTIONS = 32
 _PRESET_FIELDS = 2
@@ -45,9 +47,7 @@ _AI_LEARN_BUTTONS_RATINGS_DEFAULT = {
     "left_button_rating": "left",
     "right_button_rating": "right",
 }
-
 _ASSETS = Path(__file__).parent / "_static"
-_LOGGER = sphinx_logging.getLogger(__name__)
 _ENV_SCHEMA_REVISION = "learn-json-materializer-v3"
 _ENV_VERSION = 1
 
@@ -358,7 +358,7 @@ def _configure(  # ruff: ignore[too-many-branches]
     app._ai_learn_feedback_digests = tree.feedback_digests
     app._ai_learn_content_digest = tree.content_digest
     app._ai_learn_tree_digest = tree.digest
-    _LOGGER.info(
+    logger_sphinx.info(
         "AI Learn: materialized %d canonical JSON files into RST (%d changed); revision %s",
         len(tree.source_digests),
         len(changed),

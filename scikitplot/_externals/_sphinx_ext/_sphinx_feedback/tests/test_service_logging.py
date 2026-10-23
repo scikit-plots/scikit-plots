@@ -8,16 +8,21 @@ import logging
 
 import pytest
 
-from _sphinx_ext._sphinx_feedback._contracts import (
+from .._contracts import (
     FeedbackConflictError,
     FeedbackValidationError,
 )
-from _sphinx_ext._sphinx_feedback._service._config import load_service_config
-from _sphinx_ext._sphinx_feedback._service._core import PageFeedbackService
+from .._service._config import load_service_config
+from .._service._core import PageFeedbackService
+
+
+# scikitplot/_externals/_sphinx_ext/_sphinx_feedback/tests/test_service_logging.py
+# logger = __import__("logging").getLogger(__name__)
+LOGGER_NAME = __name__.rsplit(r".", 2)[0]
+logger = logging.getLogger(LOGGER_NAME)
 
 COMMENT = "PRIVATE-COMMENT-TEXT"
 CREDIT = "Private Credit Name"
-LOGGER = "sphinx_feedback.service"
 
 
 def request(rating=1):
@@ -42,7 +47,7 @@ def _everything(records) -> str:
 
 
 def test_outcomes_are_logged_without_comment_or_credit(tmp_path, caplog):
-    caplog.set_level(logging.DEBUG, logger=LOGGER)
+    caplog.set_level(logging.DEBUG, logger=LOGGER_NAME)
     service = PageFeedbackService(
         load_service_config(
             {
@@ -85,7 +90,7 @@ def test_failure_detail_stays_at_debug(monkeypatch, caplog):
             {"FEEDBACK_REVIEW_MODE": "custom", "FEEDBACK_STORAGE_TARGETS": json.dumps(targets)}
         )
     )
-    caplog.set_level(logging.INFO, logger=LOGGER)
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
     with pytest.raises(Exception):  # noqa: B017,PT011 - asserted via the log below
         asyncio.run(service.submit(request()))
     assert caplog.records[-1].feedback["code"] == "custom_provider_failed"

@@ -257,7 +257,9 @@ RUN apt-get update --yes; \
     ## Git and related tools — needed even in runtime for `pip install git+…`
     git \
     git-lfs \
+    ripgrep \
     ## Archive utilities (bzip2 also needed to extract the micromamba executable)
+    zip \
     bzip2 \
     gzip \
     p7zip-full \

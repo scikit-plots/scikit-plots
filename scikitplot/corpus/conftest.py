@@ -28,17 +28,27 @@ import logging
 # with @contextmanager is deprecated. You should use Generator[Foo, None, None] instead.
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Generator
+from typing import TYPE_CHECKING, Generator  # noqa: F401
 
 import pytest
 
+# scikitplot/corpus/conftest.py
+# logger = __import__("logging").getLogger(__name__)
+# LOGGER_NAME = __name__.rsplit(r".", 1)[0]
+# logger = logging.getLogger(LOGGER_NAME)
+
+
 # → dedicated _helpers.py / testing module rather than relying on conftest import
 # Make captured_logger a pytest fixture factory.
-# Then every descendant test can request it automatically by name;
+# Then every descendant test can request it automatically by logger name;
 # no `from ..conftest import captured_logger` imports are needed.
-#
+
 # @contextmanager
-# def captured_logger(caplog, name: str, level: int = logging.WARNING):
+# def captured_logger(
+#     caplog,
+#     level: int | str = logging.WARNING,
+#     logger: str | None = None,
+# ):
 #     """
 #     Capture one named logger through exactly one handler path.
 #
@@ -46,10 +56,10 @@ import pytest
 #     ----------
 #     caplog : pytest.LogCaptureFixture
 #         The ``caplog`` fixture from the calling test.
-#     name : str
-#         Dotted name of the logger to capture.
-#     level : int, optional
+#     level : int | str, optional
 #         Level to capture at. Default :data:`logging.WARNING`.
+#     logger : str or None, optional
+#         Dotted name of the logger to capture.
 #
 #     Yields
 #     ------
@@ -71,25 +81,26 @@ import pytest
 #     >>> [r.getMessage() for r in caplog.records]  # doctest: +SKIP
 #     ['fell back to the default']
 #     """
-#     logger = logging.getLogger(name)
+#     logger_name = logger
+#     logger = logging.getLogger(logger_name)
 #     previous_propagate = logger.propagate
 #     logger.addHandler(caplog.handler)
 #     logger.propagate = False
 #     try:
 #         caplog.clear()
-#         with caplog.at_level(level, logger=name):
+#         with caplog.at_level(level=level, logger=logger_name):
 #             yield logger
 #     finally:
 #         logger.propagate = previous_propagate
 #         logger.removeHandler(caplog.handler)
-#
+
 #                    ┌─────────────┐
 #                    │ same caplog │
 #                    └──────┬──────┘
 #                           │
 #                ┌──────────┴──────────┐
 #                ↓                     ↓
-# test_x(caplog,            captured_logger(name, level)
+# test_x(caplog,            captured_logger(level, logger)
 #     captured_logger)                   │
 #                                        ↓
 #                                     _capture()
@@ -108,7 +119,7 @@ import pytest
 #        │                 │                  │
 #        ↓                 ↓                  ↓
 #   request it         request it          request it
-#   by name            by name             by name
+#   by logger name     by logger name      by logger name
 #
 #               NO IMPORTS
 #
@@ -142,9 +153,8 @@ def _library_default_log_level():
     the condition a user starts from. A test about the audit trail asks for
     the level it needs, as an application would, and gets it back here.
     """
-    import logging
-
-    logger = logging.getLogger("scikitplot.corpus")
+    logger_name = __name__.rsplit(r".", 1)[0]
+    logger = logging.getLogger(logger_name)
     previous = logger.level
     logger.setLevel(logging.WARNING)
     try:
@@ -158,21 +168,21 @@ def captured_logger(
     caplog: pytest.LogCaptureFixture,
 ):
     """Return a context-manager factory for capturing one named logger."""
+    logger_name = __name__.rsplit(r".", 1)[0]
 
     @contextmanager
     def _capture(
-        name: str,
-        level: int = logging.WARNING,
+        level: int | str = logging.WARNING,
+        logger: str | None = logger_name,
     ) -> Generator[logging.Logger, None, None]:  # Iterator[logging.Logger]
-        logger = logging.getLogger(name)
+        logger_name = logger
+        logger = logging.getLogger(logger_name)
         previous_propagate = logger.propagate
-
         logger.addHandler(caplog.handler)
         logger.propagate = False
-
         try:
             caplog.clear()
-            with caplog.at_level(level, logger=name):
+            with caplog.at_level(level=level, logger=logger_name):
                 yield logger
         finally:
             logger.propagate = previous_propagate

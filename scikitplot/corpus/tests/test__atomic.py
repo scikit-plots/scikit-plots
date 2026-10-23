@@ -25,10 +25,16 @@ import multiprocessing as mp
 import os
 import pathlib
 import stat
+import errno
+import logging
+import time
 
 import pytest
 
-from scikitplot.corpus._atomic import atomic_write_bytes, atomic_write_path
+from .. import _atomic
+from .._atomic import atomic_write_bytes, atomic_write_path
+
+logger = _atomic.logger  # logging.getLogger(_atomic.__name__)
 
 
 # Top-level so multiprocessing can pickle it under spawn or fork.
@@ -100,7 +106,11 @@ class TestAtomicWritePath:
         assert (t / "payload").read_text(encoding="utf-8") == "ok"
 
     def test_a_directory_is_published_where_one_cannot_be_opened(
-        self, tmp_path: pathlib.Path, monkeypatch, caplog
+        self,
+        tmp_path: pathlib.Path,
+        monkeypatch,
+        caplog: pytest.LogCaptureFixture,
+        captured_logger,
     ) -> None:
         """
         Windows refuses to open a directory; that must not fail the publication.
@@ -110,12 +120,6 @@ class TestAtomicWritePath:
         file made every artifact publication fail on Windows with
         "Permission denied".
         """
-        import errno
-        import logging
-        import os
-
-        import scikitplot.corpus._atomic as mod
-
         real_open = os.open
 
         def _open(path, flags, *args, **kwargs):
@@ -123,7 +127,7 @@ class TestAtomicWritePath:
                 raise PermissionError(errno.EACCES, "Permission denied", os.fspath(path))
             return real_open(path, flags, *args, **kwargs)
 
-        monkeypatch.setattr(mod.os, "open", _open)
+        monkeypatch.setattr(os, "open", _open)
         t = tmp_path / "generation"
 
         def _directory(p: pathlib.Path) -> None:
@@ -131,8 +135,12 @@ class TestAtomicWritePath:
             p.mkdir()
             (p / "payload").write_text("ok", encoding="utf-8")
 
-        with caplog.at_level(logging.WARNING):
+        with captured_logger(
+            logging.WARNING,
+            logger.name,
+        ):
             atomic_write_path(t, _directory)
+
         assert (t / "payload").read_text(encoding="utf-8") == "ok"
         assert any("durability downgraded" in r.getMessage() for r in caplog.records)
 
@@ -140,11 +148,6 @@ class TestAtomicWritePath:
         self, tmp_path: pathlib.Path, monkeypatch
     ) -> None:
         """The tolerance is for directories only: a file's EACCES is a real failure."""
-        import errno
-        import os
-
-        import scikitplot.corpus._atomic as mod
-
         real_open = os.open
 
         def _open(path, flags, *args, **kwargs):
@@ -152,24 +155,22 @@ class TestAtomicWritePath:
                 raise PermissionError(errno.EACCES, "Permission denied", os.fspath(path))
             return real_open(path, flags, *args, **kwargs)
 
-        monkeypatch.setattr(mod.os, "open", _open)
+        monkeypatch.setattr(os, "open", _open)
         t = tmp_path / "file.bin"
         with pytest.raises(PermissionError):
             atomic_write_path(t, lambda p: p.write_bytes(b"x"))
         assert not t.exists()
 
     def test_unique_staging_names(self, tmp_path: pathlib.Path, monkeypatch) -> None:
-        import scikitplot.corpus._atomic as mod
-
         seen: list[str] = []
-        orig = mod._create_staging_file
+        orig = _atomic._create_staging_file
 
         def _spy(*a, **k):
             path = orig(*a, **k)
             seen.append(str(path))
             return path
 
-        monkeypatch.setattr(mod, "_create_staging_file", _spy)
+        monkeypatch.setattr(_atomic, "_create_staging_file", _spy)
         t = tmp_path / "same.bin"
         atomic_write_bytes(t, b"a")
         atomic_write_bytes(t, b"b")
@@ -204,8 +205,6 @@ class TestRefusedReplace:
     @pytest.fixture
     def refusals(self, monkeypatch):
         """Make ``os.replace`` refuse a set number of times; record the pauses."""
-        from .. import _atomic
-
         state = {"refuse": 0, "calls": 0, "pauses": []}
         real = os.replace
 
@@ -215,8 +214,8 @@ class TestRefusedReplace:
                 raise PermissionError(13, "Access is denied", str(source))
             return real(source, target)
 
-        monkeypatch.setattr(_atomic.os, "replace", replace)
-        monkeypatch.setattr(_atomic.time, "sleep", state["pauses"].append)
+        monkeypatch.setattr(os, "replace", replace)
+        monkeypatch.setattr(time, "sleep", state["pauses"].append)
         return state
 
     def test_a_transient_refusal_is_repeated_where_the_platform_has_them(
@@ -236,8 +235,6 @@ class TestRefusedReplace:
     def test_a_lasting_refusal_is_raised_and_leaves_the_old_file(
         self, tmp_path, monkeypatch, refusals
     ):
-        from .. import _atomic
-
         monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", True)
         target = tmp_path / "t.bin"
         target.write_bytes(b"old")
@@ -251,8 +248,6 @@ class TestRefusedReplace:
     def test_no_repetition_where_the_platform_has_no_such_refusal(
         self, tmp_path, monkeypatch, refusals
     ):
-        from .. import _atomic
-
         monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", False)
         refusals["refuse"] = 1
         with pytest.raises(PermissionError):
@@ -260,8 +255,6 @@ class TestRefusedReplace:
         assert refusals["calls"] == 1 and refusals["pauses"] == []
 
     def test_another_error_is_never_repeated(self, tmp_path, monkeypatch):
-        from .. import _atomic
-
         calls = []
 
         def replace(source, target):
@@ -269,14 +262,12 @@ class TestRefusedReplace:
             raise OSError(28, "No space left on device")
 
         monkeypatch.setattr(_atomic, "_RETRY_REFUSED_REPLACE", True)
-        monkeypatch.setattr(_atomic.os, "replace", replace)
+        monkeypatch.setattr(os, "replace", replace)
         with pytest.raises(OSError, match="No space"):
             _atomic.atomic_write_bytes(tmp_path / "t.bin", b"new")
         assert len(calls) == 1
 
     def test_the_pauses_are_bounded(self):
-        from .. import _atomic
-
         assert all(pause > 0 for pause in _atomic._REPLACE_PAUSES)
         assert sum(_atomic._REPLACE_PAUSES) <= 2.0
 
