@@ -199,6 +199,7 @@
     - "maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
     - "skills/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
     - "docs/source/user_guide/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
+    - "upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._externals._sphinx_ext._sphinx_ai_assistant/**/*"
 
 "scikitplot/_sphinx_ext/_sphinx_ai_learn":
@@ -286,6 +287,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/_utils/**/*"
+    - "upcoming_changes/scikitplot/_utils/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot._utils/**/*"
 
 "scikitplot/agent":
