@@ -41,10 +41,11 @@ repos:
           - tomli
         exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
           (?x)(
-            ^scikitplot/_core/ |  # exclude folder
-            ^tests/data/ |        # exclude test data folder
-            \.svg$ |              # exclude all .svg files
-            \.lock$               # exclude lock files
+            ^scikitplot/_core/ |                       # exclude folder
+            ^scikitplot/cexternals/_numcpp/include/ |
+            ^tests/data/ |                             # exclude test data folder
+            \.svg$ |                                   # exclude all .svg files
+            \.lock$                                    # exclude lock files
           )
 
   # Optional: Custom Hook for RST Errors and Unicode Replacement

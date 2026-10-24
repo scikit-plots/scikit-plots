@@ -201,7 +201,7 @@ class TestModuleDir:
 
 
 class TestIsJupyterNotebook:
-    """All seven code paths for ``_is_jupyter_notebook``."""
+    """Every code path of ``_is_jupyter_notebook``."""
 
     def test_jpy_parent_pid_env_var(self, monkeypatch):
         monkeypatch.setenv("JPY_PARENT_PID", "12345")
@@ -256,6 +256,29 @@ class TestIsJupyterNotebook:
         mock_ipython.get_ipython.return_value = ip
         with patch.dict(sys.modules, {"IPython": mock_ipython}):
             assert splog._is_jupyter_notebook() is True
+
+    def test_a_zmq_shell_is_a_notebook(self, monkeypatch):
+        monkeypatch.delenv("JPY_PARENT_PID", raising=False)
+        monkeypatch.delitem(sys.modules, "ipykernel", raising=False)
+        zmq_shell = type("ZMQInteractiveShell", (), {"config": None})()
+        mock_ipython = MagicMock()
+        mock_ipython.get_ipython.return_value = zmq_shell
+        with patch.dict(sys.modules, {"IPython": mock_ipython}):
+            assert splog._is_jupyter_notebook() is True
+
+    def test_a_terminal_shell_is_not_a_notebook(self, monkeypatch):
+        # get_ipython itself has no kernel configuration: the shell it
+        # returns is what is inspected (the function used to read the
+        # attribute of get_ipython, so this test passed for a wrong reason).
+        monkeypatch.delenv("JPY_PARENT_PID", raising=False)
+        monkeypatch.delitem(sys.modules, "ipykernel", raising=False)
+        config = {"TerminalIPythonApp": {}}
+        terminal_shell = type("TerminalInteractiveShell", (), {"config": config})()
+        mock_ipython = MagicMock()
+        mock_ipython.get_ipython.return_value = terminal_shell
+        with patch.dict(sys.modules, {"IPython": mock_ipython}):
+            assert splog._is_jupyter_notebook() is False
+        mock_ipython.get_ipython.assert_called_once_with()
 
     def test_get_ipython_raises_exception(self, monkeypatch):
         monkeypatch.delenv("JPY_PARENT_PID", raising=False)

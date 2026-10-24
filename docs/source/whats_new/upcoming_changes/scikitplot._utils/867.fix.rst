@@ -1,0 +1,4 @@
+- ``run_with_timeout`` accepts fractional seconds (``run_with_timeout(0.5)``
+  raised ``TypeError``), refuses a limit that is not a finite number above
+  zero, refuses to cancel a real-time timer already armed in the process, and
+  puts back the ``SIGALRM`` handler it replaced

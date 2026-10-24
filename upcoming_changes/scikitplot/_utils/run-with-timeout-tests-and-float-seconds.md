@@ -1,13 +1,13 @@
 ---
 title: "run_with_timeout rejects fractional seconds, and three of its tests expect a timeout that cannot happen"
-status: open
+status: promoted
 kind: "reliability"
 area: "scikitplot/_utils (timeout.py)"
 discovered_during: "TP-1, the garbage-collection measurements over scikitplot/_utils, 2026-10-23"
 release_note: "unknown"
-towncrier_section: "unknown"
+towncrier_section: "scikitplot._utils"
 towncrier_type: "fix"
-towncrier_fragment: ""
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot._utils/867.fix.rst"
 ---
 
 # run_with_timeout rejects fractional seconds, and three of its tests expect a timeout that cannot happen
@@ -58,3 +58,12 @@ and macOS; on Windows the tests are skipped as the function refuses.
 ## Release-note promotion
 
 A `fix` fragment if fractional seconds become supported.
+
+## Resolution (2026-10-24, TF-1 step 2)
+
+`signal.setitimer(ITIMER_REAL)` replaces `signal.alarm`, so fractions work; a
+limit that is not a finite number above 0 is a `TypeError`/`ValueError`; an
+already armed timer is refused (`RuntimeError`) instead of being cancelled;
+the previous `SIGALRM` handler is put back. The tests block 30 s against a
+0.05 s limit (Rule 156) and patch `is_windows` on the module object (Rule
+144): 26 passed under pytest 9.0.3 and 9.1.1.

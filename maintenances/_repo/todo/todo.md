@@ -282,9 +282,8 @@ the record planes themselves. Completed tasks are archived verbatim under
   numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
   assertions). One submodule per session; a session starts here
   and needs no earlier chat.
-- State on 2026-10-24: steps 0, 1, 1b done; Rules 139 amended, 154 and 155
-  added; records check `ok rules` (router and archives failures
-  pre-existing).
+- State on 2026-10-24: steps 0-3 done; Rule 139 amended, 154-157 added;
+  records check `ok rules` (router and archives failures pre-existing).
 
 ### Known failures and their causes
 - Fixed (steps 1, 1b): log capture that depended on the pytest release
@@ -303,18 +302,23 @@ the record planes themselves. Completed tasks are archived verbatim under
 - Fixed: CodeQL alerts 231, 232 (`actions/cache-poisoning/poisonable-step`,
   PR 867): `ci_performance.yml` built `inputs.base_ref`, any ref, with a pip
   cache; the base is now a commit of the default branch (Rule 155).
-- `logging/tests/test__logging.py:250` (`test_get_ipython_config_has_kernel_app`)
-  fails on the uploaded tree too (9.0.3, 9.1.1); cause not yet analysed.
+- Fixed (steps 2, 3; verify run 40090107726): timeout tests whose blocked side
+  slept 0.01 s against a 0.1-1 s limit (Rule 156): `_utils/tests/test_timeout.py`
+  (3; `run_with_timeout` also took whole seconds only, now `setitimer`),
+  `cleanprompt/tests/test__bridge.py` (2), `test__patterns.py` (1),
+  `cython/tests/test__budget.py` (1). `logging/_logging.py:_is_jupyter_notebook`
+  read `get_ipython.config` instead of calling it (`test__logging.py:250`).
+  `_sphinx_feedback/tests/test_service_logging.py`: the depth-derived logger
+  name was not the service's (`"sphinx_feedback.service"`), so its INFO
+  records were kept only under a pytest.ini (Rule 140).
+  `_utils/tests/test__export.py:92`: a function as a subtest parameter
+  failed pytest 9.0 with xdist (Rule 157).
 - Hand-attached captures still passing: `corpus/tests/test__atomic_durability.py`,
   `test__backends_discarded_options.py`, `_chunkers/tests/test__notices_and_scripts.py`,
   and 8 files outside corpus (step 5).
 - Environment-only here: `corpus/_readers/tests/test__web.py` and
   `corpus/tests/test__url_and_archive_handler.py` (`TestDownloadUrlRetry`)
   need DNS; 46 `_sphinx_ext` modules need optional packages at collection.
-- `scikitplot/_utils/tests/test_timeout.py`: 4 failures, `signal.alarm(0.1)`
-  raises `TypeError` (the function takes whole seconds); see
-  `upcoming_changes/scikitplot/_utils/run-with-timeout-tests-and-float-seconds.md`.
-- cleanprompt: 3 timeout tests fail (cause not yet analysed).
 - `scikitplot/_externals/_sphinx_ext`: `sys.path` edits and loads by path
   in tests (Rule 143); one file executed 29 times per session.
 
@@ -327,8 +331,9 @@ the record planes themselves. Completed tasks are archived verbatim under
   unchanged.
 - [x] 1. annoy: tests (Rules 139, 140, 142, 144, 153), then the benchmarks.
 - [x] 1b. corpus: the Rule 139 failures above; with the CodeQL fix.
-- [ ] 2. `_utils` timeout (fractional seconds, Rule 149 for the docstring).
-- [ ] 3. cleanprompt timeout tests.
+- [x] 2. `_utils` timeout (fractional seconds, Rule 149 for the docstring).
+- [x] 3. cleanprompt timeout tests; with cython's, the notebook check and the
+  feedback log test (all from verify run 40090107726).
 - [ ] 4. `_sphinx_ext`: remove `sys.path` edits and path loads (Rule 143),
   submodule by submodule.
 - [ ] 5. Remaining submodules' Rule 139/142/144 violations, when their tests
@@ -355,7 +360,8 @@ the record planes themselves. Completed tasks are archived verbatim under
 - `sanitize_log_message` docstring writes a doubled backslash inside
   `r"""` (Rule 48).
 - `scikitplot/_cli/logging.py` uses `getLogger("scikitplot")` (allowed by
-  Rule 138 for CLI entry points).
+  Rule 138 for CLI entry points); `_sphinx_feedback/_service/_core.py` names
+  its logger `"sphinx_feedback.service"` (deployments may configure it).
 - `annoy/_mixins/_meta.py` imports `typing_extensions`, a runtime
   dependency of `scikit-plots-annoy` but not of the full `scikit-plots`.
 - `meson.build:1384` computes the NumPy include path relative to `tools/`
@@ -384,4 +390,10 @@ the record planes themselves. Completed tasks are archived verbatim under
   lines, codespell, numpydoc, ASCII: clean.
 - Deviation: one `git stash` during the first bench-pair run (Rule 22); the
   pair was re-run after the last edit.
-- Not verified: a dispatch of the changed workflow on GitHub.
+- Steps 2-3 (both pytest versions, repository and verify-harness mode,
+  `--pyargs` from an empty directory without pytest.ini): `test_timeout.py` 26,
+  `test__budget.py` 10, `test__bridge.py` 36, `test__patterns.py` 241,
+  `scikitplot/logging` 202 (also Python 3.8), `test_service_logging.py` 2
+  passed; the feedback failure reproduced in harness mode before the fix.
+- Not verified: a dispatch of the changed workflow on GitHub; the verify
+  harness itself (wheels) was not run here.

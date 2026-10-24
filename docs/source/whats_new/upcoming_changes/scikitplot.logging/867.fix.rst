@@ -1,0 +1,4 @@
+- The notebook check behind the default log stream calls
+  ``IPython.get_ipython()`` and inspects the shell it returns; it read an
+  attribute of the function instead, so a running Jupyter kernel without
+  ``JPY_PARENT_PID`` or a loaded ``ipykernel`` was taken for a terminal

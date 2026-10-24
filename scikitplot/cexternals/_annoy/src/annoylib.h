@@ -139,7 +139,7 @@
  * )
  *
  * HammingWrapper(
- *     f = 0,                      // Same as AnnoyIndex for metric "hamming" wraper
+ *     f = 0,                      // Same as AnnoyIndex for metric "hamming" wrapper
  *     *,                          // Keyword-only args below
  *     n_trees = -1,
  *     n_neighbors = 5,

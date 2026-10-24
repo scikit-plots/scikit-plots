@@ -143,7 +143,8 @@ class TestNoCatastrophicBacktracking:
         """The deadline itself: a child that does not finish is killed."""
         started = time.monotonic()
         with pytest.raises(AssertionError, match="still running after"):
-            in_subprocess("import time\ntime.sleep(0.01)\n", timeout=1.0)
+            # The child must outlast the deadline by far; it is killed at 1 s.
+            in_subprocess("import time\ntime.sleep(60)\n", timeout=1.0)
         assert time.monotonic() - started < 20
 
     def test_no_test_id_carries_a_payload(self):

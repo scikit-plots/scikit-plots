@@ -66,6 +66,7 @@ import textwrap  # textwrap.dedent
 import threading  # Python 2 to thread.get_ident
 import time
 import traceback
+from collections.abc import Mapping as _Mapping
 
 # ---- explicit re-exports (stable API) ----
 from logging import (
@@ -386,19 +387,18 @@ def _is_jupyter_notebook() -> bool:  # ruff: ignore[too-many-return-statements]
     - This detection is based on common patterns in Jupyter environments.
     - It checks for known environment variables (like 'JPY_PARENT_PID') and
       loaded modules (e.g., 'ipykernel'), which are typically present in Jupyter sessions.
-    - If those checks fail, it attempts to import IPython and inspect the shell
-      configuration for signs of an active IPython kernel.
-    - The function avoids importing heavy dependencies unless necessary.
+    - If those checks fail and IPython is already imported, it calls
+      ``IPython.get_ipython()`` and inspects the shell it returns: its class
+      (``ZMQInteractiveShell``) or an ``IPKernelApp`` section in its
+      configuration. IPython is never imported here, and a shell that raises
+      while answering counts as no notebook.
     - This method may not distinguish between classic Jupyter, JupyterLab,
       or VSCode notebooks, but it covers most interactive notebook cases.
 
     Examples
     --------
-    >>> _is_jupyter_notebook()
-    True  # if running inside a notebook
-
-    >>> _is_jupyter_notebook()
-    False  # if running from a standard script or terminal
+    >>> isinstance(_is_jupyter_notebook(), bool)
+    True
     """
     ## First, check environment clues — these are fast and commonly reliable
     if "JPY_PARENT_PID" in os.environ:
@@ -408,14 +408,20 @@ def _is_jupyter_notebook() -> bool:  # ruff: ignore[too-many-return-statements]
     ## Fallback: try importing and inspecting the IPython shell
     # from IPython import get_ipython
     ipython = sys.modules.get("IPython")
+    get_ipython = getattr(ipython, "get_ipython", None)
+    if get_ipython is None:
+        return False
     ## Check if the IPython shell is configured as a kernel app (notebook backend)
-    shell = getattr(ipython, "get_ipython", None)
+    try:
+        shell = get_ipython()
+    except Exception:  # noqa: BLE001 - a shell that cannot answer is no notebook
+        return False
     if shell is None:
         return False
-    if getattr(shell, "__class__.__name__", None) == "ZMQInteractiveShell":
+    if type(shell).__name__ == "ZMQInteractiveShell":
         return True
     cfg = getattr(shell, "config", None)
-    return bool(cfg and "IPKernelApp" in cfg)
+    return isinstance(cfg, _Mapping) and "IPKernelApp" in cfg
 
 
 def _coerce_level(level: int | str) -> int:

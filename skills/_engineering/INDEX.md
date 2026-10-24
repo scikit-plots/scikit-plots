@@ -161,3 +161,5 @@ titles, then open the file that holds the rules you need.
 | 153 | Log capture | an assertion that nothing was logged is made inside a capture shown to see records | [logging.md](rules/logging.md) |
 | 154 | Tooling | a make target is defined once, and a `make` command is run before it is written down | [tooling.md](rules/tooling.md) |
 | 155 | CI | a workflow runs only code its default branch already holds, never a ref typed into an input | [delivery.md](rules/delivery.md) |
+| 156 | Timing | a test that expects a timeout blocks far longer than the limit, until the limit stops it | [testing.md](rules/testing.md) |
+| 157 | Tests | a subtest's parameters are plain data | [testing.md](rules/testing.md) |

@@ -104,7 +104,9 @@ class TestExportAll(unittest.TestCase):
         ns = {"__all__": ["f1", "f2", "f3"], "f1": f1, "f2": f2, "f3": f3}
         export_all(ns, public_module="pkg.sub")
         for fn in [f1, f2, f3]:
-            with self.subTest(fn=fn):
+            # A string, not the function: pytest 9.0 with xdist cannot send a
+            # subtest whose parameters are functions back to the controller.
+            with self.subTest(fn=fn.__name__):
                 self.assertEqual(fn.__module__, "pkg.sub")
 
     # -- MethodType is silently skipped --
