@@ -118,3 +118,15 @@ free number (see [`../SKILL.md`](../SKILL.md)).
 - **Then:** stop the clock only after the result is consumed into the form the caller uses.
 - **Verified by:** `test_latency_includes_a_lazy_retriever` (150 ms of work in a generator).
 - **Added:** 2026-10-12. Root cause: the clock stopped when the generator was created, so latency read 0.000001 s.
+
+### Rule 156: Timing - a test that expects a timeout blocks far longer than the limit, until the limit stops it
+- **When:** a test asserts that a deadline, timeout or watchdog fires.
+- **Then:** make the blocked side unable to finish before the limit: wait on a `threading.Event` the test sets only afterwards (a thread), or sleep at least ten times the limit where the limit interrupts or kills it (a signal, a child process). Keep the limit itself small, so the test stays fast. Never shorten the blocked side to save time: the test then asks the limit to fire on work that has already finished.
+- **Verified by:** in each changed test that expects a timeout, the blocked side is an `Event.wait()` or a sleep of at least ten times the limit (`grep -n "sleep(" <file>` beside the limit); `pytest --durations=0` shows the test near its limit, far below the blocked duration.
+- **Added:** 2026-10-24. Root cause: verify run 40090107726 (PR 867) failed `DID NOT RAISE` in every Python leg for `cleanprompt/tests/test__bridge.py` (2 tests), `cleanprompt/tests/test__patterns.py` (1) and `cython/tests/test__budget.py` (1); `_utils/tests/test_timeout.py` (3, not part of verify) failed the same way. In each, the blocked side was `time.sleep(0.01)` against a limit of 0.1 to 1.0 s, one of them still commented "# far exceeds 1 second": the work ended before the limit could fire.
+
+### Rule 157: Tests - a subtest's parameters are plain data
+- **When:** a test calls `self.subTest(**params)` or the `subtests` fixture with parameters.
+- **Then:** pass values execnet can send between processes: `str`, `int`, `float`, `bool`, `None`, `bytes` and lists, tuples and dicts of them; for a function, class or other object pass its name (`fn=fn.__name__`).
+- **Verified by:** the changed test passes under `pytest -n 2` with pytest 9.0.x; `grep -n "subTest(" <file>` shows only plain-data values.
+- **Added:** 2026-10-24. Root cause: `_utils/tests/test__export.py::TestExportAll::test_multiple_names_all_updated` passed alone and failed under pytest 9.0.3 with `-n auto` (`execnet.gateway_base.DumpError: can't serialize <class 'function'>`): it passed the functions themselves as `subTest(fn=fn)`, and pytest 9.0 sends subtest parameters from the xdist worker to the controller as data. pytest 9.1.1 passed it; the TF-1 evidence runs (9.0.x and 9.1.x, with and without `-n auto`) found it.

@@ -38,7 +38,6 @@ from unittest.mock import patch
 
 import pytest
 
-# from ...conftest import captured_logger
 from .._text_normalizer import TextNormalizerConfig, TextNormalizer, normalize_text
 
 
@@ -589,8 +588,8 @@ class TestTextNormalizerNormalize:
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             cfg = TextNormalizerConfig(
                 steps=[
@@ -624,8 +623,8 @@ class TestTextNormalizerNormalize:
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             cfg = TextNormalizerConfig(
                 steps=[
@@ -663,8 +662,8 @@ class TestTextNormalizerNormalize:
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             cfg = TextNormalizerConfig(
                 steps=[
@@ -697,8 +696,8 @@ class TestTextNormalizerNormalize:
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             cfg = TextNormalizerConfig(
                 steps=[
@@ -729,8 +728,8 @@ class TestTextNormalizerNormalize:
             "scikitplot.corpus._normalizers._text_normalizer"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             cfg = TextNormalizerConfig(
                 steps=[

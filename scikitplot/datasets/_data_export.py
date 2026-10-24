@@ -141,14 +141,14 @@ from urllib.parse import urlparse
 import numpy as np
 import pandas as pd
 
+logger = logging.getLogger(__name__)
+
 SamplingStrategy = Literal["hash", "random", "stratified"]
 WithinGroupStrategy = Literal["hash", "random", "linspace"]
 StrataAllocation = Literal["proportional", "equal"]
 InputFormat = Literal["auto", "csv", "parquet"]
 OutputFormat = Literal["csv", "parquet"]
 RoundingMode = Literal["floor", "round", "ceil"]
-
-LOGGER = logging.getLogger("data_export")
 
 
 # -----------------------------
@@ -543,7 +543,7 @@ def load_dataframe(
     if fmt == "auto":
         fmt = _infer_format(source)
 
-    LOGGER.info("Loading source=%s format=%s", source, fmt)
+    logger.info("Loading source=%s format=%s", source, fmt)
 
     if fmt == "csv":
         df = pd.read_csv(
@@ -559,7 +559,7 @@ def load_dataframe(
         raise ValueError(f"Unsupported input_format: {input_format}")
 
     if query is not None:
-        LOGGER.info("Applying query=%r", query)
+        logger.info("Applying query=%r", query)
         df = df.query(query, engine="python")
 
     return df
@@ -603,7 +603,7 @@ def enforce_required_columns(
     _ensure_cols_exist(df, required_cols)
     before = len(df)
     out = df.dropna(subset=list(required_cols))
-    LOGGER.info(
+    logger.info(
         "Dropped rows with NA in required_cols=%s: %d -> %d",
         list(required_cols),
         before,
@@ -644,7 +644,7 @@ def drop_duplicates_by_id(
     _ensure_cols_exist(df, [id_col])
     before = len(df)
     out = df.drop_duplicates(subset=[id_col], keep=keep)
-    LOGGER.info("Dropped duplicates by %s: %d -> %d", id_col, before, len(out))
+    logger.info("Dropped duplicates by %s: %d -> %d", id_col, before, len(out))
     return out
 
 
@@ -1862,9 +1862,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0912
                     columns=list(out.columns),
                 )
 
-            LOGGER.info("Wrote stream subset rows=%d -> %s", len(out), out_file)
+            logger.info("Wrote stream subset rows=%d -> %s", len(out), out_file)
 
-        LOGGER.info("Done (stream hash).")
+        logger.info("Done (stream hash).")
         return 0
 
     # ---------------------------
@@ -1898,7 +1898,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0912
         df = drop_duplicates_by_id(df, id_col=str(args.id_col))
 
     input_rows = len(df)
-    LOGGER.info("Prepared dataset rows=%d cols=%d", input_rows, df.shape[1])
+    logger.info("Prepared dataset rows=%d cols=%d", input_rows, df.shape[1])
 
     sizes_final = resolve_sizes(
         prepared_rows=input_rows,
@@ -1966,9 +1966,9 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0912
                 columns=list(out.columns),
             )
 
-        LOGGER.info("Wrote %s rows=%d -> %s", spec, len(out), out_file)
+        logger.info("Wrote %s rows=%d -> %s", spec, len(out), out_file)
 
-    LOGGER.info("Done.")
+    logger.info("Done.")
     return 0
 
 

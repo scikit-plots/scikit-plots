@@ -150,7 +150,7 @@ def test_proxy_audio_stub_lifecycle_and_artifact_access(monkeypatch) -> None:
             job = status.json()
             if job["execution"]["state"] == "ready":
                 break
-            time.sleep(0.02)
+            time.sleep(0.01)
         assert job["execution"]["state"] == "ready", job
         artifact = job["artifacts"][0]
 

@@ -23,7 +23,7 @@
 Annoy vector search
 ===================
 
-``scikitplot.annoy`` wraps Spotify Annoy-style approximate nearest-neighbor
+``scikitplot.annoy`` wraps Spotify [1]_ Annoy-style approximate nearest-neighbor
 search with a higher-level ``Index`` facade. It is designed for immutable or
 build-once vector indexes where memory-mapped persistence, predictable query
 semantics, and process sharing matter more than online mutation.

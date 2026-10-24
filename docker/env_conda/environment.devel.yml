@@ -111,22 +111,47 @@ dependencies:
   - pybind11
   - pythran
 
+  # - ccache
+  # - pkg-config
+  # - compilers
+  # - openblas
+  # - spin==0.15
+
   # 🛠️ Dev Tools
   - pre_commit
   - setuptools
   - wheel
   - build
 
-  # 📚 Docs
+  # 🧪 Testing
+  - codecov
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - hypothesis
+
+  # Used in some tests
+  # - cffi
+  # - tzdata
+
+  # For linting
+  - cython-lint
+  - ruff
+  - pandas-stubs
+  - gitpython
+
+  # For type annotations
+  - mypy==2.4.0
+  - orjson # makes mypy faster
+
+  # 📚 For building Docs
   - sphinx
   - numpydoc
-
-  # 🧪 Testing
-  - pytest
-  - hypothesis
-  - codecov
-  - cython-lint
-  - pandas-stubs
+  - towncrier
+  # - pydata-sphinx-theme
+  # - jupyterlite-sphinx
+  # see https://github.com/jupyterlite/pyodide-kernel#compatibility
+  # - jupyterlite-pyodide-kernel==0.5.2 # supports Pyodide 0.27.1
 
   # 📊 Model Tracking and SQL DB
   - mlflow               # Model tracking

@@ -104,3 +104,296 @@ the record planes themselves. Completed tasks are archived verbatim under
 - Accepted and documented: active files are not hash-checked (a deleted
   active section passes); an archived part copied into a second archive
   passes; `todo/lessons.md` files have no budget.
+
+## Task: TP-1 - test-performance evidence (recorder, analyzer, bundle, CI gate)
+
+### Context
+- Goal: for every submodule, know which tests, fixtures, collections and
+  functions cost the time and memory, locally and on every CI shard, from
+  measurements only; and replace the manual steps (`--setup-show`, editing a
+  fixture to time its calls, `python -m cProfile` + `pstats` + `zip`) with one
+  recorder, one analyzer and one self-describing archive any reader (a person,
+  or an AI session with no chat history) can analyse.
+- Evidence on the uploaded tree (2026-10-23):
+  - CI, single job, 5 October: 1 482 s of tests, of which 403 s are the 531
+    full collections at module boundaries (`scikitplot/conftest.py`,
+    `_test_gc_policy`); `_sphinx_ai_assistant` is 484 s of the 1 367 s in
+    `.github/ci/test_durations.json`.
+  - Your `scikitplot/_externals/` profile (cProfile, 6 540 tests, 2 493 s):
+    filesystem 35 %, subprocess waits 24 %, JSON 10 %; `_sphinx_ai_assistant`
+    is 1 661 s of the 1 974 s of test calls.
+  - Several security modules are executed more than once in one process:
+    tests put `tests/` and `_hf_spaces_proxy/security/` on `sys.path` and
+    import test and source modules as top-level names, and the
+    `_load(name, path)` helpers execute the same files under further names.
+    cProfile keeps one copy's record per `(file, line, name)` and adds up the
+    edges of all copies (`cProfile.Profile.snapshot_stats`, reproduced), so
+    cumulative times of those functions are wrong (`source_tree_sha256`:
+    0.01 s recorded, 198 s in its edges).
+  - `test_run168_preserves_three_generation_run167_history`, here: setup
+    15.6 s, call 2.3 s; under cProfile the module fixture `base` (23.4 s) is
+    `t167.base` 7.6 s, three `t167._advance` 2.7-4 s each, and four
+    `t166._advance_run163` about 1.5-2 s each (two inside `t167.base`): each
+    module rebuilds its predecessors' chain (Runs 160 to 167) from scratch.
+  - `ci_codecov_test_coverage.yml`: `report` runs `if: success()`, so a failed
+    shard skips the required check, which GitHub then reports as passing; the
+    shard upload is `if: success()`, so a failed or timed-out shard leaves no
+    JUnit or coverage data.
+
+### Design
+- Recorder `scikitplot/_testing/_perf_telemetry.py`, registered by
+  `scikitplot/conftest.py` only when `SKPLT_TEST_PERF_DIR` is set (off by
+  default, conftest rule 4). One JSON line per test, flushed as it ends, so a
+  killed shard keeps what it measured: wall and CPU per phase, child CPU
+  (`RUSAGE_CHILDREN`), RSS and peak growth, GC per generation, fixture setups
+  with scope and location, file / subprocess / network / module-execution
+  counts from an audit hook, collection time per test file.
+  `SKPLT_TEST_PERF_PROFILE=<regex>` writes a cProfile per selected test, and
+  is skipped with a reason when another profiler is active (Python 3.11
+  replaces it silently, 3.12+ refuses). `SKPLT_TEST_PERF_TRACEMALLOC=1` adds
+  Python allocation peaks. Never raises into a test, never warns, never
+  collects garbage.
+- Analyzer `.github/scripts/ci_test_perf.py`, standard library only, one file:
+  `report` takes files, directories and archives (nested GitHub artifact zips
+  included, read in memory with size and depth limits) holding recorder
+  files, JUnit, cProfile, Cobertura `coverage.xml` or `test_durations.json`;
+  writes `report.md`, `summary.json`, `ANALYZE_ME.md` and, with `--bundle`, a
+  reproducible zip carrying them, the inputs and the analyzer itself.
+  `compare` (asv-style ratio and absolute threshold) and `profile` (edge-exact
+  callers and callees, re-executed modules flagged). Units are the planner's
+  (`Planner.owner` rule, containers recorded by the recorder).
+- Workflow: `report` becomes a real gate (`if: always()`); shard artifacts are
+  kept on failure and timeout; the recorder runs on every shard; a
+  `profile_tests` input profiles chosen tests in CI; the report job publishes
+  the analysis (`test-perf` artifact, step summary).
+- Not in this task: changing what the security tests build or verify. The
+  chain recomputation is routed to `upcoming_changes/` with its measurements.
+
+### Steps
+- [x] recorder + conftest registration + tests (floor Python 3.8 for the
+      CI scripts; the recorder's floor pytest 7.1.2 is not yet run)
+- [x] analyzer + tests (unittest, standard library, as the plan job runs them)
+- [x] dogfood: record the run168 module and `security/` here; bundle; compare
+- [x] workflow: gate, uploads, recorder env, `profile_tests`, report step
+- [x] `.github/ci/README.md` sections 12-13; `skills/_repo/SKILL.md`; Makefile targets
+- [x] rules for the lessons (131-137); `upcoming_changes/` notes; run168
+      instrumentation removed
+- [x] analyzer hardening: every field it reads is type-checked (bad lines are
+      skipped and counted, rule `invalid-lines`); XML is read only as UTF-8
+      without NUL or entity declarations (Rule 136); malformed Cobertura,
+      JUnit, durations and summaries are refused with the file named
+- [x] package benchmarks (added after Allen's second request, 2026-10-23):
+      `benchmarks/` in asv conventions, `.github/scripts/ci_bench.py` (run,
+      pair, compare without asv), `make bench*`, tests
+- [x] on-demand workflow `ci_performance.yml`: tests of chosen paths without
+      coverage; benchmarks base vs head on one runner
+- [x] opt-in `SKPLT_TEST_GC=frozen` (`_FreezeSurvivors`), its tests, README
+      section 8, `test_gc` choice in both workflows
+- [x] recorder on its floor: Python 3.8 with pytest 7.1.2, `-W error`
+- [x] quiet A/B/B/A of `young` against `frozen` on the same selection
+- [x] independent review (three reviewers: analyzer, benchmark runner and
+      workflow, recorder and GC policy); every finding fixed with a test
+- [ ] gates on the final tree
+
+### Acceptance criteria
+- Disabled: no plugin registered, no audit hook, no file written.
+- Enabled: `cost of every test` (the conftest monitor) rises by under 1 ms on
+  the security suite; a test that fails, errors, skips or xfails is recorded
+  with its outcome; a session killed mid-test leaves parseable lines.
+- The analyzer gives byte-identical output for the same inputs, refuses
+  unsafe archive members, and reproduces the run168 breakdown above from a
+  per-test profile without editing the test.
+- `check_records.py` reports no failure that the uploaded tree did not have.
+
+### Risks
+- An audit hook cannot be removed: it is installed only when the recorder is
+  on, does no I/O, and counts its own errors instead of raising.
+- `filterwarnings = error`: the recorder must not warn; its tests run the
+  child session with `-W error`.
+- The workflow cannot be run here: the YAML is checked by parsing and by
+  `zizmor` when available; each changed condition is named in the results.
+
+### Results Review - TP-1 (2026-10-23)
+- Built: recorder (`scikitplot/_testing/_perf_telemetry.py`), analyzer
+  (`.github/scripts/ci_test_perf.py`), package benchmarks (`benchmarks/`, asv
+  conventions) with a standard-library runner (`.github/scripts/ci_bench.py`),
+  on-demand workflow `ci_performance.yml`, opt-in `SKPLT_TEST_GC=frozen`,
+  `make test-perf*` / `make bench*`, README sections 8, 12, 13, the repo
+  skill, rules 131-137, three `upcoming_changes/` notes.
+- Recorder cost: 0.22 ms per test over 4 134 tests (`recorder_seconds`, now
+  the recorder thread's CPU time, with the once-per-session start-up apart).
+  Floors: Python 3.8 with pytest 7.1.2 and `-W error`: outcomes, fixtures,
+  profiles correct, 0 recorder errors.
+- Run168, profiled without editing the test: `base` 25.73 s = three
+  `t167._advance` 11.78 s + `t167.base` 7.95 s + two `t166._advance_run163`
+  6.00 s (`upcoming_changes/.../security-tests-rebuild-their-chain.md`).
+- GC, five submodules, 4 134 tests, 93 files, young / frozen / frozen /
+  young on an idle machine: full collections 21.0-21.4 s against 1.1 s;
+  sessions 165-172 s against 144-151 s; peak RSS 402-403 MiB against
+  373-375 MiB; the same 7 failures in every run (4 in
+  `scikitplot/_utils/tests/test_timeout.py`: `signal.alarm(0.1)` raises
+  `TypeError`; 3 cleanprompt timeout tests). Runs made while other work
+  shared the machine showed tests "slower" that the quiet runs did not
+  (Rule 135).
+- Benchmarks: whole suite, `pair` with one environment on both sides
+  (4 rounds a side): 0 slower, 0 faster, 5 inconclusive, 20 unchanged. The
+  same real samples with head scaled offline: 2x detected for 19 of 19
+  timings, 1.5x for 17, 1.25x for 9 (the rest `x`). `asv check
+  --python=same`: no problems; `asv run --python=same --quick` runs the suite.
+- Independent review, three reviewers with reproductions: analyzer 17
+  findings (damaged zip members, huge integers, deep JSON, a 5-byte `.prof`
+  that makes `marshal` allocate gigabytes, Markdown injection into
+  `ANALYZE_ME.md`, outputs re-read as inputs, absolute paths, platform bytes
+  in the bundle, unbounded lists, JUnit-against-recorder compares that
+  compared nothing, ...); runner and workflow 12 (an outlier sample hid a 2x
+  slowdown, relative interpreters, `--quick` false changes, both-sides
+  failures shown as unchanged, asv differences: inheritance, module
+  `setup`, `setup_cache`, GC on while timing, dedent); recorder and GC 5 (a
+  forked child could wait forever for the audit lock; wall-clock self-cost;
+  two full collections per module under `frozen`; doctest files never ended
+  a module; paths inside arguments). All fixed, each with a test. A first
+  fix of the benchmark rule (a rank test on all samples) failed its own
+  A/A check (6 of 25 marked); the rule compares whole rounds instead.
+- Tests: `.github/scripts/tests` pass on Python 3.8, 3.9, 3.11, 3.12, 3.13;
+  recorder and GC policy tests (95) pass, also under `-n 2`.
+- Gates: black and ruff clean on the new files; `scikitplot/conftest.py`
+  unchanged in ruff count; codespell, ASCII (sources), whitespace, path
+  lengths, test module names: clean; zizmor: no findings;
+  `check_records.py` and `test_records.py`: exactly the failures of the
+  uploaded tree (`tasks/r4r_migrate.py`, the empty `numpydocstr.md`, the
+  archived parts one character short of their hashes).
+- Not verified: no workflow ran on GitHub (the pip cache, the on-demand
+  build of base and head, `download-artifact` with nothing to download);
+  free-threaded Python; Windows and macOS (`ru_maxrss` units, the shell
+  wrappers of the runner's tests are POSIX-only); `frozen` on the whole
+  CI suite.
+- Environment-only (not a repository issue): a Debian-patched `site.py`
+  here processes a venv's `.pth` twice, so each editable import ran ninja.
+- Next: run `test_gc: frozen` once in CI and `compare` it with a `young`
+  run before making it the default; fix the security chain rebuild and the
+  `scikitplot.__getattr__` probes (`upcoming_changes/`).
+
+## Task: TF-1 - submodule test failures, fixed under Rules 138-151 (handoff)
+
+### Context
+- Goal: every submodule's tests pass on their own and in the full suite,
+  each failure fixed at its root cause under `skills/_engineering/rules/`
+  (logging.md 138-141, module_submodule_actual_mock_patch.md 142-146,
+  numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
+  assertions). One submodule per session; a session starts here
+  and needs no earlier chat.
+- State on 2026-10-24: steps 0-3 done; Rule 139 amended, 154-157 added;
+  records check `ok rules` (router and archives failures pre-existing).
+
+### Known failures and their causes
+- Fixed (steps 1, 1b): log capture that depended on the pytest release
+  because `"scikitplot"` has `propagate = False` (Rule 139):
+  `annoy/tests/test_bundle_directory.py:413,469`, `test__threads.py:147`
+  (fail 9.0.3, pass 9.1.1); `corpus/_embeddings/tests/test__cache_policy.py:111`,
+  `corpus/_chunkers/tests/test__semantic.py:141`,
+  `corpus/_embeddings/tests/test__embedding.py:1074` (hand-attached
+  handler plus `caplog.at_level`: counted twice, fail 9.1.1). Also the blind
+  negative test `test__threads.py:157` (Rule 153), absolute imports (142),
+  string logger names (140), one string patch target (144).
+- Fixed (step 1): annoy benchmarks. `bench_annoy.py` runs clean; `make
+  bench-pair` ran the GC comparison (name defined three times) and `make
+  bench-quick` does not exist (Rule 154). The user's output of 2026-10-23
+  was not attached: the reproducible cause, not a confirmed match.
+- Fixed: CodeQL alerts 231, 232 (`actions/cache-poisoning/poisonable-step`,
+  PR 867): `ci_performance.yml` built `inputs.base_ref`, any ref, with a pip
+  cache; the base is now a commit of the default branch (Rule 155).
+- Fixed (steps 2, 3; verify run 40090107726): timeout tests whose blocked side
+  slept 0.01 s against a 0.1-1 s limit (Rule 156): `_utils/tests/test_timeout.py`
+  (3; `run_with_timeout` also took whole seconds only, now `setitimer`),
+  `cleanprompt/tests/test__bridge.py` (2), `test__patterns.py` (1),
+  `cython/tests/test__budget.py` (1). `logging/_logging.py:_is_jupyter_notebook`
+  read `get_ipython.config` instead of calling it (`test__logging.py:250`).
+  `_sphinx_feedback/tests/test_service_logging.py`: the depth-derived logger
+  name was not the service's (`"sphinx_feedback.service"`), so its INFO
+  records were kept only under a pytest.ini (Rule 140).
+  `_utils/tests/test__export.py:92`: a function as a subtest parameter
+  failed pytest 9.0 with xdist (Rule 157).
+- Hand-attached captures still passing: `corpus/tests/test__atomic_durability.py`,
+  `test__backends_discarded_options.py`, `_chunkers/tests/test__notices_and_scripts.py`,
+  and 8 files outside corpus (step 5).
+- Environment-only here: `corpus/_readers/tests/test__web.py` and
+  `corpus/tests/test__url_and_archive_handler.py` (`TestDownloadUrlRetry`)
+  need DNS; 46 `_sphinx_ext` modules need optional packages at collection.
+- `scikitplot/_externals/_sphinx_ext`: `sys.path` edits and loads by path
+  in tests (Rule 143); one file executed 29 times per session.
+
+### Implementation Steps
+- [x] 0. The shared capture (Rule 139): `scikitplot/logging/_capture.py`
+  (no pytest import, `scikit-plots-skinny` per `libs/_tools`), its tests,
+  registration in the root conftest and in `corpus/`, `_sphinx_ext/` and a
+  new `annoy/conftest.py` (not `annoy/tests/conftest.py`, which
+  `test_no_residue.py` runs alone); the corpus fixture replaced, calls
+  unchanged.
+- [x] 1. annoy: tests (Rules 139, 140, 142, 144, 153), then the benchmarks.
+- [x] 1b. corpus: the Rule 139 failures above; with the CodeQL fix.
+- [x] 2. `_utils` timeout (fractional seconds, Rule 149 for the docstring).
+- [x] 3. cleanprompt timeout tests; with cython's, the notebook check and the
+  feedback log test (all from verify run 40090107726).
+- [ ] 4. `_sphinx_ext`: remove `sys.path` edits and path loads (Rule 143),
+  submodule by submodule.
+- [ ] 5. Remaining submodules' Rule 139/142/144 violations, when their tests
+  are next touched (survey: 624 absolute self-imports, 208 string patch
+  targets in tests).
+
+### Acceptance Criteria
+- [x] annoy, corpus (changed files): pass as one file, as the directory,
+  under `-n auto`, and under pytest 9.0.x and the latest 9.x.
+- [x] Each rule's "Verified by" command is clean for the changed files.
+- [x] A rule found wrong or missing while fixing is amended, or the next
+  number added, in the same change, with the failure as its root cause.
+
+- Negative log assertions that pass under pytest 9.0 whatever the code
+  logs (Rule 153): `_sphinx_youtube_gallery/tests/test_sync.py:827`,
+  `tests/test__distributions.py:598` (annoy's fixed in step 1).
+- Output defects (Rule 152): `_sphinx_youtube_gallery/sync.py:727-731`
+  debugging prints on every `resolve_source` call; `utils/_serialize.py:177,
+  205,237` print an exception and return `None`;
+  `api/metrics/_regression/_residuals.py:216-270` print fitted parameters.
+
+### Side issues found, not changed
+- `SKPLT_LOGGING_AUTO_CONFIG` (`_ENV_AUTO_CONFIG`) is defined and unused.
+- `sanitize_log_message` docstring writes a doubled backslash inside
+  `r"""` (Rule 48).
+- `scikitplot/_cli/logging.py` uses `getLogger("scikitplot")` (allowed by
+  Rule 138 for CLI entry points); `_sphinx_feedback/_service/_core.py` names
+  its logger `"sphinx_feedback.service"` (deployments may configure it).
+- `annoy/_mixins/_meta.py` imports `typing_extensions`, a runtime
+  dependency of `scikit-plots-annoy` but not of the full `scikit-plots`.
+- `meson.build:1384` computes the NumPy include path relative to `tools/`
+  and uses it from the root: a venv outside the tree fails to configure
+  unless `numpy-include-dir` is given.
+
+### Results Review - TF-1 steps 0, 1, 1b and CodeQL 231/232 - 2026-10-24
+- Environment: Python 3.11.17, editable meson build, pytest 9.0.3 and 9.1.1,
+  pytest-xdist 3.8.0; `_capture.py` and its tests also on Python 3.8.20
+  with pytest 8.3.5. Evidence files: the delivery's `tf1-evidence.zip`.
+- annoy (both versions): one file 37 and 78 passed; directory and `-n auto`
+  803 passed, 2 skipped, 1 xfailed (uploaded tree: 3 failed under 9.0.3).
+  Rule 153 probe: the new negative test fails when the code logs, the
+  replaced one passed under 9.0.3. Benchmarks: quick 0 errors; `make
+  bench-pair` A/A `0 slower, 0 faster`.
+- Step 0: 29 capture tests; with `--confcutdir` on annoy, corpus and
+  `_sphinx_ext` the fixture is still provided (uploaded `_sphinx_ext`: not).
+- Corpus `-n auto`, every failure (both versions): 14, all DNS-only; the
+  three changed files 83 and 144 passed.
+- Workflow: CodeQL 2.27.3 (`codeql/actions-queries` 0.6.38,
+  `actions-security-extended`, all 38 workflows): uploaded tree gives
+  alerts 231, 232 and an untrusted checkout, changed tree none; actionlint
+  clean; zizmor 1.31.1 clean on both trees (it does not see this); the base
+  step run on a fixed repository gives the expected commit or `exit 2`.
+- Checks: rule greps, ruff 0.16.9 (no new finding), black 26.5.1 on written
+  lines, codespell, numpydoc, ASCII: clean.
+- Deviation: one `git stash` during the first bench-pair run (Rule 22); the
+  pair was re-run after the last edit.
+- Steps 2-3 (both pytest versions, repository and verify-harness mode,
+  `--pyargs` from an empty directory without pytest.ini): `test_timeout.py` 26,
+  `test__budget.py` 10, `test__bridge.py` 36, `test__patterns.py` 241,
+  `scikitplot/logging` 202 (also Python 3.8), `test_service_logging.py` 2
+  passed; the feedback failure reproduced in harness mode before the fix.
+- Not verified: a dispatch of the changed workflow on GitHub; the verify
+  harness itself (wheels) was not run here.

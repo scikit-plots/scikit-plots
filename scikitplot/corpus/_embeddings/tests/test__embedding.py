@@ -33,12 +33,14 @@ import sys
 import tempfile
 import threading
 import types
+import logging
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import numpy as np
 import pytest
 
+from .. import _embedding
 from .._embedding import (
     DEFAULT_CACHE_DIR,
     DEFAULT_MODEL,
@@ -51,6 +53,8 @@ from .._embedding import (
     _make_sentence_transformers_fn,
     _save_to_cache,
 )
+
+logger = _embedding.logger  # logging.getLogger(_embedding.__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -741,21 +745,23 @@ class TestEmbeddingEngineEmbedWithCache:
         assert len(list(tmp_path.glob("*.npy"))) == 2  # noqa: PLR2004
 
     def test_cache_write_failure_logs_warning(
-        self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
+        self, tmp_path: pathlib.Path, captured_logger, caplog: pytest.LogCaptureFixture
     ) -> None:
-        import logging
-
         e = _make_custom_engine(cache_dir=tmp_path)
         src = tmp_path / "src.txt"
         src.write_text("data", encoding="utf-8")
 
-        with patch("scikitplot.corpus._embeddings._embedding._save_to_cache") as mock_save:
-            mock_save.side_effect = OSError("disk full")
-            with caplog.at_level(logging.WARNING):
-                result, flag = e.embed_with_cache(["text"], src)
+        failing_save = patch.object(
+            _embedding, "_save_to_cache", autospec=True, side_effect=OSError("disk full")
+        )
+        with failing_save, captured_logger(logging.WARNING, logger):
+            result, flag = e.embed_with_cache(["text"], src)
 
         assert flag is False
         assert result is not None
+        (record,) = caplog.records
+        assert "could not write cache" in record.getMessage()
+        assert "disk full" in record.getMessage()
 
     def test_returns_correct_shape_from_cache(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=32, cache_dir=tmp_path)
@@ -1066,15 +1072,19 @@ class TestCustomProviderIdentity:
         assert calls == {"a": 1}
 
     def test_an_unidentified_provider_is_computed_never_cached(
-        self, tmp_path: pathlib.Path, caplog: pytest.LogCaptureFixture
+        self, tmp_path: pathlib.Path, captured_logger, caplog: pytest.LogCaptureFixture
     ) -> None:
         calls: dict = {}
-        e = EmbeddingEngine(backend="custom", custom_fn=self._counting(1.0, calls, "a"),
-                            cache_dir=tmp_path)
-        with caplog.at_level("INFO", logger="scikitplot.corpus._embeddings._embedding"):
+        e = EmbeddingEngine(
+            backend="custom",
+            custom_fn=self._counting(1.0, calls, "a"),
+            cache_dir=tmp_path,
+        )
+        with captured_logger("INFO", logger):
             for _ in range(3):
                 _, hit = e.embed_with_cache(["hello"])
                 assert hit is False
+
         assert calls == {"a": 3}
         assert list(tmp_path.glob("*.npy")) == []
         notices = [r for r in caplog.records if "custom_fn_id" in r.getMessage()]

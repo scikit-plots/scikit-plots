@@ -165,7 +165,7 @@ cpdef bint eval_criterion(object a, object b, const unsigned int thr) except 0xf
     --------
     >>> eval_criterion("a", "a", 0)
     True
-    >>> eval_criterion("abc", "abd", 0)
+    >>> eval_criterion("abc", "and", 0)
     False
     """
     cdef vector[int64_t] left

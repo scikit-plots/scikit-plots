@@ -201,8 +201,23 @@ show_installed_libraries
 # https://github.com/scikit-learn/scikit-learn/pull/30333
 pip install -e . -v --no-build-isolation --config-settings=compile-args="-j $CPU_COUNT"
 
+## towncrier
+# version="$(scikitplot -V)"
+# version="${version#* }"   # Removes everything up to the first space ('scikitplot ')
+# version="${version%%+*}"  # Removes everything from the '+' onwards
+# echo "$version" # Output: 0.5.dev0
+#
+# version="$(scikitplot -V | awk '{print $2}' | cut -d'+' -f1)"
+# echo "$version" # Output: 0.5.dev0
+#
+# towncrier build --draft --version="$(scikitplot -V | awk '{print $2}' | cut -d'+' -f1)"
+#
+# echo $(python -c 'import scikitplot as sp; print(sp.version._version)')
+# towncrier build --version="$(python -c 'import scikitplot as sp; print(sp.version._version)')" --draft
+
 if [[ "$CIRCLE_BRANCH" == "main" || "$CI_TARGET_BRANCH" == "main" ]]
 then
+    # towncrier build --yes --version="$(python -c 'import scikitplot as sp; print(sp.version._version)')"
     towncrier build --yes
 fi
 

@@ -178,6 +178,7 @@ classifiers = [
   # "Programming Language :: Python :: Implementation :: PyPy",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Scientific/Engineering :: Visualization",
+  "Topic :: Software Development :: Documentation",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Multimedia :: Graphics",
@@ -572,22 +573,29 @@ cleanprompt-crypto = [
 ## sudo apt-get install tesseract-ocr
 corpus = [
   "lxml",
-  "nltk",                                   # nltk
-  "gensim",
-  "datasets",
+  "pypdf",
+  "pdfminer",
+  "pdfminer.six",
+
   "langdetect",
-  "pytesseract",
-  "faster-whisper",
+  "gensim",
+  "nltk",                                   # nltk
+  "spacy",
+
+  "datasets",
+  "sentence-transformers",
+  "langchain-core",
+
   # Important:
   # - Do not install the unrelated PyPI package named `whisper` (Graphite).
   # - OpenAI Whisper's distribution is `openai-whisper`, imported in Python as `whisper`.
   "openai-whisper",
+  "faster-whisper",
+
+  "pytesseract",
   "youtube-transcript-api",
-  "pypdf",
-  "pdfminer",
-  "pdfminer.six",
-  "sentence-transformers",
-  "langchain-core",
+
+  "krippendorff",                           # Krippendorff's alpha coefficient https://en.wikipedia.org/wiki/Krippendorff%27s_alpha
 ]
 
 ## mlflow submodule dep
@@ -635,6 +643,8 @@ mlflow = [
 
 ## Specialized dependencies for specific hardware
 cpu = [
+  "faiss-cpu",                              # https://faiss.ai/  https://pypi.org/project/faiss-cpu/  https://github.com/onfido/faiss_prebuilt
+
   ## https://pytorch.org/get-started/locally/#start-locally
   # "torch",  # PyTorch
   # "torchvision",  # PyTorch
@@ -779,6 +789,14 @@ dev = [
     "scikit-plots[doc]",
 ]
 
+## All development dependencies (excludes demo)
+#all-dev = [
+#    { include-group = "dev" },
+#    { include-group = "docs" },
+#    { include-group = "lint" },
+#    { include-group = "test" },
+#]
+
 ######################################################################
 ## pip, uv
 ######################################################################
@@ -922,17 +940,17 @@ exclude = [
   "__pycache__",
   "build/**",
   "dist/**",
-  "benchmarks/**",
+  "benchmarks/*yanked/**",
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
   "skills/**",
   "third_party/**",
   "tools/**",
+  "dev.py",
+  ## scikitplot module
   "**tests",
   "**conftest.py",
-  "dev.py",
-  ## module
   "scikitplot/_api",
   "scikitplot/_build_utils",
   "scikitplot/_factory_api",
@@ -972,17 +990,17 @@ docstring-code-format = true
 # docstring-code-line-length = 88
 
 exclude = [
-  "benchmarks/**",
+  "benchmarks/*yanked/**",
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
   "skills/**",
   "third_party/**",
   "tools/**",
+  "dev.py",
+  ## scikitplot module
   "**tests",
   "**conftest.py",
-  "dev.py",
-  ## module
   "scikitplot/_api",
   "scikitplot/_build_utils",
   "scikitplot/_factory_api",
@@ -1161,7 +1179,7 @@ extend-ignore-names = [
 # folder.
 "!.github/**"=["CPY001"]
 "!.spin/**"=["CPY001"]
-"benchmarks/**"=["CPY001"]
+"benchmarks/*yanked/**"=["CPY001"]
 "!docs/**"=["CPY001"]
 "!docs/conf.py"=["E402"]
 "docs/*.py" = [
@@ -1172,6 +1190,8 @@ extend-ignore-names = [
 # "!tools/**"=[
 #   "CPY001",  # missing-copyright-notice (CPY001) | Ruff
 # ]
+
+## scikitplot module
 # Ignore `CPY001` rules everywhere except for the `...` directory.
 # "!scikitplot/_build_utils/**" = [
 #   "CPY001",  # missing-copyright-notice (CPY001) | Ruff
@@ -1240,7 +1260,7 @@ extend-exclude = '''
   |\.git          # root of the project
   |\.mypy_cache
   |\.vscode
-  |benchmarks
+  |benchmarks/.*yanked
   |build
   |dist
   |docs/build
@@ -1251,6 +1271,7 @@ extend-exclude = '''
   |third_party
   |tools
   |tests
+  ## scikitplot module
   |scikitplot/cexperimental
   |scikitplot/cexternals
   |scikitplot/cython/_templates
@@ -1322,7 +1343,8 @@ ignore = [
 # Exclude files are generated from tempita templates
 exclude= '''
 (
-  benchmarks/
+  benchmarks/*yanked/
+  ## scikitplot module
   |scikitplot/metrics/_dist_metrics.pyx
 )
 '''
@@ -1343,10 +1365,11 @@ skip = """
   *.cff,
   docs/credits.rst,
   galleries/*,
-  scikitplot/cexternals/*,
-  scikitplot/externals/*,
   third_party/*,
   tools/*,
+  ## scikitplot module
+  scikitplot/cexternals/*,
+  scikitplot/externals/*,
 """
 count = true
 # quiet-level = 3
@@ -2044,6 +2067,10 @@ words = ["query"]
   [[tool.towncrier.section]]
     name = "scikitplot.externals.array_api_extra"
     path = "scikitplot.externals.array_api_extra"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot.feature_selection"
+    path = "scikitplot.feature_selection"
 
   [[tool.towncrier.section]]
     name = "scikitplot.impute"

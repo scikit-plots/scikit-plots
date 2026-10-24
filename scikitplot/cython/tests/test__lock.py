@@ -177,7 +177,7 @@ class TestBuildLock:
             barrier.wait()
             with build_lock(lock_dir, timeout_s=5.0, poll_s=0.01):
                 results.append(val)
-                time.sleep(0.02)
+                time.sleep(0.01)
 
         t1 = threading.Thread(target=worker, args=(1,))
         t2 = threading.Thread(target=worker, args=(2,))

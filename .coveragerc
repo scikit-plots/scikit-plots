@@ -9,8 +9,11 @@ branch = False
 source = scikitplot
 parallel = True
 omit =
-    */benchmarks/*
+    */benchmarks/zz_yanked/*
     */galleries/*
+    */third_party/*
+    */tools/*
+    ## scikitplot module
     */scikitplot/_build_utils/*
     */scikitplot/_decorates/*
     */scikitplot/cexperimental/*
@@ -18,10 +21,8 @@ omit =
     */scikitplot/config/_cbook.py
     */scikitplot/experimental/*
     */scikitplot/externals/*
+    */scikitplot/dummy.py
     # ❌ Ignore all externals EXCEPT target
     # ✅ Re-include target (coverage.py supports this)
     # !*/scikitplot/externals/_sphinx_ext/*
     # !*/scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/*
-    */scikitplot/dummy.py
-    */third_party/*
-    */tools/*

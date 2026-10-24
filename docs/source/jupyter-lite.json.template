@@ -1,0 +1,18 @@
+{
+  "jupyter-lite-schema-version": 0,
+  "jupyter-config-data": {
+    "appName": "scikit-plots Examples",
+    "exposeAppInBrowser": true,
+    "terminalsAvailable": true,
+    "litePluginSettings": {
+      "@jupyterlite/pyodide-kernel-extension:kernel": {
+        // https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/index.html#with-pyodide
+        // Deployed kernel extension must sync with Configured Pyodide runtime
+        // Runtime expected by release 0.8.6 -> pyodide 314.* python 3.14.* emscripten 5.0.3
+        "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v314.0.6/full/pyodide.js"
+        // Runtime expected by release 0.7.x -> pyodide 0.29.* python 3.13.* emscripten 4.0.9
+        "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
+      }
+    }
+  }
+}

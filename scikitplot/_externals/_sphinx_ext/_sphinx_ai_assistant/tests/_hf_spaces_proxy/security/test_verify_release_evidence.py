@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from functools import lru_cache
 
 import pytest
 
@@ -29,6 +30,20 @@ verify_mod = _load("run20_verify_release_evidence", SECURITY / "verify_release_e
 probe_mod = _load("run20_probe_redis_authority", SECURITY / "probe_redis_authority.py")
 gate_mod = _load("run20_verify_release_gate", SECURITY / "verify_release_gate.py")
 subjects_mod = _load("run20_release_subjects", SECURITY / "release_subjects.py")
+
+real_source_tree_sha256 = verify_mod.source_tree_sha256
+
+@lru_cache(maxsize=1)
+def source_tree_sha256_for_test(root):
+    return real_source_tree_sha256(root)
+
+
+@lru_cache(maxsize=1)
+def _fixture_source_fingerprints() -> tuple[str, str]:
+    return (
+        verify_mod.source_tree_sha256(verify_mod.EXTENSION_ROOT),
+        verify_mod._runtime_source_sha256(),
+    )
 
 
 def _proxy_version_from_source() -> str:
@@ -110,7 +125,8 @@ def _evidence(tmp_path: Path, now: datetime) -> Path:
         return dt.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     recent_backup = fmt(now - timedelta(days=2))
-    source_tree_sha = verify_mod.source_tree_sha256(verify_mod.EXTENSION_ROOT)
+    # source_tree_sha = verify_mod.source_tree_sha256(verify_mod.EXTENSION_ROOT)
+    source_tree_sha, runtime_source_sha = _fixture_source_fingerprints()
     source_revision = "1" * 40
 
     def chaos_entry(major: int, mode: str) -> dict[str, object]:
@@ -155,7 +171,8 @@ def _evidence(tmp_path: Path, now: datetime) -> Path:
         "source": {
             "requirementsLockSha256": _sha(PROXY / "requirements.lock"),
             "pythonSbomSha256": _sha(PROXY / "security/python-runtime.cdx.json"),
-            "runtimeSourceSha256": verify_mod._runtime_source_sha256(),
+            # "runtimeSourceSha256": verify_mod._runtime_source_sha256(),
+            "runtimeSourceSha256": runtime_source_sha,
             "sourceTreeSha256": source_tree_sha,
             "sourceRevision": source_revision,
             "baseImageIndexDigest": verify_mod.SUPPLY["base_image"]["index_digest"],
@@ -284,7 +301,13 @@ def test_release_evidence_rejects_unbound_provenance_and_unverified_signature(tm
         verify_mod.verify(unsigned, now=now)
 
 
-def test_release_evidence_rejects_logging_telemetry_and_redis_paper_claims(tmp_path):
+def test_release_evidence_rejects_logging_telemetry_and_redis_paper_claims(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        verify_mod, "source_tree_sha256", source_tree_sha256_for_test
+    )
     now = datetime(2026, 8, 30, 1, 0, tzinfo=timezone.utc)
     telemetry = _evidence(tmp_path / "telemetry", now)
     _mutate(telemetry, lambda d: d["logging"].update(thirdPartyTelemetryExport=True))

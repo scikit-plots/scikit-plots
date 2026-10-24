@@ -141,6 +141,7 @@ _submodules = sorted(
         "decile",
         "experimental",
         "externals",
+        "feature_selection",
         "impute",
         "levenshtein",
         "mcp",

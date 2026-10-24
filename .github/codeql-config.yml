@@ -10,12 +10,10 @@
 name: "scikit-plots CodeQL config"
 
 paths-ignore:
-  - '**/third_party/**'
-  - '**/vendor/**'
   - '**/*yanked/**'
-  # Historical backup snapshots of the widget assets — not shipped, not maintained.
-  - '**/_sphinx_ai_assistant/_static/_backup/**'
-  - 'scikitplot/cexternals/_annoy/_backup/**'
+  - '**/vendor/**'
+  - '**/third_party/**'
+  ## scikitplot module
   - scikitplot/_externals/_sphinx_ext/_sphinx_llm/sphinx_llm/**
 
 # NOTE: Turndown is vendored INLINE in ai-assistant.js and its 6 inherent alerts

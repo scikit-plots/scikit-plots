@@ -893,7 +893,7 @@ class StorageCoordinator:
                     last = exc
                     if not exc.transient or attempt + 1 >= self._max_attempts:
                         break
-                    await asyncio.sleep(0.25 * (2**attempt))
+                    await asyncio.sleep(0.001 * (2**attempt))
             self._mark_failure(target, last.code if last else "WRITE_FAILED")
             raise last or StorageWriteError("WRITE_FAILED")
 
@@ -1332,7 +1332,7 @@ class StorageCoordinator:
                 "GET",
                 f"https://api.github.com/repos/{quote(owner)}/{quote(repo)}/pulls/{quote(review.review_id)}",
                 headers=headers,
-                timeout=15.0,
+                timeout=5.0,
             )
             if status == 404:  # ruff: ignore[magic-value-comparison]
                 return None
@@ -1363,7 +1363,7 @@ class StorageCoordinator:
                 "GET",
                 f"{base}/projects/{project}/merge_requests/{quote(review.review_id)}",
                 headers=headers,
-                timeout=15.0,
+                timeout=5.0,
             )
             if status == 404:  # ruff: ignore[magic-value-comparison]
                 return None
@@ -1389,7 +1389,7 @@ class StorageCoordinator:
             "GET",
             f"https://api.bitbucket.org/2.0/repositories/{quote(workspace)}/{quote(repo)}/pullrequests/{quote(review.review_id)}",
             headers=headers,
-            timeout=15.0,
+            timeout=5.0,
         )
         if status == 404:  # ruff: ignore[magic-value-comparison]
             return None
@@ -1662,7 +1662,7 @@ class StorageCoordinator:
         }
         ref_url = f"https://api.github.com/repos/{quote(owner)}/{quote(repo)}/git/ref/heads/{quote(target.branch, safe='')}"
         status, data = await self._request_bounded_json(
-            "GET", ref_url, headers=headers, timeout=15.0
+            "GET", ref_url, headers=headers, timeout=5.0
         )
         if status != 200:  # ruff: ignore[magic-value-comparison]
             raise StorageWriteError(
@@ -1679,7 +1679,7 @@ class StorageCoordinator:
             create_ref,
             headers=headers,
             json={"ref": f"refs/heads/{branch}", "sha": sha},
-            timeout=15.0,
+            timeout=5.0,
         )
         if status not in {201, 422}:
             raise StorageWriteError(
@@ -1699,7 +1699,7 @@ class StorageCoordinator:
                 "base": target.branch,
                 "body": description or review_description_for(key, target.branch),
             },
-            timeout=20.0,
+            timeout=5.0,
         )
         if status == 201:  # ruff: ignore[magic-value-comparison]
             return self._review_receipt(
@@ -1738,7 +1738,7 @@ class StorageCoordinator:
                 "base": target.branch,
                 "per_page": 10,
             },
-            timeout=15.0,
+            timeout=5.0,
         )
         if status != 200:  # ruff: ignore[magic-value-comparison]
             raise StorageWriteError(
@@ -1787,7 +1787,7 @@ class StorageCoordinator:
             branch_url,
             headers=headers,
             params={"branch": branch, "ref": target.branch},
-            timeout=15.0,
+            timeout=5.0,
         )
         if status not in {201, 400}:
             raise StorageWriteError(
@@ -1810,7 +1810,7 @@ class StorageCoordinator:
                 ),
                 "remove_source_branch": True,
             },
-            timeout=20.0,
+            timeout=5.0,
         )
         if status == 201:  # ruff: ignore[magic-value-comparison]
             return self._review_receipt(
@@ -1847,7 +1847,7 @@ class StorageCoordinator:
                 "target_branch": target.branch,
                 "per_page": 20,
             },
-            timeout=15.0,
+            timeout=5.0,
         )
         if status != 200:  # ruff: ignore[magic-value-comparison]
             raise StorageWriteError(
@@ -1892,7 +1892,7 @@ class StorageCoordinator:
             branch_url,
             headers=headers,
             json={"name": branch, "target": {"hash": target.branch}},
-            timeout=15.0,
+            timeout=5.0,
         )
         if status not in {201, 400}:
             raise StorageWriteError(
@@ -1915,7 +1915,7 @@ class StorageCoordinator:
                     description or review_description_for(key, target.branch, "decline")
                 ),
             },
-            timeout=20.0,
+            timeout=5.0,
         )
         if status == 201:  # ruff: ignore[magic-value-comparison]
             html_url = (((data or {}).get("links") or {}).get("html") or {}).get(
@@ -1953,7 +1953,7 @@ class StorageCoordinator:
                 url,
                 headers=headers,
                 params={"state": state, "q": query, "pagelen": 10},
-                timeout=15.0,
+                timeout=5.0,
             )
             if status != 200:  # ruff: ignore[magic-value-comparison]
                 raise StorageWriteError(
@@ -2019,7 +2019,7 @@ class StorageCoordinator:
             }
             url = f"https://api.github.com/repos/{quote(owner)}/{quote(repo)}/pulls/{quote(review.review_id)}"
             status = await self._request_no_body(
-                "PATCH", url, headers=headers, json={"state": "closed"}, timeout=15.0
+                "PATCH", url, headers=headers, json={"state": "closed"}, timeout=5.0
             )
         elif target.provider == "gitlab":
             base = target.api_base or "https://gitlab.com/api/v4"
@@ -2027,14 +2027,14 @@ class StorageCoordinator:
             headers = {"PRIVATE-TOKEN": target.token}
             url = f"{base}/projects/{project}/merge_requests/{quote(review.review_id)}"
             status = await self._request_no_body(
-                "PUT", url, headers=headers, json={"state_event": "close"}, timeout=15.0
+                "PUT", url, headers=headers, json={"state_event": "close"}, timeout=5.0
             )
         else:
             workspace, repo = _repo_parts(target.repo)
             headers = {"Authorization": f"Bearer {target.token}"}
             url = f"https://api.bitbucket.org/2.0/repositories/{quote(workspace)}/{quote(repo)}/pullrequests/{quote(review.review_id)}/decline"
             status = await self._request_no_body(
-                "POST", url, headers=headers, timeout=15.0
+                "POST", url, headers=headers, timeout=5.0
             )
         if status not in {200, 201, 204}:
             raise StorageWriteError(
@@ -2074,7 +2074,7 @@ class StorageCoordinator:
                 json={
                     "commit_title": f"Merge dataset contribution {review.review_key}"
                 },
-                timeout=20.0,
+                timeout=5.0,
             )
         elif target.provider == "gitlab":
             base = target.api_base or "https://gitlab.com/api/v4"
@@ -2082,14 +2082,14 @@ class StorageCoordinator:
             headers = {"PRIVATE-TOKEN": target.token}
             url = f"{base}/projects/{project}/merge_requests/{quote(review.review_id)}/merge"
             status = await self._request_no_body(
-                "PUT", url, headers=headers, timeout=20.0
+                "PUT", url, headers=headers, timeout=5.0
             )
         else:
             workspace, repo = _repo_parts(target.repo)
             headers = {"Authorization": f"Bearer {target.token}"}
             url = f"https://api.bitbucket.org/2.0/repositories/{quote(workspace)}/{quote(repo)}/pullrequests/{quote(review.review_id)}/merge"
             status = await self._request_no_body(
-                "POST", url, headers=headers, timeout=20.0
+                "POST", url, headers=headers, timeout=5.0
             )
         if status not in {200, 201, 202}:
             raise StorageWriteError(
@@ -2120,7 +2120,7 @@ class StorageCoordinator:
                 headers = {"Authorization": f"Bearer {target.token}"}
                 url = f"https://api.bitbucket.org/2.0/repositories/{quote(workspace)}/{quote(repo)}/refs/branches/{quote(branch, safe='')}"
             status = await self._request_no_body(
-                "DELETE", url, headers=headers, timeout=15.0
+                "DELETE", url, headers=headers, timeout=5.0
             )
             if status not in {200, 204, 404}:
                 raise StorageWriteError(
@@ -2218,7 +2218,7 @@ class StorageCoordinator:
             "X-GitHub-Api-Version": "2022-11-28",
         }
         current_status, current_json = await self._request_bounded_json(
-            "GET", url, headers=headers, params={"ref": target.branch}, timeout=15.0
+            "GET", url, headers=headers, params={"ref": target.branch}, timeout=5.0
         )
         if current_status == 404:  # ruff: ignore[magic-value-comparison]
             return "already-absent"
@@ -2234,7 +2234,7 @@ class StorageCoordinator:
             url,
             headers=headers,
             json={"message": message, "sha": sha, "branch": target.branch},
-            timeout=20.0,
+            timeout=5.0,
         )
         if status in {200, 204}:
             return "removed-current-view"
@@ -2255,7 +2255,7 @@ class StorageCoordinator:
             url,
             headers=headers,
             json={"branch": target.branch, "commit_message": message},
-            timeout=20.0,
+            timeout=5.0,
         )
         if status in {200, 204}:
             return "removed-current-view"
@@ -2273,7 +2273,7 @@ class StorageCoordinator:
         )
         headers = {"Authorization": f"Bearer {target.token}"}
         current_status = await self._request_no_body(
-            "GET", read_url, headers=headers, timeout=15.0
+            "GET", read_url, headers=headers, timeout=5.0
         )
         if current_status == 404:  # ruff: ignore[magic-value-comparison]
             return "already-absent"
@@ -2294,7 +2294,7 @@ class StorageCoordinator:
             url,
             headers=delete_headers,
             content=form.encode("utf-8"),
-            timeout=25.0,
+            timeout=5.0,
         )
         if status in {200, 201}:
             return "removed-current-view"
@@ -2422,7 +2422,7 @@ class StorageCoordinator:
             "branch": target.branch,
         }
         status = await self._request_no_body(
-            "PUT", url, headers=headers, json=payload, timeout=20.0
+            "PUT", url, headers=headers, json=payload, timeout=5.0
         )
         if status in {200, 201}:
             return
@@ -2430,7 +2430,7 @@ class StorageCoordinator:
         # content equality before treating the conflict as success.
         if status in {409, 422}:
             get_status, get_json = await self._request_bounded_json(
-                "GET", url, headers=headers, params={"ref": target.branch}, timeout=15.0
+                "GET", url, headers=headers, params={"ref": target.branch}, timeout=5.0
             )
             if get_status == 200:  # ruff: ignore[magic-value-comparison]
                 try:
@@ -2454,7 +2454,7 @@ class StorageCoordinator:
             "X-GitHub-Api-Version": "2022-11-28",
         }
         status, current = await self._request_bounded_json(
-            "GET", url, headers=headers, params={"ref": target.branch}, timeout=15.0
+            "GET", url, headers=headers, params={"ref": target.branch}, timeout=5.0
         )
         if status not in {200, 404}:
             raise StorageWriteError(
@@ -2471,7 +2471,7 @@ class StorageCoordinator:
                 raise StorageWriteError("GITHUB_REVIEW_UPDATE_SHA")
             payload["sha"] = sha
         write_status = await self._request_no_body(
-            "PUT", url, headers=headers, json=payload, timeout=20.0
+            "PUT", url, headers=headers, json=payload, timeout=5.0
         )
         if write_status not in {200, 201}:
             raise StorageWriteError(
@@ -2487,7 +2487,7 @@ class StorageCoordinator:
         url = f"{base}/projects/{project}/repository/files/{file_path}"
         headers = {"PRIVATE-TOKEN": target.token}
         get_status, _ = await self._request_bounded_json(
-            "GET", url, headers=headers, params={"ref": target.branch}, timeout=15.0
+            "GET", url, headers=headers, params={"ref": target.branch}, timeout=5.0
         )
         if get_status not in {200, 404}:
             raise StorageWriteError(
@@ -2504,7 +2504,7 @@ class StorageCoordinator:
             else "POST"
         )
         write_status = await self._request_no_body(
-            method, url, headers=headers, json=payload, timeout=20.0
+            method, url, headers=headers, json=payload, timeout=5.0
         )
         if write_status not in {200, 201}:
             raise StorageWriteError(
@@ -2525,13 +2525,13 @@ class StorageCoordinator:
             "content": content.decode("utf-8"),
         }
         status = await self._request_no_body(
-            "POST", url, headers=headers, json=payload, timeout=20.0
+            "POST", url, headers=headers, json=payload, timeout=5.0
         )
         if status in {200, 201}:
             return
         if status == 400:  # ruff: ignore[magic-value-comparison]
             get_status, get_json = await self._request_bounded_json(
-                "GET", url, headers=headers, params={"ref": target.branch}, timeout=15.0
+                "GET", url, headers=headers, params={"ref": target.branch}, timeout=5.0
             )
             if get_status == 200:  # ruff: ignore[magic-value-comparison]
                 try:
@@ -2553,7 +2553,7 @@ class StorageCoordinator:
         files = {"/" + path: (path.rsplit("/", 1)[-1], content, "application/x-ndjson")}
         data = {"branch": target.branch, "message": message}
         status = await self._request_no_body(
-            "POST", url, headers=headers, data=data, files=files, timeout=25.0
+            "POST", url, headers=headers, data=data, files=files, timeout=5.0
         )
         if status in {200, 201}:
             return

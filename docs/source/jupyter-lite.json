@@ -5,9 +5,7 @@
     "exposeAppInBrowser": true,
     "terminalsAvailable": true,
     "litePluginSettings": {
-      "@jupyterlite/pyodide-kernel-extension:kernel": {
-        "pyodideUrl": "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
-      }
+      "@jupyterlite/pyodide-kernel-extension:kernel": {}
     }
   }
 }

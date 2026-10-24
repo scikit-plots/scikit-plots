@@ -91,6 +91,7 @@ def base(tmp_path_factory):
         raise RuntimeError("run167 fixture unavailable")
     out1, ads1, authority1, privs1, _ = t167._advance(b, tmp / "r167-1")
     run161d, wout4, aout4 = t166._advance_run163(b["f"], tmp / "advance4", seq=4, run161_prev=b["run161c"], wout_prev=b["wout3"], aout_prev=b["aout3"], now=t167.T4)
+
     source1 = t167._source(b, out1); leaves1 = t167._leaves(ads1)
     out2, ads2, _, _, _ = t167._advance(b, tmp / "r167-2", previous=out1, transition=False, source=source1, current_privs=privs1,
                                          run161=run161d, wout=wout4, aout=aout4, now=t167.T4, leaves=leaves1)

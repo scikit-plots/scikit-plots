@@ -1,0 +1,5 @@
+# What asv writes next to asv.conf.json, and the benchmarks' own caches.
+env/
+results/
+html/
+.asv/

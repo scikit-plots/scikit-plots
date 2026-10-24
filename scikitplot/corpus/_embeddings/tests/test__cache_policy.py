@@ -33,6 +33,8 @@ from .._cache_policy import (
 from .._embedding import EmbeddingEngine, _make_cache_key
 from .._multimodal_embedding import MultimodalEmbeddingEngine
 
+logger = _embedding.logger  # logging.getLogger(_embedding.__name__)
+
 #: Hub commits (40 hex); only a commit pins a sentence-transformers model.
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 RESOLVED = "fedcba9876543210fedcba9876543210fedcba98"
@@ -106,12 +108,17 @@ class TestUnpinned:
         assert second.embeddings[0, 0] == 2.0
         assert _entries(tmp_path) == []
 
-    def test_the_bypass_is_logged_once(self, tmp_path, caplog):
+    def test_the_bypass_is_logged_once(self, tmp_path, captured_logger, caplog):
         engine = _engine(tmp_path)
-        with caplog.at_level(logging.INFO, logger=_embedding.__name__):
+
+        with captured_logger(logging.INFO, logger):
             engine.embed_cached(["a"])
             engine.embed_cached(["b"])
-        notices = [r for r in caplog.records if "not pinned to a commit" in r.message]
+
+        notices = [
+            r for r in caplog.records
+            if "not pinned to a commit" in r.getMessage()  # r.message
+        ]
         assert len(notices) == 1
 
     def test_allow_is_the_old_behaviour_by_choice(self, tmp_path):
@@ -209,10 +216,11 @@ class TestResolve:
         assert engine.embedding_manifest(4).revision == RESOLVED
 
     @pytest.mark.parametrize(
-        "answer", [RuntimeError("offline"), "", None, 7, "main", "ABCDEF" * 7]
+        "answer",
+        [RuntimeError("offline"), "", None, 7, "main", "ABCDEF" * 7],
     )
     def test_a_failed_resolution_bypasses_and_loads_unpinned(
-        self, tmp_path, monkeypatch, caplog, answer
+        self, tmp_path, monkeypatch, captured_logger, caplog, answer
     ):
         def resolver(name):
             if isinstance(answer, Exception):
@@ -227,15 +235,24 @@ class TestResolve:
 
         monkeypatch.setattr(_embedding, "_make_sentence_transformers_fn", loader)
         engine = EmbeddingEngine(
-            cache_dir=tmp_path, normalize=False, cache_policy=self._policy(resolver)
+            cache_dir=tmp_path,
+            normalize=False,
+            cache_policy=self._policy(resolver),
         )
-        with caplog.at_level(logging.WARNING, logger=_embedding.__name__):
+
+        with captured_logger(logging.WARNING, logger):
             result = engine.embed_cached(["x"])
             engine.embed_cached(["x"])
+
         assert result.status is CacheStatus.BYPASS_UNPINNED
         assert loaded == [None]
         assert _entries(tmp_path) == []
-        assert len([r for r in caplog.records if "resolve" in r.message]) == 1
+
+        resolution_warnings = [
+            record for record in caplog.records
+            if record.name == logger.name and "resolve" in record.getMessage()
+        ]
+        assert len(resolution_warnings) == 1
         assert engine.embedding_manifest(4).revision is None
 
 

@@ -183,7 +183,7 @@ class WebDownloader(BaseDownloader):
             self.input_url,
             output_path=dest,
             max_bytes=self.max_bytes,
-            timeout=int(self.timeout),
+            timeout=self.timeout,
             max_redirects=self.max_redirects,
             max_retries=self.max_retries,
             retry_backoff=self.retry_backoff,

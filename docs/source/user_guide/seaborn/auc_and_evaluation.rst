@@ -1,3 +1,5 @@
+.. _aucplot-index:
+.. _evalplot-index:
 .. _seaborn-auc-and-evaluation:
 
 AUC and evaluation

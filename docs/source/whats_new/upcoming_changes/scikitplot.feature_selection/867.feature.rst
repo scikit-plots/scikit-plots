@@ -1,0 +1,20 @@
+- New :mod:`scikitplot.feature_selection` for wide pandas tables.
+  ``profile_features`` (or ``FeatureProfiler`` in a pipeline) fits a
+  ``FeatureSchema`` on training data: every column gets a role, dtype family,
+  semantic kind, user tags, a bin recommendation (Knuth, Freedman-Diaconis,
+  Scott ... with frozen edges) and policy-backed assessments such as
+  ``skewed``, ``discrete``, ``constant``, ``binary``, ``identifier_like`` or
+  ``high_cardinality``, each with evidence and an explicit ``unknown`` /
+  ``not_applicable`` state; thresholds, roles, kinds, tags and manual
+  overrides live in a ``FeaturePolicy`` read from TOML, YAML or JSON, and new
+  questions are added with ``register_assessment``. ``FeatureColumnSelector``
+  routes columns into a ``ColumnTransformer`` by kind or assessment on each
+  training fold, ``FeatureFilter`` drops constant and identifier-like columns
+  and non-feature roles, and ``FeatureRenamer`` applies a frozen rename plan.
+  ``trace_pipeline`` reads a fitted ``Pipeline`` / ``ColumnTransformer`` /
+  ``FeatureUnion`` and reports, per raw column, the steps that touched it,
+  the columns it became and where it was dropped, checks every stage's width
+  against its real output, and ``FeatureLineage.attribute`` sums one-hot (or
+  any exactly traced) importances and SHAP values back to raw columns.
+  ``ReferenceProfile`` freezes a training reference and reports per-feature
+  PSI, Jensen-Shannon distance, missingness change and unseen categories.

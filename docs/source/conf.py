@@ -469,6 +469,8 @@ except ImportError:
 # https://www.npmjs.com/package/pyodide?activeTab=versions
 # https://pyodide.org/en/stable/development/abi.html#platform-versions
 # https://pyodide.org/en/stable/usage/index.html#web-browsers
+#
+# https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/index.html#with-pyodide
 # Keep Kernel Sync with "docs/source/jupyter-lite.json":
 # "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js"
 # "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
@@ -902,6 +904,7 @@ exclude_patterns = [  # glob-style
     "**/.cockle_temp/**",
     ".cockle_temp",
 
+    # "_page_feedback",
     # "learn/hands-on/edtech/_sources_cache/**",   # raw source cache — never a doc
     # "learn/hands-on/edtech/**/urls.rst",
     # "learn/hands-on/edtech/**/*-urls.rst",

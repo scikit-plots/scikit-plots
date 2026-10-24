@@ -642,13 +642,14 @@ commands:
             pip install -r ./requirements/corpus.txt
             pip install -r ./requirements/cleanprompt.txt
 
+            # Resolve distutils conflict before any setuptools-dependent install
+            # export SETUPTOOLS_USE_DISTUTILS=local
+            # pip install "setuptools>=69"
+            # ✅ It’s a distutils override conflict, pythran cause setuptools<60
+            pip install -U setuptools
+
             # pip install voyager==2.1.0
             pip install beautifulsoup4 markdownify
-
-            # ✅ It’s a distutils override conflict
-            # pip install "setuptools>=69"
-            # export SETUPTOOLS_USE_DISTUTILS=local
-            pip install -U setuptools
 
             # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
@@ -670,7 +671,10 @@ commands:
               jupyterlite-xeus \
               jupyterlite-terminal
 
-            pip install nltk
+            pip install nltk spacy
+
+            # Verify whether installed Python packages have compatible dependencies.
+            pip check || true
 
             # The same two scripts serve Docker images, the devcontainer and
             # the documentation build; see their headers for the options.
@@ -729,7 +733,11 @@ commands:
           command: |
             # cpu: tensorflow
             # pip install --no-cache-dir .[build,dev,test,doc]
+            # pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
             python -m pip install --no-build-isolation --no-cache-dir . -v
+
+            # Verify whether installed Python packages have compatible dependencies.
+            pip check || true
   # upload-codecov:
   #   description: Upload coverage results to codecov
   #   steps:
@@ -839,6 +847,11 @@ commands:
             export SCIKITPLOT_CORPUS_ALLOW_DOWNLOADS=1
             export SCIKITPLOT_GALLERY_RUN_ASR=1
             export SCIKITPLOT_GALLERY_RUN_NETWORK=1
+
+            # docs/source/whats_new/v0.5.rst
+            # towncrier build --yes --version="$(python -c 'import scikitplot as sp; print(sp.version._version)')"
+            towncrier build --yes
+
             cd docs
             # Runs `clean` first, executes the gallery, writes build/html + build/doctrees.
             make html 2>&1 | tee ~/sphinx_html_log.txt

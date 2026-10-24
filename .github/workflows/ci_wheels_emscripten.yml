@@ -25,6 +25,7 @@
 #   https://cibuildwheel.pypa.io/en/stable/options/#enable
 #   https://anaconda.org/channels/pyodide
 #
+# https://jupyterlite-pyodide-kernel.readthedocs.io/en/stable/index.html#with-pyodide
 # Keep in sync with docs/source/jupyter-lite.json:
 #   https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js
 #   https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js

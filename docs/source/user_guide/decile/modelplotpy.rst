@@ -1,4 +1,6 @@
 .. _decile-modelplotpy:
+.. _decile-modelplotpy-index:
+.. _decile-modelplotpy-financial-index:
 
 ModelPlotPy
 ===========

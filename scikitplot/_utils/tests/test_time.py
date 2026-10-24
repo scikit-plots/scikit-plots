@@ -188,7 +188,7 @@ class TestTimer(unittest.TestCase):
     def test_nested_timers_are_independent(self):
         """Two independent Timer contexts must each measure their own elapsed."""
         with Timer() as t1:
-            time.sleep(0.02)
+            time.sleep(0.01)
         with Timer() as t2:
             time.sleep(0.01)
         # t1 should have been active longer

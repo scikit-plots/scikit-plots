@@ -40,7 +40,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# from ...conftest import captured_logger
 from .._nlp_enricher import BUILTIN_STOPWORDS, EnricherConfig, NLPEnricher
 
 
@@ -653,8 +652,8 @@ class TestKeywordExtractors:
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             with patch.dict(
                 "sys.modules",
@@ -748,8 +747,8 @@ class TestKeywordExtractors:
             "scikitplot.corpus._enrichers._nlp_enricher"
         )
         with captured_logger(
-            logger.name,
             logging.WARNING,
+            logger.name,
         ):
             with patch.dict(
                 "sys.modules",

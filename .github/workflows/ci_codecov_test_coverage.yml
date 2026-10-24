@@ -21,10 +21,14 @@ on:
       test_gc:
         description: "Garbage collection between tests (see scikitplot/conftest.py)"
         type: choice
-        options: [young, module, test, off]
+        options: [young, frozen, module, test, off]
         default: young
       max_failures:
         description: "Failures after which a test job stops (0: never; empty: 50)"
+        type: string
+        default: ""
+      profile_tests:
+        description: "Profile these tests one by one (a regular expression of node ids; empty: none). See .github/ci/README.md, section 12"
         type: string
         default: ""
   push:
@@ -199,14 +203,18 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
+          # Every shard installs the same large stack; keep pip's download
+          # cache between runs. pip still asks the index for the newest
+          # versions the requirements allow: the cache only saves downloads.
+          cache: pip
+          cache-dependency-path: |
+            requirements/*.txt
+            pyproject.toml
 
       - name: "📦 Install dependencies"
         run: |
           # sudo apt-get install tesseract-ocr
           python -m pip install --upgrade pip
-
-          # Resolve distutils conflict before any setuptools-dependent install
-          pip install -U setuptools
 
           pip install pytest pytest-cov
           pip install beautifulsoup4 markdownify
@@ -217,6 +225,9 @@ jobs:
                       faster-whisper openai-whisper \
                       pytesseract youtube-transcript-api
 
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check
+
           # The same two scripts serve Docker images, the devcontainer and
           # the documentation build; see their headers for the options.
           bash docker/scripts/install_nltk.sh
@@ -224,9 +235,36 @@ jobs:
 
       - name: "🔨 Build library"
         run: |
-          # install your project if it's a package
+          set -Eeuo pipefail
+          # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          # pip install -r ./requirements/build.txt
           pip install -r requirements/all.txt
-          pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
+
+          # tf need for documentation examples
+          # pip install -r ./requirements/gpu.txt
+          pip install -r ./requirements/cpu.txt
+          pip install -r ./requirements/mlflow.txt
+          pip install -r ./requirements/corpus.txt
+          pip install -r ./requirements/cleanprompt.txt
+
+          # Resolve distutils conflict before any setuptools-dependent install
+          # export SETUPTOOLS_USE_DISTUTILS=local
+          # pip install "setuptools>=69"
+          # ✅ It’s a distutils override conflict, pythran cause setuptools<60
+          pip install -U setuptools
+
+          pip install nltk spacy
+
+          # The same two scripts serve Docker images, the devcontainer and
+          # the documentation build; see their headers for the options.
+          bash docker/scripts/install_nltk.sh
+          bash docker/scripts/install_spacy.sh
+
+          # pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
+          python -m pip install --no-build-isolation --no-cache-dir -e . -v
+
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check || true
 
       - name: "☂️ Run tests with coverage"
         env:
@@ -245,6 +283,13 @@ jobs:
           # or autouse fixture, which once made this job need six hours.
           # Measured today: 0.003. See scikitplot/conftest.py.
           SKPLT_TEST_FLOOR_BUDGET: "0.1"
+          # Record where every test spends time and memory: one JSON line per
+          # test, written as it finishes, so a shard stopped at its time limit
+          # keeps every test that finished. The report job analyses all
+          # shards together (.github/ci/README.md, section 12).
+          SKPLT_TEST_PERF_DIR: reports/perf
+          SKPLT_TEST_PERF_LABEL: ${{ matrix.name }}
+          SKPLT_TEST_PERF_PROFILE: ${{ inputs.profile_tests }}
           # No repository secret is given to this step, on purpose. A pull
           # request from a fork has none, so a secret here makes a push test
           # something a pull request did not (HF_TOKEN once turned a passing
@@ -275,15 +320,20 @@ jobs:
           fi
           exit "$status"
 
-      - name: "⬆️ Keep coverage data and the test report"
-        # if: always()
-        if: success()
+      - name: "⬆️ Keep coverage data, the test report and the performance record"
+        # Also when tests failed, or the job was stopped at its time limit:
+        # the JUnit report and the performance record are the evidence of
+        # what happened, and without them the duration estimates of exactly
+        # the failing shards were never refreshed. The report job uploads
+        # coverage to Codecov only from a run whose every shard succeeded.
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-${{ matrix.name }}
           path: |
             .coverage.*
             reports/junit-*.xml
+            reports/perf/
           include-hidden-files: true   # .coverage.* is a hidden file
           if-no-files-found: warn
           retention-days: 7
@@ -298,8 +348,11 @@ jobs:
   report:
     name: "CI Test and Coverage Codecov Reports"
     needs: [plan, test]
-    # if: always() && github.repository == 'scikit-plots/scikit-plots'
-    if: success() && github.repository == 'scikit-plots/scikit-plots'
+    # always(): this job is the check that branch protection requires, so it
+    # must run whatever its needs did and decide in its last step. Under
+    # success() a failed shard made it *skipped*, and GitHub reports a job
+    # skipped by its condition as passing, so a red run counted as green.
+    if: always() && github.repository == 'scikit-plots/scikit-plots'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -330,6 +383,10 @@ jobs:
 
       - name: "⬇️ Collect every shard's coverage data"
         if: needs.plan.outputs.run == 'true'
+        # A shard that failed before its upload leaves nothing to collect;
+        # that is reported by the last step, so only a run whose shards all
+        # succeeded may fail here.
+        continue-on-error: ${{ needs.test.result != 'success' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: coverage-*
@@ -389,6 +446,38 @@ jobs:
             test_durations.json
           if-no-files-found: warn
           retention-days: 14
+
+      - name: "⏱️ Analyse test performance"
+        # Every shard's performance record and JUnit report become one
+        # report: per unit, test file, test and fixture, with findings and
+        # their evidence (.github/ci/README.md, section 12). The tests decide
+        # the result of the run, not this analysis, so a failure here does
+        # not fail the run; the analyzer's own tests run in the plan job.
+        if: needs.plan.outputs.run == 'true'
+        continue-on-error: true
+        run: |
+          set -Eeuo pipefail
+          inputs=()
+          [ -d coverage-data/reports ] && inputs+=(coverage-data/reports)
+          [ -f coverage.xml ] && inputs+=(coverage.xml)
+          if [ "${#inputs[@]}" -eq 0 ]; then
+            echo "::notice::no test evidence to analyse"
+            exit 0
+          fi
+          python3 .github/scripts/ci_test_perf.py report \
+            "${inputs[@]}" .github/ci/test_durations.json \
+            --out test-perf \
+            --bundle \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+
+      - name: "⬆️ Keep the performance report"
+        if: needs.plan.outputs.run == 'true' && hashFiles('test-perf/summary.json') != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-perf
+          path: test-perf/
+          if-no-files-found: warn
+          retention-days: 30
 
       ## Codecov reads a report as the coverage of the whole project. A run
       ## that tested only some submodules would look like a collapse, so only

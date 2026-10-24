@@ -24,7 +24,7 @@ def test_parallel_threads():
             with lock:
                 assert_(not failflag[0])
                 failflag[0] = True
-                time.sleep(0.1 * k)
+                time.sleep(0.01 * k)
                 assert_(failflag[0])
                 failflag[0] = False
         except Exception:

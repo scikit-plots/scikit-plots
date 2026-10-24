@@ -13,6 +13,7 @@
     "pyproject.toml",
     "pytest.ini",
     "conftest.py",
+    "scikitplot/_testing/_perf_telemetry.py",
     "meson.build",
     "meson.options",
     "meson_cpu/**",

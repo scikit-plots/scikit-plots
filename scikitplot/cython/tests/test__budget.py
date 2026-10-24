@@ -16,7 +16,7 @@ enforced by the real build path.
 from __future__ import annotations
 
 import tempfile
-import time
+import threading
 from pathlib import Path
 
 import pytest
@@ -31,11 +31,17 @@ from .._budget import (
 
 class TestRunWithDeadline:
     def test_timeout_raises(self) -> None:
-        with pytest.raises(BuildTimeoutError, match="deadline"):
-            run_with_deadline(lambda: time.sleep(2.0), timeout_s=0.05, what="x")
+        # The work blocks until released, so it cannot finish inside the
+        # deadline; releasing it afterwards ends the abandoned worker.
+        release = threading.Event()
+        try:
+            with pytest.raises(BuildTimeoutError, match="deadline"):
+                run_with_deadline(release.wait, timeout_s=0.1, what="x")
+        finally:
+            release.set()
 
     def test_result_returned(self) -> None:
-        assert run_with_deadline(lambda: 7, timeout_s=5.0) == 7
+        assert run_with_deadline(lambda: 7, timeout_s=0.1) == 7
 
     def test_none_timeout_runs_inline(self) -> None:
         assert run_with_deadline(lambda: 9, timeout_s=None) == 9

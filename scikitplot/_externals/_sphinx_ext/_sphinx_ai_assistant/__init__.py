@@ -4201,7 +4201,7 @@ def process_html_directory(
                 # filesystems (NFS, SMB) where a file read can block
                 # indefinitely.  120 s is generous for any single HTML page.
                 # TimeoutError is caught by the broad Exception handler below.
-                status, _rel, _msg = future.result(timeout=120)
+                status, _rel, _msg = future.result(timeout=5.0)
             except Exception:  # noqa: BLE001
                 errors += 1
             else:
@@ -5055,7 +5055,7 @@ def generate_markdown_files(  # ruff: ignore[too-many-branches]
                 # when a worker stalls (e.g. NFS stale file handle, OOM kill).
                 # concurrent.futures.TimeoutError is caught as a generic
                 # Exception below and logged as a worker error.
-                status, rel_path, message = future.result(timeout=120)
+                status, rel_path, message = future.result(timeout=5.0)
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 failures.append(("<worker>", f"{type(exc).__name__}: {exc}"))

@@ -60,7 +60,8 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     shell_code_css_path = "shell_code_styles.css"
 
     principles_js_path = "scripts/principles-ticker.js"
-    principles_css_path = "styles/principles-ticker.css"
+    # principles_css_path = "styles/principles-ticker.css"
+    principles_css_path = "principles-ticker.css"
 
     # missing_file = []
     # for file in [apis_search_js_path, api_search_css_path, index_css_path, apis_css_path]:

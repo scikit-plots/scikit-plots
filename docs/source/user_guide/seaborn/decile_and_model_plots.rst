@@ -1,3 +1,4 @@
+.. _decileplot-index:
 .. _seaborn-decile-and-model-plots:
 
 Decile and model plots

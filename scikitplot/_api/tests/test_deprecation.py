@@ -813,12 +813,12 @@ class TestDeprecatePrivatizeAttribute(_WarnAssertMixin, unittest.TestCase):
         class Config:
             timeout = deprecate_privatize_attribute("3.1")
             def __init__(self):
-                self._timeout = 30
+                self._timeout = 0.1
         obj = Config()
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             val = obj.timeout
-        self.assertEqual(val, 30)
+        self.assertEqual(val, 0.1)
         self._assert_warns(w)
 
     def test_write_delegates_to_private_attribute(self):

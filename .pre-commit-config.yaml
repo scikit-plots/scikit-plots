@@ -41,10 +41,12 @@ repos:
           - tomli
         exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
           (?x)(
-            ^scikitplot/_core/ |  # exclude folder
-            ^tests/data/ |        # exclude test data folder
-            \.svg$ |              # exclude all .svg files
-            \.lock$               # exclude lock files
+            ^scikitplot/_core/ |                       # exclude folder
+            ^scikitplot/cexternals/_astropy/ |
+            ^scikitplot/cexternals/_numcpp/ |
+            ^tests/data/ |                             # exclude test data folder
+            \.svg$ |                                   # exclude all .svg files
+            \.lock$                                    # exclude lock files
           )
 
   # Optional: Custom Hook for RST Errors and Unicode Replacement
@@ -115,11 +117,12 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
+        # The 'exclude' field in hook 'check-json' is a regex, not a glob -- matching '/*'
         # exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
         exclude: "^(\
             \\.devcontainer/.*\\.json\
             |\\.vscode/.*\\.json*\
-            |benchmarks/asv\\.conf\\.json\
+            |benchmarks/.*yanked/.*\\.json\
           )$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
         # exclude: ".*(.github.*)$"
@@ -274,7 +277,7 @@ repos:
               |\\.git\
               |\\.mypy_cache\
               |\\.vscode\
-              |benchmarks\
+              |benchmarks/.*yanked\
               |build\
               |dist\
               |docs/build\

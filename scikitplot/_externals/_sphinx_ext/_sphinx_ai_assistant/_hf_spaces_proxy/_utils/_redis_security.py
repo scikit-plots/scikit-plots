@@ -86,7 +86,7 @@ def redis_connection_kwargs(
 ) -> tuple[RedisTransportPolicy, dict[str, Any]]:
     """Return validated non-secret policy plus hardened redis-py kwargs."""
     policy = validate_redis_url(url, require_tls=require_tls)
-    timeout = max(0.25, min(float(socket_timeout_seconds), 10.0))
+    timeout = max(0.25, min(float(socket_timeout_seconds), 5.0))
     kwargs: dict[str, Any] = {
         "decode_responses": False,
         "socket_connect_timeout": timeout,

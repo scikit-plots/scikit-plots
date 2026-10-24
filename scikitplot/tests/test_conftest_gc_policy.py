@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ast
 import gc
+import importlib
 import os
 import pathlib
 import subprocess
@@ -28,13 +29,18 @@ import weakref
 import pytest
 
 PACKAGE = pathlib.Path(__file__).resolve().parents[1]
+#: The package's conftest as a plugin name, from the name this test was
+#: imported under (Rule 142): ``<package>.conftest``.
+PACKAGE_CONFTEST = importlib.import_module("..", __package__).__name__ + ".conftest"
 CONFTEST = PACKAGE / "conftest.py"
 WANTED = {
     "_test_gc_policy",
     "_is_last_test_of_its_module",
+    "_module_of",
     "_collect_garbage",
     "_test_floor_budget",
     "_TestCostMonitor",
+    "_FreezeSurvivors",
     "pytest_runtest_teardown",
     "SKPLT_TEST_GC_ENV",
     "SKPLT_TEST_GC_POLICIES",
@@ -54,6 +60,12 @@ class _CountingGC:
     def collect(self, generation=2):
         self.calls.append(generation)
         return 0
+
+    def freeze(self):
+        self.calls.append("freeze")
+
+    def unfreeze(self):
+        self.calls.append("unfreeze")
 
 
 def _load(counter):
@@ -95,7 +107,7 @@ class TestPolicyValue:
         monkeypatch.setenv(hooks.SKPLT_TEST_GC_ENV, value)
         assert hooks._test_gc_policy() == "young"
 
-    @pytest.mark.parametrize("value", ["test", "young", "module", "off", " OFF ", "Module"])
+    @pytest.mark.parametrize("value", ["test", "young", "frozen", "module", "off", " OFF ", "Module", "Frozen"])
     def test_a_known_policy_is_normalised(self, monkeypatch, value):
         hooks = _load(_CountingGC())
         monkeypatch.setenv(hooks.SKPLT_TEST_GC_ENV, value)
@@ -109,7 +121,7 @@ class TestPolicyValue:
             hooks._test_gc_policy()
 
     def test_the_policies_are_exactly_these(self):
-        assert _load(_CountingGC()).SKPLT_TEST_GC_POLICIES == ("test", "young", "module", "off")
+        assert _load(_CountingGC()).SKPLT_TEST_GC_POLICIES == ("test", "young", "frozen", "module", "off")
 
 
 class TestCollectionsPerPolicy:
@@ -118,6 +130,7 @@ class TestCollectionsPerPolicy:
         [
             ("test", [2], [2]),
             ("young", [1], [1, 2]),
+            ("frozen", [1], [1]),  # its module-end collection is _FreezeSurvivors'
             ("module", [], [2]),
             ("off", [], []),
         ],
@@ -137,6 +150,17 @@ class TestCollectionsPerPolicy:
         _load(counter).pytest_runtest_teardown(_item(MODULE_A, policy), None)
         assert counter.calls[-1] == 2
 
+    def test_doctests_of_two_files_end_a_module(self):
+        hooks = _load(_CountingGC())
+        file_a, file_b = object(), object()
+        first, second, other = (
+            types.SimpleNamespace(parent=file_a),
+            types.SimpleNamespace(parent=file_a),
+            types.SimpleNamespace(parent=file_b),
+        )
+        assert not hooks._is_last_test_of_its_module(first, second)
+        assert hooks._is_last_test_of_its_module(second, other)
+
     def test_an_item_without_a_module_ends_one(self):
         hooks = _load(_CountingGC())
         doctest_like = types.SimpleNamespace()
@@ -151,6 +175,76 @@ class TestCollectionsPerPolicy:
         calls = [n for n in ast.walk(setup) if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "_collect_garbage"]
         assert len(calls) == 1
         assert first.body[0].value is calls[0]
+
+
+class TestFrozenPolicy:
+    """What ``frozen`` adds to ``young``: a freeze after collection and after each module."""
+
+    def test_the_hooks_freeze_what_survived(self):
+        counter = _CountingGC()
+        freezer = _load(counter)._FreezeSurvivors()
+        config = types.SimpleNamespace(_skplt_test_cost=None)
+        freezer.pytest_collection_finish(types.SimpleNamespace(config=config))
+        assert counter.calls == [2, "freeze"]
+        for nextitem, expected in (
+            (_item(MODULE_A, "frozen"), []),
+            (None, [2, "freeze"]),
+        ):
+            counter.calls.clear()
+            wrapper = freezer.pytest_runtest_teardown(
+                _item(MODULE_A, "frozen"), nextitem
+            )
+            next(wrapper)  # pytest's own teardown runs here, module fixtures included
+            assert counter.calls == []
+            with pytest.raises(StopIteration):
+                wrapper.send(None)
+            assert counter.calls == expected
+        counter.calls.clear()
+        freezer.pytest_unconfigure(config)
+        assert counter.calls == ["unfreeze"]
+
+    def test_a_session_runs_frozen_and_ends_unfrozen(self, tmp_path):
+        (tmp_path / "test_a.py").write_text("def test_a():\n    pass\n")
+        (tmp_path / "test_b.py").write_text(
+            "import gc\n\ndef test_b():\n    assert gc.get_freeze_count() > 0\n"
+        )
+        (tmp_path / "check_exit.py").write_text(
+            "import gc\nimport pytest\n\n"
+            "@pytest.hookimpl(trylast=True)\n"
+            "def pytest_unconfigure(config):\n"
+            "    print('freeze count at exit:', gc.get_freeze_count())\n"
+        )
+        env = {**os.environ, "SKPLT_TEST_GC": "frozen", "PYTHONPATH": str(tmp_path)}
+        env.pop("SKPLT_TEST_PERF_DIR", None)
+        done = subprocess.run(  # noqa: S603 - this interpreter, fixed arguments
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-s",
+                "-p",
+                "no:cacheprovider",
+                "-p",
+                PACKAGE_CONFTEST,
+                "-p",
+                "check_exit",
+                "-c",
+                os.devnull,
+                "--rootdir",
+                str(tmp_path),
+                str(tmp_path),
+            ],
+            cwd=tmp_path,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            check=False,
+        )
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "freeze count at exit: 0" in done.stdout
+        assert "2 passed" in done.stdout
 
 
 class TestWhatAYoungCollectionKeeps:

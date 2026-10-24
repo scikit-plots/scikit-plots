@@ -15,7 +15,8 @@ run_with_timeout           raises on Windows (mocked),
                            timeout fires ScikitplotTimeoutError,
                            alarm is always cleared (finally),
                            exception inside block propagates,
-                           zero seconds arms alarm               -> TestRunWithTimeout
+                           fractional seconds, invalid seconds,
+                           an armed timer refused                -> TestRunWithTimeout
 
 Run standalone::
 
@@ -31,8 +32,15 @@ import types
 import unittest
 import unittest.mock as mock
 
+from .. import timeout as timeout_module
 from ..exception_utils import ScikitplotException
 from ..timeout import ScikitplotTimeoutError, run_with_timeout
+
+#: The limit of the tests that expect a timeout, and how long their block
+#: would block without it: the block must outlast the limit by far, or the
+#: test asserts nothing (each used to sleep 0.01 s inside a 1 s limit).
+LIMIT = 0.05
+BLOCKS_FOR = 30.0
 
 
 # ===========================================================================
@@ -111,17 +119,18 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
 
     def test_timeout_raises_scikitplot_timeout_error(self):
         """A block that sleeps longer than the timeout must raise ScikitplotTimeoutError."""
-        with self.assertRaises(ScikitplotTimeoutError):
-            with run_with_timeout(1):
-                time.sleep(5)  # far exceeds 1 second
+        started = time.monotonic()
+        with self.assertRaises(ScikitplotTimeoutError), run_with_timeout(LIMIT):
+            time.sleep(BLOCKS_FOR)
+        self.assertLess(time.monotonic() - started, BLOCKS_FOR / 2)
 
     def test_timeout_error_message_contains_seconds(self):
         """The timeout error message must mention the number of seconds."""
         try:
-            with run_with_timeout(1):
-                time.sleep(5)
+            with run_with_timeout(LIMIT):
+                time.sleep(BLOCKS_FOR)
         except ScikitplotTimeoutError as exc:
-            self.assertIn("1", str(exc))
+            self.assertIn(f"after {LIMIT} seconds", str(exc))
         else:
             self.fail("Expected ScikitplotTimeoutError was not raised")
 
@@ -130,7 +139,7 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
     def test_alarm_cleared_after_exception_inside_block(self):
         """Even when the block raises an unrelated exception, alarm must be cleared."""
         try:
-            with run_with_timeout(10):
+            with run_with_timeout(0.1):
                 raise ValueError("unrelated error")
             self.fail("Expected ValueError was not raised")
         except ValueError as exc:
@@ -149,7 +158,7 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
 
     def test_posix_path_used_when_not_windows(self):
         """When is_windows() returns False, no exception should be raised on entry."""
-        with mock.patch("scikitplot._utils.timeout.is_windows", return_value=False):
+        with mock.patch.object(timeout_module, "is_windows", return_value=False):
             try:
                 with run_with_timeout(10):
                     pass
@@ -163,7 +172,7 @@ class TestRunWithTimeoutWindowsPath(unittest.TestCase):
     def test_windows_raises_scikitplot_exception(self):
         """When is_windows() returns True, ScikitplotException must be raised."""
 
-        with mock.patch("scikitplot._utils.timeout.is_windows", return_value=True):
+        with mock.patch.object(timeout_module, "is_windows", return_value=True):
             with self.assertRaises(ScikitplotException):
                 with run_with_timeout(5):
                     pass  # pragma: no cover
@@ -171,7 +180,7 @@ class TestRunWithTimeoutWindowsPath(unittest.TestCase):
     def test_windows_error_message_informative(self):
         """The Windows error message must mention 'non-Unix' or 'not implemented'."""
 
-        with mock.patch("scikitplot._utils.timeout.is_windows", return_value=True):
+        with mock.patch.object(timeout_module, "is_windows", return_value=True):
             with self.assertRaises(ScikitplotException) as ctx:
                 with run_with_timeout(5):
                     pass  # pragma: no cover
@@ -184,7 +193,7 @@ class TestRunWithTimeoutWindowsPath(unittest.TestCase):
     def test_windows_exception_has_error_code(self):
         """ScikitplotException from Windows path must have error_code attribute."""
 
-        with mock.patch("scikitplot._utils.timeout.is_windows", return_value=True):
+        with mock.patch.object(timeout_module, "is_windows", return_value=True):
             with self.assertRaises(ScikitplotException) as ctx:
                 with run_with_timeout(5):
                     pass  # pragma: no cover
@@ -216,14 +225,59 @@ class TestSignalHandlerBehavior(unittest.TestCase):
         """The installed SIGALRM handler must raise ScikitplotTimeoutError when fired."""
         original_handler = signal.getsignal(signal.SIGALRM)
         try:
-            with self.assertRaises(ScikitplotTimeoutError):
-                with run_with_timeout(1):
-                    # Fire the signal immediately to test the handler
-                    signal.alarm(1)
-                    time.sleep(3)
+            with self.assertRaises(ScikitplotTimeoutError), run_with_timeout(10):
+                # Fire the signal now: the handler itself is under test.
+                signal.raise_signal(signal.SIGALRM)
         finally:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, original_handler)
+
+
+@unittest.skipIf(sys.platform == "win32", "signal.SIGALRM not available on Windows")
+class TestSecondsAndTimerState(unittest.TestCase):
+    """Fractional limits, refused limits, and the process's one timer."""
+
+    def tearDown(self):
+        signal.setitimer(signal.ITIMER_REAL, 0)
+
+    def test_a_fractional_limit_fires(self):
+        """A limit below one second works (signal.alarm refused 0.1)."""
+        with self.assertRaises(ScikitplotTimeoutError), run_with_timeout(LIMIT):
+            time.sleep(BLOCKS_FOR)
+
+    def test_a_block_within_a_fractional_limit_completes(self):
+        with run_with_timeout(5.5):
+            pass
+        self.assertEqual(signal.getitimer(signal.ITIMER_REAL), (0.0, 0.0))
+
+    def test_a_limit_of_another_type_is_a_type_error(self):
+        for seconds in (True, "1", None, [1]):
+            with self.subTest(seconds=seconds):
+                # Entering the context manager is what checks the limit.
+                self.assertRaises(TypeError, run_with_timeout(seconds).__enter__)
+
+    def test_a_limit_that_is_not_above_zero_or_finite_is_a_value_error(self):
+        for seconds in (0, -1, 0.0, float("nan"), float("inf")):
+            with self.subTest(seconds=seconds):
+                self.assertRaises(ValueError, run_with_timeout(seconds).__enter__)
+
+    def test_an_armed_timer_is_refused_and_left_running(self):
+        signal.setitimer(signal.ITIMER_REAL, 100)
+        with self.assertRaises(RuntimeError), run_with_timeout(1):
+            pass  # pragma: no cover - not reached
+        self.assertGreater(signal.getitimer(signal.ITIMER_REAL)[0], 0)
+
+    def test_the_previous_handler_is_put_back(self):
+        def previous(signum, frame):  # pragma: no cover - never fired
+            pass
+
+        original = signal.signal(signal.SIGALRM, previous)
+        try:
+            with self.assertRaises(ScikitplotTimeoutError), run_with_timeout(LIMIT):
+                time.sleep(BLOCKS_FOR)
+            self.assertIs(signal.getsignal(signal.SIGALRM), previous)
+        finally:
+            signal.signal(signal.SIGALRM, original)
 
 
 if __name__ == "__main__":

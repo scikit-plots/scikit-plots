@@ -2149,7 +2149,7 @@ def advance_archive_merkle_rebridge(  # ruff: ignore[too-many-branches, undocume
         _write(stage / _DOC_ARCHIVE_MERKLE_REBRIDGE_STATE, state)
         _write(stage / "active-archive-merkle-rebridge.json", active)
         _write(stage / "release-archive-merkle-rebridge-receipt.json", receipt)
-        verify_archive_merkle_rebridge(
+        result = verify_archive_merkle_rebridge(
             run160_dir=run160_dir,
             run166_run161_dir=run166_run161_dir,
             run161_dir=run161_dir,
@@ -2181,34 +2181,7 @@ def advance_archive_merkle_rebridge(  # ruff: ignore[too-many-branches, undocume
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise
-    return verify_archive_merkle_rebridge(
-        run160_dir=run160_dir,
-        run166_run161_dir=run166_run161_dir,
-        run161_dir=run161_dir,
-        retention_root_path=retention_root_path,
-        retention_root_pin=retention_root_pin,
-        witness_root_path=witness_root_path,
-        witness_root_pin=witness_root_pin,
-        bootstrap_pin=bootstrap_pin,
-        recovery_pin=recovery_pin,
-        attestation_pins=attestation_pins,
-        run166_run162_dir=run166_run162_dir,
-        run162_dir=run162_dir,
-        anchor_plan_path=anchor_plan_path,
-        run166_run163_dir=run166_run163_dir,
-        run163_dir=run163_dir,
-        run164_dir=run164_dir,
-        transparency_root_path=transparency_root_path,
-        transparency_root_pin=transparency_root_pin,
-        governance_root_path=governance_root_path,
-        governance_root_pin=governance_root_pin,
-        recovery_root_path=recovery_root_path,
-        recovery_root_pin=recovery_root_pin,
-        run165_dir=run165_dir,
-        run166_dir=run166_dir,
-        output_dir=target,
-        now=current,
-    )
+    return result
 
 
 def command_log(command: list[str]):  # ruff: ignore[undocumented-public-function]

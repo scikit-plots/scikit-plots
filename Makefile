@@ -1427,7 +1427,7 @@ tag-create: check-version
 	printf 'Created tag: %s\n' "$(GIT_TAG)"
 
 ######################################################################
-##
+## pytest
 ######################################################################
 
 pytest1:
@@ -1442,3 +1442,215 @@ precom:
 	@pre-commit run --files \
 		scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/__init__.py \
 		--show-diff-on-failure
+
+## Run the exact test case without coverage first, then with coverage. This is the most useful first experiment.
+## A. Without coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --tb=long
+## B. With coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --cov=scikitplot --cov-branch --cov-report=
+
+######################################################################
+## pytest Analyze the existing profile
+######################################################################
+
+tets-suite:
+	python -m cProfile -o /tmp/release-evidence-suite.prof \
+	-m pytest -q --durations=40 --durations-min=1 \
+	scikitplot/_externals/ 2>&1 | tee pytest.log.txt
+
+profile:
+	python - <<'PY' > /tmp/release-evidence-pstats.txt
+	import pstats
+	s = pstats.Stats("/tmp/release-evidence-suite.prof")
+	s.strip_dirs()
+	for title, sort, count in [
+		("CUMULATIVE", "cumulative", 60),
+		("OWN TIME", "tottime", 60),
+		("CALL COUNTS", "calls", 40),
+	]:
+		print(f"\n=== {title} ===")
+		s.sort_stats(sort).print_stats(count)
+	PY
+
+	# Package both files so the profile data is available for analysis.
+	zip -j release-evidence-profile-analysis.zip \
+		/tmp/release-evidence-suite.prof \
+		/tmp/release-evidence-pstats.txt
+
+######################################################################
+## Test performance: record a run, then analyse it
+## (.github/ci/README.md, section 12). Supersedes the manual cProfile +
+## pstats + zip steps above: the report lists units, files, tests,
+## fixtures and findings, and its bundle can be analysed anywhere.
+##   make test-perf PERF_PATHS=scikitplot/_externals
+##   make test-perf PERF_PATHS=scikitplot/_externals PERF_PROFILE=test_run168
+##   make test-perf-compare PERF_BASE=build/before PERF_HEAD=build/test-perf
+#
+# Use the on-demand workflow (after the merge)
+#   - GitHub only shows Run workflow for a manual-only workflow once that workflow file is on the default branch. So this step comes after you merge.
+# Go to Actions → “CI ⏱️ Performance (on demand)” → Run workflow:
+#   - To check one submodule’s tests: set test_paths: scikitplot/annoy and leave benchmarks off.
+#   - To compare the package’s speed against main: set benchmarks: true and base: default-branch (or merge-base, where this branch left main). Leave quick off for a real measurement.
+# Read compare.md in the run summary:
+#   - + means slower and - faster; these are evidence.
+#   - x means inconclusive, so run it again.
+#   - ! means a benchmark failed on one side.
+#
+# Day to day
+# You want to know	 							Run
+# why a submodule’s tests are slow				make test-perf PERF_PATHS=scikitplot/<sub>
+# what a slow fixture calls						add PERF_PROFILE='<test name regex>'
+# whether your change made the package slower	make bench-pair BENCH_BASE_PYTHON=<main venv>/bin/python
+# anything about a CI artifact					python .github/scripts/ci_test_perf.py report <the zip>
+######################################################################
+
+PERF_DIR ?= build/test-perf
+PERF_PATHS ?= scikitplot
+PERF_PROFILE ?=
+PERF_BASE ?=
+PERF_HEAD ?= $(PERF_DIR)
+
+.PHONY: test-perf test-perf-report test-perf-compare
+
+# Try it on one submodule (about 10 minutes)
+# make test-perf PERF_PATHS=scikitplot/annoy
+test-perf:
+	status=0
+	SKPLT_TEST_PERF_DIR="$(PERF_DIR)" SKPLT_TEST_PERF_PROFILE="$(PERF_PROFILE)" \
+		python -m pytest $(PERF_PATHS) --maxfail=0 -p no:cacheprovider || status=$$?
+	python .github/scripts/ci_test_perf.py report "$(PERF_DIR)" \
+		--out "$(PERF_DIR)/report" --bundle --run latest
+	exit "$$status"
+
+test-perf-report:
+	python .github/scripts/ci_test_perf.py report "$(PERF_DIR)" \
+		--out "$(PERF_DIR)/report" --bundle --run latest
+
+test-perf-compare:
+	test -n "$(PERF_BASE)" || { echo "set PERF_BASE to the earlier evidence" >&2; exit 2; }
+	python .github/scripts/ci_test_perf.py compare --base "$(PERF_BASE)" \
+		--head "$(PERF_HEAD)" --out "$(PERF_DIR)/compare"
+
+######################################################################
+## Package benchmarks (benchmarks/README.md): the installed scikit-plots
+## of an environment, without asv; asv runs the same files.
+##   make bench                               # all, build/bench/head.json
+##   make bench BENCH=Plots BENCH_ARGS=--quick
+##   make bench-pair BENCH_BASE_PYTHON=../venv-main/bin/python
+##   make bench-compare BENCH_BASE=build/bench/base.json
+######################################################################
+
+BENCH_DIR ?= build/bench
+BENCH ?=
+BENCH_ARGS ?=
+BENCH_OUT ?= $(BENCH_DIR)/head.json
+BENCH_BASE ?=
+BENCH_HEAD ?= $(BENCH_OUT)
+BENCH_BASE_PYTHON ?=
+BENCH_HEAD_PYTHON ?= python
+
+.PHONY: bench bench-list bench-compare bench-pair
+
+# Then try the benchmarks:
+# make bench BENCH_ARGS=--quick   # a smoke test: every benchmark runs once
+# make bench                      # a real measurement, written to build/bench/head.json
+bench:
+	python .github/scripts/ci_bench.py run $(if $(BENCH),--bench "$(BENCH)") \
+		--out "$(BENCH_OUT)" $(BENCH_ARGS)
+
+bench-list:
+	python .github/scripts/ci_bench.py list $(if $(BENCH),--bench "$(BENCH)")
+
+bench-compare:
+	test -n "$(BENCH_BASE)" || { echo "set BENCH_BASE to the earlier result" >&2; exit 2; }
+	python .github/scripts/ci_bench.py compare "$(BENCH_BASE)" "$(BENCH_HEAD)" \
+		--out "$(BENCH_DIR)/compare"
+
+bench-pair:
+	test -n "$(BENCH_BASE_PYTHON)" || { echo "set BENCH_BASE_PYTHON to the base environment's python" >&2; exit 2; }
+	python .github/scripts/ci_bench.py pair $(if $(BENCH),--bench "$(BENCH)") \
+		--base-python "$(BENCH_BASE_PYTHON)" --head-python "$(BENCH_HEAD_PYTHON)" \
+		--out "$(BENCH_DIR)/pair" $(BENCH_ARGS)
+
+######################################################################
+## Measure the frozen GC policy in CI
+######################################################################
+
+# If gh rejects frozen, merge first, then run these on main.
+# I haven’t confirmed whether GitHub checks the choice against the branch’s workflow file or the default branch’s.
+# (Not bench-pair: a second recipe of a name replaces the first, Rule 154.)
+gc-measure-dispatch:
+	gh workflow run ci_codecov_test_coverage.yml --ref ci/test-performance -f mode=all -f test_gc=young
+	gh workflow run ci_codecov_test_coverage.yml --ref ci/test-performance -f mode=all -f test_gc=frozen
+
+# When both runs finish, download both test-perf artifacts and compare them:
+# Decide with these numbers:
+#   - the garbage collection ... full in X s line of each run;
+#   - the total test time;
+#   - whether any outcome changed (rows marked !).
+# Only if frozen wins with the same outcomes, change the default in a separate small PR.
+# That PR touches _test_gc_policy, the tuple pin in its test, README section 8, and the workflow defaults.
+gc-measure-compare:
+	python .github/scripts/ci_test_perf.py compare --base young-test-perf.zip --head frozen-test-perf.zip --out build/gc-compare
+
+######################################################################
+## The records check: it should show only the failures your tree already had
+######################################################################
+
+check-records:
+	python -B maintenances/_repo/_maintenance/tools/check_records.py
+
+# The recorder and garbage-collection tests
+garbage-collection:
+	python -m pytest scikitplot/_testing/tests/test__perf_telemetry.py scikitplot/tests/test_conftest_gc_policy.py -p no:cacheprovider
+
+# The CI scripts' own tests (standard library only)
+ci-scripts-tests:
+	python -m unittest discover -s .github/scripts/tests -p "test_*.py"
+
+######################################################################
+## Snapshot the tree
+######################################################################
+
+## 1. Snapshot the tree (code only, no build output)
+# git archive --format=zip -o scikit-plots.zip HEAD
+
+## 2. Collect the failures for the first target (annoy)
+# python -m pytest --version                                   > annoy-pytest.txt 2>&1
+# python -m pytest scikitplot/annoy -q -rfE -p no:cacheprovider >> annoy-pytest.txt 2>&1
+# python -m pytest scikitplot/annoy -q -rfE -n auto -p no:cacheprovider > annoy-pytest-xdist.txt 2>&1
+
+## 3. The benchmark failures: use the command you ran yesterday, e.g.
+# make bench BENCH=bench_annoy BENCH_ARGS=--quick > annoy-bench.txt 2>&1
+
+######################################################################
+## logger helper
+######################################################################
+
+# python - <<'PY'
+# import logging
+# from scikitplot._externals._sphinx_ext._sphinx_youtube_gallery import sync
+# logger = sync.logger
+# while logger:
+#     print(
+#         f"\nname={logger.name!r}",
+#         f"level={logging.getLevelName(logger.level)}",
+#         f"propagate={logger.propagate}",
+#         f"disabled={logger.disabled}",
+#     )
+#     for handler in logger.handlers:
+#         print(
+#             "  handler:", type(handler).__name__,
+#             "level:", logging.getLevelName(handler.level),
+#             "formatter:", repr(handler.formatter),
+#         )
+#     logger = logger.parent
+# PY
+
+######################################################################
+##
+######################################################################

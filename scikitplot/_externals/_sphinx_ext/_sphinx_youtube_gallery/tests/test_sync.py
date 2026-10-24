@@ -14,6 +14,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import os
+import sys
 import socket
 
 import pytest
@@ -82,7 +83,7 @@ def no_network(monkeypatch):
     def refuse(*args, **kwargs):
         raise AssertionError("a sync test tried to open a network socket")
 
-    monkeypatch.setattr(socket, "socket", refuse)
+    monkeypatch.setattr(socket.socket, "connect", refuse)
     monkeypatch.setattr(socket, "create_connection", refuse)
     monkeypatch.setattr(sync, "_require_requests", refuse)
     monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
@@ -794,12 +795,28 @@ class TestResolveSource:
     def test_an_inexact_upload_tab_warns_and_returns_all_uploads(
         self, transport, caplog, tab
     ):
-        transport(lambda endpoint, params: FakeResponse(content=rss([{"id": A}])))
-        source = f"https://www.youtube.com/channel/{UC_A}/{tab}"
-        with caplog.at_level(logging.WARNING, logger=sync.logger.name):
-            records = sync.resolve_source(source)
+        captured = []
+
+        class CaptureWarning(logging.Handler):
+            def emit(self, record):
+                if record.name == sync.logger.name:
+                    captured.append(record)
+
+        handler = CaptureWarning()
+        handler.setLevel(logging.WARNING)
+        sync.logger.addHandler(handler)
+
+        try:
+            transport(lambda endpoint, params: FakeResponse(content=rss([{"id": A}])))
+            source = f"https://www.youtube.com/channel/{UC_A}/{tab}"
+            with caplog.at_level(logging.WARNING, logger=sync.logger.name):
+                records = sync.resolve_source(source)
+        finally:
+            sync.logger.removeHandler(handler)
+
         assert [record["id"] for record in records] == [A]
-        (message,) = [r.getMessage() for r in caplog.records if r.name == sync.logger.name]
+        assert len(captured) == 1
+        message = captured[0].getMessage()
         assert message.startswith(source)
         assert "all uploads are returned" in message
 
@@ -1077,16 +1094,24 @@ class TestWriteCatalog:
 
 # -- command line -------------------------------------------------------------
 
-
 @pytest.fixture
 def cli(caplog):
     """Run ``main`` and return ``(exit code, log messages from the tool)``."""
 
     def run(*argv):
         caplog.clear()
-        with caplog.at_level(logging.INFO, logger=sync.logger.name):
-            code = sync.main([str(arg) for arg in argv])
-        messages = [r.getMessage() for r in caplog.records if r.name == sync.logger.name]
+        sync.logger.addHandler(caplog.handler)
+        try:
+            with caplog.at_level(logging.INFO, logger=sync.logger.name):
+                code = sync.main([str(arg) for arg in argv])
+            messages = [
+                r.getMessage()
+                for r in caplog.records
+                if r.name == sync.logger.name
+            ]
+        finally:
+            sync.logger.removeHandler(caplog.handler)
+
         return code, messages
 
     return run

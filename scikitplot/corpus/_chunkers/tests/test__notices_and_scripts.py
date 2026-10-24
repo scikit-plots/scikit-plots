@@ -20,11 +20,16 @@ import random
 
 import pytest
 
+from ... import _chunkers
 from ... import _capabilities
 from ..._notices import notice_once, reset_notices
 from .._custom_tokenizer import _TOKENIZER_REGISTRY, ScriptSegmenter, ScriptType
 from .._semantic import SemanticChunker, SemanticChunkerConfig
 from .._writing_system import DictionaryBoundaryStrategy, WritingSystemAdapterConfig
+
+# scikitplot/corpus/_chunkers/tests/test__semantic.py
+LOGGER_NAME = __name__.rsplit(r".", 2)[0]
+logger = logging.getLogger(LOGGER_NAME)
 
 TEXT = "東京は大きい。大阪も大きい。\n\n今日は晴れです。Hello world. 北京很大。"
 
@@ -48,7 +53,7 @@ class _Records(logging.Handler):
 @pytest.fixture
 def records():
     handler = _Records()
-    logger = logging.getLogger("scikitplot")
+    logger = logging.getLogger(LOGGER_NAME)
     logger.addHandler(handler)
     previous = logger.level
     logger.setLevel(logging.DEBUG)
@@ -63,7 +68,6 @@ def _warnings(records):
 
 class TestNoticeOnce:
     def test_once_per_key(self, records):
-        logger = logging.getLogger("scikitplot.test_notices")
         assert notice_once(logger, "k", "missing %s", "x")
         assert not notice_once(logger, "k", "missing %s", "x")
         assert notice_once(logger, "other", "missing %s", "y")
@@ -71,7 +75,6 @@ class TestNoticeOnce:
 
     def test_a_filtered_notice_is_not_used_up(self, records):
         """Review 5: a notice suppressed by the log level was spent."""
-        logger = logging.getLogger("scikitplot.test_notices")
         logging.disable(logging.WARNING)
         try:
             assert not notice_once(logger, "k", "m")
@@ -81,7 +84,6 @@ class TestNoticeOnce:
         assert _warnings(records) == ["m"]
 
     def test_reset(self, records):
-        logger = logging.getLogger("scikitplot.test_notices")
         notice_once(logger, "k", "m")
         reset_notices()
         notice_once(logger, "k", "m")

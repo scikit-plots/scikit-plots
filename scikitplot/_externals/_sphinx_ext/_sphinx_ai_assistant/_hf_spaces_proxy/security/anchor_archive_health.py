@@ -714,10 +714,11 @@ def verify_anchor_history(  # ruff: ignore[too-many-branches, undocumented-publi
             _fail("ARCHIVE_ANCHOR_EMBEDDED_RUN162_INVALID")
         arts = {
             n: {
-                "sha256": _sha_bytes(_canonical(rdocs[n])),
-                "size": len(_canonical(rdocs[n])),
+                "sha256": _sha_bytes(canon),
+                "size": len(canon),
             }
             for n in sorted(rdocs)
+            for canon in [_canonical(rdocs[n])]
         }
         if e["run162Artifacts"] != arts:
             _fail("ARCHIVE_ANCHOR_RUN162_ARTIFACT_BINDING_INVALID")

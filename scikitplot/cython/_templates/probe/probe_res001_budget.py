@@ -35,7 +35,7 @@ def main() -> int:
     ok = True
 
     try:
-        run_with_deadline(lambda: time.sleep(1.0), timeout_s=0.05, what="probe")
+        run_with_deadline(lambda: time.sleep(0), timeout_s=0.01, what="probe")
         deadline_ok = False
     except BuildTimeoutError:
         deadline_ok = True

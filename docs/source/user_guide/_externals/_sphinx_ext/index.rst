@@ -87,7 +87,7 @@ configuration or generated markup.
       **ansi-sanitizer**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         ANSI Sanitizer <_ansi_sanitizer/index>
 
@@ -98,7 +98,7 @@ configuration or generated markup.
       **pydata-component-list**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         PyData Component List <_pydata_component_list/index>
 
@@ -109,7 +109,7 @@ configuration or generated markup.
       **sphinx-ai-assistant**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx AI Assistant <_sphinx_ai_assistant/index>
 
@@ -120,7 +120,7 @@ configuration or generated markup.
       **sphinx-ai-learn**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx AI Learn <_sphinx_ai_learn/index>
 
@@ -131,7 +131,7 @@ configuration or generated markup.
       **sphinx-collection**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx Collection <_sphinx_collection/index>
 
@@ -142,7 +142,7 @@ configuration or generated markup.
       **sphinx-feedback**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx Feedback <_sphinx_feedback/index>
 
@@ -153,7 +153,7 @@ configuration or generated markup.
       **sphinx-gallery-grid**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx Gallery Grid <_sphinx_gallery_grid/index>
 
@@ -164,7 +164,7 @@ configuration or generated markup.
       **sphinx-jupyterlite**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx-Gallery JupyterLite <_sphinx_gallery_jupyterlite/index>
 
@@ -175,7 +175,7 @@ configuration or generated markup.
       **sphinx-jinja**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx Jinja Render <_sphinx_jinja_render/index>
 
@@ -186,7 +186,7 @@ configuration or generated markup.
       **sphinx-llm**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx LLM <_sphinx_llm/index>
 
@@ -197,7 +197,7 @@ configuration or generated markup.
       **youtu.be-core**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx YouTube Core <_sphinx_youtube_core/index>
 
@@ -208,7 +208,7 @@ configuration or generated markup.
       **youtu.be-gallery**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx YouTube Gallery <_sphinx_youtube_gallery/index>
 
@@ -219,7 +219,7 @@ configuration or generated markup.
       **youtu.be**
       ^^^
       .. toctree::
-         :maxdepth: 2
+        :maxdepth: 2
 
         Sphinx Video Directives <_sphinxcontrib_youtube/index>
 

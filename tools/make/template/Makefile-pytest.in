@@ -1,0 +1,201 @@
+
+######################################################################
+##
+######################################################################
+
+# python - <<'PY'
+# import logging
+# from scikitplot._externals._sphinx_ext._sphinx_youtube_gallery import sync
+# logger = sync.logger
+# while logger:
+#     print(
+#         f"\nname={logger.name!r}",
+#         f"level={logging.getLevelName(logger.level)}",
+#         f"propagate={logger.propagate}",
+#         f"disabled={logger.disabled}",
+#     )
+#     for handler in logger.handlers:
+#         print(
+#             "  handler:", type(handler).__name__,
+#             "level:", logging.getLevelName(handler.level),
+#             "formatter:", repr(handler.formatter),
+#         )
+#     logger = logger.parent
+# PY
+
+######################################################################
+## pytest with/without coverage
+######################################################################
+
+## Run the exact test case without coverage first, then with coverage. This is the most useful first experiment.
+## A. Without coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --tb=long
+
+## B. With coverage
+# python -X faulthandler -m pytest -vv -s \
+#   'scikitplot/corpus/tests/test__chunker_names_and_configs.py::TestRegistry::test_every_builtin_round_trips_by_name[semantic]' \
+#   --cov=scikitplot --cov-branch --cov-report=
+
+######################################################################
+## pytest release-evidence-slow.prof
+######################################################################
+
+## Profile that slowest test before making another change:
+
+# python -m cProfile -o /tmp/release-evidence-slow.prof \
+#   -m pytest -q \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_verify_release_evidence.py::test_release_evidence_rejects_logging_telemetry_and_redis_paper_claims
+
+## Then inspect the cumulative hotspots:
+
+# python - <<'PY'
+# import pstats
+# pstats.Stats("/tmp/release-evidence-slow.prof").strip_dirs().sort_stats(
+#     "cumulative"
+# ).print_stats(25)
+# PY
+
+######################################################################
+## pytest release-evidence-suite.prof
+######################################################################
+
+# python -m cProfile -o /tmp/release-evidence-suite.prof \
+#   -m pytest -q \
+#   scikitplot/_externals/ 2>&1 | tee pytest.log.txt
+
+# This reports the slowest individual tests and helps distinguish expensive test setup from expensive production code.
+# If a full rerun is too costly, first run the specific security test modules identified below with --durations=20.
+
+tets-suite:
+	python -m cProfile -o /tmp/release-evidence-suite.prof \
+	-m pytest -q --durations=40 --durations-min=1 \
+	scikitplot/_externals/ 2>&1 | tee pytest.log.txt
+
+######################################################################
+## sudo apt install zip
+######################################################################
+
+profile:
+	python - <<'PY' > /tmp/release-evidence-pstats.txt
+	import pstats
+	s = pstats.Stats("/tmp/release-evidence-suite.prof")
+	s.strip_dirs()
+	for title, sort, count in [
+		("CUMULATIVE", "cumulative", 60),
+		("OWN TIME", "tottime", 60),
+		("CALL COUNTS", "calls", 40),
+	]:
+		print(f"\n=== {title} ===")
+		s.sort_stats(sort).print_stats(count)
+	PY
+
+	# Package both files so the profile data is available for analysis.
+	zip -j release-evidence-profile-analysis.zip \
+		/tmp/release-evidence-suite.prof \
+		/tmp/release-evidence-pstats.txt
+
+######################################################################
+## pytest Analyze the existing profile
+######################################################################
+
+# python - <<'PY'
+# import pstats
+# pstats.Stats("/tmp/release-evidence-suite.prof").strip_dirs().sort_stats(
+#     "cumulative"
+# ).print_stats(50)
+# PY
+
+# python - <<'PY'
+# import pstats
+# p = pstats.Stats("/tmp/release-evidence-suite.prof").strip_dirs()
+# p.sort_stats("cumulative").print_stats(
+#     r"verify_archive_merkle_transparency|anchor_archive_health|"
+#     r"witness_archive_health|audit_archive_retention|"
+#     r"govern_release_history|rebridge_archive_merkle_authority"
+# )
+# PY
+
+# python - <<'PY'
+# import pstats
+# profile = "/tmp/release-evidence-suite.prof"
+# stats = pstats.Stats(profile)
+# stats.strip_dirs()
+# print("\n=== TOP 40 BY CUMULATIVE TIME ===")
+# stats.sort_stats("cumulative").print_stats(40)
+# print("\n=== TOP 40 BY OWN TIME ===")
+# stats.sort_stats("tottime").print_stats(40)
+# print("\n=== TOP CALL COUNTS ===")
+# stats.sort_stats("calls").print_stats(30)
+# PY
+
+######################################################################
+## sudo apt install ripgrep
+######################################################################
+
+# grep -n -E 'json\.dumps|_canonical\(|json\.dump|_sha_bytes\(' \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_archive_merkle_transparency.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/anchor_archive_health.py
+
+# nl -ba scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_archive_merkle_transparency.py | sed -n '642,735p'
+
+# python - <<'PY'
+# import pstats
+# p = pstats.Stats("/tmp/run164-focused.prof")
+# print("\n=== Top cumulative functions ===")
+# p.sort_stats("cumtime").print_stats(35)
+# print("\n=== Archive-history and subprocess functions ===")
+# for func, stats in sorted(p.stats.items(), key=lambda item: item[1][3], reverse=True):
+#     filename, line, name = func
+#     if any(term in name.lower() for term in (
+#         "verify_anchor_history",
+#         "_verify_run163_current",
+#         "_verify_run162",
+#         "subprocess",
+#         "_command_adapter",
+#     )):
+#         cc, nc, tt, ct, callers = stats
+#         print(f"\n{filename}:{line}({name}) calls={nc}, "
+#               f"self={tt:.3f}s, cumulative={ct:.3f}s")
+#         for caller, caller_stats in sorted(
+#             callers.items(), key=lambda item: item[1][3], reverse=True
+#         )[:10]:
+#             print(f"  <- {caller}: {caller_stats[3]:.3f}s cumulative")
+# print("\n=== JSON and filesystem hotspots ===")
+# for func, stats in sorted(p.stats.items(), key=lambda item: item[1][2], reverse=True):
+#     filename, line, name = func
+#     if any(term in (filename + " " + name).lower()
+#            for term in ("json", "posixpath", "pathlib", "io.py", "os.py")):
+#         cc, nc, tt, ct, callers = stats
+#         if nc >= 100:
+#             print(f"{filename}:{line}({name}) calls={nc}, "
+#                   f"self={tt:.3f}s, cumulative={ct:.3f}s")
+# PY
+
+# rg -n '_fixture\(|_anchored\(|_witnessed\(|_preserved\(' \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_verify_archive_merkle_transparency.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_anchor_archive_health.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_witness_archive_health.py
+
+# rg -n 'write_text|write_bytes|unlink\(|rename\(|replace\(|rmtree|chmod|mutat|corrupt|tamper' \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_verify_archive_merkle_transparency.py
+
+# grep -nE '_fixture\(|_anchored\(|_witnessed\(|_preserved\(' \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_verify_archive_merkle_transparency.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_anchor_archive_health.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_witness_archive_health.py
+
+# nl -ba scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_archive_merkle_transparency.py | sed -n '1270,1415p'
+# nl -ba scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/security/verify_archive_merkle_transparency.py | sed -n '600,710p'
+
+# nl -ba scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_anchor_archive_health.py | sed -n '130,210p'
+# grep -nE '^def (_fixture|_anchored|_setup|_run160|_run161|_witnessed|_preserved)|^def _membership' \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_verify_archive_merkle_transparency.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_anchor_archive_health.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_witness_archive_health.py \
+#   scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/tests/_hf_spaces_proxy/security/test_audit_archive_retention.py
+
+######################################################################
+##
+######################################################################

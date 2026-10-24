@@ -357,7 +357,7 @@ class TestCacheStatsTimestamps:
         self, tmp_cache: Path
     ) -> None:
         self._make_entry(tmp_cache, "mod_a", 64)
-        time.sleep(0.03)
+        time.sleep(0.01)
         self._make_entry(tmp_cache, "mod_b", 128)
 
         stats = cache_stats(tmp_cache)

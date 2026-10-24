@@ -64,8 +64,16 @@ The scoring formula is named and versioned rather than implied by the class:
 
 from __future__ import annotations
 
-from . import _rank_bm25
+from . import (
+    _identity,
+    _rank_bm25,
+    _validation,
+)
+from ._identity import *  # noqa: F403
 from ._rank_bm25 import *  # noqa: F403
+from ._validation import *  # noqa: F403
 
 __all__ = []
+__all__ += _identity.__all__
 __all__ += _rank_bm25.__all__
+__all__ += _validation.__all__
