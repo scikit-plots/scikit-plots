@@ -79,6 +79,41 @@ jobs:
             requirements/*.txt
             pyproject.toml
 
+      - name: "📦 Install dependencies"
+        run: |
+          set -Eeuo pipefail
+          # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          python -m pip install --upgrade pip
+
+          # pip install -r ./requirements/build.txt
+          # pip install -r ./requirements/dev.txt
+          # pip install -r ./requirements/doc.txt
+          # pip install -r ./requirements/test.txt
+          pip install -r requirements/all.txt
+
+          pip install -r ./requirements/cleanprompt.txt
+          # tf need for documentation examples
+          pip install -r ./requirements/cpu.txt
+          pip install -r ./requirements/corpus.txt
+          pip install -r ./requirements/mcp.txt
+          pip install -r ./requirements/mlflow.txt
+
+          # sudo apt-get install tesseract-ocr
+          # pip install pytesseract
+
+          pip install coverage
+          pip install polars pyarrow
+          pip install httpx gradio streamlit flask fastapi
+          pip install nltk spacy
+
+          # The same two scripts serve Docker images, the devcontainer and
+          # the documentation build; see their headers for the options.
+          bash docker/scripts/install_nltk.sh
+          bash docker/scripts/install_spacy.sh
+
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check
+
       - name: "🔨 Install the requirements and build the library"
         env:
           REQUIREMENTS: ${{ inputs.requirements }}

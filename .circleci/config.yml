@@ -632,24 +632,33 @@ commands:
           command: |
             set -Eeuo pipefail
             # python -m pip install --upgrade --user --progress-bar=off --pre pip
+            python -m pip install --upgrade pip
+
             # pip install -r ./requirements/build.txt
-            pip install -r ./requirements/all.txt
+            # pip install -r ./requirements/dev.txt
+            # pip install -r ./requirements/doc.txt
+            # pip install -r ./requirements/test.txt
+            pip install -r requirements/all.txt
 
-            # tf need for documentation examples
-            # pip install -r ./requirements/gpu.txt
-            pip install -r ./requirements/cpu.txt
-            pip install -r ./requirements/mlflow.txt
-            pip install -r ./requirements/corpus.txt
             pip install -r ./requirements/cleanprompt.txt
+            # tf need for documentation examples
+            pip install -r ./requirements/cpu.txt
+            pip install -r ./requirements/corpus.txt
+            pip install -r ./requirements/mcp.txt
+            pip install -r ./requirements/mlflow.txt
 
-            # Resolve distutils conflict before any setuptools-dependent install
-            # export SETUPTOOLS_USE_DISTUTILS=local
-            # pip install "setuptools>=69"
-            # ✅ It’s a distutils override conflict, pythran cause setuptools<60
-            pip install -U setuptools
+            # sudo apt-get install tesseract-ocr
+            # pip install pytesseract
 
-            # pip install voyager==2.1.0
-            pip install beautifulsoup4 markdownify
+            pip install coverage
+            pip install polars pyarrow
+            pip install httpx gradio streamlit flask fastapi
+            pip install nltk spacy
+
+            # The same two scripts serve Docker images, the devcontainer and
+            # the documentation build; see their headers for the options.
+            bash docker/scripts/install_nltk.sh
+            bash docker/scripts/install_spacy.sh
 
             # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
@@ -671,15 +680,8 @@ commands:
               jupyterlite-xeus \
               jupyterlite-terminal
 
-            pip install nltk spacy
-
             # Verify whether installed Python packages have compatible dependencies.
             pip check || true
-
-            # The same two scripts serve Docker images, the devcontainer and
-            # the documentation build; see their headers for the options.
-            bash docker/scripts/install_nltk.sh
-            bash docker/scripts/install_spacy.sh
 
             ## Pre-install the NLTK data in CI.
             ## python -m nltk.downloader stopwords
@@ -731,6 +733,13 @@ commands:
       - run:
           name: "📦 build scikit-plots"
           command: |
+            set -Eeuo pipefail
+            # Resolve distutils conflict before any setuptools-dependent install
+            # export SETUPTOOLS_USE_DISTUTILS=local
+            # pip install "setuptools>=69"
+            # ✅ It’s a distutils override conflict, pythran cause setuptools<60
+            pip install -U setuptools
+
             # cpu: tensorflow
             # pip install --no-cache-dir .[build,dev,test,doc]
             # pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
