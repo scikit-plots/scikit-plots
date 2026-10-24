@@ -42,7 +42,8 @@ repos:
         exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
           (?x)(
             ^scikitplot/_core/ |                       # exclude folder
-            ^scikitplot/cexternals/_numcpp/include/ |
+            ^scikitplot/cexternals/_astropy/ |
+            ^scikitplot/cexternals/_numcpp/ |
             ^tests/data/ |                             # exclude test data folder
             \.svg$ |                                   # exclude all .svg files
             \.lock$                                    # exclude lock files

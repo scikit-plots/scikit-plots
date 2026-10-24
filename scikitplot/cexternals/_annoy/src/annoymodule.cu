@@ -806,7 +806,7 @@ PyObject *create_module(void) {
 
 #if PY_MAJOR_VERSION >= 3
   PyMODINIT_FUNC PyInit_annoylib(void) {
-    return create_module();      // it should return moudule object in py3
+    return create_module();      // it should return module object in py3
   }
 #else
   PyMODINIT_FUNC initannoylib(void) {

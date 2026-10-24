@@ -1953,7 +1953,7 @@ static PyObject* py_an_new(
   try {
     // Placement-new: construct C++ std::string members inside the C struct.
     new (&self->on_disk_path) std::string();  // placement-new: empty path
-    // self->on_disk_path.clear(); // Or clear the content Standart metod
+    // self->on_disk_path.clear(); // Or clear the content Standard method
     // Explicit destructor call for placement-new std::string member.
     // self->on_disk_path.~basic_string();  // explicit destructor for placement-new member
   } catch (const std::bad_alloc&) {
@@ -2455,7 +2455,7 @@ static void py_an_dealloc(py_annoy* self) {
   try {
     // Placement-new: construct C++ std::string members inside the C struct.
     // new (&self->on_disk_path) std::string();  // placement-new: empty path
-    // self->on_disk_path.clear(); // Cpp clear the content Standart metod
+    // self->on_disk_path.clear(); // Cpp clear the content Standard method
     // Explicit destructor call for placement-new std::string member.
     self->on_disk_path.~basic_string();  // explicit destructor for placement-new member
   } catch (...) {

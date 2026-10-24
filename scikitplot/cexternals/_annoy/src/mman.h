@@ -183,7 +183,7 @@ inline void* mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t
     if (len == 0
         /* Unsupported flag combinations */
         || (flags & MAP_FIXED) != 0
-        /* Usupported protection combinations */
+        /* Unsupported protection combinations */
         || prot == PROT_EXEC)
     {
         errno = EINVAL;
