@@ -159,3 +159,4 @@ titles, then open the file that holds the rules you need.
 | 151 | NumPyDoc | a docstring is checked against the code it describes, also when an assistant wrote it | [numpydocstr.md](rules/numpydocstr.md) |
 | 152 | Output | library code returns, logs, warns or raises; it prints only output a user asked for | [logging.md](rules/logging.md) |
 | 153 | Log capture | an assertion that nothing was logged is made inside a capture shown to see records | [logging.md](rules/logging.md) |
+| 154 | Tooling | a make target is defined once, and a `make` command is run before it is written down | [tooling.md](rules/tooling.md) |

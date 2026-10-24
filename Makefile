@@ -1582,7 +1582,8 @@ bench-pair:
 
 # If gh rejects frozen, merge first, then run these on main.
 # I haven’t confirmed whether GitHub checks the choice against the branch’s workflow file or the default branch’s.
-bench-pair:
+# (Not bench-pair: a second recipe of a name replaces the first, Rule 154.)
+gc-measure-dispatch:
 	gh workflow run ci_codecov_test_coverage.yml --ref ci/test-performance -f mode=all -f test_gc=young
 	gh workflow run ci_codecov_test_coverage.yml --ref ci/test-performance -f mode=all -f test_gc=frozen
 
@@ -1593,7 +1594,7 @@ bench-pair:
 #   - whether any outcome changed (rows marked !).
 # Only if frozen wins with the same outcomes, change the default in a separate small PR.
 # That PR touches _test_gc_policy, the tuple pin in its test, README section 8, and the workflow defaults.
-bench-pair:
+gc-measure-compare:
 	python .github/scripts/ci_test_perf.py compare --base young-test-perf.zip --head frozen-test-perf.zip --out build/gc-compare
 
 ######################################################################
@@ -1608,7 +1609,7 @@ garbage-collection:
 	python -m pytest scikitplot/_testing/tests/test__perf_telemetry.py scikitplot/tests/test_conftest_gc_policy.py -p no:cacheprovider
 
 # The CI scripts' own tests (standard library only)
-garbage-collection:
+ci-scripts-tests:
 	python -m unittest discover -s .github/scripts/tests -p "test_*.py"
 
 ######################################################################
@@ -1624,7 +1625,7 @@ garbage-collection:
 # python -m pytest scikitplot/annoy -q -rfE -n auto -p no:cacheprovider > annoy-pytest-xdist.txt 2>&1
 
 ## 3. The benchmark failures: use the command you ran yesterday, e.g.
-# make bench-quick BENCH=bench_annoy > annoy-bench.txt 2>&1
+# make bench BENCH=bench_annoy BENCH_ARGS=--quick > annoy-bench.txt 2>&1
 
 ######################################################################
 ## logger helper

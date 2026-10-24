@@ -31,8 +31,13 @@ import pandas as _pd
 
 from ._lib import _pep440
 from ._lib._array_api import SKPLT_ARRAY_API, SKPLT_DEVICE
+from .logging import _capture
 
 _mpl.use("Agg")  # Use non-interactive backend before pyplot is imported
+
+# The one log capture of the package (Rule 139); a submodule that ships as a
+# partial distribution registers the same function in its own conftest.
+captured_logger = _pytest.fixture(_capture.captured_logger, name="captured_logger")
 
 # Auto-clean with atexit
 # _atexit.register(func)

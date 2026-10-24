@@ -41,6 +41,12 @@ import sys
 
 import pytest
 
+from ...logging import _capture
+
+# The shared log capture (Rule 139): the scikit-plots-sphinx-ext distribution
+# ships no root conftest, so it registers the function itself.
+captured_logger = pytest.fixture(_capture.captured_logger, name="captured_logger")
+
 _SPHINX_DOCUTILS = "sphinx.util.docutils"
 _RST_DIRECTIVES = "docutils.parsers.rst.directives"
 _RST_ROLES = "docutils.parsers.rst.roles"

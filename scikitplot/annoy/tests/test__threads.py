@@ -20,9 +20,9 @@ import random
 
 import pytest
 
-from scikitplot import annoy
-from scikitplot.annoy import _threads
-from scikitplot.cexternals._annoy import annoylib
+from ... import annoy
+from ...cexternals._annoy import annoylib
+from .. import _threads
 
 INDEX = annoy.Index
 
@@ -140,8 +140,10 @@ class TestResolveNJobs:
         monkeypatch.setattr(_threads, "threads_compiled", lambda: True)
         assert _threads.resolve_n_jobs(8) == 1
 
-    def test_asking_for_threads_that_are_not_there_is_logged_once(self, caplog):
-        with caplog.at_level(logging.WARNING, logger=_threads.logger.name):
+    def test_asking_for_threads_that_are_not_there_is_logged_once(
+        self, captured_logger, caplog
+    ):
+        with captured_logger(logging.WARNING, _threads.logger):
             for _ in range(3):
                 assert _threads.resolve_n_jobs(4, mode="auto", compiled=False) == 1
         (record,) = caplog.records
@@ -149,8 +151,12 @@ class TestResolveNJobs:
         assert "n_jobs=4" in message and "one thread" in message
         assert "SKPLT_BUILD_THREADS=1" in message and "threads_info()" in message
 
-    def test_nothing_is_logged_when_one_thread_was_asked_for(self, caplog):
-        with caplog.at_level(logging.WARNING, logger=_threads.logger.name):
+    def test_nothing_is_logged_when_one_thread_was_asked_for(
+        self, captured_logger, caplog
+    ):
+        # Rule 153: the same capture as the test above, which shows it sees
+        # the warning; caplog.at_level alone passed here whatever was logged.
+        with captured_logger(logging.WARNING, _threads.logger):
             _threads.resolve_n_jobs(1, mode="auto", compiled=False)
             _threads.resolve_n_jobs(-1, mode="auto", compiled=False)
             _threads.resolve_n_jobs(4, mode="single", compiled=False)

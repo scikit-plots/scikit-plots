@@ -286,13 +286,28 @@ the record planes themselves. Completed tasks are archived verbatim under
   `ok rules` (router and archives failures pre-existing).
 
 ### Known failures and their causes
-- `scikitplot/annoy/tests/test_bundle_directory.py:413,469`: log capture
-  depends on the pytest release (passes 9.1.1, fails 8.3.5 and 9.0.0)
-  because `"scikitplot"` has `propagate = False` (Rule 139). Same file:
-  absolute imports at 23, 191, 222 (Rule 142); string logger names at
-  410, 466 (Rule 140).
-- Annoy benchmarks (`benchmarks/bench_annoy.py`): failures reported by the
-  user on 2026-10-23, output not yet collected.
+- Fixed in step 1: `scikitplot/annoy/tests/test_bundle_directory.py:413,469`
+  and `test__threads.py:147`: log capture depended on the pytest release
+  (pass 9.1.1, fail 9.0.3) because `"scikitplot"` has `propagate = False`
+  (Rule 139); absolute imports (Rule 142), string logger names (Rule 140),
+  and the blind negative test `test__threads.py:157` (Rule 153).
+- Fixed in step 1: annoy benchmarks. `benchmarks/benchmarks/bench_annoy.py`
+  runs clean (`make bench BENCH=bench_annoy`, quick and full); the
+  failures were in the Makefile: `make bench-pair` ran the GC comparison
+  (target defined three times), `make bench-quick` does not exist
+  (Rule 154). The user's output of 2026-10-23 was not attached, so this
+  is the reproducible cause, not a confirmed match.
+- Corpus, same class as Rule 139 (hand-attached `caplog.handler` plus
+  `caplog.at_level`, counted twice under pytest 9.1.1):
+  `corpus/_embeddings/tests/test__cache_policy.py:111`,
+  `corpus/_chunkers/tests/test__semantic.py:141`. Fails on the uploaded
+  tree too.
+- `logging/tests/test__logging.py:250`
+  (`test_get_ipython_config_has_kernel_app`): fails on the uploaded tree
+  (pytest 9.0.3 and 9.1.1, Python 3.11); cause not yet analysed.
+- Environment-only here, not repository defects: `corpus/_readers/tests/
+  test__web.py` needs DNS; 46 `_sphinx_ext` modules need optional packages
+  (`fastapi`, ...) at collection.
 - `scikitplot/_utils/tests/test_timeout.py`: 4 failures, `signal.alarm(0.1)`
   raises `TypeError` (the function takes whole seconds); see
   `upcoming_changes/scikitplot/_utils/run-with-timeout-tests-and-float-seconds.md`.
@@ -301,14 +316,18 @@ the record planes themselves. Completed tasks are archived verbatim under
   in tests (Rule 143); one file executed 29 times per session.
 
 ### Implementation Steps
-- [ ] 0. The shared capture (Rule 139): `scikitplot/logging/_capture.py`
+- [x] 0. The shared capture (Rule 139): `scikitplot/logging/_capture.py`
   (a factory `captured_logger(caplog)` returning a context manager taking
   `(level, logger_or_name)`; no pytest import), its tests in
   `scikitplot/logging/tests/`, registration in `scikitplot/conftest.py` and
   in the top-level conftest of each submodule with a partial distribution;
   the corpus fixture becomes that registration (its 30 calls unchanged).
   Confirm `libs/_tools` counts the new file as `scikit-plots-skinny`'s.
-- [ ] 1. annoy: tests (Rules 139, 140, 142, 144, 153), then the benchmarks.
+  Done 2026-10-24; annoy registers in a new `annoy/conftest.py`, not in
+  `annoy/tests/conftest.py` (see Rule 139, second amendment).
+- [x] 1. annoy: tests (Rules 139, 140, 142, 144, 153), then the benchmarks.
+  Done 2026-10-24 (Rule 154 added for the benchmark cause).
+- [ ] 1b. corpus: the two Rule 139 failures above, with the shared capture.
 - [ ] 2. `_utils` timeout (fractional seconds, Rule 149 for the docstring).
 - [ ] 3. cleanprompt timeout tests.
 - [ ] 4. `_sphinx_ext`: remove `sys.path` edits and path loads (Rule 143),
@@ -338,3 +357,44 @@ the record planes themselves. Completed tasks are archived verbatim under
   `r"""` (Rule 48).
 - `scikitplot/_cli/logging.py` uses `getLogger("scikitplot")` (allowed by
   Rule 138 for CLI entry points).
+
+### Results Review - TF-1 steps 0 and 1 - 2026-10-24
+- Environment: Python 3.11.17, editable meson build of the uploaded tree,
+  pytest 9.0.3 and 9.1.1 (latest 9.x), pytest-xdist 3.8.0; the capture
+  module and its tests also on Python 3.8.20 with pytest 8.3.5.
+- Root causes (annoy, uploaded tree, 3 failures under 9.0.3, 0 under 9.1.1,
+  same with `-n auto`): see the known-failures entries above.
+- Changed: `scikitplot/logging/_capture.py` and its tests (29); the
+  registration in `scikitplot/conftest.py`, `corpus/conftest.py` (the old
+  fixture and its commented copy removed, `__package__` for its level
+  fixture), `_externals/_sphinx_ext/conftest.py`, new `annoy/conftest.py`;
+  `annoy/tests/test_bundle_directory.py`, `annoy/tests/test__threads.py`;
+  `Makefile` (unique target names, the quick-bench comment); Rule 139
+  amended, Rule 154 added.
+- `libs/_tools`: `logging/_capture.py` and its test belong to
+  `scikit-plots-skinny`, `annoy/conftest.py` to `scikit-plots-annoy`;
+  `python -m libs._tools check`: up to date.
+- Evidence (both pytest versions): annoy as one file (37, 78 passed), as
+  the directory and under `-n auto` (803 passed, 2 skipped, 1 xfailed);
+  `--confcutdir` of annoy, corpus and `_sphinx_ext` still provides
+  `captured_logger` (the uploaded tree's `_sphinx_ext` does not); the
+  corpus files that call the fixture: 558 passed, 3 skipped; Rule 153
+  probe: the new negative test fails when the code logs, the replaced one
+  passed under 9.0.3; benchmarks: quick run 0 errors, `make bench-pair`
+  A/A `0 slower, 0 faster`.
+- Checks: Rules 138-146, 152, 154 greps clean for the changed files (139
+  except the capture's own test, now stated in the rule); ruff 0.16.9 no
+  new finding; black 26.5.1 clean on the new files (the annoy test files
+  keep their earlier black diffs, untouched lines); codespell clean;
+  numpydoc GL06/GL07/PR/RT clean for `_capture.py`; no character above
+  U+007F in written lines; `check_records.py`: `ok rules` (router and
+  archives failures as before).
+- Deviation: one `git stash` during the first bench-pair run (Rule 22); that
+  run was discarded and the pair re-run after the last edit.
+- Left open: step 1b and the `test__logging.py:250` failure; the remaining
+  annoy `*_test.py` files keep `from scikitplot.annoy import AnnoyIndex`
+  (step 5); `typing_extensions` is imported by `annoy/_mixins/_meta.py`
+  but is not a runtime dependency of the full `scikit-plots` (only of
+  `scikit-plots-annoy` and the `dev` extra); `meson.build:1384` computes
+  the NumPy include path relative to `tools/` and uses it from the root
+  (a venv outside the tree fails to configure without `numpy-include-dir`).

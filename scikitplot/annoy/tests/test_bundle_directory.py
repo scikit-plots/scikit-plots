@@ -15,12 +15,14 @@ scikitplot.annoy._mixins._io.IndexIOMixin.save_bundle
 scikitplot.annoy._mixins._io.IndexIOMixin.load_bundle
 """
 
+import logging
 import os
 from pathlib import Path
 
 import pytest
 
-from scikitplot import annoy
+from ... import annoy
+from .._mixins import _io
 
 INDEX = next(c for c in (annoy.Index, annoy.Annoy) if hasattr(c, "save_bundle"))
 
@@ -188,8 +190,6 @@ def pinned_by_mapping(monkeypatch):
     """Apply the Windows rule for the indexes registered with the fixture."""
     import shutil
 
-    from scikitplot.annoy._mixins import _io
-
     indexes = []
     real_replace, real_rmtree = os.replace, shutil.rmtree
 
@@ -219,8 +219,6 @@ def pinned_by_mapping(monkeypatch):
 
 def test_the_rule_is_applied_by_the_fixture(tmp_path, pinned_by_mapping):
     """The emulation refuses what Windows refuses; otherwise it proves nothing."""
-    from scikitplot.annoy._mixins import _io
-
     index = _tracked()
     pinned_by_mapping.append(index)
     holder = tmp_path / "holder"
@@ -394,7 +392,9 @@ def test_reading_the_manifest_as_metadata_does_not_touch_the_index_member(tmp_pa
     assert INDEX.load_bundle(bundle).get_nns_by_item(0, 1)
 
 
-def test_a_bundle_written_before_manifests_named_their_index_still_loads(tmp_path, caplog):
+def test_a_bundle_written_before_manifests_named_their_index_still_loads(
+    tmp_path, captured_logger, caplog
+):
     """An older manifest has no ``bundle`` section and records a stale path."""
     import json
 
@@ -407,7 +407,7 @@ def test_a_bundle_written_before_manifests_named_their_index_still_loads(tmp_pat
     manifest["params"]["on_disk_path"] = stale
     manifest["info"]["on_disk_path"] = stale
     (bundle / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    with caplog.at_level("INFO", logger="scikitplot.annoy._mixins._io"):
+    with captured_logger(logging.INFO, _io.logger):
         reloaded = INDEX.load_bundle(bundle)
     assert reloaded.get_nns_by_item(0, 3) == built.get_nns_by_item(0, 3)
     assert "records a location" in caplog.text and "not used" in caplog.text
@@ -458,14 +458,17 @@ def test_a_bundle_of_another_format_is_refused_with_what_to_do(tmp_path):
         INDEX.load_bundle(bundle)
 
 
-def test_a_failed_publication_is_logged_as_a_warning(tmp_path, caplog, monkeypatch):
+def test_a_failed_publication_is_logged_as_a_warning(
+    tmp_path, captured_logger, caplog, monkeypatch
+):
     def boom(self, *args, **kwargs):
         raise OSError("injected: manifest write failed")
 
     monkeypatch.setattr(type(_built()), "to_json", boom, raising=False)
-    with caplog.at_level("WARNING", logger="scikitplot.annoy._mixins._io"):
+    with captured_logger(logging.WARNING, _io.logger):
         with pytest.raises(OSError):
             _built().save_bundle(tmp_path / "bundle")
-    (record,) = [r for r in caplog.records if r.levelname == "WARNING"]
+    (record,) = caplog.records
+    assert record.levelno == logging.WARNING
     assert "was not published" in record.getMessage()
     assert "kept in memory" in record.getMessage()
