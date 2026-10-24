@@ -138,16 +138,12 @@ def test_a_forbidden_fallback_raises(no_model):
         chunker.chunk(TEXT)
 
 
-def test_the_fallback_is_reported_once_per_chunker(no_model, caplog):
+def test_the_fallback_is_reported_once_per_chunker(no_model, captured_logger, caplog):
     chunker = SemanticChunker(SemanticChunkerConfig(backend=SemanticBackend.HYBRID))
 
-    with caplog.at_level("WARNING", logger=logger.name):
-        logger.addHandler(caplog.handler)
-        try:
-            for _ in range(5):
-                chunker.chunk(TEXT)
-        finally:
-            logger.removeHandler(caplog.handler)
+    with captured_logger("WARNING", logger):
+        for _ in range(5):
+            chunker.chunk(TEXT)
 
     warnings = [r for r in caplog.records if r.name == logger.name]
     assert len(warnings) == 1
@@ -193,15 +189,11 @@ def test_one_chunk_call_encodes_once(fake_model):
     assert len(fake_model) == 1
 
 
-def test_a_failing_model_falls_back_and_says_so(broken_model, caplog):
+def test_a_failing_model_falls_back_and_says_so(broken_model, captured_logger, caplog):
     chunker = SemanticChunker(SemanticChunkerConfig(backend=SemanticBackend.HYBRID))
 
-    with caplog.at_level("WARNING", logger=logger.name):
-        logger.addHandler(caplog.handler)
-        try:
-            result = chunker.chunk(TEXT)
-        finally:
-            logger.removeHandler(caplog.handler)
+    with captured_logger("WARNING", logger):
+        result = chunker.chunk(TEXT)
 
     messages = [
         r.getMessage()

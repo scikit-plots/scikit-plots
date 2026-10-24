@@ -86,7 +86,7 @@ python .github/scripts/ci_bench.py compare base.json head.json            # make
   check them with `ci_bench.py list` and, where asv is installed,
   `asv check --python=same`.
 - On a clean runner: workflow **CI ⏱️ Performance (on demand)**,
-  `benchmarks: true` and `base_ref`.
+  `benchmarks: true` and `base` (`merge-base` or `default-branch`).
 
 ## Pitfalls (each has cost a round)
 

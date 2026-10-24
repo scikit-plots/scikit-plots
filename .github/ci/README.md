@@ -489,7 +489,7 @@ it nor Codecov.
 | What | Locally, offline | On a clean runner |
 |---|---|---|
 | where the tests of a submodule spend time and memory | `make test-perf PERF_PATHS=scikitplot/<submodule>` | **CI ⏱️ Performance (on demand)**, `test_paths` |
-| how fast the package itself is (import, plotting API, annoy) | `make bench`; `make bench-pair BENCH_BASE_PYTHON=<other venv>/bin/python` | the same workflow, `benchmarks: true`, against `base_ref` |
+| how fast the package itself is (import, plotting API, annoy) | `make bench`; `make bench-pair BENCH_BASE_PYTHON=<other venv>/bin/python` | the same workflow, `benchmarks: true`, against `base` (a commit of the default branch) |
 | whether a change made it slower | `ci_test_perf.py compare`, `ci_bench.py compare` | both, in the workflow's artifacts |
 
 **Two kinds of evidence.** The test recorder (section 12) answers "where

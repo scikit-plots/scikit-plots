@@ -35,10 +35,11 @@ on:
         description: "Only benchmarks matching this regular expression (empty: all)"
         type: string
         default: ""
-      base_ref:
-        description: "Branch, tag or commit the benchmarks compare against"
-        type: string
-        default: main
+      base:
+        description: "Benchmarks: compare against where this branch left the default branch (merge-base), or the default branch's tip"
+        type: choice
+        options: [merge-base, default-branch]
+        default: merge-base
       quick:
         description: "Benchmarks: one sample each, a smoke test rather than a measurement"
         type: boolean
@@ -142,9 +143,17 @@ jobs:
   ## The package benchmarks: base and this branch, each installed into a
   ## virtualenv of its own (not editable, so an import measures the
   ## installed package), run alternately on this one runner.
+  ##
+  ## The base is derived from the repository, never typed into the form
+  ## (Rule 155): building a package runs its code, and a workflow_dispatch
+  ## run can write the cache of the branch it runs on, the default branch
+  ## included. A free-form ref could name code nobody merged (a fork's
+  ## refs/pull/N/head), so CodeQL reported it as cache poisoning
+  ## (actions/cache-poisoning/poisonable-step, alerts 231 and 232). The
+  ## base is a commit of the default branch, and this job keeps no cache.
   ## ------------------------------------------------------------------
   benchmarks:
-    name: "📈 Benchmarks: ${{ inputs.base_ref }} vs this branch"
+    name: "📈 Benchmarks: ${{ inputs.base }} vs this branch"
     if: inputs.benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -155,23 +164,37 @@ jobs:
           persist-credentials: false
           lfs: true
           path: head
+          # The default branch's history, to find the base in it.
+          fetch-depth: 0
 
-      - name: "⬇️ Checkout the base"
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          lfs: true
-          path: base
-          ref: ${{ inputs.base_ref }}
+      - name: "🔎 Check out the base: a commit of the default branch"
+        id: base
+        env:
+          BASE: ${{ inputs.base }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -Eeuo pipefail
+          tip=$(git -C head rev-parse --verify "refs/remotes/origin/${DEFAULT_BRANCH}^{commit}")
+          case "$BASE" in
+            merge-base) sha=$(git -C head merge-base "$tip" HEAD) ;;
+            default-branch) sha=$tip ;;
+            *) echo "::error::unknown base: '$BASE'"; exit 2 ;;
+          esac
+          # Only merged code is built: the base must be on the default branch.
+          if ! git -C head merge-base --is-ancestor "$sha" "$tip"; then
+            echo "::error::$sha is not on $DEFAULT_BRANCH"
+            exit 2
+          fi
+          git -C head worktree add --detach "$GITHUB_WORKSPACE/base" "$sha"
+          git -C base lfs pull
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
+      # No pip cache in this job: it builds two trees, and keeps nothing a
+      # later run would restore.
       - name: "🐍 Set up Python"
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
-          cache: pip
-          cache-dependency-path: |
-            head/requirements/*.txt
-            head/pyproject.toml
 
       - name: "🔨 Build and install both"
         run: |
@@ -185,14 +208,15 @@ jobs:
       - name: "📈 Run alternately and compare"
         env:
           BENCH: ${{ inputs.bench }}
-          BASE_REF: ${{ inputs.base_ref }}
+          BASE: ${{ inputs.base }}
+          BASE_SHA: ${{ steps.base.outputs.sha }}
           QUICK: ${{ inputs.quick }}
         run: |
           set -Eeuo pipefail
           args=(--dir head/benchmarks/benchmarks --out bench
                 --base-python "$RUNNER_TEMP/venv-base/bin/python"
                 --head-python "$RUNNER_TEMP/venv-head/bin/python"
-                --base-label "$BASE_REF" --head-label "$GITHUB_SHA")
+                --base-label "$BASE@${BASE_SHA:0:12}" --head-label "$GITHUB_SHA")
           if [ -n "$BENCH" ]; then args+=("--bench=$BENCH"); fi
           if [ "$QUICK" = "true" ]; then args+=(--quick); fi
           python3 head/.github/scripts/ci_bench.py pair "${args[@]}"

@@ -1494,7 +1494,7 @@ profile:
 #   - GitHub only shows Run workflow for a manual-only workflow once that workflow file is on the default branch. So this step comes after you merge.
 # Go to Actions → “CI ⏱️ Performance (on demand)” → Run workflow:
 #   - To check one submodule’s tests: set test_paths: scikitplot/annoy and leave benchmarks off.
-#   - To compare the package’s speed against main: set benchmarks: true and base_ref: main. Leave quick off for a real measurement.
+#   - To compare the package’s speed against main: set benchmarks: true and base: default-branch (or merge-base, where this branch left main). Leave quick off for a real measurement.
 # Read compare.md in the run summary:
 #   - + means slower and - faster; these are evidence.
 #   - x means inconclusive, so run it again.

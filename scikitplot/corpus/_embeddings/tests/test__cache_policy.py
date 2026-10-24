@@ -108,16 +108,12 @@ class TestUnpinned:
         assert second.embeddings[0, 0] == 2.0
         assert _entries(tmp_path) == []
 
-    def test_the_bypass_is_logged_once(self, tmp_path, caplog):
+    def test_the_bypass_is_logged_once(self, tmp_path, captured_logger, caplog):
         engine = _engine(tmp_path)
 
-        with caplog.at_level(logging.INFO, logger=logger.name):
-            logger.addHandler(caplog.handler)
-            try:
-                engine.embed_cached(["a"])
-                engine.embed_cached(["b"])
-            finally:
-                logger.removeHandler(caplog.handler)
+        with captured_logger(logging.INFO, logger):
+            engine.embed_cached(["a"])
+            engine.embed_cached(["b"])
 
         notices = [
             r for r in caplog.records
@@ -224,7 +220,7 @@ class TestResolve:
         [RuntimeError("offline"), "", None, 7, "main", "ABCDEF" * 7],
     )
     def test_a_failed_resolution_bypasses_and_loads_unpinned(
-        self, tmp_path, monkeypatch, caplog, answer
+        self, tmp_path, monkeypatch, captured_logger, caplog, answer
     ):
         def resolver(name):
             if isinstance(answer, Exception):
@@ -244,13 +240,9 @@ class TestResolve:
             cache_policy=self._policy(resolver),
         )
 
-        with caplog.at_level(logging.WARNING, logger=logger.name):
-            logger.addHandler(caplog.handler)
-            try:
-                result = engine.embed_cached(["x"])
-                engine.embed_cached(["x"])
-            finally:
-                logger.removeHandler(caplog.handler)
+        with captured_logger(logging.WARNING, logger):
+            result = engine.embed_cached(["x"])
+            engine.embed_cached(["x"])
 
         assert result.status is CacheStatus.BYPASS_UNPINNED
         assert loaded == [None]
