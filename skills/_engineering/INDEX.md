@@ -144,7 +144,7 @@ titles, then open the file that holds the rules you need.
 | 136 | Tooling | refusing XML by searching its bytes needs the encoding pinned first | [tooling.md](rules/tooling.md) |
 | 137 | Tooling | a script that claims a Python floor is run on that floor | [tooling.md](rules/tooling.md) |
 | 138 | Logging | a module's logger is `logging.getLogger(__name__)`, and the module configures nothing | [logging.md](rules/logging.md) |
-| 139 | Log capture | a test captures a package logger through a handler on that logger, not with `caplog.at_level` alone | [logging.md](rules/logging.md) |
+| 139 | Log capture | a test captures a package logger with the shared `captured_logger` fixture | [logging.md](rules/logging.md) |
 | 140 | Log capture | the logger name in a test comes from the module under test | [logging.md](rules/logging.md) |
 | 141 | Logging | a log record carries identifiers and sizes, never secrets or whole payloads | [logging.md](rules/logging.md) |
 | 142 | Imports | code and tests inside the package import package modules relatively | [module_submodule_actual_mock_patch.md](rules/module_submodule_actual_mock_patch.md) |
@@ -157,3 +157,5 @@ titles, then open the file that holds the rules you need.
 | 149 | NumPyDoc | the documented parameters, returns and yields are the code's, with types | [numpydocstr.md](rules/numpydocstr.md) |
 | 150 | Cross-references | a role on every link, `~.name` for the package's own objects | [numpydocstr.md](rules/numpydocstr.md) |
 | 151 | NumPyDoc | a docstring is checked against the code it describes, also when an assistant wrote it | [numpydocstr.md](rules/numpydocstr.md) |
+| 152 | Output | library code returns, logs, warns or raises; it prints only output a user asked for | [logging.md](rules/logging.md) |
+| 153 | Log capture | an assertion that nothing was logged is made inside a capture shown to see records | [logging.md](rules/logging.md) |

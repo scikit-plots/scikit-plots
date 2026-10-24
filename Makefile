@@ -1612,6 +1612,21 @@ garbage-collection:
 	python -m unittest discover -s .github/scripts/tests -p "test_*.py"
 
 ######################################################################
+## Snapshot the tree
+######################################################################
+
+## 1. Snapshot the tree (code only, no build output)
+# git archive --format=zip -o scikit-plots.zip HEAD
+
+## 2. Collect the failures for the first target (annoy)
+# python -m pytest --version                                   > annoy-pytest.txt 2>&1
+# python -m pytest scikitplot/annoy -q -rfE -p no:cacheprovider >> annoy-pytest.txt 2>&1
+# python -m pytest scikitplot/annoy -q -rfE -n auto -p no:cacheprovider > annoy-pytest-xdist.txt 2>&1
+
+## 3. The benchmark failures: use the command you ran yesterday, e.g.
+# make bench-quick BENCH=bench_annoy > annoy-bench.txt 2>&1
+
+######################################################################
 ## logger helper
 ######################################################################
 

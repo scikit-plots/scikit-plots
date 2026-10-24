@@ -8,6 +8,117 @@ platform is an argument, never a patch of the process), Rule 28 (an
 emulation first refuses what the real thing refuses) and Rule 131 (a
 module executed twice makes cProfile records wrong).
 
+## Internal imports logic sample
+
+A module or test of the package reaches every other module of the package
+relatively (Rule 142). The number of dots is the number of package levels to
+climb:
+
+```python
+from . import _reader                # a sibling module
+from .. import _atomic               # a module one package level up (a test in tests/)
+from .._mixins import _io            # a module in a sibling subpackage
+mod = importlib.import_module("." + name, __name__)  # a lazy load by name
+```
+
+Not this, in code or tests (the user's view is the only exception, Rule 142):
+
+```python
+import scikitplot.corpus._atomic
+from scikitplot import corpus
+from scikitplot.corpus import _atomic
+mock.patch("scikitplot.corpus._atomic.os.replace")
+```
+
+When a string name cannot be avoided (the `-c` code of a child process, a
+`pytest -p` plugin, an entry point), build it from the imported module, as
+`scikitplot/_testing/tests/test__perf_telemetry.py` does:
+
+```python
+from .. import _perf_telemetry as perf
+
+CHILD_IMPORT = f"import importlib\n_perf_telemetry = importlib.import_module({perf.__name__!r})\n"
+```
+
+A relative import needs the file to be imported as part of its package: run
+tests with `pytest` (or `python -m`), never as `python path/to/test_x.py`.
+
+## Avoid cosmetic `sys.path` changes logic sample
+
+Do not add `sys.path.insert(...)` to make a broken import work. It makes the
+result depend on the working directory and the import order, hides packaging
+errors, and loads one file under two module names, each with its own state
+(Rule 143). Fix the layout instead: add the missing `__init__.py`, import the
+helper relatively, or move a shared test helper into a `conftest.py` fixture
+or a `_testing` module of the submodule. Path manipulation stays only in a
+documented script entry point.
+
+## Patch where the name is looked up logic sample
+
+If the code under test does this:
+
+```python
+# _worker.py
+from ._reader import read
+
+def run(path):
+    return read(path)
+```
+
+patch the name in `_worker`, the module that looks it up, with the real
+signature (Rules 144, 145):
+
+```python
+from unittest.mock import patch
+
+from .. import _worker
+
+def test_run_returns_what_read_returns():
+    with patch.object(_worker, "read", autospec=True, return_value="sample") as fake:
+        assert _worker.run("input.txt") == "sample"
+    fake.assert_called_once_with("input.txt")
+```
+
+If the code instead does this:
+
+```python
+from . import _reader
+
+def run(path):
+    return _reader.read(path)
+```
+
+patch the attribute that it looks up:
+
+```python
+with patch.object(_worker._reader, "read", autospec=True, return_value="sample"):
+    assert _worker.run("input.txt") == "sample"
+```
+
+The target is decided by the lookup expression in the code under test, not
+by where the function is defined.
+
+## Absent optional dependency logic sample
+
+```python
+import sys
+
+import pytest
+
+from .. import _worker
+
+def test_without_fancydep(monkeypatch):
+    monkeypatch.setitem(sys.modules, "fancydep", None)
+    with pytest.raises(ImportError, match="fancydep"):
+        _worker.run_optional()   # does `import fancydep` inside the function
+```
+
+`import fancydep` then raises `ModuleNotFoundError: import of fancydep
+halted; None in sys.modules`, for this test only (Rule 146).
+
+The samples above were run (pytest 9.1.1, Python 3.11) before they were
+published.
+
 ## Why (read first)
 
 `scikitplot` is assembled from submodules that each work on their own: in
@@ -32,9 +143,14 @@ loaded by path (`spec_from_file_location`) 20 and 34; string patch targets
 imports and 95 string patches in tests), `mlflow` (168), `_externals/_sphinx_ext/_sphinx_ai_assistant`
 (36 `sys.path` edits and 32 loads by path in tests).
 
+No linter enforces Rule 142: ruff's `banned-api` (`TID251`) resolves a
+relative import to its absolute name before matching, so a ban on
+`scikitplot` also flags `from .. import _io` (probe of 2026-10-24, ruff
+0.16.9). The `grep` commands of each rule are the check.
+
 ### Rule 142: Imports - code and tests inside the package import package modules relatively
 - **When:** a module or test under `scikitplot/` needs another module of the package.
-- **Then:** import it relatively, as deep as the layout requires: `from . import _reader`, `from .. import _atomic`, `from .._mixins import _io`, and `importlib.import_module("." + name, __name__)` for a lazy load. The absolute name `scikitplot.<...>` is right only where a user's view is the subject: docstring examples (`>>> import scikitplot as sp`), user guides, a test whose subject is the public import path itself (what `import scikitplot` exposes, a lazy attribute, a `python -m scikitplot.<cli>` command), and a file executed as a script (Rule 143).
+- **Then:** import it relatively, as deep as the layout requires: `from . import _reader`, `from .. import _atomic`, `from .._mixins import _io`, and `importlib.import_module("." + name, __name__)` for a lazy load. The absolute name `scikitplot.<...>` is right only where a user's view is the subject: docstring examples (`>>> import scikitplot as sp`), user guides, a test whose subject is the public import path itself (what `import scikitplot` exposes, a lazy attribute, a `python -m scikitplot.<cli>` command), and a file executed as a script (Rule 143). Where a test must pass a module's name as a string (a child process, `pytest -p`), it builds the string from the imported module's `__name__` (the sample above), never types it.
 - **Verified by:** for the changed files, `grep -nE "^\s*(import scikitplot|from scikitplot(\.| import))" <files>` prints only the exceptions above, each with a comment saying which; the tests pass when run as one file, as the directory, and with `-n auto`.
 - **Added:** 2026-10-23. Root cause: the survey above (736 absolute self-imports); every one ties its file to the name `scikitplot` and to the subtree's current place, which breaks the copy-and-replace property the package is built on, and a test that imports the module absolutely while the module itself imports its siblings relatively can end up with two names for one file when a `sys.path` entry is also present (Rule 143).
 

@@ -272,3 +272,69 @@ the record planes themselves. Completed tasks are archived verbatim under
 - Next: run `test_gc: frozen` once in CI and `compare` it with a `young`
   run before making it the default; fix the security chain rebuild and the
   `scikitplot.__getattr__` probes (`upcoming_changes/`).
+
+## Task: TF-1 - submodule test failures, fixed under Rules 138-151 (handoff)
+
+### Context
+- Goal: every submodule's tests pass on their own and in the full suite,
+  each failure fixed at its root cause under `skills/_engineering/rules/`
+  (logging.md 138-141, module_submodule_actual_mock_patch.md 142-146,
+  numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
+  assertions). One submodule per session; a session starts here
+  and needs no earlier chat.
+- State on 2026-10-24: TP-1 and Rules 138-153 delivered; records check
+  `ok rules` (router and archives failures pre-existing).
+
+### Known failures and their causes
+- `scikitplot/annoy/tests/test_bundle_directory.py:413,469`: log capture
+  depends on the pytest release (passes 9.1.1, fails 8.3.5 and 9.0.0)
+  because `"scikitplot"` has `propagate = False` (Rule 139). Same file:
+  absolute imports at 23, 191, 222 (Rule 142); string logger names at
+  410, 466 (Rule 140).
+- Annoy benchmarks (`benchmarks/bench_annoy.py`): failures reported by the
+  user on 2026-10-23, output not yet collected.
+- `scikitplot/_utils/tests/test_timeout.py`: 4 failures, `signal.alarm(0.1)`
+  raises `TypeError` (the function takes whole seconds); see
+  `upcoming_changes/scikitplot/_utils/run-with-timeout-tests-and-float-seconds.md`.
+- cleanprompt: 3 timeout tests fail (cause not yet analysed).
+- `scikitplot/_externals/_sphinx_ext`: `sys.path` edits and loads by path
+  in tests (Rule 143); one file executed 29 times per session.
+
+### Implementation Steps
+- [ ] 0. The shared capture (Rule 139): `scikitplot/logging/_capture.py`
+  (a factory `captured_logger(caplog)` returning a context manager taking
+  `(level, logger_or_name)`; no pytest import), its tests in
+  `scikitplot/logging/tests/`, registration in `scikitplot/conftest.py` and
+  in the top-level conftest of each submodule with a partial distribution;
+  the corpus fixture becomes that registration (its 30 calls unchanged).
+  Confirm `libs/_tools` counts the new file as `scikit-plots-skinny`'s.
+- [ ] 1. annoy: tests (Rules 139, 140, 142, 144, 153), then the benchmarks.
+- [ ] 2. `_utils` timeout (fractional seconds, Rule 149 for the docstring).
+- [ ] 3. cleanprompt timeout tests.
+- [ ] 4. `_sphinx_ext`: remove `sys.path` edits and path loads (Rule 143),
+  submodule by submodule.
+- [ ] 5. Remaining submodules' Rule 142/144 violations, when their tests are
+  next touched (survey: 624 absolute self-imports, 208 string patch targets
+  in tests).
+
+### Acceptance Criteria
+- [ ] The submodule's tests pass as one file, as the directory, under
+  `-n auto`, and under pytest 9.0.x and the latest 9.x.
+- [ ] Each rule's "Verified by" command is clean for the changed files.
+- [ ] A rule found wrong or missing while fixing is amended, or the next
+  number added, in the same change, with the failure as its root cause.
+
+- Negative log assertions that pass under pytest 9.0 whatever the code
+  logs (Rule 153): `_sphinx_youtube_gallery/tests/test_sync.py:827`,
+  `annoy/tests/test__threads.py:157`, `tests/test__distributions.py:598`.
+- Output defects (Rule 152): `_sphinx_youtube_gallery/sync.py:727-731`
+  debugging prints on every `resolve_source` call; `utils/_serialize.py:177,
+  205,237` print an exception and return `None`;
+  `api/metrics/_regression/_residuals.py:216-270` print fitted parameters.
+
+### Side issues found, not changed
+- `SKPLT_LOGGING_AUTO_CONFIG` (`_ENV_AUTO_CONFIG`) is defined and unused.
+- `sanitize_log_message` docstring writes a doubled backslash inside
+  `r"""` (Rule 48).
+- `scikitplot/_cli/logging.py` uses `getLogger("scikitplot")` (allowed by
+  Rule 138 for CLI entry points).
