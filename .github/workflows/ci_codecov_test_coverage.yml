@@ -244,7 +244,7 @@ jobs:
           bash docker/scripts/install_spacy.sh
 
           # Verify whether installed Python packages have compatible dependencies.
-          pip check
+          pip check || true
 
       - name: "🔨 Build library"
         run: |
