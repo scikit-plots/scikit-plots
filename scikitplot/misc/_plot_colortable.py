@@ -29,10 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle
 
-# ---------------------------------------------------------------------------
-# Module-level logger
-# ---------------------------------------------------------------------------
-logger = logging.getLogger("scikitplot.misc")
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "closest_color_name",

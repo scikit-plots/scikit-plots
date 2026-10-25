@@ -1,0 +1,22 @@
+- ``scikitplot env`` (also ``python -m scikitplot._env`` and the
+  ``scikitplot._env`` functions ``plan``, ``create``, ``remove``, ``run``,
+  ``doctor``, ``shell_init`` and ``batch``) builds one described environment
+  with whichever tool the machine has: uv, ``venv`` + pip, pipenv (a
+  ``Pipfile.lock`` installed exactly), micromamba, mamba or conda. The request
+  comes from arguments or a TOML, JSON or YAML file (``scikitplot-env.toml``,
+  or ``[tool.scikitplot.env]`` in ``pyproject.toml``; JSON Lines for batches)
+  and names PyPI and Conda packages and ``requirements.txt``,
+  ``environment.yml``, ``pyproject.toml`` (extras and dependency groups) and
+  ``Pipfile`` sources. ``plan`` prints every command before anything runs;
+  ``create`` runs exactly that plan under a per-environment lock, writes a
+  receipt, and does nothing the next time unless the request or a dependency
+  file changed. Installing micromamba (the conda-forge build, checked against
+  a pinned SHA-256; from a cached archive offline) or uv, editing a shell
+  start-up file and deleting an environment each need an approval given on
+  the command line, in Python or at a terminal, never by a configuration
+  file. ``--offline`` plans only steps that need no network, ``--target``
+  cross-builds for another Conda platform or the browser
+  (``emscripten-wasm32``, and ``pyodide`` as a ``micropip`` script), and
+  Android and iOS are refused with the reason. ``--format json`` and
+  ``--events FILE`` (JSON Lines) give results and errors, each with a stable
+  ``code`` and a ``hint``, to CI jobs and agents.

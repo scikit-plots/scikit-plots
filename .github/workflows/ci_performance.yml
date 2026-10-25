@@ -13,7 +13,7 @@ on:
       test_paths:
         description: "Test paths to record, space separated (e.g. 'scikitplot/annoy scikitplot/api'); empty: no test job"
         type: string
-        default: ""
+        default: "scikitplot"
       profile_tests:
         description: "Profile these tests one by one (a regular expression of node ids; empty: none)"
         type: string
@@ -154,7 +154,15 @@ jobs:
             fi
           done
           status=0
-          python -m pytest "${paths[@]}" --maxfail=0 -p no:cacheprovider || status=$?
+          python \
+            -m pytest \
+            "${paths[@]}" \
+            -vv \
+            --tb=long \
+            --full-trace \
+            --maxfail=0 \
+            -p no:cacheprovider \
+          || status=$?
           if [ "$status" -eq 5 ]; then
             echo "::notice::no tests were collected for: $TEST_PATHS"
             status=0

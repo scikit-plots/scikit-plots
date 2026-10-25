@@ -1457,24 +1457,95 @@ precom:
 ## pytest Analyze the existing profile
 ######################################################################
 
+EVIDENCE_DIR := /tmp/release-evidence
+PROFILE := $(EVIDENCE_DIR)/suite.prof
+LOG := $(EVIDENCE_DIR)/pytest.log
+ARCHIVE := $(CURDIR)/release-evidence.zip
+
+.PHONY: test-suite-evidence profile-evidence release-evidence clean-evidence
+
+test-suite-evidence:
+	mkdir -p "$(EVIDENCE_DIR)"
+
+	# Preserve pytest's exit code without stopping evidence collection.
+	set +e
+	python -m cProfile \
+		-o "$(PROFILE)" \
+		-m pytest \
+		scikitplot \
+		-vv \
+		--tb=long \
+		--full-trace \
+		--durations=50 \
+		--durations-min=0.05 \
+		--junitxml="$(EVIDENCE_DIR)/junit.xml" \
+		2>&1 | tee "$(LOG)"
+	test_status=$${PIPESTATUS[0]}
+	set -e
+
+	printf '%s\n' "$$test_status" > "$(EVIDENCE_DIR)/pytest-exit-code.txt"
+
+	# A failed test run is evidence, not a reason to skip analysis.
+	exit 0
+
+define PROFILE_SCRIPT
+import pstats, textwrap
+stats = pstats.Stats("$(PROFILE)")
+for label, sort_key in (
+    ("CUMULATIVE TIME", "cumulative"),
+    ("SELF TIME", "tottime"),
+    ("CALL COUNT", "calls"),
+):
+    print(f"\n{'=' * 90}\n{label}\n{'=' * 90}")
+    stats.sort_stats(sort_key).print_stats(60)
+endef
+export PROFILE_SCRIPT
+
+profile-evidence:
+	test -s "$(PROFILE)"
+	python -c "$$PROFILE_SCRIPT" > "$(EVIDENCE_DIR)/pstats.txt"
+
+	grep -nE \
+		'FAILED|ERROR|Traceback|AssertionError|WARNING|ERROR ' \
+		"$(LOG)" > "$(EVIDENCE_DIR)/key-events.txt" || true
+
+# make release-evidence
+release-evidence: test-suite-evidence profile-evidence
+	rm -rf "$(ARCHIVE)"
+	cd "$(EVIDENCE_DIR)"
+	zip -r "$(ARCHIVE)" .
+
+	# Report the original pytest result after evidence is packaged.
+	test "$$(cat "$(EVIDENCE_DIR)/pytest-exit-code.txt")" -eq 0
+
+clean-evidence:
+	rm -rf "$(EVIDENCE_DIR)" "$(ARCHIVE)"
+
+######################################################################
+## pytest Analyze the existing profile
+######################################################################
+
 tets-suite:
 	python -m cProfile -o /tmp/release-evidence-suite.prof \
 	-m pytest -q --durations=40 --durations-min=1 \
 	scikitplot/_externals/ 2>&1 | tee pytest.log.txt
 
+define PROFILE_SCRIPT
+import pstats
+s = pstats.Stats("/tmp/release-evidence-suite.prof")
+s.strip_dirs()
+for title, sort, count in [
+	("CUMULATIVE", "cumulative", 60),
+	("OWN TIME", "tottime", 60),
+	("CALL COUNTS", "calls", 40),
+]:
+	print(f"\n=== {title} ===")
+	s.sort_stats(sort).print_stats(count)
+endef
+export PROFILE_SCRIPT
+
 profile:
-	python - <<'PY' > /tmp/release-evidence-pstats.txt
-	import pstats
-	s = pstats.Stats("/tmp/release-evidence-suite.prof")
-	s.strip_dirs()
-	for title, sort, count in [
-		("CUMULATIVE", "cumulative", 60),
-		("OWN TIME", "tottime", 60),
-		("CALL COUNTS", "calls", 40),
-	]:
-		print(f"\n=== {title} ===")
-		s.sort_stats(sort).print_stats(count)
-	PY
+	python -c "$$PROFILE_SCRIPT" > "/tmp/release-evidence-pstats.txt"
 
 	# Package both files so the profile data is available for analysis.
 	zip -j release-evidence-profile-analysis.zip \

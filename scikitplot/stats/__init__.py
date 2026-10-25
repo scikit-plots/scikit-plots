@@ -16,15 +16,16 @@ masked statistics, and additional tools.
 
 from __future__ import annotations
 
+# import hashlib
 import logging as _logging
-from contextlib import suppress as _suppress
+from contextlib import suppress
 
 from ..exceptions import ScikitplotException as _ScikitplotException
 
 logger = _logging.getLogger(__name__)
 
 try:
-    with _suppress(ImportError):
+    with suppress(ImportError):
         from ..cexternals._astropy.stats import *  # noqa: F401,F403
 except _ScikitplotException:
     logger.warning(
@@ -32,7 +33,7 @@ except _ScikitplotException:
     )
 
 try:
-    with _suppress(ImportError):
+    with suppress(ImportError):
         from ..externals._tweedie import *  # noqa: F401,F403
 except _ScikitplotException:
     logger.warning(

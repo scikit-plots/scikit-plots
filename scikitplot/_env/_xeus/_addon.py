@@ -1,16 +1,49 @@
-"""a JupyterLite addon for creating the env for xeus kernels."""
+# scikitplot/_env/_xeus/_addon.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# inspired: https://github.com/jupyterlite/xeus
+
+"""
+A JupyterLite add-on that builds and packs environments for Xeus kernels.
+
+Notes
+-----
+**User notes.** Configure it as the upstream ``jupyterlite-xeus`` add-on
+(``XeusAddon.environment_file``, ``prefix``, ``mounts`` ...). The
+environment of each ``environment.yml`` is built by the scikit-plots
+environment builder for target ``emscripten-wasm32``, so it gets the same
+plan, receipt and errors as ``scikitplot env create --target
+emscripten-wasm32``. To let it install micromamba when none is found, run
+the build with ``SKPLT_ENV_APPROVE=bootstrap`` in the environment: an
+approval comes from whoever runs the build, never from a JupyterLite
+configuration file, which anyone can commit.
+
+**Developer notes.** Changed from the original module: the environment is
+built through :py:mod:`scikitplot._env` (micromamba looked up per build, not
+at import; an environment file without ``name`` uses the file stem), a
+``prefix`` given as :py:class:`~pathlib.Path` works in
+``get_environment_specs``/``get_environment_channels``, a malformed history
+line raises instead of being printed, and the empack configuration is
+downloaded with a timeout, a status check and a size limit (no
+``requests``).
+"""
 
 import ast
+import http
 import json
 import os
+import re
 import shlex
-import shutil  # noqa: F401
+import urllib.request
 import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from urllib.parse import urlparse
 
-import requests
 import yaml
 from empack.file_patterns import PkgFileFilter, pkg_file_filter_from_yaml
 from empack.pack import (
@@ -31,17 +64,101 @@ from jupyterlite_core.constants import (
 )
 from traitlets import Bool, Callable, List, Unicode
 
-from .constants import DEFAULT_CHANNELS, EXTENSION_NAME  # noqa: F401
-from .create_conda_env import (
-    create_conda_env_from_env_file,
-    create_conda_env_from_specs,  # noqa: F401
-)
+from .._core._decisions import Decider
+from .._core._executor import execute
+from .._core._planner import plan_request
+from .._core._request import EnvironmentRequest, Policy, SourceRef
+from .._targets import EMSCRIPTEN_CHANNELS
 
 EMPACK_ENV_META = "empack_env_meta.json"
+EXTENSION_NAME = "xeus"
+STATIC_DIR = Path("@jupyterlite") / EXTENSION_NAME / "static"
+
+_MAX_CONFIG_BYTES = 4 * 1024 * 1024
+
+
+_ENV_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
+
+
+def _approvals_from_invocation(environ) -> set:
+    """
+    Return the approvals given by whoever runs the build (``SKPLT_ENV_APPROVE``).
+
+    Parameters
+    ----------
+    environ : mapping
+        Process environment.
+
+    Returns
+    -------
+    set of str
+        Approval kinds; only ``bootstrap`` matters to this add-on.
+
+    Raises
+    ------
+    ValueError
+        For an unknown kind.
+    """
+    kinds = {
+        k.strip() for k in environ.get("SKPLT_ENV_APPROVE", "").split(",") if k.strip()
+    }
+    unknown = kinds - {"bootstrap", "shell_init", "remove"}
+    if unknown:
+        raise ValueError(
+            f"SKPLT_ENV_APPROVE has unknown approval kinds {sorted(unknown)}"
+        )
+    return kinds
+
+
+def _history_path(prefix) -> Path:
+    return Path(prefix) / "conda-meta" / "history"
+
+
+def _download_text(url: str, *, timeout: float = 60.0) -> bytes:
+    """
+    Return the body of ``url`` (HTTP 200 only, at most 4 MB).
+
+    Parameters
+    ----------
+    url : str
+        An ``http(s)`` URL.
+    timeout : float, default=60.0
+        Network timeout in seconds.
+
+    Returns
+    -------
+    bytes
+        The body.
+
+    Raises
+    ------
+    RuntimeError
+        For another HTTP status or a larger body.
+    """
+    with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310
+        status = getattr(response, "status", http.HTTPStatus.OK)
+        if status != http.HTTPStatus.OK:
+            raise RuntimeError(f"GET {url} returned HTTP {status}")
+        body = response.read(_MAX_CONFIG_BYTES + 1)
+    if len(body) > _MAX_CONFIG_BYTES:
+        raise RuntimeError(f"{url} is larger than {_MAX_CONFIG_BYTES} bytes")
+    return body
 
 
 def get_kernel_binaries(path):
-    """Return paths to the kernel binaries (js, wasm, and optionally data) if they exist, else None."""
+    """
+    Return the kernel binaries of a kernel directory.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Kernel directory (holds ``kernel.json``).
+
+    Returns
+    -------
+    tuple of pathlib.Path or None
+        ``(js, wasm, data or None)``, or None (with a warning) when they are missing.
+    """
     json_file = path / "kernel.json"
     if json_file.exists():
         kernel_spec = json.loads(json_file.read_text(**UTF8))
@@ -74,6 +191,7 @@ class ListLike(List):
         return [s]
 
 
+# metadata should be set using the .tag() method, e.g., Int().tag(key1='value1')
 class XeusAddon(FederatedExtensionAddon):
     __all__ = ["post_build"]  # noqa: RUF012
 
@@ -81,24 +199,28 @@ class XeusAddon(FederatedExtensionAddon):
         None,
         config=True,
         allow_none=True,
+    ).tag(
         description="The path or URL to the empack config file",
     )
 
     environment_file = ListLike(
         [],
         config=True,
+    ).tag(
         description='The path to the environment file. Defaults to looking for "environment.yml" or "environment.yaml"',
     )
 
     prefix = ListLike(
         [],
         config=True,
+    ).tag(
         description="The path to the wasm prefix",
     )
 
     default_channels = ListLike(
         [],
         config=True,
+    ).tag(
         description="The channels to use",
     )
 
@@ -106,12 +228,14 @@ class XeusAddon(FederatedExtensionAddon):
         None,
         allow_none=True,
         config=True,
+    ).tag(
         description="Whether or not to mount the jupyterlite content into the kernel. This would make the jupyterlite content available under the '/files' directory, and the kernels will automatically be started from there.",
     )
 
     mounts = ListLike(
         [],
         config=True,
+    ).tag(
         description="A list of mount points, in the form <host_path>:<mount_path> to mount in the wasm prefix",
     )
 
@@ -119,6 +243,7 @@ class XeusAddon(FederatedExtensionAddon):
         None,
         allow_none=True,
         config=True,
+    ).tag(
         description="Factory to generate package download URL from package metadata. This is used to load python packages from external host",
     )
 
@@ -191,26 +316,27 @@ class XeusAddon(FederatedExtensionAddon):
         }
 
     def get_environment_specs(self, prefix):
-        if isinstance(prefix, str):
-            history_file_path = Path(prefix)
-        path = history_file_path / "conda-meta" / "history"
+        path = _history_path(prefix)
         specs = []
-        with open(path, "r") as f:
-            for line in f:
+        with open(path, encoding="utf-8") as f:
+            for lineno, line in enumerate(f, 1):
                 if line.startswith("# update specs:"):
                     spec_line = line.strip().replace("# update specs:", "").strip()
                     try:
-                        specs += ast.literal_eval(spec_line)
-                    except Exception as e:  # noqa: BLE001
-                        print(f"Error parsing line: {spec_line} — {e}")  # noqa: T201
+                        parsed = ast.literal_eval(spec_line)
+                    except (ValueError, SyntaxError) as e:
+                        raise ValueError(
+                            f"{path}:{lineno}: cannot parse specs {spec_line!r}: {e}"
+                        ) from e
+                    if not isinstance(parsed, list):
+                        raise ValueError(f"{path}:{lineno}: specs are not a list")
+                    specs += parsed
         return specs
 
     def get_environment_channels(self, prefix):
-        if isinstance(prefix, str):
-            history_file_path = Path(prefix)
-        path = history_file_path / "conda-meta" / "history"
+        path = _history_path(prefix)
         channels = []
-        with open(path, "r") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 if line.startswith("# cmd:"):
                     tokens = shlex.split(line.replace("# cmd:", ""))
@@ -244,21 +370,54 @@ class XeusAddon(FederatedExtensionAddon):
         return channels
 
     def create_prefix(self, env_file: Path):
-        # read the environment file
+        """
+        Build the browser environment of ``env_file``.
+
+        Parameters
+        ----------
+        env_file : pathlib.Path
+            An ``environment.yml``; its ``name`` (or the file stem) names the environment.
+
+        Returns
+        -------
+        tuple of (str, pathlib.Path)
+            Environment name and prefix.
+        """
         root_prefix = Path(self.cwd_name) / "_env"
+        env_file = Path(env_file).resolve()
+        with open(env_file, encoding="utf-8") as file:
+            yaml_content = yaml.safe_load(file) or {}
 
-        with open(env_file, "r") as file:
-            yaml_content = yaml.safe_load(file)
-
-        env_name = yaml_content["name"]
+        approved = _approvals_from_invocation(os.environ)
+        env_name = yaml_content.get("name") or env_file.stem
+        if not isinstance(env_name, str) or not _ENV_NAME.match(env_name):
+            raise ValueError(
+                f"{env_file}: environment name {env_name!r} must be 1-100 letters,"
+                " digits, '.', '_' or '-' (it names a directory)"
+            )
         env_prefix = root_prefix / "envs" / env_name
-        dependencies = yaml_content.get("dependencies", [])
-        conda_packages = [item for item in dependencies if isinstance(item, str)]
-        self.specs[env_name] = conda_packages
-        self.channels[env_name] = yaml_content.get("channels", self.default_channels)
+        dependencies = yaml_content.get("dependencies") or []
+        file_channels = list(yaml_content.get("channels") or [])
+        channels = (
+            file_channels or list(self.default_channels) or list(EMSCRIPTEN_CHANNELS)
+        )
+        self.specs[env_name] = [item for item in dependencies if isinstance(item, str)]
+        self.channels[env_name] = channels
 
-        create_conda_env_from_env_file(root_prefix, yaml_content, env_file.parent)
-
+        request = EnvironmentRequest(
+            prefix=str(env_prefix.resolve()),
+            target="emscripten-wasm32",
+            sources=(SourceRef(str(env_file), "environment"),),
+            channels=() if file_channels else tuple(channels),
+            root_prefix=str(root_prefix.resolve()),
+            policy=Policy(
+                interaction="never",
+                bootstrap="if-missing" if "bootstrap" in approved else "never",
+            ),
+        )
+        plan = plan_request(request)
+        self.log.info("[xeus] %s", plan.render())
+        execute(plan, decider=Decider("never", approve=sorted(approved)))
         return env_name, env_prefix
 
     def copy_kernels_from_prefix(self, env_name, prefix):
@@ -445,9 +604,7 @@ class XeusAddon(FederatedExtensionAddon):
         if empack_config:
             empack_config_is_url = urlparse(empack_config).scheme in ("http", "https")
             if empack_config_is_url:
-                empack_config_content = requests.get(  # noqa: S113
-                    empack_config,
-                ).content
+                empack_config_content = _download_text(empack_config)
                 pack_kwargs["file_filters"] = PkgFileFilter(
                     **yaml.safe_load(empack_config_content)
                 )
@@ -602,7 +759,18 @@ class XeusAddon(FederatedExtensionAddon):
             )
 
     def patch_federated_settings(self, manager, lab_extensions, all_federated_json):
-        """Ensure settings from federated extensions are aggregated in a single file."""
+        """
+        Ensure settings from federated extensions are aggregated in a single file.
+
+        Parameters
+        ----------
+        manager : LiteManager
+            The JupyterLite manager.
+        lab_extensions : list of pathlib.Path
+            ``package.json`` files of the extensions.
+        all_federated_json : pathlib.Path
+            The aggregated settings file, rewritten.
+        """
         federated_settings = [
             setting
             for p in lab_extensions
@@ -613,7 +781,19 @@ class XeusAddon(FederatedExtensionAddon):
         all_federated_json.write_text(json.dumps(current_json), **UTF8)
 
     def safe_copy_jupyterlab_extension(self, pkg_json):
-        """Copy a labextension, and overwrite it if it's already in the output."""
+        """
+        Copy a labextension, and overwrite it if it is already in the output.
+
+        Parameters
+        ----------
+        pkg_json : pathlib.Path
+            The extension's ``package.json``.
+
+        Yields
+        ------
+        dict
+            A doit task.
+        """
         pkg_path = pkg_json.parent
         stem = json.loads(pkg_json.read_text(**UTF8))["name"]
         dest = self.output_extensions / stem

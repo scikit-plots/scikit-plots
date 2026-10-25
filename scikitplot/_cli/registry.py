@@ -137,6 +137,20 @@ BUILTIN_COMMANDS: tuple[CommandSpec, ...] = (
     # Vault encryption itself is base tier; the crypto extra adds only the
     # optional Fernet cipher. tests/test_registry.py keeps this hint in step
     # with cleanprompt's TIERS.
+    # Delegated: the environment builder parses its own subcommands
+    # (doctor, plan, create, remove, run, shell-init, validate, batch). Its
+    # core is pure standard library; YAML configs need PyYAML and the Xeus
+    # add-on needs jupyterlite-core and empack, each reported at the point
+    # of use.
+    CommandSpec(
+        name="env",
+        summary="Build the same Python environment anywhere (uv, pip, conda family).",
+        delegate="scikitplot._env._cli:main",
+        install_hint=(
+            "The core needs nothing; YAML configs and environment.yml need "
+            "pip install scikit-plots[env]; the JupyterLite add-on [env-xeus]"
+        ),
+    ),
     CommandSpec(
         name="cleanprompt",
         summary="Redact sensitive values from a prompt before sending it to an LLM.",

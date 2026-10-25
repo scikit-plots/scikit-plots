@@ -434,6 +434,7 @@ test_nogil = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
   "scikit-plots[mcp]",
 
+  "coverage",
   "hypothesis",                             # Property-based testing
   "pytest>=7.1.2",                          # Core testing framework
   "pytest-asyncio",
@@ -567,6 +568,20 @@ cleanprompt-web = [
 ]
 cleanprompt-crypto = [
   "cryptography",                           # the Fernet vault cipher (--cipher fernet)
+]
+
+## scikitplot._env (`scikitplot env`): the core is standard library only.
+## Floors: PyYAML 5.1 added the `SafeLoader` features the strict loader uses;
+## jupyterlite-core 0.8 / empack 6 / traitlets 5.16 are the versions the
+## Xeus add-on tests ran with (no older version was tested). No upper bounds.
+env = [
+  "pyyaml>=5.1",                            # YAML configs and environment.yml
+]
+env-xeus = [
+  "pyyaml>=5.1",
+  "jupyterlite-core>=0.8",                  # the JupyterLite add-on base class
+  "empack>=6",                              # packs the browser environment
+  "traitlets>=5.16",                        # add-on configuration
 ]
 
 ## corpus submodule dep

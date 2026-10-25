@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import logging
 import sys
 from importlib import metadata
 from pathlib import Path
@@ -45,6 +46,8 @@ from pathlib import Path
 import pytest
 
 from .. import _distributions as dists
+
+logger = dists.logger
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 SOURCE = PACKAGE_DIR / "_distributions.py"
@@ -592,12 +595,12 @@ class TestLogReport:
         self, monkeypatch, present, caplog
     ):
         _fake_metadata(monkeypatch, {dists.CORE: "0.5.0", "scikit-plots-mcp": "0.5.0"})
-        with caplog.at_level("INFO", logger=dists.IMPORT_NAME):
+        with caplog.at_level("INFO", logger=logger.name):
             result = dists.log_report()
         assert result == dists.report()
         assert caplog.records == []
 
-    def test_problems_are_warnings_and_notes_are_info(self, monkeypatch, present, caplog):
+    def test_problems_are_warnings_and_notes_are_info(self, monkeypatch, present, captured_logger, caplog):
         _fake_metadata(
             monkeypatch,
             {
@@ -607,9 +610,40 @@ class TestLogReport:
                 "scikit-learn": "1.3.0",
             },
         )
-        with caplog.at_level("INFO", logger=dists.IMPORT_NAME):
+        with captured_logger(logging.DEBUG, logger):
             result = dists.log_report()
         by_level = {record.levelname: record.getMessage() for record in caplog.records}
+        assert set(by_level) == {"DEBUG", "WARNING", "INFO"}
+        assert result["problems"][0] in by_level["WARNING"]
+        assert result["notes"][0] in by_level["INFO"]
+
+    def test_log_report_uses_standard_logging(self, monkeypatch, present):
+        _fake_metadata(
+            monkeypatch,
+            {
+                dists.CORE: "0.5.1",
+                "scikit-plots-mcp": "0.5.0",
+                "numpy": "2.0.0",
+                "scikit-learn": "1.3.0",
+            },
+        )
+        records = []
+
+        class Capture(logging.Handler):
+            def emit(self, record):
+                records.append(record)
+
+        handler = Capture()
+        logger.addHandler(handler)
+        try:
+            result = dists.log_report(log=logger)
+        finally:
+            logger.removeHandler(handler)
+
+        by_level = {
+            record.levelname: record.getMessage()
+            for record in records
+        }
         assert set(by_level) == {"WARNING", "INFO"}
         assert result["problems"][0] in by_level["WARNING"]
         assert result["notes"][0] in by_level["INFO"]

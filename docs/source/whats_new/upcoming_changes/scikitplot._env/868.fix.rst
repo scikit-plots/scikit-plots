@@ -1,0 +1,9 @@
+- The JupyterLite Xeus add-on in ``scikitplot._env`` now builds its browser
+  environments through the environment builder: micromamba is looked up when
+  a build starts instead of once at import, an ``environment.yml`` without
+  ``name`` uses its file name instead of raising ``KeyError``, a ``prefix``
+  given as a ``pathlib.Path`` no longer raises ``UnboundLocalError``, a
+  malformed ``conda-meta/history`` line raises instead of being printed and
+  skipped, the empack configuration is downloaded with a timeout and an HTTP
+  status check, and a PyPI package with a compiled file is refused before any
+  of its files is copied into the prefix.

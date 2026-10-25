@@ -29,6 +29,9 @@ This module is not a file I/O or parsing interface and does not eagerly copy
 file contents into memory. It is intended for efficient random access to large,
 stable binary data stored on disk with explicit and deterministic lifetime
 management.
+
+.. seealso::
+  * https://docs.python.org/3/library/multiprocessing.shared_memory.html
 """
 
 from __future__ import annotations
