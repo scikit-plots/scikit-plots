@@ -1,0 +1,5 @@
+- ``%load_ext scikitplot._magic`` now loads the new magics with a
+  ``FutureWarning``. Its old ``%scikitplot`` ran a fuzzy-matched guess
+  when a command was mistyped (so a typo could run another command), called
+  plotting functions that do not exist, imported matplotlib and NumPy and
+  created ``~/.scikitplot`` as soon as it was loaded.

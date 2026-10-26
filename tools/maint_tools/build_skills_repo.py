@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+# tools/maint_tools/build_skills_repo.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""
+Build the released ``scikitplot`` plugin: the tree of ``scikit-plots/skills``.
+
+The development plugin lives in ``plugins/scikitplot/`` of this repository
+and describes ``main``. A released version lives at the root of the separate
+repository ``scikit-plots/skills``, which the Claude directory validates and
+lists (Rule 166). This script turns a scikit-plots checkout of a release tag
+into that tree: it copies the generated skills, agents and README, stamps the
+library version into ``plugin.json``, adds the icon, the licenses and a
+one-plugin marketplace, then checks the result against the directory's
+pre-submission checklist.
+
+Usage::
+
+    python tools/maint_tools/build_skills_repo.py build --out ../skills --version 0.5.0
+    python tools/maint_tools/build_skills_repo.py check --out ../skills --version 0.5.0
+
+``build`` writes and prints what changed; ``check`` writes nothing and exits 1
+when ``--out`` differs from what ``build`` would write. Both exit 1 when the
+source checkout is stale or the result breaks a directory check.
+
+Notes
+-----
+**User notes.** Run it from the checkout of the release being published, with
+that release's version. Only the paths in :data:`MANAGED` are written; the
+target's ``.git/``, ``.github/`` and ``.gitignore`` are left alone, so the
+sync workflow of ``scikit-plots/skills`` is installed once by hand
+(``plugins/maintenances/skills-repo/sync.yml``) and never rewritten here.
+
+**Developer notes.** :func:`render` is pure: the source checkout and the
+version fully determine every file, so ``build`` is idempotent and ``check``
+is a byte comparison. Names and frontmatter are read with ``check_records.py``
+(loaded from its file), the same code that generated the plugin, so the two
+cannot disagree. :func:`validate` repeats the automated checks of
+https://claude.com/docs/plugins/pre-submission-checklist that a static tree
+can answer; the portal's **Validate** remains the authority.
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import re
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+RECORDS = REPO / "maintenances/_repo/_maintenance/tools/check_records.py"
+
+#: Paths of the target that this script owns; everything else is left alone.
+MANAGED = (
+    ".claude-plugin",
+    "skills",
+    "agents",
+    "assets",
+    "LICENSES",
+    "README.md",
+    "LICENSE",
+)
+ICON_SOURCE = "docs/source/logos/assets/scikit-plots-primary.png"
+ICON = "assets/icon.png"
+LICENSE_SOURCE = "LICENSE.txt"
+LICENSES_SOURCE = "LICENSES"
+#: A released version: PEP 440 final releases and post releases only.
+RELEASE = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:\.post[0-9]+)?")
+
+# Limits of the pre-submission checklist (see the module docstring).
+MAX_FILES = 512
+MAX_TEXT_BYTES = 256 * 1024
+MAX_ANY_BYTES = 5 * 1024 * 1024
+README_MIN_WORDS = 40
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
+OS_JUNK = (".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX")
+WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?")
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+
+def _records():
+    spec = importlib.util.spec_from_file_location(
+        "_check_records_for_skills_repo", RECORDS
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault(spec.name, module)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _json(data: dict) -> bytes:
+    return (json.dumps(data, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def check_version(version: str) -> str:
+    """
+    Return *version* when it is a released scikit-plots version.
+
+    Parameters
+    ----------
+    version : str
+        The library version, without a leading ``v`` (``0.5.0``, ``0.5.0.post1``).
+
+    Returns
+    -------
+    str
+        *version*, unchanged.
+
+    Raises
+    ------
+    ValueError
+        When *version* is a development, pre-release or malformed version: the
+        released plugin describes a release that ``pip install`` can get.
+    """
+    if not isinstance(version, str) or not RELEASE.fullmatch(version):
+        raise ValueError(
+            f"version {version!r} is not a release such as '0.5.0' or '0.5.0.post1';"
+            " the released plugin describes a scikit-plots release (Rule 166)"
+        )
+    return version
+
+
+def render(source: Path, version: str) -> dict[str, bytes]:
+    """
+    Return every file of the released plugin, by path in the target.
+
+    Parameters
+    ----------
+    source : Path
+        Root of a scikit-plots checkout whose generated plugin is current.
+    version : str
+        The library version of that checkout (see :func:`check_version`).
+
+    Returns
+    -------
+    dict of str to bytes
+        Target path to content, for the paths under :data:`MANAGED`.
+
+    Raises
+    ------
+    ValueError
+        When the version is not a release, or the checkout's skills, agents or
+        README are stale (``check_records.py`` reports a ``skills`` problem).
+    FileNotFoundError
+        When the checkout lacks the plugin, the icon or the licenses.
+    """
+    check_version(version)
+    records = _records()
+    stale = records.check_skills(source)
+    if stale:
+        raise ValueError(
+            "the checkout's generated plugin is not current; run check_records.py"
+            " --write-index there first:\n  " + "\n  ".join(stale)
+        )
+    plugin = source / records.PLUGIN_DIR
+    manifest = json.loads(
+        (plugin / ".claude-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    files: dict[str, bytes] = {}
+    for base in ("skills", "agents"):
+        for path in sorted((plugin / base).rglob("*")):
+            if path.is_file() and "__pycache__" not in path.parts:
+                files[path.relative_to(plugin).as_posix()] = path.read_bytes()
+    files["README.md"] = (plugin / "README.md").read_bytes()
+    files[ICON] = (source / ICON_SOURCE).read_bytes()
+    files["LICENSE"] = (source / LICENSE_SOURCE).read_bytes()
+    for path in sorted((source / LICENSES_SOURCE).iterdir()):
+        if path.is_file():
+            files[f"LICENSES/{path.name}"] = path.read_bytes()
+    released = {
+        "name": manifest["name"],
+        "displayName": manifest.get("displayName", manifest["name"]),
+        "version": version,
+        "description": manifest["description"],
+        "author": manifest["author"],
+        "homepage": manifest["homepage"],
+        "repository": f"https://github.com/{records.STABLE_REPO}",
+        "license": manifest["license"],
+        "keywords": manifest.get("keywords", []),
+        "icon": f"./{ICON}",
+    }
+    files[".claude-plugin/plugin.json"] = _json(released)
+    files[".claude-plugin/marketplace.json"] = _json(
+        {
+            "name": records.STABLE_MARKETPLACE,
+            "owner": manifest["author"],
+            "metadata": {"description": manifest["description"], "version": version},
+            "plugins": [
+                {
+                    "name": manifest["name"],
+                    "source": "./",
+                    "description": manifest["description"],
+                }
+            ],
+        }
+    )
+    return files
+
+
+def _managed_files(out: Path) -> set[str]:
+    found = set()
+    for top in MANAGED:
+        path = out / top
+        if path.is_file():
+            found.add(top)
+        elif path.is_dir():
+            found.update(
+                p.relative_to(out).as_posix() for p in path.rglob("*") if p.is_file()
+            )
+    return found
+
+
+def diff(out: Path, files: dict[str, bytes]) -> list[str]:
+    """Return ``+ path``, ``~ path`` and ``- path`` lines from *out* to *files*."""
+    present = _managed_files(out)
+    changes = [f"- {rel}" for rel in sorted(present - set(files))]
+    for rel, data in sorted(files.items()):
+        if rel not in present:
+            changes.append(f"+ {rel}")
+        elif (out / rel).read_bytes() != data:
+            changes.append(f"~ {rel}")
+    return changes
+
+
+def apply(out: Path, files: dict[str, bytes]) -> list[str]:
+    """Make the managed paths of *out* equal *files*; return the changes."""
+    changes = diff(out, files)
+    for line in changes:
+        rel = line[2:]
+        if line.startswith("- "):
+            (out / rel).unlink()
+        else:
+            (out / rel).parent.mkdir(parents=True, exist_ok=True)
+            (out / rel).write_bytes(files[rel])
+    for top in MANAGED:
+        folder = out / top
+        if folder.is_dir():
+            for sub in sorted(
+                folder.rglob("*"), key=lambda p: len(p.parts), reverse=True
+            ):
+                if sub.is_dir() and not any(sub.iterdir()):
+                    sub.rmdir()
+    return changes
+
+
+def _words(markdown: str) -> int:
+    return len(re.sub(r"```.*?```", " ", markdown, flags=re.DOTALL).split())
+
+
+def _check_files(out: Path) -> list[str]:
+    """Return the checklist's repository and file problems of *out*."""
+    errors: list[str] = []
+    entries = [
+        p for p in sorted(out.rglob("*")) if ".git" not in p.relative_to(out).parts[:1]
+    ]
+    files = [p for p in entries if p.is_file() and not p.is_symlink()]
+    if len(files) > MAX_FILES:
+        errors.append(
+            f"{len(files)} files; the checklist holds a plugin over {MAX_FILES}"
+        )
+    lowered: dict[str, str] = {}
+    for path in entries:
+        rel = path.relative_to(out).as_posix()
+        name = path.name
+        if path.is_symlink():
+            errors.append(f"{rel}: a symbolic link; commit regular files")
+        if name in OS_JUNK:
+            errors.append(f"{rel}: an operating-system file; remove it")
+        if (
+            ":" in name
+            or "\\" in name
+            or name.endswith((".", " "))
+            or WINDOWS_DEVICES.fullmatch(name)
+        ):
+            errors.append(f"{rel}: a name that is not valid on Windows and macOS")
+        if rel.lower() in lowered:
+            errors.append(
+                f"{rel}: differs from {lowered[rel.lower()]!r} only by letter case"
+            )
+        lowered[rel.lower()] = rel
+    for path in files:
+        rel = path.relative_to(out).as_posix()
+        size = path.stat().st_size
+        if size > MAX_ANY_BYTES:
+            errors.append(f"{rel}: {size} bytes; every file stays under 5 MiB")
+        elif size > MAX_TEXT_BYTES and path.suffix.lower() not in IMAGE_SUFFIXES:
+            errors.append(
+                f"{rel}: {size} bytes; a file that is not an image stays under 256 KiB"
+            )
+    errors.extend(
+        f"{name}: claude.ai refuses a top-level bin/, and the portal a .gitattributes"
+        for name in ("bin", ".gitattributes")
+        if (out / name).exists()
+    )
+    return errors
+
+
+def _check_manifest(out: Path) -> list[str]:
+    """Return the problems of ``plugin.json``, its icon and the README."""
+    manifest_path = out / ".claude-plugin/plugin.json"
+    if not manifest_path.is_file():
+        return [".claude-plugin/plugin.json: missing"]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    errors = [
+        f".claude-plugin/plugin.json: {key!r} is not set"
+        for key in ("name", "description", "author", "version", "license", "icon")
+        if not manifest.get(key)
+    ]
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(manifest.get("name", ""))):
+        errors.append(".claude-plugin/plugin.json: 'name' is not lowercase kebab-case")
+    try:
+        check_version(manifest.get("version"))
+    except ValueError as exc:
+        errors.append(f".claude-plugin/plugin.json: {exc}")
+    icon_path = str(manifest.get("icon", ""))
+    icon = out / (icon_path[2:] if icon_path.startswith("./") else icon_path)
+    if not icon.is_file() or icon.read_bytes()[:8] != PNG_MAGIC:
+        errors.append(
+            f".claude-plugin/plugin.json: icon {manifest.get('icon')!r} is not a PNG in the plugin"
+        )
+    readme = out / "README.md"
+    if (
+        not readme.is_file()
+        or _words(readme.read_text(encoding="utf-8")) < README_MIN_WORDS
+    ):
+        errors.append(
+            f"README.md: missing or under {README_MIN_WORDS} words outside code blocks"
+        )
+    return errors
+
+
+def _check_components(out: Path) -> list[str]:
+    """Return the problems of the skills' frontmatter and the agents' names."""
+    records = _records()
+    errors: list[str] = []
+    skills = sorted(p.parent.name for p in (out / "skills").glob("*/SKILL.md"))
+    if not skills:
+        errors.append("skills/: no skill")
+    for folder in skills:
+        rel = f"skills/{folder}/SKILL.md"
+        front, problems = records.parse_skill_frontmatter(
+            (out / rel).read_text(encoding="utf-8")
+        )
+        errors.extend(f"{rel}: {p}" for p in problems)
+        if front.get("name") != folder:
+            errors.append(
+                f"{rel}: 'name' {front.get('name')!r} is not its folder {folder!r}"
+            )
+        if not isinstance(front.get("description"), str) or not front["description"]:
+            errors.append(f"{rel}: 'description' is not a single text value")
+    errors.extend(
+        f"agents/{agent.name}: no skill of this name"
+        for agent in sorted((out / "agents").glob("*.md"))
+        if agent.stem not in skills
+    )
+    return errors
+
+
+def validate(out: Path) -> list[str]:
+    """
+    Check *out* against the directory checks a static tree can answer.
+
+    Parameters
+    ----------
+    out : Path
+        Root of the released plugin (the ``scikit-plots/skills`` checkout).
+
+    Returns
+    -------
+    list of str
+        Empty when no check fails. Each entry names the path and the rule of
+        https://claude.com/docs/plugins/pre-submission-checklist it breaks.
+
+    See Also
+    --------
+    render : What a build writes; a fresh build passes every check.
+    """
+    return _check_files(out) + _check_manifest(out) + _check_components(out)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run ``build`` or ``check``; return the process exit code."""
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser.add_argument("command", choices=("build", "check"))
+    parser.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="root of the scikit-plots/skills checkout",
+    )
+    parser.add_argument("--version", required=True, help="the release, e.g. 0.5.0")
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=REPO,
+        help="scikit-plots checkout (default: this one)",
+    )
+    args = parser.parse_args(argv)
+    try:
+        files = render(args.source.resolve(), args.version)
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    out = args.out.resolve()
+    if args.command == "build":
+        out.mkdir(parents=True, exist_ok=True)
+        changes = apply(out, files)
+    else:
+        changes = (
+            diff(out, files) if out.is_dir() else [f"+ {rel}" for rel in sorted(files)]
+        )
+    for line in changes:
+        print(line)
+    errors = validate(out) if out.is_dir() else []
+    for line in errors:
+        print(f"error: {line}", file=sys.stderr)
+    if errors or (args.command == "check" and changes):
+        return 1
+    print(
+        f"ok   {len(files)} files, version {args.version}"
+        + ("" if changes else ", unchanged")
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

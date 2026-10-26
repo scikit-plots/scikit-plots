@@ -584,6 +584,15 @@ env-xeus = [
   "traitlets>=5.16",                        # add-on configuration
 ]
 
+## scikitplot._ipymagic (`%load_ext scikitplot`): the engine is standard
+## library only; IPython is needed to load the magics, snakeviz only for
+## `%scikitplot_profile --snakeviz`. Floors are the versions tested: IPython
+## 8.18.1 (the last release for Python 3.9) and 9.17.1; snakeviz 2.2.2.
+ipymagic = [
+  "ipython>=8.18",                          # the magics
+  "snakeviz>=2.2",                          # interactive profile viewer
+]
+
 ## corpus submodule dep
 ## sudo apt-get install tesseract-ocr
 corpus = [
@@ -2009,6 +2018,10 @@ words = ["query"]
   [[tool.towncrier.section]]
     name = "scikitplot._factory_api"
     path = "scikitplot._factory_api"
+
+  [[tool.towncrier.section]]
+    name = "scikitplot._ipymagic"
+    path = "scikitplot._ipymagic"
 
   [[tool.towncrier.section]]
     name = "scikitplot._lib"

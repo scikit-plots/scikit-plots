@@ -698,3 +698,42 @@ def set_seed(seed: int = 42):
             tf.random.set_seed(seed)
 
     return np_random
+
+
+######################################################################
+## IPython extension: `%load_ext scikitplot`
+######################################################################
+
+
+def load_ipython_extension(ipython):
+    """
+    Register the scikitplot magics in IPython (``%load_ext scikitplot``).
+
+    Parameters
+    ----------
+    ipython : IPython.core.interactiveshell.InteractiveShell
+        The shell IPython passes.
+
+    Notes
+    -----
+    The magics (``%scikitplot``, ``%scikitplot_profile``,
+    ``%scikitplot_config``) live in :py:mod:`scikitplot._ipymagic`, imported
+    only here, so ``import scikitplot`` never imports IPython.
+    """
+    from ._ipymagic import load_ipython_extension as _load  # noqa: PLC0415
+
+    _load(ipython)
+
+
+def unload_ipython_extension(ipython):
+    """
+    Remove the scikitplot magics from IPython (``%unload_ext scikitplot``).
+
+    Parameters
+    ----------
+    ipython : IPython.core.interactiveshell.InteractiveShell
+        The shell IPython passes.
+    """
+    from ._ipymagic import unload_ipython_extension as _unload  # noqa: PLC0415
+
+    _unload(ipython)

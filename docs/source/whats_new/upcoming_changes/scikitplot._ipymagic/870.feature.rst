@@ -1,0 +1,24 @@
+- ``%load_ext scikitplot`` adds IPython magics that bring the ``scikitplot``
+  command line and a profiler into Jupyter, JupyterLab, VS Code, Colab and
+  terminal IPython. ``%scikitplot ARGS`` runs any command (``info``,
+  ``doctor``, ``env``, ``cleanprompt``, ``mcp`` ...) with the same options,
+  output and exit status as in a terminal, and returns a ``CommandResult``
+  (exit status, captured output and, for ``--format json``, the parsed data
+  in ``.data``); ``%%scikitplot ARGS`` gives the cell to the command on
+  standard input. Short native commands run in the kernel and leave its
+  logging configuration as it was; delegated ones run in a subprocess of the
+  kernel's Python, show their output as it comes, and are stopped together
+  with the processes they started by the interrupt button or the
+  ``timeout`` setting. A mistyped command is refused with the closest names
+  (``did you mean 'env'?``) instead of being guessed, ``<TAB>`` completes
+  commands and options from the CLI's own command model, and errors are
+  shown in two lines instead of a traceback. ``%scikitplot_profile`` /
+  ``%%scikitplot_profile`` profile a statement or cell and show the slowest
+  functions as a table (``-s``, ``-l``, ``-D FILE``), refuse to start while
+  another profiler records the kernel, and with ``--snakeviz`` open the
+  profile in snakeviz served on 127.0.0.1 only and stopped when the
+  extension is unloaded. ``%scikitplot_config`` sets ``raise_on_error`` (for
+  notebooks run in CI), ``timeout``, ``isolate`` and ``stream``. The engine is
+  also a plain function, ``scikitplot._ipymagic.run_command``, for scripts
+  and agents. ``pip install scikit-plots[ipymagic]`` installs IPython and
+  snakeviz.

@@ -29,6 +29,8 @@ tells two paths apart (`_externals` against `externals`).
 [`skills/INDEX.md`](../../skills/INDEX.md) is the generated table from package
 path to skills and agents of both sets.
 
+Step-by-step guides: [`plugins/README.md`](../../plugins/README.md) for users,
+[`plugins/maintenances/`](../../plugins/maintenances/README.md) for maintainers.
 Install in Claude Code (`/plugin marketplace add scikit-plots/scikit-plots`,
 then `/plugin install scikitplot@scikit-plots` or
 `scikitplot-dev@scikit-plots`), or copy a skill folder into any tool that reads

@@ -171,3 +171,4 @@ titles, then open the file that holds the rules you need.
 | 163 | Tests | a URL is asserted whole, or by its parsed host, never by a substring | [testing.md](rules/testing.md) |
 | 164 | Skills | a skill is `<skills dir>/<name>/SKILL.md`, its name its folder, prefixed `scikitplot`, derived from its package path | [delivery.md](rules/delivery.md) |
 | 165 | Skills | every skill with a path or module has an agent of its name, generated; usage skills are generated from the package | [delivery.md](rules/delivery.md) |
+| 166 | Skills | the directory lists the released plugin, built from a release tag into `scikit-plots/skills`; `main` is the development channel | [delivery.md](rules/delivery.md) |

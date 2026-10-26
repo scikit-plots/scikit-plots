@@ -1,0 +1,141 @@
+# The sync workflow of scikit-plots/skills, the repository of the released
+# `scikitplot` plugin (Rule 166). Its source of truth is this file in
+# scikit-plots/scikit-plots (plugins/maintenances/skills-repo/sync.yml); copy it
+# to scikit-plots/skills as .github/workflows/sync.yml by hand. The workflow
+# cannot update itself: GITHUB_TOKEN has no `workflows` permission.
+#
+# What it does: find the newest release tag of scikit-plots (vX.Y.Z or
+# vX.Y.Z.postN), check that the tag is on scikit-plots' default branch, build
+# the plugin from that tag with tools/maint_tools/build_skills_repo.py, and
+# commit the result to this repository's default branch. The Claude directory
+# then scans the new commit. A tag older than the published version, a tag that
+# predates the build script, and an unchanged tree are no-ops. No secret and no
+# cache are used: scikit-plots is public, and the push uses this repository's
+# own GITHUB_TOKEN, only in the step that pushes.
+name: Sync released plugin
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "scikit-plots revision to build from"
+        type: choice
+        options:
+          - latest-release
+          - main-dry-run
+        default: latest-release
+
+permissions: {}
+
+concurrency:
+  group: sync-released-plugin
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Build from the newest scikit-plots release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # push the built plugin to this repository's default branch
+    env:
+      UPSTREAM: https://github.com/scikit-plots/scikit-plots.git
+      SOURCE: ${{ inputs.source || 'latest-release' }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: skills
+          persist-credentials: false
+
+      - name: Pick the scikit-plots revision
+        id: pick
+        run: |
+          set -euo pipefail
+          git clone --quiet --filter=blob:none --no-checkout "$UPSTREAM" upstream
+          tip="$(git -C upstream rev-parse origin/HEAD)"
+          tag="$(git -C upstream tag --list 'v*' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+(\.post[0-9]+)?$' | sort -V | tail -n 1 || true)"
+          version="${tag#v}"
+          current=""
+          if [ -f skills/.claude-plugin/plugin.json ]; then
+            current="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("version", ""))' \
+              skills/.claude-plugin/plugin.json)"
+          fi
+          build=true
+          push=false
+          if [ "$SOURCE" = "main-dry-run" ]; then
+            sha="$tip"
+            version="${version:-0.0.0}"
+            echo "Dry run: building main ($sha) as version $version; nothing is pushed."
+          elif [ -z "$tag" ]; then
+            echo "::notice::scikit-plots has no release tag yet; nothing to publish."
+            build=false
+            sha=""
+          else
+            sha="$(git -C upstream rev-parse "$tag^{commit}")"
+            if ! git -C upstream merge-base --is-ancestor "$sha" "$tip"; then
+              echo "::error::$tag ($sha) is not on scikit-plots' default branch; refusing to build it."
+              exit 1
+            fi
+            if ! git -C upstream cat-file -e "$sha:tools/maint_tools/build_skills_repo.py" 2>/dev/null; then
+              echo "::notice::$tag predates the released plugin (no build_skills_repo.py); nothing to publish."
+              build=false
+            elif [ -n "$current" ] && [ "$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -n 1)" != "$version" ]; then
+              echo "::notice::published $current is newer than $tag; nothing to publish."
+              build=false
+            else
+              push=true
+            fi
+          fi
+          if [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            push=false
+          fi
+          {
+            echo "sha=$sha"
+            echo "version=$version"
+            echo "build=$build"
+            echo "push=$push"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build the plugin
+        if: steps.pick.outputs.build == 'true'
+        env:
+          SHA: ${{ steps.pick.outputs.sha }}
+          VERSION: ${{ steps.pick.outputs.version }}
+        run: |
+          set -euo pipefail
+          git -C upstream checkout --quiet --detach "$SHA"
+          python3 -I upstream/tools/maint_tools/build_skills_repo.py build \
+            --source upstream --out skills --version "$VERSION"
+          {
+            echo "### scikit-plots ${VERSION} (${SHA})"
+            echo '```'
+            git -C skills status --short
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push
+        if: steps.pick.outputs.push == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.pick.outputs.sha }}
+          VERSION: ${{ steps.pick.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd skills
+          git add -A -- .claude-plugin skills agents assets LICENSES README.md LICENSE
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "Release ${VERSION}: build from scikit-plots v${VERSION} (${SHA})"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            push --quiet origin "HEAD:refs/heads/$DEFAULT_BRANCH"
