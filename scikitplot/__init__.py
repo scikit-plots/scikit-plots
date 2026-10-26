@@ -635,14 +635,35 @@ def online_help(
 
 def set_seed(seed: int = 42):
     """
-    Seed Python, NumPy, PyTorch and TensorFlow.
+    Seed Python, NumPy, PyTorch and an already imported TensorFlow.
+
+    Parameters
+    ----------
+    seed : int, default=42
+        The seed given to every generator.
 
     Returns
     -------
-    np_random : np.random.Generator
-        A NumPy random Generator instance.
+    np_random : numpy.random.Generator or None
+        A NumPy random Generator seeded with ``seed``; ``None`` when NumPy
+        cannot be imported.
+
+    Notes
+    -----
+    **User notes.** TensorFlow is seeded only when it has been imported
+    before the call; import it first if its seed matters.
+
+    **Developer notes.** Importing TensorFlow here loaded its native
+    libraries into every caller's process. With TensorFlow loaded first, a
+    later import of triton (by ``torch._dynamo``, ``transformers`` or
+    ``sentence-transformers``) crashes the process with SIGSEGV and no Python
+    error (measured with tensorflow 2.21.0 and triton 3.8.0; the reverse
+    order works), so a call to ``set_seed`` could crash an unrelated library
+    later in the same program.
     """
+    import contextlib
     import random
+    import sys
 
     random.seed(seed)
 
@@ -670,12 +691,10 @@ def set_seed(seed: int = 42):
     except Exception:  # noqa: BLE001
         pass
 
-    # TensorFlow
-    try:
-        import tensorflow as tf
-
-        tf.random.set_seed(seed)
-    except Exception:  # noqa: BLE001
-        pass
+    # TensorFlow: only one the caller already imported (see Notes).
+    tf = sys.modules.get("tensorflow")
+    if tf is not None:
+        with contextlib.suppress(Exception):
+            tf.random.set_seed(seed)
 
     return np_random

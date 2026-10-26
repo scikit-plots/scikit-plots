@@ -88,6 +88,12 @@ def pytest_configure(config):
         from ._testing import _perf_telemetry
 
         _perf_telemetry.register(config)
+    # Name the ML stack and the model cache in the header, and the test that
+    # loads TensorFlow into a session where a later triton import crashes
+    # (scikitplot/_testing/_runtime_report.py).
+    from ._testing import _runtime_report
+
+    _runtime_report.register(config)
     try:
         import pytest_timeout  # noqa:F401
     except Exception:

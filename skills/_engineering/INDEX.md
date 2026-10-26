@@ -163,3 +163,7 @@ titles, then open the file that holds the rules you need.
 | 155 | CI | a workflow runs only code its default branch already holds, never a ref typed into an input | [delivery.md](rules/delivery.md) |
 | 156 | Timing | a test that expects a timeout blocks far longer than the limit, until the limit stops it | [testing.md](rules/testing.md) |
 | 157 | Tests | a subtest's parameters are plain data | [testing.md](rules/testing.md) |
+| 158 | Tests | TensorFlow never enters a test process that can load triton | [testing.md](rules/testing.md) |
+| 159 | Tests | a test never re-targets faulthandler | [testing.md](rules/testing.md) |
+| 160 | Tests | tests load models only from a cache filled before them, with the network off | [testing.md](rules/testing.md) |
+| 161 | Evidence | a test run's exit status is read from pytest, not from a wrapper that may keep it | [verification.md](rules/verification.md) |

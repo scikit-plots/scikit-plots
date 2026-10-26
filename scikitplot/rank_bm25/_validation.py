@@ -1,10 +1,3 @@
-# scikitplot/rank_bm25/_validation.py
-#
-# flake8: noqa: D213
-#
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 """
 Row-index and count contract shared by every public boundary.
 
@@ -44,10 +37,7 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = [
-    "require_count",
-    "require_index",
-]
+__all__ = ["require_count", "require_index"]
 
 
 def _as_integral(value: Any, name: str) -> int:

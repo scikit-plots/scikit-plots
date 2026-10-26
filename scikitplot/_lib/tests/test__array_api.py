@@ -229,23 +229,37 @@ class TestArrayAPI:
 
 
 def test_tensorflow():
-    try:
-        import tensorflow as tf
+    """TensorFlow multiplies two matrices, checked in a child interpreter.
 
-        gpus = tf.config.list_physical_devices("GPU")
-        # assert len(gpus) > 0, "No GPUs available for TensorFlow"
+    TensorFlow is never imported into the test process: loaded first, it
+    makes a later import of triton (torch._dynamo, transformers,
+    sentence-transformers) crash the whole session with SIGSEGV
+    (tensorflow 2.21.0 with triton 3.8.0; CI run 40244733381).
+    """
+    import importlib.util  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
 
-        a = tf.constant([[1.0, 2.0], [3.0, 4.0]])
-        b = tf.constant([[5.0, 6.0], [7.0, 8.0]])
-        c = tf.matmul(a, b)
-        assert c.numpy().tolist() == [
-            [19.0, 22.0],
-            [43.0, 50.0],
-        ], "Incorrect matrix multiplication result for TensorFlow"
-    except ImportError:
+    if importlib.util.find_spec("tensorflow") is None:
         pytest.skip("TensorFlow is not installed")
-    except Exception as e:
-        pytest.fail(f"TensorFlow test failed: {e}")
+    code = (
+        "import tensorflow as tf\n"
+        "tf.config.list_physical_devices('GPU')\n"
+        "a = tf.constant([[1.0, 2.0], [3.0, 4.0]])\n"
+        "b = tf.constant([[5.0, 6.0], [7.0, 8.0]])\n"
+        "print(tf.matmul(a, b).numpy().tolist())\n"
+    )
+    done = subprocess.run(  # noqa: S603 - our interpreter, our code
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=600,
+    )
+    assert done.returncode == 0, f"TensorFlow test failed:\n{done.stderr[-4000:]}"
+    assert (
+        done.stdout.strip().splitlines()[-1] == "[[19.0, 22.0], [43.0, 50.0]]"
+    ), "Incorrect matrix multiplication result for TensorFlow"
 
 
 def test_jax():

@@ -363,6 +363,39 @@ class TestSetSeed:
         result = sp.set_seed(0)
         assert result is not None
 
+    def test_tensorflow_is_not_imported(self):
+        """A fresh interpreter has no TensorFlow after ``set_seed``.
+
+        Loaded first, TensorFlow makes a later import of triton crash the
+        process (see ``set_seed``); a child interpreter is the only place
+        where "not imported" can be observed, whatever this session holds.
+        """
+        import subprocess  # noqa: PLC0415
+
+        code = (
+            "import sys\n"
+            f"import {sp.__name__} as package\n"
+            "package.set_seed(3)\n"
+            "print('tensorflow' in sys.modules)\n"
+        )
+        done = subprocess.run(  # noqa: S603 - our interpreter, our code
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,
+        )
+        assert done.returncode == 0, done.stderr
+        assert done.stdout.strip().splitlines()[-1] == "False"
+
+    def test_an_imported_tensorflow_is_seeded(self, monkeypatch):
+        seeds = []
+        fake = types.ModuleType("tensorflow")
+        fake.random = types.SimpleNamespace(set_seed=seeds.append)
+        monkeypatch.setitem(sys.modules, "tensorflow", fake)
+        sp.set_seed(11)
+        assert seeds == [11]
+
 
 # ===========================================================================
 # _BUILT_WITH_MESON

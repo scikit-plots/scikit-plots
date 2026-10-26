@@ -1468,10 +1468,13 @@ test-suite-evidence:
 	mkdir -p "$(EVIDENCE_DIR)"
 
 	# Preserve pytest's exit code without stopping evidence collection.
+	# Not "python -m cProfile -m pytest": cProfile catches pytest's
+	# SystemExit, so that command exits 0 whatever the tests did (Python
+	# 3.11), and pytest-exit-code.txt said 0 for a failing run. The profile
+	# wraps pytest.main and the process exits with its status.
 	set +e
-	python -m cProfile \
-		-o "$(PROFILE)" \
-		-m pytest \
+	python -c 'import cProfile, sys, pytest; profile = cProfile.Profile(); status = profile.runcall(pytest.main, sys.argv[2:]); profile.dump_stats(sys.argv[1]); sys.exit(int(status))' \
+		"$(PROFILE)" \
 		scikitplot \
 		-vv \
 		--tb=long \

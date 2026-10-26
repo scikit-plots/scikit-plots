@@ -311,6 +311,45 @@ Only the report job uses a secret: `CODECOV_TOKEN`, for the upload.
 | A test passes on the pull request and fails after the merge, on `main` | the two runs did not have the same environment | see section 9; compare the `env:` block at the top of the two *Run tests* steps |
 | The report job fails with *at least one test job did not succeed* | a test job failed or was cancelled | open that test job; its `coverage-<job>` artifact still has the JUnit report and the performance record |
 | A test job reached its time limit | the shard took longer than `shard_timeout_minutes` | the `test-perf` artifact lists every test that finished in that shard, and the last one; see section 12 |
+| `Segmentation fault (core dumped)`, exit status 139, and `::error::the test process ended by signal 11` | native code crashed the test process; it is not a test failure and not `--maxfail` | read the `Fatal Python error: Segmentation fault` stack printed just above it (pytest's faulthandler; `scikitplot/tests/test_session_diagnostics.py` keeps tests from silencing it). A `WARNING TensorFlow was loaded into this test process by <test>` line earlier names a cause seen before: see *TensorFlow and triton* below |
+| `MISSING: <model> does not load offline` in *Fetch the models the tests load* | the model is not in the cache and could not be fetched, or does not load | the library's own error follows the line; the header line `model cache:` of the test step lists what is cached |
+
+### TensorFlow and triton
+
+With TensorFlow loaded first, a later import of triton (by `torch._dynamo`,
+`transformers` or `sentence-transformers`) ends the process with SIGSEGV
+and no Python error (tensorflow 2.21.0 with triton 3.8.0; the reverse order
+works). Run 40244733381 lost every result after 62 percent this way: the
+`visualkeras` conftest imported TensorFlow during collection, and the
+semantic chunker's test imported sentence-transformers. So:
+
+- test trees that load TensorFlow run in a second session of the same job
+  (`TENSORFLOW_SUITES` in the test step, `SKPLT_TEST_TENSORFLOW=1`), and skip
+  themselves in the main session; locally:
+  `SKPLT_TEST_TENSORFLOW=1 python -m pytest scikitplot/visualkeras`;
+- elsewhere, a test that needs TensorFlow runs it in a child interpreter
+  (`_lib/tests/test__array_api.py::test_tensorflow`, `corpus` adapters), and
+  `scikitplot.set_seed` seeds TensorFlow only when the caller imported it;
+- the header line `ML runtime:` names the versions, and a test that loads
+  TensorFlow into the main session anyway is named by a warning (only when
+  triton is not loaded yet) and in the `native runtime` summary (always);
+- whether that crashes depends on test order, so
+  `test_session_diagnostics.py` scans the test sources: no
+  `import tensorflow` or `importorskip("tensorflow")` outside
+  `TENSORFLOW_SUITES`.
+
+### Models
+
+The tests run with `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`: the
+models they load are fetched before, by
+`docker/scripts/install_sentence_transformers.sh`, into `HF_HOME`, which an
+`actions/cache` entry keeps between runs. The list is what the tests ask
+for, found by running them offline with a recorder of refused fetches (one
+model today, `paraphrase-multilingual-mpnet-base-v2`). A test that needs
+another model fails to load it with the library's "not in the cache" error;
+add it to `SENTENCE_TRANSFORMERS_MODELS`, or call the matching script
+(`install_open_clip.sh`, `install_openai_whisper.sh`,
+`install_faster_whisper.sh`) in *Fetch the models the tests load*.
 
 ### Warnings from third-party packages
 
@@ -342,6 +381,8 @@ case it is:
 | `.github/scripts/tests/` | tests of these scripts; the plan job runs them first |
 | `scikitplot/_testing/_perf_telemetry.py` | the performance recorder, registered by `scikitplot/conftest.py` when `SKPLT_TEST_PERF_DIR` is set |
 | `docker/scripts/install_nltk.sh`, `install_spacy.sh` | install NLTK data and spaCy models; shared with Docker and the documentation build |
+| `docker/scripts/install_models.py` and `install_sentence_transformers.sh`, `install_open_clip.sh`, `install_openai_whisper.sh`, `install_faster_whisper.sh` | fetch models into their library's cache and prove they load offline (tests: `docker/scripts/tests/test_install_model_scripts.sh`) |
+| `scikitplot/_testing/_runtime_report.py` | the `ML runtime:` and `model cache:` header lines, and the warning naming a test that loads TensorFlow |
 | `pytest.ini` | pytest options, `norecursedirs`, `filterwarnings` |
 | `scikitplot/conftest.py` | the garbage-collection policy and the cost-per-test check |
 | `scikitplot/tests/test_conftest_gc_policy.py` | tests of both |

@@ -286,33 +286,12 @@ the record planes themselves. Completed tasks are archived verbatim under
   records check `ok rules` (router and archives failures pre-existing).
 
 ### Known failures and their causes
-- Fixed (steps 1, 1b): log capture that depended on the pytest release
-  because `"scikitplot"` has `propagate = False` (Rule 139):
-  `annoy/tests/test_bundle_directory.py:413,469`, `test__threads.py:147`
-  (fail 9.0.3, pass 9.1.1); `corpus/_embeddings/tests/test__cache_policy.py:111`,
-  `corpus/_chunkers/tests/test__semantic.py:141`,
-  `corpus/_embeddings/tests/test__embedding.py:1074` (hand-attached
-  handler plus `caplog.at_level`: counted twice, fail 9.1.1). Also the blind
-  negative test `test__threads.py:157` (Rule 153), absolute imports (142),
-  string logger names (140), one string patch target (144).
-- Fixed (step 1): annoy benchmarks. `bench_annoy.py` runs clean; `make
-  bench-pair` ran the GC comparison (name defined three times) and `make
-  bench-quick` does not exist (Rule 154). The user's output of 2026-10-23
-  was not attached: the reproducible cause, not a confirmed match.
-- Fixed: CodeQL alerts 231, 232 (`actions/cache-poisoning/poisonable-step`,
-  PR 867): `ci_performance.yml` built `inputs.base_ref`, any ref, with a pip
-  cache; the base is now a commit of the default branch (Rule 155).
-- Fixed (steps 2, 3; verify run 40090107726): timeout tests whose blocked side
-  slept 0.01 s against a 0.1-1 s limit (Rule 156): `_utils/tests/test_timeout.py`
-  (3; `run_with_timeout` also took whole seconds only, now `setitimer`),
-  `cleanprompt/tests/test__bridge.py` (2), `test__patterns.py` (1),
-  `cython/tests/test__budget.py` (1). `logging/_logging.py:_is_jupyter_notebook`
-  read `get_ipython.config` instead of calling it (`test__logging.py:250`).
-  `_sphinx_feedback/tests/test_service_logging.py`: the depth-derived logger
-  name was not the service's (`"sphinx_feedback.service"`), so its INFO
-  records were kept only under a pytest.ini (Rule 140).
-  `_utils/tests/test__export.py:92`: a function as a subtest parameter
-  failed pytest 9.0 with xdist (Rule 157).
+- Fixed, with the rule each one added or applied: annoy and corpus log
+  capture (139, 140, 142, 144, 153); annoy benchmarks via the Makefile (154);
+  CodeQL 231/232 (155); timeout tests in `_utils`, `cleanprompt`, `cython`
+  (156); the notebook check (`_logging._is_jupyter_notebook`); the feedback
+  log test (140); a function as a subtest parameter (157). Details: the
+  rules' "Added" lines.
 - Hand-attached captures still passing: `corpus/tests/test__atomic_durability.py`,
   `test__backends_discarded_options.py`, `_chunkers/tests/test__notices_and_scripts.py`,
   and 8 files outside corpus (step 5).
@@ -368,32 +347,54 @@ the record planes themselves. Completed tasks are archived verbatim under
   and uses it from the root: a venv outside the tree fails to configure
   unless `numpy-include-dir` is given.
 
-### Results Review - TF-1 steps 0, 1, 1b and CodeQL 231/232 - 2026-10-24
-- Environment: Python 3.11.17, editable meson build, pytest 9.0.3 and 9.1.1,
-  pytest-xdist 3.8.0; `_capture.py` and its tests also on Python 3.8.20
-  with pytest 8.3.5. Evidence files: the delivery's `tf1-evidence.zip`.
-- annoy (both versions): one file 37 and 78 passed; directory and `-n auto`
-  803 passed, 2 skipped, 1 xfailed (uploaded tree: 3 failed under 9.0.3).
-  Rule 153 probe: the new negative test fails when the code logs, the
-  replaced one passed under 9.0.3. Benchmarks: quick 0 errors; `make
-  bench-pair` A/A `0 slower, 0 faster`.
-- Step 0: 29 capture tests; with `--confcutdir` on annoy, corpus and
-  `_sphinx_ext` the fixture is still provided (uploaded `_sphinx_ext`: not).
-- Corpus `-n auto`, every failure (both versions): 14, all DNS-only; the
-  three changed files 83 and 144 passed.
-- Workflow: CodeQL 2.27.3 (`codeql/actions-queries` 0.6.38,
-  `actions-security-extended`, all 38 workflows): uploaded tree gives
-  alerts 231, 232 and an untrusted checkout, changed tree none; actionlint
-  clean; zizmor 1.31.1 clean on both trees (it does not see this); the base
-  step run on a fixed repository gives the expected commit or `exit 2`.
-- Checks: rule greps, ruff 0.16.9 (no new finding), black 26.5.1 on written
-  lines, codespell, numpydoc, ASCII: clean.
-- Deviation: one `git stash` during the first bench-pair run (Rule 22); the
-  pair was re-run after the last edit.
-- Steps 2-3 (both pytest versions, repository and verify-harness mode,
-  `--pyargs` from an empty directory without pytest.ini): `test_timeout.py` 26,
-  `test__budget.py` 10, `test__bridge.py` 36, `test__patterns.py` 241,
-  `scikitplot/logging` 202 (also Python 3.8), `test_service_logging.py` 2
-  passed; the feedback failure reproduced in harness mode before the fix.
-- Not verified: a dispatch of the changed workflow on GitHub; the verify
-  harness itself (wheels) was not run here.
+### Results Review - TF-1 steps 0-3 and CodeQL 231/232 - 2026-10-24
+- Python 3.11.17, pytest 9.0.3 and 9.1.1, with and without `-n auto`, also in
+  verify-harness mode (`--pyargs`, no pytest.ini); `_capture.py` also on 3.8.
+  annoy 803 passed (uploaded tree: 3 failed under 9.0.3); corpus: only the
+  DNS tests fail; `_utils`, `logging`, `cleanprompt`, `cython`,
+  `_sphinx_feedback` pass. CodeQL 2.27.3 over all workflows: alerts 231 and
+  232 before, none after. Evidence: the deliveries' `tf1-evidence.zip`.
+- Deviation: one `git stash` during a bench-pair run (Rule 22); re-run after.
+- Not verified: a dispatch of the changed workflow; the wheel-based harness.
+
+## Task: CI-1 - the segfault of CI run 40244733381, offline models (2026-10-26)
+
+- Context: run 40244733381 (PR 869) stopped at 62 percent, exit 139, no
+  Python frame, semantic registry test; passed locally.
+
+### Root causes (each reproduced here, offline, CI's versions)
+- `import tensorflow; import triton._C.libtriton` segfaults (tensorflow
+  2.21.0, triton 3.8.0; 4 of 4), the reverse order does not. The
+  `visualkeras` conftest imported TensorFlow at collection; the semantic
+  test's `import sentence_transformers` reached triton. Locally TensorFlow
+  is not installed. The model download is not involved (Rule 158).
+- No traceback: `annoy/tests/angular_index_test.py:282` called
+  `faulthandler.enable()` inside a test (Rule 159).
+- `pytest-exit-code.txt` = 0 for a failing local run: `python -m cProfile`
+  exits 0 whatever pytest returns (Rule 161).
+- Same crash, order-dependent: two `TestTorchAdapter` tests called an unused
+  `importorskip("tensorflow")`; torch tests then semantic test exit 139.
+- Hidden next: `rank_bm25/_validation.py` drifted from corpus/mcp copies.
+
+### Changes
+- [x] `visualkeras` tests skip one by one unless `SKPLT_TEST_TENSORFLOW=1`
+  where triton is installed; both workflows run `TENSORFLOW_SUITES` in a
+  second session. `test_tensorflow` and the corpus TensorFlow adapter tests
+  run in a child; `set_seed` no longer imports TensorFlow.
+- [x] `scikitplot/_testing/_runtime_report.py`: `ML runtime:` and `model
+  cache:` header lines; a warning names a test that loads TensorFlow into
+  the main session. `test_session_diagnostics.py`: faulthandler untouched;
+  no in-process TensorFlow outside `TENSORFLOW_SUITES` (AST scan).
+- [x] `docker/scripts/install_models.py`, four wrappers; workflows cache the
+  models, test with `HF_HUB_OFFLINE=1`. Makefile keeps pytest's status.
+
+### Results Review - CI-1 - 2026-10-26
+- Before: `pytest scikitplot/visualkeras <semantic test>` exits 139 (no
+  traceback with the annoy test in the run, as in CI). After: passes; a
+  stray TensorFlow test is named by the warning, the crash keeps its stack.
+- CI step, full shard, CI versions, offline: no 139; 25106 passed, 20 failed
+  (16 network/NLTK; colortable logger, public_api, TestLogReport: untouched
+  files); main session loads no TensorFlow; TF session 47 passed.
+  Changed tests 608 passed on pytest 9.0.3 and 9.1.1, serial and `-n auto`.
+- Offline recorder: one model (`paraphrase-multilingual-mpnet-base-v2`).
+- Not verified: a GitHub run; real downloads (no Hugging Face here).
