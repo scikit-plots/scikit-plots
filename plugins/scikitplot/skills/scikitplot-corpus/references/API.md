@@ -243,7 +243,7 @@
 | `ASRBackend(name: 'str', transcribe: 'Callable[[ASRRequest], Iterable[Mapping[str, Any]]]', capability: 'str \| None'  ...)` | class | User-defined ASR backend adapter. |
 | `ASRRequest(media_path: 'Path', model_size: 'str', language: 'str \| None', component: 'str', include_confidence: 'boo ...)` | class | Stable immutable request passed to user-provided ASR backends. |
 | `asr_segment_metadata(segment: 'Mapping[str, Any]') -> 'dict[str, Any]'` | function | Return user/backend metadata without allowing core-field shadowing. |
-| `plan_whisper_backends(media_path: 'Path', model_size: 'str', language: 'str \| None', *, component: 'str', strict: 'bool' = False ...)` | function | Plan the exact ASR chain without importing/loading/running a model. |
+| `plan_whisper_backends(media_path: 'Path', model_size: 'str', language: 'str \| None', *, component: 'str', strict: 'bool' = Fals ...)` | function | Plan the exact ASR chain without importing/loading/running a model. |
 | `transcribe_whisper(media_path: 'Path', model_size: 'str', language: 'str \| None', *, component: 'str', logger: 'Any', strict ...)` | function | Transcribe media with a shared, policy-driven ASR backend chain. |
 | `TEIReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | TEI/XML document reader with dramatic structure extraction. |
 | `XMLReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Generic XML document reader with configurable XPath. |
