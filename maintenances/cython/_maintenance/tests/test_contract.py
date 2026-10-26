@@ -26,7 +26,7 @@ def make_repo(tmp_path: Path, *, clean_runtime: bool = True) -> Path:
     (root / "skills").mkdir()
     shutil.copytree(REPO / "scikitplot/cython", root / "scikitplot/cython")
     shutil.copytree(REPO / "maintenances/cython", root / "maintenances/cython")
-    shutil.copytree(REPO / "skills/cython", root / "skills/cython")
+    shutil.copytree(REPO / "skills/scikitplot-cython-dev", root / "skills/scikitplot-cython-dev")
     if clean_runtime:
         for p in list((root / "scikitplot/cython").rglob("__pycache__")):
             shutil.rmtree(p)
@@ -142,7 +142,7 @@ def test_probe_catalog_is_contractual(tmp_path: Path):
 
 def test_skill_must_be_substantive(tmp_path: Path):
     root = make_repo(tmp_path)
-    (root / "skills/cython/SKILL.md").write_text("---\nname: x\n---\n")
+    (root / "skills/scikitplot-cython-dev/SKILL.md").write_text("---\nname: x\n---\n")
     maintenance, _ = errors(root)
     assert any("substantive SKILL.md" in e for e in maintenance)
 

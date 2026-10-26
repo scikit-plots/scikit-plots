@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.datasets",
   "runtime_root": "scikitplot/datasets",
   "maintenance_root": "maintenances/datasets",
-  "skill": "skills/datasets/SKILL.md",
+  "skill": "skills/scikitplot-datasets-dev/SKILL.md",
   "ownership": {
     "owns": "Curated example dataset discovery/cache/post-processing, reproducible subset export/provenance tooling, and the datasets general-purpose file/URL/database/upload loading helpers shipped under scikitplot.datasets.",
     "does_not_own": "pandas/NumPy parser semantics, database engines/drivers, pyarrow/fastparquet, root logging/optional-dependency infrastructure, remote scikit-plots-data availability, or trustworthiness of caller-supplied pickle/SQL/network content."

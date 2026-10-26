@@ -117,6 +117,13 @@ def is_unexpected(name):
     if "._" in name or ".tests" in name or ".setup" in name:
         return False
 
+    # A ``conftest`` module is pytest's per-directory plugin file, never API:
+    # the per-package ones (``annoy``, ``corpus``) exist so a partial
+    # distribution that ships the tree without ``scikitplot/conftest.py``
+    # still has its fixtures.
+    if name.rsplit(".", 1)[-1] == "conftest":
+        return False
+
     if name in PUBLIC_MODULES:
         return False
 

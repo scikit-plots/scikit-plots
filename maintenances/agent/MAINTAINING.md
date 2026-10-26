@@ -10,7 +10,7 @@ package imports none of them (invariant I9).
 
 1. [`todo/todo.md`](todo/todo.md): the active increment, and the invariants
    I1 to I9 every change keeps.
-2. [`skills/_engineering/`](../../skills/_engineering/SKILL.md): the rules
+2. [`skills/scikitplot-engineering-rules/`](../../skills/scikitplot-engineering-rules/SKILL.md): the rules
    for every increment.
 3. The user guide, `docs/source/user_guide/agent/index.rst`, which runs as a
    test (`test_agent_user_guide.py`).

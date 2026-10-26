@@ -1,7 +1,7 @@
 # Fresh-chat handoff
 
 This subsystem owns `scikitplot/cexternals/_annoy`; maintenance lives under
-`maintenances/cexternals/_annoy`; its skill lives under `skills/cexternals/_annoy`.
+`maintenances/cexternals/_annoy`; its skill lives under `skills/scikitplot-cexternals-annoy-dev`.
 The authoritative input archive identity is in [STATE.json](STATE.json).
 Do not infer current truth from an older chat or from `history/` and `_backup/`.
 

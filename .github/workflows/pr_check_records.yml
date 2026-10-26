@@ -2,10 +2,11 @@
 #
 # tasks/ holds only a router; plans, results and history live with the plane
 # that owns them (maintenances/<sub>/, docs/tasks/), and the numbered rules in
-# skills/_engineering/. A drop-in archive cannot delete files, so a stale
+# skills/scikitplot-engineering-rules/. A drop-in archive cannot delete files, so a stale
 # tasks/todo.md or tasks/lessons.md would survive an update (Rule 67); this
 # check fails while one is present, and also checks rule numbering, the rule
-# index, the archived history and the links between the records.
+# index, the archived history, the links between the records, and the skills
+# (Agent Skills names, one folder each, package mirror; Rule 164).
 ---
 name: "PRs 🗂️ Work Records"
 on:

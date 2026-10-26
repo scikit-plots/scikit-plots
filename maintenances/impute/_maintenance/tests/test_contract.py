@@ -10,7 +10,7 @@ def make_repo(tmp_path:Path, clean_findings=False):
     root=tmp_path/'repo'; (root/'scikitplot').mkdir(parents=True); (root/'maintenances').mkdir(); (root/'skills').mkdir()
     shutil.copytree(REPO/'scikitplot/impute',root/'scikitplot/impute')
     shutil.copytree(REPO/'maintenances/impute',root/'maintenances/impute')
-    shutil.copytree(REPO/'skills/impute',root/'skills/impute')
+    shutil.copytree(REPO/'skills/scikitplot-impute-dev',root/'skills/scikitplot-impute-dev')
     ev=root/'maintenances/impute/_maintenance/EVIDENCE.json'; ev.write_text(json.dumps({'schema_version':2,'subsystem':'scikitplot.impute','runtime_fingerprint':'PENDING','gates':{}},indent=2)+'\n')
     if clean_findings:
         p=root/'scikitplot/impute/_ann.py'; s=p.read_text(); s=s.replace('import pandas as pd\n',''); s=s.replace('except Exception:  # pragma: no cover - fallback to external annoy  # noqa: BLE001','except ImportError:  # pragma: no cover - fallback only when in-tree backend is unavailable')
@@ -53,7 +53,7 @@ def test_maintenance_to_runtime_plane_rejected(tmp_path):
     root=make_repo(tmp_path,True); p=root/'maintenances/impute/_maintenance/review_subsystem.py'; p.write_text('import scikitplot.impute\n'+p.read_text()); m,_=errs(root); assert any('maintenance plane imports runtime' in x for x in m)
 
 def test_skill_must_be_substantive(tmp_path):
-    root=make_repo(tmp_path,True); (root/'skills/impute/SKILL.md').write_text('---\nname: x\n---\n'); m,_=errs(root); assert any('substantive SKILL.md' in x for x in m)
+    root=make_repo(tmp_path,True); (root/'skills/scikitplot-impute-dev/SKILL.md').write_text('---\nname: x\n---\n'); m,_=errs(root); assert any('substantive SKILL.md' in x for x in m)
 
 def test_executable_metadata_rejected(tmp_path):
     root=make_repo(tmp_path,True); p=root/'maintenances/impute/MAINTENANCE.json'; d=json.loads(p.read_text()); d['shell']='rm -rf /'; p.write_text(json.dumps(d)); m,_=errs(root); assert any('unsupported executable field' in x for x in m)

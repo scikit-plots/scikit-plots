@@ -56,7 +56,7 @@ cannot hide the ASCII part of it.
 ## Affected paths and ownership
 
 `scikitplot/cleanprompt/_patterns.py` (`EMAIL`), its examples, and
-`tests/test__patterns.py`; owner `skills/cleanprompt/SKILL.md` ("Adding a
+`tests/test__patterns.py`; owner `skills/scikitplot-cleanprompt-dev/SKILL.md` ("Adding a
 pattern").
 
 ## Constraints and non-goals

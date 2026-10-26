@@ -155,8 +155,8 @@ def maintenance_errors(root: Path):
          "_maintenance/FRESH_CHAT_HANDOFF.md","_maintenance/VERIFICATION.md","_maintenance/tests/test_contract.py"]
     for rel in req:
         if not (base/rel).is_file(): errors.append("missing maintenance file: "+rel)
-    skill=root/"skills"/"logging"/"SKILL.md"
-    if not skill.is_file(): errors.append("missing skills/logging/SKILL.md")
+    skill=root/"skills"/"scikitplot-logging-dev"/"SKILL.md"
+    if not skill.is_file(): errors.append("missing skills/scikitplot-logging-dev/SKILL.md")
     else:
         s=skill.read_text(encoding="utf-8")
         if len(s.splitlines())<80: errors.append("logging skill is too shallow")

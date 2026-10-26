@@ -232,9 +232,17 @@ class TestSelectBackend:
         # No native ANN libs in the test env -> auto floor is bruteforce.
         assert B.select_backend("auto").name in ["annoy", "bruteforce"]
 
-    def test_explicit_unavailable_raises(self):
-        with pytest.raises(RuntimeError):
+    def test_explicit_unavailable_raises(self, monkeypatch):
+        # Absent by construction (Rule 146), not by the environment: CI
+        # installs faiss-cpu (requirements/cpu.txt), where "faiss" is available.
+        monkeypatch.setitem(sys.modules, "faiss", None)
+        with pytest.raises(RuntimeError, match="'faiss' is not available"):
             B.select_backend("faiss")
+
+    def test_explicit_available_is_honoured(self):
+        pytest.importorskip("faiss")
+        backend = B.select_backend("faiss")
+        assert isinstance(backend, B.FaissBackend)
 
     def test_unknown_name_raises(self):
         with pytest.raises(ValueError):

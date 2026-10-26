@@ -6,7 +6,7 @@
   "facade_path": "scikitplot/logging/__init__.py",
   "tests_path": "scikitplot/logging/tests",
   "maintenance_path": "maintenances/logging",
-  "skill_path": "skills/logging/SKILL.md",
+  "skill_path": "skills/scikitplot-logging-dev/SKILL.md",
   "updated_at": "2026-09-13",
   "ownership": {
     "owns": [

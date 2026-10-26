@@ -19,8 +19,8 @@ A task that changes both gets a one-line pointer in the other.
 - Completed tasks: archived verbatim under `history/` (created with the first
   completed docs-plane task).
 - Rules for documentation work:
-  [`documentation.md`](../../skills/_engineering/rules/documentation.md), plus
-  the rules every increment loads ([`SKILL.md`](../../skills/_engineering/SKILL.md)).
+  [`documentation.md`](../../skills/scikitplot-engineering-rules/rules/documentation.md), plus
+  the rules every increment loads ([`SKILL.md`](../../skills/scikitplot-engineering-rules/SKILL.md)).
 - The repository-wide procedure: [`docs/maintenances/MAINTAINING.md`](../maintenances/MAINTAINING.md);
   where other records live: [`tasks/README.md`](../../tasks/README.md).
 

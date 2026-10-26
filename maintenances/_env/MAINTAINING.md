@@ -6,7 +6,7 @@ another Conda platform or the browser. Runtime: `scikitplot/_env/` (standard
 library only; PyYAML for YAML configs and `environment.yml`; jupyterlite-core
 and empack for the Xeus add-on). Command line: `scikitplot env` (delegated in
 `scikitplot/_cli/registry.py`) and `python -m scikitplot._env`. User guide:
-`docs/source/user_guide/_env/`. Skill: [`skills/_env/SKILL.md`](../../skills/_env/SKILL.md).
+`docs/source/user_guide/_env/`. Skill: [`skills/scikitplot-env-dev/SKILL.md`](../../skills/scikitplot-env-dev/SKILL.md).
 
 Start a session with [`tasks/README.md`](../../tasks/README.md), then the active
 [`todo/todo.md`](todo/todo.md) and this area's [`todo/lessons.md`](todo/lessons.md).

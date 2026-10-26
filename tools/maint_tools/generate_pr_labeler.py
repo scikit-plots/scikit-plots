@@ -78,6 +78,9 @@ except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.8-3.10
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 POLICY_TABLE = ("tool", "scikitplot", "maintenance", "labeler")
 TOWNCRIER_SCRIPT = Path(__file__).resolve().parent / "generate_towncrier_sections.py"
+#: Reads each skill's ``metadata.scikitplot-mirror``: ``skills/`` is flat, so a
+#: package's skill folder is looked up, not spelled from its path (Rule 164).
+RECORDS_SCRIPT = DEFAULT_REPO_ROOT / "maintenances/_repo/_maintenance/tools/check_records.py"
 DISTRIBUTIONS_FILE = "scikitplot/_distributions.py"
 PLACEHOLDER = "@GENERATED_RULES@"
 SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__", "build", ".tox", ".nox"})
@@ -286,7 +289,7 @@ def load_policy(data: Mapping[str, object]) -> Policy:
         if not isinstance(templates, list) or not all(isinstance(t, str) for t in templates):
             raise LabelerError(f"labeler.satellites.{root} must be an array of strings")
         for template in templates:
-            unknown = set(re.findall(r"\{(\w+)\}", template)) - {"rel", "section"}
+            unknown = set(re.findall(r"\{(\w+)\}", template)) - {"rel", "section", "skill", "usage"}
             if unknown:
                 raise LabelerError(
                     f"satellite {template!r} uses unknown placeholder(s) {sorted(unknown)}"
@@ -380,6 +383,60 @@ def _label_for(owner: str, policy: Policy) -> str:
     return root + "/" + rest.replace(".", "/")
 
 
+def _skill_mirrors(repo_root: Path) -> Dict[str, Dict[str, str]]:
+    """
+    Return ``{"skill": {path: folder}, "usage": {path: folder}}`` from frontmatter.
+
+    ``skill`` maps a package path to its development skill (``skills/``),
+    ``usage`` to its usage skill (``plugins/scikitplot/skills/``); both are
+    read by ``check_records.py`` (Rules 164 and 165).
+    """
+    if not (repo_root / "skills").is_dir():
+        return {"skill": {}, "usage": {}}
+    records = _load_module("_records_for_labeler", RECORDS_SCRIPT)
+    return {
+        "skill": dict(records.skill_mirrors(repo_root)),
+        "usage": dict(records.usage_mirrors(repo_root)),
+    }
+
+
+def _expand_satellite(
+    template: str, rel: str, owner: str, mirrors: Mapping[str, Mapping[str, str]]
+) -> List[str]:
+    """
+    Return the globs one satellite template gives for one owner.
+
+    Parameters
+    ----------
+    template : str
+        A satellite with ``{rel}``, ``{section}`` and at most one of
+        ``{skill}`` and ``{usage}``.
+    rel, owner : str
+        The owner's path below its root, and its Towncrier section.
+    mirrors : Mapping
+        :func:`_skill_mirrors`.
+
+    Returns
+    -------
+    list of str
+        One glob; or, for ``{skill}`` (development skill) and ``{usage}``
+        (usage skill), one per skill whose package path is ``rel`` or below
+        it (a parent owner also covers its children's skills), sorted.
+    """
+    kinds = [kind for kind in ("skill", "usage") if "{" + kind + "}" in template]
+    if not kinds:
+        return [template.format(rel=rel, section=owner)]
+    if len(kinds) > 1:
+        raise LabelerError(f"satellite {template!r} uses both {{skill}} and {{usage}}")
+    kind = kinds[0]
+    folders = sorted(
+        folder
+        for path, folder in mirrors[kind].items()
+        if path and (path == rel or path.startswith(rel + "/"))
+    )
+    return [template.format(rel=rel, section=owner, **{kind: folder}) for folder in folders]
+
+
 def _owner_rel(owner: str) -> str:
     return owner.partition(".")[2].replace(".", "/")
 
@@ -434,6 +491,7 @@ def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, fi
         raise LabelerError(f"towncrier owner policy: {exc}") from exc
     known_roots = set(policy.granular_owner_roots) | set(policy.rollup_owner_roots)
     distributions = _distribution_paths(repo_root)
+    mirrors = _skill_mirrors(repo_root)
     rules: List[ModuleRule] = []
     owner_paths = {section.path for section in owners}
     stale_aliases = sorted(set(policy.label_aliases) - owner_paths)
@@ -454,10 +512,10 @@ def module_rules(repo_root: Path, data: Mapping[str, object], policy: Policy, fi
         else:
             globs = [(f"{root}/{rel}/**/*", "tree")]
             for template in policy.satellites.get(root, ()):
-                glob = template.format(rel=rel, section=owner)
-                matcher = compile_glob(glob)
-                if any(matcher(path) for path in files):
-                    globs.append((glob, "satellite"))
+                for glob in _expand_satellite(template, rel, owner, mirrors):
+                    matcher = compile_glob(glob)
+                    if any(matcher(path) for path in files):
+                        globs.append((glob, "satellite"))
             if root == "libs" and rel != "_tools":
                 if rel not in distributions:
                     raise LabelerError(f"libs/{rel} has no entry in {DISTRIBUTIONS_FILE}")

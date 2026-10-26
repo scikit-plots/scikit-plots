@@ -34,6 +34,9 @@ Release History
 
 Changelogs and release notes for all scikit-plots releases are linked in this page.
 
+..
+  # https://towncrier.readthedocs.io/en/latest/
+
 .. toctree::
    :maxdepth: 2
    :glob:

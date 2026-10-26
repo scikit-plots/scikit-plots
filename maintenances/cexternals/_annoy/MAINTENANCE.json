@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.cexternals._annoy",
   "runtime_root": "scikitplot/cexternals/_annoy",
   "maintenance_root": "maintenances/cexternals/_annoy",
-  "skill": "skills/cexternals/_annoy/SKILL.md",
+  "skill": "skills/scikitplot-cexternals-annoy-dev/SKILL.md",
   "consumers": [
     {
       "name": "annoy",

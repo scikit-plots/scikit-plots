@@ -12,6 +12,7 @@ import io
 import os
 import tarfile
 from unittest import mock
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -72,7 +73,11 @@ class TestMicromamba:
                                           opener=opener)
         assert opener.call_count == 1
         url, = opener.call_args.args
-        assert url.startswith("https://conda.anaconda.org/")
+        # The exact pinned URL, its host read by a URL parser (CodeQL
+        # py/incomplete-url-substring-sanitization: no substring test).
+        assert url == _bootstrap.micromamba_archive("linux-64")["url"]
+        parsed = urlsplit(url)
+        assert (parsed.scheme, parsed.hostname) == ("https", "conda.anaconda.org")
         assert opener.call_args.kwargs["timeout"] == 60.0
 
     def test_hash_mismatch_installs_nothing(self, tmp_path):
@@ -96,7 +101,9 @@ class TestMicromamba:
     def test_offline_without_cache(self, tmp_path):
         with pytest.raises(ExecutionError, match="not cached") as info:
             _bootstrap.install_micromamba(tmp_path, "linux-64", offline=True)
-        assert "conda.anaconda.org" in info.value.hint
+        pinned = _bootstrap.micromamba_archive("linux-64")
+        archive = tmp_path / "cache" / f"linux-64-{pinned['filename']}"
+        assert info.value.hint == f"copy {pinned['url']} to {archive}"
 
     def test_member_missing_or_not_a_file(self, tmp_path):
         for data in (_archive(member="bin/other"), _archive(kind="dir")):

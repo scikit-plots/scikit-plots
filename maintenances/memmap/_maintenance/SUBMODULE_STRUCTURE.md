@@ -17,7 +17,7 @@ maintenances/memmap/
     evidence/    hashed logs used by EVIDENCE.json
     history/     historical rationale and archived legacy tooling
 
-skills/memmap/
+skills/scikitplot-memmap-dev/
   SKILL.md       fresh-chat routing and maintainer operating rules
 ```
 

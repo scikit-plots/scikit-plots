@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.decile",
   "runtime_root": "scikitplot/decile",
   "maintenance_root": "maintenances/decile",
-  "skill": "skills/decile/SKILL.md",
+  "skill": "skills/scikitplot-decile-dev/SKILL.md",
   "ownership": {
     "owns": "Decile/ntile evaluation and business-value plotting APIs shipped under scikitplot.decile, including the current ModelPlotPy implementation, the legacy modelplotpy compatibility namespace, and the vendored KDS adapter surface.",
     "does_not_own": "Generic sklearn estimator behavior, shared plotting decorators/validation/preprocessing utilities, matplotlib/pandas/numpy internals, or the upstream KDS/modelplotpy projects."

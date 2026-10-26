@@ -1,0 +1,13 @@
+{
+  "name": "scikitplot",
+  "displayName": "scikit-plots",
+  "description": "Skills and agents for using scikit-plots in any project: one per public module, generated from the package's own __all__ and docstrings.",
+  "author": {
+    "name": "The scikit-plots developers",
+    "email": "scikit-plots-maintainers@googlegroups.com"
+  },
+  "homepage": "https://scikit-plots.github.io",
+  "repository": "https://github.com/scikit-plots/scikit-plots",
+  "license": "BSD-3-Clause",
+  "keywords": ["scikit-plots", "scikitplot", "machine-learning", "visualization", "python"]
+}

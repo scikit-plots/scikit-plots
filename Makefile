@@ -1728,3 +1728,12 @@ ci-scripts-tests:
 ######################################################################
 ##
 ######################################################################
+
+remove:
+	## Preview before deleting REMOVED_FILES.txt
+	xargs -n 1 echo < REMOVED_FILES.txt
+	xargs rm -rf < REMOVED_FILES.txt
+
+	## Cleaning Up Empty Directories
+	# find skills/ -type f -name "SKILL.md" -delete
+	# find skills/ -type d -empty -delete

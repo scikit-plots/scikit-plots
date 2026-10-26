@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.visualkeras",
   "runtime_root": "scikitplot/visualkeras",
   "maintenance_root": "maintenances/visualkeras",
-  "skill": "skills/visualkeras/SKILL.md",
+  "skill": "skills/scikitplot-visualkeras-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot.visualkeras model-architecture visualization API: graph_view, layered_view, layer graph discovery helpers, SpacingDummyLayer, drawing/color utilities, Keras/TensorFlow compatibility behavior, focused tests, and optional rendering-dependency behavior.",
     "does_not_own": "TensorFlow/Keras internals, Pillow, aggdraw, matplotlib display behavior, root scikitplot image-saving infrastructure, external visualkeras upstream, or backend/framework packaging outside this submodule."

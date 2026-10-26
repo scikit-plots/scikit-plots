@@ -1,0 +1,22 @@
+{
+  "name": "scikit-plots",
+  "description": "Claude Code plugins of scikit-plots: scikitplot for using the library in any project, scikitplot-dev for developing it in this repository.",
+  "owner": {
+    "name": "The scikit-plots developers",
+    "email": "scikit-plots-maintainers@googlegroups.com"
+  },
+  "plugins": [
+    {
+      "name": "scikitplot",
+      "source": "./plugins/scikitplot",
+      "description": "Use scikit-plots in any project: a skill and an agent per public module.",
+      "category": "development"
+    },
+    {
+      "name": "scikitplot-dev",
+      "source": "./",
+      "description": "Develop scikit-plots in its repository: a skill and an agent per maintained package, and the engineering rules.",
+      "category": "development"
+    }
+  ]
+}

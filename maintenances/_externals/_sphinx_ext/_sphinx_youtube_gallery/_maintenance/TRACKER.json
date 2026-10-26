@@ -5,7 +5,7 @@
     "runtime_root": "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_gallery",
     "provider_core": "scikitplot/_externals/_sphinx_ext/_sphinx_youtube_core",
     "maintenance_root": "maintenances/_externals/_sphinx_ext/_sphinx_youtube_gallery",
-    "skill_root": "skills/_externals/_sphinx_ext/_sphinx_youtube_gallery",
+    "skill_root": "skills/scikitplot-sphinx-youtube-gallery-dev",
     "architecture_reporter": "maintenances/_externals/_sphinx_ext/_maintenance_core/tools/report_architecture.py"
   },
   "logical_contracts": [

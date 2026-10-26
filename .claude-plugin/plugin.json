@@ -1,0 +1,13 @@
+{
+  "name": "scikitplot-dev",
+  "displayName": "scikit-plots development",
+  "description": "Skills and agents for developing scikit-plots in a checkout of its repository: one per maintained package, plus the numbered engineering rules.",
+  "author": {
+    "name": "The scikit-plots developers",
+    "email": "scikit-plots-maintainers@googlegroups.com"
+  },
+  "homepage": "https://scikit-plots.github.io",
+  "repository": "https://github.com/scikit-plots/scikit-plots",
+  "license": "BSD-3-Clause",
+  "keywords": ["scikit-plots", "development", "maintenance"]
+}

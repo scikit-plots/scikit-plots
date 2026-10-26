@@ -1079,8 +1079,8 @@ class TestLogger(unittest.TestCase):
         _close_all()
 
     def test_logger_name(self):
-        """Logger must be named 'scikitplot.misc' (hierarchical)."""
-        self.assertEqual(logger.name, "scikitplot.misc")
+        """The logger is named by the module's import path (Rule 138)."""
+        self.assertEqual(logger.name, _SUB_MOD)
 
     def test_logger_is_logging_logger(self):
         self.assertIsInstance(logger, logging.Logger)
@@ -1132,9 +1132,19 @@ class TestLogger(unittest.TestCase):
         self.assertGreater(len(debug_msgs), 0)
 
     def test_logger_hierarchy_inherits_from_scikitplot(self):
-        """'scikitplot.misc' must be a child of 'scikitplot' in the hierarchy."""
-        parent_name = logger.name.rsplit(".", 1)[0]
-        self.assertEqual(parent_name, "scikitplot")
+        """Records propagate through 'scikitplot.misc' up to 'scikitplot'.
+
+        By name, not by ``logger.parent``: the parent object is
+        'scikitplot.misc' only once something has created that logger
+        (``assertLogs`` in an earlier test does), so it depends on test order.
+        """
+        parts = logger.name.split(".")
+        prefixes = [".".join(parts[:i]) for i in range(1, len(parts))]
+        self.assertEqual(prefixes[:2], ["scikitplot", "scikitplot.misc"])
+        self.assertTrue(logger.propagate)
+        with self.assertLogs("scikitplot", level=logging.DEBUG) as log:
+            logger.debug("hierarchy probe")
+        self.assertEqual([r.name for r in log.records], [_SUB_MOD])
 
     # -- Additional logger coverage --
 

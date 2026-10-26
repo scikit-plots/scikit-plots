@@ -38,14 +38,14 @@ Read only what is needed, in this order:
 
 1. this file;
 2. `tasks/README.md` (where plans, results, history and lessons live) and
-   `skills/_engineering/SKILL.md` (the numbered engineering rules);
+   `skills/scikitplot-engineering-rules/SKILL.md` (the numbered engineering rules);
 3. `docs/maintenances/_maintenance/FRESH_CHAT_HANDOFF.md`;
 4. `docs/skills/README.md`;
 5. the relevant `maintenances/<area>/MAINTAINING.md`;
 6. that area's `MAINTENANCE.json` and `REVIEW.json`, when present;
 7. that area's current `_maintenance/FRESH_CHAT_HANDOFF.md`, `STATE.json`,
    `EVIDENCE.json`, and `VERIFICATION.md`, when present;
-8. the matching `skills/<area>/SKILL.md`, when present;
+8. the area's skill, listed by package path in `skills/INDEX.md`, when present;
 9. the current runtime/docs/tests/configuration needed to verify the task.
 
 Historical campaign notes, old logs, archived evidence, previous chat output,

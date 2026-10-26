@@ -57,7 +57,7 @@ scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/
 maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/
     maintenance state + history + tools + examples
 
-skills/_externals/_sphinx_ext/_sphinx_ai_assistant/
+skills/scikitplot-sphinx-ai-assistant-dev/
     SKILL.md + tiny entry documentation
 ```
 

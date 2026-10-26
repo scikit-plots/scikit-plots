@@ -204,6 +204,16 @@ class _UnparsedError(ValueError):
 #: character back) or ``{1,3}`` costs at most a small constant factor.
 _REPEAT_BOUND = 3
 
+#: Groups nested deeper than this are reported ``not-analysed`` before any
+#: recursive step runs. Both :func:`re.compile` and the parser below recurse
+#: once per level; at ~500 levels ``re.compile`` alone exhausts the default
+#: stack (CPython 3.8 and 3.11, measured). Exhausting it is not a safe probe:
+#: whatever runs at that moment (a cyclic-GC finalizer, a weakref callback)
+#: fails too, and Python can only report that as an unraisable exception,
+#: which pytest turns into a failure of an unrelated test. 100 levels is far
+#: beyond any pack pattern and leaves the caller's stack untouched.
+_MAX_GROUP_DEPTH = 100
+
 _INLINE_FLAGS = re.compile(r"\(\?([aiLmsux]*)(?:-([imsx]+))?([:)])")
 _FLAG_BITS = {"i": re.IGNORECASE, "s": re.DOTALL}
 
@@ -807,6 +817,51 @@ def _adjacent(fragment: str) -> PatternRisk:
     )
 
 
+def _group_depth(source: str) -> int:
+    """
+    Return the deepest nesting of groups in a pattern source, in one pass.
+
+    Parameters
+    ----------
+    source : str
+        A regular expression.
+
+    Returns
+    -------
+    int
+        The maximum number of ``(`` open at any point, read through
+        :func:`_walk` (escapes and character classes do not count), so it
+        agrees with the parser it protects. A ``(`` in a verbose-mode comment
+        counts, which can only make the number higher.
+    """
+    depth = deepest = 0
+    for index, in_class in _walk(source):
+        if in_class:
+            continue
+        if source[index] == "(":
+            depth += 1
+            deepest = max(deepest, depth)
+        elif source[index] == ")":
+            depth = max(depth - 1, 0)
+    return deepest
+
+
+def _not_analysed(source: str, reason: object) -> tuple[PatternRisk, ...]:
+    """Return the one ``not-analysed`` finding for ``source``, naming ``reason``."""
+    return (
+        PatternRisk(
+            rule="not-analysed",
+            severity="info",
+            fragment=source[:60],
+            message=(
+                f"this pattern uses syntax the risk check does not model ({reason}); "
+                "review it for nested or overlapping repetition by hand"
+            ),
+            suggestions=_QUICK_OPTIONS,
+        ),
+    )
+
+
 def analyse_pattern(source: str, flags: int = 0) -> tuple[PatternRisk, ...]:
     r"""
     Report the shapes in ``source`` that can backtrack catastrophically.
@@ -834,6 +889,12 @@ def analyse_pattern(source: str, flags: int = 0) -> tuple[PatternRisk, ...]:
     >>> analyse_pattern(r"(\w+,)+")
     ()
     """
+    depth = _group_depth(source)
+    if depth > _MAX_GROUP_DEPTH:
+        # Checked before anything recursive runs (see _MAX_GROUP_DEPTH).
+        return _not_analysed(
+            source, f"groups nested {depth} deep, more than {_MAX_GROUP_DEPTH}"
+        )
     try:
         with warnings.catch_warnings():
             # The pack loader compiles (and warns about) the pattern itself;
@@ -844,20 +905,9 @@ def analyse_pattern(source: str, flags: int = 0) -> tuple[PatternRisk, ...]:
         alternatives = _parse(prepared)
         return tuple(_rules(alternatives, prepared, overlap_flags))
     except (_UnparsedError, re.error, OverflowError, RecursionError) as exc:
-        # RecursionError: groups nested deeper than the interpreter's stack
-        # (a 2000-character source can hold ~1000); reported, never passed.
-        return (
-            PatternRisk(
-                rule="not-analysed",
-                severity="info",
-                fragment=source[:60],
-                message=(
-                    f"this pattern uses syntax the risk check does not model ({exc}); "
-                    "review it for nested or overlapping repetition by hand"
-                ),
-                suggestions=_QUICK_OPTIONS,
-            ),
-        )
+        # RecursionError stays as a backstop for a caller already deep in its
+        # own stack; _MAX_GROUP_DEPTH keeps this function from causing one.
+        return _not_analysed(source, exc)
 
 
 @dataclass(frozen=True)

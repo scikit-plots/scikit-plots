@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.seaborn",
   "runtime_root": "scikitplot/seaborn",
   "maintenance_root": "maintenances/seaborn",
-  "skill": "skills/seaborn/SKILL.md",
+  "skill": "skills/scikitplot-seaborn-dev/SKILL.md",
   "ownership": {
     "owns": "The high-level seaborn-style plotting API in scikitplot.seaborn: aucplot, evalplot, decileplot, modelplot, print_labels, their plotter classes, semantic mapping glue, focused tests, and compatibility behavior against supported seaborn/matplotlib/sklearn/pandas versions.",
     "does_not_own": "Upstream seaborn private APIs, matplotlib internals, sklearn metric semantics, the vendored scikitplot.externals._seaborn implementation, decile package APIs outside this submodule, or root scikitplot packaging."

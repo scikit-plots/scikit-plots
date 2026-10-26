@@ -1634,6 +1634,48 @@ public_source = "auto"  # prefer __all__; otherwise use local public objects
 require_distribution = true
 include_module_objects = false
 
+[tool.scikitplot.maintenance.skills]
+# Usage skills of the scikitplot plugin (plugins/scikitplot/skills/), generated
+# by tools/maint_tools/generate_usage_skills.py from each module's __all__ and
+# docstrings (Rules 164 and 165). Every public top-level subpackage is either
+# listed here or excluded with its reason.
+usage_modules = [
+  "scikitplot",
+  "scikitplot.api",
+  "scikitplot.agent",
+  "scikitplot.annoy",
+  "scikitplot.cleanprompt",
+  "scikitplot.corpus",
+  "scikitplot.cython",
+  "scikitplot.decile",
+  "scikitplot.feature_selection",
+  "scikitplot.impute",
+  "scikitplot.levenshtein",
+  "scikitplot.logging",
+  "scikitplot.mcp",
+  "scikitplot.memmap",
+  "scikitplot.misc",
+  "scikitplot.mlflow",
+  "scikitplot.preprocessing",
+  "scikitplot.random",
+  "scikitplot.rank_bm25",
+  "scikitplot.seaborn",
+  "scikitplot.visualkeras",
+  "scikitplot._externals._sphinx_ext",
+]
+
+[tool.scikitplot.maintenance.skills.usage_excluded]
+"scikitplot.config" = "its public names are re-exported by scikitplot (the root skill)"
+"scikitplot.cexperimental" = "declares no __all__"
+"scikitplot.cexternals" = "vendored third-party extensions"
+"scikitplot.datasets" = "declares no __all__"
+"scikitplot.experimental" = "empty __all__; its enable_* modules are imported for their side effect"
+"scikitplot.externals" = "vendored third-party code"
+"scikitplot.nc" = "declares no __all__"
+"scikitplot.neighbors" = "declares no __all__"
+"scikitplot.stats" = "declares no __all__"
+"scikitplot.utils" = "declares no __all__"
+
 [tool.scikitplot.maintenance.towncrier]
 # Repository-derived Towncrier ownership policy consumed by
 # tools/maint_tools/generate_towncrier_sections.py. Keep policy here so humans, CI, and AI
@@ -1714,11 +1756,17 @@ manual_labels = [
 
 # Extra globs per owner root; {rel} is the owner's path below the root
 # (e.g. "corpus" or "_externals/_sphinx_ext/_sphinx_feedback") and {section} its
-# Towncrier section path. A glob is emitted only when it matches a file.
+# Towncrier section path. {skill} is the folder of each development skill whose
+# metadata.scikitplot-mirror is {rel} or below it, {usage} the same for usage
+# skills (metadata.scikitplot-module); skill folders are flat (Rules 164, 165).
+# A glob is emitted only when it matches a file.
 [tool.scikitplot.maintenance.labeler.satellites]
 scikitplot = [
   "maintenances/{rel}/**/*",
-  "skills/{rel}/**/*",
+  "skills/{skill}/**/*",
+  "agents/{skill}.md",
+  "plugins/scikitplot/skills/{usage}/**/*",
+  "plugins/scikitplot/agents/{usage}.md",
   "docs/source/user_guide/{rel}/**/*",
   "galleries/examples/{rel}/**/*",
   "upcoming_changes/scikitplot/{rel}/**/*",

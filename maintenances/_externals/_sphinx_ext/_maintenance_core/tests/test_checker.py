@@ -22,7 +22,7 @@ def _fixture(tmp_path, *, dep_import="from .._sphinx_dep import x", deps=None):
 
     mf = tmp_path / "maintenances/_externals/_sphinx_ext/_sphinx_demo"
     (mf / "_maintenance/checkpoints").mkdir(parents=True)
-    sf = tmp_path / "skills/_externals/_sphinx_ext/_sphinx_demo"
+    sf = tmp_path / "skills/scikitplot-sphinx-demo-dev"
     sf.mkdir(parents=True)
     (sf / "SKILL.md").write_text("---\nname: demo\ndescription: demo\n---\nRead MAINTAINING.md, then STATE.json.\n")
 
@@ -55,7 +55,7 @@ def _fixture(tmp_path, *, dep_import="from .._sphinx_dep import x", deps=None):
         "checkpoint_dir": "_maintenance/checkpoints",
         "runtime_requires": deps,
         "family_related": [],
-        "skill_root": "skills/_externals/_sphinx_ext/_sphinx_demo",
+        "skill_root": "skills/scikitplot-sphinx-demo-dev",
     }
     (mf / "MAINTENANCE.json").write_text(json.dumps(manifest))
     return mf, runtime

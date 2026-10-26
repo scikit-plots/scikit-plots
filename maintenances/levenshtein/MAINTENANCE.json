@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.levenshtein",
   "owner": "scikitplot/levenshtein",
   "maintenance_root": "maintenances/levenshtein",
-  "skill": "skills/levenshtein/SKILL.md",
+  "skill": "skills/scikitplot-levenshtein-dev/SKILL.md",
   "user_guide": "docs/source/user_guide/levenshtein/index.rst",
   "gallery": "galleries/examples/levenshtein/README.txt",
   "runtime_invariants": [

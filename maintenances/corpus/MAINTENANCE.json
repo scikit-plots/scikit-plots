@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.corpus",
   "runtime_root": "scikitplot/corpus",
   "maintenance_root": "maintenances/corpus",
-  "skill": "skills/corpus/SKILL.md",
+  "skill": "skills/scikitplot-corpus-dev/SKILL.md",
   "ownership": {
     "owns": "Protocol-neutral corpus ingestion/transformation, evidence identity, retrieval outcome contracts, local retrieval abstractions, graph/agent budgets, configuration UX, and corpus-specific tests/examples.",
     "does_not_own": "MCP wire protocol/adapters, Annoy native index mechanics, CLI presentation policy, or maintenance/skill runtime behavior."

@@ -617,7 +617,13 @@ class TestLogReport:
         assert result["problems"][0] in by_level["WARNING"]
         assert result["notes"][0] in by_level["INFO"]
 
-    def test_log_report_uses_standard_logging(self, monkeypatch, present):
+    def test_log_report_uses_standard_logging(
+        self, monkeypatch, present, captured_logger, caplog
+    ):
+        # Rule 139: the shared capture sets the logger's level for the block.
+        # A hand-attached handler saw the INFO note only while the logger's
+        # effective level happened to allow it; after an earlier test raised
+        # it, the full CI run saw the WARNING alone.
         _fake_metadata(
             monkeypatch,
             {
@@ -627,19 +633,10 @@ class TestLogReport:
                 "scikit-learn": "1.3.0",
             },
         )
-        records = []
-
-        class Capture(logging.Handler):
-            def emit(self, record):
-                records.append(record)
-
-        handler = Capture()
-        logger.addHandler(handler)
-        try:
+        with captured_logger(logging.INFO, logger):
             result = dists.log_report(log=logger)
-        finally:
-            logger.removeHandler(handler)
-
+        records = caplog.records
+        assert {record.name for record in records} == {logger.name}
         by_level = {
             record.levelname: record.getMessage()
             for record in records

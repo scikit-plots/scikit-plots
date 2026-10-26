@@ -8,10 +8,12 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import urlsplit
 
 import pytest
 
 from .._backends import BACKENDS, get_backend
+from .._bootstrap import micromamba_archive
 from .._core import _planner
 from .._core._errors import (
     BackendUnavailableError,
@@ -88,8 +90,10 @@ class TestBackendRules:
         assert step.action == "bootstrap_micromamba"
         assert step.network
         assert step.params_dict["subdir"] == "linux-64"
-        assert step.params_dict["url"].startswith("https://conda.anaconda.org/")
-        assert "https://conda.anaconda.org/" in plan.render()  # shown before approval
+        url = step.params_dict["url"]
+        assert url == micromamba_archive("linux-64")["url"]
+        assert urlsplit(url).hostname == "conda.anaconda.org"
+        assert url in plan.render()  # the exact URL is shown before approval
 
     def test_unpinned_platform_cannot_bootstrap(self, tmp_path):
         host = fake_host(tmp_path, machine="ppc64le")
