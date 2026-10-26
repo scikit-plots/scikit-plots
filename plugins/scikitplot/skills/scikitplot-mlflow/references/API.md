@@ -62,5 +62,5 @@
 | `default_project_paths(*, project_root: 'Path \| None' = None) -> 'WorkflowPaths'` | function | Compute standard config file paths for a project. |
 | `export_builtin_config(*, fmt: 'str' = 'toml', dest_path: 'Path \| None' = None, project_root: 'Path \| None' = None, overwrite: ' ...)` | function | Export the built-in demo config into the current project. |
 | `patch_experiment_name_in_toml(path: 'Path', *, experiment_name: 'str') -> 'None'` | function | Patch `experiment_name = ...` in a TOML config deterministically. |
-| `run_demo(*, profile: 'str' = 'local', project_root: 'Path \| None' = None, open_ui_seconds: 'float' = 10.0, experiment ...)` | function | Run a beginner-friendly end-to-end demo workflow. |
+| `run_demo(*, profile: 'str' = 'local', project_root: 'Path \| None' = None, open_ui_seconds: 'float' = 10.0, experim ...)` | function | Run a beginner-friendly end-to-end demo workflow. |
 | `workflow(*, profile: 'str' = 'local', open_ui_seconds: 'float' = 0.0, experiment_name: 'str \| None' = None, fmt: ' ...)` | function | Run the built-in end-to-end MLflow workflow demo. |

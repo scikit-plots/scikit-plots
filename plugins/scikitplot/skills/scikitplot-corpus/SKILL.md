@@ -146,7 +146,9 @@ URL ingestion:
 
 YouTube transcript:
 
->>> result = pipeline.run("https://www.youtube.com/watch?v=rwPISgZcYIk")  # doctest: +SKIP
+>>> result = pipeline.run(
+...     "https://www.youtube.com/watch?v=rwPISgZcYIk"
+... )  # doctest: +SKIP
 
 Image OCR:
 

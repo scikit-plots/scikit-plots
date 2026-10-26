@@ -44,8 +44,12 @@ All names with signatures: [references/API.md](references/API.md).
 ```pycon
 >>> import numpy as np
 >>> from sklearn.impute import MissingIndicator
->>> X1 = np.array([[np.nan, 1, 3], [4, 0, np.nan], [8, 1, 0]])
->>> X2 = np.array([[5, 1, np.nan], [np.nan, 2, 3], [2, 4, 0]])
+>>> X1 = np.array([[np.nan, 1, 3],
+...                [4, 0, np.nan],
+...                [8, 1, 0]])
+>>> X2 = np.array([[5, 1, np.nan],
+...                [np.nan, 2, 3],
+...                [2, 4, 0]])
 >>> indicator = MissingIndicator()
 >>> indicator.fit(X1)
 MissingIndicator()

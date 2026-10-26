@@ -959,6 +959,7 @@ exclude = [
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
+  "plugins/**",
   "skills/**",
   "third_party/**",
   "tools/**",
@@ -1009,6 +1010,7 @@ exclude = [
   "docs/source/**",
   "galleries/**",
   "maintenances/**",
+  "plugins/**",
   "skills/**",
   "third_party/**",
   "tools/**",
@@ -1282,6 +1284,7 @@ extend-exclude = '''
   |docs/source
   |galleries
   |maintenances
+  |plugins
   |skills
   |third_party
   |tools

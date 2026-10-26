@@ -23,7 +23,7 @@
 | `DocumentReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Abstract base class for all format-specific document readers. |
 | `DummyReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | A no-op reader that validates source existence and accessibility. |
 | `FilterBase()` | class | Abstract base class for corpus document filters. |
-| `PipelineGuard(policy: 'Any \| None' = None, *, dedup: 'bool' = True, checkpoint_path: 'pathlib.Path \| None' = None, check ...)` | class | Wrap any document stream with resilience, deduplication, and checkpointing. |
+| `PipelineGuard(policy: 'Any \| None' = None, *, dedup: 'bool' = True, checkpoint_path: 'pathlib.Path \| None' = None, chec ...)` | class | Wrap any document stream with resilience, deduplication, and checkpointing. |
 | `BackendCandidate(name: 'str', run: 'Callable[[], _T]', accept: 'Callable[[_T], bool]' = <function _accept_any>, fallback_e ...)` | class | One lazy backend attempt. |
 | `BackendOutcome(status: 'BackendStatus', value: '_T', backend: 'str \| None', attempted: 'tuple[str, ...]', missed: 'tuple ...)` | class | Structured, serialisable outcome from `run_backend_chain`. |
 | `BackendPlan(policy: 'str', declared: 'tuple[str, ...]', ordered: 'tuple[str, ...]', eligible: 'tuple[str, ...]', sele ...)` | class | Side-effect-free preflight of candidate ordering and policy eligibility. |
@@ -264,7 +264,7 @@
 | `CapabilityStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Why a capability is or is not usable. |
 | `capability_report(name: 'str', *, selected: 'bool' = False, active: 'bool' = False, registry: 'CapabilityRegistry \| None' = ...)` | function | Probe one registered component capability. |
 | `capability_snapshot(extra_distributions: 'Iterable[str]' = (), *, load: 'bool' = False) -> 'dict[str, Any]'` | function | Return a read-only snapshot of the runtime corpus capabilities. |
-| `component_capabilities(names: 'Iterable[str] \| None' = None, *, role: 'str \| None' = None, selected: 'Iterable[str]' = (), active ...)` | function | Return JSON-compatible readiness records for components. |
+| `component_capabilities(names: 'Iterable[str] \| None' = None, *, role: 'str \| None' = None, selected: 'Iterable[str]' = (), activ ...)` | function | Return JSON-compatible readiness records for components. |
 | `default_capability_registry(*, copy: 'bool' = True) -> 'CapabilityRegistry'` | function | Return the built-in component readiness registry. |
 | `distribution_version(name: 'str') -> 'str \| None'` | function | Return the installed version of a distribution, or ``None`` if absent. |
 | `probe_backend(cls: 'Any', *, load: 'bool' = True) -> 'tuple[CapabilityStatus, str \| None]'` | function | Classify one backend's availability. |

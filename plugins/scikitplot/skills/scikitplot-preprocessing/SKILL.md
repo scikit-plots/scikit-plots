@@ -63,7 +63,7 @@ values per feature and transform the data to a binary one-hot dummy encoding.
 ...             DummyCodeEncoder(
 ...                 # sep=',',
 ...                 # sep=r'\s*[,;|]\s*',
-...                 sep=lambda s: re.split(r"\s*[,;|]\s*", s.lower()),
+...                 sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
 ...                 regex=True,
 ...                 sparse_output=True,
 ...             ),
@@ -86,13 +86,13 @@ scipy.sparse._csr.csr_matrix
 ...             DummyCodeEncoder(
 ...                 # sep=',',
 ...                 # sep=r'\s*[,;|]\s*',
-...                 sep=lambda s: re.split(r"\s*[,;|]\s*", s.lower()),
+...                 sep=lambda s: re.split(r'\s*[,;|]\s*', s.lower()),
 ...                 regex=True,
 ...                 sparse_output=False,
 ...             ),
 ...         )
 ...     ]
-... ).set_output(transform="pandas")
+... ).set_output(transform='pandas')
 >>> X_trans = pipe.fit_transform(df)
 >>> print(X_trans)
    value  tags_a  tags_b  tags_c  color_blue  color_green  color_red  value_1  value_2  value_3  value_4

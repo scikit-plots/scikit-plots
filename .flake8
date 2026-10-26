@@ -71,6 +71,7 @@ exclude =
     benchmarks/*yanked/**,
     galleries/examples/**,                  # ← Ensure the `examples/` folder is ignored
     maintenances/**,
+    plugins/**,
     skills/**,
     tools/**,                               # ← Ensure the `tools/` folder is ignored
     .tox,
