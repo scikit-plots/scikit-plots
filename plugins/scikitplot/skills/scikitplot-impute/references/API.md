@@ -6,3 +6,4 @@
 |---|---|---|
 | `MissingIndicator(*, missing_values=nan, features='missing-only', sparse='auto', error_on_new=True)` | class | Binary indicators for missing values. |
 | `SimpleImputer(*, missing_values=nan, strategy='mean', fill_value=None, copy=True, add_indicator=False, keep_empty_featu ...)` | class | Univariate imputer for completing missing values with simple strategies. |
+| `ANNImputer(*, missing_values=nan, backend='annoy', index_access='external', index_store_path=None, on_disk_build=Fal ...)` | class | Approximate K-nearest-neighbours (KNN) imputer with pluggable ANN backends. |

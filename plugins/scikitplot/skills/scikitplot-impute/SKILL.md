@@ -1,6 +1,6 @@
 ---
 name: scikitplot-impute
-description: "Use scikitplot.impute (scikit-plots) in any Python project. Transformers for missing value imputation. Use when code imports scikitplot.impute or needs MissingIndicator, SimpleImputer."
+description: "Use scikitplot.impute (scikit-plots) in any Python project. Transformers for missing value imputation. Use when code imports scikitplot.impute or needs MissingIndicator, SimpleImputer, ANNImputer."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot.impute"
@@ -36,6 +36,7 @@ Declared in `scikitplot.impute.__all__`, in that order.
 |---|---|---|
 | `MissingIndicator` | class | Binary indicators for missing values. |
 | `SimpleImputer` | class | Univariate imputer for completing missing values with simple strategies. |
+| `ANNImputer` | class | Approximate K-nearest-neighbours (KNN) imputer with pluggable ANN backends. |
 
 All names with signatures: [references/API.md](references/API.md).
 
