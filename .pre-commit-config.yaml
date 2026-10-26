@@ -41,8 +41,7 @@ repos:
           - tomli
         exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
           (?x)(
-            ^plugins/scikitplot/skills/scikitplot-corpus/references/API.md |
-            ^plugins/scikitplot/skills/scikitplot-mlflow/references/API.md |
+            ^plugins/scikitplot/skills/ |
             ^scikitplot/_core/ |                       # exclude folder
             ^scikitplot/cexternals/_astropy/ |
             ^scikitplot/cexternals/_numcpp/ |
