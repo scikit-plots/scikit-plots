@@ -44,7 +44,7 @@ or link of the real package), with a `pytest.ini` that sets
 `filterwarnings = error`. That is how rounds 23–25 were verified, and
 `tests/_isolated.py` measures import isolation the same way.
 
-**Never edit the tree while a run reads it** (`skills/_engineering/rules/verification.md`, rules 1 and
+**Never edit the tree while a run reads it** (`skills/scikitplot-engineering-rules/rules/verification.md`, rules 1 and
 22): verify against a frozen copy, or wait for the run to finish.
 
 ## Current round

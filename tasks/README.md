@@ -8,7 +8,7 @@ repository-wide procedure (read order, planes, evidence) is
 
 **Instructions that name `tasks/todo.md` or `tasks/lessons.md`** (older
 handoffs, standing preferences) mean, today: plans and results go to the
-owner's active `todo/todo.md`; lessons go to `skills/_engineering/` as its
+owner's active `todo/todo.md`; lessons go to `skills/scikitplot-engineering-rules/` as its
 `SKILL.md` describes.
 
 | Record | Location |
@@ -17,7 +17,7 @@ owner's active `todo/todo.md`; lessons go to `skills/_engineering/` as its
 | Completed tasks, verbatim | `maintenances/<area>/_maintenance/history/` |
 | Repository-wide work: CI, `libs/`, labeling, release tooling | [`maintenances/_repo/`](../maintenances/_repo/MAINTAINING.md) |
 | Documentation site as a whole: Sphinx build, `conf.py`, API reference | [`docs/tasks/`](../docs/tasks/README.md) |
-| Engineering rules, numbered, for every area | [`skills/_engineering/`](../skills/_engineering/SKILL.md) |
+| Engineering rules, numbered, for every area | [`skills/scikitplot-engineering-rules/`](../skills/scikitplot-engineering-rules/SKILL.md) |
 | A fact only one area needs | `maintenances/<area>/todo/lessons.md` |
 | Every archive and the areas it names | [`HISTORY_INDEX.md`](../maintenances/_repo/_maintenance/HISTORY_INDEX.md) |
 
@@ -27,10 +27,10 @@ owner's active `todo/todo.md`; lessons go to `skills/_engineering/` as its
 
 ## Starting a session
 
-1. This file, then [`skills/_engineering/SKILL.md`](../skills/_engineering/SKILL.md)
+1. This file, then [`skills/scikitplot-engineering-rules/SKILL.md`](../skills/scikitplot-engineering-rules/SKILL.md)
    and the rule files it names for the work.
 2. The active `todo/todo.md` of the area you work in.
-3. That area's `MAINTAINING.md` and `skills/<area>/SKILL.md`, where present.
+3. That area's `MAINTAINING.md` and its skill (`skills/INDEX.md`), where present.
 4. Past work on the area: `HISTORY_INDEX.md` lists the archives that name
    its packages as paths; for a complete search, grep the archives:
    `grep -rl <name> --include='*.md' maintenances docs/tasks | grep /history/`.
@@ -47,7 +47,7 @@ owner's active `todo/todo.md`; lessons go to `skills/_engineering/` as its
   active file. Active `todo.md` files have a 400-line budget.
 - **Moves between files** are a commit of their own, proved lossless before
   any edit: `check_records.py --prove <commit>` (Rule 124).
-- **Lessons** follow [`skills/_engineering/SKILL.md`](../skills/_engineering/SKILL.md).
+- **Lessons** follow [`skills/scikitplot-engineering-rules/SKILL.md`](../skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Checking
 

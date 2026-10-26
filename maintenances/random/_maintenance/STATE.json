@@ -7,7 +7,7 @@
   },
   "scope": [
     "maintenances/random",
-    "skills/random"
+    "skills/scikitplot-random-dev"
   ],
   "runtime_fingerprint": "765eb8f81cbbbdaa777939bb9fe2254493536a5baac0d3d40b4b1752f74a881e",
   "status": "maintenance_verified",
@@ -28,8 +28,8 @@
     {
       "id": "RN-003",
       "status": "resolved",
-      "summary": "skills/random existed but had no maintainer entry point.",
-      "evidence_or_action": "skills/random/SKILL.md now defines ownership, read order, boundaries and verification."
+      "summary": "skills/scikitplot-random-dev existed but had no maintainer entry point.",
+      "evidence_or_action": "skills/scikitplot-random-dev/SKILL.md now defines ownership, read order, boundaries and verification."
     },
     {
       "id": "RN-004",

@@ -34,14 +34,14 @@ SUBSYSTEM = "scikitplot.cleanprompt"
 CORPUS_BRIDGE = "_corpus.py"
 RUNTIME = ("scikitplot", "cleanprompt")
 MAINTENANCE = ("maintenances", "cleanprompt")
-SKILL = ("skills", "cleanprompt", "SKILL.md")
+SKILL = ("skills", "scikitplot-cleanprompt-dev", "SKILL.md")
 
 #: Every tree committed for this subsystem. None may hold a whole
 #: credential-shaped value (CP-REST-001).
 AT_REST_TREES = (
     RUNTIME,
     MAINTENANCE,
-    ("skills", "cleanprompt"),
+    ("skills", "scikitplot-cleanprompt-dev"),
     ("galleries", "examples", "cleanprompt"),
 )
 
@@ -801,7 +801,7 @@ def maintenance_errors(root: Path) -> List[str]:
 
     skill = root.joinpath(*SKILL)
     if not skill.is_file():
-        errors.append("missing skills/cleanprompt/SKILL.md")
+        errors.append("missing skills/scikitplot-cleanprompt-dev/SKILL.md")
     else:
         text = skill.read_text(encoding="utf-8")
         if len(text.splitlines()) < 80:

@@ -45,7 +45,7 @@ Do not rely on previous chat history. Use the repository files as authority.
 
 Read, in order:
 
-1. `skills/_externals/_sphinx_ext/_sphinx_ai_assistant/SKILL.md`
+1. `skills/scikitplot-sphinx-ai-assistant-dev/SKILL.md`
 2. `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/MAINTAINING.md`
 3. this file;
 4. `STATE.json`;

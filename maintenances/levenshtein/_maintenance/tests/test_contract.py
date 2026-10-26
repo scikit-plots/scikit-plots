@@ -41,7 +41,7 @@ def test_auto_backend_policy_excludes_gpl_backend_statically() -> None:
 
 
 def test_skill_and_docs_entry_points_exist() -> None:
-    assert (ROOT / "skills" / "levenshtein" / "SKILL.md").is_file()
+    assert (ROOT / "skills" / "scikitplot-levenshtein-dev" / "SKILL.md").is_file()
     assert (ROOT / "docs" / "source" / "user_guide" / "levenshtein" / "index.rst").is_file()
     assert (ROOT / "galleries" / "examples" / "levenshtein" / "README.txt").is_file()
 

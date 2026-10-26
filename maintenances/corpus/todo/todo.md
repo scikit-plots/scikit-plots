@@ -13,7 +13,7 @@ Completed runs are archived verbatim under
 | 4-A, evaluation (2a-2c, pulled forward) | [`r33_run4a_evaluation.md`](../_maintenance/history/r33_run4a_evaluation.md) |
 | 3, ingestion contract (3a-3e) | [`r33_run3_ingestion.md`](../_maintenance/history/r33_run3_ingestion.md) |
 
-Rules that apply to every increment: [`skills/_engineering/`](../../../skills/_engineering/SKILL.md).
+Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Campaign status (2026-10-17)
 

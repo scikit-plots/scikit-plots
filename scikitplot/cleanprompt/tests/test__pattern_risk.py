@@ -18,6 +18,7 @@ wrong on its own:
 
 from __future__ import annotations
 
+import inspect
 import io
 import json
 import re
@@ -32,12 +33,14 @@ from .._exceptions import CleanPromptError
 from .._frontends import is_click_available
 from .._packs import PackError, pack_from_document
 from .._pattern_risk import (
+    _MAX_GROUP_DEPTH,
     DEFAULT_PATTERN_RISK,
     PATTERN_RISK_ENV,
     PATTERN_RISK_MODES,
     PackFinding,
     PatternRisk,
     PatternRiskWarning,
+    _group_depth,
     analyse_pattern,
     enforce,
     pack_findings,
@@ -141,7 +144,57 @@ class TestAnalysis:
     def test_nesting_deeper_than_the_stack_is_not_analysed(self):
         depth = 990
         source = "(?:" * depth + "a" + ")" * depth
-        assert [risk.rule for risk in analyse_pattern(source)] == ["not-analysed"]
+        (risk,) = analyse_pattern(source)
+        assert risk.rule == "not-analysed"
+        assert f"nested {depth} deep" in risk.message
+
+    @pytest.mark.parametrize(
+        ("depth", "analysed"),
+        [(_MAX_GROUP_DEPTH, True), (_MAX_GROUP_DEPTH + 1, False)],
+    )
+    def test_the_depth_bound_is_exact(self, depth, analysed):
+        source = "(?:" * depth + "a" + ")" * depth
+        rules = [risk.rule for risk in analyse_pattern(source)]
+        assert ("not-analysed" not in rules) is analysed
+
+    def test_deep_nesting_never_comes_near_the_stack_limit(self):
+        """
+        Exhausting the stack is not a safe probe (CI run of 2026-10-26).
+
+        A cyclic-GC finalizer that ran while the stack was full raised
+        RecursionError, which pytest reported as an unraisable exception
+        against this test. With 400 frames above the caller (the deepest
+        analysable pattern needs about 310 on CPython 3.11), it is analysed
+        in full, and an over-deep one is refused by the bound, not by a
+        RecursionError (whose message would name the recursion).
+        """
+        limit = sys.getrecursionlimit()
+        here = len(inspect.stack(0))
+        sys.setrecursionlimit(here + 400)
+        try:
+            deepest = analyse_pattern("(?:" * _MAX_GROUP_DEPTH + "a" + ")" * _MAX_GROUP_DEPTH)
+            (over,) = analyse_pattern("(?:" * 990 + "a" + ")" * 990)
+        finally:
+            sys.setrecursionlimit(limit)
+        assert deepest == ()
+        assert over.rule == "not-analysed"
+        assert "nested 990 deep" in over.message
+
+    @pytest.mark.parametrize(
+        ("source", "depth"),
+        [
+            ("a", 0),
+            ("((a))", 2),
+            (r"\((a)", 1),
+            ("[(]", 0),
+            ("[]()]", 0),
+            ("[^]()]", 0),
+            (r"[\]](c)", 1),
+            ("(?:a|(b))(c)", 2),
+        ],
+    )
+    def test_group_depth_reads_escapes_and_classes(self, source, depth):
+        assert _group_depth(source) == depth
 
     def test_analysis_is_deterministic(self):
         assert analyse_pattern(_RISKY) == analyse_pattern(_RISKY)

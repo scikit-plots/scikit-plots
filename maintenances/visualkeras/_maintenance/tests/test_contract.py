@@ -88,9 +88,9 @@ def test_bad_review_check_detected(tmp_path):
 def test_executable_metadata_rejected(tmp_path):
     r=clone(tmp_path); p=r/'maintenances/visualkeras/REVIEW.json'; d=json.loads(p.read_text()); d['command']='echo nope'; p.write_text(json.dumps(d)); assert any('unsupported executable field' in x for x in maint_errs(r))
 def test_missing_skill_detected(tmp_path):
-    r=clone(tmp_path); (r/'skills/visualkeras/SKILL.md').unlink(); assert maint_errs(r)
+    r=clone(tmp_path); (r/'skills/scikitplot-visualkeras-dev/SKILL.md').unlink(); assert maint_errs(r)
 def test_shallow_skill_detected(tmp_path):
-    r=clone(tmp_path); (r/'skills/visualkeras/SKILL.md').write_text('---\nname: x\n---\nshort\n'); assert any('substantive' in x for x in maint_errs(r))
+    r=clone(tmp_path); (r/'skills/scikitplot-visualkeras-dev/SKILL.md').write_text('---\nname: x\n---\nshort\n'); assert any('substantive' in x for x in maint_errs(r))
 def test_evidence_fingerprint_drift_detected(tmp_path):
     r=clone(tmp_path); p=r/'maintenances/visualkeras/_maintenance/EVIDENCE.json'; d=json.loads(p.read_text()); d['runtime_fingerprint']='0'*64; p.write_text(json.dumps(d)); assert any('fingerprint drift' in x for x in maint_errs(r))
 def test_foreign_cwd_discovery(monkeypatch,tmp_path):

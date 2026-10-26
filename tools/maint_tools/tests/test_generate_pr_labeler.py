@@ -403,6 +403,43 @@ class ModuleRuleTests(unittest.TestCase):
         with self.assertRaises(MODULE.LabelerError):
             self.rules(data)
 
+    def test_a_skill_glob_is_the_mirrored_skill_folder(self):
+        """Skill folders are flat (Rules 164, 165); folders come from the metadata."""
+        rules = {rule.owner: rule for rule in self.rules(self.data)}
+        annoy = rules["scikitplot.annoy"].globs
+        for glob in (
+            "skills/scikitplot-annoy-dev/**/*",
+            "agents/scikitplot-annoy-dev.md",
+            "plugins/scikitplot/skills/scikitplot-annoy/**/*",
+            "plugins/scikitplot/agents/scikitplot-annoy.md",
+        ):
+            self.assertIn(glob, annoy)
+        source = rules["scikitplot.cexternals._annoy"].globs
+        self.assertIn("skills/scikitplot-cexternals-annoy-dev/**/*", source)
+        self.assertNotIn("skills/scikitplot-annoy-dev/**/*", source)
+        parent = rules["scikitplot._externals"].globs
+        for folder in ("sphinx-ai-assistant", "sphinx-feedback", "sphinx-youtube-gallery"):
+            self.assertIn(f"skills/scikitplot-{folder}-dev/**/*", parent)
+        self.assertIn("plugins/scikitplot/skills/scikitplot-sphinx-ext/**/*", parent)
+        for rule in rules.values():
+            self.assertFalse(any(g.startswith("skills/_") for g in rule.globs), rule.owner)
+
+    def test_skill_placeholders_expand_per_mirrored_skill(self):
+        mirrors = {
+            "skill": {"a": "scikitplot-a-dev", "a/_b": "scikitplot-b-dev", "ab": "scikitplot-ab-dev"},
+            "usage": {"": "scikitplot", "a": "scikitplot-a"},
+        }
+        expand = MODULE._expand_satellite
+        self.assertEqual(
+            expand("skills/{skill}/**/*", "a", "scikitplot.a", mirrors),
+            ["skills/scikitplot-a-dev/**/*", "skills/scikitplot-b-dev/**/*"],
+        )
+        self.assertEqual(expand("p/{usage}.md", "a", "scikitplot.a", mirrors), ["p/scikitplot-a.md"])
+        self.assertEqual(expand("skills/{skill}/**/*", "zz", "scikitplot.zz", mirrors), [])
+        self.assertEqual(expand("maintenances/{rel}/**/*", "a", "scikitplot.a", mirrors), ["maintenances/a/**/*"])
+        with self.assertRaises(MODULE.LabelerError):
+            expand("{skill}/{usage}", "a", "scikitplot.a", mirrors)
+
     def test_shape_of_generated_rules(self):
         rules = {rule.label: rule for rule in self.rules(self.data)}
         self.assertEqual(rules["tools"].globs, ("tools/**/*",))

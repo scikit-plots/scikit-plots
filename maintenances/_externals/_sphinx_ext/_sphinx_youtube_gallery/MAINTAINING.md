@@ -17,7 +17,7 @@ Previous chat history is never an authority when these files are present.
 ```text
 scikitplot/_externals/_sphinx_ext/        runtime plane
 maintenances/_externals/_sphinx_ext/      maintenance/state/evidence plane
-skills/_externals/_sphinx_ext/            fresh-chat routing plane
+skills/scikitplot-sphinx-*-dev/          fresh-chat routing plane (skills/INDEX.md)
 ```
 
 Runtime code must not import `maintenances/` or `skills/`.

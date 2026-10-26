@@ -485,7 +485,7 @@ rules:
 25. **Tests that read process-wide state use values no other test uses.**
     The log scrub filter is shared by every live cleaner; a common sample
     value held by a cleaner awaiting garbage collection made a test fail
-    under xdist only (round 26, `skills/_engineering/rules/testing.md` rule 55).
+    under xdist only (round 26, `skills/scikitplot-engineering-rules/rules/testing.md` rule 55).
 
 26. **Slow regular expressions in tests are wrapped.** A test or probe that
     needs a catastrophic pattern writes `regex_fixture(r"...")`

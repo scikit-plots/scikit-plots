@@ -60,8 +60,11 @@ Examples
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Mapping, NamedTuple
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "CORE",
@@ -879,13 +882,15 @@ def report() -> dict[str, object]:
     }
 
 
-def log_report(logger: object = None) -> dict[str, object]:
+def log_report(
+    log: object = None,
+) -> dict[str, object]:
     """
     Write the installation report to a logger and return it.
 
     Parameters
     ----------
-    logger : logging.Logger, optional
+    log : logging.Logger, optional
         Where to write. The ``"scikitplot"`` logger of the standard library
         when omitted.
 
@@ -931,9 +936,8 @@ def log_report(logger: object = None) -> dict[str, object]:
     >>> sorted(result)
     ['available', 'core_api', 'flavor', 'installed', 'notes', 'problems']
     """
-    import logging  # noqa: PLC0415
-
-    target = logging.getLogger(IMPORT_NAME) if logger is None else logger
+    global logger  # ruff: ignore[global-variable-not-assigned]
+    target = logger if log is None else log
     result = report()
     for problem in result["problems"]:
         target.warning("scikitplot installation problem: %s", problem)

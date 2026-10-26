@@ -367,3 +367,17 @@ div.admonition.admonition-youtube > .admonition-title::after {
   color: hsl(0, 100%, 50%);
   content: "\f26c"; /* fa-solid fa-tv */
 }
+
+/* Hide the extra plain download entries shown in the pasted HTML
+.sidebar-secondary-item > div[title$=".py"],
+.sidebar-secondary-item > div[title$=".ipynb"],
+.sidebar-secondary-item > div[title$=".zip"] {
+  display: none !important;
+}
+ */
+
+/* Hide the separate plain JupyterLite/Binder badge group
+.sidebar-secondary-item:has(> div > a > img[alt^="Launch "]) {
+  display: none !important;
+}
+ */

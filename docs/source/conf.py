@@ -1129,11 +1129,13 @@ html_theme_options = {
     # Use :html_theme.sidebar_secondary.remove: for file-wide removal
     # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/layout.html#secondary-sidebar-right
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_sidebars
+    # 0. Use a dictionary with glob patterns to customize sidebars per section:
     "secondary_sidebar_items": {
         # Generated docs > On this page > Show Source
         # Regular docs > On this page > Show Source
         # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
-        "**": [
+        # 1. For all Sphinx-Gallery example pages: use gallery download & launcher links, no "sourcelink"
+        "auto_examples/**/*": [
             "page-toc",
             # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
             # (recommended) Canonical Sphinx-Gallery components sidebar manually add
@@ -1153,8 +1155,14 @@ html_theme_options = {
             "sg_launcher_links",
             # *(["edit-this-page"] if "dev" in release else []),
             "edit-this-page",
-            "sourcelink",
+            # "sourcelink",  # cause doubling sg_download_links and sg_launcher_links
             # "funding_links",
+        ],
+        # 2. For all other pages (API docs, user guides, index, etc.): use standard sourcelink
+        "**": [
+            "page-toc",
+            "edit-this-page",
+            "sourcelink",
         ],
     },
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_show_sourcelink

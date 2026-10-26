@@ -278,8 +278,10 @@ def test_single_vector():
     - get_n_items returns correct count
     - get_nns_by_vector returns the only item
     """
-    import faulthandler
-    faulthandler.enable()
+    # No faulthandler.enable() here: pytest enables it for the whole session
+    # on a copy of stderr. Enabled again inside a test it writes to that
+    # test's captured stderr, and every later crash of the session dies
+    # without a traceback (the corpus segfault of CI run 40244733381).
 
     # Initialize a 3-dimensional angular index
     a = AnnoyIndex(3, "angular")

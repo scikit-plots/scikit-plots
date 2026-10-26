@@ -188,6 +188,10 @@ jobs:
 
     env:
       SETUPTOOLS_USE_DISTUTILS: local
+      # Where the libraries keep downloaded models (the Hugging Face Hub
+      # cache). The models are fetched before the tests, and the tests run
+      # with the network switched off for them (see the test step).
+      HF_HOME: ${{ github.workspace }}/.cache/huggingface
 
     steps:
       - name: "⬇️ Checkout (cloned) repository with full history"
@@ -213,52 +217,67 @@ jobs:
 
       - name: "📦 Install dependencies"
         run: |
-          # sudo apt-get install tesseract-ocr
-          python -m pip install --upgrade pip
-
-          pip install pytest pytest-cov
-          pip install beautifulsoup4 markdownify
-          pip install lxml polars pyarrow
-
-          pip install gradio streamlit flask
-          pip install nltk spacy gensim langdetect cryptography \
-                      faster-whisper openai-whisper \
-                      pytesseract youtube-transcript-api
-
-          # Verify whether installed Python packages have compatible dependencies.
-          pip check
-
-          # The same two scripts serve Docker images, the devcontainer and
-          # the documentation build; see their headers for the options.
-          bash docker/scripts/install_nltk.sh
-          bash docker/scripts/install_spacy.sh
-
-      - name: "🔨 Build library"
-        run: |
           set -Eeuo pipefail
           # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          python -m pip install --upgrade pip
+
           # pip install -r ./requirements/build.txt
+          # pip install -r ./requirements/dev.txt
+          # pip install -r ./requirements/doc.txt
+          # pip install -r ./requirements/test.txt
           pip install -r requirements/all.txt
 
-          # tf need for documentation examples
-          # pip install -r ./requirements/gpu.txt
-          pip install -r ./requirements/cpu.txt
-          pip install -r ./requirements/mlflow.txt
-          pip install -r ./requirements/corpus.txt
           pip install -r ./requirements/cleanprompt.txt
+          # tf need for documentation examples
+          pip install -r ./requirements/cpu.txt
+          pip install -r ./requirements/corpus.txt
+          pip install -r ./requirements/mcp.txt
+          pip install -r ./requirements/mlflow.txt
 
-          # Resolve distutils conflict before any setuptools-dependent install
-          # export SETUPTOOLS_USE_DISTUTILS=local
-          # pip install "setuptools>=69"
-          # ✅ It’s a distutils override conflict, pythran cause setuptools<60
-          pip install -U setuptools
+          # sudo apt-get install tesseract-ocr
+          # pip install pytesseract
 
+          pip install coverage
+          pip install polars pyarrow
+          pip install httpx gradio streamlit flask fastapi
           pip install nltk spacy
 
           # The same two scripts serve Docker images, the devcontainer and
           # the documentation build; see their headers for the options.
           bash docker/scripts/install_nltk.sh
           bash docker/scripts/install_spacy.sh
+
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check || true
+
+      # The models the tests load, fetched once and kept between runs, so no
+      # test downloads one: a test that did took 110 s here, and in a run
+      # without network it fell back silently. The key covers the script and
+      # its default model list; a model is a few hundred MB to 1.1 GB.
+      - name: "📦 Restore the models the tests load"
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.HF_HOME }}
+          key: models-${{ runner.os }}-${{ hashFiles('docker/scripts/install_models.py', 'docker/scripts/install_sentence_transformers.sh') }}
+
+      - name: "📦 Fetch the models the tests load, and prove they load offline"
+        run: |
+          set -Eeuo pipefail
+          # Only the models a test asks for: a run with HF_HUB_OFFLINE=1 and a
+          # recorder of refused fetches over corpus, datasets, cleanprompt,
+          # _lib, tests and utils found one, this default. Add a model here
+          # (or SENTENCE_TRANSFORMERS_MODELS) when a test needs another; the
+          # script fails with the library's error if it does not load.
+          bash docker/scripts/install_sentence_transformers.sh
+
+      - name: "🔨 Build library"
+        run: |
+          set -Eeuo pipefail
+          # Resolve distutils conflict before any setuptools-dependent install
+          # export SETUPTOOLS_USE_DISTUTILS=local
+          # pip install "setuptools>=69"
+          # ✅ It’s a distutils override conflict, pythran cause setuptools<60
+          pip install -U setuptools
 
           # pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
           python -m pip install --no-build-isolation --no-cache-dir -e . -v
@@ -290,6 +309,19 @@ jobs:
           SKPLT_TEST_PERF_DIR: reports/perf
           SKPLT_TEST_PERF_LABEL: ${{ matrix.name }}
           SKPLT_TEST_PERF_PROFILE: ${{ inputs.profile_tests }}
+          # Models come from the cache filled above; nothing is downloaded
+          # while tests run, and a model missing from it fails to load with
+          # the library's own "not in the cache" error instead of a slow or
+          # silent download (the header line "model cache" names what is there).
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          # Test trees that load TensorFlow into the test process. They run in
+          # a second pytest session (below): with TensorFlow loaded first, a
+          # later import of triton (torch._dynamo, transformers,
+          # sentence-transformers) ends the process with SIGSEGV and no Python
+          # error, which lost every result after 62 percent of run 40244733381.
+          # In the main session these trees skip themselves (their conftest).
+          TENSORFLOW_SUITES: scikitplot/visualkeras
           # No repository secret is given to this step, on purpose. A pull
           # request from a fork has none, so a secret here makes a push test
           # something a pull request did not (HF_TOKEN once turned a passing
@@ -305,18 +337,52 @@ jobs:
           rm -f coverage.xml .coverage .coverage.*
           mkdir -p reports
           read -r -a paths <<<"$SHARD_PATHS"
+          read -r -a tf_suites <<<"$TENSORFLOW_SUITES"
+          # The TensorFlow suites inside this shard: a suite equal to or
+          # below a shard path, or a shard path below a suite.
+          tf_paths=()
+          for p in "${paths[@]}"; do
+            for s in "${tf_suites[@]}"; do
+              if [[ "$s" == "$p" || "$s" == "$p"/* ]]; then tf_paths+=("$s")
+              elif [[ "$p" == "$s"/* ]]; then tf_paths+=("$p")
+              fi
+            done
+          done
+          # Exit status 5 is "no tests collected": a submodule without tests
+          # is not a failure of the run.
+          run_session() {
+            local label="$1"; shift
+            local code=0
+            "$@" || code=$?
+            if [ "$code" -eq 5 ]; then
+              echo "::notice::no tests were collected in the $label session"
+              code=0
+            fi
+            return "$code"
+          }
           status=0
-          pytest "${paths[@]}" \
+          run_session main pytest "${paths[@]}" \
             --maxfail="$MAX_FAILURES" \
             --cov \
             --cov-branch \
             --cov-report= \
             --junitxml="reports/junit-${SHARD_NAME}.xml" || status=$?
-          # Exit status 5 is "no tests collected": a submodule without tests
-          # is not a failure of the run.
-          if [ "$status" -eq 5 ]; then
-            echo "::notice::no tests were collected for: $SHARD_PATHS"
-            status=0
+          # 139 is SIGSEGV (128 + 11): a native crash, not a test failure.
+          # The Python stack of the crash is printed above, just before it.
+          if [ "$status" -ge 128 ]; then
+            echo "::error::the test process ended by signal $((status - 128)) (exit $status); its Python stack is printed above the crash"
+          fi
+          if [ "${#tf_paths[@]}" -gt 0 ]; then
+            tf_status=0
+            SKPLT_TEST_TENSORFLOW=1 SKPLT_TEST_PERF_LABEL="${SHARD_NAME}-tensorflow" \
+              run_session TensorFlow pytest "${tf_paths[@]}" \
+              --maxfail="$MAX_FAILURES" \
+              --cov \
+              --cov-append \
+              --cov-branch \
+              --cov-report= \
+              --junitxml="reports/junit-${SHARD_NAME}-tensorflow.xml" || tf_status=$?
+            if [ "$status" -eq 0 ]; then status="$tf_status"; fi
           fi
           exit "$status"
 

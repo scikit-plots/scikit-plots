@@ -14,7 +14,7 @@ scikitplot/annoy/
   tests/                            inherited/upstream-style Annoy tests
 
 maintenances/annoy/                 maintenance plane only
-skills/annoy/SKILL.md               fresh-chat routing only
+skills/scikitplot-annoy-dev/SKILL.md               fresh-chat routing only
 ```
 
 Do not add maintenance imports to runtime code. Do not vendor upstream Annoy

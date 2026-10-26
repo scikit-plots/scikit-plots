@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 import sys
@@ -24,6 +25,19 @@ def _json_error(path: Path) -> str | None:
     except Exception as exc:
         return f"invalid family schema JSON {path.name}: {exc}"
     return None
+
+
+#: The frontmatter line a family skill carries (enforced by check_records.py).
+_FAMILY_MIRROR = re.compile(r'^\s+scikitplot-mirror:\s*"_externals/_sphinx_ext/[^"]+"\s*$', re.M)
+
+
+def _family_skill_roots(repo: Path) -> list[Path]:
+    """Return ``skills/<name>/`` for every skill that mirrors a family package."""
+    roots = []
+    for skill in sorted((repo / "skills").glob("*/SKILL.md")):
+        if _FAMILY_MIRROR.search(skill.read_text(encoding="utf-8", errors="ignore")):
+            roots.append(skill.parent)
+    return roots
 
 
 def _residue(paths: list[Path]) -> list[str]:
@@ -109,8 +123,9 @@ def main() -> int:
         pass
     repo = discover_repository_root(FAMILY)
     if repo is not None:
-        skill_family = repo / "skills" / "_externals" / "_sphinx_ext"
-        residue_roots.append(skill_family)
+        # Skills are flat (skills/<name>/, Rule 164); the family's are the
+        # ones whose metadata mirrors a path below _externals/_sphinx_ext/.
+        residue_roots.extend(_family_skill_roots(repo))
     for path in _residue(residue_roots):
         family_errors.append(f"cache/compiled residue: {path}")
 

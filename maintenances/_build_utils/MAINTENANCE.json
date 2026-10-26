@@ -3,7 +3,7 @@
   "subsystem": "scikitplot._build_utils",
   "runtime_root": "scikitplot/_build_utils",
   "maintenance_root": "maintenances/_build_utils/_maintenance",
-  "skill": "skills/_build_utils/SKILL.md",
+  "skill": "skills/scikitplot-build-utils-dev/SKILL.md",
   "owned_findings": [
     "BLD-CYG-001",
     "BLD-CYG-002",
@@ -19,7 +19,7 @@
     "maintenances/_build_utils/_maintenance/STATE.json",
     "maintenances/_build_utils/_maintenance/FAMILY.md",
     "maintenances/_build_utils/_maintenance/VERIFICATION.md",
-    "skills/_build_utils/SKILL.md"
+    "skills/scikitplot-build-utils-dev/SKILL.md"
   ],
   "runtime_contract": {
     "inventory": {

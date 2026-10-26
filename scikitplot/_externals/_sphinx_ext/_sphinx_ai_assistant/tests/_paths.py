@@ -70,9 +70,7 @@ def _skill_root() -> Path:
     return (
         __getattr__("REPOSITORY_ROOT")
         / "skills"
-        / "_externals"
-        / "_sphinx_ext"
-        / "_sphinx_ai_assistant"
+        / "scikitplot-sphinx-ai-assistant-dev"
     )
 
 

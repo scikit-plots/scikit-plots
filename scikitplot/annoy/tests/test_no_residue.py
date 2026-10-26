@@ -88,7 +88,7 @@ def _run_suite(directory, modules):
         text=True,
         env=env,
         cwd=str(directory),  # node ids relative to the run's own root
-        timeout=5.0,
+        timeout=60.0,
         check=False,
     )
     return done.returncode, done.stdout + done.stderr

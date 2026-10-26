@@ -45,6 +45,8 @@ COPIED = (
     "tasks",
     "maintenances",
     "skills",
+    "agents",
+    "plugins",
     "docs/tasks",
     "docs/maintenances",
     "docs/skills",
@@ -85,7 +87,7 @@ def _failing(root: Path) -> dict[str, list[str]]:
 
 
 def _rules(root: Path, name: str) -> Path:
-    return root / "skills/_engineering/rules" / name
+    return root / "skills/scikitplot-engineering-rules/rules" / name
 
 
 def _append(path: Path, text: str) -> None:
@@ -170,8 +172,8 @@ class TestRules:
         assert "rules" not in _failing(tree)
 
     def test_a_rules_file_in_a_subfolder_fails(self, tree):
-        (tree / "skills/_engineering/rules/sub").mkdir()
-        (tree / "skills/_engineering/rules/sub/more.md").write_text(
+        (tree / "skills/scikitplot-engineering-rules/rules/sub").mkdir()
+        (tree / "skills/scikitplot-engineering-rules/rules/sub/more.md").write_text(
             "Categories: More\n\n### Rule 999: More - x\n", encoding="utf-8"
         )
         errors = _failing(tree)["rules"]
@@ -204,7 +206,7 @@ class TestRules:
 
     def test_a_name_in_prose_is_not_a_link(self, tree):
         """Review 5: a substring match counted ``rules/text.md`` in prose."""
-        path = tree / "skills/_engineering/SKILL.md"
+        path = tree / "skills/scikitplot-engineering-rules/SKILL.md"
         text = path.read_text(encoding="utf-8")
         path.write_text(
             text.replace("[`rules/text.md`](rules/text.md)", "`rules/text.md`"),
@@ -396,9 +398,10 @@ class TestSecondReview:
         assert "links" not in _failing(tree)
 
     def test_a_nested_skill_is_link_checked(self, tree):
-        """Finding 5: only skills/*/SKILL.md was checked."""
-        nested = next(p for p in (tree / "skills").glob("*/*/*/SKILL.md"))
-        _append(nested, "\n[x](gone.md)\n")
+        """Finding 5: only skills/*/SKILL.md was checked (skills are flat now)."""
+        nested = tree / "skills/scikitplot-annoy-dev/references/deep/SKILL.md"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("---\nname: x\ndescription: y\n---\n[x](gone.md)\n", encoding="utf-8")
         assert any("gone.md" in e for e in _failing(tree)["links"])
 
     def test_the_index_resolves_nested_areas_and_leaves(self):
@@ -456,3 +459,186 @@ def test_prove_rebuilds_the_move():
         pytest.skip("the 4R-1 move is not in this history")
     assert records["prove"](ROOT, move) == []
     assert main(["--root", str(ROOT), "--prove", move]) == 0
+
+
+derived_skill_names = records["derived_skill_names"]
+parse_skill_frontmatter = records["parse_skill_frontmatter"]
+skill_mirrors = records["skill_mirrors"]
+
+
+def _skill(root: Path, folder: str, base: str = "skills") -> Path:
+    return root / base / folder / "SKILL.md"
+
+
+USAGE = "plugins/scikitplot/skills"
+
+
+def _set_line(path: Path, prefix: str, line: str) -> None:
+    text = path.read_text(encoding="utf-8").split("\n")
+    (index,) = [i for i, old in enumerate(text) if old.startswith(prefix)]
+    text[index] = line
+    path.write_text("\n".join(text), encoding="utf-8")
+
+
+def _skills_errors(tree: Path) -> list[str]:
+    return _failing(tree).get("skills", [])
+
+
+class TestSkills:
+    """Rules 164 and 165: the specification, the names, the mirror, the agents."""
+
+    def test_the_real_tree_passes(self):
+        assert "skills" not in _failing(ROOT)
+
+    def test_both_sets_are_found_through_their_metadata(self):
+        assert skill_mirrors(ROOT)["_cli"] == "scikitplot-cli-dev"
+        assert skill_mirrors(ROOT)["cexternals/_annoy"] == "scikitplot-cexternals-annoy-dev"
+        usage = records["usage_mirrors"](ROOT)
+        assert usage["annoy"] == "scikitplot-annoy"
+        assert usage[""] == "scikitplot"
+
+    def test_a_name_unlike_its_folder_fails(self, tree):
+        _set_line(_skill(tree, "scikitplot-cli-dev"), "name:", "name: scikitplot-cli")
+        assert any("must equal its folder" in e for e in _skills_errors(tree))
+
+    @pytest.mark.parametrize("name", ["_cli", "Cli-dev", "cli--dev", '"-cli"', "a" * 65])
+    def test_a_name_outside_the_specification_fails(self, tree, name):
+        _set_line(_skill(tree, "scikitplot-cli-dev"), "name:", f"name: {name}")
+        assert any("must be 1-64 characters" in e for e in _skills_errors(tree))
+
+    def test_a_nested_skill_fails(self, tree):
+        nested = tree / "skills/scikitplot-annoy-dev/inner/SKILL.md"
+        nested.parent.mkdir()
+        nested.write_text("---\nname: inner\ndescription: d\n---\n", encoding="utf-8")
+        assert any("a skill is skills/<name>/SKILL.md" in e for e in _skills_errors(tree))
+
+    def test_a_plain_value_yaml_reads_differently_fails(self, tree):
+        """The mlflow skill's unquoted 'scikitplot.mlflow: ...' broke its YAML."""
+        _set_line(
+            _skill(tree, "scikitplot-mlflow-dev"),
+            "description:",
+            "description: Maintain scikitplot.mlflow: servers and sessions.",
+        )
+        assert any("put it in double quotes" in e for e in _skills_errors(tree))
+
+    def test_a_dev_skill_without_a_mirror_fails(self, tree):
+        path = _skill(tree, "scikitplot-cli-dev")
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace('metadata:\n  scikitplot-mirror: "_cli"\n', ""), encoding="utf-8")
+        assert any("names the path it maintains" in e for e in _skills_errors(tree))
+
+    def test_a_mirror_that_is_no_path_fails(self, tree):
+        _set_line(_skill(tree, "scikitplot-cli-dev"), "  scikitplot-mirror:", '  scikitplot-mirror: "_nope"')
+        assert any("is neither a package" in e for e in _skills_errors(tree))
+
+    def test_an_unprefixed_name_fails(self, tree):
+        """'annoy-maintainer' named no project (the reason for the prefix)."""
+        old, new = tree / "skills/scikitplot-annoy-dev", tree / "skills/annoy-maintainer"
+        old.rename(new)
+        _set_line(new / "SKILL.md", "name:", "name: annoy-maintainer")
+        assert any(
+            "is named 'scikitplot-annoy-dev' (Rule 164)" in e for e in _skills_errors(tree)
+        )
+
+    def test_a_usage_name_other_than_the_derived_one_fails(self, tree):
+        old, new = tree / USAGE / "scikitplot-annoy", tree / USAGE / "annoy"
+        old.rename(new)
+        _set_line(new / "SKILL.md", "name:", "name: annoy")
+        assert any(
+            "usage skill for 'scikitplot.annoy' is named 'scikitplot-annoy'" in e
+            for e in _skills_errors(tree)
+        )
+
+    def test_two_skills_for_one_path_fail(self, tree):
+        _set_line(_skill(tree, "scikitplot-brand-dev"), "  scikitplot-mirror:", '  scikitplot-mirror: "_cli"')
+        assert any("already has skill" in e for e in _skills_errors(tree))
+
+    def test_a_folder_without_a_skill_fails(self, tree):
+        (tree / "skills/_externals").mkdir()
+        assert any("no SKILL.md" in e for e in _skills_errors(tree))
+
+    def test_a_hand_edited_agent_fails_and_write_index_repairs_it(self, tree):
+        agent = tree / "agents/scikitplot-annoy-dev.md"
+        agent.write_text(agent.read_text(encoding="utf-8") + "extra\n", encoding="utf-8")
+        assert any("agents/scikitplot-annoy-dev.md is out of date" in e for e in _skills_errors(tree))
+        records["write_indexes"](tree)
+        assert "skills" not in _failing(tree)
+
+    def test_an_agent_without_its_skill_fails(self, tree):
+        (tree / "plugins/scikitplot/agents/scikitplot-gone.md").write_text("x\n", encoding="utf-8")
+        assert any("no skill has this agent" in e for e in _skills_errors(tree))
+
+    def test_every_skill_with_a_path_or_module_has_its_agent(self):
+        for folder in skill_mirrors(ROOT).values():
+            assert (ROOT / "agents" / f"{folder}.md").is_file(), folder
+        for folder in records["usage_mirrors"](ROOT).values():
+            assert (ROOT / "plugins/scikitplot/agents" / f"{folder}.md").is_file(), folder
+
+    def test_a_stale_skill_index_fails_and_write_index_repairs_it(self, tree):
+        (tree / "skills/INDEX.md").write_text("# stale\n", encoding="utf-8")
+        assert any("skills/INDEX.md is out of date" in e for e in _skills_errors(tree))
+        records["write_indexes"](tree)
+        assert "skills" not in _failing(tree)
+
+
+class TestDerivedSkillNames:
+    def test_a_public_and_a_private_twin_get_two_names(self):
+        names = derived_skill_names({"externals", "_externals", "utils", "_utils"})
+        assert names == {
+            "externals": "externals",
+            "_externals": "internal-externals",
+            "utils": "utils",
+            "_utils": "internal-utils",
+        }
+
+    def test_the_path_nearer_the_root_keeps_the_short_name(self):
+        names = derived_skill_names(
+            {"annoy", "annoy/_annoy", "cexternals", "cexternals/_annoy", "cexternals/_annoy/annoy"}
+        )
+        assert names["annoy"] == "annoy"
+        assert names["cexternals/_annoy"] == "cexternals-annoy"
+        assert names["annoy/_annoy"] == "annoy-annoy"
+        assert names["cexternals/_annoy/annoy"] == "cexternals-annoy-annoy"
+        assert len(set(names.values())) == len(names)
+
+    def test_a_unique_leaf_is_enough(self):
+        names = derived_skill_names({"_externals", "_externals/_sphinx_ext", "_externals/_sphinx_ext/_sphinx_feedback"})
+        assert names["_externals/_sphinx_ext/_sphinx_feedback"] == "sphinx-feedback"
+
+    def test_every_real_path_gets_a_distinct_name(self):
+        names = derived_skill_names(records["mirror_keys"](ROOT))
+        assert len(set(names.values())) == len(names)
+        assert all(len("scikitplot-") + len(n) + len("-dev") <= 64 for n in names.values())
+
+
+class TestSkillFrontmatter:
+    @pytest.mark.parametrize(
+        ("text", "fields"),
+        [
+            ("---\nname: a\ndescription: b c\n---\n", {"name": "a", "description": "b c"}),
+            ('---\nname: a\ndescription: "x: y"\n---\n', {"name": "a", "description": "x: y"}),
+            ("---\nname: a\ndescription: 'it''s'\n---\n", {"name": "a", "description": "it's"}),
+            (
+                '---\nname: a\ndescription: d\nmetadata:\n  scikitplot-mirror: "_cli"\n---\n',
+                {"name": "a", "description": "d", "metadata": {"scikitplot-mirror": "_cli"}},
+            ),
+        ],
+    )
+    def test_the_subset_is_read(self, text, fields):
+        assert parse_skill_frontmatter(text) == (fields, [])
+
+    @pytest.mark.parametrize(
+        ("text", "problem"),
+        [
+            ("name: a\n", "does not start"),
+            ("---\nname: a\n", "no closing"),
+            ("---\nname: a\nname: b\n---\n", "given twice"),
+            ("---\n  x: y\n---\n", "indented outside"),
+            ("---\ndescription: >\n---\n", "put it in double quotes"),
+            ('---\ndescription: "open\n---\n', "unterminated"),
+            ("---\ndescription: a #b\n---\n", "put it in double quotes"),
+        ],
+    )
+    def test_anything_else_is_a_problem(self, text, problem):
+        _, problems = parse_skill_frontmatter(text)
+        assert any(problem in p for p in problems), problems

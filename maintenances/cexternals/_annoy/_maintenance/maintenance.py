@@ -18,7 +18,7 @@ MODULE = "scikitplot.cexternals._annoy"
 RUNTIME = "scikitplot/cexternals/_annoy"
 MAINT = "maintenances/cexternals/_annoy"
 CONTROL = MAINT + "/_maintenance"
-SKILL = "skills/cexternals/_annoy/SKILL.md"
+SKILL = "skills/scikitplot-cexternals-annoy-dev/SKILL.md"
 KINDS = {
     "annoy": "direct_source_and_native_api",
     "random": "direct_source",
@@ -406,7 +406,7 @@ def handoff_checks(root, manifest):
     skill = safe_path(root, SKILL).read_text(encoding="utf-8")
     require(skill.startswith("---\n") and "\n---\n" in skill[4:], "skill frontmatter missing")
     front = skill.split("---", 2)[1]
-    require(re.search(r"^name: annoy-source-maintainer$", front, re.M)
+    require(re.search(r"^name: scikitplot-cexternals-annoy-dev$", front, re.M)
             and re.search(r"^description: .+", front, re.M), "invalid _annoy skill identity")
     for rel in manifest["read_order"]:
         if rel not in skill:

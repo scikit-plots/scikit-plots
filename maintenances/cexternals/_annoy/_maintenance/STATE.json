@@ -8,7 +8,7 @@
   },
   "scope": [
     "maintenances/cexternals/_annoy",
-    "skills/cexternals/_annoy"
+    "skills/scikitplot-cexternals-annoy-dev"
   ],
   "status": "maintenance_verified",
   "next_action": "Run the maintenance gate and tests from the full repository. Onboard each next selected submodule independently. Native source changes and runtime validation remain outside this slice.",
@@ -31,7 +31,7 @@
       "id": "AM-003",
       "status": "resolved",
       "summary": "The _annoy skill directory was empty.",
-      "evidence": "skills/cexternals/_annoy/SKILL.md now routes to this subsystem and six typed consumers.",
+      "evidence": "skills/scikitplot-cexternals-annoy-dev/SKILL.md now routes to this subsystem and six typed consumers.",
       "next_action": "Continue onboarding other modules independently when requested."
     },
     {

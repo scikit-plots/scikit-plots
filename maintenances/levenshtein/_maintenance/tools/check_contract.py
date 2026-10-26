@@ -14,7 +14,7 @@ RUNTIME = ROOT / "scikitplot" / "levenshtein"
 MAINT = ROOT / "maintenances" / "levenshtein"
 DOCS = ROOT / "docs" / "source" / "user_guide" / "levenshtein"
 GALLERY = ROOT / "galleries" / "examples" / "levenshtein"
-SKILL = ROOT / "skills" / "levenshtein" / "SKILL.md"
+SKILL = ROOT / "skills" / "scikitplot-levenshtein-dev" / "SKILL.md"
 
 REQUIRED_RUNTIME = {
     "__init__.py",
@@ -101,7 +101,7 @@ def check() -> dict[str, object]:
     for required in sorted(REQUIRED_GALLERY - gallery_files):
         maintenance_errors.append(f"missing gallery file: {required}")
     if not SKILL.is_file():
-        maintenance_errors.append("missing skills/levenshtein/SKILL.md")
+        maintenance_errors.append("missing skills/scikitplot-levenshtein-dev/SKILL.md")
 
     guide_index = ROOT / "docs" / "source" / "user_guide" / "index.rst"
     if guide_index.is_file():

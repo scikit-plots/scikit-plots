@@ -87,3 +87,5 @@ Further reading
 .. seealso::
 
    * https://github.com/paulgavrikov/visualkeras
+   * https://github.com/triton-lang/triton/
+   * https://triton-lang.org/main/getting-started/installation.html

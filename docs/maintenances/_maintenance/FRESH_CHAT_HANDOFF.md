@@ -17,7 +17,7 @@ For a submodule such as `scikitplot/annoy`:
 
 1. read `maintenances/annoy/MAINTAINING.md`;
 2. read current state/evidence files named by that entry point;
-3. read `skills/annoy/SKILL.md` if it exists;
+3. read `skills/scikitplot-annoy-dev/SKILL.md` if it exists;
 4. inspect the runtime, docs, tests and build files that the task actually
    touches.
 

@@ -313,6 +313,17 @@ User Guide
 
             ./_brand/index.rst
 
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
+        **environment builder**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            ./_env/index.rst
+
 
 .. _under-development:
 

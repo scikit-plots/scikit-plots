@@ -16,7 +16,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 - Precedent in the tree: `maintenances/<sub>/` (state and evidence),
   `skills/<sub>/` (fresh-session routing), `maintenances/<sub>/todo/`
   (`_sphinx_ext` family; its checker already retires a `tasks/` folder).
-- Decisions (maintainer, 2026-10-16): lessons to `skills/_engineering/` by
+- Decisions (maintainer, 2026-10-16): lessons to `skills/scikitplot-engineering-rules/` by
   category; `tasks/` keeps only a router README; completed rounds archived
   per plane; done now, before 4c.
 
@@ -35,7 +35,7 @@ the record planes themselves. Completed tasks are archived verbatim under
   - `maintenances/_repo/` - CI, `libs/`, labeling: partial distributions,
     rounds 2-8, 31, 32, the old `tasks/removed-files.txt`.
   - `docs/tasks/` - the documentation site as a whole (active tasks, pointers).
-  - `skills/_engineering/` - the rules in 12 category files, numbers
+  - `skills/scikitplot-engineering-rules/` - the rules in 12 category files, numbers
     unchanged; generated `INDEX.md`; `PATTERNS.md`.
   - `tasks/README.md` - router only.
 - Two commits (Rule 124): `4R-1` is the pure move, proved lossless (the
@@ -55,7 +55,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 - [x] router, `SKILL.md`, `docs/tasks/`, this area's `MAINTAINING.md`;
       pointers in `docs/maintenances/MAINTAINING.md`, `docs/skills/README.md`,
       `maintenances/__init__.py`, `maintenances/corpus/MAINTAINING.md`,
-      `skills/corpus/SKILL.md`, `skills/cleanprompt/SKILL.md`, cleanprompt
+      `skills/scikitplot-corpus-dev/SKILL.md`, `skills/scikitplot-cleanprompt-dev/SKILL.md`, cleanprompt
       `RESUME.md` and `FRESH_CHAT_HANDOFF.md`, `libs/_tools/registry.py`
 - [x] six rules repointed from `tasks/todo.md` to the archives (29, 31, 35,
       66, 69, 100); Rule 124
@@ -175,7 +175,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 - [x] analyzer + tests (unittest, standard library, as the plan job runs them)
 - [x] dogfood: record the run168 module and `security/` here; bundle; compare
 - [x] workflow: gate, uploads, recorder env, `profile_tests`, report step
-- [x] `.github/ci/README.md` sections 12-13; `skills/_repo/SKILL.md`; Makefile targets
+- [x] `.github/ci/README.md` sections 12-13; `skills/scikitplot-repo-dev/SKILL.md`; Makefile targets
 - [x] rules for the lessons (131-137); `upcoming_changes/` notes; run168
       instrumentation removed
 - [x] analyzer hardening: every field it reads is type-checked (bad lines are
@@ -277,7 +277,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 
 ### Context
 - Goal: every submodule's tests pass on their own and in the full suite,
-  each failure fixed at its root cause under `skills/_engineering/rules/`
+  each failure fixed at its root cause under `skills/scikitplot-engineering-rules/rules/`
   (logging.md 138-141, module_submodule_actual_mock_patch.md 142-146,
   numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
   assertions). One submodule per session; a session starts here
@@ -286,33 +286,12 @@ the record planes themselves. Completed tasks are archived verbatim under
   records check `ok rules` (router and archives failures pre-existing).
 
 ### Known failures and their causes
-- Fixed (steps 1, 1b): log capture that depended on the pytest release
-  because `"scikitplot"` has `propagate = False` (Rule 139):
-  `annoy/tests/test_bundle_directory.py:413,469`, `test__threads.py:147`
-  (fail 9.0.3, pass 9.1.1); `corpus/_embeddings/tests/test__cache_policy.py:111`,
-  `corpus/_chunkers/tests/test__semantic.py:141`,
-  `corpus/_embeddings/tests/test__embedding.py:1074` (hand-attached
-  handler plus `caplog.at_level`: counted twice, fail 9.1.1). Also the blind
-  negative test `test__threads.py:157` (Rule 153), absolute imports (142),
-  string logger names (140), one string patch target (144).
-- Fixed (step 1): annoy benchmarks. `bench_annoy.py` runs clean; `make
-  bench-pair` ran the GC comparison (name defined three times) and `make
-  bench-quick` does not exist (Rule 154). The user's output of 2026-10-23
-  was not attached: the reproducible cause, not a confirmed match.
-- Fixed: CodeQL alerts 231, 232 (`actions/cache-poisoning/poisonable-step`,
-  PR 867): `ci_performance.yml` built `inputs.base_ref`, any ref, with a pip
-  cache; the base is now a commit of the default branch (Rule 155).
-- Fixed (steps 2, 3; verify run 40090107726): timeout tests whose blocked side
-  slept 0.01 s against a 0.1-1 s limit (Rule 156): `_utils/tests/test_timeout.py`
-  (3; `run_with_timeout` also took whole seconds only, now `setitimer`),
-  `cleanprompt/tests/test__bridge.py` (2), `test__patterns.py` (1),
-  `cython/tests/test__budget.py` (1). `logging/_logging.py:_is_jupyter_notebook`
-  read `get_ipython.config` instead of calling it (`test__logging.py:250`).
-  `_sphinx_feedback/tests/test_service_logging.py`: the depth-derived logger
-  name was not the service's (`"sphinx_feedback.service"`), so its INFO
-  records were kept only under a pytest.ini (Rule 140).
-  `_utils/tests/test__export.py:92`: a function as a subtest parameter
-  failed pytest 9.0 with xdist (Rule 157).
+- Fixed, with the rule each one added or applied: annoy and corpus log
+  capture (139, 140, 142, 144, 153); annoy benchmarks via the Makefile (154);
+  CodeQL 231/232 (155); timeout tests in `_utils`, `cleanprompt`, `cython`
+  (156); the notebook check (`_logging._is_jupyter_notebook`); the feedback
+  log test (140); a function as a subtest parameter (157). Details: the
+  rules' "Added" lines.
 - Hand-attached captures still passing: `corpus/tests/test__atomic_durability.py`,
   `test__backends_discarded_options.py`, `_chunkers/tests/test__notices_and_scripts.py`,
   and 8 files outside corpus (step 5).
@@ -368,32 +347,54 @@ the record planes themselves. Completed tasks are archived verbatim under
   and uses it from the root: a venv outside the tree fails to configure
   unless `numpy-include-dir` is given.
 
-### Results Review - TF-1 steps 0, 1, 1b and CodeQL 231/232 - 2026-10-24
-- Environment: Python 3.11.17, editable meson build, pytest 9.0.3 and 9.1.1,
-  pytest-xdist 3.8.0; `_capture.py` and its tests also on Python 3.8.20
-  with pytest 8.3.5. Evidence files: the delivery's `tf1-evidence.zip`.
-- annoy (both versions): one file 37 and 78 passed; directory and `-n auto`
-  803 passed, 2 skipped, 1 xfailed (uploaded tree: 3 failed under 9.0.3).
-  Rule 153 probe: the new negative test fails when the code logs, the
-  replaced one passed under 9.0.3. Benchmarks: quick 0 errors; `make
-  bench-pair` A/A `0 slower, 0 faster`.
-- Step 0: 29 capture tests; with `--confcutdir` on annoy, corpus and
-  `_sphinx_ext` the fixture is still provided (uploaded `_sphinx_ext`: not).
-- Corpus `-n auto`, every failure (both versions): 14, all DNS-only; the
-  three changed files 83 and 144 passed.
-- Workflow: CodeQL 2.27.3 (`codeql/actions-queries` 0.6.38,
-  `actions-security-extended`, all 38 workflows): uploaded tree gives
-  alerts 231, 232 and an untrusted checkout, changed tree none; actionlint
-  clean; zizmor 1.31.1 clean on both trees (it does not see this); the base
-  step run on a fixed repository gives the expected commit or `exit 2`.
-- Checks: rule greps, ruff 0.16.9 (no new finding), black 26.5.1 on written
-  lines, codespell, numpydoc, ASCII: clean.
-- Deviation: one `git stash` during the first bench-pair run (Rule 22); the
-  pair was re-run after the last edit.
-- Steps 2-3 (both pytest versions, repository and verify-harness mode,
-  `--pyargs` from an empty directory without pytest.ini): `test_timeout.py` 26,
-  `test__budget.py` 10, `test__bridge.py` 36, `test__patterns.py` 241,
-  `scikitplot/logging` 202 (also Python 3.8), `test_service_logging.py` 2
-  passed; the feedback failure reproduced in harness mode before the fix.
-- Not verified: a dispatch of the changed workflow on GitHub; the verify
-  harness itself (wheels) was not run here.
+### Results Review - TF-1 steps 0-3 and CodeQL 231/232 - 2026-10-24
+- Python 3.11.17, pytest 9.0.3 and 9.1.1, with and without `-n auto`, also in
+  verify-harness mode (`--pyargs`, no pytest.ini); `_capture.py` also on 3.8.
+  annoy 803 passed (uploaded tree: 3 failed under 9.0.3); corpus: only the
+  DNS tests fail; `_utils`, `logging`, `cleanprompt`, `cython`,
+  `_sphinx_feedback` pass. CodeQL 2.27.3 over all workflows: alerts 231 and
+  232 before, none after. Evidence: the deliveries' `tf1-evidence.zip`.
+- Deviation: one `git stash` during a bench-pair run (Rule 22); re-run after.
+- Not verified: a dispatch of the changed workflow; the wheel-based harness.
+
+## Task: CI-1 - the segfault of CI run 40244733381, offline models (2026-10-26)
+
+- Done; archived verbatim in
+  [`ci1_segfault.md`](../_maintenance/history/ci1_segfault.md).
+  Root causes: TensorFlow loaded before triton (visualkeras conftest,
+  two torch tests; Rule 158), faulthandler re-targeted by a test (159),
+  cProfile hiding pytest's status (161), `rank_bm25` copy drift. Models
+  fetched and cached by `docker/scripts/install_*.sh`, tests offline (160).
+- Results: the next CI run (PR 869, 2026-10-26) finished, no exit 139:
+  6 failed, 25186 passed; those six are CI-2.
+
+## Task: CI-2 - the six remaining failures and CodeQL 233/234 (2026-10-26)
+
+- Done; archived verbatim in
+  [`ci2_remaining_failures.md`](../_maintenance/history/ci2_remaining_failures.md)
+  (Rules 162, 163; 138, 139, 146 amended).
+
+## Task: CI-3 - skill names and folders (2026-10-26)
+
+- Done; archived verbatim in
+  [`ci3_skill_names.md`](../_maintenance/history/ci3_skill_names.md) (Rule 164).
+
+## Task: CI-4 - scikitplot-* skills for users and developers, agents, plugins (2026-10-26)
+
+- Why: `<x>-maintainer` named no project, so it was unclear and could collide
+  outside this checkout; and the skills only maintained the repo (they point at
+  `maintenances/`), so nobody could use them in another project.
+- Done: development skills `skills/scikitplot-<x>-dev/` (+
+  `scikitplot-engineering-rules`); usage skills
+  `plugins/scikitplot/skills/scikitplot[-<x>]/`, generated from `__all__` and
+  docstrings (`tools/maint_tools/generate_usage_skills.py`, policy in
+  `pyproject.toml`); one agent per skill, generated by `check_records.py`;
+  plugins `scikitplot` (users) and `scikitplot-dev` (repo root) in
+  `.claude-plugin/marketplace.json`; labeler `{usage}`; Rules 164, 165.
+- Results: 53 skills valid (`agentskills validate`); `claude plugin validate`
+  passes (warning: no `version`); both plugins install and list 22 + 31
+  skills, 22 + 29 agents; `ok skills`; generator check stable across runs.
+- Open: agent `skills:` preloading not exercised at runtime (needs a model
+  session); modules without `__all__` (datasets, nc, stats, utils,
+  cexperimental, neighbors) and `visualkeras` (no docstring) get no or thin
+  usage text until their API is declared.

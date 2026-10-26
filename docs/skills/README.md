@@ -1,14 +1,42 @@
 # Scikit-Plots skills entry point
 
-`skills/` contains operational instructions for maintaining specific
-Scikit-Plots areas. This document explains how to select and use those skills
-without relying on a previous chat or a memorized repository map.
+scikit-plots ships two sets of skills, each skill with an agent of the same
+name (Rules 164 and 165):
 
-The authoritative skill content is `skills/<area>/SKILL.md`. Files under
-`docs/skills/` are navigation and repository-wide policy only; do not duplicate
-module-specific instructions here.
+| Set | Skills | Agents | For |
+|---|---|---|---|
+| Development | `skills/scikitplot-<x>-dev/` | `agents/scikitplot-<x>-dev.md` | working on scikit-plots in this checkout (plugin `scikitplot-dev`) |
+| Usage | `plugins/scikitplot/skills/scikitplot-<x>/` | `plugins/scikitplot/agents/scikitplot-<x>.md` | using scikit-plots in any project (plugin `scikitplot`) |
 
-`skills/_engineering/SKILL.md` is the one skill for every area: the numbered
+This document explains how to select and use the development skills without
+relying on a previous chat or a memorized repository map. The authoritative
+skill content is the skill's `SKILL.md`; files under `docs/skills/` are
+navigation and repository-wide policy only.
+
+Skills follow the [Agent Skills specification](https://agentskills.io/specification):
+one folder per skill directly under its skills directory, and the `name` in its
+frontmatter equals that folder (lowercase letters, digits and single hyphens, at
+most 64 characters). Every name starts with `scikitplot`, so it stays clear and
+unique next to other projects' skills. A development skill records the path it
+maintains as `metadata.scikitplot-mirror` (below `scikitplot/` and
+`maintenances/`, such as `_cli` or `_externals/_sphinx_ext/_sphinx_feedback`); a
+usage skill records its module as `metadata.scikitplot-module`. The name part
+`<x>` is derived from that path: its last part with underscores spelled as
+hyphens; the parent's part goes in front when a path nearer the root already has
+it (`cexternals/_annoy` gives `scikitplot-cexternals-annoy-dev` because `annoy`
+gives `scikitplot-annoy-dev`), and `internal-` when only a leading underscore
+tells two paths apart (`_externals` against `externals`).
+[`skills/INDEX.md`](../../skills/INDEX.md) is the generated table from package
+path to skills and agents of both sets.
+
+Install in Claude Code (`/plugin marketplace add scikit-plots/scikit-plots`,
+then `/plugin install scikitplot@scikit-plots` or
+`scikitplot-dev@scikit-plots`), or copy a skill folder into any tool that reads
+the Agent Skills format. The usage skills are generated from the package
+(`tools/maint_tools/generate_usage_skills.py`), the agents and indexes by
+`check_records.py --write-index`; neither is edited by hand.
+
+`skills/scikitplot-engineering-rules/SKILL.md` is the one skill for every area: the numbered
 engineering rules (verification, delivery, tests, contracts, packaging and
 more). Load it with the area's own skill. Where plans, results and lessons are
 written: `tasks/README.md`.
@@ -21,13 +49,14 @@ owner.
 Examples:
 
 ```text
-scikitplot/annoy/...        -> maintenances/annoy/...        -> skills/annoy/SKILL.md
-scikitplot/cleanprompt/...  -> maintenances/cleanprompt/...  -> skills/cleanprompt/SKILL.md
-scikitplot/mcp/...          -> maintenances/mcp/...          -> skills/mcp/SKILL.md
+scikitplot/annoy/...             -> maintenances/annoy/...             -> skills/scikitplot-annoy-dev/SKILL.md
+scikitplot/cexternals/_annoy/... -> maintenances/cexternals/_annoy/... -> skills/scikitplot-cexternals-annoy-dev/SKILL.md
+scikitplot/cleanprompt/...       -> maintenances/cleanprompt/...       -> skills/scikitplot-cleanprompt-dev/SKILL.md
 ```
 
-Nested maintenance domains may have nested skills. Follow the repository path
-and the owning `MAINTAINING.md`; do not collapse two compiled/native or adapter
+Look the path up in [`skills/INDEX.md`](../../skills/INDEX.md). A nested
+maintenance domain has its own skill, still one level under `skills/`; follow
+the owning `MAINTAINING.md`, and do not collapse two compiled/native or adapter
 subsystems merely because their names are related.
 
 A skill is an execution guide, not evidence that the runtime currently works.
@@ -39,7 +68,7 @@ Verify its current claims against this checkout.
 2. Read the relevant `maintenances/<area>/MAINTAINING.md`.
 3. Read the current files that entry point names (`STATE.json`, `EVIDENCE.json`,
    `VERIFICATION.md`, or a fresh-chat handoff) when present.
-4. Read the matching `skills/<area>/SKILL.md` when present.
+4. Read the area's skill, found in `skills/INDEX.md`, when present.
 5. Inspect only the source/docs/tests/configuration required for the task.
 6. Run the skill's focused checks before trusting a PASS claim.
 7. After edits, rerun the checks on the final stable tree.

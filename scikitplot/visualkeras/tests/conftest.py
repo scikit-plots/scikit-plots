@@ -1,34 +1,63 @@
+import importlib.util
+import os
+from pathlib import Path
+
 import pytest
 
-# Skip test if tensorflow is not available
-# tf = pytest.importorskip("tensorflow")
-# keras = pytest.importorskip("keras")
+# These tests load TensorFlow (or Keras on it) into the test process, and
+# that is safe only in a session that loads nothing else native of the kind.
+# With TensorFlow loaded first, a later import of triton (torch._dynamo,
+# transformers, sentence-transformers) crashes the whole session with SIGSEGV
+# and no Python error: tensorflow 2.21.0 with triton 3.8.0 (CI run
+# 40244733381, which lost every result after 62 percent of the suite). So
+# where triton is installed they run only in a session that declares itself
+# a TensorFlow session; CI runs that session separately.
+#
+# The tests are skipped one by one (pytest_collection_modifyitems below), not
+# by pytest.skip(allow_module_level=True) in this file: pytest loads the
+# conftest of a directory given on the command line before collecting, and a
+# skip raised there ends the whole session with exit status 1.
+TENSORFLOW_SESSION_ENV = "SKPLT_TEST_TENSORFLOW"
+_HERE = Path(__file__).resolve().parent
 
 
-# Avoids calling pytest.importorskip() prematurely (it raises an exception instead of a boolean)
-def has_module(name):
-    """Doesn't re-import the same modules redundantly."""
-    try:
-        __import__(name)
-        return True
-    except (ImportError, ModuleNotFoundError):
-        return False
+def _skip_reason():
+    """Return why these tests cannot run in this session, or ``None``."""
+    if (
+        importlib.util.find_spec("triton") is not None
+        and os.environ.get(TENSORFLOW_SESSION_ENV, "") != "1"
+    ):
+        return (
+            "visualkeras tests load TensorFlow, which must not share a session "
+            "with triton (torch, transformers); run them on their own: "
+            f"{TENSORFLOW_SESSION_ENV}=1 python -m pytest scikitplot/visualkeras"
+        )
+    if (
+        importlib.util.find_spec("tensorflow") is None
+        and importlib.util.find_spec("keras") is None
+    ):
+        return "Required packages (tensorflow or keras) not available."
+    return None
 
-# Check availability
-HAS_TF = has_module("tensorflow")
-HAS_KERAS = has_module("keras")
 
-# Skip test if neither TensorFlow nor Keras is available
-if not (HAS_TF or HAS_KERAS):
-    # allow_module_level=True ensures the entire file is skipped, not just a test function.
-    # It must be called at the top level, not inside a test function.
-    pytest.skip("Required packages (tensorflow or keras) not available.", allow_module_level=True)
+SKIP_REASON = _skip_reason()
+HAS_TF = SKIP_REASON is None and importlib.util.find_spec("tensorflow") is not None
+HAS_KERAS = SKIP_REASON is None and importlib.util.find_spec("keras") is not None
 
-# Optionally import them safely now
 if HAS_TF:
     import tensorflow as tf
 if HAS_KERAS:
     import keras
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip every test of this directory when :data:`SKIP_REASON` is set."""
+    if SKIP_REASON is None:
+        return
+    marker = pytest.mark.skip(reason=SKIP_REASON)
+    for item in items:
+        if _HERE in Path(item.path).resolve().parents:
+            item.add_marker(marker)
 
 
 # Optional: actual test

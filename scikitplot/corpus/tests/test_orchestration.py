@@ -113,6 +113,11 @@ def sample_doc() -> _MockDoc:
 
 @pytest.fixture
 def sample_docs() -> list[_MockDoc]:
+    return _make_sample_docs()
+
+
+def _make_sample_docs() -> list[_MockDoc]:
+    """Five short documents; also built by the TensorFlow child interpreter."""
     texts = [
         "To be or not to be, that is the question.",
         "All that glitters is not gold.",
@@ -508,30 +513,90 @@ class TestTensorFlowAdapter:
             # Should return numpy fallback dict
             assert isinstance(result, dict) or hasattr(result, "__iter__")
 
-    def test_with_tf(self, sample_docs):
-        tf = pytest.importorskip("tensorflow")
-        from scikitplot.corpus._adapters import to_tensorflow_dataset  # noqa: PLC0415
-        ds = to_tensorflow_dataset(sample_docs, text_feature=True, batch_size=2)
-        assert hasattr(ds, "take") or isinstance(ds, dict)
+    def test_with_tf(self):
+        if importlib.util.find_spec("tensorflow") is None:
+            pytest.skip("tensorflow not installed")
+        out = _run_with_tensorflow(
+            "docs = tests._make_sample_docs()\n"
+            "ds = adapters.to_tensorflow_dataset(docs, text_feature=True, batch_size=2)\n"
+            "print(hasattr(ds, 'take') or isinstance(ds, dict))\n"
+        )
+        assert out == "True"
 
     def test_raw_tensor_shape_mismatch_raises(self):
-        from scikitplot.corpus._adapters import to_tensorflow_dataset  # noqa: PLC0415
-        try:
-            import numpy as np  # noqa: PLC0415
-        except ImportError:
-            pytest.skip("numpy not available")
-        # Tensors of different shapes should raise or return fallback
+        # Tensors of different shapes should raise or return the fallback.
+        if importlib.util.find_spec("tensorflow") is not None:
+            out = _run_with_tensorflow(
+                "import numpy as np\n"
+                "docs = [\n"
+                "    tests._MockDoc(raw_tensor=np.zeros((4, 4, 3), dtype='uint8')),\n"
+                "    tests._MockDoc(raw_tensor=np.zeros((8, 8, 3), dtype='uint8')),\n"
+                "]\n"
+                "try:\n"
+                "    adapters.to_tensorflow_dataset(\n"
+                "        docs, raw_tensor_feature=True, batch_size=2\n"
+                "    )\n"
+                "except (ValueError, ImportError):\n"
+                "    pass\n"
+                "print('done')\n"
+            )
+            assert out == "done"
+            return
+        # Without TensorFlow the call takes the numpy fallback in-process.
+        import numpy as np  # noqa: PLC0415
+
+        from .. import _adapters  # noqa: PLC0415
+
         docs = [
             _MockDoc(raw_tensor=np.zeros((4, 4, 3), dtype="uint8")),
             _MockDoc(raw_tensor=np.zeros((8, 8, 3), dtype="uint8")),
         ]
         try:
-            result = to_tensorflow_dataset(
-                docs, raw_tensor_feature=True, batch_size=2
-            )
-            # Fallback is acceptable
+            _adapters.to_tensorflow_dataset(docs, raw_tensor_feature=True, batch_size=2)
         except (ValueError, ImportError):
             pass  # expected
+
+
+def _run_with_tensorflow(body: str) -> str:
+    """
+    Run ``body`` in a child interpreter and return the last line it prints.
+
+    Parameters
+    ----------
+    body : str
+        Source run after ``tests`` (this module) and ``adapters``
+        (``corpus._adapters``) are imported.
+
+    Returns
+    -------
+    str
+        The last line of the child's standard output.
+
+    Notes
+    -----
+    **Developer notes.** TensorFlow is never imported into the test process:
+    loaded first, it makes a later import of triton (``torch._dynamo``,
+    ``transformers``, ``sentence-transformers``) crash the whole session
+    with SIGSEGV (tensorflow 2.21.0 with triton 3.8.0; CI run 40244733381).
+    """
+    import subprocess  # noqa: PLC0415
+
+    from .. import _adapters  # noqa: PLC0415
+
+    prelude = (
+        "import importlib\n"
+        f"tests = importlib.import_module({__name__!r})\n"
+        f"adapters = importlib.import_module({_adapters.__name__!r})\n"
+    )
+    done = subprocess.run(  # noqa: S603 - our interpreter, our code
+        [sys.executable, "-c", prelude + body],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=600,
+    )
+    assert done.returncode == 0, done.stderr[-4000:]
+    return done.stdout.strip().splitlines()[-1]
 
 
 # ===========================================================================
@@ -555,7 +620,6 @@ class TestTorchAdapter:
             assert isinstance(result, dict) or hasattr(result, "__iter__")
 
     def test_with_torch(self, sample_docs):
-        tensorflow = pytest.importorskip("tensorflow")
         torch = pytest.importorskip("torch")
         from scikitplot.corpus._adapters import to_torch_dataloader  # noqa: PLC0415
         loader = to_torch_dataloader(
@@ -564,7 +628,6 @@ class TestTorchAdapter:
         assert hasattr(loader, "__iter__") or isinstance(loader, dict)
 
     def test_raw_tensor_hwc_to_chw(self):
-        tensorflow = pytest.importorskip("tensorflow")
         torch = pytest.importorskip("torch")
         import numpy as np  # noqa: PLC0415
         from scikitplot.corpus._adapters import to_torch_dataloader  # noqa: PLC0415

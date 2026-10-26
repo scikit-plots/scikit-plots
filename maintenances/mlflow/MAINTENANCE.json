@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.mlflow",
   "runtime_root": "scikitplot/mlflow",
   "maintenance_root": "maintenances/mlflow",
-  "skill": "skills/mlflow/SKILL.md",
+  "skill": "skills/scikitplot-mlflow-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot.mlflow integration layer: project/session configuration, provider injection, MLflow import compatibility, managed server command/process lifecycle, readiness probing, session-scoped environment/global-state restoration, security policy integration, facades, workflow/CLI composition, bundled configs, typing surface, and subsystem tests.",
     "does_not_own": "The upstream mlflow package/server implementation, Docker/network infrastructure, generic scikitplot CLI ownership, external PyYAML behavior, OS process semantics, or project packaging outside the mlflow submodule."

@@ -16,7 +16,7 @@
   "physical": {
     "runtime_root": "scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant",
     "maintenance_root": "maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant",
-    "skill_root": "skills/_externals/_sphinx_ext/_sphinx_ai_assistant",
+    "skill_root": "skills/scikitplot-sphinx-ai-assistant-dev",
     "runtime_root_markdown": [
       "README.md",
       "ISOLATION_DEPLOYMENT.md",

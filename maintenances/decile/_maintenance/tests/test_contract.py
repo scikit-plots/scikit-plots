@@ -55,9 +55,9 @@ def test_bad_review_check_detected(tmp_path):
 def test_executable_metadata_rejected(tmp_path):
     r=clone(tmp_path); p=r/'maintenances/decile/REVIEW.json'; d=json.loads(p.read_text()); d['command']='echo nope'; p.write_text(json.dumps(d)); assert any('unsupported executable field' in x for x in maint_errs(r))
 def test_missing_skill_detected(tmp_path):
-    r=clone(tmp_path); (r/'skills/decile/SKILL.md').unlink(); assert maint_errs(r)
+    r=clone(tmp_path); (r/'skills/scikitplot-decile-dev/SKILL.md').unlink(); assert maint_errs(r)
 def test_shallow_skill_detected(tmp_path):
-    r=clone(tmp_path); (r/'skills/decile/SKILL.md').write_text('---\nname: x\n---\nshort\n'); assert any('substantive' in x for x in maint_errs(r))
+    r=clone(tmp_path); (r/'skills/scikitplot-decile-dev/SKILL.md').write_text('---\nname: x\n---\nshort\n'); assert any('substantive' in x for x in maint_errs(r))
 def test_foreign_cwd_discovery(monkeypatch,tmp_path):
     monkeypatch.chdir(tmp_path); assert c.discover_repo(TOOL)==REPO
 def test_update_refuses_failing_runtime(tmp_path):

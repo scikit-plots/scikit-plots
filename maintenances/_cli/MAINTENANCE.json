@@ -3,7 +3,7 @@
   "subsystem": "scikitplot._cli",
   "runtime_root": "scikitplot/_cli",
   "maintenance_root": "maintenances/_cli",
-  "skill": "skills/_cli/SKILL.md",
+  "skill": "skills/scikitplot-cli-dev/SKILL.md",
   "ownership": {
     "owns": "The project-wide command dispatcher, framework-neutral command/parameter IR, built-in command registry, argparse and optional click frontend projection, lazy native-handler loading, delegated-command pass-through, CLI output rendering, CLI logging/stream policy, semantic exit codes, and standalone module-runner glue.",
     "does_not_own": "MCP protocol/server behavior, Corpus retrieval semantics, Annoy/native mechanics, or the implementation semantics of delegated subcommands and project APIs such as show_config/show_versions. _cli may expose or delegate those surfaces but must not absorb their business logic."

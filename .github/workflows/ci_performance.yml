@@ -13,7 +13,7 @@ on:
       test_paths:
         description: "Test paths to record, space separated (e.g. 'scikitplot/annoy scikitplot/api'); empty: no test job"
         type: string
-        default: ""
+        default: "scikitplot"
       profile_tests:
         description: "Profile these tests one by one (a regular expression of node ids; empty: none)"
         type: string
@@ -63,6 +63,9 @@ jobs:
     timeout-minutes: 360
     env:
       SETUPTOOLS_USE_DISTUTILS: local
+      # The Hugging Face Hub cache: models are fetched before the tests,
+      # which then run offline (as in ci_codecov_test_coverage.yml).
+      HF_HOME: ${{ github.workspace }}/.cache/huggingface
     steps:
       - name: "⬇️ Checkout"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,6 +81,54 @@ jobs:
           cache-dependency-path: |
             requirements/*.txt
             pyproject.toml
+
+      - name: "📦 Install dependencies"
+        run: |
+          set -Eeuo pipefail
+          # python -m pip install --upgrade --user --progress-bar=off --pre pip
+          python -m pip install --upgrade pip
+
+          # pip install -r ./requirements/build.txt
+          # pip install -r ./requirements/dev.txt
+          # pip install -r ./requirements/doc.txt
+          # pip install -r ./requirements/test.txt
+          pip install -r requirements/all.txt
+
+          pip install -r ./requirements/cleanprompt.txt
+          # tf need for documentation examples
+          pip install -r ./requirements/cpu.txt
+          pip install -r ./requirements/corpus.txt
+          pip install -r ./requirements/mcp.txt
+          pip install -r ./requirements/mlflow.txt
+
+          # sudo apt-get install tesseract-ocr
+          # pip install pytesseract
+
+          pip install coverage
+          pip install polars pyarrow
+          pip install httpx gradio streamlit flask fastapi
+          pip install nltk spacy
+
+          # The same two scripts serve Docker images, the devcontainer and
+          # the documentation build; see their headers for the options.
+          bash docker/scripts/install_nltk.sh
+          bash docker/scripts/install_spacy.sh
+
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check || true
+
+      # The models the tests load, fetched once and kept between runs; see
+      # the same steps in ci_codecov_test_coverage.yml. This job checks out
+      # only the branch it was dispatched on (the benchmarks job below builds
+      # a second revision and keeps no cache, Rule 155).
+      - name: "📦 Restore the models the tests load"
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.HF_HOME }}
+          key: models-${{ runner.os }}-${{ hashFiles('docker/scripts/install_models.py', 'docker/scripts/install_sentence_transformers.sh') }}
+
+      - name: "📦 Fetch the models the tests load, and prove they load offline"
+        run: bash docker/scripts/install_sentence_transformers.sh
 
       - name: "🔨 Install the requirements and build the library"
         env:
@@ -99,6 +150,9 @@ jobs:
           python -m pip install -U setuptools
           python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
+          # Verify whether installed Python packages have compatible dependencies.
+          pip check || true
+
       - name: "⏱️ Run the tests with the recorder"
         env:
           TEST_PATHS: ${{ inputs.test_paths }}
@@ -106,6 +160,11 @@ jobs:
           SKPLT_TEST_PERF_DIR: reports/perf
           SKPLT_TEST_PERF_LABEL: on-demand
           SKPLT_TEST_PERF_PROFILE: ${{ inputs.profile_tests }}
+          # Offline for models, and TensorFlow suites in a session of their
+          # own: see the test step of ci_codecov_test_coverage.yml.
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+          TENSORFLOW_SUITES: scikitplot/visualkeras
         run: |
           set -Eeuo pipefail
           read -r -a paths <<<"$TEST_PATHS"
@@ -115,11 +174,37 @@ jobs:
               exit 2
             fi
           done
+          read -r -a tf_suites <<<"$TENSORFLOW_SUITES"
+          tf_paths=()
+          for p in "${paths[@]}"; do
+            for s in "${tf_suites[@]}"; do
+              if [[ "$s" == "$p" || "$s" == "$p"/* ]]; then tf_paths+=("$s")
+              elif [[ "$p" == "$s"/* ]]; then tf_paths+=("$p")
+              fi
+            done
+          done
+          run_session() {
+            local label="$1"; shift
+            local code=0
+            "$@" || code=$?
+            if [ "$code" -eq 5 ]; then
+              echo "::notice::no tests were collected in the $label session"
+              code=0
+            fi
+            return "$code"
+          }
+          options=(-vv --tb=long --full-trace --maxfail=0 -p no:cacheprovider)
           status=0
-          python -m pytest "${paths[@]}" --maxfail=0 -p no:cacheprovider || status=$?
-          if [ "$status" -eq 5 ]; then
-            echo "::notice::no tests were collected for: $TEST_PATHS"
-            status=0
+          run_session main python -m pytest "${paths[@]}" "${options[@]}" || status=$?
+          if [ "$status" -ge 128 ]; then
+            echo "::error::the test process ended by signal $((status - 128)) (exit $status); its Python stack is printed above the crash"
+          fi
+          if [ "${#tf_paths[@]}" -gt 0 ]; then
+            tf_status=0
+            SKPLT_TEST_TENSORFLOW=1 SKPLT_TEST_PERF_LABEL=on-demand-tensorflow \
+              run_session TensorFlow python -m pytest "${tf_paths[@]}" "${options[@]}" \
+              || tf_status=$?
+            if [ "$status" -eq 0 ]; then status="$tf_status"; fi
           fi
           exit "$status"
 

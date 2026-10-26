@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.impute",
   "runtime_root": "scikitplot/impute",
   "maintenance_root": "maintenances/impute",
-  "skill": "skills/impute/SKILL.md",
+  "skill": "skills/scikitplot-impute-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot.impute public re-export/experimental gate, ANNImputer imputation semantics, backend selection policy, approximate-neighbor weighting/fallback behavior, index visibility/persistence policy, and impute-local compatibility code/tests.",
     "does_not_own": "Annoy native/Cython implementation, Voyager implementation, generic path/timing utilities, scikitplot root package wiring, sklearn imputer semantics, or experimental namespace infrastructure outside the impute activation hook."

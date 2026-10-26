@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.random",
   "runtime_root": "scikitplot/random",
   "maintenance_root": "maintenances/random",
-  "skill": "skills/random/SKILL.md",
+  "skill": "skills/scikitplot-random-dev/SKILL.md",
   "ownership": {
     "owns": "KISS seed/bit-generator/generator/state APIs, Cython wrapper/declarations/helpers, typing, Meson extension definition, and random-specific tests.",
     "does_not_own": "scikitplot/cexternals/_annoy/src/kissrandom.h and the shared native Annoy source subsystem"
@@ -11,7 +11,7 @@
   "upstream": {
     "subsystem": "scikitplot.cexternals._annoy",
     "maintenance": "maintenances/cexternals/_annoy",
-    "skill": "skills/cexternals/_annoy/SKILL.md",
+    "skill": "skills/scikitplot-cexternals-annoy-dev/SKILL.md",
     "headers": [
       {
         "name": "kissrandom.h",

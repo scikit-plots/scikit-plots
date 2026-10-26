@@ -7,7 +7,7 @@
   },
   "scope": [
     "maintenances/memmap",
-    "skills/memmap"
+    "skills/scikitplot-memmap-dev"
   ],
   "runtime_fingerprint": "6c8678a1e76a2437da88e4035a5fc4fc68c65bbc6946e7d4d0d27231a9c1b5cd",
   "status": "maintenance_verified",
@@ -28,8 +28,8 @@
     {
       "id": "MM-003",
       "status": "resolved",
-      "summary": "skills/memmap existed but had no maintainer entry point.",
-      "evidence_or_action": "skills/memmap/SKILL.md now defines ownership, read order, boundaries and verification."
+      "summary": "skills/scikitplot-memmap-dev existed but had no maintainer entry point.",
+      "evidence_or_action": "skills/scikitplot-memmap-dev/SKILL.md now defines ownership, read order, boundaries and verification."
     },
     {
       "id": "MM-004",

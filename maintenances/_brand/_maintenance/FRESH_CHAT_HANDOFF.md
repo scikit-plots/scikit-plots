@@ -2,7 +2,7 @@
 
 Current status: **maintenance PASS / runtime FAIL / integration UNAVAILABLE / release BLOCKED**.
 
-Read `STATE.json`, `FAMILY.md`, `VERIFICATION.md`, and `skills/_brand/SKILL.md`. Then run:
+Read `STATE.json`, `FAMILY.md`, `VERIFICATION.md`, and `skills/scikitplot-brand-dev/SKILL.md`. Then run:
 
 ```bash
 python -B maintenances/_brand/_maintenance/check_trackers.py --json

@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.preprocessing",
   "runtime_root": "scikitplot/preprocessing",
   "maintenance_root": "maintenances/preprocessing",
-  "skill": "skills/preprocessing/SKILL.md",
+  "skill": "skills/scikitplot-preprocessing-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot multi-label dummy-encoding surface shipped as GetDummies and DummyCodeEncoder, including token expansion, category identity, unknown/infrequent/drop semantics, inverse transforms, sklearn estimator/output integration, feature naming, and focused regression tests.",
     "does_not_own": "Generic pandas.get_dummies behavior, sklearn OneHotEncoder/private utility internals, NumPy/SciPy sparse semantics, or the root scikitplot packaging/version infrastructure."

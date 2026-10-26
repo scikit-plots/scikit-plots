@@ -5,7 +5,7 @@ decisions are in [`../../corpus/todo/todo.md`](../../corpus/todo/todo.md);
 Run 5 is planned in [`../../agent/todo/todo.md`](../../agent/todo/todo.md).
 Completed tasks are archived under [`../_maintenance/history/`](../_maintenance/history/).
 
-Rules that apply to every increment: [`skills/_engineering/`](../../../skills/_engineering/SKILL.md).
+Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Task: round 33 / Run 5 / 5c - MCP on the Run 2 contracts (R5-3)
 

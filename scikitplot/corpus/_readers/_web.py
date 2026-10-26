@@ -105,7 +105,7 @@ _YT_URL_RE = re.compile(
 _YT_ID_RE = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([A-Za-z0-9_-]{11})")
 
 # Default HTTP request timeout in seconds
-_DEFAULT_TIMEOUT: int = 30
+_DEFAULT_TIMEOUT: int | float = 30
 
 # Default maximum response size (avoid streaming huge pages into memory)
 _DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
@@ -230,7 +230,7 @@ class WebReader(DocumentReader):
     source_uri : str or None, optional
         The original URL string. Set automatically by ``from_url()``.
         If ``None``, ``str(input_path)`` is used as the URL.
-    timeout : int, optional
+    timeout : int or float, optional
         HTTP request timeout in seconds. Default: 30.
     max_response_bytes : int, optional
         Maximum response body size. Responses larger than this raise
@@ -309,7 +309,7 @@ class WebReader(DocumentReader):
     # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [":url"]
 
-    timeout: int = field(default=_DEFAULT_TIMEOUT)
+    timeout: int | float = field(default=_DEFAULT_TIMEOUT)
     """HTTP request timeout in seconds."""
 
     max_response_bytes: int = field(default=_DEFAULT_MAX_BYTES)
