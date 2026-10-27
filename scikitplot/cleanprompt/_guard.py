@@ -1,3 +1,8 @@
+# scikitplot/cleanprompt/_guard.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 A gate between your data and any language model, local or hosted.
 
@@ -78,6 +83,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import sys
 from collections.abc import (
     AsyncIterable,
     AsyncIterator,
@@ -95,7 +101,13 @@ if TYPE_CHECKING:
     # ``Self`` is needed only by a type checker. Importing it at runtime made
     # the base tier depend on typing_extensions, which Python 3.11+ does not
     # ship and nothing here declares (CP-054).
-    from typing_extensions import Self
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from ._canonical import normal_form
 from ._engine import RESTORE_MAX_GAP, _restoration_candidates

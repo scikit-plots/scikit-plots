@@ -1,7 +1,5 @@
 # scikitplot/corpus/_storage/_storage.py
 #
-# flake8: noqa: D213
-#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,6 +43,7 @@ import os
 import pathlib
 import re
 import sqlite3
+import sys
 import threading
 from dataclasses import dataclass, field  # noqa: F401
 from enum import unique
@@ -59,7 +58,13 @@ from typing import (  # noqa: F401
 )
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from .._atomic import atomic_write_path
 from .._schema import (  # noqa: F401

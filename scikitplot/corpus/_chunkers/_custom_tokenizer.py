@@ -1,6 +1,7 @@
 # scikitplot/corpus/_chunkers/_custom_tokenizer.py
 #
 # Flake8: noqa: D213
+# ruff: noqa: UP037
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
@@ -69,6 +70,7 @@ Detect script:
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 import unicodedata
 
@@ -97,7 +99,13 @@ from typing import (  # noqa: F401
 from .._notices import notice_once
 
 if TYPE_CHECKING:
-    from typing_extensions import Self  # noqa: F401
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 logger = logging.getLogger(__name__)
 

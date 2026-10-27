@@ -1,4 +1,8 @@
 # scikitplot/annoy/_mixins/_io.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Persistence helpers for Annoy-backed indices.
 
@@ -29,6 +33,7 @@ import logging
 import os
 import pathlib
 import shutil  # noqa: F401
+import sys
 import tempfile  # noqa: F401
 import uuid
 
@@ -41,7 +46,13 @@ from pathlib import Path  # noqa: F401
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from .._utils import (
     atomic_write_text,

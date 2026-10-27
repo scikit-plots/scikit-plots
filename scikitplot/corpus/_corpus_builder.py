@@ -1,7 +1,5 @@
 # scikitplot/corpus/_corpus_builder.py
 #
-# Flake8: noqa: D213
-#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,6 +93,7 @@ from __future__ import annotations
 import glob as _glob
 import logging
 import os  # noqa: F401
+import sys
 import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -123,7 +122,13 @@ if TYPE_CHECKING:
         Union,
     )
 
-    from typing_extensions import Self  # noqa: F401
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
     from ._base import ChunkerBase
     from ._similarity import RetrievalConfig

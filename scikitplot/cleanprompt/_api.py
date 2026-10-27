@@ -1,3 +1,8 @@
+# scikitplot/cleanprompt/_api.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Encode a prompt, send it anywhere, decode the reply.
 
@@ -60,6 +65,7 @@ scikitplot.cleanprompt._vault : Where the removed values live.
 from __future__ import annotations
 
 import functools
+import sys
 import threading
 import time
 import types
@@ -70,9 +76,14 @@ if TYPE_CHECKING:
     # Annotations are strings under ``from __future__ import annotations``, so
     # ``Self`` is needed only by a type checker. Importing it at runtime made
     # the base tier depend on typing_extensions, which Python 3.11+ does not
-    # ship and nothing here declares (CP-054).
-    from typing_extensions import Self
-
+    # ship and nothing here declares (CP-054).if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from ._detectors import DetectorRegistry, default_registry
 from ._diagnostics import describe_outcome, diagnose, suggest_terms

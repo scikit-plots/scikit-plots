@@ -1,4 +1,10 @@
 # scikitplot/annoy/_mixins/_meta.py
+#
+# ruff: noqa: UP037
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Metadata helpers and (optional) scikit-learn integration.
 
@@ -23,15 +29,25 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import sys
 from collections.abc import Mapping
 from enum import Enum
-
-# Only imports when type checking
 from typing import TYPE_CHECKING, TypedDict, cast  # noqa: F401
 
+# But on Python below 3.11, if typing_extensions is unavailable,
+# the type checker sees Self as object, not as the current class's type.
+# So the cast still runs, but you lose Self's precise static typing.
+# For precise checking on older Python, typing_extensions must be available
+# to the type checker.
+
 # if TYPE_CHECKING:
-#     from typing import Any
-from typing_extensions import Self
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    try:
+        from typing_extensions import Self
+    except ImportError:
+        Self = object
 
 from .._utils import atomic_write_text, backend_for, lock_for, read_text
 

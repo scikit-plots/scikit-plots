@@ -6,6 +6,9 @@
 # distutils: language=c++
 #
 # scikitplot/annoy/_annoy/annoylib.pyx.in
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Cython Implementation of Annoy Index Wrapper
@@ -103,7 +106,13 @@ from typing import TYPE_CHECKING, overload  # no-cython-lint
 
 if TYPE_CHECKING:
     from typing import Any, Dict, List, Optional, Sequence, Tuple, Union  # no-cython-lint
-    from typing_extensions import Self  # no-cython-lint
+    if sys.version_info >= (3, 11):
+        from typing import Self  # no-cython-lint
+    else:
+        try:
+            from typing_extensions import Self  # no-cython-lint
+        except ImportError:
+            Self = object  # no-cython-lint
 
 # ===========================================================================
 # Template Configuration - SINGLE SOURCE OF TRUTH

@@ -34,11 +34,18 @@ for hybrid search. A document found by several legs is naturally boosted.
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from ._core import DocsRetriever, RetrievedChunk, _coerce_finite_score
 from ._fusion import FusionPolicy

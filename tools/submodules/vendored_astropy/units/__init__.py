@@ -1,24 +1,31 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+# pylint: disable=import-error
+
 """
 This module defines the `Quantity` object, which represents a number with some
 associated units. `Quantity` objects support operations like ordinary numbers,
 but will deal with unit conversions internally.
 """
 
-# pylint: disable=import-error
+import sys
 
 # Compatibility shim for `TypeAlias` in Python < 3.10
-try:
-    # Python 3.10+ — native support
+# try:
+#     # Python 3.10+ — native support
+#     from typing import TypeAlias
+# except ImportError:
+#     try:
+#         # Fallback for older Python using typing_extensions (must be installed)
+#         from typing_extensions import TypeAlias
+#     except ImportError:
+#         # Final fallback: dummy placeholder (used only for type hints)
+#         TypeAlias = object
+if sys.version_info >= (3, 10):
     from typing import TypeAlias
-except ImportError:
+else:
     try:
-        # Fallback for older Python using typing_extensions (must be installed)
-        from typing_extensions import (  # type: ignore[reportMissingModuleSource]
-            TypeAlias,
-        )
+        from typing_extensions import TypeAlias
     except ImportError:
-        # Final fallback: dummy placeholder (used only for type hints)
         TypeAlias = object
 
 from abc import ABC, abstractmethod

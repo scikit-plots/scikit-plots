@@ -1,7 +1,5 @@
 # scikitplot/corpus/_runtime.py
 #
-# flake8: noqa: D213
-#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,13 +24,20 @@ source.  Source processing starts only when :meth:`RuntimeCorpus.run` or
 from __future__ import annotations
 
 import dataclasses
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from ._plan import DEFAULT_STAGES, CorpusPlan
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
     from ._registry import ComponentRegistry
 

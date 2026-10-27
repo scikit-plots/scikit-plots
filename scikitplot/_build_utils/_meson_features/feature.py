@@ -37,6 +37,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from typing import (
     Dict, Set, Tuple, List, Callable, Optional,
     Union, Any, Iterable, TYPE_CHECKING
@@ -51,17 +52,22 @@ from ...interpreterbase.decorators import ( # type: ignore[]
 from .. import ModuleObject # type: ignore[]
 
 if TYPE_CHECKING:
-    import sys as _sys
     from typing import TypedDict
     # NotRequired was added to the standard typing module in Python 3.11
     # (PEP 655).  On 3.8–3.10 we fall back to typing_extensions which
     # provides an identical backport.  This block is only evaluated by
     # static type checkers (mypy, pyright) — never at runtime — so the
     # conditional import does not affect any Python version at run time.
-    if _sys.version_info >= (3, 11):
+    if sys.version_info >= (3, 11):
         from typing import NotRequired
     else:
-        from typing_extensions import NotRequired
+        try:
+            from typing_extensions import NotRequired
+        except ImportError as exc:
+            # raise ImportError(
+            #     "NotRequired on Python < 3.11 requires typing_extensions"
+            # ) from exc
+            NotRequired = object
     from ...interpreterbase import TYPE_var, TYPE_kwargs # type: ignore[]
     from .. import ModuleState
 
@@ -176,19 +182,34 @@ if TYPE_CHECKING:
         ]
     ]
 
-    class FeatureKwArgs(TypedDict):
-        #implies: Optional[List['FeatureObject']]
-        implies: NotRequired[List[Any]]
-        group: NotRequired[List[str]]
-        detect: NotRequired[List[ConflictAttr]]
-        args: NotRequired[List[ConflictAttr]]
-        test_code: NotRequired[Union[str, File]]
-        extra_tests: NotRequired[Dict[str, Union[str, File]]]
-        disable: NotRequired[str]
+    if sys.version_info >= (3, 11):
+        class FeatureKwArgs(TypedDict):
+            #implies: Optional[List['FeatureObject']]
+            implies: NotRequired[List[Any]]
+            group: NotRequired[List[str]]
+            detect: NotRequired[List[ConflictAttr]]
+            args: NotRequired[List[ConflictAttr]]
+            test_code: NotRequired[Union[str, File]]
+            extra_tests: NotRequired[Dict[str, Union[str, File]]]
+            disable: NotRequired[str]
 
-    class FeatureUpdateKwArgs(FeatureKwArgs):
-        name: NotRequired[str]
-        interest: NotRequired[int]
+        class FeatureUpdateKwArgs(FeatureKwArgs):
+            name: NotRequired[str]
+            interest: NotRequired[int]
+
+    else:
+        class FeatureKwArgs(TypedDict, total=False):
+            implies: List[Any]
+            group: List[str]
+            detect: List[ConflictAttr]
+            args: List[ConflictAttr]
+            test_code: Union[str, File]
+            extra_tests: Dict[str, Union[str, File]]
+            disable: str
+
+        class FeatureUpdateKwArgs(FeatureKwArgs, total=False):
+            name: str
+            interest: int
 
 class FeatureObject(ModuleObject):
     name: str
