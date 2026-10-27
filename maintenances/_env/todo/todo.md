@@ -1,6 +1,6 @@
 # `scikitplot._env` maintenance: active tasks
 
-Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 Release-note PR for this round: **868** (given by the maintainer, Rule 100).
 
 ## Task: ENV-1, one command to build the same environment anywhere (2026-10-24)

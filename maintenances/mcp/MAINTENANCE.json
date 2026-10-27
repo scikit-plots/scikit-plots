@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.mcp",
   "runtime_root": "scikitplot/mcp",
   "maintenance_root": "maintenances/mcp",
-  "skill": "skills/scikitplot-mcp-dev/SKILL.md",
+  "skill": "plugins/scikitplot-dev/skills/scikitplot-mcp-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot.mcp protocol adapter, SDK-free retrieval contracts local to MCP, official MCP SDK wire adapter, stdio/Streamable HTTP CLI wiring, runtime capability reporting, client plugin manifests, and MCP-specific integration adapters/tests.",
     "does_not_own": "Corpus ingestion/retrieval semantics, Annoy index/native mechanics, the project-wide CLI dispatcher, or the external MCP Python SDK. Those are upstream/downstream contracts consumed through narrow seams."

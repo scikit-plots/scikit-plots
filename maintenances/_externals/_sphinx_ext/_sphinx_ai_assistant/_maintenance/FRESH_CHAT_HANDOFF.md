@@ -45,7 +45,7 @@ Do not rely on previous chat history. Use the repository files as authority.
 
 Read, in order:
 
-1. `skills/scikitplot-sphinx-ai-assistant-dev/SKILL.md`
+1. `plugins/scikitplot-dev/skills/scikitplot-sphinx-ai-assistant-dev/SKILL.md`
 2. `maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/MAINTAINING.md`
 3. this file;
 4. `STATE.json`;
@@ -282,7 +282,7 @@ security decisions stay server-side. Browser/page content remains untrusted.
 
 ## Maintenance layout upgrade in this workspace
 
-The maintenance material was moved out of `skills/` into the repository-level
+The maintenance material was moved out of `plugins/scikitplot-dev/skills/` into the repository-level
 `maintenances/` mirror. The skill folder now serves only as the trigger/workflow
 entry point.
 

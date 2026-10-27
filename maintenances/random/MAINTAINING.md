@@ -1,6 +1,6 @@
 # Maintaining `scikitplot.random`
 
-This directory owns maintenance state for `scikitplot/random`. The runtime code stays under `scikitplot/`; project-local onboarding stays under `skills/scikitplot-random-dev/`. A fresh session should not need chat history.
+This directory owns maintenance state for `scikitplot/random`. The runtime code stays under `scikitplot/`; project-local onboarding stays under `plugins/scikitplot-dev/skills/scikitplot-random-dev/`. A fresh session should not need chat history.
 
 **Ownership:** KISS seed/bit-generator/generator/state APIs, Cython wrapper/declarations/helpers, typing, Meson extension definition, and random-specific tests. It consumes `kissrandom.h` from `scikitplot/cexternals/_annoy/src/`; that shared header is owned by the separate `cexternals/_annoy` subsystem. Do not patch or vendor the header here to make this consumer pass.
 

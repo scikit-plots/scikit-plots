@@ -37,7 +37,7 @@ Rules
 ``long-path``
     A tracked file whose repository path is longer than the budget.
 ``long-name``
-    A Markdown file under ``maintenances/`` or ``docs/maintenances/`` whose
+    A Markdown file under ``maintenances/`` whose
     file name is longer than :data:`NAME_LIMIT` characters. Maintenance notes
     are written by people and agents; a name is a label, the title belongs in
     the file's first heading.
@@ -106,7 +106,7 @@ USERNAME_MAX = 20
 NAME_LIMIT = 64
 
 #: Where the long-name rule applies (repository-relative directory prefixes).
-NAME_SCOPES = ("maintenances/", "docs/maintenances/")
+NAME_SCOPES = ("maintenances/",)
 
 #: Words dropped first when a name must shrink.
 FILLER = frozenset(

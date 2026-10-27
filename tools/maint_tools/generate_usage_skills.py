@@ -515,14 +515,23 @@ def build(repo: Path) -> dict[str, str]:
 
 
 def current(repo: Path) -> dict[str, str]:
-    """Return the usage skill files on disk, by repository path."""
-    base = repo / _records().USAGE_SKILLS_DIR
+    """Return the usage skill files on disk, by repository path.
+
+    The copies of the shared skills (``plugins/_shared/skills/``) are left
+    out: ``check_records.py --write-index`` owns them (Rule 167), so this
+    generator neither reports nor removes them.
+    """
+    records = _records()
+    base = repo / records.USAGE_SKILLS_DIR
     if not base.is_dir():
         return {}
+    shared = set(records.shared_skill_names(repo))
     return {
         p.relative_to(repo).as_posix(): p.read_text(encoding="utf-8")
         for p in sorted(base.rglob("*"))
-        if p.is_file() and p.parent != base
+        if p.is_file()
+        and p.parent != base
+        and p.relative_to(base).parts[0] not in shared
     }
 
 

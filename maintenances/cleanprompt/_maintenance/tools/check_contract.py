@@ -34,14 +34,14 @@ SUBSYSTEM = "scikitplot.cleanprompt"
 CORPUS_BRIDGE = "_corpus.py"
 RUNTIME = ("scikitplot", "cleanprompt")
 MAINTENANCE = ("maintenances", "cleanprompt")
-SKILL = ("skills", "scikitplot-cleanprompt-dev", "SKILL.md")
+SKILL = ("plugins", "scikitplot-dev", "skills", "scikitplot-cleanprompt-dev", "SKILL.md")
 
 #: Every tree committed for this subsystem. None may hold a whole
 #: credential-shaped value (CP-REST-001).
 AT_REST_TREES = (
     RUNTIME,
     MAINTENANCE,
-    ("skills", "scikitplot-cleanprompt-dev"),
+    ("plugins", "scikitplot-dev", "skills", "scikitplot-cleanprompt-dev"),
     ("galleries", "examples", "cleanprompt"),
 )
 
@@ -177,7 +177,7 @@ def discover_repo(start: Path) -> Path:
         for candidate in (origin, *origin.parents):
             if all(
                 (candidate / name).is_dir()
-                for name in ("scikitplot", "maintenances", "skills")
+                for name in ("scikitplot", "maintenances", "plugins")
             ):
                 return candidate
     raise ContractError("could not locate the wide repository root")
@@ -520,7 +520,7 @@ def runtime_findings(root: Path) -> List[str]:
                             path.name, module
                         )
                     )
-            if head in ("maintenances", "skills"):
+            if head in ("maintenances", "skills", "plugins"):
                 findings.append(
                     "CP-PLANE-001: {0} imports the developer plane {1}".format(
                         path.name, module
@@ -801,7 +801,7 @@ def maintenance_errors(root: Path) -> List[str]:
 
     skill = root.joinpath(*SKILL)
     if not skill.is_file():
-        errors.append("missing skills/scikitplot-cleanprompt-dev/SKILL.md")
+        errors.append("missing plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md")
     else:
         text = skill.read_text(encoding="utf-8")
         if len(text.splitlines()) < 80:

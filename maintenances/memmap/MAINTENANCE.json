@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.memmap",
   "runtime_root": "scikitplot/memmap",
   "maintenance_root": "maintenances/memmap",
-  "skill": "skills/scikitplot-memmap-dev/SKILL.md",
+  "skill": "plugins/scikitplot-dev/skills/scikitplot-memmap-dev/SKILL.md",
   "ownership": {
     "owns": "MemoryMap Python API, Cython declarations/wrapper, typing, Meson extension definition, and memmap-specific tests.",
     "does_not_own": "scikitplot/cexternals/_annoy/src/mman.h and the shared native Annoy source subsystem"
@@ -11,7 +11,7 @@
   "upstream": {
     "subsystem": "scikitplot.cexternals._annoy",
     "maintenance": "maintenances/cexternals/_annoy",
-    "skill": "skills/scikitplot-cexternals-annoy-dev/SKILL.md",
+    "skill": "plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/SKILL.md",
     "headers": [
       {
         "name": "mman.h",

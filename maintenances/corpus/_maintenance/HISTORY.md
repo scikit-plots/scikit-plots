@@ -33,7 +33,7 @@ dense fused by rank, rerank, context budget, caching).
   contract: MCP's `test_corpus_index_retriever.py` fails if they change. No
   corpus code changed.
 - Gate state on arrival: `check_trackers.py` stops at `missing required path:
-  skills/corpus` (absent from the supplied archive). Unchanged by this round.
+  plugins/scikitplot-dev/skills/corpus` (absent from the supplied archive). Unchanged by this round.
   Suite: 3 490 passed, 10 skipped; the 61 failures are the same set as before
   the round (NLTK data packages absent from the review environment).
 

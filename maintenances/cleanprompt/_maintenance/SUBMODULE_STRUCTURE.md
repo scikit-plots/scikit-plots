@@ -53,7 +53,7 @@ scikitplot/cleanprompt/
 └── tests/             test_<module>.py per source module, plus test_regressions.py
 
 maintenances/cleanprompt/   this plane
-skills/scikitplot-cleanprompt-dev/SKILL.md maintainer onboarding
+plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md maintainer onboarding
 ```
 
 Rules enforced by `tests/test___init__.py::TestArchitecture`:

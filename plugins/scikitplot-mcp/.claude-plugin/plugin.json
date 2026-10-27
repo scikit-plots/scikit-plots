@@ -1,0 +1,20 @@
+{
+  "name": "scikitplot-mcp",
+  "displayName": "scikit-plots documentation (MCP)",
+  "description": "Read-only, source-cited documentation search for scikit-plots, served over the Model Context Protocol by a local python -m scikitplot.mcp.",
+  "author": {
+    "name": "The scikit-plots developers",
+    "email": "scikit-plots-maintainers@googlegroups.com"
+  },
+  "homepage": "https://scikit-plots.github.io",
+  "repository": "https://github.com/scikit-plots/scikit-plots",
+  "license": "BSD-3-Clause",
+  "keywords": [
+    "scikit-plots",
+    "documentation",
+    "retrieval",
+    "citations",
+    "mcp",
+    "read-only"
+  ]
+}

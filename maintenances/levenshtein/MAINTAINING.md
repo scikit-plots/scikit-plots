@@ -39,7 +39,7 @@ scikitplot.cexternals   RapidFuzz (MIT)   pure Python
 3. `_maintenance/VERIFICATION.md`
 4. `REVIEW.json`
 5. `_maintenance/STATE.json`
-6. `skills/scikitplot-levenshtein-dev/SKILL.md`
+6. `plugins/scikitplot-dev/skills/scikitplot-levenshtein-dev/SKILL.md`
 
 Then run:
 

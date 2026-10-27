@@ -11,7 +11,7 @@ import pytest
 
 
 HERE = Path(__file__).resolve()
-REPO = next(p for p in HERE.parents if all((p / n).is_dir() for n in ("scikitplot", "maintenances", "skills")))
+REPO = next(p for p in HERE.parents if all((p / n).is_dir() for n in ("scikitplot", "maintenances", "plugins")))
 TOOL = REPO / "maintenances/cython/_maintenance/tools/check_contract.py"
 spec = importlib.util.spec_from_file_location("cython_contract", TOOL)
 contract = importlib.util.module_from_spec(spec)
@@ -23,10 +23,10 @@ def make_repo(tmp_path: Path, *, clean_runtime: bool = True) -> Path:
     root = tmp_path / "repo"
     (root / "scikitplot").mkdir(parents=True)
     (root / "maintenances").mkdir()
-    (root / "skills").mkdir()
+    (root/"plugins").mkdir()
     shutil.copytree(REPO / "scikitplot/cython", root / "scikitplot/cython")
     shutil.copytree(REPO / "maintenances/cython", root / "maintenances/cython")
-    shutil.copytree(REPO / "skills/scikitplot-cython-dev", root / "skills/scikitplot-cython-dev")
+    shutil.copytree(REPO / "plugins/scikitplot-dev/skills/scikitplot-cython-dev", root / "plugins/scikitplot-dev/skills/scikitplot-cython-dev")
     if clean_runtime:
         for p in list((root / "scikitplot/cython").rglob("__pycache__")):
             shutil.rmtree(p)
@@ -142,7 +142,7 @@ def test_probe_catalog_is_contractual(tmp_path: Path):
 
 def test_skill_must_be_substantive(tmp_path: Path):
     root = make_repo(tmp_path)
-    (root / "skills/scikitplot-cython-dev/SKILL.md").write_text("---\nname: x\n---\n")
+    (root / "plugins/scikitplot-dev/skills/scikitplot-cython-dev/SKILL.md").write_text("---\nname: x\n---\n")
     maintenance, _ = errors(root)
     assert any("substantive SKILL.md" in e for e in maintenance)
 

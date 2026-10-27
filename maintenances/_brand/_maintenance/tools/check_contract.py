@@ -28,8 +28,8 @@ def reject_command_surface(obj,where="metadata"):
 def discover_repo(start):
     r=Path(start).resolve()
     for c in [r,*r.parents]:
-        if all((c/n).is_dir() for n in ("scikitplot","maintenances","skills")): return c
-    raise ContractError("could not locate wide repository root containing scikitplot/, maintenances/, and skills/")
+        if all((c/n).is_dir() for n in ("scikitplot","maintenances","plugins")): return c
+    raise ContractError("could not locate wide repository root containing scikitplot/, maintenances/, and plugins/")
 
 def safe_rel(v):
     if not isinstance(v,str) or not v or "\\" in v or "\x00" in v: raise ContractError(f"unsafe repository path {v!r}")

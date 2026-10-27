@@ -1425,7 +1425,7 @@ Source freeze before packaging: **308 files**, exact `scikitplot/` + `maintenanc
 
 - immutable R173T3 SHA-256: `7f1998bb6d81476f5a08bdf3905cedfab70e42c063a3641e891c7a2807b4e942`;
 - final immutable R173T3 replay: **77/77** focused warning-strict, **45/45** contribution ledger warning-strict, **46/46** proxy app warning-strict, **140/140** Node architecture, **9/9** layout, **2359 / 0 errors** collection, maintenance **GREEN**;
-- R173T3A changes maintenance metadata/checkpoint only; `scikitplot/` and `skills/` remain byte-identical to R173T3;
+- R173T3A changes maintenance metadata/checkpoint only; `scikitplot/` and `plugins/scikitplot-dev/skills/` remain byte-identical to R173T3;
 - stale R173T2/T3 next-action references closed; unrelated CSS dark-mode TODO remains optional.
 
 

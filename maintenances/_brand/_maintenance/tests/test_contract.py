@@ -1,14 +1,14 @@
 from __future__ import annotations
 import importlib.util, json, shutil, subprocess, sys
 from pathlib import Path
-HERE=Path(__file__).resolve(); REPO=next(p for p in HERE.parents if (p/"scikitplot").is_dir() and (p/"maintenances").is_dir() and (p/"skills").is_dir()); CHECK=REPO/"maintenances/_brand/_maintenance/tools/check_contract.py"
+HERE=Path(__file__).resolve(); REPO=next(p for p in HERE.parents if (p/"scikitplot").is_dir() and (p/"maintenances").is_dir() and (p/"plugins").is_dir()); CHECK=REPO/"maintenances/_brand/_maintenance/tools/check_contract.py"
 spec=importlib.util.spec_from_file_location("brand_contract",CHECK); C=importlib.util.module_from_spec(spec); spec.loader.exec_module(C)
 
 def mini(tmp_path):
     r=tmp_path/"repo"
     shutil.copytree(REPO/"scikitplot/_brand",r/"scikitplot/_brand",ignore=shutil.ignore_patterns("__pycache__",".pytest_cache"))
     shutil.copytree(REPO/"maintenances/_brand",r/"maintenances/_brand",ignore=shutil.ignore_patterns("__pycache__",".pytest_cache"))
-    shutil.copytree(REPO/"skills/scikitplot-brand-dev",r/"skills/scikitplot-brand-dev",ignore=shutil.ignore_patterns("__pycache__",".pytest_cache"))
+    shutil.copytree(REPO/"plugins/scikitplot-dev/skills/scikitplot-brand-dev",r/"plugins/scikitplot-dev/skills/scikitplot-brand-dev",ignore=shutil.ignore_patterns("__pycache__",".pytest_cache"))
     return r
 
 def repair(r):
@@ -49,6 +49,6 @@ def test_forbidden_metadata_command(tmp_path):
 def test_duplicate_json_key_detected(tmp_path):
     r=mini(tmp_path); p=r/"maintenances/_brand/_maintenance/STATE.json"; p.write_text('{"subsystem":"scikitplot._brand","subsystem":"x"}'); assert any("duplicate JSON key" in x for x in C.check(r)["maintenance_errors"])
 def test_missing_skill_detected(tmp_path):
-    r=mini(tmp_path); (r/"skills/scikitplot-brand-dev/SKILL.md").unlink(); assert any("skill" in x.lower() for x in C.check(r)["maintenance_errors"])
+    r=mini(tmp_path); (r/"plugins/scikitplot-dev/skills/scikitplot-brand-dev/SKILL.md").unlink(); assert any("skill" in x.lower() for x in C.check(r)["maintenance_errors"])
 def test_foreign_cwd_cli(tmp_path):
     r=mini(tmp_path); cp=subprocess.run([sys.executable,str(r/"maintenances/_brand/_maintenance/tools/check_contract.py"),"--repo",str(r),"--json"],cwd=tmp_path,text=True,capture_output=True); assert cp.returncode==0; assert json.loads(cp.stdout)["maintenance_status"]=="PASS"

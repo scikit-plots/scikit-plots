@@ -16,7 +16,7 @@ class ContractTests(unittest.TestCase):
             if src.is_dir(): shutil.copytree(src,dst,dirs_exist_ok=True)
             elif src.is_file(): shutil.copy2(src,dst)
         # Ensure the three wide-repo marker dirs exist even in this focused fixture.
-        for rel in ('scikitplot','maintenances','skills'): (self.root/rel).mkdir(parents=True,exist_ok=True)
+        for rel in ('scikitplot','maintenances','plugins'): (self.root/rel).mkdir(parents=True,exist_ok=True)
         shutil.copy2(LIVE/MAN['build']['project_meson'], self.root/MAN['build']['project_meson'])
     def tearDown(self): self.td.cleanup()
     def inspect(self): return m.inspect(self.root)

@@ -6,7 +6,7 @@ of Claude Code, plugins, skills or agents, and goes from nothing to a working
 setup, then on to updates, removal and troubleshooting.
 
 If you develop scikit-plots itself, read
-[`maintenances/README.md`](maintenances/README.md) instead.
+[`maintenances/_plugins/README.md`](../maintenances/_plugins/README.md) instead.
 
 ## TL;DR
 
@@ -17,7 +17,7 @@ pip install scikit-plots
 # 2. Claude Code (needs a Claude Pro, Max, Team or Enterprise plan, or an API account)
 #    https://code.claude.com/docs/en/setup  -> run `claude` once and sign in
 
-# 3. The scikitplot plugin: 22 skills and 22 agents, one per public module
+# 3. The scikitplot plugin: a skill and an agent per public module
 claude plugin marketplace add scikit-plots/scikit-plots --sparse .claude-plugin plugins
 claude plugin install scikitplot@scikit-plots
 claude plugin list          # expect: scikitplot@scikit-plots ... Status: enabled
@@ -225,30 +225,35 @@ plugin). Check it by asking in a new chat: *"Which skills do you have from
 plugins?"*
 
 Only install `scikitplot` on claude.ai. The marketplace also lists
-`scikitplot-dev`, the developers' plugin; it is the whole repository, far
-over the 5,000-file limit, and is meant for Claude Code in a checkout.
+`scikitplot-mcp`, which starts a local program (claude.ai chat can only use
+hosted servers), and `scikitplot-dev`, the developers' plugin, meant for
+Claude Code in a checkout of the repository.
 
 Steps and limits: [Plugin structure and testing](https://claude.com/docs/plugins/build),
 [platform support](https://claude.com/docs/plugins/platform-support).
 
 ## 7. Versions and updates
 
-**Two channels.** Pick the one that matches the scikit-plots you installed:
+**Channels.** Both repositories carry the same refs, built from one place
+(scikit-plots/scikit-plots). Pick the one that matches the scikit-plots you
+installed:
 
-| You installed scikit-plots with | Use the plugin from | Its version |
+| You installed scikit-plots with | Add the marketplace | Its version |
 |---|---|---|
-| `pip install scikit-plots` (a release) | [`scikit-plots/skills`](https://github.com/scikit-plots/skills), or the directory once listed | the library version, e.g. `0.5.0` |
-| `pip install git+https://github.com/scikit-plots/scikit-plots` or a checkout | `scikit-plots/scikit-plots` (the commands in [section 5](#5-path-a-claude-code-in-a-terminal)) | the git commit |
+| `pip install scikit-plots` (the newest release) | `scikit-plots/skills` (its `stable` branch: the newest release) | the library version, e.g. `0.5.0` |
+| one exact release `X.Y.Z` | `scikit-plots/skills@vX.Y.Z` | `X.Y.Z` |
+| a release line kept up to date, `X.Y.*` | `scikit-plots/skills@maintenance/X.Y.x` | the git commit |
+| `pip install git+https://github.com/scikit-plots/scikit-plots` or a checkout | `scikit-plots/skills@main`, or `scikit-plots/scikit-plots` (the commands in [section 5](#5-path-a-claude-code-in-a-terminal)) | the git commit |
 
-The released channel starts with scikit-plots 0.5.0. Install it with:
+The `scikit-plots/skills` refs start with scikit-plots 0.5.0. Install, for example:
 
 ```sh
-claude plugin marketplace add scikit-plots/skills
+claude plugin marketplace add scikit-plots/skills            # or scikit-plots/skills@v0.5.0
 claude plugin install scikitplot@scikit-plots-skills
 ```
 
-Install one channel only: both provide a plugin named `scikitplot`, so their
-skills would have the same names.
+Install one channel only: every channel provides a plugin named `scikitplot`,
+so their skills would have the same names.
 
 The rest of this section describes the development channel.
 
@@ -399,11 +404,16 @@ See [section 7](#7-versions-and-updates).
 use your plan's normal limits; the skills' descriptions add about 4,700
 tokens of context to each session while the plugin is enabled.
 
-**Is there an MCP server?** scikit-plots has a read-only documentation search
-server (`python -m scikitplot.mcp`) with its own client bundles in
-`scikitplot/mcp/_plugins/`. It is not part of this plugin yet, and claude.ai
-chat can only use remote (hosted) servers
-([platform support](https://claude.com/docs/plugins/platform-support)).
+**Is there an MCP server?** Yes, opt-in: the plugin `scikitplot-mcp` registers
+the read-only, source-cited documentation search server
+(`python -m scikitplot.mcp`), which runs on your machine in the Python where
+scikit-plots is installed (`pip install "scikit-plots[mcp]"` if your release
+has that extra). `scikitplot` itself stays Markdown only and runs nothing.
+Install it from the development marketplace:
+`claude plugin install scikitplot-mcp@scikit-plots`. Bundles for other
+clients (Cursor, Windsurf, VS Code, Continue, Cline, Codex) are in
+`scikitplot/mcp/_plugins/`. claude.ai chat can only use remote (hosted)
+servers ([platform support](https://claude.com/docs/plugins/platform-support)).
 
 **Can I use it without Claude?** Each skill is a plain Agent Skills folder
 that other tools can read ([Path C](#8-path-c-one-skill-on-its-own-any-tool)).

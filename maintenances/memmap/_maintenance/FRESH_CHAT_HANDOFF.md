@@ -15,7 +15,7 @@ Do not inherit old archive hashes, counts, findings or campaign sequencing as cu
 ```text
 scikitplot/memmap/                 runtime source + tests
 maintenances/memmap/                  maintenance state + dev-only tools
-skills/scikitplot-memmap-dev/                  fresh-chat skill entry
+plugins/scikitplot-dev/skills/scikitplot-memmap-dev/                  fresh-chat skill entry
 ```
 
 Runtime code must not import `maintenances` or `skills`. Maintenance code inspects runtime read-only unless the user explicitly authorizes a runtime edit.

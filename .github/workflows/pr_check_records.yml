@@ -1,12 +1,13 @@
-# Work records stay in their planes (increment 4R, Rule 124).
+# Records and Claude plugins stay in their two homes (Rules 124, 167).
 #
-# tasks/ holds only a router; plans, results and history live with the plane
-# that owns them (maintenances/<sub>/, docs/tasks/), and the numbered rules in
-# skills/scikitplot-engineering-rules/. A drop-in archive cannot delete files, so a stale
-# tasks/todo.md or tasks/lessons.md would survive an update (Rule 67); this
-# check fails while one is present, and also checks rule numbering, the rule
-# index, the archived history, the links between the records, and the skills
-# (Agent Skills names, one folder each, package mirror; Rule 164).
+# maintenances/ holds every record (maintenances/README.md is the map) and
+# plugins/ everything that ships to Claude. The check fails while a retired
+# location (tasks/, docs/tasks/, docs/maintenances/, docs/skills/, root skills/
+# and agents/, plugins/maintenances/) holds a file - a drop-in archive cannot
+# delete files (Rule 67) - and also checks rule numbering, the rule index, the
+# archived history, the links between the records, the skills (Agent Skills
+# names, one folder each, package mirror, shared copies; Rule 164) and the
+# marketplace against the plugins.
 ---
 name: "PRs 🗂️ Work Records"
 on:

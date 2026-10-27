@@ -28,7 +28,7 @@ archive  scikitplot__sphinx_ai_assistant_run172(2).zip
 SHA-256  a009fd065aa151a167f7e3d43f254b084c62a0261079bd1c9ec0877ce99e5a06
 ```
 
-That workspace contains extra `skills/` and maintenance material and therefore
+That workspace contains extra `plugins/scikitplot-dev/skills/` and maintenance material and therefore
 is not the deployable Run 172 ZIP. Never confuse the two anchors.
 
 ## Canonical test ownership — current
@@ -57,7 +57,7 @@ scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/
 maintenances/_externals/_sphinx_ext/_sphinx_ai_assistant/
     maintenance state + history + tools + examples
 
-skills/scikitplot-sphinx-ai-assistant-dev/
+plugins/scikitplot-dev/skills/scikitplot-sphinx-ai-assistant-dev/
     SKILL.md + tiny entry documentation
 ```
 

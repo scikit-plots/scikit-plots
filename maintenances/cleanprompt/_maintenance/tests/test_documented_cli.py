@@ -76,7 +76,7 @@ def _documents():
         pytest.skip(f"package not present in this checkout: {PACKAGE}")
     found = [PACKAGE / "README.md", PACKAGE / "_config" / "agent" / "SKILL.md"]
     found += sorted(PACKAGE.glob("*.py"))
-    found += [CHECKOUT / "skills" / "scikitplot-cleanprompt-dev" / "SKILL.md"]
+    found += [CHECKOUT / "plugins/scikitplot-dev/skills" / "scikitplot-cleanprompt-dev" / "SKILL.md"]
     found += sorted((CHECKOUT / "docs" / "source" / "user_guide" / "cleanprompt").glob("*.rst"))
     gallery = CHECKOUT / "galleries" / "examples" / "cleanprompt"
     found += sorted(gallery.glob("*.py")) + sorted(gallery.glob("*.txt"))

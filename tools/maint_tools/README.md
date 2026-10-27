@@ -173,7 +173,7 @@ python tools/maint_tools/check_path_lengths.py fix --apply                 # git
 Known debt outside the maintenance planes is listed with a reason in
 `path_length_baseline.txt`; a listed path that no longer violates fails the
 check, so the list only shrinks. `fix` renames only Markdown under
-`maintenances/` and `docs/maintenances/`, deterministically (shared directory
+`maintenances/`, deterministically (shared directory
 affixes, then filler words, then trailing words; a leading identifier is
 kept), and refuses a name it cannot shorten or that would collide.
 

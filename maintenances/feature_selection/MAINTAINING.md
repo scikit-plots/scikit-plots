@@ -4,9 +4,9 @@
 `FeatureSchema`, traces fitted scikit-learn pipelines into a `FeatureLineage`,
 and freezes drift references. Runtime: `scikitplot/feature_selection/`
 (pure Python on pandas, NumPy, SciPy and scikit-learn; PyYAML and `tomli-w`
-optional). Skill: [`skills/scikitplot-feature-selection-dev/SKILL.md`](../../skills/scikitplot-feature-selection-dev/SKILL.md).
+optional). Skill: [`plugins/scikitplot-dev/skills/scikitplot-feature-selection-dev/SKILL.md`](../../plugins/scikitplot-dev/skills/scikitplot-feature-selection-dev/SKILL.md).
 
-Start a session with [`tasks/README.md`](../../tasks/README.md), then the active
+Start a session with [`maintenances/README.md`](../README.md), then the active
 [`todo/todo.md`](todo/todo.md) and this area's [`todo/lessons.md`](todo/lessons.md).
 
 ## Module map

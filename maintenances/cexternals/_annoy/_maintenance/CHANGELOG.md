@@ -1,6 +1,6 @@
 # Maintenance and skill revision
 
-Scope: `maintenances/cexternals/_annoy` and `skills/cexternals/_annoy` only.
+Scope: `maintenances/cexternals/_annoy` and `plugins/scikitplot-dev/skills/cexternals/_annoy` only.
 The sample's public `maintenances/annoy` files are retained unchanged.
 Copy the ZIP's root directories into the full source checkout. Start at
 [MAINTAINING.md](../MAINTAINING.md). No runtime files are included in this overlay.

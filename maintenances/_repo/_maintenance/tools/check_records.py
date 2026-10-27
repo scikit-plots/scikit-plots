@@ -6,18 +6,22 @@
 """
 Check the repository's work records: where they live, and that they hold.
 
-Since increment 4R the records live by plane instead of in two files under
-``tasks/``:
+Since CI-6 there are two homes, each split into groups: ``maintenances/``
+for how the project is worked on (records), ``plugins/`` for what ships to
+Claude (skills, agents, MCP):
 
 * ``maintenances/<area>/todo/todo.md`` - active tasks of one area;
 * ``maintenances/<area>/_maintenance/history/`` - completed tasks, verbatim;
 * ``maintenances/_repo/`` - repository-wide work (CI, ``libs/``, labeling);
-* ``docs/tasks/`` - the documentation site;
-* ``skills/scikitplot-engineering-rules/`` - the numbered engineering rules, by category;
-* ``skills/<name>/SKILL.md`` and ``agents/<name>.md`` - development skills
+* ``maintenances/_docs/`` - the documentation site;
+* ``plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`` - the numbered engineering rules, by category;
+* ``plugins/scikitplot-dev/skills/<name>/SKILL.md`` and ``plugins/scikitplot-dev/agents/<name>.md`` - development skills
   and their agents, ``plugins/scikitplot/`` - usage skills and agents for any
-  project (``skills/INDEX.md`` lists both by package; Rules 164 and 165);
-* ``tasks/README.md`` - a router, nothing else.
+  project (``plugins/INDEX.md`` lists both by package; Rules 164 and 165);
+* ``maintenances/README.md`` - the router; the retired locations
+  (:data:`RETIRED`) must not come back.
+* ``plugins/_shared/skills/`` - skills every plugin carries, copied byte for
+  byte into each plugin by ``--write-index``.
 
 Usage::
 
@@ -65,14 +69,28 @@ from urllib.parse import unquote
 #: Repository root: this file is maintenances/_repo/_maintenance/tools/.
 DEFAULT_ROOT = Path(__file__).resolve().parents[4]
 
-ROUTER = "tasks/README.md"
-SKILLS_DIR = "skills"
+ROUTER = "maintenances/README.md"
+PLUGINS_DIR = "plugins"
+DEV_PLUGIN_DIR = f"{PLUGINS_DIR}/scikitplot-dev"
+SKILLS_DIR = f"{DEV_PLUGIN_DIR}/skills"
 SKILL_DIR = f"{SKILLS_DIR}/scikitplot-engineering-rules"
 RULES_DIR = f"{SKILL_DIR}/rules"
 INDEX = f"{SKILL_DIR}/INDEX.md"
 SKILL = f"{SKILL_DIR}/SKILL.md"
 MANIFEST = "maintenances/_repo/_maintenance/records_manifest.json"
 HISTORY_INDEX = "maintenances/_repo/_maintenance/HISTORY_INDEX.md"
+#: Locations retired by CI-6: records live under ``maintenances/``, Claude
+#: material under ``plugins/``. A file in any of them fails ``router``.
+RETIRED = (
+    "tasks",
+    "docs/tasks",
+    "docs/maintenances",
+    "docs/skills",
+    "skills",
+    "agents",
+    "plugins/maintenances",
+    "scikitplot/mcp/_plugins/.claude-plugin",
+)
 
 #: Line budgets. A session reads the router, the skill and its active todo
 #: whole at the start; past these sizes they stop being an overview, and
@@ -86,16 +104,16 @@ ACTIVE_TODO_MAX_LINES = 400
 LINKED = (
     ROUTER,
     f"{SKILL_DIR}/**/*.md",
-    "docs/tasks/**/*.md",
-    "docs/maintenances/*.md",
-    "docs/skills/*.md",
+    "maintenances/_docs/**/*.md",
+    "maintenances/*.md",
+    "plugins/scikitplot-dev/*.md",
     "maintenances/_repo/*.md",
     "maintenances/**/todo/*.md",
     "maintenances/**/MAINTAINING.md",
-    "skills/**/SKILL.md",
-    "skills/INDEX.md",
+    "plugins/scikitplot-dev/skills/**/SKILL.md",
+    "plugins/INDEX.md",
     "plugins/README.md",
-    "plugins/maintenances/*.md",
+    "maintenances/_plugins/*.md",
     "plugins/scikitplot/README.md",
     "plugins/scikitplot/skills/**/SKILL.md",
 )
@@ -194,13 +212,13 @@ def outside_fences(text: str) -> str:
 def is_archive(rel: str) -> bool:
     """Whether the repository path *rel* is inside an archive folder.
 
-    Archives are ``<area>/_maintenance/history/`` and ``docs/tasks/history/``;
+    Archives are ``<area>/_maintenance/history/`` and ``maintenances/_docs/_maintenance/history/``;
     a live folder that happens to be called ``history`` is not one.
     """
     parts = rel.split("/")
     return any(
         a == "_maintenance" and b == "history" for a, b in zip(parts, parts[1:])
-    ) or rel.startswith("docs/tasks/history/")
+    ) or rel.startswith("maintenances/_docs/_maintenance/history/")
 
 
 def parse_rules(root: Path) -> tuple[list[Rule], list[str]]:
@@ -318,6 +336,15 @@ def _find_part(text: str, heading: str, chars: int, digest: str) -> str | None:
             part = text[i : i + chars]
             if hashlib.sha256(part.encode("utf-8")).hexdigest() == digest:
                 return part
+            # A part that ends the file may have lost trailing newlines to an
+            # end-of-file fixer (pre-commit end-of-file-fixer keeps exactly
+            # one). Accept it only when the missing tail is newlines and the
+            # file ends right there.
+            missing = i + chars - len(text)
+            if 0 < missing <= chars and text.endswith("\n"):
+                padded = text[i:] + "\n" * missing
+                if hashlib.sha256(padded.encode("utf-8")).hexdigest() == digest:
+                    return padded
         start = i + 1
 
 
@@ -459,26 +486,33 @@ def render_history_index(root: Path) -> str:
 
 
 def check_router(root: Path) -> list[str]:
-    """Check that ``tasks/`` holds only the router."""
+    """Check that the router exists and that no retired location holds a file.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+
+    Returns
+    -------
+    list of str
+        One problem per missing router or per file found under a path of
+        :data:`RETIRED` (each such file belongs under ``maintenances/`` or
+        ``plugins/``; see the router).
+    """
     errors = []
-    folder = root / "tasks"
-    others = (
-        sorted(
-            p.relative_to(root).as_posix()
-            for p in folder.rglob("*")
-            if (p.is_file() or p.is_symlink())
-            and p.relative_to(root).as_posix() != ROUTER
-        )
-        if folder.is_dir()
-        else []
-    )
     if not (root / ROUTER).is_file():
         errors.append(f"{ROUTER} is missing")
-    errors.extend(
-        f"{rel}: tasks/ holds only the router; move this record to its"
-        " plane (see tasks/README.md)"
-        for rel in others
-    )
+    for base in RETIRED:
+        folder = root / base
+        if not folder.is_dir():
+            continue
+        errors.extend(
+            f"{p.relative_to(root).as_posix()}: {base}/ is retired; records live"
+            f" under maintenances/, skills and agents under plugins/ (see {ROUTER})"
+            for p in sorted(folder.rglob("*"))
+            if p.is_file() or p.is_symlink()
+        )
     return errors
 
 
@@ -577,14 +611,11 @@ def check_links(root: Path) -> list[str]:
 def check_budgets(root: Path) -> list[str]:
     """Keep the router, the skill and every active ``todo.md`` within budget."""
     errors = []
-    active = [
+    active = sorted(
         p
-        for p in (
-            *root.glob("maintenances/**/todo/todo.md"),
-            *root.glob("docs/tasks/todo.md"),
-        )
+        for p in root.glob("maintenances/**/todo/todo.md")
         if not is_archive(p.relative_to(root).as_posix())
-    ]
+    )
     budgets = [(root / ROUTER, ROUTER_MAX_LINES), (root / SKILL, SKILL_MAX_LINES)]
     budgets.extend((path, ACTIVE_TODO_MAX_LINES) for path in active)
     for path, limit in budgets:
@@ -606,7 +637,7 @@ def check_budgets(root: Path) -> list[str]:
 # ``a-z``, ``0-9`` and single hyphens) equals its folder. There are two sets
 # (Rules 164 and 165):
 #
-# * development skills, ``skills/`` - working on scikit-plots in this
+# * development skills, ``plugins/scikitplot-dev/skills/`` - working on scikit-plots in this
 #   checkout. One per maintained path below ``scikitplot/`` and
 #   ``maintenances/``, recorded as ``metadata.scikitplot-mirror`` and named
 #   ``scikitplot-<derived>-dev``; plus the cross-cutting
@@ -620,7 +651,7 @@ def check_budgets(root: Path) -> list[str]:
 # two paths that differ only by a leading underscore (``externals``,
 # ``_externals``) never share a name. Every skill of either set except the
 # cross-cutting ones has one agent of the same name, generated here:
-# ``agents/<name>.md`` (development) and ``plugins/scikitplot/agents/<name>.md``.
+# ``plugins/scikitplot-dev/agents/<name>.md`` (development) and ``plugins/scikitplot/agents/<name>.md``.
 
 #: The keys the specification defines for the frontmatter.
 SKILL_KEYS = ("name", "description", "license", "compatibility", "metadata", "allowed-tools")
@@ -637,18 +668,24 @@ VENDORED_SKILLS = ("skill-creator",)
 SKILL_NAME_MAX = 64
 SKILL_DESCRIPTION_MAX = 1024
 SKILL_COMPATIBILITY_MAX = 500
-SKILL_INDEX = f"{SKILLS_DIR}/INDEX.md"
-AGENTS_DIR = "agents"
-PLUGIN_DIR = "plugins/scikitplot"
+SKILL_INDEX = f"{PLUGINS_DIR}/INDEX.md"
+AGENTS_DIR = f"{DEV_PLUGIN_DIR}/agents"
+PLUGIN_DIR = f"{PLUGINS_DIR}/scikitplot"
+#: Skills every plugin carries: one source here, a generated copy in each of
+#: :data:`SHARED_TARGETS` (plugins cannot reference files outside their own
+#: folder; https://code.claude.com/docs/en/plugins/marketplace-reference.md).
+SHARED_SKILLS_DIR = f"{PLUGINS_DIR}/_shared/skills"
+MARKETPLACE = ".claude-plugin/marketplace.json"
 USAGE_SKILLS_DIR = f"{PLUGIN_DIR}/skills"
 USAGE_AGENTS_DIR = f"{PLUGIN_DIR}/agents"
+SHARED_TARGETS = (SKILLS_DIR, f"{PLUGIN_DIR}/skills")
 PLUGIN_README = f"{PLUGIN_DIR}/README.md"
 #: The repository that serves released versions of the plugin (Rule 166).
 STABLE_REPO = "scikit-plots/skills"
 STABLE_MARKETPLACE = "scikit-plots-skills"
 GUIDE_URL = "https://github.com/scikit-plots/scikit-plots/blob/main/plugins/README.md"
 #: Files allowed directly in a skills folder (every folder there is one skill).
-SKILLS_ROOT_FILES = ("INDEX.md", ".gitignore")
+SKILLS_ROOT_FILES = (".gitignore",)
 _SKILL_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _YAML_KEY = re.compile(r"([A-Za-z0-9][A-Za-z0-9_-]*):(?: (.*))?")
 #: A plain YAML scalar may not start with an indicator character.
@@ -942,8 +979,45 @@ def read_skills(root: Path, base: str, key: str) -> tuple[list[Skill], list[str]
     return skills, problems
 
 
+def shared_skill_names(root: Path) -> tuple[str, ...]:
+    """Return the folder names of the shared skills (``plugins/_shared/skills/``)."""
+    base = root / SHARED_SKILLS_DIR
+    if not base.is_dir():
+        return ()
+    return tuple(sorted(p.parent.name for p in base.glob("*/SKILL.md")))
+
+
+def shared_copies(root: Path) -> dict[str, bytes]:
+    """
+    Return every generated copy of a shared skill, by repository path.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+
+    Returns
+    -------
+    dict
+        ``<target>/<skill>/<file>`` -> the bytes of
+        ``plugins/_shared/skills/<skill>/<file>``, for each target of
+        :data:`SHARED_TARGETS`. Files are copied as bytes, so a copy is
+        identical to its source.
+    """
+    out: dict[str, bytes] = {}
+    base = root / SHARED_SKILLS_DIR
+    for name in shared_skill_names(root):
+        for path in sorted((base / name).rglob("*")):
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            rel = path.relative_to(base).as_posix()
+            for target in SHARED_TARGETS:
+                out[f"{target}/{rel}"] = path.read_bytes()
+    return out
+
+
 def dev_skills(root: Path) -> tuple[list[Skill], list[str]]:
-    """Read the development skills (``skills/``)."""
+    """Read the development skills (``plugins/scikitplot-dev/skills/``)."""
     return read_skills(root, SKILLS_DIR, MIRROR_KEY)
 
 
@@ -1001,7 +1075,7 @@ def _yaml_list(items: list[str]) -> list[str]:
 
 def render_dev_agent(skill: Skill) -> str:
     """
-    Render ``agents/<name>.md`` for a development skill.
+    Render ``plugins/scikitplot-dev/agents/<name>.md`` for a development skill.
 
     Parameters
     ----------
@@ -1031,7 +1105,7 @@ def render_dev_agent(skill: Skill) -> str:
         f"<!-- Generated by check_records.py --write-index from {SKILLS_DIR}/{skill.name}/SKILL.md (Rule 165). -->",
         "",
         f"You develop and maintain `{path}` of scikit-plots, working in a scikit-plots",
-        "checkout (the folder holding `scikitplot/`, `maintenances/` and `skills/`).",
+        "checkout (the folder holding `scikitplot/`, `maintenances/` and `plugins/`).",
         "",
         f"- Follow the preloaded `{skill.name}` skill: read what it lists first and run its checks.",
         "- Follow the numbered rules of `scikitplot-engineering-rules` for every change.",
@@ -1095,12 +1169,22 @@ def wanted_agents(root: Path) -> dict[str, str]:
     return out
 
 
+def _rel_to_plugins(path: str) -> str:
+    """Return the repository path *path* relative to :data:`PLUGINS_DIR`."""
+    return path[len(PLUGINS_DIR) + 1 :]
+
+
 def render_skill_index(root: Path) -> str:
-    """Render ``skills/INDEX.md``: both sets, by path, with their agents."""
+    """Render ``plugins/INDEX.md``: every plugin's skills, by path, with their agents."""
     dev, _ = dev_skills(root)
     usage, _ = usage_skills(root)
+    shared = set(shared_skill_names(root))
+    skills, agents = _rel_to_plugins(SKILLS_DIR), _rel_to_plugins(AGENTS_DIR)
+    uskills, uagents = _rel_to_plugins(USAGE_SKILLS_DIR), _rel_to_plugins(USAGE_AGENTS_DIR)
     mirrored = sorted((s for s in dev if s.mirror), key=lambda s: s.mirror)
-    other = sorted((s for s in dev if not s.mirror), key=lambda s: s.folder)
+    other = sorted(
+        (s for s in dev if not s.mirror and s.folder not in shared), key=lambda s: s.folder
+    )
     lines = [
         "# Skills and agents by package",
         "",
@@ -1109,18 +1193,19 @@ def render_skill_index(root: Path) -> str:
         " `name` equals the folder); names are derived from the package path (Rule 164);"
         " each agent has its skill's name and preloads it (Rule 165).",
         "",
-        "## Developing scikit-plots (this checkout)",
+        "## Developing scikit-plots (this checkout: the `scikitplot-dev` plugin)",
         "",
         "| `scikitplot/` and `maintenances/` path | Skill | Agent |",
         "|---|---|---|",
     ]
     lines += [
-        f"| `{s.mirror}` | [`{s.folder}`]({s.folder}/SKILL.md) | [`{s.folder}`](../{AGENTS_DIR}/{s.folder}.md) |"
+        f"| `{s.mirror}` | [`{s.folder}`]({skills}/{s.folder}/SKILL.md)"
+        f" | [`{s.folder}`]({agents}/{s.folder}.md) |"
         for s in mirrored
     ]
     if other:
         lines += ["", "For the whole checkout:", ""]
-        lines += [f"- [`{s.folder}`]({s.folder}/SKILL.md)" for s in other]
+        lines += [f"- [`{s.folder}`]({skills}/{s.folder}/SKILL.md)" for s in other]
     lines += [
         "",
         "## Using scikit-plots (any project: the `scikitplot` plugin)",
@@ -1129,10 +1214,23 @@ def render_skill_index(root: Path) -> str:
         "|---|---|---|",
     ]
     lines += [
-        f"| `{s.mirror}` | [`{s.folder}`](../{USAGE_SKILLS_DIR}/{s.folder}/SKILL.md)"
-        f" | [`{s.folder}`](../{USAGE_AGENTS_DIR}/{s.folder}.md) |"
-        for s in sorted(usage, key=lambda s: s.mirror)
+        f"| `{s.mirror}` | [`{s.folder}`]({uskills}/{s.folder}/SKILL.md)"
+        f" | [`{s.folder}`]({uagents}/{s.folder}.md) |"
+        for s in sorted((s for s in usage if s.mirror), key=lambda s: s.mirror)
     ]
+    if shared:
+        lines += [
+            "",
+            "## Shared by every plugin",
+            "",
+            f"Source in `{_rel_to_plugins(SHARED_SKILLS_DIR)}/`; each plugin carries a"
+            " byte-identical copy written by `--write-index`.",
+            "",
+        ]
+        lines += [
+            f"- [`{name}`]({_rel_to_plugins(SHARED_SKILLS_DIR)}/{name}/SKILL.md)"
+            for name in sorted(shared)
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -1152,20 +1250,24 @@ def render_plugin_readme(root: Path) -> str:
         "",
         "Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no",
         "MCP servers and no scripts, runs no code of its own and sends no data anywhere.",
+        "The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,",
+        "in the development marketplace.",
         "",
         "## Install",
         "",
         "Released versions, whose skills describe that release of scikit-plots (the",
         "plugin `version` is the library version), come from",
-        f"[`{STABLE_REPO}`](https://github.com/{STABLE_REPO}). In Claude Code, from a shell:",
+        f"[`{STABLE_REPO}`](https://github.com/{STABLE_REPO}): its default branch is the",
+        "newest release, `@vX.Y.Z` one exact release, `@maintenance/X.Y.x` a release line",
+        "and `@main` the development build. In Claude Code, from a shell:",
         "",
         "```sh",
-        f"claude plugin marketplace add {STABLE_REPO}",
+        f"claude plugin marketplace add {STABLE_REPO}            # or {STABLE_REPO}@v0.5.0",
         f"claude plugin install scikitplot@{STABLE_MARKETPLACE}",
         "```",
         "",
-        "The development version, whose skills describe the `main` branch, comes from",
-        "the scikit-plots repository itself:",
+        "The development version, whose skills describe the `main` branch, also comes",
+        "from the scikit-plots repository itself:",
         "",
         "```sh",
         "claude plugin marketplace add scikit-plots/scikit-plots --sparse .claude-plugin plugins",
@@ -1184,7 +1286,7 @@ def render_plugin_readme(root: Path) -> str:
     ]
     lines += [
         f"| `{s.mirror}` | [`{s.folder}`](skills/{s.folder}/SKILL.md) | [`{s.folder}`](agents/{s.folder}.md) |"
-        for s in sorted(usage, key=lambda s: s.mirror)
+        for s in sorted((s for s in usage if s.mirror), key=lambda s: s.mirror)
     ]
     lines += [
         "",
@@ -1219,6 +1321,18 @@ def write_skill_files(root: Path) -> None:
     for rel, text in wanted.items():
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         write(root / rel, text)
+    copies = shared_copies(root)
+    shared = shared_skill_names(root)
+    for target in SHARED_TARGETS:
+        for name in shared:
+            folder = root / target / name
+            if folder.is_dir():
+                for path in sorted(folder.rglob("*"), reverse=True):
+                    if path.is_file() and path.relative_to(root).as_posix() not in copies:
+                        path.unlink()
+    for rel, data in copies.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes(data)
 
 
 def check_skills(root: Path) -> list[str]:
@@ -1243,6 +1357,9 @@ def check_skills(root: Path) -> list[str]:
     dev, errors = dev_skills(root)
     usage, usage_errors = usage_skills(root)
     errors += usage_errors
+    shared = shared_skill_names(root)
+    _, shared_errors = read_skills(root, SHARED_SKILLS_DIR, MODULE_KEY)
+    errors += shared_errors
     keys = mirror_keys(root)
     derived = derived_skill_names(keys)
     seen: dict[str, str] = {}
@@ -1254,7 +1371,7 @@ def check_skills(root: Path) -> list[str]:
                     f"{rel}: a {DEV_SUFFIX} skill names the path it maintains in"
                     f" metadata.{MIRROR_KEY}"
                 )
-            elif skill.name not in CROSS_CUTTING_SKILLS + VENDORED_SKILLS:
+            elif skill.name not in CROSS_CUTTING_SKILLS + VENDORED_SKILLS + shared:
                 errors.append(
                     f"{rel}: a skill without metadata.{MIRROR_KEY} is one of"
                     f" {list(CROSS_CUTTING_SKILLS + VENDORED_SKILLS)}"
@@ -1280,6 +1397,8 @@ def check_skills(root: Path) -> list[str]:
     for skill in usage:
         rel = f"{USAGE_SKILLS_DIR}/{skill.folder}/SKILL.md"
         module = skill.mirror
+        if not module and skill.folder in shared:
+            continue
         path = module[len(PREFIX) + 1 :].replace(".", "/") if module.startswith(PREFIX + ".") else ""
         if module != PREFIX and path not in keys:
             errors.append(f"{rel}: metadata.{MODULE_KEY} {module!r} is not a package of scikitplot")
@@ -1294,7 +1413,7 @@ def check_skills(root: Path) -> list[str]:
                 f"{rel}: the usage skill for {module!r} is named {expected!r} (Rule 164);"
                 f" rename the folder and 'name' from {skill.name!r}"
             )
-    names = [s.name for s in dev + usage]
+    names = [s.name for s in dev + usage if s.folder not in shared]
     for name in sorted({n for n in names if names.count(n) > 1}):
         errors.append(f"skill name {name!r} is used twice; skill names are global")
     wanted = generated_files(root)
@@ -1303,6 +1422,97 @@ def check_skills(root: Path) -> list[str]:
     for rel, text in sorted(wanted.items()):
         if not (root / rel).is_file() or read(root, rel) != text:
             errors.append(f"{rel} is out of date (run with --write-index)")
+    copies = shared_copies(root)
+    for rel, data in sorted(copies.items()):
+        if not (root / rel).is_file() or (root / rel).read_bytes() != data:
+            errors.append(
+                f"{rel} differs from its source in {SHARED_SKILLS_DIR}/ (run with --write-index)"
+            )
+    for target in SHARED_TARGETS:
+        for name in shared:
+            folder = root / target / name
+            errors.extend(
+                f"{p.relative_to(root).as_posix()}: not in {SHARED_SKILLS_DIR}/{name}/"
+                " (run with --write-index)"
+                for p in sorted(folder.rglob("*")) if folder.is_dir()
+                if p.is_file() and p.relative_to(root).as_posix() not in copies
+            )
+    return errors
+
+
+def check_plugins(root: Path) -> list[str]:
+    """
+    Check the development marketplace and every plugin it lists.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+
+    Returns
+    -------
+    list of str
+        Empty when ``.claude-plugin/marketplace.json`` is valid JSON with a
+        ``plugins`` list, each entry's relative ``source`` is
+        ``./plugins/<name>`` and holds ``.claude-plugin/plugin.json`` whose
+        ``name`` equals the entry's, every folder of ``plugins/`` holding a
+        manifest is listed, and no manifest sets ``version`` (the development
+        channel is unversioned, Rule 166; releases are stamped by
+        ``tools/maint_tools/build_skills_repo.py``).
+
+    Notes
+    -----
+    **Developer notes.** The rules come from the marketplace reference
+    (https://code.claude.com/docs/en/plugins/marketplace-reference.md): a
+    relative source is resolved from the marketplace root and may not use
+    ``..``; the entry name and the manifest name must agree. ``claude plugin
+    validate`` checks more; this check needs no Claude Code install.
+    """
+    path = root / MARKETPLACE
+    if not path.is_file():
+        return [f"{MARKETPLACE} is missing"]
+    try:
+        market = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        return [f"{MARKETPLACE}: invalid JSON ({exc})"]
+    entries = market.get("plugins")
+    if not isinstance(entries, list) or not entries:
+        return [f"{MARKETPLACE}: 'plugins' must be a non-empty list"]
+    errors: list[str] = []
+    listed: set[str] = set()
+    for i, entry in enumerate(entries):
+        where = f"{MARKETPLACE}: plugins[{i}]"
+        name, source = entry.get("name"), entry.get("source")
+        if not isinstance(name, str) or not _SKILL_NAME.fullmatch(name or ""):
+            errors.append(f"{where}: 'name' {name!r} is not kebab-case")
+            continue
+        if source != f"./{PLUGINS_DIR}/{name}":
+            errors.append(f"{where}: 'source' is {source!r}; write './{PLUGINS_DIR}/{name}'")
+            continue
+        listed.add(name)
+        manifest = root / PLUGINS_DIR / name / ".claude-plugin" / "plugin.json"
+        if not manifest.is_file():
+            errors.append(f"{where}: {manifest.relative_to(root).as_posix()} is missing")
+            continue
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            errors.append(f"{manifest.relative_to(root).as_posix()}: invalid JSON ({exc})")
+            continue
+        if data.get("name") != name:
+            errors.append(
+                f"{manifest.relative_to(root).as_posix()}: 'name' {data.get('name')!r}"
+                f" must equal the marketplace entry {name!r}"
+            )
+        if "version" in data or "version" in entry:
+            errors.append(
+                f"{manifest.relative_to(root).as_posix()}: the development channel sets no"
+                " 'version' (Rule 166)"
+            )
+    for manifest in sorted((root / PLUGINS_DIR).glob("*/.claude-plugin/plugin.json")):
+        name = manifest.parent.parent.name
+        if name not in listed and not name.startswith("_"):
+            errors.append(f"{PLUGINS_DIR}/{name}/: a plugin {MARKETPLACE} does not list")
     return errors
 
 
@@ -1313,6 +1523,7 @@ CHECKS = {
     "links": check_links,
     "budgets": check_budgets,
     "skills": check_skills,
+    "plugins": check_plugins,
 }
 
 
@@ -1377,7 +1588,7 @@ def prove(root: Path, commit: str) -> list[str]:
 
 
 def write_indexes(root: Path) -> None:
-    """Regenerate ``INDEX.md``, ``skills/INDEX.md`` and ``HISTORY_INDEX.md``."""
+    """Regenerate ``INDEX.md``, ``plugins/INDEX.md`` and ``HISTORY_INDEX.md``."""
     rules, _ = parse_rules(root)
     write(root / INDEX, render_index(rules))
     if (root / SKILLS_DIR).is_dir():

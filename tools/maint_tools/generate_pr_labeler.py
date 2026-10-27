@@ -78,7 +78,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.8-3.10
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
 POLICY_TABLE = ("tool", "scikitplot", "maintenance", "labeler")
 TOWNCRIER_SCRIPT = Path(__file__).resolve().parent / "generate_towncrier_sections.py"
-#: Reads each skill's ``metadata.scikitplot-mirror``: ``skills/`` is flat, so a
+#: Reads each skill's ``metadata.scikitplot-mirror``: ``plugins/scikitplot-dev/skills/`` is flat, so a
 #: package's skill folder is looked up, not spelled from its path (Rule 164).
 RECORDS_SCRIPT = DEFAULT_REPO_ROOT / "maintenances/_repo/_maintenance/tools/check_records.py"
 DISTRIBUTIONS_FILE = "scikitplot/_distributions.py"
@@ -387,11 +387,11 @@ def _skill_mirrors(repo_root: Path) -> Dict[str, Dict[str, str]]:
     """
     Return ``{"skill": {path: folder}, "usage": {path: folder}}`` from frontmatter.
 
-    ``skill`` maps a package path to its development skill (``skills/``),
+    ``skill`` maps a package path to its development skill (``plugins/scikitplot-dev/skills/``),
     ``usage`` to its usage skill (``plugins/scikitplot/skills/``); both are
     read by ``check_records.py`` (Rules 164 and 165).
     """
-    if not (repo_root / "skills").is_dir():
+    if not (repo_root/"plugins").is_dir():
         return {"skill": {}, "usage": {}}
     records = _load_module("_records_for_labeler", RECORDS_SCRIPT)
     return {

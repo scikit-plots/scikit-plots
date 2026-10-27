@@ -5,20 +5,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Build the released ``scikitplot`` plugin: the tree of ``scikit-plots/skills``.
+Build the ``scikitplot`` plugin tree of ``scikit-plots/skills`` from a checkout.
 
-The development plugin lives in ``plugins/scikitplot/`` of this repository
-and describes ``main``. A released version lives at the root of the separate
-repository ``scikit-plots/skills``, which the Claude directory validates and
-lists (Rule 166). This script turns a scikit-plots checkout of a release tag
-into that tree: it copies the generated skills, agents and README, stamps the
-library version into ``plugin.json``, adds the icon, the licenses and a
-one-plugin marketplace, then checks the result against the directory's
+The plugin's source is ``plugins/scikitplot/`` of this repository. The
+separate repository ``scikit-plots/skills`` serves it at its root, where the
+Claude directory validates and lists it (Rule 166), with the same refs as this
+repository: ``main`` builds ``main``, ``maintenance/X.Y.x`` builds
+``maintenance/X.Y.x`` and the tag ``vX.Y.Z`` builds the tag ``vX.Y.Z``
+(``.github/workflows/ci_claude_plugins_publish.yml`` pushes each). This
+script turns one checkout into that tree: it copies the generated skills,
+agents and README, adds the icon, the licenses and a one-plugin marketplace,
+sets ``version`` for a release (none for a branch, so Claude Code versions a
+branch build by its commit), then checks the result against the directory's
 pre-submission checklist.
 
 Usage::
 
     python tools/maint_tools/build_skills_repo.py build --out ../skills --version 0.5.0
+    python tools/maint_tools/build_skills_repo.py build --out ../skills --unversioned
     python tools/maint_tools/build_skills_repo.py check --out ../skills --version 0.5.0
 
 ``build`` writes and prints what changed; ``check`` writes nothing and exits 1
@@ -27,11 +31,10 @@ source checkout is stale or the result breaks a directory check.
 
 Notes
 -----
-**User notes.** Run it from the checkout of the release being published, with
-that release's version. Only the paths in :data:`MANAGED` are written; the
-target's ``.git/``, ``.github/`` and ``.gitignore`` are left alone, so the
-sync workflow of ``scikit-plots/skills`` is installed once by hand
-(``plugins/maintenances/skills-repo/sync.yml``) and never rewritten here.
+**User notes.** Run it from the checkout being published: with ``--version``
+for a release tag, ``--unversioned`` for a branch; one of the two is
+required, there is no default. Only the paths in :data:`MANAGED` are written;
+the target's ``.git/``, ``.github/`` and ``.gitignore`` are left alone.
 
 **Developer notes.** :func:`render` is pure: the source checkout and the
 version fully determine every file, so ``build`` is idempotent and ``check``
@@ -124,7 +127,7 @@ def check_version(version: str) -> str:
     return version
 
 
-def render(source: Path, version: str) -> dict[str, bytes]:
+def render(source: Path, version: str | None) -> dict[str, bytes]:
     """
     Return every file of the released plugin, by path in the target.
 
@@ -133,7 +136,8 @@ def render(source: Path, version: str) -> dict[str, bytes]:
     source : Path
         Root of a scikit-plots checkout whose generated plugin is current.
     version : str
-        The library version of that checkout (see :func:`check_version`).
+        The library version of that checkout (see :func:`check_version`), or
+        ``None`` for an unversioned branch build.
 
     Returns
     -------
@@ -148,7 +152,8 @@ def render(source: Path, version: str) -> dict[str, bytes]:
     FileNotFoundError
         When the checkout lacks the plugin, the icon or the licenses.
     """
-    check_version(version)
+    if version is not None:
+        check_version(version)
     records = _records()
     stale = records.check_skills(source)
     if stale:
@@ -174,7 +179,6 @@ def render(source: Path, version: str) -> dict[str, bytes]:
     released = {
         "name": manifest["name"],
         "displayName": manifest.get("displayName", manifest["name"]),
-        "version": version,
         "description": manifest["description"],
         "author": manifest["author"],
         "homepage": manifest["homepage"],
@@ -183,12 +187,17 @@ def render(source: Path, version: str) -> dict[str, bytes]:
         "keywords": manifest.get("keywords", []),
         "icon": f"./{ICON}",
     }
+    if version is not None:
+        released = {**released, "version": version}
     files[".claude-plugin/plugin.json"] = _json(released)
+    metadata = {"description": manifest["description"]}
+    if version is not None:
+        metadata["version"] = version
     files[".claude-plugin/marketplace.json"] = _json(
         {
             "name": records.STABLE_MARKETPLACE,
             "owner": manifest["author"],
-            "metadata": {"description": manifest["description"], "version": version},
+            "metadata": metadata,
             "plugins": [
                 {
                     "name": manifest["name"],
@@ -299,23 +308,33 @@ def _check_files(out: Path) -> list[str]:
     return errors
 
 
-def _check_manifest(out: Path) -> list[str]:
-    """Return the problems of ``plugin.json``, its icon and the README."""
+def _check_manifest(out: Path, versioned: bool = True) -> list[str]:
+    """Return the problems of ``plugin.json``, its icon and the README.
+
+    A release (*versioned*) needs a released ``version``; a branch build must
+    set none, so Claude Code versions it by commit.
+    """
     manifest_path = out / ".claude-plugin/plugin.json"
     if not manifest_path.is_file():
         return [".claude-plugin/plugin.json: missing"]
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     errors = [
         f".claude-plugin/plugin.json: {key!r} is not set"
-        for key in ("name", "description", "author", "version", "license", "icon")
+        for key in ("name", "description", "author", "license", "icon")
         if not manifest.get(key)
     ]
+    if not versioned:
+        if "version" in manifest:
+            errors.append(".claude-plugin/plugin.json: a branch build sets no 'version'")
+    elif not manifest.get("version"):
+        errors.append(".claude-plugin/plugin.json: 'version' is not set")
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(manifest.get("name", ""))):
         errors.append(".claude-plugin/plugin.json: 'name' is not lowercase kebab-case")
-    try:
-        check_version(manifest.get("version"))
-    except ValueError as exc:
-        errors.append(f".claude-plugin/plugin.json: {exc}")
+    if versioned and manifest.get("version"):
+        try:
+            check_version(manifest.get("version"))
+        except ValueError as exc:
+            errors.append(f".claude-plugin/plugin.json: {exc}")
     icon_path = str(manifest.get("icon", ""))
     icon = out / (icon_path[2:] if icon_path.startswith("./") else icon_path)
     if not icon.is_file() or icon.read_bytes()[:8] != PNG_MAGIC:
@@ -360,7 +379,7 @@ def _check_components(out: Path) -> list[str]:
     return errors
 
 
-def validate(out: Path) -> list[str]:
+def validate(out: Path, versioned: bool = True) -> list[str]:
     """
     Check *out* against the directory checks a static tree can answer.
 
@@ -368,6 +387,8 @@ def validate(out: Path) -> list[str]:
     ----------
     out : Path
         Root of the released plugin (the ``scikit-plots/skills`` checkout).
+    versioned : bool, default True
+        ``True`` for a release build, ``False`` for a branch build.
 
     Returns
     -------
@@ -379,7 +400,7 @@ def validate(out: Path) -> list[str]:
     --------
     render : What a build writes; a fresh build passes every check.
     """
-    return _check_files(out) + _check_manifest(out) + _check_components(out)
+    return _check_files(out) + _check_manifest(out, versioned) + _check_components(out)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -392,7 +413,13 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="root of the scikit-plots/skills checkout",
     )
-    parser.add_argument("--version", required=True, help="the release, e.g. 0.5.0")
+    which = parser.add_mutually_exclusive_group(required=True)
+    which.add_argument("--version", help="a release, e.g. 0.5.0 (for a vX.Y.Z tag)")
+    which.add_argument(
+        "--unversioned",
+        action="store_true",
+        help="a branch build (main, maintenance/X.Y.x): no 'version'",
+    )
     parser.add_argument(
         "--source",
         type=Path,
@@ -415,13 +442,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     for line in changes:
         print(line)
-    errors = validate(out) if out.is_dir() else []
+    errors = validate(out, args.version is not None) if out.is_dir() else []
     for line in errors:
         print(f"error: {line}", file=sys.stderr)
     if errors or (args.command == "check" and changes):
         return 1
     print(
-        f"ok   {len(files)} files, version {args.version}"
+        f"ok   {len(files)} files, "
+        + (f"version {args.version}" if args.version else "unversioned")
         + ("" if changes else ", unchanged")
     )
     return 0

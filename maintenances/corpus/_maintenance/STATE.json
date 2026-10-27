@@ -7,7 +7,7 @@
   },
   "scope": [
     "maintenances/corpus",
-    "skills/scikitplot-corpus-dev"
+    "plugins/scikitplot-dev/skills/scikitplot-corpus-dev"
   ],
   "runtime_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "status": "maintenance_verified_runtime_missing",
@@ -34,7 +34,7 @@
     {
       "id": "CORPUS-004",
       "status": "resolved",
-      "summary": "skills/scikitplot-corpus-dev was empty.",
+      "summary": "plugins/scikitplot-dev/skills/scikitplot-corpus-dev was empty.",
       "evidence_or_action": "Added scikitplot-corpus-dev SKILL.md."
     },
     {

@@ -12,7 +12,7 @@ Start with the [handoff](_maintenance/FRESH_CHAT_HANDOFF.md), then
 [state](_maintenance/STATE.json), [family contract](_maintenance/FAMILY.md), and
 [verification guide](_maintenance/VERIFICATION.md). The declarative contract is
 [MAINTENANCE.json](MAINTENANCE.json); the project-local skill is
-[SKILL.md](../../../skills/scikitplot-cexternals-annoy-dev/SKILL.md).
+[SKILL.md](../../../plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/SKILL.md).
 
 From the repository root:
 
