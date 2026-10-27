@@ -54,6 +54,13 @@ many, what kind, under what conditions, and so on).
 | **What if** | Scenarios and consequences | What if the key assumption is false? |
 | **How might we** | Open-ended design or problem-solving | How might we address the problem without creating a new one? |
 
+| Category | Count | Questions |
+|---|---:|---|
+| A questions | 1 | architecture |
+| D questions | 1 | design |
+| H questions | 5 | how, how many, how much, how often, how old |
+| W questions | 10 | where, when, why, which, who, whose, whom, what, what time, what kind |
+
 ### Yes/no questions
 
 Questions beginning with **is, are, was, were, do, does, did, can, could, will, would, should, have,** or **has** can check a specific condition:
