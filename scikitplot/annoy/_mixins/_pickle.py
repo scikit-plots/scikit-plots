@@ -1,5 +1,6 @@
 # scikitplot/annoy/_mixins/_pickle.py
 #
+# ruff: noqa: UP037
 # flake8: noqa: D213
 #
 # Authors: The scikit-plots developers
@@ -37,6 +38,7 @@ import contextlib
 import gzip
 import os
 import pickle
+import sys
 import zlib
 from collections.abc import Mapping
 from dataclasses import dataclass  # noqa: F401
@@ -46,8 +48,20 @@ from pathlib import Path  # noqa: F401
 # Only imports when type checking
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
 
+# But on Python below 3.11, if typing_extensions is unavailable,
+# the type checker sees Self as object, not as the current class's type.
+# So the cast still runs, but you lose Self's precise static typing.
+# For precise checking on older Python, typing_extensions must be available
+# to the type checker.
+
 # if TYPE_CHECKING:
-from typing_extensions import Self
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    try:
+        from typing_extensions import Self
+    except ImportError:
+        Self = object
 
 from .._utils import backend_for, lock_for
 
@@ -354,7 +368,10 @@ class PickleMixin:
         return (type(self)._rebuild, (state,))
 
     @classmethod
-    def _rebuild(cls: type[Self], state: Mapping[str, Any]) -> Self:  # noqa: PLR0912
+    def _rebuild(  # noqa: PLR0912
+        cls: type[Self],
+        state: Mapping[str, Any],
+    ) -> Self:
         """Rebuild an instance from a pickle state mapping."""
         version = int(state.get("pickle_state_version", -1))
         if version != cls._PICKLE_STATE_VERSION:

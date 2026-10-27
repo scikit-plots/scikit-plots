@@ -1,4 +1,8 @@
 # scikitplot/annoy/_base.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 High-level public :class:`~scikitplot.annoy` index.
 
@@ -32,17 +36,30 @@ scikitplot.cexternals._annoy.Annoy
 from __future__ import annotations
 
 # import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
+import sys
 import threading
 
 # Only imports when type checking
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING  # noqa: F401
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing_extensions import Self, override  # noqa: F401
-else:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
-    def override(func):
-        return func
+    if sys.version_info >= (3, 12):
+        from typing import override
+    else:
+        try:
+            from typing_extensions import override
+        except ImportError:
+
+            def override(method):
+                return method
 
 
 from ..cexternals._annoy import Annoy

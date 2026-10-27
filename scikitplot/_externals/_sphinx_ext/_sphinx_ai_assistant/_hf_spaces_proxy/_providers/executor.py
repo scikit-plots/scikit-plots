@@ -1,3 +1,5 @@
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_providers/executor.py
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,10 +16,18 @@ creation order on success, error, timeout, or cancellation.
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterator, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, AsyncIterator, Protocol, Sequence
 
-from typing_extensions import Self
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 from .base import ResourceRoute
 

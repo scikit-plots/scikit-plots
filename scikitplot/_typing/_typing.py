@@ -1,5 +1,7 @@
-# ruff: noqa: F401
-
+# scikitplot/_typing/_typing.py
+#
+# ruff: noqa: UP037 F401
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -173,39 +175,48 @@ if TYPE_CHECKING:
         overload,
     )
 
-    # -------------------------
-    # Self (3.11+ only)
-    # -------------------------
-    # if sys.version_info >= (3, 11):
-    #     from typing import Self
-    # else:
-    #     from typing import TypeVar
-    #     Self = TypeVar("Self", bound=object)
-
-    # -------------------------
     # TypeAlias (3.10+ only)
-    # -------------------------
-    # if sys.version_info >= (3, 10):
-    #     from typing import TypeAlias
-    # else:
-    #     # fallback: no-op marker for older Python
-    #     TypeAlias = object
-
-    # Compatibility shim for `TypeAlias` in Python < 3.10
-    try:
-        # Python 3.10+ — native support
+    if sys.version_info >= (3, 10):
         from typing import TypeAlias
-    except ImportError:
+    else:
         try:
-            # Fallback for older Python using typing_extensions (must be installed)
-            from typing_extensions import (
-                TypeAlias,
-            )
+            from typing_extensions import TypeAlias
         except ImportError:
-            # Final fallback: dummy placeholder (used only for type hints)
             TypeAlias = object
 
-    from typing_extensions import NotRequired
+    # NotRequired (3.11+ only)
+    if sys.version_info >= (3, 11):
+        from typing import NotRequired
+    else:
+        try:
+            from typing_extensions import NotRequired
+        except ImportError as exc:
+            # If you must avoid that dependency on Python 3.8-3.10,
+            # define the TypedDict using a required base and a total=False subclass instead.
+            # raise ImportError(
+            #     "NotRequired on Python < 3.11 requires typing_extensions"
+            # ) from exc
+            NotRequired = object
+
+    # Self (3.11+ only)
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
+
+    # override (3.12+ only)
+    if sys.version_info >= (3, 12):
+        from typing import override
+    else:
+        try:
+            from typing_extensions import override
+        except ImportError:
+
+            def override(method):
+                return method
 
     # to maintain type information across generic functions and parametrization
     T = TypeVar("T")

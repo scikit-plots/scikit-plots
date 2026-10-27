@@ -35,6 +35,7 @@ from __future__ import annotations
 import abc
 import logging
 import shutil
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -61,7 +62,13 @@ if TYPE_CHECKING:
         Union,
     )
 
-    from typing_extensions import Self  # noqa: F401
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 logger = logging.getLogger(__name__)
 

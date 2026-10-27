@@ -1,3 +1,5 @@
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_utils/_zip_workspace.py
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,6 +45,7 @@ import os
 import re
 import stat
 import struct
+import sys
 import tempfile
 import unicodedata
 import zipfile
@@ -51,6 +54,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (  # ruff: ignore[unused-import]
+    TYPE_CHECKING,
     BinaryIO,
     Callable,
     Generator,
@@ -58,7 +62,14 @@ from typing import (  # ruff: ignore[unused-import]
     Mapping,
 )
 
-from typing_extensions import Self
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        try:
+            from typing_extensions import Self
+        except ImportError:
+            Self = object
 
 ZIP_CHUNK_BYTES = 1024 * 1024
 ZIP_OUTPUT_SPOOL_BYTES = 8 * 1024 * 1024
