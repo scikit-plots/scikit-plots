@@ -518,7 +518,7 @@ Permissions-Policy denial. Proxy deployment version ratcheted to **7.0.0**.
 
 - Established Run 172 as the immutable release anchor and the user-supplied
   `run172(2)` archive as a separate local-debugging workspace anchor.
-- Moved the maintenance corpus out of `skills/` into the repository-level
+- Moved the maintenance corpus out of `plugins/scikitplot-dev/skills/` into the repository-level
   `maintenances/.../_sphinx_ai_assistant` mirror described by the existing
   architecture documents.
 - Added a focused `SKILL.md` that makes fresh-chat continuation independent of

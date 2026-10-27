@@ -5,7 +5,7 @@
 | C/C++ index, KISS RNG, mmap shim, native conversion/type support | `scikitplot/cexternals/_annoy/src` |
 | Native-source regressions | `scikitplot/cexternals/_annoy/tests` |
 | This subsystem's manifest, review logic, trackers and evidence | `maintenances/cexternals/_annoy` |
-| Fresh-chat maintenance routing | `skills/scikitplot-cexternals-annoy-dev/SKILL.md` |
+| Fresh-chat maintenance routing | `plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/SKILL.md` |
 | Cython template and public Annoy composition | `scikitplot/annoy` in its own subsequent slice |
 | RNG, memmap, impute, corpus or MCP behavior | The respective module, onboarded independently |
 

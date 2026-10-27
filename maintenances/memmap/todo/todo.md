@@ -4,7 +4,7 @@ Round 33 work that changes `scikitplot.memmap`. The campaign's status and
 open decisions are in [`../../corpus/todo/todo.md`](../../corpus/todo/todo.md).
 Completed tasks are archived under [`../_maintenance/history/`](../_maintenance/history/).
 
-Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Task: round 33 / Run 6 / 6b - `MemoryMap` is safe without the GIL (R6-3)
 

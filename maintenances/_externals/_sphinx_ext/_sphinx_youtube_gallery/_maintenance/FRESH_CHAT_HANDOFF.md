@@ -5,7 +5,7 @@ inside the wider Sphinx-extension family. Do not rely on earlier chat history.
 
 Read, in order:
 
-1. `skills/scikitplot-sphinx-youtube-gallery-dev/SKILL.md`
+1. `plugins/scikitplot-dev/skills/scikitplot-sphinx-youtube-gallery-dev/SKILL.md`
 2. `maintenances/_externals/_sphinx_ext/_sphinx_youtube_gallery/MAINTAINING.md`
 3. this file
 4. `STATE.json`

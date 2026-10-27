@@ -1,13 +1,13 @@
 from __future__ import annotations
 import importlib.util, json, shutil, subprocess, sys
 from pathlib import Path
-HERE=Path(__file__).resolve(); REPO=next(p for p in HERE.parents if all((p/n).is_dir() for n in ('scikitplot','maintenances','skills')))
+HERE=Path(__file__).resolve(); REPO=next(p for p in HERE.parents if all((p/n).is_dir() for n in ('scikitplot','maintenances','plugins')))
 TOOL=REPO/'maintenances/mlflow/_maintenance/tools/check_contract.py'
 spec=importlib.util.spec_from_file_location('mlflow_contract',TOOL); contract=importlib.util.module_from_spec(spec); assert spec.loader; spec.loader.exec_module(contract)
 
 def make_repo(tmp_path:Path, clean_findings=False):
-    root=tmp_path/'repo'; (root/'scikitplot').mkdir(parents=True); (root/'maintenances').mkdir(); (root/'skills').mkdir()
-    shutil.copytree(REPO/'scikitplot/mlflow',root/'scikitplot/mlflow'); shutil.copytree(REPO/'maintenances/mlflow',root/'maintenances/mlflow'); shutil.copytree(REPO/'skills/scikitplot-mlflow-dev',root/'skills/scikitplot-mlflow-dev')
+    root=tmp_path/'repo'; (root/'scikitplot').mkdir(parents=True); (root/'maintenances').mkdir(); (root/'plugins').mkdir()
+    shutil.copytree(REPO/'scikitplot/mlflow',root/'scikitplot/mlflow'); shutil.copytree(REPO/'maintenances/mlflow',root/'maintenances/mlflow'); shutil.copytree(REPO/'plugins/scikitplot-dev/skills/scikitplot-mlflow-dev',root/'plugins/scikitplot-dev/skills/scikitplot-mlflow-dev')
     ev=root/'maintenances/mlflow/_maintenance/EVIDENCE.json'; ev.write_text(json.dumps({'schema_version':2,'subsystem':'scikitplot.mlflow','runtime_fingerprint':'PENDING','gates':{}},indent=2)+'\n')
     if clean_findings:
         # Wire the active policy markers into server/session synthetically for gate behavior.
@@ -57,7 +57,7 @@ def test_maintenance_to_runtime_plane_rejected(tmp_path):
     root=make_repo(tmp_path,True); p=root/'maintenances/mlflow/_maintenance/review_subsystem.py'; p.write_text('import scikitplot.mlflow\n'+p.read_text()); m,_=errs(root); assert any('maintenance plane imports runtime' in x for x in m)
 
 def test_skill_must_be_substantive(tmp_path):
-    root=make_repo(tmp_path,True); (root/'skills/scikitplot-mlflow-dev/SKILL.md').write_text('---\nname: x\n---\n'); m,_=errs(root); assert any('substantive SKILL.md' in x for x in m)
+    root=make_repo(tmp_path,True); (root/'plugins/scikitplot-dev/skills/scikitplot-mlflow-dev/SKILL.md').write_text('---\nname: x\n---\n'); m,_=errs(root); assert any('substantive SKILL.md' in x for x in m)
 
 def test_executable_metadata_rejected(tmp_path):
     root=make_repo(tmp_path,True); p=root/'maintenances/mlflow/MAINTENANCE.json'; d=json.loads(p.read_text()); d['shell']='rm -rf /'; p.write_text(json.dumps(d)); m,_=errs(root); assert any('unsupported executable field' in x for x in m)

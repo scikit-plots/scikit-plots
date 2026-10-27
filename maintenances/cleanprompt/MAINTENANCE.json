@@ -6,7 +6,7 @@
   "core_path": "scikitplot/cleanprompt/_engine.py",
   "tests_path": "scikitplot/cleanprompt/tests",
   "maintenance_path": "maintenances/cleanprompt",
-  "skill_path": "skills/scikitplot-cleanprompt-dev/SKILL.md",
+  "skill_path": "plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md",
   "updated_at": "2026-09-20",
   "provenance": {
     "upstream": "https://github.com/takashiishida/cleanprompt",

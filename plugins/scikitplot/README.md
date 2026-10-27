@@ -10,20 +10,24 @@ folder can also be copied into any tool that reads that format.
 
 Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no
 MCP servers and no scripts, runs no code of its own and sends no data anywhere.
+The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,
+in the development marketplace.
 
 ## Install
 
 Released versions, whose skills describe that release of scikit-plots (the
 plugin `version` is the library version), come from
-[`scikit-plots/skills`](https://github.com/scikit-plots/skills). In Claude Code, from a shell:
+[`scikit-plots/skills`](https://github.com/scikit-plots/skills): its default branch is the
+newest release, `@vX.Y.Z` one exact release, `@maintenance/X.Y.x` a release line
+and `@main` the development build. In Claude Code, from a shell:
 
 ```sh
-claude plugin marketplace add scikit-plots/skills
+claude plugin marketplace add scikit-plots/skills            # or scikit-plots/skills@v0.5.0
 claude plugin install scikitplot@scikit-plots-skills
 ```
 
-The development version, whose skills describe the `main` branch, comes from
-the scikit-plots repository itself:
+The development version, whose skills describe the `main` branch, also comes
+from the scikit-plots repository itself:
 
 ```sh
 claude plugin marketplace add scikit-plots/scikit-plots --sparse .claude-plugin plugins

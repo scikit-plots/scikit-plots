@@ -408,21 +408,21 @@ class ModuleRuleTests(unittest.TestCase):
         rules = {rule.owner: rule for rule in self.rules(self.data)}
         annoy = rules["scikitplot.annoy"].globs
         for glob in (
-            "skills/scikitplot-annoy-dev/**/*",
-            "agents/scikitplot-annoy-dev.md",
+            "plugins/scikitplot-dev/skills/scikitplot-annoy-dev/**/*",
+            "plugins/scikitplot-dev/agents/scikitplot-annoy-dev.md",
             "plugins/scikitplot/skills/scikitplot-annoy/**/*",
             "plugins/scikitplot/agents/scikitplot-annoy.md",
         ):
             self.assertIn(glob, annoy)
         source = rules["scikitplot.cexternals._annoy"].globs
-        self.assertIn("skills/scikitplot-cexternals-annoy-dev/**/*", source)
-        self.assertNotIn("skills/scikitplot-annoy-dev/**/*", source)
+        self.assertIn("plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/**/*", source)
+        self.assertNotIn("plugins/scikitplot-dev/skills/scikitplot-annoy-dev/**/*", source)
         parent = rules["scikitplot._externals"].globs
         for folder in ("sphinx-ai-assistant", "sphinx-feedback", "sphinx-youtube-gallery"):
-            self.assertIn(f"skills/scikitplot-{folder}-dev/**/*", parent)
+            self.assertIn(f"plugins/scikitplot-dev/skills/scikitplot-{folder}-dev/**/*", parent)
         self.assertIn("plugins/scikitplot/skills/scikitplot-sphinx-ext/**/*", parent)
         for rule in rules.values():
-            self.assertFalse(any(g.startswith("skills/_") for g in rule.globs), rule.owner)
+            self.assertFalse(any(g.startswith("plugins/scikitplot-dev/skills/_") for g in rule.globs), rule.owner)
 
     def test_skill_placeholders_expand_per_mirrored_skill(self):
         mirrors = {
@@ -431,11 +431,11 @@ class ModuleRuleTests(unittest.TestCase):
         }
         expand = MODULE._expand_satellite
         self.assertEqual(
-            expand("skills/{skill}/**/*", "a", "scikitplot.a", mirrors),
-            ["skills/scikitplot-a-dev/**/*", "skills/scikitplot-b-dev/**/*"],
+            expand("plugins/scikitplot-dev/skills/{skill}/**/*", "a", "scikitplot.a", mirrors),
+            ["plugins/scikitplot-dev/skills/scikitplot-a-dev/**/*", "plugins/scikitplot-dev/skills/scikitplot-b-dev/**/*"],
         )
         self.assertEqual(expand("p/{usage}.md", "a", "scikitplot.a", mirrors), ["p/scikitplot-a.md"])
-        self.assertEqual(expand("skills/{skill}/**/*", "zz", "scikitplot.zz", mirrors), [])
+        self.assertEqual(expand("plugins/scikitplot-dev/skills/{skill}/**/*", "zz", "scikitplot.zz", mirrors), [])
         self.assertEqual(expand("maintenances/{rel}/**/*", "a", "scikitplot.a", mirrors), ["maintenances/a/**/*"])
         with self.assertRaises(MODULE.LabelerError):
             expand("{skill}/{usage}", "a", "scikitplot.a", mirrors)

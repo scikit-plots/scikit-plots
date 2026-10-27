@@ -15,7 +15,7 @@ The inherited R00–R16 / IMPL-01–18 narrative is historical until the runtime
 ```text
 scikitplot/corpus/          runtime + executable tests/examples
 maintenances/corpus/        maintenance state + deterministic dev-only checks
-skills/scikitplot-corpus-dev/              fresh-chat maintainer skill
+plugins/scikitplot-dev/skills/scikitplot-corpus-dev/              fresh-chat maintainer skill
 ```
 
 Runtime must never import `maintenances` or `skills`.

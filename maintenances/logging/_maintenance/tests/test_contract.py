@@ -14,7 +14,7 @@ cc=importlib.util.module_from_spec(spec); spec.loader.exec_module(cc)
 
 def make_repo(tmp_path: Path) -> Path:
     r=tmp_path/"repo"
-    for rel in ("scikitplot/logging","maintenances/logging","skills/scikitplot-logging-dev"):
+    for rel in ("scikitplot/logging","maintenances/logging","plugins/scikitplot-dev/skills/scikitplot-logging-dev"):
         src=WIDE/rel; dst=r/rel; dst.parent.mkdir(parents=True,exist_ok=True); shutil.copytree(src,dst)
     cli=WIDE/"scikitplot/_cli/logging.py"
     (r/"scikitplot/_cli").mkdir(parents=True,exist_ok=True)
@@ -103,11 +103,11 @@ def test_metadata_command_surface_fails_maintenance(tmp_path):
     assert cc.payload(r)["maintenance_status"]=="FAIL"
 
 def test_missing_skill_fails_maintenance(tmp_path):
-    r=make_repo(tmp_path); (r/"skills/scikitplot-logging-dev/SKILL.md").unlink()
+    r=make_repo(tmp_path); (r/"plugins/scikitplot-dev/skills/scikitplot-logging-dev/SKILL.md").unlink()
     assert cc.payload(r)["maintenance_status"]=="FAIL"
 
 def test_shallow_skill_fails_maintenance(tmp_path):
-    r=make_repo(tmp_path); (r/"skills/scikitplot-logging-dev/SKILL.md").write_text("# short\n")
+    r=make_repo(tmp_path); (r/"plugins/scikitplot-dev/skills/scikitplot-logging-dev/SKILL.md").write_text("# short\n")
     assert cc.payload(r)["maintenance_status"]=="FAIL"
 
 def test_fingerprint_drift_fails_maintenance(tmp_path):

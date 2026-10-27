@@ -18,8 +18,8 @@ def load_json(path: Path):
 def discover_repo(start: Path) -> Path:
     p=start.resolve()
     for c in [p,*p.parents]:
-        if (c/'scikitplot').is_dir() and (c/'maintenances').is_dir() and (c/'skills').is_dir(): return c
-    raise ContractError('could not locate wide repository root containing scikitplot/, maintenances/, and skills/')
+        if (c/'scikitplot').is_dir() and (c/'maintenances').is_dir() and (c/'plugins').is_dir(): return c
+    raise ContractError('could not locate wide repository root containing scikitplot/, maintenances/, and plugins/')
 
 def safe_rel(value: str) -> str:
     if not isinstance(value,str) or not value or '\\' in value or '\x00' in value: raise ContractError(f'unsafe repository path {value!r}')
@@ -111,7 +111,7 @@ def build_checks(root,m):
 
 def plane_checks(root,m):
     errors=[]; runtime=safe_path(root,m['runtime_root'])
-    forbidden=('maintenances','skills')
+    forbidden=('maintenances','skills','plugins')
     for p in runtime.rglob('*'):
         if not p.is_file() or p.suffix not in {'.py','.pyx','.pxd','.pxi','.pyi'}: continue
         text=p.read_text(encoding='utf-8',errors='replace')

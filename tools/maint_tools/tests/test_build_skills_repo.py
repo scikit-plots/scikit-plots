@@ -115,3 +115,55 @@ class BuildTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BranchBuildTests(unittest.TestCase):
+    """CI-6: main and maintenance/X.Y.x are built without a version."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.files = MODULE.render(REPO, None)
+
+    def test_no_version_anywhere(self):
+        manifest = json.loads(self.files[".claude-plugin/plugin.json"])
+        market = json.loads(self.files[".claude-plugin/marketplace.json"])
+        self.assertNotIn("version", manifest)
+        self.assertNotIn("version", market["metadata"])
+
+    def test_same_files_as_a_release_but_the_manifests(self):
+        release = MODULE.render(REPO, "0.5.0")
+        self.assertEqual(set(release), set(self.files))
+        differ = {rel for rel in release if release[rel] != self.files[rel]}
+        self.assertEqual(
+            differ, {".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"}
+        )
+
+    def test_branch_tree_passes_unversioned_and_fails_as_a_release(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            MODULE.apply(out, self.files)
+            self.assertEqual(MODULE.validate(out, versioned=False), [])
+            self.assertTrue(
+                any("'version' is not set" in e for e in MODULE.validate(out, versioned=True))
+            )
+
+    def test_release_tree_fails_as_a_branch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            MODULE.apply(out, MODULE.render(REPO, "0.5.0"))
+            self.assertTrue(
+                any("sets no 'version'" in e for e in MODULE.validate(out, versioned=False))
+            )
+
+    def test_the_command_needs_exactly_one_of_version_or_unversioned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for argv in (["check", "--out", tmp], ["check", "--out", tmp, "--version", "0.5.0", "--unversioned"]):
+                with self.assertRaises(SystemExit):
+                    MODULE.main(argv)
+
+    def test_shared_skills_ship_in_the_published_plugin(self):
+        shared = REPO / "plugins/_shared/skills"
+        for path in shared.rglob("*"):
+            if path.is_file():
+                rel = "skills/" + path.relative_to(shared).as_posix()
+                self.assertEqual(self.files[rel], path.read_bytes(), rel)

@@ -6,7 +6,7 @@ this file plans and records the increments `scikitplot.agent` owns.
 Completed tasks are archived verbatim under
 [`../_maintenance/history/`](../_maintenance/history/).
 
-Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Task: round 33 / Run 5 - agent layer (R5-1, R5-2, R5-3)
 

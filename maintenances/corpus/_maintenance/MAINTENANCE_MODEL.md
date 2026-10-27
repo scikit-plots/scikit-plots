@@ -4,7 +4,7 @@
 
 **When:** run the structural review before semantic work, after source restoration, after contract movement, and before any release claim.
 
-**Where:** runtime under `scikitplot/corpus/`; maintenance under `maintenances/corpus/`; onboarding skill under `skills/scikitplot-corpus-dev/`.
+**Where:** runtime under `scikitplot/corpus/`; maintenance under `maintenances/corpus/`; onboarding skill under `plugins/scikitplot-dev/skills/scikitplot-corpus-dev/`.
 
 **Which:** current source and tests outrank historical trackers/checkpoints. Cross-module defects are edited at the owning boundary.
 

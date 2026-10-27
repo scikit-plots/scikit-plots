@@ -32,9 +32,9 @@ _FAMILY_MIRROR = re.compile(r'^\s+scikitplot-mirror:\s*"_externals/_sphinx_ext/[
 
 
 def _family_skill_roots(repo: Path) -> list[Path]:
-    """Return ``skills/<name>/`` for every skill that mirrors a family package."""
+    """Return ``plugins/scikitplot-dev/skills/<name>/`` for every skill that mirrors a family package."""
     roots = []
-    for skill in sorted((repo / "skills").glob("*/SKILL.md")):
+    for skill in sorted((repo / "plugins/scikitplot-dev/skills").glob("*/SKILL.md")):
         if _FAMILY_MIRROR.search(skill.read_text(encoding="utf-8", errors="ignore")):
             roots.append(skill.parent)
     return roots
@@ -123,7 +123,7 @@ def main() -> int:
         pass
     repo = discover_repository_root(FAMILY)
     if repo is not None:
-        # Skills are flat (skills/<name>/, Rule 164); the family's are the
+        # Skills are flat (plugins/scikitplot-dev/skills/<name>/, Rule 164); the family's are the
         # ones whose metadata mirrors a path below _externals/_sphinx_ext/.
         residue_roots.extend(_family_skill_roots(repo))
     for path in _residue(residue_roots):

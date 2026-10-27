@@ -39,7 +39,7 @@ def sandbox(tmp_path, repo):
     """Return a writable copy of the checkout."""
     target = tmp_path / "repo"
     target.mkdir()
-    for name in ("scikitplot", "maintenances", "skills"):
+    for name in ("scikitplot", "maintenances", "plugins"):
         shutil.copytree(
             repo / name,
             target / name,
@@ -129,7 +129,7 @@ class TestCredentialsAtRest:
         "relative",
         [
             "maintenances/cleanprompt/_maintenance/DESIGN.md",
-            "skills/scikitplot-cleanprompt-dev/SKILL.md",
+            "plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md",
             "scikitplot/cleanprompt/README.md",
             "scikitplot/cleanprompt/tests/test__packs.py",
         ],
@@ -154,7 +154,7 @@ class TestCredentialsAtRest:
         assert has(errors_of(sandbox), "CP-REST-001: galleries/examples/cleanprompt/plot_x.py:1")
 
     def test_fragments_are_accepted(self, sandbox):
-        path = sandbox / "skills" / "scikitplot-cleanprompt-dev" / "SKILL.md"
+        path = sandbox / "plugins/scikitplot-dev/skills" / "scikitplot-cleanprompt-dev" / "SKILL.md"
         path.write_text(
             path.read_text(encoding="utf-8") + "\nexamples_yes: [['sk_live_', '0123456789abcdefABCDEFGH']]\n",
             encoding="utf-8",
@@ -509,11 +509,11 @@ class TestMaintenanceMutations:
         assert has(errors_of(sandbox), "DESIGN.md")
 
     def test_missing_skill_is_caught(self, sandbox):
-        (sandbox / "skills" / "scikitplot-cleanprompt-dev" / "SKILL.md").unlink()
+        (sandbox / "plugins/scikitplot-dev/skills" / "scikitplot-cleanprompt-dev" / "SKILL.md").unlink()
         assert has(errors_of(sandbox), "SKILL.md")
 
     def test_shallow_skill_is_caught(self, sandbox):
-        (sandbox / "skills" / "scikitplot-cleanprompt-dev" / "SKILL.md").write_text(
+        (sandbox / "plugins/scikitplot-dev/skills" / "scikitplot-cleanprompt-dev" / "SKILL.md").write_text(
             "# too short\n", encoding="utf-8"
         )
         assert has(errors_of(sandbox), "too shallow")

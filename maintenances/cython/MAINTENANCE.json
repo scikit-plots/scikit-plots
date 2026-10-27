@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.cython",
   "runtime_root": "scikitplot/cython",
   "maintenance_root": "maintenances/cython",
-  "skill": "skills/scikitplot-cython-dev/SKILL.md",
+  "skill": "plugins/scikitplot-dev/skills/scikitplot-cython-dev/SKILL.md",
   "ownership": {
     "owns": "Runtime compilation/loading of caller-supplied Python/Cython extension source, build security validation, compiler/toolchain adaptation, content-addressed cache and metadata, build locks, pins/GC, transactional publication/import, runtime capability contracts, and the shipped template/probe corpus.",
     "does_not_own": "Project build-time Cython generation for other submodules (for example scikitplot.annoy), Meson project configuration, sibling subsystem semantics, external Cython/setuptools/compiler implementations, or the platform C/C++ ABI itself."

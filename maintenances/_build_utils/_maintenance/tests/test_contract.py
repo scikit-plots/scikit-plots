@@ -35,10 +35,10 @@ def test_unknown_review_check_rejected(tmp_path):
     r=clone(tmp_path); p=r/'maintenances/_build_utils/REVIEW.json'; o=json.loads(p.read_text()); o['checks'].append('magic'); write_json(p,o); assert C.check(r)['maintenance_status']=='FAIL'
 
 def test_missing_skill_fails_maintenance(tmp_path):
-    r=clone(tmp_path); (r/'skills/scikitplot-build-utils-dev/SKILL.md').unlink(); assert C.check(r)['maintenance_status']=='FAIL'
+    r=clone(tmp_path); (r/'plugins/scikitplot-dev/skills/scikitplot-build-utils-dev/SKILL.md').unlink(); assert C.check(r)['maintenance_status']=='FAIL'
 
 def test_shallow_skill_fails_maintenance(tmp_path):
-    r=clone(tmp_path); (r/'skills/scikitplot-build-utils-dev/SKILL.md').write_text('tiny'); assert C.check(r)['maintenance_status']=='FAIL'
+    r=clone(tmp_path); (r/'plugins/scikitplot-dev/skills/scikitplot-build-utils-dev/SKILL.md').write_text('tiny'); assert C.check(r)['maintenance_status']=='FAIL'
 
 def test_missing_runtime_file_is_runtime_failure(tmp_path):
     r=clone(tmp_path); (r/'scikitplot/_build_utils/tempita.py').unlink(); out=C.check(r); assert out['maintenance_status']=='PASS'; assert any('missing required runtime file' in x for x in out['runtime_errors'])

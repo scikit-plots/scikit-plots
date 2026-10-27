@@ -8,9 +8,9 @@ settings. Load with `%load_ext scikitplot` (root `load_ipython_extension`);
 `%load_ext scikitplot._magic` is a deprecated shim. Runtime: standard library
 only; IPython only in `_magics.py`; snakeviz optional (extra `ipymagic`).
 User guide: `docs/source/user_guide/_ipymagic/`. Skill:
-[`skills/scikitplot-ipymagic-dev/SKILL.md`](../../skills/scikitplot-ipymagic-dev/SKILL.md).
+[`plugins/scikitplot-dev/skills/scikitplot-ipymagic-dev/SKILL.md`](../../plugins/scikitplot-dev/skills/scikitplot-ipymagic-dev/SKILL.md).
 
-Start a session with [`tasks/README.md`](../../tasks/README.md), then the active
+Start a session with [`maintenances/README.md`](../README.md), then the active
 [`todo/todo.md`](todo/todo.md) and this area's [`todo/lessons.md`](todo/lessons.md).
 
 ## Flow

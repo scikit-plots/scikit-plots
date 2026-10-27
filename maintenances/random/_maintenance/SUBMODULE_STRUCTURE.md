@@ -17,7 +17,7 @@ maintenances/random/
     evidence/    hashed logs used by EVIDENCE.json
     history/     historical rationale and archived legacy tooling
 
-skills/scikitplot-random-dev/
+plugins/scikitplot-dev/skills/scikitplot-random-dev/
   SKILL.md       fresh-chat routing and maintainer operating rules
 ```
 

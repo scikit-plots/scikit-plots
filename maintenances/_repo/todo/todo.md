@@ -5,7 +5,7 @@ workflows, the `libs/` partial distributions, labeling, release tooling, and
 the record planes themselves. Completed tasks are archived verbatim under
 [`../_maintenance/history/`](../_maintenance/history/).
 
-## Task: increment 4R - records by plane (tasks/ split into maintenances/, skills/, docs/tasks/)
+## Task: increment 4R - records by plane (tasks/ split into maintenances/, plugins/scikitplot-dev/skills/, maintenances/_docs/)
 
 ### Context
 - Goal: `tasks/todo.md` (197 KB, 2989 lines, 31 sections) and
@@ -14,9 +14,9 @@ the record planes themselves. Completed tasks are archived verbatim under
   plane that owns it, keep active work small, and keep every rule
   reachable from one index.
 - Precedent in the tree: `maintenances/<sub>/` (state and evidence),
-  `skills/<sub>/` (fresh-session routing), `maintenances/<sub>/todo/`
+  `plugins/scikitplot-dev/skills/<sub>/` (fresh-session routing), `maintenances/<sub>/todo/`
   (`_sphinx_ext` family; its checker already retires a `tasks/` folder).
-- Decisions (maintainer, 2026-10-16): lessons to `skills/scikitplot-engineering-rules/` by
+- Decisions (maintainer, 2026-10-16): lessons to `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/` by
   category; `tasks/` keeps only a router README; completed rounds archived
   per plane; done now, before 4c.
 
@@ -31,13 +31,13 @@ the record planes themselves. Completed tasks are archived verbatim under
   - `maintenances/_externals/_sphinx_ext/_sphinx_feedback/_maintenance/history/`
     - rounds 29, 29b, 30 (page feedback); the family's
     `_maintenance/history/` - round 9 (extension stack). First mapped to
-    `docs/tasks/`; review 7 showed they change the extensions, not the docs.
+    `maintenances/_docs/`; review 7 showed they change the extensions, not the docs.
   - `maintenances/_repo/` - CI, `libs/`, labeling: partial distributions,
     rounds 2-8, 31, 32, the old `tasks/removed-files.txt`.
-  - `docs/tasks/` - the documentation site as a whole (active tasks, pointers).
-  - `skills/scikitplot-engineering-rules/` - the rules in 12 category files, numbers
+  - `maintenances/_docs/` - the documentation site as a whole (active tasks, pointers).
+  - `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/` - the rules in 12 category files, numbers
     unchanged; generated `INDEX.md`; `PATTERNS.md`.
-  - `tasks/README.md` - router only.
+  - `maintenances/README.md` - router only.
 - Two commits (Rule 124): `4R-1` is the pure move, proved lossless (the
   manifest's parts rebuild the three files byte for byte); `4R-2` routes,
   edits and checks.
@@ -52,10 +52,10 @@ the record planes themselves. Completed tasks are archived verbatim under
 - [x] migration script (outside the repo), explicit section and category maps
 - [x] `4R-1`: generated history parts, rules files, `PATTERNS.md`, manifest,
       the corpus active file; lossless proof
-- [x] router, `SKILL.md`, `docs/tasks/`, this area's `MAINTAINING.md`;
-      pointers in `docs/maintenances/MAINTAINING.md`, `docs/skills/README.md`,
+- [x] router, `SKILL.md`, `maintenances/_docs/`, this area's `MAINTAINING.md`;
+      pointers in `maintenances/MAINTAINING.md`, `plugins/scikitplot-dev/README.md`,
       `maintenances/__init__.py`, `maintenances/corpus/MAINTAINING.md`,
-      `skills/scikitplot-corpus-dev/SKILL.md`, `skills/scikitplot-cleanprompt-dev/SKILL.md`, cleanprompt
+      `plugins/scikitplot-dev/skills/scikitplot-corpus-dev/SKILL.md`, `plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md`, cleanprompt
       `RESUME.md` and `FRESH_CHAT_HANDOFF.md`, `libs/_tools/registry.py`
 - [x] six rules repointed from `tasks/todo.md` to the archives (29, 31, 35,
       66, 69, 100); Rule 124
@@ -175,7 +175,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 - [x] analyzer + tests (unittest, standard library, as the plan job runs them)
 - [x] dogfood: record the run168 module and `security/` here; bundle; compare
 - [x] workflow: gate, uploads, recorder env, `profile_tests`, report step
-- [x] `.github/ci/README.md` sections 12-13; `skills/scikitplot-repo-dev/SKILL.md`; Makefile targets
+- [x] `.github/ci/README.md` sections 12-13; `plugins/scikitplot-dev/skills/scikitplot-repo-dev/SKILL.md`; Makefile targets
 - [x] rules for the lessons (131-137); `upcoming_changes/` notes; run168
       instrumentation removed
 - [x] analyzer hardening: every field it reads is type-checked (bad lines are
@@ -260,7 +260,7 @@ the record planes themselves. Completed tasks are archived verbatim under
   unchanged in ruff count; codespell, ASCII (sources), whitespace, path
   lengths, test module names: clean; zizmor: no findings;
   `check_records.py` and `test_records.py`: exactly the failures of the
-  uploaded tree (`tasks/r4r_migrate.py`, the empty `numpydocstr.md`, the
+  uploaded tree (`maintenances/_repo/_maintenance/tools/r4r_migrate.py`, the empty `numpydocstr.md`, the
   archived parts one character short of their hashes).
 - Not verified: no workflow ran on GitHub (the pip cache, the on-demand
   build of base and head, `download-artifact` with nothing to download);
@@ -277,7 +277,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 
 ### Context
 - Goal: every submodule's tests pass on their own and in the full suite,
-  each failure fixed at its root cause under `skills/scikitplot-engineering-rules/rules/`
+  each failure fixed at its root cause under `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/`
   (logging.md 138-141, module_submodule_actual_mock_patch.md 142-146,
   numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
   assertions). One submodule per session; a session starts here
@@ -386,12 +386,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 
 ## Task: CI-5 - the released plugin in scikit-plots/skills, for the directory (2026-10-26)
 
-- Why: the portal refused scikit-plots/scikit-plots (root `.gitattributes`
-  `text`/`eol`; ~108 MiB archived, limit 50); `main` skills name six modules
-  PyPI 0.4.0.post11 lacks. Rule 166.
-- Done: `tools/maint_tools/build_skills_repo.py` + tests; workflow
-  `plugins/maintenances/skills-repo/sync.yml` (newest release tag on the
-  default branch, no secret, no cache); README data line, both channels; guides.
-- Results: `claude plugin validate .` passes, `agentskills` 22/22, installs as
-  version 0.5.0; workflow simulated in six cases; actionlint, zizmor clean.
-- Open: copy `sync.yml` to scikit-plots/skills; tag v0.5.0; submit in the portal.
+- Done; archived verbatim in
+  [`ci5_released_plugin.md`](../_maintenance/history/ci5_released_plugin.md) (Rule 166).
+  Its open items moved to CI-6 in
+  [`maintenances/_plugins/todo/todo.md`](../../_plugins/todo/todo.md).

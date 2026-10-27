@@ -1735,5 +1735,8 @@ remove:
 	xargs rm -rf < REMOVED_FILES.txt
 
 	## Cleaning Up Empty Directories
-	# find skills/ -type f -name "SKILL.md" -delete
-	# find skills/ -type d -empty -delete
+	# find plugins/scikitplot-dev/skills/ -type f -name "SKILL.md" -delete
+	# find plugins/scikitplot-dev/skills/ -type d -empty -delete
+
+git apply --check ci6-centralize.patch
+git apply ci6-centralize.patch

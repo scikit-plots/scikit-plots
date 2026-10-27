@@ -3,7 +3,7 @@
   "subsystem": "scikitplot.annoy",
   "runtime_root": "scikitplot/annoy",
   "maintenance_root": "maintenances/annoy",
-  "skill": "skills/scikitplot-annoy-dev/SKILL.md",
+  "skill": "plugins/scikitplot-dev/skills/scikitplot-annoy-dev/SKILL.md",
   "ownership": {
     "owns": "The scikitplot.annoy Python facade, mixins and typing; the separate Cython scikitplot.annoy._annoy extension templates/declarations; Annoy-specific Meson generation/build wiring; and Annoy-specific tests.",
     "does_not_own": "The shared/native C++ implementation and headers in scikitplot/cexternals/_annoy. Those remain owned by the independent cexternals/_annoy subsystem."
@@ -35,7 +35,7 @@
   "upstream": {
     "subsystem": "scikitplot.cexternals._annoy",
     "maintenance": "maintenances/cexternals/_annoy",
-    "skill": "skills/scikitplot-cexternals-annoy-dev/SKILL.md",
+    "skill": "plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/SKILL.md",
     "headers": [
       {
         "name": "annoylib.h",

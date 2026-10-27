@@ -13,7 +13,7 @@ Completed runs are archived verbatim under
 | 4-A, evaluation (2a-2c, pulled forward) | [`r33_run4a_evaluation.md`](../_maintenance/history/r33_run4a_evaluation.md) |
 | 3, ingestion contract (3a-3e) | [`r33_run3_ingestion.md`](../_maintenance/history/r33_run3_ingestion.md) |
 
-Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Campaign status (2026-10-17)
 
@@ -232,8 +232,8 @@ everywhere, with opt-in UUIDv7).
   3.13: 324 passed.
 - Lessons: Rules 121, 122, 123; Rule 120 extended (a check in the
   launching command line matches the launcher).
-- [x] 4R. Records by plane: `tasks/` split into `maintenances/`, `skills/`
-  and `docs/tasks/` (planned and tracked in [`_repo`](../../_repo/todo/todo.md))
+- [x] 4R. Records by plane: `tasks/` split into `maintenances/`, `plugins/scikitplot-dev/skills/`
+  and `maintenances/_docs/` (planned and tracked in [`_repo`](../../_repo/todo/todo.md))
 - [x] 4c. `RetrievalExecutionPlan` (R4-3)
   - Goal: query transformation, rerank and compression as typed, bounded
     stages around the existing retrieval contract, each with an outcome and

@@ -18,7 +18,7 @@ MODULE = "scikitplot.cexternals._annoy"
 RUNTIME = "scikitplot/cexternals/_annoy"
 MAINT = "maintenances/cexternals/_annoy"
 CONTROL = MAINT + "/_maintenance"
-SKILL = "skills/scikitplot-cexternals-annoy-dev/SKILL.md"
+SKILL = "plugins/scikitplot-dev/skills/scikitplot-cexternals-annoy-dev/SKILL.md"
 KINDS = {
     "annoy": "direct_source_and_native_api",
     "random": "direct_source",
@@ -49,9 +49,9 @@ def require(condition, message):
 def repository_root(explicit=None):
     candidates = [Path(explicit).absolute()] if explicit else Path(__file__).resolve().parents
     for root in candidates:
-        if all((root / p).is_dir() for p in (RUNTIME, MAINT, "skills")):
+        if all((root / p).is_dir() for p in (RUNTIME, MAINT, "plugins")):
             return root.resolve()
-    raise ContractError("wide repository not found; provide --repo-root containing scikitplot/, maintenances/ and skills/")
+    raise ContractError("wide repository not found; provide --repo-root containing scikitplot/, maintenances/ and plugins/")
 
 
 def safe_path(root, value, *, exists=True):
@@ -271,7 +271,7 @@ def architecture(root, manifest):
                 continue
             for target, line in python_imports(path, root):
                 where = f"{rel}:{line}"
-                if scoped and (target.split(".")[0] in {"maintenances", "skills"}
+                if scoped and (target.split(".")[0] in {"maintenances", "skills", "plugins"}
                                or "._maintenance" in target):
                     problems["planes"].append(f"{where}: runtime imports maintenance/skill code: {target}")
                 if path.is_relative_to(upstream) and any(target == "scikitplot." + n or target.startswith("scikitplot." + n + ".") for n in KINDS):

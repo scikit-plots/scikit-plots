@@ -4,7 +4,6 @@ Ready-made bundles that register the **read-only** scikit-plots documentation MC
 
 | Folder | Client | Config file |
 |---|---|---|
-| `.claude-plugin/` | Claude Code | `.mcp.json` + `plugin.json` + `marketplace.json` |
 | `.cursor-plugin/` | Cursor | `mcp.json` |
 | `.windsurf-plugin/` | Windsurf | `mcp_config.json` |
 | `.continue-plugin/` | Continue | `config.json` |
@@ -14,3 +13,7 @@ Ready-made bundles that register the **read-only** scikit-plots documentation MC
 | `.openclaw-plugin/` | OpenClaw | `mcp.json` |
 
 `agents/`, `hooks/`, `skills/` hold reusable, read-only building blocks that use the `search_docs` tool. All bundles launch the same server; the tool is read-only and every passage carries a validated source citation. See the module `README.md` for per-client setup details.
+
+For Claude Code, install the plugin `scikitplot-mcp` from the scikit-plots
+marketplace (its source is `plugins/scikitplot-mcp/` of the repository), or run
+`claude mcp add scikitplot-docs -- python -m scikitplot.mcp`.

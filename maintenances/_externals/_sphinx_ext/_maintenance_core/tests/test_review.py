@@ -21,7 +21,7 @@ def _fixture(tmp_path: Path, *, skill_has_tracker: bool = True, unavailable: boo
 
     maint = tmp_path / "maintenances/_externals/_sphinx_ext/_sphinx_demo"
     (maint / "_maintenance/checkpoints").mkdir(parents=True)
-    skill = tmp_path / "skills/scikitplot-sphinx-demo-dev"
+    skill = tmp_path / "plugins/scikitplot-dev/skills/scikitplot-sphinx-demo-dev"
     skill.mkdir(parents=True)
     tracker_line = " then TRACKER.json" if skill_has_tracker else ""
     (skill / "SKILL.md").write_text(
@@ -91,7 +91,7 @@ def _fixture(tmp_path: Path, *, skill_has_tracker: bool = True, unavailable: boo
         "tracker": "_maintenance/TRACKER.json",
         "handoff": "_maintenance/FRESH_CHAT_HANDOFF.md",
         "checkpoint_dir": "_maintenance/checkpoints",
-        "skill_root": "skills/scikitplot-sphinx-demo-dev",
+        "skill_root": "plugins/scikitplot-dev/skills/scikitplot-sphinx-demo-dev",
         "dependency_edges": [],
         "capability_ownership": [],
         "review_profile": "_maintenance/REVIEW.json",

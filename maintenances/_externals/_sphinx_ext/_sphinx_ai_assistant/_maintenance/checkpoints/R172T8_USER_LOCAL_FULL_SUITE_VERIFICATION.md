@@ -34,7 +34,7 @@ A full-suite clean result is recorded only from a completed pytest summary. Prog
 Before packaging the maintenance-only closure artifact:
 
 - `scikitplot/` is byte-identical to the user-tested Fix 7 archive;
-- `skills/` is byte-identical to Fix 7;
+- `plugins/scikitplot-dev/skills/` is byte-identical to Fix 7;
 - Fix 7 -> R172T8 diff has **0 non-maintenance paths**;
 - maintenance diff is **1 added checkpoint + 4 modified maintenance files**;
 - layout architecture is **9/9**;

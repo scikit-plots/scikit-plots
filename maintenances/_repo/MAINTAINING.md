@@ -8,12 +8,12 @@ release tooling, and the work records themselves
 Unlike the other `maintenances/<area>/` folders, `_repo` has no
 `scikitplot/` counterpart: it is the area of the repository as a whole. The
 repository-wide procedure (read order, planes, evidence) is
-[`docs/maintenances/MAINTAINING.md`](../../docs/maintenances/MAINTAINING.md).
+[`maintenances/MAINTAINING.md`](../MAINTAINING.md).
 
 - Active tasks: [`todo/todo.md`](todo/todo.md).
-- Where other records live: [`tasks/README.md`](../../tasks/README.md).
+- Where other records live: [`maintenances/README.md`](../README.md).
 - Every archive, with the areas it names: [`HISTORY_INDEX.md`](_maintenance/HISTORY_INDEX.md).
-- Rules: [`skills/scikitplot-engineering-rules/SKILL.md`](../../skills/scikitplot-engineering-rules/SKILL.md).
+- Rules: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md`](../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Completed (archived verbatim)
 

@@ -17,10 +17,10 @@ Previous chat history is never an authority when these files are present.
 ```text
 scikitplot/_externals/_sphinx_ext/        runtime plane
 maintenances/_externals/_sphinx_ext/      maintenance/state/evidence plane
-skills/scikitplot-sphinx-*-dev/          fresh-chat routing plane (skills/INDEX.md)
+plugins/scikitplot-dev/skills/scikitplot-sphinx-*-dev/          fresh-chat routing plane (plugins/INDEX.md)
 ```
 
-Runtime code must not import `maintenances/` or `skills/`.
+Runtime code must not import `maintenances/` or `plugins/scikitplot-dev/skills/`.
 
 ## Ownership map
 
@@ -55,7 +55,7 @@ runtime source, then regenerate diagnostics.
 
 ## Fresh-chat sequence
 
-Read `skills/.../_sphinx_youtube_gallery/SKILL.md`, this file,
+Read `plugins/scikitplot-dev/skills/.../_sphinx_youtube_gallery/SKILL.md`, this file,
 `_maintenance/FRESH_CHAT_HANDOFF.md`, `STATE.json`, `TRACKER.json`, then
 `todo/todo.md` and relevant `todo/lessons.md` before editing.
 

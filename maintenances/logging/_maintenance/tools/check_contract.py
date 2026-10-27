@@ -13,7 +13,7 @@ REQUIRED_SYMBOLS={"get_logger","GoogleLogFormatter","AlwaysStdErrHandler","setLe
 def discover_repo(start: Path) -> Path:
     for origin in (start.resolve(), Path(__file__).resolve()):
         for c in (origin,*origin.parents):
-            if all((c/n).is_dir() for n in ("scikitplot","maintenances","skills")):
+            if all((c/n).is_dir() for n in ("scikitplot","maintenances","plugins")):
                 return c
     raise ContractError("could not locate wide repository root")
 
@@ -75,7 +75,7 @@ def plane_violations(root: Path):
             elif isinstance(n,ast.ImportFrom):
                 mods=[n.module or ""]
             else: continue
-            if any(x.startswith(("maintenances","skills")) for x in mods):
+            if any(x.startswith(("maintenances","skills","plugins")) for x in mods):
                 out.append(str(p.relative_to(root)))
     return out
 
@@ -155,8 +155,8 @@ def maintenance_errors(root: Path):
          "_maintenance/FRESH_CHAT_HANDOFF.md","_maintenance/VERIFICATION.md","_maintenance/tests/test_contract.py"]
     for rel in req:
         if not (base/rel).is_file(): errors.append("missing maintenance file: "+rel)
-    skill=root/"skills"/"scikitplot-logging-dev"/"SKILL.md"
-    if not skill.is_file(): errors.append("missing skills/scikitplot-logging-dev/SKILL.md")
+    skill=root/ "plugins/scikitplot-dev/skills" / "scikitplot-logging-dev"/"SKILL.md"
+    if not skill.is_file(): errors.append("missing plugins/scikitplot-dev/skills/scikitplot-logging-dev/SKILL.md")
     else:
         s=skill.read_text(encoding="utf-8")
         if len(s.splitlines())<80: errors.append("logging skill is too shallow")

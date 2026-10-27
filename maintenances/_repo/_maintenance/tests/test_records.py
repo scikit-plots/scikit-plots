@@ -6,9 +6,9 @@ Notes
 own. Each test copies the records, breaks exactly one property, and asserts
 that the check owning that property fails and names it.
 
-The fixture copies every folder a test may change (``tasks/``,
-``maintenances/``, ``skills/``, ``docs/tasks``, ``docs/maintenances``,
-``docs/skills``) and symlinks the rest of the checkout, so links from the
+The fixture copies every folder a test may change (``maintenances/``,
+``plugins/``, ``.claude-plugin/``) and symlinks the rest of the checkout, so
+links from the
 records into runtime folders still resolve. The symlinks are writable: no
 test may write below one.
 
@@ -42,14 +42,9 @@ ACTIVE_TODO_MAX_LINES = records["ACTIVE_TODO_MAX_LINES"]
 
 #: Folders copied into each test tree; everything else is symlinked.
 COPIED = (
-    "tasks",
     "maintenances",
-    "skills",
-    "agents",
     "plugins",
-    "docs/tasks",
-    "docs/maintenances",
-    "docs/skills",
+    ".claude-plugin",
 )
 
 
@@ -87,7 +82,7 @@ def _failing(root: Path) -> dict[str, list[str]]:
 
 
 def _rules(root: Path, name: str) -> Path:
-    return root / "skills/scikitplot-engineering-rules/rules" / name
+    return root / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules" / name
 
 
 def _append(path: Path, text: str) -> None:
@@ -104,23 +99,41 @@ def test_the_copy_passes(tree):
 
 
 class TestRouter:
-    def test_another_file_in_tasks_fails(self, tree):
-        (tree / "tasks/todo.md").write_text("# Active Tasks\n", encoding="utf-8")
+    """Rule 167: the retired locations stay empty; the router exists."""
+
+    @pytest.mark.parametrize("rel", [
+        "tasks/todo.md",
+        "tasks/old/lessons.md",
+        "docs/tasks/todo.md",
+        "docs/maintenances/MAINTAINING.md",
+        "docs/skills/README.md",
+        "skills/scikitplot-x-dev/SKILL.md",
+        "agents/scikitplot-x-dev.md",
+        "plugins/maintenances/README.md",
+    ])
+    def test_a_file_in_a_retired_location_fails(self, tree, rel):
+        path = tree / rel
+        top = tree / rel.split("/")[0]
+        if top.is_symlink():  # docs/ is symlinked: give the test its own copy
+            top.unlink()
+            top.mkdir()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x\n", encoding="utf-8")
         failing = _failing(tree)
-        assert list(failing) == ["router"]
-        assert "tasks/todo.md" in failing["router"][0]
+        assert "router" in failing
+        assert any(rel in e and "is retired" in e for e in failing["router"])
 
-    def test_a_file_in_a_subfolder_of_tasks_fails(self, tree):
-        (tree / "tasks/old").mkdir()
-        (tree / "tasks/old/lessons.md").write_text("x\n", encoding="utf-8")
-        assert any("tasks/old/lessons.md" in e for e in _failing(tree)["router"])
-
-    def test_a_symlink_in_tasks_fails(self, tree):
+    def test_a_symlink_in_a_retired_location_fails(self, tree):
+        (tree / "tasks").mkdir()
         (tree / "tasks/todo.md").symlink_to(tree / "tasks/missing.md")
         assert any("tasks/todo.md" in e for e in _failing(tree)["router"])
 
+    def test_an_empty_retired_folder_passes(self, tree):
+        (tree / "tasks").mkdir()
+        assert "router" not in _failing(tree)
+
     def test_a_missing_router_fails(self, tree):
-        (tree / "tasks/README.md").unlink()
+        (tree / "maintenances/README.md").unlink()
         assert any("missing" in e for e in _failing(tree)["router"])
 
 
@@ -172,8 +185,8 @@ class TestRules:
         assert "rules" not in _failing(tree)
 
     def test_a_rules_file_in_a_subfolder_fails(self, tree):
-        (tree / "skills/scikitplot-engineering-rules/rules/sub").mkdir()
-        (tree / "skills/scikitplot-engineering-rules/rules/sub/more.md").write_text(
+        (tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/sub").mkdir()
+        (tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/sub/more.md").write_text(
             "Categories: More\n\n### Rule 999: More - x\n", encoding="utf-8"
         )
         errors = _failing(tree)["rules"]
@@ -206,7 +219,7 @@ class TestRules:
 
     def test_a_name_in_prose_is_not_a_link(self, tree):
         """Review 5: a substring match counted ``rules/text.md`` in prose."""
-        path = tree / "skills/scikitplot-engineering-rules/SKILL.md"
+        path = tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md"
         text = path.read_text(encoding="utf-8")
         path.write_text(
             text.replace("[`rules/text.md`](rules/text.md)", "`rules/text.md`"),
@@ -258,6 +271,31 @@ class TestArchives:
         _append(path, "\nA note added after the archived parts.\n")
         assert "archives" not in _failing(tree)
 
+    def test_a_last_part_that_lost_its_trailing_blank_line_passes(self, tree):
+        """pre-commit's end-of-file-fixer keeps one final newline (CI-6 root cause)."""
+        manifest = json.loads((tree / MANIFEST).read_text(encoding="utf-8"))
+        for part in (p for r in manifest["sources"].values() for p in r["parts"]):
+            path = tree / part["dest"]
+            if "/history/" not in part["dest"] or not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8")
+            i = text.find(part["heading"])
+            if i + part["chars"] == len(text) and text.endswith("\n\n"):
+                path.write_text(text.rstrip("\n") + "\n", encoding="utf-8")
+                assert "archives" not in _failing(tree)
+                return
+            if i + part["chars"] == len(text) + 1:  # already fixed in the tree
+                assert "archives" not in _failing(tree)
+                return
+        pytest.skip("no archive ends with its last part")
+
+    def test_a_last_part_that_lost_text_still_fails(self, tree):
+        path, part = self._an_archive(tree)
+        text = path.read_text(encoding="utf-8")
+        i = text.index(part["heading"])
+        path.write_text(text[: i + part["chars"] - 10] + "\n", encoding="utf-8")
+        assert any("was changed or removed" in e for e in _failing(tree)["archives"])
+
     def test_a_stale_history_index_fails(self, tree):
         (tree / HISTORY_INDEX).write_text("# History index\n", encoding="utf-8")
         assert any(
@@ -285,40 +323,40 @@ class TestLinks:
         ],
     )
     def test_a_bad_link_fails(self, tree, link, message):
-        _append(tree / "docs/tasks/todo.md", f"\nSee {link}.\n")
+        _append(tree / "maintenances/_docs/todo/todo.md", f"\nSee {link}.\n")
         errors = _failing(tree)["links"]
         assert len(errors) == 1
-        assert errors[0].startswith("docs/tasks/todo.md:")
+        assert errors[0].startswith("maintenances/_docs/todo/todo.md:")
         assert message in errors[0]
 
     def test_a_reference_link_is_checked(self, tree):
-        _append(tree / "docs/tasks/todo.md", "\n[ref]: history/gone.md\n")
+        _append(tree / "maintenances/_docs/todo/todo.md", "\n[ref]: history/gone.md\n")
         assert any("history/gone.md" in e for e in _failing(tree)["links"])
 
     def test_valid_forms_pass(self, tree):
-        (tree / "docs/tasks/a(1).md").write_text("x\n", encoding="utf-8")
+        (tree / "maintenances/_docs/todo/a(1).md").write_text("x\n", encoding="utf-8")
         _append(
-            tree / "docs/tasks/todo.md",
-            "\n[a](https://example.org/x) [b](#top) [c](README.md#where)"
-            ' [d](<README.md>) [e](a(1).md) [f](README.md "title")\n',
+            tree / "maintenances/_docs/todo/todo.md",
+            "\n[a](https://example.org/x) [b](#top) [c](todo.md#where)"
+            ' [d](<todo.md>) [e](a(1).md) [f](todo.md "title")\n',
         )
         assert "links" not in _failing(tree)
 
     def test_a_link_in_a_code_fence_is_not_resolved(self, tree):
-        _append(tree / "docs/tasks/todo.md", "\n```text\n[x](nowhere.md)\n```\n")
+        _append(tree / "maintenances/_docs/todo/todo.md", "\n```text\n[x](nowhere.md)\n```\n")
         assert "links" not in _failing(tree)
 
     def test_a_link_into_a_symlinked_folder_resolves(self, tree):
-        _append(tree / "docs/tasks/todo.md", "\n[pkg](../../scikitplot/__init__.py)\n")
+        _append(tree / "maintenances/_docs/todo/todo.md", "\n[pkg](../../../scikitplot/__init__.py)\n")
         assert "links" not in _failing(tree)
 
 
 class TestBudgets:
     def test_an_active_todo_over_budget_fails(self, tree):
-        _append(tree / "docs/tasks/todo.md", "- line\n" * ACTIVE_TODO_MAX_LINES)
+        _append(tree / "maintenances/_docs/todo/todo.md", "- line\n" * ACTIVE_TODO_MAX_LINES)
         errors = _failing(tree)["budgets"]
         assert len(errors) == 1
-        assert errors[0].startswith("docs/tasks/todo.md:")
+        assert errors[0].startswith("maintenances/_docs/todo/todo.md:")
 
     def test_an_archived_todo_has_no_budget(self, tree):
         """Review 11: a todo.md kept under history/ was budgeted."""
@@ -331,6 +369,7 @@ class TestBudgets:
 def test_main_reports_json_and_exit_status(tree, capsys):
     assert main(["--root", str(tree), "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "PASS"
+    (tree / "tasks").mkdir()
     (tree / "tasks/extra.txt").write_text("x\n", encoding="utf-8")
     assert main(["--root", str(tree), "--json"]) == 1
     assert json.loads(capsys.readouterr().out)["status"] == "FAIL"
@@ -352,7 +391,7 @@ class TestSecondReview:
         root = tmp_path / "history" / "repo"
         shutil.copytree(template, root, symlinks=True)
         _append(
-            root / "docs/tasks/todo.md",
+            root / "maintenances/_docs/todo/todo.md",
             "\n[x](gone.md)\n" + "- l\n" * ACTIVE_TODO_MAX_LINES,
         )
         failing = _failing(root)
@@ -383,23 +422,23 @@ class TestSecondReview:
         _append(
             _rules(tree, "delivery.md"), "\n```text\n### Rule 999: Records - hidden\n"
         )
-        _append(tree / "docs/tasks/todo.md", "\n```\n[x](gone.md)\n")
+        _append(tree / "maintenances/_docs/todo/todo.md", "\n```\n[x](gone.md)\n")
         failing = _failing(tree)
         assert any("code fence never closed" in e for e in failing["rules"])
         assert any("code fence never closed" in e for e in failing["links"])
 
     def test_footnotes_code_spans_and_escapes(self, tree):
         """Finding 4: false positives in the link parser."""
-        (tree / "docs/tasks/a b.md").write_text("x\n", encoding="utf-8")
+        (tree / "maintenances/_docs/todo/a b.md").write_text("x\n", encoding="utf-8")
         _append(
-            tree / "docs/tasks/todo.md",
+            tree / "maintenances/_docs/todo/todo.md",
             "\n[^1]: some words\n\nSee `a[0](b)` and [c](a%20b.md).\n",
         )
         assert "links" not in _failing(tree)
 
     def test_a_nested_skill_is_link_checked(self, tree):
-        """Finding 5: only skills/*/SKILL.md was checked (skills are flat now)."""
-        nested = tree / "skills/scikitplot-annoy-dev/references/deep/SKILL.md"
+        """Finding 5: only plugins/scikitplot-dev/skills/*/SKILL.md was checked (skills are flat now)."""
+        nested = tree / "plugins/scikitplot-dev/skills/scikitplot-annoy-dev/references/deep/SKILL.md"
         nested.parent.mkdir(parents=True)
         nested.write_text("---\nname: x\ndescription: y\n---\n[x](gone.md)\n", encoding="utf-8")
         assert any("gone.md" in e for e in _failing(tree)["links"])
@@ -466,7 +505,7 @@ parse_skill_frontmatter = records["parse_skill_frontmatter"]
 skill_mirrors = records["skill_mirrors"]
 
 
-def _skill(root: Path, folder: str, base: str = "skills") -> Path:
+def _skill(root: Path, folder: str, base: str = "plugins/scikitplot-dev/skills") -> Path:
     return root / base / folder / "SKILL.md"
 
 
@@ -507,10 +546,10 @@ class TestSkills:
         assert any("must be 1-64 characters" in e for e in _skills_errors(tree))
 
     def test_a_nested_skill_fails(self, tree):
-        nested = tree / "skills/scikitplot-annoy-dev/inner/SKILL.md"
+        nested = tree / "plugins/scikitplot-dev/skills/scikitplot-annoy-dev/inner/SKILL.md"
         nested.parent.mkdir()
         nested.write_text("---\nname: inner\ndescription: d\n---\n", encoding="utf-8")
-        assert any("a skill is skills/<name>/SKILL.md" in e for e in _skills_errors(tree))
+        assert any("a skill is plugins/scikitplot-dev/skills/<name>/SKILL.md" in e for e in _skills_errors(tree))
 
     def test_a_plain_value_yaml_reads_differently_fails(self, tree):
         """The mlflow skill's unquoted 'scikitplot.mlflow: ...' broke its YAML."""
@@ -533,7 +572,7 @@ class TestSkills:
 
     def test_an_unprefixed_name_fails(self, tree):
         """'annoy-maintainer' named no project (the reason for the prefix)."""
-        old, new = tree / "skills/scikitplot-annoy-dev", tree / "skills/annoy-maintainer"
+        old, new = tree / "plugins/scikitplot-dev/skills/scikitplot-annoy-dev", tree / "plugins/scikitplot-dev/skills/annoy-maintainer"
         old.rename(new)
         _set_line(new / "SKILL.md", "name:", "name: annoy-maintainer")
         assert any(
@@ -554,13 +593,13 @@ class TestSkills:
         assert any("already has skill" in e for e in _skills_errors(tree))
 
     def test_a_folder_without_a_skill_fails(self, tree):
-        (tree / "skills/_externals").mkdir()
+        (tree / "plugins/scikitplot-dev/skills/_externals").mkdir()
         assert any("no SKILL.md" in e for e in _skills_errors(tree))
 
     def test_a_hand_edited_agent_fails_and_write_index_repairs_it(self, tree):
-        agent = tree / "agents/scikitplot-annoy-dev.md"
+        agent = tree / "plugins/scikitplot-dev/agents/scikitplot-annoy-dev.md"
         agent.write_text(agent.read_text(encoding="utf-8") + "extra\n", encoding="utf-8")
-        assert any("agents/scikitplot-annoy-dev.md is out of date" in e for e in _skills_errors(tree))
+        assert any("plugins/scikitplot-dev/agents/scikitplot-annoy-dev.md is out of date" in e for e in _skills_errors(tree))
         records["write_indexes"](tree)
         assert "skills" not in _failing(tree)
 
@@ -570,13 +609,13 @@ class TestSkills:
 
     def test_every_skill_with_a_path_or_module_has_its_agent(self):
         for folder in skill_mirrors(ROOT).values():
-            assert (ROOT / "agents" / f"{folder}.md").is_file(), folder
+            assert (ROOT / "plugins/scikitplot-dev/agents" / f"{folder}.md").is_file(), folder
         for folder in records["usage_mirrors"](ROOT).values():
             assert (ROOT / "plugins/scikitplot/agents" / f"{folder}.md").is_file(), folder
 
     def test_a_stale_skill_index_fails_and_write_index_repairs_it(self, tree):
-        (tree / "skills/INDEX.md").write_text("# stale\n", encoding="utf-8")
-        assert any("skills/INDEX.md is out of date" in e for e in _skills_errors(tree))
+        (tree / "plugins/INDEX.md").write_text("# stale\n", encoding="utf-8")
+        assert any("plugins/INDEX.md is out of date" in e for e in _skills_errors(tree))
         records["write_indexes"](tree)
         assert "skills" not in _failing(tree)
 
@@ -642,3 +681,116 @@ class TestSkillFrontmatter:
     def test_anything_else_is_a_problem(self, text, problem):
         _, problems = parse_skill_frontmatter(text)
         assert any(problem in p for p in problems), problems
+
+
+SHARED = "plugins/_shared/skills"
+
+
+class TestSharedSkills:
+    """Rule 167: one source in plugins/_shared/skills/, a byte copy in each plugin."""
+
+    def _name(self, root: Path) -> str:
+        names = records["shared_skill_names"](root)
+        if not names:
+            pytest.skip("no shared skill")
+        return names[0]
+
+    def test_every_plugin_carries_an_identical_copy(self):
+        name = self._name(ROOT)
+        for target in records["SHARED_TARGETS"]:
+            for path in (ROOT / SHARED / name).rglob("*"):
+                if path.is_file():
+                    rel = path.relative_to(ROOT / SHARED).as_posix()
+                    assert (ROOT / target / rel).read_bytes() == path.read_bytes(), rel
+
+    def test_an_edited_copy_fails_and_write_index_repairs_it(self, tree):
+        name = self._name(tree)
+        copy = tree / USAGE / name / "SKILL.md"
+        copy.write_text(copy.read_text(encoding="utf-8") + "drift\n", encoding="utf-8")
+        assert any("differs from its source" in e for e in _skills_errors(tree))
+        records["write_indexes"](tree)
+        assert "skills" not in _failing(tree)
+
+    def test_an_extra_file_in_a_copy_fails_and_write_index_removes_it(self, tree):
+        name = self._name(tree)
+        extra = tree / "plugins/scikitplot-dev/skills" / name / "stray.md"
+        extra.write_text("x\n", encoding="utf-8")
+        assert any("stray.md: not in" in e for e in _skills_errors(tree))
+        records["write_indexes"](tree)
+        assert not extra.exists()
+        assert "skills" not in _failing(tree)
+
+    def test_a_source_edit_propagates_on_write_index(self, tree):
+        name = self._name(tree)
+        source = tree / SHARED / name / "SKILL.md"
+        source.write_text(source.read_text(encoding="utf-8") + "\nNew line.\n", encoding="utf-8")
+        assert any("differs from its source" in e for e in _skills_errors(tree))
+        records["write_indexes"](tree)
+        assert (tree / USAGE / name / "SKILL.md").read_bytes() == source.read_bytes()
+        assert "skills" not in _failing(tree)
+
+    def test_a_shared_skill_has_no_agent_and_no_mirror(self):
+        name = self._name(ROOT)
+        assert not (ROOT / "plugins/scikitplot/agents" / f"{name}.md").exists()
+        assert not (ROOT / "plugins/scikitplot-dev/agents" / f"{name}.md").exists()
+
+
+def _plugins_errors(tree: Path) -> list[str]:
+    return _failing(tree).get("plugins", [])
+
+
+def _market(tree: Path) -> tuple[Path, dict]:
+    path = tree / ".claude-plugin/marketplace.json"
+    return path, json.loads(path.read_text(encoding="utf-8"))
+
+
+class TestPlugins:
+    """Rule 167: the marketplace lists ./plugins/<name>, names agree, no version."""
+
+    def test_the_real_tree_passes(self):
+        assert "plugins" not in _failing(ROOT)
+
+    def test_every_plugin_is_under_plugins(self):
+        _, market = _market(ROOT)
+        assert {e["name"] for e in market["plugins"]} == {"scikitplot", "scikitplot-mcp", "scikitplot-dev"}
+        assert all(e["source"] == f"./plugins/{e['name']}" for e in market["plugins"])
+
+    def test_a_root_source_fails(self, tree):
+        path, market = _market(tree)
+        market["plugins"][0]["source"] = "./"
+        path.write_text(json.dumps(market), encoding="utf-8")
+        assert any("write './plugins/" in e for e in _plugins_errors(tree))
+
+    def test_a_manifest_name_unlike_the_entry_fails(self, tree):
+        manifest = tree / "plugins/scikitplot-mcp/.claude-plugin/plugin.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["name"] = "scikitplot-docs"
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        assert any("must equal the marketplace entry" in e for e in _plugins_errors(tree))
+
+    def test_a_version_fails(self, tree):
+        manifest = tree / "plugins/scikitplot-dev/.claude-plugin/plugin.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["version"] = "0.1.0"
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        assert any("sets no 'version'" in e for e in _plugins_errors(tree))
+
+    def test_an_unlisted_plugin_fails(self, tree):
+        manifest = tree / "plugins/scikitplot-extra/.claude-plugin/plugin.json"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text('{"name": "scikitplot-extra"}', encoding="utf-8")
+        assert any("does not list" in e for e in _plugins_errors(tree))
+
+    def test_invalid_json_fails(self, tree):
+        path, _ = _market(tree)
+        path.write_text("{", encoding="utf-8")
+        assert any("invalid JSON" in e for e in _plugins_errors(tree))
+
+    def test_the_mcp_plugin_launches_the_server(self):
+        servers = json.loads((ROOT / "plugins/scikitplot-mcp/.mcp.json").read_text(encoding="utf-8"))
+        (entry,) = servers["mcpServers"].values()
+        assert entry["command"] == "python" and entry["args"] == ["-m", "scikitplot.mcp"]
+
+    def test_the_default_plugin_runs_nothing(self):
+        for name in (".mcp.json", "hooks", "bin"):
+            assert not (ROOT / "plugins/scikitplot" / name).exists(), name

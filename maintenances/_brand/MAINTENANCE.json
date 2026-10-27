@@ -12,7 +12,7 @@
     "maintenances/_brand/_maintenance/STATE.json",
     "maintenances/_brand/_maintenance/FAMILY.md",
     "maintenances/_brand/_maintenance/VERIFICATION.md",
-    "skills/scikitplot-brand-dev/SKILL.md"
+    "plugins/scikitplot-dev/skills/scikitplot-brand-dev/SKILL.md"
   ],
   "runtime_contract": {
     "inventory": {
@@ -61,6 +61,6 @@
   },
   "runtime_root": "scikitplot/_brand",
   "schema_version": 4,
-  "skill": "skills/scikitplot-brand-dev/SKILL.md",
+  "skill": "plugins/scikitplot-dev/skills/scikitplot-brand-dev/SKILL.md",
   "subsystem": "scikitplot._brand"
 }

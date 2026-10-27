@@ -1,6 +1,6 @@
 # `scikitplot.feature_selection` maintenance: active tasks
 
-Rules that apply to every increment: [`skills/scikitplot-engineering-rules/`](../../../skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
 Release-note PR for this round: **866** (given by the maintainer, Rule 100).
 
 ## Task: FS-1, the first `scikitplot.feature_selection` (2026-10-19)
@@ -168,7 +168,7 @@ dates; TOML's lack of null.
   `docs/source/user_guide/feature_selection/` (5 pages and an executing sync
   test) linked from the user-guide index; gallery
   `galleries/examples/feature_selection/`; this maintenance plane and
-  `skills/scikitplot-feature-selection-dev/SKILL.md`. The root `__init__.pyi` lists no
+  `plugins/scikitplot-dev/skills/scikitplot-feature-selection-dev/SKILL.md`. The root `__init__.pyi` lists no
   subpackages, so it needed no change (plan step 8 named it; no deviation in
   behaviour).
 

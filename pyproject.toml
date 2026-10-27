@@ -969,7 +969,6 @@ exclude = [
   "galleries/**",
   "maintenances/**",
   "plugins/**",
-  "skills/**",
   "third_party/**",
   "tools/**",
   "dev.py",
@@ -1020,7 +1019,6 @@ exclude = [
   "galleries/**",
   "maintenances/**",
   "plugins/**",
-  "skills/**",
   "third_party/**",
   "tools/**",
   "dev.py",
@@ -1294,7 +1292,6 @@ extend-exclude = '''
   |galleries
   |maintenances
   |plugins
-  |skills
   |third_party
   |tools
   |tests
@@ -1775,8 +1772,8 @@ manual_labels = [
 [tool.scikitplot.maintenance.labeler.satellites]
 scikitplot = [
   "maintenances/{rel}/**/*",
-  "skills/{skill}/**/*",
-  "agents/{skill}.md",
+  "plugins/scikitplot-dev/skills/{skill}/**/*",
+  "plugins/scikitplot-dev/agents/{skill}.md",
   "plugins/scikitplot/skills/{usage}/**/*",
   "plugins/scikitplot/agents/{usage}.md",
   "docs/source/user_guide/{rel}/**/*",

@@ -1017,4 +1017,4 @@ rewrite's own verification; all sixteen are recorded, closed and gated in
 ## Maintainers
 
 Start at `maintenances/cleanprompt/_maintenance/DESIGN.md`, then
-`skills/scikitplot-cleanprompt-dev/SKILL.md`.
+`plugins/scikitplot-dev/skills/scikitplot-cleanprompt-dev/SKILL.md`.

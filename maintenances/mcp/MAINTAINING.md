@@ -12,7 +12,7 @@ python -B -m unittest discover -s maintenances/mcp/_maintenance/tests -p 'test_*
 ```
 
 The wide repository root is the directory containing `scikitplot/`,
-`maintenances/`, and `skills/`. Never infer the runtime root from the location of
+`maintenances/`, and `plugins/scikitplot-dev/skills/`. Never infer the runtime root from the location of
 the maintenance script.
 
 ## Ownership rule

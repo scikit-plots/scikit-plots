@@ -18,7 +18,7 @@ Close stale maintenance-only references after the immutable R173T3 contribution 
 
 ## Behavioral freeze
 
-`scikitplot/` and `skills/` are byte-identical to the tested R173T3 package. This checkpoint is maintenance-only.
+`scikitplot/` and `plugins/scikitplot-dev/skills/` are byte-identical to the tested R173T3 package. This checkpoint is maintenance-only.
 
 ## Verification
 

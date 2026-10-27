@@ -17,7 +17,7 @@ import tempfile
 def repo_root() -> pathlib.Path:
     here = pathlib.Path(__file__).resolve()
     for p in here.parents:
-        if (p / "scikitplot").is_dir() and (p / "maintenances").is_dir() and (p / "skills").is_dir():
+        if (p / "scikitplot").is_dir() and (p / "maintenances").is_dir() and (p/"plugins").is_dir():
             return p
     raise RuntimeError("wide repository root not found")
 

@@ -1,0 +1,243 @@
+# Publish the `scikitplot` Claude plugin to scikit-plots/skills (Rule 166).
+#
+# One controller, in this repository; scikit-plots/skills holds no workflow of
+# its own. Refs are mirrored by name:
+#
+#   push to main                ->  scikit-plots/skills main               (unversioned)
+#   push to maintenance/X.Y.x   ->  scikit-plots/skills maintenance/X.Y.x  (unversioned)
+#   push of tag vX.Y.Z[.postN]  ->  scikit-plots/skills tag vX.Y.Z[.postN] (version X.Y.Z[.postN])
+#                                   and branch `stable` when that release is the newest
+#
+# An unversioned build sets no `version` in plugin.json, so Claude Code versions
+# it by commit (https://code.claude.com/docs/en/plugins/marketplace-reference.md).
+# A tag is immutable: when it already exists in scikit-plots/skills with another
+# tree, the run fails instead of moving it.
+#
+# Security: `build` has `contents: read` and no secret; it runs the repository's
+# own checks and build script and uploads the tree. `publish` runs no repository
+# code: it downloads that tree as data and pushes it with a GitHub App
+# installation token minted for scikit-plots/skills only, with `contents: write`
+# only, inside the protected environment `claude-plugins` (add required
+# reviewers there to gate releases). Setup: maintenances/_plugins/MAINTAINING.md.
+#
+# workflow_dispatch builds any ref as a dry run; set `publish` to push it too.
+---
+name: "CD 🧩 Claude plugins to scikit-plots/skills"
+on:
+  push:
+    branches:
+      - main
+      - "maintenance/**"
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Also push the build to scikit-plots/skills (otherwise a dry run)"
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: claude-plugins-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TARGET_REPO: scikit-plots/skills
+  # The paths build_skills_repo.py owns (its MANAGED); nothing else is touched.
+  MANAGED: ".claude-plugin skills agents assets LICENSES README.md LICENSE"
+
+jobs:
+  build:
+    name: "Build the plugin tree"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      kind: ${{ steps.ref.outputs.kind }}
+      ref: ${{ steps.ref.outputs.ref }}
+      version: ${{ steps.ref.outputs.version }}
+      base: ${{ steps.ref.outputs.base }}
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: "🧭 Resolve channel"
+        id: ref
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          release='^v([0-9]+)\.([0-9]+)\.[0-9]+(\.post[0-9]+)?$'
+          if [ "$REF_TYPE" = "tag" ]; then
+            if ! [[ "$REF_NAME" =~ $release ]]; then
+              echo "::error::tag $REF_NAME is not vX.Y.Z or vX.Y.Z.postN; nothing is built."
+              exit 1
+            fi
+            line="maintenance/${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
+            # A release tag must be on main or on its maintenance branch.
+            on=""
+            for branch in main "$line"; do
+              if git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null \
+                && git merge-base --is-ancestor HEAD "refs/remotes/origin/$branch"; then
+                on="$branch"
+                break
+              fi
+            done
+            if [ -z "$on" ]; then
+              echo "::error::$REF_NAME is on neither main nor $line; refusing to publish it."
+              exit 1
+            fi
+            {
+              echo "kind=tag"
+              echo "ref=$REF_NAME"
+              echo "version=${REF_NAME#v}"
+              echo "base=$line"
+            } >> "$GITHUB_OUTPUT"
+          elif [ "$REF_NAME" = "main" ] || [[ "$REF_NAME" == maintenance/* ]]; then
+            { echo "kind=branch"; echo "ref=$REF_NAME"; echo "version="; echo "base=$REF_NAME"; } >> "$GITHUB_OUTPUT"
+          else
+            # A dispatch on another branch: build it as main would be, never publish it.
+            { echo "kind=preview"; echo "ref=$REF_NAME"; echo "version="; echo "base="; } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "🔎 Records, skills and plugins are current"
+        run: |
+          python -I -B maintenances/_repo/_maintenance/tools/check_records.py
+          python -I -B tools/maint_tools/generate_usage_skills.py check
+
+      - name: "🧩 Build"
+        env:
+          VERSION: ${{ steps.ref.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$VERSION" ]; then
+            python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --version "$VERSION"
+          else
+            python -I -B tools/maint_tools/build_skills_repo.py build --out "$RUNNER_TEMP/tree" --unversioned
+          fi
+
+      - name: "📦 Upload the tree"
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: claude-plugin-tree
+          path: ${{ runner.temp }}/tree
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: "Push to scikit-plots/skills"
+    needs: build
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots'
+      && needs.build.outputs.kind != 'preview'
+      && (github.event_name == 'push' || inputs.publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: claude-plugins
+    permissions: {}
+    steps:
+      - name: "🔑 Token for scikit-plots/skills only"
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.CLAUDE_PLUGINS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CLAUDE_PLUGINS_APP_PRIVATE_KEY }}
+          owner: scikit-plots
+          repositories: skills
+          permission-contents: write
+
+      - name: "📥 Download the tree"
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: claude-plugin-tree
+          path: ${{ runner.temp }}/tree
+
+      - name: "🚀 Commit and push the same-named ref"
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          KIND: ${{ needs.build.outputs.kind }}
+          REF: ${{ needs.build.outputs.ref }}
+          BASE: ${{ needs.build.outputs.base }}
+          SOURCE_SHA: ${{ github.sha }}
+          TREE: ${{ runner.temp }}/tree
+        run: |
+          set -euo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git_() { git -c http.extraheader="AUTHORIZATION: basic $auth" "$@"; }
+          git init --quiet skills
+          cd skills
+          git remote add origin "https://github.com/${TARGET_REPO}.git"
+          git_ fetch --quiet --tags origin "+refs/heads/*:refs/remotes/origin/*"
+          # Start from the matching branch, else main, else an empty history.
+          if git rev-parse --verify --quiet "refs/remotes/origin/$BASE" >/dev/null; then
+            git checkout --quiet --detach "refs/remotes/origin/$BASE"
+          elif git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null; then
+            git checkout --quiet --detach refs/remotes/origin/main
+          else
+            git checkout --quiet --orphan start
+          fi
+          for path in $MANAGED; do
+            rm -rf -- "$path"
+            if [ -e "$TREE/$path" ]; then cp -a -- "$TREE/$path" "$path"; fi
+          done
+          git add -A -- $MANAGED
+          if [ "$KIND" = "branch" ] && git diff --cached --quiet; then
+            if git rev-parse --verify --quiet "refs/remotes/origin/$REF" >/dev/null; then
+              echo "scikit-plots/skills $REF is already current."
+              exit 0
+            fi
+            # A new branch with its base's tree: create it at the base, no commit.
+            git_ push --quiet origin "HEAD:refs/heads/$REF"
+            echo "scikit-plots/skills $REF created at its base."
+            exit 0
+          fi
+          git -c user.name="scikit-plots-bot" \
+            -c user.email="scikit-plots-maintainers@googlegroups.com" \
+            commit --quiet --allow-empty \
+            -m "Build ${REF} from scikit-plots/scikit-plots@${SOURCE_SHA}"
+          if [ "$KIND" = "branch" ]; then
+            git_ push --quiet origin "HEAD:refs/heads/$REF"
+          else
+            if git rev-parse --verify --quiet "refs/tags/$REF" >/dev/null; then
+              if [ "$(git rev-parse "refs/tags/$REF^{tree}")" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+                echo "::error::scikit-plots/skills $REF exists with another tree; tags are never moved."
+                exit 1
+              fi
+              echo "scikit-plots/skills $REF already exists with this tree."
+              git checkout --quiet --detach "refs/tags/$REF"
+            else
+              git tag "$REF" HEAD
+              git_ push --quiet origin "refs/tags/$REF"
+            fi
+            # `stable` is the newest release by version, never an older one, so
+            # it can be the default branch the directory and a plain
+            # `marketplace add scikit-plots/skills` read (main is development).
+            version="${REF#v}"
+            current=""
+            if git rev-parse --verify --quiet refs/remotes/origin/stable >/dev/null; then
+              current="$(git show refs/remotes/origin/stable:.claude-plugin/plugin.json \
+                | python3 -I -c 'import json, sys; print(json.load(sys.stdin).get("version", ""))')"
+            fi
+            newest="$(printf '%s\n%s\n' "$current" "$version" | sed '/^$/d' | sort -V | tail -n 1)"
+            if [ "$current" != "$version" ] && [ "$newest" = "$version" ]; then
+              git_ push --quiet --force origin "HEAD:refs/heads/stable"
+              echo "stable: ${current:-none} -> $version"
+            else
+              echo "stable stays at ${current}: $version is not newer."
+            fi
+          fi
+          echo "### scikit-plots/skills ${REF} <- scikit-plots/scikit-plots@${SOURCE_SHA}" >> "$GITHUB_STEP_SUMMARY"
