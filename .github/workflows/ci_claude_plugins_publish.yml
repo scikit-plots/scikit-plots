@@ -133,7 +133,9 @@ jobs:
 
       - name: "🔎 Records, skills and plugins are current"
         run: |
+          python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index
           python -I -B maintenances/_repo/_maintenance/tools/check_records.py
+          python -I -B tools/maint_tools/generate_usage_skills.py sync
           python -I -B tools/maint_tools/generate_usage_skills.py check
 
       - name: "🧩 Build"
