@@ -6,15 +6,36 @@ Skills and agents for using scikit-plots in any project. Each skill follows the
 [Agent Skills specification](https://agentskills.io/specification), so a skill
 folder can also be copied into any tool that reads that format.
 
-Install in Claude Code:
+## What it runs and sends
 
-```text
-/plugin marketplace add scikit-plots/scikit-plots
-/plugin install scikitplot@scikit-plots
+Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no
+MCP servers and no scripts, runs no code of its own and sends no data anywhere.
+
+## Install
+
+Released versions, whose skills describe that release of scikit-plots (the
+plugin `version` is the library version), come from
+[`scikit-plots/skills`](https://github.com/scikit-plots/skills). In Claude Code, from a shell:
+
+```sh
+claude plugin marketplace add scikit-plots/skills
+claude plugin install scikitplot@scikit-plots-skills
 ```
 
-Or copy one skill, for example into a project:
-`cp -r plugins/scikitplot/skills/scikitplot-annoy .claude/skills/`.
+The development version, whose skills describe the `main` branch, comes from
+the scikit-plots repository itself:
+
+```sh
+claude plugin marketplace add scikit-plots/scikit-plots --sparse .claude-plugin plugins
+claude plugin install scikitplot@scikit-plots
+```
+
+Or copy one skill folder, for example into a project:
+`cp -r skills/scikitplot-annoy <project>/.claude/skills/`.
+The full guide (claude.ai, Cowork, versions, updates, troubleshooting) is
+[`plugins/README.md`](https://github.com/scikit-plots/scikit-plots/blob/main/plugins/README.md).
+
+## Skills and agents
 
 | Module | Skill | Agent |
 |---|---|---|

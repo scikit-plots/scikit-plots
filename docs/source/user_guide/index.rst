@@ -324,6 +324,17 @@ User Guide
 
             ./_env/index.rst
 
+    .. grid-item-card::
+        :columns: 12 12 6 6
+        :padding: 2
+
+        **notebook magics**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            ./_ipymagic/index.rst
+
 
 .. _under-development:
 

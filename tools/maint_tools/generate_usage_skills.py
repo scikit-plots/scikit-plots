@@ -51,6 +51,8 @@ try:  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
     import tomli as tomllib  # type: ignore[no-redef]
 
+from scikitplot.experimental import enable_ann_imputer
+
 REPO = Path(__file__).resolve().parents[2]
 RECORDS = REPO / "maintenances/_repo/_maintenance/tools/check_records.py"
 POLICY_KEYS = ("tool", "scikitplot", "maintenance", "skills")

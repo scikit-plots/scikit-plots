@@ -94,6 +94,8 @@ LINKED = (
     "maintenances/**/MAINTAINING.md",
     "skills/**/SKILL.md",
     "skills/INDEX.md",
+    "plugins/README.md",
+    "plugins/maintenances/*.md",
     "plugins/scikitplot/README.md",
     "plugins/scikitplot/skills/**/SKILL.md",
 )
@@ -641,6 +643,10 @@ PLUGIN_DIR = "plugins/scikitplot"
 USAGE_SKILLS_DIR = f"{PLUGIN_DIR}/skills"
 USAGE_AGENTS_DIR = f"{PLUGIN_DIR}/agents"
 PLUGIN_README = f"{PLUGIN_DIR}/README.md"
+#: The repository that serves released versions of the plugin (Rule 166).
+STABLE_REPO = "scikit-plots/skills"
+STABLE_MARKETPLACE = "scikit-plots-skills"
+GUIDE_URL = "https://github.com/scikit-plots/scikit-plots/blob/main/plugins/README.md"
 #: Files allowed directly in a skills folder (every folder there is one skill).
 SKILLS_ROOT_FILES = ("INDEX.md", ".gitignore")
 _SKILL_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -1142,15 +1148,36 @@ def render_plugin_readme(root: Path) -> str:
         "[Agent Skills specification](https://agentskills.io/specification), so a skill",
         "folder can also be copied into any tool that reads that format.",
         "",
-        "Install in Claude Code:",
+        "## What it runs and sends",
         "",
-        "```text",
-        "/plugin marketplace add scikit-plots/scikit-plots",
-        "/plugin install scikitplot@scikit-plots",
+        "Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no",
+        "MCP servers and no scripts, runs no code of its own and sends no data anywhere.",
+        "",
+        "## Install",
+        "",
+        "Released versions, whose skills describe that release of scikit-plots (the",
+        "plugin `version` is the library version), come from",
+        f"[`{STABLE_REPO}`](https://github.com/{STABLE_REPO}). In Claude Code, from a shell:",
+        "",
+        "```sh",
+        f"claude plugin marketplace add {STABLE_REPO}",
+        f"claude plugin install scikitplot@{STABLE_MARKETPLACE}",
         "```",
         "",
-        "Or copy one skill, for example into a project:",
-        "`cp -r plugins/scikitplot/skills/scikitplot-annoy .claude/skills/`.",
+        "The development version, whose skills describe the `main` branch, comes from",
+        "the scikit-plots repository itself:",
+        "",
+        "```sh",
+        "claude plugin marketplace add scikit-plots/scikit-plots --sparse .claude-plugin plugins",
+        "claude plugin install scikitplot@scikit-plots",
+        "```",
+        "",
+        "Or copy one skill folder, for example into a project:",
+        "`cp -r skills/scikitplot-annoy <project>/.claude/skills/`.",
+        "The full guide (claude.ai, Cowork, versions, updates, troubleshooting) is",
+        f"[`plugins/README.md`]({GUIDE_URL}).",
+        "",
+        "## Skills and agents",
         "",
         "| Module | Skill | Agent |",
         "|---|---|---|",
