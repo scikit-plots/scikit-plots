@@ -1738,5 +1738,5 @@ remove:
 	# find plugins/scikitplot-dev/skills/ -type f -name "SKILL.md" -delete
 	# find plugins/scikitplot-dev/skills/ -type d -empty -delete
 
-git apply --check ci6-centralize.patch
-git apply ci6-centralize.patch
+# git apply --check ci6-centralize.patch
+# git apply ci6-centralize.patch
