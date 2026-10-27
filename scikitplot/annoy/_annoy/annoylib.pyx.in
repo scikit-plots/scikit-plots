@@ -99,6 +99,7 @@ import warnings  # no-cython-lint
 import json  # no-cython-lint
 import pickle  # no-cython-lint
 import re  # no-cython-lint
+import sys  # no-cython-lint
 from threading import RLock
 
 # Only imports when type checking
@@ -4036,7 +4037,6 @@ cdef class Index(BaseIndex):
         # Try to get scikitplot version for docs link
         stable_version = None
         try:
-            import sys
             if "scikitplot" in sys.modules:
                 import scikitplot
                 if hasattr(scikitplot, "__version__"):
