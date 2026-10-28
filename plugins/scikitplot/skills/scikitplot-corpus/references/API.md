@@ -29,7 +29,7 @@
 | `BackendPlan(policy: 'str', declared: 'tuple[str, ...]', ordered: 'tuple[str, ...]', eligible: 'tuple[str, ...]', sele ...)` | class | Side-effect-free preflight of candidate ordering and policy eligibility. |
 | `BackendPolicy(name: 'str' = 'resilient', order: 'tuple[str, ...]' = (), include_unlisted: 'bool' = True, allow_fallback ...)` | class | Policy for selecting and exhausting optional backend chains. |
 | `BackendSkip(backend: 'str', reason: 'str', capability: 'str \| None' = None, capability_status: 'str \| None' = None, r ...)` | class | Why a backend was not executed under the resolved policy. |
-| `BackendStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Outcome of one ordered backend operation. |
+| `BackendStatus(value)` | enum | Outcome of one ordered backend operation. |
 | `backend_policy(value: 'BackendPolicy \| str \| Mapping[str, Any] \| None') -> 'BackendPolicy'` | function | Resolve an object, named preset or mapping without hidden global state. |
 | `plan_backend_chain(candidates: 'Sequence[BackendCandidate[Any]]', *, policy: 'BackendPolicy \| str \| Mapping[str, Any] \| None ...)` | function | Resolve backend order/readiness without executing a backend. |
 | `run_backend_chain(candidates: 'Sequence[BackendCandidate[_T]]', *, default: '_T', logger: 'logging.Logger', component: 'str ...)` | function | Try *candidates* in order and return a structured outcome. |
@@ -44,10 +44,10 @@
 | `bridge_chunker(chunker: 'Any') -> 'ChunkerBridge \| Any'` | function | Wrap *chunker* in a bridge if it is a new-style chunker. |
 | `register_bridge(chunker_class: 'type', bridge_class: 'type[ChunkerBridge]') -> 'None'` | function | Register a custom bridge for a user-defined chunker class. |
 | `unregister_bridge(chunker_class: 'type') -> 'None'` | function | Remove a previously registered bridge for *chunker_class*. |
-| `TokenizerProtocol(*args, **kwargs)` | type alias | Structural protocol for word tokenizers. |
-| `SentenceSplitterProtocol(*args, **kwargs)` | type alias | Structural protocol for sentence segmenters. |
-| `StemmerProtocol(*args, **kwargs)` | type alias | Structural protocol for word stemmers. |
-| `LemmatizerProtocol(*args, **kwargs)` | type alias | Structural protocol for word lemmatizers. |
+| `TokenizerProtocol` | protocol | Structural protocol for word tokenizers. |
+| `SentenceSplitterProtocol` | protocol | Structural protocol for sentence segmenters. |
+| `StemmerProtocol` | protocol | Structural protocol for word stemmers. |
+| `LemmatizerProtocol` | protocol | Structural protocol for word lemmatizers. |
 | `FunctionTokenizer(fn: 'Callable[[str], list[str]]', name: 'str' = 'custom') -> 'None'` | class | Wrap any ``Callable[[str], list[str]]`` as a `TokenizerProtocol`. |
 | `FunctionSentenceSplitter(fn: 'Callable[[str], list[str]]', name: 'str' = 'custom') -> 'None'` | class | Wrap any ``Callable[[str], list[str]]`` as a `SentenceSplitterProtocol`. |
 | `FunctionStemmer(fn: 'Callable[[str], str]', name: 'str' = 'custom') -> 'None'` | class | Wrap any ``Callable[[str], str]`` as a `StemmerProtocol`. |
@@ -61,7 +61,7 @@
 | `get_stemmer(name: 'str') -> 'StemmerProtocol'` | function | Retrieve a registered stemmer by name. |
 | `register_lemmatizer(name: 'str', lemmatizer: 'LemmatizerProtocol') -> 'None'` | function | Register a named `LemmatizerProtocol` implementation. |
 | `get_lemmatizer(name: 'str') -> 'LemmatizerProtocol'` | function | Retrieve a registered lemmatizer by name. |
-| `ScriptType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Dominant Unicode script detected in a text sample. |
+| `ScriptType(value)` | enum | Dominant Unicode script detected in a text sample. |
 | `detect_script(text: 'str', *, sample_size: 'int' = 500, majority_threshold: 'float' = 0.55) -> 'ScriptType'` | function | Detect the dominant Unicode script in *text*. |
 | `is_cjk_char(ch: 'str') -> 'bool'` | function | Return ``True`` if *ch* is a CJK / Japanese / Korean character. |
 | `is_rtl_char(ch: 'str') -> 'bool'` | function | Return ``True`` if *ch* belongs to a right-to-left script. |
@@ -70,8 +70,8 @@
 | `ScriptSpan(text: 'str', script: 'ScriptType', direction: 'str', start: 'int', end: 'int') -> None` | class | A contiguous span of text in a single Unicode script. |
 | `ScriptSegmenter(*, min_span_chars: 'int' = 1, inherit_direction: 'bool' = True, unknown_script_warning: 'bool' = True) -> ...)` | class | Segment NFC-normalised text into contiguous Unicode script spans. |
 | `FixedWindowChunker(config: 'FixedWindowChunkerConfig \| None' = None, multilang_config: 'MultilangConfig \| None' = None) -> ' ...)` | class | Produce fixed-size sliding-window chunks over a document. |
-| `FixedWindowChunkerConfig(window_size: 'int' = 512, step_size: 'int' = 256, unit: 'WindowUnit' = <WindowUnit.CHARS: 'chars'>, min_l ...)` | class | Configuration for `FixedWindowChunker`. |
-| `WindowUnit(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Unit of measurement for window size and step. |
+| `FixedWindowChunkerConfig(window_size: 'int' = 512, step_size: 'int' = 256, unit: 'WindowUnit' = WindowUnit.CHARS, min_length: 'int ...)` | class | Configuration for `FixedWindowChunker`. |
+| `WindowUnit(value)` | enum | Unit of measurement for window size and step. |
 | `ISO_TO_NLTK` | dict |  |
 | `ISO_TO_NAME` | dict |  |
 | `NLTK_TO_ISO` | dict |  |
@@ -89,20 +89,20 @@
 | `ParentChildChunkerConfig(parent_size: 'int' = 2000, child_size: 'int' = 400, child_overlap: 'int' = 0, separators: 'tuple[str, ... ...)` | class | Configuration for `ParentChildChunker`. |
 | `RecursiveChunker(config: 'RecursiveChunkerConfig \| None' = None) -> 'None'` | class | Split text by a separator hierarchy until each piece fits a budget. |
 | `RecursiveChunkerConfig(chunk_size: 'int' = 1000, chunk_overlap: 'int' = 0, separators: 'tuple[str, ...]' = ('\n\n', '\n', '. ',  ...)` | class | Configuration for `RecursiveChunker`. |
-| `SemanticBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Semantic chunking backend selector. |
+| `SemanticBackend(value)` | enum | Semantic chunking backend selector. |
 | `SemanticChunker(config: 'SemanticChunkerConfig \| None' = None, *, adapter: 'WritingSystemAdapter \| None' = None) -> 'None'` | class | Embedding-aware, writing-system-aware semantic chunker (Layer 3). |
-| `SemanticChunkerConfig(backend: 'SemanticBackend' = <SemanticBackend.HYBRID: 'hybrid'>, model_name: 'str' = 'paraphrase-multilin ...)` | class | Configuration for `SemanticChunker`. |
-| `SentenceBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Supported sentence-splitting backends. |
+| `SemanticChunkerConfig(backend: 'SemanticBackend' = SemanticBackend.HYBRID, model_name: 'str' = 'paraphrase-multilingual-mpnet-b ...)` | class | Configuration for `SemanticChunker`. |
+| `SentenceBackend(value)` | enum | Supported sentence-splitting backends. |
 | `SentenceChunker(config: 'str \| SentenceChunkerConfig \| None' = None) -> 'None'` | class | Split a document into sentence-level `Chunk` objects. |
-| `SentenceChunkerConfig(backend: 'SentenceBackend' = <SentenceBackend.REGEX: 'regex'>, min_length: 'int' = 1, overlap: 'int' = 0, ...)` | class | Configuration for `SentenceChunker`. |
+| `SentenceChunkerConfig(backend: 'SentenceBackend' = SentenceBackend.REGEX, min_length: 'int' = 1, overlap: 'int' = 0, spacy_mode ...)` | class | Configuration for `SentenceChunker`. |
 | `StructureChunker(config: 'StructureChunkerConfig \| None' = None) -> 'None'` | class | Chunk Markdown or reStructuredText by its headings and code blocks. |
 | `StructureChunkerConfig(markup: 'str' = 'markdown', chunk_size: 'int' = 1000, include_heading: 'bool' = True, separators: 'tuple[ ...)` | class | Configuration for `StructureChunker`. |
-| `LemmatizationBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Lemmatization backend. |
-| `StemmingBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Stemming algorithm. |
-| `StopwordSource(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Stopword list source. |
-| `TokenizerBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Word tokenisation backend. |
+| `LemmatizationBackend(value)` | enum | Lemmatization backend. |
+| `StemmingBackend(value)` | enum | Stemming algorithm. |
+| `StopwordSource(value)` | enum | Stopword list source. |
+| `TokenizerBackend(value)` | enum | Word tokenisation backend. |
 | `WordChunker(config: 'WordChunkerConfig \| None' = None, gensim_dictionary: 'Any \| None' = None, multilang_config: 'Mul ...)` | class | Process a document at word level, producing normalised token chunks. |
-| `WordChunkerConfig(tokenizer: 'TokenizerBackend' = <TokenizerBackend.SIMPLE: 'simple'>, custom_tokenizer: 'TokenizerProtocol ...)` | class | Configuration for `WordChunker`. |
+| `WordChunkerConfig(tokenizer: 'TokenizerBackend' = TokenizerBackend.SIMPLE, custom_tokenizer: 'TokenizerProtocol \| Callable[ ...)` | class | Configuration for `WordChunker`. |
 | `ArabicMorphologicalStrategy()` | class | Arabic and Hebrew morphological segmentation strategy. |
 | `CJKCharacterStrategy(*, prefer_jieba: 'bool' = True) -> 'None'` | class | Character-level segmentation for Han (Chinese logograph) script. |
 | `DeterminativeGroupStrategy()` | class | Egyptian Hieroglyph segmentation into determinative groups. |
@@ -113,7 +113,7 @@
 | `JapaneseStrategy(*, tagger_args: 'str' = '-Owakati', sudachi_mode: 'str' = 'C', custom_tokenizer_key: 'str' = 'japanese')  ...)` | class | Multi-tier Japanese segmentation strategy. |
 | `KoreanSyllableStrategy()` | class | Space-delimited word segmentation for Korean Hangul. |
 | `MongolianStrategy()` | class | Traditional Mongolian segmentation strategy. |
-| `SegmentationStrategy(*args, **kwargs)` | type alias | Protocol for per-script text segmentation strategies. |
+| `SegmentationStrategy` | protocol | Protocol for per-script text segmentation strategies. |
 | `SpacePunctuationStrategy()` | class | Whitespace-and-punctuation segmentation for space-delimited scripts. |
 | `TibetanStrategy()` | class | Tibetan segmentation strategy. |
 | `WritingSystemAdapter(config: 'WritingSystemAdapterConfig \| None' = None, *, extra_strategies: 'dict[str, SegmentationStrategy] ...)` | class | Dispatch per-script segmentation to the correct strategy. |
@@ -143,10 +143,10 @@
 | `WebDownloader(input_url: 'str', output_path: 'Path \| None' = None, timeout: 'float' = 30.0, max_bytes: 'int' = 10485760 ...)` | class | Generic HTTP/HTTPS file downloader. |
 | `YouTubeDownloader(input_url: 'str', output_path: 'Path \| None' = None, timeout: 'float' = 30.0, max_bytes: 'int' = 10485760 ...)` | class | YouTube content downloader. |
 | `CachePolicy(unpinned: 'str' = 'bypass', revision_resolver: 'Callable[[str], str] \| None' = None, max_entries: 'int \|  ...)` | class | How `EmbeddingEngine` uses its disk cache. |
-| `CacheStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | What one cached embedding call did. |
-| `CachedEmbeddings(embeddings: ForwardRef('Any'), status: ForwardRef('CacheStatus'), key: ForwardRef('str \| None'), revision ...)` | class | The result of `EmbeddingEngine.embed_cached`. |
+| `CacheStatus(value)` | enum | What one cached embedding call did. |
+| `CachedEmbeddings(embeddings: 'Any', status: 'CacheStatus', key: 'str \| None', revision: 'str \| None')` | class | The result of `EmbeddingEngine.embed_cached`. |
 | `resolve_hub_revision(model_name: 'str', *, timeout: 'float \| None' = None) -> 'str'` | function | Return the Hugging Face Hub commit a model id currently points to. |
-| `DEFAULT_CACHE_DIR` | PosixPath |  |
+| `DEFAULT_CACHE_DIR` | Path |  |
 | `DEFAULT_MODEL` | str |  |
 | `EmbeddingEngine(model_name: 'str' = 'paraphrase-multilingual-mpnet-base-v2', backend: 'str' = 'sentence_transformers', cu ...)` | class | Multi-backend sentence embedding engine with SHA-256 file caching. |
 | `HashEmbedder(dimension: 'int' = 1024, token_pattern: 'str' = "[^\\W\\d_]+(?:['’][^\\W\\d_]+)*", lowercase: 'bool' = Tr ...)` | class | Embed text with deterministic signed feature hashing. |
@@ -230,7 +230,7 @@
 | `ALTOReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | ALTO XML reader for scanned document archives. |
 | `AudioReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Text extraction from audio files via companion transcript/lyrics parsing, Whisper ASR, and optional audio classification. |
 | `CustomReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Fully user-customizable reader for any file extension and resource type. |
-| `normalize_extractor_output(raw: 'Any', *, source_type: 'SourceType' = <SourceType.UNKNOWN: 'unknown'>, section_type: 'SectionType' = ...)` | function | Coerce an extractor return value to a list of raw chunk dicts. |
+| `normalize_extractor_output(raw: 'Any', *, source_type: 'SourceType' = SourceType.UNKNOWN, section_type: 'SectionType' = SectionType. ...)` | function | Coerce an extractor return value to a list of raw chunk dicts. |
 | `ImageReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | OCR-based text extraction from raster image files. |
 | `PDFReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | PDF document reader with pdfminer.six → pypdf cascade. |
 | `MarkdownReader(input_path: 'pathlib.Path', chunker: 'ChunkerBase \| None' = None, filter_: 'FilterBase \| None' = None, fi ...)` | class | Markdown document reader. |
@@ -256,12 +256,12 @@
 | `materialize_plan(plan: 'CorpusPlan', *, policy: 'RuntimePolicy \| str \| Mapping[str, Any] \| None' = None, registry: 'Compon ...)` | function | Resolve a validated `CorpusPlan` into runtime components. |
 | `runtime_policy(value: 'RuntimePolicy \| str \| Mapping[str, Any] \| None') -> 'RuntimePolicy'` | function | Resolve a runtime policy object, preset name, or mapping. |
 | `HAMLET_TEXT` | str |  |
-| `ErrorCategory(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Coarse classification of a diagnostic, for counting and filtering. |
+| `ErrorCategory(value)` | enum | Coarse classification of a diagnostic, for counting and filtering. |
 | `ErrorRecord(code: 'str', category: 'ErrorCategory', message: 'str', stage: 'str \| None' = None, source_id: 'str \| Non ...)` | class | One structured, serialisable diagnostic. |
 | `CapabilityRegistry(specs: 'Iterable[CapabilitySpec]' = ()) -> 'None'` | class | Explicit, side-effect-free registry for component readiness probes. |
 | `CapabilityReport(name: 'str', role: 'str', status: 'CapabilityStatus', installed: 'bool', assets_ready: 'bool \| None', rea ...)` | class | Read-only readiness state for one optional component. |
 | `CapabilitySpec(name: 'str', role: 'str', module: 'str \| None' = None, distributions: 'tuple[str, ...]' = (), assets_requ ...)` | class | Declarative probe specification for one optional component. |
-| `CapabilityStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Why a capability is or is not usable. |
+| `CapabilityStatus(value)` | enum | Why a capability is or is not usable. |
 | `capability_report(name: 'str', *, selected: 'bool' = False, active: 'bool' = False, registry: 'CapabilityRegistry \| None' = ...)` | function | Probe one registered component capability. |
 | `capability_snapshot(extra_distributions: 'Iterable[str]' = (), *, load: 'bool' = False) -> 'dict[str, Any]'` | function | Return a read-only snapshot of the runtime corpus capabilities. |
 | `component_capabilities(names: 'Iterable[str] \| None' = None, *, role: 'str \| None' = None, selected: 'Iterable[str]' = (), activ ...)` | function | Return JSON-compatible readiness records for components. |
@@ -276,27 +276,27 @@
 | `PlannedHit(hit: 'Any', score: 'float', key: 'str', fused_score: 'float \| None' = None, rerank_score: 'float \| None'  ...)` | class | One ranked hit of a plan, with the score of each stage that ranked it. |
 | `RetrievalExecutionPlan(retrieval: 'Any' = None, transform: 'Callable[[str], Sequence[str]] \| None' = None, keep_original: 'bool' ...)` | class | Run retrieval through typed, bounded stages. |
 | `StageBudget(max_calls: 'int \| None' = None, max_seconds: 'float \| None' = None) -> None` | class | Deterministic limits on the ``retrieve`` stage. |
-| `StageKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | One stage of a plan, in execution order. |
+| `StageKind(value)` | enum | One stage of a plan, in execution order. |
 | `StageOutcome(stage: 'StageKind', status: 'StageStatus', component: 'str \| None' = None, items_in: 'int' = 0, items_out ...)` | class | How one stage fared. |
-| `StageStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Outcome of one stage. |
+| `StageStatus(value)` | enum | Outcome of one stage. |
 | `CorrectionResult(query: 'str', verdict: 'CorrectionVerdict', rounds: 'tuple[CorrectionRound, ...]', hits: 'tuple[Any, ...] ...)` | class | The returned hits, the verdict, and every round. |
 | `CorrectionRound(index: 'int', query: 'str', grade: 'GradeResult', status: 'RetrievalStatus \| None', hit_count: 'int', sec ...)` | class | One round: the query run, how it was graded, what came back. |
-| `CorrectionVerdict(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | What the corrective retrieval came to. |
+| `CorrectionVerdict(value)` | enum | What the corrective retrieval came to. |
 | `CorrectiveRetrieval(plan: 'Any' = None, grader: 'Callable[[str, Any], GradeResult] \| None' = None, rewrite: 'Callable[[str, t ...)` | class | Grade, then accept, retry with a rewritten query, or abstain (CRAG). |
-| `EvidenceGrade(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How a grader judged one round's hits. |
+| `EvidenceGrade(value)` | enum | How a grader judged one round's hits. |
 | `GradeResult(grade: 'EvidenceGrade', score: 'float', reason: 'str' = '', grader: 'str \| None' = None) -> None` | class | One grader's judgement of one round. |
 | `TermCoverageGrader(top_k: 'int' = 3, accept: 'float' = 0.8, reject: 'float' = 0.3) -> None` | class | Grade hits by the share of the query's words their text contains. |
 | `ComponentCatalog(specs: 'Any' = (), *, outcomes: 'Any' = ()) -> 'None'` | class | An immutable snapshot of every registered component. |
-| `ComponentSpec(name: 'str', category: 'str', implementation: 'str', status: 'CapabilityStatus' = <CapabilityStatus.UNKNO ...)` | class | Everything the catalog knows about one component. |
+| `ComponentSpec(name: 'str', category: 'str', implementation: 'str', status: 'CapabilityStatus' = CapabilityStatus.UNKNOW ...)` | class | Everything the catalog knows about one component. |
 | `DiscoveryOutcome(source: 'str', status: 'DiscoveryStatus', count: 'int' = 0, reason: 'str \| None' = None) -> None` | class | What happened when one source was asked for its components. |
-| `DiscoveryStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Terminal outcome of asking one source what components it has. |
+| `DiscoveryStatus(value)` | enum | Terminal outcome of asking one source what components it has. |
 | `component_catalog() -> 'ComponentCatalog'` | function | Build a snapshot of every registered component. |
 | `AgenticRetrievalSession(query: 'str', budgets: 'BudgetPolicy' = <factory>, steps: 'list[str]' = <factory>, evidence_ids: 'set[str ...)` | class | Ephemeral state for one investigation. |
 | `BudgetPolicy(max_iterations: 'int' = 4, max_retrieval_calls: 'int' = 8, max_subqueries: 'int' = 8, max_evidence_docume ...)` | class | Deterministic, decrementing limits on an investigation. |
 | `InvestigationOutcome(status: 'InvestigationStatus', stop_reason: 'StopReason', hits: 'tuple[Any, ...]' = (), signals: 'Suffici ...)` | class | The result of a bounded investigation. |
-| `InvestigationStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How an investigation finished. |
+| `InvestigationStatus(value)` | enum | How an investigation finished. |
 | `RoutePlan(legs: 'tuple[LegKind, ...]', reason: 'str') -> None` | class | A deterministic decision about which evidence paths to use. |
-| `StopReason(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Why the loop stopped. |
+| `StopReason(value)` | enum | Why the loop stopped. |
 | `SufficiencySignals(retrieval_succeeded: 'bool', provenance_complete: 'bool', independent_evidence: 'int', required_entities_ ...)` | class | The seven deterministic signals, computed before any model judgement. |
 | `route(query: 'str', *, has_dense: 'bool' = True, has_graph: 'bool' = False) -> 'RoutePlan'` | function | Choose evidence paths by deterministic rule (autonomy level A1). |
 | `run_investigation(session: 'AgenticRetrievalSession', retrieve: 'Callable[[str], Any]', *, plan: 'RoutePlan \| None' = None, ...)` | function | Run the bounded retrieve/evaluate/refine loop (autonomy level A2). |
@@ -325,19 +325,19 @@
 | `IndexGeneration(schema_version: 'str', embedding_manifest_id: 'str \| None', document_digest: 'str', backend: 'str \| None' ...)` | class | Identity of one built index. |
 | `derive_generation(documents: 'Iterable[Any]', *, backend: 'str \| None' = None, schema_version: 'str \| None' = None) -> 'Ind ...)` | function | Derive the generation identity for a set of documents. |
 | `IDENTITY_HEX_WIDTH` | int |  |
-| `DocIdScheme(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How a corpus build names its documents. |
+| `DocIdScheme(value)` | enum | How a corpus build names its documents. |
 | `UUID7Generator(*, clock_ns: 'Callable[[], int] \| None' = None, random_bytes: 'Callable[[int], bytes] \| None' = None) ->  ...)` | class | Monotonic generator of RFC 9562 UUID version 7 identifiers. |
-| `assign_doc_ids(documents: 'Iterable[Any]', scheme: 'DocIdScheme \| str' = <DocIdScheme.SHA256: 'sha256'>, *, generator: ' ...)` | function | Return ``documents`` named by ``scheme``, with parent links kept intact. |
+| `assign_doc_ids(documents: 'Iterable[Any]', scheme: 'DocIdScheme \| str' = DocIdScheme.SHA256, *, generator: 'Callable[[], ...)` | function | Return ``documents`` named by ``scheme``, with parent links kept intact. |
 | `doc_id_scheme_of(doc_id: 'object') -> 'DocIdScheme \| None'` | function | Return the scheme that produced ``doc_id``, judged by its exact form. |
 | `uuid7() -> 'uuid.UUID'` | function | Return a new RFC 9562 UUID version 7 from this process's generator. |
 | `uuid7_unix_ms(value: 'uuid.UUID \| str') -> 'int'` | function | Return the Unix time in milliseconds that a UUID version 7 carries. |
-| `EdgeTrust(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How an edge came to exist. |
+| `EdgeTrust(value)` | enum | How an edge came to exist. |
 | `GraphEdge(source: 'str', target: 'str', relation: 'RelationType', evidence: 'str', producer: 'str', trust: 'EdgeTru ...)` | class | One relationship, with the provenance every edge must carry. |
 | `GraphNode(node_id: 'str', kind: 'NodeKind', label: 'str \| None' = None) -> None` | class | One node in the derived graph. |
 | `GraphQuery(seeds: 'tuple[str, ...]' = (), max_seed_nodes: 'int' = 32, max_hops: 'int' = 2, max_neighbors_per_node: ' ...)` | class | A bounded traversal request. |
 | `GraphResponse(nodes: 'tuple[GraphNode, ...]' = (), edges: 'tuple[GraphEdge, ...]' = (), errors: 'tuple[ErrorRecord, ... ...)` | class | The outcome of a traversal, including why it stopped. |
-| `NodeKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | What a graph node represents. |
-| `RelationType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | The kind of relationship an edge asserts. |
+| `NodeKind(value)` | enum | What a graph node represents. |
+| `RelationType(value)` | enum | The kind of relationship an edge asserts. |
 | `derive_graph(documents: 'Iterable[Any]', *, generation: 'str \| None' = None) -> 'DerivedGraph'` | function | Build the G0 view from document fields. |
 | `CONFIG_DOMAINS` | tuple |  |
 | `ConfigConflictError(...)` | exception | Raised when one domain is configured twice without an explicit intent. |
@@ -348,11 +348,11 @@
 | `children(documents: 'Iterable[Any]', doc_id: 'str') -> 'list[Any]'` | function | Return the direct children of ``doc_id``. |
 | `descendants(documents: 'Iterable[Any]', doc_id: 'str', *, max_depth: 'int' = 64) -> 'Iterator[Any]'` | function | Yield all descendants of ``doc_id``, breadth-first. |
 | `validate_hierarchy(documents: 'Iterable[Any]', *, max_depth: 'int' = 64, require_parent_present: 'bool' = True) -> 'Hierarch ...)` | function | Check referential integrity, cycles and depth of the hierarchy. |
-| `LegKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Which evidence path a leg represents. |
+| `LegKind(value)` | enum | Which evidence path a leg represents. |
 | `LegOutcome(leg: 'LegKind', status: 'LegStatus', hit_count: 'int' = 0, generation: 'Any' = None, backend: 'str \| None ...)` | class | How one evidence path fared. |
-| `LegStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Outcome of one evidence path. |
+| `LegStatus(value)` | enum | Outcome of one evidence path. |
 | `RetrievalResponse(hits: 'list' = <factory>, legs: 'list[LegOutcome]' = <factory>, query: 'str \| None' = None, status: 'Retr ...)` | class | Hits plus the story of how they were obtained. |
-| `RetrievalStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Outcome of a retrieval *operation* as a whole. |
+| `RetrievalStatus(value)` | enum | Outcome of a retrieval *operation* as a whole. |
 | `DenseRetriever(index: 'Any') -> 'None'` | class | Vector-similarity evidence path. |
 | `GraphRetriever(graph: 'Any') -> 'None'` | class | Relationship-traversal evidence path. |
 | `LegContribution(leg: 'LegKind', rank: 'int', native_score: 'float \| None' = None, native_metric: 'str \| None' = None) -> None` | class | One leg's contribution to a fused hit. |
@@ -360,14 +360,14 @@
 | `LexicalRetriever(index: 'Any') -> 'None'` | class | Keyword / BM25 evidence path. |
 | `Retriever()` | class | Base class for an independent evidence path. |
 | `fuse_by_rank(results: 'Iterable[LegResult]', *, rrf_k: 'int' = 60, weights: 'dict[LegKind, float] \| None' = None, top_ ...)` | function | Combine leg results by weighted reciprocal rank fusion. |
-| `SectionType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Semantic label for the role of a text chunk within its source document. |
-| `ChunkingStrategy(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Describes how a `CorpusDocument` was segmented from raw text. |
-| `ExportFormat(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Supported serialisation targets for a completed corpus. |
-| `SourceType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Semantic label for the kind of source from which a document was read. |
-| `MatchMode(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Search mode for intertextual matching queries against a corpus index. |
-| `Modality(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Primary content modality of a `CorpusDocument`. |
-| `ErrorPolicy(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Per-document error handling *behaviour* for `PipelineGuard`. |
-| `CorpusDocument(doc_id: 'str', input_path: 'str', chunk_index: 'int', text: 'str', section_type: 'SectionType' = <Section ...)` | class | Canonical representation of a single text chunk in a processed corpus. |
+| `SectionType(value)` | enum | Semantic label for the role of a text chunk within its source document. |
+| `ChunkingStrategy(value)` | enum | Describes how a `CorpusDocument` was segmented from raw text. |
+| `ExportFormat(value)` | enum | Supported serialisation targets for a completed corpus. |
+| `SourceType(value)` | enum | Semantic label for the kind of source from which a document was read. |
+| `MatchMode(value)` | enum | Search mode for intertextual matching queries against a corpus index. |
+| `Modality(value)` | enum | Primary content modality of a `CorpusDocument`. |
+| `ErrorPolicy(value)` | enum | Per-document error handling *behaviour* for `PipelineGuard`. |
+| `CorpusDocument(doc_id: 'str', input_path: 'str', chunk_index: 'int', text: 'str', section_type: 'SectionType' = SectionT ...)` | class | Canonical representation of a single text chunk in a processed corpus. |
 | `IncompatibleSchemaError(...)` | exception | Raised for data written by another generation of the document schema. |
 | `documents_to_pandas(docs: 'list[CorpusDocument]', *, include_embedding: 'bool' = False) -> 'pd.DataFrame'` | function | Convert a list of `CorpusDocument` instances to a ``pandas.DataFrame``. |
 | `documents_to_polars(docs: 'list[CorpusDocument]', *, include_embedding: 'bool' = False) -> 'pl.DataFrame'` | function | Convert a list of `CorpusDocument` instances to a ``polars.DataFrame``. |
@@ -389,8 +389,8 @@
 | `RetrievalIndex(config: 'RetrievalConfig \| None' = None, *, security_filter: 'SecurityFilter \| None' = None) -> 'None'` | class | Multi-mode similarity index over ``CorpusDocument`` collections. |
 | `CorpusSource(kind: 'SourceKind', root: 'pathlib.Path \| None' = None, urls: 'list[str]' = <factory>, pattern: 'str' = ' ...)` | class | Declarative descriptor for one or more document sources. |
 | `SourceEntry(path_or_url: 'str', kind: 'SourceKind', provenance: 'dict[str, Any]' = <factory>) -> None` | class | A single resolved source entry yielded by `CorpusSource.iter_entries`. |
-| `SourceKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Discriminant for the kind of source an entry represents. |
-| `FilterSupport(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How a backend handled one requested filter. |
+| `SourceKind(value)` | enum | Discriminant for the kind of source an entry represents. |
+| `FilterSupport(value)` | enum | How a backend handled one requested filter. |
 | `InMemoryStorage() -> 'None'` | class | Thread-safe in-memory dict store. |
 | `JSONLStorage(path: 'pathlib.Path \| str') -> 'None'` | class | Append-friendly JSONL (newline-delimited JSON) flat-file store. |
 | `QueryResult(documents: 'list[CorpusDocument]', total: 'int', query: 'StorageQuery', filter_support: 'dict[str, Filter ...)` | class | Result container returned by `StorageBase.query`. |
@@ -398,30 +398,30 @@
 | `StorageBase()` | class | Abstract base class for all corpus storage backends. |
 | `StorageQuery(input_path: 'str \| None' = None, source_type: 'str \| None' = None, language: 'str \| None' = None, section ...)` | class | Query parameters for `StorageBase.query`. |
 | `MetadataDict` | GenericAlias |  |
-| `CharOffset(...)` | class | int([x]) -> integer int(x, base=10) -> integer |
-| `TokenId(...)` | class | int([x]) -> integer int(x, base=10) -> integer |
+| `CharOffset(...)` | class |  |
+| `TokenId(...)` | class |  |
 | `BowVector` | GenericAlias |  |
 | `EmbeddingVector` | GenericAlias |  |
-| `DocumentStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Lifecycle state of a `CorpusDocument` in the corpus pipeline. |
-| `ContentType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | MIME-style content type for raw document payloads. |
-| `StorageBackend(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Storage backend identifiers for the corpus store. |
-| `NormalizerType(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Normalisation step identifiers for pipeline ordering. |
+| `DocumentStatus(value)` | enum | Lifecycle state of a `CorpusDocument` in the corpus pipeline. |
+| `ContentType(value)` | enum | MIME-style content type for raw document payloads. |
+| `StorageBackend(value)` | enum | Storage backend identifiers for the corpus store. |
+| `NormalizerType(value)` | enum | Normalisation step identifiers for pipeline ordering. |
 | `Chunk(text: 'str', start_char: 'CharOffset', end_char: 'CharOffset', metadata: 'MetadataDict' = <factory>, cont ...)` | class | A single unit of text produced by a chunker. |
 | `ChunkResult(chunks: 'list[Chunk]', metadata: 'MetadataDict' = <factory>) -> None` | class | Container returned by every `ChunkerProtocol` implementation. |
 | `ChunkerConfig() -> None` | class | Abstract base configuration for all chunker implementations. |
 | `SourceConfig() -> None` | class | Abstract base configuration for document source implementations. |
-| `NormalizerConfigBase(normalizer_type: 'NormalizerType' = <NormalizerType.CUSTOM: 'custom'>, enabled: 'bool' = True) -> None` | class | Abstract base configuration for text normaliser implementations. |
-| `StorageConfig(backend: 'StorageBackend' = <StorageBackend.MEMORY: 'memory'>, collection_name: 'str' = 'corpus') -> None` | class | Abstract base configuration for storage backend implementations. |
+| `NormalizerConfigBase(normalizer_type: 'NormalizerType' = NormalizerType.CUSTOM, enabled: 'bool' = True) -> None` | class | Abstract base configuration for text normaliser implementations. |
+| `StorageConfig(backend: 'StorageBackend' = StorageBackend.MEMORY, collection_name: 'str' = 'corpus') -> None` | class | Abstract base configuration for storage backend implementations. |
 | `PipelineStep(name: 'str', step_type: 'str', config: 'ChunkerConfig \| NormalizerConfigBase \| SourceConfig \| StorageConf ...)` | class | Descriptor for a single step in a `PipelineConfig`. |
 | `PipelineConfig(pipeline_id: 'str', steps: 'list[PipelineStep]', description: 'str' = '', metadata: 'MetadataDict' = <fac ...)` | class | Full pipeline configuration composed of ordered steps. |
 | `EmbeddedChunk(chunk: 'Chunk', embedding: 'EmbeddingVector', model_name: 'str', embedding_dim: 'int') -> None` | class | A `Chunk` decorated with a dense embedding vector. |
 | `RetrievalQuery(query_id: 'str', text: 'str', top_k: 'int' = 10, filters: 'MetadataDict' = <factory>, embedding: 'Embeddi ...)` | class | A query submitted to the corpus retrieval layer. |
 | `ChunkHit(chunk: 'Chunk', score: 'float', rank: 'int', retrieval_metadata: 'MetadataDict' = <factory>) -> None` | class | A single result returned from the corpus retrieval layer. |
 | `CorpusRecord(record_id: 'str', chunk: 'Chunk', doc_id: 'str', collection: 'str', created_at: 'str', embedding: 'Embedd ...)` | class | A persisted record combining a `Chunk` with storage metadata. |
-| `ChunkerProtocol(*args, **kwargs)` | type alias | Structural interface every chunker must satisfy. |
-| `NormalizerProtocol(*args, **kwargs)` | type alias | Structural interface every text normaliser must satisfy. |
-| `SourceProtocol(*args, **kwargs)` | type alias | Structural interface every document source must satisfy. |
-| `StorageProtocol(*args, **kwargs)` | type alias | Structural interface every storage backend must satisfy. |
+| `ChunkerProtocol` | protocol | Structural interface every chunker must satisfy. |
+| `NormalizerProtocol` | protocol | Structural interface every text normaliser must satisfy. |
+| `SourceProtocol` | protocol | Structural interface every document source must satisfy. |
+| `StorageProtocol` | protocol | Structural interface every storage backend must satisfy. |
 | `ChunkerRegistration(strategy: 'ChunkingStrategy', chunker_class: 'type', default_config: 'ChunkerConfig', description: 'str'  ...)` | class | An entry in the `ChunkerRegistry`. |
 | `ValidationError(field: 'str', message: 'str', value: 'Any' = None) -> None` | class | A single validation failure raised during corpus processing. |
 | `ValidationResult(valid: 'bool', errors: 'list[ValidationError]' = <factory>) -> None` | class | Aggregate result of a validation pass. |
@@ -433,7 +433,7 @@
 | `PreprocessingStep(name: 'str', description: 'str', changed: 'bool', char_delta: 'int', grapheme_delta: 'int \| None' = None, ...)` | class | Record of a single preprocessing transformation applied to raw text. |
 | `PreprocessingTrace(raw_text: 'str \| None', steps: 'list[PreprocessingStep]', final_text: 'str', pipeline_fingerprint: 'str', ...)` | class | Ordered audit trail of all preprocessing transformations. |
 | `MultilangChunkMeta(script: 'str \| None' = None, script_direction: 'str \| None' = None, is_mixed_script: 'bool \| None' = None ...)` | class | Per-chunk multilang analysis bundle — stored in ``chunk.metadata``. |
-| `URLKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Classification of a URL for routing to the correct handler. |
+| `URLKind(value)` | enum | Classification of a URL for routing to the correct handler. |
 | `classify_url(url: 'str') -> 'URLKind'` | function | Classify a URL into one of the known `URLKind` categories. |
 | `download_url(url: 'str', *, output_path: 'str \| Path \| None' = None, max_bytes: 'int' = 524288000, timeout: 'int' = 12 ...)` | function | Download a URL to a local file. |
 | `infer_extension(headers: 'Any', url: 'str') -> 'str'` | function | Infer a file extension from HTTP response headers and URL path. |

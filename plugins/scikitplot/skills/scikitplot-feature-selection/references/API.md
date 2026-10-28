@@ -48,9 +48,9 @@
 | `FeatureSpec(name: 'str', position: 'int', role: 'str', family: 'str', kind: 'str', kind_origin: 'str', stats: 'Featur ...)` | class | Everything a fitted schema knows about one column. |
 | `profile_features(X: 'pd.DataFrame', policy: 'Any' = None, *, registry: 'AssessmentRegistry \| None' = None) -> 'FeatureSchema'` | function | Fit a `FeatureSchema` on training data. |
 | `FeatureStats(name: 'str', dtype: 'str', family: 'str', n_rows: 'int', n_missing: 'int', n_non_null: 'int', n_unique: ' ...)` | class | Training statistics of one column. |
-| `AssessmentState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Outcome of one assessment of one feature. |
-| `DtypeFamily(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Physical storage family of a column, read from its pandas dtype and values. |
-| `FeatureKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Semantic kind of a feature: what analyses and treatments make sense. |
-| `FeatureRole(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Role of a column in a modelling task; only ``FEATURE`` columns are model inputs. |
-| `LineageQuality(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How strongly a lineage edge is supported. |
-| `Relation(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How the outputs of one pipeline stage relate to its inputs. |
+| `AssessmentState(value)` | enum | Outcome of one assessment of one feature. |
+| `DtypeFamily(value)` | enum | Physical storage family of a column, read from its pandas dtype and values. |
+| `FeatureKind(value)` | enum | Semantic kind of a feature: what analyses and treatments make sense. |
+| `FeatureRole(value)` | enum | Role of a column in a modelling task; only ``FEATURE`` columns are model inputs. |
+| `LineageQuality(value)` | enum | How strongly a lineage edge is supported. |
+| `Relation(value)` | enum | How the outputs of one pipeline stage relate to its inputs. |

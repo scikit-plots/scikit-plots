@@ -41,8 +41,11 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.util
+import enum
 import inspect
+import pathlib
 import re
+import typing
 import sys
 from pathlib import Path
 
@@ -51,7 +54,6 @@ try:  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover - Python < 3.11
     import tomli as tomllib  # type: ignore[no-redef]
 
-from scikitplot.experimental import enable_ann_imputer
 
 REPO = Path(__file__).resolve().parents[2]
 RECORDS = REPO / "maintenances/_repo/_maintenance/tools/check_records.py"
@@ -179,70 +181,197 @@ def _first_paragraph(doc: str) -> str:
     return _plain(" ".join(head.strip().split("\n\n", 1)[0].split()))
 
 
+# --------------------------------------------------------------------------- canonical text
+#
+# Every text below is rendered here from the object's facts (names, parameter
+# kinds, defaults, annotations, the class's own docstring), never taken from a
+# format CPython, ``typing`` or the operating system owns: ``str(Signature)``,
+# ``repr`` of typing constructs, ``type(obj).__name__`` of a platform class, or
+# a docstring inherited from a built-in. Those formats change between Python
+# versions (``Enum`` signatures in 3.12, ``typing.`` prefixes, ``ForwardRef``,
+# the lazy annotations of 3.14) and platforms (``PosixPath``), and the files
+# are compared byte for byte (Rule 168).
+
+_TYPING_PREFIX = re.compile(r"(?<![\w.])typing(?:_extensions)?\.")
+_FORWARD_REF = re.compile(r"""ForwardRef\((['"])(.*?)\1(?:, [^)]*)?\)""")
+_P = inspect.Parameter
+#: ``int | str`` (3.10+) has its own origin; ``typing.Union`` is the same object from 3.14.
+_UNION_TYPE = getattr(__import__("types"), "UnionType", None)
+#: ``typing.Annotated`` exists from Python 3.9.
+_ANNOTATED = getattr(typing, "Annotated", None)
+
+
+def _own_doc(obj: object) -> str:
+    """
+    Return the docstring *obj* or a scikit-plots base of it defines, else ``""``.
+
+    A class without one of its own would otherwise show a built-in base's text
+    (``int([x]) -> integer``), which belongs to the interpreter and changes
+    between versions.
+    """
+    if inspect.isclass(obj):
+        for klass in obj.__mro__:
+            if str(getattr(klass, "__module__", "")).split(".")[0] != "scikitplot":
+                break
+            doc = klass.__dict__.get("__doc__")
+            if isinstance(doc, str) and doc.strip():
+                return inspect.cleandoc(doc)
+        return ""
+    return inspect.getdoc(obj) or ""
+
+
 def _summary(obj: object) -> str:
     """One line: the first sentence of a function's, class's or module's docstring."""
     if not (inspect.isroutine(obj) or inspect.isclass(obj) or inspect.ismodule(obj)):
         return ""
-    paragraph = _first_paragraph(inspect.getdoc(obj) or "")
+    doc = inspect.getdoc(obj) if inspect.ismodule(obj) else _own_doc(obj)
+    paragraph = _first_paragraph(doc or "")
     sentence = re.split(r"(?<=[.!?])\s", paragraph, maxsplit=1)[0]
     return sentence.replace("|", "\\|")
 
 
+def _is_protocol(obj: object) -> bool:
+    return inspect.isclass(obj) and bool(getattr(obj, "_is_protocol", False))
+
+
 def _kind(obj: object) -> str:
+    if _is_protocol(obj):
+        return "protocol"
+    if inspect.isclass(obj):
+        if issubclass(obj, BaseException):
+            return "exception"
+        return "enum" if issubclass(obj, enum.Enum) else "class"
     if type(obj).__module__ in ("typing", "typing_extensions"):
         return "type alias"
-    if inspect.isclass(obj):
-        return "exception" if issubclass(obj, BaseException) else "class"
     if inspect.isroutine(obj):
         return "function"
     if inspect.ismodule(obj):
         return "module"
+    if isinstance(obj, pathlib.PurePath):
+        return "Path"  # PosixPath or WindowsPath, by the platform
     return type(obj).__name__
-
-
-class _Repr:
-    """A default value shown by a fixed text (see :func:`_stable`)."""
-
-    def __init__(self, text: str) -> None:
-        self.text = text
-
-    def __repr__(self) -> str:
-        return self.text
 
 
 _ADDRESS = re.compile(r" at 0x[0-9a-fA-F]+")
 
 
-def _stable(param: inspect.Parameter) -> inspect.Parameter:
+def _default(value: object) -> str:
     """
-    Return *param* with a default whose text is the same in every process.
+    Return the text of a default value, the same in every process and on every platform.
 
     A set's repr follows string hashing, which differs per process; an
-    object's repr may hold its memory address. Both would make the generated
-    file differ between two runs of the same code.
+    object's repr may hold its memory address; a path's repr names the
+    platform's class.
     """
-    default = param.default
-    if default is inspect.Parameter.empty:
-        return param
-    if isinstance(default, (set, frozenset)):
-        items = ", ".join(sorted(repr(item) for item in default))
-        text = f"{type(default).__name__}({{{items}}})" if items else f"{type(default).__name__}()"
-        return param.replace(default=_Repr(text))
-    text = repr(default)
-    if _ADDRESS.search(text):
-        return param.replace(default=_Repr(_ADDRESS.sub("", text)))
-    return param
+    if isinstance(value, (set, frozenset)):
+        items = ", ".join(sorted(_default(item) for item in value))
+        return f"{type(value).__name__}({{{items}}})" if items else f"{type(value).__name__}()"
+    if isinstance(value, pathlib.PurePath):
+        return f"Path({value.as_posix()!r})"
+    if isinstance(value, enum.Enum):
+        return f"{type(value).__name__}.{value.name}"
+    return _ADDRESS.sub("", repr(value))
+
+
+def _annotation(value: object) -> str:
+    """
+    Return the text of an annotation, built from its parts on every Python.
+
+    A string (``from __future__ import annotations``, a quoted name) is shown
+    quoted, as written; a ``ForwardRef`` as its string; ``None`` as ``None``;
+    a union as ``A | B`` (3.14 prints ``typing.Optional[int]`` as
+    ``int | None``, earlier versions as ``Optional[int]``); ``Annotated``,
+    ``Literal``, ``Callable`` and any other generic as ``Name[args]`` with each
+    argument rendered the same way; a class by its dotted name (only the name
+    for a built-in); a type variable by its name. Only an unknown construct
+    falls back to its repr, without ``typing.`` prefixes.
+    """
+    if isinstance(value, str):
+        return repr(value)
+    if isinstance(value, typing.ForwardRef):
+        return repr(value.__forward_arg__)
+    if value is None or value is type(None):
+        return "None"
+    if value is Ellipsis:
+        return "..."
+    if isinstance(value, list):  # the parameter list of Callable[[A, B], R]
+        return f"[{', '.join(_annotation(item) for item in value)}]"
+    origin, args = typing.get_origin(value), typing.get_args(value)
+    if origin is typing.Union or (_UNION_TYPE is not None and origin is _UNION_TYPE):
+        rendered = [_annotation(a) for a in args if a is not type(None)]
+        if len(rendered) < len(args):
+            rendered.append("None")
+        return " | ".join(rendered)
+    if _ANNOTATED is not None and origin is _ANNOTATED:
+        metadata = ", ".join(_ADDRESS.sub("", repr(m)) for m in value.__metadata__)
+        return f"Annotated[{_annotation(args[0])}, {metadata}]"
+    if origin is getattr(typing, "Literal", None):
+        return f"Literal[{', '.join(repr(a) for a in args)}]"
+    if origin is not None:
+        name = getattr(value, "_name", None) or getattr(origin, "__qualname__", None) or repr(origin)
+        if not args:
+            return name
+        if name == "Callable" and len(args) == 2:
+            params, result = args
+            return f"Callable[{_annotation(params if params is Ellipsis else list(params))}, {_annotation(result)}]"
+        return f"{name}[{', '.join(_annotation(a) for a in args)}]"
+    if isinstance(value, typing.TypeVar):
+        return value.__name__
+    if isinstance(value, type):
+        module, name = value.__module__, value.__qualname__
+        return name if module == "builtins" else f"{module}.{name}"
+    text = _FORWARD_REF.sub(lambda m: repr(m.group(2)), repr(value))
+    return _TYPING_PREFIX.sub("", text)
+
+
+def _parameters(sig: inspect.Signature) -> str:
+    """Render ``(a: T = d, /, b, *args, c, **kw) -> R`` from the parameters' facts."""
+    parts: list[str] = []
+    seen_keyword_only = seen_positional_only = False
+    for param in sig.parameters.values():
+        if param.kind is _P.POSITIONAL_ONLY:
+            seen_positional_only = True
+        elif seen_positional_only:
+            parts.append("/")
+            seen_positional_only = False
+        if param.kind is _P.KEYWORD_ONLY and not seen_keyword_only:
+            if not any(p.kind is _P.VAR_POSITIONAL for p in sig.parameters.values()):
+                parts.append("*")
+            seen_keyword_only = True
+        prefix = {_P.VAR_POSITIONAL: "*", _P.VAR_KEYWORD: "**"}.get(param.kind, "")
+        text = prefix + param.name
+        if param.annotation is not _P.empty:
+            text += f": {_annotation(param.annotation)}"
+        if param.default is not _P.empty:
+            text += (" = " if param.annotation is not _P.empty else "=") + _default(param.default)
+        parts.append(text)
+    if seen_positional_only:
+        parts.append("/")
+    text = f"({', '.join(parts)})"
+    if sig.return_annotation is not _P.empty:
+        text += f" -> {_annotation(sig.return_annotation)}"
+    return text
 
 
 def _signature(name: str, obj: object) -> str:
+    """
+    Return the call signature of a public name as Markdown code.
+
+    An enum is called with one member value, ``Name(value)``, whatever its
+    metaclass's signature looks like in this Python; a protocol is never
+    called, so only its name is shown.
+    """
     if not (inspect.isroutine(obj) or inspect.isclass(obj)):
         return f"`{name}`"
+    if _is_protocol(obj):
+        return f"`{name}`"
+    if inspect.isclass(obj) and issubclass(obj, enum.Enum):
+        return f"`{name}(value)`"
     try:
         sig = inspect.signature(obj)
     except (TypeError, ValueError):
         return f"`{name}(...)`"
-    text = str(sig.replace(parameters=[_stable(p) for p in sig.parameters.values()]))
-    text = " ".join(text.split())
+    text = " ".join(_parameters(sig).split())
     if len(text) > SIGNATURE_MAX:
         text = text[: SIGNATURE_MAX - 4] + " ...)"
     return f"`{name}{text}`".replace("|", "\\|")
@@ -309,7 +438,7 @@ def module_api(module: str) -> dict:
                 "kind": _kind(obj),
                 "signature": _signature(name, obj),
                 "summary": _summary(obj),
-                "doc": inspect.getdoc(obj) if (inspect.isroutine(obj) or inspect.isclass(obj)) else "",
+                "doc": _own_doc(obj) if (inspect.isroutine(obj) or inspect.isclass(obj)) else "",
             }
         )
     if failed:
@@ -492,6 +621,11 @@ def build(repo: Path) -> dict[str, str]:
         From :func:`load_policy` or :func:`module_api`, with every failing
         module named.
     """
+    # Importing the package is deferred to here, so the renderer above can be
+    # tested on every Python without a built scikit-plots. This import is a
+    # side effect on purpose: it registers the experimental ANNImputer in
+    # scikitplot.impute, whose skill lists it.
+    importlib.import_module("scikitplot.experimental.enable_ann_imputer")
     records = _records()
     policy = load_policy(repo)
     derived = records.derived_skill_names(records.mirror_keys(repo))

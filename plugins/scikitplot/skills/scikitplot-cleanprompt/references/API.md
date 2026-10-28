@@ -11,8 +11,8 @@
 | `encode(text: 'str', *, policy: 'RedactionPolicy \| None' = None, profile: 'str \| None' = None, hide: 'Iterable[st ...)` | function | Replace sensitive values in ``text`` with placeholders. |
 | `session(**options: 'Any') -> 'Session'` | function | Open a `Session`. |
 | `TIERS` | dict |  |
-| `CapabilityReport(tier: ForwardRef('str'), status: ForwardRef('CapabilityStatus'), distribution: ForwardRef('str'), version ...)` | class | Outcome of probing one tier. |
-| `CapabilityStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Seven-state usability vocabulary for an optional dependency tier. |
+| `CapabilityReport(tier: 'str', status: 'CapabilityStatus', distribution: 'str', version: 'str \| None', supported: 'str', de ...)` | class | Outcome of probing one tier. |
+| `CapabilityStatus(value)` | enum | Seven-state usability vocabulary for an optional dependency tier. |
 | `capabilities() -> 'dict[str, CapabilityReport]'` | function | Probe every optional tier. |
 | `probe(tier: 'str') -> 'CapabilityReport'` | function | Report whether one optional tier is usable. |
 | `require(tier: 'str') -> 'CapabilityReport'` | function | Return the report for ``tier``, raising when it is not usable. |
@@ -79,7 +79,7 @@
 | `DEFAULT_POLICY` | RedactionPolicy |  |
 | `DEFAULT_TAG_STYLE` | TagStyle |  |
 | `Limits(max_input_chars: 'int' = 1000000, max_spans: 'int' = 100000, max_entries: 'int' = 50000, max_literal_term ...)` | class | Hard bounds on one redaction pass. |
-| `OverlapStrategy(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | How to arbitrate two detections that share characters. |
+| `OverlapStrategy(value)` | enum | How to arbitrate two detections that share characters. |
 | `RedactionPolicy(kinds: 'tuple[str, ...] \| None' = None, allow: 'tuple[str, ...]' = (), tag_style: 'TagStyle' = TagStyle(p ...)` | class | Complete, declarative configuration for a redaction pass. |
 | `TagStyle(prefix: 'str' = '[', suffix: 'str' = ']', separator: 'str' = '-', uppercase_kind: 'bool' = True, style: ' ...)` | class | The placeholder grammar. |
 | `ANSI()` | class | Terminal escape sequences used by `highlight_placeholders`. |

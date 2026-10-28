@@ -13,30 +13,30 @@
 | `digest(value: 'Any') -> 'str'` | function | Return the SHA-256 of a plain value's canonical JSON, as 64 hex digits. |
 | `plain(value: 'Any', *, what: 'str' = 'value') -> 'Any'` | function | Return ``value`` as a plain JSON value, or raise. |
 | `AgentError(code: 'ErrorCode', message: 'str', details: 'Mapping[str, Any]' = <factory>) -> None` | class | One error, as recorded in a run's state and audit trail. |
-| `ErrorCode(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | What went wrong, as a stable code a caller may branch on. |
+| `ErrorCode(value)` | enum | What went wrong, as a stable code a caller may branch on. |
 | `SchemaError(...)` | exception | A tool's parameter schema uses something outside the supported subset. |
 | `StateError(...)` | exception | A saved run state is malformed, or of a schema version not supported. |
 | `Agent(tools: 'Toolset \| Iterable[Tool]', planner: 'Planner', *, policy: 'Policy \| None' = None, limits: 'Limits ...)` | class | Run a goal with a planner and tools, within a policy and limits. |
-| `GateKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | The five gates, in the order an action passes them. |
+| `GateKind(value)` | enum | The five gates, in the order an action passes them. |
 | `GateResult(gate: 'GateKind', passed: 'bool', error: 'AgentError \| None' = None) -> None` | class | One gate's answer for one action. |
 | `Limits(max_steps: 'int' = 16, max_tool_calls: 'int \| None' = None, max_cost: 'float \| None' = None, max_tokens:  ...)` | class | Stopping conditions: when a run stops, whatever the planner proposes. |
-| `Policy(allow_effects: 'frozenset[ToolEffect]' = frozenset({<ToolEffect.READ: 'read'>}), granted_scopes: 'frozens ...)` | class | What an agent may do: least privilege unless stated otherwise. |
+| `Policy(allow_effects: 'frozenset[ToolEffect]' = frozenset({ToolEffect.READ}), granted_scopes: 'frozenset[str]' = ...)` | class | What an agent may do: least privilege unless stated otherwise. |
 | `check_schema(schema: 'Any', *, what: 'str' = 'parameters') -> 'dict[str, Any]'` | function | Check that a tool's argument schema is in the supported subset. |
 | `validate(schema: 'Mapping[str, Any]', instance: 'Any') -> 'list[str]'` | function | Return the reasons ``instance`` does not match ``schema``. |
 | `Action(tool: 'str', arguments: 'Mapping[str, Any]' = <factory>) -> None` | class | A call the planner proposes: a tool name and its arguments. |
 | `Approval(digest: 'str', granted: 'bool', approver: 'str', note: 'str' = '') -> None` | class | A person's answer to an `ApprovalRequest`. |
 | `ApprovalRequest(run_id: 'str', step: 'int', decision: 'Decision', effect: 'str', scopes: 'tuple[str, ...]', reason: 'str' ...)` | class | An action waiting at the Approval gate. |
 | `Decision(kind: 'str', action: 'Action \| None' = None, answer: 'Any' = None, rationale: 'str' = '', usage: 'Usage \| ...)` | class | What the planner decided: call a tool, or finish with an answer. |
-| `RunState(run_id: 'str', goal: 'str', status: 'RunStatus' = <RunStatus.RUNNING: 'running'>, stop_reason: 'StopReaso ...)` | class | The whole of one run, saved after every step. |
-| `RunStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Where a run is. |
+| `RunState(run_id: 'str', goal: 'str', status: 'RunStatus' = RunStatus.RUNNING, stop_reason: 'StopReason \| None' = N ...)` | class | The whole of one run, saved after every step. |
+| `RunStatus(value)` | enum | Where a run is. |
 | `Spent(steps: 'int' = 0, tool_calls: 'int' = 0, cost: 'float' = 0.0, tokens: 'int' = 0, seconds: 'float' = 0.0)  ...)` | class | What a run has used so far, against its `Limits`. |
 | `Step(index: 'int', decision: 'Decision', outcome: 'StepOutcome', gates: 'tuple[Mapping[str, Any], ...]' = (),  ...)` | class | One completed step: a decision and what came of it. |
-| `StepOutcome(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | What one step came to. |
-| `StopReason(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Why a run is no longer running. |
+| `StepOutcome(value)` | enum | What one step came to. |
+| `StopReason(value)` | enum | Why a run is no longer running. |
 | `Usage(tokens: 'int' = 0, cost: 'float' = 0.0) -> None` | class | What producing one decision cost, as the planner reports it. |
 | `JsonFileStore(directory: 'str \| os.PathLike[str]') -> 'None'` | class | Keep each run's state in ``<directory>/<run_id>.json``. |
 | `MemoryStore() -> 'None'` | class | Keep states in memory, as their JSON text (so a load is a real round trip). |
 | `StateStore()` | class | Saves and loads run states. |
 | `Tool(name: 'str', function: 'Callable[..., Any]', description: 'str' = '', parameters: 'Mapping[str, Any] \| No ...)` | class | One callable tool and the facts the gate chain decides on. |
-| `ToolEffect(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | The kind of effect a tool has, which the policy permits or not. |
+| `ToolEffect(value)` | enum | The kind of effect a tool has, which the policy permits or not. |
 | `Toolset(tools: 'Iterable[Tool]' = ()) -> 'None'` | class | The tools one agent may call, by name. |

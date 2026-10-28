@@ -47,21 +47,21 @@ Declared in `scikitplot.mcp.__all__`, in that order.
 | `MAX_RESOURCE_CHARS` | int |  |
 | `MAX_RESULTS` | int |  |
 | `RESOURCE_METADATA_ALLOWANCE` | int |  |
-| `DocsRetriever` | type alias | Structural contract every retrieval backend must satisfy. |
+| `DocsRetriever` | protocol | Structural contract every retrieval backend must satisfy. |
 | `RetrievedChunk` | class | One retrieved passage with the metadata needed to cite it. |
 | `SearchCoordinator` | class | Validated, concurrency-bounded search orchestration, free of wire models. |
 | `build_search_docs_result` | function | Format retrieval results as an MCP ``tools/call`` response with citations. |
 | `is_valid_doc_id` | function | Return whether ``value`` is an acceptable document identifier. |
-| `CorpusAnnoyRetriever` | type alias | Docs dense retriever backed by an embedder + a vector index + a document lookup. |
-| `CorpusIndexRetriever` | type alias | Text-level retriever over a corpus ``RetrievalIndex``: hybrid by default. |
-| `Embedder` | type alias | Anything that turns a query string into a vector (e.g. |
-| `VectorIndex` | type alias | Anything that returns ``(doc_id, score)`` pairs for a query vector. |
+| `CorpusAnnoyRetriever` | class | Docs dense retriever backed by an embedder + a vector index + a document lookup. |
+| `CorpusIndexRetriever` | class | Text-level retriever over a corpus ``RetrievalIndex``: hybrid by default. |
+| `Embedder` | protocol | Anything that turns a query string into a vector (e.g. |
+| `VectorIndex` | protocol | Anything that returns ``(doc_id, score)`` pairs for a query vector. |
 | `DemoDocument` | class | One in-memory document used by `InMemoryBm25Retriever`. |
-| `InMemoryBm25Retriever` | type alias | A compact BM25 implementation suitable for demos and small corpora. |
+| `InMemoryBm25Retriever` | class | A compact BM25 implementation suitable for demos and small corpora. |
 | `builtin_demo_retriever` | function | Return a tiny corpus that explains the sample's own mechanism. |
 | `DEFAULT_RRF_K` | int |  |
-| `Bm25Retriever` | type alias | Lexical retriever (FTS/BM25) leg backed by a full-text search seam. |
-| `HybridRetriever` | type alias | Fuse several retrievers into one via Reciprocal Rank Fusion. |
+| `Bm25Retriever` | class | Lexical retriever (FTS/BM25) leg backed by a full-text search seam. |
+| `HybridRetriever` | class | Fuse several retrievers into one via Reciprocal Rank Fusion. |
 | `reciprocal_rank_fusion` | function | Fuse weighted ranked lists into a single ``key -> score`` map. |
 | `CANCELLED` | str |  |
 | `DEGRADED` | str |  |
