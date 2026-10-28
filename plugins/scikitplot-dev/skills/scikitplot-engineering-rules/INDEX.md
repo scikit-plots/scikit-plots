@@ -173,3 +173,4 @@ titles, then open the file that holds the rules you need.
 | 165 | Skills | every skill with a path or module has an agent of its name, generated; usage skills are generated from the package | [delivery.md](rules/delivery.md) |
 | 166 | Skills | one workflow here publishes `scikitplot` to `scikit-plots/skills` under the same ref; releases are versioned, tags never move, `stable` is the newest release | [delivery.md](rules/delivery.md) |
 | 167 | Skills | two homes: records under `maintenances/`, what ships to Claude under `plugins/`; retired locations stay empty; a shared skill is copied, never referenced | [delivery.md](rules/delivery.md) |
+| 168 | Generated configuration | a generated file is a function of the source alone: render every text from facts, never from a format the interpreter, a library or the platform owns | [delivery.md](rules/delivery.md) |

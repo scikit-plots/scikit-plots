@@ -10,8 +10,8 @@
 | `build_extension_package_from_code_result(modules: 'Mapping[str, str]', *, package_name: 'str', cache_dir: 'str \| Path \| None' = None, use_cache: ' ...)` | function | Compile a *package* of multiple extension modules from in-memory code strings. |
 | `build_extension_package_from_paths_result(modules: 'Mapping[str, str \| Path]', *, package_name: 'str', cache_dir: 'str \| Path \| None' = None, use_c ...)` | function | Compile a *package* of multiple extension modules from existing ``.pyx`` files. |
 | `CACHE_SCHEMA_VERSION` | int |  |
-| `CacheEntry(key: 'str' = '', build_dir: 'Path' = PosixPath('.'), module_name: 'str' = '', artifact_path: 'Path' = Pos ...)` | class | A compiled *module* cache entry. |
-| `PackageCacheEntry(key: 'str' = '', build_dir: 'Path' = PosixPath('.'), package_name: 'str' = '', modules: 'tuple[str, ...]' ...)` | class | A compiled *package* cache entry (multi-module build). |
+| `CacheEntry(key: 'str' = '', build_dir: 'Path' = Path('.'), module_name: 'str' = '', artifact_path: 'Path' = Path('.' ...)` | class | A compiled *module* cache entry. |
+| `PackageCacheEntry(key: 'str' = '', build_dir: 'Path' = Path('.'), package_name: 'str' = '', modules: 'tuple[str, ...]' = () ...)` | class | A compiled *package* cache entry (multi-module build). |
 | `find_entries_by_name(cache_dir: 'str \| Path \| None', module_name: 'str') -> 'list[CacheEntry]'` | function | Find module cache entries matching an exact module name. |
 | `find_entry_by_key(cache_dir: 'str \| Path \| None', key: 'str') -> 'CacheEntry'` | function | Find a single *module* cache entry by key. |
 | `find_package_entry_by_key(cache_dir: 'str \| Path \| None', key: 'str') -> 'PackageCacheEntry'` | function | Find a single *package* cache entry by key. |
@@ -29,7 +29,7 @@
 | `runtime_fingerprint(*, cython_version: 'str', numpy_version: 'str \| None') -> 'Mapping[str, Any]'` | function | Compute a runtime fingerprint for caching correctness. |
 | `source_digest(data: 'bytes') -> 'str'` | function | SHA-256 digest of source bytes. |
 | `write_meta(build_dir: 'Path', meta: 'Mapping[str, Any]') -> 'None'` | function | Write ``meta.json`` in the build directory atomically. |
-| `CustomCompilerProtocol(*args, **kwargs)` | type alias | Structural protocol for custom compiler callables. |
+| `CustomCompilerProtocol` | protocol | Structural protocol for custom compiler callables. |
 | `CompilerRegistry() -> 'None'` | class | Thread-safe module-level registry of custom compiler callables. |
 | `register_compiler(compiler: 'CustomCompilerProtocol', *, overwrite: 'bool' = False) -> 'None'` | function | Register a custom compiler in the module-level registry. |
 | `get_compiler(name: 'str') -> 'CustomCompilerProtocol'` | function | Retrieve a registered custom compiler by name. |
@@ -59,11 +59,11 @@
 | `pin(key: 'str', *, alias: 'str', cache_dir: 'str \| Path \| None' = None, overwrite: 'bool' = False, lock_timeo ...)` | function | Pin a cache key under a human-friendly alias. |
 | `resolve_pinned_key(alias: 'str', *, cache_dir: 'str \| Path \| None' = None) -> 'str'` | function | Resolve an alias to a cache key. |
 | `unpin(alias: 'str', *, cache_dir: 'str \| Path \| None' = None, lock_timeout_s: 'float' = 60.0) -> 'bool'` | function | Remove an alias pin. |
-| `AppliedProfile(annotate: ForwardRef('bool'), compiler_directives: ForwardRef('dict[str, Any] \| None'), extra_compile_arg ...)` | class | Result of applying a profile with user-precedence rules. |
-| `PlatformCapabilities(platform: ForwardRef('str'), is_browser_wasm: ForwardRef('bool'), can_compile_at_runtime: ForwardRef('boo ...)` | class | Declarative contract describing what the current platform supports. |
+| `AppliedProfile(annotate: 'bool', compiler_directives: 'dict[str, Any] \| None', extra_compile_args: 'tuple[str, ...]', ex ...)` | class | Result of applying a profile with user-precedence rules. |
+| `PlatformCapabilities(platform: 'str', is_browser_wasm: 'bool', can_compile_at_runtime: 'bool', prebuilt_only: 'bool', wasm_pac ...)` | class | Declarative contract describing what the current platform supports. |
 | `ProfileDefaults(annotate: 'bool' = False, compiler_directives: 'Mapping[str, Any]' = <factory>, extra_compile_args: 'tupl ...)` | class | Normalized defaults produced by resolving a profile. |
-| `ResolvedToolchain(compiler_type: ForwardRef('str'), cc: ForwardRef('str'), cxx: ForwardRef('str'), linker: ForwardRef('str'))` | class | The compiler the build backend *actually* selects (CYTHON-PORT-001). |
-| `RuntimeCapabilities(gil_enabled: ForwardRef('bool'), free_threaded_build: ForwardRef('bool'), in_main_interpreter: ForwardRef ...)` | class | Declared contract for native-extension runtime lifecycle (CYTHON-ABI-001). |
+| `ResolvedToolchain(compiler_type: 'str', cc: 'str', cxx: 'str', linker: 'str')` | class | The compiler the build backend *actually* selects (CYTHON-PORT-001). |
+| `RuntimeCapabilities(gil_enabled: 'bool', free_threaded_build: 'bool', in_main_interpreter: 'bool', supports_unload: 'bool', s ...)` | class | Declared contract for native-extension runtime lifecycle (CYTHON-ABI-001). |
 | `UnsupportedRuntimeError(...)` | exception | Raised when a runtime lifecycle operation is not supported (CYTHON-ABI-001). |
 | `apply_profile(*, profile: 'str \| None', annotate: 'bool \| None' = None, compiler_directives: 'Mapping[str, Any] \| None' ...)` | function | Apply a profile with strict, three-state precedence. |
 | `check_runtime_supported(*, allow_free_threaded: 'bool' = False, allow_subinterpreter: 'bool' = False) -> 'None'` | function | Fail fast on an unsupported runtime configuration (CYTHON-ABI-001). |
@@ -115,7 +115,7 @@
 | `is_safe_path(path: 'str \| os.PathLike[str]', *, allow_absolute: 'bool' = False) -> 'bool'` | function | Return ``True`` when a filesystem path does not contain traversal sequences. |
 | `validate_build_inputs(*, policy: 'SecurityPolicy \| None' = None, source: 'str \| None' = None, define_macros: 'Sequence[tuple[st ...)` | function | Validate build inputs against a `SecurityPolicy`. |
 | `TEMPLATE_SCHEMA_VERSION` | int |  |
-| `TemplateInfo(template_id: 'str' = '', path: 'Path' = PosixPath('.'), meta_path: 'Path \| None' = None, category: 'str'  ...)` | class | Structured metadata for a template. |
+| `TemplateInfo(template_id: 'str' = '', path: 'Path' = Path('.'), meta_path: 'Path \| None' = None, category: 'str' = '', ...)` | class | Structured metadata for a template. |
 | `TemplateValidationError(...)` | exception | Raised when template metadata fails strict schema validation. |
 | `build_package_example(name: 'str', **kwargs: 'Any')` | function | Build and import a multi-module package example and return loaded modules. |
 | `build_package_example_result(name: 'str', *, cache_dir: 'str \| Path \| None' = None, use_cache: 'bool' = True, force_rebuild: 'bool' =  ...)` | function | Build and import a multi-module *package example* and return a structured result. |
@@ -139,6 +139,6 @@
 | `workflow_cli_template_path() -> 'Path'` | function | Return the workflow CLI template path. |
 | `sanitize(name: 'str') -> 'str'` | function | Convert an arbitrary string into a valid, collision-resistant module name. |
 | `API_STABILITY` | _LazyRegistry |  |
-| `Stability(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)` | class | Stability tier of a public API symbol. |
+| `Stability(value)` | enum | Stability tier of a public API symbol. |
 | `api_stability(name: 'str') -> 'Stability'` | function | Return the `Stability` tier of a public API symbol. |
 | `list_api(tier: 'Stability \| str') -> 'list[str]'` | function | Return the sorted public symbol names in a given stability ``tier``. |

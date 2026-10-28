@@ -541,6 +541,22 @@ maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
 
+## Generating the usage skills (tools/maint_tools/generate_usage_skills.py,
+## Rule 168): everything the generator needs to import every module in
+## [tool.scikitplot.maintenance.skills] usage_modules, so CI and a maintainer
+## import the same modules. Ranges, not pins: the generated text depends on
+## the scikit-plots source; what these packages contribute (pydantic model
+## signatures, the MCP SDK's types) is part of the API they describe. Needs
+## Python 3.10+ (the MCP SDK's own floor).
+usage-skills = [
+  "Sphinx>=5.0.0",                          # scikitplot._externals._sphinx_ext
+  "sphinx-design",
+  "PyYAML>=6.0",
+  "pydantic>=2.0",                          # scikitplot.mcp models
+  "seaborn>=0.11.0",                        # scikitplot.api, decile, seaborn, visualkeras
+  "mcp>=1.0",                               # scikitplot.mcp
+]
+
 ## Maintenance tools
 cleanprompt = [
   "lxml",

@@ -43,11 +43,11 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `digest` | function | Return the SHA-256 of a plain value's canonical JSON, as 64 hex digits. |
 | `plain` | function | Return ``value`` as a plain JSON value, or raise. |
 | `AgentError` | class | One error, as recorded in a run's state and audit trail. |
-| `ErrorCode` | class | What went wrong, as a stable code a caller may branch on. |
+| `ErrorCode` | enum | What went wrong, as a stable code a caller may branch on. |
 | `SchemaError` | exception | A tool's parameter schema uses something outside the supported subset. |
 | `StateError` | exception | A saved run state is malformed, or of a schema version not supported. |
 | `Agent` | class | Run a goal with a planner and tools, within a policy and limits. |
-| `GateKind` | class | The five gates, in the order an action passes them. |
+| `GateKind` | enum | The five gates, in the order an action passes them. |
 | `GateResult` | class | One gate's answer for one action. |
 | `Limits` | class | Stopping conditions: when a run stops, whatever the planner proposes. |
 | `Policy` | class | What an agent may do: least privilege unless stated otherwise. |
@@ -58,17 +58,17 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `ApprovalRequest` | class | An action waiting at the Approval gate. |
 | `Decision` | class | What the planner decided: call a tool, or finish with an answer. |
 | `RunState` | class | The whole of one run, saved after every step. |
-| `RunStatus` | class | Where a run is. |
+| `RunStatus` | enum | Where a run is. |
 | `Spent` | class | What a run has used so far, against its `Limits`. |
 | `Step` | class | One completed step: a decision and what came of it. |
-| `StepOutcome` | class | What one step came to. |
-| `StopReason` | class | Why a run is no longer running. |
+| `StepOutcome` | enum | What one step came to. |
+| `StopReason` | enum | Why a run is no longer running. |
 | `Usage` | class | What producing one decision cost, as the planner reports it. |
 | `JsonFileStore` | class | Keep each run's state in ``<directory>/<run_id>.json``. |
 | `MemoryStore` | class | Keep states in memory, as their JSON text (so a load is a real round trip). |
 | `StateStore` | class | Saves and loads run states. |
 | `Tool` | class | One callable tool and the facts the gate chain decides on. |
-| `ToolEffect` | class | The kind of effect a tool has, which the policy permits or not. |
+| `ToolEffect` | enum | The kind of effect a tool has, which the policy permits or not. |
 | `Toolset` | class | The tools one agent may call, by name. |
 
 All names with signatures: [references/API.md](references/API.md).

@@ -43,7 +43,7 @@ Declared in `scikitplot.cleanprompt.__all__`, in that order.
 | `session` | function | Open a `Session`. |
 | `TIERS` | dict |  |
 | `CapabilityReport` | class | Outcome of probing one tier. |
-| `CapabilityStatus` | class | Seven-state usability vocabulary for an optional dependency tier. |
+| `CapabilityStatus` | enum | Seven-state usability vocabulary for an optional dependency tier. |
 | `capabilities` | function | Probe every optional tier. |
 | `probe` | function | Report whether one optional tier is usable. |
 | `require` | function | Return the report for ``tier``, raising when it is not usable. |

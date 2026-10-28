@@ -60,7 +60,7 @@ Declared in `scikitplot.corpus.__all__`, in that order.
 | `BackendPlan` | class | Side-effect-free preflight of candidate ordering and policy eligibility. |
 | `BackendPolicy` | class | Policy for selecting and exhausting optional backend chains. |
 | `BackendSkip` | class | Why a backend was not executed under the resolved policy. |
-| `BackendStatus` | class | Outcome of one ordered backend operation. |
+| `BackendStatus` | enum | Outcome of one ordered backend operation. |
 | `backend_policy` | function | Resolve an object, named preset or mapping without hidden global state. |
 | `plan_backend_chain` | function | Resolve backend order/readiness without executing a backend. |
 | `run_backend_chain` | function | Try *candidates* in order and return a structured outcome. |

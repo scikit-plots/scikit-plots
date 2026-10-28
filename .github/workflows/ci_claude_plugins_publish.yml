@@ -49,7 +49,33 @@ env:
   MANAGED: ".claude-plugin skills agents assets LICENSES README.md LICENSE"
 
 jobs:
+  canonical:
+    name: "Generated text is the same on Python ${{ matrix.python }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: "⬇️ Checkout"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: "🐍 Set up Python"
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: "🧪 Renderer golden test (no package build needed)"
+        run: |
+          python -m pip install "tomli>=1.1; python_version < '3.11'"
+          python -I -B tools/maint_tools/tests/test_generate_usage_skills.py
+
   build:
+    needs: canonical
     name: "Build the plugin tree"
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -82,15 +108,14 @@ jobs:
           # python -m pip install --upgrade --user --progress-bar=off --pre pip
           python -m pip install --upgrade pip
 
-          # pip install typing-extensions
-          pip install Sphinx sphinx_design PyYAML pydantic
           pip install -r ./requirements/build.txt
 
       - name: "🔨 Build library"
         run: |
           set -Eeuo pipefail
           # pip install --no-build-isolation --no-cache-dir -e ".[dev,build,test,doc,cpu]" -v
-          python -m pip install --no-build-isolation --no-cache-dir -e . -v
+          # The usage-skills extra is the generator's declared import set (Rule 168).
+          python -m pip install --no-build-isolation --no-cache-dir -e ".[usage-skills]" -v
 
           # Verify whether installed Python packages have compatible dependencies.
           pip check || true
@@ -135,44 +160,21 @@ jobs:
             { echo "kind=preview"; echo "ref=$REF_NAME"; echo "version="; echo "base="; } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "🔎 Records, skills and plugins are current (Auto-sync)"
+      - name: "🔎 Records, skills and plugins are current"
+        # Check only, never regenerate: the published tree is the committed
+        # one, byte for byte, so scikit-plots/skills always equals this ref
+        # (Rule 168). The generator's text does not depend on the Python
+        # version (the canonical job below proves it), so a sync on any
+        # supported Python gives these bytes.
         run: |
-          python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index
-          python -I -B tools/maint_tools/generate_usage_skills.py sync
-          git diff --stat
-          git diff plugins/scikitplot/skills/
-
-          ## Fail the build if there are any uncommitted changes after syncing
-          # git diff --exit-code || {
-          #   echo "::error::Generated records or usage skills are out of sync."
-          #   echo "::error::Please run 'python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index' and 'python -I -B tools/maint_tools/generate_usage_skills.py sync' locally, then commit the changes."
-          #   exit 1
-          # }
-          python -I -B maintenances/_repo/_maintenance/tools/check_records.py
-          python -I -B tools/maint_tools/generate_usage_skills.py check
-
-      - name: "🚀 Auto-commit and push if records/skills changed"
-        env:
-          REF_NAME: ${{ github.ref_name }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          # Setup secure token authentication for git push
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          echo "::add-mask::$auth"
-          git_() { git -c http.extraheader="AUTHORIZATION: basic $auth" "$@"; }
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-
-          if git diff --cached --quiet; then
-            echo "No changes to sync. Everything is up to date."
-          else
-            git commit -m "chore: auto-update records, skills, and usage metadata [skip ci]"
-            git_ push origin "HEAD:$REF_NAME"
-            echo "Successfully pushed updated records and skills to $REF_NAME."
-          fi
+          python -I -B maintenances/_repo/_maintenance/tools/check_records.py || {
+            echo "::error::Records, agents or indexes are stale: run 'python -B maintenances/_repo/_maintenance/tools/check_records.py --write-index' and commit."
+            exit 1
+          }
+          python -I -B tools/maint_tools/generate_usage_skills.py check || {
+            echo "::error::Usage skills are stale: run 'python tools/maint_tools/generate_usage_skills.py sync' and commit."
+            exit 1
+          }
 
       - name: "🧩 Build"
         env:

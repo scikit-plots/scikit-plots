@@ -13,13 +13,13 @@
 | `NOTSET` | int |  |
 | `WARN` | int |  |
 | `WARNING` | int |  |
-| `Filter(name='')` | class | Filter instances are used to perform arbitrary filtering of LogRecords. |
-| `Formatter(fmt=None, datefmt=None, style='%', validate=True, *, defaults=None)` | class | Formatter instances are used to convert a LogRecord to text. |
-| `Handler(level=0)` | class | Handler instances dispatch logging events to specific destinations. |
-| `Logger(name, level=0)` | class | Instances of the Logger class represent a single logging channel. |
-| `LogRecord(name, level, pathname, lineno, msg, args, exc_info, func=None, sinfo=None, **kwargs)` | class | A LogRecord instance represents an event being logged. |
-| `NullHandler(level=0)` | class | This handler does nothing. |
-| `StreamHandler(stream=None)` | class | A handler class which writes logging records, appropriately formatted, to a stream. |
+| `Filter(name='')` | class |  |
+| `Formatter(fmt=None, datefmt=None, style='%', validate=True, *, defaults=None)` | class |  |
+| `Handler(level=0)` | class |  |
+| `Logger(name, level=0)` | class |  |
+| `LogRecord(name, level, pathname, lineno, msg, args, exc_info, func=None, sinfo=None, **kwargs)` | class |  |
+| `NullHandler(level=0)` | class |  |
+| `StreamHandler(stream=None)` | class |  |
 | `getLevelName(level)` | function | Return the textual or numeric representation of logging level 'level'. |
 | `getLogger(name=None)` | function | Return a logger with the specified name, creating it if necessary. |
 | `get_logger() -> 'Logger'` | function | Return SP (scikitplot) logger instance. |

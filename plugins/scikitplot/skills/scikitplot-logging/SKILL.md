@@ -44,13 +44,13 @@ Declared in `scikitplot.logging.__all__`, in that order.
 | `NOTSET` | int |  |
 | `WARN` | int |  |
 | `WARNING` | int |  |
-| `Filter` | class | Filter instances are used to perform arbitrary filtering of LogRecords. |
-| `Formatter` | class | Formatter instances are used to convert a LogRecord to text. |
-| `Handler` | class | Handler instances dispatch logging events to specific destinations. |
-| `Logger` | class | Instances of the Logger class represent a single logging channel. |
-| `LogRecord` | class | A LogRecord instance represents an event being logged. |
-| `NullHandler` | class | This handler does nothing. |
-| `StreamHandler` | class | A handler class which writes logging records, appropriately formatted, to a stream. |
+| `Filter` | class |  |
+| `Formatter` | class |  |
+| `Handler` | class |  |
+| `Logger` | class |  |
+| `LogRecord` | class |  |
+| `NullHandler` | class |  |
+| `StreamHandler` | class |  |
 | `getLevelName` | function | Return the textual or numeric representation of logging level 'level'. |
 | `getLogger` | function | Return a logger with the specified name, creating it if necessary. |
 | `get_logger` | function | Return SP (scikitplot) logger instance. |

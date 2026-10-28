@@ -16,21 +16,21 @@
 | `MAX_RESOURCE_CHARS` | int |  |
 | `MAX_RESULTS` | int |  |
 | `RESOURCE_METADATA_ALLOWANCE` | int |  |
-| `DocsRetriever(*args, **kwargs)` | type alias | Structural contract every retrieval backend must satisfy. |
+| `DocsRetriever` | protocol | Structural contract every retrieval backend must satisfy. |
 | `RetrievedChunk(text: 'str', source_uri: 'str', score: 'float' = 0.0, doc_id: 'str' = '', title: 'str' = '', anchor: 'str ...)` | class | One retrieved passage with the metadata needed to cite it. |
 | `SearchCoordinator(retriever: 'DocsRetriever', *, max_concurrency: 'int' = 4, acquire_timeout_seconds: 'float' = 0.05) -> 'None'` | class | Validated, concurrency-bounded search orchestration, free of wire models. |
 | `build_search_docs_result(query: 'str', chunks: 'Iterable[RetrievedChunk]', *, max_results: 'int' = 20) -> 'dict[str, Any]'` | function | Format retrieval results as an MCP ``tools/call`` response with citations. |
 | `is_valid_doc_id(value: 'object') -> 'bool'` | function | Return whether ``value`` is an acceptable document identifier. |
-| `CorpusAnnoyRetriever(embedder: 'Embedder', index: 'VectorIndex', doc_lookup: 'Callable[[str], dict[str, Any]]', *, strict: 'bo ...)` | type alias | Docs dense retriever backed by an embedder + a vector index + a document lookup. |
-| `CorpusIndexRetriever(embedder: 'Embedder \| None', index: 'Any', *, match_mode: 'str' = 'hybrid', strict: 'bool' = False, filte ...)` | type alias | Text-level retriever over a corpus ``RetrievalIndex``: hybrid by default. |
-| `Embedder(*args, **kwargs)` | type alias | Anything that turns a query string into a vector (e.g. |
-| `VectorIndex(*args, **kwargs)` | type alias | Anything that returns ``(doc_id, score)`` pairs for a query vector. |
+| `CorpusAnnoyRetriever(embedder: 'Embedder', index: 'VectorIndex', doc_lookup: 'Callable[[str], dict[str, Any]]', *, strict: 'bo ...)` | class | Docs dense retriever backed by an embedder + a vector index + a document lookup. |
+| `CorpusIndexRetriever(embedder: 'Embedder \| None', index: 'Any', *, match_mode: 'str' = 'hybrid', strict: 'bool' = False, filte ...)` | class | Text-level retriever over a corpus ``RetrievalIndex``: hybrid by default. |
+| `Embedder` | protocol | Anything that turns a query string into a vector (e.g. |
+| `VectorIndex` | protocol | Anything that returns ``(doc_id, score)`` pairs for a query vector. |
 | `DemoDocument(doc_id: 'str', text: 'str', source_uri: 'str' = '', title: 'str' = '', anchor: 'str' = '') -> None` | class | One in-memory document used by `InMemoryBm25Retriever`. |
-| `InMemoryBm25Retriever(documents: 'Iterable[DemoDocument]', *, k1: 'float' = 1.5, b: 'float' = 0.75, title_weight: 'float' = 2.0 ...)` | type alias | A compact BM25 implementation suitable for demos and small corpora. |
+| `InMemoryBm25Retriever(documents: 'Iterable[DemoDocument]', *, k1: 'float' = 1.5, b: 'float' = 0.75, title_weight: 'float' = 2.0 ...)` | class | A compact BM25 implementation suitable for demos and small corpora. |
 | `builtin_demo_retriever() -> 'InMemoryBm25Retriever'` | function | Return a tiny corpus that explains the sample's own mechanism. |
 | `DEFAULT_RRF_K` | int |  |
-| `Bm25Retriever(fts_search: 'Callable[[str, int], list[tuple[str, float]]]', doc_lookup: 'Callable[[str], dict[str, Any]] ...)` | type alias | Lexical retriever (FTS/BM25) leg backed by a full-text search seam. |
-| `HybridRetriever(retrievers: 'Sequence[DocsRetriever]', *, weights: 'Sequence[float] \| None' = None, rrf_k: 'int' = 60, fa ...)` | type alias | Fuse several retrievers into one via Reciprocal Rank Fusion. |
+| `Bm25Retriever(fts_search: 'Callable[[str, int], list[tuple[str, float]]]', doc_lookup: 'Callable[[str], dict[str, Any]] ...)` | class | Lexical retriever (FTS/BM25) leg backed by a full-text search seam. |
+| `HybridRetriever(retrievers: 'Sequence[DocsRetriever]', *, weights: 'Sequence[float] \| None' = None, rrf_k: 'int' = 60, fa ...)` | class | Fuse several retrievers into one via Reciprocal Rank Fusion. |
 | `reciprocal_rank_fusion(ranked_lists: 'Sequence[tuple[float, Sequence[Any]]]', *, k: 'int' = 60, key: 'Callable[[Any], str]' = <f ...)` | function | Fuse weighted ranked lists into a single ``key -> score`` map. |
 | `CANCELLED` | str |  |
 | `DEGRADED` | str |  |
@@ -41,8 +41,8 @@
 | `RetrievalOutcome(hits: 'Any' = (), *, legs: 'list[LegRecord] \| None' = None, status: 'str \| None' = None) -> 'None'` | class | Ranked hits plus the story of how they were obtained. |
 | `assert_matches_corpus() -> 'None'` | function | Verify this module's vocabulary still matches Corpus's. |
 | `to_corpus_status(status: 'str') -> 'Any'` | function | Resolve a status string to `scikitplot.corpus.RetrievalStatus`. |
-| `CitationOutput(*, n: typing.Annotated[int, Ge(ge=1)], source_uri: str, title: str, anchor: str, doc_id: str, score: floa ...)` | class | Stable source metadata for one returned passage. |
-| `SearchDocsOutput(*, query: str, count: typing.Annotated[int, Ge(ge=0), Le(le=20)], passages: list[str], citations: list[sc ...)` | class | Structured output schema automatically advertised by MCP SDK v2. |
+| `CitationOutput(*, n: Annotated[int, Ge(ge=1)], source_uri: str, title: str, anchor: str, doc_id: str, score: float, also ...)` | class | Stable source metadata for one returned passage. |
+| `SearchDocsOutput(*, query: str, count: Annotated[int, Ge(ge=0), Le(le=20)], passages: list[str], citations: list[scikitplo ...)` | class | Structured output schema automatically advertised by MCP SDK v2. |
 | `SearchService(retriever: 'DocsRetriever', *, max_concurrency: 'int' = 4, acquire_timeout_seconds: 'float' = 0.05) -> 'None'` | class | Wire adapter: bounded, validated search returning pydantic tool models. |
 | `create_server(retriever: 'DocsRetriever', *, document_reader: 'Callable[[str], RetrievedChunk \| None] \| None' = None, m ...)` | function | Create an official MCP Python SDK v2 ``MCPServer`` instance. |
 | `require_count(value: 'Any', *, maximum: 'int \| None' = None, name: 'str' = 'count') -> 'int'` | function | Return ``value`` as a non-negative count within its declared maximum. |

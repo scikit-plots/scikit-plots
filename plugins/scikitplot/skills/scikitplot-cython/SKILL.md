@@ -60,7 +60,7 @@ Declared in `scikitplot.cython.__all__`, in that order.
 | `runtime_fingerprint` | function | Compute a runtime fingerprint for caching correctness. |
 | `source_digest` | function | SHA-256 digest of source bytes. |
 | `write_meta` | function | Write ``meta.json`` in the build directory atomically. |
-| `CustomCompilerProtocol` | type alias | Structural protocol for custom compiler callables. |
+| `CustomCompilerProtocol` | protocol | Structural protocol for custom compiler callables. |
 | `CompilerRegistry` | class | Thread-safe module-level registry of custom compiler callables. |
 | `register_compiler` | function | Register a custom compiler in the module-level registry. |
 | `get_compiler` | function | Retrieve a registered custom compiler by name. |
