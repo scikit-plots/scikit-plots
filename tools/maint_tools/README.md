@@ -3,6 +3,91 @@
 Repository-local maintenance helpers live here. They are intended to be safe for
 humans, CI, and AI-assisted maintenance without requiring prior chat history.
 
+## CI `.pre-commit-config.yaml` configuration
+
+```yaml
+ci:
+  # Only tells pre-commit.ci to skip that hook; it does not disable it locally.
+  # Your local hook will still run on commit if you’ve installed the Git hook with: `pre-commit install`
+  # keeps pre-commit.ci from running these hooks in its environment; it doesn’t stop your local pre-push hooks.
+  # [check-records, check-skills, check-affiliated-index, check-path-lengths, check-pr-labeler, check-towncrier-sections, check-apis-reference]
+  skip:
+    - check-records
+    - check-skills
+    - check-affiliated-index
+    - check-path-lengths
+    - check-pr-labeler
+    - check-towncrier-sections
+    - check-apis-reference
+
+
+repos:
+
+  # Sync with tools/maint_tools/README.md
+  - repo: local
+    hooks:
+      - id: check-records
+        name: Run check records
+        entry: python -I -B maintenances/_repo/_maintenance/tools/check_records.py
+        language: unsupported
+        # They'll run once when you push, rather than on every commit.
+        # pre-commit install --hook-type pre-push
+        stages: [pre-push]
+        # scripts should run on every commit regardless of changed files
+        always_run: true
+        # types: [python]
+        pass_filenames: false
+        # files: \.py$
+
+      - id: check-skills
+        name: Run check skills
+        entry: python -I -B tools/maint_tools/generate_usage_skills.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-affiliated-index
+        name: Run check affiliated index
+        entry: python -I -B tools/maint_tools/generate_affiliated_index.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-path-lengths
+        name: Run check path lengths
+        entry: python -I -B tools/maint_tools/check_path_lengths.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-pr-labeler
+        name: Run check pr labeler
+        entry: python -I -B tools/maint_tools/generate_pr_labeler.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-towncrier-sections
+        name: Run check towncrier sections
+        entry: python -I -B tools/maint_tools/generate_towncrier_sections.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-apis-reference
+        name: Run check apis reference
+        entry: python -m scikitplot._build_utils.generate_apis_reference check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+```
+
 ## CLI policy for Python helpers
 
 New Python maintenance CLIs should follow the repository's hardened CLI pattern

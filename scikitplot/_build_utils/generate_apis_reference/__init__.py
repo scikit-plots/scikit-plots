@@ -10,6 +10,23 @@ The API reference mixes two kinds of information:
   and
 * public symbol inventories, which can be checked against an installed package.
 
+Usage::
+
+    # Verify generated output exactly matches the canonical template.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild --check
+
+    # Preview a full rebuild. No package API imports and no write.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild
+
+    # Recreate the generated file even if it was deleted.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
+
+    # Runtime verification requires an installed/importable Scikit-Plots build.
+    python -m scikitplot._build_utils.generate_apis_reference check
+    python -m scikitplot._build_utils.generate_apis_reference check --strict-coverage
+    python -m scikitplot._build_utils.generate_apis_reference plan
+    python -m scikitplot._build_utils.generate_apis_reference inventory
+
 ``docs/source/apis_reference.py`` is a disposable generated artifact.  ``rebuild``
 can recreate the complete file from the adjacent ``apis_reference.py.in`` template
 without importing Scikit-Plots, so a deleted or stale generated file is recoverable

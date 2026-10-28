@@ -1,13 +1,14 @@
+# ⚠ Caution: Do not edit manually. Regenerate docs/source/apis_reference.py with:
+# python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
+# Make durable structural/editorial changes in the .py.in template, not the generated docs file.
+# API-reference source is maintained from the canonical template:
+#
+# scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in
+#
 # pylint: disable=pointless-string-statement
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-#
-# API-reference source is maintained from the canonical template:
-# scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in
-# Regenerate docs/source/apis_reference.py with:
-# python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
-# Make durable structural/editorial changes in the .py.in template, not the generated docs file.
 
 """
 Configuration for the APIs reference documentation.
