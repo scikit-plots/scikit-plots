@@ -140,6 +140,7 @@ jobs:
           python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index
           python -I -B tools/maint_tools/generate_usage_skills.py sync
           git diff --stat
+          git diff plugins/scikitplot/skills/
 
           ## Fail the build if there are any uncommitted changes after syncing
           # git diff --exit-code || {
@@ -153,7 +154,14 @@ jobs:
       - name: "🚀 Auto-commit and push if records/skills changed"
         env:
           REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+          # Setup secure token authentication for git push
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          git_() { git -c http.extraheader="AUTHORIZATION: basic $auth" "$@"; }
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -162,7 +170,7 @@ jobs:
             echo "No changes to sync. Everything is up to date."
           else
             git commit -m "chore: auto-update records, skills, and usage metadata [skip ci]"
-            git push origin "HEAD:$REF_NAME"
+            git_ push origin "HEAD:$REF_NAME"
             echo "Successfully pushed updated records and skills to $REF_NAME."
           fi
 
