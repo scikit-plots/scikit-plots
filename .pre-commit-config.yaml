@@ -10,6 +10,9 @@ ci:
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
   autofix_prs: false
   autoupdate_schedule: 'monthly'
+  # Only tells pre-commit.ci to skip that hook; it does not disable it locally.
+  # Your local hook will still run on commit if you’ve installed the Git hook with: `pre-commit install`
+  skip: [check-records, check-skills]
 
 # files: ^(.*\.(py|json|md|sh|yaml|yml|in|cfg|txt|rst|toml|precommit-toml|wordlist))$
 # exclude: ^(\.[^/]*cache/.*)$
@@ -20,6 +23,22 @@ ci:
 # pre-commit autoupdate
 # pre-commit install
 repos:
+
+  - repo: local
+    hooks:
+      - id: check-records
+        name: Run check records
+        entry: python -I -B maintenances/_repo/_maintenance/tools/check_records.py
+        language: unsupported
+        files: \.py$
+        # types: [python]
+
+      - id: check-skills
+        name: Run check skills
+        entry: python -I -B tools/maint_tools/generate_usage_skills.py check
+        language: unsupported
+        files: \.py$
+        # types: [python]
 
   # - repo: https://github.com/asottile/pyupgrade
   #   rev: v3.21.2
