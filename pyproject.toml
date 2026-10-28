@@ -1369,8 +1369,11 @@ ignore = [
 
 # Exclude files are generated from tempita templates
 exclude= '''
-(
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+/(
   benchmarks/*yanked/
+  |plugins/
   ## scikitplot module
   |scikitplot/metrics/_dist_metrics.pyx
 )
@@ -1392,6 +1395,7 @@ skip = """
   *.cff,
   docs/credits.rst,
   galleries/*,
+  plugins/*,
   third_party/*,
   tools/*,
   ## scikitplot module
