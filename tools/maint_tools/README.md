@@ -79,6 +79,9 @@ repos:
         always_run: true
         pass_filenames: false
 
+      ## TODO: Need review currently faill if any public object not exposed,
+      ## but here we need only check and ensure all importable due to
+      ## circleci sphinx docs build cause fail import issue.
       # - id: check-apis-reference
       #   name: Run check apis reference
       #   entry: python -m scikitplot._build_utils.generate_apis_reference check
