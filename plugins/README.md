@@ -366,7 +366,7 @@ On claude.ai, manage it in **Customize → Plugins**.
 | Agents do nothing in claude.ai chat | By design: chat ignores agents. Use Claude Code or Cowork. |
 | Skills mention a name your library doesn't have | Your library and the plugin come from different commits; compare them ([section 7](#7-versions-and-updates)) and update one. |
 | Adding the marketplace without `--sparse` is slow | Without it the whole repository is cloned. |
-| `scikitplot-dev` fails on claude.ai | It is the developers' plugin (the whole repository). Install `scikitplot`. |
+| `scikitplot-dev` on claude.ai | It is the developers' plugin, for Claude Code in a checkout of the repository. Install `scikitplot`. |
 | A module has no skill | Its module declares no `__all__`; see the list in `pyproject.toml` under `[tool.scikitplot.maintenance.skills]`. |
 | Two plugins with the same skill names | Plugin skills are namespaced (`/scikitplot:...`), so they don't collide in Claude Code; a copied skill (Path C) is not namespaced. |
 | Changes don't appear in a running session | Run `/reload-plugins` or restart `claude`. |

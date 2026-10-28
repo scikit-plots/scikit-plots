@@ -13,6 +13,20 @@ MCP servers and no scripts, runs no code of its own and sends no data anywhere.
 The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,
 in the development marketplace.
 
+## Data handling
+
+| Question | Answer |
+|---|---|
+| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors and no code; it only tells Claude how to use the scikit-plots library. |
+| Does any skill send data to a service? | No. No skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |
+| How long is data received from Claude kept? | It is not kept: there is no service, so the plugin receives nothing from Claude. |
+| Is it intended for users under 18? | No. It is a developer tool for a Python library. |
+| What does it change on my computer? | Nothing by itself. Installing it adds Markdown files to Claude's plugin folder; any code Claude writes or runs with its help follows your Claude permission settings. |
+| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session. |
+
+What Claude itself does with your conversations is set by your Claude
+account, not by this plugin.
+
 ## Install
 
 Released versions, whose skills describe that release of scikit-plots (the
@@ -38,6 +52,89 @@ Or copy one skill folder, for example into a project:
 `cp -r skills/scikitplot-annoy <project>/.claude/skills/`.
 The full guide (claude.ai, Cowork, versions, updates, troubleshooting) is
 [`plugins/README.md`](https://github.com/scikit-plots/scikit-plots/blob/main/plugins/README.md).
+
+## What you need
+
+- Claude Code (any paid Claude plan, or an Anthropic Console account), or
+  claude.ai and Cowork on a paid plan. In claude.ai chat the skills work and
+  the agents are not used; in Claude Code and Cowork both work.
+- scikit-plots installed in the Python environment of your project
+  (`pip install scikit-plots`), when Claude is to run the code it writes.
+
+## Quick start
+
+After installing, open your project and ask in plain words, naming
+scikit-plots and what you want. For example:
+
+- *"Using scikitplot, plot a confusion matrix and an ROC curve for my
+  LogisticRegression on the test set."* (`scikitplot.api`:
+  `plot_confusion_matrix`, `plot_roc`)
+- *"Show a learning curve and feature importances for this random forest
+  with scikitplot."* (`plot_learning_curve`, `plot_feature_importances`)
+- *"Make cumulative gains and lift charts for this churn model with
+  scikitplot.decile."* (`ModelPlotPy`, `plot_cumgains`, `plot_cumlift`)
+- *"Which scikitplot modules do I have, and what is my installed version?"*
+
+The matching skill loads by itself; you do not need to name it. In Claude
+Code you can also call a skill directly, such as `/scikitplot:scikitplot-api`,
+or hand a task to its agent, such as `@scikitplot:scikitplot-api`.
+
+## How it works
+
+- **One skill per public module.** Each is generated from that module's own
+  `__all__` and docstrings: what the module is for, how to install it, its
+  public names with one-line summaries, and a first example. The full list
+  of names with signatures is in the skill's `references/API.md`, which
+  Claude opens only when it needs it.
+- **One agent per skill**, with the same name, that starts with that skill
+  loaded and inherits the tools Claude Code allows it.
+- **Shared skills**, such as `scholarly-inquiry-cycle`, for structured
+  investigation of any question.
+- **The skills ask Claude to check before writing code**: your installed
+  version, and the signature and docstring of each name it calls.
+
+## Match the plugin to your library
+
+The skills describe one version of scikit-plots. Compare it with yours:
+
+```sh
+python -c "import scikitplot; print(scikitplot.__version__)"
+claude plugin list        # the plugin's Version
+```
+
+A release plugin has the library version (`0.5.0`); a development build has
+a commit. When they differ, either install the plugin of your release
+(`claude plugin marketplace add scikit-plots/skills@v<your version>`) or upgrade
+the library. Claude still checks each name in your environment before using it.
+
+## Update, disable, remove
+
+```sh
+claude plugin marketplace update scikit-plots-skills
+claude plugin update scikitplot@scikit-plots-skills
+claude plugin disable scikitplot@scikit-plots-skills     # keep it, stop loading it
+claude plugin uninstall scikitplot@scikit-plots-skills
+```
+
+Nothing updates by itself unless you turn on auto-update for the
+marketplace in `/plugin`. On claude.ai, manage it under **Customize →
+Plugins**. After an update, run `/reload-plugins` or start a new session.
+
+## Troubleshooting
+
+| You see | What to do |
+|---|---|
+| `Plugin "scikitplot" not found in marketplace` | Add the marketplace first (see Install), or run `claude plugin marketplace update`. |
+| The skills name something your library lacks | Your library and the plugin are different versions; see *Match the plugin to your library*. |
+| `ModuleNotFoundError` for a scikitplot module | Upgrade scikit-plots, or install the extra the skill names. |
+| Agents do nothing in claude.ai chat | Expected: chat uses skills, not agents. Use Claude Code or Cowork. |
+| `update` says it is already the latest | Update the marketplace first, then the plugin. |
+
+## Support and license
+
+- Questions and bug reports: <https://github.com/scikit-plots/scikit-plots/issues>
+- Documentation: <https://scikit-plots.github.io>
+- License: BSD-3-Clause; third-party licenses are in `LICENSES/`.
 
 ## Skills and agents
 
