@@ -1,5 +1,5 @@
 # https://github.com/numpy/numpy/blob/main/.github/workflows/pixi-packages.yml
-#
+# https://github.com/scipy/scipy/blob/main/.github/workflows/commit_message.yml
 ---
 name: CI 📦 Pixi Packages Tests
 
