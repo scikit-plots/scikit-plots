@@ -18,7 +18,7 @@ ci:
     - check-path-lengths
     - check-pr-labeler
     - check-towncrier-sections
-    - check-apis-reference
+    # - check-apis-reference
 
 
 repos:
