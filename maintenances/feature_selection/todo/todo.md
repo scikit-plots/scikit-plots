@@ -1,6 +1,6 @@
 # `scikitplot.feature_selection` maintenance: active tasks
 
-Rules that apply to every increment: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`](../../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
+Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-engineering-rules/`](../../../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md).
 Release-note PR for this round: **866** (given by the maintainer, Rule 100).
 
 ## Task: FS-1, the first `scikitplot.feature_selection` (2026-10-19)

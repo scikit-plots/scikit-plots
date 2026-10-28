@@ -16,7 +16,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 - Precedent in the tree: `maintenances/<sub>/` (state and evidence),
   `plugins/scikitplot-dev/skills/<sub>/` (fresh-session routing), `maintenances/<sub>/todo/`
   (`_sphinx_ext` family; its checker already retires a `tasks/` folder).
-- Decisions (maintainer, 2026-10-16): lessons to `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/` by
+- Decisions (maintainer, 2026-10-16): lessons to `plugins/_shared/skills/scikitplot-engineering-rules/` by
   category; `tasks/` keeps only a router README; completed rounds archived
   per plane; done now, before 4c.
 
@@ -35,7 +35,7 @@ the record planes themselves. Completed tasks are archived verbatim under
   - `maintenances/_repo/` - CI, `libs/`, labeling: partial distributions,
     rounds 2-8, 31, 32, the old `tasks/removed-files.txt`.
   - `maintenances/_docs/` - the documentation site as a whole (active tasks, pointers).
-  - `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/` - the rules in 12 category files, numbers
+  - `plugins/_shared/skills/scikitplot-engineering-rules/` - the rules in 12 category files, numbers
     unchanged; generated `INDEX.md`; `PATTERNS.md`.
   - `maintenances/README.md` - router only.
 - Two commits (Rule 124): `4R-1` is the pure move, proved lossless (the
@@ -277,7 +277,7 @@ the record planes themselves. Completed tasks are archived verbatim under
 
 ### Context
 - Goal: every submodule's tests pass on their own and in the full suite,
-  each failure fixed at its root cause under `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/`
+  each failure fixed at its root cause under `plugins/_shared/skills/scikitplot-engineering-rules/rules/`
   (logging.md 138-141, module_submodule_actual_mock_patch.md 142-146,
   numpydocstr.md 147-151; logging.md also 152 output and 153 negative log
   assertions). One submodule per session; a session starts here

@@ -40,7 +40,7 @@ the Agent Skills format. The usage skills are generated from the package
 (`tools/maint_tools/generate_usage_skills.py`), the agents and indexes by
 `check_records.py --write-index`; neither is edited by hand.
 
-`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md` is the one skill for every area: the numbered
+`plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md` is the one skill for every area: the numbered
 engineering rules (verification, delivery, tests, contracts, packaging and
 more). Load it with the area's own skill. Where plans, results and lessons are
 written: `maintenances/README.md`.

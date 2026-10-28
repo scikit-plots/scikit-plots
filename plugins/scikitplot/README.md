@@ -8,8 +8,25 @@ folder can also be copied into any tool that reads that format.
 
 ## What it runs and sends
 
-Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no
-MCP servers and no scripts, runs no code of its own and sends no data anywhere.
+Nothing by itself. The plugin has no hooks, no MCP servers and nothing that
+starts when it loads. Every skill and agent is Markdown, except the skills
+listed below, which also ship helper programs (`skill-creator`). The programs run
+only when Claude runs them for you, and each such skill tells Claude to explain what a program does
+and to ask you before every run, never to start one in the background
+unannounced. What each one does is in the table at the top of its `SKILL.md`.
+
+| Skill | Programs it ships |
+|---|---|
+| `skill-creator` | `eval-viewer/generate_review.py`, `scripts/__init__.py`, `scripts/aggregate_benchmark.py`, `scripts/generate_report.py`, `scripts/improve_description.py`, `scripts/package_skill.py`, `scripts/quick_validate.py`, `scripts/run_eval.py`, `scripts/run_loop.py`, `scripts/utils.py` |
+
+`skill-creator` (Anthropic's, with a scikit-plots consent section added) is
+for writing and testing skills. Its evaluation programs start `claude -p`
+with your environment variables, so the test queries go to Claude through
+your own Claude Code sign-in and count against your plan; its review page
+is served on `127.0.0.1` only, and before starting it stops any program
+already using its port (3117 by default), which Claude must ask you about
+first. Nothing goes to any other service.
+
 The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,
 in the development marketplace.
 
@@ -17,12 +34,12 @@ in the development marketplace.
 
 | Question | Answer |
 |---|---|
-| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors and no code; it only tells Claude how to use the scikit-plots library. |
-| Does any skill send data to a service? | No. No skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |
-| How long is data received from Claude kept? | It is not kept: there is no service, so the plugin receives nothing from Claude. |
+| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors; it tells Claude how to use the scikit-plots library and, with `skill-creator`, how to write skills. |
+| Does any skill send data to a service? | Only to Claude, and only when you approve a run: `skill-creator`'s evaluation programs send test queries and draft descriptions to Claude through your own Claude Code (`claude -p`). No skill sends data anywhere else. The Python examples in the other skills run only when you run them, in your own environment. |
+| How long is data received from Claude kept? | It is not kept: there is no scikit-plots service, so nothing is received from Claude. |
 | Is it intended for users under 18? | No. It is a developer tool for a Python library. |
-| What does it change on my computer? | Nothing by itself. Installing it adds Markdown files to Claude's plugin folder; any code Claude writes or runs with its help follows your Claude permission settings. |
-| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session. |
+| What does it change on my computer? | Installing it adds files to Claude's plugin folder. Anything else happens only when Claude writes or runs code with its help, under your Claude permission settings; the helper programs above, only after Claude has asked you. |
+| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session; `skill-creator`'s evaluations make many `claude -p` calls, and Claude states how many before asking you. |
 
 What Claude itself does with your conversations is set by your Claude
 account, not by this plugin.

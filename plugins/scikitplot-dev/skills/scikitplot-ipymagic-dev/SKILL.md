@@ -12,7 +12,7 @@ metadata:
 1. `maintenances/_ipymagic/MAINTAINING.md` (flow, module map, invariants)
 2. `maintenances/_ipymagic/todo/todo.md` (active work, last results)
 3. `maintenances/_ipymagic/todo/lessons.md`
-4. `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names
+4. `plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names
    (subprocess env and decoding, one profiler, logging, numpydoc, testing)
 
 ## When changing a magic
