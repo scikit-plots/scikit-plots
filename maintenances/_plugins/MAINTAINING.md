@@ -321,8 +321,13 @@ added at any ref of this repository, for Claude Code only:
 1. <https://claude.ai/directory/manage> > **Submit new** > **Plugin bundle**
    (Pro, Max, Team or Enterprise; on Team and Enterprise an Owner submits,
    [who can submit](https://claude.com/docs/directory/publish.md)).
-2. **Repository** `scikit-plots/skills`; leave **Plugin path** empty and
-   **Branch or tag** empty (the default branch, `stable`); **Validate**.
+2. **Repository** `scikit-plots/skills`; leave **Plugin path** empty; set
+   **Branch or tag** to `stable` (or leave it empty once `stable` is the
+   default branch); **Validate**. Following `main` gives the warning
+   `MANIFEST_VERSION_MISSING`, by design: `main` is the unversioned
+   development build. The `icon` notice (`UNKNOWN_KEY_CROSS_TOOL`) needs no
+   action. A policy hold that names a file the build does not make means the
+   tree was not replaced whole; rerun the publish workflow (CI-8).
 3. Data handling: no personal data, nothing sent to other services, no
    retention, not aimed at people under 18 (the README states it).
 4. Keep "GitHub push webhook", then **Submit for review**. The repository

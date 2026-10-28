@@ -45,8 +45,6 @@ concurrency:
 
 env:
   TARGET_REPO: scikit-plots/skills
-  # The paths build_skills_repo.py owns (its MANAGED); nothing else is touched.
-  MANAGED: ".claude-plugin skills agents assets LICENSES README.md LICENSE"
 
 jobs:
   canonical:
@@ -273,11 +271,12 @@ jobs:
           fi
 
           # Synchronize managed folders/files from the downloaded artifact tree
-          for path in $MANAGED; do
-            rm -rf -- "$path"
-            if [ -e "$TREE/$path" ]; then cp -a -- "$TREE/$path" "$path"; fi
-          done
-          git add -A -- $MANAGED
+          # The published tree is exactly the built one (CI-8): everything but
+          # .git is replaced, so no file the build did not make (a repository
+          # template's .gitignore, an old LICENSE.txt, a workflow) survives.
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a -- "$TREE"/. .
+          git add -A
 
           # Check for branch-specific handling and no-op status
           if [ "$KIND" = "branch" ] && git diff --cached --quiet; then

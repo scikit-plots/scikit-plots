@@ -77,12 +77,11 @@ class BuildTests(unittest.TestCase):
         (out / "skills/scikitplot-gone/SKILL.md").write_text("x", encoding="utf-8")
         (out / ".gitignore").write_text("x\n", encoding="utf-8")
         self.assertEqual(
-            MODULE.apply(out, self.files), ["- skills/scikitplot-gone/SKILL.md"]
+            MODULE.apply(out, self.files),
+            ["- skills/scikitplot-gone/SKILL.md", "~ .gitignore"],
         )
         self.assertFalse((out / "skills/scikitplot-gone").exists())
-        self.assertTrue(
-            (out / ".gitignore").is_file(), "unmanaged paths are left alone"
-        )
+        self.assertEqual((out / ".gitignore").read_text(encoding="utf-8"), MODULE.GITIGNORE)
 
     def test_validate_reports_directory_blockers(self):
         out = self._built()
@@ -167,3 +166,32 @@ class BranchBuildTests(unittest.TestCase):
             if path.is_file():
                 rel = "skills/" + path.relative_to(shared).as_posix()
                 self.assertEqual(self.files[rel], path.read_bytes(), rel)
+
+
+class PublishedTreeTests(unittest.TestCase):
+    """CI-8: the directory held the plugin for a template .gitignore naming .pypirc."""
+
+    def _built(self) -> Path:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        MODULE.apply(out, MODULE.render(REPO, "0.5.0"))
+        return out
+
+    def test_the_gitignore_names_no_credential_or_index_host(self):
+        text = MODULE.GITIGNORE.lower()
+        for word in (".pypirc", "pypi", "poetry", "token", "secret", ".env", "http"):
+            self.assertNotIn(word, text)
+
+    def test_an_unbuilt_top_level_file_fails(self):
+        out = self._built()
+        (out / "LICENSE.txt").write_text("x\n", encoding="utf-8")
+        (out / ".github").mkdir()
+        errors = MODULE.validate(out)
+        self.assertTrue(any(e.startswith("LICENSE.txt: not built") for e in errors))
+        self.assertTrue(any(e.startswith(".github: not built") for e in errors))
+
+    def test_git_is_allowed(self):
+        out = self._built()
+        (out / ".git").mkdir()
+        self.assertEqual(MODULE.validate(out), [])
