@@ -75,3 +75,23 @@ verbatim under `../_maintenance/history/` (created with the first one).
   `generate_usage_skills.py check` and `scikitplot/tests/test_usage_skills.py`
   (they import the built package); `current()` was checked with a stubbed
   import instead.
+
+## Task: CI-8 - directory policy holds on scikit-plots/skills (2026-10-28)
+
+- Observed (portal, `main` @ 8e0cad1): two policy holds,
+  `MCP_FORWARDS_CREDENTIAL_ENV`: ".gitignore ... spells python-poetry.org and
+  is given the installer's .pypirc", and the same read combined with the
+  `scikitplot` skill's Python code; warnings `MANIFEST_VERSION_MISSING` and
+  the `icon` notice.
+- Root cause: `.gitignore` (and `LICENSE.txt`) in `scikit-plots/skills` were
+  GitHub's repository template, outside what `build_skills_repo.py` owned
+  ("left alone"); the publish step replaced only the managed paths, so files
+  nobody built were published.
+- Fix: the build owns a minimal `.gitignore`; `validate` rejects any
+  top-level entry it did not build; the publish step replaces the whole tree
+  but `.git`. Simulated over the real repository's files: `.github/`,
+  `LICENSE.txt` and the template are gone, no file names `.pypirc` or
+  `poetry`, `check` is `ok ... unchanged`, `claude plugin validate .` passes.
+- The version warning is by design on `main`: submit with **Branch or tag**
+  `stable` (MAINTAINING section 9).
+- [ ] Rerun the publish workflow on `main`, revalidate in the portal.
