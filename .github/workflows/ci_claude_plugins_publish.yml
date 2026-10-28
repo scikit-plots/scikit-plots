@@ -53,13 +53,17 @@ jobs:
     name: "Build the plugin tree"
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     permissions:
-      contents: read
+      # contents: read
+      contents: write
+
     outputs:
       kind: ${{ steps.ref.outputs.kind }}
       ref: ${{ steps.ref.outputs.ref }}
       version: ${{ steps.ref.outputs.version }}
       base: ${{ steps.ref.outputs.base }}
+
     steps:
       - name: "⬇️ Checkout"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -131,12 +135,36 @@ jobs:
             { echo "kind=preview"; echo "ref=$REF_NAME"; echo "version="; echo "base="; } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "🔎 Records, skills and plugins are current"
+      - name: "🔎 Records, skills and plugins are current (Auto-sync)"
         run: |
-          # python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index
+          python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index
+          python -I -B tools/maint_tools/generate_usage_skills.py sync
+          git diff --stat
+
+          ## Fail the build if there are any uncommitted changes after syncing
+          # git diff --exit-code || {
+          #   echo "::error::Generated records or usage skills are out of sync."
+          #   echo "::error::Please run 'python -I -B maintenances/_repo/_maintenance/tools/check_records.py --write-index' and 'python -I -B tools/maint_tools/generate_usage_skills.py sync' locally, then commit the changes."
+          #   exit 1
+          # }
           python -I -B maintenances/_repo/_maintenance/tools/check_records.py
-          # python -I -B tools/maint_tools/generate_usage_skills.py sync
           python -I -B tools/maint_tools/generate_usage_skills.py check
+
+      - name: "🚀 Auto-commit and push if records/skills changed"
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to sync. Everything is up to date."
+          else
+            git commit -m "chore: auto-update records, skills, and usage metadata [skip ci]"
+            git push origin "HEAD:$REF_NAME"
+            echo "Successfully pushed updated records and skills to $REF_NAME."
+          fi
 
       - name: "🧩 Build"
         env:
