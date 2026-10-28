@@ -79,13 +79,13 @@ repos:
         always_run: true
         pass_filenames: false
 
-      - id: check-apis-reference
-        name: Run check apis reference
-        entry: python -m scikitplot._build_utils.generate_apis_reference check
-        language: unsupported
-        stages: [pre-push]
-        always_run: true
-        pass_filenames: false
+      # - id: check-apis-reference
+      #   name: Run check apis reference
+      #   entry: python -m scikitplot._build_utils.generate_apis_reference check
+      #   language: unsupported
+      #   stages: [pre-push]
+      #   always_run: true
+      #   pass_filenames: false
 ```
 
 ## CLI policy for Python helpers
