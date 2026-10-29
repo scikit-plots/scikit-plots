@@ -12,6 +12,35 @@ please acknowledge this fact by citing:
 .. container:: sphx-glr-download
 
    * :download:`Download BibTeX bibliography file: CITATION.bib <../../../CITATION.bib>`
+   * :download:`Download Citation File Format file: CITATION.cff <../../../CITATION.cff>`
+
+Which entry to cite
+-------------------
+
+``CITATION.bib`` holds two entries:
+
+``The-scikit-plots-developers_2024``
+    every version, through the concept DOI ``10.5281/zenodo.13367000``,
+    which always resolves to the latest release. Cite it to acknowledge the
+    project.
+
+``scikit-plots_v<version>``
+    the version the file was generated for (``version``), with its kind
+    (development, pre-release, post-release or release), the build
+    (``0.5.dev0+git.20261028.b656b70``: version, commit date, commit) and a
+    ``url`` to that exact source tree; a release that Zenodo archived also
+    gets its own DOI. Cite it when results must be reproducible, and check
+    that its version is the one you ran:
+
+    .. code-block:: console
+
+       $ scikitplot -V
+       scikitplot 0.5.dev0+git.20261028.b656b70
+
+The files record the commit they were *generated from*; a file cannot name
+the commit that contains it. ``CITATION.cff`` carries the same facts in the
+`Citation File Format <https://citation-file-format.github.io>`_ (GitHub's
+"Cite this repository" reads it).
 
 DOIs
 ----

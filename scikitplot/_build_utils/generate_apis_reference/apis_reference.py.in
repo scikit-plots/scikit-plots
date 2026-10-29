@@ -2682,6 +2682,75 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot._ipymagic": {
+        "short_summary": "IPython/Jupyter magics for the scikitplot command line and profiling.",
+        "description": _get_guide("ipymagic-index"),
+        "sections": [
+            {
+                "title": "Notebook magics: extension",
+                # %load_ext scikitplot (or scikitplot._ipymagic)
+                "autosummary": [
+                    "load_ipython_extension",
+                    "unload_ipython_extension",
+                ],
+                # for inheritance-diagram
+                "classes": [],
+            },
+            {
+                "title": "Notebook magics: commands",
+                # %scikitplot / %%scikitplot, usable from plain Python too
+                "autosummary": [
+                    "run_command",
+                    "split_line",
+                    "route",
+                    "wants_json",
+                    "complete",
+                    "Route",
+                    "CommandResult",
+                    "MagicSettings",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "Route",
+                    "CommandResult",
+                    "MagicSettings",
+                ],
+            },
+            {
+                "title": "Notebook magics: profiling",
+                # %scikitplot_profile / %%scikitplot_profile
+                "autosummary": [
+                    "profile_code",
+                    "profiler_busy_reason",
+                    "ProfileResult",
+                    "ProfileRow",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "ProfileResult",
+                    "ProfileRow",
+                ],
+            },
+            {
+                "title": "Notebook magics: errors",
+                "autosummary": [
+                    "IpyMagicError",
+                    "MagicUsageError",
+                    "CommandFailedError",
+                    "ProfilerBusyError",
+                    "CapabilityMissingError",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "IpyMagicError",
+                    "MagicUsageError",
+                    "CommandFailedError",
+                    "ProfilerBusyError",
+                    "CapabilityMissingError",
+                ],
+            },
+        ],
+    },
     "scikitplot.externals": {
         "short_summary": "External Python modules.",
         "description": _get_guide("externals-index"),

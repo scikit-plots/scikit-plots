@@ -10,7 +10,7 @@ ci:
   # Only tells pre-commit.ci to skip that hook; it does not disable it locally.
   # Your local hook will still run on commit if you’ve installed the Git hook with: `pre-commit install`
   # keeps pre-commit.ci from running these hooks in its environment; it doesn’t stop your local pre-push hooks.
-  # [check-records, check-skills, check-affiliated-index, check-path-lengths, check-pr-labeler, check-towncrier-sections, check-apis-reference]
+  # [check-records, check-skills, check-affiliated-index, check-path-lengths, check-pr-labeler, check-towncrier-sections, check-apis-reference, check-citation]
   skip:
     - check-records
     - check-skills
@@ -18,7 +18,8 @@ ci:
     - check-path-lengths
     - check-pr-labeler
     - check-towncrier-sections
-    # - check-apis-reference
+    - check-apis-reference
+    - check-citation
 
 
 repos:
@@ -79,16 +80,26 @@ repos:
         always_run: true
         pass_filenames: false
 
-      ## TODO: Need review currently faill if any public object not exposed,
-      ## but here we need only check and ensure all importable due to
-      ## circleci sphinx docs build cause fail import issue.
-      # - id: check-apis-reference
-      #   name: Run check apis reference
-      #   entry: python -m scikitplot._build_utils.generate_apis_reference check
-      #   language: unsupported
-      #   stages: [pre-push]
-      #   always_run: true
-      #   pass_filenames: false
+      - id: check-citation
+        name: Run check citation files
+        # Needs jinja2; regenerate with: python tools/citation/citation_ref.py sync --apply
+        entry: python -I -B tools/citation/citation_ref.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      # Importability only (not API coverage): every module, _get_submodule
+      # target and autosummary name of docs/source/apis_reference.py imports,
+      # as the docs build (conf.py, templates, autosummary) imports it.
+      # Needs a built/installed scikit-plots (-I: not the source tree).
+      - id: check-apis-reference
+        name: Run check apis reference imports
+        entry: python -I -B -m scikitplot._build_utils.generate_apis_reference --repo-root . imports
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
 ```
 
 ## CLI policy for Python helpers
@@ -189,6 +200,10 @@ python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
 # Runtime verification requires an installed/importable Scikit-Plots build.
 python -m scikitplot._build_utils.generate_apis_reference check
 python -m scikitplot._build_utils.generate_apis_reference check --strict-coverage
+
+# Only what the docs build needs (CI and the pre-push hook): every target imports.
+python -I -m scikitplot._build_utils.generate_apis_reference --repo-root . imports
+python -I -m scikitplot._build_utils.generate_apis_reference --repo-root . imports --strict --json
 python -m scikitplot._build_utils.generate_apis_reference plan
 python -m scikitplot._build_utils.generate_apis_reference inventory
 ```
@@ -206,6 +221,33 @@ planner: it detects stale names and unambiguous new exports without executing
 the docs configuration. Its dry-run output is discovery evidence; accepted
 symbol changes must be written back to the canonical `.py.in` template and a
 clean `rebuild --check` must follow.
+
+### `imports`: what makes the documentation build fail
+
+The documentation build imports three kinds of target from the reference, and
+`imports` imports exactly those, nothing else, in seconds:
+
+| Target | Imported by | A failure |
+|---|---|---|
+| `_get_submodule(parent, child)` | `conf.py`, when it imports `apis_reference.py` (`strict=True`) | stops the build before any page; `strict=False` only warns |
+| each `APIS_REFERENCE` module | the page template (`imp0rt`) and `.. automodule::` | stops or breaks that page |
+| each `autosummary` / `classes` / deprecated name | autosummary (attribute, else submodule of that name) | a missing stub, an error with `-W` |
+
+Each failure is an **error** (exit 1) or, when the cause is a third-party
+module that is not installed or a capability error with status `absent`,
+**unavailable** (reported; exit 1 only with `--strict`, for an environment
+that installs every documentation dependency). A missing `scikitplot.*`
+module (a generated file the build did not produce, such as
+`config/__config__.py`) is always an error. A module that fails is reported
+once, not once per name. Coverage (public names that are not documented) is
+`check --strict-coverage`'s job, not this one's.
+
+CircleCI's `build_scikitplot` job runs `imports` right after it installs the
+build, so an import error fails in seconds, before `build_docs` and its
+gallery start. Run it from the
+repository root with `-I`, so the installed build is imported, not the source
+tree in the working directory, and pass `--repo-root .` (an installed copy of
+the tool does not know where the checkout is).
 
 Runtime generation remains conservative: prefer `__all__` when present,
 otherwise inventory locally defined public objects; exclude module objects by

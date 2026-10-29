@@ -14,6 +14,9 @@ AI agent::
 
     request  ->  plan (reads, changes nothing)  ->  approvals  ->  execute  ->  receipt
 
+Runnable examples, each step from the command line and from Python:
+:ref:`env__examples`.
+
 .. toctree::
    :maxdepth: 2
 

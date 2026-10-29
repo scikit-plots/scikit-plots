@@ -1,0 +1,5 @@
+- ``generate_apis_reference check`` no longer reports a documented submodule
+  that the package does not import itself (such as
+  ``scikitplot.experimental.enable_ann_imputer``) as stale: a simple name is
+  resolved as autosummary resolves it, the attribute or else the submodule of
+  that name, so ``check`` passes on a complete build.

@@ -15,6 +15,17 @@ does so in a child pytest session in a temporary directory, with
 these tests is left as it was. The child's environment is this one without
 any ``SKPLT_TEST_PERF_*`` variable, so a recorded CI session does not leak
 into its children.
+
+A child session in a temporary project is hermetic: plugin autoloading is
+off (``PYTEST_DISABLE_PLUGIN_AUTOLOAD=1``) and a test that needs a plugin
+loads it with ``-p``. Otherwise every pytest plugin installed in the
+environment joins the child, and under ``-W error`` a plugin's own
+configure-time warning ends the child before any test runs. That is what
+made these tests pass on a developer machine and fail in CI: pytest 9.2
+applies ``-W`` filters to warnings raised in ``pytest_configure``, and
+pytest-asyncio warns there when ``asyncio_default_fixture_loop_scope`` is
+unset (the child's ``pytest.ini`` is empty; the repository's own file
+ignores that warning).
 """
 
 from __future__ import annotations
@@ -51,7 +62,8 @@ def pytest_configure(config):
 """
 
 
-def _child_env(**extra):
+def _child_env(*, hermetic=True, **extra):
+    """Return the environment of a child session (hermetic: no plugin autoload)."""
     env = {
         key: value
         for key, value in os.environ.items()
@@ -59,6 +71,8 @@ def _child_env(**extra):
         and key != "COVERAGE_PROCESS_START"
     }
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    if hermetic:
+        env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env.update(extra)
     return env
 
@@ -184,6 +198,24 @@ def test_this_session_registered_the_recorder_exactly_when_asked(pytestconfig):
 
 
 # -- pure helpers -------------------------------------------------------
+
+
+def test_a_launch_counts_its_program_once():
+    # Regression: on Python 3.13+ ``subprocess.Popen`` starts a child with
+    # ``os.posix_spawn``, so one launch raised two events and counted twice.
+    state = perf._AuditState()
+    state.active = True
+    as_subprocess = {"__name__": "subprocess", "state": state}
+    exec(  # noqa: S102 - a caller frame that belongs to "subprocess"
+        "def launch(exe):\n"
+        "    state.record('subprocess.Popen', (exe, [exe], None, None))\n"
+        "    state.record('os.posix_spawn', (exe, [exe], {}))\n",
+        as_subprocess,
+    )
+    as_subprocess["launch"]("/usr/bin/python3")
+    state.record("os.posix_spawn", ("/bin/true", ["/bin/true"], {}))  # direct call
+    assert state.programs == {"python3": 1, "true": 1}
+    assert state.counts["subprocess"] == 1 and state.counts["spawn"] == 2
 
 
 def test_paths_are_written_relocatably(tmp_path):
@@ -624,7 +656,7 @@ def test_xdist_workers_share_one_run(tmp_path):
         },
     )
     out = tmp_path / "out"
-    proc = _run(project, out, "test_par.py", "-n", "2")
+    proc = _run(project, out, "test_par.py", "-p", "xdist.plugin", "-n", "2")
     assert proc.returncode == 0, proc.stdout + proc.stderr
     files, lines = _records(out)
     sessions = _by_kind(lines, "session")
@@ -644,7 +676,8 @@ def test_the_package_conftest_registers_the_recorder(tmp_path):
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", target],
         cwd=REPO,
-        env=_child_env(SKPLT_TEST_PERF_DIR=str(out)),
+        # The repository's own configuration, with the plugins it expects.
+        env=_child_env(hermetic=False, SKPLT_TEST_PERF_DIR=str(out)),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -665,7 +698,9 @@ def test_the_analyzer_reads_what_the_recorder_writes(tmp_path):
         pytest.skip("needs the repository checkout (.github/scripts/ci_test_perf.py)")
     project = _project(tmp_path, SESSION_TESTS)
     out = tmp_path / "out"
-    _run(project, out, "test_session.py")
+    session = _run(project, out, "test_session.py")
+    # The session has failing tests (1); anything else means it never ran.
+    assert session.returncode == 1, session.stdout + session.stderr
     report = tmp_path / "report"
     proc = subprocess.run(
         [
