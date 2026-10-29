@@ -152,7 +152,7 @@ jobs:
 
       # Step 2: Set up the Python environment
       - name: Python Setup
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.8'  # Specify the Python version
 
@@ -209,7 +209,7 @@ jobs:
       - name: Publish package distributions to TestPyPI
         if: ${{ github.event.inputs.pypi_repo == 'test.pypi' }}
         ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           # user: __token__
           # password: ${{ secrets.TEST_PYPI_API_TOKEN }}  # Accessing Repository Secret TestPyPI API token
@@ -220,7 +220,7 @@ jobs:
       - name: Publish package distributions to  PyPI
         if: ${{ github.event.inputs.pypi_repo == 'pypi' }}
         ## https://docs.pypi.org/trusted-publishers/adding-a-publisher/
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           # user: __token__
           # password: ${{ secrets.PYPI_API_TOKEN }}  # Accessing Repository Secret PyPI API token
