@@ -1025,6 +1025,22 @@ jobs:
       - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
       - pip-install
       - build-scikit-plots
+      - run:
+          # FAIL FAST, right after the build: conf.py imports
+          # docs/source/apis_reference.py, whose _get_submodule(...) calls import
+          # modules at configuration time, and every page template imports its
+          # module. One import error there would end build_docs only after its
+          # setup steps, or 50 minutes into the gallery. This imports exactly
+          # those targets (and every autosummary name) in seconds, in the job
+          # that installed the build. It does not check API coverage. Targets
+          # that need an absent optional dependency are listed, not failed
+          # (add --strict once every documentation dependency is installed here).
+          # -I: the installed build, not the source tree in the working directory.
+          name: "🔎 Check that the API reference imports (seconds, not 50 min)"
+          command: |
+            set -Eeuo pipefail
+            python -I -m scikitplot._build_utils.generate_apis_reference \
+              --repo-root "$PWD" imports
       # - upload-codecov
       # - store_artifacts:
       #     path: results

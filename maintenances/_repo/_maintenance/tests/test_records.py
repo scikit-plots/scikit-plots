@@ -82,7 +82,7 @@ def _failing(root: Path) -> dict[str, list[str]]:
 
 
 def _rules(root: Path, name: str) -> Path:
-    return root / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules" / name
+    return root / "plugins/_shared/skills/scikitplot-engineering-rules/rules" / name
 
 
 def _append(path: Path, text: str) -> None:
@@ -185,8 +185,8 @@ class TestRules:
         assert "rules" not in _failing(tree)
 
     def test_a_rules_file_in_a_subfolder_fails(self, tree):
-        (tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/sub").mkdir()
-        (tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/sub/more.md").write_text(
+        (tree / "plugins/_shared/skills/scikitplot-engineering-rules/rules/sub").mkdir()
+        (tree / "plugins/_shared/skills/scikitplot-engineering-rules/rules/sub/more.md").write_text(
             "Categories: More\n\n### Rule 999: More - x\n", encoding="utf-8"
         )
         errors = _failing(tree)["rules"]
@@ -219,7 +219,7 @@ class TestRules:
 
     def test_a_name_in_prose_is_not_a_link(self, tree):
         """Review 5: a substring match counted ``rules/text.md`` in prose."""
-        path = tree / "plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md"
+        path = tree / "plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md"
         text = path.read_text(encoding="utf-8")
         path.write_text(
             text.replace("[`rules/text.md`](rules/text.md)", "`rules/text.md`"),
@@ -794,3 +794,56 @@ class TestPlugins:
     def test_the_default_plugin_runs_nothing(self):
         for name in (".mcp.json", "hooks", "bin"):
             assert not (ROOT / "plugins/scikitplot" / name).exists(), name
+
+
+class TestIndexTablesAndDisclosure:
+    """CI-11: the index groups packages and areas; programs in a skill are disclosed."""
+
+    def test_every_maintenance_area_is_listed(self):
+        text = (ROOT / "plugins/INDEX.md").read_text(encoding="utf-8")
+        for area in records["maintenance_areas"](ROOT):
+            assert f"maintenances/{area}/" in text, area
+
+    def test_packages_and_repository_areas_are_separate_tables(self):
+        text = (ROOT / "plugins/INDEX.md").read_text(encoding="utf-8")
+        packages = text.split("### Packages", 1)[1].split("### Repository-wide areas", 1)
+        assert "`scikitplot/corpus/`" in packages[0]
+        repo = packages[1].split("## Using scikit-plots", 1)[0]
+        for area in ("_repo", "_docs", "_plugins"):
+            assert f"maintenances/{area}/" in repo, area
+        assert "scikitplot/" not in repo.replace("plugins/scikitplot", "")
+
+    def test_a_container_folder_is_not_an_area(self):
+        found = records["maintenance_areas"](ROOT)
+        assert "_externals" not in found and "cexternals" not in found
+        assert "cexternals/_annoy" in found
+
+    def test_the_moved_skills_are_shared_and_copied(self):
+        names = records["shared_skill_names"](ROOT)
+        for name in ("scikitplot-engineering-rules", "skill-creator"):
+            assert name in names
+            for plugin in ("scikitplot", "scikitplot-dev"):
+                assert (ROOT / "plugins" / plugin / "skills" / name / "SKILL.md").is_file()
+
+    def test_programs_are_disclosed_and_markdown_only_is_not_claimed(self):
+        programs = records["skills_with_programs"](ROOT, records["USAGE_SKILLS_DIR"])
+        assert "skill-creator" in programs
+        readme = (ROOT / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+        assert "`skill-creator`" in readme and "ask" in readme
+        assert "Markdown only" not in readme
+        for program in programs["skill-creator"]:
+            assert f"`{program}`" in readme, program
+
+    def test_a_new_program_in_a_skill_makes_the_readme_stale(self, tree):
+        script = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "tool.py"
+        script.write_text("print(1)\n", encoding="utf-8")
+        assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
+        records["write_indexes"](tree)
+        assert "`scikitplot-api`" in (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
+
+    def test_skill_creator_asks_before_running_programs(self):
+        text = (ROOT / "plugins/_shared/skills/skill-creator/SKILL.md").read_text(encoding="utf-8")
+        head = text.split("## Creating a skill", 1)[0]
+        assert "Modified by scikit-plots" in head
+        assert "explicit yes" in head and "background" in head
+        assert "3117" in head and "claude -p" in head

@@ -65,8 +65,10 @@ plugins/                    everything that ships to Claude
   README.md                 users' guide (hand-written)
   INDEX.md                  generated: package path -> skills and agents of every plugin
   _shared/skills/           skills every plugin carries (one source; copied by --write-index)
-    scholarly-inquiry-cycle/
-  scikitplot/               plugin "scikitplot" (users; Markdown only)
+    scholarly-inquiry-cycle/        structured inquiry on any question
+    scikitplot-engineering-rules/   the numbered rules (no path, no agent)
+    skill-creator/                  Anthropic's, plus a scikit-plots section: ask before each program run
+  scikitplot/               plugin "scikitplot" (users; Markdown, plus skill-creator's programs, disclosed)
     .claude-plugin/plugin.json
     README.md               generated
     skills/scikitplot[-<x>]/SKILL.md, references/API.md    generated
@@ -77,9 +79,7 @@ plugins/                    everything that ships to Claude
   scikitplot-dev/           plugin "scikitplot-dev" (developers, this checkout)
     .claude-plugin/plugin.json
     README.md, sphinx_ext.md   how to pick a development skill
-    skills/scikitplot-<x>-dev/       one per maintained path, metadata.scikitplot-mirror
-    skills/scikitplot-engineering-rules/   the numbered rules (no path, no agent)
-    skills/skill-creator/            vendored third-party skill, kept as published
+    skills/scikitplot-<x>-dev/       one per package or repository-wide area, metadata.scikitplot-mirror
     skills/<shared>/                 generated copy
     agents/scikitplot-<x>-dev.md     generated, one per dev skill with a path
 maintenances/_plugins/      this guide, MAINTAINING.md, the plugins' todo and history
@@ -220,8 +220,10 @@ load them.
 3. *Validate at three levels.* The repository's own checks (names, mirror,
    agents current), the open specification's validator (`agentskills`), and
    Claude Code's (`claude plugin validate`, `--profile directory`).
-4. *Least privilege.* The users' plugin is Markdown only: no hooks, no MCP,
-   no `bin/`. Agents omit `tools`, so they inherit the tools available to
+4. *Least privilege.* The users' plugin has no hooks, no MCP and no `bin/`:
+   nothing runs when it loads. Its only programs are the shared
+   `skill-creator`'s, disclosed in its README (derived from the files) and
+   run only after Claude has told the user what each does and asked. Agents omit `tools`, so they inherit the tools available to
    subagents, still under the user's permission mode.
 5. *Progressive disclosure.* Short descriptions always loaded; the API table
    when a skill loads; the full API only in `references/API.md`.
@@ -259,7 +261,7 @@ load them.
 
 ## 9. Rules that govern this
 
-In `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/delivery.md`:
+In `plugins/_shared/skills/scikitplot-engineering-rules/rules/delivery.md`:
 
 - **Rule 164**: a skill is `<skills dir>/<name>/SKILL.md`, its name its
   folder, prefixed `scikitplot`, derived from its package path.

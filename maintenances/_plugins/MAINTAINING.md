@@ -412,4 +412,4 @@ Never put keys or secrets in `.mcp.json`: every user receives the file.
 | Skills in Claude Code | <https://code.claude.com/docs/en/skills.md> |
 | Subagents | <https://code.claude.com/docs/en/sub-agents.md> |
 | Install Claude Code | <https://code.claude.com/docs/en/setup> |
-| Repository rules 164, 165, 67 | `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/rules/delivery.md` |
+| Repository rules 164, 165, 67 | `plugins/_shared/skills/scikitplot-engineering-rules/rules/delivery.md` |

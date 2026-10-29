@@ -24,6 +24,11 @@ loop (which hung the kernel when the server failed); the URL is read from
 snakeviz's own output (it moves to another port when one is taken) and its
 host is checked by parsing; the server is not killed after a fixed
 ``sleep(3)`` that could be shorter than the page load.
+
+.. seealso::
+  * https://github.com/jiffyclub/snakeviz
+  * https://jiffyclub.github.io/snakeviz/
+  * https://pypi.org/project/snakeviz/
 """
 
 from __future__ import annotations

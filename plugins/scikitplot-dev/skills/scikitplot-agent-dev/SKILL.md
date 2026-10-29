@@ -11,7 +11,7 @@ metadata:
 
 1. `maintenances/agent/MAINTAINING.md`
 2. `maintenances/agent/todo/todo.md` (invariants I1 to I9)
-3. `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md`
+3. `plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md`
 
 ## Mental model
 

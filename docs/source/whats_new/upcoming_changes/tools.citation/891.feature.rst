@@ -1,0 +1,8 @@
+- ``CITATION.bib`` and ``CITATION.cff`` now name the version they were
+  generated for next to the all-versions DOI: the public version (for example
+  ``0.5.dev0``), its kind, the build version with its commit
+  (``0.5.dev0+git.20261028.b656b70``), a link to that exact source tree, and a
+  release's own DOI when Zenodo archived it. The first BibTeX entry keeps its
+  key. ``python tools/citation/citation_ref.py`` renders, checks
+  (``check``, run by a pull-request workflow) and writes
+  (``sync --apply``) both files.

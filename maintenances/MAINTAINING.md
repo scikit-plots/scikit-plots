@@ -38,7 +38,7 @@ Read only what is needed, in this order:
 
 1. this file;
 2. `maintenances/README.md` (where plans, results, history and lessons live) and
-   `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md` (the numbered engineering rules);
+   `plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md` (the numbered engineering rules);
 3. `maintenances/_maintenance/FRESH_CHAT_HANDOFF.md`;
 4. `plugins/scikitplot-dev/README.md`;
 5. the relevant `maintenances/<area>/MAINTAINING.md`;

@@ -1255,7 +1255,8 @@ html_static_path = [
 # Workaround for removing the left sidebar on pages without TOC
 # A better solution would be to follow the merge of:
 # https://github.com/pydata/pydata-sphinx-theme/pull/1682
-# For the primary (left) sidebar, use html_sidebars in conf.py;
+#
+# To remove the primary (left) sidebar only on item, use html_sidebars in conf.py.
 html_sidebars = {
     # "<page_pattern>": ["list", "of", "templates"],
     "affiliated/index": [],

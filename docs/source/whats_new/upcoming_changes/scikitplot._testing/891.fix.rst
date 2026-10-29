@@ -1,0 +1,5 @@
+- The test-performance recorder counts the program of one subprocess launch
+  once on Python 3.13 and newer, where ``subprocess.Popen`` raises a second
+  audit event (``os.posix_spawn``) for the same launch; its tests now run their
+  child pytest sessions without autoloading installed plugins, so they no
+  longer fail under pytest 9.2 when a plugin warns while it is configured.

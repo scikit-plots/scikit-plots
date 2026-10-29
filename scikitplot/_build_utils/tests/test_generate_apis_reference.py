@@ -404,3 +404,246 @@ def test_blueprint_validation_rejects_inheritance_class_outside_autosummary():
     section["classes"] = ["NotDocumented"]
     with pytest.raises(api_ref.APIReferenceError, match="outside autosummary"):
         api_ref.build_reference_source(blueprint)
+
+
+# --- importability (``imports``): what the documentation build imports --------
+
+IMPORT_REFERENCE = '''
+def _get_submodule(module_name, submodule_name, *, strict=True):
+    """Docstring examples are not targets: _get_submodule("nope", "x")."""
+
+APIS_REFERENCE = {
+    "fakepkg": {
+        "description": _get_submodule("fakepkg", "sub") + _get_submodule(
+            "fakepkg", "gone", strict=False
+        ),
+        "sections": [{"title": "A", "autosummary": ["ok", "sub", "missing_name"]}],
+    },
+    "fakepkg.broken": {"sections": [{"title": "B", "autosummary": ["x", "y"]}]},
+    "fakepkg.optional": {"sections": [{"title": "C", "autosummary": ["z"]}]},
+    "fakepkg.capability": {"sections": [{"title": "D", "autosummary": ["feature"]}]},
+    "fakepkg.thirdmod": {"sections": [{"title": "E", "autosummary": ["w"]}]},
+}
+
+DEPRECATED_APIS_REFERENCE = {"0.5": ["sub", "vanished"]}
+'''
+
+FAKE_PACKAGE = {
+    "__init__.py": "def ok():\n    pass\n",
+    "sub.py": "VALUE = 1\n",
+    # A generated file that the build did not produce: a real error.
+    "broken.py": "from . import _generated  # noqa\n",
+    # An optional third-party dependency that is not installed.
+    "optional.py": "import definitely_absent_dist_q7x  # noqa\nz = 1\n",
+    # A tier reported absent by a CapabilityError-like ImportError.
+    "capability.py": (
+        "class CapabilityError(ImportError):\n"
+        "    def __init__(self, message):\n"
+        "        super().__init__(message)\n"
+        "        self.status = 'ABSENT'\n\n"
+        "def __getattr__(name):\n"
+        "    if name == 'feature':\n"
+        "        raise CapabilityError('feature requires flask (ABSENT)')\n"
+        "    raise AttributeError(name)\n"
+    ),
+    # Imports an installed third-party package that is missing its own dependency.
+    "thirdmod.py": "import thirdparty_q7x  # noqa\nw = 1\n",
+    "raises.py": "raise ValueError('a submodule whose body fails')\n",
+}
+
+
+@pytest.fixture
+def fake_package(tmp_path, monkeypatch):
+    root = tmp_path / "site"
+    package = root / "fakepkg"
+    package.mkdir(parents=True)
+    for name, text in FAKE_PACKAGE.items():
+        (package / name).write_text(text, encoding="utf-8")
+    (root / "thirdparty_q7x.py").write_text(
+        "import definitely_absent_dist_q7x  # noqa\n", encoding="utf-8"
+    )
+    monkeypatch.syspath_prepend(str(root))
+
+    def ours(name):
+        return name in ("fakepkg", "thirdparty_q7x") or name.startswith("fakepkg.")
+
+    for name in [m for m in sys.modules if ours(m)]:
+        monkeypatch.delitem(sys.modules, name)
+    yield package
+    for name in [m for m in sys.modules if ours(m)]:
+        sys.modules.pop(name, None)
+
+
+def _importability():
+    return importlib.import_module(
+        "scikitplot._build_utils.generate_apis_reference._importability"
+    )
+
+
+def test_a_simple_name_that_is_a_submodule_resolves(fake_package):
+    # Regression: a submodule the package does not import itself was "stale",
+    # so ``check`` failed although autosummary resolves it by importing it.
+    package = importlib.import_module("fakepkg")
+    assert api_ref._resolve_name(package, "fakepkg", "sub").VALUE == 1
+    with pytest.raises(AttributeError):
+        api_ref._resolve_name(package, "fakepkg", "missing_name")
+
+
+def test_targets_are_read_without_executing(tmp_path):
+    imp = _importability()
+    model = api_ref.load_reference(_reference(tmp_path, IMPORT_REFERENCE))
+    labels = [(t.kind, t.label, t.strict) for t in imp.import_targets(model, package_root="fakepkg")]
+    assert labels[:2] == [("submodule", "fakepkg.sub", True), ("submodule", "fakepkg.gone", False)]
+    assert ("submodule", "nope.x", True) not in labels  # docstring of the helper
+    assert ("module", "fakepkg.broken", True) in labels
+    assert ("name", "fakepkg.missing_name", True) in labels
+    assert labels[-2:] == [("deprecated", "fakepkg.sub", True), ("deprecated", "fakepkg.vanished", True)]
+
+
+def test_every_failure_is_classified(tmp_path, fake_package):
+    imp = _importability()
+    model = api_ref.load_reference(_reference(tmp_path, IMPORT_REFERENCE))
+    report = imp.check_importability(model, package_root="fakepkg", resolve=api_ref._resolve_name)
+    errors = "\n".join(report.errors)
+    assert "name fakepkg.missing_name: AttributeError" in errors
+    assert "module fakepkg.broken: ImportError" in errors
+    assert "deprecated fakepkg.vanished: AttributeError" in errors
+    assert "fakepkg.broken.x" not in errors  # a failed module is reported once
+    assert "module fakepkg.thirdmod: ModuleNotFoundError" in errors  # broken install
+    assert len(report.errors) == 4
+    unavailable = "\n".join(report.unavailable)
+    assert "module fakepkg.optional: ModuleNotFoundError" in unavailable
+    assert "name fakepkg.capability.feature: CapabilityError" in unavailable
+    assert len(report.unavailable) == 2
+    assert report.warnings == [
+        "submodule fakepkg.gone: ModuleNotFoundError: No module named 'fakepkg.gone'"
+    ]
+    assert report.failed() and report.failed(strict=True)
+
+
+def test_unavailable_fails_only_when_strict(tmp_path, fake_package):
+    imp = _importability()
+    body = IMPORT_REFERENCE.replace('"missing_name"', '"ok"').replace(', "vanished"', "")
+    body = body.replace('"fakepkg.broken": {"sections": [{"title": "B", "autosummary": ["x", "y"]}]},\n', "")
+    body = body.replace('"fakepkg.thirdmod": {"sections": [{"title": "E", "autosummary": ["w"]}]},\n', "")
+    model = api_ref.load_reference(_reference(tmp_path, body))
+    report = imp.check_importability(model, package_root="fakepkg", resolve=api_ref._resolve_name)
+    assert report.errors == [] and len(report.unavailable) == 2
+    assert not report.failed() and report.failed(strict=True)
+
+
+def test_an_installed_but_failing_dependency_is_an_error():
+    imp = _importability()
+    exc = ModuleNotFoundError("No module named 'pytest.nope'", name="pytest.nope")
+    assert imp.classify_import_failure(exc, package_root="fakepkg") == "error"
+    own = ModuleNotFoundError("x", name="fakepkg._generated")
+    assert imp.classify_import_failure(own, package_root="fakepkg") == "error"
+    # An absent dependency imported by the package's own code, re-raised by a
+    # wrapper: classified by its cause and by where the import ran.
+    own_code = {"__name__": "fakepkg.wrap"}
+    exec(  # noqa: S102 - code that runs as the package's module
+        "def load():\n"
+        "    try:\n"
+        "        import definitely_absent_dist_q7x  # noqa: F401\n"
+        "    except ImportError as exc:\n"
+        "        raise RuntimeError('wrapper') from exc\n",
+        own_code,
+    )
+    with pytest.raises(RuntimeError) as info:
+        own_code["load"]()
+    assert imp.classify_import_failure(info.value, package_root="fakepkg") == "unavailable"
+    # The same import run by third-party code is a broken install.
+    with pytest.raises(RuntimeError) as info:
+        exec(own_code["load"].__code__, {"__name__": "thirdparty_x"})
+    assert imp.classify_import_failure(info.value, package_root="fakepkg") == "error"
+    broken = ImportError("installed but failing")
+    broken.status = "BROKEN"
+    assert imp.classify_import_failure(broken, package_root="fakepkg") == "error"
+
+
+def test_cli_imports_reports_and_exits(tmp_path, fake_package):
+    package = importlib.import_module("scikitplot._build_utils.generate_apis_reference")
+    (tmp_path / "pyproject.toml").write_text(
+        "[tool.scikitplot.maintenance.api_reference]\n"
+        'package_root = "fakepkg"\nrequire_distribution = false\n',
+        encoding="utf-8",
+    )
+    _reference(tmp_path, IMPORT_REFERENCE)
+    out = io.StringIO()
+    status = package.main(["--repo-root", str(tmp_path), "imports"], stdout=out, stderr=io.StringIO())
+    text = out.getvalue()
+    assert status == 1
+    assert "ERROR name fakepkg.missing_name" in text and "UNAVAILABLE module fakepkg.optional" in text
+    assert text.rstrip().splitlines()[-1].startswith("imports: checked=")
+    out = io.StringIO()
+    status = package.main(
+        ["--repo-root", str(tmp_path), "--module", "fakepkg.optional", "imports", "--json"],
+        stdout=out, stderr=io.StringIO(),
+    )
+    import json  # noqa: PLC0415
+
+    payload = json.loads(out.getvalue())
+    assert status == 0 and payload["failed"] is False and payload["checked"] == 1  # z: not re-reported
+
+
+def _check_body(tmp_path, body):
+    imp = _importability()
+    model = api_ref.load_reference(_reference(tmp_path, body))
+    return imp, model
+
+
+def test_a_strict_submodule_is_an_error_whatever_the_cause(tmp_path, fake_package):
+    # Regression: an absent optional dependency of a strict _get_submodule
+    # target was "unavailable", but conf.py raises on it and the build stops.
+    imp, model = _check_body(tmp_path, (
+        'APIS_REFERENCE = {"fakepkg": {"description": _get_submodule("fakepkg", "optional"),'
+        ' "sections": [{"title": "A", "autosummary": ["ok"]}]}}\n'
+    ))
+    report = imp.check_importability(model, package_root="fakepkg", resolve=api_ref._resolve_name)
+    assert report.errors and report.errors[0].startswith("submodule fakepkg.optional:")
+    assert report.unavailable == []
+
+
+def test_a_failed_warning_does_not_hide_the_module(tmp_path, fake_package):
+    # Regression: a strict=False failure marked its module as failed, so the
+    # module's own (strict) check was skipped and only a warning remained.
+    imp, model = _check_body(tmp_path, (
+        'APIS_REFERENCE = {\n'
+        '  "fakepkg": {"description": _get_submodule("fakepkg", "broken", strict=False),'
+        ' "sections": [{"title": "A", "autosummary": ["ok"]}]},\n'
+        '  "fakepkg.broken": {"sections": [{"title": "B", "autosummary": ["x"]}]},\n'
+        '}\n'
+    ))
+    report = imp.check_importability(model, package_root="fakepkg", resolve=api_ref._resolve_name)
+    assert [w.split(":")[0] for w in report.warnings] == ["submodule fakepkg.broken"]
+    assert [e.split(":")[0] for e in report.errors] == ["module fakepkg.broken"]
+
+
+def test_the_module_filter_keeps_its_description_calls(tmp_path, fake_package):
+    # Regression: --module X skipped the _get_submodule calls of X's description.
+    imp, model = _check_body(tmp_path, IMPORT_REFERENCE)
+    report = imp.check_importability(
+        model, package_root="fakepkg", modules={"fakepkg"}, resolve=api_ref._resolve_name
+    )
+    assert any(w.startswith("submodule fakepkg.gone") for w in report.warnings)
+    assert report.checked == 2 + 1 + 3 + 2  # calls, module, names, deprecated (root)
+
+
+def test_capability_status_decides(tmp_path):
+    imp = _importability()
+    broken = ImportError("tier installed but failing")
+    broken.status = "BROKEN"
+    try:
+        try:
+            import definitely_absent_dist_q7x  # noqa: F401
+        except ImportError:
+            raise broken
+    except ImportError as exc:
+        # Regression: the absent module in __context__ outvoted "broken".
+        assert imp.classify_import_failure(exc, package_root="fakepkg") == "error"
+
+
+def test_a_submodule_whose_body_raises_is_unverified_not_a_crash(fake_package):
+    package = importlib.import_module("fakepkg")
+    with pytest.raises(api_ref.ResolutionUnavailable):
+        api_ref._resolve_name(package, "fakepkg", "raises")
