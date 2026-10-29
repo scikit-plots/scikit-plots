@@ -12,7 +12,10 @@ req:
 	@python ./requirements/generate_requirements.py
 
 cite:
-	@python ./citation/citation_ref.py
+	@python ./citation/citation_ref.py sync --apply
+
+cite-check:
+	@python ./citation/citation_ref.py check
 
 ######################################################################
 ## docs

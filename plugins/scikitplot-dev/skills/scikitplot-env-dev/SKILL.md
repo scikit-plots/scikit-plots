@@ -12,7 +12,7 @@ metadata:
 1. `maintenances/_env/MAINTAINING.md` (flow, module map, invariants)
 2. `maintenances/_env/todo/todo.md` (active work, last results)
 3. `maintenances/_env/todo/lessons.md`
-4. `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names (contracts, testing, logging, numpydoc)
+4. `plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names (contracts, testing, logging, numpydoc)
 
 ## When adding a backend
 

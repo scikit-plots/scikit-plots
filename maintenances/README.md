@@ -19,7 +19,7 @@ evidence) is [`MAINTAINING.md`](MAINTAINING.md); the plugins are mapped in
 **Instructions that name `tasks/todo.md` or `tasks/lessons.md`** (older
 handoffs, standing preferences) mean, today: plans and results go to the
 owner's active `todo/todo.md`; lessons go to the engineering rules, as their
-[`SKILL.md`](../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md)
+[`SKILL.md`](../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md)
 describes.
 
 | Record | Location |
@@ -29,7 +29,7 @@ describes.
 | Repository-wide work: CI, `libs/`, labeling, release tooling | [`_repo/`](_repo/MAINTAINING.md) |
 | Documentation site as a whole: Sphinx build, `conf.py`, API reference | [`_docs/`](_docs/MAINTAINING.md) |
 | Skills, agents, plugins and their release channels | [`_plugins/`](_plugins/MAINTAINING.md) |
-| Engineering rules, numbered, for every area | [`scikitplot-engineering-rules`](../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md) |
+| Engineering rules, numbered, for every area | [`scikitplot-engineering-rules`](../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md) |
 | A fact only one area needs | `maintenances/<area>/todo/lessons.md` |
 | Every archive and the areas it names | [`HISTORY_INDEX.md`](_repo/_maintenance/HISTORY_INDEX.md) |
 | Every skill and agent, by package | [`plugins/INDEX.md`](../plugins/INDEX.md) |
@@ -42,7 +42,7 @@ imports `maintenances/` or `plugins/`.
 ## Starting a session
 
 1. This file, then the engineering rules'
-   [`SKILL.md`](../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md)
+   [`SKILL.md`](../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md)
    and the rule files it names for the work.
 2. The active `todo/todo.md` of the area you work in.
 3. That area's `MAINTAINING.md` and its skill ([`plugins/INDEX.md`](../plugins/INDEX.md)), where present.

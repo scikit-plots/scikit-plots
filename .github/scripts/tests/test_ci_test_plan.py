@@ -627,8 +627,15 @@ class TestExcludedDirectories(Tree):
             done = subprocess.run(
                 [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider", *arguments],
                 cwd=self.root, capture_output=True, text=True, check=False,
-                env=dict(os.environ, PYTEST_ADDOPTS="", PYTHONDONTWRITEBYTECODE="1"),
+                # Rule 169: a temporary project loads no installed plugin.
+                env=dict(
+                    os.environ,
+                    PYTEST_ADDOPTS="",
+                    PYTHONDONTWRITEBYTECODE="1",
+                    PYTEST_DISABLE_PLUGIN_AUTOLOAD="1",
+                ),
             )
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
             return sorted(line for line in done.stdout.splitlines() if "::" in line)
 
         whole = collected("pkg")

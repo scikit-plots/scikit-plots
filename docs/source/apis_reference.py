@@ -1,13 +1,14 @@
+# ⚠ Caution: Do not edit manually. Regenerate docs/source/apis_reference.py with:
+# python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
+# Make durable structural/editorial changes in the .py.in template, not the generated docs file.
+# API-reference source is maintained from the canonical template:
+#
+# scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in
+#
 # pylint: disable=pointless-string-statement
 #
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
-#
-# API-reference source is maintained from the canonical template:
-# scikitplot/_build_utils/generate_apis_reference/apis_reference.py.in
-# Regenerate docs/source/apis_reference.py with:
-# python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
-# Make durable structural/editorial changes in the .py.in template, not the generated docs file.
 
 """
 Configuration for the APIs reference documentation.
@@ -2677,6 +2678,75 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_sphinx_ext._sphinx_ai_assistant.html_to_markdown",
                     "_sphinx_ext._sphinx_ai_assistant.html_to_markdown_converter",
                     "_sphinx_ext._sphinx_ai_assistant.process_html_directory",
+                ],
+            },
+        ],
+    },
+    "scikitplot._ipymagic": {
+        "short_summary": "IPython/Jupyter magics for the scikitplot command line and profiling.",
+        "description": _get_guide("ipymagic-index"),
+        "sections": [
+            {
+                "title": "Notebook magics: extension",
+                # %load_ext scikitplot (or scikitplot._ipymagic)
+                "autosummary": [
+                    "load_ipython_extension",
+                    "unload_ipython_extension",
+                ],
+                # for inheritance-diagram
+                "classes": [],
+            },
+            {
+                "title": "Notebook magics: commands",
+                # %scikitplot / %%scikitplot, usable from plain Python too
+                "autosummary": [
+                    "run_command",
+                    "split_line",
+                    "route",
+                    "wants_json",
+                    "complete",
+                    "Route",
+                    "CommandResult",
+                    "MagicSettings",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "Route",
+                    "CommandResult",
+                    "MagicSettings",
+                ],
+            },
+            {
+                "title": "Notebook magics: profiling",
+                # %scikitplot_profile / %%scikitplot_profile
+                "autosummary": [
+                    "profile_code",
+                    "profiler_busy_reason",
+                    "ProfileResult",
+                    "ProfileRow",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "ProfileResult",
+                    "ProfileRow",
+                ],
+            },
+            {
+                "title": "Notebook magics: errors",
+                "autosummary": [
+                    "IpyMagicError",
+                    "MagicUsageError",
+                    "CommandFailedError",
+                    "ProfilerBusyError",
+                    "CapabilityMissingError",
+                ],
+                # for inheritance-diagram
+                "classes": [
+                    "IpyMagicError",
+                    "MagicUsageError",
+                    "CommandFailedError",
+                    "ProfilerBusyError",
+                    "CapabilityMissingError",
                 ],
             },
         ],

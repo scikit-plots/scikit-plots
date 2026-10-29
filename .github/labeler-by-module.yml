@@ -429,6 +429,7 @@
 - changed-files:
   - any-glob-to-any-file:
     - "scikitplot/config/**/*"
+    - "upcoming_changes/scikitplot/config/**/*"
     - "docs/source/whats_new/upcoming_changes/scikitplot.config/**/*"
 
 "scikitplot/corpus":

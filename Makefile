@@ -1738,5 +1738,6 @@ remove:
 	# find plugins/scikitplot-dev/skills/ -type f -name "SKILL.md" -delete
 	# find plugins/scikitplot-dev/skills/ -type d -empty -delete
 
-# git apply --check ci7-canonical-skills.patch
-# git apply ci7-canonical-skills.patch
+## tab complete any git patch startswith ci1* like ci11-shared-skills-index.patch
+# git apply --check ci1
+# git apply ci1

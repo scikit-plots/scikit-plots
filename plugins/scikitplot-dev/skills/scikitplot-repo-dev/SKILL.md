@@ -14,7 +14,7 @@ field and value it rests on.
 ## Read first
 
 1. [`maintenances/README.md`](../../../../maintenances/README.md) and
-   [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md`](../scikitplot-engineering-rules/SKILL.md) (rules; load
+   [`plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md`](../scikitplot-engineering-rules/SKILL.md) (rules; load
    `verification.md`, `delivery.md`, `tooling.md`, and `testing.md` for tests).
 2. [`.github/ci/README.md`](../../../../.github/ci/README.md), section 12: what is
    recorded, the commands, the findings and their thresholds; section 13:
@@ -118,7 +118,7 @@ python .github/scripts/ci_bench.py compare base.json head.json            # make
 Plan and results go to the owner's `todo/todo.md` (CI and tooling:
 `maintenances/_repo/todo/todo.md`); a finding in another area's runtime goes
 to `upcoming_changes/<area>/`; a lesson becomes a numbered rule
-(`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md`, then `check_records.py --write-index`).
+(`plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md`, then `check_records.py --write-index`).
 
 ## Checks
 

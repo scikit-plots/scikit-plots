@@ -12,7 +12,7 @@ metadata:
 1. `maintenances/feature_selection/MAINTAINING.md` (module map, invariants)
 2. `maintenances/feature_selection/todo/todo.md` (active work, last results)
 3. `maintenances/feature_selection/todo/lessons.md`
-4. `plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names (contracts, testing, packaging)
+4. `plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md` and the rules it names (contracts, testing, packaging)
 
 ## When changing assessments
 

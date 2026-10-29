@@ -26,6 +26,9 @@ Magic                                   Does
 ``pip install scikit-plots[ipymagic]`` installs IPython and snakeviz (the
 interactive profile viewer); the rest needs nothing.
 
+Runnable examples, each step from the command line and from Python:
+:ref:`ipymagic__examples`.
+
 .. toctree::
    :maxdepth: 2
 

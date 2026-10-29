@@ -1,3 +1,9 @@
+
+.. contents:: On this page
+   :local:
+   :depth: 2
+   :backlinks: entry
+
 .. _affiliated-packages-index:
 
 ======================================================================

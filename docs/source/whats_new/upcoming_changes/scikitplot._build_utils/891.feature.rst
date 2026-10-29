@@ -1,0 +1,9 @@
+- ``python -m scikitplot._build_utils.generate_apis_reference imports`` checks
+  only that the documentation build can import what the API reference names:
+  every ``_get_submodule`` target (imported when ``conf.py`` loads
+  ``apis_reference.py``), every documented module and every ``autosummary``
+  and deprecated name. A target that needs an absent optional dependency is
+  reported as unavailable and fails only with ``--strict``; coverage of public
+  names is not checked. CircleCI runs it right after building the package,
+  before the documentation build, and it is the ``check-apis-reference``
+  pre-push hook.

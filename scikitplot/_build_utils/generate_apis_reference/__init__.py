@@ -10,6 +10,27 @@ The API reference mixes two kinds of information:
   and
 * public symbol inventories, which can be checked against an installed package.
 
+Usage::
+
+    # Verify generated output exactly matches the canonical template.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild --check
+
+    # Preview a full rebuild. No package API imports and no write.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild
+
+    # Recreate the generated file even if it was deleted.
+    python -m scikitplot._build_utils.generate_apis_reference rebuild --apply
+
+    # Runtime verification requires an installed/importable Scikit-Plots build.
+    python -m scikitplot._build_utils.generate_apis_reference check
+    python -m scikitplot._build_utils.generate_apis_reference check --strict-coverage
+
+    # Only what the docs build needs: every documented target imports.
+    python -m scikitplot._build_utils.generate_apis_reference imports
+    python -m scikitplot._build_utils.generate_apis_reference imports --strict
+    python -m scikitplot._build_utils.generate_apis_reference plan
+    python -m scikitplot._build_utils.generate_apis_reference inventory
+
 ``docs/source/apis_reference.py`` is a disposable generated artifact.  ``rebuild``
 can recreate the complete file from the adjacent ``apis_reference.py.in`` template
 without importing Scikit-Plots, so a deleted or stale generated file is recoverable
@@ -35,6 +56,7 @@ import copy
 import difflib
 import importlib
 import importlib.metadata
+import importlib.util
 import inspect
 import json
 import os
@@ -982,6 +1004,14 @@ def load_reference(
 # ---------------------------------------------------------------------------
 
 
+def _is_submodule(dotted: str) -> bool:
+    """Return whether ``dotted`` names an importable-by-path submodule (no import)."""
+    try:
+        return importlib.util.find_spec(dotted) is not None
+    except (ImportError, ValueError):  # the parent is not a package
+        return False
+
+
 def _resolve_name(
     module: object,
     module_name: str,
@@ -989,7 +1019,12 @@ def _resolve_name(
 ) -> object:
     """Resolve dotted reference names, importing a submodule prefix when needed.
 
-    A missing simple attribute is definitive and raises :class:`AttributeError`.
+    A simple name is resolved as Sphinx autosummary does: the attribute, else
+    a submodule of that name (``scikitplot.experimental.enable_ann_imputer``
+    is a module that the package does not import itself). A simple name that
+    is neither is definitive and raises :class:`AttributeError`. As for
+    autosummary, a removed attribute that has a submodule of the same name
+    resolves to that submodule.
     A dotted submodule that cannot be imported is *not* definitive because the
     installed environment may lack an optional/compiled capability; that case
     raises :class:`ResolutionUnavailable` so callers do not auto-prune it.
@@ -1007,14 +1042,20 @@ def _resolve_name(
                 % (module_name, name, type(exc).__name__, exc)
             ) from exc
         except AttributeError:
-            if index == 0 and len(parts) == 1:
+            if (
+                index == 0
+                and len(parts) == 1
+                and not _is_submodule(f"{module_name}.{part}")
+            ):
                 raise
 
         prefix = "%s.%s" % (module_name, ".".join(parts[: index + 1]))
         try:
             current = importlib.import_module(prefix)
             continue
-        except (ImportError, ModuleNotFoundError) as exc:
+        # Not only ImportError: a submodule whose body raises (ValueError,
+        # SystemExit ...) is unverifiable here, never a crash of the caller.
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 - reported
             raise ResolutionUnavailable(
                 "%s could not import %s while resolving %s: %s"
                 % (module_name, prefix, name, exc)
@@ -1603,6 +1644,24 @@ def _parser() -> argparse.ArgumentParser:
         help="emit machine-readable JSON",
     )
 
+    imports = subparsers.add_parser(
+        "imports",
+        help=(
+            "verify only that every documented module, submodule and name imports "
+            "as the docs build imports it (no coverage check)"
+        ),
+    )
+    imports.add_argument(
+        "--strict",
+        action="store_true",
+        help="fail also when a target needs an absent optional dependency",
+    )
+    imports.add_argument(
+        "--json",
+        action="store_true",
+        help="emit machine-readable JSON",
+    )
+
     plan = subparsers.add_parser(
         "plan",
         help="show stale, missing, and safe section assignments",
@@ -1721,6 +1780,54 @@ def _reference_path(
     return candidate
 
 
+def _run_imports(
+    args: argparse.Namespace,
+    model: ReferenceModel,
+    policy: Policy,
+    module_filter: Optional[set[str]],
+    out: TextIO,
+) -> int:
+    """Run the ``imports`` command; return its exit status."""
+    from ._importability import check_importability  # noqa: PLC0415
+
+    unknown = sorted((module_filter or set()) - set(model.modules))
+    if unknown:
+        raise APIReferenceError(
+            f"unknown APIS_REFERENCE module(s): {', '.join(unknown)}",
+        )
+    if policy.require_distribution and not args.allow_uninstalled:
+        try:
+            importlib.metadata.distribution(policy.distribution)
+        except importlib.metadata.PackageNotFoundError as exc:
+            raise APIReferenceError(
+                f"distribution {policy.distribution!r} is not installed; install the "
+                "built project or pass --allow-uninstalled"
+            ) from exc
+    report = check_importability(
+        model, package_root=policy.package_root, modules=module_filter
+    )
+    failed = report.failed(strict=args.strict)
+    if args.json:
+        payload = report.to_dict()
+        payload["failed"] = failed
+        print(json.dumps(payload, indent=2, sort_keys=True), file=out)
+    else:
+        for label, lines in (
+            ("ERROR", report.errors),
+            ("UNAVAILABLE", report.unavailable),
+            ("WARNING", report.warnings),
+        ):
+            for line in lines:
+                print(f"{label} {line}", file=out)
+        print(
+            f"imports: checked={report.checked} errors={len(report.errors)} "
+            f"unavailable={len(report.unavailable)} warnings={len(report.warnings)}"
+            + (" (strict)" if args.strict else ""),
+            file=out,
+        )
+    return 1 if failed else 0
+
+
 def main(
     argv: Optional[Sequence[str]] = None,
     *,
@@ -1834,6 +1941,9 @@ def main(
 
         model = load_reference(reference_path)
         module_filter = set(args.modules) if args.modules else None
+
+        if args.command == "imports":
+            return _run_imports(args, model, policy, module_filter, out)
         report = inspect_reference(
             model,
             policy,
