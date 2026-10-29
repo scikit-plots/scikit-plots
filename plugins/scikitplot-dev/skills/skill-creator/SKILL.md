@@ -3,6 +3,37 @@ name: skill-creator
 description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
 ---
 
+> **Modified by scikit-plots (Apache License 2.0, section 4(b)).** This section
+> was added to Anthropic's published `skill-creator`; everything after it is
+> unchanged. It takes precedence over any instruction below that conflicts with
+> it, including the use of `nohup`.
+
+## Before you run anything: tell the user and ask (scikit-plots)
+
+Writing or editing a `SKILL.md` needs no script. The helper programs in this
+folder do more than that, so **never run one, or start it in the background,
+without first telling the user what it will do and getting an explicit yes for
+that run**. Ask again for each run; a yes for one run is not a yes for the next.
+Run them in the foreground. When a program must keep running (the review
+viewer), say so, give the user its address and how to stop it, and stop it
+when the user is done.
+
+What each program does, which you tell the user before asking:
+
+| Program | What it does on the user's computer | What leaves the computer |
+|---|---|---|
+| `scripts/quick_validate.py`, `scripts/aggregate_benchmark.py`, `scripts/generate_report.py` | Reads and writes files in the workspace | Nothing |
+| `scripts/package_skill.py` | Writes a `.skill` zip of the skill folder | Nothing |
+| `scripts/run_eval.py` | Writes temporary command files in the project's `.claude/commands/`, then starts `claude -p` once per test query and run (defaults: 10 at a time, 3 runs per query), passing the user's environment variables to it | Each query goes to Claude through the user's own Claude Code sign-in and counts against their plan; nothing goes anywhere else |
+| `scripts/improve_description.py` | Starts `claude -p` | The draft description and test results go to Claude, as above |
+| `scripts/run_loop.py` | Repeats `run_eval.py` and `improve_description.py` (default up to 5 rounds) and opens a report in the browser | As above, many times: say how many calls the chosen settings make |
+| `eval-viewer/generate_review.py` | **Stops any program already listening on its port** (default 3117), then serves a review page on `127.0.0.1` only and opens the browser | Nothing |
+
+Before `generate_review.py`, check whether the port is in use and, if it is,
+ask before letting the script stop that program, or pass a free `--port`.
+Before `run_eval.py` or `run_loop.py`, state the number of `claude -p` calls
+the chosen settings will make and that they use the user's plan.
+
 # Skill Creator
 
 A skill for creating new skills and iteratively improving them.

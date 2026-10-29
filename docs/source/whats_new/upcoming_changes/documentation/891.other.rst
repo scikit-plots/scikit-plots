@@ -1,0 +1,5 @@
+- New gallery sections for the notebook magics (``galleries/examples/ipymagic``:
+  commands, a ``cleanprompt`` cell, the MCP server, the profiler) and for the
+  environment builder (``galleries/examples/env``: plan, build and remove,
+  configuration files, policies and error codes), and ``scikitplot._ipymagic``
+  in the API reference.

@@ -436,6 +436,64 @@ def _active_profiler():
     return None
 
 
+def _called_from_subprocess():
+    """
+    Return whether the audited call was made by the :mod:`subprocess` module.
+
+    Returns
+    -------
+    bool
+        True when the first Python frame outside this module belongs to
+        :mod:`subprocess`.
+
+    Notes
+    -----
+    **Developer notes.** On Python 3.13 and newer, :class:`subprocess.Popen`
+    starts most children with :func:`os.posix_spawn`, so one launch raises
+    two audit events (``subprocess.Popen``, then ``os.posix_spawn``) and its
+    program was counted twice; older versions use ``fork_exec`` and raise
+    one. The ``os.posix_spawn`` of a launch is told apart by its caller,
+    deterministically, rather than by pairing events in time.
+    """
+    frame = sys._getframe(1)  # noqa: SLF001 - the documented frame accessor
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        frame = frame.f_back
+    return frame is not None and frame.f_globals.get("__name__") == "subprocess"
+
+
+def _program_key(name, args):
+    """
+    Return the program an audited launch runs, by its file name, or None.
+
+    Parameters
+    ----------
+    name : {"subprocess", "spawn", "exec_program"}
+        The counter of the audit event.
+    args : tuple
+        The event's arguments.
+
+    Returns
+    -------
+    str or None
+        The program's base name; None when there is none, or when the event
+        is the ``os.posix_spawn`` of a :class:`subprocess.Popen` already
+        counted at its own event (see :func:`_called_from_subprocess`).
+    """
+    if name == "spawn" and _called_from_subprocess():
+        return None
+    program = args[0] if args else None
+    if program is None and name == "subprocess" and len(args) > 1:
+        argv = args[1]
+        program = (
+            argv if isinstance(argv, (str, bytes)) else (argv[0] if argv else None)
+        )
+    if isinstance(program, bytes):
+        program = os.fsdecode(program)
+    if program is None:
+        return None
+    return os.path.basename(str(program).split()[0]) if str(program) else ""
+
+
 class _AuditState:
     """
     Counters fed by the process's audit hook.
@@ -487,22 +545,8 @@ class _AuditState:
                     if runs > 1:
                         self.reexecuted.append(filename)
             elif name in ("subprocess", "spawn", "exec_program"):
-                program = args[0] if args else None
-                if program is None and name == "subprocess" and len(args) > 1:
-                    argv = args[1]
-                    program = (
-                        argv
-                        if isinstance(argv, (str, bytes))
-                        else (argv[0] if argv else None)
-                    )
-                if isinstance(program, bytes):
-                    program = os.fsdecode(program)
-                if program is not None:
-                    key = (
-                        os.path.basename(str(program).split()[0])
-                        if str(program)
-                        else ""
-                    )
+                key = _program_key(name, args)
+                if key is not None:
                     self.programs[key] = self.programs.get(key, 0) + 1
             elif name == "sleep":
                 self.sleep_seen = True

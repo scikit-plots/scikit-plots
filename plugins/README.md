@@ -384,9 +384,12 @@ On claude.ai, manage it in **Customize → Plugins**.
 
 ## 13. Security and privacy
 
-- The `scikitplot` plugin is **Markdown only**: skills, agents and a README.
-  It has no hooks, no MCP servers and no executables, and it sends nothing
-  anywhere by itself.
+- The `scikitplot` plugin **runs nothing by itself**: no hooks, no MCP
+  servers, nothing that starts when it loads. Its skills and agents are
+  Markdown, except `skill-creator`, which ships helper programs for writing
+  and testing skills. Claude tells you what each one does and asks you before
+  every run; the plugin's README lists them and what they send (only to
+  Claude, through your own Claude Code, never elsewhere).
 - The **agents inherit Claude Code's tools**, so they can read and edit files
   and run commands in your project, under your permission mode. Shift+Tab
   cycles the mode; choose one that asks before acting while you learn
@@ -408,7 +411,7 @@ tokens of context to each session while the plugin is enabled.
 the read-only, source-cited documentation search server
 (`python -m scikitplot.mcp`), which runs on your machine in the Python where
 scikit-plots is installed (`pip install "scikit-plots[mcp]"` if your release
-has that extra). `scikitplot` itself stays Markdown only and runs nothing.
+has that extra). `scikitplot` itself starts no server and runs nothing by itself.
 Install it from the development marketplace:
 `claude plugin install scikitplot-mcp@scikit-plots`. Bundles for other
 clients (Cursor, Windsurf, VS Code, Continue, Cline, Codex) are in

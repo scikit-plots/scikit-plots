@@ -7,6 +7,19 @@
 # https://github.com/asottile/pyupgrade/pull/365
 ---
 ci:
+  # Only tells pre-commit.ci to skip that hook; it does not disable it locally.
+  # Your local hook will still run on commit if you’ve installed the Git hook with: `pre-commit install`
+  # keeps pre-commit.ci from running these hooks in its environment; it doesn’t stop your local pre-push hooks.
+  # [check-records, check-skills, check-affiliated-index, check-path-lengths, check-pr-labeler, check-towncrier-sections, check-apis-reference, check-citation]
+  skip:
+    - check-records
+    - check-skills
+    - check-affiliated-index
+    - check-path-lengths
+    - check-pr-labeler
+    - check-towncrier-sections
+    - check-apis-reference
+    - check-citation
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
   autofix_prs: false
   autoupdate_schedule: 'monthly'
@@ -20,6 +33,83 @@ ci:
 # pre-commit autoupdate
 # pre-commit install
 repos:
+
+  # Sync with tools/maint_tools/README.md
+  - repo: local
+    hooks:
+      - id: check-records
+        name: Run check records
+        entry: python -I -B maintenances/_repo/_maintenance/tools/check_records.py
+        language: unsupported
+        # They'll run once when you push, rather than on every commit.
+        # pre-commit install --hook-type pre-push
+        stages: [pre-push]
+        # scripts should run on every commit regardless of changed files
+        always_run: true
+        # types: [python]
+        pass_filenames: false
+        # files: \.py$
+
+      - id: check-skills
+        name: Run check skills
+        entry: python -I -B tools/maint_tools/generate_usage_skills.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-affiliated-index
+        name: Run check affiliated index
+        entry: python -I -B tools/maint_tools/generate_affiliated_index.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-path-lengths
+        name: Run check path lengths
+        entry: python -I -B tools/maint_tools/check_path_lengths.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-pr-labeler
+        name: Run check pr labeler
+        entry: python -I -B tools/maint_tools/generate_pr_labeler.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-towncrier-sections
+        name: Run check towncrier sections
+        entry: python -I -B tools/maint_tools/generate_towncrier_sections.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      - id: check-citation
+        name: Run check citation files
+        # Needs jinja2; regenerate with: python tools/citation/citation_ref.py sync --apply
+        entry: python -I -B tools/citation/citation_ref.py check
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
+
+      # Importability only (not API coverage): every module, _get_submodule
+      # target and autosummary name of docs/source/apis_reference.py imports,
+      # as the docs build (conf.py, templates, autosummary) imports it.
+      # Needs a built/installed scikit-plots (-I: not the source tree).
+      - id: check-apis-reference
+        name: Run check apis reference imports
+        entry: python -I -B -m scikitplot._build_utils.generate_apis_reference --repo-root . imports
+        language: unsupported
+        stages: [pre-push]
+        always_run: true
+        pass_filenames: false
 
   # - repo: https://github.com/asottile/pyupgrade
   #   rev: v3.21.2

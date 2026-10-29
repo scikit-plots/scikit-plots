@@ -14,7 +14,7 @@ Claude (skills, agents, MCP):
 * ``maintenances/<area>/_maintenance/history/`` - completed tasks, verbatim;
 * ``maintenances/_repo/`` - repository-wide work (CI, ``libs/``, labeling);
 * ``maintenances/_docs/`` - the documentation site;
-* ``plugins/scikitplot-dev/skills/scikitplot-engineering-rules/`` - the numbered engineering rules, by category;
+* ``plugins/_shared/skills/scikitplot-engineering-rules/`` - the numbered engineering rules, by category (shared: every plugin carries a copy);
 * ``plugins/scikitplot-dev/skills/<name>/SKILL.md`` and ``plugins/scikitplot-dev/agents/<name>.md`` - development skills
   and their agents, ``plugins/scikitplot/`` - usage skills and agents for any
   project (``plugins/INDEX.md`` lists both by package; Rules 164 and 165);
@@ -73,7 +73,7 @@ ROUTER = "maintenances/README.md"
 PLUGINS_DIR = "plugins"
 DEV_PLUGIN_DIR = f"{PLUGINS_DIR}/scikitplot-dev"
 SKILLS_DIR = f"{DEV_PLUGIN_DIR}/skills"
-SKILL_DIR = f"{SKILLS_DIR}/scikitplot-engineering-rules"
+SKILL_DIR = f"{PLUGINS_DIR}/_shared/skills/scikitplot-engineering-rules"
 RULES_DIR = f"{SKILL_DIR}/rules"
 INDEX = f"{SKILL_DIR}/INDEX.md"
 SKILL = f"{SKILL_DIR}/SKILL.md"
@@ -640,7 +640,7 @@ def check_budgets(root: Path) -> list[str]:
 # * development skills, ``plugins/scikitplot-dev/skills/`` - working on scikit-plots in this
 #   checkout. One per maintained path below ``scikitplot/`` and
 #   ``maintenances/``, recorded as ``metadata.scikitplot-mirror`` and named
-#   ``scikitplot-<derived>-dev``; plus the cross-cutting
+#   ``scikitplot-<derived>-dev``; plus the cross-cutting (shared)
 #   ``scikitplot-engineering-rules``.
 # * usage skills, ``plugins/scikitplot/skills/`` - using scikit-plots in any
 #   project, one per public module, recorded as ``metadata.scikitplot-module``
@@ -663,7 +663,8 @@ PREFIX = "scikitplot"
 DEV_SUFFIX = "-dev"
 #: Development skills that maintain no single path (no agent of their own).
 CROSS_CUTTING_SKILLS = ("scikitplot-engineering-rules",)
-#: Third-party skills kept as they were published.
+#: Third-party skills, kept as published except for a marked scikit-plots section
+#: (``skill-creator``: tell the user and ask before running its programs).
 VENDORED_SKILLS = ("skill-creator",)
 SKILL_NAME_MAX = 64
 SKILL_DESCRIPTION_MAX = 1024
@@ -1174,16 +1175,67 @@ def _rel_to_plugins(path: str) -> str:
     return path[len(PLUGINS_DIR) + 1 :]
 
 
+def maintenance_areas(root: Path) -> list[str]:
+    """
+    Return every maintenance area: a folder of ``maintenances/`` with records of its own.
+
+    A folder counts when it holds ``MAINTAINING.md``, ``todo/`` or
+    ``_maintenance/`` directly; a folder that only contains other areas
+    (``_externals``, ``cexternals``) does not. Archives are never areas.
+    """
+    base = root / "maintenances"
+    found = set()
+    for marker in ("MAINTAINING.md", "todo", "_maintenance"):
+        for path in base.rglob(marker):
+            rel = path.parent.relative_to(base).as_posix()
+            if rel != "." and not is_archive(f"maintenances/{rel}/x") and "/_maintenance" not in f"/{rel}":
+                found.add(rel)
+    return sorted(found)
+
+
+def _guide(root: Path, area: str, start: str) -> str:
+    """Return a link to an area's ``MAINTAINING.md`` (else its folder) relative to *start*, or ``-``."""
+    for target in (f"maintenances/{area}/MAINTAINING.md", f"maintenances/{area}"):
+        if (root / target).exists():
+            rel = os.path.relpath(target, start).replace(os.sep, "/")
+            return f"[`maintenances/{area}/`]({rel})"
+    return "-"
+
+
 def render_skill_index(root: Path) -> str:
-    """Render ``plugins/INDEX.md``: every plugin's skills, by path, with their agents."""
+    """
+    Render ``plugins/INDEX.md``: every plugin's skills and agents, grouped for reading.
+
+    Notes
+    -----
+    **User notes.** Four tables: the development skills of packages
+    (``scikitplot/<path>``) with their maintenance areas; the repository-wide
+    areas (``maintenances/_<area>``, no package), every one listed, with or
+    without a skill; the usage skills; and the shared skills every plugin
+    carries. A ``-`` is a gap to fill, not an error.
+    """
     dev, _ = dev_skills(root)
     usage, _ = usage_skills(root)
     shared = set(shared_skill_names(root))
+    packages, _ = areas(root)
+    areas_all = maintenance_areas(root)
     skills, agents = _rel_to_plugins(SKILLS_DIR), _rel_to_plugins(AGENTS_DIR)
     uskills, uagents = _rel_to_plugins(USAGE_SKILLS_DIR), _rel_to_plugins(USAGE_AGENTS_DIR)
-    mirrored = sorted((s for s in dev if s.mirror), key=lambda s: s.mirror)
-    other = sorted(
-        (s for s in dev if not s.mirror and s.folder not in shared), key=lambda s: s.folder
+    by_mirror = {s.mirror: s for s in dev if s.mirror}
+
+    def skill_cells(mirror: str) -> str:
+        s = by_mirror.get(mirror)
+        if s is None:
+            return "-"
+        return f"[`{s.folder}`]({skills}/{s.folder}/SKILL.md) · [agent]({agents}/{s.folder}.md)"
+
+    package_rows = sorted(
+        {m for m in by_mirror if m in packages}
+        | {a for a in areas_all if a in packages}
+    )
+    repo_rows = sorted(
+        {m for m in by_mirror if m not in packages}
+        | {a for a in areas_all if a not in packages and "/" not in a}
     )
     lines = [
         "# Skills and agents by package",
@@ -1191,47 +1243,173 @@ def render_skill_index(root: Path) -> str:
         "Generated by `python -B maintenances/_repo/_maintenance/tools/check_records.py"
         " --write-index`; do not edit. Skills follow the Agent Skills specification (the"
         " `name` equals the folder); names are derived from the package path (Rule 164);"
-        " each agent has its skill's name and preloads it (Rule 165).",
+        " each agent has its skill's name and preloads it (Rule 165). A `-` marks a gap"
+        " to fill.",
         "",
-        "## Developing scikit-plots (this checkout: the `scikitplot-dev` plugin)",
+        "## Developing scikit-plots (the `scikitplot-dev` plugin)",
         "",
-        "| `scikitplot/` and `maintenances/` path | Skill | Agent |",
+        "### Packages (`scikitplot/<path>`)",
+        "",
+        "| Package | Skill · agent | Maintenance area |",
         "|---|---|---|",
     ]
     lines += [
-        f"| `{s.mirror}` | [`{s.folder}`]({skills}/{s.folder}/SKILL.md)"
-        f" | [`{s.folder}`]({agents}/{s.folder}.md) |"
-        for s in mirrored
+        f"| `scikitplot/{m}/` | {skill_cells(m)} | {_guide(root, m, PLUGINS_DIR)} |"
+        for m in package_rows
     ]
-    if other:
-        lines += ["", "For the whole checkout:", ""]
-        lines += [f"- [`{s.folder}`]({skills}/{s.folder}/SKILL.md)" for s in other]
+    lines += [
+        "",
+        "### Repository-wide areas (`maintenances/_<area>`, no package)",
+        "",
+        "| Area | Skill · agent |",
+        "|---|---|",
+    ]
+    lines += [f"| {_guide(root, m, PLUGINS_DIR)} | {skill_cells(m)} |" for m in repo_rows]
     lines += [
         "",
         "## Using scikit-plots (any project: the `scikitplot` plugin)",
         "",
-        "| Module | Skill | Agent |",
-        "|---|---|---|",
+        "| Module | Skill · agent |",
+        "|---|---|",
     ]
     lines += [
         f"| `{s.mirror}` | [`{s.folder}`]({uskills}/{s.folder}/SKILL.md)"
-        f" | [`{s.folder}`]({uagents}/{s.folder}.md) |"
+        f" · [agent]({uagents}/{s.folder}.md) |"
         for s in sorted((s for s in usage if s.mirror), key=lambda s: s.mirror)
     ]
     if shared:
+        programs = skills_with_programs(root, SHARED_SKILLS_DIR)
         lines += [
             "",
             "## Shared by every plugin",
             "",
-            f"Source in `{_rel_to_plugins(SHARED_SKILLS_DIR)}/`; each plugin carries a"
-            " byte-identical copy written by `--write-index`.",
+            f"Source in `{_rel_to_plugins(SHARED_SKILLS_DIR)}/`; `scikitplot` and"
+            " `scikitplot-dev` each carry a byte-identical copy written by `--write-index`.",
             "",
+            "| Skill | What it is for | Ships programs |",
+            "|---|---|---|",
+        ]
+        for name in sorted(shared):
+            text = (root / SHARED_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8")
+            fields, _ = parse_skill_frontmatter(text)
+            summary = re.split(r"(?<=[.!?])\s", str(fields.get("description", "")), maxsplit=1)[0]
+            ships = "yes (asks before each run)" if name in programs else "no"
+            lines.append(
+                f"| [`{name}`]({_rel_to_plugins(SHARED_SKILLS_DIR)}/{name}/SKILL.md)"
+                f" | {summary.replace('|', chr(92) + '|')} | {ships} |"
+            )
+    return "\n".join(lines) + "\n"
+
+
+#: File suffixes that are programs, not instructions, inside a skill folder.
+PROGRAM_SUFFIXES = (".py", ".sh", ".js", ".ts", ".ps1", ".bat", ".exe")
+
+
+def skills_with_programs(root: Path, base: str) -> dict[str, list[str]]:
+    """
+    Return each skill under *base* that ships programs, with those files.
+
+    Parameters
+    ----------
+    root : Path
+        Repository root.
+    base : str
+        A skills folder, such as :data:`USAGE_SKILLS_DIR`.
+
+    Returns
+    -------
+    dict
+        Skill folder -> sorted paths inside it of every file whose suffix is
+        in :data:`PROGRAM_SUFFIXES`; skills with none are left out.
+
+    Notes
+    -----
+    **Developer notes.** The README's disclosure is derived from this, not
+    written by hand, so adding a script to any skill changes the README and
+    a stale README fails ``check_records.py`` (Rule 167).
+    """
+    out: dict[str, list[str]] = {}
+    folder = root / base
+    if not folder.is_dir():
+        return out
+    for skill in sorted(p for p in folder.iterdir() if p.is_dir()):
+        found = sorted(
+            f.relative_to(skill).as_posix()
+            for f in skill.rglob("*")
+            if f.is_file() and f.suffix.lower() in PROGRAM_SUFFIXES and "__pycache__" not in f.parts
+        )
+        if found:
+            out[skill.name] = found
+    return out
+
+
+def _runs_and_sends(root: Path) -> list[str]:
+    """Return the README's *What it runs and sends* and *Data handling* sections."""
+    programs = skills_with_programs(root, USAGE_SKILLS_DIR)
+    lines = ["## What it runs and sends", ""]
+    if not programs:
+        lines += [
+            "Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no",
+            "MCP servers and no scripts, runs no code of its own and sends no data anywhere.",
+        ]
+    else:
+        names = ", ".join(f"`{name}`" for name in programs)
+        lines += [
+            "Nothing by itself. The plugin has no hooks, no MCP servers and nothing that",
+            "starts when it loads. Every skill and agent is Markdown, except the skills",
+            f"listed below, which also ship helper programs ({names}). The programs run",
+            "only when Claude runs them for you, and each such skill tells Claude to explain what a program does",
+            "and to ask you before every run, never to start one in the background",
+            "unannounced. What each one does is in the table at the top of its `SKILL.md`.",
+            "",
+            "| Skill | Programs it ships |",
+            "|---|---|",
         ]
         lines += [
-            f"- [`{name}`]({_rel_to_plugins(SHARED_SKILLS_DIR)}/{name}/SKILL.md)"
-            for name in sorted(shared)
+            f"| `{name}` | {', '.join(f'`{f}`' for f in files)} |"
+            for name, files in programs.items()
         ]
-    return "\n".join(lines) + "\n"
+        if "skill-creator" in programs:
+            lines += [
+                "",
+                "`skill-creator` (Anthropic's, with a scikit-plots consent section added) is",
+                "for writing and testing skills. Its evaluation programs start `claude -p`",
+                "with your environment variables, so the test queries go to Claude through",
+                "your own Claude Code sign-in and count against your plan; its review page",
+                "is served on `127.0.0.1` only, and before starting it stops any program",
+                "already using its port (3117 by default), which Claude must ask you about",
+                "first. Nothing goes to any other service.",
+            ]
+    lines += [
+        "",
+        "The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,",
+        "in the development marketplace.",
+        "",
+        "## Data handling",
+        "",
+        "| Question | Answer |",
+        "|---|---|",
+        "| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors; it tells Claude how to use the scikit-plots library and, with `skill-creator`, how to write skills. |",
+    ]
+    if programs:
+        lines += [
+            "| Does any skill send data to a service? | Only to Claude, and only when you approve a run: `skill-creator`'s evaluation programs send test queries and draft descriptions to Claude through your own Claude Code (`claude -p`). No skill sends data anywhere else. The Python examples in the other skills run only when you run them, in your own environment. |",
+        ]
+    else:
+        lines += [
+            "| Does any skill send data to a service? | No. No skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |",
+        ]
+    lines += [
+        "| How long is data received from Claude kept? | It is not kept: there is no scikit-plots service, so nothing is received from Claude. |",
+        "| Is it intended for users under 18? | No. It is a developer tool for a Python library. |",
+        "| What does it change on my computer? | Installing it adds files to Claude's plugin folder. Anything else happens only when Claude writes or runs code with its help, under your Claude permission settings; the helper programs above, only after Claude has asked you. |",
+        "| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session; `skill-creator`'s evaluations make many `claude -p` calls, and Claude states how many before asking you. |",
+        "",
+        "What Claude itself does with your conversations is set by your Claude",
+        "account, not by this plugin.",
+        "",
+    ]
+    return lines
 
 
 def render_plugin_readme(root: Path) -> str:
@@ -1246,27 +1424,7 @@ def render_plugin_readme(root: Path) -> str:
         "[Agent Skills specification](https://agentskills.io/specification), so a skill",
         "folder can also be copied into any tool that reads that format.",
         "",
-        "## What it runs and sends",
-        "",
-        "Nothing. The plugin is Markdown only: skills and agents. It has no hooks, no",
-        "MCP servers and no scripts, runs no code of its own and sends no data anywhere.",
-        "The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,",
-        "in the development marketplace.",
-        "",
-        "## Data handling",
-        "",
-        "| Question | Answer |",
-        "|---|---|",
-        "| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors and no code; it only tells Claude how to use the scikit-plots library. |",
-        "| Does any skill send data to a service? | No. No skill or agent makes a network call. The Python examples in the skills run only when you run them, in your own environment, and do only what the library call in them does. |",
-        "| How long is data received from Claude kept? | It is not kept: there is no service, so the plugin receives nothing from Claude. |",
-        "| Is it intended for users under 18? | No. It is a developer tool for a Python library. |",
-        "| What does it change on my computer? | Nothing by itself. Installing it adds Markdown files to Claude's plugin folder; any code Claude writes or runs with its help follows your Claude permission settings. |",
-        "| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session. |",
-        "",
-        "What Claude itself does with your conversations is set by your Claude",
-        "account, not by this plugin.",
-        "",
+        *_runs_and_sends(root),
         "## Install",
         "",
         "Released versions, whose skills describe that release of scikit-plots (the",

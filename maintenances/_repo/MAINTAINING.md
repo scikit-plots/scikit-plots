@@ -13,7 +13,7 @@ repository-wide procedure (read order, planes, evidence) is
 - Active tasks: [`todo/todo.md`](todo/todo.md).
 - Where other records live: [`maintenances/README.md`](../README.md).
 - Every archive, with the areas it names: [`HISTORY_INDEX.md`](_maintenance/HISTORY_INDEX.md).
-- Rules: [`plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md`](../../plugins/scikitplot-dev/skills/scikitplot-engineering-rules/SKILL.md).
+- Rules: [`plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md`](../../plugins/_shared/skills/scikitplot-engineering-rules/SKILL.md).
 
 ## Completed (archived verbatim)
 
