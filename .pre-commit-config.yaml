@@ -316,7 +316,7 @@ repos:
 
   # 1. Cython formatting/fixes Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.21.1
+    rev: v0.22.0
     hooks:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
