@@ -156,7 +156,7 @@ repos:
   # Documentation and Specialized Linting
   # - repo: https://github.com/woodruffw/zizmor-pre-commit
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.30.1
+    rev: v1.31.1
     hooks:
       # pre-commit run zizmor --all-files --verbose
       - id: zizmor
@@ -316,7 +316,7 @@ repos:
 
   # 1. Cython formatting/fixes Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.21.1
+    rev: v0.22.0
     hooks:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
@@ -341,7 +341,7 @@ repos:
   # black --verbose --check --diff .
   # pre-commit run black --verbose
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.5.1
+    rev: 26.10.1
     hooks:
       # pre-commit run black --all-files --verbose
       - id: black
