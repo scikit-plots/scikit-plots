@@ -80,6 +80,7 @@ xgboost = "*"
 mcp = "<3,>=2.0.0"
 pydantic = "<3,>=2"
 starlette = ">=0.40"
+coverage = "*"
 hypothesis = "*"
 pytest = ">=7.1.2"
 pytest-asyncio = "*"
@@ -90,13 +91,13 @@ pytest-regressions = "*"
 pytest-run-parallel = "*"
 pytest-timeout = "*"
 pytest-xdist = "*"
+tomli-w = "*"
 asv = "*"
 mpmath = "*"
 tenacity = "*"
 pyinstrument = "*"
 pytest-doctestplus = ">=1.0"
 tomli = {version = "*", markers = "python_version < \"3.11\""}
-tomli-w = {version = "*", markers = "python_version < \"3.11\""}
 toml = {version = "*", markers = "python_version < \"3.11\""}
 aggdraw = {version = ">=1.3.11", markers = "sys_platform != \"emscripten\""}
 voyager = {version = ">=1.2.5", markers = "python_version < \"3.13\""}
