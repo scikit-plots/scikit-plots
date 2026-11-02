@@ -37,7 +37,7 @@ line number so a bad option never aborts the build.
 
 from __future__ import annotations
 
-import datetime as _dt
+import datetime as dt
 import re
 import string
 from dataclasses import replace
@@ -490,7 +490,7 @@ class YouTubeGalleryDirective(SphinxDirective):
         """
         from .model import parse_timestamp  # ruff: ignore[import-outside-top-level]
 
-        def _bound(name: str) -> _dt.datetime | None:
+        def _bound(name: str) -> dt.datetime | None:
             """Parse a date option, prefixing errors with the option name."""
             raw = self.options.get(name)
             if not raw:

@@ -50,7 +50,7 @@ scikitplot.corpus._validation : The row-index and count contract.
 from __future__ import annotations
 
 import dataclasses
-import datetime as _dt
+import datetime as dt
 import decimal
 import enum
 import hashlib
@@ -145,7 +145,7 @@ def _encode(  # ruff: ignore[too-many-branches, too-many-return-statements]
         return _tagged("str", value.encode("utf-8"))
     if isinstance(value, (bytes, bytearray)):
         return _tagged("bytes", bytes(value))
-    if isinstance(value, (_dt.datetime, _dt.date, _dt.time)):
+    if isinstance(value, (dt.datetime, dt.date, dt.time)):
         return _tagged("time", value.isoformat().encode("ascii"))
     if isinstance(value, uuid.UUID):
         return _tagged("uuid", str(value).encode("ascii"))

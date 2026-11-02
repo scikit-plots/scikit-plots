@@ -22,7 +22,7 @@ that only shows up as two pages ordering the same data differently.
 
 from __future__ import annotations
 
-import datetime as _dt
+import datetime as dt
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -237,8 +237,8 @@ class Query:
     tags: Sequence[str] = ()
     match: str = ""
     match_regex: str = ""
-    since: _dt.datetime | None = None
-    until: _dt.datetime | None = None
+    since: dt.datetime | None = None
+    until: dt.datetime | None = None
     sort_by: str = "none"
     group_by: str = "none"
     limit: int | None = None
@@ -414,7 +414,7 @@ class _RegexTerm(FilterTerm):
 class _IntervalTerm(FilterTerm):
     """Half-open publication interval ``[since, until)``."""
 
-    def __init__(self, since: _dt.datetime | None, until: _dt.datetime | None) -> None:
+    def __init__(self, since: dt.datetime | None, until: dt.datetime | None) -> None:
         super().__init__(field="published", operator="", operand="")
         object.__setattr__(self, "_since", since)
         object.__setattr__(self, "_until", until)

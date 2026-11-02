@@ -55,7 +55,7 @@ References
 from __future__ import annotations
 
 # import inspect
-import datetime
+import datetime as dt
 import json
 import logging as _logging
 import os
@@ -108,7 +108,7 @@ WARN = WARNING  # logging WARN deprecated
 # Use datetime.UTC if available (Python 3.11+),
 # else fallback to datetime.timezone.utc, time.timezone.utc
 # for datetime.datetime.now(tz=UTC)
-UTC = getattr(datetime, "UTC", datetime.timezone.utc)
+UTC = getattr(dt, "UTC", dt.timezone.utc)
 
 # scikitplot/logging/_logging.py
 # logger = __import__("logging").getLogger(__name__)
@@ -252,7 +252,7 @@ CYAN = "\033[1;36m"  # ACTION / STATUS / QUERY
 
 #     def format(self, record):
 #         color = self.COLOR_MAP.get(record.levelname, RESET)
-#         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#         timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 #         logging_level = f"{color}[{record.levelname}]{RESET}"
 #         message = super().format(record)
 #         return f"{timestamp} {logging_level} {message}"
@@ -801,8 +801,8 @@ class GoogleLogFormatter(Formatter):
         #     if self.default_msec_format:
         #         s = self.default_msec_format % (s, record.msecs)
         tz = UTC if self._use_utc else None
-        dt = datetime.datetime.fromtimestamp(record.created, tz=tz)
-        return dt.strftime(datefmt or self.datefmt)
+        dt_ = dt.datetime.fromtimestamp(record.created, tz=tz)
+        return dt_.strftime(datefmt or self.datefmt)
 
     def format(self, record: LogRecord) -> str:
         """

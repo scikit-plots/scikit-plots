@@ -42,7 +42,7 @@ back to source order, so the same input always renders byte-identically.
 
 from __future__ import annotations
 
-import datetime as _dt
+import datetime as dt
 import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
@@ -153,7 +153,7 @@ def get_field(record: Mapping[str, Any], path: str) -> Any:
 _ISO_RE = re.compile(r"^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?)?")
 
 
-def _as_date(value: Any) -> _dt.datetime | None:
+def _as_date(value: Any) -> dt.datetime | None:
     """
     Interpret a value as a datetime, if it unambiguously is one.
 
@@ -168,24 +168,24 @@ def _as_date(value: Any) -> _dt.datetime | None:
         A naive-UTC-normalised datetime, or ``None`` if the value is not an
         unambiguous date.
     """
-    if isinstance(value, _dt.datetime):
+    if isinstance(value, dt.datetime):
         return (
             value.replace(tzinfo=None)
             if value.tzinfo is None
-            else (value.astimezone(_dt.timezone.utc).replace(tzinfo=None))
+            else (value.astimezone(dt.timezone.utc).replace(tzinfo=None))
         )
-    if isinstance(value, _dt.date):
-        return _dt.datetime(value.year, value.month, value.day)
+    if isinstance(value, dt.date):
+        return dt.datetime(value.year, value.month, value.day)
     if isinstance(value, str) and _ISO_RE.match(value.strip()):
         text = value.strip().replace(" ", "T")
         if text.endswith(("Z", "z")):
             text = text[:-1] + "+00:00"
         try:
-            parsed = _dt.datetime.fromisoformat(text)
+            parsed = dt.datetime.fromisoformat(text)
         except ValueError:
             return None
         if parsed.tzinfo is not None:
-            return parsed.astimezone(_dt.timezone.utc).replace(tzinfo=None)
+            return parsed.astimezone(dt.timezone.utc).replace(tzinfo=None)
         return parsed
     return None
 

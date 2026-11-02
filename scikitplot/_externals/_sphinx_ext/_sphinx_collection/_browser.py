@@ -9,7 +9,7 @@ contains no client-side behavior; ``assets.py`` owns progressive enhancement.
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import html
 import json
 import math
@@ -58,7 +58,7 @@ def _value(value):
         return value
     if isinstance(value, float):
         return value if math.isfinite(value) else None
-    if isinstance(value, (datetime.datetime, datetime.date)):
+    if isinstance(value, (dt.datetime, dt.date)):
         return value.isoformat()
     if isinstance(value, (list, tuple)):
         return [str(v) for v in value if v is not None]
