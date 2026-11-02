@@ -1,0 +1,11 @@
+- ``ScoreCalibrator`` turns BM25 scores into probabilities of relevance fitted
+  on labelled (query, document) pairs, by Platt scaling (``"sigmoid"``, the
+  default) or isotonic regression (``"isotonic"``), with the results of
+  scikit-learn's sigmoid calibration and ``IsotonicRegression`` and without
+  needing scikit-learn. ``fit`` requires the query of every pair and the
+  population the pairs were drawn from; ``require_held_out`` refuses
+  evaluation queries that were used to fit (they are kept only as SHA-256
+  digests), a fit that would reverse the ranking raises, and
+  ``shift_prior`` moves a calibrator to a population with another share of
+  relevant documents by the Bayes prior correction. ``to_dict`` and
+  ``from_dict`` store it as JSON.

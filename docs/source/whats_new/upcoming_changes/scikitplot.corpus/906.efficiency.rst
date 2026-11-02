@@ -1,0 +1,6 @@
+- Keyword (BM25) search over an unscoped index scores from contributions
+  computed once per build when :mod:`scikitplot.rank_bm25` is installed:
+  about 99 ms to about 2 ms per four-term query on 200 000 documents, with
+  bit-identical results. Searches under a ``SecurityFilter`` scope, whose
+  statistics depend on the scope, and installs without
+  :mod:`scikitplot.rank_bm25` keep the previous evaluation.

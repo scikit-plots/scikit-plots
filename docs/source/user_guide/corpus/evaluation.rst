@@ -189,6 +189,40 @@ acceptable strings; the best one counts):
    round(token_f1_score(references, answers), 3)   # 0.833
    round(anls_score(references, answers), 3)       # 0.344
 
+Calibration
+-----------
+
+Ranking metrics do not change when scores are rescaled, so they cannot tell
+whether a score presented as a probability of relevance behaves like one. The
+calibration metrics take binary labels and probabilities, one per labelled
+(query, document) pair, in scikit-learn's ``(y_true, y_prob)`` order:
+
+* :func:`brier_score` -- mean squared error of the probabilities;
+* :func:`binary_log_loss` -- mean negative log-likelihood (probabilities of
+  exactly 0 or 1 are clipped to float64 machine epsilon);
+* :func:`reliability_table` -- per bin, the mean probability against the
+  observed share of relevant labels, with counts; empty bins are kept so two
+  tables line up;
+* :func:`expected_calibration_error` -- the count-weighted mean gap between
+  the two;
+* :func:`calibration_report` -- all of them, with sample size and prevalence.
+
+.. code-block:: python
+
+   from scikitplot.corpus import calibration_report, expected_calibration_error
+
+   labels = [0, 1, 1, 0]
+   probs = [0.1, 0.9, 0.8, 0.3]
+   round(expected_calibration_error(labels, probs, n_bins=2), 4)  # 0.175
+   round(calibration_report(labels, probs, n_bins=2)["brier_score"], 4)  # 0.0375
+
+Report ``n_bins``, ``strategy`` (``"uniform"`` or ``"quantile"``) and the
+labelled population with every ECE: the value depends on all three, and a
+probability calibrated on lexical candidates is not calibrated on the whole
+corpus. Labels must already be binary; graded relevance is refused rather than
+thresholded silently. No scikit-learn is needed; the results equal
+``brier_score_loss``, ``log_loss`` and ``calibration_curve``.
+
 scikit-learn scorers
 --------------------
 

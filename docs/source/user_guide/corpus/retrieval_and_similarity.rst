@@ -38,6 +38,120 @@ of ``weight / (k + rank)`` over the legs that list it, ranks counted from 1.
     [(c.leg, c.rank) for c in fused[0].contributions]  # [('lexical', 1), ('dense', 2)]
     dict(FusionPolicy.from_alpha(1.0).weights)         # {'lexical': 0.0, 'dense': 1.0}
 
+Probability fusion
+------------------
+
+When every leg has a fitted calibrator (for example
+:class:`scikitplot.rank_bm25.ScoreCalibrator` for BM25 scores and another for
+dense scores), :class:`LogOddsFusion` combines the legs as evidence and returns
+probabilities of relevance instead of rank scores. Each leg passes its raw
+``(doc_id, score)`` hits *and* its calibrator, so an uncalibrated score cannot
+enter; an unfitted calibrator is refused.
+
+A document's log-odds is ``logit(base_rate)`` plus, for every leg that listed
+it, ``weight * (logit(p) - logit(leg prevalence))``: Bayes' rule when the legs
+are independent given relevance. A leg that did not list the document adds
+nothing. ``base_rate`` is required; it moves every probability but never the
+order. Probabilities are clipped to ``[clip, 1 - clip]`` (default ``1e-6``)
+before the logit.
+
+.. code-block:: python
+
+    from scikitplot.corpus import LogOddsFusion, calibration_report
+
+    fusion = LogOddsFusion(base_rate=0.1, weights={"dense": 0.7})
+    result = fusion.fuse([
+        ("lexical", lexical_hits, bm25_calibrator),
+        ("dense", dense_hits, dense_calibrator),
+    ])
+    [(item.key, item.probability) for item in result.items]
+    result.evidence_correlation   # {(0, 1): 0.26...}
+
+Lexical and dense legs are rarely independent, and correlated legs make the
+fused probability over-confident. That cannot be measured without labels:
+check the fused probabilities with :func:`calibration_report` on held-out
+labelled queries, and lower the weight of a correlated leg when they are
+over-confident. ``evidence_correlation`` is the *marginal* correlation of each
+pair of legs' evidence over the documents both listed. It is positive whenever
+both legs are informative, so it does not test independence; a value near 1
+means two legs are nearly duplicates. Rank fusion (:class:`FusionPolicy`)
+needs no calibration and stays the default.
+
+Hybrid search can fuse this way instead of by rank. Pass a
+:class:`ProbabilityFusion` -- the policy and a fitted calibrator per running
+leg -- as ``RetrievalConfig(match_mode="hybrid", probability_fusion=...)``:
+
+.. code-block:: python
+
+    from scikitplot.corpus import LogOddsFusion, ProbabilityFusion, RetrievalConfig
+
+    config = RetrievalConfig(
+        match_mode="hybrid",
+        top_k=10,
+        probability_fusion=ProbabilityFusion(
+            policy=LogOddsFusion(base_rate=0.1, weights={"dense": 0.7}),
+            calibrators={"lexical": bm25_calibrator, "dense": dense_calibrator},
+        ),
+    )
+    hits = index.search(query, config=config, query_embedding=query_vector)
+    hits[0].score          # probability of relevance
+    hits[0].native_metric  # "logodds_probability"
+
+* Each leg's ``native_score`` is calibrated: BM25 for ``"lexical"``, cosine
+  similarity for ``"dense"``. Fit each calibrator on the scores that leg returns
+  for the hybrid candidate pool (``3 * top_k`` hits per leg, as in rank fusion).
+* Leg weights come from the policy; a leg runs only if its weight is above 0
+  and then needs a calibrator. ``hybrid_alpha`` must stay at its default,
+  because its meaning (a rank-fusion weight) does not carry over.
+* Under a :class:`SecurityFilter` scope probability fusion is refused: BM25
+  statistics are computed inside the scope, so a calibrator fitted on unscoped
+  scores would give wrong probabilities. Scoped indexes use rank fusion.
+
+Cutting a ranked list
+---------------------
+
+:class:`CutPolicy` decides how many of a ranked list to keep instead of always
+``top_k``: ``"fixed"`` keeps ``max_k``; ``"threshold"`` keeps every hit scoring
+at least ``threshold`` (``K* = max{k : s_k >= threshold}``); ``"max_gap"`` cuts
+after the largest drop between neighbours. ``min_k`` and ``max_k`` clamp all
+three, and :class:`CutResult` records the rule's evidence.
+
+.. code-block:: python
+
+    from scikitplot.corpus import CutPolicy
+
+    CutPolicy("max_gap").cut([0.9, 0.85, 0.8, 0.3, 0.25]).k      # 3
+    CutPolicy("threshold", threshold=0.5).apply(probability_hits)
+
+A threshold is refused on scores outside ``[0, 1]``: raw BM25, cosine and
+rank-fusion scores have no scale shared across queries, so one threshold would
+mean something different for each query. Use it on calibrated probabilities,
+such as probability-fusion hits. A large gap marks a ranking boundary; it does
+not show that the hits above it answer the question.
+
+Caching searches
+----------------
+
+:class:`CachedSearch` wraps one index and returns a stored response when every
+input that decides it is unchanged: the index's content generation (a rebuild
+changes it), its security filter by canonical expression, the query, every
+:class:`RetrievalConfig` field, the caller's filter and the query embedding's
+bytes, dtype and shape.
+
+.. code-block:: python
+
+    from scikitplot.corpus import CachedSearch
+
+    cache = CachedSearch(index, max_entries=1024)
+    cache.search("merger plan", config=config)
+    cache.stats()   # hits, misses, stored, uncacheable, evicted, size
+
+Only ``success`` and ``empty`` responses are kept, so a degraded answer is never
+replayed; a config with ``probability_fusion`` is answered by the index every
+time. Each hit returns a fresh copy of the hits list, and the cache is safe to
+share between threads. It is an exact cache: a similar query is a different
+question and is not served from it.
+
 Filtering a search
 ------------------
 

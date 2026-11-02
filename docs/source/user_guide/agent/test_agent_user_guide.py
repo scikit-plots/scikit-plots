@@ -19,7 +19,7 @@ def _text() -> str:
 
 def test_every_example_runs_in_order() -> None:
     blocks = BLOCK.findall(_text())
-    assert len(blocks) == 2  # noqa: PLR2004
+    assert len(blocks) == 6  # noqa: PLR2004
     namespace: dict = {}
     for block in blocks:
         source = "\n".join(line[3:] for line in block.splitlines())
@@ -33,6 +33,7 @@ def test_named_codes_and_statuses_exist() -> None:
         | {s.value for s in agent.RunStatus}
         | {s.value for s in agent.StopReason}
         | {o.value for o in agent.StepOutcome}
+        | {p.value for p in agent.PlanStatus}
     )
     # Field names of the public dataclasses are not vocabulary values.
     fields = set().union(

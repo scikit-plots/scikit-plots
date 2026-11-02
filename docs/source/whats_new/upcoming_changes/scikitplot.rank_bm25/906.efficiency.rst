@@ -1,0 +1,21 @@
+- ``BM25Okapi``, ``BM25L`` and ``BM25Plus`` score from contributions computed
+  once per index (on the first query, or by the new ``prepare()``) instead of
+  re-evaluating the formula for every document on every query:
+  ``get_top_ids`` on 200 000 documents went from about 600 ms to about 2.5 ms
+  per query. Results are bit-identical to the previous evaluation for every
+  recipe, including ties, duplicate and unknown query terms and the ``NaN``
+  an empty document scores when ``b=1``. A new ``backend`` argument
+  (``"auto"``, the default, ``"numpy"``, ``"numba"`` or ``"reference"``)
+  chooses how the sums run; ``"auto"`` uses Numba when it is installed and
+  NumPy otherwise, and every backend returns the same values, so ``identity``
+  does not depend on it. Numba is imported only when the compiled backend is
+  first used, the compiled kernel is cached on disk, and
+  ``SCIKITPLOT_RANK_BM25_DISABLE_NUMBA=1`` forces NumPy. A subclass that
+  overrides the scoring formula keeps the previous evaluation.
+  ``save`` writes generations of schema ``bm25-index/2``: the postings as
+  ``.npy`` arrays whose SHA-256, dtype and shape ``index.json`` records,
+  instead of every document's term counts in the JSON. ``load`` refuses an
+  array that does not match, reads with ``allow_pickle=False``, recomputes the
+  contributions exactly, accepts ``mmap_mode="r"``, and still reads
+  ``bm25-index/1``; on 100 000 documents a generation went from 173 MB to
+  82 MB and loading plus a first query from 4.2 s to 0.6 s.

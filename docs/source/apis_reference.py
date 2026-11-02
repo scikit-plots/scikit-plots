@@ -590,6 +590,33 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Sub-runs and evaluation",
+                "autosummary": [
+                    "delegate",
+                    "DelegateTool",
+                    "evaluate_audit",
+                    "AuditEvaluation",
+                    "RunSummary",
+                ],
+            },
+            {
+                "title": "Artifacts",
+                "autosummary": [
+                    "ArtifactStore",
+                    "MemoryArtifactStore",
+                    "DirectoryArtifactStore",
+                ],
+            },
+            {
+                "title": "Plans",
+                "autosummary": [
+                    "PlanItem",
+                    "PlanStatus",
+                    "MAX_PLAN_ITEMS",
+                    "check_plan_change",
+                ],
+            },
+            {
                 "title": "Tools, policy and limits",
                 "autosummary": [
                     "Tool",
@@ -1690,6 +1717,12 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "r_precision",
                     "ranking_metrics",
                     "recall_at_k",
+                    # _metrics._calibration
+                    "binary_log_loss",
+                    "brier_score",
+                    "calibration_report",
+                    "expected_calibration_error",
+                    "reliability_table",
                     # _metrics._text
                     "anls_score",
                     "edit_similarity",
@@ -2011,6 +2044,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "LegContribution",
                     "LegResult",
                     "LexicalRetriever",
+                    "LogOddsContribution",
+                    "LogOddsFusedItem",
+                    "LogOddsFusion",
+                    "LogOddsFusionResult",
+                    "CUT_MODES",
+                    "CachedSearch",
+                    "CutPolicy",
+                    "CutResult",
+                    "PROBABILITY_FUSION_LEGS",
+                    "ProbabilityFusion",
                     "Retriever",
                     "fuse_by_rank",
                 ],
@@ -3488,6 +3531,14 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "BM25Plus",
                     # "BM25Adpt",
                     # "BM25T",
+                ],
+            },
+            {
+                "title": "Score calibration",
+                "description": None,
+                "autosummary": [
+                    "CALIBRATION_METHODS",
+                    "ScoreCalibrator",
                 ],
             },
             {

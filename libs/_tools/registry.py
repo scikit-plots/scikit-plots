@@ -315,6 +315,8 @@ PACKAGES: tuple[Package, ...] = (
         # sources carry an Apache-2.0 notice.
         license="BSD-3-Clause AND Apache-2.0",
         inherit=("numpy",),
+        # The optional compiled scoring backend; scores are identical without it.
+        extras=("rank-bm25",),
         keywords=("scikit-plots", "bm25", "ranking", "information retrieval", "search"),
         example=(
             "from scikitplot.rank_bm25 import BM25Okapi\n"

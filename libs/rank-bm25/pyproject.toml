@@ -66,6 +66,11 @@ dependencies = [
   "numpy>=2.0.0; python_version >= \"3.9\" and python_version != \"3.13\"",
 ]
 
+[project.optional-dependencies]
+rank-bm25 = [
+  "numba>=0.57.0; python_version < \"3.15\"",
+]
+
 [project.urls]
 homepage = "https://scikit-plots.github.io"
 repository = "https://github.com/scikit-plots/scikit-plots"

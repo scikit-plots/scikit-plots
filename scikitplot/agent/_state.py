@@ -32,6 +32,7 @@ from typing import Any, Mapping
 
 from ._canonical import digest, plain
 from ._errors import AgentError, StateError, _StrEnum
+from ._plan import PlanItem, check_plan_change, normalize_plan
 
 __all__ = [
     "Action",
@@ -214,6 +215,10 @@ class Decision:
         Why, in the planner's words; recorded, never acted on.
     usage : Usage or None, default=None
         What the decision cost. Required when the run has a token limit.
+    plan : sequence of PlanItem or None, default=None
+        The whole plan as of this decision, or ``None`` to leave it as it is.
+        Checked against the plan in force (:func:`check_plan_change`) when the
+        decision is made.
 
     Examples
     --------
@@ -229,8 +234,11 @@ class Decision:
     answer: Any = None
     rationale: str = ""
     usage: Usage | None = None
+    plan: tuple[PlanItem, ...] | None = None
 
     def __post_init__(self) -> None:
+        if self.plan is not None:
+            object.__setattr__(self, "plan", normalize_plan(self.plan))
         if self.kind not in ("act", "finish"):
             raise ValueError(
                 f'Decision.kind must be "act" or "finish", got {self.kind!r}.'
@@ -256,39 +264,69 @@ class Decision:
         *,
         rationale: str = "",
         usage: Usage | None = None,
+        plan: Any = None,
     ) -> Decision:
-        """Decide to call ``tool`` with ``arguments``."""
+        """Decide to call ``tool`` with ``arguments`` (optionally updating the plan)."""
         return cls(
             "act",
             action=Action(tool, {} if arguments is None else arguments),
             rationale=rationale,
             usage=usage,
+            plan=plan,
         )
 
     @classmethod
     def finish(
-        cls, answer: Any, *, rationale: str = "", usage: Usage | None = None
+        cls,
+        answer: Any,
+        *,
+        rationale: str = "",
+        usage: Usage | None = None,
+        plan: Any = None,
     ) -> Decision:
         """Decide to finish with ``answer`` (a JSON value)."""
-        return cls("finish", answer=answer, rationale=rationale, usage=usage)
+        return cls(
+            "finish",
+            answer=answer,
+            rationale=rationale,
+            usage=usage,
+            plan=plan,
+        )
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-compatible mapping."""
-        return {
+        """
+        Return a JSON-compatible mapping.
+
+        Notes
+        -----
+        **Developer.** ``plan`` is written only when set, so a decision without
+        one has exactly the mapping -- and the audit digest -- it had before
+        plans existed.
+        """
+        out = {
             "kind": self.kind,
             "action": None if self.action is None else self.action.to_dict(),
             "answer": plain(self.answer),
             "rationale": self.rationale,
             "usage": None if self.usage is None else self.usage.to_dict(),
         }
+        if self.plan is not None:
+            out["plan"] = [item.to_dict() for item in self.plan]
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Decision:
         """Rebuild a decision written by :meth:`to_dict`."""
-        _keys(data, {"kind", "action", "answer", "rationale", "usage"}, "decision")
+        base = {"kind", "action", "answer", "rationale", "usage"}
+        _keys(data, base | {"plan"} if "plan" in data else base, "decision")
         usage = None if data["usage"] is None else Usage(**_usage(data["usage"]))
+        plan = data.get("plan")
+        if plan is not None:
+            plan = [PlanItem.from_dict(item) for item in _list(plan, "plan")]
         if data["kind"] == "finish":
-            return cls.finish(data["answer"], rationale=data["rationale"], usage=usage)
+            return cls.finish(
+                data["answer"], rationale=data["rationale"], usage=usage, plan=plan
+            )
         if data["kind"] != "act" or not isinstance(data["action"], Mapping):
             raise StateError(f"a decision of unknown kind: {data!r}")
         _keys(data["action"], {"tool", "arguments"}, "action")
@@ -297,6 +335,7 @@ class Decision:
             data["action"]["arguments"],
             rationale=data["rationale"],
             usage=usage,
+            plan=plan,
         )
 
 
@@ -545,6 +584,10 @@ class Step:
         The call's idempotency key (:func:`call_key`), for an act step.
     seconds : float, default=0.0
         Time the tool call took.
+    result_ref : dict or None, default=None
+        ``{"digest", "bytes"}`` of a result kept in an artifact store instead
+        of here, for an executed step whose result was offloaded; ``result``
+        is then ``None``. ``digest`` is the step's audited ``result_digest``.
     """
 
     index: int
@@ -555,6 +598,7 @@ class Step:
     error: AgentError | None = None
     key: str | None = None
     seconds: float = 0.0
+    result_ref: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:  # noqa: PLR0912
         _check_count(self.index, "Step.index")
@@ -577,6 +621,25 @@ class Step:
         if outcome is not StepOutcome.EXECUTED and self.result is not None:
             raise StateError(f"step {self.index}: only an executed step has a result")
         object.__setattr__(self, "result", plain(self.result, what="Step.result"))
+        if self.result_ref is not None:
+            ref = self.result_ref
+            if outcome is not StepOutcome.EXECUTED or self.result is not None:
+                raise StateError(
+                    f"step {self.index}: only an executed step without an inline "
+                    "result has a result_ref"
+                )
+            if (
+                not isinstance(ref, Mapping)
+                or set(ref) != {"digest", "bytes"}
+                or not isinstance(ref["digest"], str)
+                or not RUN_ID.fullmatch(ref["digest"])
+            ):
+                raise StateError(f"step {self.index}: a malformed result_ref {ref!r}")
+            object.__setattr__(
+                self,
+                "result_ref",
+                {"digest": ref["digest"], "bytes": _check_count(ref["bytes"], "bytes")},
+            )
         if outcome in _CALLED:
             if not isinstance(self.key, str) or not RUN_ID.fullmatch(self.key):
                 raise StateError(
@@ -598,25 +661,26 @@ class Step:
             "error": None if self.error is None else self.error.to_dict(),
             "key": self.key,
             "seconds": self.seconds,
+            # Written only when set, so a step without one keeps its mapping.
+            **(
+                {} if self.result_ref is None else {"result_ref": dict(self.result_ref)}
+            ),
         }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Step:
         """Rebuild a step written by :meth:`to_dict`."""
-        _keys(
-            data,
-            {
-                "index",
-                "decision",
-                "outcome",
-                "gates",
-                "result",
-                "error",
-                "key",
-                "seconds",
-            },
-            "step",
-        )
+        base = {
+            "index",
+            "decision",
+            "outcome",
+            "gates",
+            "result",
+            "error",
+            "key",
+            "seconds",
+        }
+        _keys(data, base | {"result_ref"} if "result_ref" in data else base, "step")
         return cls(
             index=_check_count(data["index"], "step.index"),
             decision=Decision.from_dict(data["decision"]),
@@ -628,6 +692,7 @@ class Step:
             ),
             key=data["key"],
             seconds=_check_amount(data["seconds"], "step.seconds"),
+            result_ref=data.get("result_ref"),
         )
 
 
@@ -833,6 +898,46 @@ class RunState:
             status in (RunStatus.STOPPED, RunStatus.FAILED)
         ):
             raise StateError("an error is set exactly when the run stopped or failed")
+        self._check_plan()
+
+    def decisions(self) -> list[Decision]:
+        """
+        Every decision of the run in order, including one awaiting approval or in flight.
+        """
+        out = [step.decision for step in self.steps]
+        if self.pending is not None:
+            out.append(self.pending.decision)
+        elif self.in_flight is not None:
+            out.append(Decision.from_dict(self.in_flight["decision"]))
+        return out
+
+    @property
+    def plan(self) -> tuple[PlanItem, ...]:
+        """
+        The plan in force: that of the last decision that carried one.
+
+        Notes
+        -----
+        **User.** Empty until a planner attaches a plan. Derived from the
+        recorded decisions, so it is saved, audited and resumed with them.
+        """
+        current: tuple[PlanItem, ...] = ()
+        for decision in self.decisions():
+            if decision.plan is not None:
+                current = decision.plan
+        return current
+
+    def _check_plan(self) -> None:
+        """Replay every plan change; refuse a state whose plan history breaks a rule."""
+        current: tuple[PlanItem, ...] = ()
+        for index, decision in enumerate(self.decisions()):
+            if decision.plan is None:
+                continue
+            try:
+                check_plan_change(current, decision.plan)
+            except ValueError as exc:
+                raise StateError(f"step {index}: {exc}") from None
+            current = decision.plan
 
     @property
     def done(self) -> bool:
@@ -847,7 +952,8 @@ class RunState:
         -------
         list of dict
             ``{"index", "kind", "tool", "arguments", "outcome", "result",
-            "error"}`` per step; ``error`` is ``{"code", "message"}`` or
+            "result_ref", "error"}`` per step (``result_ref`` is ``None`` unless
+            the result was offloaded to an artifact store); ``error`` is ``{"code", "message"}`` or
             ``None``.
         """
         out = []
@@ -861,6 +967,9 @@ class RunState:
                     "arguments": None if action is None else plain(action.arguments),
                     "outcome": step.outcome.value,
                     "result": plain(step.result),
+                    "result_ref": (
+                        None if step.result_ref is None else dict(step.result_ref)
+                    ),
                     "error": (
                         None
                         if step.error is None

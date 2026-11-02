@@ -99,7 +99,22 @@ jobs:
         # (`allow-prereleases` below).
         python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         experimental: [false]
+        # `ubuntu-latest` (26.04) has no setup-python builds for 3.8/3.9
+        # ("version ... was not found for Ubuntu 26.04"). Both are EOL, so no
+        # new builds will appear; they run on the last image that has them.
+        # Remove these entries when 3.8/3.9 support is dropped.
+        exclude:
+          - os: ubuntu-latest
+            python: "3.8"
+          - os: ubuntu-latest
+            python: "3.9"
         include:
+          - os: ubuntu-24.04
+            python: "3.8"
+            experimental: false
+          - os: ubuntu-24.04
+            python: "3.9"
+            experimental: false
           # Staging copies files instead of linking them precisely so that
           # this works without Developer Mode; and the compiled distribution
           # is built here with MSVC and Apple Clang.
