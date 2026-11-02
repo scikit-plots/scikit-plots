@@ -860,12 +860,10 @@ def verify_anchor_history(  # ruff: ignore[too-many-branches, undocumented-publi
     }
     if active != eactive:
         _fail("ARCHIVE_ANCHOR_ACTIVE_BINDING_INVALID")
-    if (
-        not historical
-        and last_time is not None
-        and current - last_time
-        > timedelta(days=int(POLICY["maximum_anchor_interval_days"]))
-    ):
+    _bool = current - last_time > timedelta(
+        days=int(POLICY["maximum_anchor_interval_days"]),
+    )
+    if not historical and last_time is not None and _bool:
         _fail("ARCHIVE_ANCHOR_ACTIVE_EPOCH_STALE")
     return {
         "ok": True,

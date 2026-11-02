@@ -201,11 +201,17 @@ class ProviderArtifactLifecycleRegistry:
                         "PROVIDER_ARTIFACT_REGENERATION_INVALID"
                     )
             else:
+                _dict = {
+                    "generating",
+                    "ready",
+                    "delivered",
+                    "reserved",
+                    "applied",
+                }
                 for row in self._records.values():
                     if (
                         row.fingerprint == fingerprint
-                        and row.status
-                        in {"generating", "ready", "delivered", "reserved", "applied"}
+                        and row.status in _dict
                         and now - row.created_at <= self._duplicate_window
                     ):
                         raise ProviderArtifactError("PROVIDER_ARTIFACT_DUPLICATE")

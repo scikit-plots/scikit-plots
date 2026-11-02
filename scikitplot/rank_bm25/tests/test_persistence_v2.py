@@ -19,7 +19,7 @@ V1 = pathlib.Path(__file__).parent / "data" / "v1-index"
 
 
 def _generation(root):
-    return root / json.loads((root / "current.json").read_text())["generation"]
+    return root / json.loads((root / "current.json").read_text(encoding='utf-8'))["generation"]
 
 
 @pytest.mark.parametrize("cls", [BM25Okapi, BM25L, BM25Plus])
@@ -38,7 +38,7 @@ def test_v2_round_trip_is_bit_identical(tmp_path, cls, mmap_mode):
 def test_the_json_holds_no_per_document_dicts(tmp_path):
     BM25Okapi(CORPUS, doc_ids=IDS).save(tmp_path / "i")
     generation = _generation(tmp_path / "i")
-    state = json.loads((generation / "index.json").read_text())
+    state = json.loads((generation / "index.json").read_text(encoding='utf-8'))
     assert state["schema"] == "bm25-index/2" and "doc_freqs" not in state
     assert sorted(p.name for p in generation.glob("*.npy")) == [
         "indptr.npy",

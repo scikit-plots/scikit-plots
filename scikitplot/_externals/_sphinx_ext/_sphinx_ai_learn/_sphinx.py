@@ -287,16 +287,20 @@ def _configure(  # ruff: ignore[too-many-branches]
             raise ConfigError(
                 "ai_learn_youtube_subscribe_url must be a valid HTTPS youtube.com URL"
             ) from exc
+        _bool = parsed.hostname not in {
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+        }
         if (
             parsed.scheme != "https"
             or parsed.username
             or parsed.password
-            or parsed.hostname
-            not in {"youtube.com", "www.youtube.com", "m.youtube.com"}
+            or _bool
             or port not in (None, 443)
         ):
             raise ConfigError(
-                "ai_learn_youtube_subscribe_url must be an HTTPS youtube.com URL"
+                "ai_learn_youtube_subscribe_url must be an HTTPS youtube.com URL",
             )
 
     content_root = config.ai_learn_content_root

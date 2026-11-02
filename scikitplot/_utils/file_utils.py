@@ -659,8 +659,7 @@ def get_local_path_or_none(
     parsed_uri = _urllib.parse.urlparse(path_or_uri)
     if (
         # No scheme means it's a local path
-        len(parsed_uri.scheme) == 0
-        or
+        len(parsed_uri.scheme) == 0 or
         # Local file URI without network location
         (parsed_uri.scheme == "file" and len(parsed_uri.netloc) == 0)
     ):

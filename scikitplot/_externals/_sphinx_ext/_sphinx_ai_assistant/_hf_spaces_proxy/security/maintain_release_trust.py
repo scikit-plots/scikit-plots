@@ -786,24 +786,31 @@ def refresh_delegated_metadata(  # ruff: ignore[too-many-branches, undocumented-
             "sha256": effective["sha256"],
             "chainHeadSha256": effective["chainHeadSha256"],
         },
-        "delegationRoot": (
-            _artifact_raw("release-delegation-root.json", delegation["raw"])
-            | {"version": delegation["version"]}
-        ),
-        "snapshot": (
-            _artifact_raw("release-snapshot.json", snapshot["raw"])
-            | {
-                "version": snapshot["version"],
-                "expires": snapshot["doc"]["signed"]["expires"],
-            }
-        ),
-        "timestamp": (
-            _artifact_raw("release-timestamp.json", timestamp["raw"])
-            | {
-                "version": timestamp["version"],
-                "expires": timestamp["doc"]["signed"]["expires"],
-            }
-        ),
+        # Use {**dict1, **dict2} for py 3.8+
+        "delegationRoot": {
+            **_artifact_raw(
+                "release-delegation-root.json",
+                delegation["raw"],
+            ),
+            "version": delegation["version"],
+        },
+        "snapshot": {
+            **_artifact_raw(
+                "release-snapshot.json",
+                snapshot["raw"],
+            ),
+            "version": snapshot["version"],
+            "expires": snapshot["doc"]["signed"]["expires"],
+        },
+        # Use {**dict1, **dict2} for py 3.8+
+        "timestamp": {
+            **_artifact_raw(
+                "release-timestamp.json",
+                timestamp["raw"],
+            ),
+            "version": timestamp["version"],
+            "expires": timestamp["doc"]["signed"]["expires"],
+        },
     }
     chain = _sha_bytes((head + "\n").encode() + _canonical(entry_body))
     entry = entry_body | {"chainHeadSha256": chain}
@@ -1364,12 +1371,15 @@ def verify_delegated_output(  # ruff: ignore[undocumented-public-function]
         "sha256": effective["sha256"],
         "chainHeadSha256": effective["chainHeadSha256"],
     }
+    _bool = state["delegationRoot"] != {
+        "version": delegation["version"],
+        "sha256": delegation["sha256"],
+    }
     if (
         prev is None
         or state["governanceId"] != effective["info"]["governance_id"]
         or state["effectiveRoot"] != expected_effective
-        or state["delegationRoot"]
-        != {"version": delegation["version"], "sha256": delegation["sha256"]}
+        or _bool
         or state["snapshot"]["sha256"] != snapshot["sha256"]
         or state["timestamp"]["sha256"] != timestamp["sha256"]
     ):

@@ -537,8 +537,7 @@ def validate_y_true(y_true, pos_label=None, class_index=None) -> np.ndarray:
     # Handle multi-class classification, return 2D
     if (
         # Make sure the index is within bounds
-        class_index < 0
-        or class_index >= y_true_bin.shape[1]
+        class_index < 0 or class_index >= y_true_bin.shape[1]
     ):
         raise ValueError(
             f"class_index {class_index} out of bounds for `y_true`. "
@@ -696,8 +695,7 @@ def validate_y_probas(
     # 2D array case for multi-class probabilities
     if (
         # Make sure the index is within bounds
-        class_index < 0
-        or class_index >= y_probas.shape[1]
+        class_index < 0 or class_index >= y_probas.shape[1]
     ):
         raise ValueError(
             f"class_index {class_index} out of bounds for `y_probas`. "

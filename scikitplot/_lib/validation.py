@@ -577,8 +577,10 @@ def getfullargspec_no_self(func: Callable) -> FullArgSpec:
     args = [
         p.name
         for p in sig.parameters.values()
-        if p.kind
-        in [inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY]
+        if p.kind in [
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.POSITIONAL_ONLY,
+        ]
     ]
     varargs = [
         p.name

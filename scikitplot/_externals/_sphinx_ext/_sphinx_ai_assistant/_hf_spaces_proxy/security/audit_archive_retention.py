@@ -850,11 +850,10 @@ def _verify_provider_response(  # ruff: ignore[too-many-branches]
         age = timedelta(minutes=int(POLICY["max_result_age_minutes"]))
         if observed > now + skew or now - observed > age:
             _fail("ARCHIVE_HEALTH_PROVIDER_OBSERVATION_NOT_FRESH")
-        if (
-            retention
-            < now + timedelta(days=int(POLICY["minimum_retention_remaining_days"]))
-            and s.get("legalHold") is not True
-        ):
+        _retention = retention < now + timedelta(
+            days=int(POLICY["minimum_retention_remaining_days"]),
+        )
+        if _retention and s.get("legalHold") is not True:
             _fail("ARCHIVE_HEALTH_RETENTION_TOO_SHORT")
     if retention <= observed and s.get("legalHold") is not True:
         _fail("ARCHIVE_HEALTH_RETENTION_EXPIRED_AT_OBSERVATION")
@@ -1098,13 +1097,13 @@ def _replay(  # ruff: ignore[too-many-branches]
         or bundle.get("status") != "archive-health-history"
     ):
         _fail("ARCHIVE_HEALTH_BUNDLE_SCHEMA_INVALID")
+    _bool = bundle.get("retentionRoot") != {
+        "sha256": root["sha256"],
+        "rootId": root["rootId"],
+        "version": root["version"],
+    }
     if (
-        bundle.get("retentionRoot")
-        != {
-            "sha256": root["sha256"],
-            "rootId": root["rootId"],
-            "version": root["version"],
-        }
+        _bool
         or bundle.get("run160ArchiveArtifact") != run160_item
         or bundle.get("nativeStatusChainHeadSha256")
         != rinfo["native_status_chain_head_sha256"]
@@ -1291,11 +1290,10 @@ def _replay(  # ruff: ignore[too-many-branches]
         ) < int(POLICY["min_archive_operators"]):
             _fail("ARCHIVE_HEALTH_DURABLE_QUORUM_INVALID")
         current_audit = max(audit_times)
-        if (
-            previous_audit_time is not None
-            and current_audit - previous_audit_time
-            > timedelta(days=int(POLICY["maximum_audit_interval_days"]))
-        ):
+        _bool = current_audit - previous_audit_time > timedelta(
+            days=int(POLICY["maximum_audit_interval_days"]),
+        )
+        if previous_audit_time is not None and _bool:
             _fail("ARCHIVE_HEALTH_AUDIT_INTERVAL_EXCEEDED")
         core = {
             "sequence": idx,
