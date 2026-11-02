@@ -1611,19 +1611,15 @@ class CorpusBuilder:
                 kind = probed
 
         # ── YouTube: direct transcript fetch ────────────────────────────────
+        _tuple = (
+            "source_title",
+            "source_author",
+            "collection_id",
+            "source_type",
+            "default_language",
+        )
         if kind == URLKind.YOUTUBE:
-            from_url_kwargs = {
-                k: v
-                for k, v in reader_kwargs.items()
-                if k
-                in (
-                    "source_title",
-                    "source_author",
-                    "collection_id",
-                    "source_type",
-                    "default_language",
-                )
-            }
+            from_url_kwargs = {k: v for k, v in reader_kwargs.items() if k in _tuple}
             reader = DocumentReader.from_url(
                 url,
                 chunker=chunker,
@@ -1637,19 +1633,15 @@ class CorpusBuilder:
             return documents
 
         # ── WEB_PAGE: HTML scraping ──────────────────────────────────────────
+        _tuple = (
+            "source_title",
+            "source_author",
+            "collection_id",
+            "source_type",
+            "default_language",
+        )
         if kind == URLKind.WEB_PAGE:
-            from_url_kwargs = {
-                k: v
-                for k, v in reader_kwargs.items()
-                if k
-                in (
-                    "source_title",
-                    "source_author",
-                    "collection_id",
-                    "source_type",
-                    "default_language",
-                )
-            }
+            from_url_kwargs = {k: v for k, v in reader_kwargs.items() if k in _tuple}
             reader = DocumentReader.from_url(
                 url,
                 chunker=chunker,

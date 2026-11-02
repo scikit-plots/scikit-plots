@@ -25,7 +25,7 @@ Filename format:
 
 from __future__ import annotations
 
-import datetime as _datetime
+import datetime as dt
 import itertools
 import os
 import re
@@ -59,7 +59,7 @@ __all__ = [
 # Use datetime.UTC if available (Python 3.11+),
 # else fallback to datetime.timezone.utc, time.timezone.utc
 # for datetime.datetime.now(tz=UTC)
-UTC = getattr(_datetime, "UTC", _datetime.timezone.utc)
+UTC = getattr(dt, "UTC", dt.timezone.utc)
 
 # Counter breaks ties when multiple names are generated within the same
 # millisecond. UUID4 already makes collisions extremely unlikely; the counter
