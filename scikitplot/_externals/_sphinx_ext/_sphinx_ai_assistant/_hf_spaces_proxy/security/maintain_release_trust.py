@@ -1371,7 +1371,10 @@ def verify_delegated_output(  # ruff: ignore[undocumented-public-function]
         "sha256": effective["sha256"],
         "chainHeadSha256": effective["chainHeadSha256"],
     }
-    _bool = state["delegationRoot"] != {
+    # Each comparison reads ``state`` and runs only after ``prev is None`` and
+    # the earlier bindings were checked: keep them inside the ``or`` chain.
+    # ``expected_delegation`` reads only the verified delegation (always set).
+    expected_delegation = {
         "version": delegation["version"],
         "sha256": delegation["sha256"],
     }
@@ -1379,7 +1382,7 @@ def verify_delegated_output(  # ruff: ignore[undocumented-public-function]
         prev is None
         or state["governanceId"] != effective["info"]["governance_id"]
         or state["effectiveRoot"] != expected_effective
-        or _bool
+        or state["delegationRoot"] != expected_delegation
         or state["snapshot"]["sha256"] != snapshot["sha256"]
         or state["timestamp"]["sha256"] != timestamp["sha256"]
     ):

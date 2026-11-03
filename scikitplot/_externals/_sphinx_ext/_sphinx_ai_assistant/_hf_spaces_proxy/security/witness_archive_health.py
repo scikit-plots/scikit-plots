@@ -73,6 +73,7 @@ _CHUNK = 1024 * 1024
 # these files carry published Merkle roots and SHA-256 digests, which must
 # stay in clear text for any third party to verify them.
 _DOC_ARCHIVE_HEALTH_STATE = "trusted-archive-health-state.json"
+_DOC_ACTIVE_ARCHIVE_HEALTH = "active-archive-health-evidence.json"
 _DOC_ARCHIVE_WITNESS_STATE = "trusted-archive-witness-state.json"
 
 
@@ -703,13 +704,12 @@ def _verify_witness_response(
         minutes=int(POLICY["max_clock_skew_minutes"])
     ):
         _fail("ARCHIVE_WITNESS_OBSERVATION_BEFORE_ROOT")
-    _bool = observed > now + timedelta(
-        minutes=int(POLICY["max_clock_skew_minutes"]),
-    )
-    _bool2 = now - observed > timedelta(
-        minutes=int(POLICY["max_observation_age_minutes"]),
-    )
-    if not historical and (_bool or _bool2):
+    # Freshness is a live-check property: a historical replay is not judged
+    # against the current clock, so the comparisons stay behind the guard;
+    # only the policy limits are computed first.
+    max_skew = timedelta(minutes=int(POLICY["max_clock_skew_minutes"]))
+    max_age = timedelta(minutes=int(POLICY["max_observation_age_minutes"]))
+    if not historical and (observed > now + max_skew or now - observed > max_age):
         _fail("ARCHIVE_WITNESS_OBSERVATION_NOT_FRESH")
     sig = value["signature"]
     if set(sig) != {"keyId", "signature"} or sig.get("keyId") != key_id:
@@ -882,10 +882,15 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
             or event.get("viewSha256") != embedded_view_sha
         ):
             _fail("ARCHIVE_WITNESS_EVENT_VIEW_BINDING_INVALID")
-        _bool = embedded_state != r161["docs"][_DOC_ARCHIVE_HEALTH_STATE]
-        _bool2 = embedded_active != r161["docs"]["active-archive-health-evidence.json"]
-        if idx == len(events) and require_current_match and (_bool or _bool2):
-            _fail("ARCHIVE_WITNESS_CURRENT_RUN161_MISMATCH")
+        # Only the current event is compared with the run-161 documents, which
+        # need not exist otherwise: the lookups stay behind the guard.
+        if idx == len(events) and require_current_match:
+            r161_docs = r161["docs"]
+            if (
+                embedded_state != r161_docs[_DOC_ARCHIVE_HEALTH_STATE]
+                or embedded_active != r161_docs[_DOC_ACTIVE_ARCHIVE_HEALTH]
+            ):
+                _fail("ARCHIVE_WITNESS_CURRENT_RUN161_MISMATCH")
         artifacts = {
             "run161HealthStateArtifact": event["run161HealthStateArtifact"],
             "run161ActiveArtifact": event["run161ActiveArtifact"],
@@ -983,10 +988,10 @@ def verify_witness_history(  # ruff: ignore[too-many-branches, undocumented-publ
     }
     if state != expected_state or active != expected_active:
         _fail("ARCHIVE_WITNESS_STATE_BINDING_INVALID")
-    _bool = current - last_time > timedelta(
-        days=int(POLICY["maximum_witness_interval_days"]),
-    )
-    if not historical and last_time is not None and _bool:
+    # ``last_time`` is None until an epoch exists, so ``current - last_time``
+    # must stay behind the guard; only the policy limit is computed first.
+    max_interval = timedelta(days=int(POLICY["maximum_witness_interval_days"]))
+    if not historical and last_time is not None and current - last_time > max_interval:
         _fail("ARCHIVE_WITNESS_ACTIVE_EPOCH_STALE")
     return {
         "ok": True,

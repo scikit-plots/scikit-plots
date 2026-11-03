@@ -1290,10 +1290,13 @@ def _replay(  # ruff: ignore[too-many-branches]
         ) < int(POLICY["min_archive_operators"]):
             _fail("ARCHIVE_HEALTH_DURABLE_QUORUM_INVALID")
         current_audit = max(audit_times)
-        _bool = current_audit - previous_audit_time > timedelta(
-            days=int(POLICY["maximum_audit_interval_days"]),
-        )
-        if previous_audit_time is not None and _bool:
+        # The first event has no previous audit (None), so the subtraction
+        # must stay behind the guard; only the policy limit is computed first.
+        max_interval = timedelta(days=int(POLICY["maximum_audit_interval_days"]))
+        if (
+            previous_audit_time is not None
+            and current_audit - previous_audit_time > max_interval
+        ):
             _fail("ARCHIVE_HEALTH_AUDIT_INTERVAL_EXCEEDED")
         core = {
             "sequence": idx,

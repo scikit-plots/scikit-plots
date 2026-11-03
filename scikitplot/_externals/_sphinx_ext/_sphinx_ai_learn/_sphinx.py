@@ -42,6 +42,8 @@ _MAX_SECTIONS = 32
 _PRESET_FIELDS = 2
 _MAX_TITLE = 200
 _MAX_SUBSCRIBE_URL = 2048
+#: Hosts an ``ai_learn_youtube_subscribe_url`` may name.
+_YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com"})
 _AI_LEARN_BUTTON_RATING_POSITIONS = frozenset({"left", "right"})
 _AI_LEARN_BUTTONS_RATINGS_DEFAULT = {
     "left_button_rating": "left",
@@ -287,16 +289,11 @@ def _configure(  # ruff: ignore[too-many-branches]
             raise ConfigError(
                 "ai_learn_youtube_subscribe_url must be a valid HTTPS youtube.com URL"
             ) from exc
-        _bool = parsed.hostname not in {
-            "youtube.com",
-            "www.youtube.com",
-            "m.youtube.com",
-        }
         if (
             parsed.scheme != "https"
             or parsed.username
             or parsed.password
-            or _bool
+            or parsed.hostname not in _YOUTUBE_HOSTS
             or port not in (None, 443)
         ):
             raise ConfigError(
