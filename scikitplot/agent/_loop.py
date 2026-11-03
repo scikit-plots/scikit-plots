@@ -35,9 +35,12 @@ import secrets
 import time
 from typing import Any, Callable, Iterable
 
+from ._artifacts import ArtifactStore
 from ._audit import AuditSink, AuditTrail, MemoryAuditSink
-from ._canonical import digest, plain
+from ._canonical import canonical_json, digest, plain
+from ._delegate import DelegateTool, capped_limits, child_agent, child_run_id
 from ._errors import AgentError, ErrorCode, StateError
+from ._plan import check_plan_change
 from ._policy import (
     GateKind,
     GateResult,
@@ -112,6 +115,13 @@ class Agent:
         :func:`time.monotonic`.
     now : callable or None, default=None
         Wall-clock time written in audit records; ``None`` is :func:`time.time`.
+    artifacts : ArtifactStore or None, default=None
+        Where offloaded tool results are kept.
+    offload_results_over : int or None, default=None
+        A tool result whose canonical JSON is longer than this many bytes is
+        written to ``artifacts`` and the step keeps only its ``result_ref``
+        (``{"digest", "bytes"}``); ``None`` keeps every result in the state.
+        Requires ``artifacts``.
 
     Raises
     ------
@@ -144,6 +154,8 @@ class Agent:
         store: StateStore | None = None,
         clock: Callable[[], float] | None = None,
         now: Callable[[], float] | None = None,
+        artifacts: ArtifactStore | None = None,
+        offload_results_over: int | None = None,
     ) -> None:
         self.tools = tools if isinstance(tools, Toolset) else Toolset(tools)
         if not callable(planner):
@@ -166,6 +178,24 @@ class Agent:
         if store is not None and not isinstance(store, StateStore):
             raise TypeError("Agent.store must be a StateStore or None.")
         self.store = store
+        if artifacts is not None and not isinstance(artifacts, ArtifactStore):
+            raise TypeError("Agent.artifacts must be an ArtifactStore or None.")
+        if offload_results_over is not None:
+            if (
+                isinstance(offload_results_over, bool)
+                or not isinstance(offload_results_over, int)
+                or offload_results_over < 0
+            ):
+                raise ValueError(
+                    "Agent.offload_results_over must be an int >= 0 or None, got "
+                    f"{offload_results_over!r}."
+                )
+            if artifacts is None:
+                raise ValueError(
+                    "Agent.offload_results_over needs an artifact store (artifacts=)."
+                )
+        self.artifacts = artifacts
+        self.offload_results_over = offload_results_over
         self.clock = time.monotonic if clock is None else clock
         self.now = time.time if now is None else now
 
@@ -416,7 +446,11 @@ class _Session:
                 "result_digest": (
                     None
                     if step.outcome is not StepOutcome.EXECUTED
-                    else digest(step.result)
+                    else (
+                        digest(step.result)
+                        if step.result_ref is None
+                        else step.result_ref["digest"]
+                    )
                 ),
                 "error": None if step.error is None else step.error.to_dict(),
             },
@@ -467,9 +501,18 @@ class _Session:
             try:
                 # A plain copy: what is gated, approved, recorded and run is
                 # this one value, whatever the planner's object does later.
-                return Decision.from_dict(plain(produced.to_dict()))
+                decision = Decision.from_dict(plain(produced.to_dict()))
             except Exception as exc:  # noqa: BLE001 - a malformed decision
                 problem = f"the planner's Decision is malformed: {_short(exc)}"
+            else:
+                if decision.plan is None:
+                    return decision
+                try:
+                    check_plan_change(state.plan, decision.plan)
+                except ValueError as exc:
+                    problem = f"the planner's plan change is refused: {exc}"
+                else:
+                    return decision
         return self.end(
             RunStatus.FAILED,
             StopReason.INVALID_DECISION,
@@ -750,8 +793,11 @@ class _Session:
         error: AgentError | None = None
         result: Any = None
         try:
-            # A fresh copy: the tool cannot change the recorded arguments.
-            raw = tool.function(**plain(action.arguments))
+            if isinstance(tool, DelegateTool):
+                raw = self.subrun(index, key, tool, plain(action.arguments))
+            else:
+                # A fresh copy: the tool cannot change the recorded arguments.
+                raw = tool.function(**plain(action.arguments))
         except Exception as exc:  # noqa: BLE001 - the tool's failure is an outcome
             error = AgentError(
                 ErrorCode.TOOL_FAILED,
@@ -768,6 +814,15 @@ class _Session:
                     {"tool": tool.name},
                 )
         seconds = max(0.0, agent.clock() - started)
+        result_ref = None
+        limit = agent.offload_results_over
+        if error is None and limit is not None:
+            size = len(canonical_json(result).encode("utf-8"))
+            if size > limit:
+                # Stored before the step is saved: a crash in between leaves an
+                # unreferenced artifact, never a reference without one.
+                result_ref = {"digest": agent.artifacts.put(result), "bytes": size}
+                result = None
         state.in_flight = None
         self.add_step(
             Step(
@@ -776,6 +831,7 @@ class _Session:
                 StepOutcome.EXECUTED if error is None else StepOutcome.FAILED,
                 gates=tuple(g.to_dict() for g in gates),
                 result=result if error is None else None,
+                result_ref=result_ref,
                 error=error,
                 key=key,
                 seconds=seconds,
@@ -783,6 +839,57 @@ class _Session:
         )
 
     # ----------------------------------------------------------------- resume
+
+    def subrun(self, index: int, key: str, tool: DelegateTool, arguments: dict) -> Any:
+        """
+        Run the delegate's child inside this run's remaining budget.
+
+        Returns
+        -------
+        dict
+            ``{"run_id", "status", "stop_reason", "answer", "spent"}`` of the
+            child, which becomes the step's result.
+
+        Raises
+        ------
+        RuntimeError
+            If this run has nothing left of a limited resource, so no child
+            may start (recorded as the step's failure).
+        """
+        agent, state = self.agent, self.state
+        limits = capped_limits(tool.child_limits, agent.limits, state.spent)
+        if limits is None:
+            raise RuntimeError(
+                "no budget left for a sub-run: a limited resource of this run is spent"
+            )
+        child = child_agent(tool, agent, limits)
+        run_id = child_run_id(state.run_id, key)
+        ended = child.run(arguments["goal"], run_id=run_id)
+        # Charged in full: the child's limits were capped by what was left, so
+        # this cannot take the parent past a limit it had.
+        state.spent.tool_calls += ended.spent.tool_calls
+        state.spent.cost += ended.spent.cost
+        state.spent.tokens += ended.spent.tokens
+        self.emit(
+            "subrun",
+            {
+                "step": index,
+                "key": key,
+                "run_id": run_id,
+                "status": ended.status.value,
+                "audit_head": plain(ended.audit_head),
+                "spent": ended.spent.to_dict(),
+            },
+        )
+        return {
+            "run_id": run_id,
+            "status": ended.status.value,
+            "stop_reason": (
+                None if ended.stop_reason is None else ended.stop_reason.value
+            ),
+            "answer": plain(ended.answer),
+            "spent": ended.spent.to_dict(),
+        }
 
     def recover_in_flight(self) -> str:
         """Settle a call in flight when the run stopped: ``"done"`` or ``"paused"``.

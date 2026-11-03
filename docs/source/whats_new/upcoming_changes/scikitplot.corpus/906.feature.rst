@@ -1,0 +1,32 @@
+- Corpus can measure whether scores presented as probabilities of relevance
+  behave like probabilities: ``brier_score``, ``binary_log_loss``,
+  ``reliability_table``, ``expected_calibration_error`` and
+  ``calibration_report`` take scikit-learn's ``(y_true, y_prob)`` order, keep
+  empty bins in the reliability table so two tables line up, refuse graded
+  labels instead of thresholding them, and need no scikit-learn (their
+  results equal ``brier_score_loss``, ``log_loss`` and
+  ``calibration_curve``).
+  ``LogOddsFusion`` combines retriever legs whose scores have fitted
+  calibrators into probabilities of relevance: each leg's evidence
+  ``logit(p) - logit(prevalence)``, weighted, is added to ``logit(base_rate)``
+  (Bayes' rule for legs independent given relevance), a leg that did not list a
+  document adds nothing, and an unfitted calibrator is refused. Each fused item
+  carries its per-leg contributions, and the result reports the marginal
+  correlation of every pair of legs' evidence. Rank fusion (``FusionPolicy``)
+  stays the default.
+  Hybrid search fuses this way when given
+  ``RetrievalConfig(match_mode="hybrid", probability_fusion=ProbabilityFusion(policy, calibrators))``:
+  each leg's native score (BM25, cosine) is calibrated by that leg's
+  calibrator, hits are scored by the fused probability
+  (``native_metric="logodds_probability"``), leg weights come from the policy
+  (``hybrid_alpha`` must stay at its default), and an index bound to a
+  ``SecurityFilter`` scope is refused because its BM25 statistics differ from
+  the ones the calibrator was fitted on.
+  ``CutPolicy`` keeps a fixed count, every hit at or above a probability
+  threshold (refused on scores outside ``[0, 1]``) or the hits above the
+  largest score gap, clamped by ``min_k``/``max_k``, and reports its evidence
+  in a ``CutResult``. ``CachedSearch`` is an exact, bounded, thread-safe cache
+  in front of an index, keyed by the index's content generation, its security
+  filter, the query, every config field, the caller's filter and the query
+  embedding; only ``success`` and ``empty`` responses are kept, and hits come
+  back as copies.

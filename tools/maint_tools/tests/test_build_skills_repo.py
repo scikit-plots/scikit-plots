@@ -195,3 +195,55 @@ class PublishedTreeTests(unittest.TestCase):
         out = self._built()
         (out / ".git").mkdir()
         self.assertEqual(MODULE.validate(out), [])
+
+
+class DirectoryReviewTests(unittest.TestCase):
+    """The review held the plugin for a vendored skill-creator; it now ships none."""
+
+    def _built(self) -> Path:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name)
+        MODULE.apply(out, MODULE.render(REPO, None))
+        return out
+
+    def test_no_third_party_skill_and_no_program_is_published(self):
+        files = MODULE.render(REPO, None)
+        self.assertFalse(any(rel.startswith("skills/skill-creator/") for rel in files))
+        programs = [rel for rel in files if rel.endswith((".py", ".sh", ".js"))]
+        self.assertEqual(programs, [])
+
+    def test_the_published_manifest_has_no_dependencies(self):
+        manifest = json.loads(MODULE.render(REPO, None)[".claude-plugin/plugin.json"])
+        self.assertNotIn("dependencies", manifest)
+
+    def test_a_dependency_in_the_published_manifest_fails(self):
+        out = self._built()
+        path = out / ".claude-plugin/plugin.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["dependencies"] = ["skill-creator@claude-plugins-official"]
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        errors = MODULE.validate(out, versioned=False)
+        self.assertTrue(any("sets 'dependencies'" in e for e in errors), errors)
+
+    def test_a_page_loading_a_remote_script_fails(self):
+        out = self._built()
+        for i, tag in enumerate(
+            (
+                '<script src="https://cdn.example.org/x.js"></script>',
+                "<SCRIPT defer src='//cdn.example.org/x.js'></SCRIPT>",
+                "<script src=http://cdn.example.org/x.js></script>",
+            )
+        ):
+            page = out / f"skills/scikitplot/page{i}.html"
+            page.write_text(f"<html>{tag}</html>", encoding="utf-8")
+        errors = [e for e in MODULE.validate(out, versioned=False) if "network" in e]
+        self.assertEqual(len(errors), 3, errors)
+
+    def test_a_local_script_is_allowed(self):
+        out = self._built()
+        page = out / "skills/scikitplot/page.html"
+        page.write_text(
+            '<script src="./x.js"></script><script>1</script>', encoding="utf-8"
+        )
+        self.assertEqual(MODULE.validate(out, versioned=False), [])

@@ -36,6 +36,10 @@ LLM judges
     :func:`evaluate_preference` run judges (one or a panel) over a dataset,
     and :func:`krippendorff_alpha`, :func:`fleiss_kappa` and
     :func:`cohen_kappa` measure how far the judges agree.
+Calibration
+    :func:`brier_score`, :func:`binary_log_loss`, :func:`reliability_table`,
+    :func:`expected_calibration_error` and :func:`calibration_report` measure
+    whether scores presented as relevance probabilities behave like them.
 
 Notes
 -----
@@ -51,6 +55,7 @@ from __future__ import annotations
 from . import (
     _agreement,
     _answers,
+    _calibration,
     _evaluate,
     _inputs,
     _judge,
@@ -61,6 +66,7 @@ from . import (
 )
 from ._agreement import *  # noqa: F403
 from ._answers import *  # noqa: F403
+from ._calibration import *  # noqa: F403
 from ._evaluate import *  # noqa: F403
 from ._inputs import *  # noqa: F403
 from ._judge import *  # noqa: F403
@@ -72,6 +78,7 @@ from ._text import *  # noqa: F403
 __all__: list[str] = []
 __all__ += _agreement.__all__
 __all__ += _answers.__all__
+__all__ += _calibration.__all__
 __all__ += _evaluate.__all__
 __all__ += _inputs.__all__
 __all__ += _judge.__all__

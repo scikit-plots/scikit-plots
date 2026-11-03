@@ -4,13 +4,15 @@
 
 | Signature | Kind | Summary |
 |---|---|---|
+| `CALIBRATION_METHODS` | tuple |  |
+| `ScoreCalibrator(method: 'str' = 'sigmoid', *, platt_targets: 'bool' = True) -> 'None'` | class | Monotone map from BM25 scores to probabilities of relevance. |
 | `RECIPES` | dict |  |
 | `Analyzer(name: 'str', version: 'str' = '1', language: 'str \| None' = None, stopwords: 'frozenset[str]' = frozenset ...)` | class | How text becomes tokens, declared so a build can record it. |
 | `Recipe(name: 'str', version: 'str', notes: 'str' = '') -> None` | class | A named, versioned scoring formula. |
 | `lexical_identity(recipe: 'Recipe', analyzer: 'Analyzer \| None', parameters: 'Mapping[str, Any]') -> 'str'` | function | Return the identity of a lexical build. |
-| `BM25(corpus, tokenizer=None, doc_ids=None, workers=None)` | class |  |
-| `BM25Okapi(corpus, tokenizer=None, k1=1.5, b=0.75, epsilon=0.25, doc_ids=None, workers=None)` | class | Okapi BM25 with an epsilon floor on negative IDFs (ATIRE-style IDF). |
-| `BM25L(corpus, tokenizer=None, k1=1.5, b=0.75, delta=0.5, doc_ids=None, workers=None)` | class |  |
-| `BM25Plus(corpus, tokenizer=None, k1=1.5, b=0.75, delta=1, doc_ids=None, workers=None)` | class |  |
+| `BM25(corpus, tokenizer=None, doc_ids=None, workers=None, backend='auto')` | class |  |
+| `BM25Okapi(corpus, tokenizer=None, k1=1.5, b=0.75, epsilon=0.25, doc_ids=None, workers=None, backend='auto')` | class | Okapi BM25 with an epsilon floor on negative IDFs (ATIRE-style IDF). |
+| `BM25L(corpus, tokenizer=None, k1=1.5, b=0.75, delta=0.5, doc_ids=None, workers=None, backend='auto')` | class |  |
+| `BM25Plus(corpus, tokenizer=None, k1=1.5, b=0.75, delta=1, doc_ids=None, workers=None, backend='auto')` | class |  |
 | `require_count(value: 'Any', *, maximum: 'int \| None' = None, name: 'str' = 'count') -> 'int'` | function | Return ``value`` as a non-negative count within its declared maximum. |
 | `require_index(value: 'Any', count: 'int', *, name: 'str' = 'index') -> 'int'` | function | Return ``value`` as a position valid in ``[0, count)``. |

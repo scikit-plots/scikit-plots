@@ -82,4 +82,3 @@ Source in `_shared/skills/`; `scikitplot` and `scikitplot-dev` each carry a byte
 |---|---|---|
 | [`scholarly-inquiry-cycle`](_shared/skills/scholarly-inquiry-cycle/SKILL.md) | Conduct rigorous, discipline-appropriate inquiry on any topic, from the humanities and sciences to engineering decisions: define the problem, examine evidence and assumptions, develop and challenge claims, synthesize findings, and name the next inquiry. | no |
 | [`scikitplot-engineering-rules`](_shared/skills/scikitplot-engineering-rules/SKILL.md) | The numbered engineering rules of scikit-plots (verification, delivery, tests, contracts, packaging, portability, native code, text). | no |
-| [`skill-creator`](_shared/skills/skill-creator/SKILL.md) | Create new skills, modify and improve existing skills, and measure skill performance. | yes (asks before each run) |

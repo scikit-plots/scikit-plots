@@ -1,0 +1,46 @@
+{
+  "analyzer": null,
+  "average_idf": null,
+  "avgdl": 1.5,
+  "corpus_size": 4,
+  "doc_freqs": [
+    {
+      "alpha": 1,
+      "beta": 1
+    },
+    {
+      "beta": 1,
+      "gamma": 2
+    },
+    {},
+    {
+      "delta": 1
+    }
+  ],
+  "doc_ids": [
+    "a",
+    "b",
+    "c",
+    "d"
+  ],
+  "doc_len": [
+    2,
+    3,
+    0,
+    1
+  ],
+  "identity": "ebc231f80fe832f9e75181cc0f57365b3523baac6fc20cbdeeffbce47277f980",
+  "idf": {
+    "alpha": 1.6094379124341003,
+    "beta": 0.916290731874155,
+    "delta": 1.6094379124341003,
+    "gamma": 1.6094379124341003
+  },
+  "parameters": {
+    "b": 0.5,
+    "delta": 1.0,
+    "k1": 1.5
+  },
+  "recipe": "bm25plus-delta/1",
+  "schema": "bm25-index/1"
+}

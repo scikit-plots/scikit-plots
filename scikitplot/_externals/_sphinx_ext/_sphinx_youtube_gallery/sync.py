@@ -862,6 +862,7 @@ def _catalog_payload(records: Sequence[VideoRecord]) -> dict[str, Any]:
                 # its diffs small without discarding authored enrichment.
                 if value not in (None, "", [], {})
             }
+            # loop for records
             for record in sorted(records, key=_sort_key)
         ]
     }

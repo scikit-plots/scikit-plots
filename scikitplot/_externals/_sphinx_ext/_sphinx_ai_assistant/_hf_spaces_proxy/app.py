@@ -4900,11 +4900,8 @@ async def _execute_resource_chat(  # ruff: ignore[too-many-return-statements]
                 },
                 headers={"Cache-Control": "no-store"},
             )
-
-        if (
-            bool(chat_req.stream)
-            and "text/event-stream"
-            in (upstream.headers.get("content-type") or "").lower()
+        if bool(chat_req.stream) and (
+            "text/event-stream" in (upstream.headers.get("content-type") or "").lower()
         ):
 
             async def _stream() -> AsyncGenerator[bytes, None]:

@@ -641,6 +641,16 @@ corpus = [
   "krippendorff",                           # Krippendorff's alpha coefficient https://en.wikipedia.org/wiki/Krippendorff%27s_alpha
 ]
 
+## rank_bm25 submodule dep
+## Optional compiled scoring backend (`backend="numba"`, picked by "auto").
+## Scores are bit-identical without it; it only changes speed.
+## Upper bound: Numba publishes support for a CPython release only after it is
+## final, so there is no installable wheel on the 3.15 pre-release yet. Raise or
+## remove the marker once a Numba release supports 3.15 and CI passes.
+rank-bm25 = [
+  'numba>=0.57.0; python_version < "3.15"',
+]
+
 ## mlflow submodule dep
 cython = [
   "cython",                                 # cython

@@ -59,20 +59,28 @@ I1-I9 are listed in ``maintenances/agent/todo/todo.md``.
 from __future__ import annotations
 
 from . import (
+    _artifacts,
     _audit,
     _canonical,
+    _delegate,
     _errors,
+    _evaluate,
     _loop,
+    _plan,
     _policy,
     _schema,
     _state,
     _store,
     _tools,
 )
+from ._artifacts import *  # noqa: F403
 from ._audit import *  # noqa: F403
 from ._canonical import *  # noqa: F403
+from ._delegate import *  # noqa: F403
 from ._errors import *  # noqa: F403
+from ._evaluate import *  # noqa: F403
 from ._loop import *  # noqa: F403
+from ._plan import *  # noqa: F403
 from ._policy import *  # noqa: F403
 from ._schema import *  # noqa: F403
 from ._state import *  # noqa: F403
@@ -80,10 +88,14 @@ from ._store import *  # noqa: F403
 from ._tools import *  # noqa: F403
 
 __all__: list[str] = []
+__all__ += _artifacts.__all__
 __all__ += _audit.__all__
 __all__ += _canonical.__all__
+__all__ += _delegate.__all__
 __all__ += _errors.__all__
+__all__ += _evaluate.__all__
 __all__ += _loop.__all__
+__all__ += _plan.__all__
 __all__ += _policy.__all__
 __all__ += _schema.__all__
 __all__ += _state.__all__

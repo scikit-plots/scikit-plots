@@ -975,15 +975,12 @@ def _constructor_options(cls: type) -> frozenset[str] | None:
         return frozenset()
     if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters):
         return None
+    _tuple = (
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
     return frozenset(
-        p.name
-        for p in parameters
-        if p.name != "config"
-        and p.kind
-        in (
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.KEYWORD_ONLY,
-        )
+        p.name for p in parameters if p.name != "config" and p.kind in _tuple
     )
 
 

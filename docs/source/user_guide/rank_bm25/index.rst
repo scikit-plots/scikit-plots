@@ -21,6 +21,7 @@ BM25 lexical ranking
    retrieval_and_identity
    persistence_and_reproducibility
    performance_and_scaling
+   calibration
    python_api
    troubleshooting
    usage_scenarios
@@ -57,6 +58,12 @@ BM25 lexical ranking
       :link-type: ref
 
       Sparse postings, dense vectors, tokenizer workers, and when to move to a larger search system.
+
+   .. grid-item-card:: Score calibration
+      :link: rank-bm25-calibration
+      :link-type: ref
+
+      Turn BM25 scores into held-out-validated probabilities of relevance.
 
    .. grid-item-card:: Python API
       :link: rank-bm25-python-api

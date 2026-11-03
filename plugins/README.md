@@ -386,10 +386,12 @@ On claude.ai, manage it in **Customize → Plugins**.
 
 - The `scikitplot` plugin **runs nothing by itself**: no hooks, no MCP
   servers, nothing that starts when it loads. Its skills and agents are
-  Markdown, except `skill-creator`, which ships helper programs for writing
-  and testing skills. Claude tells you what each one does and asks you before
-  every run; the plugin's README lists them and what they send (only to
-  Claude, through your own Claude Code, never elsewhere).
+  Markdown only. To write your own skills, install Anthropic's
+  `skill-creator` plugin (`claude plugin install skill-creator@claude-plugins-official`);
+  it is maintained by Anthropic, not copied here, and ships programs of its
+  own. `scikitplot-dev` installs it as a dependency (add the marketplace
+  first with `claude plugin marketplace add anthropics/claude-plugins-official`
+  if the install asks for it).
 - The **agents inherit Claude Code's tools**, so they can read and edit files
   and run commands in your project, under your permission mode. Shift+Tab
   cycles the mode; choose one that asks before acting while you learn

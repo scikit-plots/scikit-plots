@@ -1,6 +1,6 @@
 ---
 name: scikitplot-agent
-description: "Use scikitplot.agent (scikit-plots) in any Python project. Bounded, audited tool use: a planner proposes, the runtime disposes. Use when code imports scikitplot.agent or needs AuditSink, JsonlAuditSink, MemoryAuditSink, read_audit, verify_audit, canonical_json, digest, plain."
+description: "Use scikitplot.agent (scikit-plots) in any Python project. Bounded, audited tool use: a planner proposes, the runtime disposes. Use when code imports scikitplot.agent or needs ArtifactStore, DirectoryArtifactStore, MemoryArtifactStore, AuditSink, JsonlAuditSink, MemoryAuditSink, read_audit, verify_audit."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot.agent"
@@ -34,6 +34,9 @@ Declared in `scikitplot.agent.__all__`, in that order.
 
 | Name | Kind | Summary |
 |---|---|---|
+| `ArtifactStore` | class | Keeps JSON values under the digest of their canonical form. |
+| `DirectoryArtifactStore` | class | Keep each artifact in ``<directory>/<first two digits>/<digest>.json``. |
+| `MemoryArtifactStore` | class | Keep artifacts in memory, as their canonical JSON text. |
 | `AuditSink` | class | Where audit records go. |
 | `JsonlAuditSink` | class | Append records to a JSON Lines file, one canonical line each. |
 | `MemoryAuditSink` | class | Keep records in a list, `records`. |
@@ -42,11 +45,20 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `canonical_json` | function | Return the canonical JSON text of a plain value. |
 | `digest` | function | Return the SHA-256 of a plain value's canonical JSON, as 64 hex digits. |
 | `plain` | function | Return ``value`` as a plain JSON value, or raise. |
+| `DelegateTool` | class | A tool whose call is a bounded run of `child`. |
+| `delegate` | function | Return a tool that runs ``child`` toward the goal it is called with. |
 | `AgentError` | class | One error, as recorded in a run's state and audit trail. |
 | `ErrorCode` | enum | What went wrong, as a stable code a caller may branch on. |
 | `SchemaError` | exception | A tool's parameter schema uses something outside the supported subset. |
 | `StateError` | exception | A saved run state is malformed, or of a schema version not supported. |
+| `AuditEvaluation` | class | Per-run summaries and aggregate rates. |
+| `RunSummary` | class | What one run did, read from its audit records. |
+| `evaluate_audit` | function | Summarise every run in an audit trail. |
 | `Agent` | class | Run a goal with a planner and tools, within a policy and limits. |
+| `MAX_PLAN_ITEMS` | int |  |
+| `PlanItem` | class | One item of a plan. |
+| `PlanStatus` | enum | Where one plan item stands. |
+| `check_plan_change` | function | Refuse a plan change that would hide or rewrite progress. |
 | `GateKind` | enum | The five gates, in the order an action passes them. |
 | `GateResult` | class | One gate's answer for one action. |
 | `Limits` | class | Stopping conditions: when a run stops, whatever the planner proposes. |
@@ -62,21 +74,14 @@ Declared in `scikitplot.agent.__all__`, in that order.
 | `Spent` | class | What a run has used so far, against its `Limits`. |
 | `Step` | class | One completed step: a decision and what came of it. |
 | `StepOutcome` | enum | What one step came to. |
-| `StopReason` | enum | Why a run is no longer running. |
-| `Usage` | class | What producing one decision cost, as the planner reports it. |
-| `JsonFileStore` | class | Keep each run's state in ``<directory>/<run_id>.json``. |
-| `MemoryStore` | class | Keep states in memory, as their JSON text (so a load is a real round trip). |
-| `StateStore` | class | Saves and loads run states. |
-| `Tool` | class | One callable tool and the facts the gate chain decides on. |
-| `ToolEffect` | enum | The kind of effect a tool has, which the policy permits or not. |
-| `Toolset` | class | The tools one agent may call, by name. |
 
-All names with signatures: [references/API.md](references/API.md).
+8 more names, and signatures: [references/API.md](references/API.md).
 
-## Example (from the docstring of `scikitplot.agent.MemoryAuditSink`)
+## Example (from the docstring of `scikitplot.agent.MemoryArtifactStore`)
 
 ```pycon
->>> from scikitplot.agent import MemoryAuditSink
->>> MemoryAuditSink().records
-[]
+>>> store = MemoryArtifactStore()
+>>> key = store.put({"rows": [1, 2, 3]})
+>>> store.get(key)
+{'rows': [1, 2, 3]}
 ```

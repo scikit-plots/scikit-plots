@@ -32,6 +32,7 @@ from multiprocessing import Pool
 
 import numpy as np
 
+from ._engine import BACKENDS, SparseScoreEngine, numba_available, top_positions
 from ._identity import RECIPES, Analyzer, Recipe, lexical_identity
 from ._validation import require_count, require_index
 
@@ -223,8 +224,99 @@ def _require_valid_positions(doc_ids, corpus_size):
         require_index(position, corpus_size, name="document position")
 
 
+def _array_record(array):
+    """``{"sha256", "dtype", "shape"}`` of an array, as persisted."""
+    data = np.ascontiguousarray(array)
+    return {
+        "sha256": hashlib.sha256(data.tobytes()).hexdigest(),
+        "dtype": data.dtype.str,
+        "shape": list(data.shape),
+    }
+
+
+def _load_array(root, name, record, mmap_mode):
+    """
+    Load one persisted array and refuse it unless it is exactly what was saved.
+
+    Raises
+    ------
+    ValueError
+        If the file is missing, is not a plain array (``allow_pickle=False``),
+        or its dtype, shape or content digest differs from the record.
+    """
+    path = root / f"{name}.npy"
+    try:
+        array = np.load(path, allow_pickle=False, mmap_mode=mmap_mode)
+    except FileNotFoundError:
+        raise ValueError(f"index at {root} is missing {path.name}.") from None
+    except ValueError as exc:
+        raise ValueError(
+            f"index at {root}: {path.name} is not a plain array: {exc}",
+        ) from None
+    if _array_record(array) != record:
+        raise ValueError(
+            f"index at {root}: {path.name} does not match what was saved "
+            "(dtype, shape or content changed)."
+        )
+    return array
+
+
+def _check_backend(backend):
+    """
+    Validate a ``backend`` argument.
+
+    Parameters
+    ----------
+    backend : str
+        One of ``"auto"``, ``"numpy"``, ``"numba"`` or ``"reference"``.
+
+    Returns
+    -------
+    str
+        The backend.
+
+    Raises
+    ------
+    ValueError
+        If ``backend`` is not one of the accepted values.
+    ImportError
+        If ``"numba"`` is requested and Numba is not importable. Raised at
+        construction so the mistake surfaces where it is made, not at the
+        first query.
+    """
+    if backend not in BACKENDS:
+        raise ValueError(f"backend must be one of {BACKENDS}, got {backend!r}.")
+    if backend == "numba" and not numba_available():
+        raise ImportError(
+            "backend='numba' was requested but Numba is not importable (or "
+            "SCIKITPLOT_RANK_BM25_DISABLE_NUMBA=1 is set). Install numba, or "
+            "use backend='auto' to fall back to NumPy."
+        )
+    return backend
+
+
+def _is_audited(index):
+    """
+    Whether ``index`` scores with a formula the engine is proven exact for.
+
+    Notes
+    -----
+    **Developer.** The engine relies on the absent-term contribution being
+    independent of document length outside a zero denominator. That is a
+    property of the built-in formulas, checked by the equivalence tests; a
+    subclass overriding ``_term_contribution`` is scored by the reference path.
+    """
+    return type(index)._term_contribution in _AUDITED_FORMULAS
+
+
 _INDEX_NAME = "index.json"
-_INDEX_SCHEMA = "bm25-index/1"
+_INDEX_SCHEMA = "bm25-index/2"
+#: Schemas :meth:`BM25.load` reads; ``/1`` kept every document's term counts
+#: in the JSON, ``/2`` keeps them, and the precomputed contributions, as arrays.
+_READABLE_SCHEMAS = ("bm25-index/1", "bm25-index/2")
+#: Persisted postings. The contributions are not among them: they are the
+#: recipe's formula of these, recomputed exactly at load.
+_ARRAYS = ("indptr", "rows", "tfs")
 _POINTER_NAME = "current.json"
 _RETAINED_GENERATIONS = 2
 
@@ -235,10 +327,36 @@ class BM25:
     #: implementation makes specific choices within.
     RECIPE_ID: str = "okapi-epsilon-floor/1"
 
-    def __init__(self, corpus, tokenizer=None, doc_ids=None, workers=None):
+    @property
+    def doc_freqs(self):
+        """
+        List of dict: Each document's term counts, in row order.
+
+        Notes
+        -----
+        **Developer.** An index loaded from a ``bm25-index/2`` generation does
+        not hold these dicts: they are rebuilt from the persisted arrays the
+        first time a path that needs them runs (the reference backend,
+        :meth:`get_batch_scores`), and never otherwise.
+        """
+        freqs = self.__dict__.get("_doc_freqs")
+        if freqs is None:
+            freqs = self._engine.doc_freqs()
+            self._doc_freqs = freqs
+        return freqs
+
+    @doc_freqs.setter
+    def doc_freqs(self, value):
+        self._doc_freqs = value
+
+    def __init__(
+        self, corpus, tokenizer=None, doc_ids=None, workers=None, backend="auto"
+    ):
         self._workers = (
             None if workers is None else require_count(workers, name="workers")
         )
+        self._backend = _check_backend(backend)
+        self._engine_cache = None
         self.corpus_size = 0
         self.avgdl = 0
         self.doc_freqs = []
@@ -392,6 +510,21 @@ class BM25:
         order, so all three produce the same floating-point values.
         """
         query = self._require_query_tokens(query)
+        backend = self._resolved_backend()
+        if backend != "reference":
+            return self._engine.scores(query, backend)
+        return self._reference_scores(query)
+
+    def _reference_scores(self, query):
+        """
+        Evaluate the recipe formula for every document, term by term.
+
+        Notes
+        -----
+        **Developer.** The definition the engine is held to: every engine
+        result must equal this one bit for bit. Kept callable (``backend=
+        "reference"``) so that equality is testable in any environment.
+        """
         score = np.zeros(self.corpus_size)
         doc_len = np.array(self.doc_len)
         for q in query:
@@ -526,9 +659,70 @@ class BM25:
         row order, which is a tie-break someone chose rather than a side effect
         of how the sort was flipped.
         """
-        scores = self.get_scores(query)
-        order = np.argsort(-np.asarray(scores, dtype=float), kind="stable")
-        return [int(position) for position in order[:n]]
+        scores = np.asarray(self.get_scores(query), dtype=float)
+        return [int(position) for position in top_positions(scores, n)]
+
+    # -- backend -----------------------------------------------------------
+
+    @property
+    def backend(self) -> str:
+        """
+        The backend this index scores with: ``"numpy"``, ``"numba"`` or ``"reference"``.
+
+        Notes
+        -----
+        **User.** Every backend returns the same values, bit for bit; only the
+        time differs. That is why the backend is not part of :attr:`identity`.
+        """
+        return self._resolved_backend()
+
+    def _resolved_backend(self) -> str:
+        """Resolve the requested backend against this recipe and this process."""
+        requested = getattr(self, "_backend", "auto")
+        if requested == "reference" or not _is_audited(self):
+            return "reference"
+        if requested == "numba":
+            if not numba_available():
+                raise ImportError(
+                    "backend='numba' was requested but Numba is not importable "
+                    "(or SCIKITPLOT_RANK_BM25_DISABLE_NUMBA=1 is set). Install "
+                    "numba, or use backend='auto' to fall back to NumPy."
+                )
+            return "numba"
+        if requested == "auto" and numba_available():
+            return "numba"
+        return "numpy"
+
+    @property
+    def _engine(self):
+        """SparseScoreEngine: precomputed contributions, built on first use."""
+        engine = getattr(self, "_engine_cache", None)
+        if engine is None:
+            engine = SparseScoreEngine(self)
+            self._engine_cache = engine
+        return engine
+
+    def prepare(self):
+        """
+        Build the scoring engine now, and compile the compiled backend if used.
+
+        Returns
+        -------
+        BM25
+            ``self``, so ``BM25Okapi(corpus).prepare()`` reads naturally.
+
+        Notes
+        -----
+        **User.** Optional. Without it the first query pays both costs. Call it
+        at service start-up, before declaring the service ready, so the first
+        request is not the slow one -- compiling the Numba kernel takes
+        seconds once per process.
+        """
+        if self._resolved_backend() != "reference":
+            engine = self._engine
+            if self._resolved_backend() == "numba":
+                engine.scores([], "numba")
+        return self
 
     def get_top_ids(self, query, n=5):
         """
@@ -566,9 +760,15 @@ class BM25:
                 "pass doc_ids= when building it, or use get_top_n with a "
                 "sequence in corpus order."
             )
-        sparse = self._sparse_scores(query)
-        ranked = sorted(sparse.items(), key=lambda item: (-item[1], item[0]))
-        return [(self._doc_ids[row], float(score)) for row, score in ranked[:n]]
+        backend = self._resolved_backend()
+        if backend == "reference":
+            sparse = self._sparse_scores(query)
+            ranked = sorted(sparse.items(), key=lambda item: (-item[1], item[0]))
+            return [(self._doc_ids[row], float(score)) for row, score in ranked[:n]]
+        engine = self._engine
+        scores = engine.scores(query, backend)
+        rows = top_positions(scores, n, engine.candidate_mask(query))
+        return [(self._doc_ids[row], float(scores[row])) for row in rows.tolist()]
 
     # -- sparse evaluation -------------------------------------------------
 
@@ -711,11 +911,32 @@ class BM25:
             "corpus_size": self.corpus_size,
             "avgdl": self.avgdl,
             "doc_len": list(self.doc_len),
-            "doc_freqs": [dict(freqs) for freqs in self.doc_freqs],
+            "vocabulary": list(self._engine.vocabulary),
+            "arrays": {
+                name: _array_record(array) for name, array in self._persisted().items()
+            },
             "idf": dict(self.idf),
             "average_idf": getattr(self, "average_idf", None),
             "doc_ids": None if self.doc_ids is None else list(self.doc_ids),
         }
+
+    def _persisted(self):
+        """
+        Persist the postings in the narrowest exact integer width.
+
+        Notes
+        -----
+        **Developer.** ``rows`` and ``tfs`` are stored as int32 when every
+        value fits (fewer than 2**31 documents, counts below 2**31), else as
+        int64: 8 bytes per stored (document, term) pair in the common case.
+        """
+        engine = self._engine
+        out = {"indptr": engine.indptr}
+        for name in ("rows", "tfs"):
+            array = getattr(engine, name)
+            narrow = array.size == 0 or int(array.max()) < 2**31
+            out[name] = array.astype(np.int32) if narrow else array
+        return out
 
     def save(self, directory):
         """
@@ -770,6 +991,8 @@ class BM25:
             candidate = root / f".candidate-{uuid.uuid4().hex}"
             try:
                 candidate.mkdir(parents=True)
+                for name, array in self._persisted().items():
+                    np.save(candidate / f"{name}.npy", array)
                 (candidate / _INDEX_NAME).write_text(payload, encoding="utf-8")
                 type(self).load(candidate)
                 os.replace(candidate, generation)
@@ -798,7 +1021,12 @@ class BM25:
         return generation
 
     @classmethod
-    def load(cls, directory):
+    def load(  # ruff: ignore[too-many-branches]
+        cls,
+        directory,
+        *,
+        mmap_mode=None,
+    ):
         """
         Load a published index, or a generation directory directly.
 
@@ -806,6 +1034,9 @@ class BM25:
         ----------
         directory : str or path-like
             Index root, or a generation directory.
+        mmap_mode : {None, "r"}, optional
+            ``"r"`` memory-maps the arrays of a ``bm25-index/2`` generation
+            read-only instead of reading them into memory.
 
         Returns
         -------
@@ -828,27 +1059,45 @@ class BM25:
                 )
             name = json.loads(pointer.read_text(encoding="utf-8"))["generation"]
             root = root / name
+        if mmap_mode not in (None, "r"):
+            raise ValueError(f"mmap_mode must be None or 'r', got {mmap_mode!r}.")
         state = json.loads((root / _INDEX_NAME).read_text(encoding="utf-8"))
-        if state.get("schema") != _INDEX_SCHEMA:
+        schema = state.get("schema")
+        if schema not in _READABLE_SCHEMAS:
             raise ValueError(
-                f"index at {root} was written under schema "
-                f"{state.get('schema')!r}, not {_INDEX_SCHEMA!r}."
+                f"index at {root} was written under schema {schema!r}; this "
+                f"version reads {_READABLE_SCHEMAS}."
             )
         obj = cls.__new__(cls)
         obj.corpus_size = int(state["corpus_size"])
         obj.avgdl = state["avgdl"]
         obj.doc_len = list(state["doc_len"])
-        obj.doc_freqs = [dict(f) for f in state["doc_freqs"]]
-        for frequencies in obj.doc_freqs:
-            for term in frequencies:
-                if not isinstance(term, str):
-                    raise ValueError(  # ruff: ignore[type-check-without-type-error]
-                        f"persisted term {term!r} is not a string; the index "
-                        "was written by an incompatible writer."
-                    )
         obj.idf = dict(state["idf"])
+        obj._engine_cache = None
+        persisted = None
+        if schema == "bm25-index/1":
+            obj.doc_freqs = [dict(f) for f in state["doc_freqs"]]
+            terms = [t for frequencies in obj.doc_freqs for t in frequencies]
+        else:
+            terms = list(state["vocabulary"])
+            obj.doc_freqs = None  # rebuilt from the arrays only when needed
+        for term in terms:
+            if not isinstance(term, str):
+                raise ValueError(  # ruff: ignore[type-check-without-type-error]
+                    f"persisted term {term!r} is not a string; the index "
+                    "was written by an incompatible writer."
+                )
+        if schema != "bm25-index/1":
+            arrays = {
+                name: _load_array(root, name, state["arrays"][name], mmap_mode)
+                for name in _ARRAYS
+            }
+            if set(terms) != set(obj.idf) or len(terms) != len(obj.idf):
+                raise ValueError(f"index at {root}: vocabulary and idf disagree.")
+            persisted = (terms, arrays)
         obj.tokenizer = None
         obj._postings_cache = None
+        obj._backend = "auto"
         if state.get("average_idf") is not None:
             obj.average_idf = state["average_idf"]
         for name, value in state["parameters"].items():
@@ -863,6 +1112,12 @@ class BM25:
         obj._doc_ids = None if ids is None else tuple(ids)
         if obj.tokenizer is None and obj._analyzer is not None:
             obj.tokenizer = obj._analyzer.tokenize
+        if persisted is not None:
+            # Last: the recipe's parameters must be set before its formula runs.
+            terms, arrays = persisted
+            obj._engine_cache = SparseScoreEngine.from_arrays(
+                obj, terms, arrays["indptr"], arrays["rows"], arrays["tfs"]
+            )
         return obj
 
     def get_top_n(self, query, documents, n=5):
@@ -902,11 +1157,14 @@ class BM25Okapi(BM25):
         epsilon=0.25,
         doc_ids=None,
         workers=None,
+        backend="auto",
     ):
         self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
         self.b = _check_parameter("b", b, minimum=0, maximum=1)
         self.epsilon = _check_parameter("epsilon", epsilon, minimum=0)
-        super().__init__(corpus, tokenizer, doc_ids=doc_ids, workers=workers)
+        super().__init__(
+            corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
+        )
 
     def _calc_idf(self, nd):
         """
@@ -949,12 +1207,15 @@ class BM25L(BM25):
         delta=0.5,
         doc_ids=None,
         workers=None,
+        backend="auto",
     ):
         # Algorithm specific parameters
         self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
         self.b = _check_parameter("b", b, minimum=0, maximum=1)
         self.delta = _check_parameter("delta", delta, minimum=0)
-        super().__init__(corpus, tokenizer, doc_ids=doc_ids, workers=workers)
+        super().__init__(
+            corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
+        )
 
     def _calc_idf(self, nd):
         for word, freq in nd.items():
@@ -982,18 +1243,26 @@ class BM25Plus(BM25):
         delta=1,
         doc_ids=None,
         workers=None,
+        backend="auto",
     ):
         # Algorithm specific parameters
         self.k1 = _check_parameter("k1", k1, minimum=0, exclusive_minimum=True)
         self.b = _check_parameter("b", b, minimum=0, maximum=1)
         self.delta = _check_parameter("delta", delta, minimum=0)
-        super().__init__(corpus, tokenizer, doc_ids=doc_ids, workers=workers)
+        super().__init__(
+            corpus, tokenizer, doc_ids=doc_ids, workers=workers, backend=backend
+        )
 
     def _calc_idf(self, nd):
         for word, freq in nd.items():
             idf = math.log(self.corpus_size + 1) - math.log(freq)
             self.idf[word] = idf
 
+
+#: Formulas whose engine evaluation is covered by the equivalence tests.
+_AUDITED_FORMULAS = frozenset(
+    cls._term_contribution for cls in (BM25Okapi, BM25L, BM25Plus)
+)
 
 # BM25Adpt and BM25T are a bit more complicated than the previous algorithms here. Here a term-specific k1
 # parameter is calculated before scoring is done

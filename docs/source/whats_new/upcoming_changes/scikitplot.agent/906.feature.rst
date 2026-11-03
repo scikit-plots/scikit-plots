@@ -1,0 +1,26 @@
+- A planner can keep a plan in the run: ``Decision.act`` and
+  ``Decision.finish`` take ``plan=`` (the whole list of ``PlanItem``, each
+  ``pending``, ``in_progress``, ``done`` or ``dropped``), and
+  ``RunState.plan`` is the plan of the last decision that carried one, saved,
+  audited and resumed with the decisions. A change that removes an item
+  instead of marking it ``dropped``, or alters a ``done`` or ``dropped`` item,
+  fails the run with ``invalid_decision``, at most one item may be
+  ``in_progress``, and a saved state whose plan history breaks a rule is
+  refused at load. A decision without ``plan=`` is written exactly as before,
+  so existing states and audit trails are unchanged.
+  Large tool results can be kept out of the run state:
+  ``Agent(artifacts=..., offload_results_over=N)`` stores a result whose
+  canonical JSON exceeds ``N`` bytes in a content-addressed
+  ``MemoryArtifactStore`` or ``DirectoryArtifactStore`` and records only
+  ``Step.result_ref`` (digest and size); the digest is the audited result
+  digest, reads verify it, and a run without a store saves exactly what it
+  saved before.
+  ``delegate(name, child_agent, max_steps=...)`` runs another agent as a tool
+  inside the parent's budget: the delegate has the strongest effect and every
+  scope of the child's tools, so the parent's gates and approval decide it;
+  the child's limits are capped by what the parent has left and its spend is
+  charged to the parent; it writes to the parent's audit trail under a run id
+  derived from the call, linked by a ``subrun`` record. ``evaluate_audit``
+  verifies an audit trail and reports, per run and over top-level runs, how
+  runs ended, decisions, tool calls, denials by code, failures, approvals,
+  sub-runs, plan changes, tokens, cost and wall time.

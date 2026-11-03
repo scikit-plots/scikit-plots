@@ -1,6 +1,6 @@
 ---
 name: scikitplot-rank-bm25
-description: "Use scikitplot.rank_bm25 (scikit-plots) in any Python project. BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots. Use when code imports scikitplot.rank_bm25 or needs RECIPES, Analyzer, Recipe, lexical_identity, BM25, BM25Okapi, BM25L, BM25Plus."
+description: "Use scikitplot.rank_bm25 (scikit-plots) in any Python project. BM25 ranking algorithms (Okapi BM25, BM25L, BM25+) from scikit-plots. Use when code imports scikitplot.rank_bm25 or needs CALIBRATION_METHODS, ScoreCalibrator, RECIPES, Analyzer, Recipe, lexical_identity, BM25, BM25Okapi."
 license: BSD-3-Clause
 metadata:
   scikitplot-module: "scikitplot.rank_bm25"
@@ -35,6 +35,8 @@ Declared in `scikitplot.rank_bm25.__all__`, in that order.
 
 | Name | Kind | Summary |
 |---|---|---|
+| `CALIBRATION_METHODS` | tuple |  |
+| `ScoreCalibrator` | class | Monotone map from BM25 scores to probabilities of relevance. |
 | `RECIPES` | dict |  |
 | `Analyzer` | class | How text becomes tokens, declared so a build can record it. |
 | `Recipe` | class | A named, versioned scoring formula. |

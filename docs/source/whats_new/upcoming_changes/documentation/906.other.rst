@@ -1,0 +1,5 @@
+- The Claude Code plugins no longer carry a copy of ``skill-creator``. The users'
+  ``scikitplot`` plugin is Markdown only and depends on nothing; install
+  ``skill-creator@claude-plugins-official`` to write skills. ``scikitplot-dev``
+  declares it as a dependency, so Claude Code installs the current version
+  that Anthropic publishes.

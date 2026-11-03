@@ -14,6 +14,10 @@ It is pure Python: no compiler is needed to install it.
 pip install scikit-plots-rank-bm25
 ```
 
+Optional extras:
+
+- `pip install "scikit-plots-rank-bm25[rank-bm25]"`: `numba>=0.57.0; python_version < "3.15"`
+
 Every spelling an installer accepts names the same project, so `scikit_plots_rank_bm25` installs it too.
 
 ## Use

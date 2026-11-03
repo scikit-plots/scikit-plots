@@ -223,7 +223,10 @@ from . import _catalog  # noqa: F401
 from . import _agentic  # noqa: F401
 from . import _artifact  # noqa: F401
 from . import _filters  # noqa: F401
+from . import _cut  # noqa: F401
 from . import _fusion  # noqa: F401
+from . import _search_cache  # noqa: F401
+from . import _logodds_fusion  # noqa: F401
 from . import _generation  # noqa: F401
 from . import _identity  # noqa: F401
 from . import _graph  # noqa: F401
@@ -240,7 +243,10 @@ from ._catalog import *  # noqa: F403
 from ._agentic import *  # noqa: F403
 from ._artifact import *  # noqa: F403
 from ._filters import *  # noqa: F403
+from ._cut import *  # noqa: F403
 from ._fusion import *  # noqa: F403
+from ._search_cache import *  # noqa: F403
+from ._logodds_fusion import *  # noqa: F403
 from ._generation import *  # noqa: F403
 from ._identity import *  # noqa: F403
 from ._graph import *  # noqa: F403
@@ -281,7 +287,10 @@ __all__ += _catalog.__all__
 __all__ += _agentic.__all__
 __all__ += _artifact.__all__
 __all__ += _filters.__all__
+__all__ += _cut.__all__
 __all__ += _fusion.__all__
+__all__ += _search_cache.__all__
+__all__ += _logodds_fusion.__all__
 __all__ += _generation.__all__
 __all__ += _identity.__all__
 __all__ += _graph.__all__

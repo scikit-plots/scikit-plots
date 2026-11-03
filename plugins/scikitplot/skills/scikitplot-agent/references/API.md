@@ -4,6 +4,9 @@
 
 | Signature | Kind | Summary |
 |---|---|---|
+| `ArtifactStore()` | class | Keeps JSON values under the digest of their canonical form. |
+| `DirectoryArtifactStore(directory: 'str \| os.PathLike[str]') -> 'None'` | class | Keep each artifact in ``<directory>/<first two digits>/<digest>.json``. |
+| `MemoryArtifactStore() -> 'None'` | class | Keep artifacts in memory, as their canonical JSON text. |
 | `AuditSink()` | class | Where audit records go. |
 | `JsonlAuditSink(path: 'str \| os.PathLike[str]', *, fsync: 'bool' = False) -> 'None'` | class | Append records to a JSON Lines file, one canonical line each. |
 | `MemoryAuditSink() -> 'None'` | class | Keep records in a list, `records`. |
@@ -12,11 +15,20 @@
 | `canonical_json(value: 'Any') -> 'str'` | function | Return the canonical JSON text of a plain value. |
 | `digest(value: 'Any') -> 'str'` | function | Return the SHA-256 of a plain value's canonical JSON, as 64 hex digits. |
 | `plain(value: 'Any', *, what: 'str' = 'value') -> 'Any'` | function | Return ``value`` as a plain JSON value, or raise. |
+| `DelegateTool(name: 'str', function: 'Callable[..., Any]', description: 'str' = '', parameters: 'Mapping[str, Any] \| No ...)` | class | A tool whose call is a bounded run of `child`. |
+| `delegate(name: 'str', child: 'Any', *, description: 'str' = '', max_steps: 'int' = 8, max_tool_calls: 'int \| None' ...)` | function | Return a tool that runs ``child`` toward the goal it is called with. |
 | `AgentError(code: 'ErrorCode', message: 'str', details: 'Mapping[str, Any]' = <factory>) -> None` | class | One error, as recorded in a run's state and audit trail. |
 | `ErrorCode(value)` | enum | What went wrong, as a stable code a caller may branch on. |
 | `SchemaError(...)` | exception | A tool's parameter schema uses something outside the supported subset. |
 | `StateError(...)` | exception | A saved run state is malformed, or of a schema version not supported. |
+| `AuditEvaluation(runs: 'tuple[RunSummary, ...]', summary: 'dict[str, Any]') -> None` | class | Per-run summaries and aggregate rates. |
+| `RunSummary(run_id: 'str', goal: 'str', parent: 'str \| None', status: 'str \| None', stop_reason: 'str \| None', decisi ...)` | class | What one run did, read from its audit records. |
+| `evaluate_audit(records: 'Iterable[Mapping[str, Any]]') -> 'AuditEvaluation'` | function | Summarise every run in an audit trail. |
 | `Agent(tools: 'Toolset \| Iterable[Tool]', planner: 'Planner', *, policy: 'Policy \| None' = None, limits: 'Limits ...)` | class | Run a goal with a planner and tools, within a policy and limits. |
+| `MAX_PLAN_ITEMS` | int |  |
+| `PlanItem(id: 'str', text: 'str', status: 'PlanStatus' = PlanStatus.PENDING) -> None` | class | One item of a plan. |
+| `PlanStatus(value)` | enum | Where one plan item stands. |
+| `check_plan_change(current: 'Sequence[PlanItem]', proposed: 'Sequence[PlanItem]') -> 'None'` | function | Refuse a plan change that would hide or rewrite progress. |
 | `GateKind(value)` | enum | The five gates, in the order an action passes them. |
 | `GateResult(gate: 'GateKind', passed: 'bool', error: 'AgentError \| None' = None) -> None` | class | One gate's answer for one action. |
 | `Limits(max_steps: 'int' = 16, max_tool_calls: 'int \| None' = None, max_cost: 'float \| None' = None, max_tokens:  ...)` | class | Stopping conditions: when a run stops, whatever the planner proposes. |

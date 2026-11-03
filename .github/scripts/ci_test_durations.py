@@ -22,7 +22,7 @@ test whose unit is not a directory of this checkout is counted under
 from __future__ import annotations
 
 import argparse
-import datetime
+import datetime as dt
 import json
 import sys
 from pathlib import Path
@@ -140,9 +140,7 @@ def main(argv=None):
         return 2
     document = {
         "schema": 1,
-        "source": (
-            args.source or f"JUnit reports of {datetime.date.today().isoformat()}"
-        ),
+        "source": args.source or f"JUnit reports of {dt.date.today().isoformat()}",
         "unassigned_tests": unassigned,
         "units": units,
     }

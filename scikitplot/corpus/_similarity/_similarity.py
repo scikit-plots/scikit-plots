@@ -207,6 +207,12 @@ class RetrievalConfig:
     annoy_index_dtype : str or None
         Item-id integer width for the Cython Annoy class (e.g. ``"int32"``,
         ``"uint64"``) for very large corpora.  Default ``None``.
+    probability_fusion : ProbabilityFusion or None
+        HYBRID only, opt-in: fuse the legs as calibrated log-odds evidence
+        (:class:`~scikitplot.corpus.LogOddsFusion`) instead of by rank, so each
+        hit's ``score`` is a probability of relevance. Leg weights come from
+        its policy; ``hybrid_alpha`` must then stay at its default. ``None``
+        (default) keeps reciprocal rank fusion.
     allow_fallback : bool
         What happens when the dense backend cannot run as configured (R2-5):
         under ``backend="auto"`` an installed backend that fails to load is
@@ -240,8 +246,27 @@ class RetrievalConfig:
     annoy_dtype: str | None = None
     annoy_index_dtype: str | None = None
     allow_fallback: bool = True
+    probability_fusion: Any = None
 
     def __post_init__(self) -> None:  # ruff: ignore[too-many-branches]
+        if self.probability_fusion is not None:
+            from .._logodds_fusion import ProbabilityFusion  # noqa: PLC0415
+
+            if not isinstance(self.probability_fusion, ProbabilityFusion):
+                raise TypeError(
+                    "probability_fusion must be a ProbabilityFusion or None, got "
+                    f"{type(self.probability_fusion).__name__}"
+                )
+            if self.match_mode != "hybrid":
+                raise ValueError(
+                    "probability_fusion applies to match_mode='hybrid' only, got "
+                    f"{self.match_mode!r}"
+                )
+            if self.hybrid_alpha != 0.5:  # noqa: PLR2004 - the field default
+                raise ValueError(
+                    "hybrid_alpha is a rank-fusion weight; with probability_fusion "
+                    "set the leg weights on its LogOddsFusion policy instead"
+                )
         if not isinstance(self.allow_fallback, bool):
             raise TypeError(
                 "allow_fallback must be a bool, got "
@@ -360,8 +385,25 @@ def _get_text(doc: Any, use_normalized: bool) -> str:
 
 
 # =====================================================================
-# BM25 sparse index (pure Python, no deps)
+# BM25 sparse index (pure Python; compiled scoring when available)
 # =====================================================================
+
+
+def _scoring_engine():
+    """
+    Return the shared exact scoring primitives, or ``None`` if not installed.
+
+    Notes
+    -----
+    **Developer.** :mod:`scikitplot.rank_bm25` ships as its own partial
+    distribution, so a corpus-only install may not have it. Absence is not an
+    error: the pure-Python path computes the same values, only slower.
+    """
+    try:
+        from ...rank_bm25 import _engine  # noqa: PLC0415 - optional sibling
+    except ImportError:
+        return None
+    return _engine
 
 
 class _BM25Index:
@@ -383,6 +425,15 @@ class _BM25Index:
     could not score are no longer visited, and the top ``top_k`` are selected
     rather than every positive score being sorted (50 000 documents: 58 ms per
     four-term query before). Ties still go to the lower document index.
+
+    An unscoped query is evaluated from precomputed per-(document, term)
+    contributions when :mod:`scikitplot.rank_bm25` is importable: the same
+    expression, evaluated once per stored pair at first use, then summed per
+    document in query order -- the identical sequence of floating-point
+    additions as the loop below, so results are bit-identical, not merely
+    close (200 000 documents: ~100 ms to ~3 ms per four-term query). Scoped
+    queries keep the loop: their statistics depend on the scope, so no
+    precomputed contribution is valid for them.
     """
 
     def __init__(self, k1: float = 1.5, b: float = 0.75) -> None:
@@ -393,6 +444,7 @@ class _BM25Index:
         self._postings: dict[str, list[tuple[int, int]]] = {}
         self._avgdl: float = 0.0
         self._n_docs: int = 0
+        self._columns: Any = None
 
     def build(self, token_lists: Sequence[list[str]]) -> None:
         """Build index from pre-tokenised document lists."""
@@ -414,6 +466,78 @@ class _BM25Index:
 
         total = sum(self._doc_lens)
         self._avgdl = total / self._n_docs if self._n_docs else 1.0
+        self._columns = None
+
+    def _precomputed(self, engine: Any) -> Any:
+        """
+        Return ``(vocabulary, indptr, rows, data)``, built on first use.
+
+        Notes
+        -----
+        **Developer.** ``data`` is written with the exact expression tree of
+        :meth:`query` -- ``idf * num / den`` with ``num`` and ``den`` as there
+        -- on float64 arrays, which round identically to the scalar code.
+        Postings are already term-major with ascending rows, which is the
+        layout the accumulator needs.
+        """
+        if self._columns is not None:
+            return self._columns
+        import numpy as np  # noqa: PLC0415 - only on the compiled path
+
+        terms = list(self._postings)
+        vocabulary = {term: column for column, term in enumerate(terms)}
+        sizes = np.fromiter(
+            (len(self._postings[t]) for t in terms), dtype=np.int64, count=len(terms)
+        )
+        indptr = np.zeros(len(terms) + 1, dtype=np.int64)
+        np.cumsum(sizes, out=indptr[1:])
+        pairs = np.array(
+            [pair for t in terms for pair in self._postings[t]], dtype=np.int64
+        ).reshape(-1, 2)
+        rows, tf = pairs[:, 0], pairs[:, 1]
+        n = self._n_docs
+        idf = np.array(
+            [math.log((n - df + 0.5) / (df + 0.5) + 1.0) for df in sizes.tolist()],
+            dtype=np.float64,
+        )
+        dl = np.asarray(self._doc_lens, dtype=np.int64)[rows]
+        num = tf * (self.k1 + 1)
+        den = tf + self.k1 * (1 - self.b + self.b * dl / self._avgdl)
+        data = np.repeat(idf, sizes) * num / den
+        self._columns = (vocabulary, indptr, rows, np.asarray(data, dtype=np.float64))
+        return self._columns
+
+    def _query_precomputed(
+        self,
+        engine: Any,
+        query_tokens: list[str],
+        top_k: int,
+        allowed: frozenset[int] | None,
+    ) -> list[tuple[int, float]]:
+        """Unscoped :meth:`query` from precomputed contributions; same result."""
+        import numpy as np  # noqa: PLC0415 - only on the compiled path
+
+        vocabulary, indptr, rows, data = self._precomputed(engine)
+        term_ids = np.array(
+            [vocabulary.get(term, -1) for term in query_tokens], dtype=np.int64
+        )
+        absent = np.zeros(term_ids.size)
+        scores = engine.accumulate(
+            term_ids,
+            absent,
+            indptr,
+            rows,
+            data,
+            self._n_docs,
+            engine.resolve_backend("auto"),
+        )
+        eligible = scores > 0
+        if allowed is not None:
+            admitted = np.zeros(self._n_docs, dtype=bool)
+            admitted[[i for i in allowed if 0 <= i < self._n_docs]] = True
+            eligible &= admitted
+        chosen = engine.top_positions(scores, top_k, eligible)
+        return [(int(i), float(scores[i])) for i in chosen.tolist()]
 
     def query(
         self,
@@ -431,6 +555,10 @@ class _BM25Index:
         frequencies, average length -- are computed over, so documents outside
         the scope cannot change the scores or the order of those inside it.
         """
+        if scope is None and top_k > 0 and self._n_docs:
+            engine = _scoring_engine()
+            if engine is not None:
+                return self._query_precomputed(engine, query_tokens, top_k, allowed)
         scores: dict[int, float] = {}
         if scope is None:
             n = self._n_docs
@@ -1295,10 +1423,26 @@ class RetrievalIndex:
         cannot degrade a complete one-leg answer.
         """
         fetch_k = min(cfg.top_k * 3, max(len(self._documents), 1))
+        probability = cfg.probability_fusion
+        if probability is not None and scope is not None:
+            raise ValueError(
+                "probability fusion is refused under a SecurityFilter scope: BM25 "
+                "statistics are computed inside the scope, so a calibrator fitted "
+                "on unscoped scores would return wrong probabilities. Use rank "
+                "fusion for scoped indexes."
+            )
+        run_lexical = (
+            cfg.hybrid_alpha < 1.0
+            if probability is None
+            else probability.runs("lexical")
+        )
+        run_dense = (
+            cfg.hybrid_alpha > 0.0 if probability is None else probability.runs("dense")
+        )
 
         keyword_results: list[RetrievalHit] = []
         lexical_leg = _skipped(LegKind.LEXICAL)
-        if cfg.hybrid_alpha < 1.0:
+        if run_lexical:
             kw_cfg = RetrievalConfig(
                 top_k=fetch_k,
                 match_mode="keyword",
@@ -1311,7 +1455,7 @@ class RetrievalIndex:
 
         semantic_results: list[RetrievalHit] = []
         dense_leg = _skipped(LegKind.DENSE)
-        if cfg.hybrid_alpha > 0.0:
+        if run_dense:
             sem_cfg = RetrievalConfig(
                 top_k=fetch_k,
                 match_mode="semantic",
@@ -1322,8 +1466,92 @@ class RetrievalIndex:
                 query, query_embedding, sem_cfg, allowed=allowed
             )
 
-        hits = self._fuse_hybrid(query, keyword_results, semantic_results, cfg)
+        if probability is not None:
+            hits = self._fuse_probability(keyword_results, semantic_results, cfg)
+        else:
+            hits = self._fuse_hybrid(query, keyword_results, semantic_results, cfg)
         return hits, [lexical_leg, dense_leg]
+
+    def _fuse_probability(
+        self,
+        keyword_results: list[RetrievalHit],
+        semantic_results: list[RetrievalHit],
+        cfg: RetrievalConfig,
+    ) -> list[RetrievalHit]:
+        """Fuse the legs as calibrated log-odds evidence (opt-in).
+
+        Notes
+        -----
+        **Developer.**  Each leg's ``native_score`` (BM25 for lexical, cosine
+        for dense) is what its calibrator was fitted on, so it is what is
+        calibrated; a hit without one is refused rather than replaced by the
+        ranking ``score``. Keys and the once-per-leg rule are those of rank
+        fusion. ``score`` is the fused probability; ``native_score`` is
+        ``None`` because no backend produced it.
+        """
+        import dataclasses as _dc  # noqa: PLC0415
+
+        from .._retrievers import LegContribution  # noqa: PLC0415
+
+        fusion = cfg.probability_fusion
+        policy = _dc.replace(fusion.policy, top_k=cfg.top_k)
+        legs = []
+        first_hit: list[dict[str, RetrievalHit]] = []
+        ranks: list[dict[str, int]] = []
+        for kind, leg_hits in (
+            (LegKind.LEXICAL, keyword_results),
+            (LegKind.DENSE, semantic_results),
+        ):
+            by_key: dict[str, RetrievalHit] = {}
+            rank_of: dict[str, int] = {}
+            pairs = []
+            for rank, hit in enumerate(leg_hits):
+                key = getattr(hit.doc, "doc_id", None)
+                if not isinstance(key, str) or not key:
+                    raise ValueError(
+                        f"hybrid search: the {kind.value} leg's hit at rank {rank + 1} "
+                        f"has doc_id {key!r}; fusion needs a non-empty str doc_id"
+                    )
+                if hit.native_score is None:
+                    raise ValueError(
+                        f"hybrid search: the {kind.value} leg's hit {key!r} has no "
+                        "native_score to calibrate"
+                    )
+                if key in by_key:
+                    continue
+                by_key[key] = hit
+                rank_of[key] = rank
+                pairs.append((key, float(hit.native_score)))
+            first_hit.append(by_key)
+            ranks.append(rank_of)
+            legs.append((kind.value, pairs, fusion.calibrators.get(kind.value)))
+        fused = policy.fuse(legs)
+        results = []
+        for item in fused.items:
+            contributions = tuple(
+                LegContribution(
+                    leg=LegKind(part.leg),
+                    rank=ranks[part.position][item.key],
+                    native_score=first_hit[part.position][item.key].native_score,
+                    native_metric=first_hit[part.position][item.key].native_metric,
+                )
+                for part in item.contributions
+            )
+            doc = first_hit[item.contributions[0].position][item.key].doc
+            results.append(
+                RetrievalHit(
+                    doc=doc,
+                    score=item.probability,
+                    match_mode="hybrid",
+                    backend=self.backend_name,
+                    index_generation=self._generation,
+                    native_score=None,
+                    native_metric="logodds_probability",
+                    contributions=contributions,
+                    rank=len(results),
+                )
+            )
+        return results
 
     @staticmethod
     def check_score_fusion_allowed(

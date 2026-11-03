@@ -711,6 +711,11 @@ class StorageCoordinator:
         targets = []
         for t in self.targets:
             st = self._state[t.id]
+            _bool = st.write_capability not in {
+                "missing-token",
+                "denied",
+                "denied-read-token",
+            }
             targets.append(
                 {
                     "id": t.id,
@@ -727,11 +732,7 @@ class StorageCoordinator:
                         "feedback": True,
                         "contributions": True,
                         "native_review": t.role == "primary",
-                        "write": (
-                            bool(t.token)
-                            and st.write_capability
-                            not in {"missing-token", "denied", "denied-read-token"}
-                        ),
+                        "write": bool(t.token) and _bool,
                     },
                     "token": {
                         "type": (

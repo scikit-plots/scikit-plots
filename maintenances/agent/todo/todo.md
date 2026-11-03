@@ -126,3 +126,34 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
   nothing written).
 - Multi-agent coordination: not built. The roadmap admits it only if it
   beats single agent plus tools on the task set; nothing here calls for it.
+
+### PR 906: plans in the run (W2)
+- [x] `Decision(plan=...)`, `PlanItem`, `PlanStatus`, `check_plan_change`
+  (`_plan.py`). The plan rides on the decision and `RunState.plan` is derived
+  from the recorded decisions, so there is no second source of truth and no
+  state schema change: a decision without `plan=` keeps its exact mapping and
+  audit digest (the 270 existing tests pass unchanged).
+- Rules: no item disappears (removal = `dropped`); `done`/`dropped` final
+  with frozen text; at most one `in_progress`; unique ids; at most 64 items,
+  500 characters. A refused change is `invalid_decision`; `RunState.check`
+  replays the history, so a tampered state is refused at load.
+- Invariant I9 holds: `_plan.py` imports only `_errors`; the submodule
+  independence guard passes.
+- Tests: 19 new (`tests/test_agent_plan.py`), guide example 3 runs.
+- [x] W4 (same PR): `ArtifactStore`, `MemoryArtifactStore`,
+  `DirectoryArtifactStore` (`_artifacts.py`); `Agent(artifacts=,
+  offload_results_over=)`; `Step.result_ref` written only when set. The key is
+  `digest(result)`, the audited `result_digest`, so audit and artifact are
+  linked; reads re-digest and refuse a mismatch; put before the state save,
+  so a crash leaves only an unreferenced artifact. Measured: ten 12 KB
+  results, saved state 126 KB inline, 6 KB offloaded. 10 new tests.
+- [x] W3 (same PR): `delegate`/`DelegateTool` (`_delegate.py`). No privilege
+  the parent lacks (effect = strongest of the child's tools, scopes = union);
+  child limits = min(requested, parent remaining) and child spend charged to
+  the parent (tool calls, cost, tokens; seconds by the parent's clock); one
+  trail, child run id = digest(parent run id, call key), `subrun` record with
+  the child's audit head; not idempotent. 11 tests incl. nested delegation.
+- [x] M-5 (same PR): `evaluate_audit` (`_evaluate.py`) on a verified trail;
+  refused when the trail does not verify. 5 tests.
+- Not done, by decision: W1 workflow graph (needs its own design review),
+  W5 durable memory (its seven prerequisites are still absent).

@@ -222,7 +222,7 @@ Standalone (non-Sphinx):
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 
 # import multiprocessing
 import importlib.util
@@ -6162,9 +6162,7 @@ def _serialize_endpoint_profiles(  # ruff: ignore[too-many-branches]
     # ── Build-time metadata injected into the window object ───────────────
     _meta: dict = {
         "schemaVersion": _PROFILE_SCHEMA_VERSION,
-        "buildId": (
-            datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ),
+        "buildId": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     # ── Path 1: explicit profiles ─────────────────────────────────────────

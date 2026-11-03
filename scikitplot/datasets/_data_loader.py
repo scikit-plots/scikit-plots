@@ -692,6 +692,11 @@ def load_data_meta(
     # Generalized data loading interface with file type inference
     logger.info(f"load_data: {type(path)}")
     logger.info(f"load_data: {path!r}")
+    _tuple = (
+        ".db",
+        ".sqlite",
+        ".duckdb",
+    )
     if db_type:
         data = load_sqlalchemy(
             str(path).strip(),
@@ -707,15 +712,8 @@ def load_data_meta(
         ext = "." + ext.lower().lstrip(".")
         loader = get_loader_by_ext(ext)
         data = (
-            # if loadable data load
-            loader(path, **kwargs)
-            if ext
-            not in [
-                ".db",
-                ".sqlite",
-                ".duckdb",
-            ]
-            # If sqlite db get table
+            loader(path, **kwargs)  # if loadable data load
+            if ext not in _tuple  # If sqlite db get table
             else loader(path, query=clean_sql(query), **kwargs)
         )
     # "meta": {"source": str(path), "rows": len(df), "columns": len(df.columns)},
@@ -725,18 +723,7 @@ def load_data_meta(
         "source": str(path),
         "is_url": is_url(path),
         "type": db_type or ext,
-        "query": (
-            (
-                db_type
-                or ext
-                in [
-                    ".db",
-                    ".sqlite",
-                    ".duckdb",
-                ]
-            )
-            and str(clean_sql(query))
-        ),
+        "query": (db_type or ext in _tuple) and str(clean_sql(query)),
     }
 
 

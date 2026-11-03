@@ -174,6 +174,12 @@
 | `PreferenceEvaluation(names: 'tuple', summary: 'Mapping[str, Mapping[str, Any]]', items: 'tuple', judges: 'Mapping[str, Any]',  ...)` | class | Result of `evaluate_preference`. |
 | `evaluate_answers(system: 'Callable[[str], Any] \| None', dataset: 'Sequence[Mapping[str, Any]]', *, judges: 'Any' = None, m ...)` | function | Evaluate a system's answers with text metrics and LLM judges. |
 | `evaluate_preference(dataset: 'Sequence[Mapping[str, Any]]', answers_a: 'Sequence[str] \| Mapping[Any, str]', answers_b: 'Seque ...)` | function | Judge two systems' answers head to head, in both orders. |
+| `CALIBRATION_STRATEGIES` | tuple |  |
+| `binary_log_loss(y_true: 'Any', y_prob: 'Any') -> 'float'` | function | Mean negative log-likelihood of binary outcomes under the probabilities. |
+| `brier_score(y_true: 'Any', y_prob: 'Any') -> 'float'` | function | Mean squared difference between probabilities and binary outcomes. |
+| `calibration_report(y_true: 'Any', y_prob: 'Any', *, n_bins: 'int' = 10, strategy: 'str' = 'uniform') -> 'dict[str, Any]'` | function | Every calibration measure for one set of labelled probabilities. |
+| `expected_calibration_error(y_true: 'Any', y_prob: 'Any', *, n_bins: 'int' = 10, strategy: 'str' = 'uniform') -> 'float'` | function | Count-weighted mean absolute gap between prediction and observation. |
+| `reliability_table(y_true: 'Any', y_prob: 'Any', *, n_bins: 'int' = 10, strategy: 'str' = 'uniform') -> 'dict[str, Any]'` | function | Per-bin mean predicted probability against observed relevance frequency. |
 | `EvaluationComparison(metrics: 'tuple', n_queries: 'int', n_resamples: 'int', seed: 'int') -> None` | class | Paired comparison of two evaluations of the same queries. |
 | `MetricComparison(metric: 'str', candidate: 'float', baseline: 'float', delta: 'float', wins: 'int', ties: 'int', losses: ' ...)` | class | One metric of an `EvaluationComparison`. |
 | `QueryEvaluation(query_id: 'Any', metrics: 'Mapping[str, float]', n_retrieved: 'int', n_relevant: 'int', latency_s: 'float ...)` | class | One query of a `RetrievalEvaluation`. |
@@ -319,9 +325,19 @@
 | `filter_to_dict(expression: 'Filter') -> 'dict[str, Any]'` | function | Return the JSON form of a filter expression. |
 | `filterable_fields() -> 'frozenset[str]'` | function | Return the document fields a filter may name. |
 | `validate_filter(expression: 'Any') -> 'Filter'` | function | Return ``expression`` checked and frozen to the JSON-able form. |
+| `CUT_MODES` | tuple |  |
+| `CutPolicy(mode: 'str', threshold: 'float \| None' = None, min_k: 'int' = 1, max_k: 'int \| None' = None) -> None` | class | A rule for how many ranked hits to keep. |
+| `CutResult(k: 'int', mode: 'str', evidence: 'float \| None', clamped: 'bool') -> None` | class | Where a list was cut, and why. |
 | `FusedItem(key: 'str', score: 'float', contributions: 'tuple[FusionContribution, ...]') -> None` | class | One item of a fused ranking. |
 | `FusionContribution(leg: 'str', position: 'int', rank: 'int', weight: 'float', value: 'float') -> None` | class | One leg's share of a fused item's score. |
 | `FusionPolicy(k: 'int' = 60, weights: 'Mapping[str, float] \| tuple[tuple[str, float], ...]' = (), default_weight: 'floa ...)` | class | Weighted reciprocal rank fusion with one tie-break and returned contributions. |
+| `CachedSearch(index: 'Any', *, max_entries: 'int' = 1024) -> 'None'` | class | Exact, bounded cache in front of one retrieval index. |
+| `PROBABILITY_FUSION_LEGS` | tuple |  |
+| `LogOddsContribution(leg: 'str', position: 'int', score: 'float', probability: 'float', weight: 'float', evidence: 'float') -> ...)` | class | One leg's evidence for one fused item. |
+| `LogOddsFusedItem(key: 'str', probability: 'float', log_odds: 'float', contributions: 'tuple[LogOddsContribution, ...]') -> ...)` | class | One item of a probability-fused ranking. |
+| `LogOddsFusion(base_rate: 'float', weights: 'Mapping[str, float] \| tuple[tuple[str, float], ...]' = (), default_weight:  ...)` | class | Pool calibrated legs as log-odds evidence into probabilities of relevance. |
+| `LogOddsFusionResult(items: 'tuple[LogOddsFusedItem, ...]', evidence_correlation: 'dict[tuple[int, int], float \| None]', share ...)` | class | A fused ranking and the diagnostics needed to trust it. |
+| `ProbabilityFusion(policy: 'LogOddsFusion', calibrators: 'Mapping[str, Any]') -> None` | class | Opt-in probability fusion for hybrid search: a policy and a calibrator per leg. |
 | `IndexGeneration(schema_version: 'str', embedding_manifest_id: 'str \| None', document_digest: 'str', backend: 'str \| None' ...)` | class | Identity of one built index. |
 | `derive_generation(documents: 'Iterable[Any]', *, backend: 'str \| None' = None, schema_version: 'str \| None' = None) -> 'Ind ...)` | function | Derive the generation identity for a set of documents. |
 | `IDENTITY_HEX_WIDTH` | int |  |

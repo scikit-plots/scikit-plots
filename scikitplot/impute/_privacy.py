@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-import datetime as _dt
+import datetime as dt
 import itertools
 import os
 from pathlib import Path
@@ -197,7 +197,7 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
             )
 
         # Metadata: ISO 8601 creation time (for logs / audit)
-        self.index_created_at_ = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        self.index_created_at_ = dt.datetime.now(dt.timezone.utc).isoformat()
 
         # -------------------------------------------------------------
         # public / private  => normal in-memory behaviour

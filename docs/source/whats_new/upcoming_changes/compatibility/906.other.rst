@@ -1,0 +1,4 @@
+- New optional extra ``rank-bm25`` (``pip install "scikit-plots[rank-bm25]"``,
+  or ``scikit-plots-rank-bm25[rank-bm25]``) installs ``numba>=0.57.0`` for the
+  compiled BM25 scoring backend, on Python below 3.15 until Numba supports
+  3.15. Nothing changes without it.

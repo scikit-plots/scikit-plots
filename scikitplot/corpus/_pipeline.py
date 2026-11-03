@@ -1077,13 +1077,9 @@ class CorpusPipeline:
             # Aggregate counters from every sub-reader.  Fallback to
             # len(sub-reader-docs) / 0 for any reader missing the attrs.
             n_included = sum(
-                (
-                    getattr(r, "_last_n_included", None)
-                    # If a sub-reader never set the attribute, fall back to
-                    # counting only its included docs — we can't recover omits.
-                    if getattr(r, "_last_n_included", None) is not None
-                    else 0
-                )
+                # If a sub-reader never set the attribute, fall back to
+                # counting only its included docs — we can't recover omits.
+                getattr(r, "_last_n_included", 0) or 0  # if None use 0
                 for r in reader.readers
             )
             n_omitted = sum(getattr(r, "_last_n_omitted", 0) for r in reader.readers)
