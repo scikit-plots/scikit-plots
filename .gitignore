@@ -91,7 +91,8 @@
 #   !build/keep.txt
 # =====================================================================
 
-# tasks
+# git artifact
+*.patch
 
 # git_clone[s], if needed
 .git_clone*/*
