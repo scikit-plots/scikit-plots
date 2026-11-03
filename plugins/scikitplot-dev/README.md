@@ -36,7 +36,11 @@ Step-by-step guides: [`plugins/README.md`](../README.md) for users,
 Install in Claude Code (`/plugin marketplace add scikit-plots/scikit-plots`,
 then `/plugin install scikitplot-dev@scikit-plots`; in a checkout,
 `claude --plugin-dir ./plugins/scikitplot-dev` for one session), or copy a skill folder into any tool that reads
-the Agent Skills format. The usage skills are generated from the package
+the Agent Skills format. Installing from the marketplace also installs
+Anthropic's `skill-creator@claude-plugins-official`, which this plugin depends
+on for writing skills; if the install says that marketplace is not added, run
+`/plugin marketplace add anthropics/claude-plugins-official` and install again.
+`--plugin-dir` loads the plugin without it. The usage skills are generated from the package
 (`tools/maint_tools/generate_usage_skills.py`), the agents and indexes by
 `check_records.py --write-index`; neither is edited by hand.
 

@@ -663,9 +663,19 @@ PREFIX = "scikitplot"
 DEV_SUFFIX = "-dev"
 #: Development skills that maintain no single path (no agent of their own).
 CROSS_CUTTING_SKILLS = ("scikitplot-engineering-rules",)
-#: Third-party skills, kept as published except for a marked scikit-plots section
-#: (``skill-creator``: tell the user and ask before running its programs).
-VENDORED_SKILLS = ("skill-creator",)
+#: Plugins of other marketplaces that a plugin of the development marketplace
+#: depends on, by plugin, exactly as its marketplace entry's ``dependencies``.
+#: A third-party skill is installed from its publisher's plugin and never
+#: copied here, so users always get the version its publisher maintains
+#: (``skill-creator`` is Anthropic's, in ``claude-plugins-official``). Claude
+#: Code installs a dependency from another marketplace only when the root
+#: marketplace lists it in ``allowCrossMarketplaceDependenciesOn``; declared in
+#: the marketplace entry, a missing allowlist refuses the install, while
+#: declared in ``plugin.json`` the plugin installs and then fails to load
+#: (https://code.claude.com/docs/en/plugins/dependencies.md). The users'
+#: ``scikitplot`` plugin is also installed from marketplaces this repository
+#: does not control (the directory), so it depends on nothing.
+EXTERNAL_DEPENDENCIES = {"scikitplot-dev": ("skill-creator@claude-plugins-official",)}
 SKILL_NAME_MAX = 64
 SKILL_DESCRIPTION_MAX = 1024
 SKILL_COMPATIBILITY_MAX = 500
@@ -1369,17 +1379,6 @@ def _runs_and_sends(root: Path) -> list[str]:
             f"| `{name}` | {', '.join(f'`{f}`' for f in files)} |"
             for name, files in programs.items()
         ]
-        if "skill-creator" in programs:
-            lines += [
-                "",
-                "`skill-creator` (Anthropic's, with a scikit-plots consent section added) is",
-                "for writing and testing skills. Its evaluation programs start `claude -p`",
-                "with your environment variables, so the test queries go to Claude through",
-                "your own Claude Code sign-in and count against your plan; its review page",
-                "is served on `127.0.0.1` only, and before starting it stops any program",
-                "already using its port (3117 by default), which Claude must ask you about",
-                "first. Nothing goes to any other service.",
-            ]
     lines += [
         "",
         "The documentation search server is a separate, opt-in plugin, `scikitplot-mcp`,",
@@ -1389,11 +1388,11 @@ def _runs_and_sends(root: Path) -> list[str]:
         "",
         "| Question | Answer |",
         "|---|---|",
-        "| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors; it tells Claude how to use the scikit-plots library and, with `skill-creator`, how to write skills. |",
+        "| Does it read or store personal data (names, emails, addresses)? | No. It has no connectors; it tells Claude how to use the scikit-plots library. |",
     ]
     if programs:
         lines += [
-            "| Does any skill send data to a service? | Only to Claude, and only when you approve a run: `skill-creator`'s evaluation programs send test queries and draft descriptions to Claude through your own Claude Code (`claude -p`). No skill sends data anywhere else. The Python examples in the other skills run only when you run them, in your own environment. |",
+            "| Does any skill send data to a service? | Only what a program listed above sends, and only when you approve a run; the table at the top of its skill's `SKILL.md` states what. The Python examples in the other skills run only when you run them, in your own environment. |",
         ]
     else:
         lines += [
@@ -1403,7 +1402,7 @@ def _runs_and_sends(root: Path) -> list[str]:
         "| How long is data received from Claude kept? | It is not kept: there is no scikit-plots service, so nothing is received from Claude. |",
         "| Is it intended for users under 18? | No. It is a developer tool for a Python library. |",
         "| What does it change on my computer? | Installing it adds files to Claude's plugin folder. Anything else happens only when Claude writes or runs code with its help, under your Claude permission settings; the helper programs above, only after Claude has asked you. |",
-        "| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session; `skill-creator`'s evaluations make many `claude -p` calls, and Claude states how many before asking you. |",
+        "| Does it cost anything or use my plan? | Installing does not. While it is enabled, its skill descriptions add a small amount of context to each session. |",
         "",
         "What Claude itself does with your conversations is set by your Claude",
         "account, not by this plugin.",
@@ -1488,6 +1487,12 @@ def render_plugin_readme(root: Path) -> str:
         "  loaded and inherits the tools Claude Code allows it.",
         "- **Shared skills**, such as `scholarly-inquiry-cycle`, for structured",
         "  investigation of any question.",
+        "- **Writing your own skills** is done with Anthropic's `skill-creator`, a",
+        "  separate plugin maintained by Anthropic and not copied here, so you get",
+        "  its current version: `claude plugin install skill-creator@claude-plugins-official`",
+        "  (if `claude plugin marketplace list` does not show that marketplace, first",
+        "  `claude plugin marketplace add anthropics/claude-plugins-official`). It",
+        "  ships programs of its own; read its `SKILL.md` before running them.",
         "- **The skills ask Claude to check before writing code**: your installed",
         "  version, and the signature and docstring of each name it calls.",
         "",
@@ -1626,10 +1631,11 @@ def check_skills(root: Path) -> list[str]:
                     f"{rel}: a {DEV_SUFFIX} skill names the path it maintains in"
                     f" metadata.{MIRROR_KEY}"
                 )
-            elif skill.name not in CROSS_CUTTING_SKILLS + VENDORED_SKILLS + shared:
+            elif skill.name not in CROSS_CUTTING_SKILLS + shared:
                 errors.append(
                     f"{rel}: a skill without metadata.{MIRROR_KEY} is one of"
-                    f" {list(CROSS_CUTTING_SKILLS + VENDORED_SKILLS)}"
+                    f" {list(CROSS_CUTTING_SKILLS)} or a shared skill; a third-party"
+                    " skill comes from its own plugin (EXTERNAL_DEPENDENCIES)"
                 )
             continue
         if skill.mirror not in keys:
@@ -1711,9 +1717,13 @@ def check_plugins(root: Path) -> list[str]:
         ``plugins`` list, each entry's relative ``source`` is
         ``./plugins/<name>`` and holds ``.claude-plugin/plugin.json`` whose
         ``name`` equals the entry's, every folder of ``plugins/`` holding a
-        manifest is listed, and no manifest sets ``version`` (the development
+        manifest is listed, no manifest sets ``version`` (the development
         channel is unversioned, Rule 166; releases are stamped by
-        ``tools/maint_tools/build_skills_repo.py``).
+        ``tools/maint_tools/build_skills_repo.py``), each entry's
+        ``dependencies`` equal :data:`EXTERNAL_DEPENDENCIES`, no manifest
+        declares ``dependencies``, the users' plugin depends on nothing, and
+        ``allowCrossMarketplaceDependenciesOn`` lists exactly the marketplaces
+        those dependencies name.
 
     Notes
     -----
@@ -1721,7 +1731,10 @@ def check_plugins(root: Path) -> list[str]:
     (https://code.claude.com/docs/en/plugins/marketplace-reference.md): a
     relative source is resolved from the marketplace root and may not use
     ``..``; the entry name and the manifest name must agree. ``claude plugin
-    validate`` checks more; this check needs no Claude Code install.
+    validate`` checks more; this check needs no Claude Code install. The
+    dependency rules come from
+    https://code.claude.com/docs/en/plugins/dependencies.md, as explained at
+    :data:`EXTERNAL_DEPENDENCIES`.
     """
     path = root / MARKETPLACE
     if not path.is_file():
@@ -1764,10 +1777,79 @@ def check_plugins(root: Path) -> list[str]:
                 f"{manifest.relative_to(root).as_posix()}: the development channel sets no"
                 " 'version' (Rule 166)"
             )
+        if "dependencies" in data:
+            errors.append(
+                f"{manifest.relative_to(root).as_posix()}: declare 'dependencies' in the"
+                f" {MARKETPLACE} entry (EXTERNAL_DEPENDENCIES): there a missing allowlist"
+                " refuses the install, in plugin.json it disables the installed plugin"
+            )
+    errors += _check_dependencies(market, listed)
     for manifest in sorted((root / PLUGINS_DIR).glob("*/.claude-plugin/plugin.json")):
         name = manifest.parent.parent.name
         if name not in listed and not name.startswith("_"):
             errors.append(f"{PLUGINS_DIR}/{name}/: a plugin {MARKETPLACE} does not list")
+    return errors
+
+
+def _check_dependencies(market: dict, listed: set[str]) -> list[str]:
+    """
+    Return the problems of the marketplace's plugin dependencies.
+
+    Parameters
+    ----------
+    market : dict
+        The parsed ``.claude-plugin/marketplace.json``.
+    listed : set of str
+        The names of the plugin entries that passed :func:`check_plugins`.
+
+    Returns
+    -------
+    list of str
+        Empty when every entry's ``dependencies`` equal
+        :data:`EXTERNAL_DEPENDENCIES`, each dependency is
+        ``plugin@marketplace``, the users' plugin has none, and
+        ``allowCrossMarketplaceDependenciesOn`` lists exactly the marketplaces
+        they name.
+    """
+    errors: list[str] = []
+    for i, entry in enumerate(market["plugins"]):
+        name = entry.get("name")
+        if name not in listed:
+            continue
+        wanted = list(EXTERNAL_DEPENDENCIES.get(name, ()))
+        if entry.get("dependencies", []) != wanted:
+            errors.append(
+                f"{MARKETPLACE}: plugins[{i}]: 'dependencies' is"
+                f" {entry.get('dependencies')!r}; EXTERNAL_DEPENDENCIES sets {wanted!r}"
+            )
+    users = PLUGIN_DIR.rsplit("/", 1)[-1]
+    for name, deps in sorted(EXTERNAL_DEPENDENCIES.items()):
+        if name == users:
+            errors.append(
+                f"EXTERNAL_DEPENDENCIES: {users!r} is installed from marketplaces this"
+                " repository does not control, where a dependency on another"
+                " marketplace leaves it unable to load; it depends on nothing"
+            )
+        elif name not in listed:
+            errors.append(
+                f"EXTERNAL_DEPENDENCIES: {name!r} is not a plugin {MARKETPLACE} lists"
+            )
+        for dep in deps:
+            plugin, _, market_name = dep.partition("@")
+            if not (_SKILL_NAME.fullmatch(plugin) and _SKILL_NAME.fullmatch(market_name)):
+                errors.append(
+                    f"EXTERNAL_DEPENDENCIES: {dep!r} is not 'plugin@marketplace'"
+                )
+    allow = market.get("allowCrossMarketplaceDependenciesOn", [])
+    needed = sorted(
+        {d.partition("@")[2] for deps in EXTERNAL_DEPENDENCIES.values() for d in deps}
+    )
+    valid = isinstance(allow, list) and all(isinstance(a, str) for a in allow)
+    if not valid or sorted(allow) != needed:
+        errors.append(
+            f"{MARKETPLACE}: 'allowCrossMarketplaceDependenciesOn' is {allow!r}; the"
+            f" dependencies need exactly {needed!r}"
+        )
     return errors
 
 

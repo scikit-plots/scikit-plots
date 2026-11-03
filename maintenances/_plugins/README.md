@@ -67,8 +67,7 @@ plugins/                    everything that ships to Claude
   _shared/skills/           skills every plugin carries (one source; copied by --write-index)
     scholarly-inquiry-cycle/        structured inquiry on any question
     scikitplot-engineering-rules/   the numbered rules (no path, no agent)
-    skill-creator/                  Anthropic's, plus a scikit-plots section: ask before each program run
-  scikitplot/               plugin "scikitplot" (users; Markdown, plus skill-creator's programs, disclosed)
+  scikitplot/               plugin "scikitplot" (users; Markdown only, depends on nothing)
     .claude-plugin/plugin.json
     README.md               generated
     skills/scikitplot[-<x>]/SKILL.md, references/API.md    generated
@@ -76,7 +75,7 @@ plugins/                    everything that ships to Claude
     agents/scikitplot[-<x>].md                              generated
   scikitplot-mcp/           plugin "scikitplot-mcp" (users; opt-in local MCP server)
     .claude-plugin/plugin.json, .mcp.json, README.md
-  scikitplot-dev/           plugin "scikitplot-dev" (developers, this checkout)
+  scikitplot-dev/           plugin "scikitplot-dev" (developers, this checkout; depends on skill-creator@claude-plugins-official)
     .claude-plugin/plugin.json
     README.md, sphinx_ext.md   how to pick a development skill
     skills/scikitplot-<x>-dev/       one per package or repository-wide area, metadata.scikitplot-mirror
@@ -221,9 +220,10 @@ load them.
    agents current), the open specification's validator (`agentskills`), and
    Claude Code's (`claude plugin validate`, `--profile directory`).
 4. *Least privilege.* The users' plugin has no hooks, no MCP and no `bin/`:
-   nothing runs when it loads. Its only programs are the shared
-   `skill-creator`'s, disclosed in its README (derived from the files) and
-   run only after Claude has told the user what each does and asked. Agents omit `tools`, so they inherit the tools available to
+   nothing runs when it loads, and it ships no programs (its README says so,
+   derived from the files). Third-party skills are not copied in: Anthropic's
+   `skill-creator` is a dependency of `scikitplot-dev` only, declared in the
+   marketplace entry (`check_records.EXTERNAL_DEPENDENCIES`). Agents omit `tools`, so they inherit the tools available to
    subagents, still under the user's permission mode.
 5. *Progressive disclosure.* Short descriptions always loaded; the API table
    when a skill loads; the full API only in `references/API.md`.

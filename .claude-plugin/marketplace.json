@@ -5,6 +5,9 @@
     "name": "The scikit-plots developers",
     "email": "scikit-plots-maintainers@googlegroups.com"
   },
+  "allowCrossMarketplaceDependenciesOn": [
+    "claude-plugins-official"
+  ],
   "plugins": [
     {
       "name": "scikitplot",
@@ -21,8 +24,11 @@
     {
       "name": "scikitplot-dev",
       "source": "./plugins/scikitplot-dev",
-      "description": "Develop scikit-plots in its repository: a skill and an agent per maintained package, and the engineering rules.",
-      "category": "development"
+      "description": "Develop scikit-plots in its repository: a skill and an agent per maintained package, and the engineering rules. Installs Anthropic's skill-creator for writing skills.",
+      "category": "development",
+      "dependencies": [
+        "skill-creator@claude-plugins-official"
+      ]
     }
   ]
 }

@@ -795,6 +795,46 @@ class TestPlugins:
         for name in (".mcp.json", "hooks", "bin"):
             assert not (ROOT / "plugins/scikitplot" / name).exists(), name
 
+    def test_the_dev_plugin_depends_on_the_official_skill_creator(self):
+        _, market = _market(ROOT)
+        entries = {e["name"]: e for e in market["plugins"]}
+        assert entries["scikitplot-dev"]["dependencies"] == ["skill-creator@claude-plugins-official"]
+        assert market["allowCrossMarketplaceDependenciesOn"] == ["claude-plugins-official"]
+        assert "dependencies" not in entries["scikitplot"]
+
+    def test_a_missing_allowlist_fails(self, tree):
+        path, market = _market(tree)
+        del market["allowCrossMarketplaceDependenciesOn"]
+        path.write_text(json.dumps(market), encoding="utf-8")
+        assert any("allowCrossMarketplaceDependenciesOn" in e for e in _plugins_errors(tree))
+
+    def test_a_dependency_unlike_the_record_fails(self, tree):
+        path, market = _market(tree)
+        market["plugins"][0]["dependencies"] = ["skill-creator@claude-plugins-official"]
+        path.write_text(json.dumps(market), encoding="utf-8")
+        assert any("EXTERNAL_DEPENDENCIES sets []" in e for e in _plugins_errors(tree))
+
+    def test_a_dependency_in_a_manifest_fails(self, tree):
+        manifest = tree / "plugins/scikitplot-dev/.claude-plugin/plugin.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["dependencies"] = ["skill-creator@claude-plugins-official"]
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        assert any("in plugin.json it disables" in e for e in _plugins_errors(tree))
+
+    def test_the_users_plugin_may_not_depend_on_anything(self, tree, monkeypatch):
+        scope = records["check_plugins"].__globals__
+        monkeypatch.setitem(scope, "EXTERNAL_DEPENDENCIES", {"scikitplot": ("x@claude-plugins-official",)})
+        path, market = _market(tree)
+        market["plugins"][0]["dependencies"] = ["x@claude-plugins-official"]
+        path.write_text(json.dumps(market), encoding="utf-8")
+        errors = _plugins_errors(tree)
+        assert any("depends on nothing" in e for e in errors), errors
+
+    def test_a_malformed_dependency_fails(self, tree, monkeypatch):
+        scope = records["check_plugins"].__globals__
+        monkeypatch.setitem(scope, "EXTERNAL_DEPENDENCIES", {"scikitplot-dev": ("skill-creator",)})
+        assert any("is not 'plugin@marketplace'" in e for e in _plugins_errors(tree))
+
 
 class TestIndexTablesAndDisclosure:
     """CI-11: the index groups packages and areas; programs in a skill are disclosed."""
@@ -820,19 +860,19 @@ class TestIndexTablesAndDisclosure:
 
     def test_the_moved_skills_are_shared_and_copied(self):
         names = records["shared_skill_names"](ROOT)
-        for name in ("scikitplot-engineering-rules", "skill-creator"):
-            assert name in names
-            for plugin in ("scikitplot", "scikitplot-dev"):
-                assert (ROOT / "plugins" / plugin / "skills" / name / "SKILL.md").is_file()
+        assert "scikitplot-engineering-rules" in names
+        for plugin in ("scikitplot", "scikitplot-dev"):
+            assert (ROOT / "plugins" / plugin / "skills" / "scikitplot-engineering-rules" / "SKILL.md").is_file()
 
-    def test_programs_are_disclosed_and_markdown_only_is_not_claimed(self):
-        programs = records["skills_with_programs"](ROOT, records["USAGE_SKILLS_DIR"])
-        assert "skill-creator" in programs
+    def test_no_plugin_carries_a_copy_of_a_third_party_skill(self):
+        for plugin in ("_shared", "scikitplot", "scikitplot-dev"):
+            assert not (ROOT / "plugins" / plugin / "skills" / "skill-creator").exists(), plugin
+
+    def test_the_users_plugin_runs_nothing_and_says_so(self):
+        assert records["skills_with_programs"](ROOT, records["USAGE_SKILLS_DIR"]) == {}
         readme = (ROOT / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
-        assert "`skill-creator`" in readme and "ask" in readme
-        assert "Markdown only" not in readme
-        for program in programs["skill-creator"]:
-            assert f"`{program}`" in readme, program
+        assert "Markdown only" in readme and "claude -p" not in readme
+        assert "skill-creator@claude-plugins-official" in readme
 
     def test_a_new_program_in_a_skill_makes_the_readme_stale(self, tree):
         script = tree / records["USAGE_SKILLS_DIR"] / "scikitplot-api" / "tool.py"
@@ -840,10 +880,3 @@ class TestIndexTablesAndDisclosure:
         assert any("README.md is out of date" in e for e in _failing(tree).get("skills", []))
         records["write_indexes"](tree)
         assert "`scikitplot-api`" in (tree / "plugins/scikitplot/README.md").read_text(encoding="utf-8")
-
-    def test_skill_creator_asks_before_running_programs(self):
-        text = (ROOT / "plugins/_shared/skills/skill-creator/SKILL.md").read_text(encoding="utf-8")
-        head = text.split("## Creating a skill", 1)[0]
-        assert "Modified by scikit-plots" in head
-        assert "explicit yes" in head and "background" in head
-        assert "3117" in head and "claude -p" in head

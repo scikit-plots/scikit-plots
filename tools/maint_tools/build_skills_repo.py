@@ -95,6 +95,11 @@ IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")
 OS_JUNK = (".DS_Store", "Thumbs.db", "desktop.ini", "__MACOSX")
 WINDOWS_DEVICES = re.compile(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?")
 PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+#: A page that loads a script from the network when opened (the directory
+#: review's runtime-fetch check); the published tree ships every script it runs.
+REMOTE_SCRIPT = re.compile(
+    r"""<script\b[^>]*\bsrc\s*=\s*["']?(?:https?:)?//""", re.IGNORECASE
+)
 
 
 def _records():
@@ -320,6 +325,13 @@ def _check_files(out: Path) -> list[str]:
                 f"{rel}: {size} bytes; a file that is not an image stays under 256 KiB"
             )
     errors.extend(
+        f"{path.relative_to(out).as_posix()}: loads a script from the network; ship it"
+        " in the plugin or remove the page"
+        for path in files
+        if path.suffix.lower() in (".html", ".htm")
+        and REMOTE_SCRIPT.search(path.read_text(encoding="utf-8", errors="replace"))
+    )
+    errors.extend(
         f"{name}: claude.ai refuses a top-level bin/, and the portal a .gitattributes"
         for name in ("bin", ".gitattributes")
         if (out / name).exists()
@@ -347,6 +359,12 @@ def _check_manifest(out: Path, versioned: bool = True) -> list[str]:
             errors.append(".claude-plugin/plugin.json: a branch build sets no 'version'")
     elif not manifest.get("version"):
         errors.append(".claude-plugin/plugin.json: 'version' is not set")
+    if "dependencies" in manifest:
+        errors.append(
+            ".claude-plugin/plugin.json: sets 'dependencies'; installed from a marketplace"
+            " that does not allow theirs, the plugin would install and fail to load"
+            " (check_records.EXTERNAL_DEPENDENCIES)"
+        )
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", str(manifest.get("name", ""))):
         errors.append(".claude-plugin/plugin.json: 'name' is not lowercase kebab-case")
     if versioned and manifest.get("version"):
