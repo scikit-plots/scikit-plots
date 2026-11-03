@@ -1,0 +1,423 @@
+diff --git a/scikitplot/_testing/_threads.py b/scikitplot/_testing/_threads.py
+new file mode 100644
+index 0000000..8aab60e
+--- /dev/null
++++ b/scikitplot/_testing/_threads.py
+@@ -0,0 +1,156 @@
++# scikitplot/_testing/_threads.py
++#
++# Authors: The scikit-plots developers
++# SPDX-License-Identifier: BSD-3-Clause
++
++"""
++Run one function in many threads at once, for tests of thread safety.
++
++Notes
++-----
++**User notes.** :func:`run_threads_together` starts every thread, waits until
++all of them are ready, and only then lets them run, optionally with a short
++interpreter switch interval so they interleave inside the code under test.
++The target reports its own failures (collect them in a list); an exception
++that escapes it is reported by pytest as an unhandled thread exception.
++
++**Developer notes.** Threads are started one at a time: thread ``k + 1`` is
++started only after thread ``k`` has entered its target. Starting a thread
++runs ``sys.settrace`` in it when a tracer is set with
++:func:`threading.settrace`, as coverage does. On CPython 3.10 and 3.11 that
++call holds a process-wide "being installed" flag while it calls the audit
++hooks, and a Python audit hook (this suite installs one,
++``_perf_telemetry.py``) can give up the GIL; a second thread starting at that
++moment fails with ``RuntimeError: Cannot install a trace function while
++another trace function is being installed`` (python/cpython#98257, fixed in
++3.12). Serial starts make that overlap impossible; the switch interval is
++shortened only after every thread has started.
++"""
++
++from __future__ import annotations
++
++import sys
++import threading
++from typing import Callable, Optional
++
++__all__ = ["run_threads_together"]
++
++#: How often a start waits before checking that the new thread is still alive.
++#: It bounds the time to detect a thread that died while starting, nothing else.
++_POLL_SECONDS = 0.05
++
++
++def run_threads_together(
++    target: Callable[[int], None],
++    count: int,
++    *,
++    switch_interval: Optional[float] = None,
++    name: str = "run-together",
++) -> None:
++    """
++    Call ``target(i)`` for ``i`` in ``range(count)``, each in its own thread, at once.
++
++    Parameters
++    ----------
++    target : callable
++        Called once per thread with the thread's index. It should catch and
++        record its own failures.
++    count : int
++        Number of threads, at least 1.
++    switch_interval : float or None, default None
++        When set, :func:`sys.setswitchinterval` while the threads run, and the
++        previous interval restored afterwards; ``None`` leaves it unchanged.
++    name : str, default "run-together"
++        Thread names are ``f"{name}-{i}"``.
++
++    Returns
++    -------
++    None
++        After every thread has finished.
++
++    Raises
++    ------
++    TypeError
++        When *target* is not callable, *count* is not an int, *switch_interval*
++        is not a real number or *name* is not a string.
++    ValueError
++        When *count* is below 1 or *switch_interval* is not positive.
++    RuntimeError
++        When a thread ends before entering *target* (it failed while starting);
++        the threads already started are released without calling *target*
++        and joined first.
++
++    See Also
++    --------
++    threading.Barrier : Releases threads together, but does not order their starts.
++
++    Notes
++    -----
++    Thread ``k + 1`` is started only once thread ``k`` is inside its target,
++    so no two of these threads start up at the same time (see the module
++    notes for why that matters under coverage on CPython 3.10 and 3.11).
++
++    Examples
++    --------
++    >>> seen = []
++    >>> run_threads_together(seen.append, 4)
++    >>> sorted(seen)
++    [0, 1, 2, 3]
++    """
++    if not callable(target):
++        raise TypeError(f"target must be callable, not {type(target).__name__}")
++    if isinstance(count, bool) or not isinstance(count, int):
++        raise TypeError(f"count must be an int, not {type(count).__name__}")
++    if count < 1:
++        raise ValueError(f"count must be at least 1, not {count}")
++    if switch_interval is not None:
++        if isinstance(switch_interval, bool) or not isinstance(
++            switch_interval, (int, float)
++        ):
++            raise TypeError(
++                f"switch_interval must be a number or None, not {type(switch_interval).__name__}"
++            )
++        if not switch_interval > 0:
++            raise ValueError(
++                f"switch_interval must be positive, not {switch_interval!r}"
++            )
++    if not isinstance(name, str):
++        raise TypeError(f"name must be a string, not {type(name).__name__}")
++
++    entered = threading.Semaphore(0)
++    go = threading.Event()
++    cancelled = []  # non-empty once a start failed: released threads return
++
++    def run(index: int) -> None:
++        entered.release()
++        go.wait()
++        if not cancelled:
++            target(index)
++
++    threads = []
++    try:
++        for index in range(count):
++            thread = threading.Thread(target=run, args=(index,), name=f"{name}-{index}")
++            thread.start()
++            threads.append(thread)
++            while not entered.acquire(timeout=_POLL_SECONDS):
++                if not thread.is_alive() and not entered.acquire(blocking=False):
++                    raise RuntimeError(
++                        f"thread {thread.name!r} ended before entering its target;"
++                        " it failed while starting (see the thread exception above)"
++                    )
++    except BaseException:
++        cancelled.append(True)
++        go.set()
++        for thread in threads:
++            thread.join()
++        raise
++    previous = sys.getswitchinterval()
++    if switch_interval is not None:
++        sys.setswitchinterval(switch_interval)
++    try:
++        go.set()
++        for thread in threads:
++            thread.join()
++    finally:
++        sys.setswitchinterval(previous)
+diff --git a/scikitplot/_testing/tests/test__threads.py b/scikitplot/_testing/tests/test__threads.py
+new file mode 100644
+index 0000000..d140a9e
+--- /dev/null
++++ b/scikitplot/_testing/tests/test__threads.py
+@@ -0,0 +1,104 @@
++"""Tests for :func:`scikitplot._testing._threads.run_threads_together`."""
++
++from __future__ import annotations
++
++import sys
++import threading
++
++import pytest
++
++from .._threads import run_threads_together
++
++
++def test_every_index_runs_once():
++    seen, guard = [], threading.Lock()
++
++    def work(index):
++        with guard:
++            seen.append(index)
++
++    run_threads_together(work, 6)
++    assert sorted(seen) == list(range(6))
++
++
++def test_the_switch_interval_applies_while_running_and_is_restored():
++    before = sys.getswitchinterval()
++    during = []
++    run_threads_together(
++        lambda _i: during.append(sys.getswitchinterval()), 3, switch_interval=1e-4
++    )
++    assert during == [pytest.approx(1e-4)] * 3
++    assert sys.getswitchinterval() == before
++
++
++@pytest.mark.skipif(
++    not hasattr(threading, "gettrace"), reason="threading.gettrace needs 3.10+"
++)
++def test_no_two_threads_start_at_the_same_time():
++    # The tracer threading.settrace installs runs on each thread's first frame,
++    # after that thread's sys.settrace; at that moment only the threads started
++    # before it (all waiting) and itself may exist: the next one is not started yet.
++    alive_at_first_frame = {}
++    prefix = "serial-start"
++
++    def tracer(frame, event, arg):
++        me = threading.current_thread().name
++        if event == "call" and me.startswith(prefix) and me not in alive_at_first_frame:
++            alive_at_first_frame[me] = sum(
++                t.name.startswith(prefix) for t in threading.enumerate()
++            )
++        return None
++
++    previous = threading.gettrace()
++    threading.settrace(tracer)
++    try:
++        run_threads_together(lambda _i: None, 5, name=prefix)
++    finally:
++        threading.settrace(previous)
++    assert alive_at_first_frame == {f"{prefix}-{k}": k + 1 for k in range(5)}
++
++
++def test_a_thread_that_dies_while_starting_fails_fast_and_releases_the_others(
++    monkeypatch,
++):
++    ran = []
++    real_start = threading.Thread.start
++
++    def start(self):
++        if self.name.endswith("-2"):
++            self.run = lambda: None  # ends without entering its target
++        real_start(self)
++
++    monkeypatch.setattr(threading.Thread, "start", start)
++    before = sys.getswitchinterval()
++    with pytest.raises(RuntimeError, match="ended before entering its target"):
++        run_threads_together(ran.append, 4, switch_interval=1e-4, name="dies")
++    assert ran == []
++    assert sys.getswitchinterval() == before
++    assert not [t for t in threading.enumerate() if t.name.startswith("dies-")]
++
++
++@pytest.mark.parametrize(
++    ("kwargs", "error", "match"),
++    [
++        ({"target": None, "count": 1}, TypeError, "target must be callable"),
++        ({"target": print, "count": 1.0}, TypeError, "count must be an int"),
++        ({"target": print, "count": True}, TypeError, "count must be an int"),
++        ({"target": print, "count": 0}, ValueError, "at least 1"),
++        (
++            {"target": print, "count": 1, "switch_interval": "1"},
++            TypeError,
++            "switch_interval",
++        ),
++        ({"target": print, "count": 1, "switch_interval": 0}, ValueError, "positive"),
++        (
++            {"target": print, "count": 1, "switch_interval": float("nan")},
++            ValueError,
++            "positive",
++        ),
++        ({"target": print, "count": 1, "name": 3}, TypeError, "name must be a string"),
++    ],
++)
++def test_invalid_arguments_are_refused(kwargs, error, match):
++    with pytest.raises(error, match=match):
++        run_threads_together(**kwargs)
+diff --git a/scikitplot/cleanprompt/tests/_concurrency.py b/scikitplot/cleanprompt/tests/_concurrency.py
+index 322a8cc..e5040d3 100644
+--- a/scikitplot/cleanprompt/tests/_concurrency.py
++++ b/scikitplot/cleanprompt/tests/_concurrency.py
+@@ -3,19 +3,22 @@ A shared harness for ``CP-067``: many threads, one vault owner.
+
+ Notes
+ -----
+-**Developer notes.** The interpreter's switch interval is shrunk for the
+-duration so threads interleave inside an encode, where the race lived; with
+-the default interval the race still occurs, only rarely. Every value is
++**Developer notes.** The interpreter's switch interval is shrunk while the
++threads encode so they interleave inside an encode, where the race lived;
++with the default interval the race still occurs, only rarely. The threads are
++started by :func:`scikitplot._testing._threads.run_threads_together`, one at a
++time, so their starts never overlap (under coverage on CPython 3.11 two
++overlapping starts failed in ``sys.settrace``). Every value is
+ unique per thread and turn except a small shared set, so a label issued to
+ two different values shows up as a round-trip failure or a label collision.
+ """
+
+ from __future__ import annotations
+
+-import sys
+-import threading
+ from typing import Callable
+
++from ..._testing._threads import run_threads_together
++
+
+ def hammer(
+     encode: Callable[[str], str],
+@@ -49,16 +52,7 @@ def hammer(
+         except Exception as error:  # noqa: BLE001 - reported to the test
+             errors.append(repr(error))
+
+-    previous = sys.getswitchinterval()
+-    sys.setswitchinterval(1e-6)
+-    try:
+-        pool = [threading.Thread(target=work, args=(n,)) for n in range(threads)]
+-        for thread in pool:
+-            thread.start()
+-        for thread in pool:
+-            thread.join()
+-    finally:
+-        sys.setswitchinterval(previous)
++    run_threads_together(work, threads, switch_interval=1e-6, name="cleanprompt-hammer")
+     problems = list(errors)
+     owner_of: dict = {}
+     for text, safe in results.values():
+diff --git a/scikitplot/random/_kiss/tests/test_kiss_bounded.py b/scikitplot/random/_kiss/tests/test_kiss_bounded.py
+index 26baa93..fadb823 100644
+--- a/scikitplot/random/_kiss/tests/test_kiss_bounded.py
++++ b/scikitplot/random/_kiss/tests/test_kiss_bounded.py
+@@ -8,11 +8,11 @@ compares it with the chi-square critical value at significance 0.001.
+ from __future__ import annotations
+
+ import pickle
+-import sys
+ import threading
+
+ import pytest
+
++from scikitplot._testing._threads import run_threads_together
+ from scikitplot.random import (
+     Kiss32Random,
+     Kiss64Random,
+@@ -138,27 +138,17 @@ class TestSpawn:
+         # A 1 us switch interval makes threads interleave inside spawn: the
+         # unlocked code gave about 90 duplicate keys here; at the default
+         # interval it gave none, and the test could not tell the two apart.
+-        interval = sys.getswitchinterval()
+-        sys.setswitchinterval(1e-6)
+-        try:
+-            self._race()
+-        finally:
+-            sys.setswitchinterval(interval)
+-
+-    def _race(self):
++        # The threads start one at a time (run_threads_together), so their
++        # starts never overlap in sys.settrace under coverage on CPython 3.11.
+         parent = KissSeedSequence(42)
+         keys, guard = [], threading.RLock()
+
+-        def work():
++        def work(_index):
+             mine = [child.spawn_key for _ in range(3_000) for child in parent.spawn(1)]
+             with guard:
+                 keys.extend(mine)
+
+-        threads = [threading.Thread(target=work) for _ in range(8)]
+-        for thread in threads:
+-            thread.start()
+-        for thread in threads:
+-            thread.join()
++        run_threads_together(work, 8, switch_interval=1e-6, name="kiss-spawn")
+         assert len(keys) == len(set(keys)) == 8 * 3_000
+         assert parent.n_children_spawned == 8 * 3_000
+
+diff --git a/tools/maint_tools/generate_usage_skills.py b/tools/maint_tools/generate_usage_skills.py
+index ab605ee..bd1fcfc 100644
+--- a/tools/maint_tools/generate_usage_skills.py
++++ b/tools/maint_tools/generate_usage_skills.py
+@@ -369,10 +369,16 @@ class SkillError(Exception):
+
+ @dataclass
+ class Report:
+-    errors: List[str]
+-    warnings: List[str]
+-    stale: List[str]
+-    counts: Dict[str, int]
++    # Annotations are written ``typing.X``: with ``from __future__ import
++    # annotations`` they are strings, and ``@dataclass`` resolves a bare name
++    # (``List[str]``) through ``sys.modules[__module__]``, which is absent when
++    # this file is executed without registering it; a module-qualified name is
++    # looked up only when that module is present (test_usage_skills.py).
++
++    errors: typing.List[str]
++    warnings: typing.List[str]
++    stale: typing.List[str]
++    counts: typing.Dict[str, int]
+
+     @property
+     def ok(self) -> bool:
+@@ -1171,13 +1177,19 @@ class Build:
+     counts : dict
+     """
+
+-    wanted: Dict[str, str] = field(default_factory=dict)
+-    errors: List[str] = field(default_factory=list)
+-    warnings: List[str] = field(default_factory=list)
+-    names: Dict[str, str] = field(default_factory=dict)
+-    entries: List[Dict[str, object]] = field(default_factory=list)
+-    excluded: Dict[str, str] = field(default_factory=dict)
+-    counts: Dict[str, int] = field(default_factory=dict)
++    # Annotations are written ``typing.X``: with ``from __future__ import
++    # annotations`` they are strings, and ``@dataclass`` resolves a bare name
++    # (``List[str]``) through ``sys.modules[__module__]``, which is absent when
++    # this file is executed without registering it; a module-qualified name is
++    # looked up only when that module is present (test_usage_skills.py).
++
++    wanted: typing.Dict[str, str] = field(default_factory=dict)
++    errors: typing.List[str] = field(default_factory=list)
++    warnings: typing.List[str] = field(default_factory=list)
++    names: typing.Dict[str, str] = field(default_factory=dict)
++    entries: typing.List[typing.Dict[str, object]] = field(default_factory=list)
++    excluded: typing.Dict[str, str] = field(default_factory=dict)
++    counts: typing.Dict[str, int] = field(default_factory=dict)
+
+
+ def _usage_dir(repo: Path) -> str:

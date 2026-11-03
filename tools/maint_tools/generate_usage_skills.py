@@ -369,10 +369,16 @@ class SkillError(Exception):
 
 @dataclass
 class Report:
-    errors: List[str]
-    warnings: List[str]
-    stale: List[str]
-    counts: Dict[str, int]
+    # Annotations are written ``typing.X``: with ``from __future__ import
+    # annotations`` they are strings, and ``@dataclass`` resolves a bare name
+    # (``List[str]``) through ``sys.modules[__module__]``, which is absent when
+    # this file is executed without registering it; a module-qualified name is
+    # looked up only when that module is present (test_usage_skills.py).
+
+    errors: typing.List[str]
+    warnings: typing.List[str]
+    stale: typing.List[str]
+    counts: typing.Dict[str, int]
 
     @property
     def ok(self) -> bool:
@@ -1171,13 +1177,19 @@ class Build:
     counts : dict
     """
 
-    wanted: Dict[str, str] = field(default_factory=dict)
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    names: Dict[str, str] = field(default_factory=dict)
-    entries: List[Dict[str, object]] = field(default_factory=list)
-    excluded: Dict[str, str] = field(default_factory=dict)
-    counts: Dict[str, int] = field(default_factory=dict)
+    # Annotations are written ``typing.X``: with ``from __future__ import
+    # annotations`` they are strings, and ``@dataclass`` resolves a bare name
+    # (``List[str]``) through ``sys.modules[__module__]``, which is absent when
+    # this file is executed without registering it; a module-qualified name is
+    # looked up only when that module is present (test_usage_skills.py).
+
+    wanted: typing.Dict[str, str] = field(default_factory=dict)
+    errors: typing.List[str] = field(default_factory=list)
+    warnings: typing.List[str] = field(default_factory=list)
+    names: typing.Dict[str, str] = field(default_factory=dict)
+    entries: typing.List[typing.Dict[str, object]] = field(default_factory=list)
+    excluded: typing.Dict[str, str] = field(default_factory=dict)
+    counts: typing.Dict[str, int] = field(default_factory=dict)
 
 
 def _usage_dir(repo: Path) -> str:

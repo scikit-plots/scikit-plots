@@ -8,11 +8,11 @@ compares it with the chi-square critical value at significance 0.001.
 from __future__ import annotations
 
 import pickle
-import sys
 import threading
 
 import pytest
 
+from scikitplot._testing._threads import run_threads_together
 from scikitplot.random import (
     Kiss32Random,
     Kiss64Random,
@@ -138,27 +138,17 @@ class TestSpawn:
         # A 1 us switch interval makes threads interleave inside spawn: the
         # unlocked code gave about 90 duplicate keys here; at the default
         # interval it gave none, and the test could not tell the two apart.
-        interval = sys.getswitchinterval()
-        sys.setswitchinterval(1e-6)
-        try:
-            self._race()
-        finally:
-            sys.setswitchinterval(interval)
-
-    def _race(self):
+        # The threads start one at a time (run_threads_together), so their
+        # starts never overlap in sys.settrace under coverage on CPython 3.11.
         parent = KissSeedSequence(42)
         keys, guard = [], threading.RLock()
 
-        def work():
+        def work(_index):
             mine = [child.spawn_key for _ in range(3_000) for child in parent.spawn(1)]
             with guard:
                 keys.extend(mine)
 
-        threads = [threading.Thread(target=work) for _ in range(8)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        run_threads_together(work, 8, switch_interval=1e-6, name="kiss-spawn")
         assert len(keys) == len(set(keys)) == 8 * 3_000
         assert parent.n_children_spawned == 8 * 3_000
 

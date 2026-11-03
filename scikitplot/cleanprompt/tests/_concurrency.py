@@ -3,18 +3,21 @@ A shared harness for ``CP-067``: many threads, one vault owner.
 
 Notes
 -----
-**Developer notes.** The interpreter's switch interval is shrunk for the
-duration so threads interleave inside an encode, where the race lived; with
-the default interval the race still occurs, only rarely. Every value is
+**Developer notes.** The interpreter's switch interval is shrunk while the
+threads encode so they interleave inside an encode, where the race lived;
+with the default interval the race still occurs, only rarely. The threads are
+started by :func:`scikitplot._testing._threads.run_threads_together`, one at a
+time, so their starts never overlap (under coverage on CPython 3.11 two
+overlapping starts failed in ``sys.settrace``). Every value is
 unique per thread and turn except a small shared set, so a label issued to
 two different values shows up as a round-trip failure or a label collision.
 """
 
 from __future__ import annotations
 
-import sys
-import threading
 from typing import Callable
+
+from ..._testing._threads import run_threads_together
 
 
 def hammer(
@@ -49,16 +52,7 @@ def hammer(
         except Exception as error:  # noqa: BLE001 - reported to the test
             errors.append(repr(error))
 
-    previous = sys.getswitchinterval()
-    sys.setswitchinterval(1e-6)
-    try:
-        pool = [threading.Thread(target=work, args=(n,)) for n in range(threads)]
-        for thread in pool:
-            thread.start()
-        for thread in pool:
-            thread.join()
-    finally:
-        sys.setswitchinterval(previous)
+    run_threads_together(work, threads, switch_interval=1e-6, name="cleanprompt-hammer")
     problems = list(errors)
     owner_of: dict = {}
     for text, safe in results.values():
