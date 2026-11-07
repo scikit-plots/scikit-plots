@@ -237,7 +237,7 @@ def test_recorded_python_migration_targets_exist_and_old_flat_files_are_gone() -
 #: one another (``spec_from_file_location``). A module loaded that way has no
 #: parent package, so a relative import cannot resolve there; these import the
 #: stack by its canonical installed name instead. ``_hf_spaces_proxy/security``
-#: left this list in PR 907: its modules import one another relatively, so each
+#: left this list in PR 909: its modules import one another relatively, so each
 #: runs once per process (see ``_hf_spaces_proxy/security/_stages.py``).
 _PATH_LOADED_TEST_DIRS: tuple = ()
 

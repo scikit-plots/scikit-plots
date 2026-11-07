@@ -1,0 +1,168 @@
+# scikit-plots maintenance: new-chat start template
+
+Start any new chat, with any assistant, by attaching a zip of the current
+checkout (hidden folders included, so `.claude/` is inside) and saying:
+"Read `.claude/init` and follow `.claude/new-chat-template.md`." Pasting this
+file works too. Fill in only the block marked FILL IN; everything else stays
+the same in every chat. `orient.py` (section 2) reads that block, so keep its
+three bullet lines in this shape.
+
+---
+
+## FILL IN (the only part that changes)
+
+- Pull request number for new fragments: `909`
+- Task for this chat: `continue the open ledger` (or name one note, finding,
+  submodule or "assemble the pull request")
+- Notes I am deferring (do not work on them unless I name them):
+  - `upcoming_changes/docs/devel/sync-maintainer-changelog-workflow.md`
+  - `upcoming_changes/docs/devel/rewrite-release-guide-from-copied-text.md`
+  - `upcoming_changes/docs/devel/review-astropy-affiliated-language.md`
+- Decisions I have already taken (do not reopen them):
+  - (none yet, or list them here)
+
+---
+
+## 1. Who I am and how we work
+
+I am maintainer of the open-source `scikit-plots` library. We work one
+fix at a time. For each fix you:
+
+1. verify the problem on the attached tree with evidence (a reproduction);
+2. fix it at the root cause, with the smallest change that is complete;
+3. prove it: the new tests fail on the old tree and pass on the new one, and
+   a mutation of the new code makes them fail;
+4. deliver a git patch and a drop-in zip against the tree I attached (or
+   against your previous delivery), and list every file to delete;
+5. stop and wait. I reply "applied continue next" when it is in my tree.
+
+When a fix needs a decision that is mine (a direction, a scope, a country, a
+name), ask me one short multiple-choice question first, recommended option
+first. Otherwise do not ask; take the next item.
+
+## 2. Find the current state from the tree, not from this message
+
+Facts in a chat go stale; the tree's own records do not. Before the first
+change, run
+
+    python -B maintenances/_repo/_maintenance/tools/orient.py
+
+which prints the pull request number, the open ledger (deferred notes
+marked), the fragments already filed, and per area the next free finding id
+and the next action, and exits 1 if a record cannot be read. Summarise it in
+a few lines. Then read what the task touches:
+
+- `upcoming_changes/**/*.md` with `status: open`: the open ledger. Skip the
+  notes I defer above.
+- For each submodule you touch, its maintenance records under
+  `maintenances/<submodule>/`: `REVIEW.json` (findings; take the next free
+  id), and under `_maintenance/`: `RESUME.md` (current round, last verified
+  numbers, next action, decisions waiting), `DESIGN.md`, `HISTORY.md`,
+  `VERIFICATION.md`, `EVIDENCE.json`, `evidence/` logs.
+- `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst`: the
+  release-note fragments already in this pull request.
+
+If the tree disagrees with anything in this message, the tree wins; say so in
+one line.
+
+## 3. Standing rules (never change)
+
+- Never name or attribute inspiration sources in any change. Required license
+  notices are allowed (for example `LICENSES/LICENSE_unicode`).
+- NumPyDoc docstrings (Parameters, Returns, Raises, See Also, Notes,
+  References, Examples) with **User notes** and **Developer notes** in Notes.
+- Python 3.8+ syntax; check changed files with
+  `ast.parse(..., feature_version=(3, 8))`.
+- Relative imports; every submodule stays independent of the others.
+- Pre-1.0: no backward-compatibility code paths or deprecation shims.
+- Logging, never `print`, in library code.
+- Dependencies as ranges (`>=`, `~=`); never `==` pins; an upper bound needs a
+  written reason.
+- New text is ASCII only. Exception: headings in `HISTORY.md` and `DESIGN.md`
+  use an em dash by convention.
+- Rewrite tests to the corrected contract; never delete a test to make a
+  change pass.
+- Deterministic logic only: no heuristics, guesses or "best effort".
+- Every summary to me ends with:
+  "This pull request includes code written with the assistance of AI. The
+  code has **not yet been reviewed** by a human."
+
+## 4. Records for every fix
+
+- One release-note fragment per section and type in a pull request:
+  `docs/source/whats_new/upcoming_changes/<section>/<PR>.<type>.rst`, a single
+  bullet. A second fix of the same section and type extends that bullet. A
+  change that was never reachable from the public API gets no fragment.
+- The submodule's `REVIEW.json`: one finding (id, severity, status, title,
+  detail, retired_by, honest_limit, regression).
+- `DESIGN.md` (one decision entry), `HISTORY.md` (one bullet in the current
+  round), `RESUME.md` (current round, last verified numbers, next action, open
+  ledger matching the notes directory, decisions waiting), `VERIFICATION.md`
+  (one lane), `EVIDENCE.json` (one lane), the round's evidence log (append).
+- A fixed note under `upcoming_changes/` is deleted; a partly fixed note is
+  narrowed and stays open.
+- Strip trailing whitespace and extra blank lines at the end of every file.
+- After runtime edits, refresh the evidence fingerprint with the
+  submodule's
+  `maintenances/<area>/_maintenance/tools/check_contract.py --update`
+  (where one exists).
+
+## 5. Verification before delivery
+
+- The submodule's full test suite, on the newest CPython and on Python 3.8
+  (a stand-in parent package is fine), with and without optional tiers.
+- The submodule's probes under `_maintenance/evidence/`, and a check that
+  default output is byte-identical when the change is opt-in.
+- Lint compared against the previous tree: only reformat files that were
+  black-clean before; no new suppressions without a reason.
+- Repository gates, all green (or a pre-existing failure named):
+  - `tools/maint_tools/generate_towncrier_sections.py --repo-root . check`
+  - `maintenances/_repo/_maintenance/tools/check_records.py`
+  - `tools/maint_tools/generate_pr_labeler.py check` (run `sync --apply`
+    when a directory under `upcoming_changes/` appears or disappears)
+  - `tools/maint_tools/check_path_lengths.py check`
+  - `tools/maint_tools/check_test_module_names.py`
+  - `python -m libs._tools check`
+  - each touched submodule's `_maintenance/check_trackers.py`
+  - cleanprompt only: `_maintenance/tools/generate_coverage_docs.py --check`
+    and `python -m scikitplot.cleanprompt packs --check` (after
+    `packs --compile` when a pack changed)
+- Default output unchanged (cleanprompt):
+  `python -B maintenances/cleanprompt/_maintenance/tools/output_digest.py --check`.
+  Record a new baseline (`--record`) only for a deliberate change in default
+  output, and name it in the round's records.
+- Python 3.8 without the compiled library (cleanprompt):
+  `python -B maintenances/cleanprompt/_maintenance/tools/standin.py DEST --run PYTHON38`.
+- Packaging, built and proved in one step:
+  `python -B maintenances/_repo/_maintenance/tools/deliver.py OLD NEW NAME --out DIR`.
+  It writes `NAME.patch` and `NAME-dropin.zip`, proves the patch applies with
+  `git apply --whitespace=error-all` and the zip (with the listed deletions)
+  each turn OLD into NEW, and is byte-identical on a rerun. Keep OLD as an
+  untouched copy of the tree I attached, and make each later delivery
+  against your previous NEW.
+
+## 6. How to report each delivery
+
+Short: what was wrong (with the evidence), what changed, what was
+verified (numbers), any limit, and the next item. Then the AI-assistance line.
+
+## 7. Process flow for one fix
+
+    orient -> pick the next item (or ask one question if it is my decision)
+      -> reproduce on OLD (evidence)
+      -> fix at the root cause
+      -> tests: fail on OLD, pass on NEW, fail under a mutation
+      -> suites, probes, digest, gates (section 5)
+      -> records (section 4)
+      -> deliver.py -> report (section 6) -> wait for "applied continue next"
+
+Stop and re-plan, and say so, when the fix needs more than the note
+described, an approach fails twice, or a gate fails for a reason you did not
+cause (name it; do not fix it silently).
+
+## 8. When I say "assemble the pull request"
+
+Run every gate in section 5, list the fragments for the PR number, list the
+findings closed and the notes still open (deferred or waiting on me), name any
+pre-existing gate failure and any suite that could not run here, and draft
+the pull-request title and description ending with the AI-assistance line.

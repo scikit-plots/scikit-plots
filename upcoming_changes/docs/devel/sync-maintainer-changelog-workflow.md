@@ -92,7 +92,7 @@ This is a maintainer-documentation synchronization task.
 
 No Towncrier fragment is required for correcting internal maintainer guidance.
 
-## Additional evidence (PR 907 review, deferred by the maintainer)
+## Additional evidence (PR 909 review, deferred by the maintainer)
 
 - The whole `docs/source/devel/maintainers/` folder is Astropy's maintainer
   guide copied as-is: `index.rst` ("Maintaining astropy and affiliated

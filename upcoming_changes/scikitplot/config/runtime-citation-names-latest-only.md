@@ -7,7 +7,7 @@ discovered_during: "PR 891, citation files"
 release_note: "required"
 towncrier_section: "scikitplot.config"
 towncrier_type: "enhancement"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.config/907.enhancement.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.config/909.enhancement.rst"
 ---
 
 # scikitplot.__bibtex__ cites every version, never the installed build
@@ -74,7 +74,7 @@ tree of `git_revision`; a test builds it for a dev and a release version.
 
 Required (`scikitplot.config`, enhancement).
 
-## Resolution (PR 907)
+## Resolution (PR 909)
 
 `scikitplot.config.citation(which="all"|"build")`. `config/meson.build` runs
 `tools/citation/citation_ref.py fields` and substitutes its JSON

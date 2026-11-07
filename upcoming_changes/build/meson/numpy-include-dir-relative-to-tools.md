@@ -7,7 +7,7 @@ discovered_during: "TP-1, building an editable install outside a top-level check
 release_note: "not-required"
 towncrier_section: "unknown"
 towncrier_type: "fix"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/build-packaging/907.fix.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/build-packaging/909.fix.rst"
 ---
 
 # The numpy include directory is computed relative to tools/ and used relative to the project root

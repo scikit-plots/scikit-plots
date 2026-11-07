@@ -7,7 +7,7 @@ discovered_during: "source-grounded Sphinx extension user-guide synchronization"
 release_note: "required"
 towncrier_section: "scikitplot._externals"
 towncrier_type: "fix"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot._externals/907.fix.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot._externals/909.fix.rst"
 ---
 
 # Fail closed when Sphinx RST template rendering fails

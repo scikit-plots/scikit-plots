@@ -127,7 +127,7 @@ that calls `main`; nothing reads `sys.argv` or `sys.stdin` or calls
 `parse_args` at import time; `--help` exits 0 from outside the checkout, with
 the same output each run; and no `sklearn` path appears.
 
-The helpers inherited from scikit-learn were removed in PR 907:
+The helpers inherited from scikit-learn were removed in PR 909:
 `bump-dependencies-versions.py`, `check_xfailed_checks.py`,
 `sort_whats_new.py`, `update_tracking_issue.py` and `whats_missing.sh`. No
 workflow called them (only the archived configs under `tools/zz_yanked/`),

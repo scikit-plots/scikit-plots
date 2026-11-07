@@ -51,7 +51,7 @@ or link of the real package), with a `pytest.ini` that sets
 ## Current round
 
 Round twenty-eight is **in progress** (2026-11-04): the open ledger, one note
-per delivery, PR **907**. Closed so far: the custom-pattern time limit
+per delivery, PR **909**. Closed so far: the custom-pattern time limit
 (`CP-108`, `DESIGN.md` D-28.1) and invisible characters inside names
 (`CP-109`, D-28.2), and e-mail addresses in any script (`CP-110`,
 D-28.3), and phone groupings and ranges (`CP-111`, D-28.4), and source spellings of labels (`CP-112`, D-28.5; across turns

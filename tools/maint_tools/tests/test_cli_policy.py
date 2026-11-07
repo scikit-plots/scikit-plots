@@ -16,7 +16,7 @@ directory, so a new helper is covered without being listed:
 * ``--help`` exits 0, run with ``python -I`` from a directory outside the
   checkout, and prints the same text twice;
 * it names no ``sklearn`` path: the inherited scikit-learn helpers were removed
-  (PR 907), so such a name would be a stale copy.
+  (PR 909), so such a name would be a stale copy.
 
 Notes
 -----

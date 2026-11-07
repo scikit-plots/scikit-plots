@@ -3,7 +3,7 @@ title: "The linked release guide is Matplotlib's release-manager text"
 status: open
 kind: "docs-contract"
 area: "docs/source/devel"
-discovered_during: "PR 907 review of the maintainer changelog workflow"
+discovered_during: "PR 909 review of the maintainer changelog workflow"
 release_note: "not-required"
 towncrier_section: "documentation"
 towncrier_type: "other"

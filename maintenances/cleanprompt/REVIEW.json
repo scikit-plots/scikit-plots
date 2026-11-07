@@ -1011,6 +1011,16 @@
       "regression": "test_regressions.TestCP106AppendingMixedGrammars; test__surrogate_sets.TestCommandLine.test_appending_with_another_grammar_is_refused (both frontends)"
     },
     {
+      "id": "CP-107",
+      "severity": "low",
+      "status": "closed",
+      "title": "A huge repetition count crashed pack validation with OverflowError",
+      "detail": "Found in round 26 while re-running the independent review's cases by hand, present on the round-25 tree: re.compile raises OverflowError, not re.error, for a repetition count above the engine's limit (x{99999999999999999999}), so pack_from_document let it escape as a traceback instead of listing it with the pack's other problems. Back-filled into this file in round 28; HISTORY.md (round 26 summary) and test_regressions.TestCP107 recorded it at the time.",
+      "retired_by": "_packs.py catches (re.error, OverflowError) when compiling a pattern and reports 'does not compile' as one of the pack's problems; _patterns.py does the same for core patterns, and _pattern_risk.analyse_pattern reports such a pattern as not-analysed.",
+      "honest_limit": "Only the compile step is covered; a pattern that compiles but is slow is CP-104's and CP-108's.",
+      "regression": "test_regressions.TestCP107HugeRepetitionCountCrashedValidation (pack problem, risk check reports not-analysed)"
+    },
+    {
       "id": "CP-108",
       "severity": "medium",
       "status": "closed",

@@ -158,7 +158,7 @@ Rules that apply to every increment: [`plugins/_shared/skills/scikitplot-enginee
 - Not done, by decision: W5 durable memory (its seven prerequisites are
   still absent).
 
-### PR 907: workflow graph (W1)
+### PR 909: workflow graph (W1)
 - [x] `WorkflowGraph`, `Task`, `FanOut`/`Branch`, `Finish`, `Edge`,
   `WorkflowView`, `REDUCERS` (`_workflow.py`). Design reviewed 2026-11-03:
   the graph compiles to a planner for `Agent` (gates, audit, resume and

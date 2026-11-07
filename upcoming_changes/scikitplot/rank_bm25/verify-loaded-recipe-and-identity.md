@@ -7,7 +7,7 @@ discovered_during: "source-grounded Rank-BM25 user-guide synchronization"
 release_note: "required"
 towncrier_section: "scikitplot.rank_bm25"
 towncrier_type: "api"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/907.api.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.rank_bm25/909.api.rst"
 ---
 
 # Verify Rank-BM25 recipe and identity when loading artifacts
@@ -20,7 +20,7 @@ only the schema before reconstructing the requested class.
 
 ## Current evidence
 
-Re-verified 2026-11-04 on the tree with PR 907 applied (schemas
+Re-verified 2026-11-04 on the tree with PR 909 applied (schemas
 ``bm25-index/1`` and ``bm25-index/2`` readable; recipes now
 ``okapi-epsilon-floor/2``, ``bm25l-delta/2``, ``bm25plus-delta/2``).
 

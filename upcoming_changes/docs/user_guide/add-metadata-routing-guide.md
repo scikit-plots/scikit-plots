@@ -7,7 +7,7 @@ discovered_during: "Towncrier template and section review"
 release_note: "required"
 towncrier_section: "documentation"
 towncrier_type: "other"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/documentation/907.other.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/documentation/909.other.rst"
 ---
 
 # Add a real Scikit-Plots metadata-routing documentation target
@@ -91,7 +91,7 @@ relevant API pages.
 Decide after implementation whether the resulting guide accompanies a delivered
 metadata-routing feature/fix and therefore needs a `metadata-routing` fragment.
 
-## Resolution (PR 907)
+## Resolution (PR 909)
 
 `docs/source/user_guide/metadata_routing.rst` defines `metadata_routing` and is
 linked from the user-guide index and the corpus evaluation guide. It documents
@@ -117,5 +117,5 @@ prose. The fragment is `documentation` (a documentation-only change), not
 `metadata-routing` (behaviour).
 
 Not documented: the unused `scikitplot.annoy._mixins._meta.MetadataRoutingMixin`
-was removed in PR 907 (it was exported nowhere and silently built an
+was removed in PR 909 (it was exported nowhere and silently built an
 owner-less request or router when the signature differed).

@@ -62,9 +62,9 @@ that increment (for round 33:
   was first overwritten; restored and extended (lesson DOCS-L1).
 - Follow-ups: `upcoming_changes/scikitplot/config/runtime-citation-names-latest-only.md`;
   the copied matplotlib `cache_zenodo_svg.py` was removed on 2026-11-04 (PR
-  907): `citation_ref.py` renders and checks the `citing.rst` DOI list from
+  909): `citation_ref.py` renders and checks the `citing.rst` DOI list from
   `VERSION_DOIS` and `PREDECESSOR`;
-  the gallery-label follow-up was closed on 2026-11-04 (PR 907): the
+  the gallery-label follow-up was closed on 2026-11-04 (PR 909): the
   `galleries/examples/env` and `ipymagic` folders keep their names and are
   listed in `[tool.scikitplot.maintenance.labeler.satellite_paths]`.
 

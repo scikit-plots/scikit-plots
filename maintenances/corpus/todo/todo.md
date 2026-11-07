@@ -369,7 +369,7 @@ everywhere, with opt-in UUIDv7).
 - Lessons: Rule 127 extended (the check before every call includes a
   component's helper calls).
 
-### PR 907: routing extension (query shapes)
+### PR 909: routing extension (query shapes)
 - [x] `RoutingRule`, `RoutingPolicy`, `QueryShape`, `DEFAULT_ROUTING_POLICY`,
   `query_tokens` (`_routing.py`); `route(..., has_metadata=, policy=)` and
   `RoutePlan.shapes`/`unavailable` (`_agentic.py`). Design reviewed

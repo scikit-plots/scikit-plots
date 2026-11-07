@@ -72,7 +72,7 @@ The exact Fix 7 workspace completed the user's Sphinx-enabled full suite with **
 - no parent-depth runtime discovery; use `tests/_paths.py`;
 - no stale test-to-test filename references after a move.
 
-## Release-security chain built once per process (PR 907) — CLOSED
+## Release-security chain built once per process (PR 909) — CLOSED
 
 - note: `upcoming_changes/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/security-tests-rebuild-their-chain.md` (removed: tests only, no release note);
 - imports: every module of `tests/_hf_spaces_proxy/security/` imports its runtime and its predecessors relatively (no `sys.path` edits, no `_load(name, path)` copies); `_architecture/test_release_gate_process_hermeticity.py` and `_hf_spaces_proxy/ci/test_redis_chaos_attestation.py` import those modules as package modules; `_PATH_LOADED_TEST_DIRS` is empty;

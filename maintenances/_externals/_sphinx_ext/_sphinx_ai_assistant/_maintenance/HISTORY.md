@@ -704,7 +704,7 @@ the source that the stale tests had stopped reaching.
 - Mirror follows `_sphinx_feedback` 0.9.0 (`_forge.py`, `_gitlab.py`,
   `_bitbucket.py`).
 
-## 2026-11-04 — page feedback mirror follows `_sphinx_feedback` 0.10.0 (PR 907)
+## 2026-11-04 — page feedback mirror follows `_sphinx_feedback` 0.10.0 (PR 909)
 
 - `_utils/sync_page_feedback_runtime.py` copies the new
   `_service/_bitbucket_dc.py` (Bitbucket Data Center pull requests);
@@ -721,7 +721,7 @@ the source that the stale tests had stopped reaching.
   hashes are for the 3.11 image's wheels, so the versions were installed
   without them).
 
-## 2026-11-04 — every test path fits a Windows checkout (PR 907)
+## 2026-11-04 — every test path fits a Windows checkout (PR 909)
 
 - `tools/maint_tools/check_path_lengths.py check`: 0 failing, 0 known, 0 stale
   against the 131-character budget, so `path_length_baseline.txt` is gone. Its

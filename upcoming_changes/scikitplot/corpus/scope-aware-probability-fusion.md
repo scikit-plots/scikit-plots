@@ -7,7 +7,7 @@ discovered_during: "opt-in probability fusion for hybrid search (PR 906)"
 release_note: "required"
 towncrier_section: "scikitplot.corpus"
 towncrier_type: "enhancement"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.corpus/907.enhancement.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot.corpus/909.enhancement.rst"
 ---
 
 # Probability fusion under a SecurityFilter scope
@@ -74,7 +74,7 @@ Corpus retrieval guide, "Probability fusion".
 
 Required: `scikitplot.corpus`, `enhancement` (it extends the PR 906 feature).
 
-## Resolution (PR 907)
+## Resolution (PR 909)
 
 `SecurityFilter.digest` (SHA-256 of the canonical JSON of `filter_to_dict`;
 the label is excluded) and `ProbabilityFusion(scope=SecurityFilter | None)`.

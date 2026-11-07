@@ -7,7 +7,7 @@ discovered_during: "TP-1, the test-performance recorder's module-execution count
 release_note: "unknown"
 towncrier_section: "scikitplot"
 towncrier_type: "fix"
-towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot/907.fix.rst"
+towncrier_fragment: "docs/source/whats_new/upcoming_changes/scikitplot/909.fix.rst"
 ---
 
 # Any unknown attribute of scikitplot imports scikitplot.api, and a failed import runs again on every probe

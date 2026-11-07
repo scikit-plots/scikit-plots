@@ -5,7 +5,7 @@
 The maintainer works through the open ledger one note at a time; this round
 closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
 27: the optional `regex` tier is wanted). Fragment
-`security/907.enhancement.rst` (PR 907).
+`security/909.enhancement.rst` (PR 909).
 
 - `CP-108`: nothing bounded a custom pattern's run time. `_pattern_timeout.py`
   compiles every custom pattern again on `regex` (`V0`, flags mapped by name)
@@ -17,8 +17,9 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   `pattern_timeout`, `FluentCleanPrompt.pattern_timeout`,
   `CLEANPROMPT_PATTERN_TIMEOUT`; new tier `timeout` (`regex>=2020.1`, no
   ceiling) and extra `cleanprompt-timeout`. Design: `DESIGN.md` D-28.1.
-- `REVIEW.json` has no `CP-107` entry although `RESUME.md` and
-  `test_regressions.TestCP107…` cite it; recorded here, not back-filled.
+- `REVIEW.json` had no `CP-107` entry although `RESUME.md` and
+  `test_regressions.TestCP107…` cite it; back-filled at the end of round 28
+  from the round-26 summary and the regression test.
 - `CP-109` (note `invisible-characters-in-keyvalue-and-code-names.md`): an
   invisible character inside a variable name, a code identifier or a JSON
   string sent the value unredacted (shell, JavaScript, R, SQL, Python, JSON;
@@ -27,13 +28,13 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   reads the detection view itself; `_code.discover` re-parses without format
   characters. `NOT_YET` is gone: `python` and `rlang` join the structural
   test, and `notebook` stays out by design (`STRUCTURAL_KEY`). Fragment
-  `security/907.fix.rst`; design `DESIGN.md` D-28.2.
+  `security/909.fix.rst`; design `DESIGN.md` D-28.2.
 - `CP-110` (note `email-addresses-with-non-ascii-letters.md`): one non-ASCII
   letter kept an address from being found at all (reproduced: 43 of the new
   regression tests fail on the earlier tree). `EMAIL` takes letters, digits
   and combining marks of any script and starts after any non-local-part
   character; `probe_negative.py` and `probe_fuzz.py` stay green. Design
-  D-28.3; one bullet with `CP-109` in `security/907.fix.rst` (one fragment
+  D-28.3; one bullet with `CP-109` in `security/909.fix.rst` (one fragment
   per pull request and type).
 - `CP-111` (note `phone-pattern-groupings-and-ranges.md`): international
   groupings sent their prefix, long subscriber numbers were missed, and year
@@ -41,7 +42,7 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   regression tests fail on the earlier tree). `PHONE` has international,
   trunk-0 and grouped alternatives plus an extension; the validator rejects
   year ranges and numeric dates. `probe_scale.py` gains a 2000-row phone
-  check. Fragment `scikitplot.cleanprompt/907.fix.rst`; design D-28.4.
+  check. Fragment `scikitplot.cleanprompt/909.fix.rst`; design D-28.4.
 - `CP-112` (note `restore-alters-near-placeholders-in-the-source.md`): a
   label spelling written in the source (`[email_1]`, `[EMAIL<U+2028>-1]`)
   was restored as the value later issued that label (reproduced; the
@@ -49,7 +50,7 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   842 of 3000 documents on the earlier tree, 0 after). Lenient matches now
   reserve their normalised label. The session case is a new note,
   `source-spellings-of-earlier-labels-in-a-session.md`. Design D-28.5; one
-  bullet with `CP-111` in `scikitplot.cleanprompt/907.fix.rst`.
+  bullet with `CP-111` in `scikitplot.cleanprompt/909.fix.rst`.
 - `CP-113` (note `source-spellings-of-earlier-labels-in-a-session.md`): a
   spelling of a label issued in an earlier turn (or an earlier chunk, or a
   re-cased surrogate) decoded to that earlier value (reproduced: 7 of 8 new
@@ -64,7 +65,7 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   compatibility folding; `probe_negative.py` gains `V28` (1000 salted
   values). `LICENSES/LICENSE_unicode` added; the cleanprompt partial's
   license is now `BSD-3-Clause AND MIT AND Unicode-DFS-2016`. Design
-  D-28.7; one bullet in `security/907.fix.rst`.
+  D-28.7; one bullet in `security/909.fix.rst`.
 - Found while verifying `CP-114` with the lib-tool suite: the `CP-108` test
   `test__pattern_timeout.py` read a plan file without `encoding="utf-8"`,
   which `libs/_tools` refuses for Windows; fixed.
@@ -72,12 +73,12 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   (`tokenize`, `surrogate`, `report`, `block`) across the policy, engine,
   plan, config, CLI (`--action`, both frontends), guard, MCP, diagnostics and
   batch. Default output byte-identical to the earlier tree over 1500 random
-  documents. Design D-28.8; fragment `scikitplot.cleanprompt/907.feature.rst`.
+  documents. Design D-28.8; fragment `scikitplot.cleanprompt/909.feature.rst`.
 - `CP-116` (note `generated-coverage-matrix.md`): `coverage_matrix` and
   `kinds --matrix`, read from the registries; the user guide's coverage table
   is generated from it and checked for drift. Locale and semantic-risk
   columns left out (no registry records them). Design D-28.9; fragment
-  `scikitplot.cleanprompt/907.enhancement.rst`.
+  `scikitplot.cleanprompt/909.enhancement.rst`.
 - `CP-117` (vehicle half of `vehicle-and-locale-identifier-packs.md`): the
   `vehicle` pack and the `vin_check` validator (49 CFR 565.15). The note is
   narrowed to the remaining locale packs and renamed
@@ -91,6 +92,12 @@ closes `bound-custom-pattern-runtime-with-a-timeout.md` (decision 3 of round
   The note stays open for further jurisdictions; its evidence now records
   that the UK National Insurance number was already in `personal`. Design
   D-28.12; same enhancement bullet.
+- Tools for any chat to continue the work the same way:
+  `tools/output_digest.py` (the default-output hash, baseline in
+  `evidence/output_digest.json`, unchanged since CP-108) and
+  `tools/standin.py` (the Python 3.8 stand-in parent), beside the
+  repository-wide `orient.py` and `deliver.py` under
+  `maintenances/_repo/_maintenance/tools/`. No runtime change.
 
 ## 2026-10-10 — round twenty-seven: the pull request's CI, three failures
 
